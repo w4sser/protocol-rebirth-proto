@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Bit smiley logomark">
+  
+  <rect x="37" y="40" width="13" height="21" rx="6.5" fill="#54ECCB"></rect>
+  <rect x="70" y="40" width="13" height="21" rx="6.5" fill="#54ECCB"></rect>
+  <path d="M32 65 Q60 97 88 65" fill="none" stroke="#54ECCB" stroke-width="12.5" stroke-linecap="round"></path>
+</svg>

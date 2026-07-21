@@ -57,5 +57,7 @@ window.DATA.progression.currencyReveal = { scrap:"start", salvage:"first_raid", 
 window.DATA.progression.survey = [
   { id:"knew_target", q:"Did you always know what you were looking for before a raid?", opts:["Always","Mostly","Often lost"] },
   { id:"one_more",    q:"Did you catch yourself wanting one more raid?", opts:["Yes, several times","Once","Not really"] },
-  { id:"best_moment", q:"Best moment?", opts:["Power restored","Finding a tracked item","Repairing BIT","Surviving a close raid"] }
+  { id:"best_moment", q:"Best moment?", opts:["Power restored","Finding a tracked item","Repairing BIT","Surviving a close raid"] },
+  { id:"pull_back",   q:"When you stopped playing, was something in the base still pulling you back?", opts:["Yes, strongly","A little","No"] },
+  { id:"confusion",   q:"What confused you the most?", opts:["Nothing","The currencies","Where to find items","Death and insurance rules"] }
 ];

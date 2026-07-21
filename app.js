@@ -10,7 +10,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 2;   // bump on state-model changes; old saves are discarded in prototype phase
+const SAVE_VERSION = 3;   // bump on state-model changes; old saves are discarded in prototype phase
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -26,6 +26,11 @@ function freshState(){
     tracked: null, trackedStreak: 0,
     zoneIntel: {}, raids: 0, deaths: 0,
     revealed: { scrap: true }, surveyDone: false, surveyAnswers: {},
+    retentionMode: D.retention.defaultMode,
+    fuel: D.retention.fuel.max, fuelAt: Date.now(),
+    streak: 0, lastDay: "", lastYieldAt: 0,
+    expedition: null, decrypt: null, loreUnlocked: 0,
+    contracts: {}, contractsDay: "", pendingReport: [],
     lightsOn: false, introSeen: false,
     log: []
   };
@@ -43,7 +48,7 @@ function load(){
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
 }
-function act(action, payload){ log(action, payload); save(); }
+function act(action, payload){ log(action, payload); if(S.retentionMode) contractHook(action); save(); }
 
 /* ---------- derived ---------- */
 function coreLevel(){ return S.modules.rebirth_core || 0; }
@@ -122,7 +127,11 @@ function bitDock(trigger, vars){
   const dock = document.getElementById("bitdock");
   if(!S.lightsOn){ dock.style.display = "none"; return; }
   dock.style.display = "flex";
-  document.getElementById("bitface").className = bitOnline() ? "" : "off";
+  document.getElementById("bitface").className = (bitOnline() && !bitAway()) ? "" : "off";
+  if(bitAway()){
+    document.getElementById("bitline").textContent = "[BIT is in the field — back in ~" + Math.max(0, Math.ceil((S.expedition.returnAt - Date.now())/1000)) + "s]";
+    return;
+  }
   const miss = trackedMissingItem();
   let line;
   if(trigger) line = bitLine(trigger, vars);
@@ -140,6 +149,83 @@ function bestZoneFor(itemId){
   return best;
 }
 
+/* ---------- retention layer (data/retention.js; gated by retentionMode) ---------- */
+function retMode(){ return S.retentionMode || D.retention.defaultMode; }
+function bitAway(){ return !!S.expedition; }
+function dayStr(){ return new Date().toDateString(); }
+function tickRetention(){
+  const R = D.retention, now = Date.now();
+  if(retMode() === "full"){
+    const gain = Math.floor((now - S.fuelAt) / (R.fuel.regenSec*1000));
+    if(S.fuel >= R.fuel.max){ S.fuelAt = now; }
+    else if(gain > 0){ S.fuel = Math.min(R.fuel.max, S.fuel + gain); S.fuelAt = now; }
+  }
+  if(S.expedition && now >= S.expedition.returnAt){
+    const exp = S.expedition; S.expedition = null;
+    let row;
+    if(Math.random() < R.expedition.failChance){
+      row = { txt:"BIT's expedition failed. He does not want to talk about it.", item:null };
+    } else {
+      const id = (exp.trackedItemId && Math.random() < R.expedition.trackedBias)
+        ? exp.trackedItemId : pick(R.expedition.fallbackLoot);
+      addItem(id, 1);
+      row = { txt:"BIT's expedition: found 1× " + ITEMS[id].name + ".", item:id };
+    }
+    S.pendingReport.push(row);
+    act("EXPEDITION_RETURNED", { item: row.item });
+  }
+  if(S.decrypt && now >= S.decrypt.returnAt){
+    S.decrypt = null;
+    const lore = D.protocolLog[Math.min(S.loreUnlocked, D.protocolLog.length-1)];
+    S.loreUnlocked++;
+    S.pendingReport.push({ txt:"Decryption complete — " + lore.title + ": " + lore.text, lore: lore.id });
+    act("DECRYPT_DONE", { lore: lore.id });
+  }
+}
+function morningRows(){
+  const R = D.retention, rows = [];
+  if(retMode() === "core"){ S.pendingReport = []; return rows; }
+  const today = dayStr();
+  if(retMode() === "full" && S.lastDay && S.lastDay !== today){
+    S.streak++;
+    rows.push("Day streak: " + (S.streak + 1) + ". BIT counted. BIT always counts.");
+  }
+  if(S.lastDay !== today) S.lastDay = today;
+  if(retMode() === "full" && (S.modules.fabricator||0) >= 1 && S.lastYieldAt &&
+     Date.now() - S.lastYieldAt > R.morning.minAwayMin*60*1000){
+    const y = R.morning.yieldScrapPerFabLevel * S.modules.fabricator;
+    S.cur.scrap += y;
+    S.lastYieldAt = Date.now();
+    rows.push("Fabricator ran while you were away: +" + y + " Scrap.");
+  }
+  for(const r of S.pendingReport) rows.push(r.txt);
+  S.pendingReport = [];
+  return rows;
+}
+function contractsUnlocked(){
+  if(retMode() !== "full") return false;
+  const idx = PROG.beats.findIndex(b => b.id === D.retention.contracts.unlockAfterBeat);
+  return S.beat >= idx;
+}
+function contractHook(action){
+  if(!contractsUnlocked() || action === "CONTRACT_DONE") return;
+  const today = dayStr();
+  if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
+  for(const c of D.retention.contracts.daily){
+    if(c.action === action && !S.contracts[c.id]){
+      S.contracts[c.id] = "done";
+      log("CONTRACT_DONE", { id: c.id });
+    }
+  }
+}
+function fuelGate(){
+  if(retMode() !== "full") return { ok:true, siphon:false };
+  if(S.fuel > 0) return { ok:true, siphon:false };
+  const c = closestUpgrade();
+  if(c && c.pct >= D.retention.fuel.siphonPct) return { ok:true, siphon:true };
+  return { ok:false, siphon:false };
+}
+
 /* ---------- raid resolution (§4 of spec) ---------- */
 function resolveRaid(cfg){
   // cfg: {zoneId, riskId, loadout:[itemIds], insuranceId, trackedItemId}
@@ -154,7 +240,7 @@ function resolveRaid(cfg){
   } else outcome = Math.random() < chance ? "extract" : "death";
 
   // loot
-  const slots = risk.lootSlots + (bitOnline() ? 1 : 0); // BIT loot scan = +1 roll
+  const slots = risk.lootSlots + (bitOnline() && !bitAway() ? 1 : 0); // BIT loot scan = +1 roll (not while away)
   const loot = [];
   const rollOne = () => {
     const total = zone.lootTable.reduce((s,l)=>s+l.weight,0);
@@ -311,7 +397,9 @@ function revealCurrency(id){
 }
 function renderCurrencies(){
   const c = S.cur;
-  document.getElementById("currencies").innerHTML =
+  const fuelChip = retMode() === "full"
+    ? '<span class="cur">Fuel <b>' + S.fuel + '/' + D.retention.fuel.max + '</b></span>' : '';
+  document.getElementById("currencies").innerHTML = fuelChip +
     Object.keys(CUR_LABELS).filter(id => S.revealed[id])
       .map(id => '<span class="cur">' + CUR_LABELS[id] + ' <b>' + c[id] + '</b></span>').join("") +
     '<button id="devbtn" onclick="A.go(\'dev\')">⚙</button>';
@@ -323,6 +411,7 @@ function renderTabs(){
   ).join("");
 }
 function refresh(bitTrigger, bitVars){
+  tickRetention();
   $app().setAttribute("class", "s-" + session.screen);
   renderCurrencies(); renderTabs();
   document.body.classList.toggle("base-dark", !S.lightsOn);
@@ -444,6 +533,31 @@ SCREENS.base = function(){
     html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
       '<div class="small">' + esc(cap.capability) + '</div></div>';
   }
+  if(bitOnline() && retMode() !== "core"){
+    if(bitAway()){
+      html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
+        Math.max(0, Math.ceil((S.expedition.returnAt - Date.now())/1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
+    } else {
+      const ec = D.retention.expedition.costScrap;
+      html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
+        '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (S.cur.scrap >= ec ? '' : 'opacity:.4') + '" ' +
+        (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + ec + ' Scrap</button></div>' +
+        '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
+    }
+  }
+  if(contractsUnlocked()){
+    const today = dayStr();
+    if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
+    html += '<h2>Daily contracts</h2>';
+    for(const c of D.retention.contracts.daily){
+      const st = S.contracts[c.id];
+      const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
+      html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? "✔ " : "") + esc(c.txt) + '</span>' +
+        (st === "done"
+          ? '<button class="ghost" style="width:auto;margin:0;padding:6px 12px" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
+          : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
+    }
+  }
   if(coreLevel() >= 1 && curBeat().type !== "end"){
     html += '<button class="primary" onclick="A.go(\'prep\')">RAID PREP</button>';
   }
@@ -522,6 +636,11 @@ SCREENS.itemDetail = function(id){
     html += '<button class="ghost" onclick="A.scrapIt(\'' + id + '\')">Scrap it (+' + Math.floor(it.sellValue*D.scrapJunkRate) + ' Scrap)</button>';
   if((S.modules.storage||0) >= 1)
     html += '<button class="ghost" onclick="A.setSecure(\'' + id + '\')">' + (S.secureItem===id ? "★ Secure item (tap to clear)" : "Set as secure item") + '</button>';
+  if(retMode() === "full" && ITEMS[id].family === "protocol" && id === "encrypted_drive"){
+    html += S.decrypt
+      ? '<div class="card small">Decryption in progress — ~' + Math.max(0, Math.ceil((S.decrypt.returnAt - Date.now())/1000)) + 's left.</div>'
+      : '<button class="ghost" onclick="A.startDecrypt(\'' + id + '\')">DECRYPT (' + D.retention.decryption.durationSec + 's) — unlock a Protocol fragment</button>';
+  }
   $app().innerHTML = html;
 };
 
@@ -592,7 +711,7 @@ SCREENS.prep = function(){
   html += '<h2>Risk level</h2><div class="radio">';
   const zsel = ZONES[p.zoneId];
   for(const r of D.riskLevels){
-    const odds = bondLevel() >= 2
+    const odds = bondLevel() >= 2 && !bitAway()
       ? '<br><span class="small ok">' + Math.round(Math.min(zsel.baseExtractChance*r.extractMod, r.extractCap)*100) + '% out</span>' : '';
     html += '<div class="card tap ' + (p.riskId===r.id?"selected":"") + '" onclick="A.prepSet(\'riskId\',\'' + r.id + '\')"><b>' + r.name + '</b><br><span class="small">' + r.lootSlots + ' loot</span>' + odds + '</div>';
   }
@@ -611,9 +730,17 @@ SCREENS.prep = function(){
       html += '<button class="ad" onclick="A.adSignals()">▶ WATCH AD — +' + PROG.insurance.adSignalsGrant + ' SIGNALS</button>';
     }
   }
+  const fg = fuelGate();
+  if(retMode() === "full"){
+    html += '<h2>Fuel</h2><div class="card"><div class="row"><b>' + S.fuel + ' / ' + D.retention.fuel.max + '</b>' +
+      '<span class="small">1 per raid · regens over time</span></div>' +
+      (fg.siphon ? '<div class="small ok">Tracked upgrade almost done — BIT siphons reserve. Raid allowed.</div>' : '') +
+      (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">▶ WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
+      '</div>';
+  }
   html += '</div></div>';
   const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
-  const canDeploy = p.loadout.weapon && (!insOffered || tier.cost <= S.cur.signals);
+  const canDeploy = p.loadout.weapon && (!insOffered || tier.cost <= S.cur.signals) && fg.ok;
   html += '<button class="primary" ' + (canDeploy?"":"disabled") + ' onclick="A.deploy()">DEPLOY</button>';
   if(!p.loadout.weapon) html += '<div class="small" style="text-align:center;margin-top:6px">equip a weapon first</div>';
   $app().innerHTML = html;
@@ -750,6 +877,12 @@ SCREENS.dev = function(){
   html += '<h2>Grant item</h2><select id="devitem">' +
     D.items.map(i=>'<option value="' + i.id + '">' + esc(i.name) + '</option>').join("") +
     '</select><button class="ghost" onclick="A.devGrant()">Grant 1</button>';
+  html += '<h2>Retention mode (A/B)</h2><select id="devret">' +
+    ["core","bit","full"].map(m => '<option value="' + m + '" ' + (retMode()===m?'selected':'') + '>' + m + '</option>').join("") +
+    '</select><button class="ghost" onclick="A.devRetMode()">Apply</button>' +
+    '<div class="devgrid" style="margin-top:6px">' +
+    '<button onclick="A.devFuel()">+5 Fuel</button>' +
+    '<button onclick="A.devFinishTimers()">Finish timers now</button></div>';
   html += '<h2>Jump to beat</h2><select id="devbeat">' +
     PROG.beats.map((b,ix)=>'<option value="' + ix + '" ' + (ix===S.beat?'selected':'') + '>' + b.id + '</option>').join("") +
     '</select><button class="ghost" onclick="A.devJump()">Jump</button>';
@@ -818,6 +951,7 @@ window.A = {
     if(S.tracked && S.tracked.module === modId && S.tracked.level === next.level) S.tracked = null;
     act("MODULE_BUILT", { module: modId, level: next.level });
     if(modId === "bit_bay" && next.level === 1) revealCurrency("dataCores");
+    if(modId === "fabricator" && next.level === 1) S.lastYieldAt = Date.now();
     const b = curBeat();
     if((b.type === "build" && b.module === modId && b.level === next.level) ||
        (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
@@ -883,6 +1017,13 @@ window.A = {
     const p = session.prep;
     const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
     if(tier.cost > S.cur.signals) return;
+    const fg = fuelGate();
+    if(!fg.ok) return;
+    if(retMode() === "full"){
+      if(S.fuel > 0){ S.fuel--; if(S.fuel === D.retention.fuel.max - 1) S.fuelAt = Date.now(); }
+      else log("FUEL_SIPHON", {});
+    }
+    if(session.resultAt){ log("RESULT_TO_DEPLOY", { ms: Date.now() - session.resultAt }); session.resultAt = null; }
     S.cur.signals -= tier.cost;
     const loadout = ["weapon","armor","c1","c2"].map(k=>p.loadout[k]).filter(Boolean);
     loadout.forEach(id => removeItem(id,1)); // gear leaves the stash
@@ -899,6 +1040,9 @@ window.A = {
   raidDone(){
     (session.raidTimers||[]).forEach(t => { clearTimeout(t); clearInterval(t); });
     applyRaidResult(session.pendingRaid);
+    session.resultAt = Date.now();
+    const cu = closestUpgrade();
+    log("NEXT_UPGRADE_SHOWN", cu ? { module: cu.m.id, level: cu.next.level, pct: Math.round(cu.pct*100) } : {});
     session.screen = "result";
     renderCurrencies();
     SCREENS.result();
@@ -993,6 +1137,40 @@ window.A = {
     toast("Crafted " + ITEMS[r.output.itemId].name);
     refresh();
   },
+  sendExpedition(){
+    const R = D.retention.expedition;
+    if(bitAway() || S.cur.scrap < R.costScrap || !bitOnline()) return;
+    S.cur.scrap -= R.costScrap;
+    const miss = trackedMissingItem();
+    S.expedition = { returnAt: Date.now() + R.durationSec*1000, trackedItemId: miss ? miss.itemId : null };
+    act("EXPEDITION_SENT", { tracked: miss ? miss.itemId : null });
+    toast("BIT is out there. The base feels quieter.");
+    refresh();
+  },
+  claimContract(id){
+    const c = D.retention.contracts.daily.find(x => x.id === id);
+    if(!c || S.contracts[id] !== "done") return;
+    for(const k in c.reward) S.cur[k] = (S.cur[k]||0) + c.reward[k];
+    S.contracts[id] = "claimed";
+    act("CONTRACT_CLAIMED", { id });
+    toast("Contract reward collected");
+    refresh();
+  },
+  adFuel(){
+    fakeAd("+" + D.retention.fuel.adGrant + " fuel", ()=>{
+      S.fuel = Math.min(D.retention.fuel.max, S.fuel + D.retention.fuel.adGrant); save();
+      toast("+" + D.retention.fuel.adGrant + " Fuel");
+      refresh("raid_prep");
+    });
+  },
+  startDecrypt(id){
+    if(S.decrypt || have(id) < 1) return;
+    removeItem(id, 1);
+    S.decrypt = { returnAt: Date.now() + D.retention.decryption.durationSec*1000 };
+    act("DECRYPT_STARTED", {});
+    toast("Decryption running. BIT is very excited. Statistically.");
+    refresh();
+  },
   oneMoreRaid(modId, level){
     S.tracked = { module: modId, level };
     act("ONE_MORE_RAID", { module: modId, level });
@@ -1033,6 +1211,27 @@ window.A = {
     act("DEV_SKIP_RAID",{});
     session.screen = "result"; renderCurrencies(); SCREENS.result();
   },
+  devRetMode(){
+    S.retentionMode = document.getElementById("devret").value;
+    act("RETENTION_MODE_SET", { mode: S.retentionMode });
+    toast("Retention: " + S.retentionMode);
+    refresh();
+  },
+  devFuel(){ S.fuel = Math.min(D.retention.fuel.max + 5, S.fuel + 5); save(); refresh(); },
+  devFinishTimers(){
+    if(S.expedition) S.expedition.returnAt = 0;
+    if(S.decrypt) S.decrypt.returnAt = 0;
+    tickRetention();
+    const rows = morningRows();
+    if(rows.length) A.showMorning(rows); else refresh();
+  },
+  showMorning(rows){
+    act("MORNING_REPORT", { rows: rows.length });
+    overlay('<h1 class="ok">MORNING REPORT</h1>' +
+      '<p class="small" style="margin:6px 0 10px">BIT kept the lights on. Here is what happened.</p>' +
+      rows.map(r => '<div class="card" style="text-align:left;font-size:13px">' + esc(r) + '</div>').join("") +
+      '<button class="primary" data-close>GOOD MORNING</button>', () => refresh());
+  },
   devJump(){
     S.beat = parseInt(document.getElementById("devbeat").value,10);
     act("DEV_JUMP",{beat: curBeat().id}); save(); refresh();
@@ -1064,8 +1263,18 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   S = load();
   tryBitImage();
   if(!S.log.length) log("SESSION_START", {});
+  window.addEventListener("beforeunload", () => {
+    const cu = closestUpgrade();
+    log("SESSION_END", cu ? { unfinished: cu.m.id, pct: Math.round(cu.pct*100) } : {});
+    save();
+  });
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
+  if(S.introSeen){
+    tickRetention();
+    const rows = morningRows();
+    if(rows.length) A.showMorning(rows);
+  }
 }
 /* export pure logic for headless tests */
 if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };

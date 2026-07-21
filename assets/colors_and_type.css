@@ -1,0 +1,130 @@
+/* ============================================================
+   PROTOCOL REBIRTH — Core Color & Type Tokens
+   Studio: WILDCARD · Game: Protocol Rebirth · Mascot: Bit
+   Palette concept: "Swedish summer nights" — teal · purple · pink,
+   grounded by deep bunker night-teal and Bit's phosphor-green glow.
+   Fonts loaded from Google Fonts CDN (see note at bottom).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---------- CORE BRAND PALETTE (Swedish summer night) ---------- */
+  --pr-teal:          #15D6BE;  /* primary brand teal — vivid, pops */
+  --pr-teal-bright:   #3CF2DC;  /* hover / glow teal */
+  --pr-teal-deep:     #0F9A8C;  /* pressed / deep teal */
+
+  --pr-purple:        #6E4FC4;  /* twilight purple — secondary */
+  --pr-purple-bright: #9A6DF0;  /* lifted purple */
+  --pr-purple-deep:   #4A2F8F;
+
+  --pr-pink:          #DE7AA2;  /* horizon-glow pink — accent, muted/dusty */
+  --pr-pink-bright:   #ED9BBC;
+  --pr-pink-deep:     #B85781;
+
+  --pr-phosphor:      #54ECCB;  /* Bit's CRT smiley glow — teal-leaning phosphor */
+  --pr-amber:         #FF9D4D;  /* Bit "alert" face / warnings */
+
+  /* ---------- NIGHT NEUTRALS (deep teal-black bunker) ---------- */
+  --pr-night:    #07151C;  /* app background, deepest */
+  --pr-petrol:   #0C232C;  /* raised surface / panel */
+  --pr-petrol-2: #123039;  /* card / elevated panel */
+  --pr-steel:    #1C424C;  /* borders, dividers, inputs */
+  --pr-steel-2:  #2C5862;  /* hairline highlight / hover border */
+
+  /* ---------- FOREGROUND / TEXT ---------- */
+  --pr-bone:    #F2E9D6;  /* primary text — warm cream */
+  --pr-bone-2:  #C7CFCB;  /* secondary text */
+  --pr-bone-3:  #7E9088;  /* tertiary / muted / placeholder */
+  --pr-ink:     #040E12;  /* text on bright (teal/pink) fills */
+
+  /* ---------- TWILIGHT GRADIENTS ---------- */
+  --pr-grad-night:  linear-gradient(170deg, #17455A 0%, #2C3A66 48%, #4A3A6B 100%);
+  --pr-grad-summer: linear-gradient(135deg, #15D6BE 0%, #6E4FC4 55%, #DE7AA2 100%);
+  --pr-grad-horizon: linear-gradient(180deg, #0B2230 0%, #2A1C3E 60%, #5B2E5C 82%, #FF6FA5 110%);
+  --pr-grad-teal:   linear-gradient(135deg, #3CF2DC 0%, #15D6BE 100%);
+
+  /* ---------- GLOWS (signature CRT bloom) ---------- */
+  --pr-glow-teal:   0 0 1px #3CF2DC, 0 0 14px rgba(60,242,220,.6);
+  --pr-glow-pink:   0 0 1px #ED9BBC, 0 0 16px rgba(222,122,162,.42);
+  --pr-glow-phosphor: 0 0 2px #54ECCB, 0 0 12px rgba(84,236,203,.6), 0 0 28px rgba(84,236,203,.35);
+
+  /* ---------- ELEVATION ---------- */
+  --pr-shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --pr-shadow-md: 0 6px 20px rgba(0,0,0,.45);
+  --pr-shadow-lg: 0 18px 50px rgba(0,0,0,.6);
+  --pr-inset-screen: inset 0 0 60px rgba(0,0,0,.55), inset 0 0 2px rgba(143,240,168,.25);
+
+  /* ---------- RADII (chunky, hardware-panel feel) ---------- */
+  --pr-r-xs: 3px;
+  --pr-r-sm: 6px;
+  --pr-r-md: 10px;
+  --pr-r-lg: 16px;
+  --pr-r-pill: 999px;
+
+  /* ---------- SPACING (4px base grid) ---------- */
+  --pr-s1: 4px;  --pr-s2: 8px;  --pr-s3: 12px; --pr-s4: 16px;
+  --pr-s5: 24px; --pr-s6: 32px; --pr-s7: 48px; --pr-s8: 64px; --pr-s9: 96px;
+
+  /* ---------- FONT FAMILIES ---------- */
+  --pr-display: 'Archivo', 'Arial Narrow', sans-serif;  /* tactical wide caps */
+  --pr-sans:    'IBM Plex Sans', system-ui, sans-serif; /* body / UI */
+  --pr-mono:    'IBM Plex Mono', ui-monospace, monospace; /* HUD / data / Bit voice */
+}
+
+/* ============================================================
+   SEMANTIC TYPE SCALE
+   Display = Archivo (heavy, wide, ALL CAPS for titles & menus)
+   Body    = IBM Plex Sans
+   Mono    = IBM Plex Mono (HUD readouts, stats, terminal/Bit lines)
+   ============================================================ */
+
+.pr-display, .pr-h0, .pr-h1, .pr-h2 {
+  font-family: var(--pr-display);
+  color: var(--pr-bone);
+  text-transform: uppercase;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+}
+
+.pr-h0 { font-size: clamp(48px, 9vw, 120px); font-weight: 900; letter-spacing: 0.005em; }
+.pr-h1 { font-size: clamp(36px, 5.5vw, 68px); }
+.pr-h2 { font-size: clamp(26px, 3.4vw, 40px); font-weight: 700; }
+.pr-h3 {
+  font-family: var(--pr-display);
+  font-size: 22px; font-weight: 700; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: 0.02em; color: var(--pr-bone);
+}
+
+.pr-eyebrow {
+  font-family: var(--pr-mono);
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.32em;
+  color: var(--pr-teal);
+}
+
+.pr-body {
+  font-family: var(--pr-sans);
+  font-size: 16px; line-height: 1.6; font-weight: 400;
+  color: var(--pr-bone-2);
+}
+.pr-body-lg { font-family: var(--pr-sans); font-size: 19px; line-height: 1.55; color: var(--pr-bone-2); }
+.pr-small   { font-family: var(--pr-sans); font-size: 13px; line-height: 1.5; color: var(--pr-bone-3); }
+
+/* HUD / data readout — monospace, the "computer" voice */
+.pr-hud {
+  font-family: var(--pr-mono);
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--pr-teal);
+}
+.pr-stat {
+  font-family: var(--pr-mono);
+  font-size: 30px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--pr-bone);
+}
+.pr-code {
+  font-family: var(--pr-mono);
+  font-size: 14px; color: var(--pr-phosphor);
+}
