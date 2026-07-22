@@ -499,11 +499,11 @@ SCREENS.intro = function(){
     '<button class="primary" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
 };
 
-function roomHtml(modId, idx){
+function roomHtml(modId){
   const m = MODS[modId], lvl = S.modules[modId] || 0;
   const visible = moduleVisible(modId);
   const next = nextLevelDef(modId);
-  const art = D.moduleArt[modId];
+  const hs = (D.baseMap.hotspots || {})[modId] || { x:50, y:50 };
   let stateCls, chips = "";
   if(!visible) stateCls = "dark";
   else if(lvl === 0){
@@ -532,17 +532,10 @@ function roomHtml(modId, idx){
     const haveT = parts.reduce((s,p)=>s+Math.min(p.have,p.need),0);
     bar = '<div class="roombar"><div style="width:' + (needT ? Math.round(haveT/needT*100) : 0) + '%"></div></div>';
   }
-  const artInner =
-    art === "core"  ? '<div class="corering"></div>' :
-    art === "fab"   ? '<div class="fabbars"><i></i><i></i><i></i></div>' :
-    art === "bit"   ? '<div class="bitart">' + (bitOnline() ? "ᵕ‿ᵕ" : "✕‿✕") + '</div>' :
-    art === "vault" ? '<div class="crates"><i></i><i></i><i></i><i></i><i></i><i></i></div>' : '';
-  return '<div class="room ' + stateCls + '" style="animation-delay:' + (idx*0.28) + 's"' +
+  return '<div class="room hs ' + stateCls + '" style="left:' + hs.x + '%;top:' + hs.y + '%"' +
     (visible ? ' onclick="A.go(\'module\',\'' + modId + '\')"' : '') + '>' +
     '<div class="roomname"><span>' + (visible ? esc(m.name) : "— no power —") + '</span>' +
     (visible && lvl ? '<span class="lvl">L' + lvl + '</span>' : '') + '</div>' +
-    '<div class="roomart art-' + art + (lvl ? '' : ' off') + '">' + artInner +
-      m.levels.filter(l => l.level <= lvl && l.artAdd).map(l => '<i class="artadd aa-' + l.artAdd + '"></i>').join("") + '</div>' +
     (visible && m.benefit ? '<div class="rbenefit">' + esc(m.benefit) + '</div>' : '') +
     '<div class="chips">' + tracked + chips + '</div>' + bar + '</div>';
 }
@@ -588,11 +581,14 @@ SCREENS.base = function(){
   let html = '<h1>Rebirth Facility</h1><div class="sub">restoration ' + restorePct + '%</div>' +
     '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>' + goalBarHtml();
 
-  html += '<div class="fac' + (session.wake ? ' wake' : '') + '">';
-  let idx = 0;
-  for(const row of D.baseLayout){
-    html += '<div class="facrow">' + row.map(id => roomHtml(id, idx++)).join("") + '</div>';
-  }
+  const BM = D.baseMap;
+  html += '<div class="basewrap' + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
+    '<div class="baseenv"></div>' +
+    '<div class="flagpatch" style="left:' + BM.flagPatch.x + '%;top:' + BM.flagPatch.y + '%">ᵕ‿ᵕ</div>';
+  for(const m of D.modules) html += roomHtml(m.id);
+  for(const L of BM.locked)
+    html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
+  html += '<div class="lockchip gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" onclick="A.go(\'prep\')">◎ ' + esc(BM.raidGate.label) + '</div>';
   html += '</div>';
   session.wake = false;
   if(bitOnline()){
@@ -671,6 +667,7 @@ SCREENS.module = function(modId){
     const capped = next.level > moduleCap(modId);
     const isTracked = S.tracked && S.tracked.module === modId && S.tracked.level === next.level;
     html += '<h2>Upgrade to Level ' + next.level + '</h2>';
+    if(next.artBefore) html += '<div class="modart" style="background-image:url(\'' + next.artBefore + '\')"></div>';
     if(next.preview){
       html += '<div class="card"><div class="nu-head" style="color:var(--danger)">CURRENT STATE</div><span class="small">' + esc(next.preview.before) + '</span></div>';
       html += '<div class="card"><div class="nu-head">AFTER ' + (lvl ? "UPGRADE" : "REPAIR") + '</div>' +
@@ -781,6 +778,7 @@ SCREENS.prep = function(){
       (bitOnline() && !bitAway() && lead ? '<div class="small" style="margin-top:4px">BIT: ' + esc(bitLine("route_reco", { route: lead.route.name, item: ITEMS[miss.itemId].name })) + '</div>' : '') +
       '</div>';
   }
+  html += '<div class="mappanel"></div>';
   html += '<h2>Zone</h2>';
   for(const z of D.raidZones){
     const locked = coreLevel() < z.unlockedAtCore;
@@ -911,6 +909,7 @@ SCREENS.raidsim = function(){
 };
 
 SCREENS.decision = function(){
+  $app().setAttribute("class", "s-decision");
   const R = session.pendingRaid;
   const zone = ZONES[R.zone], route = routeOf(zone, R.cfg.routeId);
   const pd = D.raidConfig.pushDeeper;
@@ -934,6 +933,7 @@ SCREENS.decision = function(){
 
 SCREENS.result = function(){
   const R = session.pendingRaid;
+  $app().setAttribute("class", "s-result " + (R.outcome === "extract" ? "res-ok" : "res-fail"));
   let html;
   if(R.outcome === "extract"){
     html = '<h1 class="ok">EXTRACTED</h1><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Haul</h2>';
@@ -1131,7 +1131,8 @@ window.A = {
       let bdust = '<div class="dustwrap">';
       for(let i=0;i<8;i++) bdust += '<i style="left:' + (5+Math.random()*90) + '%;animation-delay:' + (Math.random()*0.7) + 's"></i>';
       bdust += '</div>';
-      const ovEl = overlay('<h1 class="ok">' + esc(MODS[modId].name).toUpperCase() + ' L' + next.level + '</h1>' + bdust +
+      const artAfter = next.artAfter ? '<div class="modart tall" style="background-image:url(\'' + next.artAfter + '\')"></div>' : '';
+      const ovEl = overlay('<h1 class="ok">' + esc(MODS[modId].name).toUpperCase() + ' L' + next.level + '</h1>' + bdust + artAfter +
         '<p style="margin:14px 0;font-size:13px">' + esc(next.unlockText) + '</p>' +
         '<p class="small" style="margin-bottom:10px">BIT: ' + esc(bitLine(isBitOnline ? "bond_up" : "module_built")) + '</p>' +
         '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +

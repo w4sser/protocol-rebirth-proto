@@ -61,6 +61,8 @@ window.DATA.modules = [
         benefitText:"BIT adds one loot scan per raid and recommends where to search for tracked items.",
         preview:{ before:"A dark docking cradle. BIT sits in it, optics smashed, one LED blinking.",
                   after:["BIT comes online and follows you","+1 loot scan every raid","BIT recommends the best search route for tracked items"] },
+        artBefore:"assets/production/env_bitbay_broken.webp",
+        artAfter:"assets/production/env_bitbay_online.webp",
         newGoal:"Choose your path: Storage (less friction) or save for Core L2 (new zone)." },
       { level:2,
         cost:{ salvage:45, dataCores:6, items:{ memory_module:1 } },
@@ -98,3 +100,23 @@ window.DATA.storageBonus = 8;
 // Facility layout (rows of rooms, top to bottom) and per-module art style.
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
 window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", storage:"vault" };
+
+// Illustrated base map: env layer + percent-positioned hotspots (responsive).
+// Coordinates are % of the cropped env_base.webp (1600x720).
+window.DATA.baseMap = {
+  env: "assets/production/env_base.webp",
+  flagPatch: { x:44.7, y:6.0 },   // covers the baked-in flag with a BIT banner (no national symbols)
+  hotspots: {
+    rebirth_core: { x:45,  y:43.5 },
+    bit_bay:      { x:62,  y:39 },
+    fabricator:   { x:33,  y:75 },
+    storage:      { x:51,  y:75 }
+  },
+  raidGate: { x:80, y:80, label:"Raid Gate" },
+  locked: [
+    { id:"radar_relay",   label:"Radar Relay",          x:10,   y:34 },
+    { id:"greenhouse",    label:"Overgrown Greenhouse", x:8.5,  y:72 },
+    { id:"blocked_tunnel",label:"Blocked Tunnel",       x:79.5, y:49 },
+    { id:"broken_bridge", label:"Broken Bridge",        x:93,   y:59 }
+  ]
+};
