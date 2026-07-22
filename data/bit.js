@@ -54,6 +54,16 @@ window.DATA.bit = {
       "loadout looks... adequate. that's a compliment. from me it is.",
       "pick your risk. i'll be there either way. mostly there."
     ],
+    route_reco:[
+      "{route} is our best lead. best does not mean good. i checked.",
+      "if i were a {item}, i would be in the {route}. i have been wrong before. once.",
+      "{route}. bring a weapon. bring two."
+    ],
+    decision_found:[
+      "that is the part we need. leaving now would be statistically sensible.",
+      "we have what we came for. everything past this point is greed. i respect it, but i log it.",
+      "target secured. the exit is that way. the loot is the other way. your call."
+    ],
     bit_offline:[
       "…", "[unit offline — optical array missing]", "[BIT is here. BIT cannot see. find the sensor.]"
     ]

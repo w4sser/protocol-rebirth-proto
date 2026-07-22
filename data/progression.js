@@ -29,7 +29,8 @@ window.DATA.progression = {
     { id:"raid_1", type:"raid",
       goalText:"Find 1× Cable and 1× Fuse for the Fabricator",
       forceOutcome:"extract", forceExceptRisk:"aggressive",
-      guaranteedDrops:["cable","fuse"], insuranceOffered:false },
+      guaranteedDrops:["cable","fuse"], insuranceOffered:false,
+      autoTrack:{ module:"fabricator", level:1 } },
     { id:"fabricator_l1", type:"build", module:"fabricator", level:1,
       goalText:"Build the Fabricator" },
     { id:"raid_2", type:"raid",
@@ -55,9 +56,10 @@ window.DATA.progression.currencyReveal = { scrap:"start", salvage:"first_raid", 
 
 // Post-prototype playtest survey (3 taps, logged to the event log).
 window.DATA.progression.survey = [
-  { id:"knew_target", q:"Did you always know what you were looking for before a raid?", opts:["Always","Mostly","Often lost"] },
-  { id:"one_more",    q:"Did you catch yourself wanting one more raid?", opts:["Yes, several times","Once","Not really"] },
-  { id:"best_moment", q:"Best moment?", opts:["Power restored","Finding a tracked item","Repairing BIT","Surviving a close raid"] },
-  { id:"pull_back",   q:"When you stopped playing, was something in the base still pulling you back?", opts:["Yes, strongly","A little","No"] },
-  { id:"confusion",   q:"What confused you the most?", opts:["Nothing","The currencies","Where to find items","Death and insurance rules"] }
+  { id:"end_building",   q:"What were you building at the end of the prototype?", opts:["Rebirth Core","Fabricator","BIT Bay","Storage / Vault","Not sure"] },
+  { id:"benefit_known",  q:"What gameplay benefit would that upgrade have given you?", opts:["I knew exactly","Roughly","No idea"] },
+  { id:"search_decision",q:"How did you decide where to search?", opts:["Followed the recommended route","Weighed risk vs reward myself","Picked more or less randomly"] },
+  { id:"randomness",     q:"Did raid results feel random, controllable, or both?", opts:["Mostly random","Mostly controllable","Both — in a good way","Both — frustrating"] },
+  { id:"push_deeper",    q:"Did you ever push deeper after finding useful loot? Why?", opts:["Yes — wanted a bigger haul","Yes — and regretted it","No — extracted safe","Never saw the choice"] },
+  { id:"first_upgrade",  q:"Which upgrade would you choose first if you continued?", opts:["Core L2 — new zone","Fabricator L2 — better crafting","BIT Bay L2 — cargo rack","Storage — secure slot"] }
 ];

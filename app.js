@@ -10,7 +10,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 3;   // bump on state-model changes; old saves are discarded in prototype phase
+const SAVE_VERSION = 4;   // bump on state-model changes; old saves are discarded in prototype phase
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -226,39 +226,86 @@ function fuelGate(){
   return { ok:false, siphon:false };
 }
 
+/* ---------- routes & search intel ---------- */
+function routeOf(zone, routeId){
+  return (zone.routes || []).find(r => r.id === routeId) || (zone.routes || [])[0] ||
+    { id:"direct", name:"Direct", threat:zone.threat, extractMod:1, lootSlotMod:0, weightMult:{}, families:zone.likelyFamilies||[], desc:"" };
+}
+function effTable(zone, route, rareMult){
+  return zone.lootTable.map(l => {
+    const fam = ITEMS[l.itemId].family;
+    let w = l.weight * (route.weightMult && route.weightMult[fam] !== undefined ? route.weightMult[fam] : 1);
+    if(rareMult && rareMult[fam]) w *= rareMult[fam];
+    return { itemId: l.itemId, weight: w };
+  });
+}
+function rollFromTable(table){
+  const total = table.reduce((s,l)=>s+l.weight,0);
+  let r = Math.random()*total;
+  for(const l of table){ r -= l.weight; if(r <= 0) return l.itemId; }
+  return table[0].itemId;
+}
+function trackedChanceP(itemId, zone, route, slots){
+  const table = effTable(zone, route);
+  const total = table.reduce((s,l)=>s+l.weight,0);
+  const e = table.find(l=>l.itemId===itemId);
+  if(!e || !total || !e.weight) return 0;
+  return 1 - Math.pow(1 - e.weight/total, slots);
+}
+function chanceLabel(p){
+  for(const c of D.raidConfig.chanceLabels){ if(p >= c.min) return c.label; }
+  return "Low";
+}
+function bestLead(itemId){
+  let best = null;
+  const std = D.riskLevels.find(r=>r.id==="standard");
+  for(const z of D.raidZones){
+    if(coreLevel() < z.unlockedAtCore) continue;
+    for(const rt of (z.routes||[])){
+      const slots = Math.max(1, std.lootSlots + (rt.lootSlotMod||0) + (bitOnline() && !bitAway() ? 1 : 0));
+      const p = trackedChanceP(itemId, z, rt, slots);
+      if(!best || p > best.p) best = { zone:z, route:rt, p };
+    }
+  }
+  if(best) best.label = chanceLabel(best.p);
+  return best;
+}
+function lootValue(loot){ return loot.reduce((s,id)=>s+(ITEMS[id].sellValue||0),0); }
+function raidCtx(R){
+  return { zone:R.zone, route:R.cfg.routeId, tracked:R.cfg.trackedItemId||null, risk:R.cfg.riskId,
+    lootValue:lootValue(R.loot), trackedFound:!!R.trackedFound, mode:retMode() };
+}
+
 /* ---------- raid resolution (§4 of spec) ---------- */
 function resolveRaid(cfg){
-  // cfg: {zoneId, riskId, loadout:[itemIds], insuranceId, trackedItemId}
+  // cfg: {zoneId, routeId, riskId, loadout:[itemIds], insuranceId, trackedItemId}
+  // The player chose zone + route + risk. The rolls below decide everything else.
   const zone = ZONES[cfg.zoneId];
+  const route = routeOf(zone, cfg.routeId);
+  cfg.routeId = route.id;
   const risk = D.riskLevels.find(r => r.id === cfg.riskId);
   const beat = curBeat();
-  let chance = Math.min(zone.baseExtractChance * risk.extractMod, risk.extractCap);
+  let chance = Math.min(zone.baseExtractChance * risk.extractMod * (route.extractMod||1), risk.extractCap);
+  const forced = beat.type === "raid" && beat.forceOutcome && cfg.riskId !== beat.forceExceptRisk;
   let outcome;
   if(session.devForce){ outcome = session.devForce; session.devForce = null; }
-  else if(beat.type === "raid" && beat.forceOutcome && cfg.riskId !== beat.forceExceptRisk){
-    outcome = beat.forceOutcome;
-  } else outcome = Math.random() < chance ? "extract" : "death";
+  else if(forced){ outcome = beat.forceOutcome; }
+  else outcome = Math.random() < chance ? "extract" : "death";
 
-  // loot
-  const slots = risk.lootSlots + (bitOnline() && !bitAway() ? 1 : 0); // BIT loot scan = +1 roll (not while away)
+  // loot — weighted rolls from the route-modified zone table
+  const table = effTable(zone, route);
+  const totalW = table.reduce((s,l)=>s+l.weight,0);
+  const slots = Math.max(1, risk.lootSlots + (route.lootSlotMod||0) + (bitOnline() && !bitAway() ? 1 : 0));
   const loot = [];
-  const rollOne = () => {
-    const total = zone.lootTable.reduce((s,l)=>s+l.weight,0);
-    let r = Math.random()*total;
-    for(const l of zone.lootTable){ r -= l.weight; if(r <= 0) return l.itemId; }
-    return zone.lootTable[0].itemId;
-  };
-  let trackedFound = false;
   for(let i=0;i<slots;i++){
     let id;
-    if(i===0 && cfg.trackedItemId && zone.lootTable.some(l=>l.itemId===cfg.trackedItemId)){
-      const e = zone.lootTable.find(l=>l.itemId===cfg.trackedItemId);
-      const total = zone.lootTable.reduce((s,l)=>s+l.weight,0);
-      id = Math.random() < Math.min((e.weight*3)/total, 0.9) ? cfg.trackedItemId : rollOne();
-    } else id = rollOne();
+    if(i===0 && cfg.trackedItemId && table.some(l=>l.itemId===cfg.trackedItemId && l.weight>0)){
+      const e = table.find(l=>l.itemId===cfg.trackedItemId);
+      id = Math.random() < Math.min((e.weight*3)/totalW, 0.9) ? cfg.trackedItemId : rollFromTable(table);
+    } else id = rollFromTable(table);
     loot.push(id);
   }
-  // pity: guaranteed by Nth consecutive tracked raid
+  // pity: guaranteed by Nth consecutive tracked raid (unchanged rules)
   if(cfg.trackedItemId && !loot.includes(cfg.trackedItemId)
      && S.trackedStreak + 1 >= (bondLevel() >= 5 ? 1 : PROG.trackedPityRaids)
      && zone.lootTable.some(l=>l.itemId===cfg.trackedItemId)){
@@ -267,11 +314,30 @@ function resolveRaid(cfg){
   // beat guaranteed drops always injected
   (beat.guaranteedDrops||[]).forEach((id,ix) => { if(!loot.includes(id)) loot[Math.min(ix, loot.length-1) + (ix?1:0)] = id; });
   (beat.guaranteedDrops||[]).forEach(id => { if(!loot.includes(id)) loot.push(id); });
-  trackedFound = !!cfg.trackedItemId && loot.includes(cfg.trackedItemId);
+  const trackedFound = !!cfg.trackedItemId && loot.includes(cfg.trackedItemId);
 
   const salvage = randInt(zone.salvageRange[0], zone.salvageRange[1]);
   const dataCores = randInt(zone.dataCoresOnExtract[0], zone.dataCoresOnExtract[1]);
-  return { cfg, zone: zone.id, outcome, loot, salvage, dataCores, trackedFound };
+  const valuableFound = loot.some(id => ITEMS[id].rarity === "protocol" || ITEMS[id].rarity === "valuable");
+  const R = { cfg, zone: zone.id, outcome, loot, salvage, dataCores, trackedFound };
+  // one meaningful mid-raid decision: only on live (unforced) successful raids with tracked/valuable loot
+  R.decision = { eligible: outcome === "extract" && !forced && (trackedFound || valuableFound), resolved: false };
+  return R;
+}
+function rollPushDeeper(R){
+  const pd = D.raidConfig.pushDeeper;
+  const zone = ZONES[R.zone];
+  const route = routeOf(zone, R.cfg.routeId);
+  if(Math.random() < pd.deathChanceAdd){
+    R.outcome = "death";
+    R.pushedAndDied = true;
+    return { died: true, extra: [] };
+  }
+  const table = effTable(zone, route, pd.rareFamilyMult);
+  const extra = [];
+  for(let i=0;i<pd.extraSlots;i++){ const id = rollFromTable(table); extra.push(id); R.loot.push(id); }
+  R.trackedFound = R.trackedFound || (!!R.cfg.trackedItemId && R.loot.includes(R.cfg.trackedItemId));
+  return { died: false, extra };
 }
 function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 
@@ -363,6 +429,7 @@ function bootSequence(next, done){
     el.innerHTML += '<div class="bootflash">█ POWER RESTORED █</div>' + dust +
       '<p style="margin:12px 0;font-size:13px;color:var(--txt)">' + esc(next.unlockText) + '</p>' +
       '<p class="small" style="margin-bottom:8px">BIT: lights. i missed lights.</p>' +
+      '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
       '<div class="card" style="text-align:left"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal) + '</div>' +
       '<button class="primary" data-close>ENTER THE FACILITY</button>';
   }, 500 + lines.length*750 + 300);
@@ -474,7 +541,9 @@ function roomHtml(modId, idx){
     (visible ? ' onclick="A.go(\'module\',\'' + modId + '\')"' : '') + '>' +
     '<div class="roomname"><span>' + (visible ? esc(m.name) : "— no power —") + '</span>' +
     (visible && lvl ? '<span class="lvl">L' + lvl + '</span>' : '') + '</div>' +
-    '<div class="roomart art-' + art + (lvl ? '' : ' off') + '">' + artInner + '</div>' +
+    '<div class="roomart art-' + art + (lvl ? '' : ' off') + '">' + artInner +
+      m.levels.filter(l => l.level <= lvl && l.artAdd).map(l => '<i class="artadd aa-' + l.artAdd + '"></i>').join("") + '</div>' +
+    (visible && m.benefit ? '<div class="rbenefit">' + esc(m.benefit) + '</div>' : '') +
     '<div class="chips">' + tracked + chips + '</div>' + bar + '</div>';
 }
 
@@ -559,7 +628,29 @@ SCREENS.base = function(){
     }
   }
   if(coreLevel() >= 1 && curBeat().type !== "end"){
-    html += '<button class="primary" onclick="A.go(\'prep\')">RAID PREP</button>';
+    const missB = trackedMissingItem();
+    if(missB){
+      const leadB = bestLead(missB.itemId);
+      const tm = MODS[S.tracked.module];
+      const tnext = tm.levels.find(l => l.level === S.tracked.level);
+      if(tnext){
+        html += '<div class="nextup"><div class="nu-head">NEXT UPGRADE</div><b>' + esc(tm.name) + ' L' + S.tracked.level + '</b><div style="margin:4px 0">' +
+          costParts(tnext.cost).map(pp => {
+            const nm = pp.kind === "item" ? ITEMS[pp.id].name : (pp.id === "dataCores" ? "Data Cores" : "Salvage");
+            return '<span class="chip ' + (pp.have >= pp.need ? "ok" : "need") + '">' + esc(nm) + ' ' + Math.min(pp.have,pp.need) + '/' + pp.need + '</span>';
+          }).join(" ") + '</div>' +
+          '<div class="kv"><span>Benefit</span><span class="small ok">' + esc(tnext.benefitText || tm.benefit || "") + '</span></div>' +
+          (leadB ? '<div class="kv"><span>Best lead</span><span class="trackc">' + esc(leadB.zone.name) + ' — ' + esc(leadB.route.name) + ' (' + leadB.label + ')</span></div>' : '') +
+          '</div>';
+      }
+      html += '<button class="primary" onclick="A.go(\'prep\')">RAID FOR ' + esc(ITEMS[missB.itemId].name).toUpperCase() + '</button>';
+    } else if(S.tracked){
+      html += '<button class="primary" onclick="A.goBuild(\'' + S.tracked.module + '\')">ALL PARTS FOUND — BUILD ' + esc(MODS[S.tracked.module].name).toUpperCase() + '</button>' +
+        '<button class="ghost" onclick="A.go(\'prep\')">Raid anyway</button>';
+    } else {
+      html += '<button class="primary" onclick="A.chooseNextUpgrade()">CHOOSE NEXT UPGRADE</button>' +
+        '<button class="ghost" onclick="A.go(\'prep\')">Free raid</button>';
+    }
   }
   if(curBeat().type === "end"){ html += '<button class="primary" onclick="A.go(\'end\')">PROTOTYPE COMPLETE — VIEW STATS</button>'; }
   $app().innerHTML = html;
@@ -580,7 +671,13 @@ SCREENS.module = function(modId){
     const capped = next.level > moduleCap(modId);
     const isTracked = S.tracked && S.tracked.module === modId && S.tracked.level === next.level;
     html += '<h2>Upgrade to Level ' + next.level + '</h2>';
-    html += '<div class="card"><b>Unlocks:</b> <span class="small">' + esc(next.unlockText) + '</span></div>';
+    if(next.preview){
+      html += '<div class="card"><div class="nu-head" style="color:var(--danger)">CURRENT STATE</div><span class="small">' + esc(next.preview.before) + '</span></div>';
+      html += '<div class="card"><div class="nu-head">AFTER ' + (lvl ? "UPGRADE" : "REPAIR") + '</div>' +
+        next.preview.after.map(a => '<div class="small ok">▸ ' + esc(a) + '</div>').join("") + '</div>';
+    } else {
+      html += '<div class="card"><b>Unlocks:</b> <span class="small">' + esc(next.unlockText) + '</span></div>';
+    }
     html += '<h2>Requirements</h2>';
     for(const p of costParts(next.cost)){
       const name = p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage");
@@ -649,6 +746,7 @@ SCREENS.prep = function(){
   if(!session.prep){
     session.prep = {
       zoneId: D.raidZones.find(z=>coreLevel()>=z.unlockedAtCore).id,
+      routeId: null,
       riskId: "standard",
       insuranceId: "none",
       loadout: { weapon:null, armor:null, c1:null, c2:null }
@@ -659,12 +757,30 @@ SCREENS.prep = function(){
     if(have("medkit")) session.prep.loadout.c1 = "medkit";
   }
   const p = session.prep;
+  const zoneSel = ZONES[p.zoneId];
+  if(!p.routeId || !(zoneSel.routes||[]).some(r=>r.id===p.routeId))
+    p.routeId = ((zoneSel.routes||[])[0]||{id:null}).id;
   const miss = trackedMissingItem();
+  const lead = miss ? bestLead(miss.itemId) : null;
+  if(!session.routeLogged){
+    log("RAID_ROUTE_SHOWN", { zone:p.zoneId, routes:(zoneSel.routes||[]).map(r=>r.id), mode:retMode() });
+    if(lead) log("TRACKED_ROUTE_RECOMMENDED", { item:miss.itemId, zone:lead.zone.id, route:lead.route.id, chance:lead.label });
+    session.routeLogged = true; save();
+  }
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
     '<h1>Raid Prep</h1>' + goalBarHtml();
 
   html += '<div class="prepgrid"><div class="pcol">';
+  if(miss){
+    html += '<div class="nextup"><div class="nu-head">NEXT TARGET</div>' +
+      '<b>' + esc(ITEMS[miss.itemId].name) + '</b> <span class="small">' + miss.have + '/' + miss.need + '</span>' +
+      (lead ? '<div class="kv"><span>Best known search</span><span class="trackc">' + esc(lead.zone.name) + ' — ' + esc(lead.route.name) + '</span></div>' +
+        '<div class="kv"><span>Chance</span><span class="ok">' + lead.label + '</span></div>' +
+        '<div class="kv"><span>Threat</span><span class="warn">' + "▲".repeat(lead.route.threat) + '</span></div>' : '') +
+      (bitOnline() && !bitAway() && lead ? '<div class="small" style="margin-top:4px">BIT: ' + esc(bitLine("route_reco", { route: lead.route.name, item: ITEMS[miss.itemId].name })) + '</div>' : '') +
+      '</div>';
+  }
   html += '<h2>Zone</h2>';
   for(const z of D.raidZones){
     const locked = coreLevel() < z.unlockedAtCore;
@@ -679,9 +795,17 @@ SCREENS.prep = function(){
       (locked ? '<span class="pill bad">Core L' + z.unlockedAtCore + '</span>' : '') + '</div></div>';
   }
 
-  if(miss){
-    html += '<h2>Looking for</h2><div class="card trackc"><b>' + esc(ITEMS[miss.itemId].name) + '</b> (' + miss.have + '/' + miss.need + ') — ' +
-      MODS[S.tracked.module].name + ' L' + S.tracked.level + '</div>';
+  html += '<h2>Search route</h2>';
+  for(const rt of (zoneSel.routes||[])){
+    const selr = p.routeId === rt.id;
+    const slotsQ = Math.max(1, 4 + (rt.lootSlotMod||0));
+    const chip = miss ? '<span class="pill trackc">' + esc(ITEMS[miss.itemId].name) + ': ' + chanceLabel(trackedChanceP(miss.itemId, zoneSel, rt, slotsQ)) + '</span>' : '';
+    html += '<div class="card tap ' + (selr?"selected":"") + '" onclick="A.prepSet(\'routeId\',\'' + rt.id + '\')">' +
+      '<div class="row"><b>' + esc(rt.name) + '</b><span class="small warn">' + "▲".repeat(rt.threat) + '</span></div>' +
+      '<div class="small">' + esc(rt.desc) + '</div>' +
+      '<div>' + rt.families.map(f=>'<span class="pill">' + f + '</span>').join("") + chip +
+      ((rt.lootSlotMod||0) !== 0 ? '<span class="pill">' + (rt.lootSlotMod>0?"+":"") + rt.lootSlotMod + ' loot</span>' : '') +
+      '</div></div>';
   }
 
   html += '</div><div class="pcol">';
@@ -710,9 +834,10 @@ SCREENS.prep = function(){
   html += '</div><div class="pcol">';
   html += '<h2>Risk level</h2><div class="radio">';
   const zsel = ZONES[p.zoneId];
+  const rsel = routeOf(zsel, p.routeId);
   for(const r of D.riskLevels){
     const odds = bondLevel() >= 2 && !bitAway()
-      ? '<br><span class="small ok">' + Math.round(Math.min(zsel.baseExtractChance*r.extractMod, r.extractCap)*100) + '% out</span>' : '';
+      ? '<br><span class="small ok">' + Math.round(Math.min(zsel.baseExtractChance*r.extractMod*(rsel.extractMod||1), r.extractCap)*100) + '% out</span>' : '';
     html += '<div class="card tap ' + (p.riskId===r.id?"selected":"") + '" onclick="A.prepSet(\'riskId\',\'' + r.id + '\')"><b>' + r.name + '</b><br><span class="small">' + r.lootSlots + ' loot</span>' + odds + '</div>';
   }
   html += '</div>';
@@ -783,6 +908,28 @@ SCREENS.raidsim = function(){
     el.style.width = Math.min(100, (Date.now()-t0)/(totalT*1000)*100) + "%";
   }, 200);
   session.raidTimers.push(barIv);
+};
+
+SCREENS.decision = function(){
+  const R = session.pendingRaid;
+  const zone = ZONES[R.zone], route = routeOf(zone, R.cfg.routeId);
+  const pd = D.raidConfig.pushDeeper;
+  let html = '<h1 class="warn">DECISION POINT</h1><div class="sub">' + esc(zone.name) + ' — ' + esc(route.name) + '</div>';
+  if(R.trackedFound){
+    html += '<div class="flagbanner">TRACKED ITEM SECURED</div>';
+    if(bitOnline() && !bitAway()) html += '<div class="card small">BIT: ' + esc(bitLine("decision_found")) + '</div>';
+  }
+  html += '<h2>In your bag right now</h2>';
+  for(const id of R.loot){
+    const fl = R.cfg.trackedItemId === id;
+    html += '<div class="card row"><span' + (fl?' class="trackc"':'') + '>' + (fl?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
+      (fl?'<span class="trackc small">tracked</span>':'') + '</div>';
+  }
+  const riskTxt = bondLevel() >= 2 ? "+" + Math.round(pd.deathChanceAdd*100) + "% death risk" : "a notably higher chance of not coming back";
+  html += '<div class="card"><b class="warn">Push deeper:</b> <span class="small">+' + pd.extraSlots + ' loot rolls · better rare odds · ' + riskTxt + '. Die in there and the death rules apply to everything you carry.</span></div>';
+  html += '<button class="primary" onclick="A.extractNow()">EXTRACT NOW — KEEP IT ALL</button>';
+  html += '<button class="ghost" style="border-color:var(--danger);color:var(--danger)" onclick="A.pushDeeper()">PUSH DEEPER</button>';
+  $app().innerHTML = html;
 };
 
 SCREENS.result = function(){
@@ -920,6 +1067,24 @@ SCREENS.end = function(){
   $app().innerHTML = html;
 };
 
+function finishRaid(){
+  const R = session.pendingRaid;
+  applyRaidResult(R);
+  session.resultAt = Date.now();
+  const cu = closestUpgrade();
+  log("NEXT_UPGRADE_SHOWN", cu ? { module: cu.m.id, level: cu.next.level, pct: Math.round(cu.pct*100) } : {});
+  session.screen = "result";
+  renderCurrencies();
+  SCREENS.result();
+  if(R.bondUp){
+    const bl = D.bit.bondLevels.find(b=>b.level===R.bondUp);
+    overlay('<h1 class="ok">BIT BOND LV ' + bl.level + '</h1>' +
+      '<p style="margin:12px 0;font-size:13px">' + esc(bl.capability) + '</p>' +
+      '<p class="small">BIT: ' + esc(bitLine("bond_up")) + '</p>' +
+      '<button class="primary" data-close>NICE</button>');
+  }
+}
+
 /* ---------- actions ---------- */
 window.A = {
   go(screen, param){
@@ -927,7 +1092,7 @@ window.A = {
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
     session.screenEnterTs = Date.now();
     session.screen = screen; session.screenParam = param;
-    if(screen === "prep") session.prep = null;
+    if(screen === "prep"){ session.prep = null; session.routeLogged = false; }
     act("SCREEN_VIEW", { screen, param });
     refresh(screen === "prep" ? "raid_prep" : null);
   },
@@ -969,6 +1134,7 @@ window.A = {
       const ovEl = overlay('<h1 class="ok">' + esc(MODS[modId].name).toUpperCase() + ' L' + next.level + '</h1>' + bdust +
         '<p style="margin:14px 0;font-size:13px">' + esc(next.unlockText) + '</p>' +
         '<p class="small" style="margin-bottom:10px">BIT: ' + esc(bitLine(isBitOnline ? "bond_up" : "module_built")) + '</p>' +
+        '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
         '<div class="card" style="text-align:left"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal) + '</div>' +
         '<button class="primary" data-close>CONTINUE</button>', finish);
       ovEl.querySelector(".inner").classList.add("shake");
@@ -1002,6 +1168,8 @@ window.A = {
   },
   prepSet(key, val){
     session.prep[key] = val;
+    if(key === "zoneId") session.prep.routeId = null;
+    if(key === "routeId") act("RAID_ROUTE_SELECTED", { zone: session.prep.zoneId, route: val, risk: session.prep.riskId, mode: retMode() });
     if(key === "insuranceId") act("INSURANCE_SELECTED", { tier: val });
     refresh("raid_prep");
   },
@@ -1028,7 +1196,7 @@ window.A = {
     const loadout = ["weapon","armor","c1","c2"].map(k=>p.loadout[k]).filter(Boolean);
     loadout.forEach(id => removeItem(id,1)); // gear leaves the stash
     const miss = trackedMissingItem();
-    const cfg = { zoneId:p.zoneId, riskId:p.riskId, insuranceId:p.insuranceId,
+    const cfg = { zoneId:p.zoneId, routeId:p.routeId, riskId:p.riskId, insuranceId:p.insuranceId,
       loadout, trackedItemId: miss ? miss.itemId : null };
     act("RAID_DEPLOYED", cfg);
     session.pendingRaid = resolveRaid(cfg);
@@ -1038,21 +1206,32 @@ window.A = {
     SCREENS.raidsim();
   },
   raidDone(){
-    (session.raidTimers||[]).forEach(t => { clearTimeout(t); clearInterval(t); });
-    applyRaidResult(session.pendingRaid);
-    session.resultAt = Date.now();
-    const cu = closestUpgrade();
-    log("NEXT_UPGRADE_SHOWN", cu ? { module: cu.m.id, level: cu.next.level, pct: Math.round(cu.pct*100) } : {});
-    session.screen = "result";
-    renderCurrencies();
-    SCREENS.result();
-    if(session.pendingRaid.bondUp){
-      const bl = D.bit.bondLevels.find(b=>b.level===session.pendingRaid.bondUp);
-      overlay('<h1 class="ok">BIT BOND LV ' + bl.level + '</h1>' +
-        '<p style="margin:12px 0;font-size:13px">' + esc(bl.capability) + '</p>' +
-        '<p class="small">BIT: ' + esc(bitLine("bond_up")) + '</p>' +
-        '<button class="primary" data-close>NICE</button>');
+    (session.raidTimers||[]).forEach(x => { clearTimeout(x); clearInterval(x); });
+    const R = session.pendingRaid;
+    if(R.decision && R.decision.eligible && !R.decision.resolved){
+      log("PUSH_DEEPER_OFFERED", raidCtx(R));
+      if(R.trackedFound) log("TRACKED_ITEM_FOUND_BEFORE_DECISION", raidCtx(R));
+      save();
+      session.screen = "decision";
+      renderCurrencies();
+      SCREENS.decision();
+      return;
     }
+    finishRaid();
+  },
+  extractNow(){
+    const R = session.pendingRaid;
+    R.decision.resolved = true;
+    act("EXTRACT_NOW_SELECTED", raidCtx(R));
+    finishRaid();
+  },
+  pushDeeper(){
+    const R = session.pendingRaid;
+    R.decision.resolved = true;
+    act("PUSH_DEEPER_SELECTED", raidCtx(R));
+    const res = rollPushDeeper(R);
+    if(res.died) act("RAID_FAILED_AFTER_PUSHING_DEEPER", raidCtx(R));
+    finishRaid();
   },
   adDouble(){
     const R = session.pendingRaid;
@@ -1177,6 +1356,11 @@ window.A = {
     session.pendingRaid = null;
     A.go("prep");
   },
+  chooseNextUpgrade(){
+    const c = closestUpgrade();
+    act("CHOOSE_NEXT_UPGRADE", c ? { module: c.m.id } : {});
+    if(c) A.go("module", c.m.id); else A.go("prep");
+  },
   goBuild(modId){
     session.pendingRaid = null;
     A.go("module", modId);
@@ -1277,4 +1461,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };

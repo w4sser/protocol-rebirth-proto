@@ -29,11 +29,18 @@ assert(cur0.includes("Scrap") && !cur0.includes("Signals") && !cur0.includes("Fu
 A.go("module","rebirth_core"); A.build("rebirth_core");
 await sleep(5400);
 assert(doc.getElementById("overlay").textContent.includes("POWER RESTORED"), "boot payoff");
+assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benefit in boot payoff");
 doc.querySelector("#overlay [data-close]").click();
+assert(text().includes("RAID FOR"), "CTA names the tracked item");
+assert(text().includes("Best lead"), "CTA shows best lead");
+assert(text().includes("Craft gear"), "benefit label on room");
 
 // raid_1
 A.go("prep");
 assert(doc.querySelector(".prepgrid"), "prep grid");
+assert(text().includes("NEXT TARGET"), "next target card");
+assert(text().includes("Maintenance Tunnels") && text().includes("Control Room"), "route cards");
+A.prepSet("routeId","control");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
 A.deploy(); A.raidDone();
 assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
@@ -61,9 +68,23 @@ assert(text().includes("KIA") && text().includes("PROGRESS MOVED"), "death keeps
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card on death");
 A.backToBase();
 
-// one-more-raid CTA
+// one-more-raid CTA + mid-raid decision (deterministic rng)
 A.oneMoreRaid("storage", 1);
 assert(text().includes("Raid Prep"), "one-more-raid goes to prep");
+window.eval("window.__origRnd = Math.random; Math.random = function(){ return 0.01; };");
+A.deploy(); A.raidDone();
+assert(text().includes("DECISION POINT"), "decision screen shows");
+assert(text().includes("PUSH DEEPER"), "push deeper option");
+A.extractNow();
+assert(text().includes("EXTRACTED"), "extract-now resolves to result");
+A.backToBase();
+// second raid: push deeper and die (rng 0.01 < deathChanceAdd)
+A.go("prep"); A.deploy(); A.raidDone();
+assert(text().includes("DECISION POINT"), "second decision");
+A.pushDeeper();
+assert(text().includes("KIA"), "push deeper death");
+window.eval("Math.random = window.__origRnd;");
+A.backToBase();
 
 // retention: core mode has none of it
 A.go("base");
@@ -104,10 +125,11 @@ A.go("end");
 assert(text().includes("QUICK QUESTION"), "survey first");
 for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);
 assert(text().includes("END OF PROTOTYPE"), "end screen");
-assert(window.DATA.progression.survey.length === 5, "five survey questions");
+assert(window.DATA.progression.survey.length === 6, "six survey questions");
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-for(const a of ["ONE_MORE_RAID","SCREEN_TIME","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET"])
+for(const a of ["ONE_MORE_RAID","SCREEN_TIME","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
+  "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","PUSH_DEEPER_OFFERED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","TRACKED_ITEM_FOUND_BEFORE_DECISION","RAID_FAILED_AFTER_PUSHING_DEEPER"])
   assert(S.log.some(e=>e.action===a), a + " logged");
 console.log("ALL UI TESTS PASSED — " + S.log.length + " events");
 process.exit(0);
