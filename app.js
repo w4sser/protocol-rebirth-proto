@@ -594,7 +594,7 @@ SCREENS.base = function(){
   const BM = D.baseMap;
   const hub = hubState();
   html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
-    '<div class="baseenv"></div>' +
+    '<div class="baseenv" style="background-image:url(\'' + (hub.env || D.baseMap.env) + '\')"></div>' +
     '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
   for(const m of D.modules) html += roomHtml(m.id);
   for(const L of BM.locked)
@@ -678,7 +678,11 @@ SCREENS.module = function(modId){
     const capped = next.level > moduleCap(modId);
     const isTracked = S.tracked && S.tracked.module === modId && S.tracked.level === next.level;
     html += '<h2>Upgrade to Level ' + next.level + '</h2>';
-    if(next.artBefore) html += '<div class="modart" style="background-image:url(\'' + next.artBefore + '\')"></div>';
+    let beforeArt = next.artBefore;
+    if(S.styles[modId] && (D.styleOptions[modId]||[]).find(x => x.id === S.styles[modId])){
+      beforeArt = (D.styleOptions[modId].find(x => x.id === S.styles[modId])).art || beforeArt;
+    }
+    if(beforeArt) html += '<div class="modart" style="background-image:url(\'' + beforeArt + '\')"></div>';
     if(next.preview){
       html += '<div class="card"><div class="nu-head" style="color:var(--danger)">CURRENT STATE</div><span class="small">' + esc(next.preview.before) + '</span></div>';
       html += '<div class="card"><div class="nu-head">AFTER ' + (lvl ? "UPGRADE" : "REPAIR") + '</div>' +
@@ -701,6 +705,8 @@ SCREENS.module = function(modId){
   }
   // Curated self-expression: cosmetic look for this room (unlocks once the room is built)
   if(lvl >= 1 && D.styleOptions[modId]){
+    const cur = S.styles[modId] && D.styleOptions[modId].find(x => x.id === S.styles[modId]);
+    if(cur && cur.art && !next) html += '<div class="modart" style="background-image:url(\'' + cur.art + '\')"></div>';
     html += '<h2>Style — make it yours</h2><div class="radio">';
     for(const so of D.styleOptions[modId]){
       const sel = S.styles[modId] === so.id;

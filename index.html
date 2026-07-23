@@ -190,13 +190,8 @@
   /* ---- illustrated base map ---- */
   .basewrap{position:relative; aspect-ratio:1600/720; width:100%; border-radius:12px; overflow:hidden;
     border:1px solid var(--line); margin:8px 0; box-shadow:var(--pr-shadow-md,0 6px 20px rgba(0,0,0,.45));}
-  .baseenv{position:absolute; inset:-3%; background:url("assets/production/hub_interim.webp") center/cover no-repeat;
-    animation:basepan 45s ease-in-out infinite alternate; transition:filter 1.5s;}
-  .basewrap.hub-abandoned .baseenv{filter:brightness(.5) saturate(.3);}
-  .basewrap.hub-restored .baseenv{filter:none;}
-  .basewrap.hub-refined .baseenv{filter:brightness(1.12) saturate(1.18) sepia(.2) hue-rotate(-10deg);}
-  .basewrap.hub-refined::after{content:""; position:absolute; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse at 50% 70%, rgba(255,157,77,.14), transparent 60%);}
+  .baseenv{position:absolute; inset:-3%; background-position:center; background-size:cover; background-repeat:no-repeat;
+    animation:basepan 45s ease-in-out infinite alternate; transition:filter 1.5s, background-image .6s;}
   .hubstate{position:absolute; left:10px; top:8px; z-index:4; font-family:"IBM Plex Mono",monospace;
     font-size:9px; letter-spacing:.14em; color:var(--dim); background:rgba(7,21,28,.8);
     border:1px solid var(--line); border-radius:6px; padding:2px 7px;}
@@ -229,8 +224,8 @@
     linear-gradient(rgba(7,21,28,.5), rgba(7,21,28,.86)),
     url("assets/production/env_tunnel.webp") center/cover no-repeat;}
   #app.s-vendor{background:
-    linear-gradient(90deg, rgba(7,21,28,.97) 0%, rgba(7,21,28,.88) 42%, rgba(7,21,28,.5) 100%),
-    url("assets/production/env_stash.webp") right center/cover no-repeat;}
+    linear-gradient(90deg, rgba(7,21,28,.97) 0%, rgba(7,21,28,.82) 40%, rgba(7,21,28,.35) 100%),
+    url("assets/production/env_vendor.webp") right center/cover no-repeat;}
   #app.s-stash, #app.s-itemDetail{background:
     linear-gradient(90deg, rgba(7,21,28,.96) 0%, rgba(7,21,28,.84) 45%, rgba(7,21,28,.45) 100%),
     url("assets/production/env_stash.webp") right center/cover no-repeat;}

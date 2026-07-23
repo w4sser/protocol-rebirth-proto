@@ -28,6 +28,7 @@ assert(!doc.querySelector(".flagpatch"), "no flag patch needed — env re-render
 assert(doc.querySelector(".basewrap").className.includes("basedark"), "base starts dark");
 assert(doc.querySelector(".basewrap").className.includes("hub-abandoned"), "bunker starts abandoned");
 assert(text().includes("ABANDONED"), "hub state label");
+assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_abandoned"), "abandoned hub art loaded");
 assert(text().includes("Power Cell 1/1"), "requirement chips");
 assert(doc.querySelector(".roombar"), "room progress bars");
 const cur0 = doc.getElementById("currencies").textContent;
@@ -41,6 +42,7 @@ assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benef
 doc.querySelector("#overlay [data-close]").click();
 assert(!doc.querySelector(".basewrap").className.includes("basedark"), "base env lit after Core L1");
 assert(doc.querySelector(".basewrap").className.includes("hub-restored"), "bunker restored after first build");
+assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_restored"), "restored hub art swapped in");
 assert(text().includes("RAID FOR"), "CTA names the tracked item");
 assert(text().includes("Best lead"), "CTA shows best lead");
 assert(text().includes("Craft gear"), "benefit label on room");
@@ -73,6 +75,7 @@ assert(text().includes("BIT — Bond LV"), "bond card");
 A.go("module","bit_bay");
 assert(text().includes("Cozy Tech") && text().includes("Retro-Tech"), "style options for built room");
 A.setStyle("bit_bay","warm");
+assert(doc.querySelector(".modart") && doc.querySelector(".modart").style.backgroundImage.includes("bitbay_warm"), "chosen style swaps BIT Bay art");
 A.go("base");
 assert(text().includes("Cozy Tech"), "style visible on hub hotspot");
 

@@ -40,6 +40,7 @@ window.DATA.modules = [
         preview:{ before:"Broken assembly arms over a dead printer bed. No control panel.",
                   after:["Craft medkits and ammo packs","Recycle common junk into Scrap","Rebuild lost gear without the vendor markup"] },
         artBefore:"assets/production/fab_broken.webp",
+        artAfter:"assets/production/fab_online.webp",
         newGoal:"Repair BIT — find 1× Optical Sensor. Industrial Zone, statistically." },
       { level:2,
         cost:{ salvage:50, items:{ circuit_board:2, hydraulic_component:1 } },
@@ -64,6 +65,8 @@ window.DATA.modules = [
         benefitText:"BIT adds one loot scan per raid and recommends where to search for tracked items.",
         preview:{ before:"A dark docking cradle. BIT sits in it, optics smashed, one LED blinking.",
                   after:["BIT comes online and follows you","+1 loot scan every raid","BIT recommends the best search route for tracked items"] },
+        artBefore:"assets/production/bitbay_broken.webp",
+        artAfter:"assets/production/bitbay_online.webp",
         newGoal:"Choose your path: Storage (less friction) or save for Core L2 (new zone)." },
       { level:2,
         cost:{ salvage:45, dataCores:6, items:{ memory_module:1 } },
@@ -110,31 +113,31 @@ window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", 
 window.DATA.baseMap = {
   env: "assets/production/hub_interim.webp",
   hotspots: {
-    rebirth_core: { x:50, y:40 },
-    fabricator:   { x:22, y:60 },
-    bit_bay:      { x:78, y:60 },
-    storage:      { x:50, y:82 }
+    rebirth_core: { x:50, y:33 },
+    fabricator:   { x:17, y:49 },
+    bit_bay:      { x:83, y:51 },
+    storage:      { x:50, y:74 }
   },
-  raidGate: { x:91, y:82, label:"Raid Gate — sealed" },
+  raidGate: { x:88, y:75, label:"Raid Gate — sealed" },
   locked: [
-    { id:"living_quarters", label:"Living Quarters", x:9,  y:82 },
-    { id:"sealed_sector",   label:"Sealed Sector B", x:91, y:35 }
+    { id:"living_quarters", label:"Living Quarters", x:12, y:75 },
+    { id:"sealed_sector",   label:"Sealed Sector B", x:88, y:23 }
   ]
 };
 
 // Bunker restoration states (Merge Mansion-style visible transformation).
 // State derives from total module levels; thresholds are tunable here.
 window.DATA.hubStates = [
-  { id:"abandoned", min:0, label:"ABANDONED" },
-  { id:"restored",  min:1, label:"RESTORED" },
-  { id:"refined",   min:4, label:"REFINED" }
+  { id:"abandoned", min:0, label:"ABANDONED", env:"assets/production/hub_abandoned.webp" },
+  { id:"restored",  min:1, label:"RESTORED",  env:"assets/production/hub_restored.webp" },
+  { id:"refined",   min:4, label:"REFINED",   env:"assets/production/hub_refined.webp" }
 ];
 
 // Curated self-expression (cosmetic only, one room for now): pick a look for the BIT Bay.
 window.DATA.styleOptions = {
   bit_bay: [
-    { id:"warm",     name:"Cozy Tech",   desc:"Soft light, a rug, a kettle. BIT pretends not to like it." },
-    { id:"military", name:"Disciplined", desc:"Everything labeled. Everything in rows. BIT salutes." },
-    { id:"retro",    name:"Retro-Tech",  desc:"CRT glow and tape decks. BIT feels seen." }
+    { id:"warm",     name:"Cozy Tech",   desc:"Soft light, a rug, a kettle. BIT pretends not to like it.", art:"assets/production/bitbay_warm.webp" },
+    { id:"military", name:"Disciplined", desc:"Everything labeled. Everything in rows. BIT salutes.",       art:"assets/production/bitbay_military.webp" },
+    { id:"retro",    name:"Retro-Tech",  desc:"CRT glow and tape decks. BIT feels seen.",                   art:"assets/production/bitbay_retro.webp" }
   ]
 };
