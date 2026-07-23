@@ -10,7 +10,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 4;   // bump on state-model changes; old saves are discarded in prototype phase
+const SAVE_VERSION = 5;   // bump on state-model changes; old saves are discarded in prototype phase
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -25,7 +25,7 @@ function freshState(){
     modules: {}, bondXp: 0,
     tracked: null, trackedStreak: 0,
     zoneIntel: {}, raids: 0, deaths: 0,
-    revealed: { scrap: true }, surveyDone: false, surveyAnswers: {},
+    revealed: { scrap: true }, surveyDone: false, surveyAnswers: {}, styles: {},
     retentionMode: D.retention.defaultMode,
     fuel: D.retention.fuel.max, fuelAt: Date.now(),
     streak: 0, lastDay: "", lastYieldAt: 0,
@@ -83,6 +83,12 @@ function moduleCap(modId){
   return m.maxLevelByCore[String(coreLevel())] ?? 0;
 }
 function moduleVisible(modId){ return coreLevel() >= MODS[modId].revealedAtCore; }
+function hubState(){
+  const total = Object.values(S.modules).reduce((a,b)=>a+b,0);
+  let st = D.hubStates[0];
+  for(const h of D.hubStates){ if(total >= h.min) st = h; }
+  return st;
+}
 function costParts(cost){
   const parts = [];
   if(cost.salvage) parts.push({ kind:"cur", id:"salvage", need:cost.salvage, have:S.cur.salvage });
@@ -524,7 +530,11 @@ function roomHtml(modId){
       }).join("");
     }
   } else if(visible && !next) chips = '<span class="chip ok">MAX</span>';
-  const tracked = (S.tracked && S.tracked.module === modId) ? '<span class="chip track">◉ TRACKED</span>' : '';
+  let tracked = (S.tracked && S.tracked.module === modId) ? '<span class="chip track">◉ TRACKED</span>' : '';
+  if(S.styles[modId]){
+    const so = (D.styleOptions[modId]||[]).find(x => x.id === S.styles[modId]);
+    if(so) tracked += '<span class="chip stylec">✦ ' + esc(so.name) + '</span>';
+  }
   let bar = "";
   if(visible && next && next.level <= moduleCap(modId)){
     const parts = costParts(next.cost);
@@ -582,8 +592,10 @@ SCREENS.base = function(){
     '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>' + goalBarHtml();
 
   const BM = D.baseMap;
-  html += '<div class="basewrap' + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
-    '<div class="baseenv"></div>';
+  const hub = hubState();
+  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
+    '<div class="baseenv"></div>' +
+    '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
   for(const m of D.modules) html += roomHtml(m.id);
   for(const L of BM.locked)
     html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
@@ -686,6 +698,16 @@ SCREENS.module = function(modId){
       html += '<button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? "◉ Tracking (tap to untrack)" : "○ Track this upgrade") + '</button>';
       html += '<button class="primary" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">BUILD</button>';
     }
+  }
+  // Curated self-expression: cosmetic look for this room (unlocks once the room is built)
+  if(lvl >= 1 && D.styleOptions[modId]){
+    html += '<h2>Style — make it yours</h2><div class="radio">';
+    for(const so of D.styleOptions[modId]){
+      const sel = S.styles[modId] === so.id;
+      html += '<div class="card tap ' + (sel ? "selected" : "") + '" onclick="A.setStyle(\'' + modId + '\',\'' + so.id + '\')">' +
+        '<b>' + esc(so.name) + '</b><br><span class="small">' + esc(so.desc) + '</span></div>';
+    }
+    html += '</div><div class="small" style="margin-top:4px">Cosmetic only — this is about whose bunker it is.</div>';
   }
   $app().innerHTML = html;
 };
@@ -1360,6 +1382,12 @@ window.A = {
     const c = closestUpgrade();
     act("CHOOSE_NEXT_UPGRADE", c ? { module: c.m.id } : {});
     if(c) A.go("module", c.m.id); else A.go("prep");
+  },
+  setStyle(modId, styleId){
+    S.styles[modId] = styleId;
+    act("STYLE_SELECTED", { module: modId, style: styleId });
+    toast("Noted. BIT is rearranging things.");
+    refresh();
   },
   goBuild(modId){
     session.pendingRaid = null;

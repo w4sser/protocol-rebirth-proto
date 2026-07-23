@@ -23,9 +23,11 @@ assert(doc.querySelectorAll(".room").length === 4, "facility rooms");
 assert(doc.querySelector(".basewrap") && doc.querySelector(".baseenv"), "illustrated base map");
 const hs0 = doc.querySelector(".room.hs");
 assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hotspots use percent positioning");
-assert(doc.querySelectorAll(".lockchip").length >= 4, "locked future areas visible");
+assert(doc.querySelectorAll(".lockchip").length >= 2, "locked future areas visible");
 assert(!doc.querySelector(".flagpatch"), "no flag patch needed — env re-rendered without flag");
 assert(doc.querySelector(".basewrap").className.includes("basedark"), "base starts dark");
+assert(doc.querySelector(".basewrap").className.includes("hub-abandoned"), "bunker starts abandoned");
+assert(text().includes("ABANDONED"), "hub state label");
 assert(text().includes("Power Cell 1/1"), "requirement chips");
 assert(doc.querySelector(".roombar"), "room progress bars");
 const cur0 = doc.getElementById("currencies").textContent;
@@ -38,6 +40,7 @@ assert(doc.getElementById("overlay").textContent.includes("POWER RESTORED"), "bo
 assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benefit in boot payoff");
 doc.querySelector("#overlay [data-close]").click();
 assert(!doc.querySelector(".basewrap").className.includes("basedark"), "base env lit after Core L1");
+assert(doc.querySelector(".basewrap").className.includes("hub-restored"), "bunker restored after first build");
 assert(text().includes("RAID FOR"), "CTA names the tracked item");
 assert(text().includes("Best lead"), "CTA shows best lead");
 assert(text().includes("Craft gear"), "benefit label on room");
@@ -66,6 +69,12 @@ A.deploy(); A.raidDone(); A.backToBase();
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
 assert(text().includes("BIT — Bond LV"), "bond card");
+// curated self-expression: cosmetic style for the built BIT Bay
+A.go("module","bit_bay");
+assert(text().includes("Cozy Tech") && text().includes("Retro-Tech"), "style options for built room");
+A.setStyle("bit_bay","warm");
+A.go("base");
+assert(text().includes("Cozy Tech"), "style visible on hub hotspot");
 
 // raid_3 death with premium insurance
 A.devForce("death");
@@ -140,7 +149,7 @@ assert(text().includes("END OF PROTOTYPE"), "end screen");
 assert(window.DATA.progression.survey.length === 6, "six survey questions");
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-for(const a of ["ONE_MORE_RAID","SCREEN_TIME","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
+for(const a of ["ONE_MORE_RAID","SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
   "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","PUSH_DEEPER_OFFERED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","TRACKED_ITEM_FOUND_BEFORE_DECISION","RAID_FAILED_AFTER_PUSHING_DEEPER"])
   assert(S.log.some(e=>e.action===a), a + " logged");
 console.log("ALL UI TESTS PASSED — " + S.log.length + " events");

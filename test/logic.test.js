@@ -7,7 +7,7 @@ const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 4);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 5);
 assert.equal(S.retentionMode, "core");
 
 // scripted raid_1: forced extract + guaranteed drops

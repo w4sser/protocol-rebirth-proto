@@ -23,7 +23,6 @@ window.DATA.modules = [
         preview:{ before:"The core runs at minimum output. Half the facility is still without power.",
                   after:["Power reaches a new bunker sector","Transit Hub raid zone unlocks","BIT Bay and Fabricator can reach L2"] },
         artBefore:"assets/production/core_dim.webp",
-        artAfter:"assets/production/core_powered.webp",
         artAdd:"grid",
         newGoal:"A new zone is open. The good electronics are there." }
     ]
@@ -41,7 +40,6 @@ window.DATA.modules = [
         preview:{ before:"Broken assembly arms over a dead printer bed. No control panel.",
                   after:["Craft medkits and ammo packs","Recycle common junk into Scrap","Rebuild lost gear without the vendor markup"] },
         artBefore:"assets/production/fab_broken.webp",
-        artAfter:"assets/production/fab_online.webp",
         newGoal:"Repair BIT — find 1× Optical Sensor. Industrial Zone, statistically." },
       { level:2,
         cost:{ salvage:50, items:{ circuit_board:2, hydraulic_component:1 } },
@@ -66,8 +64,6 @@ window.DATA.modules = [
         benefitText:"BIT adds one loot scan per raid and recommends where to search for tracked items.",
         preview:{ before:"A dark docking cradle. BIT sits in it, optics smashed, one LED blinking.",
                   after:["BIT comes online and follows you","+1 loot scan every raid","BIT recommends the best search route for tracked items"] },
-        artBefore:"assets/production/env_bitbay_broken.webp",
-        artAfter:"assets/production/env_bitbay_online.webp",
         newGoal:"Choose your path: Storage (less friction) or save for Core L2 (new zone)." },
       { level:2,
         cost:{ salvage:45, dataCores:6, items:{ memory_module:1 } },
@@ -108,21 +104,37 @@ window.DATA.storageBonus = 8;
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
 window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", storage:"vault" };
 
-// Illustrated base map: env layer + percent-positioned hotspots (responsive).
-// Coordinates are % of the cropped env_base.webp (1600x720).
+// Enclosed bunker hub: interior env + percent-positioned hotspots (responsive).
+// No windows, no exterior. The outside world exists only during raids.
+// Coordinates are % of hub_interim.webp (core hall) — retune when hub art lands.
 window.DATA.baseMap = {
-  env: "assets/production/env_base.webp",   // re-rendered without national symbols
+  env: "assets/production/hub_interim.webp",
   hotspots: {
-    rebirth_core: { x:45,  y:43.5 },
-    bit_bay:      { x:62,  y:39 },
-    fabricator:   { x:33,  y:75 },
-    storage:      { x:51,  y:75 }
+    rebirth_core: { x:50, y:40 },
+    fabricator:   { x:22, y:60 },
+    bit_bay:      { x:78, y:60 },
+    storage:      { x:50, y:82 }
   },
-  raidGate: { x:80, y:80, label:"Raid Gate" },
+  raidGate: { x:91, y:82, label:"Raid Gate — sealed" },
   locked: [
-    { id:"radar_relay",   label:"Radar Relay",          x:10,   y:34 },
-    { id:"greenhouse",    label:"Overgrown Greenhouse", x:8.5,  y:72 },
-    { id:"blocked_tunnel",label:"Blocked Tunnel",       x:79.5, y:49 },
-    { id:"broken_bridge", label:"Broken Bridge",        x:93,   y:59 }
+    { id:"living_quarters", label:"Living Quarters", x:9,  y:82 },
+    { id:"sealed_sector",   label:"Sealed Sector B", x:91, y:35 }
+  ]
+};
+
+// Bunker restoration states (Merge Mansion-style visible transformation).
+// State derives from total module levels; thresholds are tunable here.
+window.DATA.hubStates = [
+  { id:"abandoned", min:0, label:"ABANDONED" },
+  { id:"restored",  min:1, label:"RESTORED" },
+  { id:"refined",   min:4, label:"REFINED" }
+];
+
+// Curated self-expression (cosmetic only, one room for now): pick a look for the BIT Bay.
+window.DATA.styleOptions = {
+  bit_bay: [
+    { id:"warm",     name:"Cozy Tech",   desc:"Soft light, a rug, a kettle. BIT pretends not to like it." },
+    { id:"military", name:"Disciplined", desc:"Everything labeled. Everything in rows. BIT salutes." },
+    { id:"retro",    name:"Retro-Tech",  desc:"CRT glow and tape decks. BIT feels seen." }
   ]
 };
