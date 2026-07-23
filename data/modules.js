@@ -14,6 +14,7 @@ window.DATA.modules = [
         preview:{ before:"A dead reactor ring. Severed cables. The whole facility is dark around it.",
                   after:["Lights and machinery come on across the facility","Fabricator, BIT Bay and Vault become repairable","The rebuild can begin"] },
         artBefore:"assets/production/core_dim.webp",
+        artAfter:"assets/production/core_powered.webp",
         newGoal:"Bring the Fabricator online — find 1× Cable and 1× Fuse." },
       { level:2,
         cost:{ salvage:60, items:{ power_relay:1, circuit_board:2, ai_fragment:1 } },
@@ -23,6 +24,7 @@ window.DATA.modules = [
         preview:{ before:"The core runs at minimum output. Half the facility is still without power.",
                   after:["Power reaches a new bunker sector","Transit Hub raid zone unlocks","BIT Bay and Fabricator can reach L2"] },
         artBefore:"assets/production/core_dim.webp",
+        artAfter:"assets/production/core_powered.webp",
         artAdd:"grid",
         newGoal:"A new zone is open. The good electronics are there." }
     ]
