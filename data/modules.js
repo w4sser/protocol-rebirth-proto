@@ -129,10 +129,16 @@ window.DATA.baseMap = {
 
 // Bunker restoration states (Merge Mansion-style visible transformation).
 // State derives from total module levels; thresholds are tunable here.
+// State is chosen by the LAST matching rule whose `when` predicate passes (evaluated
+// top→bottom). Refined requires the functional repairs to actually be done, so the
+// warm bunker never shows while a room is still broken.
 window.DATA.hubStates = [
-  { id:"abandoned", min:0, label:"ABANDONED", env:"assets/production/hub_abandoned.webp" },
-  { id:"restored",  min:1, label:"RESTORED",  env:"assets/production/hub_restored.webp" },
-  { id:"refined",   min:4, label:"REFINED",   env:"assets/production/hub_refined.webp" }
+  { id:"abandoned", label:"ABANDONED", env:"assets/production/hub_abandoned.webp",
+    when: m => true },
+  { id:"restored",  label:"RESTORED",  env:"assets/production/hub_restored.webp",
+    when: m => (m.rebirth_core||0) >= 1 },
+  { id:"refined",   label:"REFINED",   env:"assets/production/hub_refined.webp",
+    when: m => (m.rebirth_core||0) >= 1 && (m.fabricator||0) >= 1 && (m.bit_bay||0) >= 1 && (m.storage||0) >= 1 }
 ];
 
 // Curated self-expression (cosmetic only, one room for now): pick a look for the BIT Bay.
@@ -142,4 +148,8 @@ window.DATA.styleOptions = {
     { id:"military", name:"Disciplined", desc:"Everything labeled. Everything in rows. BIT salutes.",       art:"assets/production/bitbay_military.webp" },
     { id:"retro",    name:"Retro-Tech",  desc:"CRT glow and tape decks. BIT feels seen.",                   art:"assets/production/bitbay_retro.webp" }
   ]
+};
+// Where each room's chosen-style overlay sits on the hub image (% box: left,top,width).
+window.DATA.styleOverlay = {
+  bit_bay: { x:66, y:34, w:30 }
 };

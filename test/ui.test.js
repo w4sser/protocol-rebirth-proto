@@ -21,6 +21,7 @@ assert(text().includes("PROTOCOL REBIRTH"), "intro");
 A.dismissIntro();
 assert(doc.querySelectorAll(".room").length === 4, "facility rooms");
 assert(doc.querySelector(".basewrap") && doc.querySelector(".baseenv"), "illustrated base map");
+assert(!/basepan/.test(doc.querySelector("style") ? doc.querySelector("style").textContent : ""), "no drifting pan on hub");
 const hs0 = doc.querySelector(".room.hs");
 assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hotspots use percent positioning");
 assert(doc.querySelectorAll(".lockchip").length >= 2, "locked future areas visible");
@@ -53,6 +54,7 @@ assert(doc.querySelector(".prepgrid"), "prep grid");
 assert(text().includes("NEXT TARGET"), "next target card");
 assert(text().includes("Maintenance Tunnels") && text().includes("Control Room"), "route cards");
 A.prepSet("routeId","control");
+assert(doc.querySelector(".mappanel") && doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "industrial uses its own route map");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
 A.deploy(); A.raidDone();
 assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
@@ -78,6 +80,11 @@ A.setStyle("bit_bay","warm");
 assert(doc.querySelector(".modart") && doc.querySelector(".modart").style.backgroundImage.includes("bitbay_warm"), "chosen style swaps BIT Bay art");
 A.go("base");
 assert(text().includes("Cozy Tech"), "style visible on hub hotspot");
+// #3 self-expression paints the hub, not just a label
+assert(doc.querySelector(".styleoverlay") && doc.querySelector(".styleoverlay").style.backgroundImage.includes("bitbay_warm"), "chosen style overlays the hub bunker");
+// #4 refined must NOT trigger yet — storage still unbuilt though 3 module levels exist
+assert(doc.querySelector(".basewrap").className.includes("hub-restored"), "still restored — refined waits for all rooms repaired");
+assert(!doc.querySelector(".basewrap").className.includes("hub-refined"), "refined not shown while a room is broken");
 
 // raid_3 death with premium insurance
 A.devForce("death");

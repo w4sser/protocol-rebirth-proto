@@ -6,6 +6,7 @@ window.DATA = window.DATA || {};
 window.DATA.raidZones = [
   {
     id:"industrial", name:"Industrial Zone", threat:1, unlockedAtCore:0,
+    mapArt:"assets/production/env_route_map.webp",
     tagline:"Rusting factories. Common parts everywhere, if you don't mind the company.",
     baseExtractChance:0.85,
     lootTable:[
@@ -38,6 +39,7 @@ window.DATA.raidZones = [
   },
   {
     id:"transit", name:"Transit Hub", threat:2, unlockedAtCore:2,
+    mapArt:"assets/production/env_transit_map.webp",
     tagline:"Collapsed metro exchange. Better electronics. Worse neighbors.",
     baseExtractChance:0.75,
     lootTable:[

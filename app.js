@@ -84,9 +84,8 @@ function moduleCap(modId){
 }
 function moduleVisible(modId){ return coreLevel() >= MODS[modId].revealedAtCore; }
 function hubState(){
-  const total = Object.values(S.modules).reduce((a,b)=>a+b,0);
   let st = D.hubStates[0];
-  for(const h of D.hubStates){ if(total >= h.min) st = h; }
+  for(const h of D.hubStates){ if(!h.when || h.when(S.modules)) st = h; }
   return st;
 }
 function costParts(cost){
@@ -596,6 +595,19 @@ SCREENS.base = function(){
   html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
     '<div class="baseenv" style="background-image:url(\'' + (hub.env || D.baseMap.env) + '\')"></div>' +
     '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
+  // Chosen room styles paint a cropped overlay onto the hub so the bunker actually
+  // becomes "yours" — not just a label. Only shows once the room is built and lit.
+  if(S.lightsOn){
+    for(const modId in (D.styleOverlay||{})){
+      const st = S.styles[modId];
+      if(!st || (S.modules[modId]||0) < 1) continue;
+      const so = (D.styleOptions[modId]||[]).find(x => x.id === st);
+      const box = D.styleOverlay[modId];
+      if(so && so.art && box)
+        html += '<div class="styleoverlay" style="left:' + box.x + '%;top:' + box.y + '%;width:' + box.w +
+          '%;aspect-ratio:16/9;background-image:url(\'' + so.art + '\')"></div>';
+    }
+  }
   for(const m of D.modules) html += roomHtml(m.id);
   for(const L of BM.locked)
     html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
@@ -805,7 +817,7 @@ SCREENS.prep = function(){
       (bitOnline() && !bitAway() && lead ? '<div class="small" style="margin-top:4px">BIT: ' + esc(bitLine("route_reco", { route: lead.route.name, item: ITEMS[miss.itemId].name })) + '</div>' : '') +
       '</div>';
   }
-  html += '<div class="mappanel"></div>';
+  html += '<div class="mappanel" style="background-image:url(\'' + (zoneSel.mapArt || "assets/production/env_route_map.webp") + '\')"></div>';
   html += '<h2>Zone</h2>';
   for(const z of D.raidZones){
     const locked = coreLevel() < z.unlockedAtCore;
