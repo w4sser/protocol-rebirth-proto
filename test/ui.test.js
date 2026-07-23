@@ -24,7 +24,7 @@ assert(doc.querySelector(".basewrap") && doc.querySelector(".baseenv"), "illustr
 const hs0 = doc.querySelector(".room.hs");
 assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hotspots use percent positioning");
 assert(doc.querySelectorAll(".lockchip").length >= 4, "locked future areas visible");
-assert(doc.querySelector(".flagpatch"), "flag patch covers baked-in flag");
+assert(!doc.querySelector(".flagpatch"), "no flag patch needed — env re-rendered without flag");
 assert(doc.querySelector(".basewrap").className.includes("basedark"), "base starts dark");
 assert(text().includes("Power Cell 1/1"), "requirement chips");
 assert(doc.querySelector(".roombar"), "room progress bars");
@@ -76,6 +76,11 @@ assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "on
 A.backToBase();
 
 // one-more-raid CTA + mid-raid decision (deterministic rng)
+// dump any randomly-looted storage parts first so the tracked goal can't complete early
+A.go("stash");
+for(const pid of ["polymer_plate","servo"]){
+  while((JSON.parse(window.localStorage.getItem("pr_meta_save")).stash[pid]||0) > 0) A.sell(pid);
+}
 A.oneMoreRaid("storage", 1);
 assert(text().includes("Raid Prep"), "one-more-raid goes to prep");
 window.eval("window.__origRnd = Math.random; Math.random = function(){ return 0.01; };");

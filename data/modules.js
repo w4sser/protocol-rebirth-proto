@@ -13,6 +13,7 @@ window.DATA.modules = [
         benefitText:"Facility powered — Fabricator, BIT Bay and Vault sections revealed.",
         preview:{ before:"A dead reactor ring. Severed cables. The whole facility is dark around it.",
                   after:["Lights and machinery come on across the facility","Fabricator, BIT Bay and Vault become repairable","The rebuild can begin"] },
+        artBefore:"assets/production/core_dim.webp",
         newGoal:"Bring the Fabricator online — find 1× Cable and 1× Fuse." },
       { level:2,
         cost:{ salvage:60, items:{ power_relay:1, circuit_board:2, ai_fragment:1 } },
@@ -21,6 +22,8 @@ window.DATA.modules = [
         benefitText:"New raid zone: Transit Hub. Higher module caps (BIT Bay L2, Fabricator L2).",
         preview:{ before:"The core runs at minimum output. Half the facility is still without power.",
                   after:["Power reaches a new bunker sector","Transit Hub raid zone unlocks","BIT Bay and Fabricator can reach L2"] },
+        artBefore:"assets/production/core_dim.webp",
+        artAfter:"assets/production/core_powered.webp",
         artAdd:"grid",
         newGoal:"A new zone is open. The good electronics are there." }
     ]
@@ -37,6 +40,8 @@ window.DATA.modules = [
         benefitText:"Craft medkits and ammo. Recycle junk into Scrap. Cheaper recovery after a death.",
         preview:{ before:"Broken assembly arms over a dead printer bed. No control panel.",
                   after:["Craft medkits and ammo packs","Recycle common junk into Scrap","Rebuild lost gear without the vendor markup"] },
+        artBefore:"assets/production/fab_broken.webp",
+        artAfter:"assets/production/fab_online.webp",
         newGoal:"Repair BIT — find 1× Optical Sensor. Industrial Zone, statistically." },
       { level:2,
         cost:{ salvage:50, items:{ circuit_board:2, hydraulic_component:1 } },
@@ -87,6 +92,8 @@ window.DATA.modules = [
         benefitText:"+8 stash slots. One secure slot: that item survives your death.",
         preview:{ before:"A vault door hanging off its hinges. Containers looted and scattered.",
                   after:["Vault door seals","+8 stash slots","Secure slot: one chosen item survives death"] },
+        artBefore:"assets/production/vault_broken.webp",
+        artAfter:"assets/production/vault_sealed.webp",
         artAdd:"vault",
         newGoal:"Pick a secure item before your next raid. Choose like it matters." }
     ]
@@ -104,8 +111,7 @@ window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", 
 // Illustrated base map: env layer + percent-positioned hotspots (responsive).
 // Coordinates are % of the cropped env_base.webp (1600x720).
 window.DATA.baseMap = {
-  env: "assets/production/env_base.webp",
-  flagPatch: { x:44.7, y:6.0 },   // covers the baked-in flag with a BIT banner (no national symbols)
+  env: "assets/production/env_base.webp",   // re-rendered without national symbols
   hotspots: {
     rebirth_core: { x:45,  y:43.5 },
     bit_bay:      { x:62,  y:39 },

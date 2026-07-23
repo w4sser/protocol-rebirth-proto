@@ -583,8 +583,7 @@ SCREENS.base = function(){
 
   const BM = D.baseMap;
   html += '<div class="basewrap' + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
-    '<div class="baseenv"></div>' +
-    '<div class="flagpatch" style="left:' + BM.flagPatch.x + '%;top:' + BM.flagPatch.y + '%">ᵕ‿ᵕ</div>';
+    '<div class="baseenv"></div>';
   for(const m of D.modules) html += roomHtml(m.id);
   for(const L of BM.locked)
     html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
