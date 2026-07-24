@@ -77,9 +77,24 @@ window.DATA.riskLevels = [
 // Raid meta-config: push-deeper decision + qualitative chance labels.
 window.DATA.raidConfig = {
   pushDeeper: {
-    extraSlots: 2,             // additional loot rolls when pushing deeper
+    extraSlots: 2,             // additional loot rolls when pushing deeper (legacy single-shot)
     deathChanceAdd: 0.15,      // added death probability for the push
     rareFamilyMult: { protocol: 2.5, valuable: 1.5 }  // rare odds improve deeper in
+  },
+  // Agency v0.7 — staged raids. A raid unfolds over 1-3 escalating checkpoints.
+  // At each checkpoint the player chooses EXTRACT NOW (bank the haul, safe) or
+  // PUSH DEEPER (reveal another stage: more loot, higher danger). The decision
+  // grows out of the raid — short routes end fast, deep/risky routes go longer.
+  checkpoints: {
+    maxStages: 3,
+    baseStages: 2,
+    deepRouteSlotMod: 2,       // route lootSlotMod >= this => +1 stage
+    shortRouteSlotMod: 0,      // route lootSlotMod < this => -1 stage
+    aggressiveAddsStage: true, // aggressive risk => +1 stage
+    // death chance to PUSH from stage i into stage i+1 (index by current stage, escalating)
+    pushDeathChance: [0.10, 0.18, 0.26],
+    // rare-family odds improve the deeper you go (applied to freshly revealed stages)
+    depthRareMult: { protocol: 1.4, valuable: 1.25 }
   },
   // p(find tracked item at least once this raid) -> qualitative label
   chanceLabels: [

@@ -85,6 +85,23 @@ res = app.rollPushDeeper(R3);
 assert(!res.died && res.extra.length === window.DATA.raidConfig.pushDeeper.extraSlots && R3.loot.length === 3, "push adds loot");
 Math.random = origRnd;
 
+// --- Agency v0.7 staged raids ---
+// stage count scales with route depth / risk (1 short, up to 3 deep/aggressive)
+assert.equal(app.stageCount({zoneId:"industrial", routeId:"tunnels", riskId:"standard"}), 1, "short route = 1 stage (no checkpoint)");
+assert.equal(app.stageCount({zoneId:"industrial", routeId:"control", riskId:"standard"}), 2, "control = 2 stages");
+assert.equal(app.stageCount({zoneId:"industrial", routeId:"reactor", riskId:"standard"}), 3, "reactor = 3 stages");
+assert.equal(app.stageCount({zoneId:"industrial", routeId:"control", riskId:"aggressive"}), 3, "aggressive adds a stage (capped at 3)");
+// planStages splits loot across stages and never loses items
+{
+  const R = { cfg:{zoneId:"industrial", routeId:"reactor", riskId:"standard", trackedItemId:null},
+    loot:["cable","fuse","servo","circuit_board","scrap_alloy"], salvage:30, dataCores:6 };
+  const plan = app.planStages(R, 3);
+  assert.equal(plan.stages.length, 3, "3 stages");
+  const all = plan.stages.reduce((a,s)=>a.concat(s.loot), []);
+  assert.equal(all.length, R.loot.length, "no loot lost across stages ("+all.length+")");
+  assert(plan.pushDeath.length >= 2 && plan.pushDeath[1] > plan.pushDeath[0], "push death escalates with depth");
+}
+
 // no economy values hardcoded in app.js
 const src = require("fs").readFileSync(P+"/app.js","utf8");
 for(const id of ["optical_sensor","power_cell","prewar_relic"])

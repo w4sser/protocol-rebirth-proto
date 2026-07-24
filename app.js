@@ -327,7 +327,7 @@ function resolveRaid(cfg){
   const salvage = randInt(zone.salvageRange[0], zone.salvageRange[1]);
   const dataCores = randInt(zone.dataCoresOnExtract[0], zone.dataCoresOnExtract[1]);
   const valuableFound = loot.some(id => ITEMS[id].rarity === "protocol" || ITEMS[id].rarity === "valuable");
-  const R = { cfg, zone: zone.id, outcome, loot, salvage, dataCores, trackedFound };
+  const R = { cfg, zone: zone.id, outcome, loot, salvage, dataCores, trackedFound, forced };
   // one meaningful mid-raid decision: only on live (unforced) successful raids with tracked/valuable loot
   R.decision = { eligible: outcome === "extract" && !forced && (trackedFound || valuableFound), resolved: false };
   return R;
@@ -346,6 +346,44 @@ function rollPushDeeper(R){
   for(let i=0;i<pd.extraSlots;i++){ const id = rollFromTable(table); extra.push(id); R.loot.push(id); }
   R.trackedFound = R.trackedFound || (!!R.cfg.trackedItemId && R.loot.includes(R.cfg.trackedItemId));
   return { died: false, extra };
+}
+
+/* ---------- Agency v0.7 — staged raids ---------- */
+// How many escalating checkpoints this route/risk produces (1-3). 1 = no decision
+// (short safe route ends fast); 2-3 = one or two extract-vs-push checkpoints.
+function stageCount(cfg){
+  const cp = D.raidConfig.checkpoints;
+  const zone = ZONES[cfg.zoneId];
+  const route = routeOf(zone, cfg.routeId);
+  const risk = D.riskLevels.find(r => r.id === cfg.riskId);
+  let n = cp.baseStages;
+  if((route.lootSlotMod||0) >= cp.deepRouteSlotMod) n++;
+  if((route.lootSlotMod||0) <  cp.shortRouteSlotMod) n--;
+  if(cp.aggressiveAddsStage && risk.id === "aggressive") n++;
+  return Math.max(1, Math.min(cp.maxStages, n));
+}
+// Split a fully-resolved raid R into N stages the player reveals one at a time.
+// Loot/salvage/cores accumulate as you go deeper; death only happens on a PUSH.
+function planStages(R, n){
+  n = n || stageCount(R.cfg);
+  const loot = R.loot.slice();
+  const stages = [];
+  for(let i=0;i<n;i++){
+    const take = Math.ceil(loot.length / (n - i));
+    stages.push({ loot: loot.splice(0, take),
+      salvage: Math.round(R.salvage / n), dataCores: Math.round(R.dataCores / n) });
+  }
+  if(loot.length) stages[stages.length-1].loot.push(...loot);
+  return { stages, n, pushDeath: D.raidConfig.checkpoints.pushDeathChance };
+}
+// Qualitative chance the tracked item shows up in the not-yet-revealed stages.
+// Honest probability, never a promise ("higher chance deeper", not "it's there").
+function trackedDeeperLabel(cfg, revealedStages, totalStages){
+  if(!cfg.trackedItemId) return null;
+  const zone = ZONES[cfg.zoneId], route = routeOf(zone, cfg.routeId);
+  const risk = D.riskLevels.find(r => r.id === cfg.riskId);
+  const remainingSlots = Math.max(1, (risk.lootSlots + (route.lootSlotMod||0)) * (totalStages - revealedStages) / totalStages);
+  return chanceLabel(trackedChanceP(cfg.trackedItemId, zone, route, remainingSlots));
 }
 function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 
@@ -575,9 +613,33 @@ function closestUpgrade(){
   return best;
 }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage"); }
+// FTUE ends once the scripted spine hands the player their first free choice.
+// Before that we teach with strong guidance; after, we stop deciding for them.
+function ftueOver(){
+  const i = PROG.beats.findIndex(b => b.id === "choice_upgrade");
+  return i < 0 || S.beat >= i;
+}
+function buildableCount(){
+  return D.modules.filter(m => {
+    if(!moduleVisible(m.id)) return false;
+    const nx = nextLevelDef(m.id);
+    return nx && nx.level <= moduleCap(m.id) && canAfford(nx.cost);
+  }).length;
+}
 function nextUpgradeHtml(){
   const c = closestUpgrade();
   if(!c) return "";
+  // Post-FTUE: report progress, but don't hand-pick the upgrade or offer the
+  // one-tap "one more raid". The player returns to base and chooses.
+  if(ftueOver()){
+    const ready = buildableCount();
+    if(ready > 0) return '<div class="nextup"><div class="nu-head">' + ready + ' UPGRADE' + (ready>1?'S':'') + ' READY BACK HOME</div>' +
+      '<span class="small">Head back and decide what to improve.</span></div>';
+    const pct = Math.round(c.pct*100);
+    return '<div class="nextup"><div class="nu-head">CLOSEST UPGRADE — ' + pct + '%</div>' +
+      '<b>' + esc(c.m.name) + ' L' + c.next.level + '</b>' +
+      '<div class="nubar"><div style="width:' + pct + '%"></div></div></div>';
+  }
   const pct = Math.round(c.pct*100);
   if(!c.missing.length){
     return '<div class="nextup"><div class="nu-head">✔ READY TO BUILD</div>' +
@@ -659,7 +721,8 @@ SCREENS.base = function(){
   }
   if(coreLevel() >= 1 && curBeat().type !== "end"){
     const missB = trackedMissingItem();
-    if(missB){
+    if(!ftueOver() && missB){
+      // FTUE: strongly guided — name the target, show the best lead, one clear CTA.
       const leadB = bestLead(missB.itemId);
       const tm = MODS[S.tracked.module];
       const tnext = tm.levels.find(l => l.level === S.tracked.level);
@@ -669,17 +732,20 @@ SCREENS.base = function(){
             const nm = pp.kind === "item" ? ITEMS[pp.id].name : (pp.id === "dataCores" ? "Data Cores" : "Salvage");
             return '<span class="chip ' + (pp.have >= pp.need ? "ok" : "need") + '">' + esc(nm) + ' ' + Math.min(pp.have,pp.need) + '/' + pp.need + '</span>';
           }).join(" ") + '</div>' +
-          '<div class="kv"><span>Benefit</span><span class="small ok">' + esc(tnext.benefitText || tm.benefit || "") + '</span></div>' +
           (leadB ? '<div class="kv"><span>Best lead</span><span class="trackc">' + esc(leadB.zone.name) + ' — ' + esc(leadB.route.name) + ' (' + leadB.label + ')</span></div>' : '') +
           '</div>';
       }
       html += '<button class="primary" onclick="A.go(\'prep\')">RAID FOR ' + esc(ITEMS[missB.itemId].name).toUpperCase() + '</button>';
-    } else if(S.tracked){
+    } else if(!ftueOver() && S.tracked){
       html += '<button class="primary" onclick="A.goBuild(\'' + S.tracked.module + '\')">ALL PARTS FOUND — BUILD ' + esc(MODS[S.tracked.module].name).toUpperCase() + '</button>' +
         '<button class="ghost" onclick="A.go(\'prep\')">Raid anyway</button>';
     } else {
-      html += '<button class="primary" onclick="A.chooseNextUpgrade()">CHOOSE NEXT UPGRADE</button>' +
-        '<button class="ghost" onclick="A.go(\'prep\')">Free raid</button>';
+      // Post-FTUE: no hand-picked upgrade. Just tell the player how many are within
+      // reach and let them inspect the glowing rooms and decide for themselves.
+      const ready = buildableCount();
+      if(ready > 0) html += '<div class="nextup"><div class="nu-head">' + ready + ' UPGRADE' + (ready>1?'S':'') + ' READY</div>' +
+        '<span class="small">Tap a glowing room to see what it does. Your call.</span></div>';
+      html += '<button class="primary" onclick="A.go(\'prep\')">PREPARE RAID</button>';
     }
   }
   if(curBeat().type === "end"){ html += '<button class="primary" onclick="A.go(\'end\')">PROTOTYPE COMPLETE — VIEW STATS</button>'; }
@@ -923,61 +989,80 @@ function prepRiskValue(){
   return ["weapon","armor","c1","c2"].reduce((s,k)=> s + (p.loadout[k] ? ITEMS[p.loadout[k]].sellValue : 0), 0);
 }
 
+// Raid feed for ONE stage. `stageLoot` = items revealed this stage; `onDone` = next step.
 SCREENS.raidsim = function(){
-  const R = session.pendingRaid;
+  const R = session.pendingRaid, rd = session.raid;
   const zone = ZONES[R.zone];
-  $app().innerHTML = '<h1>' + esc(zone.name) + '</h1><div class="sub">deployment in progress</div>' +
+  const staged = !!rd;
+  const stageLoot = staged ? rd.plan.stages[rd.stage].loot : R.loot.slice(0, R.outcome==="extract" ? R.loot.length : 2);
+  const depthTxt = staged ? (rd.stage === 0 ? "moving in" : "pushing deeper — stage " + (rd.stage+1) + "/" + rd.plan.n) : "deployment in progress";
+  $app().innerHTML = '<h1>' + esc(zone.name) + '</h1><div class="sub">' + depthTxt + '</div>' +
     '<div class="restbar"><div id="raidbar" style="width:0%"></div></div>' +
     '<div class="feed" id="raidfeed" style="margin-top:14px"></div>' +
-    '<button class="ghost" onclick="A.raidDone()">SKIP ›</button>';
+    '<button class="ghost" onclick="A.raidStep()">SKIP ›</button>';
   const feed = [];
-  feed.push({ t:1, h:'<span>» insertion complete. comms up.</span>' });
-  if(bitOnline()) feed.push({ t:2.5, h:'<span class="bitl">BIT: scanning. try not to get shot during.</span>' });
-  feed.push({ t:4, h:'<span class="hostile">» contact — hostiles nearby</span>' });
-  R.loot.slice(0, R.outcome==="extract" ? R.loot.length : 2).forEach((id, i) => {
-    const flagged = R.trackedFound && id === R.cfg.trackedItemId;
-    feed.push({ t: 5.5 + i*1.8, h: flagged
-      ? '<div class="flagbanner">' + esc(MODS[S.tracked.module].name).toUpperCase() + ' UPGRADE ITEM — NEEDED — ' + esc(ITEMS[id].name).toUpperCase() + '</div><span class="bitl">BIT: ' + esc(bitLine("tracked_found")) + '</span>'
+  if(rd && rd.stage > 0) feed.push({ t:0.6, h:'<span class="hostile">» deeper in. it is louder down here.</span>' });
+  else { feed.push({ t:1, h:'<span>» insertion complete. comms up.</span>' });
+    if(bitOnline() && !bitAway()) feed.push({ t:2.5, h:'<span class="bitl">BIT: scanning. try not to get shot during.</span>' }); }
+  stageLoot.forEach((id, i) => {
+    const flagged = id === R.cfg.trackedItemId;
+    feed.push({ t: 3.5 + i*1.5, h: flagged
+      ? '<div class="flagbanner">TRACKED — ' + esc(ITEMS[id].name).toUpperCase() + '</div>'
       : '<span>» found: ' + esc(ITEMS[id].name) + '</span>' });
   });
-  if(R.outcome === "extract") feed.push({ t: 6 + R.loot.length*1.8, h:'<span class="bitl">» extraction point reached</span>' });
-  else feed.push({ t: 9, h:'<span class="hostile">» taking heavy fire —</span>' });
-  const totalT = feed[feed.length-1].t + 1.5;
+  if(!staged){ if(R.outcome === "extract") feed.push({ t: 5 + stageLoot.length*1.5, h:'<span class="bitl">» extraction point reached</span>' });
+    else feed.push({ t: 7, h:'<span class="hostile">» taking heavy fire —</span>' }); }
+  const totalT = feed[feed.length-1].t + 1.2;
   const t0 = Date.now();
   session.raidTimers = [];
   feed.forEach(f => session.raidTimers.push(setTimeout(()=>{
-    const el = document.getElementById("raidfeed");
-    if(el){ el.innerHTML += f.h + "<br>"; }
+    const el = document.getElementById("raidfeed"); if(el) el.innerHTML += f.h + "<br>";
   }, f.t*1000)));
-  session.raidTimers.push(setTimeout(()=>A.raidDone(), totalT*1000));
+  session.raidTimers.push(setTimeout(()=>A.raidStep(), totalT*1000));
   const barIv = setInterval(()=>{
-    const el = document.getElementById("raidbar");
-    if(!el){ clearInterval(barIv); return; }
+    const el = document.getElementById("raidbar"); if(!el){ clearInterval(barIv); return; }
     el.style.width = Math.min(100, (Date.now()-t0)/(totalT*1000)*100) + "%";
   }, 200);
   session.raidTimers.push(barIv);
 };
 
-SCREENS.decision = function(){
+// Checkpoint: the extract-vs-push decision, grown out of the raid. Shows the four
+// things clearly — haul in bag, what extracting secures, what's deeper, what's at risk.
+SCREENS.checkpoint = function(){
   $app().setAttribute("class", "s-decision");
-  const R = session.pendingRaid;
+  const rd = session.raid, R = session.pendingRaid;
   const zone = ZONES[R.zone], route = routeOf(zone, R.cfg.routeId);
-  const pd = D.raidConfig.pushDeeper;
-  let html = '<h1 class="warn">DECISION POINT</h1><div class="sub">' + esc(zone.name) + ' — ' + esc(route.name) + '</div>';
-  if(R.trackedFound){
-    html += '<div class="flagbanner">TRACKED ITEM SECURED</div>';
-    if(bitOnline() && !bitAway()) html += '<div class="card small">BIT: ' + esc(bitLine("decision_found")) + '</div>';
-  }
-  html += '<h2>In your bag right now</h2>';
-  for(const id of R.loot){
+  const stagesLeft = rd.plan.n - (rd.stage + 1);
+  const dangerTier = rd.stage + 1;                 // 1..n, escalates
+  const dangerLabel = ["Low","Elevated","High","Critical"][Math.min(dangerTier, 3)];
+  const haulVal = lootValue(rd.haul);
+  const pushDeath = rd.plan.pushDeath[Math.min(rd.stage, rd.plan.pushDeath.length-1)];
+  const miss = trackedMissingItem();
+  const stillMissing = miss && !rd.haul.includes(miss.itemId);
+  const deeperLabel = stillMissing ? trackedDeeperLabel(R.cfg, rd.stage+1, rd.plan.n) : null;
+
+  let html = '<h1 class="warn">CHECKPOINT ' + (rd.stage+1) + '/' + rd.plan.n + '</h1>' +
+    '<div class="sub">' + esc(zone.name) + ' — ' + esc(route.name) + ' · danger <span class="warn">' + dangerLabel + '</span></div>';
+  html += '<div class="dangerbar"><div style="width:' + Math.round(dangerTier/rd.plan.n*100) + '%"></div></div>';
+
+  // In the bag (unsecured)
+  html += '<h2>In your bag — not yet secured</h2>';
+  if(!rd.haul.length) html += '<div class="card small">Empty so far.</div>';
+  for(const id of rd.haul){
     const fl = R.cfg.trackedItemId === id;
-    html += '<div class="card row"><span' + (fl?' class="trackc"':'') + '>' + (fl?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
-      (fl?'<span class="trackc small">tracked</span>':'') + '</div>';
+    html += '<div class="card row" style="padding:6px 10px"><span' + (fl?' class="trackc"':'') + '>' + (fl?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
+      (fl?'<span class="trackc small">tracked</span>':'<span class="small">' + (ITEMS[id].sellValue||0) + '</span>') + '</div>';
   }
-  const riskTxt = bondLevel() >= 2 ? "+" + Math.round(pd.deathChanceAdd*100) + "% death risk" : "a notably higher chance of not coming back";
-  html += '<div class="card"><b class="warn">Push deeper:</b> <span class="small">+' + pd.extraSlots + ' loot rolls · better rare odds · ' + riskTxt + '. Die in there and the death rules apply to everything you carry.</span></div>';
-  html += '<button class="primary" onclick="A.extractNow()">EXTRACT NOW — KEEP IT ALL</button>';
-  html += '<button class="ghost" style="border-color:var(--danger);color:var(--danger)" onclick="A.pushDeeper()">PUSH DEEPER</button>';
+  html += '<div class="kv"><span>Haul value at risk</span><span class="warn">' + haulVal + ' + ' + rd.salvage + ' Salvage</span></div>';
+
+  // The two choices
+  html += '<button class="primary" onclick="A.extractNow()">EXTRACT NOW — SECURE ' + haulVal + '</button>' +
+    '<div class="small" style="text-align:center;margin:2px 0 8px">Bank everything above. High chance you make it home.</div>';
+
+  const deathTxt = bondLevel() >= 2 ? Math.round(pushDeath*100) + "% chance you don't come back" : "a real chance you don't come back";
+  const deeperTxt = deeperLabel ? '<br>Higher chance of finding ' + esc(ITEMS[miss.itemId].name) + ' deeper (' + deeperLabel + ')' : '';
+  html += '<button class="ghost" style="border-color:var(--danger);color:var(--danger)" onclick="A.pushDeeper()">PUSH DEEPER ›</button>' +
+    '<div class="small" style="text-align:center;margin-top:2px">More loot' + (stagesLeft>0? ' · '+stagesLeft+' area'+(stagesLeft>1?'s':'')+' left':'') + ' · ' + deathTxt + deeperTxt + '<br>Die deeper and you lose the haul above.</div>';
   $app().innerHTML = html;
 };
 
@@ -997,7 +1082,7 @@ SCREENS.result = function(){
         (flagged ? '<span class="trackc small">tracked</span>' : isPart ? '<span class="ok small">upgrade part</span>' : '') + '</div>';
     }
     html += '<div class="progressmoved"><b>PROGRESS MOVED</b><br>' + R.progress.map(esc).join("<br>") + '</div>';
-    if(!R.doubled) html += '<button class="ad" onclick="A.adDouble()">▶ WATCH AD — 2× HAUL</button>';
+    if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">▶ WATCH AD — 2× HAUL</button>';
   } else {
     const saved = R.saved;
     html = '<h1 class="bad">KIA</h1><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
@@ -1015,8 +1100,10 @@ SCREENS.result = function(){
       html += '<div class="card small warn">No insurance. Everything stayed on the surface.</div>';
     }
     html += '<div class="progressmoved"><b>PROGRESS MOVED — EVEN NOW</b><br>' + R.progress.map(esc).join("<br>") + '</div>';
-    if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">▶ WATCH AD — RECOVER 1 ITEM</button>';
-    if(!R.bagRestored) html += '<button class="ghost" onclick="A.restoreBag()">RESTORE BAG — ' + PROG.recovery.restoreBagSignals + ' SIGNALS (have ' + S.cur.signals + ')</button>';
+    if(retMode() === "full"){
+      if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">▶ WATCH AD — RECOVER 1 ITEM</button>';
+      if(!R.bagRestored) html += '<button class="ghost" onclick="A.restoreBag()">RESTORE BAG — ' + PROG.recovery.restoreBagSignals + ' SIGNALS (have ' + S.cur.signals + ')</button>';
+    }
     if(!have("basic_carbine")) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT — ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
   html += nextUpgradeHtml();
@@ -1117,6 +1204,25 @@ SCREENS.end = function(){
   $app().innerHTML = html;
 };
 
+// Fold the current stage's loot/salvage into the accumulated (unsecured) haul.
+function revealStage(){
+  const rd = session.raid, st = rd.plan.stages[rd.stage];
+  rd.haul.push(...st.loot);
+  rd.salvage += st.salvage;
+  rd.dataCores += st.dataCores;
+}
+// End a staged raid: write the accumulated haul onto R, set outcome, then resolve.
+function finalizeStaged(outcome){
+  const rd = session.raid, R = session.pendingRaid;
+  R.outcome = outcome;
+  R.loot = rd.haul.slice();
+  R.salvage = rd.salvage;
+  R.dataCores = rd.dataCores;
+  R.trackedFound = !!R.cfg.trackedItemId && R.loot.includes(R.cfg.trackedItemId);
+  if(outcome === "death") R.pushedAndDied = true;
+  session.raid = null;
+  finishRaid();
+}
 function finishRaid(){
   const R = session.pendingRaid;
   applyRaidResult(R);
@@ -1250,39 +1356,56 @@ window.A = {
     const cfg = { zoneId:p.zoneId, routeId:p.routeId, riskId:p.riskId, insuranceId:p.insuranceId,
       loadout, trackedItemId: miss ? miss.itemId : null };
     act("RAID_DEPLOYED", cfg);
-    session.pendingRaid = resolveRaid(cfg);
+    const devForced = !!session.devForce;
+    const R = resolveRaid(cfg);
+    session.pendingRaid = R;
+    // Staged (Agency v0.7): live, unforced raids with 2+ stages get escalating
+    // extract-vs-push checkpoints. Forced FTUE raids, dev-forced outcomes and
+    // short 1-stage routes resolve straight through.
+    const n = stageCount(cfg);
+    if(!R.forced && !devForced && n >= 2){
+      const plan = planStages(R, n);
+      session.raid = { R, plan, stage:0, haul:[], salvage:0, dataCores:0 };
+      revealStage();
+    } else {
+      session.raid = null;
+    }
     session.screen = "raidsim";
     document.getElementById("bitdock").style.display = "none";
     renderCurrencies(); renderTabs();
     SCREENS.raidsim();
   },
-  raidDone(){
+  // Called after each stage's feed finishes (or SKIP).
+  raidStep(){
     (session.raidTimers||[]).forEach(x => { clearTimeout(x); clearInterval(x); });
-    const R = session.pendingRaid;
-    if(R.decision && R.decision.eligible && !R.decision.resolved){
-      log("PUSH_DEEPER_OFFERED", raidCtx(R));
-      if(R.trackedFound) log("TRACKED_ITEM_FOUND_BEFORE_DECISION", raidCtx(R));
-      save();
-      session.screen = "decision";
-      renderCurrencies();
-      SCREENS.decision();
-      return;
-    }
-    finishRaid();
+    const rd = session.raid;
+    if(!rd){ finishRaid(); return; }              // non-staged: straight to result
+    const stagesLeft = rd.plan.n - (rd.stage + 1);
+    if(stagesLeft <= 0){ finalizeStaged("extract"); return; }  // last stage — auto-extract
+    log("CHECKPOINT_REACHED", { stage: rd.stage+1, of: rd.plan.n, haulValue: lootValue(rd.haul),
+      dangerTier: rd.stage+1, trackedMissing: !!trackedMissingItem() && !rd.haul.includes((trackedMissingItem()||{}).itemId), mode: retMode() });
+    save();
+    session.screen = "checkpoint"; renderCurrencies();
+    SCREENS.checkpoint();
   },
   extractNow(){
-    const R = session.pendingRaid;
-    R.decision.resolved = true;
-    act("EXTRACT_NOW_SELECTED", raidCtx(R));
-    finishRaid();
+    const rd = session.raid;
+    act("EXTRACT_NOW_SELECTED", { stage: rd.stage+1, of: rd.plan.n, haulValue: lootValue(rd.haul), mode: retMode() });
+    finalizeStaged("extract");
   },
   pushDeeper(){
-    const R = session.pendingRaid;
-    R.decision.resolved = true;
-    act("PUSH_DEEPER_SELECTED", raidCtx(R));
-    const res = rollPushDeeper(R);
-    if(res.died) act("RAID_FAILED_AFTER_PUSHING_DEEPER", raidCtx(R));
-    finishRaid();
+    const rd = session.raid;
+    const pushDeath = rd.plan.pushDeath[Math.min(rd.stage, rd.plan.pushDeath.length-1)];
+    act("PUSH_DEEPER_SELECTED", { stage: rd.stage+1, of: rd.plan.n, haulValue: lootValue(rd.haul), mode: retMode() });
+    if(Math.random() < pushDeath){
+      log("RAID_FAILED_AFTER_PUSHING_DEEPER", { stage: rd.stage+1, of: rd.plan.n, lostValue: lootValue(rd.haul) });
+      finalizeStaged("death");
+      return;
+    }
+    rd.stage++;
+    revealStage();
+    session.screen = "raidsim"; renderCurrencies();
+    SCREENS.raidsim();
   },
   adDouble(){
     const R = session.pendingRaid;
@@ -1518,4 +1641,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };

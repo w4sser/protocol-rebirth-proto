@@ -23,7 +23,7 @@ window.DATA.progression = {
     { id:"tutorial", type:"intro",
       goalText:"Return to the facility",
       introTitle:"PROTOCOL REBIRTH",
-      introText:"You made it out of the tutorial raid alive. Barely. A damaged AI drone followed you home — it calls itself BIT.\n\nThe facility you found is dark. Dead, almost. BIT says it doesn't have to stay that way." },
+      introText:"You made it out. A damaged drone — BIT — followed you home to a dead facility.\n\nBIT says it doesn't have to stay dead." },
     { id:"core_l1", type:"build", module:"rebirth_core", level:1,
       goalText:"Restore the Rebirth Core — 1× Power Cell, 2× Scrap Alloy" },
     { id:"raid_1", type:"raid",

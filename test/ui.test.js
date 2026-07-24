@@ -56,7 +56,7 @@ assert(text().includes("Maintenance Tunnels") && text().includes("Control Room")
 A.prepSet("routeId","control");
 assert(doc.querySelector(".mappanel") && doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "industrial uses its own route map");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
-A.deploy(); A.raidDone();
+A.deploy(); A.raidStep();
 assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card");
 A.backToBase();
@@ -68,7 +68,7 @@ let ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").
 A.go("prep");
 assert(text().includes("Insurance") && text().includes("Optical Sensor"), "insurance + tracked target");
 A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
-A.deploy(); A.raidDone(); A.backToBase();
+A.deploy(); A.raidStep(); A.backToBase();
 
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
@@ -89,31 +89,34 @@ assert(!doc.querySelector(".basewrap").className.includes("hub-refined"), "refin
 // raid_3 death with premium insurance
 A.devForce("death");
 A.go("prep"); A.prepSet("insuranceId","premium");
-A.deploy(); A.raidDone();
+A.deploy(); A.raidStep();
 assert(text().includes("KIA") && text().includes("PROGRESS MOVED"), "death keeps progress");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card on death");
 A.backToBase();
 
-// one-more-raid CTA + mid-raid decision (deterministic rng)
-// dump any randomly-looted storage parts first so the tracked goal can't complete early
-A.go("stash");
-for(const pid of ["polymer_plate","servo"]){
-  while((JSON.parse(window.localStorage.getItem("pr_meta_save")).stash[pid]||0) > 0) A.sell(pid);
-}
-A.oneMoreRaid("storage", 1);
-assert(text().includes("Raid Prep"), "one-more-raid goes to prep");
-window.eval("window.__origRnd = Math.random; Math.random = function(){ return 0.01; };");
-A.deploy(); A.raidDone();
-assert(text().includes("DECISION POINT"), "decision screen shows");
-assert(text().includes("PUSH DEEPER"), "push deeper option");
-A.extractNow();
-assert(text().includes("EXTRACTED"), "extract-now resolves to result");
+// --- Agency v0.7: staged checkpoints on a live raid ---
+// Force a live, unforced raid onto a deep route (reactor => 3 stages) and survive pushes.
+A.go("dev"); doc.getElementById("devbeat").value = "6"; A.devJump();  // raid_3 (not forced)
+A.go("prep"); A.prepSet("routeId","reactor");
+window.eval("window.__origRnd = Math.random; Math.random = function(){ return 0.9; };"); // survive pushes
+A.deploy(); A.raidStep();
+assert(text().includes("CHECKPOINT 1/"), "staged raid shows a checkpoint");
+assert(text().includes("EXTRACT NOW") && text().includes("PUSH DEEPER"), "both choices present");
+assert(text().includes("In your bag") && text().includes("at risk"), "communicates haul + risk");
+A.pushDeeper();            // survives -> next stage feed
+A.raidStep();
+assert(text().includes("CHECKPOINT 2/") || text().includes("EXTRACTED"), "advances to next checkpoint or ends");
+if(text().includes("CHECKPOINT")) A.extractNow();
+assert(text().includes("EXTRACTED"), "extract-now banks the haul");
 A.backToBase();
-// second raid: push deeper and die (rng 0.01 < deathChanceAdd)
-A.go("prep"); A.deploy(); A.raidDone();
-assert(text().includes("DECISION POINT"), "second decision");
+// push deeper and die (rng 0.01 < pushDeathChance)
+A.go("dev"); doc.getElementById("devbeat").value = "6"; A.devJump();
+A.go("prep"); A.prepSet("routeId","reactor");
+A.deploy(); A.raidStep();
+assert(text().includes("CHECKPOINT"), "checkpoint before the fatal push");
+window.eval("Math.random = function(){ return 0.01; };");
 A.pushDeeper();
-assert(text().includes("KIA"), "push deeper death");
+assert(text().includes("KIA"), "push deeper can kill and lose the haul");
 window.eval("Math.random = window.__origRnd;");
 A.backToBase();
 
@@ -166,9 +169,13 @@ assert(text().includes("END OF PROTOTYPE"), "end screen");
 assert(window.DATA.progression.survey.length === 6, "six survey questions");
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-for(const a of ["ONE_MORE_RAID","SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
-  "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","PUSH_DEEPER_OFFERED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","TRACKED_ITEM_FOUND_BEFORE_DECISION","RAID_FAILED_AFTER_PUSHING_DEEPER"])
+for(const a of ["SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
+  "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","CHECKPOINT_REACHED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","RAID_FAILED_AFTER_PUSHING_DEEPER"])
   assert(S.log.some(e=>e.action===a), a + " logged");
+// ads must NOT appear in the default/core test flow (only full mode)
+assert(!S.log.some(e=>e.action==="AD_STARTED" && e.payload && /haul|recover/i.test(e.payload.label||"")) ||
+  S.log.some(e=>e.action==="RETENTION_MODE_SET" && e.payload.mode==="full"),
+  "no 2x-haul / recovery ads shown in core mode");
 console.log("ALL UI TESTS PASSED — " + S.log.length + " events");
 process.exit(0);
 })().catch(e => { console.error(e.stack); process.exit(1); });
