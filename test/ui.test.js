@@ -151,7 +151,14 @@ A.emergencyLoadout();
 // vendor/craft/stash + survey + end
 A.go("vendor"); A.buy("cable"); A.craft("ammo_pack");
 A.go("stash"); A.itemDetail("cable"); A.sell("cable");
-A.go("dev"); doc.getElementById("devbeat").value = "8"; A.devJump();
+// end must be reachable even if storage was already built before choice_upgrade:
+// force beat back to choice_upgrade with storage already built, refresh should auto-advance
+A.go("dev"); doc.getElementById("devbeat").value = "7"; A.devJump();  // choice_upgrade
+{ const sv = JSON.parse(window.localStorage.getItem("pr_meta_save")); sv.modules.storage = 1;
+  window.localStorage.setItem("pr_meta_save", JSON.stringify(sv)); }
+A.go("base");  // refresh triggers auto-advance past choice_upgrade
+{ const sv = JSON.parse(window.localStorage.getItem("pr_meta_save"));
+  assert(sv.beat === 8, "choice_upgrade auto-advances to end when storage already built (got beat " + sv.beat + ")"); }
 A.go("end");
 assert(text().includes("QUICK QUESTION"), "survey first");
 for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);

@@ -79,6 +79,9 @@ function nextLevelDef(modId){
   return m.levels.find(l => l.level === cur + 1) || null;
 }
 function moduleCap(modId){
+  // The Rebirth Core is not gated by its own level — the cap concept gates OTHER
+  // modules by core level, so the core would otherwise lock itself out of L2.
+  if(modId === "rebirth_core") return 99;
   const m = MODS[modId];
   return m.maxLevelByCore[String(coreLevel())] ?? 0;
 }
@@ -482,8 +485,16 @@ function renderTabs(){
     '<button class="' + (session.screen===id?"active":"") + '" onclick="A.go(\'' + id + '\')">' + label + '</button>'
   ).join("");
 }
+function checkBeatAutoAdvance(){
+  const b = curBeat();
+  if(b && b.type === "build_any"){
+    const done = (b.modules || []).some(id => (S.modules[id]||0) >= 1);
+    if(done) advanceBeat();
+  }
+}
 function refresh(bitTrigger, bitVars){
   tickRetention();
+  checkBeatAutoAdvance();
   $app().setAttribute("class", "s-" + session.screen);
   renderCurrencies(); renderTabs();
   document.body.classList.toggle("base-dark", !S.lightsOn);
