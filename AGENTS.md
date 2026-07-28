@@ -38,8 +38,10 @@ test/                 logic + jsdom UI tests
 ```
 
 ## Adding new artwork (the image pipeline)
-Chat attachments can be *seen* but not saved to the repo. Get the raw file into the repo
-first (drop it in `assets/reference/` — on mobile: GitHub → Add file → Upload files), then:
+The owner usually generates art in an external image tool (e.g. ChatGPT) and uploads the
+raw PNGs to the repo. Chat attachments can be *seen* but not saved to the repo, so the
+file must land in `assets/reference/` first (on mobile: GitHub → Add file → Upload files;
+on desktop: drop it in the folder). Then:
 
 1. **Derive a production webp** (crop out any baked-in UI; keep a quiet zone for panels):
    ```
