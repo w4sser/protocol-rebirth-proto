@@ -1056,13 +1056,13 @@ SCREENS.checkpoint = function(){
   html += '<div class="kv"><span>Haul value at risk</span><span class="warn">' + haulVal + ' + ' + rd.salvage + ' Salvage</span></div>';
 
   // The two choices
-  html += '<button class="primary" onclick="A.extractNow()">EXTRACT NOW — SECURE ' + haulVal + '</button>' +
+  html += '<div class="decision-actions"><button class="primary" onclick="A.extractNow()">EXTRACT NOW — SECURE ' + haulVal + '</button>' +
     '<div class="small" style="text-align:center;margin:2px 0 8px">Bank everything above. High chance you make it home.</div>';
 
   const deathTxt = bondLevel() >= 2 ? Math.round(pushDeath*100) + "% chance you don't come back" : "a real chance you don't come back";
   const deeperTxt = deeperLabel ? '<br>Higher chance of finding ' + esc(ITEMS[miss.itemId].name) + ' deeper (' + deeperLabel + ')' : '';
   html += '<button class="ghost" style="border-color:var(--danger);color:var(--danger)" onclick="A.pushDeeper()">PUSH DEEPER ›</button>' +
-    '<div class="small" style="text-align:center;margin-top:2px">More loot' + (stagesLeft>0? ' · '+stagesLeft+' area'+(stagesLeft>1?'s':'')+' left':'') + ' · ' + deathTxt + deeperTxt + '<br>Die deeper and you lose the haul above.</div>';
+    '<div class="small" style="text-align:center;margin-top:2px">More loot' + (stagesLeft>0? ' · '+stagesLeft+' area'+(stagesLeft>1?'s':'')+' left':'') + ' · ' + deathTxt + deeperTxt + '<br>Die deeper and you lose the haul above.</div></div>';
   $app().innerHTML = html;
 };
 

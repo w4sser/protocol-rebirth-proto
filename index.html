@@ -217,6 +217,22 @@
   .lockchip.gate{color:var(--accent); border-color:var(--accent); cursor:pointer; font-weight:700; font-size:11px;
     box-shadow:0 0 10px rgba(21,214,190,.3);}
   @media (max-height:480px){ .room.hs{min-width:96px; max-width:150px; padding:4px 7px;} .lockchip{font-size:8.5px;} }
+  @media (orientation:landscape) and (max-height:480px){
+    #app{padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));}
+    #app.s-base .basewrap{height:clamp(160px,calc(100dvh - 220px),220px); aspect-ratio:auto;}
+    #app.s-base .nextup{display:none;}
+    #app.s-base>button.primary,#app.s-prep>button.primary{
+      position:fixed; z-index:10; left:calc(84px + 16px + env(safe-area-inset-left, 0px));
+      right:calc(16px + env(safe-area-inset-right, 0px)); bottom:calc(8px + env(safe-area-inset-bottom, 0px));
+      width:auto; margin:0;}
+    #app.s-prep .mappanel{height:72px;}
+    #app.s-decision .decision-actions{
+      position:fixed; z-index:10; left:calc(84px + 16px + env(safe-area-inset-left, 0px));
+      right:calc(16px + env(safe-area-inset-right, 0px)); bottom:env(safe-area-inset-bottom, 0px);
+      padding:8px 0; background:rgba(7,21,28,.96); border-top:1px solid var(--line);}
+    #app.s-decision .decision-actions button{margin-top:0;}
+    #app.s-decision .decision-actions .small{display:block; margin:2px 0 6px;}
+  }
   /* ---- per-screen environment layers ---- */
   #app.s-prep{background:
     linear-gradient(90deg, rgba(7,21,28,.97) 0%, rgba(7,21,28,.9) 34%, rgba(7,21,28,.62) 62%, rgba(7,21,28,.4) 100%),
