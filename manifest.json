@@ -1,0 +1,25 @@
+{
+  "name": "Protocol Rebirth",
+  "short_name": "Rebirth",
+  "description": "A mobile extraction meta-game prototype.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#07151C",
+  "theme_color": "#0C232C",
+  "icons": [
+    {
+      "src": "assets/bit-smiley-logomark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/bit-portrait.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
