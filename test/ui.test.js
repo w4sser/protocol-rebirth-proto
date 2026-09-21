@@ -27,9 +27,11 @@ assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hots
 assert(doc.querySelectorAll(".lockchip").length >= 2, "locked future areas visible");
 assert(!doc.querySelector(".flagpatch"), "no flag patch needed — env re-rendered without flag");
 assert(doc.querySelector(".basewrap").className.includes("basedark"), "base starts dark");
-assert(doc.querySelector(".basewrap").className.includes("hub-abandoned"), "bunker starts abandoned");
-assert(text().includes("ABANDONED"), "hub state label");
+assert(doc.querySelector(".basewrap").className.includes("hub-core_found"), "bunker starts at core_found");
+assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_abandoned"), "abandoned hub art loaded");
+assert.equal(doc.querySelector(".basewrap").dataset.audio, "dormant_core", "found state restores audio profile");
+assert.equal(doc.querySelectorAll("#tabs button").length, 1, "found state locks non-base navigation");
 assert(text().includes("Power Cell 1/1"), "requirement chips");
 assert(doc.querySelector(".roombar"), "room progress bars");
 const cur0 = doc.getElementById("currencies").textContent;
@@ -38,12 +40,23 @@ assert(cur0.includes("Scrap") && !cur0.includes("Signals") && !cur0.includes("Fu
 // Core L1 boot
 A.go("module","rebirth_core"); A.build("rebirth_core");
 await sleep(5400);
+{
+  const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
+  assert.equal(saved.baseState, "core_habitable", "base state is persisted with the first Core upgrade");
+  const before = JSON.stringify({ modules:saved.modules, cur:saved.cur, stash:saved.stash, baseState:saved.baseState });
+  A.build("rebirth_core");
+  const afterSave = JSON.parse(window.localStorage.getItem("pr_meta_save"));
+  const after = JSON.stringify({ modules:afterSave.modules, cur:afterSave.cur, stash:afterSave.stash, baseState:afterSave.baseState });
+  assert.equal(after, before, "repeating the transition cannot charge resources twice");
+}
 assert(doc.getElementById("overlay").textContent.includes("POWER RESTORED"), "boot payoff");
 assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benefit in boot payoff");
 doc.querySelector("#overlay [data-close]").click();
 assert(!doc.querySelector(".basewrap").className.includes("basedark"), "base env lit after Core L1");
-assert(doc.querySelector(".basewrap").className.includes("hub-restored"), "bunker restored after first build");
+assert(doc.querySelector(".basewrap").className.includes("hub-core_habitable"), "bunker becomes habitable after first build");
 assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_restored"), "restored hub art swapped in");
+assert.equal(doc.querySelector(".basewrap").dataset.audio, "powered_hub", "habitable state selects powered audio profile");
+assert.equal(doc.querySelectorAll("#tabs button").length, 3, "habitable state unlocks navigation");
 assert(text().includes("RAID FOR"), "CTA names the tracked item");
 assert(text().includes("Best lead"), "CTA shows best lead");
 assert(text().includes("Craft gear"), "benefit label on room");
@@ -82,9 +95,8 @@ A.go("base");
 assert(text().includes("Cozy Tech"), "style visible on hub hotspot");
 // #3 self-expression paints the hub, not just a label
 assert(doc.querySelector(".styleoverlay") && doc.querySelector(".styleoverlay").style.backgroundImage.includes("bitbay_warm"), "chosen style overlays the hub bunker");
-// #4 refined must NOT trigger yet — storage still unbuilt though 3 module levels exist
-assert(doc.querySelector(".basewrap").className.includes("hub-restored"), "still restored — refined waits for all rooms repaired");
-assert(!doc.querySelector(".basewrap").className.includes("hub-refined"), "refined not shown while a room is broken");
+// The persistent habitable state remains active while individual rooms progress.
+assert(doc.querySelector(".basewrap").className.includes("hub-core_habitable"), "habitable state remains stable as rooms are repaired");
 
 // raid_3 death with premium insurance
 A.devForce("death");
@@ -154,15 +166,22 @@ A.emergencyLoadout();
 // vendor/craft/stash + survey + end
 A.go("vendor"); A.buy("cable"); A.craft("ammo_pack");
 A.go("stash"); A.itemDetail("cable"); A.sell("cable");
-// end must be reachable even if storage was already built before choice_upgrade:
-// force beat back to choice_upgrade with storage already built, refresh should auto-advance
+// The choice upgrade must advance to a reachable end screen; repairing the final
+// room also promotes and persists the original refined bunker transformation.
 A.go("dev"); doc.getElementById("devbeat").value = "7"; A.devJump();  // choice_upgrade
-{ const sv = JSON.parse(window.localStorage.getItem("pr_meta_save")); sv.modules.storage = 1;
-  window.localStorage.setItem("pr_meta_save", JSON.stringify(sv)); }
-A.go("base");  // refresh triggers auto-advance past choice_upgrade
+A.devCur();
+doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
+doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
+doc.getElementById("devitem").value = "servo"; A.devGrant();
+A.go("module","storage"); A.build("storage");
+ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+assert(doc.querySelector(".basewrap").className.includes("hub-core_refined"), "all repaired rooms persist the refined bunker state");
+assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_refined"), "refined bunker art is restored");
 { const sv = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-  assert(sv.beat === 8, "choice_upgrade auto-advances to end when storage already built (got beat " + sv.beat + ")"); }
+  assert(sv.beat === 8, "choice upgrade advances to end after Storage is built (got beat " + sv.beat + ")");
+  assert.equal(sv.baseState, "core_refined", "refined base state is saved"); }
 A.go("end");
+assert(doc.getElementById("app").className === "s-end", "end screen navigation is reachable");
 assert(text().includes("QUICK QUESTION"), "survey first");
 for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);
 assert(text().includes("END OF PROTOTYPE"), "end screen");

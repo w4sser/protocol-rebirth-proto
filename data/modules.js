@@ -127,18 +127,22 @@ window.DATA.baseMap = {
   ]
 };
 
-// Bunker restoration states (Merge Mansion-style visible transformation).
-// State derives from total module levels; thresholds are tunable here.
-// State is chosen by the LAST matching rule whose `when` predicate passes (evaluated
-// top→bottom). Refined requires the functional repairs to actually be done, so the
-// warm bunker never shows while a room is still broken.
-window.DATA.hubStates = [
-  { id:"abandoned", label:"ABANDONED", env:"assets/production/hub_abandoned.webp",
-    when: m => true },
-  { id:"restored",  label:"RESTORED",  env:"assets/production/hub_restored.webp",
-    when: m => (m.rebirth_core||0) >= 1 },
-  { id:"refined",   label:"REFINED",   env:"assets/production/hub_refined.webp",
-    when: m => (m.rebirth_core||0) >= 1 && (m.fabricator||0) >= 1 && (m.bit_bay||0) >= 1 && (m.storage||0) >= 1 }
+// Persistent bunker states. Each state owns the complete presentation and access
+// profile so loading a save can restore more than just the background plate.
+window.DATA.baseStates = [
+  { id:"core_found", label:"CORE FOUND", env:"assets/production/hub_abandoned.webp",
+    lighting:"emergency", audioProfile:"dormant_core",
+    interactions:["rebirth_core"], navigation:["base"],
+    transitions:[{ module:"rebirth_core", level:1, target:"core_habitable" }] },
+  { id:"core_habitable", label:"CORE HABITABLE", env:"assets/production/hub_restored.webp",
+    lighting:"habitable", audioProfile:"powered_hub",
+    interactions:["rebirth_core","fabricator","bit_bay","storage"],
+    navigation:["base","stash","vendor","prep","end"],
+    transitions:[{ target:"core_refined", modules:{ rebirth_core:1, fabricator:1, bit_bay:1, storage:1 } }] },
+  { id:"core_refined", label:"REFINED", env:"assets/production/hub_refined.webp",
+    lighting:"refined", audioProfile:"refined_hub",
+    interactions:["rebirth_core","fabricator","bit_bay","storage"],
+    navigation:["base","stash","vendor","prep","end"], transitions:[] }
 ];
 
 // Curated self-expression (cosmetic only, one room for now): pick a look for the BIT Bay.

@@ -10,7 +10,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 5;   // bump on state-model changes; old saves are discarded in prototype phase
+const SAVE_VERSION = 6;   // v6 persists the bunker state/profile explicitly
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -31,7 +31,7 @@ function freshState(){
     streak: 0, lastDay: "", lastYieldAt: 0,
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
-    lightsOn: false, introSeen: false,
+    baseState: D.baseStates[0].id, introSeen: false,
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -86,10 +86,32 @@ function moduleCap(modId){
   return m.maxLevelByCore[String(coreLevel())] ?? 0;
 }
 function moduleVisible(modId){ return coreLevel() >= MODS[modId].revealedAtCore; }
-function hubState(){
-  let st = D.hubStates[0];
-  for(const h of D.hubStates){ if(!h.when || h.when(S.modules)) st = h; }
-  return st;
+function baseState(){
+  return D.baseStates.find(st => st.id === S.baseState) || D.baseStates[0];
+}
+function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
+function transitionBaseState(target, reason){
+  if(S.baseState === target) return false;
+  const current = baseState();
+  const transition = (current.transitions || []).find(t => t.target === target);
+  if(!transition) return false;
+  if(transition.module && (!reason || transition.module !== reason.module || transition.level !== reason.level)) return false;
+  if(transition.module && (S.modules[transition.module] || 0) < transition.level) return false;
+  if(Object.entries(transition.modules || {}).some(([id, level]) => (S.modules[id] || 0) < level)) return false;
+  S.baseState = target;
+  act("BASE_STATE_CHANGED", { from:current.id, to:target, reason:reason || {} });
+  return true;
+}
+function advanceBaseState(reason){
+  let changed = false, transition;
+  while((transition = (baseState().transitions || []).find(t =>
+    (!t.module || (reason && t.module === reason.module && t.level === reason.level)) &&
+    (!t.module || (S.modules[t.module] || 0) >= t.level) &&
+    !Object.entries(t.modules || {}).some(([id, level]) => (S.modules[id] || 0) < level)))){
+    if(!transitionBaseState(transition.target, reason)) break;
+    changed = true;
+  }
+  return changed;
 }
 function costParts(cost){
   const parts = [];
@@ -133,7 +155,7 @@ function bitLine(trigger, vars){
 }
 function bitDock(trigger, vars){
   const dock = document.getElementById("bitdock");
-  if(!S.lightsOn){ dock.style.display = "none"; return; }
+  if(baseState().lighting === "emergency"){ dock.style.display = "none"; return; }
   dock.style.display = "flex";
   document.getElementById("bitface").className = (bitOnline() && !bitAway()) ? "" : "off";
   if(bitAway()){
@@ -518,7 +540,8 @@ function renderCurrencies(){
     '<button id="devbtn" onclick="A.go(\'dev\')">⚙</button>';
 }
 function renderTabs(){
-  const tabs = [["base","Base"],["stash","Stash"],["vendor","Vendor"]];
+  const tabs = [["base","Base"],["stash","Stash"],["vendor","Vendor"]]
+    .filter(([id]) => baseAllows("navigation", id));
   document.getElementById("tabs").innerHTML = tabs.map(([id,label]) =>
     '<button class="' + (session.screen===id?"active":"") + '" onclick="A.go(\'' + id + '\')">' + label + '</button>'
   ).join("");
@@ -535,7 +558,10 @@ function refresh(bitTrigger, bitVars){
   checkBeatAutoAdvance();
   $app().setAttribute("class", "s-" + session.screen);
   renderCurrencies(); renderTabs();
-  document.body.classList.toggle("base-dark", !S.lightsOn);
+  const profile = baseState();
+  document.body.classList.toggle("base-dark", profile.lighting === "emergency");
+  document.body.dataset.lighting = profile.lighting;
+  document.body.dataset.audioProfile = profile.audioProfile;
   SCREENS[session.screen](session.screenParam);
   bitDock(bitTrigger, bitVars);
 }
@@ -555,7 +581,7 @@ SCREENS.intro = function(){
 
 function roomHtml(modId){
   const m = MODS[modId], lvl = S.modules[modId] || 0;
-  const visible = moduleVisible(modId);
+  const visible = moduleVisible(modId) && baseAllows("interactions", modId);
   const next = nextLevelDef(modId);
   const hs = (D.baseMap.hotspots || {})[modId] || { x:50, y:50 };
   let stateCls, chips = "";
@@ -664,13 +690,13 @@ SCREENS.base = function(){
     '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>' + goalBarHtml();
 
   const BM = D.baseMap;
-  const hub = hubState();
-  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (S.lightsOn ? '' : ' basedark') + '">' +
+  const hub = baseState();
+  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (hub.lighting === "emergency" ? ' basedark' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '">' +
     '<div class="baseenv" style="background-image:url(\'' + (hub.env || D.baseMap.env) + '\')"></div>' +
     '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
   // Chosen room styles paint a cropped overlay onto the hub so the bunker actually
   // becomes "yours" — not just a label. Only shows once the room is built and lit.
-  if(S.lightsOn){
+  if(hub.lighting !== "emergency"){
     for(const modId in (D.styleOverlay||{})){
       const st = S.styles[modId];
       if(!st || (S.modules[modId]||0) < 1) continue;
@@ -684,7 +710,8 @@ SCREENS.base = function(){
   for(const m of D.modules) html += roomHtml(m.id);
   for(const L of BM.locked)
     html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
-  html += '<div class="lockchip gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" onclick="A.go(\'prep\')">◎ ' + esc(BM.raidGate.label) + '</div>';
+  html += '<div class="lockchip gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%"' +
+    (baseAllows("navigation", "prep") ? ' onclick="A.go(\'prep\')"' : '') + '>◎ ' + esc(BM.raidGate.label) + '</div>';
   html += '</div>';
   session.wake = false;
   if(bitOnline()){
@@ -1244,6 +1271,8 @@ function finishRaid(){
 /* ---------- actions ---------- */
 window.A = {
   go(screen, param){
+    if(screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen)) return;
+    if(screen === "module" && !baseAllows("interactions", param)) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
     session.screenEnterTs = Date.now();
@@ -1271,6 +1300,7 @@ window.A = {
     S.modules[modId] = next.level;
     if(S.tracked && S.tracked.module === modId && S.tracked.level === next.level) S.tracked = null;
     act("MODULE_BUILT", { module: modId, level: next.level });
+    advanceBaseState({ module:modId, level:next.level });
     if(modId === "bit_bay" && next.level === 1) revealCurrency("dataCores");
     if(modId === "fabricator" && next.level === 1) S.lastYieldAt = Date.now();
     const b = curBeat();
@@ -1281,7 +1311,7 @@ window.A = {
     const isBitOnline = modId === "bit_bay" && next.level === 1;
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
     if(isLightsOn){
-      S.lightsOn = true; save();
+      save();
       bootSequence(next, finish);
     } else {
       let bdust = '<div class="dustwrap">';
@@ -1641,4 +1671,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
