@@ -7,8 +7,18 @@ const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 5);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 6);
 assert.equal(S.retentionMode, "core");
+assert.equal(S.baseState, "core_found", "new saves start at the found Core");
+assert.equal(app.baseState().lighting, "emergency");
+
+// Base state transitions are persistent data mutations, one-way, and idempotent.
+assert(app.transitionBaseState("core_habitable", { module:"rebirth_core", level:1 }));
+assert.equal(S.baseState, "core_habitable");
+const transitions = S.log.filter(e => e.action === "BASE_STATE_CHANGED").length;
+assert(!app.transitionBaseState("core_habitable", { module:"rebirth_core", level:1 }));
+assert.equal(S.log.filter(e => e.action === "BASE_STATE_CHANGED").length, transitions);
+assert(!app.transitionBaseState("core_found"), "base state cannot regress");
 
 // scripted raid_1: forced extract + guaranteed drops
 S.beat = 2;

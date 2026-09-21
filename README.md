@@ -16,7 +16,7 @@ Raids are simulated — this tests the base-building loop: *does the base create
 
 Gear icon (top right): force raid outcomes, grant items, jump between beats, reset save, export the event log (every action is logged — including `ONE_MORE_RAID`, the key metric).
 
-Save lives in `localStorage` (`pr_meta_save`, v2). Old save versions are discarded automatically.
+Save lives in `localStorage` (`pr_meta_save`, v6). Old save versions are discarded automatically.
 
 ## Design docs
 
