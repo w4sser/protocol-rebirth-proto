@@ -1,0 +1,14 @@
+{
+  "name": "protocol-rebirth-proto",
+  "version": "0.8.1",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue",
+    "test:logic": "node test/logic.test.js",
+    "test:ui": "node test/ui.test.js",
+    "test:ftue": "node test/ftue-full.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}

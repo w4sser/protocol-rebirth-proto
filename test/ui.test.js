@@ -166,15 +166,22 @@ A.emergencyLoadout();
 // vendor/craft/stash + survey + end
 A.go("vendor"); A.buy("cable"); A.craft("ammo_pack");
 A.go("stash"); A.itemDetail("cable"); A.sell("cable");
-// end must be reachable even if storage was already built before choice_upgrade:
-// force beat back to choice_upgrade with storage already built, refresh should auto-advance
+// The choice upgrade must advance to a reachable end screen; repairing the final
+// room also promotes and persists the original refined bunker transformation.
 A.go("dev"); doc.getElementById("devbeat").value = "7"; A.devJump();  // choice_upgrade
-{ const sv = JSON.parse(window.localStorage.getItem("pr_meta_save")); sv.modules.storage = 1;
-  window.localStorage.setItem("pr_meta_save", JSON.stringify(sv)); }
-A.go("base");  // refresh triggers auto-advance past choice_upgrade
+A.devCur();
+doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
+doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
+doc.getElementById("devitem").value = "servo"; A.devGrant();
+A.go("module","storage"); A.build("storage");
+ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+assert(doc.querySelector(".basewrap").className.includes("hub-core_refined"), "all repaired rooms persist the refined bunker state");
+assert(doc.querySelector(".baseenv").style.backgroundImage.includes("hub_refined"), "refined bunker art is restored");
 { const sv = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-  assert(sv.beat === 8, "choice_upgrade auto-advances to end when storage already built (got beat " + sv.beat + ")"); }
+  assert(sv.beat === 8, "choice upgrade advances to end after Storage is built (got beat " + sv.beat + ")");
+  assert.equal(sv.baseState, "core_refined", "refined base state is saved"); }
 A.go("end");
+assert(doc.getElementById("app").className === "s-end", "end screen navigation is reachable");
 assert(text().includes("QUICK QUESTION"), "survey first");
 for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);
 assert(text().includes("END OF PROTOTYPE"), "end screen");

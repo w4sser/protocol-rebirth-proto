@@ -93,11 +93,25 @@ function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
 function transitionBaseState(target, reason){
   if(S.baseState === target) return false;
   const current = baseState();
-  if(!current.transitionOn || current.transitionOn.target !== target) return false;
-  if(reason && (current.transitionOn.module !== reason.module || current.transitionOn.level !== reason.level)) return false;
+  const transition = (current.transitions || []).find(t => t.target === target);
+  if(!transition) return false;
+  if(transition.module && (!reason || transition.module !== reason.module || transition.level !== reason.level)) return false;
+  if(transition.module && (S.modules[transition.module] || 0) < transition.level) return false;
+  if(Object.entries(transition.modules || {}).some(([id, level]) => (S.modules[id] || 0) < level)) return false;
   S.baseState = target;
   act("BASE_STATE_CHANGED", { from:current.id, to:target, reason:reason || {} });
   return true;
+}
+function advanceBaseState(reason){
+  let changed = false, transition;
+  while((transition = (baseState().transitions || []).find(t =>
+    (!t.module || (reason && t.module === reason.module && t.level === reason.level)) &&
+    (!t.module || (S.modules[t.module] || 0) >= t.level) &&
+    !Object.entries(t.modules || {}).some(([id, level]) => (S.modules[id] || 0) < level)))){
+    if(!transitionBaseState(transition.target, reason)) break;
+    changed = true;
+  }
+  return changed;
 }
 function costParts(cost){
   const parts = [];
@@ -141,7 +155,7 @@ function bitLine(trigger, vars){
 }
 function bitDock(trigger, vars){
   const dock = document.getElementById("bitdock");
-  if(baseState().lighting !== "habitable"){ dock.style.display = "none"; return; }
+  if(baseState().lighting === "emergency"){ dock.style.display = "none"; return; }
   dock.style.display = "flex";
   document.getElementById("bitface").className = (bitOnline() && !bitAway()) ? "" : "off";
   if(bitAway()){
@@ -545,7 +559,7 @@ function refresh(bitTrigger, bitVars){
   $app().setAttribute("class", "s-" + session.screen);
   renderCurrencies(); renderTabs();
   const profile = baseState();
-  document.body.classList.toggle("base-dark", profile.lighting !== "habitable");
+  document.body.classList.toggle("base-dark", profile.lighting === "emergency");
   document.body.dataset.lighting = profile.lighting;
   document.body.dataset.audioProfile = profile.audioProfile;
   SCREENS[session.screen](session.screenParam);
@@ -677,12 +691,12 @@ SCREENS.base = function(){
 
   const BM = D.baseMap;
   const hub = baseState();
-  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (hub.lighting === "habitable" ? '' : ' basedark') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '">' +
+  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (hub.lighting === "emergency" ? ' basedark' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '">' +
     '<div class="baseenv" style="background-image:url(\'' + (hub.env || D.baseMap.env) + '\')"></div>' +
     '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
   // Chosen room styles paint a cropped overlay onto the hub so the bunker actually
   // becomes "yours" — not just a label. Only shows once the room is built and lit.
-  if(hub.lighting === "habitable"){
+  if(hub.lighting !== "emergency"){
     for(const modId in (D.styleOverlay||{})){
       const st = S.styles[modId];
       if(!st || (S.modules[modId]||0) < 1) continue;
@@ -1286,9 +1300,7 @@ window.A = {
     S.modules[modId] = next.level;
     if(S.tracked && S.tracked.module === modId && S.tracked.level === next.level) S.tracked = null;
     act("MODULE_BUILT", { module: modId, level: next.level });
-    const transition = baseState().transitionOn;
-    if(transition && transition.module === modId && transition.level === next.level)
-      transitionBaseState(transition.target, { module:modId, level:next.level });
+    advanceBaseState({ module:modId, level:next.level });
     if(modId === "bit_bay" && next.level === 1) revealCurrency("dataCores");
     if(modId === "fabricator" && next.level === 1) S.lastYieldAt = Date.now();
     const b = curBeat();
@@ -1659,4 +1671,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };

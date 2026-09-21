@@ -13,12 +13,18 @@ assert.equal(S.baseState, "core_found", "new saves start at the found Core");
 assert.equal(app.baseState().lighting, "emergency");
 
 // Base state transitions are persistent data mutations, one-way, and idempotent.
+S.modules.rebirth_core = 1;
 assert(app.transitionBaseState("core_habitable", { module:"rebirth_core", level:1 }));
 assert.equal(S.baseState, "core_habitable");
 const transitions = S.log.filter(e => e.action === "BASE_STATE_CHANGED").length;
 assert(!app.transitionBaseState("core_habitable", { module:"rebirth_core", level:1 }));
 assert.equal(S.log.filter(e => e.action === "BASE_STATE_CHANGED").length, transitions);
 assert(!app.transitionBaseState("core_found"), "base state cannot regress");
+S.modules.fabricator = 1; S.modules.bit_bay = 1; S.modules.storage = 1;
+assert(app.advanceBaseState({ module:"storage", level:1 }), "all repaired rooms transition to refined");
+assert.equal(S.baseState, "core_refined");
+assert.equal(app.baseState().env, "assets/production/hub_refined.webp");
+assert(!app.advanceBaseState({ module:"storage", level:1 }), "refined transition is idempotent");
 
 // scripted raid_1: forced extract + guaranteed drops
 S.beat = 2;

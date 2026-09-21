@@ -133,11 +133,16 @@ window.DATA.baseStates = [
   { id:"core_found", label:"CORE FOUND", env:"assets/production/hub_abandoned.webp",
     lighting:"emergency", audioProfile:"dormant_core",
     interactions:["rebirth_core"], navigation:["base"],
-    transitionOn:{ module:"rebirth_core", level:1, target:"core_habitable" } },
+    transitions:[{ module:"rebirth_core", level:1, target:"core_habitable" }] },
   { id:"core_habitable", label:"CORE HABITABLE", env:"assets/production/hub_restored.webp",
     lighting:"habitable", audioProfile:"powered_hub",
     interactions:["rebirth_core","fabricator","bit_bay","storage"],
-    navigation:["base","stash","vendor","prep"] }
+    navigation:["base","stash","vendor","prep","end"],
+    transitions:[{ target:"core_refined", modules:{ rebirth_core:1, fabricator:1, bit_bay:1, storage:1 } }] },
+  { id:"core_refined", label:"REFINED", env:"assets/production/hub_refined.webp",
+    lighting:"refined", audioProfile:"refined_hub",
+    interactions:["rebirth_core","fabricator","bit_bay","storage"],
+    navigation:["base","stash","vendor","prep","end"], transitions:[] }
 ];
 
 // Curated self-expression (cosmetic only, one room for now): pick a look for the BIT Bay.
