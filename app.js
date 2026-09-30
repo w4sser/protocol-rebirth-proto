@@ -10,11 +10,11 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 6;   // v6 persists the bunker state/profile explicitly
+const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
-let session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null };
+let session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null };
 
 function freshState(){
   const st = {
@@ -31,7 +31,7 @@ function freshState(){
     streak: 0, lastDay: "", lastYieldAt: 0,
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
-    baseState: D.baseStates[0].id, introSeen: false,
+    baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -41,9 +41,23 @@ function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
-    if(raw){ const st = JSON.parse(raw); if(st.v === SAVE_VERSION) return st; }
+    if(raw){
+      const st = JSON.parse(raw);
+      if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; return st; }
+    }
   }catch(e){}
   return freshState();
+}
+function migrateState(st){
+  if(st.v !== 6) return st;
+  // v6 exposed every powered room. Preserve that access and all economy state
+  // while introducing explicit ordered unlocks rather than resetting the save.
+  st.roomUnlocks = {};
+  if(st.baseState !== "core_found") for(const room of D.baseMap.rooms.slice(0, 3)) st.roomUnlocks[room.id] = true;
+  if(st.baseState === "core_refined") st.roomUnlocks.living_quarters = true;
+  st.v = SAVE_VERSION;
+  return st;
 }
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
@@ -90,6 +104,21 @@ function baseState(){
   return D.baseStates.find(st => st.id === S.baseState) || D.baseStates[0];
 }
 function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
+
+function roomDef(id){ return D.baseMap.rooms.find(r => r.id === id); }
+function roomUnlocked(id){ return !!(S.roomUnlocks && S.roomUnlocks[id]); }
+function roomRequirementMet(room){
+  const req = room.requirement || {};
+  if(req.baseState && S.baseState !== req.baseState && S.baseState !== "core_refined") return false;
+  if(req.module && (S.modules[req.module] || 0) < (req.level || 1)) return false;
+  const prior = D.baseMap.rooms[room.stage - 2];
+  return !prior || roomUnlocked(prior.id);
+}
+function bunkerStage(){
+  let stage = 0;
+  for(const room of D.baseMap.rooms) if(roomUnlocked(room.id)) stage = Math.max(stage, room.stage);
+  return stage;
+}
 function transitionBaseState(target, reason){
   if(S.baseState === target) return false;
   const current = baseState();
@@ -579,51 +608,6 @@ SCREENS.intro = function(){
     '<button class="primary" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
 };
 
-function roomHtml(modId){
-  const m = MODS[modId], lvl = S.modules[modId] || 0;
-  const visible = moduleVisible(modId) && baseAllows("interactions", modId);
-  const next = nextLevelDef(modId);
-  const hs = (D.baseMap.hotspots || {})[modId] || { x:50, y:50 };
-  let stateCls, chips = "";
-  if(!visible) stateCls = "dark";
-  else if(lvl === 0){
-    const capped = next && next.level > moduleCap(modId);
-    stateCls = (next && !capped && canAfford(next.cost)) ? "broken ready" : "broken";
-  } else {
-    const capped = next && next.level > moduleCap(modId);
-    stateCls = (next && !capped && canAfford(next.cost)) ? "built ready" : "built";
-  }
-  if(visible && next){
-    if(next.level > moduleCap(modId)){
-      const needCore = Object.keys(m.maxLevelByCore).find(k => m.maxLevelByCore[k] >= next.level);
-      chips = '<span class="chip need">CORE L' + (needCore || "?") + ' FIRST</span>';
-    } else {
-      chips = costParts(next.cost).map(p => {
-        const name = p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Cores" : "Salvage");
-        return '<span class="chip ' + (p.have >= p.need ? "ok" : "need") + '">' + esc(name) + ' ' + Math.min(p.have,p.need) + '/' + p.need + '</span>';
-      }).join("");
-    }
-  } else if(visible && !next) chips = '<span class="chip ok">MAX</span>';
-  let tracked = (S.tracked && S.tracked.module === modId) ? '<span class="chip track">◉ TRACKED</span>' : '';
-  if(S.styles[modId]){
-    const so = (D.styleOptions[modId]||[]).find(x => x.id === S.styles[modId]);
-    if(so) tracked += '<span class="chip stylec">✦ ' + esc(so.name) + '</span>';
-  }
-  let bar = "";
-  if(visible && next && next.level <= moduleCap(modId)){
-    const parts = costParts(next.cost);
-    const needT = parts.reduce((s,p)=>s+p.need,0);
-    const haveT = parts.reduce((s,p)=>s+Math.min(p.have,p.need),0);
-    bar = '<div class="roombar"><div style="width:' + (needT ? Math.round(haveT/needT*100) : 0) + '%"></div></div>';
-  }
-  return '<div class="room hs ' + stateCls + '" style="left:' + hs.x + '%;top:' + hs.y + '%"' +
-    (visible ? ' onclick="A.go(\'module\',\'' + modId + '\')"' : '') + '>' +
-    '<div class="roomname"><span>' + (visible ? esc(m.name) : "— no power —") + '</span>' +
-    (visible && lvl ? '<span class="lvl">L' + lvl + '</span>' : '') + '</div>' +
-    (visible && m.benefit ? '<div class="rbenefit">' + esc(m.benefit) + '</div>' : '') +
-    '<div class="chips">' + tracked + chips + '</div>' + bar + '</div>';
-}
-
 function closestUpgrade(){
   let best = null;
   for(const m of D.modules){
@@ -681,6 +665,44 @@ function nextUpgradeHtml(){
     '<button class="primary" onclick="A.oneMoreRaid(\'' + c.m.id + '\',' + c.next.level + ')">ONE MORE RAID ›</button></div>';
 }
 
+function setupBaseViewer(){
+  const viewer = document.querySelector(".baseviewer"), world = document.querySelector(".baseworld");
+  if(!viewer || !world) return;
+  const cfg = D.baseMap.world;
+  if(!session.camera) session.camera = { x:cfg.initialFocus.x / 100, y:cfg.initialFocus.y / 100 };
+  let drag = null, moved = false, suppress = false;
+  function layout(){
+    const vw = viewer.clientWidth || 800, vh = viewer.clientHeight || 420;
+    const scale = Math.max(vw / cfg.width * 1.18, vh / cfg.height * 1.18);
+    const sw = cfg.width * scale, sh = cfg.height * scale;
+    session.cameraLayout = { sw, sh };
+    const minX = Math.min(0, vw - sw), minY = Math.min(0, vh - sh);
+    let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
+    x = Math.max(minX, Math.min(0, x)); y = Math.max(minY, Math.min(0, y));
+    session.camera.x = (vw/2 - x) / sw; session.camera.y = (vh/2 - y) / sh;
+    world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+  }
+  viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; viewer.setPointerCapture && viewer.setPointerCapture(e.pointerId); });
+  viewer.addEventListener("pointermove", e => {
+    if(!drag) return;
+    const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+    if(Math.hypot(dx,dy) > 7){ moved=true; suppress=true; viewer.classList.add("dragging"); }
+    if(moved){ const dims=session.cameraLayout; session.camera.x=drag.cx-dx/dims.sw; session.camera.y=drag.cy-dy/dims.sh; layout(); e.preventDefault(); }
+  });
+  const finish = () => { drag=null; viewer.classList.remove("dragging"); setTimeout(()=>{ suppress=false; },0); };
+  viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
+  viewer.addEventListener("click", e => {
+    const spot=e.target.closest(".mapspot"); if(!spot || suppress || moved){ e.preventDefault(); return; }
+    if(spot.dataset.destination) A.go("module", spot.dataset.destination);
+    else if(spot.dataset.gate && baseAllows("navigation","prep")) A.go("prep");
+    else if(spot.dataset.room) A.openRoom(spot.dataset.room);
+  });
+  if(session.cameraResize) window.removeEventListener("resize", session.cameraResize);
+  session.cameraResize = layout; window.addEventListener("resize", layout); layout();
+  const shownStage=session.devPlateStage === null ? bunkerStage() : session.devPlateStage;
+  const next=D.baseMap.plates[shownStage+1]; if(next){ const img=new Image(); img.src=next.art; }
+}
+
 SCREENS.base = function(){
   if(!S.introSeen){ session.screen = "intro"; return SCREENS.intro(); }
   const restorePct = Math.min(100, Math.round(
@@ -691,28 +713,25 @@ SCREENS.base = function(){
 
   const BM = D.baseMap;
   const hub = baseState();
-  html += '<div class="basewrap hub-' + hub.id + (session.wake ? ' wake' : '') + (hub.lighting === "emergency" ? ' basedark' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '">' +
-    '<div class="baseenv" style="background-image:url(\'' + (hub.env || D.baseMap.env) + '\')"></div>' +
-    '<div class="hubstate">BUNKER · ' + esc(hub.label) + '</div>';
-  // Chosen room styles paint a cropped overlay onto the hub so the bunker actually
-  // becomes "yours" — not just a label. Only shows once the room is built and lit.
-  if(hub.lighting !== "emergency"){
-    for(const modId in (D.styleOverlay||{})){
-      const st = S.styles[modId];
-      if(!st || (S.modules[modId]||0) < 1) continue;
-      const so = (D.styleOptions[modId]||[]).find(x => x.id === st);
-      const box = D.styleOverlay[modId];
-      if(so && so.art && box)
-        html += '<div class="styleoverlay" style="left:' + box.x + '%;top:' + box.y + '%;width:' + box.w +
-          '%;aspect-ratio:16/9;background-image:url(\'' + so.art + '\')"></div>';
-    }
+  const savedStage = bunkerStage();
+  const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
+  const plate = BM.plates[stage];
+  const previous = session.plateStage !== null && session.plateStage !== stage ? BM.plates[session.plateStage] : null;
+  html += '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
+    '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
+    (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
+    '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
+    '<button class="mapspot core-spot" style="left:' + BM.core.x + '%;top:' + BM.core.y + '%" data-destination="rebirth_core"><b>' + esc(BM.core.label) + '</b></button>';
+  for(const room of BM.rooms){
+    const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
+    const shownOpen = unlocked || previewUnlocked;
+    const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
+    html += '<button class="mapspot room-spot ' + (shownOpen ? 'unlocked' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + '" style="left:' + room.x + '%;top:' + room.y + '%" data-room="' + room.id + '">' +
+      (shownOpen ? '<b>' + esc(room.label) + '</b>' + (selectedStyle ? '<small class="style-status">✦ ' + esc(selectedStyle.name) + '</small>' : '') : '🔒 ' + esc(room.label) + '<small>' + esc(room.requirement.text) + '</small>') + '</button>';
   }
-  for(const m of D.modules) html += roomHtml(m.id);
-  for(const L of BM.locked)
-    html += '<div class="lockchip" style="left:' + L.x + '%;top:' + L.y + '%">🔒 ' + esc(L.label) + '</div>';
-  html += '<div class="lockchip gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%"' +
-    (baseAllows("navigation", "prep") ? ' onclick="A.go(\'prep\')"' : '') + '>◎ ' + esc(BM.raidGate.label) + '</div>';
-  html += '</div>';
+  html += '<button class="mapspot gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1">◎ ' + esc(BM.raidGate.label) + '</button>' +
+    '</div><div class="hubstate">BUNKER · ' + esc(hub.label) + ' · PLATE 0' + stage + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div><div class="panhelp">DRAG TO EXPLORE</div></div>';
+  session.plateStage = stage;
   session.wake = false;
   if(bitOnline()){
     const bl = bondLevel();
@@ -777,6 +796,7 @@ SCREENS.base = function(){
   }
   if(curBeat().type === "end"){ html += '<button class="primary" onclick="A.go(\'end\')">PROTOTYPE COMPLETE — VIEW STATS</button>'; }
   $app().innerHTML = html;
+  setupBaseViewer();
 };
 
 SCREENS.module = function(modId){
@@ -1185,6 +1205,7 @@ SCREENS.dev = function(){
     '<button onclick="A.devExport()">Export event log</button>' +
     '<button onclick="A.devReset()" style="color:var(--danger)">RESET SAVE</button>' +
     '</div>';
+  html += '<h2>Panoramic bunker plates (preview only)</h2><div class="devgrid plategrid">' + D.baseMap.plates.map(p => '<button onclick="A.devPlate(' + p.stage + ')">0' + p.stage + ' · ' + esc(p.id) + '</button>').join('') + '<button onclick="A.devPlate(null)">Saved stage</button></div>';
   html += '<h2>Grant item</h2><select id="devitem">' +
     D.items.map(i=>'<option value="' + i.id + '">' + esc(i.name) + '</option>').join("") +
     '</select><button class="ghost" onclick="A.devGrant()">Grant 1</button>';
@@ -1272,7 +1293,7 @@ function finishRaid(){
 window.A = {
   go(screen, param){
     if(screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen)) return;
-    if(screen === "module" && !baseAllows("interactions", param)) return;
+    if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
     session.screenEnterTs = Date.now();
@@ -1581,6 +1602,22 @@ window.A = {
     if(Object.keys(S.surveyAnswers).length >= (D.progression.survey || []).length){ S.surveyDone = true; save(); }
     refresh();
   },
+  openRoom(id){
+    const room=roomDef(id); if(!room) return;
+    if(roomUnlocked(id)){ if(room.destination) A.go("module", room.destination); else overlay('<h1>Living Quarters</h1><p class="sub">A quiet place to recover between raids. Full room systems arrive beyond this prototype.</p><button class="primary" data-close>RETURN TO CORE</button>'); return; }
+    const ready=roomRequirementMet(room);
+    overlay('<h1>🔒 ' + esc(room.label) + '</h1><p class="sub">' + esc(room.requirement.text) + '</p>' +
+      (ready ? '<button class="primary" onclick="A.unlockRoom(\'' + room.id + '\')">REVEAL ROOM</button>' : '<div class="card warn">Requirement incomplete</div>') + '<button class="ghost" data-close>BACK</button>');
+  },
+  unlockRoom(id){
+    const room=roomDef(id); if(!room || roomUnlocked(id) || !roomRequirementMet(room)) return;
+    S.roomUnlocks[id]=true; act("ROOM_UNLOCKED", { room:id, stage:room.stage });
+    const o=document.getElementById("overlay"); if(o) o.remove(); session.screen="base"; refresh(); toast(room.label + " revealed");
+  },
+  devPlate(stage){
+    session.devPlateStage = stage === null ? null : Math.max(0, Math.min(D.baseMap.rooms.length, Number(stage)));
+    act("DEV_PLATE_PREVIEW", { stage:session.devPlateStage }); session.screen="base"; refresh();
+  },
   /* dev */
   devForce(o){ session.devForce = o; act("DEV_FORCE",{o}); toast("Next raid: " + o); refresh(); },
   devCur(){ S.cur.scrap+=100; S.cur.dataCores+=100; S.cur.salvage+=100; S.cur.signals+=100; act("DEV_CURRENCY",{}); refresh(); },
@@ -1640,7 +1677,7 @@ window.A = {
   devReset(){
     localStorage.removeItem(SAVE_KEY);
     S = freshState();
-    session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null };
+    session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null };
     refresh();
   }
 };
@@ -1671,4 +1708,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel() };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load };

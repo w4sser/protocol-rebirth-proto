@@ -7,10 +7,24 @@ const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 6);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 7);
 assert.equal(S.retentionMode, "core");
 assert.equal(S.baseState, "core_found", "new saves start at the found Core");
 assert.equal(app.baseState().lighting, "emergency");
+assert.equal(app.bunkerStage(), 0, "new saves start with every side room covered");
+assert(!app.roomUnlocked("fabricator"));
+{
+  const old = app.freshState(); old.v = 6; old.baseState = "core_habitable"; old.cur.scrap = 77; old.stash.cable = 4;
+  app.migrateState(old);
+  assert.equal(old.v, 7); assert.equal(old.cur.scrap, 77); assert.equal(old.stash.cable, 4);
+  assert(old.roomUnlocks.fabricator && old.roomUnlocks.storage && old.roomUnlocks.bit_bay, "v6 powered saves retain room access");
+  assert(!old.roomUnlocks.living_quarters, "living quarters remains an explicit final reveal");
+  const persisted = JSON.stringify(old);
+  global.localStorage = { getItem:key => key === "pr_meta_save" ? persisted : null, setItem:()=>{} };
+  const loaded = app.load();
+  assert.equal(loaded.cur.scrap, 77); assert.equal(loaded.stash.cable, 4);
+  assert(loaded.roomUnlocks.fabricator && loaded.roomUnlocks.bit_bay, "reloading restores migrated room access");
+}
 
 // Base state transitions are persistent data mutations, one-way, and idempotent.
 S.modules.rebirth_core = 1;
@@ -23,7 +37,7 @@ assert(!app.transitionBaseState("core_found"), "base state cannot regress");
 S.modules.fabricator = 1; S.modules.bit_bay = 1; S.modules.storage = 1;
 assert(app.advanceBaseState({ module:"storage", level:1 }), "all repaired rooms transition to refined");
 assert.equal(S.baseState, "core_refined");
-assert.equal(app.baseState().env, "assets/production/hub_refined.webp");
+assert.equal(app.bunkerStage(), 0, "power profile does not implicitly reveal rooms");
 assert(!app.advanceBaseState({ module:"storage", level:1 }), "refined transition is idempotent");
 
 // scripted raid_1: forced extract + guaranteed drops
