@@ -17,7 +17,7 @@ const text = () => doc.getElementById("app").textContent;
 const tap = el => {
   el.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles:true, clientX:100, clientY:100 }));
   el.dispatchEvent(new window.MouseEvent("pointerup", { bubbles:true, clientX:100, clientY:100 }));
-  el.dispatchEvent(new window.MouseEvent("click", { bubbles:true, clientX:100, clientY:100 }));
+  el.dispatchEvent(new window.MouseEvent("click", { bubbles:true, clientX:100, clientY:100, detail:1 }));
 };
 const revealRoomThroughHotspot = id => {
   tap(doc.querySelector('.room-spot[data-room="' + id + '"]'));
@@ -36,10 +36,16 @@ const hs0 = doc.querySelector(".mapspot");
 assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hotspots use percent positioning");
 assert.equal(doc.querySelectorAll(".room-spot.locked").length, 4, "four rock-covered rooms start locked");
 const dragTarget = doc.querySelector(".core-spot"), viewer0 = doc.querySelector(".baseviewer");
+let captures = 0;
+viewer0.setPointerCapture = () => { captures++; };
+viewer0.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles:true, clientX:300, clientY:180 }));
+viewer0.dispatchEvent(new window.MouseEvent("pointerup", { bubbles:true, clientX:300, clientY:180 }));
+assert.equal(captures, 0, "a tap must not capture the pointer on the viewer");
 viewer0.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles:true, clientX:300, clientY:180 }));
 viewer0.dispatchEvent(new window.MouseEvent("pointermove", { bubbles:true, clientX:340, clientY:200 }));
 viewer0.dispatchEvent(new window.MouseEvent("pointerup", { bubbles:true, clientX:340, clientY:200 }));
-dragTarget.dispatchEvent(new window.MouseEvent("click", { bubbles:true }));
+assert.equal(captures, 1, "a real drag captures its pointer");
+dragTarget.dispatchEvent(new window.MouseEvent("click", { bubbles:true, detail:1 }));
 assert.equal(doc.getElementById("app").className, "s-base", "drag does not activate a hotspot");
 Object.defineProperty(viewer0, "clientWidth", { configurable:true, value:844 });
 Object.defineProperty(viewer0, "clientHeight", { configurable:true, value:390 });
@@ -62,8 +68,14 @@ assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot 
 const cur0 = doc.getElementById("currencies").textContent;
 assert(cur0.includes("Scrap") && !cur0.includes("Signals") && !cur0.includes("Fuel"), "core mode: scrap only");
 
+// Keyboard activation still works after dragging, without another pointerdown.
+dragTarget.dispatchEvent(new window.MouseEvent("click", { bubbles:true, detail:0 }));
+assert.equal(doc.getElementById("app").className, "s-module", "keyboard opens Core after a drag");
+A.go("base");
+tap(doc.querySelector(".core-spot"));
+assert.equal(doc.getElementById("app").className, "s-module", "pointer tap opens Core");
 // Core L1 boot
-A.go("module","rebirth_core"); A.build("rebirth_core");
+A.build("rebirth_core");
 await sleep(5400);
 {
   const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
@@ -86,7 +98,13 @@ assert(text().includes("RAID FOR"), "CTA names the tracked item");
 assert(text().includes("Best lead"), "CTA shows best lead");
 assert(text().includes("Fabricator") && text().includes("Restore power"), "locked room shows its requirement");
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;
-revealRoomThroughHotspot("fabricator");
+tap(doc.querySelector('.room-spot[data-room="fabricator"]'));
+assert(doc.querySelector("#overlay button.primary"), "eligible room opens from its hotspot");
+doc.querySelector("#overlay [data-close]").click();
+// Both base and raid-result build CTAs route through goBuild: locked rooms must explain access.
+A.goBuild("fabricator");
+assert(doc.querySelector("#overlay button.primary").textContent.includes("REVEAL ROOM"), "build CTA offers room reveal instead of silently failing");
+A.unlockRoom("fabricator");
 const unlockCount = JSON.parse(window.localStorage.getItem("pr_meta_save")).log.filter(e=>e.action==="ROOM_UNLOCKED").length;
 A.unlockRoom("fabricator");
 assert.equal(JSON.parse(window.localStorage.getItem("pr_meta_save")).log.filter(e=>e.action==="ROOM_UNLOCKED").length, unlockCount, "repeated unlock is idempotent");

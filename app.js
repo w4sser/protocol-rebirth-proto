@@ -682,17 +682,21 @@ function setupBaseViewer(){
     session.camera.x = (vw/2 - x) / sw; session.camera.y = (vh/2 - y) / sh;
     world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
   }
-  viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; viewer.setPointerCapture && viewer.setPointerCapture(e.pointerId); });
+  viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; });
   viewer.addEventListener("pointermove", e => {
     if(!drag) return;
     const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
-    if(Math.hypot(dx,dy) > 7){ moved=true; suppress=true; viewer.classList.add("dragging"); }
+    // Capture only an actual drag: capturing a tap redirects its click away from the hotspot.
+    if(!moved && Math.hypot(dx,dy) > 7){
+      moved=true; suppress=true; viewer.classList.add("dragging");
+      if(viewer.setPointerCapture) viewer.setPointerCapture(e.pointerId);
+    }
     if(moved){ const dims=session.cameraLayout; session.camera.x=drag.cx-dx/dims.sw; session.camera.y=drag.cy-dy/dims.sh; layout(); e.preventDefault(); }
   });
   const finish = () => { drag=null; viewer.classList.remove("dragging"); setTimeout(()=>{ suppress=false; },0); };
   viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
   viewer.addEventListener("click", e => {
-    const spot=e.target.closest(".mapspot"); if(!spot || suppress || moved){ e.preventDefault(); return; }
+    const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); return; }
     if(spot.dataset.destination) A.go("module", spot.dataset.destination);
     else if(spot.dataset.gate && baseAllows("navigation","prep")) A.go("prep");
     else if(spot.dataset.room) A.openRoom(spot.dataset.room);
@@ -1594,6 +1598,7 @@ window.A = {
   },
   goBuild(modId){
     session.pendingRaid = null;
+    if(roomDef(modId) && !roomUnlocked(modId)){ A.openRoom(modId); return; }
     A.go("module", modId);
   },
   survey(id, opt){
