@@ -734,7 +734,7 @@ SCREENS.base = function(){
   if(nextRoom){
     html += '<div class="nextup access-next"><div class="nu-head">NEXT GOAL · OPEN ' + esc(nextRoom.label).toUpperCase() + '</div>' +
       '<span class="ok">✓ ' + esc(nextRoom.requirement.text) + '</span><p class="small">Access is available. Inspect the room to see its repairs and reward.</p>' +
-      '<button class="ghost" onclick="A.openRoom(\'' + nextRoom.id + '\')">🔓 EXPLORE ' + esc(nextRoom.label).toUpperCase() + '</button></div>';
+      '<button class="primary" onclick="A.openRoom(\'' + nextRoom.id + '\')">🔓 EXPLORE ' + esc(nextRoom.label).toUpperCase() + '</button></div>';
   }
   if(!nextRoom) html += goalBarHtml();
   const BM = D.baseMap;
@@ -795,7 +795,7 @@ SCREENS.base = function(){
           : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
     }
   }
-  if(coreLevel() >= 1 && curBeat().type !== "end"){
+  if(coreLevel() >= 1 && curBeat().type !== "end" && !nextRoom){
     const missB = trackedMissingItem();
     if(!ftueOver() && missB){
       // FTUE: strongly guided — name the target, show the best lead, one clear CTA.
@@ -960,7 +960,7 @@ SCREENS.prep = function(){
   }
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
-    '<h1>Raid Prep</h1>' + goalBarHtml();
+    '<h1>Raid Prep</h1>' + (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
     const cfg = PROG.starterRaid, target = MODS[PROG.raidPrepUnlockModule];
@@ -1681,6 +1681,7 @@ window.A = {
     const room=roomDef(id);
     if(!room || !roomRequirementMet(room) || !room.destination) return;
     const next=nextLevelDef(room.destination); if(!next) return;
+    if(!S.tracked || S.tracked.module !== room.destination || S.tracked.level !== next.level) S.trackedStreak=0;
     S.tracked={ module:room.destination, level:next.level }; act("TRACK_SET", S.tracked);
     const o=document.getElementById("overlay"); if(o) o.remove();
     A.go("prep");

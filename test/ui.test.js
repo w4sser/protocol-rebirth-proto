@@ -94,8 +94,8 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable")
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "powered_hub", "habitable state selects powered audio profile");
 assert.equal(doc.querySelectorAll("#tabs button").length, 3, "habitable state unlocks navigation");
-assert(text().includes("RAID FOR"), "CTA names the tracked item");
-assert(text().includes("Best lead"), "CTA shows best lead");
+assert(text().includes("NEXT GOAL · OPEN FABRICATOR"), "base names the next room");
+assert(!text().includes("NEXT UPGRADE"), "next room has no competing upgrade card");
 assert(text().includes("Fabricator") && text().includes("Restore power"), "locked room shows its requirement");
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;
 tap(doc.querySelector('.room-spot[data-room="fabricator"]'));
@@ -149,6 +149,9 @@ let ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").
 assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
 assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').textContent.includes("✓ Bring the Fabricator online"), "Vault checks its completed prerequisite");
 assert(text().includes("NEXT GOAL · OPEN VAULT"), "base names the next room goal");
+A.raidForRoom("storage");
+assert(text().includes("Gather repair materials for Storage / Vault"), "raid goal follows the chosen next room instead of the scripted BIT goal");
+A.go("base"); A.track("bit_bay",1);
 revealRoomThroughHotspot("storage");
 assert(doc.querySelector('.room-spot.ready[data-room="bit_bay"]'), "Vault access highlights BIT Bay next");
 revealRoomThroughHotspot("bit_bay");
