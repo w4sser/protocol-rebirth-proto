@@ -103,7 +103,14 @@ assert(doc.querySelector("#overlay button.primary"), "eligible room opens from i
 doc.querySelector("#overlay [data-close]").click();
 // Both base and raid-result build CTAs route through goBuild: locked rooms must explain access.
 A.goBuild("fabricator");
-assert(doc.querySelector("#overlay button.primary").textContent.includes("REVEAL ROOM"), "build CTA offers room reveal instead of silently failing");
+assert(doc.querySelector('.room-spot.ready[data-room="fabricator"]'), "Core completion highlights Fabricator in green");
+assert(doc.querySelector('.room-spot.ready small').textContent.startsWith("✓"), "ready room checks its completed requirement");
+assert(doc.querySelector("#overlay button.primary").textContent.includes("RAID FOR REPAIR MATERIALS"), "missing materials prioritize raiding");
+assert(doc.getElementById("overlay").textContent.includes("Opening the room clears access"), "room explains why access is available");
+A.raidForRoom("fabricator");
+assert.equal(doc.getElementById("app").className, "s-prep", "room raid CTA goes to prep");
+assert(!doc.getElementById("overlay"), "room raid CTA closes the panel");
+A.go("base");
 A.unlockRoom("fabricator");
 const unlockCount = JSON.parse(window.localStorage.getItem("pr_meta_save")).log.filter(e=>e.action==="ROOM_UNLOCKED").length;
 A.unlockRoom("fabricator");
@@ -121,12 +128,16 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 // raid_1
 A.go("prep");
 assert(doc.querySelector(".prepgrid"), "prep grid");
-assert(text().includes("NEXT TARGET"), "next target card");
-assert(text().includes("Maintenance Tunnels") && text().includes("Control Room"), "route cards");
-A.prepSet("routeId","control");
-assert(doc.querySelector(".mappanel") && doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "industrial uses its own route map");
+assert(text().includes("Standard loot mission") && text().includes("Basic loadout"), "first raid has one mission and equipped gear");
+assert.equal(doc.querySelectorAll("#app select").length, 0, "first raid has no selectable loadout");
+assert.equal(doc.querySelectorAll(".prep-locked[aria-disabled=true]").length, 3, "future raid choices are visibly disabled");
+A.prepSet("routeId","control"); A.prepSet("riskId","aggressive"); A.prepLoadout("weapon","");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
 A.deploy(); A.raidStep();
+const firstDeploy = JSON.parse(window.localStorage.getItem("pr_meta_save")).log.find(e=>e.action === "RAID_DEPLOYED").payload;
+assert.equal(firstDeploy.routeId, window.DATA.progression.starterRaid.routeId, "first route cannot be changed through actions");
+assert.equal(firstDeploy.riskId, "standard", "first risk stays standard");
+assert(firstDeploy.loadout.includes(window.DATA.progression.starterRaid.loadout.weapon), "first loadout retains its weapon");
 assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card");
 A.backToBase();
@@ -135,13 +146,25 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
 
+assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
+assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').textContent.includes("✓ Bring the Fabricator online"), "Vault checks its completed prerequisite");
+assert(text().includes("NEXT GOAL · OPEN VAULT"), "base names the next room goal");
 revealRoomThroughHotspot("storage");
+assert(doc.querySelector('.room-spot.ready[data-room="bit_bay"]'), "Vault access highlights BIT Bay next");
 revealRoomThroughHotspot("bit_bay");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_03"), "ordered reveals retain Fabricator and Vault through BIT Bay");
 
 // raid_2 + insurance
 A.go("prep");
 assert(text().includes("Insurance") && text().includes("Optical Sensor"), "insurance + tracked target");
+assert.equal(doc.querySelectorAll("#app select").length, 4, "Fabricator unlocks customizable loadout");
+assert(text().includes("RAID PLANNING UNLOCKED") && text().includes("FIELD CRAFTING"), "Fabricator reward is visible on prep");
+A.prepSet("routeId","control");
+assert(doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "unlocked raid planning shows its map");
+const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
+A.craft("ammo_pack");
+const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
+assert.equal(afterCraft.stash.ammo_pack, (beforeCraft.stash.ammo_pack || 0) + 1, "field crafting creates usable supplies from prep");
 A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
 
