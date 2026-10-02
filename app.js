@@ -114,6 +114,21 @@ function roomRequirementMet(room){
   const prior = D.baseMap.rooms[room.stage - 2];
   return !prior || roomUnlocked(prior.id);
 }
+function nextAccessRoom(){
+  return D.baseMap.rooms.find(room => !roomUnlocked(room.id) && roomRequirementMet(room));
+}
+function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
+function applyStarterRaid(){
+  const cfg = PROG.starterRaid;
+  Object.assign(session.prep, { zoneId:cfg.zoneId, routeId:cfg.routeId, riskId:cfg.riskId, insuranceId:cfg.insuranceId });
+  session.prep.loadout = Object.fromEntries(Object.entries(cfg.loadout).map(([slot,id]) => [slot,id && have(id) ? id : null]));
+}
+function roomPartsHtml(room){
+  const next = room && room.destination && nextLevelDef(room.destination);
+  if(!next) return "";
+  return costParts(next.cost).map(part => '<span class="chip ' + (part.have >= part.need ? 'ok' : 'need') + '">' +
+    esc(part.kind === "item" ? ITEMS[part.id].name : (part.id === "dataCores" ? "Data Cores" : "Salvage")) + ' ' + Math.min(part.have,part.need) + '/' + part.need + '</span>').join(' ');
+}
 function bunkerStage(){
   let stage = 0;
   for(const room of D.baseMap.rooms) if(roomUnlocked(room.id)) stage = Math.max(stage, room.stage);
@@ -713,8 +728,15 @@ SCREENS.base = function(){
     Object.values(S.modules).reduce((a,b)=>a+b,0) /
     D.modules.reduce((a,m)=>a+m.levels.length,0) * 100));
   let html = '<h1>Rebirth Facility</h1><div class="sub">restoration ' + restorePct + '%</div>' +
-    '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>' + goalBarHtml();
+    '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>';
 
+  const nextRoom = nextAccessRoom();
+  if(nextRoom){
+    html += '<div class="nextup access-next"><div class="nu-head">NEXT GOAL · OPEN ' + esc(nextRoom.label).toUpperCase() + '</div>' +
+      '<span class="ok">✓ ' + esc(nextRoom.requirement.text) + '</span><p class="small">Access is available. Inspect the room to see its repairs and reward.</p>' +
+      '<button class="ghost" onclick="A.openRoom(\'' + nextRoom.id + '\')">🔓 EXPLORE ' + esc(nextRoom.label).toUpperCase() + '</button></div>';
+  }
+  if(!nextRoom) html += goalBarHtml();
   const BM = D.baseMap;
   const hub = baseState();
   const savedStage = bunkerStage();
@@ -729,9 +751,13 @@ SCREENS.base = function(){
   for(const room of BM.rooms){
     const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
     const shownOpen = unlocked || previewUnlocked;
+    const ready = !shownOpen && roomRequirementMet(room);
+    const prior = BM.rooms[room.stage - 2];
+    const requirement = prior && !roomUnlocked(prior.id) && (!room.requirement.module || (S.modules[room.requirement.module] || 0) >= room.requirement.level)
+      ? "Open " + prior.label + " first" : room.requirement.text;
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
-    html += '<button class="mapspot room-spot ' + (shownOpen ? 'unlocked' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + '" style="left:' + room.x + '%;top:' + room.y + '%" data-room="' + room.id + '">' +
-      (shownOpen ? '<b>' + esc(room.label) + '</b>' + (selectedStyle ? '<small class="style-status">✦ ' + esc(selectedStyle.name) + '</small>' : '') : '🔒 ' + esc(room.label) + '<small>' + esc(room.requirement.text) + '</small>') + '</button>';
+    html += '<button class="mapspot room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + '" style="left:' + room.x + '%;top:' + room.y + '%" data-room="' + room.id + '">' +
+      (shownOpen ? '<b>' + esc(room.label) + '</b>' + (selectedStyle ? '<small class="style-status">✦ ' + esc(selectedStyle.name) + '</small>' : '') : (ready ? '🔓 ' : '🔒 ') + esc(room.label) + '<small>' + (ready ? '✓ ' : '') + esc(requirement) + '</small>') + '</button>';
   }
   html += '<button class="mapspot gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1">◎ ' + esc(BM.raidGate.label) + '</button>' +
     '</div><div class="hubstate">BUNKER · ' + esc(hub.label) + ' · PLATE 0' + stage + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div><div class="panhelp">DRAG TO EXPLORE</div></div>';
@@ -773,7 +799,7 @@ SCREENS.base = function(){
     const missB = trackedMissingItem();
     if(!ftueOver() && missB){
       // FTUE: strongly guided — name the target, show the best lead, one clear CTA.
-      const leadB = bestLead(missB.itemId);
+      const leadB = guidedRaid() ? { zone:ZONES[PROG.starterRaid.zoneId], route:routeOf(ZONES[PROG.starterRaid.zoneId], PROG.starterRaid.routeId), label:"Starter mission" } : bestLead(missB.itemId);
       const tm = MODS[S.tracked.module];
       const tnext = tm.levels.find(l => l.level === S.tracked.level);
       if(tnext){
@@ -920,6 +946,7 @@ SCREENS.prep = function(){
     if(have("scavenger_vest")) session.prep.loadout.armor = "scavenger_vest";
     if(have("medkit")) session.prep.loadout.c1 = "medkit";
   }
+  if(guidedRaid()) applyStarterRaid();
   const p = session.prep;
   const zoneSel = ZONES[p.zoneId];
   if(!p.routeId || !(zoneSel.routes||[]).some(r=>r.id===p.routeId))
@@ -935,6 +962,30 @@ SCREENS.prep = function(){
   let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
     '<h1>Raid Prep</h1>' + goalBarHtml();
 
+  if(guidedRaid()){
+    const cfg = PROG.starterRaid, target = MODS[PROG.raidPrepUnlockModule];
+    html += '<div class="prepgrid starter-prep"><div class="pcol"><div class="card starter-mission"><div class="nu-head">YOUR FIRST RAID</div><h2>' + esc(cfg.name) + '</h2>' +
+      '<p>Search for repair materials, then return to restore the Fabricator.</p>' +
+      '<div class="small">' + esc(zoneSel.name) + ' · ' + esc(routeOf(zoneSel,p.routeId).name) + ' · Standard risk</div>' +
+      (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div></div><div class="pcol">' +
+      '<div class="card"><h2>Basic loadout · equipped</h2>' + Object.values(p.loadout).filter(Boolean).map(id => '<div class="kv"><span>✓ ' + esc(ITEMS[id].name) + '</span></div>').join('') + '</div>' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div></div><div class="pcol">' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Route &amp; risk choices</b><br><span class="small">Build the Fabricator to plan your own missions.</span></div>' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns salvage into raid supplies.</span></div></div></div>';
+    const fg = fuelGate();
+    if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
+    if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
+    html += '<button class="primary" ' + (p.loadout.weapon && fg.ok ? '' : 'disabled') + ' onclick="A.deploy()">DEPLOY — LOOT MISSION</button>';
+    $app().innerHTML = html; return;
+  }
+  html += '<div class="card prep-benefit"><span class="ok">✓ FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
+  html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
+  for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
+    const can = S.cur.scrap >= recipe.scrapCost && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
+    html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + recipe.scrapCost + ' Scrap</small></span>' +
+      '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>CRAFT</button></div>';
+  }
+  html += '</details>';
   html += '<div class="prepgrid"><div class="pcol">';
   if(miss){
     html += '<div class="nextup"><div class="nu-head">NEXT TARGET</div>' +
@@ -1379,13 +1430,14 @@ window.A = {
     refresh();
   },
   prepSet(key, val){
+    if(guidedRaid()) return;
     session.prep[key] = val;
     if(key === "zoneId") session.prep.routeId = null;
     if(key === "routeId") act("RAID_ROUTE_SELECTED", { zone: session.prep.zoneId, route: val, risk: session.prep.riskId, mode: retMode() });
     if(key === "insuranceId") act("INSURANCE_SELECTED", { tier: val });
     refresh("raid_prep");
   },
-  prepLoadout(slot, id){ session.prep.loadout[slot] = id || null; refresh("raid_prep"); },
+  prepLoadout(slot, id){ if(guidedRaid()) return; session.prep.loadout[slot] = id || null; refresh("raid_prep"); },
   adSignals(){
     fakeAd("+"+PROG.insurance.adSignalsGrant+" Signals", ()=>{
       S.cur.signals += PROG.insurance.adSignalsGrant; save();
@@ -1394,7 +1446,10 @@ window.A = {
     });
   },
   deploy(){
+    if(!session.prep) return;
+    if(guidedRaid()) applyStarterRaid();
     const p = session.prep;
+    if(!p.loadout.weapon) return;
     const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
     if(tier.cost > S.cur.signals) return;
     const fg = fuelGate();
@@ -1611,8 +1666,24 @@ window.A = {
     const room=roomDef(id); if(!room) return;
     if(roomUnlocked(id)){ if(room.destination) A.go("module", room.destination); else overlay('<h1>Living Quarters</h1><p class="sub">A quiet place to recover between raids. Full room systems arrive beyond this prototype.</p><button class="primary" data-close>RETURN TO CORE</button>'); return; }
     const ready=roomRequirementMet(room);
-    overlay('<h1>🔒 ' + esc(room.label) + '</h1><p class="sub">' + esc(room.requirement.text) + '</p>' +
-      (ready ? '<button class="primary" onclick="A.unlockRoom(\'' + room.id + '\')">REVEAL ROOM</button>' : '<div class="card warn">Requirement incomplete</div>') + '<button class="ghost" data-close>BACK</button>');
+    const next=room.destination && nextLevelDef(room.destination);
+    const needsParts=next && !canAfford(next.cost);
+    const prior=D.baseMap.rooms[room.stage - 2];
+    overlay('<h1>' + (ready ? '🔓 ' : '🔒 ') + esc(room.label) + '</h1><p class="' + (ready ? 'ok' : 'sub') + '">' +
+      (ready ? '✓ ' : '') + esc(room.requirement.text) + '</p>' +
+      (ready ? '<p class="sub">Access is available because this requirement is complete. Opening the room clears access; building it still costs repair materials.</p>' +
+        (next ? '<div class="card"><b>REPAIR MATERIALS</b><p>' + roomPartsHtml(room) + '</p><span class="small">REWARD · ' + esc(next.benefitText) + '</span></div>' : '') +
+        (needsParts ? '<p class="sub">Raid for the missing materials, return, and bring this room online.</p><button class="primary" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' : '') +
+        '<button class="' + (needsParts ? 'ghost' : 'primary') + '" onclick="A.unlockRoom(\'' + room.id + '\')">' + (needsParts ? 'OPEN ACCESS ONLY — REPAIRS STILL NEEDED' : 'REVEAL ROOM') + '</button>' :
+        '<div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') + '<button class="ghost" data-close>BACK</button>');
+  },
+  raidForRoom(id){
+    const room=roomDef(id);
+    if(!room || !roomRequirementMet(room) || !room.destination) return;
+    const next=nextLevelDef(room.destination); if(!next) return;
+    S.tracked={ module:room.destination, level:next.level }; act("TRACK_SET", S.tracked);
+    const o=document.getElementById("overlay"); if(o) o.remove();
+    A.go("prep");
   },
   unlockRoom(id){
     const room=roomDef(id); if(!room || roomUnlocked(id) || !roomRequirementMet(room)) return;

@@ -1,6 +1,11 @@
 // Protocol Rebirth prototype — the scripted spine (first 60 minutes) + global knobs.
 window.DATA = window.DATA || {};
 window.DATA.progression = {
+  raidPrepUnlockModule:"fabricator",
+  starterRaid:{
+    name:"Standard loot mission", zoneId:"industrial", routeId:"tunnels", riskId:"standard", insuranceId:"none",
+    loadout:{ weapon:"basic_carbine", armor:"scavenger_vest", c1:"medkit", c2:null }
+  },
   trackedPityRaids:2,        // tracked item guaranteed by Nth consecutive tracked raid
   insurance:{
     tiers:[
