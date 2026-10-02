@@ -4,15 +4,15 @@ window.DATA.modules = [
   {
     id:"rebirth_core", name:"Rebirth Core", revealedAtCore:0, maxLevelByCore:{"0":1,"1":1,"2":2},
     blurb:"The facility's heart. Everything else waits for it.",
-    benefit:"Power facility · Unlock sectors",
+    benefit:"Power facility · Expose access doors",
     levels:[
       { level:1,
         cost:{ salvage:0, items:{ power_cell:1, scrap_alloy:2 } },
         unlocks:["lights_on","reveal_modules"],
-        unlockText:"Emergency power restored. The facility breathes again.",
-        benefitText:"Facility powered — Fabricator, BIT Bay and Vault sections revealed.",
+        unlockText:"Emergency power restored. The Core hall breathes again.",
+        benefitText:"Facility powered — sealed room access can now be cleared in sequence.",
         preview:{ before:"A dead reactor ring. Severed cables. The whole facility is dark around it.",
-                  after:["Lights and machinery come on across the facility","Fabricator, BIT Bay and Vault become repairable","The rebuild can begin"] },
+                  after:["Lights and machinery come on in the Core hall","The Fabricator access door can now be cleared","The rebuild can begin"] },
         artBefore:"assets/production/core_dim.webp",
         artAfter:"assets/production/core_powered.webp",
         newGoal:"Bring the Fabricator online — find 1× Cable and 1× Fuse." },
@@ -109,38 +109,42 @@ window.DATA.storageBonus = 8;
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
 window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", storage:"vault" };
 
-// Enclosed bunker hub: interior env + percent-positioned hotspots (responsive).
-// No windows, no exterior. The outside world exists only during raids.
-// Coordinates are % of hub_interim.webp (core hall) — retune when hub art lands.
+// Panoramic bunker progression. Every coordinate is normalized against the full
+// 1536×1024 plate, so artwork and controls share one camera transform.
 window.DATA.baseMap = {
-  env: "assets/production/hub_interim.webp",
-  hotspots: {
-    rebirth_core: { x:50, y:33 },
-    fabricator:   { x:17, y:49 },
-    bit_bay:      { x:83, y:51 },
-    storage:      { x:50, y:74 }
-  },
-  raidGate: { x:88, y:75, label:"Raid Gate — sealed" },
-  locked: [
-    { id:"living_quarters", label:"Living Quarters", x:12, y:75 },
-    { id:"sealed_sector",   label:"Sealed Sector B", x:88, y:23 }
+  world: { width:1536, height:1024, initialFocus:{ x:50, y:43 } },
+  plates: [
+    { stage:0, id:"found", art:"assets/production/bunker_plate_00_found.webp" },
+    { stage:1, id:"fabricator", art:"assets/production/bunker_plate_01_fabricator.webp" },
+    { stage:2, id:"vault", art:"assets/production/bunker_plate_02_vault.webp" },
+    { stage:3, id:"bit_bay", art:"assets/production/bunker_plate_03_bit_bay.webp" },
+    { stage:4, id:"living_quarters", art:"assets/production/bunker_plate_04_living_quarters.webp" }
+  ],
+  core: { x:50, y:39, label:"Rebirth Core / BIT", destination:"rebirth_core" },
+  raidGate: { x:52, y:8, label:"Raid Exit" },
+  rooms: [
+    { id:"fabricator", label:"Fabricator", x:20, y:27, stage:1, destination:"fabricator",
+      requirement:{ baseState:"core_habitable", text:"Restore power to the Rebirth Core" } },
+    { id:"storage", label:"Vault", x:81, y:25, stage:2, destination:"storage",
+      requirement:{ module:"fabricator", level:1, text:"Bring the Fabricator online" } },
+    { id:"bit_bay", label:"BIT Bay", x:20, y:68, stage:3, destination:"bit_bay",
+      requirement:{ module:"fabricator", level:1, text:"Bring the Fabricator online" } },
+    { id:"living_quarters", label:"Living Quarters", x:80, y:69, stage:4,
+      requirement:{ module:"bit_bay", level:1, text:"Bring BIT Bay online" } }
   ]
 };
 
-// Persistent bunker states. Each state owns the complete presentation and access
-// profile so loading a save can restore more than just the background plate.
+// Persistent power profile remains independent from which panoramic rooms have
+// been excavated. Powering Core never substitutes an already-open plate.
 window.DATA.baseStates = [
-  { id:"core_found", label:"CORE FOUND", env:"assets/production/hub_abandoned.webp",
-    lighting:"emergency", audioProfile:"dormant_core",
+  { id:"core_found", label:"CORE FOUND", lighting:"emergency", audioProfile:"dormant_core",
     interactions:["rebirth_core"], navigation:["base"],
     transitions:[{ module:"rebirth_core", level:1, target:"core_habitable" }] },
-  { id:"core_habitable", label:"CORE HABITABLE", env:"assets/production/hub_restored.webp",
-    lighting:"habitable", audioProfile:"powered_hub",
+  { id:"core_habitable", label:"CORE HABITABLE", lighting:"habitable", audioProfile:"powered_hub",
     interactions:["rebirth_core","fabricator","bit_bay","storage"],
     navigation:["base","stash","vendor","prep","end"],
     transitions:[{ target:"core_refined", modules:{ rebirth_core:1, fabricator:1, bit_bay:1, storage:1 } }] },
-  { id:"core_refined", label:"REFINED", env:"assets/production/hub_refined.webp",
-    lighting:"refined", audioProfile:"refined_hub",
+  { id:"core_refined", label:"REFINED", lighting:"refined", audioProfile:"refined_hub",
     interactions:["rebirth_core","fabricator","bit_bay","storage"],
     navigation:["base","stash","vendor","prep","end"], transitions:[] }
 ];
