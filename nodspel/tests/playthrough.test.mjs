@@ -49,7 +49,7 @@ test('a player can shoot every node and walk through all three exits within one 
       }
       for(const enemy of level.enemies){
         routeTo(p=>Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
-        for(let hit=0;hit<RULES.enemyHealth/RULES.weapon.damage;hit++)shoot(enemy);
+        for(let hit=0;hit<(level.number===1?2:RULES.enemyHealth)/RULES.weapon.damage;hit++)shoot(enemy);
         assert.equal(enemy.health,0);
       }
       for(const node of level.nodes){

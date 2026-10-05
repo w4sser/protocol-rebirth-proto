@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.4.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.4.0';
-import {createCombat,stepCombat} from './combat.js?v=1.4.0';
-import {buildWorld} from './world.js?v=1.4.0';
-import {RULES} from './levels.js?v=1.4.0';
-import {createWeapon,fireWeapon,stepWeapon} from './weapon.js?v=1.4.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.4.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.5.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.5.0';
+import {createCombat,stepCombat} from './combat.js?v=1.5.0';
+import {buildWorld} from './world.js?v=1.5.0';
+import {RULES} from './levels.js?v=1.5.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.5.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.5.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -34,7 +34,8 @@ playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#d3fff3',transparent:true,opacity:.95,depthTest:false,depthWrite:false}));aimLine.renderOrder=3;scene.add(aimLine);
 const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
 rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
-const bulletGeometry=new THREE.BoxGeometry(.12,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
+const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#ffe0a1',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
+const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
@@ -131,7 +132,8 @@ $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('cl
 function fire(){
   if(!round||round.over)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const shot=fireWeapon(weapon,position,aim,Date.now());
+  const assisted=assistAim(position,aim,round.level.enemies,solids);
+  const shot=fireWeapon(weapon,position,assisted.direction,Date.now());
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
 }
@@ -197,10 +199,13 @@ function frame(now){
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
   for(const v of world.enemies){v.group.visible=v.enemy.health>0;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0;}
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
-  player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(aim.x,aim.z);playerRing.position.set(position.x,.025,position.z);
   const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
+  const assisted=aiming?assistAim(position,aim,round.level.enemies,solids):{target:null,direction:aim},displayAim=assisted.direction;
+  lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
+  for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ FIENDE · ${v.enemy.health}`;}
+  player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
-  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.065,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*RULES.weapon.range,.065,position.z+aim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();
+  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+displayAim.x*.7,.065,position.z+displayAim.z*.7);points.setXYZ(1,position.x+displayAim.x*RULES.weapon.range,.065,position.z+displayAim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();
   if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
