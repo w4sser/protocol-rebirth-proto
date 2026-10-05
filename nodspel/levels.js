@@ -3,13 +3,14 @@ export const RULES=Object.freeze({
   levels:[
     {rooms:1,nodes:1,enemies:1,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Öppet rum'},
     {rooms:2,nodes:2,enemies:4,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
-    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemyCooldownMs:1500,title:'Återvändsgränd'},
+    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Återvändsgränd'},
   ],
   roomNames:['Förråd','Verkstad','Hall'],
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
   enemyHealth:2,combat:{range:10,cooldownMs:1400,damage:25,bulletSpeed:9,graceMs:3000},
+  weapon:{range:5,damage:1,capacity:3,reloadMs:1200,shotIntervalMs:180,bulletSpeed:19},
 });
 function randomFromSeed(seed){
   let state=2166136261;
@@ -74,7 +75,7 @@ export function generateLevel(number,roundSeed){
       const count=rule.nodesBeyondPassage?rule.nodes:1;
       for(let j=0;j<count;j++)nodes.push({id:`node-${nodes.length+1}`,x:x+(number===1?2.5:rule.nodesBeyondPassage?(j===0?-2.3:2.3):side*2.5),z:z+(number===1?.7:rule.partition?-3.2:between(-1.1,1.1)),r:.8,active:false});
     }
-    for(let j=0;j<rule.enemies/rule.rooms;j++)enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',x:x+(j===0?-1:1)*(number===1?2.8:between(2.8,3.6)),z:z+(number===1?.7:rule.partition?1.1:between(-4,-2.9)),r:.48,health:RULES.enemyHealth,speed:rule.enemySpeed});
+    for(let j=0;j<rule.enemies/rule.rooms;j++)enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',x:x+(j===0?-1:1)*(number===1?2.8:between(2.8,3.6)),z:z+(number===1?.7:rule.enemySpawnZ??(rule.partition?1.1:between(-4,-2.9))),r:.48,health:RULES.enemyHealth,speed:rule.enemySpeed});
     // Corner bands protect the center cross, every edge doorway, partition
     // approach and node branch. Crates cannot disconnect the walkable graph.
     for(const sign of [-1,1])boxes.push({x:x+sign*between(2.8,w/2-1.3),z:z+between(Math.max(3.5,d/2-2),d/2-1.3),w:1.1,d:1.1,h:1.1});

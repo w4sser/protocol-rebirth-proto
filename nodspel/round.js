@@ -1,4 +1,4 @@
-import {generateLevel} from './levels.js?v=1.2.0';
+import {generateLevel} from './levels.js?v=1.3.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now) {
@@ -16,11 +16,11 @@ export function takeDamage(round,amount,now){
   if(round.health===0){round.over=true;round.reason='death';}
   return true;
 }
-export function hitEnemy(round,id,now){
+export function hitEnemy(round,id,now,damage=1){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
-  if(round.over || !enemy || enemy.health<=0)return false;
-  enemy.health=Math.max(0,enemy.health-1);if(enemy.health===0)round.enemiesDefeated++;return true;
+  if(round.over || !enemy || enemy.health<=0 || !Number.isFinite(damage) || damage<=0)return false;
+  enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0)round.enemiesDefeated++;return true;
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs};

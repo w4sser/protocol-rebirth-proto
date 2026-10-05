@@ -1,8 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.2.0';
-import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy,roundSummary} from './round.js?v=1.2.0';
-import {createCombat,stepCombat} from './combat.js?v=1.2.0';
-import {buildWorld} from './world.js?v=1.2.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.3.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.3.0';
+import {createCombat,stepCombat} from './combat.js?v=1.3.0';
+import {buildWorld} from './world.js?v=1.3.0';
+import {RULES} from './levels.js?v=1.3.0';
+import {createWeapon,fireWeapon,stepWeapon} from './weapon.js?v=1.3.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -29,13 +31,15 @@ box(0,.67,.88,.18,.18,.12,'#8cf5df',player);box(-.23,.14,0,.19,.26,.42,'#27343d'
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineDashedMaterial({color:'#a8d6cb',dashSize:.15,gapSize:.18,transparent:true,opacity:.3}));scene.add(aimLine);
+const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
+rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const bulletGeometry=new THREE.BoxGeometry(.12,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
-let round,world,combat,position,solids=[],playerSolids=[],aim={x:0,z:-1},cooldown=0,elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
+let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
 
 // Independent pointer capture lets both thumbs work at the same time.
-function setupStick(selector,value){
+function setupStick(selector,value,onShot){
   const el=$(selector),thumb=el.querySelector('.thumb'),state={pointer:null};sticks.push({el,state,value,thumb});
   function update(e){
     const r=el.getBoundingClientRect(),limit=r.width*.32;let x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;
@@ -44,23 +48,23 @@ function setupStick(selector,value){
   }
   el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over)return;e.preventDefault();state.pointer=e.pointerId;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);});
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
-  function release(e){if(e.pointerId===state.pointer){state.pointer=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active');}}
+  function release(e){if(e.pointerId===state.pointer){if(e.type==='pointerup'&&onShot){const l=Math.hypot(value.x,value.y);if(l>.18)aim=screenToWorld(value.x/l,value.y/l);onShot();}state.pointer=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active');}}
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
 }
-setupStick('#move-stick',movement);setupStick('#aim-stick',shooting);
+setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
 const raycaster=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),-.65),intersection=new THREE.Vector3(),mouse=new THREE.Vector2();
 let mouseDown=false,mouseKnown=false;
 function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.clientX-r.left)/viewWidth*2-1,1-(e.clientY-r.top)/viewHeight*2);mouseKnown=true;}
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
-window.addEventListener('pointerup',()=>{mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
+renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
 window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
-window.addEventListener('keyup',e=>keys.delete(e.code));
+window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active');}}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round){tickRound(round,Date.now());if(round.over)finishRound();}});
 
-function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
+function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
 let labels=[];
 function makeLabel(text,point,kind){
   const el=document.createElement('div');el.className=`node-label ${kind}`;
@@ -89,7 +93,7 @@ function updateHUD(){
   world.setExit(open);setCollisions();
 }
 function loadLevel(){
-  world?.dispose();clearBullets();clearInput();mouseKnown=false;cooldown=0;
+  world?.dispose();clearBullets();clearInput();mouseKnown=false;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
   world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];
@@ -109,7 +113,7 @@ function loadLevel(){
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  round=createRound(seed,Date.now());viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now());weapon=createWeapon();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
 }
 function finishRound(){
   if(!$('#round-over').hidden)return;
@@ -122,7 +126,35 @@ function finishRound(){
   $('#level-toast').hidden=true;updateHUD();
 }
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
-function fire(){const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(position.x,.65,position.z);mesh.rotation.y=Math.atan2(aim.x,aim.z);scene.add(mesh);bullets.push({mesh,x:position.x,z:position.z,dx:aim.x,dz:aim.z,life:1.6});}
+function fire(){
+  if(!round||round.over)return;
+  tickRound(round,Date.now());if(round.over){finishRound();return;}
+  const shot=fireWeapon(weapon,position,aim,Date.now());
+  if(!shot){$('#ammo-hud').classList.add('empty');return;}
+  const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
+}
+function updateMouseAim(){
+  raycaster.setFromCamera(mouse,camera);
+  if(raycaster.ray.intersectPlane(ground,intersection)){const dx=intersection.x-position.x,dz=intersection.z-position.z,l=Math.hypot(dx,dz);if(l>.1)aim={x:dx/l,z:dz/l};}
+}
+function renderWeaponHUD(clock){
+  const reloading=weapon.reloadAt!==null&&!round.over;
+  const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
+  const fraction=reloading?1-remaining/RULES.weapon.reloadMs:0;
+  $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
+  $('#ammo-hud').setAttribute('aria-label',`Ammo: ${weapon.ammo} av ${RULES.weapon.capacity} skott`);
+  for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
+    el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
+    el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
+  }
+  $('#reload-time').textContent=round.over?'':reloading?`+1 om ${(remaining/1000).toFixed(1)} s`: '3 / 3';
+  $('#player-health').setAttribute('aria-valuenow',round.health);
+  $('#player-health-fill').style.width=`${round.health}%`;
+  $('#player-health').classList.toggle('urgent',round.health<=25);
+  labelPoint.set(position.x,1.65,position.z).project(camera);
+  $('#player-health').style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;
+  $('#player-health').style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;
+}
 function resize(){viewWidth=viewport.clientWidth;viewHeight=viewport.clientHeight;renderer.setSize(viewWidth,viewHeight);const h=8.5,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(viewport);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
@@ -145,12 +177,10 @@ function frame(now){
     if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=movePlayer(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},playerSolids,round.level.floors,.36);}
     const aimMagnitude=Math.hypot(shooting.x,shooting.y);
     if(aimMagnitude>.18)aim=screenToWorld(shooting.x/aimMagnitude,shooting.y/aimMagnitude);
-    else if(mouseKnown){raycaster.setFromCamera(mouse,camera);if(raycaster.ray.intersectPlane(ground,intersection)){const dx=intersection.x-position.x,dz=intersection.z-position.z,l=Math.hypot(dx,dz);if(l>.1)aim={x:dx/l,z:dz/l};}}
-    cooldown-=dt;if((aimMagnitude>.25||mouseDown||keys.has('Space'))&&cooldown<=0){fire();cooldown=.18;}
-    for(let i=bullets.length-1;i>=0;i--){const b=bullets[i],end={x:b.x+b.dx*19*dt,z:b.z+b.dz*19*dt};const hit=traceTargets(b,end,solids,[...round.level.nodes,...round.level.enemies.filter(e=>e.health>0)]);b.life-=dt;
-      if(hit||b.life<=0){if(hit?.kind==='node'&&activateNode(round,hit.node.id,clock))updateHUD();if(hit?.kind==='enemy'&&hitEnemy(round,hit.target.id,clock))updateHUD();scene.remove(b.mesh);bullets.splice(i,1);}
-      else{b.x=end.x;b.z=end.z;b.mesh.position.set(b.x,.65,b.z);}
-    }
+    else if(mouseKnown)updateMouseAim();
+    if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
+    const activeShots=new Set(weapon.projectiles.map(b=>b.id));
+    for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
     setCollisions();
@@ -166,10 +196,12 @@ function frame(now){
   for(const v of world.enemies){v.group.visible=v.enemy.health>0;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0;}
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(aim.x,aim.z);playerRing.position.set(position.x,.025,position.z);
-  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.045,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*3,.045,position.z+aim.z*3);points.needsUpdate=true;aimLine.computeLineDistances();
+  const aiming=!round.over&&(sticks[1].state.pointer!==null||mouseDown||keys.has('Space'));
+  rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
+  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.065,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*RULES.weapon.range,.065,position.z+aim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();
   if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
-  world.animate(elapsed);renderLabels();renderer.render(scene,camera);requestAnimationFrame(frame);
+  world.animate(elapsed);renderLabels();renderWeaponHUD(clock);renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);

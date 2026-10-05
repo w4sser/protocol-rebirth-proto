@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy} from '../round.js';
+import {createRound,tickRound,enterExit,exitIsOpen} from '../round.js';
 import {movePlayer,traceTargets} from '../physics.mjs';
+import {createWeapon,fireWeapon,stepWeapon,tickWeapon} from '../weapon.js';
+import {RULES} from '../levels.js';
 
 // Drive the actual movement, shot collision and round state along independently
 // searched routes, rather than teleporting the player or lighting every node directly.
@@ -9,7 +11,7 @@ test('a player can shoot every node and walk through all three exits within one 
   for(const seed of ['whole-round-a','whole-round-b','whole-round-c']){
     let clock=0;const round=createRound(seed,clock);
     for(let number=1;number<=3;number++){
-      const level=round.level;let p={...level.start},crossedPassage=false;
+      const level=round.level,w=createWeapon();let p={...level.start},crossedPassage=false;
       const solidBoxes=()=>[...level.walls,...level.boxes,...(exitIsOpen(round)?[]:[{x:level.exit.x,z:level.exit.z,w:2,d:.22}])];
       const playerBoxes=()=>[...solidBoxes(),...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...level.enemies.filter(e=>e.health>0).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
       function routeTo(goal){
@@ -38,16 +40,23 @@ test('a player can shoot every node and walk through all three exits within one 
           tickRound(round,clock);assert.equal(round.over,false);
         }
       }
+      function shoot(target){
+        clock+=RULES.weapon.shotIntervalMs;tickWeapon(w,clock);
+        if(!w.ammo){clock=w.reloadAt;tickWeapon(w,clock);}
+        const shot=fireWeapon(w,p,{x:target.x-p.x,z:target.z-p.z},clock);assert.ok(shot);
+        const travel=Math.hypot(target.x-p.x,target.z-p.z)/RULES.weapon.bulletSpeed;
+        clock+=travel*1000;stepWeapon(w,round,clock,travel,solidBoxes());
+      }
       for(const enemy of level.enemies){
         routeTo(p=>Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
-        for(let hit=0;hit<2;hit++){clock+=100;assert.equal(hitEnemy(round,enemy.id,clock),true);}
+        for(let hit=0;hit<2;hit++)shoot(enemy);
         assert.equal(enemy.health,0);
       }
       for(const node of level.nodes){
         routeTo(p=>Math.hypot(p.x-node.x,p.z-node.z)<1.6 && traceTargets(p,node,solidBoxes(),level.nodes)?.node?.id===node.id);
         const hit=traceTargets(p,node,solidBoxes(),level.nodes);
         assert.equal(hit.node.id,node.id);
-        clock+=100;assert.equal(activateNode(round,hit.node.id,clock),true);
+        shoot(node);assert.equal(node.active,true);
         if(number===2)assert.equal(crossedPassage,true,'the player walks through the narrow passage before lighting nodes');
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);
