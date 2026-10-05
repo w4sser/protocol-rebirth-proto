@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#14191c">
+  <meta name="description" content="Tre seedade banor. Tänd noderna, öppna utgångarna och kom så långt du kan på åtta minuter.">
+  <title>Nodspel · Protocol Rebirth</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314191c'/%3E%3Crect x='8' y='8' width='16' height='16' rx='3' fill='%238cf5df'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="landscape" id="viewport">
+  <main id="game" aria-label="Spelbana"></main>
+  <header class="hud">
+    <div class="identity"><span class="mark">◈</span><div><span class="eyebrow">PROTOCOL REBIRTH</span><h1>Nodspel</h1></div></div>
+    <div class="round-hud"><span id="level-counter">BANA 1 / 3</span><div class="health" aria-label="Spelarens liv"><span class="eyebrow">LIV</span><span id="health-value">100</span></div><div class="timer" aria-label="Tid kvar"><span class="eyebrow">TID KVAR</span><span id="time-left" role="timer">8:00</span></div></div>
+    <button id="reset" aria-label="Starta om spelet" title="Starta om">↻ <span>Starta om</span></button>
+  </header>
+  <section class="mission" aria-label="Uppdrag"><span id="status-dot"></span><div><span class="eyebrow" id="mission-label">DITT UPPDRAG</span><p id="status" role="status">Tänd noden</p><small id="hint">Sikta på noden och skjut.</small></div><span id="progress">0 / 1</span></section>
+  <div id="world-labels"></div>
+  <div id="level-toast" role="status" hidden></div>
+  <section id="round-over" class="round-over" aria-labelledby="round-over-title" hidden><div class="round-card"><span class="eyebrow">RUNDAN ÄR ÖVER</span><h2 id="round-over-title">Tiden är slut</h2><dl class="summary-stats"><div><dt>Banor klara</dt><dd id="summary-levels"></dd></div><div><dt>Fiender slagna</dt><dd id="summary-enemies"></dd></div><div><dt>Noder tända</dt><dd id="summary-nodes"></dd></div><div><dt>Tid kvar</dt><dd id="summary-time"></dd></div></dl><button id="new-round">Starta om</button><small>Nytt seed. Ny placering. Inget sparas mellan rundor.</small></div></section>
+  <div id="loading" class="loading">Laddar banan…</div>
+  <div class="controls" aria-label="Mobilkontroller">
+    <div class="stick-wrap"><div class="stick" id="move-stick" role="region" aria-label="Vänster spak: gå"><span class="stick-guides">＋</span><div class="thumb"></div></div><span class="stick-label">GÅ</span></div>
+    <div class="stick-wrap"><div class="stick fire-stick" id="aim-stick" role="region" aria-label="Höger spak: sikta och skjut"><span class="stick-guides">⌖</span><div class="thumb"></div></div><span class="stick-label">SIKTA & SKJUT</span></div>
+  </div>
+  <footer><span class="desktop-help"><kbd>W A S D</kbd> / pilar · gå <span class="divider">/</span> mus · sikta & skjut</span><span class="touch-help">Vänster: gå <span class="divider">/</span> Höger: sikta & skjut</span><span class="build-label" id="seed-label"></span></footer>
+  </div>
+  <aside class="rotate" role="status"><span>↻</span><h2>Vrid telefonen</h2><p>Håll telefonen liggande för att spela.</p></aside>
+  <script type="module">
+    import('./game.mjs').catch(error => {
+      document.querySelector('#loading').textContent = 'Spelet kunde inte starta. Prova att ladda om i en webbläsare med WebGL.';
+      console.error(error);
+    });
+  </script>
+</body>
+</html>
