@@ -9,7 +9,7 @@ test('a player can shoot every node and walk through all three exits within one 
   for(const seed of ['whole-round-a','whole-round-b','whole-round-c']){
     let clock=0;const round=createRound(seed,clock);
     for(let number=1;number<=3;number++){
-      const level=round.level;let p={...level.start};
+      const level=round.level;let p={...level.start},crossedPassage=false;
       const solidBoxes=()=>[...level.walls,...level.boxes,...(exitIsOpen(round)?[]:[{x:level.exit.x,z:level.exit.z,w:2,d:.22}])];
       const playerBoxes=()=>[...solidBoxes(),...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...level.enemies.filter(e=>e.health>0).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
       function routeTo(goal){
@@ -33,6 +33,7 @@ test('a player can shoot every node and walk through all three exits within one 
         for(const next of path){
           const delta={x:next.x-p.x,z:next.z-p.z};clock+=Math.hypot(delta.x,delta.z)/4.5*1000;
           p=movePlayer(p,delta,boxes,level.floors,.36);
+          if(level.number===2&&level.corridors.some(c=>Math.abs(p.x-c.x)<c.w/2&&Math.abs(p.z-c.z)<c.d/2))crossedPassage=true;
           assert.ok(Math.hypot(p.x-next.x,p.z-next.z)<.002,'real movement follows the route');
           tickRound(round,clock);assert.equal(round.over,false);
         }
@@ -47,6 +48,7 @@ test('a player can shoot every node and walk through all three exits within one 
         const hit=traceTargets(p,node,solidBoxes(),level.nodes);
         assert.equal(hit.node.id,node.id);
         clock+=100;assert.equal(activateNode(round,hit.node.id,clock),true);
+        if(number===2)assert.equal(crossedPassage,true,'the player walks through the narrow passage before lighting nodes');
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);
       assert.equal(enterExit(round,p,clock),number===3?'complete':'next');

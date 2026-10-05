@@ -2,7 +2,7 @@
 export const RULES=Object.freeze({
   levels:[
     {rooms:1,nodes:1,enemies:1,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Öppet rum'},
-    {rooms:2,nodes:2,enemies:4,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
+    {rooms:2,nodes:2,enemies:4,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
     {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemyCooldownMs:1500,title:'Återvändsgränd'},
   ],
   roomNames:['Förråd','Verkstad','Hall'],
@@ -40,11 +40,11 @@ export function generateLevel(number,roundSeed){
     rooms.push(room);floors.push({...room});
   }
   if(rule.deadEnd){
-    const room=rooms[1],dir=pick(RULES.directions.filter(d=>!room.doors.some(p=>equal(p,d))));
+    const room=rooms[0],dir=pick(RULES.directions.filter(d=>d.z===0&&!room.doors.some(p=>equal(p,d))));
     const length=between(...RULES.deadEndLength);
     room.doors.push(dir);
     const edge={x:room.x+dir.x*room.w/2,z:room.z+dir.z*room.d/2};
-    const branch={x:edge.x+dir.x*length/2,z:edge.z+dir.z*length/2,w:dir.x?length:door,d:dir.z?length:door,width:door,length,connections:1,dir,end:{x:edge.x+dir.x*(length-.8),z:edge.z+dir.z*(length-.8)}};
+    const branch={x:edge.x+dir.x*length/2,z:edge.z+dir.z*length/2,w:dir.x?length:door,d:dir.z?length:door,width:door,length,connections:1,roomIndex:0,dir,end:{x:edge.x+dir.x*(length-.8),z:edge.z+dir.z*(length-.8)}};
     deadEnds.push(branch);
     walls.push({x:edge.x+dir.x*(length-t/2),z:edge.z+dir.z*(length-t/2),w:dir.x?t:door,d:dir.z?t:door,h:.9});
   }
@@ -70,13 +70,17 @@ export function generateLevel(number,roundSeed){
       room.partition={x:x+gap,z:z-.8};
       for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z-.8,w:hi-lo,d:t,h:1.7});
     }
-    nodes.push({id:`node-${i+1}`,x:x+(rule.partition?-side*2.3:side*2.5),z:z+(rule.partition?-3.2:between(-1.1,1.1)),r:.8,active:false});
-    for(let j=0;j<rule.enemies/rule.rooms;j++)enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',x:x+(j===0?-1:1)*between(2.8,3.6),z:z+(rule.partition?1.1:between(-4,-2.9)),r:.48,health:RULES.enemyHealth,speed:rule.enemySpeed});
+    if(!rule.nodesBeyondPassage||i===rooms.length-1){
+      const count=rule.nodesBeyondPassage?rule.nodes:1;
+      for(let j=0;j<count;j++)nodes.push({id:`node-${nodes.length+1}`,x:x+(number===1?2.5:rule.nodesBeyondPassage?(j===0?-2.3:2.3):side*2.5),z:z+(number===1?.7:rule.partition?-3.2:between(-1.1,1.1)),r:.8,active:false});
+    }
+    for(let j=0;j<rule.enemies/rule.rooms;j++)enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',x:x+(j===0?-1:1)*(number===1?2.8:between(2.8,3.6)),z:z+(number===1?.7:rule.partition?1.1:between(-4,-2.9)),r:.48,health:RULES.enemyHealth,speed:rule.enemySpeed});
     // Corner bands protect the center cross, every edge doorway, partition
     // approach and node branch. Crates cannot disconnect the walkable graph.
     for(const sign of [-1,1])boxes.push({x:x+sign*between(2.8,w/2-1.3),z:z+between(Math.max(3.5,d/2-2),d/2-1.3),w:1.1,d:1.1,h:1.1});
   }
   const last=rooms.at(-1),exit={x:last.x,z:last.z+RULES.exit.z,r:RULES.exit.r};
   if(number===1){exit.x=last.x;exit.z=last.z-2.9;}
-  return {number,seed,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,nodes,enemies,corridors,deadEnds,start:{...RULES.start},exit};
+  const start=rule.deadEnd?{x:rooms[0].x,z:rooms[0].z+.8}:{...RULES.start};
+  return {number,seed,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,nodes,enemies,corridors,deadEnds,start,exit};
 }

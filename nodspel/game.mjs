@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.1.0';
-import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy,roundSummary} from './round.js?v=1.1.0';
-import {createCombat,stepCombat} from './combat.js?v=1.1.0';
-import {buildWorld} from './world.js?v=1.1.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.2.0';
+import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy,roundSummary} from './round.js?v=1.2.0';
+import {createCombat,stepCombat} from './combat.js?v=1.2.0';
+import {buildWorld} from './world.js?v=1.2.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -99,9 +99,12 @@ function loadLevel(){
   for(const v of world.enemies)v.label=makeLabel('FIENDE · 2',new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
+  $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
+  $('#intro-number').textContent=`BANA ${round.level.number} / 3`;
+  $('#intro-name').textContent=round.level.title;
+  $('#intro-seed').textContent=`SEED ${round.seed}`;
   updateHUD();
-  $('#level-toast').textContent=`BANA ${round.level.number} · ${round.level.title} · ${round.level.enemies.length} ${round.level.enemies.length===1?'fiende':'fiender'} · ${round.level.nodes.length} ${round.level.nodes.length===1?'nod':'noder'}`;
-  $('#level-toast').hidden=false;toastUntil=Date.now()+4000;
+  $('#level-toast').hidden=false;$('#level-corner').hidden=true;toastUntil=Date.now()+3000;
 }
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
@@ -164,7 +167,7 @@ function frame(now){
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(aim.x,aim.z);playerRing.position.set(position.x,.025,position.z);
   const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.045,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*3,.045,position.z+aim.z*3);points.needsUpdate=true;aimLine.computeLineDistances();
-  if(!round.over && clock>toastUntil)$('#level-toast').hidden=true;
+  if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
   world.animate(elapsed);renderLabels();renderer.render(scene,camera);requestAnimationFrame(frame);

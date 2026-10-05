@@ -17,11 +17,16 @@ test('each level has its requested identity, hidden nodes and a real dead-end br
   for(let s=0;s<20;s++){
     const [a,b,c]=[1,2,3].map(n=>generateLevel(n,`identity-${s}`));
     assert.equal(a.rooms.length,1);assert.equal(a.nodes.length,1);assert.equal(a.enemies.length,1);
+    assert.equal(traceTargets(a.start,a.nodes[0],a.walls,[a.nodes[0]])?.kind,'node','first node is in plain sight');
+    assert.equal(traceTargets(a.start,a.enemies[0],[...a.walls,...a.boxes],a.enemies)?.kind,'enemy','first enemy is in plain sight');
     assert.equal(b.rooms.length,2);assert.equal(b.nodes.length,2);
     assert.equal(b.corridors.length,1);assert.ok(b.corridors[0].width<=1.8);
     for(const node of b.nodes)assert.equal(traceTargets(b.start,node,b.walls,[node])?.kind,'wall','node is out of sight at spawn');
+    for(const node of b.nodes)assert.ok(Math.abs(node.x-b.rooms[1].x)<b.rooms[1].w/2&&Math.abs(node.z-b.rooms[1].z)<b.rooms[1].d/2,'nodes require entering the second room');
     assert.equal(c.rooms.length,3);assert.equal(c.deadEnds.length,1);
     assert.equal(c.deadEnds[0].connections,1);assert.ok(c.deadEnds[0].length>=4);
+    assert.equal(c.deadEnds[0].roomIndex,0,'the wrong turn is visible at the first room');
+    assert.ok(Math.hypot(c.exit.x-c.deadEnds[0].end.x,c.exit.z-c.deadEnds[0].end.z)>6,'exit is on the other route');
     assert.ok(c.enemies[0].speed>b.enemies[0].speed);
   }
 });
