@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs';
-import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy,roundSummary} from './round.js';
-import {createCombat,stepCombat} from './combat.js';
-import {buildWorld} from './world.js';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.1.0';
+import {createRound,tickRound,activateNode,enterExit,exitIsOpen,hitEnemy,roundSummary} from './round.js?v=1.1.0';
+import {createCombat,stepCombat} from './combat.js?v=1.1.0';
+import {buildWorld} from './world.js?v=1.1.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -95,16 +95,17 @@ function loadLevel(){
   world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];
   for(const v of world.nodes)v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
-  for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,-room.d/2+1),'room-label');
+  for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel('FIENDE · 2',new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
   combat=createCombat(round.level,Date.now());
-  $('#seed-label').textContent=`SEED ${round.level.seed}`;
+  $('#seed-label').textContent=`SEED ${round.seed}`;
   updateHUD();
   $('#level-toast').textContent=`BANA ${round.level.number} · ${round.level.title} · ${round.level.enemies.length} ${round.level.enemies.length===1?'fiende':'fiender'} · ${round.level.nodes.length} ${round.level.nodes.length===1?'nod':'noder'}`;
   $('#level-toast').hidden=false;toastUntil=Date.now()+4000;
 }
-function reset(){
-  const seed=`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
+function reset(requestedSeed){
+  const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
+  const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
   round=createRound(seed,Date.now());viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
 }
 function finishRound(){
@@ -124,7 +125,7 @@ window.addEventListener('resize',resize);new ResizeObserver(resize).observe(view
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
 function renderLabels(){
-  for(const l of labels){labelPoint.copy(l.point).project(camera);l.el.hidden=l.defeated||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9;if(!l.el.hidden){l.el.style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;l.el.style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;}}
+  for(const l of labels){labelPoint.copy(l.point).project(camera);l.el.hidden=l.defeated||l.obscured||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9;if(!l.el.hidden){l.el.style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;l.el.style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;}}
 }
 let previous=performance.now();
 function frame(now){
@@ -160,6 +161,7 @@ function frame(now){
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
   for(const v of world.enemies){v.group.visible=v.enemy.health>0;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0;}
+  for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(aim.x,aim.z);playerRing.position.set(position.x,.025,position.z);
   const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.045,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*3,.045,position.z+aim.z*3);points.needsUpdate=true;aimLine.computeLineDistances();
   if(!round.over && clock>toastUntil)$('#level-toast').hidden=true;
@@ -167,4 +169,4 @@ function frame(now){
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
   world.animate(elapsed);renderLabels();renderer.render(scene,camera);requestAnimationFrame(frame);
 }
-reset();camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
+reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);

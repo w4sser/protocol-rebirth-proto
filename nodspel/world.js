@@ -31,7 +31,7 @@ export function buildWorld(level,scene) {
     const light=new THREE.PointLight('#69f6dc',0,8,1.6);light.position.y=1.9;g.add(light);
     const halo=new THREE.Mesh(new THREE.RingGeometry(1.05,1.09,48),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
-    return {node,coreMaterial,light,halo};
+    return {node,group:g,coreMaterial,light,halo};
   });
   const exit=level.exit;
   const enemies=level.enemies.map(enemy=>{

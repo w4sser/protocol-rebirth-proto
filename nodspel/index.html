@@ -7,7 +7,7 @@
   <meta name="description" content="Tre seedade banor. Tänd noderna, öppna utgångarna och kom så långt du kan på åtta minuter.">
   <title>Nodspel · Protocol Rebirth</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314191c'/%3E%3Crect x='8' y='8' width='16' height='16' rx='3' fill='%238cf5df'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.1.0">
 </head>
 <body>
   <div class="landscape" id="viewport">
@@ -30,7 +30,7 @@
   </div>
   <aside class="rotate" role="status"><span>↻</span><h2>Vrid telefonen</h2><p>Håll telefonen liggande för att spela.</p></aside>
   <script type="module">
-    import('./game.mjs').catch(error => {
+    import('./game.mjs?v=1.1.0').catch(error => {
       document.querySelector('#loading').textContent = 'Spelet kunde inte starta. Prova att ladda om i en webbläsare med WebGL.';
       console.error(error);
     });
