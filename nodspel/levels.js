@@ -9,8 +9,8 @@ export const RULES=Object.freeze({
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
-  enemyHealth:2,combat:{range:10,cooldownMs:1400,damage:25,bulletSpeed:9,graceMs:3000},
-  weapon:{range:5,damage:1,capacity:3,reloadMs:1200,shotIntervalMs:180,bulletSpeed:19},
+  enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
+  weapon:{range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19},
 });
 function randomFromSeed(seed){
   let state=2166136261;

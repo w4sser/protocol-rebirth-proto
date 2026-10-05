@@ -1,0 +1,15 @@
+{
+  "name": "Nodspel",
+  "short_name": "Nodspel",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#14191c",
+  "theme_color": "#14191c",
+  "icons": [
+    {"src": "icons/node-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/node-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

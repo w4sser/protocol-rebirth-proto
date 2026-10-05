@@ -1,4 +1,4 @@
-import {generateLevel} from './levels.js?v=1.3.0';
+import {generateLevel} from './levels.js?v=1.4.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now) {

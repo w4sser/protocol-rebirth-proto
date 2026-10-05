@@ -9,7 +9,7 @@ test('an enemy fires after spawn grace and its projectile can damage the player'
   const c=combat.createCombat(r.level,0);
   combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);assert.equal(c.projectiles.length,0);
   combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
-  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[]);assert.equal(r.health,75);
+  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[]);assert.equal(r.health,80);
 });
 test('walls block enemy sight and a defeated enemy stops firing',()=>{
   assert.equal(typeof combat.createCombat,'function');
@@ -20,12 +20,12 @@ test('walls block enemy sight and a defeated enemy stops firing',()=>{
   assert.equal(r.level.enemies[0].health,0);
   combat.stepCombat(r,c,{x:0,z:4},5000,.5,[]);assert.equal(c.projectiles.length,0);assert.equal(r.health,100);
 });
-test('four enemy hits cause death and record time remaining',()=>{
+test('five enemy hits cause death and record time remaining',()=>{
   assert.equal(typeof combat.createCombat,'function');
   const r=createRound('lethal',0);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
   const c=combat.createCombat(r.level,0);
-  for(let i=0;i<4;i++)combat.stepCombat(r,c,{x:0,z:4},3000+i*2000,.5,[]);
-  assert.equal(r.over,true);assert.equal(r.reason,'death');assert.equal(r.remainingMs,471000);
+  for(let i=0;i<5;i++)combat.stepCombat(r,c,{x:0,z:4},3000+i*2000,.5,[]);
+  assert.equal(r.over,true);assert.equal(r.reason,'death');assert.equal(r.remainingMs,469000);
 });
 test('moving enemies respect cover and level three covers more distance per second',()=>{
   const travelled=[];

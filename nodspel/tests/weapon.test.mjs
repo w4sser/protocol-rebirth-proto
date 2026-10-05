@@ -58,10 +58,23 @@ test('ending a round clears projectiles before further damage',()=>{
   r.over=true;weapon.stepWeapon(w,r,1000,1,[]);assert.equal(w.projectiles.length,0);
 });
 
-test('level three runners start beyond the short weapon range and approach faster',()=>{
+test('level three runners approach faster without outranging the player',()=>{
   for(let seed=0;seed<20;seed++){
     const level=generateLevel(3,`range-${seed}`);
-    for(const foe of level.enemies.slice(0,2))assert.ok(Math.hypot(foe.x-level.start.x,foe.z-level.start.z)-foe.r>RULES.weapon.range);
+    assert.ok(RULES.weapon.range>=RULES.combat.range);
     assert.ok(level.enemies[0].speed>generateLevel(1,`range-${seed}`).enemies[0].speed);
   }
+});
+test('level one enemy takes three shots and refills take 0.7 seconds',()=>{
+  const r=createRound('balance',0),w=weapon.createWeapon();
+  const foe=r.level.enemies[0];foe.x=3;foe.z=0;r.level.nodes=[];
+  assert.equal(RULES.weapon.reloadMs,700);
+  assert.equal(RULES.combat.damage,20);
+  assert.equal(foe.health,RULES.weapon.damage*3);
+  for(let i=0;i<3;i++){
+    assert.ok(weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},i*200));
+    weapon.stepWeapon(w,r,i*200+100,.2,[]);
+    assert.equal(foe.health,RULES.weapon.damage*(2-i));
+  }
+  assert.equal(r.enemiesDefeated,1);assert.equal(w.ammo,0);
 });

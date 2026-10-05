@@ -1,10 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.3.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.3.0';
-import {createCombat,stepCombat} from './combat.js?v=1.3.0';
-import {buildWorld} from './world.js?v=1.3.0';
-import {RULES} from './levels.js?v=1.3.0';
-import {createWeapon,fireWeapon,stepWeapon} from './weapon.js?v=1.3.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.4.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.4.0';
+import {createCombat,stepCombat} from './combat.js?v=1.4.0';
+import {buildWorld} from './world.js?v=1.4.0';
+import {RULES} from './levels.js?v=1.4.0';
+import {createWeapon,fireWeapon,stepWeapon} from './weapon.js?v=1.4.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.4.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -13,7 +14,7 @@ const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-per
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
 $('#game').appendChild(renderer.domElement);
-const camera=new THREE.OrthographicCamera(-20,20,8.5,-8.5,.1,100);
+const camera=new THREE.OrthographicCamera(-20,20,6,-6,.1,100);
 const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(17,23,17);
 scene.add(new THREE.HemisphereLight('#d8e8f1','#37414c',2.3));
 const sun=new THREE.DirectionalLight('#fff0d7',3.2);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
@@ -30,7 +31,7 @@ box(0,.97,.24,.32,.075,.025,'#2c4a54',player);box(0,.65,.58,.16,.16,.67,'#242d34
 box(0,.67,.88,.18,.18,.12,'#8cf5df',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
-const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineDashedMaterial({color:'#a8d6cb',dashSize:.15,gapSize:.18,transparent:true,opacity:.3}));scene.add(aimLine);
+const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#d3fff3',transparent:true,opacity:.95,depthTest:false,depthWrite:false}));aimLine.renderOrder=3;scene.add(aimLine);
 const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
 rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const bulletGeometry=new THREE.BoxGeometry(.12,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
@@ -40,15 +41,16 @@ let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},
 
 // Independent pointer capture lets both thumbs work at the same time.
 function setupStick(selector,value,onShot){
-  const el=$(selector),thumb=el.querySelector('.thumb'),state={pointer:null};sticks.push({el,state,value,thumb});
+  const el=$(selector),thumb=el.querySelector('.thumb'),state={pointer:null,gesture:null};sticks.push({el,state,value,thumb});
   function update(e){
     const r=el.getBoundingClientRect(),limit=r.width*.32;let x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2;
     const length=Math.hypot(x,y);if(length>limit){x*=limit/length;y*=limit/length;}
     value.x=x/limit;value.y=y/limit;thumb.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
+    if(onShot&&state.gesture){dragAim(state.gesture,e.clientX,e.clientY);el.classList.toggle('aiming',!!state.gesture.direction);}
   }
-  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over)return;e.preventDefault();state.pointer=e.pointerId;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);});
+  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over)return;e.preventDefault();state.pointer=e.pointerId;state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');if(!onShot)update(e);});
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
-  function release(e){if(e.pointerId===state.pointer){if(e.type==='pointerup'&&onShot){const l=Math.hypot(value.x,value.y);if(l>.18)aim=screenToWorld(value.x/l,value.y/l);onShot();}state.pointer=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active');}}
+  function release(e){if(e.pointerId===state.pointer){if(onShot&&state.gesture){const direction=releaseAim(state.gesture,e.type!=='pointerup');if(direction){aim=screenToWorld(direction.x,direction.y);onShot();}}state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
 }
 setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
@@ -60,7 +62,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
 window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
 window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
-function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active');}}
+function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round){tickRound(round,Date.now());if(round.over)finishRound();}});
 
@@ -100,7 +102,7 @@ function loadLevel(){
   for(const v of world.nodes)v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
-  for(const v of world.enemies)v.label=makeLabel('FIENDE · 2',new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
+  for(const v of world.enemies)v.label=makeLabel(`FIENDE · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
   $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
@@ -155,7 +157,7 @@ function renderWeaponHUD(clock){
   $('#player-health').style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;
   $('#player-health').style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;
 }
-function resize(){viewWidth=viewport.clientWidth;viewHeight=viewport.clientHeight;renderer.setSize(viewWidth,viewHeight);const h=8.5,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
+function resize(){viewWidth=viewport.clientWidth;viewHeight=viewport.clientHeight;renderer.setSize(viewWidth,viewHeight);const h=6,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(viewport);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
@@ -175,8 +177,8 @@ function frame(now){
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
     if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=movePlayer(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},playerSolids,round.level.floors,.36);}
-    const aimMagnitude=Math.hypot(shooting.x,shooting.y);
-    if(aimMagnitude>.18)aim=screenToWorld(shooting.x/aimMagnitude,shooting.y/aimMagnitude);
+    const stickDirection=sticks[1].state.gesture?.direction;
+    if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
     if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
@@ -196,7 +198,7 @@ function frame(now){
   for(const v of world.enemies){v.group.visible=v.enemy.health>0;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0;}
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(aim.x,aim.z);playerRing.position.set(position.x,.025,position.z);
-  const aiming=!round.over&&(sticks[1].state.pointer!==null||mouseDown||keys.has('Space'));
+  const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
   const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+aim.x*.7,.065,position.z+aim.z*.7);points.setXYZ(1,position.x+aim.x*RULES.weapon.range,.065,position.z+aim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();
   if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}

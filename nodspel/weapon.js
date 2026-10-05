@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.3.0';
-import {traceTargets} from './physics.mjs?v=1.3.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.3.0';
+import {RULES} from './levels.js?v=1.4.0';
+import {traceTargets} from './physics.mjs?v=1.4.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.4.0';
 
 export function createWeapon(){
   return {ammo:RULES.weapon.capacity,reloadAt:null,nextShotAt:0,nextId:0,projectiles:[]};
