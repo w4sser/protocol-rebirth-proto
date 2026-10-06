@@ -47,9 +47,9 @@ test('a player can shoot every node and walk through all three exits within one 
         const travel=Math.hypot(target.x-p.x,target.z-p.z)/RULES.weapon.bulletSpeed;
         clock+=travel*1000;stepWeapon(w,round,clock,travel,solidBoxes());
       }
-      for(const enemy of level.enemies){
+      for(const enemy of level.enemies){if(enemy.active===false)continue;
         routeTo(p=>Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
-        for(let hit=0;hit<(level.number===1?2:RULES.enemyHealth)/RULES.weapon.damage;hit++)shoot(enemy);
+        for(let hit=0;hit<(level.number<=2?2:RULES.enemyHealth)/RULES.weapon.damage;hit++)shoot(enemy);
         assert.equal(enemy.health,0);
       }
       for(const node of level.nodes){
@@ -63,7 +63,7 @@ test('a player can shoot every node and walk through all three exits within one 
       assert.equal(enterExit(round,p,clock),number===3?'complete':'next');
     }
     assert.equal(round.nodesLit,6);assert.equal(round.levelsCleared,3);assert.equal(round.cleared,true);
-    assert.equal(round.enemiesDefeated,11);assert.equal(round.reason,'complete');assert.equal(round.over,true);
+    assert.equal(round.enemiesDefeated,9);assert.equal(round.reason,'complete');assert.equal(round.over,true);
     const frozen=round.remainingMs;assert.ok(clock<480000);tickRound(round,480000);assert.equal(round.remainingMs,frozen);
   }
 });

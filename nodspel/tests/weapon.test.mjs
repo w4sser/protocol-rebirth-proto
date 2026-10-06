@@ -76,5 +76,5 @@ test('level one enemy takes two shots and refills take 0.7 seconds',()=>{
     weapon.stepWeapon(w,r,i*200+100,.2,[]);
     assert.equal(foe.health,RULES.weapon.damage*(1-i));
   }
-  assert.equal(r.enemiesDefeated,1);assert.equal(w.ammo,1);
+  assert.equal(r.enemiesDefeated,1);assert.equal(w.ammo,2);
 });

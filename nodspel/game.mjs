@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.5.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.5.0';
-import {createCombat,stepCombat} from './combat.js?v=1.5.0';
-import {buildWorld} from './world.js?v=1.5.0';
-import {RULES} from './levels.js?v=1.5.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.5.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.5.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.6.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary} from './round.js?v=1.6.0';
+import {createCombat,stepCombat} from './combat.js?v=1.6.0';
+import {buildWorld} from './world.js?v=1.6.0';
+import {RULES} from './levels.js?v=1.6.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.6.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.6.0';
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -78,7 +78,7 @@ function makeLabel(text,point,kind){
 function setCollisions(){
   solids=[...round.level.walls,...round.level.boxes];
   if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});
-  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...round.level.enemies.filter(e=>e.health>0).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
+  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...round.level.enemies.filter(e=>e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
 }
 function updateHUD(){
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
@@ -88,7 +88,7 @@ function updateHUD(){
   $('.mission').classList.toggle('done',open);
   $('#mission-label').textContent=round.cleared?'ALLA BANOR KLARA':`BANA ${round.level.number} · ${round.level.title.toUpperCase()}`;
   $('#status').textContent=round.cleared?'Tre banor avklarade':open?'Utgången är öppen':round.level.nodes.length===1?'Tänd noden':'Tänd alla noder';
-  const remainingEnemies=round.level.enemies.filter(e=>e.health>0).length;
+  const remainingEnemies=round.level.enemies.filter(e=>e.health>0&&e.active!==false).length;
   $('#hint').textContent=open?'Gå till utgången för att fortsätta.':`${remainingEnemies} ${remainingEnemies===1?'fiende':'fiender'} kvar${round.level.number===3?' · Snabbare fiender':''} · Sikta & skjut`;
   if(round.over){$('#status').textContent=round.reason==='complete'?'Alla banor klara':round.reason==='death'?'Du dog':'Tiden är slut';$('#hint').textContent='Ny runda börjar från noll.';}
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=`NOD ${v.node.id.split('-')[1]}${v.node.active?' · AKTIV':''}`;}
@@ -132,7 +132,7 @@ $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('cl
 function fire(){
   if(!round||round.over)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const assisted=assistAim(position,aim,round.level.enemies,solids);
+  const assisted=assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids);
   const shot=fireWeapon(weapon,position,assisted.direction,Date.now());
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
@@ -197,11 +197,12 @@ function frame(now){
   const aliveProjectiles=new Set(round.over?[]:combat.projectiles.map(b=>b.id));
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
-  for(const v of world.enemies){v.group.visible=v.enemy.health>0;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0;}
+  for(const v of world.enemies){v.group.visible=v.enemy.health>0&&v.enemy.active!==false;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0||v.enemy.active===false;}
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
   const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
-  const assisted=aiming?assistAim(position,aim,round.level.enemies,solids):{target:null,direction:aim},displayAim=assisted.direction;
+  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
+  for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ FIENDE · ${v.enemy.health}`;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;

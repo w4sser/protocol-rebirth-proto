@@ -2,14 +2,14 @@
 export const RULES=Object.freeze({
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Öppet rum'},
-    {rooms:2,nodes:2,enemies:4,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
+    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
     {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Återvändsgränd'},
   ],
   roomNames:['Förråd','Verkstad','Hall'],
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
-  enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
+  killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
   weapon:{range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
 function randomFromSeed(seed){
@@ -79,6 +79,12 @@ export function generateLevel(number,roundSeed){
     // Corner bands protect the center cross, every edge doorway, partition
     // approach and node branch. Crates cannot disconnect the walkable graph.
     for(const sign of [-1,1])boxes.push({x:x+sign*between(2.8,w/2-1.3),z:z+between(Math.max(3.5,d/2-2),d/2-1.3),w:1.1,d:1.1,h:1.1});
+  }
+  if(number===2){
+    const room=rooms[1];
+    for(let i=0;i<enemies.length;i++){
+      enemies[i].x=room.x+(i%2===0?-3.3:3.3);enemies[i].z=room.z+(i<2?-4.1:1.1);enemies[i].active=i>=2;
+    }
   }
   const last=rooms.at(-1),exit={x:last.x,z:last.z+RULES.exit.z,r:RULES.exit.r};
   if(number===1){exit.x=last.x;exit.z=last.z-2.9;}
