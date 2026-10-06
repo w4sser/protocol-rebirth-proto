@@ -9,6 +9,7 @@ export const RULES=Object.freeze({
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
+  loot:{counts:[1,2,3],types:['scrap','powerCell'],pickupRadius:1.25},
   killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
   weapon:{range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
@@ -89,5 +90,10 @@ export function generateLevel(number,roundSeed){
   const last=rooms.at(-1),exit={x:last.x,z:last.z+RULES.exit.z,r:RULES.exit.r};
   if(number===1){exit.x=last.x;exit.z=last.z-2.9;}
   const start=rule.deadEnd?{x:rooms[0].x,z:rooms[0].z+.8}:{...RULES.start};
-  return {number,seed,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,nodes,enemies,corridors,deadEnds,start,exit};
+  const lootRng=randomFromSeed(`${seed}:loot`),lootBoxes=[];
+  for(let i=0;i<RULES.loot.counts[number-1];i++){
+    const room=number===2?rooms[1]:rooms[i]??rooms[0];
+    lootBoxes.push({id:`loot-${i+1}`,x:room.x+(number===2?(i===0?-3.3:3.3):-1.3),z:room.z+(number===2?2.6:1.5),item:RULES.loot.types[Math.floor(lootRng()*RULES.loot.types.length)],collected:false});
+  }
+  return {number,seed,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,start,exit};
 }

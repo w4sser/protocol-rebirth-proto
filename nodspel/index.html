@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#14191c">
-  <link rel="manifest" href="manifest.webmanifest?v=1.6.0">
+  <link rel="manifest" href="manifest.webmanifest?v=1.7.0">
   <link rel="apple-touch-icon" href="icons/node-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
   <meta name="description" content="Tre seedade banor. Tänd noderna, öppna utgångarna och kom så långt du kan på åtta minuter.">
   <title>Nodspel · Protocol Rebirth</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314191c'/%3E%3Crect x='8' y='8' width='16' height='16' rx='3' fill='%238cf5df'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=1.6.0">
+  <link rel="stylesheet" href="style.css?v=1.7.0">
 </head>
 <body>
   <div class="landscape" id="viewport">
@@ -25,10 +25,11 @@
   </header>
   <section class="mission" aria-label="Uppdrag"><span id="status-dot"></span><div><span class="eyebrow" id="mission-label">DITT UPPDRAG</span><p id="status" role="status">Tänd noden</p><small id="hint">Sikta på noden och skjut.</small></div><span id="progress">0 / 1</span></section>
   <div id="world-labels"></div>
+  <aside class="bag-panel" aria-label="Väska och extraherat byte"><strong>VÄSKA · OSÄKRAT</strong><span>Skrot <b id="bag-scrap">0</b> · Power cell <b id="bag-cell">0</b></span><small>SÄKRAT: <b id="secured-scrap">0</b> skrot · <b id="secured-cell">0</b> power cell</small></aside>
   <div id="player-health" role="progressbar" aria-label="Liv över spelaren" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="player-health-fill"></span></div>
   <div id="level-toast" class="level-intro" role="status" hidden><span class="eyebrow" id="intro-number"></span><strong id="intro-name"></strong><span id="intro-seed"></span></div>
   <aside id="level-corner" class="level-corner" aria-label="Bana och seed" hidden><strong id="corner-name"></strong><span id="seed-label"></span></aside>
-  <section id="round-over" class="round-over" aria-labelledby="round-over-title" hidden><div class="round-card"><span class="eyebrow">RUNDAN ÄR ÖVER</span><h2 id="round-over-title">Tiden är slut</h2><dl class="summary-stats"><div><dt>Banor klara</dt><dd id="summary-levels"></dd></div><div><dt>Fiender slagna</dt><dd id="summary-enemies"></dd></div><div><dt>Noder tända</dt><dd id="summary-nodes"></dd></div><div><dt>Tid kvar</dt><dd id="summary-time"></dd></div></dl><button id="new-round">Starta om</button><small>Nytt seed. Ny placering. Inget sparas mellan rundor.</small></div></section>
+  <section id="round-over" class="round-over" aria-labelledby="round-over-title" hidden><div class="round-card"><span class="eyebrow">RUNDAN ÄR ÖVER</span><h2 id="round-over-title">Tiden är slut</h2><dl class="summary-stats"><div><dt>Banor klara</dt><dd id="summary-levels"></dd></div><div><dt>Fiender slagna</dt><dd id="summary-enemies"></dd></div><div><dt>Noder tända</dt><dd id="summary-nodes"></dd></div><div><dt>Tid kvar</dt><dd id="summary-time"></dd></div></dl><div class="loot-summary"><p>EXTRAHERAT: <strong id="summary-extracted"></strong></p><p>FÖRLORAT UR VÄSKAN: <strong id="summary-lost"></strong></p></div><button id="new-round">Starta om</button><small>Nytt seed. Ny placering. Inget sparas mellan rundor.</small></div></section>
   <div id="loading" class="loading">Laddar banan…</div>
   <div class="controls" aria-label="Mobilkontroller">
     <div class="stick-wrap"><div class="stick" id="move-stick" role="region" aria-label="Vänster spak: gå"><span class="stick-guides">＋</span><div class="thumb"></div></div><span class="stick-label">GÅ</span></div>
@@ -38,7 +39,7 @@
   </div>
   <aside class="rotate" role="status"><span>↻</span><h2>Vrid telefonen</h2><p>Håll telefonen liggande för att spela.</p></aside>
   <script type="module">
-    import('./game.mjs?v=1.6.0').catch(error => {
+    import('./game.mjs?v=1.7.0').catch(error => {
       document.querySelector('#loading').textContent = 'Spelet kunde inte starta. Prova att ladda om i en webbläsare med WebGL.';
       console.error(error);
     });

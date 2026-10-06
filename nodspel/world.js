@@ -34,6 +34,12 @@ export function buildWorld(level,scene) {
     return {node,group:g,coreMaterial,light,halo};
   });
   const exit=level.exit;
+  const lootBoxes=level.lootBoxes.map(loot=>{
+    const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
+    box(0,.32,0,.9,.64,.9,'#84754d',g);box(0,.68,0,1,.08,1,'#b5a372',g);
+    box(0,.35,.46,.3,.18,.03,'#8cf5df',g);
+    return {loot,group:g};
+  });
   const enemies=level.enemies.map(enemy=>{
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
@@ -53,5 +59,5 @@ export function buildWorld(level,scene) {
     group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)g.dispose();for(const m of mats)m.dispose();scene.remove(group);
   }
-  return {group,nodes,enemies,setExit,animate,dispose};
+  return {group,nodes,enemies,lootBoxes,setExit,animate,dispose};
 }

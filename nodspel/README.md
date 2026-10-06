@@ -2,6 +2,10 @@
 
 Statisk Three.js-sida för liggande telefon. Ingen backend eller sparad progression.
 
+Varje ny runda börjar med 100 liv och en tom väska. Gå nära en gul plocklåda för att få antingen skrot eller en power cell; innehållet bestäms av seedet. Bana 1 har en plocklåda, bana 2 två intill fienderna i rum 2 och bana 3 tre. De grå lådorna är fortfarande skydd.
+
+En öppen utgång extraherar väskan och visar innehållet som säkrat på nästa bana. Död eller tidsgränsen förlorar allt osäkrat i väskan. Slutrutan visar både extraherat och förlorat innehåll. Det som redan extraherats bevaras under rundan; Starta om börjar utan föremål och utan sparad progression.
+
 `levels.js` styr storleksintervall, dörrar, slumpade riktningar och avstånd mellan rum, passager, mellanväggar, återvändsgränd, noder, lådor och fiender.
 
 - Bana 1: ett öppet rum, en nod och en fiende som båda syns direkt nära spelaren.
