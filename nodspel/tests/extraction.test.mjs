@@ -7,7 +7,7 @@ test('loot boxes are seeded, one on level one and two beside the level-two enemi
   const first=generateLevel(1,'loot'),second=generateLevel(2,'loot');
   assert.equal(first.lootBoxes?.length,1);assert.equal(second.lootBoxes?.length,2);
   assert.deepEqual(second.lootBoxes,generateLevel(2,'loot').lootBoxes);
-  for(const box of second.lootBoxes){assert.ok(['scrap','powerCell'].includes(box.item));assert.ok(second.enemies.some(e=>e.active!==false&&Math.hypot(e.x-box.x,e.z-box.z)<2));}
+  for(const box of second.lootBoxes){assert.ok(['scrap_alloy','power_cell','cable','fuse'].includes(box.item));assert.ok(second.enemies.some(e=>e.active!==false&&Math.hypot(e.x-box.x,e.z-box.z)<2));}
 });
 test('walking to a box puts one item in the bag only once',()=>{
   assert.equal(typeof state.collectLoot,'function');
@@ -22,7 +22,7 @@ test('death loses the current bag and a new run starts with full health and no c
   takeDamage(r,100,200);assert.equal(r.health,0);assert.equal(r.bag[box.item],0);
   assert.equal(roundSummary(r).lost[box.item],1);assert.equal(roundSummary(r).extracted[box.item],0);
   assert.equal(state.collectLoot(r,box,300),false);
-  const next=createRound('new-run',300);assert.equal(next.health,100);assert.deepEqual(next.bag,{scrap:0,powerCell:0});
+  const next=createRound('new-run',300);assert.equal(next.health,100);assert.deepEqual(next.bag,{scrap_alloy:0,power_cell:0,cable:0,fuse:0});
 });
 test('an open exit extracts the bag and secured items survive later death',()=>{
   assert.equal(typeof state.collectLoot,'function');

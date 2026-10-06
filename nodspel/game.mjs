@@ -1,11 +1,17 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.7.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot} from './round.js?v=1.7.0';
-import {createCombat,stepCombat} from './combat.js?v=1.7.0';
-import {buildWorld} from './world.js?v=1.7.0';
-import {RULES} from './levels.js?v=1.7.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.7.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.7.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.8.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot} from './round.js?v=1.8.0';
+import {createCombat,stepCombat} from './combat.js?v=1.8.0';
+import {buildWorld} from './world.js?v=1.8.0';
+import {RULES} from './levels.js?v=1.8.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.8.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.8.0';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.8.0';
+
+const orderResponse=await fetch('./order.json?v=1.8.0');
+if(!orderResponse.ok)throw new Error('Rädordern kunde inte läsas.');
+const raidOrder=readOrder(await orderResponse.json());
+let latestResult=null,resultPending=false,resultURL=null;
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -81,8 +87,8 @@ function setCollisions(){
   playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...round.level.enemies.filter(e=>e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
 }
 function updateHUD(){
-  $('#bag-scrap').textContent=round.bag.scrap;$('#bag-cell').textContent=round.bag.powerCell;
-  $('#secured-scrap').textContent=round.extracted.scrap;$('#secured-cell').textContent=round.extracted.powerCell;
+  $('#bag-items').textContent=bagText(round.bag);
+  $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#level-counter').textContent=`BANA ${round.level.number} / 3`;
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
@@ -113,29 +119,45 @@ function loadLevel(){
   $('#intro-number').textContent=`BANA ${round.level.number} / 3`;
   $('#intro-name').textContent=round.level.title;
   $('#intro-seed').textContent=`SEED ${round.seed}`;
+  $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} skott · ${round.order.health} liv`;
   updateHUD();
   $('#level-toast').hidden=false;$('#level-corner').hidden=true;toastUntil=Date.now()+3000;
 }
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  round=createRound(seed,Date.now());weapon=createWeapon();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  resultPending=false;latestResult=null;
+  round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
 }
-function finishRound(){
-  if(!$('#round-over').hidden)return;
+function finishRound(outcome=round.reason){
+  if(!$('#round-over').hidden&&!resultPending)return;
+  resultPending=outcome==='extraction'&&!round.over;
+  latestResult=raidResult(round,weapon,outcome);
+  const json=resultJSON(latestResult);
+  try{localStorage.setItem('nodspel.result.json',json);}catch{}
+  if(resultURL)URL.revokeObjectURL(resultURL);
+  resultURL=URL.createObjectURL(new Blob([json],{type:'application/json'}));
+  $('#save-result').href=resultURL;
+  $('#result-json').textContent=json;
+  $('#continue-raid').hidden=!resultPending;
+  $('#round-over-eyebrow').textContent=resultPending?'UTGÅNGEN EXTRAHERADE VÄSKAN':'RUNDAN ÄR ÖVER';
   clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
-  $('#round-over-title').textContent=summary.reason==='complete'?'Alla banor klara':summary.reason==='death'?'Du dog':'Tiden är slut';
+  $('#round-over-title').textContent=outcome==='extraction'?'Extraction klar':summary.reason==='complete'?'Alla banor klara':summary.reason==='death'?'Du dog':'Tiden är slut';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / 6`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-  $('#summary-extracted').textContent=`${summary.extracted.scrap} skrot · ${summary.extracted.powerCell} power cells`;
-  $('#summary-lost').textContent=`${summary.lost.scrap} skrot · ${summary.lost.powerCell} power cells`;
+  $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Tom';
+  $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Tom';
   $('#level-toast').hidden=true;updateHUD();
+  // Static hosting has no writable result endpoint. Export the same result
+  // as a local file; the visible link also works if automatic downloads stop.
+  $('#save-result').click();
 }
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
+$('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){
-  if(!round||round.over)return;
+  if(!round||round.over||resultPending)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
   const assisted=assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids);
   const shot=fireWeapon(weapon,position,assisted.direction,Date.now());
@@ -156,7 +178,7 @@ function renderWeaponHUD(clock){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
-  $('#reload-time').textContent=round.over?'':reloading?`+1 om ${(remaining/1000).toFixed(1)} s`: '3 / 3';
+  $('#reload-time').textContent=round.over?'':`${weapon.ammo} / 3 · reserv ${weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
   $('#player-health').setAttribute('aria-valuenow',round.health);
   $('#player-health-fill').style.width=`${round.health}%`;
   $('#player-health').classList.toggle('urgent',round.health<=25);
@@ -178,7 +200,7 @@ function frame(now){
   if($('#time-left').textContent!==time)$('#time-left').textContent=time;
   $('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over)finishRound();
-  if(!round.over){
+  if(!round.over&&!resultPending){
     let sx=movement.x,sy=movement.y;
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
@@ -197,7 +219,7 @@ function frame(now){
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
     if(round.over)finishRound();
     const result=enterExit(round,position,clock);
-    if(result==='next')loadLevel();else if(result==='complete')finishRound();
+    if(result)finishRound('extraction');
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
   const aliveProjectiles=new Set(round.over?[]:combat.projectiles.map(b=>b.id));

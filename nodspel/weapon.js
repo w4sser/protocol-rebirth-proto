@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.7.0';
-import {traceTargets} from './physics.mjs?v=1.7.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.7.0';
+import {RULES} from './levels.js?v=1.8.0';
+import {traceTargets} from './physics.mjs?v=1.8.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.8.0';
 
 export function assistAim(position,direction,enemies,obstacles){
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
@@ -19,14 +19,16 @@ export function assistAim(position,direction,enemies,obstacles){
   return {target,direction:{x:x/l,z:z/l}};
 }
 
-export function createWeapon(){
-  return {ammo:RULES.weapon.capacity,reloadAt:null,nextShotAt:0,nextId:0,projectiles:[]};
+export function createWeapon(totalAmmo=Infinity){
+  const ammo=Math.min(RULES.weapon.capacity,totalAmmo);
+  return {ammo,reserve:totalAmmo-ammo,reloadAt:null,nextShotAt:0,nextId:0,projectiles:[]};
 }
 export function tickWeapon(weapon,now){
   const rule=RULES.weapon;
   while(weapon.reloadAt!==null && now>=weapon.reloadAt){
-    weapon.ammo++;
-    weapon.reloadAt=weapon.ammo<rule.capacity?weapon.reloadAt+rule.reloadMs:null;
+    if(weapon.reserve<=0){weapon.reloadAt=null;break;}
+    weapon.ammo++;weapon.reserve--;
+    weapon.reloadAt=weapon.ammo<rule.capacity&&weapon.reserve>0?weapon.reloadAt+rule.reloadMs:null;
   }
 }
 export function fireWeapon(weapon,position,direction,now){
@@ -34,7 +36,7 @@ export function fireWeapon(weapon,position,direction,now){
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
   if(!weapon.ammo || now<weapon.nextShotAt || length<.01)return null;
   weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
-  if(weapon.reloadAt===null)weapon.reloadAt=now+rule.reloadMs;
+  if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+rule.reloadMs;
   const shot={id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
   weapon.projectiles.push(shot);return shot;
 }
@@ -54,7 +56,7 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
       if(hit?.kind==='enemy'){
         const kills=round.enemiesDefeated;
         changed=hitEnemy(round,hit.target.id,now,RULES.weapon.damage)||changed;
-        if(round.enemiesDefeated>kills){weapon.ammo=Math.min(RULES.weapon.capacity,weapon.ammo+RULES.killReward.ammo);if(weapon.ammo===RULES.weapon.capacity)weapon.reloadAt=null;}
+        if(round.enemiesDefeated>kills){const refill=Math.min(RULES.weapon.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===RULES.weapon.capacity||weapon.reserve===0)weapon.reloadAt=null;}
       }
       weapon.projectiles.splice(i,1);
     }else{b.x=end.x;b.z=end.z;}

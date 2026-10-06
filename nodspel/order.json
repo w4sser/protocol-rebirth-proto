@@ -1,0 +1,8 @@
+{
+  "zone": "industrial",
+  "route": "maintenance_tunnels",
+  "risk": "standard",
+  "objective": ["cable", "fuse"],
+  "loadout": {"weapon": "basic_carbine", "ammo": 12},
+  "health": 100
+}

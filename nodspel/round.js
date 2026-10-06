@@ -1,8 +1,10 @@
-import {generateLevel,RULES} from './levels.js?v=1.7.0';
+import {generateLevel,RULES} from './levels.js?v=1.8.0';
+import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.8.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
-export function createRound(seed,now) {
-  return {seed,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:100,bag:{scrap:0,powerCell:0},extracted:{scrap:0,powerCell:0},lost:{scrap:0,powerCell:0},cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
+  const order=readOrder(requestedOrder);
+  return {seed,order,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:order.health,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now){
@@ -48,6 +50,7 @@ export function activateNode(round,id,now) {
 export function enterExit(round,position,now) {
   tickRound(round,now);
   if(round.cleared || !exitIsOpen(round) || Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)>round.level.exit.r)return null;
+  round.exitLoot=bagItems(round.bag);
   for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}
   round.levelsCleared++;
   if(round.level.number===3){round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
