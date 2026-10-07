@@ -1,15 +1,16 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.10.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.10.0';
-import {createCombat,stepCombat} from './combat.js?v=1.10.0';
-import {buildWorld} from './world.js?v=1.10.0';
-import {RULES} from './levels.js?v=1.10.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.10.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.10.0';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.10.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.11.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.0';
+import {createCombat,stepCombat} from './combat.js?v=1.11.0';
+import {buildWorld} from './world.js?v=1.11.0';
+import {RULES} from './levels.js?v=1.11.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.0';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.0';
+import {routeComplete} from './objectives.js?v=1.11.0';
 
-const orderResponse=await fetch('./order.json?v=1.10.0');
-if(!orderResponse.ok)throw new Error('Rädordern kunde inte läsas.');
+const orderResponse=await fetch('./order.json?v=1.11.0');
+if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultPending=false,resultURL=null;
 
@@ -74,7 +75,7 @@ window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round){tickRound(round,Date.now());if(round.over)finishRound();}});
 
 function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
-let labels=[];
+let labels=[],routeLabels=[];
 function makeLabel(text,point,kind){
   const el=document.createElement('div');el.className=`node-label ${kind}`;
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
@@ -90,37 +91,41 @@ function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
-  $('#level-counter').textContent=`BANA ${round.level.number} / 3`;
+  $('#level-counter').textContent=`LEVEL ${round.level.number} / 3`;
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
   $('#progress').textContent=`${lit} / ${round.level.nodes.length}`;
   $('.mission').classList.toggle('done',open);
-  $('#mission-label').textContent=round.cleared?'ALLA BANOR KLARA':`BANA ${round.level.number} · ${round.level.title.toUpperCase()}`;
-  $('#status').textContent=round.cleared?'Tre banor avklarade':open?'Utgången är öppen':round.level.nodes.length===1?'Tänd noden':'Tänd alla noder';
+  $('#mission-label').textContent=round.cleared?'ALL LEVELS CLEARED':`LEVEL ${round.level.number} · ${round.level.title.toUpperCase()}`;
+  $('#status').textContent=round.cleared?'Three levels cleared':open?'The exit is open':round.level.nodes.length===1?'Activate the node':'Activate all nodes';
   const remainingEnemies=round.level.enemies.filter(e=>e.health>0&&e.active!==false).length;
-  $('#hint').textContent=open?'Gå till utgången för att extrahera väskan.':`${remainingEnemies} ${remainingEnemies===1?'fiende':'fiender'} kvar · Gå nära lådor för att plocka.`;
-  if(round.over){$('#status').textContent=round.reason==='complete'?'Alla banor klara':round.reason==='death'?'Du dog':'Tiden är slut';$('#hint').textContent='Ny runda börjar från noll.';}
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=`NOD ${v.node.id.split('-')[1]}${v.node.active?' · AKTIV':''}`;}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALLA BANOR KLARA':open?'UTGÅNG · ÖPPEN':'UTGÅNG · LÅST';
+  $('#hint').textContent=open?'Reach the exit to extract your bag.':`${remainingEnemies} ${remainingEnemies===1?'enemy':'enemies'} left · Walk near crates to collect.`;
+  if(round.over){$('#status').textContent=round.reason==='complete'?'All levels cleared':round.reason==='death'?'You died':'Time is up';$('#hint').textContent='A new round starts fresh.';}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=`NODE ${v.node.id.split('-')[1]}${v.node.active?' · ACTIVE':''}`;}
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
 function loadLevel(){
   world?.dispose();clearBullets();clearInput();mouseKnown=false;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
-  world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];
-  for(const v of world.nodes)v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
+  world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];routeLabels=[];
+  for(const v of world.nodes){
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
+    const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
+    const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
+  }
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
-  for(const v of world.enemies)v.label=makeLabel(`FIENDE · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.marked?'◆ BYTE · PLOCKA':'LÅDA · PLOCKA',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
-  for(const choice of round.level.routeChoices)makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'BYTE · KORT VÄG':'NODER · LÅNG VÄG'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');
+  for(const v of world.enemies)v.label=makeLabel(`ENEMY · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
+  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
   $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
-  $('#intro-number').textContent=`BANA ${round.level.number} / 3`;
+  $('#intro-number').textContent=`LEVEL ${round.level.number} / 3`;
   $('#intro-name').textContent=round.level.title;
   $('#intro-seed').textContent=`SEED ${round.seed}`;
-  $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} skott · ${round.order.health} liv`;
+  $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
   $('#level-toast').hidden=false;$('#level-corner').hidden=true;toastUntil=Date.now()+3000;
 }
@@ -142,15 +147,15 @@ function finishRound(outcome=round.reason){
   $('#save-result').href=resultURL;
   $('#result-json').textContent=json;
   $('#continue-raid').hidden=!resultPending;
-  $('#round-over-eyebrow').textContent=resultPending?'UTGÅNGEN EXTRAHERADE VÄSKAN':'RUNDAN ÄR ÖVER';
+  $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
   clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
-  $('#round-over-title').textContent=outcome==='extraction'?'Extraction klar':summary.reason==='complete'?'Alla banor klara':summary.reason==='death'?'Du dog':'Tiden är slut';
+  $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / 6`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-  $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Tom';
-  $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Tom';
+  $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
+  $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
   $('#level-toast').hidden=true;updateHUD();
   // Static hosting has no writable result endpoint. Export the same result
   // as a local file; the visible link also works if automatic downloads stop.
@@ -175,7 +180,7 @@ function renderWeaponHUD(clock){
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
   const fraction=reloading?1-remaining/RULES.weapon.reloadMs:0;
   $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
-  $('#ammo-hud').setAttribute('aria-label',`Magasin: ${weapon.ammo} av ${RULES.weapon.capacity} · Reserv: ${weapon.reserve}`);
+  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${RULES.weapon.capacity} · Reserve: ${weapon.reserve}`);
   for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
@@ -228,18 +233,21 @@ function frame(now){
   const aliveProjectiles=new Set(round.over?[]:combat.projectiles.map(b=>b.id));
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
-  for(const v of world.enemies){v.group.visible=v.enemy.health>0&&v.enemy.active!==false;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0||v.enemy.active===false;}
+  for(const v of world.enemies){v.group.visible=v.enemy.health>0&&v.enemy.active!==false;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`ENEMY · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0||v.enemy.active===false;}
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
     const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
-    v.label.el.classList.toggle('charging',!!hold);v.label.el.style.setProperty('--charge',`${(hold?.progress??0)*100}%`);
-    v.label.caption.textContent=`NOD ${v.node.id.split('-')[1]}${v.node.active?' · AKTIV':hold?` · AKTIVERAR ${Math.ceil((1-hold.progress)*RULES.resources.nodeHoldMs/1000)} s`:weapon.reserve===0?' · STÅ NÄRA 2 s':''}`;
+    v.label.el.classList.toggle('charging',!!hold);
+    v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
+    v.label.caption.textContent=`NODE ${v.node.id.split('-')[1]}${v.node.active?' · ACTIVE':hold?` · ACTIVATING ${Math.ceil((1-hold.progress)*RULES.resources.nodeHoldMs/1000)} s`:' · STAY NEAR 2 s'}`;
   }
+  for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
+  for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
   for(const v of world.lootBoxes){v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
   const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
-  for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ FIENDE · ${v.enemy.health}`;}
+  for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
   const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+displayAim.x*.7,.065,position.z+displayAim.z*.7);points.setXYZ(1,position.x+displayAim.x*RULES.weapon.range,.065,position.z+displayAim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();

@@ -1,6 +1,6 @@
-import {generateLevel,RULES} from './levels.js?v=1.10.0';
-import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.10.0';
-import {traceTargets} from './physics.mjs?v=1.10.0';
+import {generateLevel,RULES} from './levels.js?v=1.11.0';
+import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.11.0';
+import {traceTargets} from './physics.mjs?v=1.11.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
@@ -25,11 +25,11 @@ export function collectLoot(round,position,now,weapon){
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
-  if(round.over||weapon.reserve!==0){round.nodeInteraction=null;return false;}
+  if(round.over){round.nodeInteraction=null;return false;}
   const node=round.level.nodes.filter(n=>!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
   if(!node){round.nodeInteraction=null;return false;}
   let hold=round.nodeInteraction;
-  if(!hold||hold.id!==node.id||Math.hypot(position.x-hold.position.x,position.z-hold.position.z)>RULES.resources.standStillTolerance)hold=round.nodeInteraction={id:node.id,startedAt:now,position:{...position},progress:0};
+  if(!hold||hold.id!==node.id)hold=round.nodeInteraction={id:node.id,startedAt:now,progress:0};
   hold.progress=Math.min(1,(now-hold.startedAt)/RULES.resources.nodeHoldMs);
   if(hold.progress<1)return false;
   round.nodeInteraction=null;return activateNode(round,node.id,now);

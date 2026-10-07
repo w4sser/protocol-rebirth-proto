@@ -1,13 +1,13 @@
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
-    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Öppet rum'},
-    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Trång passage'},
-    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Återvändsgränd'},
+    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Open Room'},
+    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Dead End'},
   ],
-  roomNames:['Förråd','Verkstad','Hall'],
+  roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
-  resources:{ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8,standStillTolerance:.12},
+  resources:{ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8},
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
@@ -23,7 +23,7 @@ function randomFromSeed(seed){
 const opposite=d=>({x:-d.x,z:-d.z});
 const equal=(a,b)=>a.x===b.x&&a.z===b.z;
 export function generateLevel(number,roundSeed){
-  const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Banan måste vara 1, 2 eller 3.');
+  const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Level must be 1, 2 or 3.');
   const seed=`${roundSeed}:${number}`,rng=randomFromSeed(seed);
   const suffix=String(roundSeed).match(/-(\d+)$/),choiceRng=randomFromSeed(`${roundSeed}:choices`);
   const shortSide=suffix?(Number(suffix[1])%2?-1:1):(choiceRng()<.5?-1:1);

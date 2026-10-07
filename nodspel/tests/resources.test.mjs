@@ -21,19 +21,21 @@ test('seeded marked crates can contain ammo on every level',()=>{
     assert.ok(levels.every(l=>l.lootBoxes.every(b=>b.item!=='ammo_pack'||b.marked)));
   }
 });
-test('empty reserve enables a slow visible nearby node interaction and never harms enemies',()=>{
+test('full ammo still allows two-second node activation without harming enemies or spending shots',()=>{
   assert.equal(typeof api.stepNodeInteraction,'function');
-  const r=createRound('manual',0),w=createWeapon(0),n=r.level.nodes[0],pos={x:n.x,z:n.z+1.2};
+  const r=createRound('manual',0),w=createWeapon(12),n=r.level.nodes[0],pos={x:n.x,z:n.z+1.2};
   const health=r.level.enemies.map(e=>e.health);
   api.stepNodeInteraction(r,w,pos,100,[]);api.stepNodeInteraction(r,w,pos,1100,[]);
   assert.equal(n.active,false);assert.ok(r.nodeInteraction.progress>0);
   api.stepNodeInteraction(r,w,pos,2100,[]);assert.equal(n.active,true);
   assert.deepEqual(r.level.enemies.map(e=>e.health),health);
+  assert.equal(w.ammo,3);assert.equal(w.reserve,9);
 });
-test('moving away, cover, or having reserve ammo cancels manual node charging',()=>{
+test('leaving range or cover resets node charging, but moving within range does not',()=>{
   assert.equal(typeof api.stepNodeInteraction,'function');
   const r=createRound('cancel',0),w=createWeapon(0),n=r.level.nodes[0],pos={x:n.x,z:n.z+1.2};
   api.stepNodeInteraction(r,w,pos,100,[]);api.stepNodeInteraction(r,w,{x:0,z:100},2100,[]);assert.equal(n.active,false);assert.equal(r.nodeInteraction,null);
   api.stepNodeInteraction(r,w,pos,2200,[{x:n.x,z:n.z+.6,w:2,d:.2}]);assert.equal(r.nodeInteraction,null);
-  w.reserve=1;api.stepNodeInteraction(r,w,pos,5000,[]);assert.equal(r.nodeInteraction,null);
+  w.reserve=1;api.stepNodeInteraction(r,w,pos,5000,[]);assert.equal(r.nodeInteraction.progress,0);
+  api.stepNodeInteraction(r,w,{x:pos.x+.2,z:pos.z},6000,[]);assert.equal(r.nodeInteraction.progress,.5);
 });

@@ -44,9 +44,10 @@ export function buildWorld(level,scene) {
     }
     return {loot,group:g};
   });
+  const routes=[];
   for(const choice of level.routeChoices){
     const color=choice.kind==='loot'?'#ffd16f':'#8cf5df';
-    for(let i=0;i<5;i++)box(choice.sign.x+choice.dir.x*i*.5,.03,choice.sign.z-i*.3,.28,.035,.28,color);
+    const markers=[];for(let i=0;i<5;i++)markers.push(box(choice.sign.x+choice.dir.x*i*.5,.03,choice.sign.z-i*.3,.28,.035,.28,color));routes.push({choice,markers,level});
   }
   const enemies=level.enemies.map(enemy=>{
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
@@ -67,5 +68,5 @@ export function buildWorld(level,scene) {
     group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)g.dispose();for(const m of mats)m.dispose();scene.remove(group);
   }
-  return {group,nodes,enemies,lootBoxes,setExit,animate,dispose};
+  return {group,nodes,enemies,lootBoxes,routes,setExit,animate,dispose};
 }
