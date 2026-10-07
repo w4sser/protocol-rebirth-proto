@@ -1,15 +1,15 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.11.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.0';
-import {createCombat,stepCombat} from './combat.js?v=1.11.0';
-import {buildWorld} from './world.js?v=1.11.0';
-import {RULES} from './levels.js?v=1.11.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.0';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.0';
-import {routeComplete} from './objectives.js?v=1.11.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.11.1';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.1';
+import {createCombat,stepCombat} from './combat.js?v=1.11.1';
+import {buildWorld} from './world.js?v=1.11.1';
+import {RULES} from './levels.js?v=1.11.1';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.1';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.1';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.1';
+import {routeComplete} from './objectives.js?v=1.11.1';
 
-const orderResponse=await fetch('./order.json?v=1.11.0');
+const orderResponse=await fetch('./order.json?v=1.11.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultPending=false,resultURL=null;

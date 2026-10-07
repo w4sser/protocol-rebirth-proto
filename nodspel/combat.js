@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=1.11.0';
+import {RULES} from './levels.js?v=1.11.1';
 import {traceTargets,movePlayer} from './physics.mjs';
 import {takeDamage,tickRound} from './round.js';
 
