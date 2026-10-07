@@ -7,6 +7,7 @@ export const RULES=Object.freeze({
   ],
   roomNames:['Förråd','Verkstad','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
+  resources:{ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8,standStillTolerance:.12},
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
@@ -96,7 +97,7 @@ export function generateLevel(number,roundSeed){
   const lootRng=randomFromSeed(`${seed}:loot`),lootBoxes=[];
   for(let i=0;i<RULES.loot.counts[number-1];i++){
     const room=number===2?rooms[1]:rooms[i]??rooms[0];
-    const pool=number===2&&i>0?RULES.loot.pools[2]:RULES.loot.pools[number-1];
+    const basePool=number===2&&i>0?RULES.loot.pools[2]:RULES.loot.pools[number-1],pool=i===0?[...basePool,'ammo_pack']:basePool;
     const marked=i===0,point=marked&&deadEnds.length?deadEnds[0].end:marked&&number===1?{x:room.x+shortSide*RULES.choices.markedX,z:room.z+RULES.choices.markedZ}:{x:room.x+(number===2?3.3:-1.3),z:room.z+(number===2?2.6:1.5)};
     lootBoxes.push({id:`loot-${i+1}`,...point,marked,item:pool[Math.floor(lootRng()*pool.length)],collected:false});
   }

@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.9.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot} from './round.js?v=1.9.0';
-import {createCombat,stepCombat} from './combat.js?v=1.9.0';
-import {buildWorld} from './world.js?v=1.9.0';
-import {RULES} from './levels.js?v=1.9.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.9.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.9.0';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.9.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.10.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.10.0';
+import {createCombat,stepCombat} from './combat.js?v=1.10.0';
+import {buildWorld} from './world.js?v=1.10.0';
+import {RULES} from './levels.js?v=1.10.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.10.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.10.0';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.10.0';
 
-const orderResponse=await fetch('./order.json?v=1.9.0');
+const orderResponse=await fetch('./order.json?v=1.10.0');
 if(!orderResponse.ok)throw new Error('Rädordern kunde inte läsas.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultPending=false,resultURL=null;
@@ -112,7 +112,7 @@ function loadLevel(){
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel(`FIENDE · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.marked?'◆ BYTE · PLOCKA':'LÅDA · PLOCKA',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.marked?'◆ BYTE · PLOCKA':'LÅDA · PLOCKA',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
   for(const choice of round.level.routeChoices)makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'BYTE · KORT VÄG':'NODER · LÅNG VÄG'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
@@ -175,12 +175,12 @@ function renderWeaponHUD(clock){
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
   const fraction=reloading?1-remaining/RULES.weapon.reloadMs:0;
   $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
-  $('#ammo-hud').setAttribute('aria-label',`Ammo: ${weapon.ammo} av ${RULES.weapon.capacity} skott`);
+  $('#ammo-hud').setAttribute('aria-label',`Magasin: ${weapon.ammo} av ${RULES.weapon.capacity} · Reserv: ${weapon.reserve}`);
   for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
-  $('#reload-time').textContent=round.over?'':`${weapon.ammo} / 3 · reserv ${weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
+  $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
   $('#player-health').setAttribute('aria-valuenow',round.health);
   $('#player-health-fill').style.width=`${round.health}%`;
   $('#player-health').classList.toggle('urgent',round.health<=25);
@@ -214,7 +214,8 @@ function frame(now){
     if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
-    if(collectLoot(round,position,clock))updateHUD();
+    if(collectLoot(round,position,clock,weapon))updateHUD();
+    if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
     setCollisions();
@@ -228,7 +229,11 @@ function frame(now){
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
   for(const v of world.enemies){v.group.visible=v.enemy.health>0&&v.enemy.active!==false;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`FIENDE · ${v.enemy.health}`;v.label.defeated=v.enemy.health<=0||v.enemy.active===false;}
-  for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;}
+  for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
+    const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
+    v.label.el.classList.toggle('charging',!!hold);v.label.el.style.setProperty('--charge',`${(hold?.progress??0)*100}%`);
+    v.label.caption.textContent=`NOD ${v.node.id.split('-')[1]}${v.node.active?' · AKTIV':hold?` · AKTIVERAR ${Math.ceil((1-hold.progress)*RULES.resources.nodeHoldMs/1000)} s`:weapon.reserve===0?' · STÅ NÄRA 2 s':''}`;
+  }
   for(const v of world.lootBoxes){v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
   const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;

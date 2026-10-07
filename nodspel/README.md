@@ -41,3 +41,7 @@ Spelet begär en nedladdning av result.json vid varje resultat. Spara result.jso
 ## Synliga vägval (1.9.0)
 
 levels.js bygger en kort loot-gren och en längre nodväg i bana 2. Båda har skylt och färgade golvmarkeringar vid starten; noderna står fortfarande bakom passagen. En låda per bana har en gul ring, fyr och BYTE-markering och är aldrig ett fast hinder. Bana 3:s markerade låda står längst in i återvändsgränden. Samma seed återskapar valen. Starta om växlar den korta vägens sida, även efter att en delad seed-adress öppnats. Bana 1:s markerade låda byter sida så skillnaden syns direkt före skott.
+
+## Reservammo och näraktivering (1.10.0)
+
+Magasin och reserv visas som 3/3 · 9. Tomt magasin avslutar aldrig rundan. Markerade lådor kan innehålla ammo_pack och visas som AMMO · +4; fyra skott går direkt till reserven, inte väskan, och återstående ammo returneras som vanligt vid extraction. Ett tomt magasin börjar fyllas ett skott i taget efter 0,7 sekunder. När reserven är 0 kan en nod tändas utan skott: stå still inom 1,8 enheter i två sekunder. Progress och återstående tid visas på noden. Avstånd, rörelse eller skymmande vägg avbryter laddningen. Fiender tar fortfarande bara skada av skott. Värden finns i RULES.resources i levels.js.
