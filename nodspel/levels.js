@@ -6,6 +6,7 @@ export const RULES=Object.freeze({
     {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Återvändsgränd'},
   ],
   roomNames:['Förråd','Verkstad','Hall'],
+  choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
@@ -23,6 +24,8 @@ const equal=(a,b)=>a.x===b.x&&a.z===b.z;
 export function generateLevel(number,roundSeed){
   const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Banan måste vara 1, 2 eller 3.');
   const seed=`${roundSeed}:${number}`,rng=randomFromSeed(seed);
+  const suffix=String(roundSeed).match(/-(\d+)$/),choiceRng=randomFromSeed(`${roundSeed}:choices`);
+  const shortSide=suffix?(Number(suffix[1])%2?-1:1):(choiceRng()<.5?-1:1);
   const between=(a,b)=>Math.round((a+rng()*(b-a))*100)/100;
   const pick=items=>items[Math.floor(rng()*items.length)];
   const rooms=[],floors=[],walls=[],boxes=[],nodes=[],enemies=[],corridors=[],deadEnds=[];
@@ -32,7 +35,7 @@ export function generateLevel(number,roundSeed){
     if(i){
       const prev=rooms[i-1];
       const choices=RULES.directions.filter(dir=>!equal(dir,prev.incoming??{x:0,z:1}));
-      const dir=pick(choices),spacing=between(...RULES.spacing);
+      const dir=number===2?{x:-shortSide,z:0}:pick(choices),spacing=between(...RULES.spacing);
       room.x=prev.x+dir.x*spacing;room.z=prev.z+dir.z*spacing;
       prev.doors.push(dir);room.incoming=opposite(dir);room.doors.push(room.incoming);
       const a={x:prev.x+dir.x*prev.w/2,z:prev.z+dir.z*prev.d/2};
@@ -41,9 +44,9 @@ export function generateLevel(number,roundSeed){
     }
     rooms.push(room);floors.push({...room});
   }
-  if(rule.deadEnd){
-    const room=rooms[0],dir=pick(RULES.directions.filter(d=>d.z===0&&!room.doors.some(p=>equal(p,d))));
-    const length=between(...RULES.deadEndLength);
+  if(rule.deadEnd||number===2){
+    const room=rooms[0],dir=number===2?{x:shortSide,z:0}:pick(RULES.directions.filter(d=>d.z===0&&!room.doors.some(p=>equal(p,d))));
+    const length=between(...(number===2?RULES.choices.shortLength:RULES.deadEndLength));
     room.doors.push(dir);
     const edge={x:room.x+dir.x*room.w/2,z:room.z+dir.z*room.d/2};
     const branch={x:edge.x+dir.x*length/2,z:edge.z+dir.z*length/2,w:dir.x?length:door,d:dir.z?length:door,width:door,length,connections:1,roomIndex:0,dir,end:{x:edge.x+dir.x*(length-.8),z:edge.z+dir.z*(length-.8)}};
@@ -94,7 +97,12 @@ export function generateLevel(number,roundSeed){
   for(let i=0;i<RULES.loot.counts[number-1];i++){
     const room=number===2?rooms[1]:rooms[i]??rooms[0];
     const pool=number===2&&i>0?RULES.loot.pools[2]:RULES.loot.pools[number-1];
-    lootBoxes.push({id:`loot-${i+1}`,x:room.x+(number===2?(i===0?-3.3:3.3):-1.3),z:room.z+(number===2?2.6:1.5),item:pool[Math.floor(lootRng()*pool.length)],collected:false});
+    const marked=i===0,point=marked&&deadEnds.length?deadEnds[0].end:marked&&number===1?{x:room.x+shortSide*RULES.choices.markedX,z:room.z+RULES.choices.markedZ}:{x:room.x+(number===2?3.3:-1.3),z:room.z+(number===2?2.6:1.5)};
+    lootBoxes.push({id:`loot-${i+1}`,...point,marked,item:pool[Math.floor(lootRng()*pool.length)],collected:false});
   }
-  return {number,seed,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,start,exit};
+  const routeChoices=number===2?[
+    {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
+    {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
+  ]:[];
+  return {number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit};
 }

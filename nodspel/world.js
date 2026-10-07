@@ -38,8 +38,16 @@ export function buildWorld(level,scene) {
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
     box(0,.32,0,.9,.64,.9,'#84754d',g);box(0,.68,0,1,.08,1,'#b5a372',g);
     box(0,.35,.46,.3,.18,.03,'#8cf5df',g);
+    if(loot.marked){
+      const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:'#ffd16f',side:THREE.DoubleSide,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
+      const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ffd16f'}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
+    }
     return {loot,group:g};
   });
+  for(const choice of level.routeChoices){
+    const color=choice.kind==='loot'?'#ffd16f':'#8cf5df';
+    for(let i=0;i<5;i++)box(choice.sign.x+choice.dir.x*i*.5,.03,choice.sign.z-i*.3,.28,.035,.28,color);
+  }
   const enemies=level.enemies.map(enemy=>{
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);

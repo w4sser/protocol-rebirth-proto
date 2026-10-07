@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.8.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot} from './round.js?v=1.8.0';
-import {createCombat,stepCombat} from './combat.js?v=1.8.0';
-import {buildWorld} from './world.js?v=1.8.0';
-import {RULES} from './levels.js?v=1.8.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.8.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.8.0';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.8.0';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.9.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot} from './round.js?v=1.9.0';
+import {createCombat,stepCombat} from './combat.js?v=1.9.0';
+import {buildWorld} from './world.js?v=1.9.0';
+import {RULES} from './levels.js?v=1.9.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.9.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.9.0';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.9.0';
 
-const orderResponse=await fetch('./order.json?v=1.8.0');
+const orderResponse=await fetch('./order.json?v=1.9.0');
 if(!orderResponse.ok)throw new Error('Rädordern kunde inte läsas.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultPending=false,resultURL=null;
@@ -112,7 +112,8 @@ function loadLevel(){
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel(`FIENDE · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel('LÅDA · PLOCKA',new THREE.Vector3(v.loot.x,1.2,v.loot.z),'loot-label');
+  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.marked?'◆ BYTE · PLOCKA':'LÅDA · PLOCKA',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const choice of round.level.routeChoices)makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'BYTE · KORT VÄG':'NODER · LÅNG VÄG'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
   $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
@@ -128,6 +129,7 @@ function reset(requestedSeed){
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
   resultPending=false;latestResult=null;
   round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
 function finishRound(outcome=round.reason){
   if(!$('#round-over').hidden&&!resultPending)return;

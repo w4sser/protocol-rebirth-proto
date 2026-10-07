@@ -1,5 +1,5 @@
-import {generateLevel,RULES} from './levels.js?v=1.8.0';
-import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.8.0';
+import {generateLevel,RULES} from './levels.js?v=1.9.0';
+import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.9.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {

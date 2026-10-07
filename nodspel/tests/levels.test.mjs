@@ -49,6 +49,7 @@ function checkRoutes(level){
   for(const node of level.nodes)assert.ok(points.some(p=>Math.hypot(p.x-node.x,p.z-node.z)<1.7&&traceTargets(p,node,[...level.walls,...level.boxes],[node])?.kind==='node'),`reachable node ${node.id}, seed ${level.seed}`);
   assert.ok(points.some(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.6),`reachable exit ${level.seed}`);
   for(const branch of level.deadEnds)assert.ok(points.some(p=>Math.hypot(p.x-branch.end.x,p.z-branch.end.z)<1),`walkable dead end ${level.seed}`);
+  for(const loot of level.lootBoxes)assert.ok(points.some(p=>Math.hypot(p.x-loot.x,p.z-loot.z)<1.25),`reachable loot ${loot.id}, ${level.seed}`);
 }
 test('crates never obstruct nodes, exit or the dead end across ninety layouts',()=>{
   for(let s=0;s<30;s++)for(const n of [1,2,3])checkRoutes(generateLevel(n,`routes-${s}`));

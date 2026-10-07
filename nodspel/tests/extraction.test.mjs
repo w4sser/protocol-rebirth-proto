@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {generateLevel} from '../levels.js';
 import {createRound,takeDamage,activateNode,enterExit,roundSummary} from '../round.js';
 const state=await import('../round.js');
-test('loot boxes are seeded, one on level one and two beside the level-two enemies',()=>{
+test('loot boxes are seeded with a short-route crate and a guarded crate on level two',()=>{
   const first=generateLevel(1,'loot'),second=generateLevel(2,'loot');
   assert.equal(first.lootBoxes?.length,1);assert.equal(second.lootBoxes?.length,2);
   assert.deepEqual(second.lootBoxes,generateLevel(2,'loot').lootBoxes);
-  for(const box of second.lootBoxes){assert.ok(['scrap_alloy','power_cell','cable','fuse'].includes(box.item));assert.ok(second.enemies.some(e=>e.active!==false&&Math.hypot(e.x-box.x,e.z-box.z)<2));}
+  for(const box of second.lootBoxes){assert.ok(['scrap_alloy','power_cell','cable','fuse'].includes(box.item));if(!box.marked)assert.ok(second.enemies.some(e=>e.active!==false&&Math.hypot(e.x-box.x,e.z-box.z)<2));}
 });
 test('walking to a box puts one item in the bag only once',()=>{
   assert.equal(typeof state.collectLoot,'function');

@@ -2,7 +2,7 @@
 
 Statisk Three.js-sida för liggande telefon. Ingen backend eller sparad progression.
 
-Varje ny runda börjar med 100 liv och en tom väska. Gå nära en gul plocklåda för att få cable (bana 1), fuse (första lådan på bana 2), skrot eller en power cell; innehållet bestäms av seedet. Bana 1 har en plocklåda, bana 2 två intill fienderna i rum 2 och bana 3 tre. De grå lådorna är fortfarande skydd.
+Varje ny runda börjar med 100 liv och en tom väska. Gå nära en gul plocklåda för att få cable (bana 1), fuse (första lådan på bana 2), skrot eller en power cell; innehållet bestäms av seedet. Bana 1 har en plocklåda, bana 2 två, en i den korta grenen och en intill fienderna i rum 2 och bana 3 tre. De grå lådorna är fortfarande skydd.
 
 En öppen utgång extraherar väskan och visar innehållet som säkrat på nästa bana. Död eller tidsgränsen förlorar allt osäkrat i väskan. Slutrutan visar både extraherat och förlorat innehåll. Det som redan extraherats bevaras under rundan; Starta om börjar utan föremål och utan sparad progression.
 
@@ -37,3 +37,7 @@ Räden läser order.json: industrial / maintenance_tunnels / standard, objective
 Varje utgång visar ett eget resultat före Nästa bana: extracted innehåller exakt den väskan, lost är tom, died false, weaponReturned basic_carbine, ammoReturned återstående skott, seen industrial. Vid död är extracted tom, lost den aktuella väskan, died true, weaponReturned null och ammoReturned 0. Timeout returnerar inte utrustning och har died false. Tidigare säkrat byte visas separat och ingår inte en gång till i senare resultat.
 
 Spelet begär en nedladdning av result.json vid varje resultat. Spara result.json laddar ner samma JSON-text igen om webbläsaren stoppar automatisk nedladdning. Senaste resultatet lagras också som nodspel.result.json i webbläsarens localStorage; det återställer ingen progression. GitHub Pages kan inte skriva över filer på servern. Den incheckade result.json är ett verifierat exempel; varje verkligt spelresultat exporteras från resultatrutan som en ny result.json. Flytta den nedladdade filen bredvid räden för lokal användning. Ingen koppling till basens runtime eller lagring.
+
+## Synliga vägval (1.9.0)
+
+levels.js bygger en kort loot-gren och en längre nodväg i bana 2. Båda har skylt och färgade golvmarkeringar vid starten; noderna står fortfarande bakom passagen. En låda per bana har en gul ring, fyr och BYTE-markering och är aldrig ett fast hinder. Bana 3:s markerade låda står längst in i återvändsgränden. Samma seed återskapar valen. Starta om växlar den korta vägens sida, även efter att en delad seed-adress öppnats. Bana 1:s markerade låda byter sida så skillnaden syns direkt före skott.
