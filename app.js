@@ -1077,6 +1077,7 @@ SCREENS.prep = function(){
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
+    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
     html += '<button class="primary" ' + (p.loadout.weapon && fg.ok ? '' : 'disabled') + ' onclick="A.deploy()">DEPLOY — LOOT MISSION</button>';
     $app().innerHTML = html; return;
   }
