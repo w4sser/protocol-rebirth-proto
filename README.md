@@ -1,9 +1,11 @@
 # Protocol Rebirth — Meta Prototype v0.1
 
 Playable prototype of the meta-game loop for **Protocol Rebirth** (mobile extraction shooter).
-Raids are simulated — this tests the base-building loop: *does the base create "one more raid"?*
+Raids remain simulated for the meta-loop. Raid prep also includes a separate playable combat sandbox
+to test touch movement, shooting, BIT support, health and loot pickups.
 
-**Play:** open `index.html`, or the GitHub Pages link for this repo. Landscape only.
+**Play:** open `index.html`, or the GitHub Pages link for this repo. Landscape only. From Raid Prep,
+choose **Try the Combat Test** to enter the live-fire sandbox.
 
 ## Structure
 

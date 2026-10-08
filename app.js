@@ -613,6 +613,109 @@ function refresh(bitTrigger, bitVars){
 /* ---------- screens ---------- */
 const SCREENS = {};
 
+// A small, playable combat slice that lets us test the shooter feel separately
+// from the existing meta-loop raid simulation.
+SCREENS.combatDemo = function(){
+  const c = D.combat;
+  const game = session.combatDemo || {};
+  $app().innerHTML = '<div class="combat-shell">' +
+    '<header class="combat-head"><button class="combat-back" onclick="A.endCombatDemo()">‹ BASE</button>' +
+      '<div><b>LIVE FIRE TEST</b><small>INDUSTRIAL ZONE · STAGE 2</small></div><div class="compass">N<br>0°</div></header>' +
+    '<div class="combat-hud"><div class="combat-map"><span class="map-player">▲</span><span class="map-hostiles">● ● ●</span></div>' +
+      '<div class="combat-vitals"><div class="vital-label">VITALITY <b id="combat-hp">100 / 100</b></div><div class="vital-track"><i id="combat-hpbar"></i></div>' +
+      '<div class="ammo-label"><span>CARBINE</span><b id="combat-ammo">18 / 18</b></div></div>' +
+      '<div class="combat-objective"><small>OBJECTIVE</small><b id="combat-objective">Clear hostiles</b>' +
+      '<button id="combat-extract" onclick="A.finishCombatDemo(true)" style="display:none">EXTRACT</button></div></div>' +
+    '<div class="combat-arena" id="combat-arena" role="application" aria-label="Top-down combat training arena">' +
+      '<div class="arena-vignette"></div><div class="arena-markers"></div>' +
+      '<div class="combat-cover cover-one"></div><div class="combat-cover cover-two"></div>' +
+      '<div id="combat-pickups"></div><div id="combat-hostiles"></div>' +
+      '<div class="combat-bit" id="combat-bit"><span>☺</span><small>BIT</small></div>' +
+      '<div class="combat-player" id="combat-player"><span>✦</span></div><div id="combat-effects"></div>' +
+      '<div class="combat-feedback" id="combat-feedback">MOVE · FIRE · RECOVER</div></div>' +
+    '<div class="combat-controls"><div class="combat-pad" aria-label="Movement controls">' +
+      '<button data-dir="up" aria-label="Move up">▲</button><button data-dir="left" aria-label="Move left">◀</button>' +
+      '<button data-dir="down" aria-label="Move down">▼</button><button data-dir="right" aria-label="Move right">▶</button></div>' +
+      '<div class="combat-actions"><button class="combat-pulse" onclick="A.combatPulse()"><span>BIT</span><b>SCAN PULSE</b></button>' +
+      '<button class="combat-fire" id="combat-fire"><b>FIRE</b><small id="combat-fire-label">HOLD TO SHOOT</small></button>' +
+      '<button class="combat-reload" onclick="A.combatReload()">↻ RELOAD</button></div></div>' +
+    '<div class="combat-foot"><span>WASD / ARROWS TO MOVE</span><span>SPACE TO FIRE · R TO RELOAD</span></div>' +
+    '</div>';
+  const gameCfg = c.player, droneCfg = c.drone;
+  const field = c.field;
+  session.combatDemo = {
+    x:field.spawnX, y:field.spawnY, hp:gameCfg.maxHealth, ammo:gameCfg.magazine,
+    kills:0, salvage:0, medGel:0, lastHit:0, lastShot:0, pulseReadyAt:0,
+    moving:{}, firing:false, drones:Array.from({length:droneCfg.count}, (_,i)=>({
+      x:droneCfg.spawns[i%droneCfg.spawns.length][0], y:droneCfg.spawns[i%droneCfg.spawns.length][1], hp:droneCfg.maxHealth, id:i, alive:true
+    })), pickups:[], running:true
+  };
+  const wrap = document.getElementById("combat-arena");
+  const hostiles = document.getElementById("combat-hostiles");
+  hostiles.innerHTML = session.combatDemo.drones.map(d=>'<div class="combat-drone" id="combat-drone-'+d.id+'"><i></i><span>DRONE</span></div>').join("");
+  const dirButtons = [...document.querySelectorAll(".combat-pad [data-dir]")];
+  dirButtons.forEach(b=>{
+    const dir=b.dataset.dir;
+    b.onpointerdown=e=>{e.preventDefault();A.combatMove(dir,true);};
+    b.onpointerup=b.onpointercancel=b.onpointerleave=()=>A.combatMove(dir,false);
+  });
+  const fire=document.getElementById("combat-fire");
+  fire.onpointerdown=e=>{e.preventDefault();A.combatTrigger(true);};
+  fire.onpointerup=fire.onpointercancel=fire.onpointerleave=()=>A.combatTrigger(false);
+  session.combatKeyDown=e=>{
+    const key=e.key.toLowerCase();
+    const dirs={w:"up",arrowup:"up",s:"down",arrowdown:"down",a:"left",arrowleft:"left",d:"right",arrowright:"right"};
+    if(dirs[key]){e.preventDefault();A.combatMove(dirs[key],true);}
+    else if(key===" "){e.preventDefault();A.combatTrigger(true);}
+    else if(key==="r") A.combatReload();
+    else if(key==="q") A.combatPulse();
+  };
+  session.combatKeyUp=e=>{
+    const dirs={w:"up",arrowup:"up",s:"down",arrowdown:"down",a:"left",arrowleft:"left",d:"right",arrowright:"right"};
+    if(dirs[e.key.toLowerCase()]) A.combatMove(dirs[e.key.toLowerCase()],false);
+    if(e.key===" ") A.combatTrigger(false);
+  };
+  document.addEventListener("keydown",session.combatKeyDown);
+  document.addEventListener("keyup",session.combatKeyUp);
+  function tick(){
+    const g=session.combatDemo;
+    if(!g || !g.running || session.screen!=="combatDemo") return;
+    const now=Date.now(), dt=50, step=gameCfg.moveSpeed*(dt/16.7);
+    let dx=(g.moving.right?1:0)-(g.moving.left?1:0), dy=(g.moving.down?1:0)-(g.moving.up?1:0);
+    const norm=Math.hypot(dx,dy)||1; g.x=Math.max(6,Math.min(94,g.x+dx/norm*step));g.y=Math.max(8,Math.min(92,g.y+dy/norm*step));
+    g.drones.filter(d=>d.alive).forEach(d=>{
+      const vx=g.x-d.x,vy=g.y-d.y,dist=Math.hypot(vx,vy)||1;
+      if(dist>7){d.x+=vx/dist*droneCfg.moveSpeed*(dt/16.7);d.y+=vy/dist*droneCfg.moveSpeed*(dt/16.7);}
+      else if(now-g.lastHit>droneCfg.contactCooldown){g.hp=Math.max(0,g.hp-droneCfg.contactDamage);g.lastHit=now;A.combatFeedback("HIT TAKEN",true);}
+      const el=document.getElementById("combat-drone-"+d.id);if(el){el.style.left=d.x+"%";el.style.top=d.y+"%";}
+    });
+    const pl=document.getElementById("combat-player");if(pl){pl.style.left=g.x+"%";pl.style.top=g.y+"%";}
+    const bit=document.getElementById("combat-bit");if(bit){bit.style.left=(g.x+Math.sin(now/450)*5)+"%";bit.style.top=(g.y-7+Math.cos(now/450)*3)+"%";}
+    g.pickups.forEach((p,i)=>{
+      const el=document.getElementById("combat-pickup-"+i);if(!el)return;
+      el.style.left=p.x+"%";el.style.top=p.y+"%";
+      if(Math.hypot(g.x-p.x,g.y-p.y)<gameCfg.pickupRadius&&!p.taken){p.taken=true;el.remove();
+        if(p.kind==="med"){g.medGel++;g.hp=Math.min(gameCfg.maxHealth,g.hp+c.loot.medGelHeal);A.combatFeedback("MED GEL +"+c.loot.medGelHeal,false);}
+        else {g.salvage+=c.loot.salvagePerDrone;A.combatFeedback("SALVAGE +"+c.loot.salvagePerDrone,false);}
+        act("COMBAT_LOOT_COLLECTED",{kind:p.kind});
+      }
+    });
+    document.getElementById("combat-hp").textContent=g.hp+" / "+gameCfg.maxHealth;
+    document.getElementById("combat-hpbar").style.width=(g.hp/gameCfg.maxHealth*100)+"%";
+    document.getElementById("combat-ammo").textContent=g.ammo+" / "+gameCfg.magazine;
+    document.getElementById("combat-objective").textContent=g.kills+" / "+droneCfg.count+" hostiles";
+    if(g.hp<=0){g.running=false;A.combatEnd(false);return;}
+    if(g.kills>=droneCfg.count){
+      g.firing=false;
+      document.getElementById("combat-objective").textContent="AREA CLEAR · COLLECT DROPS";
+      document.getElementById("combat-extract").style.display="block";
+    }
+    if(g.firing && now-g.lastShot>=gameCfg.fireInterval) A.combatFire();
+    session.combatTimer=setTimeout(tick,dt);
+  }
+  tick();
+};
+
 SCREENS.intro = function(){
   const b = PROG.beats[0];
   $app().innerHTML =
@@ -1082,6 +1185,7 @@ SCREENS.prep = function(){
   html += '</div></div>';
   const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
   const canDeploy = p.loadout.weapon && (!insOffered || tier.cost <= S.cur.signals) && fg.ok;
+  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
   html += '<button class="primary" ' + (canDeploy?"":"disabled") + ' onclick="A.deploy()">DEPLOY</button>';
   if(!p.loadout.weapon) html += '<div class="small" style="text-align:center;margin-top:6px">equip a weapon first</div>';
   $app().innerHTML = html;
@@ -1346,6 +1450,97 @@ function finishRaid(){
 
 /* ---------- actions ---------- */
 window.A = {
+  playCombatDemo(){
+    if(session.combatTimer) clearTimeout(session.combatTimer);
+    session.screen="combatDemo";
+    act("COMBAT_TEST_STARTED",{});
+    refresh();
+  },
+  endCombatDemo(){
+    const g=session.combatDemo;
+    if(session.combatTimer) clearTimeout(session.combatTimer);
+    if(g){g.running=false;g.firing=false;}
+    if(session.combatKeyDown) document.removeEventListener("keydown",session.combatKeyDown);
+    if(session.combatKeyUp) document.removeEventListener("keyup",session.combatKeyUp);
+    session.combatDemo=null;
+    session.screen="prep"; session.prep=null; refresh("raid_prep");
+  },
+  combatMove(dir,active){
+    const g=session.combatDemo;if(!g)return;
+    g.moving[dir]=!!active;
+    if(active) act("COMBAT_MOVE",{direction:dir});
+  },
+  combatTrigger(active){
+    const g=session.combatDemo;if(!g)return;
+    g.firing=!!active;
+    if(active) this.combatFire();
+  },
+  combatFire(){
+    const g=session.combatDemo, cfg=D.combat;if(!g||!g.running)return;
+    if(g.ammo<=0){this.combatFeedback("OUT OF AMMO · RELOAD",true);return;}
+    const now=Date.now();if(now-g.lastShot<cfg.player.fireInterval)return;
+    g.lastShot=now;g.ammo--;
+    const target=g.drones.filter(d=>d.alive).sort((a,b)=>Math.hypot(a.x-g.x,a.y-g.y)-Math.hypot(b.x-g.x,b.y-g.y))[0];
+    if(target){
+      const arena=document.getElementById("combat-arena"),fx=document.getElementById("combat-effects");
+      if(fx){fx.innerHTML='<i class="combat-beam" style="left:'+g.x+'%;top:'+g.y+'%;--tx:'+target.x+'%;--ty:'+target.y+'%"></i><b class="combat-hit" style="left:'+target.x+'%;top:'+target.y+'%">✳</b>';setTimeout(()=>{if(fx)fx.innerHTML="";},170);}
+      target.hp--;
+      if(target.hp<=0){
+        target.alive=false;g.kills++;
+        const el=document.getElementById("combat-drone-"+target.id);if(el)el.classList.add("destroyed");
+        const index=g.kills-1, kind=(g.kills%D.combat.loot.medGelEvery===0)?"med":"scrap";
+        g.pickups.push({x:target.x,y:target.y,kind,taken:false});
+        const pickups=document.getElementById("combat-pickups");
+        if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?"+":"◆")+'</div>');
+        this.combatFeedback(kind==="med"?"DRONE DOWN · MED GEL DROPPED":"DRONE DOWN · SALVAGE DROPPED",false);
+      }else this.combatFeedback("HIT",false);
+    }
+    act("COMBAT_SHOT",{ammo:g.ammo,hit:!!target});
+    document.getElementById("combat-ammo").textContent=g.ammo+" / "+cfg.player.magazine;
+  },
+  combatReload(){
+    const g=session.combatDemo;if(!g||!g.running)return;
+    this.combatTrigger(false);this.combatFeedback("RELOADING",false);
+    act("COMBAT_RELOAD",{ammo:g.ammo});
+    setTimeout(()=>{if(session.combatDemo===g&&g.running){g.ammo=D.combat.player.magazine;this.combatFeedback("MAGAZINE READY",false);}},D.combat.player.reloadTime);
+  },
+  combatPulse(){
+    const g=session.combatDemo,c=D.combat;if(!g||!g.running)return;
+    const now=Date.now();if(now<g.pulseReadyAt){this.combatFeedback("BIT PULSE CHARGING",true);return;}
+    g.pulseReadyAt=now+c.bit.pulseCooldown;
+    let hit=0;
+    g.drones.filter(d=>d.alive&&Math.hypot(d.x-g.x,d.y-g.y)<=c.bit.pulseRadius).forEach(d=>{d.hp-=c.bit.pulseDamage;hit++;if(d.hp<=0){
+      d.alive=false;g.kills++;const el=document.getElementById("combat-drone-"+d.id);if(el)el.classList.add("destroyed");
+      const kind=(g.kills%c.loot.medGelEvery===0)?"med":"scrap",index=g.kills-1;g.pickups.push({x:d.x,y:d.y,kind,taken:false});
+      const pickups=document.getElementById("combat-pickups");if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?"+":"◆")+'</div>');
+    }});
+    const arena=document.getElementById("combat-arena");if(arena){arena.classList.add("bit-pulsing");setTimeout(()=>arena.classList.remove("bit-pulsing"),600);}
+    this.combatFeedback(hit?"BIT PULSE · "+hit+" TARGET" : "BIT PULSE · NO CONTACT",false);
+    act("COMBAT_BIT_PULSE",{targets:hit});
+  },
+  combatFeedback(message,danger){
+    const el=document.getElementById("combat-feedback");if(!el)return;
+    el.textContent=message;el.classList.toggle("danger",!!danger);el.classList.add("show");
+    clearTimeout(session.combatFeedbackTimer);session.combatFeedbackTimer=setTimeout(()=>el.classList.remove("show"),1000);
+  },
+  combatEnd(extracted){
+    const g=session.combatDemo;if(!g)return;
+    if(session.combatTimer)clearTimeout(session.combatTimer);
+    g.running=false;g.firing=false;
+    const host=document.getElementById("combat-objective");if(host)host.textContent=extracted?"EXTRACT AVAILABLE":"SIGNAL LOST";
+    const arena=document.getElementById("combat-arena");
+    if(arena)arena.insertAdjacentHTML("beforeend",'<div class="combat-end"><b>'+(extracted?"AREA SECURE":"YOU ARE DOWN")+'</b><span>'+(extracted?g.salvage+" Salvage · "+g.medGel+" Med Gel":"Try a different route around the drones")+'</span><button onclick="A.finishCombatDemo('+(extracted?"true":"false")+')">'+(extracted?"EXTRACT LOOT":"RETRY")+'</button></div>');
+    act(extracted?"COMBAT_AREA_SECURED":"COMBAT_TEST_FAILED",{kills:g.kills,salvage:g.salvage});
+  },
+  finishCombatDemo(extracted){
+    const g=session.combatDemo;if(!g)return;
+    if(extracted){
+      S.cur.salvage+=g.salvage;
+      if(g.medGel)addItem(D.combat.loot.medGelItemId,g.medGel);
+      act("COMBAT_LOOT_EXTRACTED",{salvage:g.salvage,medGel:g.medGel});save();
+      this.endCombatDemo();
+    }else this.playCombatDemo();
+  },
   go(screen, param){
     if(screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen)) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;

@@ -63,7 +63,7 @@ outside archipelago only appears during raids. Dark teal/navy, cyan UI accents, 
 orange practical light, BIT = square CRT smiley. No national flags or symbols.
 
 ## Core design invariants (don't regress)
-- Raids are **simulated**; the real shooter is out of scope here.
+- Meta-game raids are **simulated**; the optional Live Fire test in Raid Prep is an isolated shooter-feel sandbox. It does not change simulated raid outcomes.
 - Player chooses **where/how** to search (zone + route + risk); the game decides **what**
   drops. Routes bias family weights, never guarantee a specific item.
 - **Staged raids:** deep/risky routes yield 1–3 escalating extract-vs-push checkpoints;

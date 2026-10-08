@@ -10,7 +10,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
@@ -29,6 +29,15 @@ const revealRoomThroughHotspot = id => {
 assert(doc.getElementById("topbar") && doc.getElementById("rotate"), "landscape shell");
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
 A.dismissIntro();
+// The combat sandbox opens from prep, accepts a shot, and closes without
+// disturbing the meta-game's base screen.
+A.playCombatDemo();
+assert(text().includes("LIVE FIRE TEST") && doc.getElementById("combat-arena"), "combat test screen opens");
+A.combatFire();
+assert.equal(doc.getElementById("combat-ammo").textContent, "17 / 18", "firing spends one round");
+A.endCombatDemo();
+assert(doc.querySelector(".combat-launch"), "closing combat test returns to raid prep");
+A.go("base");
 assert(doc.querySelectorAll(".room-spot").length === 4, "four side-room hotspots");
 assert(doc.querySelector(".baseviewer") && doc.querySelector(".baseworld") && doc.querySelector(".baseplate"), "panoramic base viewer");
 assert.equal(doc.querySelector(".baseplate").getAttribute("src"), "assets/production/bunker_plate_00_found.webp", "dormant plate 00 loaded");

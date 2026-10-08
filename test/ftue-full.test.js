@@ -9,7 +9,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html","utf8"), { runScripts
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
