@@ -1,6 +1,6 @@
-import {generateLevel,RULES} from './levels.js?v=1.11.1';
-import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.11.1';
-import {traceTargets} from './physics.mjs?v=1.11.1';
+import {generateLevel,RULES} from './levels.js?v=1.11.2';
+import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.11.2';
+import {traceTargets} from './physics.mjs?v=1.11.2';
 
 export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
@@ -13,7 +13,10 @@ export function collectLoot(round,position,now,weapon){
   let changed=false;
   for(const box of round.level.lootBoxes){
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
-      if(box.item==='ammo_pack'){
+      if(box.item==='medkit'){
+        if(round.health>=100)continue;
+        round.health=Math.min(100,round.health+RULES.rewards.medkitHealth);
+      }else if(box.item==='ammo_pack'){
         if(!weapon)continue;
         weapon.reserve+=RULES.resources.ammoCrateRounds;
         if(weapon.ammo<RULES.weapon.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+RULES.weapon.reloadMs;
