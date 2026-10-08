@@ -20,7 +20,7 @@ Move with the left stick or keyboard. Drag the right stick to show the range cir
 
 Aim assistance gently locks onto visible enemies or nodes near the aim line. A marker identifies the target. Shots have width, expire at weapon range and cannot pass through walls. The same weapon is used throughout. Enemies on levels one and two take two hits; level three enemies take three. Enemy hits remove 20 health. A kill restores 15 health and loads one round from reserve when available. Entering a room grants three seconds of protection.
 
-The magazine holds three rounds and reloads one round every 0.7 seconds. The HUD shows magazine and reserve, such as `3/3 · 9`, with a reload meter. An empty magazine never ends the round. Marked crates can contain `ammo_pack`, which adds four reserve rounds rather than entering the bag.
+The magazine holds three rounds and reloads one round every 0.7 seconds. The HUD shows magazine and reserve, such as `3/3 · 9`, with a reload meter. An empty magazine never ends the round. Marked crates can contain `ammo_pack`, which adds four reserve rounds rather than entering the bag. They can also contain a `medkit`, which restores up to 35 health without entering the bag; at full health it stays in the field.
 
 Any inactive node can be activated without shooting: stay within 1.8 units with an unobstructed path for two seconds, regardless of ammunition. Its meter fills while in range and resets on leaving or moving behind cover. A shot still activates it immediately. Enemies require shots. Resource tuning lives in `RULES.resources`; weapon tuning lives in `RULES.weapon`.
 
