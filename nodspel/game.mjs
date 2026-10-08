@@ -1,15 +1,15 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.11.1';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.1';
-import {createCombat,stepCombat} from './combat.js?v=1.11.1';
-import {buildWorld} from './world.js?v=1.11.1';
-import {RULES} from './levels.js?v=1.11.1';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.1';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.1';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.1';
-import {routeComplete} from './objectives.js?v=1.11.1';
+import {movePlayer,traceTargets} from './physics.mjs?v=1.11.2';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.2';
+import {createCombat,stepCombat} from './combat.js?v=1.11.2';
+import {buildWorld} from './world.js?v=1.11.2';
+import {RULES} from './levels.js?v=1.11.2';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.2';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.2';
+import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.2';
+import {routeComplete} from './objectives.js?v=1.11.2';
 
-const orderResponse=await fetch('./order.json?v=1.11.1');
+const orderResponse=await fetch('./order.json?v=1.11.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultPending=false,resultURL=null;
@@ -117,7 +117,7 @@ function loadLevel(){
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel(`ENEMY · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.item==='medkit'?`◆ MEDKIT · +${RULES.rewards.medkitHealth} HP`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
   for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
