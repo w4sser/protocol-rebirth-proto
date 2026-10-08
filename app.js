@@ -657,6 +657,7 @@ SCREENS.combatDemo = function(){
     const dir=b.dataset.dir;
     b.onpointerdown=e=>{e.preventDefault();A.combatMove(dir,true);};
     b.onpointerup=b.onpointercancel=b.onpointerleave=()=>A.combatMove(dir,false);
+    b.onclick=()=>A.combatStep(dir);
   });
   const fire=document.getElementById("combat-fire");
   fire.onpointerdown=e=>{e.preventDefault();A.combatTrigger(true);};
@@ -679,9 +680,9 @@ SCREENS.combatDemo = function(){
   function tick(){
     const g=session.combatDemo;
     if(!g || !g.running || session.screen!=="combatDemo") return;
-    const now=Date.now(), dt=50, step=gameCfg.moveSpeed*(dt/16.7);
+    const now=Date.now(), dt=50, step=gameCfg.moveSpeed*(dt/16.7), edge=field.edgeMargin;
     let dx=(g.moving.right?1:0)-(g.moving.left?1:0), dy=(g.moving.down?1:0)-(g.moving.up?1:0);
-    const norm=Math.hypot(dx,dy)||1; g.x=Math.max(6,Math.min(94,g.x+dx/norm*step));g.y=Math.max(8,Math.min(92,g.y+dy/norm*step));
+    const norm=Math.hypot(dx,dy)||1; g.x=Math.max(edge,Math.min(field.width-edge,g.x+dx/norm*step));g.y=Math.max(edge,Math.min(field.height-edge,g.y+dy/norm*step));
     g.drones.filter(d=>d.alive).forEach(d=>{
       const vx=g.x-d.x,vy=g.y-d.y,dist=Math.hypot(vx,vy)||1;
       if(dist>7){d.x+=vx/dist*droneCfg.moveSpeed*(dt/16.7);d.y+=vy/dist*droneCfg.moveSpeed*(dt/16.7);}
@@ -1473,6 +1474,17 @@ window.A = {
     const g=session.combatDemo;if(!g)return;
     g.moving[dir]=!!active;
     if(active) act("COMBAT_MOVE",{direction:dir});
+  },
+  combatStep(dir){
+    const g=session.combatDemo;if(!g||!g.running)return;
+    const step=D.combat.player.tapMoveDistance,edge=D.combat.field.edgeMargin;
+    if(dir==="up")g.y=Math.max(edge,g.y-step);
+    if(dir==="down")g.y=Math.min(D.combat.field.height-edge,g.y+step);
+    if(dir==="left")g.x=Math.max(edge,g.x-step);
+    if(dir==="right")g.x=Math.min(D.combat.field.width-edge,g.x+step);
+    const player=document.getElementById("combat-player");
+    if(player){player.style.left=g.x+"%";player.style.top=g.y+"%";}
+    act("COMBAT_MOVE",{direction:dir,tap:true});
   },
   combatTrigger(active){
     const g=session.combatDemo;if(!g)return;

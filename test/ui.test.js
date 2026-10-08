@@ -33,6 +33,9 @@ A.dismissIntro();
 // disturbing the meta-game's base screen.
 A.playCombatDemo();
 assert(text().includes("LIVE FIRE TEST") && doc.getElementById("combat-arena"), "combat test screen opens");
+const playerTop = doc.getElementById("combat-player").style.top;
+A.combatStep("up");
+assert.notEqual(doc.getElementById("combat-player").style.top, playerTop, "tap movement moves the player");
 A.combatFire();
 assert.equal(doc.getElementById("combat-ammo").textContent, "17 / 18", "firing spends one round");
 A.endCombatDemo();
