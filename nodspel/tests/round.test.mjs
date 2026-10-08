@@ -68,3 +68,19 @@ test('defeated enemies count once across levels and reset with a new round',()=>
   assert.equal(round.roundSummary(r).enemiesDefeated,1);
   assert.equal(round.createRound('fresh',100).enemiesDefeated,0);
 });
+
+test('medkit crates restore up to 35 health without entering the loot bag',()=>{
+  assert.equal(typeof round.collectLoot,'function');
+  const r=round.createRound('medkit',0);r.health=40;
+  r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
+  assert.equal(round.collectLoot(r,{x:0,z:0},1000,{}),true);
+  assert.equal(r.health,75);
+  assert.equal(r.level.lootBoxes[0].collected,true);
+  assert.equal(r.bag.scrap_alloy+r.bag.power_cell+r.bag.cable+r.bag.fuse,0);
+});
+test('medkit crates stay available when health is already full',()=>{
+  const r=round.createRound('medkit-full',0);r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
+  assert.equal(round.collectLoot(r,{x:0,z:0},1000,{}),false);
+  assert.equal(r.health,100);
+  assert.equal(r.level.lootBoxes[0].collected,false);
+});
