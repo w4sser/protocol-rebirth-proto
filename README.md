@@ -11,7 +11,7 @@ choose **Try the Combat Test** to enter the live-fire sandbox.
 
 - `index.html` — shell + all CSS
 - `app.js` — logic + UI (no economy values in here)
-- `data/*.js` — **all** game data: items, modules, zones, recipes, vendors, BIT, progression beats. Balance changes happen here only.
+- `data/*.js` — **all** game data and tuning: items, modules, zones, recipes, vendors, BIT, combat sandbox and progression beats. Balance changes happen here only.
 - `assets/bit.png` — BIT
 
 ## Dev tools

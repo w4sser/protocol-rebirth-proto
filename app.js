@@ -617,7 +617,6 @@ const SCREENS = {};
 // from the existing meta-loop raid simulation.
 SCREENS.combatDemo = function(){
   const c = D.combat;
-  const game = session.combatDemo || {};
   $app().innerHTML = '<div class="combat-shell">' +
     '<header class="combat-head"><button class="combat-back" onclick="A.endCombatDemo()">‹ BASE</button>' +
       '<div><b>LIVE FIRE TEST</b><small>INDUSTRIAL ZONE · STAGE 2</small></div><div class="compass">N<br>0°</div></header>' +
@@ -1451,17 +1450,21 @@ function finishRaid(){
 /* ---------- actions ---------- */
 window.A = {
   playCombatDemo(){
-    if(session.combatTimer) clearTimeout(session.combatTimer);
+    this.clearCombatDemo();
     session.screen="combatDemo";
     act("COMBAT_TEST_STARTED",{});
     refresh();
   },
-  endCombatDemo(){
-    const g=session.combatDemo;
+  clearCombatDemo(){
     if(session.combatTimer) clearTimeout(session.combatTimer);
-    if(g){g.running=false;g.firing=false;}
+    if(session.combatFeedbackTimer) clearTimeout(session.combatFeedbackTimer);
+    if(session.combatDemo){session.combatDemo.running=false;session.combatDemo.firing=false;}
     if(session.combatKeyDown) document.removeEventListener("keydown",session.combatKeyDown);
     if(session.combatKeyUp) document.removeEventListener("keyup",session.combatKeyUp);
+    session.combatKeyDown=null;session.combatKeyUp=null;
+  },
+  endCombatDemo(){
+    this.clearCombatDemo();
     session.combatDemo=null;
     session.screen="prep"; session.prep=null; refresh("raid_prep");
   },
@@ -1482,6 +1485,8 @@ window.A = {
     g.lastShot=now;g.ammo--;
     const target=g.drones.filter(d=>d.alive).sort((a,b)=>Math.hypot(a.x-g.x,a.y-g.y)-Math.hypot(b.x-g.x,b.y-g.y))[0];
     if(target){
+      const player=document.getElementById("combat-player");
+      if(player)player.style.setProperty("--facing",Math.atan2(target.y-g.y,target.x-g.x)*180/Math.PI+"deg");
       const arena=document.getElementById("combat-arena"),fx=document.getElementById("combat-effects");
       if(fx){fx.innerHTML='<i class="combat-beam" style="left:'+g.x+'%;top:'+g.y+'%;--tx:'+target.x+'%;--ty:'+target.y+'%"></i><b class="combat-hit" style="left:'+target.x+'%;top:'+target.y+'%">✳</b>';setTimeout(()=>{if(fx)fx.innerHTML="";},170);}
       target.hp--;
@@ -1539,7 +1544,7 @@ window.A = {
       if(g.medGel)addItem(D.combat.loot.medGelItemId,g.medGel);
       act("COMBAT_LOOT_EXTRACTED",{salvage:g.salvage,medGel:g.medGel});save();
       this.endCombatDemo();
-    }else this.playCombatDemo();
+    }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
     if(screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen)) return;

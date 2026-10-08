@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/bit-smiley-logomark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/bit-portrait.png">
-<title>Protocol Rebirth — Combat Test v0.9.5</title>
+<title>Protocol Rebirth — Combat Test v0.9.6</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root{
@@ -304,7 +304,7 @@
   .combat-cover{position:absolute;z-index:1;background:linear-gradient(135deg,#142a2a,#364039 45%,#101e22);border:1px solid #56706a65;box-shadow:0 8px 10px #02090b80;transform:rotate(-8deg);}
   .cover-one{width:16%;height:8%;left:10%;top:31%;}.cover-two{width:18%;height:7%;right:10%;bottom:23%;transform:rotate(9deg);}
   .combat-player,.combat-bit,.combat-drone,.combat-pickup{position:absolute;z-index:3;transform:translate(-50%,-50%);}
-  .combat-player{width:28px;height:35px;border-radius:11px 11px 8px 8px;background:linear-gradient(90deg,#382d26,#c07b42 46%,#45362d);border:1px solid #ffc77d;box-shadow:0 0 15px #ff9f3c9c,0 0 0 5px #ffb45c20;display:grid;place-items:center;transition:left .07s linear,top .07s linear;}
+  .combat-player{width:28px;height:35px;border-radius:11px 11px 8px 8px;background:linear-gradient(90deg,#382d26,#c07b42 46%,#45362d);border:1px solid #ffc77d;box-shadow:0 0 15px #ff9f3c9c,0 0 0 5px #ffb45c20;display:grid;place-items:center;transition:left .07s linear,top .07s linear;transform:translate(-50%,-50%) rotate(var(--facing,0deg));}
   .combat-player:before{content:"";position:absolute;width:8px;height:8px;border-radius:50%;top:-5px;background:#c59a6b;border:1px solid #ffe0ac;}
   .combat-player:after{content:"";position:absolute;width:23px;height:4px;right:-15px;top:13px;background:#9eaaa0;border:1px solid #e2e6c9;transform:rotate(-15deg);}
   .combat-player span{font-size:12px;color:#d8f4d5;position:relative;z-index:1;}
@@ -361,15 +361,15 @@
   <div id="rotate"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b>
     <span class="small">Protocol Rebirth plays in landscape</span></div>
 </div>
-<script src="data/items.js?v=0.9.5"></script>
-<script src="data/modules.js?v=0.9.5"></script>
-<script src="data/bit.js?v=0.9.5"></script>
-<script src="data/raid_zones.js?v=0.9.5"></script>
-<script src="data/recipes.js?v=0.9.5"></script>
-<script src="data/vendors.js?v=0.9.5"></script>
-<script src="data/retention.js?v=0.9.5"></script>
-<script src="data/progression.js?v=0.9.5"></script>
-<script src="data/combat.js?v=0.9.5"></script>
-<script src="app.js?v=0.9.5"></script>
+<script src="data/items.js?v=0.9.6"></script>
+<script src="data/modules.js?v=0.9.6"></script>
+<script src="data/bit.js?v=0.9.6"></script>
+<script src="data/raid_zones.js?v=0.9.6"></script>
+<script src="data/recipes.js?v=0.9.6"></script>
+<script src="data/vendors.js?v=0.9.6"></script>
+<script src="data/retention.js?v=0.9.6"></script>
+<script src="data/progression.js?v=0.9.6"></script>
+<script src="data/combat.js?v=0.9.6"></script>
+<script src="app.js?v=0.9.6"></script>
 </body>
 </html>
