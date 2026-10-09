@@ -7,7 +7,8 @@ export const RULES=Object.freeze({
   ],
   roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
-  resources:{ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8},
+  loadout:{health:100,ammo:12},
+  resources:{levelTwoAmmoCrateRounds:6,ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8},
   rewards:{medkitHealth:35},
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
@@ -100,7 +101,8 @@ export function generateLevel(number,roundSeed){
     const room=number===2?rooms[1]:rooms[i]??rooms[0];
     const basePool=number===2&&i>0?RULES.loot.pools[2]:RULES.loot.pools[number-1],pool=i===0?[...basePool,'ammo_pack','medkit']:basePool;
     const marked=i===0,point=marked&&deadEnds.length?deadEnds[0].end:marked&&number===1?{x:room.x+shortSide*RULES.choices.markedX,z:room.z+RULES.choices.markedZ}:{x:room.x+(number===2?3.3:-1.3),z:room.z+(number===2?2.6:1.5)};
-    lootBoxes.push({id:`loot-${i+1}`,...point,marked,item:pool[Math.floor(lootRng()*pool.length)],collected:false});
+    const item=pool[Math.floor(lootRng()*pool.length)];
+    lootBoxes.push({id:`loot-${i+1}`,...point,marked,item:number===2&&marked?'ammo_pack':item,ammoRounds:number===2&&marked?RULES.resources.levelTwoAmmoCrateRounds:RULES.resources.ammoCrateRounds,collected:false});
   }
   const routeChoices=number===2?[
     {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},

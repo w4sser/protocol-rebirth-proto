@@ -61,3 +61,13 @@ export function traceTargets(a,b,boxes,nodes) {
 export function traceShot(a,b,boxes,node) {
   return traceTargets(a,b,boxes,[node])?.kind ?? null;
 }
+
+// Aim only stops at solid obstacles; living targets and loot do not clip it.
+export function aimEndpoint(position,direction,range,obstacles){
+  const length=Math.hypot(direction.x,direction.z);
+  if(length<1e-9)return {...position};
+  const end={x:position.x+direction.x/length*range,z:position.z+direction.z/length*range};
+  let time=1;
+  for(const obstacle of obstacles)time=Math.min(time,boxHit(position,end,obstacle));
+  return {x:position.x+(end.x-position.x)*time,z:position.z+(end.z-position.z)*time};
+}

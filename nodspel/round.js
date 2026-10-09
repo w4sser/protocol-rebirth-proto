@@ -1,11 +1,14 @@
-import {generateLevel,RULES} from './levels.js?v=1.11.2';
-import {DEFAULT_ORDER,readOrder,emptyBag,bagItems} from './raid.js?v=1.11.2';
-import {traceTargets} from './physics.mjs?v=1.11.2';
+import {generateLevel,RULES} from './levels.js?v=1.12.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.12.0';
+import {emptyBag,bagItems} from './raid.js?v=1.12.0';
+import {traceTargets} from './physics.mjs?v=1.12.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
-export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
-  const order=readOrder(requestedOrder);
-  return {seed,order,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:order.health,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+// Order integration is paused; keep the old input path for later.
+// export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
+//   const order=readOrder(requestedOrder);
+export function createRound(seed,now) {
+  return {seed,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:RULES.loadout.health,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
@@ -18,7 +21,7 @@ export function collectLoot(round,position,now,weapon){
         round.health=Math.min(100,round.health+RULES.rewards.medkitHealth);
       }else if(box.item==='ammo_pack'){
         if(!weapon)continue;
-        weapon.reserve+=RULES.resources.ammoCrateRounds;
+        weapon.reserve+=box.ammoRounds??RULES.resources.ammoCrateRounds;
         if(weapon.ammo<RULES.weapon.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+RULES.weapon.reloadMs;
       }else round.bag[box.item]++;
       box.collected=true;changed=true;

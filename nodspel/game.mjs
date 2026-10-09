@@ -1,18 +1,23 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets} from './physics.mjs?v=1.11.2';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.11.2';
-import {createCombat,stepCombat} from './combat.js?v=1.11.2';
-import {buildWorld} from './world.js?v=1.11.2';
-import {RULES} from './levels.js?v=1.11.2';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.11.2';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.11.2';
-import {readOrder,raidResult,resultJSON,bagText} from './raid.js?v=1.11.2';
-import {routeComplete} from './objectives.js?v=1.11.2';
+import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.12.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.12.0';
+import {createCombat,stepCombat} from './combat.js?v=1.12.0';
+import {buildWorld} from './world.js?v=1.12.0';
+import {RULES} from './levels.js?v=1.12.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.12.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.12.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.12.0';
+import {bagText} from './raid.js?v=1.12.0';
+import {routeComplete} from './objectives.js?v=1.12.0';
 
-const orderResponse=await fetch('./order.json?v=1.11.2');
+// File integration is paused; no order fetch or result export runs.
+/*
+const orderResponse=await fetch('./order.json?v=1.12.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
-let latestResult=null,resultPending=false,resultURL=null;
+let latestResult=null,resultURL=null;
+*/
+let resultPending=false;
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -39,8 +44,8 @@ box(0,.67,.88,.18,.18,.12,'#8cf5df',player);box(-.23,.14,0,.19,.26,.42,'#27343d'
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#d3fff3',transparent:true,opacity:.95,depthTest:false,depthWrite:false}));aimLine.renderOrder=3;scene.add(aimLine);
-const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
-rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
+const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#ffe0a1',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
@@ -117,7 +122,7 @@ function loadLevel(){
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel(`ENEMY · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${RULES.resources.ammoCrateRounds}`:v.loot.item==='medkit'?`◆ MEDKIT · +${RULES.rewards.medkitHealth} HP`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${v.loot.ammoRounds??RULES.resources.ammoCrateRounds}`:v.loot.item==='medkit'?`◆ MEDKIT · +${RULES.rewards.medkitHealth} HP`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
   for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
@@ -125,20 +130,23 @@ function loadLevel(){
   $('#intro-number').textContent=`LEVEL ${round.level.number} / 3`;
   $('#intro-name').textContent=round.level.title;
   $('#intro-seed').textContent=`SEED ${round.seed}`;
-  $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
+  // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
   $('#level-toast').hidden=false;$('#level-corner').hidden=true;toastUntil=Date.now()+3000;
 }
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  resultPending=false;latestResult=null;
-  round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  resultPending=false;
+  // latestResult=null;
+  // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
+  round=createRound(seed,Date.now());weapon=createWeapon(RULES.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
 function finishRound(outcome=round.reason){
   if(!$('#round-over').hidden&&!resultPending)return;
   resultPending=outcome==='extraction'&&!round.over;
+  /*
   latestResult=raidResult(round,weapon,outcome);
   const json=resultJSON(latestResult);
   try{localStorage.setItem('nodspel.result.json',json);}catch{}
@@ -146,6 +154,7 @@ function finishRound(outcome=round.reason){
   resultURL=URL.createObjectURL(new Blob([json],{type:'application/json'}));
   $('#save-result').href=resultURL;
   $('#result-json').textContent=json;
+  */
   $('#continue-raid').hidden=!resultPending;
   $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
   clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
@@ -154,12 +163,14 @@ function finishRound(outcome=round.reason){
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / 6`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-  $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
-  $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
+  // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
+  // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
+  $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.join(' · ')||'Empty'):bagText(round.extracted);
+  $('#summary-lost').textContent=bagText(round.lost);
   $('#level-toast').hidden=true;updateHUD();
   // Static hosting has no writable result endpoint. Export the same result
   // as a local file; the visible link also works if automatic downloads stop.
-  $('#save-result').click();
+  // $('#save-result').click();
 }
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
@@ -250,7 +261,8 @@ function frame(now){
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
-  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+displayAim.x*.7,.065,position.z+displayAim.z*.7);points.setXYZ(1,position.x+displayAim.x*RULES.weapon.range,.065,position.z+displayAim.z*RULES.weapon.range);points.needsUpdate=true;aimLine.computeLineDistances();
+  const end=aimEndpoint(position,displayAim,RULES.weapon.range,solids),startDistance=Math.min(.7,Math.hypot(end.x-position.x,end.z-position.z));
+  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+displayAim.x*startDistance,.065,position.z+displayAim.z*startDistance);points.setXYZ(1,end.x,.065,end.z);points.needsUpdate=true;aimLine.computeLineDistances();
   if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
