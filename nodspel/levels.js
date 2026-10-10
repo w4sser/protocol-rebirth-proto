@@ -8,7 +8,7 @@ export const RULES=Object.freeze({
   roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
   loadout:{health:100,ammo:12},
-  resources:{levelTwoAmmoCrateRounds:6,ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8},
+  resources:{scavengeMs:8000,scavengeCoverReach:2,scavengeMovementTolerance:.015,levelTwoAmmoCrateRounds:6,ammoCrateRounds:4,nodeHoldMs:2000,nodeReach:1.8},
   rewards:{medkitHealth:35},
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,

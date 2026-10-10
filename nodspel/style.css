@@ -15,3 +15,5 @@ body{background:#0d1114}.landscape{position:relative;width:100vw;height:100dvh;o
 
 .node-meter{width:100%;height:5px;background:#29373b;border-radius:3px;overflow:hidden;margin-top:4px}.node-meter[hidden]{display:none}.node-meter i{display:block;height:100%;width:0;background:#ffd16f;transition:width .05s linear}
 .node-label.charging{padding-bottom:13px}.node-meter{position:absolute;left:0;bottom:0;margin:0;border-radius:0 0 3px 3px}
+
+#ammo-hud.scavenging{width:164px;border-color:#ffd16f88}#scavenge-status{display:block;color:#ffd16f;font-size:8px;letter-spacing:.6px;margin-top:7px}#scavenge-meter{height:6px;margin-top:6px;background:#3b3730;border-radius:3px;overflow:hidden}#scavenge-fill{display:block;height:100%;width:0;background:#ffd16f;transition:width .05s linear}

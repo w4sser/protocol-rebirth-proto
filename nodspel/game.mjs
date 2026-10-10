@@ -1,18 +1,19 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.12.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.12.0';
-import {createCombat,stepCombat} from './combat.js?v=1.12.0';
-import {buildWorld} from './world.js?v=1.12.0';
-import {RULES} from './levels.js?v=1.12.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.12.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.12.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.12.0';
-import {bagText} from './raid.js?v=1.12.0';
-import {routeComplete} from './objectives.js?v=1.12.0';
+import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.13.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.13.0';
+import {createCombat,stepCombat} from './combat.js?v=1.13.0';
+import {buildWorld} from './world.js?v=1.13.0';
+import {RULES} from './levels.js?v=1.13.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.13.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.13.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.13.0';
+import {bagText} from './raid.js?v=1.13.0';
+import {stepScavenging} from './scavenging.js?v=1.13.0';
+import {routeComplete} from './objectives.js?v=1.13.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.12.0');
+const orderResponse=await fetch('./order.json?v=1.13.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -110,7 +111,7 @@ function updateHUD(){
   world.setExit(open);setCollisions();
 }
 function loadLevel(){
-  world?.dispose();clearBullets();clearInput();mouseKnown=false;
+  world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
   world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];routeLabels=[];
@@ -157,7 +158,7 @@ function finishRound(outcome=round.reason){
   */
   $('#continue-raid').hidden=!resultPending;
   $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
-  clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
+  weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
   $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
@@ -197,6 +198,13 @@ function renderWeaponHUD(clock){
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
   $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
+  const needsScavenging=!round.over&&weapon.reserve===0&&weapon.ammo<RULES.weapon.capacity,scavenging=weapon.scavenging;
+  $('#ammo-hud').classList.toggle('scavenging',needsScavenging);
+  $('#scavenge-status').hidden=!needsScavenging;
+  $('#scavenge-status').textContent=scavenging?`SCAVENGING · ${((1-scavenging.progress)*RULES.resources.scavengeMs/1000).toFixed(1)} s`:'SCAVENGE · STOP IN COVER';
+  $('#scavenge-meter').hidden=!scavenging;
+  $('#scavenge-meter').setAttribute('aria-valuenow',Math.round((scavenging?.progress??0)*100));
+  $('#scavenge-fill').style.width=`${(scavenging?.progress??0)*100}%`;
   $('#player-health').setAttribute('aria-valuenow',round.health);
   $('#player-health-fill').style.width=`${round.health}%`;
   $('#player-health').classList.toggle('urgent',round.health<=25);
@@ -234,6 +242,7 @@ function frame(now){
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
+    if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
     if(round.over)finishRound();

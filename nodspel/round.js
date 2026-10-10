@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.12.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.12.0';
-import {emptyBag,bagItems} from './raid.js?v=1.12.0';
-import {traceTargets} from './physics.mjs?v=1.12.0';
+import {generateLevel,RULES} from './levels.js?v=1.13.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.13.0';
+import {emptyBag,bagItems} from './raid.js?v=1.13.0';
+import {traceTargets} from './physics.mjs?v=1.13.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -48,7 +48,7 @@ export function tickRound(round,now) {
 export function takeDamage(round,amount,now){
   tickRound(round,now);
   if(round.over || !Number.isFinite(amount) || amount<=0)return false;
-  round.health=Math.max(0,round.health-amount);
+  round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';}
   return true;
 }

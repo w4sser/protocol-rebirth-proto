@@ -24,6 +24,10 @@ The magazine holds three rounds and reloads one round every 0.7 seconds. The HUD
 
 Any inactive node can be activated without shooting: stay within 1.8 units with an unobstructed path for two seconds, regardless of ammunition. Its meter fills while in range and resets on leaving or moving behind cover. A shot still activates it immediately. Enemies require shots. Resource tuning lives in `RULES.resources`; weapon tuning lives in `RULES.weapon`.
 
+## Scavenging
+
+With zero reserve and an incomplete magazine, stand still near solid cover outside every active enemy's firing line to scavenge a fresh magazine over eight seconds. An amber SCAVENGING countdown and progress bar distinguish it from normal reload. Movement, damage, exposure, firing, leaving cover or gaining reserve ammunition resets progress. Completion restores three loaded rounds, leaves reserve at zero and requires no kills or loot. The round never ends because ammunition is empty. Timing and cover distance live in RULES.resources.
+
 ## Paused file integration
 
 Order loading, validation, result serialization, localStorage writes and result downloads are commented out, along with their UI and contract tests. The original code and JSON files remain for future integration, but no file contract code runs. The game starts without order.json, using health 100 and ammo 12 from RULES.loadout. End screens retain ordinary round and bag summaries without JSON output.

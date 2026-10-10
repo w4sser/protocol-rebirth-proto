@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.12.0';
-import {traceTargets} from './physics.mjs?v=1.12.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.12.0';
+import {RULES} from './levels.js?v=1.13.0';
+import {traceTargets} from './physics.mjs?v=1.13.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.13.0';
 
 export function assistAim(position,direction,enemies,obstacles){
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
@@ -35,7 +35,7 @@ export function fireWeapon(weapon,position,direction,now){
   tickWeapon(weapon,now);
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
   if(!weapon.ammo || now<weapon.nextShotAt || length<.01)return null;
-  weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
+  weapon.scavenging=null;weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
   if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+rule.reloadMs;
   const shot={id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
   weapon.projectiles.push(shot);return shot;
