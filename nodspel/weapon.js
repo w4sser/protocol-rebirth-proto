@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.14.0';
-import {traceTargets} from './physics.mjs?v=1.14.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.14.0';
+import {RULES} from './levels.js?v=1.15.0';
+import {traceTargets} from './physics.mjs?v=1.15.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.15.0';
 
 export function assistAim(position,direction,enemies,obstacles){
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
@@ -49,7 +49,9 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
     const end={x:b.x+b.dx*distance,z:b.z+b.dz*distance};
     const radius=RULES.weapon.shotRadius;
     const targets=[...round.level.nodes,...round.level.enemies.filter(e=>e.health>0&&e.active!==false)].filter(t=>traceTargets(b,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.r+radius}));
-    const hit=traceTargets(b,end,obstacles.map(o=>({...o,w:o.w+radius*2,d:o.d+radius*2})),targets);
+    // Forgiveness applies to targets, not invisible padding around cover:
+    // the projectile and aim line test the same real wall footprint.
+    const hit=traceTargets(b,end,obstacles,targets);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
       if(hit?.kind==='node')changed=activateNode(round,hit.node.id,now)||changed;

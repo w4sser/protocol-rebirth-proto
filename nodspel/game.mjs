@@ -1,19 +1,19 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.14.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.14.0';
-import {createCombat,stepCombat} from './combat.js?v=1.14.0';
-import {buildWorld} from './world.js?v=1.14.0';
-import {RULES} from './levels.js?v=1.14.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.14.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.14.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.14.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.14.0';
-// import {stepScavenging} from './scavenging.js?v=1.14.0';
-import {routeComplete} from './objectives.js?v=1.14.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=1.15.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.15.0';
+import {createCombat,stepCombat} from './combat.js?v=1.15.0';
+import {buildWorld} from './world.js?v=1.15.0';
+import {RULES} from './levels.js?v=1.15.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.15.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.15.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.15.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.15.0';
+// import {stepScavenging} from './scavenging.js?v=1.15.0';
+import {routeComplete} from './objectives.js?v=1.15.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.14.0');
+const orderResponse=await fetch('./order.json?v=1.15.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -91,7 +91,7 @@ function makeLabel(text,point,kind){
 function setCollisions(){
   solids=[...round.level.walls,...round.level.boxes];
   if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});
-  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...round.level.enemies.filter(e=>e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
+  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
 }
 function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
@@ -243,7 +243,7 @@ function frame(now){
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=movePlayer(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},playerSolids,round.level.floors,.36);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=moveWithActors(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
     const stickDirection=sticks[1].state.gesture?.direction;
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();

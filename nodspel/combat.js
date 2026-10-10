@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.14.0';
-import {traceTargets,movePlayer} from './physics.mjs';
-import {takeDamage,tickRound} from './round.js';
+import {RULES} from './levels.js?v=1.15.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.15.0';
+import {takeDamage,tickRound} from './round.js?v=1.15.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -13,6 +13,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     combat.visited.add(room);combat.graceUntil=now+RULES.combat.graceMs;combat.projectiles.length=0;combat.moveAt=combat.graceUntil;
     for(const enemy of round.level.enemies)combat.nextFire.set(enemy.id,Math.max(combat.nextFire.get(enemy.id)??0,combat.graceUntil));
   }
+  Object.assign(player,moveWithActors(player,{x:0,z:0},round.level.enemies,obstacles,round.level.floors,RULES.playerRadius));
   if(now<combat.graceUntil)return;
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
@@ -20,7 +21,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       if(distance>2 && distance<14){
-        const blockers=[...obstacles,{...player,w:.8,d:.8},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.9,d:.9}))];
+        const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
         const next=movePlayer(enemy,{x:(player.x-enemy.x)/distance*enemy.speed*dt,z:(player.z-enemy.z)/distance*enemy.speed*dt},blockers,round.level.floors,.48);
         enemy.x=next.x;enemy.z=next.z;
       }
