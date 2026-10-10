@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.13.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.13.0';
-import {emptyBag,bagItems} from './raid.js?v=1.13.0';
-import {traceTargets} from './physics.mjs?v=1.13.0';
+import {generateLevel,RULES} from './levels.js?v=1.14.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.14.0';
+import {emptyBag,bagItems} from './raid.js?v=1.14.0';
+import {traceTargets} from './physics.mjs?v=1.14.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -15,19 +15,31 @@ export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
+    if(box.blockedUntilLeft&&Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius)box.blockedUntilLeft=false;
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
-      if(box.item==='medkit'){
-        if(round.health>=100)continue;
-        round.health=Math.min(100,round.health+RULES.rewards.medkitHealth);
-      }else if(box.item==='ammo_pack'){
+      if(box.blockedUntilLeft)continue;
+      if(box.item==='ammo_pack'){
         if(!weapon)continue;
         weapon.reserve+=box.ammoRounds??RULES.resources.ammoCrateRounds;
         if(weapon.ammo<RULES.weapon.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+RULES.weapon.reloadMs;
-      }else round.bag[box.item]++;
+      }else{
+        if(bagItems(round.bag).length>=RULES.loot.capacity)continue;
+        round.bag[box.item]++;
+      }
       box.collected=true;changed=true;
     }
   }
   return changed;
+}
+export function dropItem(round,item,position,now){
+  tickRound(round,now);if(round.over||!round.bag[item])return null;
+  round.bag[item]--;
+  const box={id:`drop-${round.level.lootBoxes.length}-${now}`,x:position.x,z:position.z,item,collected:false,blockedUntilLeft:true};
+  round.level.lootBoxes.push(box);return box;
+}
+export function useHealthKit(round,now){
+  tickRound(round,now);if(round.over||!round.bag.medkit||round.health>=100)return false;
+  round.bag.medkit--;round.health=Math.min(100,round.health+RULES.rewards.medkitHealth);return true;
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);

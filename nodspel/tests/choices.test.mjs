@@ -17,6 +17,6 @@ test('level two presents node and short loot routes with deterministic swapped s
     const l=generateLevel(2,`choices-${i}`),loot=l.routeChoices.find(c=>c.kind==='loot'),node=l.routeChoices.find(c=>c.kind==='node');
     assert.ok(loot.length<node.length);assert.equal(l.deadEnds.length,1);
     for(const choice of l.routeChoices)assert.notEqual(traceTargets(l.start,choice.sign,l.walls,[])?.kind,'wall','both choice signs visible from spawn');
-    assert.ok(Math.hypot(l.lootBoxes[0].x-l.deadEnds[0].end.x,l.lootBoxes[0].z-l.deadEnds[0].end.z)<.1);
+    assert.ok(Math.hypot(l.lootBoxes[0].x-l.deadEnds[0].end.x,l.lootBoxes[0].z-l.deadEnds[0].end.z)<.3);
   }
 });

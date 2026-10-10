@@ -8,12 +8,12 @@ test('standalone round ignores disabled order input',()=>{
   const r=createRound('standalone',0,null);
   assert.equal(r.health,100);assert.equal(r.order,undefined);
 });
-test('marked level two crate always supplies at least six reserve rounds',()=>{
+test('marked level two crate supplies loot without changing unlimited reserve',()=>{
   for(let i=0;i<30;i++){
     const r=createRound(`supplies-${i}`,0);r.level=generateLevel(2,r.seed);
-    const box=r.level.lootBoxes.find(b=>b.marked),w=createWeapon(0);
-    assert.equal(box.item,'ammo_pack');collectLoot(r,box,1,w);
-    assert.ok(w.reserve>=6);assert.equal(w.ammo,0);
+    const box=r.level.lootBoxes.find(b=>b.marked),w=createWeapon(Infinity);
+    assert.ok(['scrap_alloy','power_cell'].includes(box.item));collectLoot(r,box,1,w);
+    assert.equal(w.reserve,Infinity);assert.equal(w.ammo,3);assert.equal(r.bag[box.item],1);
   }
 });
 test('aim endpoint stops at the nearest solid and ignores targets',()=>{

@@ -1,19 +1,19 @@
 import * as THREE from './vendor/three.module.js';
-import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.13.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,stepNodeInteraction} from './round.js?v=1.13.0';
-import {createCombat,stepCombat} from './combat.js?v=1.13.0';
-import {buildWorld} from './world.js?v=1.13.0';
-import {RULES} from './levels.js?v=1.13.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.13.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.13.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.13.0';
-import {bagText} from './raid.js?v=1.13.0';
-import {stepScavenging} from './scavenging.js?v=1.13.0';
-import {routeComplete} from './objectives.js?v=1.13.0';
+import {movePlayer,traceTargets,aimEndpoint} from './physics.mjs?v=1.14.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.14.0';
+import {createCombat,stepCombat} from './combat.js?v=1.14.0';
+import {buildWorld} from './world.js?v=1.14.0';
+import {RULES} from './levels.js?v=1.14.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.14.0';
+import {beginAim,dragAim,releaseAim} from './controls.js?v=1.14.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.14.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.14.0';
+// import {stepScavenging} from './scavenging.js?v=1.14.0';
+import {routeComplete} from './objectives.js?v=1.14.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.13.0');
+const orderResponse=await fetch('./order.json?v=1.14.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -62,7 +62,7 @@ function setupStick(selector,value,onShot){
     value.x=x/limit;value.y=y/limit;thumb.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
     if(onShot&&state.gesture){dragAim(state.gesture,e.clientX,e.clientY);el.classList.toggle('aiming',!!state.gesture.direction);}
   }
-  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over)return;e.preventDefault();state.pointer=e.pointerId;state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');if(!onShot)update(e);});
+  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over || !$('#inventory').hidden)return;e.preventDefault();state.pointer=e.pointerId;state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');if(!onShot)update(e);});
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
   function release(e){if(e.pointerId===state.pointer){if(onShot&&state.gesture){const direction=releaseAim(state.gesture,e.type!=='pointerup');if(direction){aim=screenToWorld(direction.x,direction.y);onShot();}}state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
@@ -74,7 +74,7 @@ function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.cl
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
+window.addEventListener('keydown',e=>{if(!$('#inventory').hidden)return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
 window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
@@ -95,6 +95,8 @@ function setCollisions(){
 }
 function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
+  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK`;
+  renderInventory();
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#level-counter').textContent=`LEVEL ${round.level.number} / 3`;
@@ -104,12 +106,27 @@ function updateHUD(){
   $('#mission-label').textContent=round.cleared?'ALL LEVELS CLEARED':`LEVEL ${round.level.number} · ${round.level.title.toUpperCase()}`;
   $('#status').textContent=round.cleared?'Three levels cleared':open?'The exit is open':round.level.nodes.length===1?'Activate the node':'Activate all nodes';
   const remainingEnemies=round.level.enemies.filter(e=>e.health>0&&e.active!==false).length;
-  $('#hint').textContent=open?'Reach the exit to extract your bag.':`${remainingEnemies} ${remainingEnemies===1?'enemy':'enemies'} left · Walk near crates to collect.`;
+  $('#hint').textContent=bagItems(round.bag).length>=RULES.loot.capacity?'Bag full · Open bag to drop or use an item.':open?'Reach the exit to extract your bag.':`${remainingEnemies} ${remainingEnemies===1?'enemy':'enemies'} left · Walk near crates to collect.`;
   if(round.over){$('#status').textContent=round.reason==='complete'?'All levels cleared':round.reason==='death'?'You died':'Time is up';$('#hint').textContent='A new round starts fresh.';}
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=`NODE ${v.node.id.split('-')[1]}${v.node.active?' · ACTIVE':''}`;}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
+function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
+function renderInventory(){
+  const items=bagItems(round.bag),list=$('#inventory-slots');list.replaceChildren();
+  $('#inventory-count').textContent=`${items.length} / ${RULES.loot.capacity} slots`;
+  for(let i=0;i<RULES.loot.capacity;i++){
+    const row=document.createElement('div'),name=document.createElement('span'),item=items[i];row.className='inventory-slot';name.textContent=`${i+1} · ${item?ITEM_NAMES[item]:'Empty'}`;row.append(name);
+    if(item){
+      if(item==='medkit'){const use=document.createElement('button');use.textContent=`Use +${RULES.rewards.medkitHealth} HP`;use.disabled=round.health>=100;use.onclick=()=>{useHealthKit(round,Date.now());updateHUD();};row.append(use);}
+      const drop=document.createElement('button');drop.textContent='Drop';drop.onclick=()=>{const box=dropItem(round,item,position,Date.now());if(box)labelLoot(world.addLoot(box));updateHUD();};row.append(drop);
+    }
+    list.append(row);
+  }
+}
+$('#open-bag').onclick=()=>{if(round.over||resultPending)return;clearInput();renderInventory();$('#inventory').hidden=false;};
+$('#close-bag').onclick=()=>{$('#inventory').hidden=true;clearInput();};
 function loadLevel(){
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
@@ -123,7 +140,7 @@ function loadLevel(){
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies)v.label=makeLabel(`ENEMY · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
-  for(const v of world.lootBoxes)v.label=makeLabel(v.loot.item==='ammo_pack'?`◆ AMMO · +${v.loot.ammoRounds??RULES.resources.ammoCrateRounds}`:v.loot.item==='medkit'?`◆ MEDKIT · +${RULES.rewards.medkitHealth} HP`:v.loot.marked?'◆ LOOT · COLLECT':'CRATE · COLLECT',new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');
+  for(const v of world.lootBoxes)labelLoot(v);
   for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
@@ -138,7 +155,7 @@ function loadLevel(){
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  resultPending=false;
+  resultPending=false;$('#inventory').hidden=true;
   // latestResult=null;
   // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   round=createRound(seed,Date.now());weapon=createWeapon(RULES.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
@@ -156,6 +173,7 @@ function finishRound(outcome=round.reason){
   $('#save-result').href=resultURL;
   $('#result-json').textContent=json;
   */
+  $('#inventory').hidden=true;
   $('#continue-raid').hidden=!resultPending;
   $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
   weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
@@ -166,7 +184,7 @@ function finishRound(outcome=round.reason){
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
-  $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.join(' · ')||'Empty'):bagText(round.extracted);
+  $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'Empty'):bagText(round.extracted);
   $('#summary-lost').textContent=bagText(round.lost);
   $('#level-toast').hidden=true;updateHUD();
   // Static hosting has no writable result endpoint. Export the same result
@@ -176,7 +194,7 @@ function finishRound(outcome=round.reason){
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){
-  if(!round||round.over||resultPending)return;
+  if(!round||round.over||resultPending||!$('#inventory').hidden)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
   const assisted=assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids);
   const shot=fireWeapon(weapon,position,assisted.direction,Date.now());
@@ -192,19 +210,13 @@ function renderWeaponHUD(clock){
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
   const fraction=reloading?1-remaining/RULES.weapon.reloadMs:0;
   $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
-  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${RULES.weapon.capacity} · Reserve: ${weapon.reserve}`);
+  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${RULES.weapon.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);
   for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
-  $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
-  const needsScavenging=!round.over&&weapon.reserve===0&&weapon.ammo<RULES.weapon.capacity,scavenging=weapon.scavenging;
-  $('#ammo-hud').classList.toggle('scavenging',needsScavenging);
-  $('#scavenge-status').hidden=!needsScavenging;
-  $('#scavenge-status').textContent=scavenging?`SCAVENGING · ${((1-scavenging.progress)*RULES.resources.scavengeMs/1000).toFixed(1)} s`:'SCAVENGE · STOP IN COVER';
-  $('#scavenge-meter').hidden=!scavenging;
-  $('#scavenge-meter').setAttribute('aria-valuenow',Math.round((scavenging?.progress??0)*100));
-  $('#scavenge-fill').style.width=`${(scavenging?.progress??0)*100}%`;
+  $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
+  // Scavenging is paused while reserve ammunition is unlimited.
   $('#player-health').setAttribute('aria-valuenow',round.health);
   $('#player-health-fill').style.width=`${round.health}%`;
   $('#player-health').classList.toggle('urgent',round.health<=25);
@@ -242,7 +254,7 @@ function frame(now){
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
-    if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
+    // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
     if(round.over)finishRound();

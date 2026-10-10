@@ -47,7 +47,7 @@ test('death ends the run and freezes remaining time and progression in its summa
   round.activateNode(r,r.level.nodes[0].id,1000);round.enterExit(r,r.level.exit,2000);
   round.takeDamage(r,100,70000);
   assert.equal(r.over,true);assert.equal(r.health,0);
-  assert.deepEqual(round.roundSummary(r),{reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:410000,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0}});
+  assert.deepEqual(round.roundSummary(r),{reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:410000,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0}});
   round.tickRound(r,600000);
   assert.equal(round.roundSummary(r).remainingMs,410000,'time stays frozen after death');
   assert.equal(round.activateNode(r,r.level.nodes[0].id,71000),false);
@@ -58,7 +58,7 @@ test('timeout summary records zero time and cannot be overwritten by death',()=>
   assert.equal(typeof round.takeDamage,'function');
   const r=round.createRound('timeout',0);
   round.takeDamage(r,100,480000);
-  assert.deepEqual(round.roundSummary(r),{reason:'timeout',levelsCleared:0,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0}});
+  assert.deepEqual(round.roundSummary(r),{reason:'timeout',levelsCleared:0,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0}});
 });
 test('defeated enemies count once across levels and reset with a new round',()=>{
   const r=round.createRound('kills',0),id=r.level.enemies[0].id;
@@ -69,18 +69,9 @@ test('defeated enemies count once across levels and reset with a new round',()=>
   assert.equal(round.createRound('fresh',100).enemiesDefeated,0);
 });
 
-test('medkit crates restore up to 35 health without entering the loot bag',()=>{
-  assert.equal(typeof round.collectLoot,'function');
-  const r=round.createRound('medkit',0);r.health=40;
-  r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
-  assert.equal(round.collectLoot(r,{x:0,z:0},1000,{}),true);
-  assert.equal(r.health,75);
-  assert.equal(r.level.lootBoxes[0].collected,true);
-  assert.equal(r.bag.scrap_alloy+r.bag.power_cell+r.bag.cable+r.bag.fuse,0);
-});
-test('medkit crates stay available when health is already full',()=>{
-  const r=round.createRound('medkit-full',0);r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
-  assert.equal(round.collectLoot(r,{x:0,z:0},1000,{}),false);
-  assert.equal(r.health,100);
-  assert.equal(r.level.lootBoxes[0].collected,false);
+test('health kits can be collected at full health and used later',()=>{
+  const r=round.createRound('medkit',0);r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
+  assert.equal(round.collectLoot(r,{x:0,z:0},1000),true);assert.equal(r.health,100);assert.equal(r.bag.medkit,1);
+  assert.equal(round.useHealthKit(r,1001),false);assert.equal(r.bag.medkit,1);
+  round.takeDamage(r,10,1100);assert.equal(round.useHealthKit(r,1200),true);assert.equal(r.health,100);assert.equal(r.bag.medkit,0);
 });

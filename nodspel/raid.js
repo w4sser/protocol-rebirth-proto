@@ -2,8 +2,8 @@
 /*
 export const DEFAULT_ORDER=Object.freeze({zone:'industrial',route:'maintenance_tunnels',risk:'standard',objective:['cable','fuse'],loadout:{weapon:'basic_carbine',ammo:12},health:100});
 */
-export const ITEM_NAMES={cable:'Cable',fuse:'Fuse',scrap_alloy:'Scrap',power_cell:'Power cell'};
-export const emptyBag=()=>({scrap_alloy:0,power_cell:0,cable:0,fuse:0});
+export const ITEM_NAMES={cable:'Cable',fuse:'Fuse',scrap_alloy:'Scrap',power_cell:'Power cell',medkit:'Health kit'};
+export const emptyBag=()=>({scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0});
 /*
 export function readOrder(value){
   if(!value||value.loadout?.weapon!=='basic_carbine'||!Number.isInteger(value.loadout.ammo)||value.loadout.ammo<0||!Number.isFinite(value.health)||value.health<=0||value.health>100||!Array.isArray(value.objective)||value.objective.some(id=>!ITEM_NAMES[id])||!['zone','route','risk'].every(key=>typeof value[key]==='string'&&value[key]))throw new Error('Invalid raid order.');

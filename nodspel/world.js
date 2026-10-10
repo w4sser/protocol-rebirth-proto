@@ -34,7 +34,7 @@ export function buildWorld(level,scene) {
     return {node,group:g,coreMaterial,light,halo};
   });
   const exit=level.exit;
-  const lootBoxes=level.lootBoxes.map(loot=>{
+  function lootVisual(loot){
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
     box(0,.32,0,.9,.64,.9,'#84754d',g);box(0,.68,0,1,.08,1,'#b5a372',g);
     box(0,.35,.46,.3,.18,.03,'#8cf5df',g);
@@ -43,7 +43,9 @@ export function buildWorld(level,scene) {
       const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ffd16f'}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
     }
     return {loot,group:g};
-  });
+  }
+  const lootBoxes=level.lootBoxes.map(lootVisual);
+  function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
   const routes=[];
   for(const choice of level.routeChoices){
     const color=choice.kind==='loot'?'#ffd16f':'#8cf5df';
@@ -68,5 +70,5 @@ export function buildWorld(level,scene) {
     group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)g.dispose();for(const m of mats)m.dispose();scene.remove(group);
   }
-  return {group,nodes,enemies,lootBoxes,routes,setExit,animate,dispose};
+  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,dispose};
 }

@@ -13,10 +13,10 @@ test('empty ammo leaves the raid active and an ammo crate permits shooting again
   assert.equal(collectLoot(r,box,1800,w),false);
   assert.equal(r.bag.ammo_pack,undefined,'reserve ammo is equipment, not extracted loot');
 });
-test('seeded marked crates can contain ammo on every level',()=>{
+test('seeded marked crates contain bag loot with unlimited ammunition',()=>{
   for(const n of [1,2,3]){
     const levels=Array.from({length:40},(_,i)=>generateLevel(n,`ammo-${i}`));
-    assert.ok(levels.some(l=>l.lootBoxes.some(b=>b.marked&&b.item==='ammo_pack')));
+    assert.ok(levels.every(l=>l.lootBoxes.some(b=>b.marked&&b.item!=='ammo_pack')));
     for(const l of levels)assert.deepEqual(l,generateLevel(n,l.seed.slice(0,-2)));
     assert.ok(levels.every(l=>l.lootBoxes.every(b=>b.item!=='ammo_pack'||b.marked)));
   }
