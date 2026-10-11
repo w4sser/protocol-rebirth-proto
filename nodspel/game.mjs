@@ -1,22 +1,23 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.20.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.20.0';
-import {createCombat,stepCombat} from './combat.js?v=1.20.0';
-import {buildWorld} from './world.js?v=1.20.0';
-import {RULES} from './levels.js?v=1.20.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.20.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.20.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.20.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.20.0';
-// import {stepScavenging} from './scavenging.js?v=1.20.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.20.0';
-import {routeComplete} from './objectives.js?v=1.20.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.20.0';
-import {createBIT,stepBIT} from './bit.js?v=1.20.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.21.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.21.0';
+import {createCombat,stepCombat} from './combat.js?v=1.21.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.21.0';
+import {RULES} from './levels.js?v=1.21.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.21.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.21.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.21.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.21.0';
+// import {stepScavenging} from './scavenging.js?v=1.21.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.21.0';
+import {routeComplete} from './objectives.js?v=1.21.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.21.0';
+import {createBIT,stepBIT} from './bit.js?v=1.21.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.21.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.20.0');
+const orderResponse=await fetch('./order.json?v=1.21.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -24,8 +25,11 @@ let latestResult=null,resultURL=null;
 let resultPending=false;
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
+const playerHealthSegments=createHealthSegments($('#player-health'),100,10);
 let tutorialStorage;try{tutorialStorage=sessionStorage;}catch{tutorialStorage=null;}
-let tutorialOpen=tutorialNeeded(tutorialStorage);
+const earlyStart=document.documentElement.dataset.startRequested==='true';
+if(earlyStart)completeTutorial(tutorialStorage);
+let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
 $('#tutorial-start').onclick=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
@@ -61,6 +65,11 @@ box(0,1.1,0,.035,.18,.035,'#596771',bitModel);box(0,1.2,0,.09,.09,.09,'#75cfcc',
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
 const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#15d6be',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.frustumCulled=false;healBeam.renderOrder=4;scene.add(healBeam);
 const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
+const healCrosses=Array.from({length:6},(_,i)=>{
+  const group=new THREE.Group(),material=new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,depthTest:false,depthWrite:false});
+  for(const [w,h] of [[.25,.055],[.055,.25]]){const m=new THREE.Mesh(cube,material);m.scale.set(w,h,.025);m.renderOrder=6;group.add(m);}
+  group.visible=false;scene.add(group);return {group,material,phase:i/6};
+});
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
 const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
@@ -70,7 +79,7 @@ const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.Mes
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
-let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
+let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
 function requestDash(){
@@ -129,16 +138,9 @@ function updateHUD(){
   renderInventory();
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
-  $('#level-counter').textContent=`LEVEL ${round.level.number} / 3`;
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
-  $('#progress').textContent=`${lit} / ${round.level.nodes.length}`;
-  $('.mission').classList.toggle('done',open);
-  $('#mission-label').textContent=round.cleared?'ALL LEVELS CLEARED':`LEVEL ${round.level.number} · ${round.level.title.toUpperCase()}`;
-  $('#status').textContent=round.cleared?'Three levels cleared':open?'The exit is open':round.level.nodes.length===1?'Activate the node':'Activate all nodes';
-  const remainingEnemies=round.level.enemies.filter(e=>e.health>0&&e.active!==false).length;
-  $('#hint').textContent=bagItems(round.bag).length>=RULES.loot.capacity?'Bag full · Open bag to drop or use an item.':open?'Reach the exit to extract your bag.':`${remainingEnemies} ${remainingEnemies===1?'enemy':'enemies'} left · Walk near crates to collect.`;
-  if(round.over){$('#status').textContent=round.reason==='complete'?'All levels cleared':round.reason==='death'?'You died':'Time is up';$('#hint').textContent='A new round starts fresh.';}
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=`NODE ${v.node.id.split('-')[1]}${v.node.active?' · ACTIVE':''}`;}
+  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length}`;
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':'HOLD';}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
@@ -162,7 +164,7 @@ function renderEnemyFeedback(clock){
     const alive=v.enemy.health>0&&v.enemy.active!==false;
     v.group.visible=alive;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);
     v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`ENEMY · ${v.enemy.health}`;v.label.defeated=!alive;v.label.el.hidden=!alive;
-    v.healthBar.setAttribute('aria-valuenow',v.enemy.health);v.healthFill.style.width=`${v.enemy.health/v.maxHealth*100}%`;
+    v.healthBar.setAttribute('aria-valuenow',v.enemy.health);renderHealthSegments(v.healthSegments,v.enemy.health,v.maxHealth);
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
     v.flash.point.set(v.enemy.x,.65,v.enemy.z);v.flash.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.hitFlashMs)}`;
     v.flash.el.classList.toggle('flashing',!v.flash.defeated);
@@ -182,7 +184,7 @@ function loadLevel(){
   bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
   bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label');
   for(const v of world.nodes){
-    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node');
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
@@ -192,7 +194,7 @@ function loadLevel(){
     v.maxHealth=v.enemy.health;
     v.label=makeLabel(`ENEMY · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
     const bar=document.createElement('div');bar.className='enemy-health-bar';bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Enemy health');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',v.maxHealth);
-    const fill=document.createElement('i');bar.append(fill);v.label.el.append(bar);v.healthBar=bar;v.healthFill=fill;
+    v.healthSegments=createHealthSegments(bar,v.maxHealth);v.label.el.append(bar);v.healthBar=bar;
     v.flash=makeLabel('',new THREE.Vector3(v.enemy.x,.65,v.enemy.z),'enemy-hit-flash');v.flash.el.replaceChildren();
     v.damage=makeLabel('',new THREE.Vector3(v.enemy.x,2,v.enemy.z),'enemy-damage');v.damage.defeated=true;
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 80 80');svg.setAttribute('aria-hidden','true');
@@ -203,12 +205,9 @@ function loadLevel(){
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
   $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
-  $('#intro-number').textContent=`LEVEL ${round.level.number} / 3`;
-  $('#intro-name').textContent=round.level.title;
-  $('#intro-seed').textContent=`SEED ${round.seed}`;
   // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
-  $('#level-toast').hidden=false;$('#level-corner').hidden=true;toastUntil=Date.now()+3000;
+  $('#level-corner').hidden=false;
 }
 function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
@@ -245,7 +244,7 @@ function finishRound(outcome=round.reason){
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
   $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'Empty'):bagText(round.extracted);
   $('#summary-lost').textContent=bagText(round.lost);
-  $('#level-toast').hidden=true;updateHUD();
+  updateHUD();
   // Static hosting has no writable result endpoint. Export the same result
   // as a local file; the visible link also works if automatic downloads stop.
   // $('#save-result').click();
@@ -277,7 +276,7 @@ function renderWeaponHUD(clock){
   $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
   // Scavenging is paused while reserve ammunition is unlimited.
   $('#player-health').setAttribute('aria-valuenow',round.health);
-  $('#player-health-fill').style.width=`${round.health}%`;
+  renderHealthSegments(playerHealthSegments,round.health,100,10);$('#player-health').hidden=round.health<=0;
   $('#player-health').classList.toggle('urgent',round.health<=25);
   labelPoint.set(position.x,1.65,position.z).project(camera);
   $('#player-health').style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;
@@ -348,9 +347,10 @@ function frame(now){
   renderEnemyFeedback(clock);
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
     const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
+    setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
     v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
-    v.label.caption.textContent=`NODE ${v.node.id.split('-')[1]}${v.node.active?' · ACTIVE':hold?` · ACTIVATING ${Math.ceil((1-hold.progress)*RULES.resources.nodeHoldMs/1000)} s`:' · STAY NEAR 2 s'}`;
+    v.label.caption.textContent=v.node.active?'ACTIVE':'HOLD';
   }
   for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
@@ -370,8 +370,11 @@ function frame(now){
     }
     coneGeometry.attributes.position.needsUpdate=true;coneGeometry.setDrawRange(0,count/3);
   }
-  if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
+  for(const cross of healCrosses){
+    cross.group.visible=bit.healing&&round.health<100&&!round.over&&!resultPending;
+    if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
+  }
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
   world.animate(elapsed);renderLabels();renderWeaponHUD(clock);renderer.render(scene,camera);requestAnimationFrame(frame);
 }

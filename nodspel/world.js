@@ -1,4 +1,10 @@
 import * as THREE from './vendor/three.module.js';
+import {RULES} from './levels.js?v=1.21.0';
+export function setNodeHold(visual,progress){
+  const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
+  visual.holdRing.visible=!visual.node.active&&fill>0;
+  visual.holdRing.geometry.setDrawRange(0,Math.floor(fill*64)*6);
+}
 
 export function buildWorld(level,scene) {
   const group=new THREE.Group();scene.add(group);
@@ -29,9 +35,11 @@ export function buildWorld(level,scene) {
     const front=new THREE.Mesh(cube,coreMaterial);front.scale.set(.95,.7,.03);front.position.set(0,.69,.711);g.add(front);
     const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);
     const light=new THREE.PointLight('#15d6be',0,8,1.6);light.position.y=1.9;g.add(light);
-    const halo=new THREE.Mesh(new THREE.RingGeometry(1.05,1.09,48),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false}));
+    const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
-    return {node,group:g,coreMaterial,light,halo};
+    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#15d6be',side:THREE.DoubleSide,depthWrite:false}));
+    holdRing.rotation.x=-Math.PI/2;holdRing.position.y=.026;holdRing.visible=false;holdRing.geometry.setDrawRange(0,0);g.add(holdRing);
+    return {node,group:g,coreMaterial,light,halo,holdRing};
   });
   const exit=level.exit;
   function lootVisual(loot){
