@@ -144,7 +144,7 @@ function updateHUD(){
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
-function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
+function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
 function renderInventory(){
   const items=bagItems(round.bag),list=$('#inventory-slots');list.replaceChildren();
   $('#inventory-count').textContent=`${items.length} / ${RULES.loot.capacity} slots`;

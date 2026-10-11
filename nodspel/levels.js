@@ -13,7 +13,7 @@ export const RULES=Object.freeze({
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
-  loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.25},
+  loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.6},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
