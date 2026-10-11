@@ -139,3 +139,25 @@ for(const id of ["optical_sensor","power_cell","prewar_relic"])
   assert.equal((src.match(new RegExp('"'+id+'"',"g"))||[]).length, 0, id + " hardcoded");
 
 console.log("ALL LOGIC TESTS PASSED");
+
+// Core (Node Raid) RaidResult v1 ingestion: valid, idempotent, consumes the handoff key.
+{
+  const st = app.freshState(); app._setState(st);
+  const before = st.stash.cable || 0, raids = st.raids, deaths = st.deaths;
+  const res = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:t1", seed:"t1", outcome:"death",
+    levelsCleared:1, enemiesDefeated:2, nodesLit:1, remainingMs:1000, extracted:["cable","scrap_alloy"], lost:["fuse"], endedAt:1 };
+  let stored = JSON.stringify(res), removed = false;
+  const storage = { getItem:k => k === app.RAID_RESULT_KEY ? stored : null, removeItem:k => { if(k === app.RAID_RESULT_KEY){ stored = null; removed = true; } }, setItem:()=>{} };
+  global.localStorage = { getItem:()=>null, setItem:()=>{} };
+  const out = app.ingestPendingCoreResult(storage);
+  assert(out.ok, "valid core result is ingested");
+  assert.equal(st.stash.cable, before + 1); assert.equal(st.stash.scrap_alloy >= 1, true);
+  assert.equal(st.raids, raids + 1); assert.equal(st.deaths, deaths + 1);
+  assert(removed, "handoff key is consumed");
+  assert.equal(app.ingestPendingCoreResult(storage), null, "nothing pending after consume");
+  assert.equal(app.ingestRaidResult(res).reason, "duplicate", "same raidId is never ingested twice");
+  assert.equal(st.stash.cable, before + 1);
+  assert.equal(app.ingestRaidResult({ ...res, raidId:"x", extracted:["not_an_item"] }).reason, "invalid");
+  assert.equal(app.ingestRaidResult({ ...res, raidId:"y", version:2 }).reason, "invalid");
+  console.log("core RaidResult ingestion OK");
+}

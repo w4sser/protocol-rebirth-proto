@@ -1431,6 +1431,38 @@ function finalizeStaged(outcome){
   session.raid = null;
   finishRaid();
 }
+/* ---------- core (Node Raid) integration: RaidResult v1 ----------
+   nodspel/raid-result.js writes the result; meta ingests it once (by raidId).
+   See docs/meta-core-integration.md. */
+const RAID_RESULT_KEY = "pr_raid_result_v1";
+function validRaidResult(r){
+  return !!r && r.schema === "protocol-rebirth/raid-result" && r.version === 1 &&
+    typeof r.raidId === "string" && r.raidId.length > 0 && ["extract","death","timeout"].includes(r.outcome) &&
+    Array.isArray(r.extracted) && r.extracted.every(id => typeof id === "string" && !!ITEMS[id]) &&
+    Array.isArray(r.lost) && r.lost.every(id => typeof id === "string");
+}
+function ingestRaidResult(r){
+  if(!validRaidResult(r)) return { ok:false, reason:"invalid" };
+  S.coreRaidsIngested = S.coreRaidsIngested || [];
+  if(S.coreRaidsIngested.includes(r.raidId)) return { ok:false, reason:"duplicate" };
+  S.coreRaidsIngested.push(r.raidId);
+  if(S.coreRaidsIngested.length > 50) S.coreRaidsIngested.shift();
+  r.extracted.forEach(id => addItem(id, 1));
+  S.raids++;
+  if(r.outcome === "death") S.deaths++;
+  act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, extracted:r.extracted, lost:r.lost });
+  return { ok:true, added:r.extracted.slice() };
+}
+function ingestPendingCoreResult(storage){
+  let raw = null;
+  try{ raw = storage && storage.getItem(RAID_RESULT_KEY); }catch(e){ return null; }
+  if(!raw) return null;
+  let parsed = null;
+  try{ parsed = JSON.parse(raw); }catch(e){}
+  const res = ingestRaidResult(parsed);
+  try{ storage.removeItem(RAID_RESULT_KEY); }catch(e){}
+  return res;
+}
 function finishRaid(){
   const R = session.pendingRaid;
   applyRaidResult(R);
@@ -1982,6 +2014,7 @@ function tryBitImage(){
 /* ---------- init ---------- */
 if(typeof document !== "undefined" && document.getElementById("app")){
   S = load();
+  ingestPendingCoreResult(window.localStorage);
   tryBitImage();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
@@ -1998,4 +2031,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY };
