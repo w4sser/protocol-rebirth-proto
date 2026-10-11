@@ -33,3 +33,4 @@ body{background:#0d1114}.landscape{position:relative;width:100vw;height:100dvh;o
 .node-label.loot-label{transform:translate(-50%,-50%)}
 @media (hover:hover) and (pointer:fine){.landscape .stick,.landscape .stick-label{display:none}.landscape .controls{opacity:1}}
 @media(pointer:fine){canvas{cursor:crosshair}}
+.enemy-label.winding{color:#fff;border-color:#ff5a55;background:#3a1416;box-shadow:0 0 14px #ff5a5599;animation:enemy-windup 160ms steps(2) infinite}@keyframes enemy-windup{50%{transform:translate(-50%,-100%) scale(1.12)}}

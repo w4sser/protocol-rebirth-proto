@@ -164,7 +164,7 @@ function renderEnemyFeedback(clock){
   for(const v of world.enemies){
     const alive=v.enemy.health>0&&v.enemy.active!==false;
     v.group.visible=alive;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);
-    v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`ENEMY · ${v.enemy.health}`;v.label.defeated=!alive;v.label.el.hidden=!alive;
+    v.label.point.set(v.enemy.x,1.7,v.enemy.z);const winding=alive&&v.enemy.windupAt!=null;v.label.el.classList.toggle('winding',winding);v.label.caption.textContent=`${winding?'! ':''}ENEMY · ${v.enemy.health}`;v.label.defeated=!alive;v.label.el.hidden=!alive;
     v.healthBar.setAttribute('aria-valuenow',v.enemy.health);renderHealthSegments(v.healthSegments,v.enemy.health,v.maxHealth);
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
     v.flash.point.set(v.enemy.x,.65,v.enemy.z);v.flash.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.hitFlashMs)}`;
