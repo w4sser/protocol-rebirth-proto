@@ -21,6 +21,7 @@ export const RULES=Object.freeze({
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
+export function totalNodes(){return RULES.levels.reduce((sum,level)=>sum+level.nodes,0);}
 function randomFromSeed(seed){
   let state=2166136261;
   for(const c of String(seed))state=Math.imul(state^c.charCodeAt(0),16777619);

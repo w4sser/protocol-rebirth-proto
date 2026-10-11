@@ -3,7 +3,7 @@ import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.22.0'
 import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.22.0';
 import {createCombat,stepCombat} from './combat.js?v=1.22.0';
 import {buildWorld,setNodeHold} from './world.js?v=1.22.0';
-import {RULES} from './levels.js?v=1.22.0';
+import {RULES,totalNodes} from './levels.js?v=1.22.0';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.22.0';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.22.0';
 // import {readOrder,raidResult,resultJSON} from './raid.js?v=1.22.0';
@@ -23,6 +23,7 @@ const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
 */
 let resultPending=false;
+const TOTAL_NODES=totalNodes();
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 const playerHealthSegments=createHealthSegments($('#player-health'),100,10);
@@ -139,7 +140,7 @@ function updateHUD(){
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
-  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length}`;
+  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':'HOLD';}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
@@ -238,7 +239,7 @@ function finishRound(outcome=round.reason){
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
   $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
-  $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / 6`;
+  $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / ${TOTAL_NODES}`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
