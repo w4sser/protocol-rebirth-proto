@@ -122,3 +122,17 @@ export function aimEndpoint(position,direction,range,obstacles){
   for(const obstacle of obstacles)time=Math.min(time,boxHit(position,end,obstacle));
   return {x:position.x+(end.x-position.x)*time,z:position.z+(end.z-position.z)*time};
 }
+
+// Visibility fan: include both sides of each solid corner so triangles never
+// bridge across a wall silhouette. Targets do not participate in clipping.
+export function aimConePoints(position,direction,range,halfAngle,obstacles){
+  const heading=Math.atan2(direction.z,direction.x),angles=[];
+  for(let i=0;i<=48;i++)angles.push(-halfAngle+2*halfAngle*i/48);
+  for(const box of obstacles)for(const sx of [-1,1])for(const sz of [-1,1]){
+    const angle=Math.atan2(box.z+sz*box.d/2-position.z,box.x+sx*box.w/2-position.x)-heading;
+    const wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
+    for(const offset of [-1e-5,0,1e-5])if(wrapped+offset>-halfAngle&&wrapped+offset<halfAngle)angles.push(wrapped+offset);
+  }
+  angles.sort((a,b)=>a-b);
+  return [{...position},...angles.map(angle=>aimEndpoint(position,{x:Math.cos(heading+angle),z:Math.sin(heading+angle)},range,obstacles))];
+}

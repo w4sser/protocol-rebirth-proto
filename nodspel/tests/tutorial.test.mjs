@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {tutorialNeeded,completeTutorial} from '../tutorial.js';
+test('tutorial appears once in a session and again in a fresh session',()=>{const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v)};assert.equal(tutorialNeeded(storage),true);completeTutorial(storage);assert.equal(tutorialNeeded(storage),false);assert.equal(tutorialNeeded({getItem:()=>null}),true);});
+test('denied session storage does not prevent the tutorial or Start',()=>{const storage={getItem:()=>{throw new Error('denied');},setItem:()=>{throw new Error('denied');}};assert.equal(tutorialNeeded(storage),true);assert.doesNotThrow(()=>completeTutorial(storage));});

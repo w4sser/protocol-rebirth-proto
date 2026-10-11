@@ -1,19 +1,20 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=1.15.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.15.0';
-import {createCombat,stepCombat} from './combat.js?v=1.15.0';
-import {buildWorld} from './world.js?v=1.15.0';
-import {RULES} from './levels.js?v=1.15.0';
-import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.15.0';
-import {beginAim,dragAim,releaseAim} from './controls.js?v=1.15.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.15.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.15.0';
-// import {stepScavenging} from './scavenging.js?v=1.15.0';
-import {routeComplete} from './objectives.js?v=1.15.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.16.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.16.0';
+import {createCombat,stepCombat} from './combat.js?v=1.16.0';
+import {buildWorld} from './world.js?v=1.16.0';
+import {RULES} from './levels.js?v=1.16.0';
+import {createWeapon,fireWeapon,stepWeapon,assistAim} from './weapon.js?v=1.16.0';
+import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.16.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.16.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.16.0';
+// import {stepScavenging} from './scavenging.js?v=1.16.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.16.0';
+import {routeComplete} from './objectives.js?v=1.16.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.15.0');
+const orderResponse=await fetch('./order.json?v=1.16.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -21,6 +22,10 @@ let latestResult=null,resultURL=null;
 let resultPending=false;
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
+let tutorialStorage;try{tutorialStorage=sessionStorage;}catch{tutorialStorage=null;}
+let tutorialOpen=tutorialNeeded(tutorialStorage);
+$('#tutorial').hidden=!tutorialOpen;
+$('#tutorial-start').onclick=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
 const scene=new THREE.Scene();scene.background=new THREE.Color('#14191c');
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
@@ -44,7 +49,9 @@ box(0,.97,.24,.32,.075,.025,'#2c4a54',player);box(0,.65,.58,.16,.16,.67,'#242d34
 box(0,.67,.88,.18,.18,.12,'#8cf5df',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
-const aimLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#d3fff3',transparent:true,opacity:.95,depthTest:false,depthWrite:false}));aimLine.renderOrder=3;scene.add(aimLine);
+const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
+coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
+const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#b5fff1',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
 const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#ffe0a1',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
@@ -62,7 +69,7 @@ function setupStick(selector,value,onShot){
     value.x=x/limit;value.y=y/limit;thumb.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
     if(onShot&&state.gesture){dragAim(state.gesture,e.clientX,e.clientY);el.classList.toggle('aiming',!!state.gesture.direction);}
   }
-  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over || !$('#inventory').hidden)return;e.preventDefault();state.pointer=e.pointerId;state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');if(!onShot)update(e);});
+  el.addEventListener('pointerdown',e=>{if(state.pointer!==null || round?.over || tutorialOpen || !$('#inventory').hidden)return;e.preventDefault();state.pointer=e.pointerId;state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');if(!onShot)update(e);});
   el.addEventListener('pointermove',e=>{if(e.pointerId===state.pointer){e.preventDefault();update(e);}});
   function release(e){if(e.pointerId===state.pointer){if(onShot&&state.gesture){const direction=releaseAim(state.gesture,e.type!=='pointerup');if(direction){aim=screenToWorld(direction.x,direction.y);onShot();}}state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
@@ -74,11 +81,11 @@ function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.cl
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(!$('#inventory').hidden)return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
+window.addEventListener('keydown',e=>{if(tutorialOpen||!$('#inventory').hidden)return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
 window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round){tickRound(round,Date.now());if(round.over)finishRound();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,Date.now());if(round.over)finishRound();}});
 
 function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
 let labels=[],routeLabels=[];
@@ -194,7 +201,7 @@ function finishRound(outcome=round.reason){
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){
-  if(!round||round.over||resultPending||!$('#inventory').hidden)return;
+  if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
   const assisted=assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids);
   const shot=fireWeapon(weapon,position,assisted.direction,Date.now());
@@ -233,7 +240,9 @@ function renderLabels(){
 }
 let previous=performance.now();
 function frame(now){
-  const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();tickRound(round,clock);
+  const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
+  if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
+  tickRound(round,clock);
   const seconds=Math.ceil(round.remainingMs/1000),time=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   if($('#time-left').textContent!==time)$('#time-left').textContent=time;
   $('.timer').classList.toggle('urgent',seconds<=60);
@@ -244,7 +253,7 @@ function frame(now){
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
     if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=moveWithActors(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
-    const stickDirection=sticks[1].state.gesture?.direction;
+    const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
     if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
@@ -281,9 +290,14 @@ function frame(now){
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
-  rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimLine.visible=aiming;
-  const end=aimEndpoint(position,displayAim,RULES.weapon.range,solids),startDistance=Math.min(.7,Math.hypot(end.x-position.x,end.z-position.z));
-  const points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x+displayAim.x*startDistance,.065,position.z+displayAim.z*startDistance);points.setXYZ(1,end.x,.065,end.z);points.needsUpdate=true;aimLine.computeLineDistances();
+  rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimCone.visible=aiming;
+  if(aiming){
+    const footprint=aimConePoints(position,displayAim,RULES.weapon.range,RULES.weapon.coneHalfAngleDegrees*Math.PI/180,solids);
+    let count=0;for(let i=1;i<footprint.length-1;i++)for(const p of [footprint[0],footprint[i],footprint[i+1]]){
+      coneVertices[count++]=p.x;coneVertices[count++]=.065;coneVertices[count++]=p.z;
+    }
+    coneGeometry.attributes.position.needsUpdate=true;coneGeometry.setDrawRange(0,count/3);
+  }
   if(clock>=toastUntil){$('#level-toast').hidden=true;$('#level-corner').hidden=false;}
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);

@@ -15,7 +15,8 @@ export const RULES=Object.freeze({
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
   loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.25},
   killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
-  weapon:{range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
+  aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
+  weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
 function randomFromSeed(seed){
   let state=2166136261;
