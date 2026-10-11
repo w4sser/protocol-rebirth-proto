@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import * as dash from '../dash.js';
 import {RULES} from '../levels.js';
 const floors=[{x:0,z:0,w:20,d:20}];
+test('longer dash drains a visible charge which fills gradually and cannot fire early',()=>{
+  const s=dash.createDash();assert.equal(dash.dashCharge(s,100),1);assert.equal(RULES.dash.distance,4.8);
+  dash.startDash(s,{x:1,z:0},100);assert.equal(dash.dashCharge(s,100),0);assert.equal(dash.dashCharge(s,2100),.5);
+  s.remaining=0;assert.equal(dash.startDash(s,{x:1,z:0},2100),false);assert.equal(dash.dashCharge(s,4100),1);
+});
 test('dash follows walking direction, travels a short distance and has a four second cooldown',()=>{
   const state=dash.createDash();assert.equal(dash.startDash(state,{x:1,z:0},100),true);
   let p={x:0,z:0};for(let i=0;i<10;i++)p=dash.stepDash(state,p,.03,[],[],floors);

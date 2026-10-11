@@ -1,9 +1,10 @@
-import {RULES} from './levels.js?v=1.19.0';
-import {moveWithActors} from './physics.mjs?v=1.19.0';
+import {RULES} from './levels.js?v=1.20.0';
+import {moveWithActors} from './physics.mjs?v=1.20.0';
 export function createDash(){return {readyAt:0,remaining:0,direction:null};}
+export function dashCharge(state,now){return Math.max(0,Math.min(1,1-(state.readyAt-now)/RULES.dash.cooldownMs));}
 export function startDash(state,direction,now){
   const length=Math.hypot(direction.x,direction.z);
-  if(now<state.readyAt||state.remaining>0||length<.01)return false;
+  if(dashCharge(state,now)<1||state.remaining>0||length<.01)return false;
   state.direction={x:direction.x/length,z:direction.z/length};state.remaining=RULES.dash.distance;state.readyAt=now+RULES.dash.cooldownMs;return true;
 }
 export function stepDash(state,position,dt,enemies,solids,floors){

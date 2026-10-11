@@ -1,21 +1,22 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.19.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.19.0';
-import {createCombat,stepCombat} from './combat.js?v=1.19.0';
-import {buildWorld} from './world.js?v=1.19.0';
-import {RULES} from './levels.js?v=1.19.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.19.0';
-import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.19.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.19.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.19.0';
-// import {stepScavenging} from './scavenging.js?v=1.19.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.19.0';
-import {routeComplete} from './objectives.js?v=1.19.0';
-import {createDash,startDash,stepDash} from './dash.js?v=1.19.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.20.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.20.0';
+import {createCombat,stepCombat} from './combat.js?v=1.20.0';
+import {buildWorld} from './world.js?v=1.20.0';
+import {RULES} from './levels.js?v=1.20.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.20.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.20.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.20.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.20.0';
+// import {stepScavenging} from './scavenging.js?v=1.20.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.20.0';
+import {routeComplete} from './objectives.js?v=1.20.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.20.0';
+import {createBIT,stepBIT} from './bit.js?v=1.20.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.19.0');
+const orderResponse=await fetch('./order.json?v=1.20.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -50,6 +51,16 @@ box(0,.97,.24,.32,.075,.025,'#2c4a54',player);box(0,.65,.58,.16,.16,.67,'#242d34
 box(0,.67,.88,.18,.18,.12,'#75cfcc',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
+const bitModel=new THREE.Group();scene.add(bitModel);bitModel.rotation.y=Math.PI/4;
+box(0,.7,0,.78,.62,.48,'#0d1a20',bitModel);box(0,.4,0,.42,.12,.32,'#596771',bitModel);
+const bitScreen=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'}));bitScreen.scale.set(.62,.44,.02);bitScreen.position.set(0,.72,.25);bitModel.add(bitScreen);
+box(-.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);box(.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);
+const smilePoints=[];for(let i=0;i<=16;i++){const t=i/16;smilePoints.push(new THREE.Vector3(-.14+.28*t,.65-.065*Math.sin(t*Math.PI),.278));}
+bitModel.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(smilePoints),new THREE.LineBasicMaterial({color:'#0d1a20'})));
+box(0,1.1,0,.035,.18,.035,'#596771',bitModel);box(0,1.2,0,.09,.09,.09,'#75cfcc',bitModel);
+const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#15d6be',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.renderOrder=4;scene.add(healBeam);
+const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
 const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
@@ -61,6 +72,7 @@ const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
+let bit,bitLabel;
 function requestDash(){
   if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   let sx=movement.x+Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
@@ -165,6 +177,10 @@ function loadLevel(){
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
   world=buildWorld(round.level,scene);$('#world-labels').replaceChildren();labels=[];routeLabels=[];
+  dash.remaining=0;
+  const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
+  bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
+  bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label');
   for(const v of world.nodes){
     v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'');
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
@@ -284,6 +300,7 @@ function frame(now){
   $('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over)finishRound();
   if(!round.over&&!resultPending){
+    const positionBefore={...position},dashing=dash.remaining>0;
     let sx=movement.x,sy=movement.y;
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
@@ -303,17 +320,28 @@ function frame(now){
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
+    const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
+    if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();
     const result=enterExit(round,position,clock);
     if(result)finishRound('extraction');
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
+  if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
+  bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
+  bitScreen.material.color.set(bit.healing?'#15d6be':'#75cfcc');
+  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=bit.healing?'BIT · +5 HP/s':'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
+  healBeam.visible=healHalo.visible=bit.healing;
+  if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||resultPending||tutorialOpen||!$('#inventory').hidden;
-  $('#dash').disabled=dashRemaining>0||dashUnavailable;
+  const charge=dashCharge(dash,clock);
+  $('#dash').disabled=charge<1||dashUnavailable;
   $('#dash-time').textContent=dashRemaining>0?`${(dashRemaining/1000).toFixed(1)} s`:'READY';
   $('#dash').style.setProperty('--cooldown',`${dashRemaining/RULES.dash.cooldownMs*100}%`);
   $('#dash').setAttribute('aria-label',dashRemaining>0?`Dash cooldown ${(dashRemaining/1000).toFixed(1)} seconds`:'Dash ready');
+  $('#dash-meter').setAttribute('aria-valuenow',Math.round(charge*100));$('#dash-fill').style.width=`${charge*100}%`;
   playerRing.material.color.set(dash.remaining>0?'#15d6be':'#b4d8d0');
+  playerRing.scale.setScalar(dash.remaining>0?1.35:1);
   const aliveProjectiles=new Set(round.over?[]:combat.projectiles.map(b=>b.id));
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
@@ -332,7 +360,8 @@ function frame(now){
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
-  player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(displayAim.x,displayAim.z);playerRing.position.set(position.x,.025,position.z);
+  const facing=facingDirection(aiming,walkDirection,displayAim);
+  player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimCone.visible=aiming;
   if(aiming){
     const footprint=aimConePoints(position,displayAim,RULES.weapon.range,RULES.weapon.coneHalfAngleDegrees*Math.PI/180,solids);

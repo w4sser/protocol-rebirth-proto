@@ -1,5 +1,6 @@
-import {RULES} from './levels.js?v=1.19.0';
+import {RULES} from './levels.js?v=1.20.0';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
+export function facingDirection(aiming,walking,aim){return aiming?aim:walking;}
 export function dragAim(gesture,x,y){
   const dx=x-gesture.origin.x,dy=y-gesture.origin.y,length=Math.hypot(dx,dy);
   if(length<RULES.aimControls.deadZonePx){gesture.target=null;return gesture.direction;}
