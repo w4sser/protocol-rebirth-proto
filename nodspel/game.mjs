@@ -356,12 +356,15 @@ function frame(now){
   for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
   for(const v of world.lootBoxes){v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
-  const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
+  const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
+  // Desktop: a faint preview follows the mouse; holding strengthens it.
+  const aiming=!round.over&&(holding||mouseKnown);
+  aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.95:.3;
   const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
-  const facing=facingDirection(aiming,walkDirection,displayAim);
+  const facing=facingDirection(holding,walkDirection,displayAim);
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimCone.visible=aiming;
   if(aiming){
