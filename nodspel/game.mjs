@@ -59,7 +59,7 @@ const smilePoints=[];for(let i=0;i<=16;i++){const t=i/16;smilePoints.push(new TH
 bitModel.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(smilePoints),new THREE.LineBasicMaterial({color:'#0d1a20'})));
 box(0,1.1,0,.035,.18,.035,'#596771',bitModel);box(0,1.2,0,.09,.09,.09,'#75cfcc',bitModel);
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
-const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#15d6be',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.renderOrder=4;scene.add(healBeam);
+const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#15d6be',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.frustumCulled=false;healBeam.renderOrder=4;scene.add(healBeam);
 const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
