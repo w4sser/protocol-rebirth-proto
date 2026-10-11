@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.16.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.16.0';
-import {emptyBag,bagItems} from './raid.js?v=1.16.0';
-import {traceTargets} from './physics.mjs?v=1.16.0';
+import {generateLevel,RULES} from './levels.js?v=1.17.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.17.0';
+import {emptyBag,bagItems} from './raid.js?v=1.17.0';
+import {traceTargets} from './physics.mjs?v=1.17.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -68,7 +68,7 @@ export function hitEnemy(round,id,now,damage=1){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
   if(round.over || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
-  enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;round.health=Math.min(100,round.health+RULES.killReward.health);}return true;
+  enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;round.health=Math.min(100,round.health+RULES.killReward.health);}return true;
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};

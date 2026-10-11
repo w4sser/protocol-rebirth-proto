@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {createRound} from '../round.js';
 import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js';
 const weapon=await import('../weapon.js');
-test('weak aim locks the nearest visible enemy close to the direction, but leaves free aim otherwise',()=>{
+test('aim locks the nearest visible enemy close to the direction, but leaves free aim otherwise',()=>{
   assert.equal(typeof weapon.assistAim,'function');
   const near={id:'near',kind:'enemy',x:3,z:.4,r:.48,health:2},far={...near,id:'far',x:5};
   const result=weapon.assistAim({x:0,z:0},{x:1,z:0},[far,near],[]);
-  assert.equal(result.target.id,'near');assert.ok(result.direction.z>0&&result.direction.z<.4/Math.hypot(3,.4));
+  assert.equal(result.target.id,'near');assert.ok(Math.abs(result.direction.z-.4/Math.hypot(3,.4))<1e-8);
   for(const enemy of [{...near,x:9},{...near,x:0,z:3},{...near,health:0}])assert.equal(weapon.assistAim({x:0,z:0},{x:1,z:0},[enemy],[]).target,null);
   assert.deepEqual(weapon.assistAim({x:0,z:0},{x:1,z:0},[],[]).direction,{x:1,z:0});
   assert.equal(weapon.assistAim({x:0,z:0},{x:1,z:0},[near],[{x:1.5,z:0,w:.2,d:2}]).target,null);
