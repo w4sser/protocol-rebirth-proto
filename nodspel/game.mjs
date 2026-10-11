@@ -1,20 +1,21 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.17.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.17.0';
-import {createCombat,stepCombat} from './combat.js?v=1.17.0';
-import {buildWorld} from './world.js?v=1.17.0';
-import {RULES} from './levels.js?v=1.17.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.17.0';
-import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.17.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.17.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.17.0';
-// import {stepScavenging} from './scavenging.js?v=1.17.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.17.0';
-import {routeComplete} from './objectives.js?v=1.17.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.18.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.18.0';
+import {createCombat,stepCombat} from './combat.js?v=1.18.0';
+import {buildWorld} from './world.js?v=1.18.0';
+import {RULES} from './levels.js?v=1.18.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.18.0';
+import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.18.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.18.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.18.0';
+// import {stepScavenging} from './scavenging.js?v=1.18.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.18.0';
+import {routeComplete} from './objectives.js?v=1.18.0';
+import {createDash,startDash,stepDash} from './dash.js?v=1.18.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.17.0');
+const orderResponse=await fetch('./order.json?v=1.18.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -27,7 +28,7 @@ let tutorialOpen=tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
 $('#tutorial-start').onclick=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};
 let viewWidth=viewport.clientWidth,viewHeight=viewport.clientHeight;
-const scene=new THREE.Scene();scene.background=new THREE.Color('#14191c');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#07151c');
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
@@ -46,19 +47,29 @@ function box(x,y,z,w,h,d,color,parent){
 const player=new THREE.Group();scene.add(player);
 box(0,.5,0,.62,.7,.62,'#bac4c7',player);box(0,.98,0,.48,.29,.46,'#e0e7e5',player);
 box(0,.97,.24,.32,.075,.025,'#2c4a54',player);box(0,.65,.58,.16,.16,.67,'#242d34',player);
-box(0,.67,.88,.18,.18,.12,'#8cf5df',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
+box(0,.67,.88,.18,.18,.12,'#75cfcc',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
-const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#b5fff1',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
-const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#8cf5df',transparent:true,opacity:.85,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
+const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.10,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.95,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
-const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#ffe0a1',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
-const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#b5fff1'});
+const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
+const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,toastUntil=0,resetCount=0,hitUntil=0;
+let dash=createDash(),walkDirection={x:0,z:-1};
+function requestDash(){
+  if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
+  let sx=movement.x+Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
+  let sy=movement.y+Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
+  const direction=Math.hypot(sx,sy)>.12?screenToWorld(sx,sy):walkDirection;
+  startDash(dash,direction,Date.now());
+}
+$('#dash').addEventListener('pointerdown',e=>{e.preventDefault();requestDash();});
+$('#dash').addEventListener('click',e=>{if(e.detail===0)requestDash();});
 
 // Independent pointer capture lets both thumbs work at the same time.
 function setupStick(selector,value,onShot){
@@ -81,7 +92,7 @@ function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.cl
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(tutorialOpen||!$('#inventory').hidden)return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
+window.addEventListener('keydown',e=>{if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
 window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
@@ -143,6 +154,10 @@ function renderEnemyFeedback(clock){
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
     v.flash.point.set(v.enemy.x,.65,v.enemy.z);v.flash.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.hitFlashMs)}`;
     v.flash.el.classList.toggle('flashing',!v.flash.defeated);
+    v.damage.defeated=age>=RULES.feedback.damageNumberMs||v.enemy.active===false;
+    v.damage.caption.textContent=`−${v.enemy.lastDamage??0}`;
+    v.damage.point.set(v.enemy.x,1+Math.min(1,age/RULES.feedback.damageNumberMs)*.7,v.enemy.z);
+    v.damage.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.damageNumberMs)}`;
   }
 }
 function loadLevel(){
@@ -163,6 +178,7 @@ function loadLevel(){
     const bar=document.createElement('div');bar.className='enemy-health-bar';bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Enemy health');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',v.maxHealth);
     const fill=document.createElement('i');bar.append(fill);v.label.el.append(bar);v.healthBar=bar;v.healthFill=fill;
     v.flash=makeLabel('',new THREE.Vector3(v.enemy.x,.65,v.enemy.z),'enemy-hit-flash');v.flash.el.replaceChildren();
+    v.damage=makeLabel('',new THREE.Vector3(v.enemy.x,2,v.enemy.z),'enemy-damage');v.damage.defeated=true;
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 80 80');svg.setAttribute('aria-hidden','true');
     for(const d of ['M15 8L29 22L20 27L34 41L23 48L34 69','M65 9L53 25L62 31L46 42L57 50L45 72','M4 42L19 35L23 43L36 38','M75 41L61 48L56 39L44 44']){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);svg.append(path);}v.flash.el.append(svg);v.flash.defeated=true;
   }
@@ -182,6 +198,7 @@ function reset(requestedSeed){
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
   resultPending=false;$('#inventory').hidden=true;
+  dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
   // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   round=createRound(seed,Date.now());weapon=createWeapon(RULES.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
@@ -271,7 +288,8 @@ function frame(now){
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);position=moveWithActors(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0)position=moveWithActors(position,{x:delta.x*4.5*dt,z:delta.z*4.5*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
@@ -290,6 +308,12 @@ function frame(now){
     if(result)finishRound('extraction');
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
+  const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||resultPending||tutorialOpen||!$('#inventory').hidden;
+  $('#dash').disabled=dashRemaining>0||dashUnavailable;
+  $('#dash-time').textContent=dashRemaining>0?`${(dashRemaining/1000).toFixed(1)} s`:'READY';
+  $('#dash').style.setProperty('--cooldown',`${dashRemaining/RULES.dash.cooldownMs*100}%`);
+  $('#dash').setAttribute('aria-label',dashRemaining>0?`Dash cooldown ${(dashRemaining/1000).toFixed(1)} seconds`:'Dash ready');
+  playerRing.material.color.set(dash.remaining>0?'#15d6be':'#b4d8d0');
   const aliveProjectiles=new Set(round.over?[]:combat.projectiles.map(b=>b.id));
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   if(!round.over)for(const b of combat.projectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}

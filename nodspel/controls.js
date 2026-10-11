@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=1.17.0';
+import {RULES} from './levels.js?v=1.18.0';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
 export function dragAim(gesture,x,y){
   const dx=x-gesture.origin.x,dy=y-gesture.origin.y,length=Math.hypot(dx,dy);
