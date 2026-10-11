@@ -255,7 +255,7 @@ $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if
 function fire(){
   if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const clock=Date.now(),shot=fireAimedWeapon(weapon,round,position,aim,clock,solids);
+  const clock=Date.now(),shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids);
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
@@ -310,13 +310,13 @@ function frame(now){
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
-    if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
+    if(stepWeapon(weapon,round,clock,dt,playerSolids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     if(collectLoot(round,position,clock,weapon))updateHUD();
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
-    stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
+    stepCombat(round,combat,position,clock,dt,playerSolids);
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
@@ -360,7 +360,7 @@ function frame(now){
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
   aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.95:.3;
-  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;
+  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
