@@ -1,5 +1,5 @@
-import {RULES} from './levels.js?v=1.18.0';
-import {moveWithActors} from './physics.mjs?v=1.18.0';
+import {RULES} from './levels.js?v=1.19.0';
+import {moveWithActors} from './physics.mjs?v=1.19.0';
 export function createDash(){return {readyAt:0,remaining:0,direction:null};}
 export function startDash(state,direction,now){
   const length=Math.hypot(direction.x,direction.z);

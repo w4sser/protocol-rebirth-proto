@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.18.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.18.0';
-import {takeDamage,tickRound} from './round.js?v=1.18.0';
+import {RULES} from './levels.js?v=1.19.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.19.0';
+import {takeDamage,tickRound} from './round.js?v=1.19.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);

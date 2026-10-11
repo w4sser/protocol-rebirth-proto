@@ -1,21 +1,21 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.18.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.18.0';
-import {createCombat,stepCombat} from './combat.js?v=1.18.0';
-import {buildWorld} from './world.js?v=1.18.0';
-import {RULES} from './levels.js?v=1.18.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.18.0';
-import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.18.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.18.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.18.0';
-// import {stepScavenging} from './scavenging.js?v=1.18.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.18.0';
-import {routeComplete} from './objectives.js?v=1.18.0';
-import {createDash,startDash,stepDash} from './dash.js?v=1.18.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.19.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.19.0';
+import {createCombat,stepCombat} from './combat.js?v=1.19.0';
+import {buildWorld} from './world.js?v=1.19.0';
+import {RULES} from './levels.js?v=1.19.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.19.0';
+import {beginAim,dragAim,stepAim,releaseAim} from './controls.js?v=1.19.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.19.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.19.0';
+// import {stepScavenging} from './scavenging.js?v=1.19.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.19.0';
+import {routeComplete} from './objectives.js?v=1.19.0';
+import {createDash,startDash,stepDash} from './dash.js?v=1.19.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.18.0');
+const orderResponse=await fetch('./order.json?v=1.19.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
