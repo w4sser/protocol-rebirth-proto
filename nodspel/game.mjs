@@ -75,7 +75,7 @@ const healCrosses=Array.from({length:6},(_,i)=>{
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
 const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
-const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.10,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.95,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.35,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
@@ -361,7 +361,7 @@ function frame(now){
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
-  aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.95:.3;
+  aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.35:.12;
   const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
