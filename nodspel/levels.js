@@ -30,14 +30,14 @@ export const RULES=Object.freeze({
     sentry:{speedMul:0,rangeMul:1.35,cooldownMul:1.3,standoff:0,color:'#5d8fd6'}},
   variety:[
     {mix:{grunt:1},hazards:0,shieldedNodes:0,theme:{floor:'#444f59',trim:'#6c7882'}},
-    {mix:{grunt:.65,sentry:.35},hazards:1,shieldedNodes:0,theme:{floor:'#4b4a3f',trim:'#8a8566'}},
-    {mix:{grunt:.4,rusher:.35,sentry:.25},hazards:2,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
+    {mix:{grunt:.65,sentry:.35},hazards:1,hazardDps:8,shieldedNodes:0,theme:{floor:'#4b4a3f',trim:'#8a8566'}},
+    {mix:{grunt:.4,rusher:.35,sentry:.25},hazards:2,hazardDps:12,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
   // Player stats. Meta computes them (skills + gear, data/progression.js) and passes ?stats=; core clamps again.
   // Without launch params (standalone) the new-player base applies: slower than before (3.6 vs 4.5 m/s).
   playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:4000},
     clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[2000,6000]},
     gear:['scavenger_vest','scout_rig','dampener_cloak']},
-  hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:600,damagePerSecond:12,clearance:2.2},
+  hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
@@ -180,15 +180,16 @@ function decorateLevel(level){
       if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+H.size/2+.3&&Math.abs(p.z-o.z)<o.d/2+H.size/2+.3))continue;
       if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.clearance))continue;
       if(level.hazards.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.size*2))continue;
-      level.hazards.push({id:`hazard-${h+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,w:H.size,d:H.size,phaseMs:Math.floor(rng()*(H.onMs+H.offMs))});
+      level.hazards.push({id:`hazard-${h+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,w:H.size,d:H.size,phaseMs:Math.floor(rng()*(H.onMs+H.offMs)),dps:v.hazardDps??H.damagePerSecond});
       placed=true;break;
     }}
   }
   return level;
 }
 // Pulsing shock pad: 'off' → 'warn' (telegraph) → 'on' (damages).
-export function hazardState(hazard,now){
-  const H=RULES.hazard,t=((now+hazard.phaseMs)%(H.onMs+H.offMs)+H.onMs+H.offMs)%(H.onMs+H.offMs);
-  if(t>=H.offMs)return 'on';
-  return t>=H.offMs-H.warnMs?'warn':'off';
+export function hazardTiming(hazard,now){
+  const H=RULES.hazard,cycle=H.onMs+H.offMs,t=((now+hazard.phaseMs)%cycle+cycle)%cycle;
+  if(t>=H.offMs)return {state:'on',msLeft:cycle-t};
+  return {state:t>=H.offMs-H.warnMs?'warn':'off',msToOn:H.offMs-t};
 }
+export function hazardState(hazard,now){return hazardTiming(hazard,now).state;}

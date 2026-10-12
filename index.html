@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/bit-smiley-logomark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/bit-portrait.png">
-<title>Protocol Rebirth — Combat Test v0.9.9</title>
+<title>Protocol Rebirth</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root{
@@ -99,6 +99,9 @@
   .shake{animation:shake .5s ease;}
   @keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}
     60%{transform:translate(-3px,-2px)}80%{transform:translate(3px,2px)}}
+  /* Decorative text never takes taps: only real buttons on the base map receive input. */
+  #app.s-base>h1,#app.s-base>.sub,#app.s-base>.restbar,#app.s-base .goalbar,.hubstate,.panhelp{pointer-events:none;}
+  #app-version{position:fixed;right:calc(8px + env(safe-area-inset-right, 0px));bottom:calc(4px + env(safe-area-inset-bottom, 0px));z-index:40;font:9px "IBM Plex Mono",monospace;color:var(--dim);opacity:.6;pointer-events:none;}
   #toast{position:absolute; top:44px; right:12px; width:300px; z-index:30; pointer-events:none;}
   .toastmsg{background:var(--panel2); border:1px solid var(--accent); border-radius:10px; padding:9px 12px;
     font-size:12px; margin-bottom:6px; animation:pop .4s ease;}
@@ -230,7 +233,7 @@
   .baseplate.current{z-index:2;}.baseplate.revealing{animation:plateIn .7s ease both;}
   @keyframes plateIn{from{opacity:0;filter:brightness(.55)}to{opacity:1;filter:brightness(1)}}
   @keyframes plateOut{to{opacity:0}}
-  .mapspot{position:absolute;z-index:3;transform:translate(-50%,-50%);border:1px solid var(--accent);border-radius:9px;
+  .mapspot{position:absolute;z-index:6;transform:translate(-50%,-50%);border:1px solid var(--accent);border-radius:9px;
     padding:6px 9px;background:rgba(7,21,28,.9);color:var(--txt);font:10px "IBM Plex Sans",sans-serif;box-shadow:0 0 12px rgba(21,214,190,.2);cursor:pointer;white-space:nowrap;}
   .mapspot small{display:block;color:var(--dim);font-size:8px;margin-top:2px}.mapspot.locked{border-color:#59636b;color:#aeb8ba;box-shadow:none;}
   .mapspot.ready{border:2px solid #67e59c;color:#a6ffc9;box-shadow:0 0 16px rgba(103,229,156,.45)}
@@ -362,18 +365,19 @@
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
+  <div id="app-version">v1.27.0</div>
   <div id="rotate"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b>
     <span class="small">Protocol Rebirth plays in landscape</span></div>
 </div>
-<script src="data/items.js?v=0.9.11"></script>
-<script src="data/modules.js?v=0.9.11"></script>
-<script src="data/bit.js?v=0.9.11"></script>
-<script src="data/raid_zones.js?v=0.9.11"></script>
-<script src="data/recipes.js?v=0.9.11"></script>
-<script src="data/vendors.js?v=0.9.11"></script>
-<script src="data/retention.js?v=0.9.11"></script>
-<script src="data/progression.js?v=0.9.11"></script>
-<script src="data/combat.js?v=0.9.11"></script>
-<script src="app.js?v=0.9.11"></script>
+<script src="data/items.js?v=1.27.0"></script>
+<script src="data/modules.js?v=1.27.0"></script>
+<script src="data/bit.js?v=1.27.0"></script>
+<script src="data/raid_zones.js?v=1.27.0"></script>
+<script src="data/recipes.js?v=1.27.0"></script>
+<script src="data/vendors.js?v=1.27.0"></script>
+<script src="data/retention.js?v=1.27.0"></script>
+<script src="data/progression.js?v=1.27.0"></script>
+<script src="data/combat.js?v=1.27.0"></script>
+<script src="app.js?v=1.27.0"></script>
 </body>
 </html>

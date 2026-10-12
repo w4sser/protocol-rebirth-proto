@@ -1,15 +1,16 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "0.9.11",
+  "version": "1.27.0",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays",
     "test:logic": "node test/logic.test.js",
     "test:ui": "node test/ui.test.js",
     "test:ftue": "node test/ftue-full.test.js",
     "test:core-loop": "node test/core-loop.test.js",
     "test:reset": "node test/reset.test.js",
-    "test:loot": "node test/loot-coverage.test.mjs"
+    "test:loot": "node test/loot-coverage.test.mjs",
+    "test:overlays": "node test/base-overlays.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

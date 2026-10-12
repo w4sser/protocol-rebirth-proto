@@ -1,25 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.26.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.26.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.26.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.26.0';
-import {RULES,totalNodes} from './levels.js?v=1.26.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.26.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.26.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.26.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.26.0';
-// import {stepScavenging} from './scavenging.js?v=1.26.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.26.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.26.0';
-import {routeComplete} from './objectives.js?v=1.26.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.26.0';
-import {createBIT,stepBIT} from './bit.js?v=1.26.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.26.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.26.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.27.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.27.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.27.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.27.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.27.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.27.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.27.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.27.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.27.0';
+// import {stepScavenging} from './scavenging.js?v=1.27.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.27.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.27.0';
+import {routeComplete} from './objectives.js?v=1.27.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.27.0';
+import {createBIT,stepBIT} from './bit.js?v=1.27.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.27.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.27.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.26.0');
+const orderResponse=await fetch('./order.json?v=1.27.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -83,6 +83,7 @@ const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bu
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
 const launch=readLaunch(location.search);
+let hazardLabels=[];
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
@@ -145,7 +146,7 @@ function updateHUD(){
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
   $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · HOLD':'HOLD';}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
@@ -193,6 +194,7 @@ function loadLevel(){
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:makeLabel('',new THREE.Vector3(h.x,1.2,h.z),'hazard-label')}));
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
   for(const v of world.enemies){
@@ -331,6 +333,8 @@ function frame(now){
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,playerSolids);
     stepHazards(round,position,clock,dt);world.animateHazards?.(clock);
+    for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
+      label.caption.textContent=t.state==='on'?'⚡ SHOCK · KEEP OFF':t.state==='warn'?`⚡ CHARGING ${(t.msToOn/1000).toFixed(1)}`:'⚡ SHOCK PAD';}
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
@@ -365,7 +369,7 @@ function frame(now){
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
     v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
-    v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · HOLD':'HOLD';
+    v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';
   }
   for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
