@@ -1,6 +1,6 @@
 {
   "name": "Protocol Rebirth",
-  "short_name": "Rebirth",
+  "short_name": "Protocol Rebirth",
   "description": "A mobile extraction meta-game prototype.",
   "start_url": "./index.html",
   "scope": "./",
@@ -10,19 +10,19 @@
   "theme_color": "#07151C",
   "icons": [
     {
-      "src": "nodspel/icons/happy-node-large-192.png?v=1.32.1",
+      "src": "nodspel/icons/happy-node-large-192.png?v=1.32.2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "nodspel/icons/happy-node-large-512.png?v=1.32.1",
+      "src": "nodspel/icons/happy-node-large-512.png?v=1.32.2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "nodspel/icons/happy-node.svg?v=1.32.1",
+      "src": "nodspel/icons/happy-node.svg?v=1.32.2",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
