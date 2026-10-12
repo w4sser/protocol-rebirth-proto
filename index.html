@@ -277,11 +277,6 @@
   .modart{height:150px; border-radius:10px; border:1px solid var(--line); margin-bottom:8px;
     background-size:cover; background-position:center;}
   .modart.tall{height:190px;}
-  #rotate{display:none; position:absolute; inset:0; z-index:50; background:var(--bg); color:var(--txt);
-    align-items:center; justify-content:center; flex-direction:column; gap:12px; text-align:center; padding:30px;}
-  #rotate .phoneicon{font-size:40px; animation:rotphone 1.6s ease-in-out infinite;}
-  @keyframes rotphone{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
-  @media (orientation: portrait){ #rotate{display:flex;} }
   #main:has(#app.s-combatDemo) #tabs,#phone:has(#app.s-combatDemo) #topbar{display:none;}
   #phone:has(#app.s-combatDemo) #bitdock{display:none!important;}
   #app.s-combatDemo{padding:0!important;overflow:hidden;background:#06151b;color:#eafff6;}
@@ -347,6 +342,115 @@
   .combat-reload{font-size:8px;padding:9px 8px;}.combat-foot{display:flex;justify-content:space-between;flex:0 0 auto;font-size:7px;}
   .combat-launch{border-color:#1f766f!important;color:#75f9e4!important;}.combat-launch span{float:right;color:#78a39d;font-size:8px;}
   @media(max-height:450px){.combat-shell{gap:4px;padding:5px 8px}.combat-head small{font-size:7px}.combat-arena{min-height:100px}.combat-pad{grid-template-columns:30px 30px 30px;grid-template-rows:24px 24px 24px}.combat-fire{width:58px;height:58px}.combat-pulse{width:48px;height:48px}.combat-foot{font-size:6px}}
+  /* ===== v1.28 base HUD (CoC-inspired): min 14px body / 12px labels, 44px tap targets, text on solid panels ===== */
+  :root{--tap:44px; --fs-body:15px; --fs-label:12px; --ok2:#67e59c; --warn2:#ffb648; --solid:#0d2129;}
+  body{font-size:var(--fs-body);}
+  h1{font-size:20px;} h2{font-size:14px;} .sub,.small,.kv,.card{font-size:14px;} .pill{font-size:12px;}
+  .card{padding:12px 14px;} select{font-size:15px; min-height:var(--tap);}
+  button.primary,button.ghost,button.ad{min-height:var(--tap); font-size:15px;}
+  button.ghost.inline{width:auto; margin:0; padding:8px 14px;}
+  button.ghost:disabled{opacity:.4;}
+  .goalbar{font-size:14px;} .feed{font-size:14px;} #bitline{font-size:14px;} .toastmsg{font-size:14px;}
+  .devgrid button{font-size:12px; min-height:var(--tap);}
+  .slot{font-size:12px; gap:2px;} .slot .qty{font-size:12px; color:var(--txt);} .slot .sicon{font-size:24px; line-height:1;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px;}
+  .progressmoved{font-size:14px;}
+  #app-version{font-size:12px; opacity:.75;}
+  /* top bar: icon + number pills, settings gear */
+  #topbar{gap:8px; padding:calc(6px + env(safe-area-inset-top,0px)) 10px 6px; position:relative; z-index:25;}
+  #topbar .title{font-size:12px;}
+  #currencies{gap:6px; font-size:16px; flex-wrap:wrap; justify-content:flex-end; font-family:"Archivo",sans-serif;}
+  .cur{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:3px 12px 3px 3px; border-radius:22px; border:2px solid var(--line); background:var(--solid); color:var(--txt);}
+  .cur i{width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-style:normal; font-size:17px; background:#163a42;}
+  .cur b{color:var(--txt); font-weight:800;} .cur .lbl{font-size:12px; color:var(--dim);}
+  .cur-scrap i{background:#5b4b33}.cur-salvage i{background:#2f5b3f}.cur-dataCores i{background:#2d3f6a}.cur-signals i{background:#4a2d6a}.cur-fuel i{background:#6a4a2d}
+  .bondpill{min-height:var(--tap); border-color:var(--accent); cursor:pointer; font:inherit;} .bondpill i{background:var(--accent); color:#04222a; font-weight:900;}
+  .iconbtn{width:var(--tap); height:var(--tap); flex:none; border-radius:50%; background:var(--solid); border:2px solid var(--line); color:var(--txt); font-size:20px; display:grid; place-items:center; cursor:pointer;}
+  #menubtn{margin-left:4px;}
+  .menu{position:absolute; right:10px; top:calc(100% + 4px); z-index:45; min-width:230px; background:var(--solid); border:2px solid var(--line); border-radius:16px; padding:10px; box-shadow:0 12px 30px #000c; display:flex; flex-direction:column; gap:8px;}
+  .menu[hidden]{display:none;}
+  .menu-head{font:800 12px "Archivo",sans-serif; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);}
+  .menu button{min-height:var(--tap); border-radius:12px; border:2px solid var(--line); background:#102b33; color:var(--txt); font-size:15px; text-align:left; padding:0 14px; cursor:pointer;}
+  .menu button.reset-progress{color:#ffb4ab; border-color:#6a2d2d; margin:0; width:auto; text-transform:none; letter-spacing:0;}
+  .menu-ver{font:12px "IBM Plex Mono",monospace; color:var(--dim);}
+  /* bottom bar: big icon buttons with badges, RAID is the hero */
+  #tabs{display:flex; flex-direction:row; gap:8px; align-items:flex-end; width:auto; padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px)); background:var(--panel); border-top:1px solid var(--line); border-right:0; flex-shrink:0; z-index:22;}
+  #tabs button{position:relative; flex:1; max-width:110px; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:16px; border:2px solid var(--line); background:var(--solid); color:var(--txt); font:800 12px "Archivo",sans-serif; letter-spacing:.06em; padding:4px 2px; box-shadow:0 4px 0 #031015;}
+  #tabs button .ni{font-size:24px; line-height:1.05;}
+  #tabs button.active{border-color:var(--accent); color:var(--accent); background:var(--solid);}
+  #tabs button.locked{opacity:.45; box-shadow:none;}
+  #tabs .nav-prep{max-width:130px; min-height:72px; background:linear-gradient(#ff8a3c,#d9461f); border:3px solid #ffd2a8; color:#fff; font-size:15px; box-shadow:0 5px 0 #8b2a10;}
+  #tabs .nav-prep.locked{background:var(--solid); border-color:var(--line); color:var(--txt);}
+  #tabs .nav-prep .ni{font-size:28px;}
+  .badge{position:absolute; top:-9px; right:-7px; min-width:24px; height:24px; padding:0 5px; border-radius:12px; display:grid; place-items:center; font:900 13px "Archivo",sans-serif; border:2px solid #fff; box-shadow:0 2px 6px #000a; z-index:2;}
+  .badge.up{background:var(--ok2); color:#04222a}.badge.need{background:var(--warn2); color:#2a1800}.badge.alert{background:var(--danger); color:#fff}
+  body[data-screen=intro] #tabs,body[data-screen=raidsim] #tabs,body[data-screen=checkpoint] #tabs,body[data-screen=combatDemo] #tabs{display:none;}
+  #bitdock{left:12px; bottom:calc(96px + env(safe-area-inset-bottom,0px)); max-width:min(46%,420px);}
+  #toast{top:64px; right:10px; width:min(320px,calc(100% - 20px));}
+  #app{padding-bottom:16px;}
+  /* base: full-bleed map, building plates with level + badges */
+  #app.s-base{padding:0; overflow:hidden; position:relative;}
+  #app.s-base .baseviewer{height:100%; border:0; border-radius:0;}
+  .mapspot.plate{transform:translate(-50%,-50%) scale(var(--inv,1)); background:none; border:0; padding:0; box-shadow:none; min-width:var(--tap); min-height:var(--tap); display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--txt); font:inherit; animation:none;}
+  .mapspot.plate .tag{display:flex; align-items:center; gap:6px; min-height:var(--tap); padding:4px 10px 4px 6px; border-radius:14px; background:var(--solid); border:2px solid var(--accent); font:800 15px "Archivo",sans-serif; white-space:nowrap; box-shadow:0 4px 12px #0009;}
+  .mapspot.plate .tag i{font-style:normal; font-size:20px;}
+  .mapspot.plate .tag em{font-style:normal; min-width:24px; text-align:center; background:var(--accent); color:#04222a; border-radius:8px; padding:0 6px; font-size:14px;}
+  .mapspot.plate small{display:block; font-size:12px; color:var(--txt); background:var(--solid); border-radius:8px; padding:2px 8px; max-width:200px; white-space:normal; margin:0;}
+  .mapspot.plate.locked .tag{border-color:#59636b; color:#c9d2d3;}
+  .mapspot.plate.ready .tag{border-color:var(--ok2); box-shadow:0 0 16px rgba(103,229,156,.5);}
+  .mapspot.plate.ready small{color:#a6ffc9;}
+  .mapspot.plate.gate .tag{border-color:var(--accent2);}
+  .mapspot.plate.unlocked .tag{animation:roomLight 1.2s ease both;}
+  .mapspot.plate.preview .tag{border-style:dashed;}
+  .mapspot.plate .badge{top:-10px; right:-10px;}
+  .baseviewer .hubstate{left:10px; top:10px; font-size:12px; padding:5px 10px; background:var(--solid); border-radius:10px;}
+  .goalpill{position:absolute; z-index:8; left:10px; bottom:12px; max-width:min(360px,calc(100% - 20px)); min-height:52px; display:flex; align-items:center; gap:10px; text-align:left; padding:6px 14px 6px 10px; border-radius:16px; background:var(--solid); border:2px solid var(--track); color:var(--txt); font:inherit; box-shadow:0 6px 16px #000a;}
+  button.goalpill{cursor:pointer;} div.goalpill{pointer-events:none;}
+  .goalpill i{font-style:normal; font-size:24px;} .goalpill small{display:block; font:800 12px "Archivo",sans-serif; letter-spacing:.08em; color:var(--dim);} .goalpill b{font-size:15px;}
+  .goalpill.need{border-color:var(--warn2);} .goalpill.ready{border-color:var(--ok2);}
+  /* building popup: compact sheet with one big action */
+  #overlay.sheet{background:rgba(4,7,10,.45); align-items:flex-end; justify-content:flex-end; padding:12px;}
+  #overlay.sheet .inner{max-width:380px; text-align:left;}
+  .bpop{background:var(--solid); border:2px solid var(--accent); border-radius:20px; padding:12px 14px 14px; box-shadow:0 12px 40px #000c;}
+  .bpop-head{display:flex; align-items:center; gap:8px;} .bpop-head h1{flex:1; font-size:19px; margin:0;}
+  .bpop-head .bicon{font-size:26px;} .bpop-head em{font-style:normal; font:800 13px "Archivo",sans-serif; background:#59636b; border-radius:8px; padding:2px 8px; white-space:nowrap;}
+  .bpop .eff{font-size:15px; color:var(--dim); margin:6px 0 10px;}
+  .costs{display:flex; gap:8px; flex-wrap:wrap;}
+  .cost{flex:1 1 80px; position:relative; background:#102b33; border:2px solid var(--line); border-radius:14px; padding:6px 4px; text-align:center;}
+  .cost i{display:block; font-style:normal; font-size:24px;} .cost b{font-size:17px;} .cost .cname{display:block; font-size:12px; color:var(--dim);}
+  .cost.ok{border-color:var(--ok2);} .cost.miss{border-color:var(--warn2);}
+  .cost .chk{position:absolute; top:-8px; right:-8px; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:13px; font-weight:900;}
+  .cost.ok .chk{background:var(--ok2); color:#04222a} .cost.miss .chk{background:var(--warn2); color:#2a1800}
+  button.primary.big{min-height:56px; font-size:17px; border-radius:16px; margin-top:12px;}
+  button.primary.big.raidcta{background:linear-gradient(#ffd27a,#ffb648); box-shadow:0 5px 0 #a66a12; color:#04222a;}
+  /* portrait is a first-class layout (no rotate gate) */
+  @media (orientation:portrait){
+    #topbar .title{display:none;}
+    #currencies{margin-left:0; justify-content:flex-start; flex:1;}
+    .cur .lbl{display:none;} .cur{min-height:36px;} .bondpill{min-height:var(--tap);} .cur i{width:28px; height:28px; font-size:15px;}
+    #overlay.sheet{justify-content:center;} #overlay.sheet .inner{max-width:none;}
+    #bitdock{bottom:calc(104px + env(safe-area-inset-bottom,0px)); max-width:calc(100% - 24px);}
+  }
+  @media (orientation:landscape) and (max-height:480px){
+    #topbar{padding-top:4px; padding-bottom:4px;} #topbar .title{display:none;}
+    #currencies{margin-left:0; justify-content:flex-start; flex:1;}
+    #tabs{position:absolute; right:10px; bottom:calc(8px + env(safe-area-inset-bottom,0px)); left:auto; background:none; border:0; padding:0; width:auto;}
+    #tabs button{width:68px; flex:none;} #tabs .nav-prep{width:96px; min-height:84px;}
+    #app{padding-bottom:96px;} #app.s-base{padding-bottom:0;}
+    body[data-screen=base] #bitdock{display:none!important;}
+    #app.s-base .goalpill{bottom:12px; max-width:calc(100% - 420px); min-width:200px;}
+    .baseviewer .hubstate{display:none;}
+    body:not([data-screen=base]) #tabs{position:static; background:var(--panel); border-top:1px solid var(--line); padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px)); justify-content:center; align-items:center;}
+    body:not([data-screen=base]) #tabs button,body:not([data-screen=base]) #tabs .nav-prep{flex-direction:row; flex:1; width:auto; max-width:160px; min-height:48px; gap:6px; box-shadow:none;}
+    body:not([data-screen=base]) #tabs .ni{font-size:20px;}
+    body:not([data-screen=base]) #app{padding-bottom:12px;}
+    body:not([data-screen=base]) #bitdock{bottom:calc(64px + env(safe-area-inset-bottom,0px));}
+    #app.s-prep>button.primary,#app.s-decision .decision-actions{position:sticky; left:auto; right:auto; bottom:0; width:100%;}
+  }
+  #overlay.sheet{z-index:30;}
+  @media (orientation:portrait){
+    #app.s-base .goalpill{top:52px; bottom:auto; left:10px; right:10px; max-width:none;}
+  }
 </style>
 </head>
 <body class="base-dark">
@@ -354,30 +458,34 @@
   <div id="topbar">
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <button id="reset-progress" class="reset-progress" type="button" title="Reset all progress on this device" aria-label="Reset progress">↺ Reset</button>
+    <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
+    <div id="settings-menu" class="menu" role="menu" hidden>
+      <div class="menu-head">Settings</div>
+      <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
+      <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.28.0</span></div>
+    </div>
   </div>
   <div id="main">
-    <nav id="tabs"></nav>
     <div id="app"></div>
   </div>
+  <nav id="tabs" aria-label="Main"></nav>
   <div id="bitdock" style="display:none">
     <div id="bitface">ᵕ‿ᵕ</div>
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
-  <div id="app-version">v1.27.0</div>
-  <div id="rotate"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b>
-    <span class="small">Protocol Rebirth plays in landscape</span></div>
-</div>
-<script src="data/items.js?v=1.27.0"></script>
-<script src="data/modules.js?v=1.27.0"></script>
-<script src="data/bit.js?v=1.27.0"></script>
-<script src="data/raid_zones.js?v=1.27.0"></script>
-<script src="data/recipes.js?v=1.27.0"></script>
-<script src="data/vendors.js?v=1.27.0"></script>
-<script src="data/retention.js?v=1.27.0"></script>
-<script src="data/progression.js?v=1.27.0"></script>
-<script src="data/combat.js?v=1.27.0"></script>
-<script src="app.js?v=1.27.0"></script>
+  <div id="app-version">v1.28.0</div>
+ </div>
+<script src="data/items.js?v=1.28.0"></script>
+<script src="data/modules.js?v=1.28.0"></script>
+<script src="data/bit.js?v=1.28.0"></script>
+<script src="data/raid_zones.js?v=1.28.0"></script>
+<script src="data/recipes.js?v=1.28.0"></script>
+<script src="data/vendors.js?v=1.28.0"></script>
+<script src="data/retention.js?v=1.28.0"></script>
+<script src="data/progression.js?v=1.28.0"></script>
+<script src="data/combat.js?v=1.28.0"></script>
+<script src="app.js?v=1.28.0"></script>
 </body>
 </html>

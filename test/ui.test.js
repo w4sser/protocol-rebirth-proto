@@ -26,7 +26,8 @@ const revealRoomThroughHotspot = id => {
 };
 
 // shell
-assert(doc.getElementById("topbar") && doc.getElementById("rotate"), "landscape shell");
+assert(doc.getElementById("topbar") && !doc.getElementById("rotate"), "shell plays in portrait too (no rotate gate)");
+assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-menu #reset-progress"), "settings menu holds Reset");
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
 A.dismissIntro();
 // The combat sandbox opens from prep, accepts a shot, and closes without
@@ -73,7 +74,8 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_found"), "b
 assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(text().includes("PLATE 00"), "dormant plate label");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "dormant_core", "found state restores audio profile");
-assert.equal(doc.querySelectorAll("#tabs button").length, 1, "found state locks non-base navigation");
+assert.equal(doc.querySelectorAll("#tabs button:not([disabled])").length, 0, "found state locks non-base navigation");
+assert.equal(doc.querySelectorAll("#tabs button").length, 4, "bottom bar shows RAID/STASH/SHOP/BIT");
 A.go("module","fabricator");
 assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot open its module flow");
 
@@ -82,10 +84,17 @@ assert(cur0.includes("Scrap") && !cur0.includes("Signals") && !cur0.includes("Fu
 
 // Keyboard activation still works after dragging, without another pointerdown.
 dragTarget.dispatchEvent(new window.MouseEvent("click", { bubbles:true, detail:0 }));
-assert.equal(doc.getElementById("app").className, "s-module", "keyboard opens Core after a drag");
+assert(doc.querySelector("#overlay .bpop[data-module=rebirth_core]"), "keyboard opens the Core popup after a drag");
+assert.equal(doc.querySelectorAll("#overlay .bpop button.primary").length, 1, "popup has exactly one primary action");
+assert(/BUILD|RAID FOR/.test(doc.querySelector("#overlay .bpop button.primary").textContent), "primary action is build or raid-for");
+doc.querySelector("#overlay [data-close]").click();
 A.go("base");
 tap(doc.querySelector(".core-spot"));
-assert.equal(doc.getElementById("app").className, "s-module", "pointer tap opens Core");
+assert(doc.querySelector("#overlay .bpop"), "pointer tap opens the Core popup");
+assert(doc.querySelector(".core-spot .tag em"), "building plate shows its level");
+A.buildingInfo("rebirth_core");
+assert(!doc.getElementById("overlay"), "info closes the popup");
+assert.equal(doc.getElementById("app").className, "s-module", "ⓘ opens Core details");
 // Core L1 boot
 A.build("rebirth_core");
 await sleep(5400);
@@ -105,8 +114,8 @@ assert(!doc.body.classList.contains("base-dark"), "base env lit after Core L1");
 assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable"), "bunker becomes habitable after first build");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "powered_hub", "habitable state selects powered audio profile");
-assert.equal(doc.querySelectorAll("#tabs button").length, 3, "habitable state unlocks navigation");
-assert(text().includes("NEXT GOAL · OPEN FABRICATOR"), "base names the next room");
+assert(doc.querySelectorAll("#tabs button:not([disabled])").length >= 3, "habitable state unlocks navigation");
+assert(text().includes("OPEN FABRICATOR"), "base names the next room");
 assert(!text().includes("NEXT UPGRADE"), "next room has no competing upgrade card");
 assert(text().includes("Fabricator") && text().includes("Restore power"), "locked room shows its requirement");
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;
@@ -160,7 +169,7 @@ let ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").
 
 assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
 assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').textContent.includes("✓ Bring the Fabricator online"), "Vault checks its completed prerequisite");
-assert(text().includes("NEXT GOAL · OPEN VAULT"), "base names the next room goal");
+assert(text().includes("OPEN VAULT"), "base names the next room goal");
 A.raidForRoom("storage");
 assert(text().includes("Gather repair materials for Storage / Vault"), "raid goal follows the chosen next room instead of the scripted BIT goal");
 A.go("base"); A.track("bit_bay",1);
@@ -185,7 +194,10 @@ A.deploy(); A.raidStep(); A.backToBase();
 
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
-assert(text().includes("BIT — Bond LV"), "bond card");
+A.go("bit");
+assert(text().includes("BIT — Bond LV"), "bond card on the BIT screen");
+assert(doc.querySelector("#currencies .bondpill"), "bond pill in the top bar");
+assert(doc.querySelector("#tabs .nav-bit:not([disabled])"), "BIT button unlocked in bottom bar");
 // curated self-expression: cosmetic style for the built BIT Bay
 A.go("module","bit_bay");
 assert(text().includes("Cozy Tech") && text().includes("Retro-Tech"), "style options for built room");
@@ -232,16 +244,16 @@ window.eval("Math.random = window.__origRnd;");
 A.backToBase();
 
 // retention: core mode has none of it
-A.go("base");
+A.go("bit");
 assert(!text().includes("Send BIT on expedition"), "no expedition in core mode");
 // full mode
 A.go("dev"); doc.getElementById("devret").value = "full"; A.devRetMode();
 assert(doc.getElementById("currencies").textContent.includes("Fuel"), "fuel chip in full");
-A.go("base");
+A.go("bit");
 assert(text().includes("Send BIT on expedition"), "expedition card in full");
 A.go("prep"); assert(text().includes("Fuel"), "fuel section on prep");
 // expedition round trip via dev timer
-A.go("base"); A.sendExpedition();
+A.go("bit"); A.sendExpedition();
 assert(text().includes("BIT is in the field"), "expedition running");
 A.go("dev"); A.devFinishTimers();
 const ovm = doc.getElementById("overlay");

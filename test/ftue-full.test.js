@@ -35,13 +35,14 @@ A.deploy(); A.raidStep(); A.backToBase();
 A.openRoom("storage"); A.unlockRoom("storage"); A.openRoom("bit_bay"); A.unlockRoom("bit_bay");
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+A.go("bit");
 assert(text().includes("BIT — Bond LV"), "BIT online");
 A.devForce("extract");
 A.go("prep"); A.prepSet("insuranceId","none"); A.deploy(); A.raidStep();
 if(text().includes("DECISION POINT")) A.extractNow();
 A.backToBase();
 if(sv().beat >= 7){
-  A.go("base");
+  A.go("bit");
   assert(text().includes("Daily contracts"), "contracts visible post-FTUE in full mode");
 }
 console.log("FTUE FULL-MODE WALKTHROUGH PASSED (beat=" + sv().beat + ", fuel=" + sv().fuel + ")");

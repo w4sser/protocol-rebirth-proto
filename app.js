@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.27.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.28.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -511,9 +511,9 @@ function toast(msg){
   document.getElementById("toast").appendChild(t);
   setTimeout(()=>t.remove(), 2600);
 }
-function overlay(html, onClose){
+function overlay(html, onClose, cls){
   const o = document.createElement("div");
-  o.id = "overlay";
+  o.id = "overlay"; if(cls) o.className = cls;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
   o.addEventListener("click", e => {
     if(e.target.dataset.close !== undefined || e.target.id === "ovclose"){ o.remove(); if(onClose) onClose(); }
@@ -521,6 +521,7 @@ function overlay(html, onClose){
   document.getElementById("phone").appendChild(o);
   return o;
 }
+function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
                  "> rerouting grid . . .",
@@ -575,21 +576,44 @@ function revealCurrency(id){
     renderCurrencies();
   }
 }
+const CUR_ICONS = { scrap:"⚙", dataCores:"◆", salvage:"♻", signals:"📡", fuel:"⛽" };
+const ROOM_ICONS = { rebirth_core:"⚛", fabricator:"🛠", storage:"🔐", bit_bay:"🤖", living_quarters:"🛏" };
+const ITEM_ICONS = { cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
+function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? "🦺" : "▣"); }
+function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage"); }
+function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 function renderCurrencies(){
   const c = S.cur;
-  const fuelChip = retMode() === "full"
-    ? '<span class="cur">Fuel <b>' + S.fuel + '/' + D.retention.fuel.max + '</b></span>' : '';
-  document.getElementById("currencies").innerHTML = fuelChip +
-    Object.keys(CUR_LABELS).filter(id => S.revealed[id])
-      .map(id => '<span class="cur">' + CUR_LABELS[id] + ' <b>' + c[id] + '</b></span>').join("") +
-    '<button id="devbtn" onclick="A.go(\'dev\')">⚙</button>';
+  const pill = (id, label, val) => '<span class="cur cur-' + id + '" title="' + label + '"><i aria-hidden="true">' + CUR_ICONS[id] + '</i><span class="lbl">' + label + ' </span><b>' + val + '</b></span>';
+  let h = retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
+  h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
+  if(bitOnline()){
+    const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
+    h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
+  }
+  document.getElementById("currencies").innerHTML = h;
+}
+function navAllowed(id){ return id === "bit" ? bitOnline() : baseAllows("navigation", id); }
+function navBadge(id){
+  if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
+  if(id === "stash" && stashSlotsUsed() > stashCapacity()) return ["alert","!"];
+  if(id === "bit" && contractsUnlocked()){
+    const n = Object.values(S.contracts || {}).filter(v => v === "done").length;
+    if(n) return ["up", String(n)];
+  }
+  return null;
 }
 function renderTabs(){
-  const tabs = [["base","Base"],["stash","Stash"],["vendor","Vendor"]]
-    .filter(([id]) => baseAllows("navigation", id));
-  document.getElementById("tabs").innerHTML = tabs.map(([id,label]) =>
-    '<button class="' + (session.screen===id?"active":"") + '" onclick="A.go(\'' + id + '\')">' + label + '</button>'
-  ).join("");
+  const items = [["prep","⚔","RAID"],["stash","🎒","STASH"],["vendor","🛒","SHOP"],["bit","🤖","BIT"]];
+  if(session.screen !== "base") items.unshift(["base","🏠","BASE"]);
+  document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
+    const ok = navAllowed(id), b = ok && navBadge(id);
+    const active = session.screen === id || (id === "vendor" && session.screen === "vendor");
+    return '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + '" ' +
+      (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
+      '<span class="ni" aria-hidden="true">' + (ok ? icon : '🔒') + '</span>' + label +
+      (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
+  }).join("");
 }
 function checkBeatAutoAdvance(){
   const b = curBeat();
@@ -602,6 +626,7 @@ function refresh(bitTrigger, bitVars){
   tickRetention();
   checkBeatAutoAdvance();
   $app().setAttribute("class", "s-" + session.screen);
+  document.body.dataset.screen = session.screen;
   renderCurrencies(); renderTabs();
   const profile = baseState();
   document.body.classList.toggle("base-dark", profile.lighting === "emergency");
@@ -800,6 +825,7 @@ function setupBaseViewer(){
     x = Math.max(minX, Math.min(0, x)); y = Math.max(minY, Math.min(0, y));
     session.camera.x = (vw/2 - x) / sw; session.camera.y = (vh/2 - y) / sh;
     world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+    world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
   }
   viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; });
   viewer.addEventListener("pointermove", e => {
@@ -816,7 +842,7 @@ function setupBaseViewer(){
   viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
   viewer.addEventListener("click", e => {
     const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); return; }
-    if(spot.dataset.destination) A.go("module", spot.dataset.destination);
+    if(spot.dataset.destination) A.openBuilding(spot.dataset.destination);
     else if(spot.dataset.gate && baseAllows("navigation","prep")) A.go("prep");
     else if(spot.dataset.room) A.openRoom(spot.dataset.room);
   });
@@ -826,63 +852,92 @@ function setupBaseViewer(){
   const next=D.baseMap.plates[shownStage+1]; if(next){ const img=new Image(); img.src=next.art; }
 }
 
+function goalPillHtml(nextRoom){
+  const pill = (cls, icon, head, body, onclick) => (onclick ? '<button type="button" class="goalpill ' + cls + '" onclick="' + onclick + '">' : '<div class="goalpill ' + cls + '">') +
+    '<i aria-hidden="true">' + icon + '</i><span><small>' + head + '</small><b>' + esc(body) + '</b></span>' + (onclick ? '</button>' : '</div>');
+  if(curBeat().type === "end") return pill("ready", "🏁", "PROTOTYPE COMPLETE", "View stats", "A.go('end')");
+  if(nextRoom) return pill("ready", "🔓", "NEXT GOAL", "OPEN " + nextRoom.label.toUpperCase(), "A.openRoom('" + nextRoom.id + "')");
+  if(coreLevel() >= 1){
+    const miss = trackedMissingItem();
+    if(!ftueOver() && miss && S.tracked){
+      return pill("need", "🎯", "NEXT UPGRADE · " + esc(MODS[S.tracked.module].name), (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name, "A.go('prep')");
+    }
+    if(!ftueOver() && S.tracked && MODS[S.tracked.module]) return pill("ready", "⚒", "ALL PARTS FOUND", "BUILD " + MODS[S.tracked.module].name.toUpperCase(), "A.openBuilding('" + S.tracked.module + "')");
+    const ready = ftueOver() ? buildableCount() : 0;
+    if(ready > 0) return pill("ready", "⚒", ready + " UPGRADE" + (ready > 1 ? "S" : "") + " READY", "Tap a ⚒ room", null);
+  }
+  return pill("", "🎯", "CURRENT GOAL", curBeat().goalText || "", null);
+}
+function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
+  return '<button type="button" class="mapspot plate ' + cls + '" style="' + style + '" ' + attrs + '>' +
+    '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">' + level + '</em>' : '') + '</span>' +
+    (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
+}
+function moduleBadge(modId){
+  const next = nextLevelDef(modId);
+  if(!next || next.level > moduleCap(modId)) return null;
+  if(canAfford(next.cost)) return ["up","⚒"];
+  if(S.tracked && S.tracked.module === modId){
+    const parts = costParts(next.cost);
+    return ["need", parts.filter(p => p.have >= p.need).length + "/" + parts.length];
+  }
+  return null;
+}
 SCREENS.base = function(){
   if(!S.introSeen){ session.screen = "intro"; return SCREENS.intro(); }
   const restorePct = Math.min(100, Math.round(
     Object.values(S.modules).reduce((a,b)=>a+b,0) /
     D.modules.reduce((a,m)=>a+m.levels.length,0) * 100));
-  let html = '<h1>Rebirth Facility</h1><div class="sub">restoration ' + restorePct + '%</div>' +
-    '<div class="restbar always-lit"><div style="width:' + restorePct + '%"></div></div><br>';
-
   const nextRoom = nextAccessRoom();
-  if(nextRoom){
-    html += '<div class="nextup access-next"><div class="nu-head">NEXT GOAL · OPEN ' + esc(nextRoom.label).toUpperCase() + '</div>' +
-      '<span class="ok">✓ ' + esc(nextRoom.requirement.text) + '</span><p class="small">Access is available. Inspect the room to see its repairs and reward.</p>' +
-      '<button class="primary" onclick="A.openRoom(\'' + nextRoom.id + '\')">🔓 EXPLORE ' + esc(nextRoom.label).toUpperCase() + '</button></div>';
-  }
-  if(!nextRoom) html += goalBarHtml();
   const BM = D.baseMap;
   const hub = baseState();
   const savedStage = bunkerStage();
   const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
   const plate = BM.plates[stage];
   const previous = session.plateStage !== null && session.plateStage !== stage ? BM.plates[session.plateStage] : null;
-  html += '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
+  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
-    '<button class="mapspot core-spot" style="left:' + BM.core.x + '%;top:' + BM.core.y + '%" data-destination="rebirth_core"><b>' + esc(BM.core.label) + '</b></button>';
+    plateHtml("core-spot", 'left:' + BM.core.x + '%;top:' + BM.core.y + '%', 'data-destination="rebirth_core" aria-label="' + esc(BM.core.label) + '"', ROOM_ICONS.rebirth_core, "Core", coreLevel(), baseAllows("interactions","rebirth_core") ? moduleBadge("rebirth_core") : null, "");
   for(const room of BM.rooms){
     const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
     const shownOpen = unlocked || previewUnlocked;
     const ready = !shownOpen && roomRequirementMet(room);
-    const prior = BM.rooms[room.stage - 2];
-    const requirement = prior && !roomUnlocked(prior.id) && (!room.requirement.module || (S.modules[room.requirement.module] || 0) >= room.requirement.level)
-      ? "Open " + prior.label + " first" : room.requirement.text;
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
-    html += '<button class="mapspot room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + '" style="left:' + room.x + '%;top:' + room.y + '%" data-room="' + room.id + '">' +
-      (shownOpen ? '<b>' + esc(room.label) + '</b>' + (selectedStyle ? '<small class="style-status">✦ ' + esc(selectedStyle.name) + '</small>' : '') : (ready ? '🔓 ' : '🔒 ') + esc(room.label) + '<small>' + (ready ? '✓ ' : '') + esc(requirement) + '</small>') + '</button>';
+    const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
+    const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up","✓"] : null;
+    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">✦ ' + esc(selectedStyle.name) + '</span>' : '') : ready ? '✓ ' + esc(room.requirement.text) : '';
+    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : ''),
+      'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
+      shownOpen ? (ROOM_ICONS[room.id] || "▣") : (ready ? "🔓" : "🔒"), room.label, shownOpen ? lvl : null, badge, sub);
   }
-  html += '<button class="mapspot gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1">◎ ' + esc(BM.raidGate.label) + '</button>' +
-    '</div><div class="hubstate">BUNKER · ' + esc(hub.label) + ' · PLATE 0' + stage + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div><div class="panhelp">DRAG TO EXPLORE</div></div>';
+  html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">◎</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + goalPillHtml(nextRoom) + '</div>';
   session.plateStage = stage;
   session.wake = false;
-  if(bitOnline()){
-    const bl = bondLevel();
-    const cap = D.bit.bondLevels.find(b=>b.level===bl);
-    const nxt = D.bit.bondLevels.find(b=>b.level===bl+1);
-    html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
-      '<div class="small">' + esc(cap.capability) + '</div></div>';
-  }
-  if(bitOnline() && retMode() !== "core"){
+  $app().innerHTML = html;
+  setupBaseViewer();
+};
+
+// BIT hub: bond, expedition and daily contracts live here instead of crowding the map.
+SCREENS.bit = function(){
+  let html = '<h1>🤖 BIT</h1>';
+  if(!bitOnline()){ $app().innerHTML = html + '<div class="card">BIT Bay is offline. Repair it first.</div>'; return; }
+  const bl = bondLevel();
+  const cap = D.bit.bondLevels.find(b=>b.level===bl);
+  const nxt = D.bit.bondLevels.find(b=>b.level===bl+1);
+  html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
+    '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
+    '<div class="small">' + esc(cap.capability) + '</div></div>';
+  if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
         Math.max(0, Math.ceil((S.expedition.returnAt - Date.now())/1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
     } else {
       const ec = D.retention.expedition.costScrap;
       html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
-        '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (S.cur.scrap >= ec ? '' : 'opacity:.4') + '" ' +
-        (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + ec + ' Scrap</button></div>' +
+        '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>⚙ ' + ec + '</button></div>' +
         '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
     }
   }
@@ -895,42 +950,11 @@ SCREENS.base = function(){
       const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
       html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? "✔ " : "") + esc(c.txt) + '</span>' +
         (st === "done"
-          ? '<button class="ghost" style="width:auto;margin:0;padding:6px 12px" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
+          ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
           : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
     }
   }
-  if(coreLevel() >= 1 && curBeat().type !== "end" && !nextRoom){
-    const missB = trackedMissingItem();
-    if(!ftueOver() && missB){
-      // FTUE: strongly guided — name the target, show the best lead, one clear CTA.
-      const leadB = guidedRaid() ? { zone:ZONES[PROG.starterRaid.zoneId], route:routeOf(ZONES[PROG.starterRaid.zoneId], PROG.starterRaid.routeId), label:"Starter mission" } : bestLead(missB.itemId);
-      const tm = MODS[S.tracked.module];
-      const tnext = tm.levels.find(l => l.level === S.tracked.level);
-      if(tnext){
-        html += '<div class="nextup"><div class="nu-head">NEXT UPGRADE</div><b>' + esc(tm.name) + ' L' + S.tracked.level + '</b><div style="margin:4px 0">' +
-          costParts(tnext.cost).map(pp => {
-            const nm = pp.kind === "item" ? ITEMS[pp.id].name : (pp.id === "dataCores" ? "Data Cores" : "Salvage");
-            return '<span class="chip ' + (pp.have >= pp.need ? "ok" : "need") + '">' + esc(nm) + ' ' + Math.min(pp.have,pp.need) + '/' + pp.need + '</span>';
-          }).join(" ") + '</div>' +
-          (leadB ? '<div class="kv"><span>Best lead</span><span class="trackc">' + esc(leadB.zone.name) + ' — ' + esc(leadB.route.name) + ' (' + leadB.label + ')</span></div>' : '') +
-          '</div>';
-      }
-      html += '<button class="primary" onclick="A.go(\'prep\')">RAID FOR ' + esc(ITEMS[missB.itemId].name).toUpperCase() + '</button>';
-    } else if(!ftueOver() && S.tracked){
-      html += '<button class="primary" onclick="A.goBuild(\'' + S.tracked.module + '\')">ALL PARTS FOUND — BUILD ' + esc(MODS[S.tracked.module].name).toUpperCase() + '</button>' +
-        '<button class="ghost" onclick="A.go(\'prep\')">Raid anyway</button>';
-    } else {
-      // Post-FTUE: no hand-picked upgrade. Just tell the player how many are within
-      // reach and let them inspect the glowing rooms and decide for themselves.
-      const ready = buildableCount();
-      if(ready > 0) html += '<div class="nextup"><div class="nu-head">' + ready + ' UPGRADE' + (ready>1?'S':'') + ' READY</div>' +
-        '<span class="small">Tap a glowing room to see what it does. Your call.</span></div>';
-      html += '<button class="primary" onclick="A.go(\'prep\')">PREPARE RAID</button>';
-    }
-  }
-  if(curBeat().type === "end"){ html += '<button class="primary" onclick="A.go(\'end\')">PROTOTYPE COMPLETE — VIEW STATS</button>'; }
   $app().innerHTML = html;
-  setupBaseViewer();
 };
 
 SCREENS.module = function(modId){
@@ -939,7 +963,7 @@ SCREENS.module = function(modId){
   const next = nextLevelDef(modId);
   const visible = moduleVisible(modId);
   let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
-    '<h1>' + esc(m.name) + '</h1><div class="sub">Level ' + lvl + ' · ' + esc(m.blurb) + '</div>';
+    '<h1>ⓘ ' + esc(m.name) + '</h1><div class="sub">Level ' + lvl + ' · ' + esc(m.blurb) + '</div>';
   if(!visible){
     html += '<div class="card"><span class="small">This section has no power. Restore the Rebirth Core first.</span></div>';
   } else if(!next){
@@ -999,7 +1023,7 @@ SCREENS.stash = function(){
       const cls = ["slot","r-"+it.rarity];
       if(S.reserved[id]) cls.push("reserved");
       if(S.secureItem === id) cls.push("secure");
-      html += '<div class="' + cls.join(" ") + '" onclick="A.itemDetail(\'' + id + '\')">' + esc(it.name) +
+      html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
         '<span class="qty">×' + S.stash[id] + '</span></div>';
     }
     html += '</div>';
@@ -1695,7 +1719,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen)) return;
+    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
@@ -1718,6 +1742,7 @@ window.A = {
     refresh();
   },
   build(modId){
+    closeBuildingPopup();
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     payCost(next.cost);
@@ -2020,7 +2045,7 @@ window.A = {
   },
   openRoom(id){
     const room=roomDef(id); if(!room) return;
-    if(roomUnlocked(id)){ if(room.destination) A.go("module", room.destination); else overlay('<h1>Living Quarters</h1><p class="sub">A quiet place to recover between raids. Full room systems arrive beyond this prototype.</p><button class="primary" data-close>RETURN TO CORE</button>'); return; }
+    if(roomUnlocked(id)){ if(room.destination) A.openBuilding(room.destination); else overlay('<h1>Living Quarters</h1><p class="sub">A quiet place to recover between raids. Full room systems arrive beyond this prototype.</p><button class="primary" data-close>RETURN TO CORE</button>'); return; }
     const ready=roomRequirementMet(room);
     const next=room.destination && nextLevelDef(room.destination);
     const needsParts=next && !canAfford(next.cost);
@@ -2032,6 +2057,39 @@ window.A = {
         (needsParts ? '<p class="sub">Raid for the missing materials, return, and bring this room online.</p><button class="primary" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' : '') +
         '<button class="' + (needsParts ? 'ghost' : 'primary') + '" onclick="A.unlockRoom(\'' + room.id + '\')">' + (needsParts ? 'OPEN ACCESS ONLY — REPAIRS STILL NEEDED' : 'REVEAL ROOM') + '</button>' :
         '<div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') + '<button class="ghost" data-close>BACK</button>');
+  },
+  openBuilding(modId){
+    const m = MODS[modId]; if(!m || !baseAllows("interactions", modId)) return;
+    const room = roomDef(modId); if(modId !== "rebirth_core" && room && !roomUnlocked(modId)) return A.openRoom(modId);
+    closeBuildingPopup();
+    const lvl = S.modules[modId] || 0, next = nextLevelDef(modId);
+    let body, cta;
+    if(!next){
+      body = '<p class="eff">Maximum level reached.</p>';
+      cta = '<button class="primary big" disabled>MAX LEVEL</button>';
+    } else {
+      const parts = costParts(next.cost);
+      body = '<p class="eff">' + esc(next.benefitText || next.unlockText || m.blurb) + '</p><div class="costs">' + parts.map(p => {
+        const ok = p.have >= p.need;
+        return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? '✓' : '!') + '</span></div>';
+      }).join("") + '</div>';
+      const miss = parts.find(p => p.have < p.need);
+      if(next.level > moduleCap(modId)) cta = '<button class="primary big" onclick="A.openBuilding(\'rebirth_core\')">UPGRADE CORE FIRST</button>';
+      else if(!miss) cta = '<button class="primary big" onclick="A.build(\'' + modId + '\')">' + (lvl ? 'UPGRADE' : 'BUILD') + '</button>';
+      else cta = '<button class="primary big raidcta" onclick="A.raidForModule(\'' + modId + '\')">RAID FOR ' + partIcon(miss) + ' ' + esc(partName(miss)).toUpperCase() + '</button>';
+    }
+    overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || "▣") + '</span><h1>' + esc(m.name) + '</h1>' +
+      '<em>L' + lvl + (next ? ' → L' + next.level : '') + '</em>' +
+      '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">ⓘ</button>' +
+      '<button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div>' + body + cta + '</div>', null, "sheet");
+  },
+  buildingInfo(modId){ closeBuildingPopup(); A.go("module", modId); },
+  raidForModule(modId){
+    const next = nextLevelDef(modId); if(!next) return;
+    if(!S.tracked || S.tracked.module !== modId || S.tracked.level !== next.level) S.trackedStreak = 0;
+    S.tracked = { module:modId, level:next.level }; act("TRACK_SET", S.tracked);
+    closeBuildingPopup();
+    A.go("prep");
   },
   raidForRoom(id){
     const room=roomDef(id);
@@ -2184,6 +2242,13 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   });
   const resetBtn = document.getElementById("reset-progress");
   if(resetBtn) resetBtn.addEventListener("click", () => resetProgress());
+  const menuBtn = document.getElementById("menubtn"), menu = document.getElementById("settings-menu");
+  const setMenu = open => { if(!menu) return; menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); };
+  if(menuBtn) menuBtn.addEventListener("click", e => { e.stopPropagation(); setMenu(menu.hidden); });
+  document.addEventListener("click", e => { if(menu && !menu.hidden && !menu.contains(e.target) && e.target !== menuBtn) setMenu(false); });
+  const devBtn = document.getElementById("devbtn");
+  if(devBtn) devBtn.addEventListener("click", () => { setMenu(false); A.go("dev"); });
+  { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
   if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
