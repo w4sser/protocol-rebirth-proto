@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.33.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.33.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -522,6 +522,13 @@ function toast(msg){
   t.className = "toastmsg"; t.textContent = msg;
   document.getElementById("toast").appendChild(t);
   setTimeout(()=>t.remove(), 2600);
+}
+// Any screen/tab change or raid launch closes every popup, modal and menu.
+function closeAllPopups(){
+  if(typeof document === "undefined") return;
+  document.querySelectorAll("#overlay, .bpop").forEach(el => (el.closest("#overlay") || el).remove());
+  const m = document.getElementById("settings-menu"); if(m) m.hidden = true;
+  session.focusSpot = null;
 }
 function overlay(html, onClose, cls){
   const o = document.createElement("div");
@@ -1827,6 +1834,7 @@ window.A = {
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
+    closeAllPopups();
     session.screenEnterTs = Date.now();
     session.screen = screen; session.screenParam = param;
     if(screen === "prep"){ session.prep = null; session.routeLogged = false; }
@@ -1946,6 +1954,7 @@ window.A = {
     S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit };
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
+    closeAllPopups();
     (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit }));
   },
   deploy(){
