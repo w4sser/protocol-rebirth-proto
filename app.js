@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.29.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.30.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1125,15 +1125,13 @@ SCREENS.prep = function(){
   }
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   const gear = nodeRaidGear();
-  const head = '<div class="prephead"><button class="ghost inline" onclick="A.go(\'base\')" aria-label="Back to base">‹</button><h1>Raid Prep</h1>' +
-    (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml()) + prepTargetHtml(miss) + '</div>';
-  const deploy = '<div class="deploybar"><button class="primary big node-raid-launch" onclick="A.deployNodeRaid()">⚔ DEPLOY — NODE RAID</button></div>';
-  let html = head;
+  let html = lobbyHtml(gear, miss, guidedRaid());
+  const missionOpen = '<section id="mission-panel" class="mission-panel"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head"><h1>🗺 Mission</h1><button type="button" class="iconbtn" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button></div>' +
+    (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
+
   if(guidedRaid()){
     const cfg = PROG.starterRaid, target = MODS[PROG.raidPrepUnlockModule];
-    html += '<div class="prepgrid starter-prep"><div class="pcol">' +
-      '<h2>Basic loadout · equipped</h2>' + loadoutSlotsHtml(true) + '</div><div class="pcol">' + operatorRowHtml(gear) + gearRiskHtml(gear) + '</div></div>' + deploy;
-    html += '<details class="card prep-plan"><summary>MISSION · ' + esc(cfg.name) + '</summary><div class="card starter-mission"><div class="nu-head">YOUR FIRST RAID</div><h2>' + esc(cfg.name) + '</h2>' +
+    html += missionOpen + '<div class="prepgrid starter-prep"><h2>Basic loadout · equipped</h2></div><div class="card starter-mission"><div class="nu-head">YOUR FIRST RAID</div><h2>' + esc(cfg.name) + '</h2>' +
       '<p>Search for repair materials, then return to restore the Fabricator.</p>' +
       '<div class="small">' + esc(zoneSel.name) + ' · ' + esc(routeOf(zoneSel,p.routeId).name) + ' · Standard risk</div>' +
       (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div>' +
@@ -1143,11 +1141,10 @@ SCREENS.prep = function(){
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
-    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></details>';
+    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
     $app().innerHTML = html; return;
   }
-  html += '<div class="prepgrid"><div class="pcol"><h2>Loadout</h2>' + loadoutSlotsHtml(false) + '</div><div class="pcol">' + operatorRowHtml(gear) + gearRiskHtml(gear) +
-    '<div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
+  html += missionOpen + '<div class="prepgrid"><div class="pcol"><div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
   const ownsWeapon = Object.keys(S.stash).some(id => S.stash[id] > 0 && ITEMS[id].slot === "weapon");
   if(!ownsWeapon){
     const eCost = Math.min(PROG.recovery.cheapLoadoutScrap, S.cur.scrap);
@@ -1156,8 +1153,6 @@ SCREENS.prep = function(){
       '<button class="ghost" onclick="A.emergencyLoadout()">EMERGENCY LOADOUT — ' + (eCost > 0 ? eCost + ' SCRAP' : 'FREE') + '</button></div>';
   }
 
-  html += deploy;
-  html += '<details class="card prep-plan"' + (session.planOpen ? ' open' : '') + ' ontoggle="A.planToggle(this.open)"><summary>MISSION PLANNING · zone, route, risk, insurance, crafting</summary>';
   html += '<div class="card prep-benefit"><span class="ok">✓ FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
   html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
@@ -1234,15 +1229,39 @@ SCREENS.prep = function(){
       (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">▶ WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
       '</div>';
   }
-  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></details>';
+  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
   $app().innerHTML = html;
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon","🔫"],["armor","armor","Armor","🦺"],["c1","consumable","Item 1","✚"],["c2","consumable","Item 2","✚"]];
+function slotTileHtml(def, locked){
+  const [key, slot, label, icon] = def, p = session.prep;
+  const id = p.loadout[key], it = id && ITEMS[id];
+  const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot).length;
+  return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
+    (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
+    '<i aria-hidden="true">' + (it ? itemIcon(id) : icon) + '</i><small>' + label + '</small><b>' + (it ? esc(it.name) : (options ? 'Empty' : 'None owned')) + '</b>' +
+    (!locked && options ? '<span class="badge need">' + options + '</span>' : '') + '</button>';
+}
+// Brawl-Stars-style lobby: operator centre stage, loadout tiles either side, compact PLAY bottom-right.
+function lobbyHtml(gear, miss, locked){
+  const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
+  return '<div class="lobby">' +
+    '<div class="lobby-top"><button type="button" class="iconbtn" onclick="A.go(\'base\')" aria-label="Back to base">‹</button><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
+      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">🗺 <span>MISSION</span></button></div>' +
+    '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
+    '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
+      '<div class="hero-weapon" title="Equipped weapon"><i aria-hidden="true">' + (w ? itemIcon(p.loadout.weapon) : '✊') + '</i>' + (w ? esc(w.name) : 'Unarmed') + '</div>' + operatorRowHtml(gear) + '</div>' +
+    '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + slotTileHtml(SLOT_DEFS[3], locked) + '</div>' +
+    '<div class="lobby-bottom">' + gearRiskHtml(gear) +
+      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div>' +
+    '</div>';
+}
 function loadoutSlotsHtml(locked){
   const p = session.prep;
   return '<div class="lslots">' + SLOT_DEFS.map(([key, slot, label, icon]) => {
     const id = p.loadout[key], it = id && ITEMS[id];
     const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot).length;
+    void it; return slotTileHtml([key, slot, label, icon], locked);
     return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
       (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
       '<i aria-hidden="true">' + (it ? itemIcon(id) : icon) + '</i><small>' + label + '</small><b>' + (it ? esc(it.name) : (options ? 'Empty' : 'None owned')) + '</b>' +
@@ -1259,8 +1278,8 @@ function operatorRowHtml(gear){
 }
 function gearRiskHtml(gear){
   return gear && gear.length
-    ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + ' — lost if you die, time out or abandon.</div>'
-    : '<div class="riskbar safe" role="status">✓ No gear at risk. Raid loot is at risk until you extract.</div>';
+    ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
+    : '<div class="riskbar safe" role="status">✓ No gear at risk<small> · raid loot is at risk until you extract</small></div>';
 }
 function prepTargetHtml(miss){
   if(!miss) return '';
@@ -1859,7 +1878,7 @@ window.A = {
     if(key === "insuranceId") act("INSURANCE_SELECTED", { tier: val });
     refresh("raid_prep");
   },
-  planToggle(open){ session.planOpen = !!open; },
+  planToggle(open){ session.planOpen = !!open; if(session.screen === "prep") SCREENS.prep(); },
   pickSlot(key){
     if(guidedRaid() || !session.prep) return;
     const def = SLOT_DEFS.find(d => d[0] === key); if(!def) return;
