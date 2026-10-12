@@ -45,6 +45,16 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
 { const m = JSON.parse(fs.readFileSync(path + "/manifest.json", "utf8")); assert.equal(m.name, "Protocol Rebirth"); assert.equal(m.short_name, "Protocol Rebirth");
   const h = fs.readFileSync(path + "/index.html", "utf8");
   for(const re of [/apple-mobile-web-app-title" content="Protocol Rebirth"/, /application-name" content="Protocol Rebirth"/, /<title>Protocol Rebirth<\/title>/]) assert(re.test(h), String(re)); }
+// any screen change closes popups (building popup over RAID bug)
+{ const A = w.A, d = w.document;
+  d.getElementById("phone").insertAdjacentHTML("beforeend", '<div id="overlay"><div class="inner"><div class="bpop">RAID FOR REPAIR MATERIALS</div></div></div>');
+  d.getElementById("settings-menu").hidden = false;
+  A.go("dev"); A.go("base");
+  assert(!d.getElementById("overlay") && !d.querySelector(".bpop"), "popups closed on screen change");
+  assert(d.getElementById("settings-menu").hidden, "menu closed on screen change");
+  assert(/closeAllPopups\(\);\s*session\.screenEnterTs/.test(fs.readFileSync(path + "/app.js", "utf8")), "A.go closes popups");
+  assert(/closeAllPopups\(\);\s*\(window\.PR_NAVIGATE/.test(fs.readFileSync(path + "/app.js", "utf8")), "deploy closes popups");
+  assert(d.getElementById("app-version").closest("#topbar"), "version label sits in the top bar, never over the bottom bar"); }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);
