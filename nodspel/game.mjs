@@ -1,25 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.32.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.32.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.32.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.32.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.32.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.32.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.32.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.32.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.32.0';
-// import {stepScavenging} from './scavenging.js?v=1.32.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.32.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.32.0';
-import {routeComplete} from './objectives.js?v=1.32.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.32.0';
-import {createBIT,stepBIT} from './bit.js?v=1.32.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.32.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.32.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.32.1';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.32.1';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.32.1';
+import {buildWorld,setNodeHold} from './world.js?v=1.32.1';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.32.1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.32.1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.32.1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.32.1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.32.1';
+// import {stepScavenging} from './scavenging.js?v=1.32.1';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.32.1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.32.1';
+import {routeComplete} from './objectives.js?v=1.32.1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.32.1';
+import {createBIT,stepBIT} from './bit.js?v=1.32.1';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.32.1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.32.1';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.32.0');
+const orderResponse=await fetch('./order.json?v=1.32.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;

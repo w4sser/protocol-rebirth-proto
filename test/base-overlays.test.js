@@ -39,7 +39,7 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(/@media \(orientation:portrait\)\{ #rotate\{display:flex;\} \}/.test(html), "portrait shows the rotate screen");
   for(const f of ["manifest.json", "nodspel/manifest.webmanifest"]) assert.equal(JSON.parse(fs.readFileSync(path + "/" + f, "utf8")).orientation, "landscape", f + " locks landscape");
   assert(fs.readFileSync(path + "/nodspel/index.html", "utf8").includes('class="rotate"'), "core has a rotate screen");
-  for(const a of ["assets/production/splash.webp", "assets/production/operator_op01.webp", "assets/icons/rebirth-192.png", "assets/icons/rebirth-512.png"]) assert(fs.existsSync(path + "/" + a), a);
+  for(const a of ["assets/production/splash.webp", "assets/production/operator_op01.webp", "nodspel/icons/happy-node-large-192.png", "nodspel/icons/happy-node-large-512.png"]) assert(fs.existsSync(path + "/" + a), a);
   assert(typeof w.eval("typeof lockLandscape") === "string"); }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
