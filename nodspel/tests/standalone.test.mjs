@@ -12,7 +12,7 @@ test('marked level two crate supplies loot without changing unlimited reserve',(
   for(let i=0;i<30;i++){
     const r=createRound(`supplies-${i}`,0);r.level=generateLevel(2,r.seed);
     const box=r.level.lootBoxes.find(b=>b.marked),w=createWeapon(Infinity);
-    assert.ok(['scrap_alloy','power_cell'].includes(box.item));collectLoot(r,box,1,w);
+    assert.ok(Object.keys(RULES.loot.weights[1]).includes(box.item));collectLoot(r,box,1,w);
     assert.equal(w.reserve,Infinity);assert.equal(w.ammo,3);assert.equal(r.bag[box.item],1);
   }
 });

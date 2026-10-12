@@ -1,3 +1,5 @@
+import {emptyBag} from '../raid.js';
+import {RULES as LOOT_RULES} from '../levels.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 const round = await import('../round.js').catch(() => ({}));
@@ -47,7 +49,7 @@ test('death ends the run and freezes remaining time and progression in its summa
   round.activateNode(r,r.level.nodes[0].id,1000);round.enterExit(r,r.level.exit,2000);
   round.takeDamage(r,100,70000);
   assert.equal(r.over,true);assert.equal(r.health,0);
-  assert.deepEqual(round.roundSummary(r),{reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:410000,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0}});
+  assert.deepEqual(round.roundSummary(r),{reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:410000,extracted:emptyBag(),lost:emptyBag()});
   round.tickRound(r,600000);
   assert.equal(round.roundSummary(r).remainingMs,410000,'time stays frozen after death');
   assert.equal(round.activateNode(r,r.level.nodes[0].id,71000),false);
@@ -58,7 +60,7 @@ test('timeout summary records zero time and cannot be overwritten by death',()=>
   assert.equal(typeof round.takeDamage,'function');
   const r=round.createRound('timeout',0);
   round.takeDamage(r,100,480000);
-  assert.deepEqual(round.roundSummary(r),{reason:'timeout',levelsCleared:0,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0},lost:{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0}});
+  assert.deepEqual(round.roundSummary(r),{reason:'timeout',levelsCleared:0,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:emptyBag(),lost:emptyBag()});
 });
 test('defeated enemies count once across levels and reset with a new round',()=>{
   const r=round.createRound('kills',0),id=r.level.enemies[0].id;

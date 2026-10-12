@@ -13,7 +13,16 @@ export const RULES=Object.freeze({
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
-  loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.6},
+  // Loot ids are the base (meta) item ids. Weighted per level so every base repair part drops:
+  // early parts on level 1, mid parts on level 2, rare parts deeper. salvage_crate/data_core turn into
+  // Salvage/Data Cores in the base (item-sourced currency). See docs/meta-core-integration.md §8.
+  loot:{capacity:4,counts:[1,6,3],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample'],
+    weights:[
+      {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},
+      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1},
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:1,ai_fragment:1,servo:1,polymer_plate:1,bio_sample:1}],
+    pickupRadius:1.6},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
@@ -29,6 +38,11 @@ function randomFromSeed(seed){
 }
 const opposite=d=>({x:-d.x,z:-d.z});
 const equal=(a,b)=>a.x===b.x&&a.z===b.z;
+export function pickWeighted(weights,roll){
+  const entries=Object.entries(weights),total=entries.reduce((s,[,w])=>s+w,0);
+  let r=roll*total;for(const [id,w] of entries){r-=w;if(r<0)return id;}
+  return entries.at(-1)[0];
+}
 export function generateLevel(number,roundSeed){
   const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Level must be 1, 2 or 3.');
   const seed=`${roundSeed}:${number}`,rng=randomFromSeed(seed);
@@ -117,8 +131,7 @@ export function generateLevel(number,roundSeed){
         break;
       }
     }
-    const pool=number===2?['scrap_alloy','power_cell']:RULES.loot.pools[number-1];
-    const item=number===2&&i===1?'medkit':pool[Math.floor(lootRng()*pool.length)];
+    const item=number===2&&i===1?'medkit':pickWeighted(RULES.loot.weights[number-1],lootRng());
     lootBoxes.push({id:`loot-${i+1}`,...point,marked,item,collected:false});
   }
   const routeChoices=number===2?[
