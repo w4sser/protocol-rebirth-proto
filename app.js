@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.30.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.31.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -590,7 +590,7 @@ function revealCurrency(id){
 }
 const CUR_ICONS = { scrap:"⚙", dataCores:"◆", salvage:"♻", signals:"📡", fuel:"⛽" };
 const ROOM_ICONS = { rebirth_core:"⚛", fabricator:"🛠", storage:"🔐", bit_bay:"🤖", living_quarters:"🛏" };
-const ITEM_ICONS = { cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
+const ITEM_ICONS = { basic_carbine:"🔫", smg_vector:"🔫", rifle_marksman:"🎯", shotgun_breach:"💥", cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
 function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? "🦺" : "▣"); }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
@@ -1107,7 +1107,7 @@ SCREENS.prep = function(){
       loadout: { weapon:null, armor:null, c1:null, c2:null }
     };
     // sensible defaults from stash
-    if(have("basic_carbine")) session.prep.loadout.weapon = "basic_carbine";
+    session.prep.loadout.weapon = "basic_carbine"; // free Basic is always available for Node Raid
     if(have("scavenger_vest")) session.prep.loadout.armor = "scavenger_vest";
     if(have("medkit")) session.prep.loadout.c1 = "medkit";
   }
@@ -1236,7 +1236,7 @@ const SLOT_DEFS = [["weapon","weapon","Weapon","🔫"],["armor","armor","Armor",
 function slotTileHtml(def, locked){
   const [key, slot, label, icon] = def, p = session.prep;
   const id = p.loadout[key], it = id && ITEMS[id];
-  const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot).length;
+  const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot && !ITEMS[x].free).length + (slot === "weapon" ? 1 : 0);
   return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
     (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
     '<i aria-hidden="true">' + (it ? itemIcon(id) : icon) + '</i><small>' + label + '</small><b>' + (it ? esc(it.name) : (options ? 'Empty' : 'None owned')) + '</b>' +
@@ -1250,7 +1250,7 @@ function lobbyHtml(gear, miss, locked){
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">🗺 <span>MISSION</span></button></div>' +
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
-      '<div class="hero-weapon" title="Equipped weapon"><i aria-hidden="true">' + (w ? itemIcon(p.loadout.weapon) : '✊') + '</i>' + (w ? esc(w.name) : 'Unarmed') + '</div>' + operatorRowHtml(gear) + '</div>' +
+      '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
     '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + slotTileHtml(SLOT_DEFS[3], locked) + '</div>' +
     '<div class="lobby-bottom">' + gearRiskHtml(gear) +
       '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div>' +
@@ -1277,6 +1277,8 @@ function operatorRowHtml(gear){
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') + '</div></div>';
 }
 function gearRiskHtml(gear){
+  const kit = nodeRaidKit();
+  if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill("medkit"));
   return gear && gear.length
     ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
     : '<div class="riskbar safe" role="status">✓ No gear at risk<small> · raid loot is at risk until you extract</small></div>';
@@ -1569,6 +1571,10 @@ function ingestRaidResult(r){
   const launch = S.coreLaunch && S.coreLaunch.raidId === r.raidId ? S.coreLaunch : null;
   const gear = launch ? launch.gear.filter(id => ITEMS[id]) : [];
   if(extracted) gear.forEach(id => addItem(id, 1));
+  // Unused medkits come home on extract; used or lost ones are gone.
+  const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
+  const kitBack = extracted ? Math.min(kitOut, Math.max(0, Math.floor(Number(r.kitLeft && r.kitLeft.medkit) || 0))) : 0;
+  if(kitBack) addItem("medkit", kitBack);
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? [] : gear.filter(id => id !== saved.secure);
@@ -1580,14 +1586,16 @@ function ingestRaidResult(r){
   S.bondXp += xp;
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps };
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps, kitBack, kitLost:kitOut - kitBack };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
     "&return=" + encodeURIComponent(returnPath) +
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
-    (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "");
+    (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +
+    (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
+    (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "");
 }
 /* ---------- player stats & skills (data/progression.js → playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -1607,9 +1615,32 @@ function playerStats(gear){
   return st;
 }
 function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
+const FREE_WEAPON = "basic_carbine";
+// Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
 function nodeRaidGear(){
-  const a = session.prep && session.prep.loadout && session.prep.loadout.armor;
-  return a && have(a) > 0 && ITEMS[a].slot === "armor" ? [a] : [];
+  const l = session.prep && session.prep.loadout; if(!l) return [];
+  const out = [];
+  if(l.weapon && ITEMS[l.weapon] && ITEMS[l.weapon].slot === "weapon" && !ITEMS[l.weapon].free && have(l.weapon) > 0) out.push(l.weapon);
+  if(l.armor && have(l.armor) > 0 && ITEMS[l.armor].slot === "armor") out.push(l.armor);
+  return out;
+}
+function nodeRaidWeaponId(){
+  const l = session.prep && session.prep.loadout, w = l && l.weapon;
+  return w && ITEMS[w] && ITEMS[w].weapon && (ITEMS[w].free || have(w) > 0) ? w : FREE_WEAPON;
+}
+// Medkits in the consumable slots go into the raid (usable with Q / ✚) and are lost on death.
+function nodeRaidKit(){
+  const l = session.prep && session.prep.loadout; if(!l) return { medkit:0 };
+  const want = ["c1","c2"].filter(k => l[k] === "medkit").length;
+  return { medkit:Math.min(want, have("medkit")) };
+}
+function weaponParam(id){
+  const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
+  return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr"].map(k => "," + k + ":" + w[k]).join("");
+}
+function weaponStatsLine(id){
+  const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
+  return "DMG " + w.dmg + " · MAG " + w.mag + " · RNG " + w.rng + "m · " + Math.round(60000 / w.int) + "/min";
 }
 function statsCardHtml(gear){
   const st = playerStats(gear), P = PROG.playerStats;
@@ -1644,6 +1675,7 @@ function coreResultSummary(r, res){
   const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
   const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
   const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
+    (res.kitLost ? " · medkits used/lost: " + res.kitLost : "") +
     (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "");
   return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
@@ -1882,10 +1914,11 @@ window.A = {
   pickSlot(key){
     if(guidedRaid() || !session.prep) return;
     const def = SLOT_DEFS.find(d => d[0] === key); if(!def) return;
-    const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1]);
+    const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1] && !ITEMS[id].free);
+    if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1><button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>×' + S.stash[id] + '</small></button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? '∞ FREE' : '×' + S.stash[id]) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
@@ -1898,12 +1931,14 @@ window.A = {
     });
   },
   deployNodeRaid(){
-    const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear);
-    // Deploy is free, but equipped gear goes with you and is at risk (lost on death/timeout/abandon).
+    const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit();
+    // Deploy is free, but equipped gear (non-Basic weapon, armour) and medkits go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
-    S.coreLaunch = { raidId:l.raidId, gear, stats };
-    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats });
-    location.assign(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear }));
+    if(kit.medkit) removeItem("medkit", kit.medkit);
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit };
+    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
+    save();
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit }));
   },
   deploy(){
     if(!session.prep) return;

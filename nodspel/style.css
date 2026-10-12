@@ -37,3 +37,7 @@ body{background:#0d1114}.landscape{position:relative;width:100vw;height:100dvh;o
 
 .hazard-label{color:#ffe27a;font-weight:700}.hazard-label[data-state=warn]{color:#fff27a;animation:hzblink .25s steps(2) infinite;font-size:1.15em}.hazard-label[data-state=on]{color:#ff5a3c}@keyframes hzblink{50%{opacity:.35}}
 footer .version{margin-left:10px;opacity:.55;font-size:10px}
+/* v1.31 kit + weapon HUD */
+.kit-btn{position:absolute;z-index:3;left:max(14px,env(safe-area-inset-left));top:calc(max(12px,env(safe-area-inset-top)) + 128px);min-width:56px;min-height:48px;border-radius:12px;border:2px solid #ff8a8a;background:#2a1414e8;color:#ffd0d0;font:800 18px system-ui,sans-serif;display:flex;align-items:center;gap:6px;padding:0 10px;cursor:pointer}
+.kit-btn small{font-size:11px;opacity:.75}.kit-btn:disabled{opacity:.4;cursor:default}
+.weapon-name{display:block;text-align:center;font:700 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75cfcc;margin-bottom:3px}
