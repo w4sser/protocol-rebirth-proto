@@ -1,3 +1,4 @@
+import {stepNodeInteraction} from '../round.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,tickRound,enterExit,exitIsOpen} from '../round.js';
@@ -56,7 +57,12 @@ test('a player can shoot every node and walk through all three exits within one 
         routeTo(p=>Math.hypot(p.x-node.x,p.z-node.z)<1.6 && traceTargets(p,node,solidBoxes(),level.nodes)?.node?.id===node.id);
         const hit=traceTargets(p,node,solidBoxes(),level.nodes);
         assert.equal(hit.node.id,node.id);
-        shoot(node);assert.equal(node.active,true);
+        shoot(node);
+        if(node.shielded){
+          assert.equal(node.active,false,'shielded nodes absorb shots');
+          stepNodeInteraction(round,w,p,clock,solidBoxes());clock+=RULES.resources.nodeHoldMs;stepNodeInteraction(round,w,p,clock,solidBoxes());
+        }
+        assert.equal(node.active,true);
         if(number===2)assert.equal(crossedPassage,true,'the player walks through the narrow passage before lighting nodes');
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);

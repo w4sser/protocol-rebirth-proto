@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES} from './levels.js?v=1.24.0';
+import {RULES,hazardState} from './levels.js?v=1.25.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -14,13 +14,13 @@ export function buildWorld(level,scene) {
     const m=new THREE.Mesh(cube,material(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
   }
   for(const f of level.floors){
-    box(f.x,-.2,f.z,f.w,.4,f.d,'#444f59');
+    box(f.x,-.2,f.z,f.w,.4,f.d,level.theme?.floor??'#444f59');
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,'#252e36');
     const vertices=[];
     for(let x=-f.w/2+1;x<f.w/2;x++)vertices.push(f.x+x,.006,f.z-f.d/2,f.x+x,.006,f.z+f.d/2);
     for(let z=-f.d/2+1;z<f.d/2;z++)vertices.push(f.x-f.w/2,.006,f.z+z,f.x+f.w/2,.006,f.z+z);
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    group.add(new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:'#6c7882',transparent:true,opacity:.2})));
+    group.add(new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:level.theme?.trim??'#6c7882',transparent:true,opacity:.2})));
   }
   for(const b of [...level.walls,...level.boxes]){
     box(b.x,b.h/2,b.z,b.w,b.h,b.d,level.boxes.includes(b)?'#667078':'#596771');
@@ -62,7 +62,7 @@ export function buildWorld(level,scene) {
   const enemies=level.enemies.map(enemy=>{
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
-    box(0,.96,0,.55,.18,.55,'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
+    box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ff8d84'}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     return {enemy,group:g};
   });
@@ -78,5 +78,12 @@ export function buildWorld(level,scene) {
     group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)g.dispose();for(const m of mats)m.dispose();scene.remove(group);
   }
-  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,dispose};
+  const hazards=(level.hazards??[]).map(h=>{
+    const mat=new THREE.MeshBasicMaterial({color:'#e0c040',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
+    const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
+    return {hazard:h,mat};
+  });
+  function animateHazards(now){for(const v of hazards){const s=hazardState(v.hazard,now);v.mat.color.set(s==='on'?'#ff5a3c':'#e0c040');v.mat.opacity=s==='on'?.6:s==='warn'?.35+.2*Math.sin(now/60):.18;}}
+  for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
+  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose};
 }
