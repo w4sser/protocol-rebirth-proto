@@ -11,13 +11,22 @@ for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones
 const doc = w.document; w.A.dismissIntro(); w.A.go("base");
 assert.equal(doc.getElementById("app").className, "s-base");
 const pe = el => w.getComputedStyle(el).pointerEvents;
-for(const sel of ["#app > h1", "#app > .sub", "#app > .restbar", ".hubstate", ".panhelp"]){
+for(const sel of [".hubstate", "div.goalpill"]){
   const el = doc.querySelector(sel); assert(el, sel + " exists"); assert.equal(pe(el), "none", sel + " must not take taps");
 }
 const spots = [...doc.querySelectorAll(".mapspot")]; assert(spots.length >= 5);
 for(const s of spots) assert.notEqual(pe(s), "none", "map spots stay tappable");
 const z = el => Number(w.getComputedStyle(el).zIndex);
 assert(z(spots[0]) > z(doc.querySelector(".hubstate")), "map spots sit above the state label");
+// HUD: plates carry a solid tag, bottom bar + settings menu exist
+for(const s of spots) assert(s.querySelector(".tag"), "every map spot is a solid building plate");
+assert.equal(doc.querySelectorAll("#tabs button").length, 4, "bottom bar RAID/STASH/SHOP/BIT");
+assert(doc.querySelector("#settings-menu[hidden] #reset-progress"), "Reset lives in the closed settings menu");
+doc.getElementById("menubtn").click();
+assert(!doc.getElementById("settings-menu").hidden, "gear opens settings");
+doc.body.click();
+assert(doc.getElementById("settings-menu").hidden, "outside tap closes settings");
+assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById("app-version").textContent, "menu shows version");
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);
