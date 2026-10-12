@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.34.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.34.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -551,17 +551,30 @@ function closeAllPopups(){
   document.querySelectorAll("#overlay, .bpop").forEach(el => (el.closest("#overlay") || el).remove());
   const m = document.getElementById("settings-menu"); if(m) m.hidden = true;
   session.focusSpot = null;
+  updateNav();
 }
 function overlay(html, onClose, cls){
   const o = document.createElement("div");
-  o.id = "overlay"; if(cls) o.className = cls;
+  o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
   o.addEventListener("click", e => {
     if(e.target.dataset.close !== undefined || e.target.id === "ovclose"){ o.remove(); if(onClose) onClose(); }
   });
   document.getElementById("phone").appendChild(o);
+  updateNav();
   return o;
 }
+// Shared BACK (top-left in the top bar): closes the open popup, else goes up one screen.
+const BACK_TARGET = { itemDetail:"stash", module:"base" };
+function updateNav(){
+  if(typeof document === "undefined") return;
+  const b = document.getElementById("navback"), tb = document.getElementById("topbar"), ov = !!document.getElementById("overlay");
+  document.body.classList.toggle("has-overlay", ov);
+  if(tb) document.documentElement.style.setProperty("--tb-h", (tb.offsetHeight || 0) + "px");
+  if(b) b.hidden = !(ov || (session.screen && session.screen !== "base" && session.screen !== "intro"));
+}
+if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
+  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); });
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
@@ -648,10 +661,11 @@ function navBadge(id){
 }
 function renderTabs(){
   const items = [["prep","⚔","RAID"],["stash","🎒","STASH"],["vendor","🛒","SHOP"],["bit","🤖","BIT"]];
-  if(session.screen !== "base") items.unshift(["base","🏠","BASE"]);
+  items.unshift(["base","🏠","BASE"]);
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
+    const active = session.screen === id;
+    if(active) return '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
-    const active = session.screen === id || (id === "vendor" && session.screen === "vendor");
     return '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
       '<span class="ni" aria-hidden="true">' + (ok ? icon : '🔒') + '</span>' + label +
@@ -670,6 +684,7 @@ function refresh(bitTrigger, bitVars){
   checkBeatAutoAdvance();
   $app().setAttribute("class", "s-" + session.screen);
   document.body.dataset.screen = session.screen;
+  updateNav();
   renderCurrencies(); renderTabs();
   const profile = baseState();
   document.body.classList.toggle("base-dark", profile.lighting === "emergency");
@@ -1034,7 +1049,7 @@ SCREENS.module = function(modId){
   const lvl = S.modules[modId] || 0;
   const next = nextLevelDef(modId);
   const visible = moduleVisible(modId);
-  let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
+  let html = ''+
     '<h1>ⓘ ' + esc(m.name) + '</h1><div class="sub">Level ' + lvl + ' · ' + esc(m.blurb) + '</div>';
   if(!visible){
     html += '<div class="card"><span class="small">This section has no power. Restore the Rebirth Core first.</span></div>';
@@ -1114,8 +1129,7 @@ SCREENS.itemDetail = function(id){
     const next = nextLevelDef(m.id);
     if(next && next.cost.items && next.cost.items[id]) neededFor.push(m.name + " L" + next.level);
   }
-  let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'stash\')">‹ Stash</button>' +
-    '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · ' + esc(it.rarity) + ' · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
+  let html =     '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · ' + esc(it.rarity) + ' · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
     '<div class="card small">' + esc(it.desc) + '</div>';
   if(isFree(id)){
     $app().innerHTML = html + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or dropped.</div>';
@@ -1290,7 +1304,7 @@ function slotTileHtml(def, locked){
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
-    '<div class="lobby-top"><button type="button" class="iconbtn" onclick="A.go(\'base\')" aria-label="Back to base">‹</button><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
+    '<div class="lobby-top"><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">🗺 <span>MISSION</span></button></div>' +
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
@@ -1495,7 +1509,7 @@ SCREENS.vendor = function(){
 };
 
 SCREENS.dev = function(){
-  let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Back</button>' +
+  let html = ''+
     '<h1>Dev Panel</h1><div class="sub">beat: ' + curBeat().id + ' · raids: ' + S.raids + ' · deaths: ' + S.deaths + '</div>';
   html += '<div class="devgrid">' +
     '<button onclick="A.devForce(\'extract\')">Force next: SUCCESS</button>' +
@@ -1970,7 +1984,7 @@ window.A = {
     const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1] && !ITEMS[id].free);
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
-    overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1><button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div><div class="pick-grid">' +
+    overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
       ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? '∞ FREE' : '×' + S.stash[id]) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
@@ -2221,13 +2235,16 @@ window.A = {
     const next=room.destination && nextLevelDef(room.destination);
     const needsParts=next && !canAfford(next.cost);
     const prior=D.baseMap.rooms[room.stage - 2];
-    overlay('<h1>' + (ready ? '🔓 ' : '🔒 ') + esc(room.label) + '</h1><p class="' + (ready ? 'ok' : 'sub') + '">' +
-      (ready ? '✓ ' : '') + esc(room.requirement.text) + '</p>' +
-      (ready ? '<p class="sub">Access is available because this requirement is complete. Opening the room clears access; building it still costs repair materials.</p>' +
-        (next ? '<div class="card"><b>REPAIR MATERIALS</b><p>' + roomPartsHtml(room) + '</p><span class="small">REWARD · ' + esc(next.benefitText) + '</span></div>' : '') +
-        (needsParts ? '<p class="sub">Raid for the missing materials, return, and bring this room online.</p><button class="primary" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' : '') +
-        '<button class="' + (needsParts ? 'ghost' : 'primary') + '" onclick="A.unlockRoom(\'' + room.id + '\')">' + (needsParts ? 'OPEN ACCESS ONLY — REPAIRS STILL NEEDED' : 'REVEAL ROOM') + '</button>' :
-        '<div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') + '<button class="ghost" data-close>BACK</button>');
+    const lore = (ready ? 'Access is available because this requirement is complete. Opening the room clears access; building it still costs repair materials. ' : '') + room.requirement.text;
+    overlay('<div class="bpop room"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ready ? '🔓' : '🔒') + '</span><h1>' + esc(room.label) + '</h1>' +
+      '<button type="button" class="iconbtn" onclick="var l=this.closest(\'.bpop\').querySelector(\'.lore\');l.hidden=!l.hidden" aria-label="Details and story">ⓘ</button></div>' +
+      '<p class="lore" hidden>' + esc(lore) + '</p>' +
+      (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
+        (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' +
+          '<button type="button" class="linkbtn" onclick="A.unlockRoom(\'' + room.id + '\')">Open access only (repairs still needed)</button>'
+          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">REVEAL ROOM</button>') :
+        '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
+      '</div>', clearMapFocus, "sheet");
   },
   openBuilding(modId){
     const m = MODS[modId]; if(!m || !baseAllows("interactions", modId)) return;
@@ -2252,8 +2269,14 @@ window.A = {
     overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || "▣") + '</span><h1>' + esc(m.name) + '</h1>' +
       '<em>L' + lvl + (next ? ' → L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">ⓘ</button>' +
-      '<button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div>' + body + cta + '</div>', clearMapFocus, "sheet");
+      '</div>' + body + cta + '</div>', clearMapFocus, "sheet");
     if(session.screen === "base") focusMapOn(modId);
+  },
+  back(){
+    const o = document.getElementById("overlay");
+    if(o){ o.remove(); if(o._onClose) o._onClose(); updateNav(); return; }
+    const t = BACK_TARGET[session.screen] || "base";
+    if(session.screen !== "base") A.go(t);
   },
   buildingInfo(modId){ closeBuildingPopup(); A.go("module", modId); },
   raidForModule(modId){

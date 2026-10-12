@@ -77,8 +77,8 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_found"), "b
 assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(text().includes("PLATE 00"), "dormant plate label");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "dormant_core", "found state restores audio profile");
-assert.equal(doc.querySelectorAll("#tabs button:not([disabled])").length, 0, "found state locks non-base navigation");
-assert.equal(doc.querySelectorAll("#tabs button").length, 4, "bottom bar shows RAID/STASH/SHOP/BIT");
+assert.equal(doc.querySelectorAll("#tabs button:not([disabled]):not(.active)").length, 0, "found state locks non-base navigation");
+assert.equal(doc.querySelectorAll("#tabs button").length, 5, "full bottom bar BASE/RAID/STASH/SHOP/BIT on every main screen");
 A.go("module","fabricator");
 assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot open its module flow");
 
@@ -90,7 +90,7 @@ dragTarget.dispatchEvent(new window.MouseEvent("click", { bubbles:true, detail:0
 assert(doc.querySelector("#overlay .bpop[data-module=rebirth_core]"), "keyboard opens the Core popup after a drag");
 assert.equal(doc.querySelectorAll("#overlay .bpop button.primary").length, 1, "popup has exactly one primary action");
 assert(/BUILD|RAID FOR/.test(doc.querySelector("#overlay .bpop button.primary").textContent), "primary action is build or raid-for");
-doc.querySelector("#overlay [data-close]").click();
+(doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 A.go("base");
 tap(doc.querySelector(".core-spot"));
 assert(doc.querySelector("#overlay .bpop"), "pointer tap opens the Core popup");
@@ -112,7 +112,7 @@ await sleep(5400);
 }
 assert(doc.getElementById("overlay").textContent.includes("POWER RESTORED"), "boot payoff");
 assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benefit in boot payoff");
-doc.querySelector("#overlay [data-close]").click();
+(doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 assert(!doc.body.classList.contains("base-dark"), "base env lit after Core L1");
 assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable"), "bunker becomes habitable after first build");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");
@@ -124,7 +124,7 @@ assert(text().includes("Fabricator") && text().includes("Restore power"), "locke
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;
 tap(doc.querySelector('.room-spot[data-room="fabricator"]'));
 assert(doc.querySelector("#overlay button.primary"), "eligible room opens from its hotspot");
-doc.querySelector("#overlay [data-close]").click();
+(doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 // Both base and raid-result build CTAs route through goBuild: locked rooms must explain access.
 A.goBuild("fabricator");
 assert(doc.querySelector('.room-spot.ready[data-room="fabricator"]'), "Core completion highlights Fabricator in green");
@@ -169,7 +169,7 @@ A.backToBase();
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_01"), "raid return restores Fabricator plate");
 
 A.go("module","fabricator"); A.build("fabricator");
-let ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 
 assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
 assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').textContent.includes("✓ Bring the Fabricator online"), "Vault checks its completed prerequisite");
@@ -207,7 +207,7 @@ A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
 
 A.go("module","bit_bay"); A.build("bit_bay");
-ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
 assert(text().includes("BIT — Bond LV"), "bond card on the BIT screen");
 assert(doc.querySelector("#currencies .bondpill"), "bond pill in the top bar");
@@ -272,7 +272,7 @@ assert(text().includes("BIT is in the field"), "expedition running");
 A.go("dev"); A.devFinishTimers();
 const ovm = doc.getElementById("overlay");
 assert(ovm && ovm.textContent.includes("MORNING REPORT"), "morning report on return");
-ovm.querySelector("[data-close]").click();
+(ovm.querySelector("[data-close]") ? ovm.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("base");
 assert(!doc.getElementById("overlay"), "no morning report without events");
 
@@ -299,7 +299,7 @@ doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev")
 doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
 doc.getElementById("devitem").value = "servo"; A.devGrant();
 A.go("module","storage"); A.build("storage");
-ov = doc.getElementById("overlay"); if(ov) ov.querySelector("[data-close]").click();
+ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 assert(doc.querySelector(".baseviewer").className.includes("hub-core_refined"), "all repaired rooms persist the refined bunker state");
 revealRoomThroughHotspot("living_quarters");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_04"), "Living Quarters selects final plate");

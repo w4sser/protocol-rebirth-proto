@@ -1,6 +1,6 @@
 # Ekonomidesign: Protocol Rebirth (förslag, ej implementerat)
 
-Status: endast design (v1.34.0). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
+Status: endast design (v1.34.1). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
 
 ## 1. Nuläge (inventering)
 
