@@ -1455,7 +1455,13 @@ function ingestRaidResult(r){
   // Only items come home (no formula salvage/dataCores).
   const extracted = r.outcome === "extract";
   const added = extracted ? r.extracted.slice() : [];
-  added.forEach(id => addItem(id, 1));
+  const currency = {};
+  // Currency-sourcing loot (salvage_crate, data_core) converts on the way in; everything else goes to the stash.
+  added.forEach(id => {
+    const g = ITEMS[id].grantsCurrency;
+    if(!g){ addItem(id, 1); return; }
+    for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
+  });
   S.raids++;
   const saved = { insured:[], secure:null, bitRescue:null };
   if(!extracted){
@@ -1468,7 +1474,7 @@ function ingestRaidResult(r){
   S.bondXp += xp;
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added, xp, saved };
+  return { ok:true, added, currency, xp, saved };
 }
 function coreLaunchUrl(raidId, seed, returnPath){
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
@@ -1489,7 +1495,8 @@ function coreResultSummary(r, res){
   const head = r.outcome === "extract" ? "Node Raid: extracted" : r.outcome === "death" ? "Node Raid: you died" : "Node Raid: time ran out";
   const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id]||0) + 1);
   const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
-  return head + " — " + (loot || "no loot secured") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
+  const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
+  return head + " — " + (loot || "no loot secured") + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
 function ingestPendingCoreResult(storage){
   let raw = null;

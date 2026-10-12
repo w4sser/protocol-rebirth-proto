@@ -203,3 +203,19 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(lossSt.stash.cable || 0, 0);
   console.log("core raid decisions OK");
 }
+
+// Item-sourced currency: salvage_crate / data_core convert on ingest (no formula grants).
+{
+  const st = app.freshState(); app._setState(st);
+  const s0 = st.cur.salvage, d0 = st.cur.dataCores;
+  const r = app.ingestRaidResult({ schema:"protocol-rebirth/raid-result", version:1, raidId:"cur-1", seed:"c", outcome:"extract",
+    levelsCleared:2, enemiesDefeated:0, nodesLit:0, remainingMs:0, extracted:["salvage_crate","salvage_crate","data_core","polymer_plate","servo"], lost:[], endedAt:1 });
+  const I = Object.fromEntries(window.DATA.items.map(i => [i.id, i]));
+  assert.equal(st.cur.salvage, s0 + 2*I.salvage_crate.grantsCurrency.salvage);
+  assert.equal(st.cur.dataCores, d0 + I.data_core.grantsCurrency.dataCores);
+  assert.equal(st.stash.salvage_crate || 0, 0, "currency loot never sits in the stash");
+  assert.equal(st.stash.polymer_plate, (app.freshState().stash.polymer_plate||0) + 1);
+  assert(st.revealed.salvage && st.revealed.dataCores);
+  assert(/\+16 Salvage/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
+  console.log("item-sourced currency OK");
+}
