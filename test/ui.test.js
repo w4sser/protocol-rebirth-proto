@@ -155,7 +155,7 @@ assert(doc.querySelector(".prepgrid"), "prep grid");
 assert(text().includes("Standard loot mission") && text().includes("Basic loadout"), "first raid has one mission and equipped gear");
 assert.equal(doc.querySelectorAll("#app select").length, 0, "first raid has no selectable loadout");
 assert.equal(doc.querySelectorAll(".prep-locked[aria-disabled=true]").length, 3, "future raid choices are visibly disabled");
-assert.equal(doc.querySelectorAll(".lslot[disabled]").length, 4, "starter loadout slots are shown but locked");
+assert.equal(doc.querySelectorAll(".lslot[disabled]").length, 2, "starter weapon/armor slots locked; owned medkit stays selectable");
 A.prepSet("routeId","control"); A.prepSet("riskId","aggressive"); A.prepLoadout("weapon","");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
 A.deploy(); A.raidStep();

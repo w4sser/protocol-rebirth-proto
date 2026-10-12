@@ -13,8 +13,7 @@ window.DATA.vendors = [
       { itemId:"servo", price:60, currency:"scrap" },
       { itemId:"ammo_pack", price:35, currency:"scrap" },
       { itemId:"medkit", price:55, currency:"scrap" },
-      { itemId:"basic_carbine", price:50, currency:"scrap" },
-      { itemId:"scavenger_vest", price:40, currency:"scrap" },
+      { itemId:"scavenger_vest", price:40, currency:"scrap", requires:{ module:"fabricator", level:1 } },
       { itemId:"scout_rig", price:120, currency:"scrap" },
       { itemId:"smg_vector", price:180, currency:"scrap" },
       { itemId:"shotgun_breach", price:240, currency:"scrap" }

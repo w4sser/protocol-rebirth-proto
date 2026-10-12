@@ -57,4 +57,30 @@ const D = { items:null };
   nav.length = 0; A.go("prep"); A.chooseSlot("weapon", "basic_carbine"); A.deployNodeRaid();
   assert(decodeURIComponent(nav[0]).includes("w=id:basic_carbine") && !/gear=[^&]*basic_carbine/.test(decodeURIComponent(nav[0])), "Basic goes in free, never as gear");
 }
+// Bug: looted Breach Shotgun couldn't be equipped. Every core-lootable weapon/gear lands in the stash
+// under its item id and can be picked, equipped and deployed — also during the guided first raid.
+{
+  const levels = fs.readFileSync(path + "/nodspel/levels.js", "utf8");
+  const gear = JSON.parse(levels.match(/gear:(\[[^\]]*\])/)[1].replace(/'/g, '"'));
+  const weapons = JSON.parse(levels.match(/weaponIds:(\[[^\]]*\])/)[1].replace(/'/g, '"')).filter(id => id !== "basic_carbine");
+  const all = [...new Set([...gear, ...weapons])];
+  assert(all.includes("shotgun_breach"));
+  for(const guided of [false, true]) for(const id of all){
+    const { w, nav, A, S } = boot();
+    const it = w.DATA.items.find(i => i.id === id); assert(it && it.slot, id + " is a slotted item");
+    if(guided){ S().modules.fabricator = 0; }
+    S().stash = { medkit:1 };
+    const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId:"loot-" + id + guided, seed:"x", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[id], lost:[], endedAt:1 });
+    assert(res.ok && S().stash[id] === 1, id + " lands in stash");
+    A.go("prep");
+    const key = it.slot === "weapon" ? "weapon" : "armor";
+    A.pickSlot(key);
+    assert([...w.document.querySelectorAll("#overlay .pick")].some(b => b.textContent.includes(it.name)), id + " offered in picker (guided=" + guided + ")");
+    A.chooseSlot(key, id);
+    assert.equal(w.__T.S && w.document.querySelector('[data-slot="' + key + '"]').getAttribute("aria-label"), (key === "weapon" ? "Weapon: " : "Armor: ") + it.name, id + " equipped");
+    A.deployNodeRaid();
+    const url = decodeURIComponent(nav[nav.length - 1] || "");
+    assert(url.includes("gear=") && url.includes(id), id + " deployed (guided=" + guided + "): " + url);
+  }
+}
 console.log("WEAPONS + KIT TEST PASSED");
