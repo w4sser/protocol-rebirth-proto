@@ -33,6 +33,14 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(doc.querySelector("#overlay .bpop"), "core popup open");
   assert.notEqual(doc.querySelector(".baseworld").style.transform, t0, "map pans to the tapped building");
   doc.querySelector("#overlay [data-close]").click(); }
+// landscape only: no portrait layouts, rotate gate + splash + manifests
+{ const html = fs.readFileSync(path + "/index.html", "utf8");
+  assert.equal((html.match(/orientation: *portrait/g)||[]).length, 1, "only the rotate gate reacts to portrait");
+  assert(/@media \(orientation:portrait\)\{ #rotate\{display:flex;\} \}/.test(html), "portrait shows the rotate screen");
+  for(const f of ["manifest.json", "nodspel/manifest.webmanifest"]) assert.equal(JSON.parse(fs.readFileSync(path + "/" + f, "utf8")).orientation, "landscape", f + " locks landscape");
+  assert(fs.readFileSync(path + "/nodspel/index.html", "utf8").includes('class="rotate"'), "core has a rotate screen");
+  for(const a of ["assets/production/splash.webp", "assets/production/operator_op01.webp", "assets/icons/rebirth-192.png", "assets/icons/rebirth-512.png"]) assert(fs.existsSync(path + "/" + a), a);
+  assert(typeof w.eval("typeof lockLandscape") === "string"); }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);

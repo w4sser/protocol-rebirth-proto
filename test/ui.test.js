@@ -26,7 +26,8 @@ const revealRoomThroughHotspot = id => {
 };
 
 // shell
-assert(doc.getElementById("topbar") && !doc.getElementById("rotate"), "shell plays in portrait too (no rotate gate)");
+assert(doc.getElementById("topbar") && doc.getElementById("rotate"), "landscape-only shell with a rotate screen for portrait");
+assert(doc.getElementById("splash"), "splash shown at first start");
 assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-menu #reset-progress"), "settings menu holds Reset");
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
 A.dismissIntro();

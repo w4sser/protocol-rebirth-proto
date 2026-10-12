@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.31.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.32.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -2341,6 +2341,29 @@ function tryBitImage(){
   img.src = "assets/bit.png";
 }
 
+/* ---------- landscape lock + splash ---------- */
+// Owner rule: landscape only. Android/Chrome: fullscreen + orientation lock on the first tap (needs a user gesture).
+// iOS Safari cannot lock; the #rotate screen covers portrait.
+function lockLandscape(doc){
+  doc = doc || document;
+  try{
+    const el = doc.documentElement, fs = el.requestFullscreen || el.webkitRequestFullscreen;
+    const lock = () => { try{ const o = screen.orientation; if(o && o.lock) return o.lock("landscape").catch(() => {}); }catch(e){} };
+    if(fs && !doc.fullscreenElement){ const p = fs.call(el, { navigationUI:"hide" }); if(p && p.then) p.then(lock, lock); else lock(); }
+    else lock();
+  }catch(e){}
+}
+function setupSplash(){
+  const sp = document.getElementById("splash");
+  const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
+  document.addEventListener("pointerdown", once, true);
+  if(!sp) return;
+  let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
+  const hide = () => { sp.classList.add("out"); setTimeout(() => sp.remove(), 500); };
+  if(shown){ sp.remove(); return; }
+  sp.addEventListener("click", () => { lockLandscape(); hide(); });
+  setTimeout(hide, 1800);
+}
 /* ---------- init ---------- */
 // ?reset=1 confirmed → storage cleared and page reloading, so skip booting the old state.
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
@@ -2348,6 +2371,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   tryBitImage();
+  setupSplash();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();

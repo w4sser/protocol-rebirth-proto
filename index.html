@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="assets/bit-smiley-logomark.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="assets/bit-portrait.png">
+<link rel="apple-touch-icon" href="assets/icons/rebirth-192.png">
+<link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
@@ -425,13 +426,7 @@
   button.primary.big{min-height:56px; font-size:17px; border-radius:16px; margin-top:12px;}
   button.primary.big.raidcta{background:linear-gradient(#ffd27a,#ffb648); box-shadow:0 5px 0 #a66a12; color:#04222a;}
   /* portrait is a first-class layout (no rotate gate) */
-  @media (orientation:portrait){
-    #topbar .title{display:none;}
-    #currencies{margin-left:0; justify-content:flex-start; flex:1;}
-    .cur .lbl{display:none;} .cur{min-height:36px;} .bondpill{min-height:var(--tap);} .cur i{width:28px; height:28px; font-size:15px;}
-    #overlay.sheet{justify-content:center;} #overlay.sheet .inner{max-width:none;}
-    #bitdock{bottom:calc(104px + env(safe-area-inset-bottom,0px)); max-width:calc(100% - 24px);}
-  }
+  
   @media (orientation:landscape) and (max-height:480px){
     #topbar{padding-top:4px; padding-bottom:4px;} #topbar .title{display:none;}
     #currencies{margin-left:0; justify-content:flex-start; flex:1;}
@@ -449,9 +444,7 @@
     #app.s-prep>button.primary,#app.s-decision .decision-actions{position:sticky; left:auto; right:auto; bottom:0; width:100%;}
   }
   #overlay.sheet{z-index:30;}
-  @media (orientation:portrait){
-    #app.s-base .goalpill{top:52px; bottom:auto; left:10px; right:10px; max-width:none;}
-  }
+  
   /* ===== v1.29 raid prep (compact, CoC style) ===== */
   #app.s-prep{padding-top:8px;}
   .prephead{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
@@ -506,7 +499,7 @@
   .mission-btn{margin-left:auto; min-height:var(--tap); padding:0 14px; border-radius:14px; border:2px solid var(--line); background:var(--solid); color:var(--txt); font:800 14px "Archivo",sans-serif; letter-spacing:.06em; cursor:pointer; white-space:nowrap;}
   .lobby-side{display:flex; flex-direction:column; gap:8px; min-height:0;} .lobby-side.left{grid-area:left;} .lobby-side.right{grid-area:right;}
   .lobby-side .lslot{flex:1; min-height:64px;}
-  .lobby-hero{grid-area:hero; position:relative; min-height:0; border-radius:20px; overflow:hidden; border:2px solid var(--line);
+  .lobby-hero{grid-area:hero; position:relative; min-height:0; border-radius:20px; overflow:hidden;  border:2px solid var(--line);
     background:radial-gradient(ellipse at 50% 85%,rgba(255,200,90,.35),transparent 55%),#0b1c24;}
   .hero-art{position:absolute; inset:0 0 54px; background:url("assets/production/hero_operator.webp") 50% 25%/cover no-repeat;}
   .hero-weapon{position:absolute; left:50%; bottom:64px; transform:translateX(-50%); display:flex; align-items:center; gap:6px; white-space:nowrap; background:var(--solid); border:2px solid var(--accent); border-radius:12px; padding:3px 10px; font:800 14px "Archivo",sans-serif;}
@@ -525,16 +518,7 @@
   .mission-panel[hidden]{display:none;}
   .mp-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
   #app.s-prep{position:relative;}
-  @media (orientation:portrait){
-    .lobby{grid-template-columns:96px 1fr 96px;}
-    .lobby-top{flex-wrap:wrap;} .lobby-top .ptarget{order:5; flex-basis:100%;}
-    .mission-btn span{display:none;}
-    .lobby-side .lslot{min-height:96px;} .lobby-side .lslot b{font-size:12px;}
-    .hero-art{background-position:58% 20%;}
-    .lobby-hero .ostats{grid-template-columns:repeat(2,1fr);}
-    .playbtn{width:150px; height:72px;} .lobby-bottom .riskbar{font-size:13px; padding:6px 10px;} .riskbar small{display:none;}
-    .hero-weapon{bottom:96px;} .hero-art{bottom:90px;}
-  }
+  
   @media (orientation:landscape) and (max-height:480px){
     #app.s-prep{padding:6px 10px 6px;}
     .lobby{gap:6px;} .lobby-top h1{display:none;} .lobby-side .lslot{min-height:0;} .lobby-side .lslot small{display:none;}
@@ -548,6 +532,18 @@
   }
   /* BIT never covers the lobby: docked as a small face in the top bar row; bubble only on tap. */
   body[data-screen=prep] #bitdock{display:none!important;}
+  /* ===== v1.32 landscape only: rotate gate, splash ===== */
+  #rotate{display:none; position:fixed; inset:0; z-index:100; background:var(--bg); color:var(--txt); flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:24px;}
+  #rotate .phoneicon{font-size:56px; animation:rotphone 1.6s ease-in-out infinite;}
+  #rotate b{font:900 22px "Archivo",sans-serif; letter-spacing:.08em;} #rotate span{font-size:15px; color:var(--dim);}
+  @keyframes rotphone{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
+  @media (orientation:portrait){ #rotate{display:flex;} }
+  #splash{position:fixed; inset:0; z-index:90; background:#07151c url("assets/production/splash.webp") center/contain no-repeat; display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; transition:opacity .45s ease;}
+  #splash.out{opacity:0; pointer-events:none;}
+  #splash small{font:700 12px "IBM Plex Mono",monospace; letter-spacing:.2em; color:#7ad8cf; opacity:.8; background:rgba(7,21,28,.6); padding:4px 10px; border-radius:8px;}
+  .hero-art{background-image:url("assets/production/operator_op01.webp")!important; background-size:auto 128%!important; background-position:50% 4%!important; inset:0!important; filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));}
+  .lobby-hero{background:radial-gradient(ellipse at 50% 92%,rgba(21,214,190,.28),transparent 55%),radial-gradient(ellipse at 50% 40%,#16323c,#0b1c24 70%);}
+  @media (orientation:landscape) and (max-height:480px){ .lobby{grid-template-columns:minmax(140px,180px) 1fr minmax(140px,180px);} .lobby-hero .hero-weapon{bottom:50px;} }
 </style>
 </head>
 <body class="base-dark">
@@ -560,7 +556,7 @@
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.31.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.32.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -572,17 +568,19 @@
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
-  <div id="app-version">v1.31.0</div>
+  <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
+  <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
+  <div id="app-version">v1.32.0</div>
  </div>
-<script src="data/items.js?v=1.31.0"></script>
-<script src="data/modules.js?v=1.31.0"></script>
-<script src="data/bit.js?v=1.31.0"></script>
-<script src="data/raid_zones.js?v=1.31.0"></script>
-<script src="data/recipes.js?v=1.31.0"></script>
-<script src="data/vendors.js?v=1.31.0"></script>
-<script src="data/retention.js?v=1.31.0"></script>
-<script src="data/progression.js?v=1.31.0"></script>
-<script src="data/combat.js?v=1.31.0"></script>
-<script src="app.js?v=1.31.0"></script>
+<script src="data/items.js?v=1.32.0"></script>
+<script src="data/modules.js?v=1.32.0"></script>
+<script src="data/bit.js?v=1.32.0"></script>
+<script src="data/raid_zones.js?v=1.32.0"></script>
+<script src="data/recipes.js?v=1.32.0"></script>
+<script src="data/vendors.js?v=1.32.0"></script>
+<script src="data/retention.js?v=1.32.0"></script>
+<script src="data/progression.js?v=1.32.0"></script>
+<script src="data/combat.js?v=1.32.0"></script>
+<script src="app.js?v=1.32.0"></script>
 </body>
 </html>
