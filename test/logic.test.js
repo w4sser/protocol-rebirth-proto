@@ -64,9 +64,20 @@ const R = { cfg:{zoneId:"industrial", riskId:"standard", insuranceId:"basic",
   loadout:["basic_carbine","scavenger_vest","medkit"], trackedItemId:null},
   zone:"industrial", outcome:"death", loot:["cable","fuse"], salvage:20, dataCores:3, trackedFound:false };
 app.applyRaidResult(R);
-assert.equal(R.saved.insured.length, 1); assert.equal(R.saved.insured[0], "basic_carbine");
+assert.equal(R.saved.insured.length, 1); assert.equal(R.saved.insured[0], "scavenger_vest", "insurance never wastes a slot on the free carbine");
+assert.equal(S.opXp, 4, "death still gives operator XP");
 assert.equal(R.saved.secure, "medkit"); assert.equal(S.cur.salvage, 60); assert.equal(S.bondXp, 15);
 assert(S.modules.rebirth_core === 1 && R.progress.length >= 2);
+
+// --- Basic Carbine is infinite; vest is not a starter item; operator level curve ---
+{ const F = app.freshState(); app._setState(F);
+  assert(!F.stash.basic_carbine && !F.stash.scavenger_vest, "start stash has no carbine/vest entries");
+  assert.equal(app.have("basic_carbine"), Infinity, "carbine always available");
+  app.removeItem("basic_carbine", 1); assert.equal(app.have("basic_carbine"), Infinity, "carbine can't be lost");
+  const used = app.stashSlotsUsed(); app.addItem("basic_carbine", 3); assert.equal(app.stashSlotsUsed(), used, "carbine never takes slots");
+  const L = app.operatorLevel;
+  assert.deepEqual([L(0).level, L(49).level, L(50).level, L(124).level, L(125).level, L(225).level, L(350).level], [1,1,2,2,3,4,5], "operator curve");
+  assert.deepEqual(L(60), { level:2, into:10, need:75 }); }
 
 // --- routes shift the loot distribution without guaranteeing items ---
 S = app.freshState(); app._setState(S); S.beat = 6;

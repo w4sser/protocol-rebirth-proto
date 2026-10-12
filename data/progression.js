@@ -4,7 +4,7 @@ window.DATA.progression = {
   raidPrepUnlockModule:"fabricator",
   starterRaid:{
     name:"Standard loot mission", zoneId:"industrial", routeId:"tunnels", riskId:"standard", insuranceId:"none",
-    loadout:{ weapon:"basic_carbine", armor:"scavenger_vest", c1:"medkit", c2:null }
+    loadout:{ weapon:"basic_carbine", armor:null, c1:"medkit", c2:null }
   },
   trackedPityRaids:2,        // tracked item guaranteed by Nth consecutive tracked raid
   insurance:{
@@ -18,12 +18,15 @@ window.DATA.progression = {
   recovery:{
     restoreBagSignals:4,     // post-death: restore whole bag
     cheapLoadoutScrap:15,    // one-tap recovery loadout cost
-    cheapLoadoutItems:["basic_carbine","scavenger_vest"]
+    cheapLoadoutItems:["medkit"]   // Basic Carbine is infinite; the vest is a later unlock
   },
   start:{
     currencies:{ scrap:20, dataCores:0, salvage:0, signals:0 },
-    stash:{ power_cell:1, scrap_alloy:3, basic_carbine:1, scavenger_vest:1, medkit:1 }
+    stash:{ power_cell:1, scrap_alloy:3, medkit:1 }   // Basic Carbine is infinite (never in stash); Scavenger Vest unlocks at Fabricator L1
   },
+  // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
+  // XP to go from level n to n+1 = xpBase + xpStep*(n-1)  →  L2 at 50, L3 at 125, L4 at 225, L5 at 350, L10 at 1350.
+  operator:{ xpBase:50, xpStep:25, maxLevel:30, simExtractXp:12, simDeathXp:4, coreMinXp:3 },
   beats:[
     { id:"tutorial", type:"intro",
       goalText:"Return to the facility",

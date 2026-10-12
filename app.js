@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.33.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.34.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -23,7 +23,7 @@ function freshState(){
     cur: Object.assign({}, PROG.start.currencies),
     stash: Object.assign({}, PROG.start.stash),
     reserved: {}, secureItem: null,
-    modules: {}, bondXp: 0,
+    modules: {}, bondXp: 0, opXp: 0,
     tracked: null, trackedStreak: 0,
     zoneIntel: {}, raids: 0, deaths: 0,
     revealed: { scrap: true }, surveyDone: false, surveyAnswers: {}, styles: {},
@@ -77,17 +77,35 @@ function bondLevel(){
 function stashCapacity(){
   return D.baseStashCapacity + (S.modules.storage >= 1 ? D.storageBonus : 0);
 }
+// Free items (Basic Carbine) are infinite: never stored, never counted, never lost/sold.
+function isFree(id){ return !!(ITEMS[id] && ITEMS[id].free); }
 function stashSlotsUsed(){
   let n = 0;
-  for(const id in S.stash){ if(S.stash[id] > 0) n += Math.ceil(S.stash[id] / (ITEMS[id].stackSize||1)); }
+  for(const id in S.stash){ if(S.stash[id] > 0 && !isFree(id)) n += Math.ceil(S.stash[id] / (ITEMS[id].stackSize||1)); }
   return n;
 }
-function have(id){ return S.stash[id] || 0; }
-function addItem(id, qty){ S.stash[id] = (S.stash[id]||0) + qty; }
+function have(id){ return isFree(id) ? Infinity : (S.stash[id] || 0); }
+function addItem(id, qty){ if(isFree(id)) return; S.stash[id] = (S.stash[id]||0) + qty; }
 function removeItem(id, qty){
+  if(isFree(id)) return;
   S.stash[id] = Math.max(0, (S.stash[id]||0) - qty);
   if(S.reserved[id] && S.stash[id] < 1) delete S.reserved[id];
   if(S.secureItem === id && S.stash[id] < 1) S.secureItem = null;
+}
+function stockUnlocked(s){ return !s.requires || (S.modules[s.requires.module] || 0) >= s.requires.level; }
+// Operator level (overall player level) from total raid XP; curve in DATA.progression.operator.
+function opNeed(l){ const O = PROG.operator; return O.xpBase + O.xpStep * (l - 1); }
+function operatorLevel(xp){
+  const O = PROG.operator; xp = xp === undefined ? (S.opXp || 0) : xp;
+  let l = 1, need; while(l < O.maxLevel && xp >= (need = opNeed(l))){ xp -= need; l++; }
+  return { level:l, into:xp, need: l >= O.maxLevel ? 0 : opNeed(l) };
+}
+function gainOpXp(n){
+  if(!(n > 0)) return 0;
+  const before = operatorLevel().level; S.opXp = (S.opXp || 0) + Math.floor(n);
+  const after = operatorLevel().level;
+  if(after > before){ act("OPERATOR_LEVEL_UP", { level:after }); if(typeof document !== "undefined") toast("Operator level " + after); }
+  return Math.floor(n);
 }
 function nextLevelDef(modId){
   const m = MODS[modId], cur = S.modules[modId] || 0;
@@ -122,6 +140,8 @@ function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
   const cfg = PROG.starterRaid;
   Object.assign(session.prep, { zoneId:cfg.zoneId, routeId:cfg.routeId, riskId:cfg.riskId, insuranceId:cfg.insuranceId });
+  // Guided raid fixes zone/route/risk only. Owned gear (e.g. a looted shotgun) stays selectable.
+  if(session.prep.loadoutTouched) return;
   session.prep.loadout = Object.fromEntries(Object.entries(cfg.loadout).map(([slot,id]) => [slot,id && have(id) ? id : null]));
 }
 function roomPartsHtml(room){
@@ -480,6 +500,7 @@ function applyRaidResult(R){
     S.cur.salvage += R.salvage;
     S.cur.dataCores += R.dataCores;
     progress.push("+" + R.salvage + " Salvage, +" + R.dataCores + " Data Cores");
+    gainOpXp(PROG.operator.simExtractXp);
     if(bitOnline()){ S.bondXp += D.bit.xpPerExtract; progress.push("BIT Bond +" + D.bit.xpPerExtract + " XP"); }
     act("EXTRACT_COMPLETE", { zone:R.zone, loot:R.loot, salvage:R.salvage, dataCores:R.dataCores, tracked:R.trackedFound });
   } else {
@@ -487,7 +508,7 @@ function applyRaidResult(R){
     // survivors
     R.saved = { insured:[], secure:null, bitRescue:null };
     const ins = PROG.insurance.tiers.find(t => t.id === R.cfg.insuranceId) || PROG.insurance.tiers[0];
-    const sorted = [...R.cfg.loadout].sort((a,b)=>(ITEMS[b].sellValue)-(ITEMS[a].sellValue));
+    const sorted = R.cfg.loadout.filter(id => !isFree(id)).sort((a,b)=>(ITEMS[b].sellValue)-(ITEMS[a].sellValue));
     for(let i=0;i<ins.recovers && i<sorted.length;i++){ R.saved.insured.push(sorted[i]); addItem(sorted[i],1); }
     if(S.secureItem && R.cfg.loadout.includes(S.secureItem) && !R.saved.insured.includes(S.secureItem)){
       R.saved.secure = S.secureItem; addItem(S.secureItem,1);
@@ -496,6 +517,7 @@ function applyRaidResult(R){
     const halfSalvage = Math.floor(R.salvage/2);
     S.cur.salvage += halfSalvage;
     progress.push("+" + halfSalvage + " Salvage (recovered)");
+    gainOpXp(PROG.operator.simDeathXp);
     if(bitOnline()){ S.bondXp += D.bit.xpPerDeath; progress.push("BIT Bond +" + D.bit.xpPerDeath + " XP"); }
     act("PLAYER_DIED", { zone:R.zone, lost:R.cfg.loadout, insured:R.saved.insured, secure:R.saved.secure });
   }
@@ -604,7 +626,9 @@ function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id
 function renderCurrencies(){
   const c = S.cur;
   const pill = (id, label, val) => '<span class="cur cur-' + id + '" title="' + label + '"><i aria-hidden="true">' + CUR_ICONS[id] + '</i><span class="lbl">' + label + ' </span><b>' + val + '</b></span>';
-  let h = retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
+  const op = operatorLevel();
+  let h = '<span class="cur oplvl" title="Operator level" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></span>';
+  h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
   h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
   if(bitOnline()){
     const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
@@ -1063,7 +1087,10 @@ SCREENS.module = function(modId){
 SCREENS.stash = function(){
   let html = '<h1>Stash</h1><div class="sub">' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots' +
     (stashSlotsUsed() > stashCapacity() ? ' <span class="bad">OVERFLOW</span>' : '') + '</div><div class="grid">';
-  const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0);
+  const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id));
+  for(const id of D.items.filter(i => i.free).map(i => i.id))
+    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) +
+      '<span class="qty" aria-label="infinite">∞</span></div>';
   if(!ids.length) html += '</div><div class="card small">Empty. The surface has what you need.</div>';
   else {
     for(const id of ids){
@@ -1088,8 +1115,12 @@ SCREENS.itemDetail = function(id){
     if(next && next.cost.items && next.cost.items[id]) neededFor.push(m.name + " L" + next.level);
   }
   let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'stash\')">‹ Stash</button>' +
-    '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · ' + esc(it.rarity) + ' · own ×' + have(id) + '</div>' +
+    '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · ' + esc(it.rarity) + ' · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
     '<div class="card small">' + esc(it.desc) + '</div>';
+  if(isFree(id)){
+    $app().innerHTML = html + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or dropped.</div>';
+    return;
+  }
   if(neededFor.length) html += '<div class="card small trackc">Needed for: ' + esc(neededFor.join(", ")) + '</div>';
   if(miss && miss.itemId === id) html += '<div class="flagbanner">TRACKED UPGRADE ITEM — NEEDED ' + miss.have + '/' + miss.need + '</div>';
   html += '<div class="kv"><span>Sell value</span><span>' + Math.floor(it.sellValue * D.vendors[0].sellMultiplier) + ' Scrap</span></div>';
@@ -1244,8 +1275,10 @@ SCREENS.prep = function(){
   $app().innerHTML = html;
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon","🔫"],["armor","armor","Armor","🦺"],["c1","consumable","Item 1","✚"],["c2","consumable","Item 2","✚"]];
+function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
 function slotTileHtml(def, locked){
   const [key, slot, label, icon] = def, p = session.prep;
+  if(locked && ownedForSlot(slot) > 0) locked = false; // never lock the player out of gear they own
   const id = p.loadout[key], it = id && ITEMS[id];
   const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot && !ITEMS[x].free).length + (slot === "weapon" ? 1 : 0);
   return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
@@ -1430,6 +1463,7 @@ SCREENS.vendor = function(){
   let html = '<h1>' + esc(v.name) + '</h1><div class="sub">' + esc(v.blurb) + '</div>';
   html += '<h2>Buy</h2>';
   for(const s of v.stock){
+    if(!stockUnlocked(s)) continue;
     const afford = S.cur.scrap >= s.price;
     html += '<div class="card row"><span>' + esc(ITEMS[s.itemId].name) + '</span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (afford?'':'opacity:.4') + '" ' +
@@ -1595,6 +1629,7 @@ function ingestRaidResult(r){
   for(const id in sx){ before[id] = skillLevel(id); S.skills[id] = (S.skills[id] || 0) + sx[id]; if(skillLevel(id) > before[id]) skillUps.push(PROG.playerStats.skills[id].name + " L" + skillLevel(id)); }
   const xp = bitOnline() ? coreRaidXp(r) : 0;
   S.bondXp += xp;
+  gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   return { ok:true, added, currency, xp, saved, gearLost, skillUps, kitBack, kitLost:kitOut - kitBack };
@@ -1893,6 +1928,7 @@ window.A = {
     }
   },
   sell(id){
+    if(isFree(id)) return;
     if(have(id) < 1 || S.reserved[id]) { toast(S.reserved[id] ? "Reserved for an upgrade" : "None left"); return; }
     const gain = Math.floor(ITEMS[id].sellValue * D.vendors[0].sellMultiplier);
     removeItem(id,1); S.cur.scrap += gain;
@@ -1928,8 +1964,9 @@ window.A = {
   },
   planToggle(open){ session.planOpen = !!open; if(session.screen === "prep") SCREENS.prep(); },
   pickSlot(key){
-    if(guidedRaid() || !session.prep) return;
+    if(!session.prep) return;
     const def = SLOT_DEFS.find(d => d[0] === key); if(!def) return;
+    if(guidedRaid() && !ownedForSlot(def[1])) return;
     const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1] && !ITEMS[id].free);
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
@@ -1938,7 +1975,10 @@ window.A = {
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
-  prepLoadout(slot, id){ if(guidedRaid()) return; session.prep.loadout[slot] = id || null; refresh("raid_prep"); },
+  prepLoadout(slot, id){
+    if(!session.prep || (id && (!ITEMS[id] || have(id) < 1))) return;
+    if(slot === "weapon" && !id) id = FREE_WEAPON; // weapon slot is never empty: the free Basic is always there
+    session.prep.loadout[slot] = id || null; session.prep.loadoutTouched = true; refresh("raid_prep"); },
   adSignals(){
     fakeAd("+"+PROG.insurance.adSignalsGrant+" Signals", ()=>{
       S.cur.signals += PROG.insurance.adSignalsGrant; save();
@@ -2086,7 +2126,7 @@ window.A = {
   },
   buy(id){
     const s = D.vendors[0].stock.find(x=>x.itemId===id);
-    if(S.cur.scrap < s.price) return;
+    if(!s || !stockUnlocked(s) || S.cur.scrap < s.price) return;
     S.cur.scrap -= s.price; addItem(id,1);
     act("VENDOR_BUY", { id, price: s.price });
     toast("Bought " + ITEMS[id].name);
@@ -2415,4 +2455,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
