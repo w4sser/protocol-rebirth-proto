@@ -23,7 +23,7 @@
     <button id="abandon" aria-label="Abandon raid" title="Abandon raid" hidden>✕ <span>Abandon</span></button><button id="reset" aria-label="Restart the game" title="Restart">↻ <span>Restart</span></button>
   </header>
   <div id="world-labels"></div>
-  <aside class="bag-panel" aria-label="Bag and extracted loot"><strong id="bag-count">BAG 0/4 · AT RISK</strong><button id="open-bag">Open bag</button><span id="bag-items">Empty</span><small>SECURED: <b id="secured-items">Empty</b></small></aside>
+  <aside class="bag-panel" aria-label="Bag (at risk until extract)"><strong id="bag-count">BAG 0/4 · AT RISK</strong><button id="open-bag">Open bag</button><span id="bag-items">Empty</span></aside>
   <section id="inventory" class="inventory" role="dialog" aria-labelledby="inventory-title" hidden><div class="inventory-card"><header><h2 id="inventory-title">Bag · at risk</h2><button id="close-bag" aria-label="Close bag">✕</button></header><p id="inventory-count">0 / 4 slots</p><div id="inventory-slots"></div><small>Drop items to make room. Only Extract secures your bag; it carries across levels at risk. Death, timeout or abandon loses it.</small></div></section>
   <div id="player-health" role="progressbar" aria-label="Player health bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="player-health-fill"></span></div>
   <aside id="level-corner" class="level-corner" aria-label="Level and seed" hidden><strong id="corner-name"></strong><span id="seed-label"></span><span id="progress" aria-label="Nodes activated">NODES 0/1</span></aside>
