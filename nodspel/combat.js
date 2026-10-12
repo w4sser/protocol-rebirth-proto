@@ -1,6 +1,6 @@
-import {RULES,hazardState} from './levels.js?v=1.25.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.25.0';
-import {takeDamage,tickRound} from './round.js?v=1.25.0';
+import {RULES,hazardState} from './levels.js?v=1.26.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.26.0';
+import {takeDamage,tickRound} from './round.js?v=1.26.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -19,6 +19,10 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
     if(enemy.active===false||now<(enemy.spawnedAt??-Infinity)+rule.graceMs)continue;
+    // Detection: stealth shrinks the range at which an enemy notices you. Once noticed (or shot) it stays aggro.
+    const seen=Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
+    if(seen||enemy.lastHitAt!=null)enemy.aggro=true;
+    if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       if(distance>(enemy.standoff??rule.standoff) && distance<14){

@@ -1,14 +1,16 @@
-import {generateLevel,RULES} from './levels.js?v=1.25.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.25.0';
-import {emptyBag,bagItems} from './raid.js?v=1.25.0';
-import {traceTargets} from './physics.mjs?v=1.25.0';
+import {generateLevel,RULES} from './levels.js?v=1.26.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.26.0';
+import {emptyBag,bagItems} from './raid.js?v=1.26.0';
+import {traceTargets} from './physics.mjs?v=1.26.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
 // export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
 //   const order=readOrder(requestedOrder);
-export function createRound(seed,now) {
-  return {seed,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:RULES.loadout.health,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+// stats: validated player stats (see raid-result.js readStats); defaults to the new-player base.
+export function createRound(seed,now,stats=RULES.playerStats.base) {
+  stats={...RULES.playerStats.base,...stats};
+  return {seed,stats,maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
@@ -39,8 +41,8 @@ export function dropItem(round,item,position,now){
   round.level.lootBoxes.push(box);return box;
 }
 export function useHealthKit(round,now){
-  tickRound(round,now);if(round.over||!round.bag.medkit||round.health>=100)return false;
-  round.bag.medkit--;round.health=Math.min(100,round.health+RULES.rewards.medkitHealth);return true;
+  const max=round.maxHealth??100;tickRound(round,now);if(round.over||!round.bag.medkit||round.health>=max)return false;
+  round.bag.medkit--;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);return true;
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
@@ -51,7 +53,7 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
   if(!hold||hold.id!==node.id)hold=round.nodeInteraction={id:node.id,startedAt:now,progress:0};
   hold.progress=Math.min(1,(now-hold.startedAt)/RULES.resources.nodeHoldMs);
   if(hold.progress<1)return false;
-  round.nodeInteraction=null;return activateNode(round,node.id,now);
+  round.nodeInteraction=null;const lit=activateNode(round,node.id,now);if(lit&&round.telemetry)round.telemetry.holdNodes++;return lit;
 }
 export function tickRound(round,now) {
   if(round.over)return;
@@ -61,6 +63,7 @@ export function tickRound(round,now) {
 export function takeDamage(round,amount,now){
   tickRound(round,now);
   if(round.over || !Number.isFinite(amount) || amount<=0)return false;
+  if(round.telemetry)round.telemetry.damageTaken+=Math.min(amount,round.health);
   round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';}
   return true;
@@ -69,7 +72,7 @@ export function hitEnemy(round,id,now,damage=1){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
   if(round.over || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
-  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;round.health=Math.min(100,round.health+RULES.killReward.health);}return true;
+  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;round.health=Math.min(round.maxHealth??100,round.health+RULES.killReward.health);}return true;
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};

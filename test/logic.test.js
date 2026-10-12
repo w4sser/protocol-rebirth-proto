@@ -219,3 +219,37 @@ console.log("ALL LOGIC TESTS PASSED");
   assert(/\+16 Salvage/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
   console.log("item-sourced currency OK");
 }
+
+// Player stats: base + skills (by use) + gear, passed to core; gear at risk on the raid.
+{
+  const P = window.DATA.progression.playerStats;
+  const st = app.freshState(); app._setState(st);
+  assert.deepEqual(app.playerStats([]), P.base, "new player = base stats");
+  const vest = app.playerStats(["scavenger_vest"]);
+  assert.equal(vest.maxHealth, P.base.maxHealth + 15);
+  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:105,dcd:4000");
+  const url = app.coreLaunchUrl("meta-x", "s", "../", { stats:app.playerStats([]), gear:["scout_rig"] });
+  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000&gear=scout_rig"), url);
+  // skills from usage
+  const xp = app.skillXpFrom({ skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } });
+  assert.deepEqual(xp, { athletics:50, stealth:10, vitality:20 });
+  assert.equal(app.skillLevel("athletics", 19), 0); assert.equal(app.skillLevel("athletics", 20), 1);
+  assert.equal(app.skillLevel("athletics", 60), 2); assert.equal(app.skillLevel("athletics", 1e6), P.skills.athletics.maxLevel);
+  const base = { schema:"protocol-rebirth/raid-result", version:1, seed:"s", levelsCleared:1, enemiesDefeated:0, nodesLit:0, remainingMs:0, extracted:[], lost:[], endedAt:1,
+    skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } };
+  st.stash.scout_rig = 0;
+  st.coreLaunch = { raidId:"g-death", gear:["scout_rig"] };
+  const d = app.ingestRaidResult({ ...base, raidId:"g-death", outcome:"timeout" });
+  assert.deepEqual(d.gearLost, ["scout_rig"], "timeout loses the gear"); assert.equal(st.stash.scout_rig, 0);
+  assert.equal(st.coreLaunch, null);
+  assert.equal(app.skillLevel("athletics"), 1, "athletics rose by use even on a loss");
+  assert.deepEqual(d.skillUps.sort(), ["Athletics L1", "Vitality L1"]);
+  st.coreLaunch = { raidId:"g-ok", gear:["scout_rig"] };
+  const e = app.ingestRaidResult({ ...base, raidId:"g-ok", outcome:"extract", skills:{} });
+  assert.deepEqual(e.gearLost, []); assert.equal(st.stash.scout_rig, 1, "extract brings the gear home");
+  const lvl = app.playerStats([]);
+  assert.equal(lvl.speed, Math.round((P.base.speed + P.skills.athletics.perLevel.speed) * 1000) / 1000, "skill level raises speed");
+  assert.equal(lvl.maxHealth, P.base.maxHealth + P.skills.vitality.perLevel.maxHealth);
+  assert(/Operator/.test(app.statsCardHtml(["scout_rig"])) && /Gear at risk: Scout Rig/.test(app.statsCardHtml(["scout_rig"])));
+  console.log("player stats OK");
+}

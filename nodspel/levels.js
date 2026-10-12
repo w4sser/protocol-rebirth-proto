@@ -17,11 +17,11 @@ export const RULES=Object.freeze({
   // early parts on level 1, mid parts on level 2, rare parts deeper. salvage_crate/data_core turn into
   // Salvage/Data Cores in the base (item-sourced currency). See docs/meta-core-integration.md §8.
   loot:{capacity:4,counts:[1,6,3],
-    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample'],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak'],
     weights:[
       {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},
-      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1},
-      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:1,ai_fragment:1,servo:1,polymer_plate:1,bio_sample:1}],
+      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1},
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:1,ai_fragment:1,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1}],
     pickupRadius:1.6},
   // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
   enemyTypes:{
@@ -32,11 +32,16 @@ export const RULES=Object.freeze({
     {mix:{grunt:1},hazards:0,shieldedNodes:0,theme:{floor:'#444f59',trim:'#6c7882'}},
     {mix:{grunt:.65,sentry:.35},hazards:1,shieldedNodes:0,theme:{floor:'#4b4a3f',trim:'#8a8566'}},
     {mix:{grunt:.4,rusher:.35,sentry:.25},hazards:2,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
+  // Player stats. Meta computes them (skills + gear, data/progression.js) and passes ?stats=; core clamps again.
+  // Without launch params (standalone) the new-player base applies: slower than before (3.6 vs 4.5 m/s).
+  playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:4000},
+    clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[2000,6000]},
+    gear:['scavenger_vest','scout_rig','dampener_cloak']},
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:600,damagePerSecond:12,clearance:2.2},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
-  killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000,standoff:3.5},
+  killReward:{ammo:1,health:15},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
