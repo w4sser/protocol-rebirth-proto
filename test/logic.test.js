@@ -175,3 +175,27 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(app.coreResultSummary({}, { ok:false }), null);
   console.log("deploy/return loop helpers OK");
 }
+
+// Owner decisions: timeout = death, XP from data, extract advances raid beats, items only.
+{
+  const base = { schema:"protocol-rebirth/raid-result", version:1, seed:"s", levelsCleared:1, enemiesDefeated:3, nodesLit:1, remainingMs:0, extracted:["cable"], lost:["fuse"], endedAt:1 };
+  const X = window.DATA.bit.coreRaidXp;
+  const st = app.freshState(); app._setState(st); st.modules.bit_bay = 1;
+  const cur = JSON.stringify(st.cur);
+  const t = app.ingestRaidResult({ ...base, raidId:"x-timeout", outcome:"timeout", reason:"timeout" });
+  assert(t.ok); assert.equal(st.deaths, 1, "timeout counts as death");
+  assert.equal(t.xp, X.perNode + 3*X.perEnemy + X.perLevelCleared, "death xp has no extract bonus");
+  assert.equal(st.stash.fuse || 0, 0, "lost bag stays lost below bond 3");
+  assert.equal(JSON.stringify(st.cur), cur, "no formula currency grants");
+  const beat = st.beat;
+  const e = app.ingestRaidResult({ ...base, raidId:"x-extract", outcome:"extract", reason:"extract", lost:[] });
+  assert.equal(e.xp, X.perNode + 3*X.perEnemy + X.perLevelCleared + X.extractBonus);
+  assert.equal(st.deaths, 1); assert.equal(st.bondXp, t.xp + e.xp);
+  assert.equal(st.beat, window.DATA.progression.beats[beat].type === "raid" ? beat + 1 : beat, "extract advances a raid beat");
+  st.bondXp = 1000;
+  const d = app.ingestRaidResult({ ...base, raidId:"x-death", outcome:"death", reason:"abandon" });
+  assert.equal(d.saved.bitRescue, "fuse", "bond 3+ rescues one lost item like simulated death");
+  const off = app.freshState(); app._setState(off);
+  assert.equal(app.ingestRaidResult({ ...base, raidId:"x-off", outcome:"extract" }).xp, 0, "no bond xp before BIT Bay");
+  console.log("core raid decisions OK");
+}

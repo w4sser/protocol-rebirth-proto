@@ -116,3 +116,30 @@ Regler:
 4. Ska en core-extract avancera FTUE-beats på samma sätt som den simulerade raiden?
 5. Ska knappen ersätta den simulerade DEPLOY i guidad FTUE, eller ligga kvar som alternativ?
 6. Restart i core efter en startad raid: tillåtet (eget id, loot räknas) eller ska Restart döljas när `return` finns?
+
+## 7. Ägarbeslut (2026-10-12) – implementerat
+| # | Beslut | Implementation |
+|---|---|---|
+| 1 | Deploy kostar inget (tills vidare) | Ingen loadout/fuel/försäkring dras vid Node Raid-deploy. |
+| 2 | Timeout = död | Core rapporterar `outcome:"timeout"` (och `abandon` som `"death"`), meta behandlar allt som inte är `extract` som död: `deaths++`, väskan förlorad, dödsregler som i simulerad raid (BIT bond ≥ 3 räddar första förlorade item). Ingen meta-loadout skickas än, så försäkring/secure item har inget att rädda. |
+| 3 | XP, inga formelgåvor | Bond-XP enligt `data/bit.js → coreRaidXp` (se nedan). Salvage/dataCores ges inte; bara loot-items kommer hem. Som för simulerade raids ges bond-XP bara när BIT Bay är online. |
+| 4 | Extract avancerar FTUE-beats | `extract` på en beat av typen `raid` kör `advanceBeat()` precis som simulerad raid. |
+| 5 | Node Raid ersätter simulerad DEPLOY | Prep (guidad + vanlig) har nu bara **DEPLOY — NODE RAID** (primärknapp). `A.deploy()`/`resolveRaid` finns kvar i koden eftersom tester, dev-verktyg och ”push deeper”-flödet använder dem. |
+| 6 | Restart dold vid start från meta; abandon = förlust; extract-eller-fortsätt | Med `return`-param döljs Restart (header + round-over) och **Abandon** visas (bekräftelse, väskan förloras, `reason:"abandon"`, `outcome:"death"`). Vid varje nivå-exit visas **Extract** och **Next level**: Extract avslutar raiden (`reason:"extract"`), Next level fortsätter. |
+
+### XP-värden (`coreRaidXp`)
+| Källa | XP |
+|---|---|
+| per aktiverad nod | 2 |
+| per besegrad fiende | 1 |
+| per klarad nivå | 3 |
+| extract-bonus | 5 |
+
+Exempel: extract efter nivå 1 (1 nod, ~2 fiender) ≈ 12 XP (simulerad extract ger 15). Full clear (6 noder, ~8 fiender, 3 nivåer) ≈ 34 XP.
+Tidig död ger några XP (simulerad död ger 5). Bond-trösklar: 30 / 80 / 150 / 250.
+
+### Kvarvarande frågor
+- Loot som säkrats vid en tidigare nivå-exit behålls även vid senare död/timeout/abandon (bara väskan förloras). Det gör att valet
+  ”Extract eller fortsätt” bara riskerar väskan + tid. Ska fortsatt raid i stället riskera allt som säkrats?
+- Ska bond-XP ges även innan BIT Bay är online (FTUE-tempo)?
+- Abandon från resultatskärmen efter en nivå-exit förlorar inget (väskan är tom) – okej, eller ska det räknas annorlunda?

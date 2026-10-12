@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.23.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.23.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.23.0';
 import {createCombat,stepCombat} from './combat.js?v=1.23.0';
 import {buildWorld,setNodeHold} from './world.js?v=1.23.0';
 import {RULES,totalNodes} from './levels.js?v=1.23.0';
@@ -240,11 +240,12 @@ function finishRound(outcome=round.reason){
   if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
   $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;
-  $('#continue-raid').hidden=!resultPending;
-  $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
+  $('#continue-raid').hidden=!resultPending;$('#extract-raid').hidden=!resultPending;
+  $('#new-round').hidden=!!launch.returnUrl;
+  $('#round-over-eyebrow').textContent=resultPending?'BAG SECURED · EXTRACT OR CONTINUE?':'ROUND OVER';
   weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
-  $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
+  $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='extract'?'Extracted':summary.reason==='abandon'?'Raid abandoned':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / ${TOTAL_NODES}`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
@@ -258,6 +259,9 @@ function finishRound(outcome=round.reason){
   // $('#save-result').click();
 }
 $('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnUrl)return;writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));location.assign(launch.returnUrl);});
+$('#reset').hidden=!!launch.returnUrl;$('#abandon').hidden=!launch.returnUrl;
+$('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,Date.now()))finishRound();});
+$('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,Date.now()))$('#round-over').hidden=true;finishRound();});
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){

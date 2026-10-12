@@ -4,7 +4,8 @@ import {bagItems} from './raid.js?v=1.23.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
-const OUTCOMES={complete:'extract',death:'death',timeout:'timeout'};
+// Meta treats timeout and abandon like death; `reason` keeps the core detail.
+const OUTCOMES={complete:'extract',extract:'extract',death:'death',timeout:'timeout',abandon:'death'};
 // Only a finished round (round.over) produces a result. Loot secured at any
 // level exit counts as extracted even if the player later dies or times out.
 // A meta-issued raidId only belongs to the launched seed; later restarts get their own id.
@@ -12,7 +13,7 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null}={}){
   if(!round||!round.over)return null;
   const raidId=launch?.raidId&&launch.seed===round.seed?launch.raidId:`nodspel:${round.seed}`;
   return {schema:RAID_RESULT_SCHEMA,version:RAID_RESULT_VERSION,raidId,seed:round.seed,
-    outcome:OUTCOMES[round.reason]??'timeout',levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,
+    outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,
     remainingMs:round.remainingMs,extracted:bagItems(round.extracted),lost:bagItems(round.lost),endedAt};
 }
 export function writeRaidResult(storage,result){

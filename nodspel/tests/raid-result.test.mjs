@@ -10,7 +10,7 @@ test('death keeps loot secured at earlier exits and lists the bag as lost',()=>{
   const box=r.level.lootBoxes[0];box.item='fuse';collectLoot(r,box,10);
   takeDamage(r,1000,11);
   const res=buildRaidResult(r,{endedAt:5});
-  assert.deepEqual(res,{schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:rr-death',seed:'rr-death',outcome:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:r.nodesLit,remainingMs:r.remainingMs,extracted:['cable'],lost:['fuse'],endedAt:5});
+  assert.deepEqual(res,{schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:rr-death',seed:'rr-death',outcome:'death',reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:r.nodesLit,remainingMs:r.remainingMs,extracted:['cable'],lost:['fuse'],endedAt:5});
 });
 test('result is written as JSON under the shared key',()=>{
   const r=createRound('rr-w',0);takeDamage(r,1000,1);const store={};
@@ -37,4 +37,25 @@ test('round-over has a hidden return-to-base button',async()=>{
   const {readFile}=await import('node:fs/promises');
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
   assert.match(html,/<button id="return-base" hidden>Return to base<\/button>/);
+});
+import {extractRound,abandonRound} from '../round.js';
+test('extract after a level ends the raid with everything secured',()=>{
+  const r=createRound('rr-ex',0);
+  assert.equal(extractRound(r,1),false,'no extract before any level exit');
+  assert.equal(extractLevel(r,'cable',1),'next');
+  assert.ok(extractRound(r,5));
+  const res=buildRaidResult(r);
+  assert.equal(res.outcome,'extract');assert.equal(res.reason,'extract');assert.deepEqual(res.extracted,['cable']);assert.deepEqual(res.lost,[]);
+});
+test('abandon loses the bag and is reported as death; timeout is reported as timeout',()=>{
+  const r=createRound('rr-ab',0);const box=r.level.lootBoxes[0];box.item='fuse';collectLoot(r,box,1);
+  assert.ok(abandonRound(r,2));assert.equal(abandonRound(r,3),false);
+  const res=buildRaidResult(r);
+  assert.equal(res.outcome,'death');assert.equal(res.reason,'abandon');assert.deepEqual(res.lost,['fuse']);
+});
+test('launched raids hide Restart in favour of Abandon, and level exits offer Extract or Next level',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8'),js=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
+  assert.match(html,/<button id="abandon"[^>]*hidden>/);assert.match(html,/<button id="extract-raid" hidden>Extract<\/button><button id="continue-raid" hidden>Next level<\/button>/);
+  assert.match(js,/\$\('#reset'\)\.hidden=!!launch\.returnUrl/);assert.match(js,/\$\('#new-round'\)\.hidden=!!launch\.returnUrl/);
 });

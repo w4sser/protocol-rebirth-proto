@@ -12,6 +12,9 @@ window.DATA.bit = {
   ],
   xpPerExtract:15,
   xpPerDeath:5,
+  // Node Raid (core) bond XP. Granted like simulated raids (only while BIT Bay is online).
+  // Full 3-level clear ≈ 6 nodes·2 + ~8 enemies·1 + 3·3 + 5 ≈ 34 XP; level-1 extract ≈ 12 XP (≈ xpPerExtract).
+  coreRaidXp:{ perNode:2, perEnemy:1, perLevelCleared:3, extractBonus:5 },
   dialogue:{
     idle_base:[
       "good morning. you survived the night. statistically impressive.",

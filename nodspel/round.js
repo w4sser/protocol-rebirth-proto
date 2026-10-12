@@ -73,6 +73,16 @@ export function hitEnemy(round,id,now,damage=1){
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};
 }
+// Player choice after a level exit: end the raid now and keep everything secured.
+export function extractRound(round,now){
+  tickRound(round,now);if(round.over||round.levelsCleared<1)return false;
+  round.nodeInteraction=null;round.over=true;round.reason='extract';return true;
+}
+// Leaving a launched raid early counts as a loss: the bag is lost like on death.
+export function abandonRound(round,now){
+  tickRound(round,now);if(round.over)return false;
+  loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';return true;
+}
 export function exitIsOpen(round) {
   return !round.over && round.level.nodes.every(n=>n.active);
 }
