@@ -389,7 +389,8 @@
   #toast{top:64px; right:10px; width:min(320px,calc(100% - 20px));}
   #app{padding-bottom:16px;}
   /* base: full-bleed map, building plates with level + badges */
-  #app.s-base{padding:0; overflow:hidden; position:relative;}
+  #app.s-base{padding:0; overflow:hidden; overflow:clip; position:relative;}
+  .baseviewer{overflow:clip;}
   #app.s-base .baseviewer{height:100%; border:0; border-radius:0;}
   .mapspot.plate{transform:translate(-50%,-50%) scale(var(--inv,1)); background:none; border:0; padding:0; box-shadow:none; min-width:var(--tap); min-height:var(--tap); display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--txt); font:inherit; animation:none;}
   .mapspot.plate .tag{display:flex; align-items:center; gap:6px; min-height:var(--tap); padding:4px 10px 4px 6px; border-radius:14px; background:var(--solid); border:2px solid var(--accent); font:800 15px "Archivo",sans-serif; white-space:nowrap; box-shadow:0 4px 12px #0009;}
@@ -451,6 +452,51 @@
   @media (orientation:portrait){
     #app.s-base .goalpill{top:52px; bottom:auto; left:10px; right:10px; max-width:none;}
   }
+  /* ===== v1.29 raid prep (compact, CoC style) ===== */
+  #app.s-prep{padding-top:8px;}
+  .prephead{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
+  .prephead h1{margin:0;} .prephead .goalbar{flex:1; margin:0; min-width:200px; padding:4px 12px;}
+  .prephead button.ghost.inline{width:var(--tap); height:var(--tap); padding:0; font-size:22px;}
+  #app.s-prep .prepgrid{display:grid; grid-template-columns:1fr; gap:8px; margin:0;}
+  #app.s-prep .pcol{min-width:0;}
+  #app.s-prep h2{margin:4px 0 6px;}
+  .lslots{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .lslot{position:relative; min-height:84px; border-radius:16px; border:2px dashed var(--line); background:var(--solid); color:var(--txt); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:6px 4px; font:inherit; cursor:pointer; text-align:center;}
+  .lslot.filled{border-style:solid; border-color:var(--accent);} .lslot.locked{cursor:default;}
+  .lslot i{font-style:normal; font-size:28px; line-height:1.05;} .lslot small{font-size:12px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em;}
+  .lslot b{font-size:13px; line-height:1.15;}
+  .lslot .badge{top:-8px; right:-6px;}
+  .operator-stats.compact{padding:8px 10px; margin-bottom:6px;}
+  .ostats{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .ostat{display:flex; flex-direction:column; align-items:center; background:#102b33; border-radius:12px; padding:4px 2px;}
+  .ostat i{font-style:normal; font-size:20px;} .ostat b{font-size:16px;} .ostat small{font-size:12px; color:var(--dim);}
+  .oskills{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; font-size:13px; color:var(--dim); margin-top:6px;} .oskills b{color:var(--accent);}
+  .riskbar{background:#3a1d12; border:2px solid var(--accent2); color:#ffd9bd; border-radius:12px; padding:8px 12px; font-size:14px; margin-bottom:6px;}
+  .riskbar.safe{background:#10302a; border-color:var(--ok2); color:#c9ffe0;}
+  .ptarget{display:flex; align-items:center; gap:10px; background:var(--solid); border:2px solid var(--warn2); border-radius:14px; padding:6px 12px; margin-bottom:8px;}
+  .ptarget i{font-style:normal; font-size:24px;} .ptarget small{display:block; font:800 12px "Archivo",sans-serif; letter-spacing:.08em; color:var(--dim);} .ptarget b{font-size:15px;}
+  .deploybar{position:sticky; bottom:0; z-index:10; padding:6px 0 4px; background:linear-gradient(transparent,var(--bg) 30%);}
+  .deploybar button.primary.big{margin:0;}
+  details.prep-plan{margin-top:8px;} details.prep-plan>summary{min-height:var(--tap); display:flex; align-items:center; cursor:pointer; font:800 13px "Archivo",sans-serif; letter-spacing:.06em; color:var(--dim);}
+  .pick-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; margin-top:10px;}
+  .pick{min-height:84px; border-radius:14px; border:2px solid var(--line); background:#102b33; color:var(--txt); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font:inherit; cursor:pointer;}
+  .pick.selected{border-color:var(--accent);} .pick i{font-style:normal; font-size:26px;} .pick b{font-size:14px;} .pick small{font-size:12px; color:var(--dim);}
+  @media (min-width:700px){ #app.s-prep .prepgrid{grid-template-columns:1.1fr 1fr; gap:12px;} }
+  @media (orientation:landscape) and (max-height:480px){
+    .prephead .goalbar{display:none;} .prephead{margin-bottom:4px;} .prephead .ptarget{margin:0; padding:2px 12px; flex:1;}
+    #app.s-prep .prepgrid{grid-template-columns:1.15fr 1fr; gap:10px;} #app.s-prep h2{display:none;}
+    .lslot{min-height:64px; padding:4px 2px;} .lslot i{font-size:22px;} .lslot small{display:none;}
+    .ostat{flex-direction:row; gap:4px; justify-content:center; padding:6px 2px;} .ostat small{display:none;} .ostat i{font-size:17px;} .ostat b{font-size:15px;}
+    .oskills{margin-top:4px;} .operator-stats.compact{padding:6px 8px;} .riskbar{padding:6px 10px;}
+    #app.s-prep .kv{padding:0;}
+    body[data-screen=prep] #bitdock{top:calc(70px + env(safe-area-inset-top,0px)); bottom:auto;} .prephead .ptarget{margin-right:56px;}
+    #app.s-prep>button.primary{position:static;}
+  }
+  /* BIT speech: auto-hides after a few seconds, tap bubble to dismiss, tap face to bring back */
+  #bitdock{pointer-events:none;} #bitface,#bitline{pointer-events:auto; cursor:pointer;}
+  #bitdock.quiet #bitline{display:none;}
+  body[data-screen=prep] #bitdock{left:auto; right:12px; top:auto; bottom:calc(140px + env(safe-area-inset-bottom,0px)); flex-direction:row-reverse; z-index:12;}
+  body[data-screen=prep] #bitface{width:44px; height:44px;}
 </style>
 </head>
 <body class="base-dark">
@@ -463,7 +509,7 @@
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.28.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.29.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -475,17 +521,17 @@
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
-  <div id="app-version">v1.28.0</div>
+  <div id="app-version">v1.29.0</div>
  </div>
-<script src="data/items.js?v=1.28.0"></script>
-<script src="data/modules.js?v=1.28.0"></script>
-<script src="data/bit.js?v=1.28.0"></script>
-<script src="data/raid_zones.js?v=1.28.0"></script>
-<script src="data/recipes.js?v=1.28.0"></script>
-<script src="data/vendors.js?v=1.28.0"></script>
-<script src="data/retention.js?v=1.28.0"></script>
-<script src="data/progression.js?v=1.28.0"></script>
-<script src="data/combat.js?v=1.28.0"></script>
-<script src="app.js?v=1.28.0"></script>
+<script src="data/items.js?v=1.29.0"></script>
+<script src="data/modules.js?v=1.29.0"></script>
+<script src="data/bit.js?v=1.29.0"></script>
+<script src="data/raid_zones.js?v=1.29.0"></script>
+<script src="data/recipes.js?v=1.29.0"></script>
+<script src="data/vendors.js?v=1.29.0"></script>
+<script src="data/retention.js?v=1.29.0"></script>
+<script src="data/progression.js?v=1.29.0"></script>
+<script src="data/combat.js?v=1.29.0"></script>
+<script src="app.js?v=1.29.0"></script>
 </body>
 </html>

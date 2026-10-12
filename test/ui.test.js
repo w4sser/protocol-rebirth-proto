@@ -152,6 +152,7 @@ assert(doc.querySelector(".prepgrid"), "prep grid");
 assert(text().includes("Standard loot mission") && text().includes("Basic loadout"), "first raid has one mission and equipped gear");
 assert.equal(doc.querySelectorAll("#app select").length, 0, "first raid has no selectable loadout");
 assert.equal(doc.querySelectorAll(".prep-locked[aria-disabled=true]").length, 3, "future raid choices are visibly disabled");
+assert.equal(doc.querySelectorAll(".lslot[disabled]").length, 4, "starter loadout slots are shown but locked");
 A.prepSet("routeId","control"); A.prepSet("riskId","aggressive"); A.prepLoadout("weapon","");
 assert(!text().includes("Insurance"), "no insurance on raid_1");
 A.deploy(); A.raidStep();
@@ -181,7 +182,15 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 // raid_2 + insurance
 A.go("prep");
 assert(text().includes("Insurance") && text().includes("Optical Sensor"), "insurance + tracked target");
-assert.equal(doc.querySelectorAll("#app select").length, 4, "Fabricator unlocks customizable loadout");
+assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 4, "Fabricator unlocks customizable loadout slots");
+assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
+assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
+A.pickSlot("armor");
+assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker");
+A.chooseSlot("armor", "");
+assert(!doc.getElementById("overlay"), "choosing closes the picker");
+assert(doc.querySelector('.lslot[data-slot="armor"]').textContent.match(/Empty|None/), "armor slot emptied");
+assert(doc.querySelector(".riskbar.safe"), "no gear at risk once armor is removed");
 assert(text().includes("RAID PLANNING UNLOCKED") && text().includes("FIELD CRAFTING"), "Fabricator reward is visible on prep");
 A.prepSet("routeId","control");
 assert(doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "unlocked raid planning shows its map");
