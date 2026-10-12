@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.30.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.30.0';
-import {emptyBag,bagItems} from './raid.js?v=1.30.0';
-import {traceTargets} from './physics.mjs?v=1.30.0';
+import {generateLevel,RULES} from './levels.js?v=1.31.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.31.0';
+import {emptyBag,bagItems} from './raid.js?v=1.31.0';
+import {traceTargets} from './physics.mjs?v=1.31.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -24,7 +24,7 @@ export function collectLoot(round,position,now,weapon){
       if(box.item==='ammo_pack'){
         if(!weapon)continue;
         weapon.reserve+=box.ammoRounds??RULES.resources.ammoCrateRounds;
-        if(weapon.ammo<RULES.weapon.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+RULES.weapon.reloadMs;
+        {const wr=weapon.rule??RULES.weapon;if(weapon.ammo<wr.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+wr.reloadMs;}
       }else{
         if(bagItems(round.bag).length>=RULES.loot.capacity)continue;
         round.bag[box.item]++;
@@ -40,9 +40,10 @@ export function dropItem(round,item,position,now){
   const box={id:`drop-${round.level.lootBoxes.length}-${now}`,x:position.x,z:position.z,item,collected:false,blockedUntilLeft:true};
   round.level.lootBoxes.push(box);return box;
 }
+// Medkits brought from base (round.kit) are used before looted ones; both are lost on death.
 export function useHealthKit(round,now){
-  const max=round.maxHealth??100;tickRound(round,now);if(round.over||!round.bag.medkit||round.health>=max)return false;
-  round.bag.medkit--;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);return true;
+  const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||(!kit&&!round.bag.medkit)||round.health>=max)return false;
+  if(kit)round.kit.medkit--;else round.bag.medkit--;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);return true;
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);

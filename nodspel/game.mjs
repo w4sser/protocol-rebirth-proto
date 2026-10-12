@@ -1,25 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.30.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.30.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.30.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.30.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.30.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.30.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.30.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.30.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.30.0';
-// import {stepScavenging} from './scavenging.js?v=1.30.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.30.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.30.0';
-import {routeComplete} from './objectives.js?v=1.30.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.30.0';
-import {createBIT,stepBIT} from './bit.js?v=1.30.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.30.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.30.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.31.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.31.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.31.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.31.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.31.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.31.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.31.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.31.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.31.0';
+// import {stepScavenging} from './scavenging.js?v=1.31.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.31.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.31.0';
+import {routeComplete} from './objectives.js?v=1.31.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.31.0';
+import {createBIT,stepBIT} from './bit.js?v=1.31.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.31.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.31.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.30.0');
+const orderResponse=await fetch('./order.json?v=1.31.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -118,7 +118,7 @@ function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.cl
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
+window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
 window.addEventListener('keyup',e=>{if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
@@ -163,6 +163,7 @@ function renderInventory(){
     list.append(row);
   }
 }
+$('#use-kit').onclick=()=>useKit();
 $('#open-bag').onclick=()=>{if(round.over||resultPending)return;clearInput();renderInventory();$('#inventory').hidden=false;};
 $('#close-bag').onclick=()=>{$('#inventory').hidden=true;clearInput();};
 function renderEnemyFeedback(clock){
@@ -223,7 +224,7 @@ function reset(requestedSeed){
   dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
   // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
-  round=createRound(seed,Date.now(),launch.stats);weapon=createWeapon(RULES.loadout.ammo);viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now(),launch.stats);weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.kit={...launch.kit};setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
 function finishRound(outcome=round.reason){
@@ -278,17 +279,25 @@ function updateMouseAim(){
   raycaster.setFromCamera(mouse,camera);
   if(raycaster.ray.intersectPlane(ground,intersection)){const dx=intersection.x-position.x,dz=intersection.z-position.z,l=Math.hypot(dx,dz);if(l>.1)aim={x:dx/l,z:dz/l};}
 }
+// Weapon from base (?w=) sets magazine size; HUD shows its name and the medkits you brought (Q / tap to use).
+function setupWeaponHUD(){
+  const bars=document.querySelector('.ammo-bars');if(bars){bars.replaceChildren();for(let i=0;i<weapon.rule.capacity;i++){const s=document.createElement('i');s.className='ammo-slot loaded';bars.append(s);}}
+  const name=$('#weapon-name');if(name)name.textContent=ITEM_NAMES[weapon.id]??'Basic Carbine';renderKitHUD();
+}
+function useKit(){if(!round||round.over||resultPending)return;if(useHealthKit(round,Date.now()))updateHUD();}
+function renderKitHUD(){const b=$('#use-kit');if(!b)return;const n=(round.kit?.medkit??0)+(round.bag.medkit??0);b.querySelector('b').textContent=n;b.disabled=!n||round.over||round.health>=(round.maxHealth??100);b.setAttribute('aria-label',`Use medkit (Q) · ${n} left`);}
 function renderWeaponHUD(clock){
+  renderKitHUD();
   const reloading=weapon.reloadAt!==null&&!round.over;
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
-  const fraction=reloading?1-remaining/RULES.weapon.reloadMs:0;
+  const W=weapon.rule,fraction=reloading?1-remaining/W.reloadMs:0;
   $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
-  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${RULES.weapon.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);
+  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${W.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);
   for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
-  $('#reload-time').textContent=`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
+  $('#reload-time').textContent=`${weapon.ammo}/${W.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
   // Scavenging is paused while reserve ammunition is unlimited.
   $('#player-health').setAttribute('aria-valuenow',round.health);
   renderHealthSegments(playerHealthSegments,round.health,round.maxHealth,10);$('#player-health').hidden=round.health<=0;
@@ -378,15 +387,15 @@ function frame(now){
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
   aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.35:.12;
-  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids):{target:null,direction:aim},displayAim=assisted.direction;
+  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids,weapon.rule):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ${enemyName(v.enemy)} · ${v.enemy.health}`;}
   const facing=facingDirection(holding,walkDirection,displayAim);
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
-  rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimCone.visible=aiming;
+  rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);rangeRing.scale.setScalar(weapon.rule.range/RULES.weapon.range);aimCone.visible=aiming;
   if(aiming){
-    const footprint=aimConePoints(position,displayAim,RULES.weapon.range,RULES.weapon.coneHalfAngleDegrees*Math.PI/180,solids);
+    const footprint=aimConePoints(position,displayAim,weapon.rule.range,weapon.rule.coneHalfAngleDegrees*Math.PI/180,solids);
     let count=0;for(let i=1;i<footprint.length-1;i++)for(const p of [footprint[0],footprint[i],footprint[i+1]]){
       coneVertices[count++]=p.x;coneVertices[count++]=.065;coneVertices[count++]=p.z;
     }

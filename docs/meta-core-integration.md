@@ -233,3 +233,22 @@ och sparas i `S.coreLaunch`. Den kommer tillbaka vid extract. Vid död/timeout/a
 RaidResult har nu `skills: {distanceM, dashes, holdNodes, damageTaken}` samt `stats` och `gear`.
 Basen visar ett **Operator**-kort i raid-prep med stats, skill-nivåer/XP och den gear som riskeras.
 Bond-XP (BIT) är oförändrad och separat.
+
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.31.0)
+
+**Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
+
+| Vapen | Skada | Magasin | Omladdning / skott | Eldtakt | Räckvidd | Sikteskon | Aim assist | Spridning | Källa |
+|---|---|---|---|---|---|---|---|---|---|
+| Basic Carbine (gratis) | 1 | 3 | 700 ms | 180 ms (~333/min) | 7 m | 8° | 12° | 0° | alltid tillgänglig |
+| Vector SMG | 1 | 8 | 450 ms | 110 ms (~545/min) | 6 m | 10° | 14° | 5° | vendor 180 scrap, loot nivå 2 |
+| Marksman Rifle | 2 | 4 | 900 ms | 450 ms (~133/min) | 11 m | 5° | 8° | 0° | Fabricator L2-recept, loot nivå 3 |
+| Breach Shotgun | 3 | 2 | 1000 ms | 600 ms (100/min) | 4,5 m | 18° | 22° | 0° | vendor 240 scrap, loot nivå 2–3 |
+
+Fiender har 3 HP: Basic och SMG behöver 3 träffar, geväret 2 och hagelgeväret 1. Spridning sprider bara fritt siktade skott; ett låst skott (aim assist) träffar alltid.
+
+**Risk:** Basic är gratis och förbrukas aldrig. Andra vapen följer med som `gear`: de lämnar stashen vid deploy, kommer tillbaka vid extract och går förlorade vid död, timeout och abandon (secure item gäller).
+
+**Medkits:** Medkits i förbrukningsslotsen (max 2) skickas som `?kit=medkit:n` och dras från stashen vid deploy. I raid används de med **Q** eller ✚-knappen (+30 HP); medkits från basen används före lootade. RaidResult rapporterar `kitLeft`. Vid extract kommer oanvända medkits hem, vid död förloras de. Ammo Pack påverkar bara den simulerade raiden.
+
+RaidResult har nya fält: `weapon` (id) och `kitLeft: {medkit}`.

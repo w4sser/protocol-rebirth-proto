@@ -190,7 +190,9 @@ assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker")
 A.chooseSlot("armor", "");
 assert(!doc.getElementById("overlay"), "choosing closes the picker");
 assert(doc.querySelector('.lslot[data-slot="armor"]').textContent.match(/Empty|None/), "armor slot emptied");
-assert(doc.querySelector(".riskbar.safe"), "no gear at risk once armor is removed");
+assert(/Medkit/.test(doc.querySelector(".riskbar").textContent), "medkit in a consumable slot is at risk");
+A.prepLoadout("c1", ""); A.prepLoadout("c2", "");
+assert(doc.querySelector(".riskbar.safe"), "no gear at risk once armor and medkits are removed");
 assert(text().includes("RAID PLANNING UNLOCKED") && text().includes("FIELD CRAFTING"), "Fabricator reward is visible on prep");
 A.prepSet("routeId","control");
 assert(doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "unlocked raid planning shows its map");

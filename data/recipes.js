@@ -10,7 +10,9 @@ window.DATA.recipes = [
   { id:"filter_rig", name:"Purification Filter", fabricatorLevel:2,
     inputs:{ bio_sample:2, polymer_plate:1 }, scrapCost:20, output:{ itemId:"purification_filter", qty:1 } },
   { id:"relay_build", name:"Power Relay", fabricatorLevel:2,
-    inputs:{ circuit_board:2, transmitter:1 }, scrapCost:30, output:{ itemId:"power_relay", qty:1 } }
+    inputs:{ circuit_board:2, transmitter:1 }, scrapCost:30, output:{ itemId:"power_relay", qty:1 } },
+  { id:"rifle_build", name:"Marksman Rifle", fabricatorLevel:2,
+    inputs:{ optical_sensor:1, servo:2, scrap_alloy:2 }, scrapCost:40, output:{ itemId:"rifle_marksman", qty:1 } }
 ];
 // "Scrap it" (junk recycling): any common item -> scrap. Unlocked with Fabricator L1.
 window.DATA.scrapJunkRate = 0.5; // scrap gained = sellValue * rate
