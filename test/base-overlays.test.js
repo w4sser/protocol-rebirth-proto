@@ -27,6 +27,12 @@ assert(!doc.getElementById("settings-menu").hidden, "gear opens settings");
 doc.body.click();
 assert(doc.getElementById("settings-menu").hidden, "outside tap closes settings");
 assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById("app-version").textContent, "menu shows version");
+// tapping a building pans the map so its plate clears the popup
+{ const t0 = doc.querySelector(".baseworld").style.transform;
+  w.A.openBuilding("rebirth_core");
+  assert(doc.querySelector("#overlay .bpop"), "core popup open");
+  assert.notEqual(doc.querySelector(".baseworld").style.transform, t0, "map pans to the tapped building");
+  doc.querySelector("#overlay [data-close]").click(); }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);

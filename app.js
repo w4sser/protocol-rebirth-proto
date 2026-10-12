@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.28.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.29.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -213,6 +213,18 @@ function bitDock(trigger, vars){
   else if(miss) line = bitLine("missing_part", { item: ITEMS[miss.itemId].name, zone: bestZoneFor(miss.itemId).name });
   else line = bitLine("idle_base");
   document.getElementById("bitline").textContent = line;
+  bitSpeak(dock);
+}
+function bitSpeak(dock){
+  dock.classList.remove("quiet");
+  clearTimeout(session.bitQuietT);
+  session.bitQuietT = setTimeout(() => dock.classList.add("quiet"), D.bit.bubbleMs || 6000);
+  if(session.screen === "prep") dock.classList.add("quiet"); // prep is dense: BIT waits until you tap his face
+  if(!dock.dataset.wired){
+    dock.dataset.wired = "1";
+    document.getElementById("bitline").addEventListener("click", () => dock.classList.add("quiet"));
+    document.getElementById("bitface").addEventListener("click", () => dock.classList.toggle("quiet"));
+  }
 }
 function bestZoneFor(itemId){
   let best = D.raidZones[0], bw = -1;
@@ -521,7 +533,7 @@ function overlay(html, onClose, cls){
   document.getElementById("phone").appendChild(o);
   return o;
 }
-function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); }
+function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
                  "> rerouting grid . . .",
@@ -809,6 +821,27 @@ function nextUpgradeHtml(){
     '<button class="primary" onclick="A.oneMoreRaid(\'' + c.m.id + '\',' + c.next.level + ')">ONE MORE RAID ›</button></div>';
 }
 
+function mapPadding(vw, vh){
+  const landscape = vw > vh, short = landscape && vh <= 480;
+  const pad = { left:16, right:16, top:16, bottom: short ? 110 : 70 };
+  if(session.focusSpot){ if(landscape) pad.right = Math.round(vw * 0.5); else pad.bottom = Math.round(vh * 0.55); }
+  return pad;
+}
+// Pan so a tapped building sits clear of the popup: left third in landscape (popup on the right), top third in portrait (sheet below).
+function focusMapOn(modId){
+  const viewer = typeof document !== "undefined" && document.querySelector(".baseviewer");
+  const BM = D.baseMap, spot = modId === "rebirth_core" ? BM.core : roomDef(modId);
+  if(!viewer || !spot || !session.cameraLayout || !session.cameraLayoutFn) return null;
+  const vw = viewer.clientWidth || 800, vh = viewer.clientHeight || 420, dims = session.cameraLayout;
+  const landscape = vw > vh;
+  session.focusSpot = modId;
+  const want = landscape ? { fx:0.28, fy:0.45 } : { fx:0.5, fy:0.25 };
+  session.camera.x = spot.x / 100 + (0.5 - want.fx) * vw / dims.sw;
+  session.camera.y = spot.y / 100 + (0.5 - want.fy) * vh / dims.sh;
+  session.cameraLayoutFn();
+  return want;
+}
+function clearMapFocus(){ if(session.focusSpot){ session.focusSpot = null; if(session.cameraLayoutFn) session.cameraLayoutFn(); } }
 function setupBaseViewer(){
   const viewer = document.querySelector(".baseviewer"), world = document.querySelector(".baseworld");
   if(!viewer || !world) return;
@@ -820,11 +853,14 @@ function setupBaseViewer(){
     const scale = Math.max(vw / cfg.width * 1.18, vh / cfg.height * 1.18);
     const sw = cfg.width * scale, sh = cfg.height * scale;
     session.cameraLayout = { sw, sh };
-    const minX = Math.min(0, vw - sw), minY = Math.min(0, vh - sh);
+    // Slack lets edge plates be pulled clear of the HUD (bottom bar, goal pill, popup).
+    const pad = mapPadding(vw, vh);
+    const minX = Math.min(0, vw - sw) - pad.right, minY = Math.min(0, vh - sh) - pad.bottom;
     let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
-    x = Math.max(minX, Math.min(0, x)); y = Math.max(minY, Math.min(0, y));
+    x = Math.max(minX, Math.min(pad.left, x)); y = Math.max(minY, Math.min(pad.top, y));
     session.camera.x = (vw/2 - x) / sw; session.camera.y = (vh/2 - y) / sh;
     world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+    viewer.scrollLeft = 0; viewer.scrollTop = 0; // focus/scrollIntoView must never shift the HUD layer
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
   }
   viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; });
@@ -846,6 +882,7 @@ function setupBaseViewer(){
     else if(spot.dataset.gate && baseAllows("navigation","prep")) A.go("prep");
     else if(spot.dataset.room) A.openRoom(spot.dataset.room);
   });
+  session.cameraLayoutFn = layout;
   if(session.cameraResize) window.removeEventListener("resize", session.cameraResize);
   session.cameraResize = layout; window.addEventListener("resize", layout); layout();
   const shownStage=session.devPlateStage === null ? bunkerStage() : session.devPlateStage;
@@ -1087,28 +1124,40 @@ SCREENS.prep = function(){
     session.routeLogged = true; save();
   }
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
-  let html = '<button class="ghost" style="width:auto;padding:6px 14px;margin:0 0 10px" onclick="A.go(\'base\')">‹ Base</button>' +
-    '<h1>Raid Prep</h1>' + (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
-
+  const gear = nodeRaidGear();
+  const head = '<div class="prephead"><button class="ghost inline" onclick="A.go(\'base\')" aria-label="Back to base">‹</button><h1>Raid Prep</h1>' +
+    (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml()) + prepTargetHtml(miss) + '</div>';
+  const deploy = '<div class="deploybar"><button class="primary big node-raid-launch" onclick="A.deployNodeRaid()">⚔ DEPLOY — NODE RAID</button></div>';
+  let html = head;
   if(guidedRaid()){
     const cfg = PROG.starterRaid, target = MODS[PROG.raidPrepUnlockModule];
-    html += '<div class="prepgrid starter-prep"><div class="pcol"><div class="card starter-mission"><div class="nu-head">YOUR FIRST RAID</div><h2>' + esc(cfg.name) + '</h2>' +
+    html += '<div class="prepgrid starter-prep"><div class="pcol">' +
+      '<h2>Basic loadout · equipped</h2>' + loadoutSlotsHtml(true) + '</div><div class="pcol">' + operatorRowHtml(gear) + gearRiskHtml(gear) + '</div></div>' + deploy;
+    html += '<details class="card prep-plan"><summary>MISSION · ' + esc(cfg.name) + '</summary><div class="card starter-mission"><div class="nu-head">YOUR FIRST RAID</div><h2>' + esc(cfg.name) + '</h2>' +
       '<p>Search for repair materials, then return to restore the Fabricator.</p>' +
       '<div class="small">' + esc(zoneSel.name) + ' · ' + esc(routeOf(zoneSel,p.routeId).name) + ' · Standard risk</div>' +
-      (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div></div><div class="pcol">' +
-      '<div class="card"><h2>Basic loadout · equipped</h2>' + Object.values(p.loadout).filter(Boolean).map(id => '<div class="kv"><span>✓ ' + esc(ITEMS[id].name) + '</span></div>').join('') + '</div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div></div><div class="pcol">' +
+      (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div>' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div>' +
       '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Route &amp; risk choices</b><br><span class="small">Build the Fabricator to plan your own missions.</span></div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns salvage into raid supplies.</span></div></div></div>';
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns salvage into raid supplies.</span></div>';
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
-    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
-    // Node Raid replaces the simulated deploy button (A.deploy stays for tests/dev tools).
-    html += statsCardHtml(nodeRaidGear());
-    html += '<button class="primary node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID</button>';
+    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></details>';
     $app().innerHTML = html; return;
   }
+  html += '<div class="prepgrid"><div class="pcol"><h2>Loadout</h2>' + loadoutSlotsHtml(false) + '</div><div class="pcol">' + operatorRowHtml(gear) + gearRiskHtml(gear) +
+    '<div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
+  const ownsWeapon = Object.keys(S.stash).some(id => S.stash[id] > 0 && ITEMS[id].slot === "weapon");
+  if(!ownsWeapon){
+    const eCost = Math.min(PROG.recovery.cheapLoadoutScrap, S.cur.scrap);
+    html += '<div class="card warn"><b>No weapon left.</b><br><span class="small">' +
+      (eCost > 0 ? 'BIT can scrape together a recovery loadout.' : 'BIT found you something. Don\'t ask where.') + '</span>' +
+      '<button class="ghost" onclick="A.emergencyLoadout()">EMERGENCY LOADOUT — ' + (eCost > 0 ? eCost + ' SCRAP' : 'FREE') + '</button></div>';
+  }
+
+  html += deploy;
+  html += '<details class="card prep-plan"' + (session.planOpen ? ' open' : '') + ' ontoggle="A.planToggle(this.open)"><summary>MISSION PLANNING · zone, route, risk, insurance, crafting</summary>';
   html += '<div class="card prep-benefit"><span class="ok">✓ FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
   html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
@@ -1117,7 +1166,6 @@ SCREENS.prep = function(){
       '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>CRAFT</button></div>';
   }
   html += '</details>';
-  html += '<div class="prepgrid"><div class="pcol">';
   if(miss){
     html += '<div class="nextup"><div class="nu-head">NEXT TARGET</div>' +
       '<b>' + esc(ITEMS[miss.itemId].name) + '</b> <span class="small">' + miss.have + '/' + miss.need + '</span>' +
@@ -1155,30 +1203,6 @@ SCREENS.prep = function(){
       '</div></div>';
   }
 
-  html += '</div><div class="pcol">';
-  html += '<h2>Loadout</h2>';
-  const gearOpts = slot => Object.keys(S.stash)
-    .filter(id => S.stash[id] > 0 && ITEMS[id].slot === slot)
-    .map(id => '<option value="' + id + '"' + (p.loadout[slotKeyMap[slot]]===id||p.loadout.c1===id&&slot==="consumable"?"":"") + '>' + esc(ITEMS[id].name) + '</option>').join("");
-  const slotKeyMap = { weapon:"weapon", armor:"armor" };
-  const sel = (key, slot, label) => {
-    const opts = Object.keys(S.stash).filter(id => S.stash[id]>0 && ITEMS[id].slot===slot)
-      .map(id => '<option value="' + id + '" ' + (p.loadout[key]===id?"selected":"") + '>' + esc(ITEMS[id].name) + '</option>').join("");
-    return '<div class="small">' + label + '</div><select onchange="A.prepLoadout(\'' + key + '\',this.value)">' +
-      '<option value="">— none —</option>' + opts + '</select>';
-  };
-  html += '<div class="card">' + sel("weapon","weapon","Weapon") + sel("armor","armor","Armor") +
-    sel("c1","consumable","Consumable 1") + sel("c2","consumable","Consumable 2") +
-    '<div class="kv" style="margin-top:8px"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div>';
-  const ownsWeapon = Object.keys(S.stash).some(id => S.stash[id] > 0 && ITEMS[id].slot === "weapon");
-  if(!ownsWeapon){
-    const eCost = Math.min(PROG.recovery.cheapLoadoutScrap, S.cur.scrap);
-    html += '<div class="card warn"><b>No weapon left.</b><br><span class="small">' +
-      (eCost > 0 ? 'BIT can scrape together a recovery loadout.' : 'BIT found you something. Don\'t ask where.') + '</span>' +
-      '<button class="ghost" onclick="A.emergencyLoadout()">EMERGENCY LOADOUT — ' + (eCost > 0 ? eCost + ' SCRAP' : 'FREE') + '</button></div>';
-  }
-
-  html += '</div><div class="pcol">';
   html += '<h2>Risk level</h2><div class="radio">';
   const zsel = ZONES[p.zoneId];
   const rsel = routeOf(zsel, p.routeId);
@@ -1210,13 +1234,38 @@ SCREENS.prep = function(){
       (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">▶ WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
       '</div>';
   }
-  html += '</div></div>';
-  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
-  // Node Raid replaces the simulated deploy button (A.deploy stays for tests/dev tools). Deploy costs nothing for now.
-  html += statsCardHtml(nodeRaidGear());
-  html += '<button class="primary node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID</button>';
+  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></details>';
   $app().innerHTML = html;
 };
+const SLOT_DEFS = [["weapon","weapon","Weapon","🔫"],["armor","armor","Armor","🦺"],["c1","consumable","Item 1","✚"],["c2","consumable","Item 2","✚"]];
+function loadoutSlotsHtml(locked){
+  const p = session.prep;
+  return '<div class="lslots">' + SLOT_DEFS.map(([key, slot, label, icon]) => {
+    const id = p.loadout[key], it = id && ITEMS[id];
+    const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot).length;
+    return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
+      (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
+      '<i aria-hidden="true">' + (it ? itemIcon(id) : icon) + '</i><small>' + label + '</small><b>' + (it ? esc(it.name) : (options ? 'Empty' : 'None owned')) + '</b>' +
+      (!locked && options ? '<span class="badge need">' + options + '</span>' : '') + '</button>';
+  }).join('') + '</div>';
+}
+function operatorRowHtml(gear){
+  const st = playerStats(gear), P = PROG.playerStats;
+  const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
+  return '<div class="card operator-stats compact"><div class="ostats">' +
+    chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
+    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") + '</div>' +
+    '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') + '</div></div>';
+}
+function gearRiskHtml(gear){
+  return gear && gear.length
+    ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + ' — lost if you die, time out or abandon.</div>'
+    : '<div class="riskbar safe" role="status">✓ No gear at risk. Raid loot is at risk until you extract.</div>';
+}
+function prepTargetHtml(miss){
+  if(!miss) return '';
+  return '<div class="ptarget"><i aria-hidden="true">' + itemIcon(miss.itemId) + '</i><span><small>NEXT TARGET</small><b>' + esc(ITEMS[miss.itemId].name) + ' ' + miss.have + '/' + miss.need + '</b></span></div>';
+}
 function prepRiskValue(){
   const p = session.prep;
   return ["weapon","armor","c1","c2"].reduce((s,k)=> s + (p.loadout[k] ? ITEMS[p.loadout[k]].sellValue : 0), 0);
@@ -1810,6 +1859,17 @@ window.A = {
     if(key === "insuranceId") act("INSURANCE_SELECTED", { tier: val });
     refresh("raid_prep");
   },
+  planToggle(open){ session.planOpen = !!open; },
+  pickSlot(key){
+    if(guidedRaid() || !session.prep) return;
+    const def = SLOT_DEFS.find(d => d[0] === key); if(!def) return;
+    const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1]);
+    const cur = session.prep.loadout[key];
+    overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1><button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div><div class="pick-grid">' +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>×' + S.stash[id] + '</small></button>').join('') +
+      '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
+  },
+  chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
   prepLoadout(slot, id){ if(guidedRaid()) return; session.prep.loadout[slot] = id || null; refresh("raid_prep"); },
   adSignals(){
     fakeAd("+"+PROG.insurance.adSignalsGrant+" Signals", ()=>{
@@ -2081,7 +2141,8 @@ window.A = {
     overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || "▣") + '</span><h1>' + esc(m.name) + '</h1>' +
       '<em>L' + lvl + (next ? ' → L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">ⓘ</button>' +
-      '<button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div>' + body + cta + '</div>', null, "sheet");
+      '<button type="button" class="iconbtn" data-close aria-label="Close">✕</button></div>' + body + cta + '</div>', clearMapFocus, "sheet");
+    if(session.screen === "base") focusMapOn(modId);
   },
   buildingInfo(modId){ closeBuildingPopup(); A.go("module", modId); },
   raidForModule(modId){
