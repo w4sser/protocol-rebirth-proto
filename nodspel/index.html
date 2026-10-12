@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07151c">
-  <link rel="manifest" href="manifest.webmanifest?v=1.32.1">
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.32.1">
+  <link rel="manifest" href="manifest.webmanifest?v=1.32.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.32.2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Node Raid">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Three seeded levels. Activate nodes, unlock exits and extract within eight minutes.">
   <title>Node Raid · Protocol Rebirth</title>
-  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.32.1">
-  <link rel="stylesheet" href="style.css?v=1.32.1">
+  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.32.2">
+  <link rel="stylesheet" href="style.css?v=1.32.2">
 </head>
 <body>
   <div class="landscape" id="viewport">
@@ -35,12 +35,12 @@
     <div class="stick-wrap"><div class="stick" id="move-stick" role="region" aria-label="Left stick: move"><span class="stick-guides">＋</span><div class="thumb"></div></div><span class="stick-label">MOVE</span></div>
     <div class="stick-wrap aim-wrap"><span id="weapon-name" class="weapon-name">Basic Carbine</span><div id="ammo-hud" aria-label="Magazine: 3 of 3 · Reserve: Unlimited"><div class="ammo-bars"><i class="ammo-slot loaded"></i><i class="ammo-slot loaded"></i><i class="ammo-slot loaded"></i></div><span id="reload-time">3 / 3</span></div><div class="stick fire-stick" id="aim-stick" role="region" aria-label="Right stick: hold to aim, release to fire"><span class="stick-guides">⌖</span><div class="thumb"></div></div><span class="stick-label">AIM · RELEASE TO FIRE</span></div>
   </div>
-  <footer><span class="desktop-help"><kbd>W A S D</kbd> / arrows · move <span class="divider">/</span> hold mouse / space · aim, release · fire · Shift: dash <span class="divider">/</span> Q · medkit <span class="divider">/</span> stand close to a node · charge</span><span class="touch-help">Left: move <span class="divider">/</span> Right: hold · aim, release · fire <span class="divider">/</span> stand close to a node · charge</span><span class="version" id="core-version">v1.32.1</span></footer>
+  <footer><span class="desktop-help"><kbd>W A S D</kbd> / arrows · move <span class="divider">/</span> hold mouse / space · aim, release · fire · Shift: dash <span class="divider">/</span> Q · medkit <span class="divider">/</span> stand close to a node · charge</span><span class="touch-help">Left: move <span class="divider">/</span> Right: hold · aim, release · fire <span class="divider">/</span> stand close to a node · charge</span><span class="version" id="core-version">v1.32.2</span></footer>
   </div>
   <aside class="rotate" role="status"><span>↻</span><h2>Rotate your phone</h2><p>Hold your phone in landscape to play.</p></aside>
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
-    import('./game.mjs?v=1.32.1').catch(error => {
+    import('./game.mjs?v=1.32.2').catch(error => {
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';
       console.error(error);

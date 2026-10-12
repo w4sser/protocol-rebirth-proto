@@ -41,6 +41,10 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(fs.readFileSync(path + "/nodspel/index.html", "utf8").includes('class="rotate"'), "core has a rotate screen");
   for(const a of ["assets/production/splash.webp", "assets/production/operator_op01.webp", "nodspel/icons/happy-node-large-192.png", "nodspel/icons/happy-node-large-512.png"]) assert(fs.existsSync(path + "/" + a), a);
   assert(typeof w.eval("typeof lockLandscape") === "string"); }
+// installed app name is "Protocol Rebirth" everywhere
+{ const m = JSON.parse(fs.readFileSync(path + "/manifest.json", "utf8")); assert.equal(m.name, "Protocol Rebirth"); assert.equal(m.short_name, "Protocol Rebirth");
+  const h = fs.readFileSync(path + "/index.html", "utf8");
+  for(const re of [/apple-mobile-web-app-title" content="Protocol Rebirth"/, /application-name" content="Protocol Rebirth"/, /<title>Protocol Rebirth<\/title>/]) assert(re.test(h), String(re)); }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);

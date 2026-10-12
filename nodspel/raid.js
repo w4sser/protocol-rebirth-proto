@@ -2,7 +2,7 @@
 /*
 export const DEFAULT_ORDER=Object.freeze({zone:'industrial',route:'maintenance_tunnels',risk:'standard',objective:['cable','fuse'],loadout:{weapon:'basic_carbine',ammo:12},health:100});
 */
-import {RULES} from './levels.js?v=1.32.1';
+import {RULES} from './levels.js?v=1.32.2';
 export const ITEM_NAMES={smg_vector:'Vector SMG',rifle_marksman:'Marksman Rifle',shotgun_breach:'Breach Shotgun',cable:'Cable',fuse:'Fuse',scrap_alloy:'Scrap',power_cell:'Power cell',medkit:'Health kit',polymer_plate:'Polymer plate',servo:'Servo',optical_sensor:'Optical sensor',circuit_board:'Circuit board',salvage_crate:'Salvage crate',data_core:'Data core',hydraulic_component:'Hydraulics',memory_module:'Memory module',power_relay:'Power relay',ai_fragment:'AI fragment',bio_sample:'Bio sample',scout_rig:'Scout rig',dampener_cloak:'Dampener cloak'};
 export const emptyBag=()=>Object.fromEntries(RULES.loot.types.map(id=>[id,0]));
 /*
