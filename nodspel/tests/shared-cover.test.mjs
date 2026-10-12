@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=1.22.0';
-import * as weapon from '../weapon.js?v=1.22.0';
-import {traceTargets} from '../physics.mjs?v=1.22.0';
+import {createRound} from '../round.js?v=1.23.0';
+import * as weapon from '../weapon.js?v=1.23.0';
+import {traceTargets} from '../physics.mjs?v=1.23.0';
 const pedestal={x:2,z:0,w:1.4,d:1.4};
 test('an active node does not absorb player shots when its pedestal is out of the line',()=>{
   const r=createRound('shared-cover',0);r.level.enemies=[{id:'e',kind:'enemy',x:4,z:2.6,r:.48,health:2}];r.level.nodes=[{id:'n',x:2,z:0,r:.8,active:true}];

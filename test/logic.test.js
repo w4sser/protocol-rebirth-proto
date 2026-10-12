@@ -144,7 +144,7 @@ console.log("ALL LOGIC TESTS PASSED");
 {
   const st = app.freshState(); app._setState(st);
   const before = st.stash.cable || 0, raids = st.raids, deaths = st.deaths;
-  const res = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:t1", seed:"t1", outcome:"death",
+  const res = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:t1", seed:"t1", outcome:"extract",
     levelsCleared:1, enemiesDefeated:2, nodesLit:1, remainingMs:1000, extracted:["cable","scrap_alloy"], lost:["fuse"], endedAt:1 };
   let stored = JSON.stringify(res), removed = false;
   const storage = { getItem:k => k === app.RAID_RESULT_KEY ? stored : null, removeItem:k => { if(k === app.RAID_RESULT_KEY){ stored = null; removed = true; } }, setItem:()=>{} };
@@ -152,7 +152,7 @@ console.log("ALL LOGIC TESTS PASSED");
   const out = app.ingestPendingCoreResult(storage);
   assert(out.ok, "valid core result is ingested");
   assert.equal(st.stash.cable, before + 1); assert.equal(st.stash.scrap_alloy >= 1, true);
-  assert.equal(st.raids, raids + 1); assert.equal(st.deaths, deaths + 1);
+  assert.equal(st.raids, raids + 1); assert.equal(st.deaths, deaths);
   assert(removed, "handoff key is consumed");
   assert.equal(app.ingestPendingCoreResult(storage), null, "nothing pending after consume");
   assert.equal(app.ingestRaidResult(res).reason, "duplicate", "same raidId is never ingested twice");
@@ -160,4 +160,46 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(app.ingestRaidResult({ ...res, raidId:"x", extracted:["not_an_item"] }).reason, "invalid");
   assert.equal(app.ingestRaidResult({ ...res, raidId:"y", version:2 }).reason, "invalid");
   console.log("core RaidResult ingestion OK");
+}
+
+// Deploy/return loop helpers.
+{
+  const url = app.coreLaunchUrl("meta-a-1", "s 1", "../index.html");
+  assert.equal(url, "./nodspel/?seed=s%201&raidId=meta-a-1&return=..%2Findex.html");
+  assert.equal(app.metaReturnPath("/proto/index.html"), "../index.html");
+  assert.equal(app.metaReturnPath("/proto/"), "../");
+  const l = app.newCoreLaunch(() => 0.5);
+  assert(/^meta-[a-z0-9]+-80000000$/.test(l.raidId)); assert.equal(l.seed, "80000000-meta");
+  assert.equal(app.coreResultSummary({ outcome:"extract", extracted:["cable","cable","fuse"], lost:[] }, { ok:true, added:["cable","cable","fuse"] }), "Node Raid: extracted — +2 Cable, +1 Fuse");
+  assert.equal(app.coreResultSummary({ outcome:"death", extracted:[], lost:["fuse"] }, { ok:true }), "Node Raid: you died — no loot secured · lost 1");
+  assert.equal(app.coreResultSummary({}, { ok:false }), null);
+  console.log("deploy/return loop helpers OK");
+}
+
+// Owner decisions: timeout = death, XP from data, extract advances raid beats, items only.
+{
+  const base = { schema:"protocol-rebirth/raid-result", version:1, seed:"s", levelsCleared:1, enemiesDefeated:3, nodesLit:1, remainingMs:0, extracted:["cable"], lost:["fuse"], endedAt:1 };
+  const X = window.DATA.bit.coreRaidXp;
+  const st = app.freshState(); app._setState(st); st.modules.bit_bay = 1;
+  const cur = JSON.stringify(st.cur);
+  const t = app.ingestRaidResult({ ...base, raidId:"x-timeout", outcome:"timeout", reason:"timeout" });
+  assert(t.ok); assert.equal(st.deaths, 1, "timeout counts as death");
+  assert.equal(t.xp, X.perNode + 3*X.perEnemy + X.perLevelCleared, "death xp has no extract bonus");
+  assert.equal(st.stash.fuse || 0, 0, "lost bag stays lost below bond 3");
+  assert.equal(JSON.stringify(st.cur), cur, "no formula currency grants");
+  const beat = st.beat;
+  const e = app.ingestRaidResult({ ...base, raidId:"x-extract", outcome:"extract", reason:"extract", lost:[] });
+  assert.equal(e.xp, X.perNode + 3*X.perEnemy + X.perLevelCleared + X.extractBonus);
+  assert.equal(st.deaths, 1); assert.equal(st.bondXp, t.xp + e.xp);
+  assert.equal(st.beat, window.DATA.progression.beats[beat].type === "raid" ? beat + 1 : beat, "extract advances a raid beat");
+  st.bondXp = 1000;
+  const d = app.ingestRaidResult({ ...base, raidId:"x-death", outcome:"death", reason:"abandon" });
+  assert.equal(d.saved.bitRescue, "fuse", "bond 3+ rescues one lost item like simulated death");
+  const off = app.freshState(); app._setState(off);
+  assert.equal(app.ingestRaidResult({ ...base, raidId:"x-off", outcome:"extract" }).xp, 0, "no bond xp before BIT Bay");
+  const lossSt = app.freshState(); app._setState(lossSt);
+  const l = app.ingestRaidResult({ ...base, raidId:"x-loss", outcome:"death", reason:"death", extracted:["cable"] });
+  assert.deepEqual(l.added, [], "a lost raid brings nothing home even if items are listed");
+  assert.equal(lossSt.stash.cable || 0, 0);
+  console.log("core raid decisions OK");
 }

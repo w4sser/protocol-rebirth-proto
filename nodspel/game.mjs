@@ -1,25 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.22.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.22.0';
-import {createCombat,stepCombat} from './combat.js?v=1.22.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.22.0';
-import {RULES,totalNodes} from './levels.js?v=1.22.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.22.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.22.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.22.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.22.0';
-// import {stepScavenging} from './scavenging.js?v=1.22.0';
-import {buildRaidResult,writeRaidResult} from './raid-result.js?v=1.22.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.22.0';
-import {routeComplete} from './objectives.js?v=1.22.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.22.0';
-import {createBIT,stepBIT} from './bit.js?v=1.22.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.22.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.22.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.23.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.23.0';
+import {createCombat,stepCombat} from './combat.js?v=1.23.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.23.0';
+import {RULES,totalNodes} from './levels.js?v=1.23.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.23.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.23.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.23.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.23.0';
+// import {stepScavenging} from './scavenging.js?v=1.23.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.23.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.23.0';
+import {routeComplete} from './objectives.js?v=1.23.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.23.0';
+import {createBIT,stepBIT} from './bit.js?v=1.23.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.23.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.23.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.22.0');
+const orderResponse=await fetch('./order.json?v=1.23.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -82,6 +82,7 @@ const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.Mes
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
+const launch=readLaunch(location.search);
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
@@ -138,9 +139,8 @@ function setCollisions(){
 }
 function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
-  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK`;
+  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
   renderInventory();
-  $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
   $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
@@ -236,25 +236,31 @@ function finishRound(outcome=round.reason){
   $('#result-json').textContent=json;
   */
   // RaidResult v1 handoff to meta (only once the whole round is over).
-  if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round));
+  if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
+  $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;
-  $('#continue-raid').hidden=!resultPending;
-  $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
+  $('#continue-raid').hidden=!resultPending;$('#extract-raid').hidden=!resultPending;
+  $('#new-round').hidden=!!launch.returnUrl;
+  $('#round-over-eyebrow').textContent=resultPending?'LEVEL CLEAR · EXTRACT TO SECURE, OR CONTINUE AT RISK':'ROUND OVER';
   weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
-  $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
+  $('#round-over-title').textContent=outcome==='extraction'?'Level cleared':summary.reason==='complete'?'All levels cleared':summary.reason==='extract'?'Extracted':summary.reason==='abandon'?'Raid abandoned':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / ${TOTAL_NODES}`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
-  $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'Empty'):bagText(round.extracted);
+  $('#summary-extracted').textContent=outcome==='extraction'?`Not yet · carrying ${round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'nothing'} at risk`:bagText(round.extracted);
   $('#summary-lost').textContent=bagText(round.lost);
   updateHUD();
   // Static hosting has no writable result endpoint. Export the same result
   // as a local file; the visible link also works if automatic downloads stop.
   // $('#save-result').click();
 }
+$('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnUrl)return;writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));location.assign(launch.returnUrl);});
+$('#reset').hidden=!!launch.returnUrl;$('#abandon').hidden=!launch.returnUrl;
+$('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,Date.now()))finishRound();});
+$('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,Date.now()))$('#round-over').hidden=true;finishRound();});
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){

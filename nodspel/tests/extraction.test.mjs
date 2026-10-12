@@ -25,14 +25,14 @@ test('death loses the current bag and a new run starts with full health and no c
   assert.equal(state.collectLoot(r,box,300),false);
   const next=createRound('new-run',300);assert.equal(next.health,100);assert.deepEqual(next.bag,{scrap_alloy:0,power_cell:0,cable:0,fuse:0,medkit:0});
 });
-test('an open exit extracts the bag and secured items survive later death',()=>{
+test('a level exit carries the bag forward at risk and later death loses all of it',()=>{
   assert.equal(typeof state.collectLoot,'function');
   const r=createRound('extract',0),box=r.level.lootBoxes[0];box.item='scrap_alloy';state.collectLoot(r,box,100);
   assert.equal(enterExit(r,r.level.exit,101),null);assert.equal(r.bag[box.item],1);
   for(const node of r.level.nodes)activateNode(r,node.id,200);
-  assert.equal(enterExit(r,r.level.exit,201),'next');assert.equal(r.bag[box.item],0);assert.equal(r.extracted[box.item],1);
+  assert.equal(enterExit(r,r.level.exit,201),'next');assert.equal(r.bag[box.item],1);assert.equal(r.extracted[box.item],0);
   const second=r.level.lootBoxes[0];second.item='fuse';state.collectLoot(r,second,250);takeDamage(r,100,300);
-  assert.equal(r.extracted[box.item],1);assert.equal(r.lost[second.item],1);
+  assert.equal(r.extracted[box.item],0);assert.equal(r.lost[box.item],1);assert.equal(r.lost[second.item],1);
 });
 
 test('the deadline loses carried loot before extraction can happen',()=>{

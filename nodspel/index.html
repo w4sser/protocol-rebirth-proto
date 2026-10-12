@@ -4,30 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07151c">
-  <link rel="manifest" href="manifest.webmanifest?v=1.22.0">
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.22.0">
+  <link rel="manifest" href="manifest.webmanifest?v=1.23.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.23.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Node Raid">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Three seeded levels. Activate nodes, unlock exits and extract within eight minutes.">
   <title>Node Raid · Protocol Rebirth</title>
-  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.22.0">
-  <link rel="stylesheet" href="style.css?v=1.22.0">
+  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.23.0">
+  <link rel="stylesheet" href="style.css?v=1.23.0">
 </head>
 <body>
   <div class="landscape" id="viewport">
   <main id="game" aria-label="Game world"></main>
   <header class="hud">
     <div class="round-hud"><div class="health" aria-label="Player health"><span class="eyebrow">HEALTH</span><span id="health-value">100</span></div><div class="timer" aria-label="Time left"><span class="eyebrow">TIME LEFT</span><span id="time-left" role="timer">8:00</span></div></div>
-    <button id="reset" aria-label="Restart the game" title="Restart">↻ <span>Restart</span></button>
+    <button id="abandon" aria-label="Abandon raid" title="Abandon raid" hidden>✕ <span>Abandon</span></button><button id="reset" aria-label="Restart the game" title="Restart">↻ <span>Restart</span></button>
   </header>
   <div id="world-labels"></div>
-  <aside class="bag-panel" aria-label="Bag and extracted loot"><strong id="bag-count">BAG 0/4 · AT RISK</strong><button id="open-bag">Open bag</button><span id="bag-items">Empty</span><small>SECURED: <b id="secured-items">Empty</b></small></aside>
-  <section id="inventory" class="inventory" role="dialog" aria-labelledby="inventory-title" hidden><div class="inventory-card"><header><h2 id="inventory-title">Bag · at risk</h2><button id="close-bag" aria-label="Close bag">✕</button></header><p id="inventory-count">0 / 4 slots</p><div id="inventory-slots"></div><small>Drop items to make room. Exit secures your bag. Death loses it.</small></div></section>
+  <aside class="bag-panel" aria-label="Bag (at risk until extract)"><strong id="bag-count">BAG 0/4 · AT RISK</strong><button id="open-bag">Open bag</button><span id="bag-items">Empty</span></aside>
+  <section id="inventory" class="inventory" role="dialog" aria-labelledby="inventory-title" hidden><div class="inventory-card"><header><h2 id="inventory-title">Bag · at risk</h2><button id="close-bag" aria-label="Close bag">✕</button></header><p id="inventory-count">0 / 4 slots</p><div id="inventory-slots"></div><small>Drop items to make room. Only Extract secures your bag; it carries across levels at risk. Death, timeout or abandon loses it.</small></div></section>
   <div id="player-health" role="progressbar" aria-label="Player health bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="player-health-fill"></span></div>
   <aside id="level-corner" class="level-corner" aria-label="Level and seed" hidden><strong id="corner-name"></strong><span id="seed-label"></span><span id="progress" aria-label="Nodes activated">NODES 0/1</span></aside>
-  <section id="round-over" class="round-over" aria-labelledby="round-over-title" hidden><div class="round-card"><span class="eyebrow" id="round-over-eyebrow">ROUND OVER</span><h2 id="round-over-title">Time is up</h2><dl class="summary-stats"><div><dt>Levels cleared</dt><dd id="summary-levels"></dd></div><div><dt>Enemies defeated</dt><dd id="summary-enemies"></dd></div><div><dt>Nodes activated (run)</dt><dd id="summary-nodes"></dd></div><div><dt>Time left</dt><dd id="summary-time"></dd></div></dl><div class="loot-summary"><p>EXTRACTED: <strong id="summary-extracted"></strong></p><p>LOST FROM BAG: <strong id="summary-lost"></strong></p></div><!-- <pre id="result-json" aria-label="Raid result JSON"></pre> --><div class="result-actions"><!-- <a id="save-result" download="result.json">Save result.json</a> --><button id="continue-raid" hidden>Next level</button><button id="new-round">Restart</button></div><small>New seed. New layout. No progress carries between rounds.</small></div></section>
+  <section id="round-over" class="round-over" aria-labelledby="round-over-title" hidden><div class="round-card"><span class="eyebrow" id="round-over-eyebrow">ROUND OVER</span><h2 id="round-over-title">Time is up</h2><dl class="summary-stats"><div><dt>Levels cleared</dt><dd id="summary-levels"></dd></div><div><dt>Enemies defeated</dt><dd id="summary-enemies"></dd></div><div><dt>Nodes activated (run)</dt><dd id="summary-nodes"></dd></div><div><dt>Time left</dt><dd id="summary-time"></dd></div></dl><div class="loot-summary"><p>EXTRACTED: <strong id="summary-extracted"></strong></p><p>LOST FROM BAG: <strong id="summary-lost"></strong></p></div><!-- <pre id="result-json" aria-label="Raid result JSON"></pre> --><div class="result-actions"><!-- <a id="save-result" download="result.json">Save result.json</a> --><button id="extract-raid" hidden>Extract</button><button id="continue-raid" hidden>Next level</button><button id="return-base" hidden>Return to base</button><button id="new-round">Restart</button></div><small>New seed. New layout. No progress carries between rounds.</small></div></section>
   <section id="tutorial" class="tutorial" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="tutorial-card"><span class="eyebrow">NODE RAID</span><h2 id="tutorial-title">Ready to raid?</h2><div class="tutorial-controls"><div><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="38"/><circle class="knob" cx="48" cy="48" r="15"/><path d="M48 5v15m0 56v15M5 48h15m56 0h15"/></svg><strong>Left stick · Move</strong><p>Drag to walk.</p></div><div><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="38"/><circle class="knob" cx="62" cy="34" r="15"/><path d="M26 70L74 22m-15 0h15v15"/></svg><strong>Right stick · Aim</strong><p>Drag to aim. Release to fire.</p></div></div><small>Desktop: WASD / arrows to move. Hold mouse or Space to aim, release to fire. Shift to dash.</small><button id="tutorial-start">Start</button></div></section>
   <div id="loading" class="loading" hidden>Loading level…</div>
   <div class="controls" aria-label="Mobile controls">
@@ -40,7 +40,7 @@
   <aside class="rotate" role="status"><span>↻</span><h2>Rotate your phone</h2><p>Hold your phone in landscape to play.</p></aside>
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
-    import('./game.mjs?v=1.22.0').catch(error => {
+    import('./game.mjs?v=1.23.0').catch(error => {
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';
       console.error(error);

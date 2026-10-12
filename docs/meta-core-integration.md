@@ -66,7 +66,7 @@ Nyckel: `localStorage["pr_raid_result_v1"]` (samma origin, eftersom `nodspel/` s
 ```
 Regler:
 - Skrivs bara när hela rundan är slut (`round.over`), aldrig vid mellanliggande nivå-exit.
-- `extracted` = allt som säkrats vid någon exit (även om spelaren dör senare). `lost` = väskan vid död/timeout.
+- `extracted` = väskan när spelaren väljer **Extract** (eller klarar nivå 3). `lost` = allt som samlats i raiden vid död/timeout/abandon (se §7, uppdaterat beslut).
 - `outcome`: `complete → extract`, `death → death`, `timeout → timeout`.
 - Meta validerar schema/version, att `extracted` bara innehåller kända item-id:n, och ingesterar **en gång per `raidId`**
   (`S.coreRaidsIngested`, max 50 senaste). Nyckeln tas bort efter läsning (även ogiltig data, så den inte fastnar).
@@ -99,3 +99,55 @@ Regler:
 - **Spara-format:** `S.coreRaidsIngested` läggs till lat (ingen `SAVE_VERSION`-höjning); gamla sparningar fungerar.
 - **Parallellt arbete:** branchen `ux-playtest-fixes` ändrar UI i båda delarna; ändringarna här är små och avgränsade
   (ny fil i core, tre rader i `game.mjs`, ett nytt block + en rad init i `app.js`) för att minimera konflikter.
+
+## 6. Status: steg 2 + 6 (minimal loop) – implementerat
+- Meta: knappen **DEPLOY — NODE RAID** i raid-prep (både guidad och vanlig) skapar `raidId` (`meta-<tid>-<hex>`) + seed,
+  loggar `CORE_RAID_LAUNCHED` och öppnar `./nodspel/?seed=..&raidId=..&return=../index.html` i samma flik.
+- Core: `readLaunch()` läser `seed`/`raidId`/`return`. `raidId` valideras (`[A-Za-z0-9_.:-]{1,64}`) och används bara för den
+  startade seeden (Restart ger `nodspel:<seed>`). `return` godtas bara som relativ sökväg på samma origin
+  (inget schema, ingen `//`, inga `\`, inga `:`). Vid rundans slut visas **Return to base** som skriver resultatet och navigerar tillbaka.
+- Meta: vid uppstart ingesteras resultatet (som förut) och en kort toast visar utfall + loot.
+- Ekonomi- och timeout-semantik är **oförändrad**: loadout reserveras/förbrukas inte, inga salvage/dataCores, ingen beat-progression.
+
+### Öppna designfrågor
+1. Ska Node Raid-deploy kräva/förbruka loadout (vapen, ammo, försäkring) och fuel?
+2. Ska `timeout` räknas som död (`deaths++`, försäkring) eller som ett eget, mildare utfall?
+3. Ska core-raids ge `salvage`/`dataCores`/bond-XP, och i så fall enligt vilken formel (data i `data/`)?
+4. Ska en core-extract avancera FTUE-beats på samma sätt som den simulerade raiden?
+5. Ska knappen ersätta den simulerade DEPLOY i guidad FTUE, eller ligga kvar som alternativ?
+6. Restart i core efter en startad raid: tillåtet (eget id, loot räknas) eller ska Restart döljas när `return` finns?
+
+## 7. Ägarbeslut (2026-10-12) – implementerat
+| # | Beslut | Implementation |
+|---|---|---|
+| 1 | Deploy kostar inget (tills vidare) | Ingen loadout/fuel/försäkring dras vid Node Raid-deploy. |
+| 2 | Timeout = död | Core rapporterar `outcome:"timeout"` (och `abandon` som `"death"`), meta behandlar allt som inte är `extract` som död: `deaths++`, väskan förlorad, dödsregler som i simulerad raid (BIT bond ≥ 3 räddar första förlorade item). Ingen meta-loadout skickas än, så försäkring/secure item har inget att rädda. |
+| 3 | XP, inga formelgåvor | Bond-XP enligt `data/bit.js → coreRaidXp` (se nedan). Salvage/dataCores ges inte; bara loot-items kommer hem. Som för simulerade raids ges bond-XP bara när BIT Bay är online. |
+| 4 | Extract avancerar FTUE-beats | `extract` på en beat av typen `raid` kör `advanceBeat()` precis som simulerad raid. |
+| 5 | Node Raid ersätter simulerad DEPLOY | Prep (guidad + vanlig) har nu bara **DEPLOY — NODE RAID** (primärknapp). `A.deploy()`/`resolveRaid` finns kvar i koden eftersom tester, dev-verktyg och ”push deeper”-flödet använder dem. |
+| 6 | Restart dold vid start från meta; abandon = förlust; extract-eller-fortsätt | Med `return`-param döljs Restart (header + round-over) och **Abandon** visas (bekräftelse, väskan förloras, `reason:"abandon"`, `outcome:"death"`). Vid varje nivå-exit visas **Extract** och **Next level**: Extract avslutar raiden (`reason:"extract"`), Next level fortsätter. |
+
+### XP-värden (`coreRaidXp`)
+| Källa | XP |
+|---|---|
+| per aktiverad nod | 2 |
+| per besegrad fiende | 1 |
+| per klarad nivå | 3 |
+| extract-bonus | 5 |
+
+Exempel: extract efter nivå 1 (1 nod, ~2 fiender) ≈ 12 XP (simulerad extract ger 15). Full clear (6 noder, ~8 fiender, 3 nivåer) ≈ 34 XP.
+Tidig död ger några XP (simulerad död ger 5). Bond-trösklar: 30 / 80 / 150 / 250.
+
+### Uppdaterat beslut: all loot är i riskzonen tills Extract
+- En nivå-exit säkrar **inte** längre något. Väskan följer med till nästa nivå, fortfarande i riskzonen.
+  Bara **Extract** (eller att klara nivå 3) flyttar väskan till säkrad loot.
+- Död, timeout och abandon förlorar **allt** som samlats under raiden. RaidResult har då `extracted: []` och allt i `lost`.
+  Meta lägger dessutom aldrig in items från en raid som inte slutade med `extract` (skydd ifall data är felaktig).
+- **Kapacitet (vald lösning):** samma väska med 4 platser följer med över alla nivåer, ingen separat ”carried”-hög.
+  Det gör valet tydligt: en full väska betyder att man antingen extraherar eller släpper items för att ta bättre loot
+  längre ner (släppa finns redan). HUD visar `BAG n/4 · AT RISK · CARRIED` efter första nivån, och nivå-exit-skärmen
+  visar ”LEVEL CLEAR · EXTRACT TO SECURE, OR CONTINUE AT RISK” med Extract / Next level.
+
+### Standardval för övriga frågor
+- Bond-XP ges som i meta i övrigt: bara när BIT Bay är online (gäller även tidig FTUE).
+- Abandon från nivå-exit-skärmen är okej. Väskan förloras då också, eftersom den inte är säkrad.
