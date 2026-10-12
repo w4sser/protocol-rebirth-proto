@@ -68,3 +68,19 @@ window.DATA.progression.survey = [
   { id:"push_deeper",    q:"Did you ever push deeper after finding useful loot? Why?", opts:["Yes — wanted a bigger haul","Yes — and regretted it","No — extracted safe","Never saw the choice"] },
   { id:"first_upgrade",  q:"Which upgrade would you choose first if you continued?", opts:["Core L2 — new zone","Fabricator L2 — better crafting","BIT Bay L2 — cargo rack","Storage — secure slot"] }
 ];
+
+// Player stats passed to Node Raid (core). See docs/meta-core-integration.md §10.
+// final = base + skill bonuses (level × perLevel) + gear modifiers, then clamped to `clamp` (core clamps again).
+window.DATA.progression.playerStats = {
+  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000 },
+  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000] },
+  // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
+  skills:{
+    athletics:{ name:"Athletics", xpPerLevel:20, maxLevel:10, perLevel:{ speed:0.06, dashCooldownMs:-100 },
+      xp:{ perMetre:0.1, perDash:1 }, desc:"Walk and dash to move faster and dash more often." },
+    stealth:{ name:"Stealth", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
+      xp:{ perHoldNode:5 }, desc:"Charge nodes quietly by standing close; enemies notice you later." },
+    vitality:{ name:"Vitality", xpPerLevel:20, maxLevel:10, perLevel:{ maxHealth:5 },
+      xp:{ perDamage:0.1 }, desc:"Survive hits to raise your maximum health." }
+  }
+};

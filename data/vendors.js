@@ -14,7 +14,8 @@ window.DATA.vendors = [
       { itemId:"ammo_pack", price:35, currency:"scrap" },
       { itemId:"medkit", price:55, currency:"scrap" },
       { itemId:"basic_carbine", price:50, currency:"scrap" },
-      { itemId:"scavenger_vest", price:40, currency:"scrap" }
+      { itemId:"scavenger_vest", price:40, currency:"scrap" },
+      { itemId:"scout_rig", price:120, currency:"scrap" }
     ],
     barter:[
       { give:{ servo:3 }, receive:{ itemId:"hydraulic_component", qty:1 } },

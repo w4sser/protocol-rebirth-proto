@@ -200,3 +200,36 @@ Första fienden på varje nivå är alltid grunt, så att nivåns hastighetstuni
 
 **Shock pad:** 1,8 × 1,8 m. Cykel: 2,5 s av (de sista 0,6 s blinkar en varning), sedan 1,5 s på. Ger 12 skada/s när den är på.
 Den placeras minst 2,2 m från start, exit, noder och loot och aldrig på skydd, och den blockerar inte rörelse.
+
+## 10. Progression: spelarstats (första versionen, Tarkov-inspirerad)
+Spelaren börjar långsammare och blir bättre på två sätt: **skills som växer när de används** och **utrustning**.
+Konstanterna finns i `data/progression.js → playerStats` (meta) och `nodspel/levels.js → RULES.playerStats` (core-bas + clamp).
+
+**Stats och basvärden (ny spelare):**
+| Stat | Bas | Clamp | Effekt i core |
+|---|---|---|---|
+| Speed | 3,6 m/s (tidigare fast 4,5) | 2,5–6 | gånghastighet |
+| Stealth | 0 | 0–0,6 | fiendens upptäcktsavstånd = 10 m × (1 − stealth). Fiender som inte upptäckt dig rör sig inte och skjuter inte. När de upptäckt dig eller blivit träffade förblir de aggressiva. |
+| Max health | 100 | 50–200 | start-HP och tak för medkit/BIT/kill-heal |
+| Dash cooldown | 4000 ms | 2000–6000 | återladdning av dash |
+
+**Skills (XP vid varje utfall, även död):** kumulativ XP för nivå n = `xpPerLevel × n(n+1)/2`, max nivå 10.
+| Skill | Ger XP | Per nivå | Max (L10) |
+|---|---|---|---|
+| Athletics (xpPerLevel 20) | 0,1/meter + 1/dash | +0,06 m/s, −100 ms dash | +0,6 m/s, −1 s |
+| Stealth (15) | 5 per nod laddad genom att stå nära | +0,03 stealth | +0,30 |
+| Vitality (20) | 0,1 per tagen skada | +5 max HP | +50 HP |
+
+**Utrustning** (armor-slotten i raid-prep, `stats` i `data/items.js`):
+| Item | Modifierare | Källa |
+|---|---|---|
+| Scavenger Vest | +15 HP | startstash, vendor, recept |
+| Scout Rig | +0,45 m/s, +5 HP | vendor (120 scrap), Node Raid-loot nivå 2–3 |
+| Dampener Cloak | +0,18 stealth, +0,1 m/s, −10 HP | Node Raid-loot nivå 3 |
+
+**Flöde:** meta räknar ut `bas + skills + gear` och clampar. Värdena skickas som `&stats=spd:3.6,stl:0,hp:100,dcd:4000&gear=scout_rig`.
+Core validerar och clampar igen, och okända gear-id:n ignoreras. Utrustad gear tas från stashen vid deploy (deploy är fortfarande gratis)
+och sparas i `S.coreLaunch`. Den kommer tillbaka vid extract. Vid död/timeout/abandon förloras den (secure item överlever som tidigare).
+RaidResult har nu `skills: {distanceM, dashes, holdNodes, damageTaken}` samt `stats` och `gear`.
+Basen visar ett **Operator**-kort i raid-prep med stats, skill-nivåer/XP och den gear som riskeras.
+Bond-XP (BIT) är oförändrad och separat.

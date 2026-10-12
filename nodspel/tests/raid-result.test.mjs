@@ -9,7 +9,8 @@ test('death after a level exit loses everything carried in the raid',()=>{
   assert.equal(extractLevel(r,'cable',1),'next');
   const box=r.level.lootBoxes[0];box.item='fuse';collectLoot(r,box,10);
   takeDamage(r,1000,11);
-  const res=buildRaidResult(r,{endedAt:5});
+  const {skills,stats,gear,...res}=buildRaidResult(r,{endedAt:5});
+  assert.deepEqual(gear,[]);assert.equal(stats.speed,3.6);assert.equal(skills.damageTaken,100);
   assert.deepEqual(res,{schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:rr-death',seed:'rr-death',outcome:'death',reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:r.nodesLit,remainingMs:r.remainingMs,extracted:[],lost:['cable','fuse'],endedAt:5});
 });
 test('result is written as JSON under the shared key',()=>{
@@ -24,8 +25,9 @@ test('return url accepts only same-origin relative paths',()=>{
   for(const bad of ['https://evil.example','//evil.example','javascript:alert(1)','/\\evil.example','\\\\evil','../a b','data:text/html,x','','../<x>',null])assert.equal(safeReturnUrl(bad),null,String(bad));
 });
 test('launch params are read and validated',()=>{
-  assert.deepEqual(readLaunch('?seed=abc&raidId=meta-1-ff&return=..%2Findex.html'),{seed:'abc',raidId:'meta-1-ff',returnUrl:'../index.html'});
-  assert.deepEqual(readLaunch('?raidId=bad%20id&return=https%3A%2F%2Fx'),{seed:null,raidId:null,returnUrl:null});
+  const pick=({seed,raidId,returnUrl})=>({seed,raidId,returnUrl});
+  assert.deepEqual(pick(readLaunch('?seed=abc&raidId=meta-1-ff&return=..%2Findex.html')),{seed:'abc',raidId:'meta-1-ff',returnUrl:'../index.html'});
+  assert.deepEqual(pick(readLaunch('?raidId=bad%20id&return=https%3A%2F%2Fx')),{seed:null,raidId:null,returnUrl:null});
 });
 test('meta raidId is used only for the launched seed',()=>{
   const r=createRound('launched',0);takeDamage(r,1000,1);

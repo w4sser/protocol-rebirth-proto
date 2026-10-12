@@ -51,7 +51,11 @@ window.DATA.items = [
   { id:"basic_carbine", name:"Basic Carbine", family:"gear", rarity:"common", sellValue:60, stackSize:1,
     slot:"weapon", desc:"It fires. Usually.", uses:["loadout"] },
   { id:"scavenger_vest", name:"Scavenger Vest", family:"gear", rarity:"common", sellValue:45, stackSize:1,
-    slot:"armor", desc:"More pockets than protection.", uses:["loadout"] },
+    slot:"armor", stats:{ maxHealth:15 }, desc:"More pockets than protection.", uses:["loadout"] },
+  { id:"scout_rig", name:"Scout Rig", family:"gear", rarity:"uncommon", sellValue:80, stackSize:1,
+    slot:"armor", stats:{ speed:0.45, maxHealth:5 }, desc:"Light webbing and good boots. You move like you mean it.", uses:["loadout"] },
+  { id:"dampener_cloak", name:"Dampener Cloak", family:"gear", rarity:"uncommon", sellValue:110, stackSize:1,
+    slot:"armor", stats:{ stealth:0.18, speed:0.1, maxHealth:-10 }, desc:"Soaks up sound and heat. Not bullets.", uses:["loadout"] },
   { id:"medkit", name:"Medkit", family:"gear", rarity:"common", sellValue:35, stackSize:5,
     slot:"consumable", desc:"Fabricator special. Smells like ozone.", uses:["loadout"] },
   // CURRENCY-SOURCING LOOT (Node Raid): converted on ingest, never stored in the stash.

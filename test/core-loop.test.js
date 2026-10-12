@@ -17,4 +17,5 @@ assert(saved.coreRaidsIngested.includes("meta-test-1") && saved.stash.cable >= 1
 A.dismissIntro(); A.playCombatDemo(); A.endCombatDemo();
 const btn = doc.querySelector(".node-raid-launch");
 assert(btn && btn.textContent.includes("DEPLOY — NODE RAID"), "prep offers Node Raid deploy");
+assert(doc.querySelector(".operator-stats") && /Speed/.test(doc.querySelector(".operator-stats").textContent), "prep shows operator stats");
 console.log("CORE LOOP UI TEST PASSED");

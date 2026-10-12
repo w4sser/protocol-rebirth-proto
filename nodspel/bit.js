@@ -1,5 +1,5 @@
-import {RULES} from './levels.js?v=1.25.0';
-import {movePlayer} from './physics.mjs?v=1.25.0';
+import {RULES} from './levels.js?v=1.26.0';
+import {movePlayer} from './physics.mjs?v=1.26.0';
 export function createBIT(position){return {...position,lastPlayer:{...position},trail:[],healing:false,healCarry:0};}
 export function stepBIT(bit,round,position,dt,moving,solids,floors){
   const moved=Math.hypot(position.x-bit.lastPlayer.x,position.z-bit.lastPlayer.z)>.001;
@@ -15,10 +15,10 @@ export function stepBIT(bit,round,position,dt,moving,solids,floors){
     bit.x=next.x;bit.z=next.z;travel-=distance;
     if(Math.hypot(point.x-bit.x,point.z-bit.z)<.01)bit.trail.shift();
   }
-  bit.healing=!round.over&&round.health>0&&round.health<100&&!moving&&!moved;
+  bit.healing=!round.over&&round.health>0&&round.health<(round.maxHealth??100)&&!moving&&!moved;
   if(!bit.healing){bit.healCarry=0;return false;}
   bit.healCarry+=RULES.bit.healPerSecond*Math.max(0,dt);
   const amount=Math.floor(bit.healCarry+1e-8);bit.healCarry-=amount;
   if(amount===0)return false;
-  round.health=Math.min(100,round.health+amount);return true;
+  round.health=Math.min(round.maxHealth??100,round.health+amount);return true;
 }

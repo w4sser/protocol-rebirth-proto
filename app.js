@@ -1080,6 +1080,7 @@ SCREENS.prep = function(){
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
     html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
     // Node Raid replaces the simulated deploy button (A.deploy stays for tests/dev tools).
+    html += statsCardHtml(nodeRaidGear());
     html += '<button class="primary node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID</button>';
     $app().innerHTML = html; return;
   }
@@ -1187,6 +1188,7 @@ SCREENS.prep = function(){
   html += '</div></div>';
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
   // Node Raid replaces the simulated deploy button (A.deploy stays for tests/dev tools). Deploy costs nothing for now.
+  html += statsCardHtml(nodeRaidGear());
   html += '<button class="primary node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID</button>';
   $app().innerHTML = html;
 };
@@ -1470,15 +1472,67 @@ function ingestRaidResult(r){
     S.deaths++;
     if(bondLevel() >= 3 && r.lost.length && ITEMS[r.lost[0]]){ saved.bitRescue = r.lost[0]; addItem(r.lost[0], 1); }
   }
+  // Gear taken on this raid: returns on extract; otherwise lost (secure item still survives, as for simulated deaths).
+  const launch = S.coreLaunch && S.coreLaunch.raidId === r.raidId ? S.coreLaunch : null;
+  const gear = launch ? launch.gear.filter(id => ITEMS[id]) : [];
+  if(extracted) gear.forEach(id => addItem(id, 1));
+  else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
+  if(launch) S.coreLaunch = null;
+  const gearLost = extracted ? [] : gear.filter(id => id !== saved.secure);
+  // Skills grow by use on every outcome.
+  S.skills = S.skills || {};
+  const before = {}, sx = skillXpFrom(r), skillUps = [];
+  for(const id in sx){ before[id] = skillLevel(id); S.skills[id] = (S.skills[id] || 0) + sx[id]; if(skillLevel(id) > before[id]) skillUps.push(PROG.playerStats.skills[id].name + " L" + skillLevel(id)); }
   const xp = bitOnline() ? coreRaidXp(r) : 0;
   S.bondXp += xp;
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added, currency, xp, saved };
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps };
 }
-function coreLaunchUrl(raidId, seed, returnPath){
+function coreLaunchUrl(raidId, seed, returnPath, opts){
+  opts = opts || {};
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
-    "&return=" + encodeURIComponent(returnPath);
+    "&return=" + encodeURIComponent(returnPath) +
+    (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
+    (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "");
+}
+/* ---------- player stats & skills (data/progression.js → playerStats) ---------- */
+function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
+// Cumulative xp for level n = xpPerLevel × n(n+1)/2 (each level costs a bit more).
+function skillLevel(id, xp){
+  const k = PROG.playerStats.skills[id]; xp = xp === undefined ? skillXp(id) : xp;
+  let lvl = 0; while(lvl < k.maxLevel && xp >= k.xpPerLevel * (lvl + 1) * (lvl + 2) / 2) lvl++;
+  return lvl;
+}
+function skillNextXp(id){ const k = PROG.playerStats.skills[id], l = skillLevel(id); return l >= k.maxLevel ? null : k.xpPerLevel * (l + 1) * (l + 2) / 2; }
+function clampStat(id, v){ const c = PROG.playerStats.clamp[id]; return Math.min(c[1], Math.max(c[0], v)); }
+function playerStats(gear){
+  const P = PROG.playerStats, st = Object.assign({}, P.base);
+  for(const id in P.skills){ const l = skillLevel(id); for(const s in P.skills[id].perLevel) st[s] += P.skills[id].perLevel[s] * l; }
+  for(const g of (gear || [])) for(const s in ((ITEMS[g] && ITEMS[g].stats) || {})) st[s] += ITEMS[g].stats[s];
+  for(const s in st) st[s] = Math.round(clampStat(s, st[s]) * 1000) / 1000;
+  return st;
+}
+function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
+function nodeRaidGear(){
+  const a = session.prep && session.prep.loadout && session.prep.loadout.armor;
+  return a && have(a) > 0 && ITEMS[a].slot === "armor" ? [a] : [];
+}
+function statsCardHtml(gear){
+  const st = playerStats(gear), P = PROG.playerStats;
+  const row = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + v + '</span></div>';
+  let html = '<div class="card operator-stats"><h2>Operator</h2>' +
+    row("Speed", st.speed.toFixed(2) + " m/s") + row("Stealth", Math.round(st.stealth*100) + "% harder to spot") +
+    row("Max health", Math.round(st.maxHealth)) + row("Dash cooldown", (st.dashCooldownMs/1000).toFixed(1) + " s");
+  html += '<div class="small">' + Object.keys(P.skills).map(id => esc(P.skills[id].name) + " L" + skillLevel(id) +
+    (skillNextXp(id) !== null ? " (" + Math.floor(skillXp(id)) + "/" + skillNextXp(id) + " xp)" : " (max)")).join(" · ") + '</div>';
+  if(gear && gear.length) html += '<div class="small">Gear at risk: ' + gear.map(g => esc(ITEMS[g].name)).join(", ") + '</div>';
+  return html + '</div>';
+}
+function skillXpFrom(r){
+  const K = PROG.playerStats.skills, t = r.skills || {}, n = v => Number.isFinite(v) && v > 0 ? Math.min(v, 1e5) : 0;
+  return { athletics: n(t.distanceM)*K.athletics.xp.perMetre + n(t.dashes)*K.athletics.xp.perDash,
+           stealth: n(t.holdNodes)*K.stealth.xp.perHoldNode, vitality: n(t.damageTaken)*K.vitality.xp.perDamage };
 }
 function newCoreLaunch(rand){
   rand = rand || Math.random;
@@ -1496,7 +1550,9 @@ function coreResultSummary(r, res){
   const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id]||0) + 1);
   const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
   const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
-  return head + " — " + (loot || "no loot secured") + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
+  const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
+    (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "");
+  return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
 function ingestPendingCoreResult(storage){
   let raw = null;
@@ -1737,9 +1793,12 @@ window.A = {
     });
   },
   deployNodeRaid(){
-    const l = newCoreLaunch();
-    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed });
-    location.assign(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname)));
+    const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear);
+    // Deploy is free, but equipped gear goes with you and is at risk (lost on death/timeout/abandon).
+    gear.forEach(id => removeItem(id, 1));
+    S.coreLaunch = { raidId:l.raidId, gear, stats };
+    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats });
+    location.assign(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear }));
   },
   deploy(){
     if(!session.prep) return;
@@ -2133,4 +2192,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary, coreRaidXp, clearProgressStorage, PR_STORAGE_KEYS };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS };
