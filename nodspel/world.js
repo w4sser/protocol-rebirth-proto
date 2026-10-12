@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState} from './levels.js?v=1.26.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.27.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -83,7 +83,11 @@ export function buildWorld(level,scene) {
     const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
     return {hazard:h,mat};
   });
-  function animateHazards(now){for(const v of hazards){const s=hazardState(v.hazard,now);v.mat.color.set(s==='on'?'#ff5a3c':'#e0c040');v.mat.opacity=s==='on'?.6:s==='warn'?.35+.2*Math.sin(now/60):.18;}}
+  // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
+  function animateHazards(now){for(const v of hazards){const t=hazardTiming(v.hazard,now);
+    if(t.state==='on'){v.mat.color.set('#ff3b1f');v.mat.opacity=.75;}
+    else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
+    else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
   return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose};
 }

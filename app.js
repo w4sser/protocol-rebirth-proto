@@ -1,4 +1,4 @@
-/* Protocol Rebirth — Meta Prototype v0.1
+/* Protocol Rebirth — base (meta) layer. Version: APP_VERSION below.
    All economy values live in /data/*.js. This file contains logic + UI only.
    State mutations go through act() so the event log is complete. */
 "use strict";
@@ -9,6 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
+const APP_VERSION = "1.27.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -721,7 +722,7 @@ SCREENS.intro = function(){
   $app().innerHTML =
     '<div style="padding-top:60px;text-align:center">' +
     '<h1 style="font-size:22px">' + esc(b.introTitle) + '</h1>' +
-    '<p class="sub">meta prototype v0.1</p>' +
+    '<p class="sub">v' + APP_VERSION + '</p>' +
     '<div class="card" style="text-align:left;white-space:pre-line;font-size:13px;line-height:1.6">' + esc(b.introText) + '</div>' +
     '<button class="primary" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
 };
@@ -2172,6 +2173,7 @@ function tryBitImage(){
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
+  { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   tryBitImage();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
@@ -2192,4 +2194,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS };

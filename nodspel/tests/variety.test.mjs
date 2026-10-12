@@ -51,3 +51,24 @@ test('enemy types change range, speed and fire rate',()=>{
   const T=RULES.enemyTypes;assert.equal(T.sentry.speedMul,0);assert.ok(T.sentry.rangeMul>1&&T.rusher.speedMul>1&&T.rusher.rangeMul<1);
   for(const s of seeds)for(const e of generateLevel(3,s).enemies)if(e.type==='sentry')assert.equal(e.speed,0);
 });
+import {hazardTiming} from '../levels.js';
+import {readFileSync} from 'node:fs';
+test('level two shock pads are gentler and a full on-phase cannot nearly kill you',()=>{
+  for(const s of seeds){const l2=generateLevel(2,s),l3=generateLevel(3,s);
+    for(const h of l2.hazards)assert.equal(h.dps,8);for(const h of l3.hazards)assert.equal(h.dps,12);}
+  const r=createRound('hz2',0),H=RULES.hazard,h={x:0,z:0,w:1.8,d:1.8,phaseMs:0,dps:8};r.level.hazards=[h];
+  for(let t=0;t<2000;t+=16)stepHazards(r,{x:0,z:0},H.offMs+t,.016);
+  assert.ok(100-r.health<=Math.ceil(8*H.onMs/1000)+1,`took ${100-r.health} damage standing on a level-two pad for 2 s`);
+});
+test('hazard telegraph gives a long, counted-down warning',()=>{
+  const H=RULES.hazard,h={phaseMs:0};
+  assert.ok(H.warnMs>=1000,'at least one second of warning');
+  const t=hazardTiming(h,H.offMs-500);assert.equal(t.state,'warn');assert.equal(t.msToOn,500);
+  assert.equal(hazardTiming(h,H.offMs+100).state,'on');
+  const js=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');assert.match(js,/⚡ CHARGING/);
+});
+test('node hints match the real mechanic (stand close, no key) on desktop and touch',()=>{
+  const html=readFileSync(new URL('../index.html',import.meta.url),'utf8'),js=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
+  assert.match(html,/desktop-help[^]*stand close to a node/);assert.match(html,/touch-help[^]*stand close to a node/);
+  assert.match(js,/'STAND CLOSE'/);assert.doesNotMatch(js,/KeyE/);
+});

@@ -1,6 +1,6 @@
-import {RULES,hazardState} from './levels.js?v=1.26.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.26.0';
-import {takeDamage,tickRound} from './round.js?v=1.26.0';
+import {RULES,hazardState} from './levels.js?v=1.27.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.27.0';
+import {takeDamage,tickRound} from './round.js?v=1.27.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -57,7 +57,7 @@ export function stepHazards(round,player,now,dt){
   for(const h of round.level.hazards){
     if(hazardState(h,now)!=='on')continue;
     if(Math.abs(player.x-h.x)<=h.w/2&&Math.abs(player.z-h.z)<=h.d/2){
-      h.carry=(h.carry??0)+RULES.hazard.damagePerSecond*dt;
+      h.carry=(h.carry??0)+(h.dps??RULES.hazard.damagePerSecond)*dt;
       if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;return takeDamage(round,dmg,now);}
     }
   }
