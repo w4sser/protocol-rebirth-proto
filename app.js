@@ -37,7 +37,7 @@ function freshState(){
   D.modules.forEach(m => st.modules[m.id] = 0);
   return st;
 }
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function save(){ if(typeof resetting !== "undefined" && resetting) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
@@ -2048,6 +2048,52 @@ window.A = {
   }
 };
 
+/* ---------- reset progress (base + Node Raid) ---------- */
+// Every Protocol Rebirth key: meta save, core RaidResult handoff, legacy core result, core tutorial/FTUE flags.
+const PR_STORAGE_KEYS = ["pr_meta_save", "pr_raid_result_v1", "nodspel.result.json", "nodspel.tutorial.seen"];
+const isPrKey = k => PR_STORAGE_KEYS.includes(k) || /^(pr_|nodspel\.)/.test(k);
+function clearProgressStorage(storages){
+  const removed = [];
+  for(const st of storages){
+    if(!st) continue;
+    try{
+      const keys = [];
+      for(let i = 0; i < st.length; i++) keys.push(st.key(i));
+      for(const k of keys.concat(PR_STORAGE_KEYS)) if(k !== null && isPrKey(k) && st.getItem(k) !== null){ st.removeItem(k); removed.push(k); }
+    }catch(e){}
+  }
+  return removed;
+}
+function browserStorages(){
+  const out = [];
+  try{ out.push(window.localStorage); }catch(e){}
+  try{ out.push(window.sessionStorage); }catch(e){}
+  return out;
+}
+const RESET_CONFIRM = "Reset ALL progress? This deletes your base, stash, BIT bond and Node Raid data on this device. This cannot be undone.";
+// Clear everything and reload to a fresh start. Returns false if the player cancels.
+function resetProgress(opts){
+  opts = opts || {};
+  const ask = opts.confirm || (m => window.confirm(m));
+  if(!ask(RESET_CONFIRM)) return false;
+  resetting = true;
+  clearProgressStorage(opts.storages || browserStorages());
+  const url = new URL(window.location.href); url.searchParams.delete("reset");
+  // window.PR_NAVIGATE lets headless tests observe the reload (jsdom cannot navigate).
+  (opts.navigate || window.PR_NAVIGATE || (u => window.location.replace(u)))(url.pathname + url.search + url.hash);
+  return true;
+}
+let resetting = false;
+// ?reset=1 quick reset for testing (still confirmed). Returns true if a reload is under way.
+function handleResetParam(opts){
+  const url = new URL(window.location.href);
+  if(url.searchParams.get("reset") !== "1") return false;
+  if(resetProgress(opts)) return true;
+  url.searchParams.delete("reset");
+  try{ window.history.replaceState(null, "", url.pathname + url.search + url.hash); }catch(e){}
+  return false;
+}
+
 /* ---------- BIT portrait (assets/bit.png) with graceful fallback ---------- */
 function tryBitImage(){
   const img = new Image();
@@ -2056,16 +2102,20 @@ function tryBitImage(){
 }
 
 /* ---------- init ---------- */
-if(typeof document !== "undefined" && document.getElementById("app")){
+// ?reset=1 confirmed → storage cleared and page reloading, so skip booting the old state.
+if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   tryBitImage();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
+    if(resetting) return; // never re-save over a reset
     log("SESSION_END", cu ? { unfinished: cu.m.id, pct: Math.round(cu.pct*100) } : {});
     save();
   });
+  const resetBtn = document.getElementById("reset-progress");
+  if(resetBtn) resetBtn.addEventListener("click", () => resetProgress());
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
   if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
@@ -2076,4 +2126,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary, coreRaidXp };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary, coreRaidXp, clearProgressStorage, PR_STORAGE_KEYS };

@@ -28,6 +28,8 @@
     display:flex; flex-direction:column; position:relative; overflow:hidden;}
   #topbar{display:flex; align-items:center; gap:10px; padding:6px 12px; background:var(--panel);
     border-bottom:1px solid var(--line); flex-shrink:0;}
+  #topbar .reset-progress{margin-left:auto; flex:none; width:auto; padding:3px 9px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:transparent; color:var(--dim); border:1px solid rgba(255,255,255,.18); border-radius:6px; cursor:pointer;}
+  #topbar .reset-progress:hover,#topbar .reset-progress:focus-visible{color:var(--danger); border-color:var(--danger);}
   #topbar .title{font-size:11px; letter-spacing:.14em; color:var(--dim); text-transform:uppercase; white-space:nowrap;}
   #currencies{display:flex; gap:6px; margin-left:auto; font-size:11px; align-items:center; font-family:"IBM Plex Mono",monospace;}
   .cur{background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:2px 8px; white-space:nowrap;}
@@ -349,6 +351,7 @@
   <div id="topbar">
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
+    <button id="reset-progress" class="reset-progress" type="button" title="Reset all progress on this device" aria-label="Reset progress">↺ Reset</button>
   </div>
   <div id="main">
     <nav id="tabs"></nav>
