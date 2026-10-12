@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.32.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.33.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -756,12 +756,16 @@ SCREENS.combatDemo = function(){
 
 SCREENS.intro = function(){
   const b = PROG.beats[0];
+  // Cinematic cold open: black screen, BIT's face powers on while its lines fade in one by one.
+  const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
+  const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
   $app().innerHTML =
-    '<div style="padding-top:60px;text-align:center">' +
-    '<h1 style="font-size:22px">' + esc(b.introTitle) + '</h1>' +
-    '<p class="sub">v' + APP_VERSION + '</p>' +
-    '<div class="card" style="text-align:left;white-space:pre-line;font-size:13px;line-height:1.6">' + esc(b.introText) + '</div>' +
-    '<button class="primary" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
+    '<div class="intro" onclick="A.introSkip(event)">' +
+    '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
+    '<img class="intro-face" src="nodspel/icons/happy-node.svg?v=' + APP_VERSION + '" alt="BIT">' +
+    '<div class="intro-lines">' + lines.map((l, i) =>
+      '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
+    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
 };
 
 function closestUpgrade(){
@@ -1830,6 +1834,10 @@ window.A = {
     refresh(screen === "prep" ? "raid_prep" : null);
   },
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
+  introSkip(ev){
+    if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    const el = document.querySelector(".intro"); if(el) el.classList.add("done");
+  },
   dismissIntro(){
     S.introSeen = true;
     advanceBeat(); // tutorial -> core_l1

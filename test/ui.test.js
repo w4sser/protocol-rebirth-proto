@@ -30,6 +30,8 @@ assert(doc.getElementById("topbar") && doc.getElementById("rotate"), "landscape-
 assert(doc.getElementById("splash"), "splash shown at first start");
 assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-menu #reset-progress"), "settings menu holds Reset");
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
+assert(doc.querySelector(".intro .intro-face") && doc.querySelectorAll(".intro-lines p").length >= 2 && doc.querySelector(".intro-go"), "cinematic intro: BIT face, lines, compact enter button");
+A.introSkip({target: doc.querySelector(".intro")}); assert(doc.querySelector(".intro.done"), "tap skips the intro animation");
 A.dismissIntro();
 // The combat sandbox opens from prep, accepts a shot, and closes without
 // disturbing the meta-game's base screen.
