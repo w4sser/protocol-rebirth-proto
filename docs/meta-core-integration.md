@@ -179,3 +179,24 @@ Hela modulträdet kräver 200 Salvage (≈ 25 lådor) och 6 Data Cores (3 cores)
 
 **Test:** `test/loot-coverage.test.mjs` kontrollerar att varje item i varje modulkostnad finns i Node Raids loot, att Salvage och
 Data Cores har en item-källa, att alla core-loot-id:n finns i basens items och har etikett, och att recept-inputs går att få.
+
+## 9. Variation mellan nivåerna (seedad)
+Basgeometrin (rum, korridorer, återvändsgränd, skydd) är oförändrad. Variationen läggs ovanpå med en egen RNG
+(`${seed}:variety`), så att befintliga layouter och tuning-tester består. Konstanter finns i `nodspel/levels.js → RULES.enemyTypes / variety / hazard`.
+
+| | Nivå 1 (Open Room) | Nivå 2 (Narrow Passage) | Nivå 3 (Dead End) |
+|---|---|---|---|
+| Fiendemix | bara grunt (mild) | 65 % grunt, 35 % sentry | 40 % grunt, 35 % rusher, 25 % sentry |
+| Riskzoner | 0 | 1 shock pad | 2 shock pads |
+| Noder | vanliga | vanliga | 1 skärmad nod (kan inte skjutas, måste laddas genom att stå nära) |
+| Tema | grå | ockra | violett |
+
+Första fienden på varje nivå är alltid grunt, så att nivåns hastighetstuning syns och nivå 1 förblir mild.
+
+**Fiendetyper** (multiplikatorer på nivåns grundvärden):
+- **grunt:** fart 1×, räckvidd 1×, eldtakt 1×, håller avstånd 3,5
+- **rusher** (orange): fart 1,6×, räckvidd 0,6×, eldtakt 0,8× cooldown, går nära (1,2)
+- **sentry** (blå): står still, räckvidd 1,35×, 1,3× cooldown
+
+**Shock pad:** 1,8 × 1,8 m. Cykel: 2,5 s av (de sista 0,6 s blinkar en varning), sedan 1,5 s på. Ger 12 skada/s när den är på.
+Den placeras minst 2,2 m från start, exit, noder och loot och aldrig på skydd, och den blockerar inte rörelse.

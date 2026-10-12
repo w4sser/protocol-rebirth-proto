@@ -23,6 +23,16 @@ export const RULES=Object.freeze({
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1},
       {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:1,ai_fragment:1,servo:1,polymer_plate:1,bio_sample:1}],
     pickupRadius:1.6},
+  // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
+  enemyTypes:{
+    grunt:{speedMul:1,rangeMul:1,cooldownMul:1,standoff:3.5,color:'#a67072'},
+    rusher:{speedMul:1.6,rangeMul:.6,cooldownMul:.8,standoff:1.2,color:'#e0904a'},
+    sentry:{speedMul:0,rangeMul:1.35,cooldownMul:1.3,standoff:0,color:'#5d8fd6'}},
+  variety:[
+    {mix:{grunt:1},hazards:0,shieldedNodes:0,theme:{floor:'#444f59',trim:'#6c7882'}},
+    {mix:{grunt:.65,sentry:.35},hazards:1,shieldedNodes:0,theme:{floor:'#4b4a3f',trim:'#8a8566'}},
+    {mix:{grunt:.4,rusher:.35,sentry:.25},hazards:2,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
+  hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:600,damagePerSecond:12,clearance:2.2},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
@@ -138,5 +148,42 @@ export function generateLevel(number,roundSeed){
     {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
-  return {number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit};
+  return decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+}
+
+// Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.
+function decorateLevel(level){
+  const v=RULES.variety[level.number-1],rng=randomFromSeed(`${level.seed}:variety`);
+  level.theme=v.theme;
+  // The first enemy of every level stays a grunt: a readable anchor that keeps per-level speed tuning.
+  for(const [i,enemy] of level.enemies.entries()){
+    const roll=rng(),type=i===0?'grunt':pickWeighted(v.mix,roll),t=RULES.enemyTypes[type];
+    enemy.type=type;enemy.speed=(enemy.speed??0)*t.speedMul;enemy.rangeMul=t.rangeMul;enemy.cooldownMul=t.cooldownMul;enemy.standoff=t.standoff;
+  }
+  // Shielded nodes: seeded pick, they ignore shots and must be charged by standing close (hold).
+  const shielded=[...level.nodes];
+  for(let k=0;k<v.shieldedNodes&&shielded.length;k++)shielded.splice(Math.floor(rng()*shielded.length),1)[0].shielded=true;
+  level.hazards=[];
+  const H=RULES.hazard,solids=[...level.walls,...level.boxes],keep=[level.start,level.exit,...level.nodes,...level.lootBoxes];
+  // Prefer later rooms; fall back to any room (start stays protected by the clearance check).
+  const rooms=[...level.rooms.slice(1),level.rooms[0]];
+  for(let h=0;h<v.hazards;h++){
+    let placed=false;
+    for(let k=0;k<rooms.length&&!placed;k++){const room=rooms[(h+k)%rooms.length];
+    for(let attempt=0;attempt<200;attempt++){
+      const p={x:room.x+(rng()-.5)*(room.w-H.size-1),z:room.z+(rng()-.5)*(room.d-H.size-1)};
+      if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+H.size/2+.3&&Math.abs(p.z-o.z)<o.d/2+H.size/2+.3))continue;
+      if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.clearance))continue;
+      if(level.hazards.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.size*2))continue;
+      level.hazards.push({id:`hazard-${h+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,w:H.size,d:H.size,phaseMs:Math.floor(rng()*(H.onMs+H.offMs))});
+      placed=true;break;
+    }}
+  }
+  return level;
+}
+// Pulsing shock pad: 'off' → 'warn' (telegraph) → 'on' (damages).
+export function hazardState(hazard,now){
+  const H=RULES.hazard,t=((now+hazard.phaseMs)%(H.onMs+H.offMs)+H.onMs+H.offMs)%(H.onMs+H.offMs);
+  if(t>=H.offMs)return 'on';
+  return t>=H.offMs-H.warnMs?'warn':'off';
 }
