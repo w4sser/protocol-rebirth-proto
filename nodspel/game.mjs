@@ -9,6 +9,7 @@ import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js
 // import {readOrder,raidResult,resultJSON} from './raid.js?v=1.22.0';
 import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.22.0';
 // import {stepScavenging} from './scavenging.js?v=1.22.0';
+import {buildRaidResult,writeRaidResult} from './raid-result.js?v=1.22.0';
 import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.22.0';
 import {routeComplete} from './objectives.js?v=1.22.0';
 import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.22.0';
@@ -234,6 +235,8 @@ function finishRound(outcome=round.reason){
   $('#save-result').href=resultURL;
   $('#result-json').textContent=json;
   */
+  // RaidResult v1 handoff to meta (only once the whole round is over).
+  if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round));
   $('#inventory').hidden=true;
   $('#continue-raid').hidden=!resultPending;
   $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
