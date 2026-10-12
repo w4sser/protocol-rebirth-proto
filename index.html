@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.32.2" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.32.2">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.33.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.33.0">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -545,6 +545,23 @@
   .hero-art{background-image:url("assets/production/operator_op01.webp")!important; background-size:auto 128%!important; background-position:50% 4%!important; inset:0!important; filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));}
   .lobby-hero{background:radial-gradient(ellipse at 50% 92%,rgba(21,214,190,.28),transparent 55%),radial-gradient(ellipse at 50% 40%,#16323c,#0b1c24 70%);}
   @media (orientation:landscape) and (max-height:480px){ .lobby{grid-template-columns:minmax(140px,180px) 1fr minmax(140px,180px);} .lobby-hero .hero-weapon{bottom:50px;} }
+  /* FTUE cold open */
+  body[data-screen=intro], body[data-screen=intro] #phone, body[data-screen=intro] #main, body[data-screen=intro] #app{background:#000!important; background-image:none!important;}
+  body[data-screen=intro] #topbar, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock, body[data-screen=intro] #app-version{display:none!important;}
+  body[data-screen=intro] #main::before, body[data-screen=intro] #main::after, body[data-screen=intro] #app::before, body[data-screen=intro] #app::after, body[data-screen=intro] #phone::before, body[data-screen=intro] #phone::after{display:none!important;}
+  .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+  .intro{position:fixed; inset:0; z-index:50; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px calc(24px + env(safe-area-inset-right,0px)) 16px calc(24px + env(safe-area-inset-left,0px)); text-align:center; cursor:pointer;}
+  .intro-face{width:min(96px,22vh); height:auto; opacity:0; animation:introFace 3.6s ease-out .2s forwards;}
+  .intro-lines{display:flex; flex-direction:column; gap:8px; max-width:560px;}
+  .intro-lines p{margin:0; color:#e8f6f4; font-size:16px; line-height:1.45; letter-spacing:.01em; opacity:0; animation:introLine 1.2s ease-out forwards;}
+  .intro-lines p:last-child{color:#7ad8cf;}
+  .intro-go{margin-top:6px; padding:10px 22px; min-height:44px; border-radius:12px; border:1.5px solid #3fe0cf; background:rgba(63,224,207,.08); color:#bff5ee; font:700 13px/1 "Archivo Black","IBM Plex Sans",sans-serif; letter-spacing:.12em; cursor:pointer; opacity:0; pointer-events:none; animation:introBtn .9s ease-out forwards;}
+  @keyframes introFace{0%{opacity:0;filter:brightness(.4)} 12%{opacity:.35} 16%{opacity:.05} 22%{opacity:.45} 26%{opacity:.15} 100%{opacity:1;filter:brightness(1) drop-shadow(0 0 18px rgba(63,224,207,.55))}}
+  @keyframes introLine{from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none}}
+  @keyframes introBtn{from{opacity:0} to{opacity:1;pointer-events:auto}}
+  .intro.done .intro-face,.intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
+  .intro.done .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,.55));}
+  @media (prefers-reduced-motion: reduce){ .intro-face,.intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;} .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,.55));} }
 </style>
 </head>
 <body class="base-dark">
@@ -557,7 +574,7 @@
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.32.2</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.33.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -571,17 +588,17 @@
   <div id="toast"></div>
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
-  <div id="app-version">v1.32.2</div>
+  <div id="app-version">v1.33.0</div>
  </div>
-<script src="data/items.js?v=1.32.2"></script>
-<script src="data/modules.js?v=1.32.2"></script>
-<script src="data/bit.js?v=1.32.2"></script>
-<script src="data/raid_zones.js?v=1.32.2"></script>
-<script src="data/recipes.js?v=1.32.2"></script>
-<script src="data/vendors.js?v=1.32.2"></script>
-<script src="data/retention.js?v=1.32.2"></script>
-<script src="data/progression.js?v=1.32.2"></script>
-<script src="data/combat.js?v=1.32.2"></script>
-<script src="app.js?v=1.32.2"></script>
+<script src="data/items.js?v=1.33.0"></script>
+<script src="data/modules.js?v=1.33.0"></script>
+<script src="data/bit.js?v=1.33.0"></script>
+<script src="data/raid_zones.js?v=1.33.0"></script>
+<script src="data/recipes.js?v=1.33.0"></script>
+<script src="data/vendors.js?v=1.33.0"></script>
+<script src="data/retention.js?v=1.33.0"></script>
+<script src="data/progression.js?v=1.33.0"></script>
+<script src="data/combat.js?v=1.33.0"></script>
+<script src="app.js?v=1.33.0"></script>
 </body>
 </html>
