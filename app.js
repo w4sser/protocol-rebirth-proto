@@ -1078,6 +1078,7 @@ SCREENS.prep = function(){
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
+    html += '<button class="ghost combat-launch node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID <span>LIVE RAID · SECURED LOOT COMES HOME</span></button>';
     html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
     html += '<button class="primary" ' + (p.loadout.weapon && fg.ok ? '' : 'disabled') + ' onclick="A.deploy()">DEPLOY — LOOT MISSION</button>';
     $app().innerHTML = html; return;
@@ -1186,6 +1187,7 @@ SCREENS.prep = function(){
   html += '</div></div>';
   const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
   const canDeploy = p.loadout.weapon && (!insOffered || tier.cost <= S.cur.signals) && fg.ok;
+  html += '<button class="ghost combat-launch node-raid-launch" onclick="A.deployNodeRaid()">DEPLOY — NODE RAID <span>LIVE RAID · SECURED LOOT COMES HOME</span></button>';
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button>';
   html += '<button class="primary" ' + (canDeploy?"":"disabled") + ' onclick="A.deploy()">DEPLOY</button>';
   if(!p.loadout.weapon) html += '<div class="small" style="text-align:center;margin-top:6px">equip a weapon first</div>';
@@ -1453,6 +1455,27 @@ function ingestRaidResult(r){
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, extracted:r.extracted, lost:r.lost });
   return { ok:true, added:r.extracted.slice() };
 }
+function coreLaunchUrl(raidId, seed, returnPath){
+  return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
+    "&return=" + encodeURIComponent(returnPath);
+}
+function newCoreLaunch(rand){
+  rand = rand || Math.random;
+  const hex = () => Math.floor(rand()*0x100000000).toString(16).padStart(8,"0");
+  return { raidId:"meta-" + Date.now().toString(36) + "-" + hex(), seed:hex() + "-meta" };
+}
+// Relative path back to this page as seen from ./nodspel/ (core accepts relative URLs only).
+function metaReturnPath(pathname){
+  const last = String(pathname || "").split("/").pop();
+  return "../" + (/^[\w.-]+\.html$/.test(last) ? last : "");
+}
+function coreResultSummary(r, res){
+  if(!res || !res.ok) return null;
+  const head = r.outcome === "extract" ? "Node Raid: extracted" : r.outcome === "death" ? "Node Raid: you died" : "Node Raid: time ran out";
+  const counts = {}; r.extracted.forEach(id => counts[id] = (counts[id]||0) + 1);
+  const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
+  return head + " — " + (loot || "no loot secured") + (r.lost.length ? " · lost " + r.lost.length : "");
+}
 function ingestPendingCoreResult(storage){
   let raw = null;
   try{ raw = storage && storage.getItem(RAID_RESULT_KEY); }catch(e){ return null; }
@@ -1460,6 +1483,7 @@ function ingestPendingCoreResult(storage){
   let parsed = null;
   try{ parsed = JSON.parse(raw); }catch(e){}
   const res = ingestRaidResult(parsed);
+  if(res.ok) res.summary = coreResultSummary(parsed, res);
   try{ storage.removeItem(RAID_RESULT_KEY); }catch(e){}
   return res;
 }
@@ -1689,6 +1713,11 @@ window.A = {
       toast("+" + PROG.insurance.adSignalsGrant + " Signals");
       refresh("raid_prep");
     });
+  },
+  deployNodeRaid(){
+    const l = newCoreLaunch();
+    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed });
+    location.assign(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname)));
   },
   deploy(){
     if(!session.prep) return;
@@ -2014,7 +2043,7 @@ function tryBitImage(){
 /* ---------- init ---------- */
 if(typeof document !== "undefined" && document.getElementById("app")){
   S = load();
-  ingestPendingCoreResult(window.localStorage);
+  const coreIngest = ingestPendingCoreResult(window.localStorage);
   tryBitImage();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
@@ -2024,6 +2053,7 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   });
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
+  if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
   if(S.introSeen){
     tickRetention();
     const rows = morningRows();
@@ -2031,4 +2061,4 @@ if(typeof document !== "undefined" && document.getElementById("app")){
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY };
+if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, coreResultSummary };

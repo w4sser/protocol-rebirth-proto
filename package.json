@@ -3,10 +3,11 @@
   "version": "0.9.9",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop",
     "test:logic": "node test/logic.test.js",
     "test:ui": "node test/ui.test.js",
-    "test:ftue": "node test/ftue-full.test.js"
+    "test:ftue": "node test/ftue-full.test.js",
+    "test:core-loop": "node test/core-loop.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

@@ -1,25 +1,25 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.22.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.22.0';
-import {createCombat,stepCombat} from './combat.js?v=1.22.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.22.0';
-import {RULES,totalNodes} from './levels.js?v=1.22.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.22.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.22.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.22.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.22.0';
-// import {stepScavenging} from './scavenging.js?v=1.22.0';
-import {buildRaidResult,writeRaidResult} from './raid-result.js?v=1.22.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.22.0';
-import {routeComplete} from './objectives.js?v=1.22.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.22.0';
-import {createBIT,stepBIT} from './bit.js?v=1.22.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.22.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.22.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.23.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.23.0';
+import {createCombat,stepCombat} from './combat.js?v=1.23.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.23.0';
+import {RULES,totalNodes} from './levels.js?v=1.23.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.23.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.23.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.23.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.23.0';
+// import {stepScavenging} from './scavenging.js?v=1.23.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.23.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.23.0';
+import {routeComplete} from './objectives.js?v=1.23.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.23.0';
+import {createBIT,stepBIT} from './bit.js?v=1.23.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.23.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.23.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.22.0');
+const orderResponse=await fetch('./order.json?v=1.23.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -82,6 +82,7 @@ const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.Mes
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
 const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#ff8175'}),enemyMeshes=new Map();
+const launch=readLaunch(location.search);
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
@@ -236,7 +237,8 @@ function finishRound(outcome=round.reason){
   $('#result-json').textContent=json;
   */
   // RaidResult v1 handoff to meta (only once the whole round is over).
-  if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round));
+  if(round.over)writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
+  $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;
   $('#continue-raid').hidden=!resultPending;
   $('#round-over-eyebrow').textContent=resultPending?'THE EXIT EXTRACTED YOUR BAG':'ROUND OVER';
@@ -255,6 +257,7 @@ function finishRound(outcome=round.reason){
   // as a local file; the visible link also works if automatic downloads stop.
   // $('#save-result').click();
 }
+$('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnUrl)return;writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));location.assign(launch.returnUrl);});
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){

@@ -161,3 +161,17 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(app.ingestRaidResult({ ...res, raidId:"y", version:2 }).reason, "invalid");
   console.log("core RaidResult ingestion OK");
 }
+
+// Deploy/return loop helpers.
+{
+  const url = app.coreLaunchUrl("meta-a-1", "s 1", "../index.html");
+  assert.equal(url, "./nodspel/?seed=s%201&raidId=meta-a-1&return=..%2Findex.html");
+  assert.equal(app.metaReturnPath("/proto/index.html"), "../index.html");
+  assert.equal(app.metaReturnPath("/proto/"), "../");
+  const l = app.newCoreLaunch(() => 0.5);
+  assert(/^meta-[a-z0-9]+-80000000$/.test(l.raidId)); assert.equal(l.seed, "80000000-meta");
+  assert.equal(app.coreResultSummary({ outcome:"extract", extracted:["cable","cable","fuse"], lost:[] }, { ok:true }), "Node Raid: extracted — +2 Cable, +1 Fuse");
+  assert.equal(app.coreResultSummary({ outcome:"death", extracted:[], lost:["fuse"] }, { ok:true }), "Node Raid: you died — no loot secured · lost 1");
+  assert.equal(app.coreResultSummary({}, { ok:false }), null);
+  console.log("deploy/return loop helpers OK");
+}

@@ -18,3 +18,23 @@ test('result is written as JSON under the shared key',()=>{
   assert.equal(JSON.parse(store[RAID_RESULT_KEY]).outcome,'death');
   assert.equal(writeRaidResult({setItem:()=>{throw new Error('full');}},buildRaidResult(r)),false);
 });
+import {safeReturnUrl,readLaunch} from '../raid-result.js';
+test('return url accepts only same-origin relative paths',()=>{
+  for(const ok of ['../','../index.html','./x.html','/proto/index.html','../index.html?a=1#base'])assert.equal(safeReturnUrl(ok),ok);
+  for(const bad of ['https://evil.example','//evil.example','javascript:alert(1)','/\\evil.example','\\\\evil','../a b','data:text/html,x','','../<x>',null])assert.equal(safeReturnUrl(bad),null,String(bad));
+});
+test('launch params are read and validated',()=>{
+  assert.deepEqual(readLaunch('?seed=abc&raidId=meta-1-ff&return=..%2Findex.html'),{seed:'abc',raidId:'meta-1-ff',returnUrl:'../index.html'});
+  assert.deepEqual(readLaunch('?raidId=bad%20id&return=https%3A%2F%2Fx'),{seed:null,raidId:null,returnUrl:null});
+});
+test('meta raidId is used only for the launched seed',()=>{
+  const r=createRound('launched',0);takeDamage(r,1000,1);
+  assert.equal(buildRaidResult(r,{launch:{seed:'launched',raidId:'meta-x'}}).raidId,'meta-x');
+  const r2=createRound('restarted',0);takeDamage(r2,1000,1);
+  assert.equal(buildRaidResult(r2,{launch:{seed:'launched',raidId:'meta-x'}}).raidId,'nodspel:restarted');
+});
+test('round-over has a hidden return-to-base button',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(html,/<button id="return-base" hidden>Return to base<\/button>/);
+});

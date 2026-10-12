@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES} from './levels.js?v=1.22.0';
+import {RULES} from './levels.js?v=1.23.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
