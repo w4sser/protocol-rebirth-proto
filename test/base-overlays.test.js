@@ -20,7 +20,7 @@ const z = el => Number(w.getComputedStyle(el).zIndex);
 assert(z(spots[0]) > z(doc.querySelector(".hubstate")), "map spots sit above the state label");
 // HUD: plates carry a solid tag, bottom bar + settings menu exist
 for(const s of spots) assert(s.querySelector(".tag"), "every map spot is a solid building plate");
-assert.equal(doc.querySelectorAll("#tabs button").length, 4, "bottom bar RAID/STASH/SHOP/BIT");
+assert.equal(doc.querySelectorAll("#tabs button").length, 5, "bottom bar BASE/RAID/STASH/SHOP/BIT");
 assert(doc.querySelector("#settings-menu[hidden] #reset-progress"), "Reset lives in the closed settings menu");
 doc.getElementById("menubtn").click();
 assert(!doc.getElementById("settings-menu").hidden, "gear opens settings");
@@ -32,7 +32,7 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   w.A.openBuilding("rebirth_core");
   assert(doc.querySelector("#overlay .bpop"), "core popup open");
   assert.notEqual(doc.querySelector(".baseworld").style.transform, t0, "map pans to the tapped building");
-  doc.querySelector("#overlay [data-close]").click(); }
+  (doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back()); }
 // landscape only: no portrait layouts, rotate gate + splash + manifests
 { const html = fs.readFileSync(path + "/index.html", "utf8");
   assert.equal((html.match(/orientation: *portrait/g)||[]).length, 1, "only the rotate gate reacts to portrait");
@@ -55,6 +55,18 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(/closeAllPopups\(\);\s*session\.screenEnterTs/.test(fs.readFileSync(path + "/app.js", "utf8")), "A.go closes popups");
   assert(/closeAllPopups\(\);\s*\(window\.PR_NAVIGATE/.test(fs.readFileSync(path + "/app.js", "utf8")), "deploy closes popups");
   assert(d.getElementById("app-version").closest("#topbar"), "version label sits in the top bar, never over the bottom bar"); }
+// consistent BACK top-left; popups have no bottom BACK/✕; bottom bar hidden under a popup
+{ const A = w.A, d = w.document, app = fs.readFileSync(path + "/app.js", "utf8");
+  assert(d.querySelector("#topbar > #navback:first-child"), "back button is first in the top bar");
+  assert(!/data-close>BACK</.test(app) && !/data-close aria-label="Close">✕/.test(app) && !/‹ (Base|Stash|Back)</.test(app), "no ad-hoc back/close buttons");
+  A.go("base"); assert(d.getElementById("navback").hidden, "no back on base");
+  A.go("dev"); assert(!d.getElementById("navback").hidden, "back on sub-screens");
+  A.back(); assert.equal(d.body.dataset.screen, "base", "back -> base");
+  A.openBuilding("rebirth_core");
+  if(d.getElementById("overlay")){
+    assert(d.body.classList.contains("has-overlay") && !d.getElementById("navback").hidden, "popup: back shown, bottom bar hidden");
+    A.back(); assert(!d.getElementById("overlay") && !d.body.classList.contains("has-overlay"), "back closes popup");
+  } }
 // version
 const V = fs.readFileSync(path + "/app.js", "utf8").match(/const APP_VERSION = "([\d.]+)"/)[1];
 assert.equal(doc.getElementById("app-version").textContent, "v" + V);

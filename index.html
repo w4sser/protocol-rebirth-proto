@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.34.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.34.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.34.1" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.34.1">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -431,15 +431,13 @@
   @media (orientation:landscape) and (max-height:480px){
     #topbar{padding-top:4px; padding-bottom:4px;} #topbar .title{display:none;}
     #currencies{margin-left:0; justify-content:flex-start; flex:1;}
-    #tabs{position:absolute; right:10px; bottom:calc(8px + env(safe-area-inset-bottom,0px)); left:auto; background:none; border:0; padding:0; width:auto;}
-    #tabs button{width:68px; flex:none;} #tabs .nav-prep{width:96px; min-height:84px;}
     #app{padding-bottom:96px;} #app.s-base{padding-bottom:0;}
     body[data-screen=base] #bitdock{display:none!important;}
     #app.s-base .goalpill{bottom:12px; max-width:calc(100% - 420px); min-width:200px;}
     .baseviewer .hubstate{display:none;}
-    body:not([data-screen=base]) #tabs{position:static; background:var(--panel); border-top:1px solid var(--line); padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px)); justify-content:center; align-items:center;}
-    body:not([data-screen=base]) #tabs button,body:not([data-screen=base]) #tabs .nav-prep{flex-direction:row; flex:1; width:auto; max-width:160px; min-height:48px; gap:6px; box-shadow:none;}
-    body:not([data-screen=base]) #tabs .ni{font-size:20px;}
+    #tabs{position:static; background:var(--panel); border-top:1px solid var(--line); padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px)); justify-content:center; align-items:center;}
+    #tabs button,#tabs .nav-prep{flex-direction:row; flex:1; width:auto; max-width:160px; min-height:48px; gap:6px; box-shadow:none;}
+    #tabs .ni{font-size:20px;}
     body:not([data-screen=base]) #app{padding-bottom:12px;}
     body:not([data-screen=base]) #bitdock{bottom:calc(64px + env(safe-area-inset-bottom,0px));}
     #app.s-prep>button.primary,#app.s-decision .decision-actions{position:sticky; left:auto; right:auto; bottom:0; width:100%;}
@@ -561,6 +559,20 @@
   .opxp{font:600 12px/1 "IBM Plex Mono",monospace; color:var(--dim,#9bb);}
   @media (max-width:960px){ #currencies .cur:not(.oplvl) .lbl{display:none;} #currencies{flex-wrap:nowrap;} .opbar{min-width:64px;} }
   .slot.free .qty{font-size:16px; color:#7ad8cf;}
+  /* one consistent BACK button: top-left in the top bar on every screen and over every popup */
+  #tabs button.active[disabled]{opacity:1;}
+  .navback{flex:none; width:44px; height:44px; font-size:26px; line-height:1; font-weight:700;}
+  .navback[hidden]{display:none;}
+  #overlay,#overlay.sheet{top:var(--tb-h,0px); z-index:24;}
+  body.has-overlay #tabs{display:none!important;}
+  body.has-overlay #bitdock{display:none!important;}
+  @media (orientation:landscape) and (max-height:480px){ #bitdock{display:none!important;} } /* never overlays content in landscape */
+  /* compact building / room popup: fits 844x390 without scrolling */
+  #overlay.sheet .bpop{max-height:calc(100dvh - var(--tb-h,0px) - 24px); overflow:hidden;}
+  .bpop .reward{margin:6px 0 8px; font-size:13px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .bpop .linkbtn{display:block; width:100%; margin:6px 0 0; padding:8px 4px; min-height:36px; background:none; border:0; color:var(--dim); font:600 12px "IBM Plex Sans",sans-serif; text-decoration:underline; cursor:pointer;}
+  .bpop .lore{font-size:12px; color:var(--dim); margin:4px 0 6px;}
+  .bpop .lore[hidden]{display:none;}
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
   .intro{position:fixed; inset:0; z-index:50; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px calc(24px + env(safe-area-inset-right,0px)) 16px calc(24px + env(safe-area-inset-left,0px)); text-align:center; cursor:pointer;}
   .intro-face{width:min(96px,22vh); height:auto; opacity:0; animation:introFace 3.6s ease-out .2s forwards;}
@@ -579,15 +591,16 @@
 <body class="base-dark">
 <div id="phone">
   <div id="topbar">
+    <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.34.0</div>
+    <div id="app-version">v1.34.1</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu" role="menu" hidden>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.34.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.34.1</span></div>
     </div>
   </div>
   <div id="main">
@@ -602,15 +615,15 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.34.0"></script>
-<script src="data/modules.js?v=1.34.0"></script>
-<script src="data/bit.js?v=1.34.0"></script>
-<script src="data/raid_zones.js?v=1.34.0"></script>
-<script src="data/recipes.js?v=1.34.0"></script>
-<script src="data/vendors.js?v=1.34.0"></script>
-<script src="data/retention.js?v=1.34.0"></script>
-<script src="data/progression.js?v=1.34.0"></script>
-<script src="data/combat.js?v=1.34.0"></script>
-<script src="app.js?v=1.34.0"></script>
+<script src="data/items.js?v=1.34.1"></script>
+<script src="data/modules.js?v=1.34.1"></script>
+<script src="data/bit.js?v=1.34.1"></script>
+<script src="data/raid_zones.js?v=1.34.1"></script>
+<script src="data/recipes.js?v=1.34.1"></script>
+<script src="data/vendors.js?v=1.34.1"></script>
+<script src="data/retention.js?v=1.34.1"></script>
+<script src="data/progression.js?v=1.34.1"></script>
+<script src="data/combat.js?v=1.34.1"></script>
+<script src="app.js?v=1.34.1"></script>
 </body>
 </html>
