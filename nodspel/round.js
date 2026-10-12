@@ -10,6 +10,7 @@ export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now) {
   return {seed,deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:RULES.loadout.health,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
+function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over)return false;
@@ -73,10 +74,10 @@ export function hitEnemy(round,id,now,damage=1){
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};
 }
-// Player choice after a level exit: end the raid now and keep everything secured.
+// Player choice after a level exit: end the raid now; only this secures the carried bag.
 export function extractRound(round,now){
   tickRound(round,now);if(round.over||round.levelsCleared<1)return false;
-  round.nodeInteraction=null;round.over=true;round.reason='extract';return true;
+  secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';return true;
 }
 // Leaving a launched raid early counts as a loss: the bag is lost like on death.
 export function abandonRound(round,now){
@@ -98,11 +99,12 @@ export function activateNode(round,id,now) {
 export function enterExit(round,position,now) {
   tickRound(round,now);
   if(round.cleared || !exitIsOpen(round) || Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)>round.level.exit.r)return null;
+  // Owner rule: a level exit does NOT secure loot. The bag (same 4 slots) carries on, at risk,
+  // until the player chooses Extract or clears the final level.
   round.exitLoot=bagItems(round.bag);
   round.nodeInteraction=null;
-  for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}
   round.levelsCleared++;
-  if(round.level.number===3){round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
+  if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
   round.level=generateLevel(round.level.number+1,round.seed);
   return 'next';
 }

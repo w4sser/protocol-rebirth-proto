@@ -66,7 +66,7 @@ Nyckel: `localStorage["pr_raid_result_v1"]` (samma origin, eftersom `nodspel/` s
 ```
 Regler:
 - Skrivs bara när hela rundan är slut (`round.over`), aldrig vid mellanliggande nivå-exit.
-- `extracted` = allt som säkrats vid någon exit (även om spelaren dör senare). `lost` = väskan vid död/timeout.
+- `extracted` = väskan när spelaren väljer **Extract** (eller klarar nivå 3). `lost` = allt som samlats i raiden vid död/timeout/abandon (se §7, uppdaterat beslut).
 - `outcome`: `complete → extract`, `death → death`, `timeout → timeout`.
 - Meta validerar schema/version, att `extracted` bara innehåller kända item-id:n, och ingesterar **en gång per `raidId`**
   (`S.coreRaidsIngested`, max 50 senaste). Nyckeln tas bort efter läsning (även ogiltig data, så den inte fastnar).
@@ -138,8 +138,16 @@ Regler:
 Exempel: extract efter nivå 1 (1 nod, ~2 fiender) ≈ 12 XP (simulerad extract ger 15). Full clear (6 noder, ~8 fiender, 3 nivåer) ≈ 34 XP.
 Tidig död ger några XP (simulerad död ger 5). Bond-trösklar: 30 / 80 / 150 / 250.
 
-### Kvarvarande frågor
-- Loot som säkrats vid en tidigare nivå-exit behålls även vid senare död/timeout/abandon (bara väskan förloras). Det gör att valet
-  ”Extract eller fortsätt” bara riskerar väskan + tid. Ska fortsatt raid i stället riskera allt som säkrats?
-- Ska bond-XP ges även innan BIT Bay är online (FTUE-tempo)?
-- Abandon från resultatskärmen efter en nivå-exit förlorar inget (väskan är tom) – okej, eller ska det räknas annorlunda?
+### Uppdaterat beslut: all loot är i riskzonen tills Extract
+- En nivå-exit säkrar **inte** längre något. Väskan följer med till nästa nivå, fortfarande i riskzonen.
+  Bara **Extract** (eller att klara nivå 3) flyttar väskan till säkrad loot.
+- Död, timeout och abandon förlorar **allt** som samlats under raiden. RaidResult har då `extracted: []` och allt i `lost`.
+  Meta lägger dessutom aldrig in items från en raid som inte slutade med `extract` (skydd ifall data är felaktig).
+- **Kapacitet (vald lösning):** samma väska med 4 platser följer med över alla nivåer, ingen separat ”carried”-hög.
+  Det gör valet tydligt: en full väska betyder att man antingen extraherar eller släpper items för att ta bättre loot
+  längre ner (släppa finns redan). HUD visar `BAG n/4 · AT RISK · CARRIED` efter första nivån, och nivå-exit-skärmen
+  visar ”LEVEL CLEAR · EXTRACT TO SECURE, OR CONTINUE AT RISK” med Extract / Next level.
+
+### Standardval för övriga frågor
+- Bond-XP ges som i meta i övrigt: bara när BIT Bay är online (gäller även tidig FTUE).
+- Abandon från nivå-exit-skärmen är okej. Väskan förloras då också, eftersom den inte är säkrad.

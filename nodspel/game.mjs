@@ -139,7 +139,7 @@ function setCollisions(){
 }
 function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
-  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK`;
+  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
   renderInventory();
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
@@ -242,16 +242,16 @@ function finishRound(outcome=round.reason){
   $('#inventory').hidden=true;
   $('#continue-raid').hidden=!resultPending;$('#extract-raid').hidden=!resultPending;
   $('#new-round').hidden=!!launch.returnUrl;
-  $('#round-over-eyebrow').textContent=resultPending?'BAG SECURED · EXTRACT OR CONTINUE?':'ROUND OVER';
+  $('#round-over-eyebrow').textContent=resultPending?'LEVEL CLEAR · EXTRACT TO SECURE, OR CONTINUE AT RISK':'ROUND OVER';
   weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
-  $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='extract'?'Extracted':summary.reason==='abandon'?'Raid abandoned':summary.reason==='death'?'You died':'Time is up';
+  $('#round-over-title').textContent=outcome==='extraction'?'Level cleared':summary.reason==='complete'?'All levels cleared':summary.reason==='extract'?'Extracted':summary.reason==='abandon'?'Raid abandoned':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
   $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / ${TOTAL_NODES}`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
-  $('#summary-extracted').textContent=outcome==='extraction'?(round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'Empty'):bagText(round.extracted);
+  $('#summary-extracted').textContent=outcome==='extraction'?`Not yet · carrying ${round.exitLoot.map(id=>ITEM_NAMES[id]).join(' · ')||'nothing'} at risk`:bagText(round.extracted);
   $('#summary-lost').textContent=bagText(round.lost);
   updateHUD();
   // Static hosting has no writable result endpoint. Export the same result

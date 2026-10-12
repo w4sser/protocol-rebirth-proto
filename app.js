@@ -1451,10 +1451,12 @@ function ingestRaidResult(r){
   if(S.coreRaidsIngested.includes(r.raidId)) return { ok:false, reason:"duplicate" };
   S.coreRaidsIngested.push(r.raidId);
   if(S.coreRaidsIngested.length > 50) S.coreRaidsIngested.shift();
-  // Loot secured at a level exit stays secured; only items (no formula salvage/dataCores) come home.
-  r.extracted.forEach(id => addItem(id, 1));
-  S.raids++;
+  // Owner rule: only Extract secures loot; death/timeout/abandon lose everything collected.
+  // Only items come home (no formula salvage/dataCores).
   const extracted = r.outcome === "extract";
+  const added = extracted ? r.extracted.slice() : [];
+  added.forEach(id => addItem(id, 1));
+  S.raids++;
   const saved = { insured:[], secure:null, bitRescue:null };
   if(!extracted){
     // Timeout and abandon arrive as "death": same consequences as a simulated death.
@@ -1466,7 +1468,7 @@ function ingestRaidResult(r){
   S.bondXp += xp;
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added:r.extracted.slice(), xp, saved };
+  return { ok:true, added, xp, saved };
 }
 function coreLaunchUrl(raidId, seed, returnPath){
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
@@ -1485,7 +1487,7 @@ function metaReturnPath(pathname){
 function coreResultSummary(r, res){
   if(!res || !res.ok) return null;
   const head = r.outcome === "extract" ? "Node Raid: extracted" : r.outcome === "death" ? "Node Raid: you died" : "Node Raid: time ran out";
-  const counts = {}; r.extracted.forEach(id => counts[id] = (counts[id]||0) + 1);
+  const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id]||0) + 1);
   const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
   return head + " — " + (loot || "no loot secured") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
