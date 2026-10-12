@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.21.0';
-import {traceTargets} from './physics.mjs?v=1.21.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.21.0';
+import {RULES} from './levels.js?v=1.22.0';
+import {traceTargets} from './physics.mjs?v=1.22.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.22.0';
 
 export function assistAim(position,direction,enemies,obstacles){
   const rule=RULES.weapon,length=Math.hypot(direction.x,direction.z);
@@ -22,7 +22,9 @@ export function assistAim(position,direction,enemies,obstacles){
 
 // The lock preview and projectile share the same target widths and cover test.
 function weaponHit(start,end,obstacles,targets){
-  const eligible=targets.filter(t=>t.kind!=='enemy'||t.health>0&&t.active!==false).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.r+RULES.weapon.shotRadius}));
+  // Active nodes are not targets; their pedestal is ordinary cover shared with
+  // enemy shots. Only enemies get the extra shot width.
+  const eligible=targets.filter(t=>t.kind==='enemy'?(t.health>0&&t.active!==false):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r+RULES.weapon.shotRadius:t.r}));
   return traceTargets(start,end,obstacles,eligible);
 }
 function applyWeaponHit(weapon,round,hit,now){

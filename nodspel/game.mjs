@@ -1,29 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.21.0';
-import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.21.0';
-import {createCombat,stepCombat} from './combat.js?v=1.21.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.21.0';
-import {RULES} from './levels.js?v=1.21.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.21.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.21.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.21.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.21.0';
-// import {stepScavenging} from './scavenging.js?v=1.21.0';
-import {buildRaidResult,writeRaidResult} from './raid-result.js?v=1.21.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.21.0';
-import {routeComplete} from './objectives.js?v=1.21.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.21.0';
-import {createBIT,stepBIT} from './bit.js?v=1.21.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.21.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.22.0';
+import {createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.22.0';
+import {createCombat,stepCombat} from './combat.js?v=1.22.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.22.0';
+import {RULES,totalNodes} from './levels.js?v=1.22.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.22.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.22.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.22.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.22.0';
+// import {stepScavenging} from './scavenging.js?v=1.22.0';
+import {buildRaidResult,writeRaidResult} from './raid-result.js?v=1.22.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.22.0';
+import {routeComplete} from './objectives.js?v=1.22.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.22.0';
+import {createBIT,stepBIT} from './bit.js?v=1.22.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.22.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.22.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.21.0');
+const orderResponse=await fetch('./order.json?v=1.22.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
 */
 let resultPending=false;
+const TOTAL_NODES=totalNodes();
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
 const playerHealthSegments=createHealthSegments($('#player-health'),100,10);
@@ -74,7 +76,7 @@ const healCrosses=Array.from({length:6},(_,i)=>{
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
 const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
-const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.10,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.95,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.35,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#15d6be',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
@@ -114,8 +116,9 @@ function updateMouse(e){const r=viewport.getBoundingClientRect();mouse.set((e.cl
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}});
-window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);});
+window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
+window.addEventListener('keyup',e=>{if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
+document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,Date.now());if(round.over)finishRound();}});
@@ -140,12 +143,12 @@ function updateHUD(){
   $('#secured-items').textContent=bagText(round.extracted);
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
-  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length}`;
+  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':'HOLD';}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
-function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,1.4,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
+function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
 function renderInventory(){
   const items=bagItems(round.bag),list=$('#inventory-slots');list.replaceChildren();
   $('#inventory-count').textContent=`${items.length} / ${RULES.loot.capacity} slots`;
@@ -164,7 +167,7 @@ function renderEnemyFeedback(clock){
   for(const v of world.enemies){
     const alive=v.enemy.health>0&&v.enemy.active!==false;
     v.group.visible=alive;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);
-    v.label.point.set(v.enemy.x,1.7,v.enemy.z);v.label.caption.textContent=`ENEMY · ${v.enemy.health}`;v.label.defeated=!alive;v.label.el.hidden=!alive;
+    v.label.point.set(v.enemy.x,1.7,v.enemy.z);const winding=alive&&v.enemy.windupAt!=null;v.label.el.classList.toggle('winding',winding);v.label.caption.textContent=`${winding?'! ':''}ENEMY · ${v.enemy.health}`;v.label.defeated=!alive;v.label.el.hidden=!alive;
     v.healthBar.setAttribute('aria-valuenow',v.enemy.health);renderHealthSegments(v.healthSegments,v.enemy.health,v.maxHealth);
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
     v.flash.point.set(v.enemy.x,.65,v.enemy.z);v.flash.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.hitFlashMs)}`;
@@ -241,7 +244,7 @@ function finishRound(outcome=round.reason){
   const summary=roundSummary(round),seconds=Math.ceil(summary.remainingMs/1000);
   $('#round-over-title').textContent=outcome==='extraction'?'Extraction complete':summary.reason==='complete'?'All levels cleared':summary.reason==='death'?'You died':'Time is up';
   $('#summary-enemies').textContent=summary.enemiesDefeated;
-  $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / 6`;
+  $('#summary-levels').textContent=`${summary.levelsCleared} / 3`;$('#summary-nodes').textContent=`${summary.nodesLit} / ${TOTAL_NODES}`;
   $('#summary-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
   // $('#summary-extracted').textContent=latestResult.extracted.join(' · ')||'Empty';
   // $('#summary-lost').textContent=latestResult.lost.join(' · ')||'Empty';
@@ -257,7 +260,7 @@ $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if
 function fire(){
   if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const clock=Date.now(),shot=fireAimedWeapon(weapon,round,position,aim,clock,solids);
+  const clock=Date.now(),shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids);
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
@@ -276,7 +279,7 @@ function renderWeaponHUD(clock){
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
     el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
   }
-  $('#reload-time').textContent=round.over?'':`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
+  $('#reload-time').textContent=`${weapon.ammo}/${RULES.weapon.capacity} · ${weapon.reserve===Infinity?'∞':weapon.reserve}${reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:''}`;
   // Scavenging is paused while reserve ammunition is unlimited.
   $('#player-health').setAttribute('aria-valuenow',round.health);
   renderHealthSegments(playerHealthSegments,round.health,100,10);$('#player-health').hidden=round.health<=0;
@@ -312,13 +315,13 @@ function frame(now){
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
-    if(stepWeapon(weapon,round,clock,dt,solids))updateHUD();
+    if(stepWeapon(weapon,round,clock,dt,playerSolids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     if(collectLoot(round,position,clock,weapon))updateHUD();
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
-    stepCombat(round,combat,position,clock,dt,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]);
+    stepCombat(round,combat,position,clock,dt,playerSolids);
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
@@ -358,12 +361,15 @@ function frame(now){
   for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
   for(const v of world.lootBoxes){v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
-  const aiming=!round.over&&(!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space'));
-  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],solids):{target:null,direction:aim},displayAim=assisted.direction;
+  const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
+  // Desktop: a faint preview follows the mouse; holding strengthens it.
+  const aiming=!round.over&&(holding||mouseKnown);
+  aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.35:.12;
+  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)v.label.caption.textContent=`⌖ ENEMY · ${v.enemy.health}`;}
-  const facing=facingDirection(aiming,walkDirection,displayAim);
+  const facing=facingDirection(holding,walkDirection,displayAim);
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);aimCone.visible=aiming;
   if(aiming){

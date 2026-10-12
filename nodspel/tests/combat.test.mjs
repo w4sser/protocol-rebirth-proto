@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {createRound,hitEnemy} from '../round.js';
 import {generateLevel} from '../levels.js';
 const combat=await import('../combat.js').catch(()=>({}));
+// Baseline combat rules, without the gentler level-one tuning.
+const baseline=r=>Object.assign(r.level,{enemyDamage:undefined,enemyWindupMs:0,firstGraceMs:undefined,enemyCooldownMs:undefined});
 test('an enemy fires after spawn grace and its projectile can damage the player',()=>{
   assert.equal(typeof combat.createCombat,'function');
-  const r=createRound('fight',0);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
+  const r=createRound('fight',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
   const c=combat.createCombat(r.level,0);
   combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);assert.equal(c.projectiles.length,0);
   combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
@@ -22,7 +24,7 @@ test('walls block enemy sight and a defeated enemy stops firing',()=>{
 });
 test('five enemy hits cause death and record time remaining',()=>{
   assert.equal(typeof combat.createCombat,'function');
-  const r=createRound('lethal',0);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
+  const r=createRound('lethal',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
   const c=combat.createCombat(r.level,0);
   for(let i=0;i<5;i++)combat.stepCombat(r,c,{x:0,z:4},3000+i*2000,.5,[]);
   assert.equal(r.over,true);assert.equal(r.reason,'death');assert.equal(r.remainingMs,469000);

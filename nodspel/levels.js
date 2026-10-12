@@ -1,7 +1,7 @@
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
-    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:1800,title:'Open Room'},
+    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Open Room'},
     {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Narrow Passage'},
     {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Dead End'},
   ],
@@ -13,14 +13,15 @@ export const RULES=Object.freeze({
   directions:[{x:1,z:0},{x:-1,z:0},{x:0,z:-1},{x:0,z:1}],
   spacing:[15,18],startRoomOffset:[-.8,.8],deadEndLength:[4,6],wallThickness:.4,boxesPerRoom:2,
   start:{x:0,z:2.9},exit:{z:2.9,r:1},nodeSize:1.4,playerRadius:.36,
-  loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.25},
+  loot:{capacity:4,counts:[1,6,3],types:['scrap_alloy','power_cell','cable','fuse','medkit'],pools:[['cable','scrap_alloy','power_cell'],['fuse','scrap_alloy','power_cell'],['scrap_alloy','power_cell']],pickupRadius:1.6},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
-  killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000},
+  killReward:{ammo:1,health:15},enemyHealth:3,combat:{range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
+export function totalNodes(){return RULES.levels.reduce((sum,level)=>sum+level.nodes,0);}
 function randomFromSeed(seed){
   let state=2166136261;
   for(const c of String(seed))state=Math.imul(state^c.charCodeAt(0),16777619);
@@ -124,5 +125,5 @@ export function generateLevel(number,roundSeed){
     {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
-  return {number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit};
+  return {number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit};
 }
