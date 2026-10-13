@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.40.4';
-import {traceTargets} from './physics.mjs?v=1.40.4';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.40.4';
+import {RULES} from './levels.js?v=1.40.5';
+import {traceTargets} from './physics.mjs?v=1.40.5';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.40.5';
 
 export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon){
   const length=Math.hypot(direction.x,direction.z);

@@ -2,6 +2,8 @@
 window.DATA = window.DATA || {};
 window.DATA.progression = {
   raidPrepUnlockModule:"fabricator",
+  // Node Raid bag size (v1.40.5): base + module upgrades + armour pockets, capped (core clamps to 4..10 again).
+  raidBag:{ base:4, max:10, modules:{ storage:2 } },
   // default gear (was hardcoded in app.js, PRB-43): free infinite weapon, auto-equipped armor, Node Raid kit consumable
   freeWeapon:"basic_carbine",
   defaultLoadout:{ armor:"scavenger_vest", c1:"medkit" },

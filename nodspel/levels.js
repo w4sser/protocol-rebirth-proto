@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.40.4';
+import {townizeLevel} from './town-layout.js?v=1.40.5';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -17,7 +17,7 @@ export const RULES=Object.freeze({
   // Loot ids are the base (meta) item ids. Weighted per level so every base repair part drops:
   // early parts on level 1, mid parts on level 2, rare parts deeper. salvage_crate/data_core turn into
   // Salvage/Data Cores in the base (item-sourced currency). See docs/meta-core-integration.md §8.
-  loot:{capacity:4,counts:[1,6,3],
+  loot:{capacity:4,maxCapacity:10,counts:[1,6,3],
     types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core'],
     weights:[
       {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},

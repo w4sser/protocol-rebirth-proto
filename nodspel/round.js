@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.40.4';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.4';
-import {emptyBag,bagItems} from './raid.js?v=1.40.4';
-import {traceTargets} from './physics.mjs?v=1.40.4';
+import {generateLevel,RULES} from './levels.js?v=1.40.5';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.5';
+import {emptyBag,bagItems} from './raid.js?v=1.40.5';
+import {traceTargets} from './physics.mjs?v=1.40.5';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -10,8 +10,12 @@ export const ROUND_DURATION_MS=8*60*1000;
 // stats: validated player stats (see raid-result.js readStats); defaults to the new-player base.
 export function createRound(seed,now,stats=RULES.playerStats.base) {
   stats={...RULES.playerStats.base,...stats};
-  return {seed,stats,maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+  const bagCapacity=bagCap(stats.bagCapacity);
+  return {seed,stats,bagCapacity,maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
+// Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
+export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
+export const bagCapacityOf=round=>round?.bagCapacity??RULES.loot.capacity;
 function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
@@ -27,7 +31,7 @@ export function collectLoot(round,position,now,weapon){
         {const wr=weapon.rule??RULES.weapon;if(weapon.ammo<wr.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+wr.reloadMs;}
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
-        if(bagItems(round.bag).length>=RULES.loot.capacity){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
+        if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;
       }
       box.collected=true;changed=true;

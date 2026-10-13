@@ -41,7 +41,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .kit-btn{position:absolute;z-index:3;left:max(14px,0px);top:calc(max(12px,0px) + 128px);min-width:56px;min-height:48px;border-radius:12px;border:2px solid #ff8a8a;background:#2a1414e8;color:#ffd0d0;font:800 18px system-ui,sans-serif;display:flex;align-items:center;gap:6px;padding:0 10px;cursor:pointer}
 .kit-btn small{font-size:11px;opacity:.75}.kit-btn:disabled{opacity:.4;cursor:default}
 .weapon-name{display:block;text-align:center;font:700 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75cfcc;margin-bottom:3px}
-/* range-sensitive labels (v1.40.4): far = dot, mid = short name, near = full label */
+/* range-sensitive labels (v1.40.5): far = dot, mid = short name, near = full label */
 .node-label .short-text{display:none}
 .node-label[data-mode=short] .full-text,.node-label[data-mode=dot] .full-text,.node-label[data-mode=dot] .short-text,.node-label[data-mode=dot] .node-meter{display:none}
 .node-label[data-mode=short] .short-text{display:inline}
@@ -56,7 +56,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .exit-label.done{color:#3dff8a;border-color:#3dff8a}
 .loot-label{color:#ffcf6a}
 
-/* v1.40.4: compact enemy health bars; name only near/targeted/winding */
+/* v1.40.5: compact enemy health bars; name only near/targeted/winding */
 .enemy-label[data-mode=bar]{min-width:44px;padding:0;background:none;border:0;box-shadow:none}
 .enemy-label[data-mode=bar] .full-text,.enemy-label[data-mode=bar] .short-text,.enemy-label[data-mode=bar] .node-marker{display:none}
 .enemy-label[data-mode=bar] .enemy-health-bar{height:5px;filter:drop-shadow(0 0 3px #000)}
@@ -77,7 +77,7 @@ canvas{background:#07151c}
 /* full bag: flash + shake only at the moment it happens */
 .bag-panel.bag-full-flash{animation:bagfull .7s ease-out}
 @keyframes bagfull{0%,100%{transform:none;border-color:#b5a37266}10%,50%{border-color:#ff4b4b;box-shadow:0 0 14px #ff4b4b88;background:#3a1416ee}20%{transform:translateX(-5px)}35%{transform:translateX(5px)}50%{transform:translateX(-3px)}65%{transform:translateX(2px)}}
-.swap-row{position:absolute;left:50%;bottom:max(14px,0px);transform:translateX(-50%);z-index:9;background:#0d1a20f2;border:1px solid #ff6b6b88;border-radius:8px;padding:8px 10px;pointer-events:auto;max-width:calc(100vw - 24px);box-shadow:0 6px 24px #0008}
+.swap-row{position:absolute;left:50%;top:64px;bottom:auto;transform:translateX(-50%);z-index:9;background:#0d1a20f2;border:1px solid #ff6b6b88;border-radius:8px;padding:8px 10px;pointer-events:auto;max-width:calc(100vw - 24px);box-shadow:0 6px 24px #0008}
 .swap-head{display:flex;align-items:center;gap:10px;font-size:12px;color:#ffb3b3;margin-bottom:6px}.swap-head span{color:#a8bab2;font-size:10px}.swap-close{margin-left:auto;min-width:36px;min-height:32px;background:#20272c;color:#dce5e3;border:1px solid #58636066;border-radius:5px;cursor:pointer}
 .swap-items{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow-x:auto}
 .swap-item{min-height:44px;min-width:76px;padding:6px 9px;border-radius:6px;border:1px solid var(--rc,#d6dde0);border-left-width:4px;background:#14242b;color:#eef3f2;font-size:11px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;justify-content:center}
@@ -95,3 +95,8 @@ html{background:#0b1418;height:100%}
 #viewport #game,#viewport #world-labels{position:fixed!important;inset:auto;top:calc(-1*var(--st))!important;right:calc(-1*var(--sr))!important;bottom:calc(-1*var(--sb))!important;left:calc(-1*var(--sl))!important}
 html,body{background:#07151c}
 #extract-toast{background:#0d2a22ee;border-color:#75cfcc88;color:#d7efea;white-space:nowrap}
+
+/* v1.40.5: non-intrusive full bag */
+.bag-toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:9;background:#3a1416e8;color:#ffd2d2;border:1px solid #ff6b6b88;border-radius:14px;padding:5px 12px;font-size:12px;pointer-events:none;animation:bagtoast 1.8s ease forwards}
+@keyframes bagtoast{0%{opacity:0;transform:translate(-50%,-6px)}10%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+.node-label.swap-tap{pointer-events:auto;cursor:pointer;outline:2px solid #ff6b6b;outline-offset:2px}

@@ -264,5 +264,12 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(lvl.speed, Math.round((P.base.speed + P.skills.athletics.perLevel.speed) * 1000) / 1000, "skill level raises speed");
   assert.equal(lvl.maxHealth, P.base.maxHealth + P.skills.vitality.perLevel.maxHealth);
   assert(/Operator/.test(app.statsCardHtml(["scout_rig"])) && /Gear at risk: Scout Rig/.test(app.statsCardHtml(["scout_rig"])));
+  // Raid bag capacity: base 4, Storage +2, armour pockets; passed to core as &bag=
+  st.modules.storage = 0;
+  assert.equal(app.raidBagCapacity([]), 4);
+  assert.equal(app.raidBagCapacity(["scavenger_vest"]), 6, "vest adds pockets");
+  st.modules.storage = 1;
+  assert.equal(app.raidBagCapacity(["scout_rig"]), 7, "Storage upgrade raises raid bag");
+  assert(app.coreLaunchUrl("m", "s", "../", { bag:7 }).includes("&bag=7"));
   console.log("player stats OK");
 }

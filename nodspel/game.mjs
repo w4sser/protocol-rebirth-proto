@@ -1,31 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad} from './town.js?v=1.40.4';
-import {setArea} from './levels.js?v=1.40.4';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.4';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.4';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.4';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.40.4';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.4';
-import {buildWorld,setNodeHold} from './world.js?v=1.40.4';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.4';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.4';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.4';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.4';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.4';
-// import {stepScavenging} from './scavenging.js?v=1.40.4';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.4';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.4';
-import {routeComplete} from './objectives.js?v=1.40.4';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.4';
-import {createBIT,stepBIT} from './bit.js?v=1.40.4';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.4';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.4';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.4';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.4';
+import {loadTownAssets,townLoad} from './town.js?v=1.40.5';
+import {setArea} from './levels.js?v=1.40.5';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.5';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.5';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.5';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf} from './round.js?v=1.40.5';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.5';
+import {buildWorld,setNodeHold} from './world.js?v=1.40.5';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.5';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.5';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.5';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.5';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.5';
+// import {stepScavenging} from './scavenging.js?v=1.40.5';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.5';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.5';
+import {routeComplete} from './objectives.js?v=1.40.5';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.5';
+import {createBIT,stepBIT} from './bit.js?v=1.40.5';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.5';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.5';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.5';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.5';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.40.4');
+const orderResponse=await fetch('./order.json?v=1.40.5');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -61,8 +61,8 @@ let TOWN=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.4',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.4',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.5',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.5',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(AREA_SEL==='town'){scene.background.set('#04080b');scene.fog.color.set('#04080b');scene.fog.near=30;scene.fog.far=60;
@@ -165,7 +165,7 @@ function setCollisions(){
 }
 function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
-  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${RULES.loot.capacity} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
+  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${bagCapacityOf(round)} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
   renderInventory();
   const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
@@ -181,8 +181,8 @@ function setLootText(v){const l=v.label,r=rarityOf(v.loot.item);l.el.dataset.rar
   const n=ITEM_NAMES[v.loot.item]??'Ammo';l.caption.textContent=`◆ ${n} · COLLECT`;l.shortEl.textContent=n;}
 function renderInventory(){
   const items=bagItems(round.bag),list=$('#inventory-slots');list.replaceChildren();
-  $('#inventory-count').textContent=`${items.length} / ${RULES.loot.capacity} slots`;
-  for(let i=0;i<RULES.loot.capacity;i++){
+  $('#inventory-count').textContent=`${items.length} / ${bagCapacityOf(round)} slots`;
+  for(let i=0;i<bagCapacityOf(round);i++){
     const row=document.createElement('div'),name=document.createElement('span'),item=items[i];row.className='inventory-slot';name.textContent=`${i+1} · ${item?ITEM_NAMES[item]:'Empty'}`;row.append(name);
     if(item){const rr=rarityOf(item);row.dataset.rarity=rr;row.style.setProperty('--rc',RARITY_COLORS[rr]);
       if(item==='medkit'){const use=document.createElement('button');use.textContent=`Use +${RULES.rewards.medkitHealth} HP`;use.disabled=round.health>=100;use.onclick=()=>{useHealthKit(round,Date.now());updateHUD();};row.append(use);}
@@ -192,7 +192,7 @@ function renderInventory(){
   }
 }
 $('#use-kit').onclick=()=>useKit();
-$('#open-bag').onclick=()=>{if(round.over||resultPending)return;clearInput();renderInventory();$('#inventory').hidden=false;};
+$('#open-bag').onclick=()=>{if(round.over||resultPending)return;if(round.bagFull&&nearBlocked()){showSwap();return;}clearInput();renderInventory();$('#inventory').hidden=false;};
 $('#close-bag').onclick=()=>{$('#inventory').hidden=true;clearInput();};
 function renderEnemyFeedback(clock){
   for(const v of world.enemies){
@@ -267,7 +267,7 @@ function reset(requestedSeed){
   dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
   // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
-  round=createRound(seed,Date.now(),launch.stats);weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.kit={...launch.kit};setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.kit={...launch.kit};setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
 function finishRound(outcome=round.reason){
@@ -387,11 +387,11 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.4');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.5');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
-function showSwap(){
+function showSwap(){{const t=document.getElementById('bag-toast');if(t)t.hidden=true;}
   const info=round.bagFull;if(!info)return;
   const panel=$('.bag-panel');panel?.classList.remove('bag-full-flash');void panel?.offsetWidth;panel?.classList.add('bag-full-flash');
   const box=round.level.lootBoxes.find(b=>b.id===info.boxId);if(box&&!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
@@ -401,12 +401,24 @@ function showSwap(){
   const close=document.createElement('button');close.className='swap-close';close.type='button';close.textContent='✕';close.setAttribute('aria-label','Keep bag');close.onclick=hideSwap;head.append(close);el.append(head);
   const row=document.createElement('div');row.className='swap-items';
   const chip=(id,isNew)=>{const b=document.createElement(isNew?'div':'button');const r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);b.textContent=ITEM_NAMES[id]??id;return b;};
-  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}hideSwap();updateHUD();};row.append(b);}
+  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};row.append(b);}
   const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.textContent='⇄';row.append(arrow,chip(info.item,true));el.append(row);el.hidden=false;
-  clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,6000);
+  clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,4000);
   try{const n=+(localStorage.getItem(HINT_KEY)||0);if(n<2){localStorage.setItem(HINT_KEY,String(n+1));bitHintUntil=Date.now()+3500;}}catch{}
 }
-function hideSwap(){const el=document.getElementById('swap-row');if(el)el.hidden=true;if(round)round.bagFull=null;}
+function hideSwap(){const el=document.getElementById('swap-row');if(el)el.hidden=true;}
+// Non-intrusive full bag (owner feedback v1.40.5): walking over loot only flashes the bag + a short toast.
+// The swap row opens only when the player taps the bag or the blocked loot label, and closes when they walk away.
+function nearBlocked(){const b=round?.bagFull&&round.level.lootBoxes.find(x=>x.id===round.bagFull.boxId);return !!b&&!b.collected&&Math.hypot(position.x-b.x,position.z-b.z)<=RULES.loot.pickupRadius*1.6;}
+function blockedLabel(){const id=round?.bagFull?.boxId;return world?.lootBoxes.find(v=>v.loot.id===id)?.label;}
+function notifyBagFull(){
+  const panel=$('.bag-panel');panel?.classList.remove('bag-full-flash');void panel?.offsetWidth;panel?.classList.add('bag-full-flash');
+  const box=round.level.lootBoxes.find(b=>b.id===round.bagFull.boxId);if(box&&!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
+  const lab=blockedLabel();if(lab){lab.el.classList.add('swap-tap');lab.el.onclick=e=>{e.stopPropagation();showSwap();};}
+  let t=$('#bag-toast');if(!t){t=document.createElement('div');t.id='bag-toast';t.className='bag-toast';t.setAttribute('role','status');$('#viewport').append(t);}
+  t.textContent='Bag full · tap BAG to swap';t.hidden=false;clearTimeout(notifyBagFull.t);notifyBagFull.t=setTimeout(()=>{t.hidden=true;},1800);
+}
+function clearBagFull(){hideSwap();const lab=blockedLabel();if(lab){lab.el.classList.remove('swap-tap');lab.el.onclick=null;}const t=$('#bag-toast');if(t)t.hidden=true;if(round)round.bagFull=null;}
 // ---- Visible fallback instead of a white page ----
 let fatal=false;
 function showFatal(title,msg,{retry=null,keep=false}={}){
@@ -450,7 +462,8 @@ function frameInner(now){
     if(stepWeapon(weapon,round,clock,dt,playerSolids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
-    if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.bagFull)showSwap();}
+    if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.bagFull&&round.bagFull.at===clock)notifyBagFull();}
+    if(round.bagFull&&!nearBlocked())clearBagFull();
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     {const hs=stepHouse(round.level,position,clock);if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const healthBefore=round.health;
