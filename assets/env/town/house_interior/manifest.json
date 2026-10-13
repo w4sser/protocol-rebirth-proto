@@ -1,0 +1,277 @@
+{
+  "kit": "Protocol Rebirth \u2014 Abandoned Town Enterable House Slice v0.3",
+  "units": "1 unit = 1 meter",
+  "up_axis": "Y",
+  "origin": "ground contact at centre of footprint; wall modules centred at floor level",
+  "room_spec": "4 m clear interior square; 2.6 m wall height; front is -Z",
+  "palette": {
+    "plaster_warm": [
+      0.48,
+      0.43,
+      0.34,
+      1
+    ],
+    "wall_shadow": [
+      0.29,
+      0.3,
+      0.27,
+      1
+    ],
+    "wood_floor": [
+      0.3,
+      0.22,
+      0.15,
+      1
+    ],
+    "wood_light": [
+      0.43,
+      0.32,
+      0.21,
+      1
+    ],
+    "wood_dark": [
+      0.19,
+      0.14,
+      0.11,
+      1
+    ],
+    "roof": [
+      0.11,
+      0.14,
+      0.16,
+      1
+    ],
+    "paint_muted": [
+      0.34,
+      0.31,
+      0.25,
+      1
+    ],
+    "fabric_teal": [
+      0.12,
+      0.27,
+      0.28,
+      1
+    ],
+    "fabric_rust": [
+      0.36,
+      0.18,
+      0.12,
+      1
+    ],
+    "metal": [
+      0.25,
+      0.29,
+      0.29,
+      1
+    ],
+    "metal_dark": [
+      0.11,
+      0.14,
+      0.14,
+      1
+    ],
+    "ceramic": [
+      0.55,
+      0.52,
+      0.43,
+      1
+    ],
+    "glass_dark": [
+      0.07,
+      0.11,
+      0.12,
+      1
+    ],
+    "glass_glow": [
+      0.75,
+      0.43,
+      0.2,
+      1
+    ],
+    "loot_yellow": [
+      0.62,
+      0.4,
+      0.13,
+      1
+    ],
+    "paper": [
+      0.55,
+      0.49,
+      0.37,
+      1
+    ]
+  },
+  "assets": [
+    {
+      "file": "floor_4m.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        4.3,
+        0.12,
+        4.3
+      ],
+      "placement_notes": "Room floor; passable; origin at floor centre."
+    },
+    {
+      "file": "wall_plain_4m.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        4.0,
+        2.6,
+        0.16
+      ],
+      "placement_notes": "Solid wall module; blocks movement and projectiles."
+    },
+    {
+      "file": "wall_doorway_4m.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        4.0,
+        2.6,
+        0.16
+      ],
+      "placement_notes": "Door opening is 1.0 m wide x 2.1 m high, centred. Opening itself must stay walkable."
+    },
+    {
+      "file": "wall_window_4m.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        4.0,
+        2.6,
+        0.16
+      ],
+      "placement_notes": "Window opening is 1.2 m wide x 1.0 m high; sill at 0.95 m. Dark glass is decorative; define window traversal separately."
+    },
+    {
+      "file": "door_closed.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        0.94,
+        2.08,
+        0.07
+      ],
+      "placement_notes": "Closed door leaf; attach pivot/door state in engine. Default front faces -Z."
+    },
+    {
+      "file": "door_open.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        0.07,
+        2.08,
+        0.94
+      ],
+      "placement_notes": "Open door leaf swung 90 degrees inward at left jamb; attach to door pivot in engine."
+    },
+    {
+      "file": "roof_removable_4m.glb",
+      "category": "architecture",
+      "approx_dimensions_m": [
+        4.5,
+        0.16,
+        4.5
+      ],
+      "placement_notes": "Separate roof cap; hide, fade, or cut away when player enters. Blocks sight only while exterior."
+    },
+    {
+      "file": "table_small.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        1.35,
+        0.84,
+        0.85
+      ],
+      "placement_notes": "Non-searchable cover/dressing prop."
+    },
+    {
+      "file": "chair_wood.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        0.55,
+        1.58,
+        0.55
+      ],
+      "placement_notes": "Small non-searchable furniture prop."
+    },
+    {
+      "file": "sofa_two_seat.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        2.0,
+        1.5,
+        0.9
+      ],
+      "placement_notes": "Interior landmark and low cover; keep out of door path."
+    },
+    {
+      "file": "bed_single.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        1.2,
+        0.87,
+        2.0
+      ],
+      "placement_notes": "Interior prop; can serve as low cover if desired."
+    },
+    {
+      "file": "kitchen_counter.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        1.55,
+        1.06,
+        0.72
+      ],
+      "placement_notes": "Countertop prop; drawers can be separate search interaction points."
+    },
+    {
+      "file": "fridge.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        0.82,
+        1.85,
+        0.8
+      ],
+      "placement_notes": "Large landmark; optional searchable container interaction."
+    },
+    {
+      "file": "wardrobe.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        1.05,
+        1.68,
+        0.52
+      ],
+      "placement_notes": "Searchable container candidate; attach loot interaction to front face."
+    },
+    {
+      "file": "bookshelf.glb",
+      "category": "furniture",
+      "approx_dimensions_m": [
+        1.0,
+        1.45,
+        0.48
+      ],
+      "placement_notes": "Searchable shelf candidate; attach interaction to shelf front."
+    },
+    {
+      "file": "loot_crate.glb",
+      "category": "loot",
+      "approx_dimensions_m": [
+        0.75,
+        0.72,
+        0.58
+      ],
+      "placement_notes": "Searchable container candidate; set locked/open/searched states in game."
+    },
+    {
+      "file": "medicine_cabinet.glb",
+      "category": "loot",
+      "approx_dimensions_m": [
+        0.52,
+        0.76,
+        0.4
+      ],
+      "placement_notes": "Wall-mounted medicine-search candidate; place front toward room and attach interaction."
+    }
+  ]
+}

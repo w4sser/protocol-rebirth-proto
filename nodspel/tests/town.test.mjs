@@ -1,5 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import * as THREE from '../vendor/three.module.js';
-import {generateLevel,setArea} from '../levels.js';import {TOWN_DIMS,reachable,footprint,visualItems,intrudes} from '../town-layout.js';import {buildWorld} from '../world.js';
+import {generateLevel,setArea} from '../levels.js';import {TOWN_DIMS,reachable,footprint,visualItems,intrudes} from '../town-layout.js';import {buildWorld} from '../world.js';import {splitWall} from '../house.js';
+// bunker walls with the one wall the house doorway is cut into split exactly like the town does
+const cutLike=(B,L)=>{const w=[...B.walls];if(L.house){const i=L.house.cut.index;const {index,...orig}=L.house.cut;assert.deepEqual(w[i],orig,'cut wall is an original wall');w.splice(i,1,...splitWall(orig,L.house));}return w;};
 const manifest=JSON.parse(fs.readFileSync(new URL('../../assets/env/town/manifest.json',import.meta.url),'utf8'));
 test('town dims mirror the asset manifest and every GLB is in the repo',()=>{for(const a of manifest.assets){const k=a.file.replace('.glb','');assert.deepEqual(TOWN_DIMS[k],a.approx_dimensions_m,k);assert.ok(fs.statSync(new URL(`../../assets/env/town/${a.file}`,import.meta.url)).size<100_000,a.file);}});
 test('bunker stays the default area',()=>{const L=generateLevel(1,'d');assert.equal(L.area,undefined);assert.equal(L.town,undefined);});
@@ -12,7 +14,7 @@ test('town levels keep every node, pickup, enemy and the exit reachable; car col
 });
 test('town layout is deterministic and gameplay identical to bunker apart from added cover',()=>{
   const a=generateLevel(2,'same','town'),b=generateLevel(2,'same','town'),c=generateLevel(2,'same');
-  assert.deepEqual(a.town,b.town);assert.deepEqual(a.nodes,c.nodes);assert.deepEqual(a.lootBoxes,c.lootBoxes);assert.deepEqual(a.walls,c.walls);
+  assert.deepEqual(a.town,b.town);assert.deepEqual(a.nodes,c.nodes);assert.deepEqual(a.lootBoxes,c.lootBoxes);assert.deepEqual(a.walls,cutLike(c,a));
   assert.deepEqual(a.boxes.filter(x=>x.town==='electrical_cabinet').map(b=>[b.x,b.z]),c.boxes.map(b=>[b.x,b.z]),'crates become cabinets in place');
 });
 test('setArea switches the default and rejects unknown areas',()=>{assert.equal(setArea('town'),'town');assert.equal(generateLevel(1,'s').area,'town');assert.equal(setArea('moon'),'bunker');assert.equal(generateLevel(1,'s').area,undefined);});
@@ -36,7 +38,7 @@ test('v0.2 dressing: transition tiles face paved neighbours, fences are packed n
 test('natural boundaries: fences are a minority, never more than 2 in a row, tall dressing only away from the camera; colliders unchanged',()=>{
   let fence=0,total=0,kinds=new Set();
   for(let i=0;i<20;i++)for(const n of [1,2,3]){const L=generateLevel(n,'nb'+i,'town'),B=generateLevel(n,'nb'+i);
-    assert.deepEqual(L.walls,B.walls,'wall colliders identical to bunker');
+    assert.deepEqual(L.walls,cutLike(B,L),'wall colliders identical to bunker apart from the doorway');
     for(const b of L.town.boundary){let run=0;for(const k of b.seq){kinds.add(k);run=k.startsWith('fence')?run+1:0;assert.ok(run<=2,`run ${b.seq}`);if(b.front)assert.ok(!['house','container','car','pine'].includes(k),'camera side stays low');}}
     for(const f of L.town.fences)fence+={fence_segment:2,fence_short:1,fence_gate:1.4}[f.kind];total+=L.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);}
   assert.ok(fence/total<=.27,`fence share ${(fence/total).toFixed(2)}`);

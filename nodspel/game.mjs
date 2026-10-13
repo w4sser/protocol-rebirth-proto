@@ -1,30 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets} from './town.js?v=1.39.2';
-import {setArea} from './levels.js?v=1.39.2';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.39.2';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.39.2';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.39.2';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.39.2';
-import {buildWorld,setNodeHold} from './world.js?v=1.39.2';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.39.2';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.39.2';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.39.2';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.39.2';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.39.2';
-// import {stepScavenging} from './scavenging.js?v=1.39.2';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.39.2';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.39.2';
-import {routeComplete} from './objectives.js?v=1.39.2';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.39.2';
-import {createBIT,stepBIT} from './bit.js?v=1.39.2';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.39.2';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.39.2';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.39.2';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.39.2';
+import {loadTownAssets} from './town.js?v=1.40.0';
+import {setArea} from './levels.js?v=1.40.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.40.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.40.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.0';
+// import {stepScavenging} from './scavenging.js?v=1.40.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.0';
+import {routeComplete} from './objectives.js?v=1.40.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.0';
+import {createBIT,stepBIT} from './bit.js?v=1.40.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.0';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.39.2');
+const orderResponse=await fetch('./order.json?v=1.40.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -153,7 +154,7 @@ function makeLabel(text,point,kind,range=null,short=''){
   const label={el,caption,shortEl,point,range,id:labels.length};labels.push(label);return label;
 }
 function setCollisions(){
-  solids=[...round.level.walls,...round.level.boxes];
+  solids=[...round.level.walls,...round.level.boxes,...houseSolids(round.level)];
   if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});
   playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
 }
@@ -202,6 +203,13 @@ function renderEnemyFeedback(clock){
     v.damage.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.damageNumberMs)}`;
   }
 }
+let houseLabels=[];
+const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
+function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=ref.progress??0,done=door?ref.open:ref.searched,busy=!done&&p>0;
+  const text=door?(done?'DOOR · OPEN':busy?'OPENING…':'DOOR · STAND CLOSE'):(done?`${CONTAINER_NAMES[ref.kind]} · SEARCHED`:busy?`SEARCHING ${Math.round(p*100)}%`:`SEARCH ${CONTAINER_NAMES[ref.kind]} · STAND CLOSE`);
+  if(label.caption.textContent!==text)label.caption.textContent=text;label.shortEl.textContent=door?(done?'':'DOOR'):done?'✓':'SEARCH';
+  label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
+  label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&Date.now()-ref.openedAt>1500;}}
 function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
@@ -232,6 +240,11 @@ function loadLevelInner(){
     for(const d of ['M15 8L29 22L20 27L34 41L23 48L34 69','M65 9L53 25L62 31L46 42L57 50L45 72','M4 42L19 35L23 43L36 38','M75 41L61 48L56 39L44 44']){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);svg.append(path);}v.flash.el.append(svg);v.flash.defeated=true;
   }
   for(const v of world.lootBoxes)labelLoot(v);
+  houseLabels=[];const H=round.level.house;
+  if(H){const meter=l=>{const m=document.createElement('div');m.className='node-meter';m.hidden=true;m.setAttribute('role','progressbar');m.setAttribute('aria-valuemin','0');m.setAttribute('aria-valuemax','100');const f=document.createElement('i');m.append(f);l.el.append(m);l.meter=m;l.fill=f;return l;};
+    houseLabels.push({ref:H.door,door:true,label:meter(makeLabel('',new THREE.Vector3(H.door.x,1.6,H.door.z),'house-label','node','DOOR'))});
+    for(const c of H.containers)houseLabels.push({ref:c,label:meter(makeLabel('',new THREE.Vector3(c.x,1.3,c.z),'house-label','house','SEARCH'))});
+    renderHouseLabels();}
   if(false)for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
@@ -365,9 +378,9 @@ function renderLabels(){
 let previous=performance.now();
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
-  teleport(x,z){position={x,z};},state:()=>({position,level:round.level}),
+  teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.39.2');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -421,7 +434,7 @@ function frameInner(now){
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=screenToWorld(sx*scale,sy*scale);walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0)position=moveWithActors(position,{x:delta.x*round.stats.speed*dt,z:delta.z*round.stats.speed*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0)position=moveWithActors(position,{x:delta.x*round.stats.speed*dt,z:delta.z*round.stats.speed*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
@@ -432,6 +445,7 @@ function frameInner(now){
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.bagFull)showSwap();}
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
+    {const hs=stepHouse(round.level,position,clock);if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,playerSolids);
     stepHazards(round,position,clock,dt);world.animateHazards?.(clock);
@@ -500,7 +514,7 @@ function frameInner(now){
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
   }
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
-  world.animate(elapsed);renderLabels();renderWeaponHUD(clock);renderer.render(scene,camera);requestAnimationFrame(frame);
+  world.house?.update(position,dt);world.animate(elapsed);renderLabels();renderWeaponHUD(clock);renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
 // Landscape only: on the first tap go fullscreen and lock orientation where supported (Android). iOS shows the .rotate screen.

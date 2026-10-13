@@ -6,6 +6,7 @@ export const LABEL_RANGES={
   exit:{near:3.4,mid:10,far:'dot'},
   bit:{near:0,mid:0,far:'hidden'},           // BIT only shows its label while healing (forced)
   room:{near:0,mid:6,far:'hidden'},
+  house:{near:1.6,mid:6,far:'hidden'},
   enemy:{near:3.5,mid:Infinity,far:'bar'}  // compact health bar; name only near/targeted/winding
 };
 export const MAX_ENEMY_BARS=6;
