@@ -8,7 +8,7 @@ test('town levels keep every node, pickup, enemy and the exit reachable; car col
     for(const b of L.boxes.filter(b=>b.town)){const fp=footprint(b.town,0,0,b.rot??0);assert.equal(b.w,fp.w,b.town);assert.equal(b.d,fp.d,b.town);assert.equal(b.h,TOWN_DIMS[b.town][1]);}
     assert.ok(L.boxes.every(b=>b.town),'every solid prop has a town collider');
     for(const h of L.town.houses){const fp=footprint(h.kind,h.x,h.z,h.rot);for(const f of L.floors)assert.ok(!(Math.abs(fp.x-f.x)<(fp.w+f.w)/2&&Math.abs(fp.z-f.z)<(fp.d+f.d)/2),'house never on a floor');}
-    assert.ok(L.town.fences.length>=L.walls.length);}
+    assert.equal(L.town.boundary.length,L.walls.length,'every wall line is dressed');}
 });
 test('town layout is deterministic and gameplay identical to bunker apart from added cover',()=>{
   const a=generateLevel(2,'same','town'),b=generateLevel(2,'same','town'),c=generateLevel(2,'same');
@@ -31,4 +31,14 @@ test('v0.2 dressing: transition tiles face paved neighbours, fences are packed n
     for(const f of T.fences)if(f.stretch<1)continue;else assert.ok(f.stretch<=1.26,`stretch ${f.stretch}`);
     for(const p of T.props.filter(p=>p.kind==='container'))for(const fl of L.floors)assert.ok(!(p.x>fl.x+fl.w/2+1&&Math.abs(p.z-fl.z)<fl.d/2&&p.x-fl.x-fl.w/2<4),'container not just in front');
     for(const k of ['grass_tuft_small','bush_small','manhole'])assert.ok(T.props.some(p=>p.kind===k),k);}
+});
+
+test('natural boundaries: fences are a minority, never more than 2 in a row, tall dressing only away from the camera; colliders unchanged',()=>{
+  let fence=0,total=0,kinds=new Set();
+  for(let i=0;i<20;i++)for(const n of [1,2,3]){const L=generateLevel(n,'nb'+i,'town'),B=generateLevel(n,'nb'+i);
+    assert.deepEqual(L.walls,B.walls,'wall colliders identical to bunker');
+    for(const b of L.town.boundary){let run=0;for(const k of b.seq){kinds.add(k);run=k.startsWith('fence')?run+1:0;assert.ok(run<=2,`run ${b.seq}`);if(b.front)assert.ok(!['house','container','car','pine'].includes(k),'camera side stays low');}}
+    for(const f of L.town.fences)fence+={fence_segment:2,fence_short:1,fence_gate:1.4}[f.kind];total+=L.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);}
+  assert.ok(fence/total<=.27,`fence share ${(fence/total).toFixed(2)}`);
+  for(const k of ['hedge_segment','bush_cluster','cabinet','pine','car'])assert.ok(kinds.has(k),k);
 });

@@ -41,21 +41,43 @@ export function townizeLevel(level){
     if(t.kind==='tile_grass'){for(const [dx,dz] of DIRS){const n=grid.get(key(t.x+dx*TILE,t.z+dz*TILE));if(n==='tile_sidewalk'||n==='tile_asphalt'){t.kind=n==='tile_sidewalk'?'tile_sidewalk_grass':'tile_asphalt_grass';t.ry=+Math.atan2(dz,-dx).toFixed(4);break;}}}
     else if(t.kind==='tile_asphalt'){for(const [dx,dz] of DIRS){if(grid.get(key(t.x+dx*TILE,t.z+dz*TILE))==='tile_sidewalk'){t.kind='tile_asphalt_sidewalk';t.ry=+Math.atan2(-dz,dx).toFixed(4);break;}}}
   }
-  // 2) fences replace bunker walls (same colliders): packed from 2 m + 1 m segments (+ a gate on some
-  //    solid room walls) so nothing is stretched more than a few percent
-  const fences=[],FL={fence_segment:2,fence_short:1,fence_gate:1.4};
-  for(const w of level.walls){const along=w.w>=w.d,L=along?w.w:w.d,pieces=[];
-    const gate=L>=3.4&&w.h>=1&&rng()<.3;let rest=L-(gate?1.4:0);
-    const n2=Math.floor(rest/2);rest-=n2*2;const n1=rest>=.5?Math.round(rest):0;
-    for(let k=0;k<n2;k++)pieces.push('fence_segment');for(let k=0;k<n1;k++)pieces.push('fence_short');
-    if(gate)pieces.splice(Math.floor(pieces.length/2),0,'fence_gate');if(!pieces.length)pieces.push('fence_short');
-    const sum=pieces.reduce((a,k)=>a+FL[k],0),st=L/sum;let c=-L/2;
-    for(const kind of pieces){const len=FL[kind]*st,o=c+len/2;c+=len;fences.push({kind,x:+(along?w.x+o:w.x).toFixed(3),z:+(along?w.z:w.z+o).toFixed(3),rot:along?0:1,stretch:+st.toFixed(3)});}}
-  // 3) houses frame the play area from outside (never on a floor)
-  const solidsOut=[],houses=[],want=low?3:5;
+  const solidsOut=[],houses=[],want=low?3:5,cars=[],trees=[],props=[],boundary=[];
   const nearest=p=>floors.reduce((a,b)=>distToRect(p,a)<distToRect(p,b)?a:b);
   const inFront=(r,reach)=>floors.some(f=>distToRect(r,f)<reach&&(r.x-r.w/2>f.x+f.w/2-1||r.z-r.d/2>f.z+f.d/2-1));
   const blocked=(r,m)=>floors.some(f=>rectsHit(r,f,m))||solidsOut.some(o=>rectsHit(r,o,.6));
+  const P=(kind,x,z,ry=0,s=1)=>props.push({kind,x:+x.toFixed(2),z:+z.toFixed(2),ry:+ry.toFixed(3),s:+s.toFixed(2)});
+  // 2) Natural boundaries. Colliders stay exactly the original wall rects (no gaps to escape through);
+  //    only the dressing varies per wall: hedges, bush clusters, trees, wrecked cars, containers,
+  //    cabinets, locked houses facing the playfield, and a few short fence runs (<= ~1/4, max 2 in a row).
+  //    Walls on the camera side (+x/+z) only get low dressing so nothing occludes play.
+  const fences=[],FL={fence_segment:2,fence_short:1,fence_gate:1.4};
+  const totalL=level.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);let fenceL=0;
+  for(const [wi,w] of level.walls.entries()){
+    const along=w.w>=w.d,L=along?w.w:w.d,host=floors.filter(f=>inRect(w,f,.05)).sort((a,b)=>a.w*a.d-b.w*b.d)[0]??nearest(w);
+    const sg=v=>v>=0?1:-1,n=along?{x:0,z:sg(w.z-host.z)}:{x:sg(w.x-host.x),z:0},front=n.x>0||n.z>0||w.h>1.5;
+    const ryWall=along?0:Math.PI/2,ryFace=Math.atan2(n.x,n.z),rotFace=((Math.round(ryFace/(Math.PI/2))%4)+4)%4;
+    const at=(o,out)=>({x:along?w.x+o:w.x+n.x*out,z:along?w.z+n.z*out:w.z+o});
+    let c=-L/2,run=0;const seq=[];
+    while(L/2-c>.3){const rem=L/2-c,opts=[];
+      const fenceOk=run<2&&fenceL+1<=totalL*.25;
+      if(!front){if(rem>=6.4)opts.push(['house',6.7,.6]);if(rem>=5.6)opts.push(['container',6,.5]);if(rem>=4.3)opts.push(['car',4.6,.9]);if(rem>=2)opts.push(['pine',2.2,1.1]);}
+      if(rem>=1.8)opts.push(['hedge_segment',2,1.8]);if(rem>=1.5)opts.push(['bush_cluster',1.7,1.6]);if(rem>=1.3)opts.push(['cabinet',1.4,.5]);
+      if(fenceOk&&rem>=1.8)opts.push(['fence_segment',2,.9]);if(fenceOk&&rem>=.9)opts.push(['fence_short',1,.8]);if(fenceOk&&rem>=1.3)opts.push(['fence_gate',1.4,.25]);
+      if(!opts.length)opts.push(['bush_small',Math.min(.9,rem),1]);
+      let pick=null;for(let tries=0;tries<6&&!pick;tries++){let r=rng()*opts.reduce((a,o)=>a+o[2],0);for(const o of opts){r-=o[2];if(r<=0){pick=o;break;}}pick??=opts[0];
+        if(pick[0]==='house'){const p=at(c+3.35,2.95),fp=footprint('house_red',p.x,p.z,rotFace);if(floors.some(f=>rectsHit(fp,f,-.05))||solidsOut.some(o=>rectsHit(fp,o,.2)))pick=null;}
+        else if(pick[0]==='container'){const p=at(c+3,1.35),fp=footprint('container',p.x,p.z,along?0:1);if(floors.some(f=>rectsHit(fp,f,-.05)))pick=null;}}
+      pick??=['bush_cluster',1.7];const [kind,len]=pick,mid=c+len/2;
+      if(kind==='house'){const p=at(mid,2.95),hk=(rng()<.55?'house_red':'house_yellow')+(rng()<.4?'_dark':'');houses.push({kind:hk,x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:rotFace,boundary:true});solidsOut.push(footprint(hk,p.x,p.z,rotFace));}
+      else if(kind==='container'){const p=at(mid,1.35);P('container',p.x,p.z,ryWall);solidsOut.push(footprint('container',p.x,p.z,along?0:1));}
+      else if(kind==='car'){const p=at(mid,1.05);cars.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:along?0:1,outside:true,boundary:true});solidsOut.push(footprint('car_boxy',p.x,p.z,along?0:1));}
+      else if(kind==='pine'){const p=at(mid,.9);trees.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),s:+(.85+rng()*.3).toFixed(2),r:+(rng()*6.28).toFixed(2)});solidsOut.push({...p,w:1.6,d:1.6});}
+      else if(kind==='cabinet'){const p=at(mid-.3,.1),q=at(mid+.4,.2);P('electrical_cabinet',p.x,p.z,ryFace+Math.PI);P('bush_small',q.x,q.z,rng()*6.28,1.15);}
+      else if(kind.startsWith('fence')){const p=at(mid,0);fences.push({kind,x:+p.x.toFixed(3),z:+p.z.toFixed(3),rot:along?0:1,stretch:1});fenceL+=FL[kind];}
+      else {const p=at(mid,kind==='hedge_segment'?.15:.2);P(kind,p.x,p.z,kind==='hedge_segment'?ryWall:rng()*6.28,kind==='bush_small'?1.2:1.12);}
+      run=kind.startsWith('fence')?run+1:0;seq.push(kind);c+=len;}
+    boundary.push({wall:wi,front,L:+L.toFixed(2),seq});}
+  // 3) houses frame the play area from outside (never on a floor)
   for(let a=0;a<600&&houses.length<want;a++){const rot=rng()<.5?2:3,kind=(rng()<.55?'house_red':'house_yellow')+(rng()<.4?'_dark':'');
     const x=B.x0+4+rng()*(B.x1-B.x0-8),z=B.z0+4+rng()*(B.z1-B.z0-8),fp=footprint(kind,x,z,rot);
     if(blocked(fp,.9)||inFront(fp,9))continue;const d=Math.min(...floors.map(f=>distToRect(fp,f)-Math.max(fp.w,fp.d)/2));if(d>3.5)continue;
@@ -66,7 +88,7 @@ export function townizeLevel(level){
   const toward=s=>{const f=nearest(s),cx=Math.max(f.x-f.w/2,Math.min(f.x+f.w/2,s.x)),cz=Math.max(f.z-f.d/2,Math.min(f.z+f.d/2,s.z));return {dx:cx-s.x,dz:cz-s.z};};
   const lamps=[];for(let i=0;i<(low?2:4);i++){const s=edgeSpot(.5,1.4,.5);if(s){const {dx,dz}=toward(s);lamps.push({...s,ry:+Math.atan2(-dz,dx).toFixed(4)});solidsOut.push({...s,w:.8,d:.8});}}
   let busStop=null;for(let a=0;a<30&&!busStop;a++){const s=edgeSpot(.6,3,3.6,40);if(!s)continue;const fp={...s,w:3.6,d:3.6};if(inFront(fp,2))continue;const {dx,dz}=toward(s),q=Math.round(Math.atan2(dx,dz)/(Math.PI/2));busStop={...s,ry:+(q*Math.PI/2).toFixed(4)};solidsOut.push(fp);}
-  const cars=[];{const s=edgeSpot(1.2,4,4.8);if(s){cars.push({...s,rot:rng()<.5?0:1,outside:true});solidsOut.push(footprint('car_boxy',s.x,s.z,cars[0].rot));}}
+  for(let a=0;a<20;a++){const s=edgeSpot(1.2,4,4.8,40);if(!s)continue;const rot=rng()<.5?0:1,fp=footprint('car_boxy',s.x,s.z,rot);if(inFront(fp,5))continue;cars.push({...s,rot,outside:true});solidsOut.push(fp);break;}
   // 5) cover cars inside rooms: collider from manifest bounds, kept only if everything stays reachable
   const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes,...level.enemies,...(level.hazards??[])];
   for(const room of [...rooms.slice(1),rooms[0]]){let placed=false;
@@ -78,14 +100,13 @@ export function townizeLevel(level){
       level.boxes.push(collider);if(reachable(level)){cars.push({x:collider.x,z:collider.z,rot,collider:true});placed=true;}else level.boxes.pop();}
     if(cars.filter(c=>c.collider).length>=(low?1:2))break;}
   // 6) pines: forest boundary + a few yard trees; bushes hug the fences outside
-  const trees=[],treeN=low?22:48;
+  const treeN=trees.length+(low?22:48);
   for(let a=0;a<treeN*8&&trees.length<treeN;a++){const x=B.x0+rng()*(B.x1-B.x0),z=B.z0+rng()*(B.z1-B.z0),r={x,z,w:1.6,d:1.6};
     if(blocked(r,.5)||inFront(r,10))continue;const d=Math.min(...floors.map(f=>distToRect({x,z},f)));if(d<1.2)continue;
     if(d<5&&rng()<.6)continue;trees.push({x:+x.toFixed(2),z:+z.toFixed(2),s:+(.8+rng()*.45).toFixed(2),r:+(rng()*6.28).toFixed(2)});solidsOut.push(r);}
   const bushes=[];for(let a=0;a<(low?40:110)*4&&bushes.length<(low?40:110);a++){const s=edgeSpot(.35,2.6,.7,1);if(s)bushes.push({...s,s:+(.45+rng()*.5).toFixed(2)});}
   // 7) v0.2 dressing. Bunker crates become electrical cabinets (collider = manifest footprint, smaller
   //    than the crate so reachability can only improve). Everything else stands outside the fences.
-  const props=[],P=(kind,x,z,ry=0,s=1)=>props.push({kind,x:+x.toFixed(2),z:+z.toFixed(2),ry:+ry.toFixed(3),s:+s.toFixed(2)});
   for(const b of level.boxes)if(!b.town){const [w,h,d]=TOWN_DIMS.electrical_cabinet;Object.assign(b,{w,d,h,town:'electrical_cabinet'});P('electrical_cabinet',b.x,b.z,0);}
   for(let i=0,n=0;i<300&&n<2;i++){const x=B.x0+4+rng()*(B.x1-B.x0-8),z=B.z0+4+rng()*(B.z1-B.z0-8),rot=rng()<.5?0:1,fp=footprint('container',x,z,rot);
     if(blocked(fp,.8)||inFront(fp,7))continue;const d=Math.min(...floors.map(f=>distToRect(fp,f)));if(d>7)continue;P('container',x,z,rot*Math.PI/2);solidsOut.push(fp);n++;}
@@ -99,7 +120,7 @@ export function townizeLevel(level){
       if(keep.some(o=>Math.hypot(o.x-x,o.z-z)<1.2))continue;P('weed_tuft',x,z,rng()*6.28,.7+rng()*.5);}}
   for(let a=0,n=0;a<900&&n<140;a++){const x=B.x0+rng()*(B.x1-B.x0),z=B.z0+rng()*(B.z1-B.z0);if(insideAny({x,z})||floors.some(f=>distToRect({x,z},f)<.3))continue;
     if(houses.some(h=>rectsHit({x,z,w:.1,d:.1},footprint(h.kind,h.x,h.z,h.rot),.1)))continue;P(rng()<.6?'grass_tuft_small':'grass_tuft_large',x,z,rng()*6.28,.8+rng()*.6);n++;}
-  level.area='town';level.town={tiles,fences,houses,lamps,busStop,cars,trees,props,bounds:B};
+  level.area='town';level.town={tiles,fences,houses,lamps,busStop,cars,trees,props,boundary,bounds:B};
   return level;
 }
 const TILE_FENCE=TOWN_DIMS.fence_segment[0];
