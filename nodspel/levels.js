@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.39.2';
+import {townizeLevel} from './town-layout.js?v=1.40.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -162,7 +162,9 @@ export function generateLevel(number,roundSeed,area=AREA){
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
   const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
-  if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;}
+  if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
+    // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
+    if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=c.kind==='medicine_cabinet'?'medkit':pickWeighted(RULES.loot.weights[number-1],hr());}}
   return level;
 }
 

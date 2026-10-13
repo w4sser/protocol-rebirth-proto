@@ -4,6 +4,7 @@
 // Dimensions mirror assets/env/town/manifest.json (approx_dimensions_m: w × h × d, metres).
 export const TOWN_DIMS={house_red:[6, 4.1, 5.7],house_yellow:[6, 4.1, 5.7],fence_segment:[2, 1.2, 0.6],car_boxy:[4.5, 1.65, 1.95],pine_tree:[2.3, 3.7, 2.3],tile_asphalt:[2, 0.08, 2],tile_sidewalk:[2, 0.08, 2],tile_grass:[2, 0.08, 2],streetlamp:[0.8, 4.2, 0.3],bus_shelter:[3.5, 2.3, 1.8],bush_small:[0.9, 0.9, 0.8],bush_cluster:[1.7, 1.3, 1.4],hedge_segment:[2, 1.25, 1],grass_tuft_small:[0.5, 0.6, 0.55],grass_tuft_large:[0.9, 1, 0.85],weed_tuft:[0.75, 0.9, 0.7],container:[6, 2.6, 2.5],electrical_cabinet:[0.8, 1.3, 0.65],mailbox:[0.5, 1.1, 0.4],manhole:[1, 0.18, 1],fence_gate:[1.4, 1.2, 0.6],fence_corner:[2, 1.2, 2],fence_short:[1, 1.2, 0.6],house_red_dark:[6, 4.1, 5.7],house_yellow_dark:[6, 4.1, 5.7],tile_asphalt_sidewalk:[2, 0.09, 2],tile_asphalt_grass:[2, 0.09, 2],tile_sidewalk_grass:[2, 0.09, 2]};
 export const TILE=2;
+import {makeHouse,splitWall,houseSolids,HOUSE} from './house.js?v=1.40.0';
 function rngFrom(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
   return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
 const inRect=(p,r,m=0)=>Math.abs(p.x-r.x)<=r.w/2+m&&Math.abs(p.z-r.z)<=r.d/2+m;
@@ -14,9 +15,9 @@ function bounds(floors,pad){let x0=Infinity,x1=-Infinity,z0=Infinity,z1=-Infinit
   return {x0:x0-pad,x1:x1+pad,z0:z0-pad,z1:z1+pad};}
 const distToRect=(p,r)=>Math.hypot(Math.max(0,Math.abs(p.x-r.x)-r.w/2),Math.max(0,Math.abs(p.z-r.z)-r.d/2));
 // Grid flood fill from the start: every node, pickup, enemy and the exit must be reachable.
-export function reachable(level,radius=.3,step=.2){
+export function reachable(level,radius=.3,step=.2,extra=[]){
   const b=bounds(level.floors,0),nx=Math.ceil((b.x1-b.x0)/step)+1,nz=Math.ceil((b.z1-b.z0)/step)+1;
-  const solids=[...level.walls,...level.boxes,...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
+  const solids=[...level.walls,...level.boxes,...houseSolids(level),...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
   const free=new Uint8Array(nx*nz),seen=new Uint8Array(nx*nz);
   for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const p={x:b.x0+i*step,z:b.z0+j*step};
     if(level.floors.some(f=>Math.abs(p.x-f.x)<=f.w/2+.06&&Math.abs(p.z-f.z)<=f.d/2+.06)&&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+radius&&Math.abs(p.z-o.z)<o.d/2+radius))free[i*nz+j]=1;}
@@ -25,7 +26,7 @@ export function reachable(level,radius=.3,step=.2){
   const q=[si*nz+sj];seen[q[0]]=1;
   while(q.length){const c=q.pop(),i=Math.floor(c/nz),j=c%nz;for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const a=i+di,bb=j+dj;if(a<0||bb<0||a>=nx||bb>=nz)continue;const k=a*nz+bb;if(free[k]&&!seen[k]){seen[k]=1;q.push(k);}}}
   const near=(p,reach)=>{const [ci,cj]=cell(p),R=Math.ceil(reach/step);for(let i=ci-R;i<=ci+R;i++)for(let j=cj-R;j<=cj+R;j++){if(i<0||j<0||i>=nx||j>=nz)continue;if(seen[i*nz+j]&&Math.hypot(b.x0+i*step-p.x,b.z0+j*step-p.z)<=reach)return true;}return false;};
-  return level.nodes.every(n=>near(n,1.6))&&level.lootBoxes.every(l=>near(l,.9))&&level.enemies.every(e=>near(e,1.2))&&near(level.exit,1);
+  return level.nodes.every(n=>near(n,1.6))&&level.lootBoxes.every(l=>near(l,.9))&&level.enemies.every(e=>near(e,1.2))&&near(level.exit,1)&&extra.every(p=>near(p,p.reach??.6));
 }
 export function townizeLevel(level){
   const rng=rngFrom(`${level.seed}:town`),low=false;
@@ -45,6 +46,7 @@ export function townizeLevel(level){
   const nearest=p=>floors.reduce((a,b)=>distToRect(p,a)<distToRect(p,b)?a:b);
   const inFront=(r,reach)=>floors.some(f=>distToRect(r,f)<reach&&(r.x-r.w/2>f.x+f.w/2-1||r.z-r.d/2>f.z+f.d/2-1));
   const blocked=(r,m)=>floors.some(f=>rectsHit(r,f,m))||solidsOut.some(o=>rectsHit(r,o,.6));
+  placeHouse(level,rng,solidsOut);
   const P=(kind,x,z,ry=0,s=1)=>props.push({kind,x:+x.toFixed(2),z:+z.toFixed(2),ry:+ry.toFixed(3),s:+s.toFixed(2)});
   // 2) Natural boundaries. Colliders stay exactly the original wall rects; every wall line also gets a
   //    low curb (rendered from level.walls) so the edge is always readable. Dressing never reaches onto
@@ -55,6 +57,7 @@ export function townizeLevel(level){
   const totalL=level.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);let fenceL=0;
   const DEPTH={hedge_segment:1,bush_cluster:1.4,bush_small:.8,cabinet:.7,fence_segment:.6,fence_short:.6,fence_gate:.6};
   for(const [wi,w] of level.walls.entries()){
+    if(w.house){boundary.push({wall:wi,house:true,front:false,inner:false,L:+Math.max(w.w,w.d).toFixed(2),seq:[]});continue;}
     const along=w.w>=w.d,L=along?w.w:w.d,t=along?w.d:w.w,host=floors.filter(f=>inRect(w,f,.05)).sort((a,b)=>a.w*a.d-b.w*b.d)[0]??nearest(w);
     const sg=v=>v>=0?1:-1,n=along?{x:0,z:sg(w.z-host.z)}:{x:sg(w.x-host.x),z:0};
     const probe={x:w.x+n.x*(t/2+.3),z:w.z+n.z*(t/2+.3)},inner=floors.some(f=>inRect(probe,f));   // floor on both sides (partition)
@@ -121,7 +124,7 @@ export function townizeLevel(level){
       if(keep.some(o=>Math.hypot(o.x-x,o.z-z)<1.2))continue;P('weed_tuft',x,z,rng()*6.28,.7+rng()*.5);}}
   for(let a=0,n=0;a<900&&n<140;a++){const x=B.x0+rng()*(B.x1-B.x0),z=B.z0+rng()*(B.z1-B.z0);if(insideAny({x,z})||floors.some(f=>distToRect({x,z},f)<.3))continue;
     if(houses.some(h=>rectsHit({x,z,w:.1,d:.1},footprint(h.kind,h.x,h.z,h.rot),.1)))continue;P(rng()<.6?'grass_tuft_small':'grass_tuft_large',x,z,rng()*6.28,.8+rng()*.6);n++;}
-  const T0={fences,houses,lamps,busStop,cars,trees,props};dropIntrusions(level,T0);
+  const T0={fences,houses,lamps,busStop,cars,trees,props};dropIntrusions(level,T0);dropInHouse(level,T0);
   level.area='town';level.town={tiles,fences,houses,lamps,busStop:T0.busStop,cars,trees,props,boundary,bounds:B};
   return level;
 }
@@ -148,3 +151,25 @@ export function intrudes(level,r,step=.15){const shrink=.06;
   return false;}
 function dropIntrusions(level,T){for(const it of visualItems(T)){if(!intrudes(level,it.r))continue;
   if(it.list==='busStop')T.busStop=null;else{const a=T[it.list],i=a.indexOf(it.ref);if(i>=0)a.splice(i,1);}}}
+
+// ---- enterable house v0.3: one per Town level, doorway cut into a back (non-camera) room wall ----
+function placeHouse(level,rng,solidsOut){const I=HOUSE.inner,S=I/2+HOUSE.wall,cands=[];
+  const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes,...level.enemies,...(level.hazards??[])];
+  for(const room of level.rooms)for(const n of [{x:0,z:-1},{x:-1,z:0}]){const along=n.z!==0,edge=along?room.z-room.d/2:room.x-room.w/2;
+    for(const [wi,w] of level.walls.entries()){const t=along?w.d:w.w;if(t>.6)continue;const line=along?w.z:w.x;if(Math.abs(line-(edge+t/2))>.08)continue;
+      const lo=along?w.x-w.w/2:w.z-w.d/2,hi=along?w.x+w.w/2:w.z+w.d/2;
+      for(let a=lo+S+.3;a<=hi-S-.3;a+=.25)cands.push({wi,w,n,a,room});}}
+  const no=()=>null;const ok=c=>{const h=makeHouse(c.w,c.n,c.a),vol={x:h.floor.x,z:h.floor.z,w:h.floor.w+2*HOUSE.wall,d:h.floor.d+2*HOUSE.wall};
+    if(level.floors.some(f=>((f===c.room||(f.x===c.room.x&&f.z===c.room.z&&f.w===c.room.w))?rectsHit(h.floor,f,-.02):rectsHit(vol,f,.25))))return no("floor");
+    if(solidsOut.some(o=>rectsHit(vol,o,.4)))return no("solid");
+    const entry={x:h.outside.x,z:h.outside.z};if(!level.floors.some(f=>inRect(entry,f,-.4)))return no("entry");
+    if(keep.some(o=>Math.hypot(o.x-entry.x,o.z-entry.z)<1.9))return no("keep");
+    const lane={x:(h.outside.x+h.door.x)/2,z:(h.outside.z+h.door.z)/2,w:c.n.z?1.6:2.2,d:c.n.z?2.2:1.6};
+    if([...level.walls,...level.boxes].some((o,i)=>i!==c.wi&&rectsHit(lane,o,.05)))return no("lane");return h;};
+  for(let tries=0;tries<80&&cands.length;tries++){const k=Math.floor(rng()*cands.length),c=cands[k];cands.splice(k,1);const h=ok(c);if(!h)continue;
+    h.cut={...c.w,index:c.wi};level.walls.splice(c.wi,1,...splitWall(c.w,h));level.floors.push({...h.floor,house:true});
+    level.house=h;solidsOut.push({x:h.floor.x,z:h.floor.z,w:h.floor.w+2*HOUSE.wall+.4,d:h.floor.d+2*HOUSE.wall+.4});return h;}
+  return null;}
+// nothing visual may stand inside the enterable house shell
+function dropInHouse(level,T){const h=level.house;if(!h)return;const vol={x:h.floor.x,z:h.floor.z,w:h.floor.w+.4,d:h.floor.d+.4};
+  for(const it of visualItems(T)){if(!rectsHit(vol,it.r,-.02))continue;if(it.list==='busStop')T.busStop=null;else{const a=T[it.list],i=a.indexOf(it.ref);if(i>=0)a.splice(i,1);}}}

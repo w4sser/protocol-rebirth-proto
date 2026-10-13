@@ -1,6 +1,7 @@
-import {RULES,hazardState} from './levels.js?v=1.39.2';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.39.2';
-import {takeDamage,tickRound} from './round.js?v=1.39.2';
+import {RULES,hazardState} from './levels.js?v=1.40.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.40.0';
+import {takeDamage,tickRound} from './round.js?v=1.40.0';
+import {houseWaypoint} from './house.js?v=1.40.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -25,9 +26,11 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
-      if(distance>(enemy.standoff??rule.standoff) && distance<14){
+      // through the house doorway when the player is on the other side of the shell
+      const way=houseWaypoint(round.level.house,enemy,player),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
+      if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && distance<14){
         const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-        const next=movePlayer(enemy,{x:(player.x-enemy.x)/distance*enemy.speed*dt,z:(player.z-enemy.z)/distance*enemy.speed*dt},blockers,round.level.floors,.48);
+        const next=movePlayer(enemy,{x:(goal.x-enemy.x)/gd*Math.min(gd,enemy.speed*dt),z:(goal.z-enemy.z)/gd*Math.min(gd,enemy.speed*dt)},blockers,round.level.floors,.48);
         enemy.x=next.x;enemy.z=next.z;
       }
     }

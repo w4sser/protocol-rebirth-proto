@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.39.2';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.39.2';
-import {buildTown} from './town.js?v=1.39.2';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.39.2';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.40.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.40.0';
+import {buildTown} from './town.js?v=1.40.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.40.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -18,7 +18,7 @@ export function buildWorld(level,scene,{quality='high',town=null}={}) {
     const m=new THREE.Mesh(cube,material(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
   }
   const isTown=!!(level.town&&town);
-  if(isTown)buildTown(level,group,town,Q);
+  const townInfo=isTown?buildTown(level,group,town,Q):null;
   if(!isTown)for(const f of level.floors){
     box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);
@@ -143,5 +143,5 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
   const props=spots.map(spot=>{const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<Math.min(Q.lights,spots.length);k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }
