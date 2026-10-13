@@ -8,7 +8,7 @@ export function loadTownAssets(base){
   if(cache)return cache;
   const loader=new GLTFLoader();
   cache=Promise.all(TOWN_KINDS.map(async kind=>{
-    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.38.0`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
+    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.38.1`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
     g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;
       if(o.material.name==='window_glow'){o.material.emissive?.set('#ffb85a');o.material.emissiveIntensity=2.6;}
       if(o.material.name==='lamp_glow')o.material.emissiveIntensity=1.6;

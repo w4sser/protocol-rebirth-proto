@@ -41,7 +41,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .kit-btn{position:absolute;z-index:3;left:max(14px,env(safe-area-inset-left));top:calc(max(12px,env(safe-area-inset-top)) + 128px);min-width:56px;min-height:48px;border-radius:12px;border:2px solid #ff8a8a;background:#2a1414e8;color:#ffd0d0;font:800 18px system-ui,sans-serif;display:flex;align-items:center;gap:6px;padding:0 10px;cursor:pointer}
 .kit-btn small{font-size:11px;opacity:.75}.kit-btn:disabled{opacity:.4;cursor:default}
 .weapon-name{display:block;text-align:center;font:700 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75cfcc;margin-bottom:3px}
-/* range-sensitive labels (v1.38.0): far = dot, mid = short name, near = full label */
+/* range-sensitive labels (v1.38.1): far = dot, mid = short name, near = full label */
 .node-label .short-text{display:none}
 .node-label[data-mode=short] .full-text,.node-label[data-mode=dot] .full-text,.node-label[data-mode=dot] .short-text,.node-label[data-mode=dot] .node-meter{display:none}
 .node-label[data-mode=short] .short-text{display:inline}
@@ -56,7 +56,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .exit-label.done{color:#3dff8a;border-color:#3dff8a}
 .loot-label{color:#ffcf6a}
 
-/* v1.38.0: compact enemy health bars; name only near/targeted/winding */
+/* v1.38.1: compact enemy health bars; name only near/targeted/winding */
 .enemy-label[data-mode=bar]{min-width:44px;padding:0;background:none;border:0;box-shadow:none}
 .enemy-label[data-mode=bar] .full-text,.enemy-label[data-mode=bar] .short-text,.enemy-label[data-mode=bar] .node-marker{display:none}
 .enemy-label[data-mode=bar] .enemy-health-bar{height:5px;filter:drop-shadow(0 0 3px #000)}
@@ -83,3 +83,4 @@ canvas{background:#07151c}
 .swap-item{min-height:44px;min-width:76px;padding:6px 9px;border-radius:6px;border:1px solid var(--rc,#d6dde0);border-left-width:4px;background:#14242b;color:#eef3f2;font-size:11px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;justify-content:center}
 button.swap-item:active{background:#3a1416}.swap-new{border-style:dashed;background:#16302a;cursor:default}.swap-arrow{color:#75cfcc;font-size:18px;padding:0 2px}
 .fatal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#07151cee;color:#f2e9d6}.fatal[hidden]{display:none}.fatal-card{max-width:420px;margin:16px;padding:20px 24px;background:#0d1a20;border:1px solid #75cfcc66;border-radius:8px;text-align:center}.fatal-card h2{margin:0 0 8px;font-size:20px}.fatal-card p{font-size:13px;color:#c4d3d1}.fatal-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.fatal-btns button{min-height:44px;padding:8px 14px;border-radius:6px;border:1px solid #75cfcc88;background:#183a35;color:#75cfcc;cursor:pointer}
+.area-notice{position:fixed;top:max(60px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:40;background:#3a1416ee;border:1px solid #ff6b6b88;color:#ffd0d0;padding:8px 14px;border-radius:6px;font-size:12px;pointer-events:none}

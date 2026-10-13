@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.38.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.38.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1309,6 +1309,13 @@ function slotTileHtml(def, locked){
     (!locked && options ? '<span class="badge need">' + options + '</span>' : '') + '</button>';
 }
 // Brawl-Stars-style lobby: operator centre stage, loadout tiles either side, compact PLAY bottom-right.
+// Area picker: which Node Raid map the core loads (passed as &area= to nodspel).
+const RAID_AREAS = [["bunker","🏚","BUNKER"],["town","🏡","TOWN"]];
+function raidArea(){ return RAID_AREAS.some(a => a[0] === S.area) ? S.area : "bunker"; }
+function areaPickerHtml(){
+  return '<div class="area-pick" role="radiogroup" aria-label="Raid area">' + RAID_AREAS.map(([id, ic, name]) =>
+    '<button type="button" role="radio" aria-checked="' + (raidArea() === id) + '" class="area-opt' + (raidArea() === id ? ' on' : '') + '" data-area="' + id + '" onclick="A.setArea(\'' + id + '\')"><i aria-hidden="true">' + ic + '</i>' + name + '</button>').join('') + '</div>';
+}
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
@@ -1318,7 +1325,7 @@ function lobbyHtml(gear, miss, locked){
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
     '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + slotTileHtml(SLOT_DEFS[3], locked) + '</div>' +
-    '<div class="lobby-bottom">' + gearRiskHtml(gear) +
+    '<div class="lobby-bottom">' + gearRiskHtml(gear) + areaPickerHtml() +
       '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div>' +
     '</div>';
 }
@@ -1668,7 +1675,8 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
-    (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "");
+    (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
+    (opts.area ? "&area=" + encodeURIComponent(opts.area) : "");
 }
 /* ---------- player stats & skills (data/progression.js → playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -2013,6 +2021,7 @@ window.A = {
       refresh("raid_prep");
     });
   },
+  setArea(id){ if(!RAID_AREAS.some(a => a[0] === id)) return; S.area = id; save(); refresh("raid_prep"); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit();
     // Deploy is free, but equipped gear (non-Basic weapon, armour) and medkits go with you and are at risk.
@@ -2022,7 +2031,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, area: raidArea() }));
   },
   deploy(){
     if(!session.prep) return;

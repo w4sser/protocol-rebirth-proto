@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.38.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.38.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.38.1" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.38.1">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -512,6 +512,7 @@
     box-shadow:0 6px 0 #1b1100,inset 0 3px 0 rgba(255,255,255,.55); display:flex; flex-direction:column; align-items:center; justify-content:center; transform:translateY(-3px);
     font-family:"Archivo",sans-serif; text-transform:uppercase;}
   .playbtn b{font-size:26px; font-weight:900; font-style:italic; letter-spacing:.04em; line-height:1;} .playbtn small{font-size:12px; font-weight:800; letter-spacing:.12em;}
+  .area-pick{display:flex; gap:4px; flex:none; background:#0b1a20cc; border:2px solid #1b1100; border-radius:12px; padding:3px;} .area-opt{min-width:64px; min-height:44px; border:0; border-radius:9px; background:transparent; color:#a8bab2; font-weight:800; font-size:11px; letter-spacing:.08em; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;} .area-opt i{font-style:normal; font-size:16px;} .area-opt.on{background:#75cfcc; color:#07151c;}
   .playbtn:active{transform:translateY(2px); box-shadow:0 1px 0 #1b1100;}
   .mission-panel{position:absolute; inset:0; z-index:15; overflow-y:auto; background:rgba(7,21,28,.97); padding:12px 16px 20px;}
   .mission-panel[hidden]{display:none;}
@@ -594,13 +595,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.38.0</div>
+    <div id="app-version">v1.38.1</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu" role="menu" hidden>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.38.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.38.1</span></div>
     </div>
   </div>
   <div id="main">
@@ -615,15 +616,15 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.38.0"></script>
-<script src="data/modules.js?v=1.38.0"></script>
-<script src="data/bit.js?v=1.38.0"></script>
-<script src="data/raid_zones.js?v=1.38.0"></script>
-<script src="data/recipes.js?v=1.38.0"></script>
-<script src="data/vendors.js?v=1.38.0"></script>
-<script src="data/retention.js?v=1.38.0"></script>
-<script src="data/progression.js?v=1.38.0"></script>
-<script src="data/combat.js?v=1.38.0"></script>
-<script src="app.js?v=1.38.0"></script>
+<script src="data/items.js?v=1.38.1"></script>
+<script src="data/modules.js?v=1.38.1"></script>
+<script src="data/bit.js?v=1.38.1"></script>
+<script src="data/raid_zones.js?v=1.38.1"></script>
+<script src="data/recipes.js?v=1.38.1"></script>
+<script src="data/vendors.js?v=1.38.1"></script>
+<script src="data/retention.js?v=1.38.1"></script>
+<script src="data/progression.js?v=1.38.1"></script>
+<script src="data/combat.js?v=1.38.1"></script>
+<script src="app.js?v=1.38.1"></script>
 </body>
 </html>
