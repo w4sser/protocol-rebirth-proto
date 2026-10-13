@@ -239,8 +239,9 @@ A.go("prep"); A.prepSet("routeId","reactor");
 window.eval("window.__origRnd = Math.random; Math.random = function(){ return 0.9; };"); // survive pushes
 A.deploy(); A.raidStep();
 assert(text().includes("CHECKPOINT 1/"), "staged raid shows a checkpoint");
-assert(text().includes("EXTRACT NOW") && text().includes("PUSH DEEPER"), "both choices present");
-assert(text().includes("In your bag") && text().includes("at risk"), "communicates haul + risk");
+assert(text().includes("EXTRACT") && text().includes("PUSH DEEPER"), "both choices present");
+assert(text().includes("IN YOUR BAG") && text().includes("NOT SECURED") && doc.querySelector(".cp-risk"), "communicates haul + risk (PRB-9)");
+if(process.env.DUMP_CP) fs.writeFileSync(process.env.DUMP_CP, JSON.stringify({ cls:doc.getElementById("app").className, html:doc.getElementById("app").innerHTML }));
 A.pushDeeper();            // survives -> next stage feed
 A.raidStep();
 assert(text().includes("CHECKPOINT 2/") || text().includes("EXTRACTED"), "advances to next checkpoint or ends");
