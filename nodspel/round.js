@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.37.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.37.0';
-import {emptyBag,bagItems} from './raid.js?v=1.37.0';
-import {traceTargets} from './physics.mjs?v=1.37.0';
+import {generateLevel,RULES} from './levels.js?v=1.37.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.37.1';
+import {emptyBag,bagItems} from './raid.js?v=1.37.1';
+import {traceTargets} from './physics.mjs?v=1.37.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -18,7 +18,7 @@ export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
-    if(box.blockedUntilLeft&&Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius)box.blockedUntilLeft=false;
+    if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;}
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
       if(box.blockedUntilLeft)continue;
       if(box.item==='ammo_pack'){
@@ -26,7 +26,8 @@ export function collectLoot(round,position,now,weapon){
         weapon.reserve+=box.ammoRounds??RULES.resources.ammoCrateRounds;
         {const wr=weapon.rule??RULES.weapon;if(weapon.ammo<wr.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+wr.reloadMs;}
       }else{
-        if(bagItems(round.bag).length>=RULES.loot.capacity)continue;
+        // Full bag: signal once per approach (re-arms after the player steps away).
+        if(bagItems(round.bag).length>=RULES.loot.capacity){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;
       }
       box.collected=true;changed=true;
@@ -39,6 +40,15 @@ export function dropItem(round,item,position,now){
   round.bag[item]--;
   const box={id:`drop-${round.level.lootBoxes.length}-${now}`,x:position.x,z:position.z,item,collected:false,blockedUntilLeft:true};
   round.level.lootBoxes.push(box);return box;
+}
+// Swap: drop one bag item on the ground (revealed) and take the blocked box's item.
+export function swapLoot(round,boxId,dropId,now){
+  tickRound(round,now);if(round.over)return null;
+  const box=round.level.lootBoxes.find(b=>b.id===boxId);
+  if(!box||box.collected||!round.bag[dropId]||box.item==='ammo_pack')return null;
+  round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;
+  const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:dropId,collected:false,blockedUntilLeft:true,revealed:true};
+  round.level.lootBoxes.push(dropped);round.bagFull=null;return dropped;
 }
 // Medkits brought from base (round.kit) are used before looted ones; both are lost on death.
 export function useHealthKit(round,now){

@@ -1,28 +1,28 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.37.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.37.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.37.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.37.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.37.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.37.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.37.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.37.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.37.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.37.0';
-// import {stepScavenging} from './scavenging.js?v=1.37.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.37.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.37.0';
-import {routeComplete} from './objectives.js?v=1.37.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.37.0';
-import {createBIT,stepBIT} from './bit.js?v=1.37.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.37.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.37.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.37.0';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.37.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.37.1';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.37.1';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.37.1';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.37.1';
+import {buildWorld,setNodeHold} from './world.js?v=1.37.1';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.37.1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.37.1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.37.1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.37.1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.37.1';
+// import {stepScavenging} from './scavenging.js?v=1.37.1';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.37.1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.37.1';
+import {routeComplete} from './objectives.js?v=1.37.1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.37.1';
+import {createBIT,stepBIT} from './bit.js?v=1.37.1';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.37.1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.37.1';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.37.1';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.37.1';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.37.0');
+const orderResponse=await fetch('./order.json?v=1.37.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -190,7 +190,9 @@ function renderEnemyFeedback(clock){
     v.damage.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.damageNumberMs)}`;
   }
 }
-function loadLevel(){
+function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
+function loadLevelInner(){
+  hideSwap();
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
@@ -352,9 +354,48 @@ let previous=performance.now();
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},state:()=>({position,level:round.level}),
-  openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.37.0');round.level=generateLevel(n,round.seed);loadLevel();}};
-function frame(now){
+  openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.37.1');round.level=generateLevel(n,round.seed);loadLevel();}};
+
+// ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
+let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
+function showSwap(){
+  const info=round.bagFull;if(!info)return;
+  const panel=$('.bag-panel');panel?.classList.remove('bag-full-flash');void panel?.offsetWidth;panel?.classList.add('bag-full-flash');
+  const box=round.level.lootBoxes.find(b=>b.id===info.boxId);if(box&&!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
+  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row';el.setAttribute('role','dialog');el.setAttribute('aria-label','Bag full – swap');$('#viewport').append(el);}
+  el.replaceChildren();
+  const head=document.createElement('div');head.className='swap-head';head.innerHTML='<b>Bag full – swap?</b><span>Tap an item to drop it</span>';
+  const close=document.createElement('button');close.className='swap-close';close.type='button';close.textContent='✕';close.setAttribute('aria-label','Keep bag');close.onclick=hideSwap;head.append(close);el.append(head);
+  const row=document.createElement('div');row.className='swap-items';
+  const chip=(id,isNew)=>{const b=document.createElement(isNew?'div':'button');const r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);b.textContent=ITEM_NAMES[id]??id;return b;};
+  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}hideSwap();updateHUD();};row.append(b);}
+  const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.textContent='⇄';row.append(arrow,chip(info.item,true));el.append(row);el.hidden=false;
+  clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,6000);
+  try{const n=+(localStorage.getItem(HINT_KEY)||0);if(n<2){localStorage.setItem(HINT_KEY,String(n+1));bitHintUntil=Date.now()+3500;}}catch{}
+}
+function hideSwap(){const el=document.getElementById('swap-row');if(el)el.hidden=true;if(round)round.bagFull=null;}
+// ---- Visible fallback instead of a white page ----
+let fatal=false;
+function showFatal(title,msg,{retry=null,keep=false}={}){
+  let el=document.getElementById('fatal');if(!el){el=document.createElement('section');el.id='fatal';el.className='fatal';el.setAttribute('role','alertdialog');document.body.append(el);}
+  el.replaceChildren();const card=document.createElement('div');card.className='fatal-card';
+  const h=document.createElement('h2');h.textContent=title;const p=document.createElement('p');p.textContent=msg;card.append(h,p);
+  const btns=document.createElement('div');btns.className='fatal-btns';
+  const mk=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=f;btns.append(b);};
+  if(retry)mk('Try again',()=>{el.hidden=true;retry();});
+  mk('Reload',()=>location.reload());
+  if(launch?.returnUrl)mk('Back to base',()=>{try{if(round&&!round.over)abandonRound(round,Date.now());writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));}catch{}location.assign(launch.returnUrl);});
+  card.append(btns);el.append(card);el.hidden=false;
+}
+function onFatal(e){console.error('[node-raid] fatal',e);if(fatal)return;fatal=true;
+  showFatal('Something went wrong','The raid view stopped. Your raid is still here – try again, or go back to base.',{retry:()=>{fatal=false;try{loadLevelInner();}catch(err){onFatal(err);return;}requestAnimationFrame(frame);}});}
+renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();showFatal('Graphics paused','The browser reset the 3D view. Restoring…');});
+renderer.domElement.addEventListener('webglcontextrestored',()=>{const el=document.getElementById('fatal');if(el&&!fatal)el.hidden=true;});
+window.addEventListener('error',e=>{if(e.error)onFatal(e.error);});
+window.addEventListener('unhandledrejection',e=>onFatal(e.reason??new Error('unhandled rejection')));
+function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
+function frameInner(now){
   const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
   if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
   tickRound(round,clock);
@@ -377,7 +418,7 @@ function frame(now){
     if(stepWeapon(weapon,round,clock,dt,playerSolids))updateHUD();
     const activeShots=new Set(weapon.projectiles.map(b=>b.id));
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){scene.remove(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
-    if(collectLoot(round,position,clock,weapon))updateHUD();
+    if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.bagFull)showSwap();}
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,playerSolids);
@@ -397,7 +438,7 @@ function frame(now){
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
   bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
   bitScreen.material.color.set(bit.healing?'#15d6be':'#75cfcc');
-  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=bit.healing?'BIT · +5 HP/s':'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
+  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=Date.now()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?'BIT · +5 HP/s':'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||resultPending||tutorialOpen||!$('#inventory').hidden;
