@@ -1,24 +1,39 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {TOWN_DIMS} from './town-layout.js?v=1.40.2';
-import {HOUSE_KINDS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.40.2';
+import {TOWN_DIMS} from './town-layout.js?v=1.40.3';
+import {HOUSE_KINDS,HOUSE_DIMS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.40.3';
 export const TOWN_KINDS=Object.keys(TOWN_DIMS);
 let cache=null;
+// Per-asset load report (also on window.__townLoad): failed GLBs get a procedural stand-in instead of
+// dropping the whole area. Only if most of the kit fails does the caller fall back to Bunker.
+export const townLoad={failed:[],retried:0,ms:0};
+const withTimeout=(p,ms,what)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(`timeout ${ms} ms: ${what}`)),ms))]);
+function standIn(dims,color='#5d6670'){const [w,h,d]=dims??[1,1,1],geo=new THREE.BoxGeometry(w,h,d),mat=new THREE.MeshStandardMaterial({color,roughness:.9});
+  geo.userData.shared=mat.userData.shared=true;return [{geometry:geo,material:mat,matrix:new THREE.Matrix4().makeTranslation(0,h/2,0),standIn:true}];}
+export async function loadKit(base,items,{loader=new GLTFLoader(),concurrency=6,retries=2,timeoutMs=20000,report=townLoad}={}){
+  const t0=Date.now(),out={},queue=[...items];
+  const one=async ({key,url,dims})=>{let err;
+    for(let i=0;i<=retries;i++){try{if(i)report.retried++;const g=await withTimeout(loader.loadAsync(new URL(url,base).href),timeoutMs,url);return prepare(g);}
+      catch(e){err=e;await new Promise(r=>setTimeout(r,250*(i+1)));}}
+    report.failed.push({key,url,error:String(err?.message??err)});console.warn('[town] asset failed, using stand-in',key,err);return standIn(dims);};
+  await Promise.all(Array.from({length:Math.min(concurrency,queue.length)},async()=>{while(queue.length){const it=queue.shift();out[it.key]=await one(it);}}));
+  report.ms=Date.now()-t0;return out;}
+function prepare(g){g.scene.updateMatrixWorld(true);const parts=[];
+  // some kit origins float above the ground: drop every asset so its lowest point sits at y=0
+  const lift=-new THREE.Box3().setFromObject(g.scene).min.y,shift=new THREE.Matrix4().makeTranslation(0,lift,0);
+  g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;
+    if(o.material.name==='window_glow'){o.material.emissive?.set('#ffb85a');o.material.emissiveIntensity=2.6;}
+    if(o.material.name==='lamp_glow')o.material.emissiveIntensity=1.6;
+    parts.push({geometry:o.geometry,material:o.material,matrix:shift.clone().multiply(o.matrixWorld)});});
+  return parts;}
 // Loads once per page; geometries/materials are flagged shared so world.dispose() never frees them.
-export function loadTownAssets(base){
+export function loadTownAssets(base,opts={}){
   if(cache)return cache;
-  const loader=new GLTFLoader();
-  const load=async (kind,dir='')=>{
-    const g=await loader.loadAsync(new URL(`${dir}${kind}.glb?v=1.40.2`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
-    // some kit origins float above the ground: drop every asset so its lowest point sits at y=0
-    const lift=-new THREE.Box3().setFromObject(g.scene).min.y,shift=new THREE.Matrix4().makeTranslation(0,lift,0);
-    g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;
-      if(o.material.name==='window_glow'){o.material.emissive?.set('#ffb85a');o.material.emissiveIntensity=2.6;}
-      if(o.material.name==='lamp_glow')o.material.emissiveIntensity=1.6;
-      parts.push({geometry:o.geometry,material:o.material,matrix:shift.clone().multiply(o.matrixWorld)});});
-    return [kind,parts];};
-  cache=Promise.all([...TOWN_KINDS.map(k=>load(k)),...HOUSE_KINDS.map(k=>load(k,'house_interior/').then(([k2,p])=>['hi_'+k2,p]))]).then(list=>{const a=Object.fromEntries(list);
+  const items=[...TOWN_KINDS.map(k=>({key:k,url:`${k}.glb?v=1.40.3`,dims:TOWN_DIMS[k]})),...HOUSE_KINDS.map(k=>({key:'hi_'+k,url:`house_interior/${k}.glb?v=1.40.3`,dims:HOUSE_DIMS[k]}))];
+  if(typeof window!=='undefined')window.__townLoad=townLoad;
+  cache=loadKit(base,items,opts).then(a=>{
+    if(townLoad.failed.length>items.length/2)throw new Error(`town kit failed: ${townLoad.failed.length}/${items.length} assets (${townLoad.failed[0]?.error})`);
     // wrecks: same car mesh, darker and desaturated materials (never rescaled)
     a.car_wreck=a.car_boxy.map(p=>{const m=p.material.clone();m.userData.shared=true;if(m.color){const h={};m.color.getHSL(h);m.color.setHSL(h.h,h.s*.25,Math.max(.05,h.l*.6));}m.roughness=1;if(m.emissiveIntensity)m.emissiveIntensity=0;return {...p,material:m};});
     // night ground reads too dark on phones: lift the ground palettes a little
