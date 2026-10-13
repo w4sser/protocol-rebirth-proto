@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.2';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.36.2';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.37.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.37.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.37.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -56,18 +57,25 @@ export function buildWorld(level,scene,{quality='high'}={}) {
   const beamGeo=new THREE.CylinderGeometry(.12,.22,1,12,1,true),ringGeo=new THREE.RingGeometry(.62,.78,40);
   function lootVisual(loot){
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
-    const tier=lootTier(loot.item),color=LOOT_COLORS[tier];
+    const tier=rarityOf(loot.item),color=lootColor(loot);
     const crate=new THREE.Group();g.add(crate);
-    box(0,.32,0,.9,.64,.9,'#5c4a2a',crate);box(0,.68,0,1,.08,1,'#8a6d3a',crate);
+    box(0,.32,0,.9,.64,.9,'#3a4247',crate);box(0,.68,0,1,.08,1,'#5d676c',crate);
     const band=new THREE.Mesh(cube,glow(color));band.scale.set(.92,.06,.92);band.position.y=.5;crate.add(band);
     const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
-    let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:tier==='rare'?.32:.2,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=tier==='rare'?4.2:3;beam.position.y=beam.scale.y/2;g.add(beam);}
+    let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=2;beam.position.y=1;g.add(beam);}
     if(loot.marked){
       const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:'#75cfcc',side:THREE.DoubleSide,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
       const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
     }
-    return {loot,group:g,crate,pulse,beam,color,tier,phase:(loot.x*7+loot.z*3)%6.28};
+    const v={loot,group:g,crate,band,pulse,beam,color,tier,phase:(loot.x*7+loot.z*3)%6.28};
+    if(loot.revealed)applyReveal(v,false);
+    return v;
   }
+  // Switch an unidentified pickup to its rarity color (+ optional reveal burst).
+  function applyReveal(v,fx=true){const c=RARITY_COLORS[v.tier],hi=RARITY_ORDER.indexOf(v.tier);v.color=c;
+    v.band.material=glow(c);v.pulse.material.color.set(c);
+    if(v.beam){v.beam.material.color.set(c);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
+    if(fx)burst(v.loot.x,v.loot.z,c);}
   const lootBoxes=level.lootBoxes.map(lootVisual);
   function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
   const routes=[];
@@ -101,7 +109,7 @@ export function buildWorld(level,scene,{quality='high'}={}) {
     for(const v of lootBoxes){if(!v.group.visible)continue;const p=time*2.6+v.phase;
       v.crate.position.y=.06+Math.sin(p)*.06;v.crate.rotation.y=time*.6+v.phase;
       const k=(time*.8+v.phase)%1;v.pulse.scale.setScalar(.8+k*.7);v.pulse.material.opacity=.6*(1-k);
-      if(v.beam)v.beam.material.opacity=(v.tier==='rare'?.3:.18)+Math.sin(p)*.06;}
+      if(v.beam)v.beam.material.opacity=(v.loot.revealed?.16+RARITY_ORDER.indexOf(v.tier)*.04:.1)+Math.sin(p)*.05;}
     if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
       exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
     for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);if(b.t>.5){group.remove(b.m);b.m.material.dispose();bursts.splice(i,1);}}
@@ -132,5 +140,5 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
   const props=spots.map(spot=>{const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<Math.min(Q.lights,spots.length);k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

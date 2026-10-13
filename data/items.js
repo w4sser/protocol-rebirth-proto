@@ -8,7 +8,7 @@ window.DATA.items = [
     desc:"Industrial cabling. Unglamorous. Essential.", uses:["upgrade:fabricator","upgrade:bit_bay"] },
   { id:"fuse", name:"Fuse", family:"power", rarity:"common", sellValue:30, stackSize:10,
     desc:"Blown ones are everywhere. Working ones are not.", uses:["upgrade:fabricator","recipe"] },
-  { id:"power_relay", name:"Power Relay", family:"power", rarity:"uncommon", sellValue:140, stackSize:5,
+  { id:"power_relay", name:"Power Relay", family:"power", rarity:"rare", sellValue:140, stackSize:5,
     desc:"Routes power between facility sections.", uses:["upgrade:rebirth_core","recipe"] },
   // MECHANICAL
   { id:"scrap_alloy", name:"Scrap Alloy", family:"mechanical", rarity:"common", sellValue:15, stackSize:20,
@@ -36,16 +36,16 @@ window.DATA.items = [
   { id:"purification_filter", name:"Purification Filter", family:"bio", rarity:"uncommon", sellValue:95, stackSize:5,
     desc:"Clean air is a luxury item now.", uses:["upgrade:rebirth_core","sell"] },
   // PROTOCOL (found only — never sold by vendors)
-  { id:"encrypted_drive", name:"Encrypted Drive", family:"protocol", rarity:"protocol", sellValue:400, stackSize:3,
+  { id:"encrypted_drive", name:"Encrypted Drive", family:"protocol", rarity:"epic", sellValue:400, stackSize:3,
     desc:"BIT can't read it yet. BIT really wants to read it.", uses:["upgrade:rebirth_core","story"] },
-  { id:"ai_fragment", name:"AI Fragment", family:"protocol", rarity:"protocol", sellValue:500, stackSize:3,
+  { id:"ai_fragment", name:"AI Fragment", family:"protocol", rarity:"epic", sellValue:500, stackSize:3,
     desc:"A shard of something that used to think.", uses:["upgrade:rebirth_core","story"] },
-  { id:"rebirth_shard", name:"Rebirth Shard", family:"protocol", rarity:"protocol", sellValue:600, stackSize:3,
+  { id:"rebirth_shard", name:"Rebirth Shard", family:"protocol", rarity:"legendary", sellValue:600, stackSize:3,
     desc:"Resonates near the Core. Nobody knows why. Yet.", uses:["upgrade:rebirth_core","story"] },
-  { id:"neural_core", name:"Neural Core", family:"protocol", rarity:"protocol", sellValue:800, stackSize:1,
+  { id:"neural_core", name:"Neural Core", family:"protocol", rarity:"legendary", sellValue:800, stackSize:1,
     desc:"The Protocol's memory of itself.", uses:["upgrade:bit_bay","story"] },
   // VALUABLE (sell-only)
-  { id:"prewar_relic", name:"Prewar Relic", family:"valuable", rarity:"valuable", sellValue:250, stackSize:5,
+  { id:"prewar_relic", name:"Prewar Relic", family:"valuable", rarity:"legendary", sellValue:250, stackSize:5,
     desc:"Worthless to the facility. Priceless to a collector.", uses:["sell"] },
   // GEAR (loadout items)
   { id:"basic_carbine", name:"Basic Carbine", family:"gear", rarity:"common", sellValue:60, stackSize:1,
@@ -65,14 +65,14 @@ window.DATA.items = [
     slot:"armor", stats:{ maxHealth:15 }, desc:"More pockets than protection.", uses:["loadout"] },
   { id:"scout_rig", name:"Scout Rig", family:"gear", rarity:"uncommon", sellValue:80, stackSize:1,
     slot:"armor", stats:{ speed:0.45, maxHealth:5 }, desc:"Light webbing and good boots. You move like you mean it.", uses:["loadout"] },
-  { id:"dampener_cloak", name:"Dampener Cloak", family:"gear", rarity:"uncommon", sellValue:110, stackSize:1,
+  { id:"dampener_cloak", name:"Dampener Cloak", family:"gear", rarity:"rare", sellValue:110, stackSize:1,
     slot:"armor", stats:{ stealth:0.18, speed:0.1, maxHealth:-10 }, desc:"Soaks up sound and heat. Not bullets.", uses:["loadout"] },
   { id:"medkit", name:"Medkit", family:"gear", rarity:"common", sellValue:35, stackSize:5,
     slot:"consumable", desc:"Fabricator special. Smells like ozone.", uses:["loadout"] },
   // CURRENCY-SOURCING LOOT (Node Raid): converted on ingest, never stored in the stash.
   { id:"salvage_crate", name:"Salvage Crate", family:"mechanical", rarity:"common", sellValue:20, stackSize:10,
     grantsCurrency:{ scrap:16 }, desc:"Sorted structural salvage. Becomes Scrap when you bring it home.", uses:["currency"] },
-  { id:"data_core", name:"Data Core", family:"electronics", rarity:"uncommon", sellValue:60, stackSize:10,
+  { id:"data_core", name:"Data Core", family:"electronics", rarity:"rare", sellValue:60, stackSize:10,
     grantsCurrency:{ dataCores:2 }, desc:"Intact storage cell. Becomes Data Cores when you bring it home.", uses:["currency"] },
   { id:"ammo_pack", name:"Ammo Pack", family:"gear", rarity:"common", sellValue:25, stackSize:5,
     slot:"consumable", desc:"Standard rounds, pressed in-house.", uses:["loadout"] }
