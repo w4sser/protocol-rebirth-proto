@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings} from './art.js?v=1.36.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.36.1';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -53,15 +53,20 @@ export function buildWorld(level,scene,{quality='high'}={}) {
     return {node,group:g,coreMaterial,light,halo,holdRing};
   });
   const exit=level.exit;
+  const beamGeo=new THREE.CylinderGeometry(.12,.22,1,12,1,true),ringGeo=new THREE.RingGeometry(.62,.78,40);
   function lootVisual(loot){
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
-    box(0,.32,0,.9,.64,.9,'#84754d',g);box(0,.68,0,1,.08,1,'#b5a372',g);
-    box(0,.35,.46,.3,.18,.03,'#75cfcc',g);
+    const tier=lootTier(loot.item),color=LOOT_COLORS[tier];
+    const crate=new THREE.Group();g.add(crate);
+    box(0,.32,0,.9,.64,.9,'#5c4a2a',crate);box(0,.68,0,1,.08,1,'#8a6d3a',crate);
+    const band=new THREE.Mesh(cube,glow(color));band.scale.set(.92,.06,.92);band.position.y=.5;crate.add(band);
+    const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
+    let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:tier==='rare'?.32:.2,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=tier==='rare'?4.2:3;beam.position.y=beam.scale.y/2;g.add(beam);}
     if(loot.marked){
       const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:'#75cfcc',side:THREE.DoubleSide,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
       const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
     }
-    return {loot,group:g};
+    return {loot,group:g,crate,pulse,beam,color,tier,phase:(loot.x*7+loot.z*3)%6.28};
   }
   const lootBoxes=level.lootBoxes.map(lootVisual);
   function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
@@ -78,13 +83,29 @@ export function buildWorld(level,scene,{quality='high'}={}) {
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ff8d84',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     return {enemy,group:g};
   });
-  const exitMaterial=new THREE.MeshStandardMaterial({color:'#b49b64',emissive:'#75cfcc',emissiveIntensity:0,roughness:.5});
+  const exitMaterial=new THREE.MeshStandardMaterial({color:'#4d6a58',emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
+  const exitRings=[0,1].map(i=>{const m=new THREE.Mesh(new THREE.RingGeometry(1.25,1.42,48),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(exit.x,.035,exit.z);group.add(m);return m;});
+  const exitBeam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,1,20,1,true),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
+  exitBeam.scale.y=Q.beams?6:3;exitBeam.position.set(exit.x,exitBeam.scale.y/2,exit.z);exitBeam.visible=false;group.add(exitBeam);
+  let exitOpen=false;
   const gate=new THREE.Mesh(cube,exitMaterial);gate.scale.set(2,.85,.22);gate.position.set(exit.x,.55,exit.z);group.add(gate);
   for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
   const exitPad=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.8),new THREE.MeshBasicMaterial({color:'#b49b64',transparent:true,opacity:.16,side:THREE.DoubleSide}));
   exitPad.rotation.x=-Math.PI/2;exitPad.position.set(exit.x,.022,exit.z);group.add(exitPad);
-  function setExit(open){gate.visible=!open;exitMaterial.color.set(open?'#75cfcc':'#b49b64');exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?'#75cfcc':'#b49b64');exitPad.material.opacity=open?.45:.16;}
-  function animate(time){for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
+  function setExit(open){exitOpen=open;gate.visible=!open;exitMaterial.color.set(open?EXTRACT_COLOR:'#4d6a58');exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?EXTRACT_COLOR:'#3c5a48');exitPad.material.opacity=open?.4:.18;exitBeam.visible=open;}
+  // pickup burst: expanding ring + short flash (pooled per call; cheap)
+  const bursts=[];
+  function burst(x,z,color='#ffd04a'){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);bursts.push({m,t:0});}
+  let lastTime=null;
+  function animate(time){const dt=lastTime==null?0:Math.min(.1,time-lastTime);lastTime=time;
+    for(const v of lootBoxes){if(!v.group.visible)continue;const p=time*2.6+v.phase;
+      v.crate.position.y=.06+Math.sin(p)*.06;v.crate.rotation.y=time*.6+v.phase;
+      const k=(time*.8+v.phase)%1;v.pulse.scale.setScalar(.8+k*.7);v.pulse.material.opacity=.6*(1-k);
+      if(v.beam)v.beam.material.opacity=(v.tier==='rare'?.3:.18)+Math.sin(p)*.06;}
+    if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
+      exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
+    for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);if(b.t>.5){group.remove(b.m);b.m.material.dispose();bursts.splice(i,1);}}
+for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
   function dispose(){
     const geometries=new Set(),mats=new Set();
     group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
@@ -93,10 +114,15 @@ export function buildWorld(level,scene,{quality='high'}={}) {
   const hazards=(level.hazards??[]).map(h=>{
     const mat=new THREE.MeshBasicMaterial({color:'#e0c040',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
     const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
-    return {hazard:h,mat};
+    const rr=Math.min(h.w,h.d)*.42,fill=new THREE.Mesh(new THREE.RingGeometry(rr-.12,rr,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+    fill.rotation.x=-Math.PI/2;fill.position.set(h.x,.045,h.z);group.add(fill);
+    return {hazard:h,mat,fill};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
   function animateHazards(now){for(const v of hazards){const t=hazardTiming(v.hazard,now);
+    // recharge ring fills clockwise while the pad charges back up; hidden while live
+    const prog=t.state==='on'?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=t.state!=='on';v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
+    v.fill.material.color.set(t.state==='warn'?'#fff27a':'#c99a2a');
     if(t.state==='on'){v.mat.color.set('#ff3b1f');v.mat.opacity=.75;}
     else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
@@ -105,5 +131,5 @@ export function buildWorld(level,scene,{quality='high'}={}) {
   const props=spots.map(spot=>{const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<Math.min(Q.lights,spots.length);k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots};
+  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

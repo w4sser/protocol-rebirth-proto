@@ -1,26 +1,27 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.36.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.36.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.36.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.36.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.36.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.36.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.36.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.36.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.36.0';
-// import {stepScavenging} from './scavenging.js?v=1.36.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.36.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.36.0';
-import {routeComplete} from './objectives.js?v=1.36.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.36.0';
-import {createBIT,stepBIT} from './bit.js?v=1.36.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.36.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.36.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.36.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.36.1';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.36.1';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.36.1';
+import {buildWorld,setNodeHold} from './world.js?v=1.36.1';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.36.1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.36.1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.36.1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.36.1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.36.1';
+// import {stepScavenging} from './scavenging.js?v=1.36.1';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.36.1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.36.1';
+import {routeComplete} from './objectives.js?v=1.36.1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.36.1';
+import {createBIT,stepBIT} from './bit.js?v=1.36.1';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.36.1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.36.1';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.36.1';
+import {planLabels,labelOpacity,overHUD} from './labels.js?v=1.36.1';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.36.0');
+const orderResponse=await fetch('./order.json?v=1.36.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -130,11 +131,13 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput(
 function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
 let labels=[],routeLabels=[];
 const enemyName=e=>!e.type||e.type==='grunt'?'ENEMY':e.type.toUpperCase();
-function makeLabel(text,point,kind){
+function makeLabel(text,point,kind,range=null,short=''){
   const el=document.createElement('div');el.className=`node-label ${kind}`;
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
-  const caption=document.createElement('span');caption.textContent=text;el.append(caption);$('#world-labels').append(el);
-  const label={el,caption,point};labels.push(label);return label;
+  const caption=document.createElement('span');caption.className='full-text';caption.textContent=text;el.append(caption);
+  const shortEl=document.createElement('span');shortEl.className='short-text';shortEl.textContent=short;el.append(shortEl);
+  $('#world-labels').append(el);
+  const label={el,caption,shortEl,point,range,id:labels.length};labels.push(label);return label;
 }
 function setCollisions(){
   solids=[...round.level.walls,...round.level.boxes];
@@ -152,7 +155,7 @@ function updateHUD(){
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
   world.setExit(open);setCollisions();
 }
-function labelLoot(v){v.label=makeLabel(`◆ ${ITEM_NAMES[v.loot.item]??'Ammo'} · COLLECT`,new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label');}
+function labelLoot(v){const n=ITEM_NAMES[v.loot.item]??'Ammo';v.label=makeLabel(`◆ ${n} · COLLECT`,new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label','loot',n);}
 function renderInventory(){
   const items=bagItems(round.bag),list=$('#inventory-slots');list.replaceChildren();
   $('#inventory-count').textContent=`${items.length} / ${RULES.loot.capacity} slots`;
@@ -191,15 +194,15 @@ function loadLevel(){
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
   bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
-  bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label');
+  bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label','bit','BIT');
   for(const v of world.nodes){
-    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node');
+    v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node',v.node.shielded?'NODE ⛨':'NODE');
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
-  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:makeLabel('',new THREE.Vector3(h.x,1.2,h.z),'hazard-label')}));
-  world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label');
-  for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label');
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:makeLabel('⚡',new THREE.Vector3(h.x,.9,h.z),'hazard-label hazard-icon')}));
+  world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label','exit','EXIT');
+  for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label','room',room.name.toUpperCase());
   for(const v of world.enemies){
     v.maxHealth=v.enemy.health;
     v.label=makeLabel(`${enemyName(v.enemy)} · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
@@ -211,7 +214,7 @@ function loadLevel(){
     for(const d of ['M15 8L29 22L20 27L34 41L23 48L34 69','M65 9L53 25L62 31L46 42L57 50L45 72','M4 42L19 35L23 43L36 38','M75 41L61 48L56 39L44 44']){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);svg.append(path);}v.flash.el.append(svg);v.flash.defeated=true;
   }
   for(const v of world.lootBoxes)labelLoot(v);
-  for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
+  if(false)for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'↙':'↗'} ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
   $('#seed-label').textContent=`SEED ${round.seed}`;
   $('#corner-name').textContent=`${round.level.number} / 3 · ${round.level.title}`;
@@ -312,10 +315,34 @@ function resize(){viewWidth=viewport.clientWidth;viewHeight=viewport.clientHeigh
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(viewport);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
+const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#abandon,#use-kit,#ammo-hud,#weapon-name';
+let hudRects=[],hudRectsAt=0;
+function refreshHudRects(now){if(now-hudRectsAt<500)return;hudRectsAt=now;
+  const box=$('#game').getBoundingClientRect();
+  hudRects=[...document.querySelectorAll(HUD_SELECTORS)].filter(e=>!e.hidden&&e.offsetParent!==null).map(e=>{const r=e.getBoundingClientRect();return {left:r.left-box.left,right:r.right-box.left,top:r.top-box.top,bottom:r.bottom-box.top};}).filter(r=>r.right>r.left);}
 function renderLabels(){
-  for(const l of labels){labelPoint.copy(l.point).project(camera);l.el.hidden=l.defeated||l.obscured||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9;if(!l.el.hidden){l.el.style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;l.el.style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;}}
+  refreshHudRects(performance.now());
+  const items=labels.filter(l=>l.range&&!l.defeated).map(l=>({id:l.id,kind:l.range,x:l.point.x,z:l.point.z,
+    force:l===bitLabel?(bit?.healing?'full':'hidden'):(l===world.exitLabel&&!exitIsOpen(round)&&Math.hypot(l.point.x-position.x,l.point.z-position.z)>3.4?'dot':undefined)}));
+  const plan=planLabels(items,position);
+  for(const l of labels){
+    labelPoint.copy(l.point).project(camera);
+    const sx=(labelPoint.x*.5+.5)*viewWidth,sy=(-labelPoint.y*.5+.5)*viewHeight;
+    const mode=l.range?plan.get(l.id)??'hidden':'full';
+    if(l.el.dataset.mode!==mode){l.el.dataset.mode=mode;l.size=null;}
+    if(!l.size&&!l.el.hidden&&l.el.offsetWidth)l.size=[l.el.offsetWidth,l.el.offsetHeight];
+    const [lw,lh]=l.size??[mode==='dot'?10:80,mode==='dot'?10:24];
+    l.el.hidden=l.defeated||l.obscured||mode==='hidden'||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9||overHUD(sx,sy,hudRects,8,lw,lh);
+    if(!l.el.hidden){l.el.style.left=`${sx}px`;l.el.style.top=`${sy}px`;
+      if(l.range)l.el.style.opacity=labelOpacity(l.range,Math.hypot(l.point.x-position.x,l.point.z-position.z)).toFixed(2);}
+  }
 }
 let previous=performance.now();
+// Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
+if(new URLSearchParams(location.search).has('debug'))window.__NR={
+  teleport(x,z){position={x,z};},state:()=>({position,level:round.level}),
+  openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.36.1');round.level=generateLevel(n,round.seed);loadLevel();}};
 function frame(now){
   const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
   if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
@@ -345,7 +372,7 @@ function frame(now){
     stepCombat(round,combat,position,clock,dt,playerSolids);
     stepHazards(round,position,clock,dt);world.animateHazards?.(clock);
     for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
-      label.caption.textContent=t.state==='on'?'⚡ SHOCK · KEEP OFF':t.state==='warn'?`⚡ CHARGING ${(t.msToOn/1000).toFixed(1)}`:'⚡ SHOCK PAD';}
+      label.el.setAttribute('aria-label',t.state==='on'?'Shock pad active':t.state==='warn'?'Shock pad charging':'Shock pad');}
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<healthBefore}))updateHUD();
     setCollisions();
     if(round.health!==healthBefore){hitUntil=clock+200;updateHUD();}
@@ -382,9 +409,9 @@ function frame(now){
     v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
     v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';
   }
-  for(const v of routeLabels)v.label.defeated=routeComplete(v.level,v.choice);
+  
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
-  for(const v of world.lootBoxes){v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
+  for(const v of world.lootBoxes){if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
