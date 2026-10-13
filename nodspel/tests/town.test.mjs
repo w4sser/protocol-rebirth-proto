@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import * as THREE from '../vendor/three.module.js';
-import {generateLevel,setArea} from '../levels.js';import {TOWN_DIMS,reachable,footprint} from '../town-layout.js';import {buildWorld} from '../world.js';
+import {generateLevel,setArea} from '../levels.js';import {TOWN_DIMS,reachable,footprint,visualItems,intrudes} from '../town-layout.js';import {buildWorld} from '../world.js';
 const manifest=JSON.parse(fs.readFileSync(new URL('../../assets/env/town/manifest.json',import.meta.url),'utf8'));
 test('town dims mirror the asset manifest and every GLB is in the repo',()=>{for(const a of manifest.assets){const k=a.file.replace('.glb','');assert.deepEqual(TOWN_DIMS[k],a.approx_dimensions_m,k);assert.ok(fs.statSync(new URL(`../../assets/env/town/${a.file}`,import.meta.url)).size<100_000,a.file);}});
 test('bunker stays the default area',()=>{const L=generateLevel(1,'d');assert.equal(L.area,undefined);assert.equal(L.town,undefined);});
@@ -40,5 +40,13 @@ test('natural boundaries: fences are a minority, never more than 2 in a row, tal
     for(const b of L.town.boundary){let run=0;for(const k of b.seq){kinds.add(k);run=k.startsWith('fence')?run+1:0;assert.ok(run<=2,`run ${b.seq}`);if(b.front)assert.ok(!['house','container','car','pine'].includes(k),'camera side stays low');}}
     for(const f of L.town.fences)fence+={fence_segment:2,fence_short:1,fence_gate:1.4}[f.kind];total+=L.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);}
   assert.ok(fence/total<=.27,`fence share ${(fence/total).toFixed(2)}`);
-  for(const k of ['hedge_segment','bush_cluster','cabinet','pine','car'])assert.ok(kinds.has(k),k);
+  for(const k of ['hedge_segment','bush_cluster','cabinet','pine'])assert.ok(kinds.has(k),k);
+});
+
+test('doorways and openings stay clear: no visual dressing on walkable floor; cars never rescaled and only outside',()=>{
+  for(let i=0;i<25;i++)for(const n of [1,2,3])for(const seed of ['dc'+i,i===0?'e5c2d277-meta':'dd'+i]){const L=generateLevel(n,seed,'town');
+    for(const it of visualItems(L.town))assert.ok(!intrudes(L,it.r),`${seed} L${n} ${it.list} ${it.ref.kind??''} at ${it.r.x},${it.r.z}`);
+    assert.ok(!L.boxes.some(b=>b.town==='car_boxy'),'no cars inside rooms');
+    for(const c of L.town.cars){assert.equal(c.sx,undefined);assert.ok(c.outside);}
+    for(const p of L.town.props.filter(p=>['container','bus_shelter','electrical_cabinet','mailbox'].includes(p.kind)))assert.equal(p.sz,undefined,'solid props scale uniformly');}
 });

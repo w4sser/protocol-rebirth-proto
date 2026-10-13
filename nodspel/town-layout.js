@@ -46,37 +46,46 @@ export function townizeLevel(level){
   const inFront=(r,reach)=>floors.some(f=>distToRect(r,f)<reach&&(r.x-r.w/2>f.x+f.w/2-1||r.z-r.d/2>f.z+f.d/2-1));
   const blocked=(r,m)=>floors.some(f=>rectsHit(r,f,m))||solidsOut.some(o=>rectsHit(r,o,.6));
   const P=(kind,x,z,ry=0,s=1)=>props.push({kind,x:+x.toFixed(2),z:+z.toFixed(2),ry:+ry.toFixed(3),s:+s.toFixed(2)});
-  // 2) Natural boundaries. Colliders stay exactly the original wall rects (no gaps to escape through);
-  //    only the dressing varies per wall: hedges, bush clusters, trees, wrecked cars, containers,
-  //    cabinets, locked houses facing the playfield, and a few short fence runs (<= ~1/4, max 2 in a row).
-  //    Walls on the camera side (+x/+z) only get low dressing so nothing occludes play.
-  const fences=[],FL={fence_segment:2,fence_short:1,fence_gate:1.4};
+  // 2) Natural boundaries. Colliders stay exactly the original wall rects; every wall line also gets a
+  //    low curb (rendered from level.walls) so the edge is always readable. Dressing never reaches onto
+  //    walkable floor: line items sit with their inner face on the wall's inner face (or are scaled thin
+  //    on partitions), big accents (house/container/wreck/pine) stand behind the wall, back side only.
+  //    Fences: <= ~1/4 of boundary length, never more than 2 in a row. Camera side (+x/+z) stays low.
+  const fences=[],FL={fence_segment:2,fence_short:1,fence_gate:1.4},WT=0.4;
   const totalL=level.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);let fenceL=0;
+  const DEPTH={hedge_segment:1,bush_cluster:1.4,bush_small:.8,cabinet:.7,fence_segment:.6,fence_short:.6,fence_gate:.6};
   for(const [wi,w] of level.walls.entries()){
-    const along=w.w>=w.d,L=along?w.w:w.d,host=floors.filter(f=>inRect(w,f,.05)).sort((a,b)=>a.w*a.d-b.w*b.d)[0]??nearest(w);
-    const sg=v=>v>=0?1:-1,n=along?{x:0,z:sg(w.z-host.z)}:{x:sg(w.x-host.x),z:0},front=n.x>0||n.z>0||w.h>1.5;
+    const along=w.w>=w.d,L=along?w.w:w.d,t=along?w.d:w.w,host=floors.filter(f=>inRect(w,f,.05)).sort((a,b)=>a.w*a.d-b.w*b.d)[0]??nearest(w);
+    const sg=v=>v>=0?1:-1,n=along?{x:0,z:sg(w.z-host.z)}:{x:sg(w.x-host.x),z:0};
+    const probe={x:w.x+n.x*(t/2+.3),z:w.z+n.z*(t/2+.3)},inner=floors.some(f=>inRect(probe,f));   // floor on both sides (partition)
+    const front=n.x>0||n.z>0||inner;
     const ryWall=along?0:Math.PI/2,ryFace=Math.atan2(n.x,n.z),rotFace=((Math.round(ryFace/(Math.PI/2))%4)+4)%4;
     const at=(o,out)=>({x:along?w.x+o:w.x+n.x*out,z:along?w.z+n.z*out:w.z+o});
+    const outFor=depth=>inner?0:Math.max(0,depth/2-t/2);
     let c=-L/2,run=0;const seq=[];
-    while(L/2-c>.3){const rem=L/2-c,opts=[];
+    while(L/2-c>.25){const rem=L/2-c,opts=[];
       const fenceOk=run<2&&fenceL+1<=totalL*.25;
-      if(!front){if(rem>=6.4)opts.push(['house',6.7,.6]);if(rem>=5.6)opts.push(['container',6,.5]);if(rem>=4.3)opts.push(['car',4.6,.9]);if(rem>=2)opts.push(['pine',2.2,1.1]);}
-      if(rem>=1.8)opts.push(['hedge_segment',2,1.8]);if(rem>=1.5)opts.push(['bush_cluster',1.7,1.6]);if(rem>=1.3)opts.push(['cabinet',1.4,.5]);
-      if(fenceOk&&rem>=1.8)opts.push(['fence_segment',2,.9]);if(fenceOk&&rem>=.9)opts.push(['fence_short',1,.8]);if(fenceOk&&rem>=1.3)opts.push(['fence_gate',1.4,.25]);
-      if(!opts.length)opts.push(['bush_small',Math.min(.9,rem),1]);
+      if(!front){if(rem>=6.7)opts.push(['house',6.7,.5]);if(rem>=6)opts.push(['container',6,.35]);if(rem>=4.5)opts.push(['car',4.5,.25]);if(rem>=2.2)opts.push(['pine',2.2,1.1]);}
+      if(rem>=2)opts.push(['hedge_segment',2,inner?2.5:1.8]);if(!inner&&rem>=1.7)opts.push(['bush_cluster',1.7,1.6]);if(!inner&&rem>=1.4)opts.push(['cabinet',1.4,.5]);
+      if(fenceOk&&rem>=2)opts.push(['fence_segment',2,.9]);if(fenceOk&&rem>=1)opts.push(['fence_short',1,.8]);if(fenceOk&&rem>=1.4&&!inner)opts.push(['fence_gate',1.4,.25]);
+      if(!opts.length){if(rem>=.8&&!inner)opts.push(['bush_small',.9,1]);else{c=L/2;break;}}
       let pick=null;for(let tries=0;tries<6&&!pick;tries++){let r=rng()*opts.reduce((a,o)=>a+o[2],0);for(const o of opts){r-=o[2];if(r<=0){pick=o;break;}}pick??=opts[0];
-        if(pick[0]==='house'){const p=at(c+3.35,2.95),fp=footprint('house_red',p.x,p.z,rotFace);if(floors.some(f=>rectsHit(fp,f,-.05))||solidsOut.some(o=>rectsHit(fp,o,.2)))pick=null;}
-        else if(pick[0]==='container'){const p=at(c+3,1.35),fp=footprint('container',p.x,p.z,along?0:1);if(floors.some(f=>rectsHit(fp,f,-.05)))pick=null;}}
-      pick??=['bush_cluster',1.7];const [kind,len]=pick,mid=c+len/2;
-      if(kind==='house'){const p=at(mid,2.95),hk=(rng()<.55?'house_red':'house_yellow')+(rng()<.4?'_dark':'');houses.push({kind:hk,x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:rotFace,boundary:true});solidsOut.push(footprint(hk,p.x,p.z,rotFace));}
-      else if(kind==='container'){const p=at(mid,1.35);P('container',p.x,p.z,ryWall);solidsOut.push(footprint('container',p.x,p.z,along?0:1));}
-      else if(kind==='car'){const p=at(mid,1.05);cars.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:along?0:1,outside:true,boundary:true});solidsOut.push(footprint('car_boxy',p.x,p.z,along?0:1));}
-      else if(kind==='pine'){const p=at(mid,.9);trees.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),s:+(.85+rng()*.3).toFixed(2),r:+(rng()*6.28).toFixed(2)});solidsOut.push({...p,w:1.6,d:1.6});}
-      else if(kind==='cabinet'){const p=at(mid-.3,.1),q=at(mid+.4,.2);P('electrical_cabinet',p.x,p.z,ryFace+Math.PI);P('bush_small',q.x,q.z,rng()*6.28,1.15);}
-      else if(kind.startsWith('fence')){const p=at(mid,0);fences.push({kind,x:+p.x.toFixed(3),z:+p.z.toFixed(3),rot:along?0:1,stretch:1});fenceL+=FL[kind];}
-      else {const p=at(mid,kind==='hedge_segment'?.15:.2);P(kind,p.x,p.z,kind==='hedge_segment'?ryWall:rng()*6.28,kind==='bush_small'?1.2:1.12);}
+        if(pick[0]==='house'){const p=at(c+3.35,t/2+3.1),fp=footprint('house_red',p.x,p.z,rotFace);if(floors.some(f=>rectsHit(fp,f,-.02))||solidsOut.some(o=>rectsHit(fp,o,.2))||inFront(fp,9))pick=null;}
+        else if(pick[0]==='container'){const p=at(c+3,t/2+1.45),fp=footprint('container',p.x,p.z,along?0:1);if(floors.some(f=>rectsHit(fp,f,-.02))||solidsOut.some(o=>rectsHit(fp,o,.2))||inFront(fp,7))pick=null;}
+        else if(pick[0]==='car'){const p=at(c+2.25,t/2+1.2),fp=footprint('car_boxy',p.x,p.z,along?0:1);if(floors.some(f=>rectsHit(fp,f,-.02))||solidsOut.some(o=>rectsHit(fp,o,.2))||cars.length>=1||inFront(fp,5))pick=null;}
+        else if(pick[0]==='pine'){const p=at(c+1.1,t/2+1.25);if(inFront({...p,w:1.6,d:1.6},10))pick=null;}}
+      pick??=(rem>=2?['hedge_segment',2]:rem>=.8&&!inner?['bush_small',.9]:null);if(!pick){c=L/2;break;}
+      const [kind,len]=pick,mid=c+len/2;
+      if(kind==='house'){const p=at(mid,t/2+3.1),hk=(rng()<.55?'house_red':'house_yellow')+(rng()<.4?'_dark':'');houses.push({kind:hk,x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:rotFace,boundary:true});solidsOut.push(footprint(hk,p.x,p.z,rotFace));}
+      else if(kind==='container'){const p=at(mid,t/2+1.45);P('container',p.x,p.z,ryWall);solidsOut.push(footprint('container',p.x,p.z,along?0:1));}
+      else if(kind==='car'){const p=at(mid,t/2+1.2);cars.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),rot:along?0:1,outside:true,boundary:true,wreck:true});solidsOut.push(footprint('car_boxy',p.x,p.z,along?0:1));}
+      else if(kind==='pine'){const p=at(mid,t/2+1.25);trees.push({x:+p.x.toFixed(2),z:+p.z.toFixed(2),s:+(.85+rng()*.3).toFixed(2),r:+(rng()*6.28).toFixed(2)});solidsOut.push({...p,w:1.6,d:1.6});}
+      else if(kind==='cabinet'){const p=at(mid-.3,outFor(.7)),q=at(mid+.4,outFor(.8));P('electrical_cabinet',p.x,p.z,ryFace+Math.PI);P('bush_small',q.x,q.z,ryWall);}
+      else if(kind.startsWith('fence')){const p=at(mid,outFor(.3));fences.push({kind,x:+p.x.toFixed(3),z:+p.z.toFixed(3),rot:along?0:1,stretch:1});fenceL+=FL[kind];}
+      else if(kind==='hedge_segment'){const p=at(mid,outFor(1));P('hedge_segment',p.x,p.z,ryWall,1);if(inner)props.at(-1).sz=.4;}
+      else {const p=at(mid,outFor(DEPTH[kind]));P(kind,p.x,p.z,ryWall,1);}
       run=kind.startsWith('fence')?run+1:0;seq.push(kind);c+=len;}
-    boundary.push({wall:wi,front,L:+L.toFixed(2),seq});}
+    boundary.push({wall:wi,front,inner,L:+L.toFixed(2),seq});}
   // 3) houses frame the play area from outside (never on a floor)
   for(let a=0;a<600&&houses.length<want;a++){const rot=rng()<.5?2:3,kind=(rng()<.55?'house_red':'house_yellow')+(rng()<.4?'_dark':'');
     const x=B.x0+4+rng()*(B.x1-B.x0-8),z=B.z0+4+rng()*(B.z1-B.z0-8),fp=footprint(kind,x,z,rot);
@@ -88,17 +97,9 @@ export function townizeLevel(level){
   const toward=s=>{const f=nearest(s),cx=Math.max(f.x-f.w/2,Math.min(f.x+f.w/2,s.x)),cz=Math.max(f.z-f.d/2,Math.min(f.z+f.d/2,s.z));return {dx:cx-s.x,dz:cz-s.z};};
   const lamps=[];for(let i=0;i<(low?2:4);i++){const s=edgeSpot(.5,1.4,.5);if(s){const {dx,dz}=toward(s);lamps.push({...s,ry:+Math.atan2(-dz,dx).toFixed(4)});solidsOut.push({...s,w:.8,d:.8});}}
   let busStop=null;for(let a=0;a<30&&!busStop;a++){const s=edgeSpot(.6,3,3.6,40);if(!s)continue;const fp={...s,w:3.6,d:3.6};if(inFront(fp,2))continue;const {dx,dz}=toward(s),q=Math.round(Math.atan2(dx,dz)/(Math.PI/2));busStop={...s,ry:+(q*Math.PI/2).toFixed(4)};solidsOut.push(fp);}
-  for(let a=0;a<20;a++){const s=edgeSpot(1.2,4,4.8,40);if(!s)continue;const rot=rng()<.5?0:1,fp=footprint('car_boxy',s.x,s.z,rot);if(inFront(fp,5))continue;cars.push({...s,rot,outside:true});solidsOut.push(fp);break;}
-  // 5) cover cars inside rooms: collider from manifest bounds, kept only if everything stays reachable
+  for(let a=0;a<20&&!cars.length;a++){const s=edgeSpot(1.2,4,4.8,40);if(!s)continue;const rot=rng()<.5?0:1,fp=footprint('car_boxy',s.x,s.z,rot);if(inFront(fp,5))continue;cars.push({...s,rot,outside:true,wreck:true});solidsOut.push(fp);break;}
   const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes,...level.enemies,...(level.hazards??[])];
-  for(const room of [...rooms.slice(1),rooms[0]]){let placed=false;
-    for(let a=0;a<80&&!placed;a++){const rot=rng()<.5?0:1,fp=footprint('car_boxy',room.x+(rng()-.5)*(room.w-3),room.z+(rng()-.5)*(room.d-3),rot);
-      if(!rooms.some(r=>Math.abs(fp.x-r.x)<=r.w/2-fp.w/2-.9&&Math.abs(fp.z-r.z)<=r.d/2-fp.d/2-.9))continue;
-      if([...level.walls,...level.boxes].some(o=>rectsHit(fp,o,.9)))continue;
-      if(keep.some(o=>distToRect(o,fp)<(o===level.start?3:1.8)))continue;
-      const collider={x:+fp.x.toFixed(2),z:+fp.z.toFixed(2),w:fp.w,d:fp.d,h:TOWN_DIMS.car_boxy[1],town:'car_boxy',rot};
-      level.boxes.push(collider);if(reachable(level)){cars.push({x:collider.x,z:collider.z,rot,collider:true});placed=true;}else level.boxes.pop();}
-    if(cars.filter(c=>c.collider).length>=(low?1:2))break;}
+  // 5) no cars inside rooms any more: wrecks only stand outside the boundary as accents
   // 6) pines: forest boundary + a few yard trees; bushes hug the fences outside
   const treeN=trees.length+(low?22:48);
   for(let a=0;a<treeN*8&&trees.length<treeN;a++){const x=B.x0+rng()*(B.x1-B.x0),z=B.z0+rng()*(B.z1-B.z0),r={x,z,w:1.6,d:1.6};
@@ -120,7 +121,30 @@ export function townizeLevel(level){
       if(keep.some(o=>Math.hypot(o.x-x,o.z-z)<1.2))continue;P('weed_tuft',x,z,rng()*6.28,.7+rng()*.5);}}
   for(let a=0,n=0;a<900&&n<140;a++){const x=B.x0+rng()*(B.x1-B.x0),z=B.z0+rng()*(B.z1-B.z0);if(insideAny({x,z})||floors.some(f=>distToRect({x,z},f)<.3))continue;
     if(houses.some(h=>rectsHit({x,z,w:.1,d:.1},footprint(h.kind,h.x,h.z,h.rot),.1)))continue;P(rng()<.6?'grass_tuft_small':'grass_tuft_large',x,z,rng()*6.28,.8+rng()*.6);n++;}
-  level.area='town';level.town={tiles,fences,houses,lamps,busStop,cars,trees,props,boundary,bounds:B};
+  const T0={fences,houses,lamps,busStop,cars,trees,props};dropIntrusions(level,T0);
+  level.area='town';level.town={tiles,fences,houses,lamps,busStop:T0.busStop,cars,trees,props,boundary,bounds:B};
   return level;
 }
 const TILE_FENCE=TOWN_DIMS.fence_segment[0];
+
+// ---- visual props must never sit on walkable floor (doorways/openings stay visibly clear) ----
+const PASSABLE=new Set(['manhole','weed_tuft','grass_tuft_small','grass_tuft_large']);
+function visualRect(kind,x,z,ry=0,s=1,sz=null){const [w,,d]=TOWN_DIMS[kind]??[.5,1,.5];const q=Math.round(ry/(Math.PI/2)),snapped=Math.abs(ry-q*Math.PI/2)<.05;
+  const W=w*s,D=d*(sz??s);if(!snapped){const m=Math.max(W,D)*.8;return {x,z,w:m,d:m};}return Math.abs(q)%2?{x,z,w:D,d:W}:{x,z,w:W,d:D};}
+export function visualItems(T){const out=[];
+  for(const p of T.props)if(!PASSABLE.has(p.kind))out.push({ref:p,list:'props',r:visualRect(p.kind,p.x,p.z,p.ry,p.s,p.sz)});
+  for(const f of T.fences)out.push({ref:f,list:'fences',r:visualRect(f.kind,f.x,f.z,f.rot*Math.PI/2,1)});
+  for(const h of T.houses)out.push({ref:h,list:'houses',r:footprint(h.kind,h.x,h.z,h.rot)});
+  for(const c of T.cars)out.push({ref:c,list:'cars',r:footprint('car_boxy',c.x,c.z,c.rot)});
+  for(const t of T.trees)out.push({ref:t,list:'trees',r:{x:t.x,z:t.z,w:1.2*t.s,d:1.2*t.s}});
+  for(const l of T.lamps)out.push({ref:l,list:'lamps',r:{x:l.x,z:l.z,w:.3,d:.3}});
+  if(T.busStop)out.push({ref:T.busStop,list:'busStop',r:{x:T.busStop.x,z:T.busStop.z,w:3.4,d:3.4}});
+  return out;}
+// walkable = on a floor and not inside a wall/box collider
+export function intrudes(level,r,step=.15){const shrink=.06;
+  for(let x=r.x-r.w/2+shrink;x<=r.x+r.w/2-shrink;x+=step)for(let z=r.z-r.d/2+shrink;z<=r.z+r.d/2-shrink;z+=step){const p={x,z};
+    if(!level.floors.some(f=>Math.abs(p.x-f.x)<f.w/2-.05&&Math.abs(p.z-f.z)<f.d/2-.05))continue;
+    if([...level.walls,...level.boxes].some(o=>Math.abs(p.x-o.x)<o.w/2+.05&&Math.abs(p.z-o.z)<o.d/2+.05))continue;return true;}
+  return false;}
+function dropIntrusions(level,T){for(const it of visualItems(T)){if(!intrudes(level,it.r))continue;
+  if(it.list==='busStop')T.busStop=null;else{const a=T[it.list],i=a.indexOf(it.ref);if(i>=0)a.splice(i,1);}}}
