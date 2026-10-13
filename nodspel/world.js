@@ -1,12 +1,14 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.35.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings} from './art.js?v=1.36.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
   visual.holdRing.geometry.setDrawRange(0,Math.floor(fill*64)*6);
 }
 
-export function buildWorld(level,scene) {
+export function buildWorld(level,scene,{quality='high'}={}) {
+  const Q=qualitySettings(quality);
   const group=new THREE.Group();scene.add(group);
   const cube=new THREE.BoxGeometry(1,1,1),materials={};
   const material=color=>materials[color] ||= new THREE.MeshStandardMaterial({color,roughness:.82,metalness:.12});
@@ -14,23 +16,32 @@ export function buildWorld(level,scene) {
     const m=new THREE.Mesh(cube,material(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
   }
   for(const f of level.floors){
-    box(f.x,-.2,f.z,f.w,.4,f.d,level.theme?.floor??'#444f59');
-    box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,'#252e36');
+    box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
+    box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);
+    // panel floor: dark seams every 2 m + faint cyan trim line inset from the edges (theme tints the trim)
     const vertices=[];
-    for(let x=-f.w/2+1;x<f.w/2;x++)vertices.push(f.x+x,.006,f.z-f.d/2,f.x+x,.006,f.z+f.d/2);
-    for(let z=-f.d/2+1;z<f.d/2;z++)vertices.push(f.x-f.w/2,.006,f.z+z,f.x+f.w/2,.006,f.z+z);
+    for(let x=-f.w/2+2;x<f.w/2;x+=2)vertices.push(f.x+x,.006,f.z-f.d/2,f.x+x,.006,f.z+f.d/2);
+    for(let z=-f.d/2+2;z<f.d/2;z+=2)vertices.push(f.x-f.w/2,.006,f.z+z,f.x+f.w/2,.006,f.z+z);
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    group.add(new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:level.theme?.trim??'#6c7882',transparent:true,opacity:.2})));
+    group.add(new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:PALETTE.seam,transparent:true,opacity:.9})));
+    const i=.55,trim=[];const x0=f.x-f.w/2+i,x1=f.x+f.w/2-i,z0=f.z-f.d/2+i,z1=f.z+f.d/2-i;
+    trim.push(x0,.008,z0,x1,.008,z0, x1,.008,z0,x1,.008,z1, x1,.008,z1,x0,.008,z1, x0,.008,z1,x0,.008,z0);
+    const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.Float32BufferAttribute(trim,3));
+    group.add(new THREE.LineSegments(tg,new THREE.LineBasicMaterial({color:level.theme?.trim&&level.number>1?level.theme.trim:PALETTE.neon,transparent:true,opacity:.28,toneMapped:false})));
   }
   for(const b of [...level.walls,...level.boxes]){
-    box(b.x,b.h/2,b.z,b.w,b.h,b.d,level.boxes.includes(b)?'#667078':'#596771');
-    box(b.x,b.h+.025,b.z,b.w,.05,b.d,'#7a8990');
+    const isBox=level.boxes.includes(b);
+    box(b.x,b.h/2,b.z,b.w,b.h,b.d,isBox?PALETTE.box:PALETTE.wall);
+    box(b.x,b.h+.025,b.z,b.w,.05,b.d,PALETTE.wallTop);
+    // neon edge trim on top of walls / cover
+    const t=new THREE.Mesh(cube,glow(isBox?PALETTE.neonSoft:PALETTE.neon,isBox?.8:.9));t.position.set(b.x,b.h+.06,b.z);t.scale.set(Math.max(.06,b.w-.08),.03,Math.max(.06,b.d-.08));
+    if(b.w>b.d)t.scale.z=.07;else t.scale.x=.07;group.add(t);
   }
   const nodes=level.nodes.map(node=>{
     const g=new THREE.Group();g.position.set(node.x,0,node.z);group.add(g);
-    box(0,.1,0,1.9,.2,1.9,'#303b43',g);
-    box(0,.65,0,1.4,1,1.4,'#4f6068',g);
-    box(0,1.23,0,1.6,.16,1.6,'#79868b',g);
+    box(0,.1,0,1.9,.2,1.9,'#1c262d',g);
+    box(0,.65,0,1.4,1,1.4,'#34444c',g);
+    box(0,1.23,0,1.6,.16,1.6,'#56666d',g);
     const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4});
     const front=new THREE.Mesh(cube,coreMaterial);front.scale.set(.95,.7,.03);front.position.set(0,.69,.711);g.add(front);
     const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);
@@ -63,7 +74,8 @@ export function buildWorld(level,scene) {
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
     box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
-    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ff8d84'}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
+    const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#ff5a4f',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
+    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ff8d84',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     return {enemy,group:g};
   });
   const exitMaterial=new THREE.MeshStandardMaterial({color:'#b49b64',emissive:'#75cfcc',emissiveIntensity:0,roughness:.5});
@@ -88,6 +100,10 @@ export function buildWorld(level,scene) {
     if(t.state==='on'){v.mat.color.set('#ff3b1f');v.mat.opacity=.75;}
     else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
+  // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
+  const prng=rngFrom(`${level.seed}:props`),spots=propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
+  const props=spots.map(spot=>{const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
+  for(let k=0;k<Math.min(Q.lights,spots.length);k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose};
+  return {group,nodes,enemies,lootBoxes,addLoot,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots};
 }
