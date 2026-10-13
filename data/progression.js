@@ -84,12 +84,17 @@ window.DATA.progression.playerStats = {
   base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000 },
   clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000] },
   // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
+  // Three automatic skills (v1.41): they rise by playing, never need menus. Accessible: small, always-positive bonuses.
   skills:{
-    athletics:{ name:"Athletics", xpPerLevel:20, maxLevel:10, perLevel:{ speed:0.06, dashCooldownMs:-100 },
-      xp:{ perMetre:0.1, perDash:1 }, desc:"Walk and dash to move faster and dash more often." },
-    stealth:{ name:"Stealth", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
-      xp:{ perHoldNode:5 }, desc:"Charge nodes quietly by standing close; enemies notice you later." },
-    vitality:{ name:"Vitality", xpPerLevel:20, maxLevel:10, perLevel:{ maxHealth:5 },
-      xp:{ perDamage:0.1 }, desc:"Survive hits to raise your maximum health." }
-  }
+    mobility:{ name:"Mobility", icon:"🏃", xpPerLevel:20, maxLevel:10, perLevel:{ speed:0.06, dashCooldownMs:-100 },
+      xp:{ perMetre:0.1, perDash:1 }, desc:"Move and dash to run faster and dash more often." },
+    stealth:{ name:"Stealth", icon:"👁", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
+      xp:{ perHoldNode:5 }, desc:"Charge nodes up close; enemies notice you later." },
+    crafting:{ name:"Crafting", icon:"🔧", xpPerLevel:15, maxLevel:10, perLevel:{}, craftDiscountPerLevel:0.03,
+      xp:{ perCraft:6, perItemExtracted:1 }, desc:"Craft and bring loot home to pay less Scrap at the Fabricator." }
+  },
+  // Operator level adds a gentle speed bonus: +2% per level above 1, capped at +20%.
+  operatorSpeed:{ perLevel:0.02, cap:0.2 },
+  // Weapon mastery: kills with a weapon earn up to 3 stars; each star makes it reload/fire a bit faster.
+  weaponMastery:{ killsForStar:[10, 30, 75], perStar:{ rld:-0.06, int:-0.04 } }
 };

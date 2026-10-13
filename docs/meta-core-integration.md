@@ -234,7 +234,17 @@ RaidResult har nu `skills: {distanceM, dashes, holdNodes, damageTaken}` samt `st
 Basen visar ett **Operator**-kort i raid-prep med stats, skill-nivåer/XP och den gear som riskeras.
 Bond-XP (BIT) är oförändrad och separat.
 
-## 11. Vapen och förbrukningsvaror i Node Raid (v1.40.5)
+### 10b. Operatörsprogression (v1.41.0)
+- **Tre automatiska skills:**
+  - **Mobility** ersätter Athletics. Den ger samma XP och samma effekt, och gamla sparfiler migreras.
+  - **Stealth** är oförändrad.
+  - **Crafting** är ny. Den ger 1 XP per hemfört item vid extract och 6 XP per craft, och ger −3 % Scrap-kostnad i Fabricator per nivå (max −30 %).
+  - Vitality är borttagen, så HP kommer nu bara från gear.
+- **Operatörsnivå:** +2 % speed per nivå över 1, max +20 % (`playerStats.operatorSpeed`). Bonusen räknas före clamp.
+- **Vapenmästerskap:** kills per vapen (`RaidResult.enemiesDefeated` + `weapon`) ger stjärnor vid 10, 30 och 75 kills. Varje stjärna ger −6 % reload och −4 % skottintervall och skickas via `?w=`. Core clampar som tidigare.
+- **Operatörspanel:** öppnas genom att trycka på LV-pillret i topbaren eller på Operator-kortet i raid-prep. Den visar nivå, speed-bonus, skills med progressbar och stjärnor per vapen.
+
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.41.0)
 
 **Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
 

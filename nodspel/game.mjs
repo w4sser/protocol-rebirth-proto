@@ -1,31 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad} from './town.js?v=1.40.5';
-import {setArea} from './levels.js?v=1.40.5';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.5';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.5';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.5';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf} from './round.js?v=1.40.5';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.5';
-import {buildWorld,setNodeHold} from './world.js?v=1.40.5';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.5';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.5';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.5';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.5';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.5';
-// import {stepScavenging} from './scavenging.js?v=1.40.5';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.5';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.5';
-import {routeComplete} from './objectives.js?v=1.40.5';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.5';
-import {createBIT,stepBIT} from './bit.js?v=1.40.5';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.5';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.5';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.5';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.5';
+import {loadTownAssets,townLoad} from './town.js?v=1.41.0';
+import {setArea} from './levels.js?v=1.41.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.41.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.41.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.41.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf} from './round.js?v=1.41.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.41.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.41.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.41.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.41.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.41.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.41.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.41.0';
+// import {stepScavenging} from './scavenging.js?v=1.41.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.41.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.41.0';
+import {routeComplete} from './objectives.js?v=1.41.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.41.0';
+import {createBIT,stepBIT} from './bit.js?v=1.41.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.41.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.41.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.41.0';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.41.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.40.5');
+const orderResponse=await fetch('./order.json?v=1.41.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -61,8 +61,8 @@ let TOWN=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.5',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.40.5',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.41.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.41.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(AREA_SEL==='town'){scene.background.set('#04080b');scene.fog.color.set('#04080b');scene.fog.near=30;scene.fog.far=60;
@@ -387,7 +387,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.5');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.41.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';

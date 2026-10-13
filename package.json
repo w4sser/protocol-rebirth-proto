@@ -1,9 +1,9 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "1.40.5",
+  "version": "1.41.0",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator",
     "test:weapons": "node test/weapons.test.js",
     "test:logic": "node test/logic.test.js",
     "test:ui": "node test/ui.test.js",
@@ -14,7 +14,8 @@
     "test:overlays": "node test/base-overlays.test.js",
     "test:economy": "node test/economy.test.js",
     "test:area": "node test/area.test.js",
-    "test:export": "node test/export.test.js"
+    "test:export": "node test/export.test.js",
+    "test:operator": "node test/operator.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"
