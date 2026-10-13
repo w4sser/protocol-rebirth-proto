@@ -20,3 +20,14 @@ test('full bag signals once per approach and swap drops a revealed item on the g
   assert.equal(box.collected,true);assert.equal(r.bag[drop],before-1);assert.equal(Object.values(r.bag).reduce((a,b)=>a+b,0),RULES.loot.capacity);
   assert.equal(swapLoot(r,box.id,'fuse',6),null,'cannot swap twice');
 });
+
+// v1.40.5: bag capacity comes from meta (?bag=) and is clamped 4..10
+import {readLaunch as _rl} from '../raid-result.js';
+import {createRound as _cr,collectLoot as _cl,bagCapacityOf as _bc} from '../round.js';
+test('bag capacity from launch params raises the full threshold',()=>{
+  assert.equal(_rl('?bag=7').bag,7);assert.equal(_rl('?bag=99').bag,10);assert.equal(_rl('?bag=1').bag,4);assert.equal(_rl('').bag,4);
+  const r=_cr('bagcap',0,{bagCapacity:6});assert.equal(_bc(r),6);
+  const boxes=r.level.lootBoxes.filter(b=>b.item!=='ammo_pack');let n=0;
+  for(const b of boxes){_cl(r,{x:b.x,z:b.z},1,null);if(b.collected)n++;if(n>=7)break;}
+  assert.equal(Object.values(r.bag).reduce((a,b)=>a+b,0),Math.min(6,boxes.length),'bag fills to 6, not 4');
+});

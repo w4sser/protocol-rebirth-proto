@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.40.4"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.40.5"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1347,7 +1347,8 @@ function operatorRowHtml(gear){
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact"><div class="ostats">' +
     chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") + '</div>' +
+    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
+    chip("🎒", "Bag", raidBagCapacity(gear) + " slots") + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') + '</div></div>';
 }
 function gearRiskHtml(gear){
@@ -1678,6 +1679,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
+    (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "");
 }
@@ -1697,6 +1699,13 @@ function playerStats(gear){
   for(const g of (gear || [])) for(const s in ((ITEMS[g] && ITEMS[g].stats) || {})) st[s] += ITEMS[g].stats[s];
   for(const s in st) st[s] = Math.round(clampStat(s, st[s]) * 1000) / 1000;
   return st;
+}
+// Node Raid bag capacity: base + built modules + armour pockets (data/progression.js → raidBag, items.bagSlots).
+function raidBagCapacity(gear){
+  const B = PROG.raidBag; let n = B.base;
+  for(const m in B.modules) if((S.modules[m] || 0) >= 1) n += B.modules[m];
+  for(const g of (gear || [])) n += (ITEMS[g] && ITEMS[g].bagSlots) || 0;
+  return Math.min(B.max, n);
 }
 function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
 const FREE_WEAPON = PROG.freeWeapon;
@@ -2034,7 +2043,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, area: raidArea() }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, bag: raidBagCapacity(gear), area: raidArea() }));
   },
   deploy(){
     if(!session.prep) return;
@@ -2549,4 +2558,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { raidBagCapacity, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
