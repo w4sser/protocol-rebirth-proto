@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.41.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.41.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.41.1" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.41.1">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -473,6 +473,20 @@
   .ptarget i{font-style:normal; font-size:24px;} .ptarget small{display:block; font:800 12px "Archivo",sans-serif; letter-spacing:.08em; color:var(--dim);} .ptarget b{font-size:15px;}
   .deploybar{position:sticky; bottom:0; z-index:10; padding:6px 0 4px; background:linear-gradient(transparent,var(--bg) 30%);}
   .deploybar button.primary.big{margin:0;}
+  /* PRB-9: readable checkpoint */
+  .cp-haul{margin:6px 0;} .cp-haulhead{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .cp-value{font-size:30px; color:var(--warn,#ffb547); line-height:1;} .cp-value small{font-size:14px; opacity:.8;}
+  .cp-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .cp-chip{display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:8px; border:1px solid var(--line); border-left:4px solid #d6dde0; font-size:13px; background:rgba(255,255,255,.04);}
+  .cp-chip.r-uncommon{border-left-color:#3ddc6a} .cp-chip.r-rare{border-left-color:#3d8bff} .cp-chip.r-epic{border-left-color:#b05cff} .cp-chip.r-legendary{border-left-color:#ffc12e}
+  .cp-chip.tracked{outline:1px solid var(--track);} .cp-chip i{font-style:normal;}
+  .cp-choices{display:grid!important; grid-template-columns:1fr 1fr; gap:8px; align-items:stretch;}
+  .cp-choices>button{margin:0!important; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-height:64px;}
+  .cp-choices>button b{font-size:17px; letter-spacing:.5px;} .cp-choices>button span{font-size:12px;}
+  .cp-push{border-color:var(--danger)!important; color:var(--danger)!important;}
+  .cp-risk{letter-spacing:1px;} .cp-risk i{opacity:.25; font-style:normal;}
+  .cp-note{grid-column:1/-1; text-align:center; margin:0;}
+  @media (orientation:landscape) and (max-height:480px){ .cp-wrap{display:grid; grid-template-columns:1.2fr 1fr; gap:10px; align-items:start;} .cp-choices{grid-template-columns:1fr;} .s-decision .sub{margin-bottom:2px} }
   /* Operator panel (v1.41) */
   button.cur.oplvl{font:inherit; color:inherit; cursor:pointer;}
   .opgrid{display:grid; grid-template-columns:1fr; gap:8px;}
@@ -632,13 +646,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.41.0</div>
+    <div id="app-version">v1.41.1</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu" role="menu" hidden>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.41.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.41.1</span></div>
     </div>
   </div>
   <div id="main">
@@ -653,15 +667,15 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.41.0"></script>
-<script src="data/modules.js?v=1.41.0"></script>
-<script src="data/bit.js?v=1.41.0"></script>
-<script src="data/raid_zones.js?v=1.41.0"></script>
-<script src="data/recipes.js?v=1.41.0"></script>
-<script src="data/vendors.js?v=1.41.0"></script>
-<script src="data/retention.js?v=1.41.0"></script>
-<script src="data/progression.js?v=1.41.0"></script>
-<script src="data/combat.js?v=1.41.0"></script>
-<script src="app.js?v=1.41.0"></script>
+<script src="data/items.js?v=1.41.1"></script>
+<script src="data/modules.js?v=1.41.1"></script>
+<script src="data/bit.js?v=1.41.1"></script>
+<script src="data/raid_zones.js?v=1.41.1"></script>
+<script src="data/recipes.js?v=1.41.1"></script>
+<script src="data/vendors.js?v=1.41.1"></script>
+<script src="data/retention.js?v=1.41.1"></script>
+<script src="data/progression.js?v=1.41.1"></script>
+<script src="data/combat.js?v=1.41.1"></script>
+<script src="app.js?v=1.41.1"></script>
 </body>
 </html>

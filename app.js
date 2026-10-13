@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.41.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.41.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1430,24 +1430,19 @@ SCREENS.checkpoint = function(){
     '<div class="sub">' + esc(zone.name) + ' — ' + esc(route.name) + ' · danger <span class="warn">' + dangerLabel + '</span></div>';
   html += '<div class="dangerbar"><div style="width:' + Math.round(dangerTier/rd.plan.n*100) + '%"></div></div>';
 
-  // In the bag (unsecured)
-  html += '<h2>In your bag — not yet secured</h2>';
-  if(!rd.haul.length) html += '<div class="card small">Empty so far.</div>';
-  for(const id of rd.haul){
-    const fl = R.cfg.trackedItemId === id;
-    html += '<div class="card row" style="padding:6px 10px"><span' + (fl?' class="trackc"':'') + '>' + (fl?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
-      (fl?'<span class="trackc small">tracked</span>':'<span class="small">' + (ITEMS[id].sellValue||0) + '</span>') + '</div>';
-  }
-  html += '<div class="kv"><span>Haul value at risk</span><span class="warn">' + haulVal + ' + ' + rd.scrap + ' Scrap</span></div>';
-
-  // The two choices
-  html += '<div class="decision-actions"><button class="primary" onclick="A.extractNow()">EXTRACT NOW — SECURE ' + haulVal + '</button>' +
-    '<div class="small" style="text-align:center;margin:2px 0 8px">Bank everything above. High chance you make it home.</div>';
-
-  const deathTxt = bondLevel() >= 2 ? Math.round(pushDeath*100) + "% chance you don't come back" : "a real chance you don't come back";
-  const deeperTxt = deeperLabel ? '<br>Higher chance of finding ' + esc(ITEMS[miss.itemId].name) + ' deeper (' + deeperLabel + ')' : '';
-  html += '<button class="ghost" style="border-color:var(--danger);color:var(--danger)" onclick="A.pushDeeper()">PUSH DEEPER ›</button>' +
-    '<div class="small" style="text-align:center;margin-top:2px">More loot' + (stagesLeft>0? ' · '+stagesLeft+' area'+(stagesLeft>1?'s':'')+' left':'') + ' · ' + deathTxt + deeperTxt + '<br>Die deeper and you lose the haul above.</div></div>';
+  // PRB-9: haul is the visual hero (icon chips + one big number); the two choices sit side by side with a risk meter.
+  const riskPct = Math.round(pushDeath * 100), riskBars = Math.max(1, Math.min(5, Math.ceil(pushDeath * 10)));
+  html += '<div class="cp-wrap"><div class="cp-haul card"><div class="cp-haulhead"><span class="small">IN YOUR BAG · NOT SECURED</span><b class="cp-value">' + haulVal + '<small> + ' + rd.scrap + ' ⚙</small></b></div><div class="cp-chips">' +
+    (rd.haul.length ? rd.haul.map(id => { const fl = R.cfg.trackedItemId === id;
+      return '<span class="cp-chip r-' + ITEMS[id].rarity + (fl ? ' tracked' : '') + '" title="' + esc(ITEMS[id].name) + '"><i aria-hidden="true">' + itemIcon(id) + '</i>' + esc(ITEMS[id].name) + (fl ? ' ◉' : '') + '</span>'; }).join('') : '<span class="small">Empty so far</span>') +
+    '</div></div>';
+  html += '<div class="decision-actions cp-choices">' +
+    '<button class="primary cp-extract" onclick="A.extractNow()"><b>EXTRACT</b><span>🔒 Keep ' + haulVal + '</span></button>' +
+    '<button class="ghost cp-push" onclick="A.pushDeeper()"><b>PUSH DEEPER ›</b><span class="cp-risk" aria-label="Risk ' + (bondLevel() >= 2 ? riskPct + '%' : dangerLabel) + '">' +
+      '☠ ' + '▮'.repeat(riskBars) + '<i>' + '▮'.repeat(5 - riskBars) + '</i>' + (bondLevel() >= 2 ? ' ' + riskPct + '%' : '') + '</span>' +
+      '<span>+ more loot' + (stagesLeft > 0 ? ' · ' + stagesLeft + ' left' : '') + '</span>' +
+      (deeperLabel ? '<span class="trackc">◉ ' + esc(ITEMS[miss.itemId].name) + ' likelier</span>' : '') + '</button>' +
+    '<div class="small cp-note">Die deeper → lose the bag.</div></div></div>';
   $app().innerHTML = html;
 };
 
@@ -2155,7 +2150,7 @@ window.A = {
     const stagesLeft = rd.plan.n - (rd.stage + 1);
     if(stagesLeft <= 0){ finalizeStaged("extract"); return; }  // last stage — auto-extract
     log("CHECKPOINT_REACHED", { stage: rd.stage+1, of: rd.plan.n, haulValue: lootValue(rd.haul),
-      dangerTier: rd.stage+1, trackedMissing: !!trackedMissingItem() && !rd.haul.includes((trackedMissingItem()||{}).itemId), mode: retMode() });
+      dangerTier: rd.stage+1, riskShown: rd.plan.pushDeath[Math.min(rd.stage, rd.plan.pushDeath.length-1)], haulItems: rd.haul.length, trackedMissing: !!trackedMissingItem() && !rd.haul.includes((trackedMissingItem()||{}).itemId), mode: retMode() });
     save();
     session.screen = "checkpoint"; renderCurrencies();
     SCREENS.checkpoint();
