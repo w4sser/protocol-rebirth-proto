@@ -1353,7 +1353,8 @@ function operatorRowHtml(gear){
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
     chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") + '</div>' +
+    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
+    chip("🎒", "Bag slots", raidBagCapacity(gear)) + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
     '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
 }
@@ -1516,7 +1517,7 @@ SCREENS.operator = function(){
     const nx = masteryNext(w.id);
     return '<div class="kv"><span>' + itemIcon(w.id) + ' ' + esc(w.name) + '</span><span>' + starsHtml(w.id) + ' <small class="muted">' + (nx === null ? 'mastered' : masteryKills(w.id) + '/' + nx + ' kills') + '</small></span></div>';
   }).join('') + '<div class="small muted">Each star: faster reload and fire rate.</div></div>';
-  html += '</div><div class="actionbar"><button class="ghost" onclick="A.go(\'base\')">BACK</button></div>';
+  html += '</div>';
   $app().innerHTML = html;
 };
 
@@ -1751,6 +1752,13 @@ function masteryStars(id, kills){
 }
 function masteryNext(id){ const t = PROG.playerStats.weaponMastery.killsForStar; return t[masteryStars(id)] ?? null; }
 function starsHtml(id){ const n = masteryStars(id); return '<span class="stars" aria-label="' + n + ' of 3 mastery stars">' + "★".repeat(n) + '<i>' + "★".repeat(3 - n) + '</i></span>'; }
+// Node Raid bag capacity: base + built modules + armour pockets (data/progression.js → raidBag, items.bagSlots).
+function raidBagCapacity(gear){
+  const B = PROG.raidBag; let n = B.base;
+  for(const m in B.modules) if((S.modules[m] || 0) >= 1) n += B.modules[m];
+  for(const g of (gear || [])) n += (ITEMS[g] && ITEMS[g].bagSlots) || 0;
+  return Math.min(B.max, n);
+}
 function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
 const FREE_WEAPON = PROG.freeWeapon;
 // Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
@@ -2614,4 +2622,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };

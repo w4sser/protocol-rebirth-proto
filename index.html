@@ -484,7 +484,7 @@
   .skillrow small{display:block; opacity:.75;}
   .stars{color:#ffc94a; letter-spacing:2px;} .stars i{color:rgba(255,255,255,.2); font-style:normal;}
   .muted{opacity:.6;}
-  @media (orientation:landscape) and (max-height:480px){ .opgrid{grid-template-columns:1fr 1.4fr 1.2fr;} #app.s-operator{padding-bottom:12px;} }
+  @media (orientation:landscape) and (max-height:480px){ .opgrid{grid-template-columns:1fr 1.4fr 1.2fr;} #app.s-operator{padding-bottom:12px;} .skillrow small{display:none;} .skillrow{margin:4px 0;} }
   /* PRB-45/46: primary actions pinned to the bottom of the scroll area on every screen */
   .actionbar{position:sticky; bottom:0; z-index:10; padding:8px 0 4px; background:linear-gradient(transparent,var(--bg) 30%);}
   #overlay .inner.payoff>button.primary[data-close]{position:sticky; bottom:0; z-index:2; box-shadow:0 -10px 16px rgba(4,7,10,.93);}
@@ -617,6 +617,8 @@
      only UI chrome is inset by the safe area (both landscape orientations, min 12 px on touch). */
   html,body{background:var(--bg)}
   #topbar{padding-left:calc(10px + var(--sl))!important;padding-right:calc(10px + var(--sr))!important}
+  #app:not(.s-base):not(.s-prep){padding-left:calc(16px + var(--sl))!important;padding-right:calc(16px + var(--sr))!important}
+  #app.s-prep{padding-left:calc(8px + var(--sl))!important;padding-right:calc(8px + var(--sr))!important;box-sizing:border-box;width:100%}
   #tabs{padding-left:calc(10px + var(--sl))!important;padding-right:calc(10px + var(--sr))!important}
   #overlay{padding-left:var(--sl)!important;padding-right:var(--sr)!important;padding-top:var(--st);padding-bottom:var(--sb);box-sizing:border-box}
   #bitdock{margin-left:var(--sl)}body[data-screen=prep] #bitdock{margin-left:0;margin-right:var(--sr)}
