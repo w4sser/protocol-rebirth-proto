@@ -18,7 +18,7 @@ export function rngFrom(seed){let s=2166136261;for(const c of String(seed))s=Mat
   return()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 // Glow materials: unlit + not tone-mapped so they read as neon without a bloom pass.
 const glowCache={};
-export function glow(color,opacity=1){const k=color+opacity;return glowCache[k] ||= new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,toneMapped:false,depthWrite:opacity>=1});}
+export function glow(color,opacity=1){const k=color+opacity;if(!glowCache[k]){glowCache[k]=new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,toneMapped:false,depthWrite:opacity>=1});glowCache[k].userData.shared=true;}return glowCache[k];}
 // Free spots for props: inside floors, hugging walls/edges, clear of gameplay objects.
 export function propSpots(level,rng,count){
   const blockers=[...level.nodes.map(n=>[n.x,n.z,2.6]),...level.lootBoxes.map(l=>[l.x,l.z,1.6]),...level.enemies.map(e=>[e.x,e.z,1.8]),
