@@ -1,0 +1,255 @@
+{
+  "kit": "Protocol Rebirth \u2014 Abandoned Town Starter Kit v0.1",
+  "units": "1 unit = 1 meter",
+  "up_axis": "Y",
+  "origin": "ground contact at center of footprint",
+  "camera": "isometric, matching gameplay reference",
+  "palette": {
+    "red_siding": [
+      0.36,
+      0.105,
+      0.1,
+      1
+    ],
+    "yellow_siding": [
+      0.55,
+      0.39,
+      0.16,
+      1
+    ],
+    "wood_dark": [
+      0.2,
+      0.13,
+      0.1,
+      1
+    ],
+    "wood_mid": [
+      0.3,
+      0.22,
+      0.16,
+      1
+    ],
+    "roof": [
+      0.105,
+      0.13,
+      0.17,
+      1
+    ],
+    "roof_edge": [
+      0.15,
+      0.18,
+      0.21,
+      1
+    ],
+    "concrete": [
+      0.3,
+      0.34,
+      0.36,
+      1
+    ],
+    "concrete_light": [
+      0.4,
+      0.42,
+      0.4,
+      1
+    ],
+    "asphalt": [
+      0.105,
+      0.13,
+      0.15,
+      1
+    ],
+    "sidewalk": [
+      0.31,
+      0.33,
+      0.32,
+      1
+    ],
+    "grass": [
+      0.105,
+      0.18,
+      0.12,
+      1
+    ],
+    "grass_light": [
+      0.18,
+      0.25,
+      0.15,
+      1
+    ],
+    "pine_dark": [
+      0.075,
+      0.16,
+      0.13,
+      1
+    ],
+    "pine_mid": [
+      0.12,
+      0.25,
+      0.18,
+      1
+    ],
+    "pine_light": [
+      0.2,
+      0.31,
+      0.2,
+      1
+    ],
+    "bark": [
+      0.2,
+      0.15,
+      0.11,
+      1
+    ],
+    "car_blue": [
+      0.13,
+      0.22,
+      0.27,
+      1
+    ],
+    "car_rust": [
+      0.29,
+      0.17,
+      0.12,
+      1
+    ],
+    "rubber": [
+      0.035,
+      0.045,
+      0.05,
+      1
+    ],
+    "glass": [
+      0.2,
+      0.34,
+      0.37,
+      1
+    ],
+    "metal": [
+      0.26,
+      0.31,
+      0.33,
+      1
+    ],
+    "metal_dark": [
+      0.12,
+      0.16,
+      0.18,
+      1
+    ],
+    "lamp_glow": [
+      0.95,
+      0.57,
+      0.2,
+      1
+    ],
+    "window_glow": [
+      0.9,
+      0.58,
+      0.27,
+      1
+    ],
+    "white": [
+      0.66,
+      0.66,
+      0.57,
+      1
+    ],
+    "shadow": [
+      0.07,
+      0.09,
+      0.1,
+      1
+    ]
+  },
+  "assets": [
+    {
+      "file": "house_red.glb",
+      "category": "building",
+      "approx_dimensions_m": [
+        6,
+        4.1,
+        5.7
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "large; blocks movement; cover"
+    },
+    {
+      "file": "house_yellow.glb",
+      "category": "building",
+      "approx_dimensions_m": [
+        6,
+        4.1,
+        5.7
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "large; blocks movement; cover"
+    },
+    {
+      "file": "fence_segment.glb",
+      "category": "fence",
+      "approx_dimensions_m": [
+        2,
+        1.2,
+        0.6
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "1.2 m high; blocks movement"
+    },
+    {
+      "file": "car_boxy.glb",
+      "category": "cover",
+      "approx_dimensions_m": [
+        4.5,
+        1.65,
+        1.95
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; cover"
+    },
+    {
+      "file": "pine_tree.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        2.3,
+        3.7,
+        2.3
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; forest boundary"
+    },
+    {
+      "file": "tile_asphalt.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.08,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m tile; passable"
+    },
+    {
+      "file": "tile_sidewalk.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.08,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m tile; passable"
+    },
+    {
+      "file": "tile_grass.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.08,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m tile; passable"
+    }
+  ]
+}

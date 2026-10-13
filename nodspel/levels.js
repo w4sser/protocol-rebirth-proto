@@ -1,3 +1,4 @@
+import {townizeLevel} from './town-layout.js?v=1.38.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -62,7 +63,10 @@ export function pickWeighted(weights,roll){
   let r=roll*total;for(const [id,w] of entries){r-=w;if(r<0)return id;}
   return entries.at(-1)[0];
 }
-export function generateLevel(number,roundSeed){
+let AREA='bunker';
+export const AREAS=['bunker','town'];
+export function setArea(a){AREA=AREAS.includes(a)?a:'bunker';return AREA;}
+export function generateLevel(number,roundSeed,area=AREA){
   const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Level must be 1, 2 or 3.');
   const seed=`${roundSeed}:${number}`,rng=randomFromSeed(seed);
   const suffix=String(roundSeed).match(/-(\d+)$/),choiceRng=randomFromSeed(`${roundSeed}:choices`);
@@ -157,7 +161,9 @@ export function generateLevel(number,roundSeed){
     {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
-  return decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+  const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+  if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;}
+  return level;
 }
 
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.
