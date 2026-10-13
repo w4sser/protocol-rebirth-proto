@@ -1,8 +1,8 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {TOWN_DIMS} from './town-layout.js?v=1.40.0';
-import {HOUSE_KINDS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.40.0';
+import {TOWN_DIMS} from './town-layout.js?v=1.40.1';
+import {HOUSE_KINDS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.40.1';
 export const TOWN_KINDS=Object.keys(TOWN_DIMS);
 let cache=null;
 // Loads once per page; geometries/materials are flagged shared so world.dispose() never frees them.
@@ -10,7 +10,7 @@ export function loadTownAssets(base){
   if(cache)return cache;
   const loader=new GLTFLoader();
   const load=async (kind,dir='')=>{
-    const g=await loader.loadAsync(new URL(`${dir}${kind}.glb?v=1.40.0`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
+    const g=await loader.loadAsync(new URL(`${dir}${kind}.glb?v=1.40.1`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
     // some kit origins float above the ground: drop every asset so its lowest point sits at y=0
     const lift=-new THREE.Box3().setFromObject(g.scene).min.y,shift=new THREE.Matrix4().makeTranslation(0,lift,0);
     g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;

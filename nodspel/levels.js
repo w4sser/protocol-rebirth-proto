@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.40.0';
+import {townizeLevel} from './town-layout.js?v=1.40.1';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -21,8 +21,8 @@ export const RULES=Object.freeze({
     types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core'],
     weights:[
       {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},
-      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1},
-      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:1,ai_fragment:1,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1}],
+      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1}],
     pickupRadius:1.6},
   // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
   enemyTypes:{
@@ -63,6 +63,12 @@ export function pickWeighted(weights,roll){
   let r=roll*total;for(const [id,w] of entries){r-=w;if(r<0)return id;}
   return entries.at(-1)[0];
 }
+// House containers (Town): medicine cabinet = medkit; the crate is the guaranteed Core-upgrade path
+// (level 3: always a power relay, level 2: 40 %), the rest roll from the level table.
+export const HOUSE_LOOT={crateRelay:[0,.4,1]};
+export function houseItem(kind,number,roll){if(kind==='medicine_cabinet')return 'medkit';
+  if(kind==='loot_crate'&&roll<HOUSE_LOOT.crateRelay[number-1])return 'power_relay';
+  return pickWeighted(RULES.loot.weights[number-1],kind==='loot_crate'?(roll-HOUSE_LOOT.crateRelay[number-1])/(1-HOUSE_LOOT.crateRelay[number-1]||1):roll);}
 let AREA='bunker';
 export const AREAS=['bunker','town'];
 export function setArea(a){AREA=AREAS.includes(a)?a:'bunker';return AREA;}
@@ -164,7 +170,7 @@ export function generateLevel(number,roundSeed,area=AREA){
   const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
-    if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=c.kind==='medicine_cabinet'?'medkit':pickWeighted(RULES.loot.weights[number-1],hr());}}
+    if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr());}}
   return level;
 }
 

@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { RULES } from "../nodspel/levels.js";
+import { RULES, generateLevel, HOUSE_LOOT } from "../nodspel/levels.js";
 import { ITEM_NAMES } from "../nodspel/raid.js";
 const ctx = { window:{} }; vm.createContext(ctx);
 for(const f of ["items","modules","recipes","vendors","progression"]) vm.runInContext(readFileSync(new URL("../data/" + f + ".js", import.meta.url), "utf8"), ctx);
@@ -31,4 +31,20 @@ for(const r of D.recipes) for(const id in r.inputs)
 // FTUE vault blocker regression: the exact items the owner got stuck on.
 for(const id of ["polymer_plate","servo"]) assert(coreDrops.has(id));
 assert(RULES.loot.weights[0].polymer_plate > 0 && RULES.loot.weights[0].servo > 0, "vault parts already drop on level one");
+// Simulated drops in BOTH areas, every level (Town adds house containers). Owner blocker: Power Relay for Core L2.
+const coreL2 = D.modules.find(m => /core/i.test(m.id)).levels.filter(l => l.level <= 2).flatMap(l => Object.keys(l.cost.items || {}));
+const RUNS = 150, seen = {};
+for(const area of ["bunker","town"]){ const got = {}; seen[area] = got;
+  for(let i = 0; i < RUNS; i++) for(const n of [1,2,3]){ const L = generateLevel(n, "cov" + i, area);
+    const items = [...L.lootBoxes.map(b => b.item), ...(L.house ? L.house.containers.map(c => c.item) : [])];
+    for(const id of new Set(items)){ got[id] = (got[id] || 0) + 1; }
+    if(area === "town"){ assert(L.house, "every Town level has a house"); for(const c of L.house.containers) assert(RULES.loot.types.includes(c.item), "house item fits the bag: " + c.item); } } }
+for(const area in seen) for(const id of needItems) assert(seen[area][id] > 0, area + ": " + id + " never dropped in " + RUNS + " simulated runs");
+for(const id of coreL2) assert(RULES.loot.weights[1][id] > 0 || id === "power_cell" || id === "scrap_alloy" || RULES.loot.weights[0][id] > 0, "Core L2 part " + id + " drops by level 2");
+assert(RULES.loot.weights[1].power_relay > 0 && RULES.loot.weights[2].power_relay >= 3, "Power Relay drops on levels 2 and 3");
+assert.equal(HOUSE_LOOT.crateRelay[2], 1, "Town level-3 house crate always holds a Power Relay");
+const relayRate = a => seen[a].power_relay / RUNS;
+assert(relayRate("bunker") >= .25, "bunker Power Relay rate per full run " + relayRate("bunker"));
+assert(relayRate("town") >= 1, "town: guaranteed Power Relay per full run");
+console.log("LOOT RATES — Power Relay per full run: bunker " + relayRate("bunker").toFixed(2) + ", town ≥1; AI fragment bunker " + (seen.bunker.ai_fragment / RUNS).toFixed(2));
 console.log("LOOT COVERAGE PASSED — " + needItems.size + " repair items, " + needCur.size + " currencies covered by Node Raid");
