@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.37.1';
-import {traceTargets} from './physics.mjs?v=1.37.1';
-import {tickRound} from './round.js?v=1.37.1';
+import {RULES} from './levels.js?v=1.38.0';
+import {traceTargets} from './physics.mjs?v=1.38.0';
+import {tickRound} from './round.js?v=1.38.0';
 export function stepScavenging(weapon,round,position,now,obstacles,{moving=false,hit=false}={}){
   tickRound(round,now);
   const rule=RULES.resources,hold=weapon.scavenging;

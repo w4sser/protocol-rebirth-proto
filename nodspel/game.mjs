@@ -1,28 +1,30 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.37.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.37.1';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.37.1';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.37.1';
-import {buildWorld,setNodeHold} from './world.js?v=1.37.1';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.37.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.37.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.37.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.37.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.37.1';
-// import {stepScavenging} from './scavenging.js?v=1.37.1';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.37.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.37.1';
-import {routeComplete} from './objectives.js?v=1.37.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.37.1';
-import {createBIT,stepBIT} from './bit.js?v=1.37.1';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.37.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.37.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.37.1';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.37.1';
+import {loadTownAssets} from './town.js?v=1.38.0';
+import {setArea} from './levels.js?v=1.38.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.38.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.38.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.38.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.38.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.38.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.38.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.38.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.38.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.38.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.38.0';
+// import {stepScavenging} from './scavenging.js?v=1.38.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.38.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.38.0';
+import {routeComplete} from './objectives.js?v=1.38.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.38.0';
+import {createBIT,stepBIT} from './bit.js?v=1.38.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.38.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.38.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.38.0';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.38.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.37.1');
+const orderResponse=await fetch('./order.json?v=1.38.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -47,9 +49,18 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFi
 $('#game').appendChild(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-20,20,6,-6,.1,100);
 const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(17,23,17);
-scene.add(new THREE.HemisphereLight('#a9d4e6','#0d1a20',1.7));
+const hemi=new THREE.HemisphereLight('#a9d4e6','#0d1a20',1.7);scene.add(hemi);
 const sun=new THREE.DirectionalLight('#dff3ff',2.3);sun.castShadow=QS.shadows;sun.shadow.mapSize.set(QS.shadowMap,QS.shadowMap);
 Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:50});sun.shadow.normalBias=.045;scene.add(sun,sun.target);
+// Area: ?area=town|bunker (remembered in localStorage 'nr_area'); bunker is the default.
+const AREA_PARAM=new URLSearchParams(location.search).get('area');
+let AREA_SEL=AREA_PARAM||(()=>{try{return localStorage.getItem('nr_area');}catch{return null;}})()||'bunker';
+if(AREA_PARAM){try{localStorage.setItem('nr_area',AREA_PARAM);}catch{}}
+let TOWN=null;
+if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));}catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';}}
+setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
+if(AREA_SEL==='town'){scene.background.set('#04080b');scene.fog.color.set('#04080b');scene.fog.near=30;scene.fog.far=60;
+  hemi.color.set('#7f9cc0');hemi.groundColor.set('#0a0f0c');hemi.intensity=.62;sun.color.set('#9ab4d8');sun.intensity=.85;renderer.toneMappingExposure=1.1;}
 
 const cube=new THREE.BoxGeometry(1,1,1),materials={};
 function box(x,y,z,w,h,d,color,parent){
@@ -196,7 +207,7 @@ function loadLevelInner(){
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
-  world=buildWorld(round.level,scene,{quality:QUALITY});$('#world-labels').replaceChildren();labels=[];routeLabels=[];
+  world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN});$('#world-labels').replaceChildren();labels=[];routeLabels=[];
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
   bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
@@ -355,7 +366,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.37.1');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.38.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
