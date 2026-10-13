@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+import {RARITY,RARITY_ORDER,RARITY_COLORS,rarityOf,updateReveal,lootColor,UNKNOWN_COLOR,REVEAL_RADIUS} from '../rarity.js';
+import {ITEM_NAMES} from '../raid.js';
+test('every raid item has a standard rarity',()=>{for(const id of Object.keys(ITEM_NAMES))assert.ok(RARITY_ORDER.includes(rarityOf(id)),id);});
+test('rarity mapping is sensible',()=>{assert.equal(rarityOf('scrap_alloy'),'common');assert.equal(rarityOf('power_cell'),'uncommon');assert.equal(rarityOf('data_core'),'rare');assert.equal(rarityOf('rifle_marksman'),'rare');assert.equal(rarityOf('ai_fragment'),'epic');assert.equal(rarityOf('neural_core'),'legendary');assert.equal(rarityOf('nope'),'common');});
+test('standard colors per tier',()=>{assert.deepEqual(Object.keys(RARITY_COLORS),RARITY_ORDER);});
+test('meta items.js rarity matches the raid map',()=>{const ctx={window:{}};vm.runInNewContext(fs.readFileSync(new URL('../../data/items.js',import.meta.url),'utf8'),ctx);
+  const items=ctx.window.DATA?.items??ctx.DATA?.items;assert.ok(items?.length);for(const it of items){assert.ok(RARITY_ORDER.includes(it.rarity),it.id);if(RARITY[it.id])assert.equal(it.rarity,RARITY[it.id],it.id);}});
+test('unknown until near, then reveal persists',()=>{const l={x:0,z:0,item:'neural_core'};
+  assert.equal(updateReveal(l,{x:10,z:0}),false);assert.equal(lootColor(l),UNKNOWN_COLOR);
+  assert.equal(updateReveal(l,{x:REVEAL_RADIUS-.1,z:0}),true);assert.equal(lootColor(l),RARITY_COLORS.legendary);
+  assert.equal(updateReveal(l,{x:0,z:0}),false,'burst fires once');assert.equal(updateReveal(l,{x:50,z:0}),false);assert.equal(l.revealed,true);});

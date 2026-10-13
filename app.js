@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.36.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.37.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -434,7 +434,7 @@ function resolveRaid(cfg){
 
   const scrap = randInt(zone.scrapRange[0], zone.scrapRange[1]);
   const dataCores = randInt(zone.dataCoresOnExtract[0], zone.dataCoresOnExtract[1]);
-  const valuableFound = loot.some(id => ITEMS[id].rarity === "protocol" || ITEMS[id].rarity === "valuable");
+  const valuableFound = loot.some(id => ITEMS[id].rarity === "epic" || ITEMS[id].rarity === "legendary");
   const R = { cfg, zone: zone.id, outcome, loot, scrap, dataCores, trackedFound, forced };
   // one meaningful mid-raid decision: only on live (unforced) successful raids with tracked/valuable loot
   R.decision = { eligible: outcome === "extract" && !forced && (trackedFound || valuableFound), resolved: false };
@@ -1137,7 +1137,7 @@ SCREENS.itemDetail = function(id){
     const next = nextLevelDef(m.id);
     if(next && next.cost.items && next.cost.items[id]) neededFor.push(m.name + " L" + next.level);
   }
-  let html =     '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · ' + esc(it.rarity) + ' · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
+  let html =     '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span> · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
     '<div class="card small">' + esc(it.desc) + '</div>';
   if(isFree(id)){
     $app().innerHTML = html + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or dropped.</div>';
