@@ -41,7 +41,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .kit-btn{position:absolute;z-index:3;left:max(14px,0px);top:calc(max(12px,0px) + 128px);min-width:56px;min-height:48px;border-radius:12px;border:2px solid #ff8a8a;background:#2a1414e8;color:#ffd0d0;font:800 18px system-ui,sans-serif;display:flex;align-items:center;gap:6px;padding:0 10px;cursor:pointer}
 .kit-btn small{font-size:11px;opacity:.75}.kit-btn:disabled{opacity:.4;cursor:default}
 .weapon-name{display:block;text-align:center;font:700 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75cfcc;margin-bottom:3px}
-/* range-sensitive labels (v1.40.3): far = dot, mid = short name, near = full label */
+/* range-sensitive labels (v1.40.4): far = dot, mid = short name, near = full label */
 .node-label .short-text{display:none}
 .node-label[data-mode=short] .full-text,.node-label[data-mode=dot] .full-text,.node-label[data-mode=dot] .short-text,.node-label[data-mode=dot] .node-meter{display:none}
 .node-label[data-mode=short] .short-text{display:inline}
@@ -56,7 +56,7 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .exit-label.done{color:#3dff8a;border-color:#3dff8a}
 .loot-label{color:#ffcf6a}
 
-/* v1.40.3: compact enemy health bars; name only near/targeted/winding */
+/* v1.40.4: compact enemy health bars; name only near/targeted/winding */
 .enemy-label[data-mode=bar]{min-width:44px;padding:0;background:none;border:0;box-shadow:none}
 .enemy-label[data-mode=bar] .full-text,.enemy-label[data-mode=bar] .short-text,.enemy-label[data-mode=bar] .node-marker{display:none}
 .enemy-label[data-mode=bar] .enemy-health-bar{height:5px;filter:drop-shadow(0 0 3px #000)}

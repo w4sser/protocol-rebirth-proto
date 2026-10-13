@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.40.3';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.3';
-import {emptyBag,bagItems} from './raid.js?v=1.40.3';
-import {traceTargets} from './physics.mjs?v=1.40.3';
+import {generateLevel,RULES} from './levels.js?v=1.40.4';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.4';
+import {emptyBag,bagItems} from './raid.js?v=1.40.4';
+import {traceTargets} from './physics.mjs?v=1.40.4';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

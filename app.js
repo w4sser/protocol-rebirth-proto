@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.40.3"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.40.4"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1088,8 +1088,9 @@ SCREENS.module = function(modId){
     if(capped){
       html += '<div class="card warn small">Locked — raise the Rebirth Core level first.</div>';
     } else {
-      html += '<button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? "◉ Tracking (tap to untrack)" : "○ Track this upgrade") + '</button>';
-      html += '<button class="primary" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">BUILD</button>';
+      // PRB-45: pinned action bar so BUILD is reachable at 844×390 without scrolling
+      html += '<div class="actionbar"><button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? "◉ Tracking (tap to untrack)" : "○ Track this upgrade") + '</button>';
+      html += '<button class="primary" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">BUILD</button></div>';
     }
   }
   // Curated self-expression: cosmetic look for this room (unlocks once the room is built)
@@ -1152,7 +1153,7 @@ SCREENS.itemDetail = function(id){
     html += '<button class="ghost" onclick="A.scrapIt(\'' + id + '\')">Scrap it (+' + Math.floor(it.sellValue*D.scrapJunkRate) + ' Scrap)</button>';
   if((S.modules.storage||0) >= 1)
     html += '<button class="ghost" onclick="A.setSecure(\'' + id + '\')">' + (S.secureItem===id ? "★ Secure item (tap to clear)" : "Set as secure item") + '</button>';
-  if(retMode() === "full" && ITEMS[id].family === "protocol" && id === "encrypted_drive"){
+  if(retMode() === "full" && ITEMS[id].family === "protocol" && ITEMS[id].protocolTarget){
     html += S.decrypt
       ? '<div class="card small">Decryption in progress — ~' + Math.max(0, Math.ceil((S.decrypt.returnAt - Date.now())/1000)) + 's left.</div>'
       : '<button class="ghost" onclick="A.startDecrypt(\'' + id + '\')">DECRYPT (' + D.retention.decryption.durationSec + 's) — unlock a Protocol fragment</button>';
@@ -1171,9 +1172,9 @@ SCREENS.prep = function(){
       loadout: { weapon:null, armor:null, c1:null, c2:null }
     };
     // sensible defaults from stash
-    session.prep.loadout.weapon = "basic_carbine"; // free Basic is always available for Node Raid
-    if(have("scavenger_vest")) session.prep.loadout.armor = "scavenger_vest";
-    if(have("medkit")) session.prep.loadout.c1 = "medkit";
+    session.prep.loadout.weapon = PROG.freeWeapon; // free Basic is always available for Node Raid
+    if(have(PROG.defaultLoadout.armor)) session.prep.loadout.armor = PROG.defaultLoadout.armor;
+    if(have(PROG.defaultLoadout.c1)) session.prep.loadout.c1 = PROG.defaultLoadout.c1;
   }
   if(guidedRaid()) applyStarterRaid();
   const p = session.prep;
@@ -1351,7 +1352,7 @@ function operatorRowHtml(gear){
 }
 function gearRiskHtml(gear){
   const kit = nodeRaidKit();
-  if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill("medkit"));
+  if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill(PROG.kitItem));
   return gear && gear.length
     ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
     : '<div class="riskbar safe" role="status">✓ No gear at risk<small> · raid loot is at risk until you extract</small></div>';
@@ -1480,10 +1481,12 @@ SCREENS.result = function(){
       if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">▶ WATCH AD — RECOVER 1 ITEM</button>';
       if(!R.bagRestored) html += '<button class="ghost" onclick="A.restoreBag()">RESTORE BAG — ' + PROG.recovery.restoreBagSignals + ' SIGNALS (have ' + S.cur.signals + ')</button>';
     }
-    if(!have("basic_carbine")) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT — ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
+    if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT — ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
-  html += nextUpgradeHtml();
-  html += '<button class="ghost" onclick="A.backToBase()">RETURN TO BASE</button>';
+  // PRB-45/46: the primary next step (BUILD IT NOW when ready) lives in a pinned action bar with RETURN TO BASE
+  const nu = nextUpgradeHtml(), buildBtn = (nu.match(/<button class="primary" onclick="A\.goBuild\([^)]*\)">BUILD IT NOW<\/button>/) || [""])[0];
+  html += buildBtn ? nu.replace(buildBtn, "") : nu;
+  html += '<div class="actionbar">' + buildBtn + '<button class="ghost" onclick="A.backToBase()">RETURN TO BASE</button></div>';
   $app().innerHTML = html;
 };
 
@@ -1564,7 +1567,7 @@ SCREENS.end = function(){
       $app().innerHTML = '<div style="padding-top:40px;text-align:center"><h1>QUICK QUESTION</h1>' +
         '<p class="sub">three taps, then your stats</p></div>' +
         '<div class="card" style="font-size:14px">' + esc(q.q) + '</div>' +
-        q.opts.map(o => '<button class="ghost" onclick="A.survey(\'' + q.id + '\',\'' + o.replace(/'/g,"") + '\')">' + esc(o) + '</button>').join("");
+        '<div class="surveyopts">' + q.opts.map(o => '<button class="ghost" onclick="A.survey(\'' + q.id + '\',\'' + o.replace(/'/g,"") + '\')">' + esc(o) + '</button>').join("") + '</div>';
       return;
     }
     S.surveyDone = true; save();
@@ -1581,9 +1584,9 @@ SCREENS.end = function(){
     '<div class="kv"><span>Items sold</span><span>' + c("ITEM_SOLD") + '</span></div>' +
     '<div class="kv"><span>Modules built</span><span>' + c("MODULE_BUILT") + '</span></div>' +
     '<div class="kv"><span>BIT Bond LV</span><span>' + bondLevel() + '</span></div></div>' +
-    '<button class="ghost" onclick="A.devExport()">Export event log</button>' +
+    '<div class="actionbar"><button class="ghost" onclick="A.devExport()">Export event log</button>' +
     '<button class="ghost" onclick="A.go(\'base\')">Keep playing anyway</button>' +
-    '<button class="primary" onclick="A.devReset()">RESET &amp; PLAY AGAIN</button>';
+    '<button class="primary" onclick="A.devReset()">RESET &amp; PLAY AGAIN</button></div>';
   $app().innerHTML = html;
 };
 
@@ -1653,7 +1656,7 @@ function ingestRaidResult(r){
   // Unused medkits come home on extract; used or lost ones are gone.
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
   const kitBack = extracted ? Math.min(kitOut, Math.max(0, Math.floor(Number(r.kitLeft && r.kitLeft.medkit) || 0))) : 0;
-  if(kitBack) addItem("medkit", kitBack);
+  if(kitBack) addItem(PROG.kitItem, kitBack);
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? [] : gear.filter(id => id !== saved.secure);
@@ -1696,7 +1699,7 @@ function playerStats(gear){
   return st;
 }
 function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
-const FREE_WEAPON = "basic_carbine";
+const FREE_WEAPON = PROG.freeWeapon;
 // Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
 function nodeRaidGear(){
   const l = session.prep && session.prep.loadout; if(!l) return [];
@@ -1712,8 +1715,8 @@ function nodeRaidWeaponId(){
 // Medkits in the consumable slots go into the raid (usable with Q / ✚) and are lost on death.
 function nodeRaidKit(){
   const l = session.prep && session.prep.loadout; if(!l) return { medkit:0 };
-  const want = ["c1","c2"].filter(k => l[k] === "medkit").length;
-  return { medkit:Math.min(want, have("medkit")) };
+  const want = ["c1","c2"].filter(k => l[k] === PROG.kitItem).length;
+  return { medkit:Math.min(want, have(PROG.kitItem)) };
 }
 function weaponParam(id){
   const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
@@ -2026,7 +2029,7 @@ window.A = {
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit();
     // Deploy is free, but equipped gear (non-Basic weapon, armour) and medkits go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
-    if(kit.medkit) removeItem("medkit", kit.medkit);
+    if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
     S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit };
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
@@ -2384,12 +2387,49 @@ window.A = {
     S.beat = parseInt(document.getElementById("devbeat").value,10);
     act("DEV_JUMP",{beat: curBeat().id}); save(); refresh();
   },
-  devExport(){
-    const blob = new Blob([JSON.stringify(S.log, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "pr_event_log.json";
-    a.click();
+  // PRB-42: iOS Safari ignores a detached <a download>. Order: share sheet (File) → attached
+  // download link → new tab; a textarea + copy button is always shown as a last resort.
+  async devExport(){
+    const json = JSON.stringify(S.log, null, 2), name = "pr_event_log.json";
+    const blob = new Blob([json], {type:"application/json"});
+    const showText = () => {
+      let box = document.getElementById("devexport");
+      if(box) box.remove();
+      box = document.createElement("div");
+      box.id = "devexport";
+      box.style.cssText = "position:fixed;inset:10% 8%;z-index:9999;background:#111;border:1px solid #555;padding:10px;display:flex;flex-direction:column;gap:8px";
+      const ta = document.createElement("textarea");
+      ta.value = json; ta.readOnly = true; ta.style.cssText = "flex:1;font:11px monospace;width:100%";
+      const copy = document.createElement("button"); copy.textContent = "Copy to clipboard";
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(json); copy.textContent = "Copied ✓"; }
+        catch(e){ ta.focus(); ta.select(); try { document.execCommand("copy"); copy.textContent = "Copied ✓"; } catch(_){ copy.textContent = "Select & copy manually"; } }
+      };
+      const close = document.createElement("button"); close.textContent = "Close"; close.onclick = () => box.remove();
+      box.append(ta, copy, close);
+      document.body.appendChild(box);
+      return box;
+    };
+    try {
+      if(typeof File !== "undefined" && navigator.canShare && navigator.share){
+        const file = new File([blob], name, {type:"application/json"});
+        if(navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); return "share"; }
+      }
+    } catch(e){ if(e && e.name === "AbortError") return "share-cancelled"; }
+    let url = null;
+    try { url = URL.createObjectURL(blob); } catch(e){}
+    if(url){
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.rel = "noopener"; a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      // iOS without download support: also open the blob in a new tab (no-op if a popup is blocked)
+      if(/iP(hone|ad|od)/.test(navigator.userAgent || "") && !("download" in HTMLAnchorElement.prototype)) try { window.open(url, "_blank"); } catch(e){}
+    }
+    showText();
+    return url ? "download" : "text";
   },
   devReset(){
     localStorage.removeItem(SAVE_KEY);

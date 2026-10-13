@@ -146,8 +146,10 @@ assert.equal(app.stageCount({zoneId:"industrial", routeId:"control", riskId:"agg
 
 // no economy values hardcoded in app.js
 const src = require("fs").readFileSync(P+"/app.js","utf8");
-for(const id of ["optical_sensor","power_cell","prewar_relic"])
-  assert.equal((src.match(new RegExp('"'+id+'"',"g"))||[]).length, 0, id + " hardcoded");
+// every item id, in any quote style ("id", 'id', `id`) — PRB-43: single quotes slipped through before
+for(const id of window.DATA.items.map(i => i.id))
+  assert.equal((src.match(new RegExp("[\"'`]"+id+"[\"'`]","g"))||[]).length, 0, id + " hardcoded in app.js");
+assert.equal((`x = 'medkit'`.match(new RegExp("[\"'`]medkit[\"'`]","g"))||[]).length, 1, "guard regex sees single quotes");
 
 console.log("ALL LOGIC TESTS PASSED");
 

@@ -2,6 +2,10 @@
 window.DATA = window.DATA || {};
 window.DATA.progression = {
   raidPrepUnlockModule:"fabricator",
+  // default gear (was hardcoded in app.js, PRB-43): free infinite weapon, auto-equipped armor, Node Raid kit consumable
+  freeWeapon:"basic_carbine",
+  defaultLoadout:{ armor:"scavenger_vest", c1:"medkit" },
+  kitItem:"medkit",
   starterRaid:{
     name:"Standard loot mission", zoneId:"industrial", routeId:"tunnels", riskId:"standard", insuranceId:"none",
     loadout:{ weapon:"basic_carbine", armor:null, c1:"medkit", c2:null }
