@@ -10,17 +10,13 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.40.2" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.40.2">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.40.3" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.40.3">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 @media (pointer:coarse){:root{--sl:max(env(safe-area-inset-left,0px),12px);--sr:max(env(safe-area-inset-right,0px),12px)}}
-/* Safe area (notch / Dynamic Island, both landscape orientations): body IS the safe rectangle; the transform makes
-   every fixed HUD/popup position inside it. Only the 3D view bleeds under the cutouts. */
-html{background:#0b1418;height:100%}
-body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);left:var(--sl);width:auto!important;height:auto!important;transform:translateZ(0)}
 
   @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root{
@@ -52,7 +48,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     letter-spacing:.06em; text-transform:uppercase; border-left:3px solid transparent; cursor:pointer;}
   #tabs button.active{color:var(--accent); font-weight:700; border-left-color:var(--accent); background:rgba(62,224,160,.05);}
   #app{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; min-height:0;
-    padding:12px 16px calc(72px + 0px);}
+    padding:12px 16px calc(72px + env(safe-area-inset-bottom, 0px));}
   .s-module>*,.s-itemDetail>*,.s-end>*,.s-raidsim>*{max-width:640px; margin-inline:auto;}
   h1{font-family:"Archivo",sans-serif; font-weight:800; font-size:16px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:2px;}
   h2{font-family:"Archivo",sans-serif; font-weight:700; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin:12px 0 6px;}
@@ -110,7 +106,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     60%{transform:translate(-3px,-2px)}80%{transform:translate(3px,2px)}}
   /* Decorative text never takes taps: only real buttons on the base map receive input. */
   #app.s-base>h1,#app.s-base>.sub,#app.s-base>.restbar,#app.s-base .goalbar,.hubstate,.panhelp{pointer-events:none;}
-  #app-version{position:fixed;right:calc(8px + 0px);bottom:calc(4px + 0px);z-index:40;font:9px "IBM Plex Mono",monospace;color:var(--dim);opacity:.6;pointer-events:none;}
+  #app-version{position:fixed;right:calc(8px + var(--sr));bottom:calc(4px + env(safe-area-inset-bottom, 0px));z-index:40;font:9px "IBM Plex Mono",monospace;color:var(--dim);opacity:.6;pointer-events:none;}
   #toast{position:absolute; top:44px; right:12px; width:300px; z-index:30; pointer-events:none;}
   .toastmsg{background:var(--panel2); border:1px solid var(--accent); border-radius:10px; padding:9px 12px;
     font-size:12px; margin-bottom:6px; animation:pop .4s ease;}
@@ -212,24 +208,24 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     animation:dustup 1.6s ease-out forwards;}
   @keyframes dustup{0%{opacity:.8; transform:translateY(0)}100%{opacity:0; transform:translateY(-46px)}}
   @media (orientation:landscape) and (max-height:480px){
-    #app{padding-bottom:calc(12px + 0px);}
+    #app{padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));}
     #app.s-base .nextup{display:none;}
     #app.s-base>button.primary,#app.s-prep>button.primary{
-      position:fixed; z-index:10; left:calc(84px + 16px + 0px);
-      right:calc(16px + 0px); bottom:calc(8px + 0px);
+      position:fixed; z-index:10; left:calc(84px + 16px + var(--sl));
+      right:calc(16px + var(--sr)); bottom:calc(8px + env(safe-area-inset-bottom, 0px));
       width:auto; margin:0;}
     #app.s-prep .mappanel{height:72px;}
     #app.s-decision .decision-actions{
-      position:fixed; z-index:10; left:calc(84px + 16px + 0px);
-      right:calc(16px + 0px); bottom:0px;
+      position:fixed; z-index:10; left:calc(84px + 16px + var(--sl));
+      right:calc(16px + var(--sr)); bottom:env(safe-area-inset-bottom, 0px);
       padding:8px 0; background:rgba(7,21,28,.96); border-top:1px solid var(--line);}
     #app.s-decision .decision-actions button{margin-top:0;}
     #app.s-decision .decision-actions .small{display:block; margin:2px 0 6px;}
   }
   @media (display-mode:standalone), (display-mode:fullscreen){
-    #topbar{padding-top:calc(6px + 0px);}
-    #tabs{padding-left:0px; padding-bottom:0px;}
-    #app{padding-right:calc(16px + 0px);}
+    #topbar{padding-top:calc(6px + env(safe-area-inset-top, 0px));}
+    #tabs{padding-left:var(--sl); padding-bottom:env(safe-area-inset-bottom, 0px);}
+    #app{padding-right:calc(16px + var(--sr));}
   }
 
   /* ---- shared panoramic bunker viewer ---- */
@@ -366,7 +362,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   .progressmoved{font-size:14px;}
   #app-version{font-size:12px; opacity:.75;}
   /* top bar: icon + number pills, settings gear */
-  #topbar{gap:8px; padding:calc(6px + 0px) 10px 6px; position:relative; z-index:25;}
+  #topbar{gap:8px; padding:calc(6px + env(safe-area-inset-top,0px)) 10px 6px; position:relative; z-index:25;}
   #topbar .title{font-size:12px;}
   #currencies{gap:6px; font-size:16px; flex-wrap:wrap; justify-content:flex-end; font-family:"Archivo",sans-serif;}
   .cur{display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:3px 12px 3px 3px; border-radius:22px; border:2px solid var(--line); background:var(--solid); color:var(--txt);}
@@ -383,7 +379,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   .menu button.reset-progress{color:#ffb4ab; border-color:#6a2d2d; margin:0; width:auto; text-transform:none; letter-spacing:0;}
   .menu-ver{font:12px "IBM Plex Mono",monospace; color:var(--dim);}
   /* bottom bar: big icon buttons with badges, RAID is the hero */
-  #tabs{display:flex; flex-direction:row; gap:8px; align-items:flex-end; width:auto; padding:8px 10px calc(8px + 0px); background:var(--panel); border-top:1px solid var(--line); border-right:0; flex-shrink:0; z-index:22;}
+  #tabs{display:flex; flex-direction:row; gap:8px; align-items:flex-end; width:auto; padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px)); background:var(--panel); border-top:1px solid var(--line); border-right:0; flex-shrink:0; z-index:22;}
   #tabs button{position:relative; flex:1; max-width:110px; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:16px; border:2px solid var(--line); background:var(--solid); color:var(--txt); font:800 12px "Archivo",sans-serif; letter-spacing:.06em; padding:4px 2px; box-shadow:0 4px 0 #031015;}
   #tabs button .ni{font-size:24px; line-height:1.05;}
   #tabs button.active{border-color:var(--accent); color:var(--accent); background:var(--solid);}
@@ -394,7 +390,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   .badge{position:absolute; top:-9px; right:-7px; min-width:24px; height:24px; padding:0 5px; border-radius:12px; display:grid; place-items:center; font:900 13px "Archivo",sans-serif; border:2px solid #fff; box-shadow:0 2px 6px #000a; z-index:2;}
   .badge.up{background:var(--ok2); color:#04222a}.badge.need{background:var(--warn2); color:#2a1800}.badge.alert{background:var(--danger); color:#fff}
   body[data-screen=intro] #tabs,body[data-screen=raidsim] #tabs,body[data-screen=checkpoint] #tabs,body[data-screen=combatDemo] #tabs{display:none;}
-  #bitdock{left:12px; bottom:calc(96px + 0px); max-width:min(46%,420px);}
+  #bitdock{left:12px; bottom:calc(96px + env(safe-area-inset-bottom,0px)); max-width:min(46%,420px);}
   #toast{top:64px; right:10px; width:min(320px,calc(100% - 20px));}
   #app{padding-bottom:16px;}
   /* base: full-bleed map, building plates with level + badges */
@@ -442,11 +438,11 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     body[data-screen=base] #bitdock{display:none!important;}
     #app.s-base .goalpill{bottom:12px; max-width:calc(100% - 420px); min-width:200px;}
     .baseviewer .hubstate{display:none;}
-    #tabs{position:static; background:var(--panel); border-top:1px solid var(--line); padding:4px 10px calc(4px + 0px); justify-content:center; align-items:center;}
+    #tabs{position:static; background:var(--panel); border-top:1px solid var(--line); padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px)); justify-content:center; align-items:center;}
     #tabs button,#tabs .nav-prep{flex-direction:row; flex:1; width:auto; max-width:160px; min-height:48px; gap:6px; box-shadow:none;}
     #tabs .ni{font-size:20px;}
     body:not([data-screen=base]) #app{padding-bottom:12px;}
-    body:not([data-screen=base]) #bitdock{bottom:calc(64px + 0px);}
+    body:not([data-screen=base]) #bitdock{bottom:calc(64px + env(safe-area-inset-bottom,0px));}
     #app.s-prep>button.primary,#app.s-decision .decision-actions{position:sticky; left:auto; right:auto; bottom:0; width:100%;}
   }
   #overlay.sheet{z-index:30;}
@@ -488,13 +484,13 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     .ostat{flex-direction:row; gap:4px; justify-content:center; padding:6px 2px;} .ostat small{display:none;} .ostat i{font-size:17px;} .ostat b{font-size:15px;}
     .oskills{margin-top:4px;} .operator-stats.compact{padding:6px 8px;} .riskbar{padding:6px 10px;}
     #app.s-prep .kv{padding:0;}
-    body[data-screen=prep] #bitdock{top:calc(70px + 0px); bottom:auto;} .prephead .ptarget{margin-right:56px;}
+    body[data-screen=prep] #bitdock{top:calc(70px + env(safe-area-inset-top,0px)); bottom:auto;} .prephead .ptarget{margin-right:56px;}
     #app.s-prep>button.primary{position:static;}
   }
   /* BIT speech: auto-hides after a few seconds, tap bubble to dismiss, tap face to bring back */
   #bitdock{pointer-events:none;} #bitface,#bitline{pointer-events:auto; cursor:pointer;}
   #bitdock.quiet #bitline{display:none;}
-  body[data-screen=prep] #bitdock{left:auto; right:12px; top:auto; bottom:calc(140px + 0px); flex-direction:row-reverse; z-index:12;}
+  body[data-screen=prep] #bitdock{left:auto; right:12px; top:auto; bottom:calc(140px + env(safe-area-inset-bottom,0px)); flex-direction:row-reverse; z-index:12;}
   body[data-screen=prep] #bitface{width:44px; height:44px;}
   /* ===== v1.30 raid prep lobby (Brawl Stars style) ===== */
   #app.s-prep{padding:8px 12px 10px; overflow:hidden; display:flex; flex-direction:column;}
@@ -545,7 +541,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   #rotate b{font:900 22px "Archivo",sans-serif; letter-spacing:.08em;} #rotate span{font-size:15px; color:var(--dim);}
   @keyframes rotphone{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(90deg)}}
   @media (orientation:portrait){ #rotate{display:flex;} }
-  #splash{position:fixed; inset:0; z-index:90; background:#07151c url("assets/production/splash.webp") center/contain no-repeat; display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + 0px) calc(14px + 0px) 0; cursor:pointer; transition:opacity .45s ease;}
+  #splash{position:fixed; inset:0; z-index:90; background:#07151c url("assets/production/splash.webp") center/contain no-repeat; display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; transition:opacity .45s ease;}
   #splash.out{opacity:0; pointer-events:none;}
   #splash small{font:700 12px "IBM Plex Mono",monospace; letter-spacing:.2em; color:#7ad8cf; opacity:.8; background:rgba(7,21,28,.6); padding:4px 10px; border-radius:8px;}
   .hero-art{background-image:url("assets/production/operator_op01.webp")!important; background-size:auto 128%!important; background-position:50% 4%!important; inset:0!important; filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));}
@@ -582,7 +578,7 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   .bpop .lore{font-size:12px; color:var(--dim); margin:4px 0 6px;}
   .bpop .lore[hidden]{display:none;}
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
-  .intro{position:fixed; inset:0; z-index:50; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px calc(24px + 0px) 16px calc(24px + 0px); text-align:center; cursor:pointer;}
+  .intro{position:fixed; inset:0; z-index:50; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px calc(24px + var(--sr)) 16px calc(24px + var(--sl)); text-align:center; cursor:pointer;}
   .intro-face{width:min(96px,22vh); height:auto; opacity:0; animation:introFace 3.6s ease-out .2s forwards;}
   .intro-lines{display:flex; flex-direction:column; gap:8px; max-width:560px;}
   .intro-lines p{margin:0; color:#e8f6f4; font-size:16px; line-height:1.45; letter-spacing:.01em; opacity:0; animation:introLine 1.2s ease-out forwards;}
@@ -594,7 +590,15 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   .intro.done .intro-face,.intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
   .intro.done .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,.55));}
   @media (prefers-reduced-motion: reduce){ .intro-face,.intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;} .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,.55));} }
-  #phone{width:100%!important;height:100%!important}
+  /* Full-bleed: background art + scene run edge to edge (also under the notch / Dynamic Island);
+     only UI chrome is inset by the safe area (both landscape orientations, min 12 px on touch). */
+  html,body{background:var(--bg)}
+  #topbar{padding-left:calc(10px + var(--sl))!important;padding-right:calc(10px + var(--sr))!important}
+  #tabs{padding-left:calc(10px + var(--sl))!important;padding-right:calc(10px + var(--sr))!important}
+  #overlay{padding-left:var(--sl)!important;padding-right:var(--sr)!important;padding-top:var(--st);padding-bottom:var(--sb);box-sizing:border-box}
+  #bitdock{margin-left:var(--sl)}body[data-screen=prep] #bitdock{margin-left:0;margin-right:var(--sr)}
+  .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
+  .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
 </head>
 <body class="base-dark">
@@ -603,13 +607,13 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.40.2</div>
+    <div id="app-version">v1.40.3</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu" role="menu" hidden>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.40.2</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.40.3</span></div>
     </div>
   </div>
   <div id="main">
@@ -624,15 +628,15 @@ body{position:fixed!important;top:var(--st);right:var(--sr);bottom:var(--sb);lef
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.40.2"></script>
-<script src="data/modules.js?v=1.40.2"></script>
-<script src="data/bit.js?v=1.40.2"></script>
-<script src="data/raid_zones.js?v=1.40.2"></script>
-<script src="data/recipes.js?v=1.40.2"></script>
-<script src="data/vendors.js?v=1.40.2"></script>
-<script src="data/retention.js?v=1.40.2"></script>
-<script src="data/progression.js?v=1.40.2"></script>
-<script src="data/combat.js?v=1.40.2"></script>
-<script src="app.js?v=1.40.2"></script>
+<script src="data/items.js?v=1.40.3"></script>
+<script src="data/modules.js?v=1.40.3"></script>
+<script src="data/bit.js?v=1.40.3"></script>
+<script src="data/raid_zones.js?v=1.40.3"></script>
+<script src="data/recipes.js?v=1.40.3"></script>
+<script src="data/vendors.js?v=1.40.3"></script>
+<script src="data/retention.js?v=1.40.3"></script>
+<script src="data/progression.js?v=1.40.3"></script>
+<script src="data/combat.js?v=1.40.3"></script>
+<script src="app.js?v=1.40.3"></script>
 </body>
 </html>
