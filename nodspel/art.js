@@ -11,8 +11,8 @@ export function pickQuality({search='',storage=null,nav={},screen={}}={}){
   return touch||small||weak?'low':'high';
 }
 export function qualitySettings(q){
-  return q==='low'?{pixelRatio:1,shadows:false,shadowMap:512,props:.55,lights:0,antialias:false}
-                  :{pixelRatio:1.6,shadows:true,shadowMap:1024,props:1,lights:2,antialias:true};
+  return q==='low'?{pixelRatio:1,shadows:false,shadowMap:512,props:.55,lights:0,antialias:false,beams:false}
+                  :{pixelRatio:1.6,shadows:true,shadowMap:1024,props:1,lights:2,antialias:true,beams:true};
 }
 export function rngFrom(seed){let s=2166136261;for(const c of String(seed))s=Math.imul(s^c.charCodeAt(0),16777619);
   return()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
@@ -56,3 +56,10 @@ export function buildProp(kind,spot,box,rng){
     for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.TorusGeometry(.35+i*.08,.03,6,20,Math.PI),m);c.rotation.x=-Math.PI/2;c.position.set(0,.03,i*.04);g.add(c);}}
   return g;
 }
+
+// Loot category colors: amber/gold with a rarity tint; extraction is green.
+export const LOOT_TIER={rare:['rifle_marksman','shotgun_breach','smg_vector','ai_fragment','power_relay','encrypted_drive','rebirth_shard','neural_core','dampener_cloak'],
+  uncommon:['power_cell','circuit_board','optical_sensor','hydraulic_component','memory_module','data_core','scout_rig','bio_sample','servo']};
+export const LOOT_COLORS={common:'#ffa23a',uncommon:'#ffd04a',rare:'#fff1a6'};
+export const EXTRACT_COLOR='#3dff8a';
+export function lootTier(item){return LOOT_TIER.rare.includes(item)?'rare':LOOT_TIER.uncommon.includes(item)?'uncommon':'common';}

@@ -41,3 +41,17 @@ footer .version{margin-left:10px;opacity:.55;font-size:10px}
 .kit-btn{position:absolute;z-index:3;left:max(14px,env(safe-area-inset-left));top:calc(max(12px,env(safe-area-inset-top)) + 128px);min-width:56px;min-height:48px;border-radius:12px;border:2px solid #ff8a8a;background:#2a1414e8;color:#ffd0d0;font:800 18px system-ui,sans-serif;display:flex;align-items:center;gap:6px;padding:0 10px;cursor:pointer}
 .kit-btn small{font-size:11px;opacity:.75}.kit-btn:disabled{opacity:.4;cursor:default}
 .weapon-name{display:block;text-align:center;font:700 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#75cfcc;margin-bottom:3px}
+/* range-sensitive labels (v1.36.1): far = dot, mid = short name, near = full label */
+.node-label .short-text{display:none}
+.node-label[data-mode=short] .full-text,.node-label[data-mode=dot] .full-text,.node-label[data-mode=dot] .short-text,.node-label[data-mode=dot] .node-meter{display:none}
+.node-label[data-mode=short] .short-text{display:inline}
+.node-label[data-mode=short]{font-size:10px;letter-spacing:.04em;padding:2px 6px;opacity:.85}
+.node-label[data-mode=dot]{padding:0;background:none;border:0;box-shadow:none}
+.node-label[data-mode=dot] .node-marker{width:9px;height:9px;box-shadow:0 0 8px currentColor}
+.node-label{transition:opacity .25s ease}
+.hazard-label.hazard-icon{padding:0;background:none;border:0;box-shadow:none;font-size:22px;line-height:1;text-shadow:0 0 8px #ffcc33}
+.hazard-label.hazard-icon .node-marker{display:none}
+.hazard-label.hazard-icon[data-state=on]{color:#ff5a3c;text-shadow:0 0 12px #ff3b1f}
+.hazard-label.hazard-icon[data-state=warn]{font-size:24px}
+.exit-label.done{color:#3dff8a;border-color:#3dff8a}
+.loot-label{color:#ffcf6a}
