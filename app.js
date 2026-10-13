@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.40.5"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.41.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -45,10 +45,16 @@ function load(){
     if(raw){
       const st = JSON.parse(raw);
       if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); return st; }
     }
   }catch(e){}
   return freshState();
+}
+// v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
+function migrateSkills(st){
+  if(st && st.skills && st.skills.athletics !== undefined){ st.skills.mobility = (st.skills.mobility || 0) + st.skills.athletics; delete st.skills.athletics; }
+  if(st && st.skills) delete st.skills.vitality;
+  return st;
 }
 // v1.35: Salvage merged into Scrap. Legacy saves convert at SALVAGE_TO_SCRAP. Salvage Crates now grant Scrap.
 const SALVAGE_TO_SCRAP = 2;
@@ -648,7 +654,7 @@ function renderCurrencies(){
   const c = S.cur;
   const pill = (id, label, val) => '<span class="cur cur-' + id + '" title="' + label + '"><i aria-hidden="true">' + CUR_ICONS[id] + '</i><span class="lbl">' + label + ' </span><b>' + val + '</b></span>';
   const op = operatorLevel();
-  let h = '<span class="cur oplvl" title="Operator level" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></span>';
+  let h = '<button class="cur oplvl" onclick="A.go(\'operator\')" title="Operator level — tap for skills" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></button>';
   h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
   h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
   if(bitOnline()){
@@ -1221,8 +1227,8 @@ SCREENS.prep = function(){
   html += '<div class="card prep-benefit"><span class="ok">✓ FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
   html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
-    const can = S.cur.scrap >= recipe.scrapCost && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
-    html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + recipe.scrapCost + ' Scrap</small></span>' +
+    const can = S.cur.scrap >= craftCost(recipe) && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
+    html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + craftCost(recipe) + ' Scrap</small></span>' +
       '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>CRAFT</button></div>';
   }
   html += '</details>';
@@ -1345,11 +1351,11 @@ function loadoutSlotsHtml(locked){
 function operatorRowHtml(gear){
   const st = playerStats(gear), P = PROG.playerStats;
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
-  return '<div class="card operator-stats compact"><div class="ostats">' +
+  return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
     chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
-    chip("🎒", "Bag", raidBagCapacity(gear) + " slots") + '</div>' +
-    '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') + '</div></div>';
+    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") + '</div>' +
+    '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
+    '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
 }
 function gearRiskHtml(gear){
   const kit = nodeRaidKit();
@@ -1491,6 +1497,29 @@ SCREENS.result = function(){
   $app().innerHTML = html;
 };
 
+// Operator panel (v1.41): level, speed bonus, three automatic skills and weapon mastery stars. Read-only, no menus to manage.
+SCREENS.operator = function(){
+  $app().setAttribute("class", "s-operator");
+  const op = operatorLevel(), P = PROG.playerStats, bar = (v, max) => '<span class="pbar"><span style="width:' + Math.round(100 * Math.min(1, max ? v / max : 1)) + '%"></span></span>';
+  const effect = id => id === "mobility" ? "+" + (P.skills.mobility.perLevel.speed * skillLevel(id)).toFixed(2) + " m/s" :
+    id === "stealth" ? Math.round(P.skills.stealth.perLevel.stealth * skillLevel(id) * 100) + "% harder to spot" : "−" + Math.round(craftDiscount() * 100) + "% Scrap";
+  let html = '<h1>OPERATOR</h1><div class="opgrid">';
+  html += '<div class="card opcard"><div class="ophead"><b class="opbig">' + op.level + '</b><span>LEVEL<br><small>' + (op.need ? op.into + ' / ' + op.need + ' XP' : 'MAX') + '</small></span></div>' +
+    bar(op.into || 0, op.need) + '<div class="small ok">🏃 +' + Math.round(operatorSpeedBonus() * 100) + '% speed <span class="muted">(+' + Math.round(P.operatorSpeed.perLevel * 100) + '%/level, max ' + Math.round(P.operatorSpeed.cap * 100) + '%)</span></div></div>';
+  html += '<div class="card"><h2>Skills <small class="muted">grow by playing</small></h2>' + Object.keys(P.skills).map(id => {
+    const k = P.skills[id], l = skillLevel(id), nx = skillNextXp(id), prev = l ? k.xpPerLevel * l * (l + 1) / 2 : 0;
+    return '<div class="skillrow"><i aria-hidden="true">' + k.icon + '</i><div><b>' + esc(k.name) + ' L' + l + '</b> <span class="ok small">' + effect(id) + '</span>' +
+      (nx === null ? bar(1, 1) : bar(skillXp(id) - prev, nx - prev)) + '<small>' + esc(k.desc) + '</small></div></div>';
+  }).join('') + '</div>';
+  const weapons = D.items.filter(i => i.weapon && (i.free || have(i.id) > 0 || masteryKills(i.id) > 0));
+  html += '<div class="card"><h2>Weapon mastery</h2>' + weapons.map(w => {
+    const nx = masteryNext(w.id);
+    return '<div class="kv"><span>' + itemIcon(w.id) + ' ' + esc(w.name) + '</span><span>' + starsHtml(w.id) + ' <small class="muted">' + (nx === null ? 'mastered' : masteryKills(w.id) + '/' + nx + ' kills') + '</small></span></div>';
+  }).join('') + '<div class="small muted">Each star: faster reload and fire rate.</div></div>';
+  html += '</div><div class="actionbar"><button class="ghost" onclick="A.go(\'base\')">BACK</button></div>';
+  $app().innerHTML = html;
+};
+
 SCREENS.vendor = function(){
   const v = D.vendors[0];
   let html = '<h1>' + esc(v.name) + '</h1><div class="sub">' + esc(v.blurb) + '</div>';
@@ -1520,10 +1549,10 @@ SCREENS.vendor = function(){
     for(const r of D.recipes){
       const gated = r.fabricatorLevel > (S.modules.fabricator||0);
       const parts = Object.keys(r.inputs).map(id => Math.min(have(id),r.inputs[id]) + "/" + r.inputs[id] + " " + ITEMS[id].name).join(" · ");
-      const can = !gated && S.cur.scrap >= r.scrapCost && Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
+      const can = !gated && S.cur.scrap >= craftCost(r) && Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
       html += '<div class="card ' + (gated?'locked':'') + '"><div class="row"><b>' + esc(r.name) + '</b>' +
         (gated ? '<span class="small warn">Fab L' + r.fabricatorLevel + '</span>'
-               : '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can?'':'opacity:.4') + '" ' + (can?'onclick="A.craft(\'' + r.id + '\')"':'disabled') + '>Craft (' + r.scrapCost + ' Scrap)</button>') +
+               : '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can?'':'opacity:.4') + '" ' + (can?'onclick="A.craft(\'' + r.id + '\')"':'disabled') + '>Craft (' + craftCost(r) + ' Scrap)</button>') +
         '</div><div class="small">' + esc(parts) + '</div></div>';
     }
   } else {
@@ -1665,12 +1694,16 @@ function ingestRaidResult(r){
   S.skills = S.skills || {};
   const before = {}, sx = skillXpFrom(r), skillUps = [];
   for(const id in sx){ before[id] = skillLevel(id); S.skills[id] = (S.skills[id] || 0) + sx[id]; if(skillLevel(id) > before[id]) skillUps.push(PROG.playerStats.skills[id].name + " L" + skillLevel(id)); }
+  // Weapon mastery: kills count for the weapon that went in (any outcome).
+  const wid = typeof r.weapon === "string" && ITEMS[r.weapon] && ITEMS[r.weapon].weapon ? r.weapon : null, kills = Math.max(0, Math.min(200, Math.floor(Number(r.enemiesDefeated) || 0)));
+  let starUp = null;
+  if(wid && kills){ S.mastery = S.mastery || {}; const b = masteryStars(wid); S.mastery[wid] = masteryKills(wid) + kills; if(masteryStars(wid) > b) starUp = ITEMS[wid].name + " " + "★".repeat(masteryStars(wid)); }
   const xp = bitOnline() ? coreRaidXp(r) : 0;
   S.bondXp += xp;
   gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps, kitBack, kitLost:kitOut - kitBack };
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:kitOut - kitBack };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
@@ -1696,17 +1729,28 @@ function clampStat(id, v){ const c = PROG.playerStats.clamp[id]; return Math.min
 function playerStats(gear){
   const P = PROG.playerStats, st = Object.assign({}, P.base);
   for(const id in P.skills){ const l = skillLevel(id); for(const s in P.skills[id].perLevel) st[s] += P.skills[id].perLevel[s] * l; }
+  st.speed *= 1 + operatorSpeedBonus();
   for(const g of (gear || [])) for(const s in ((ITEMS[g] && ITEMS[g].stats) || {})) st[s] += ITEMS[g].stats[s];
   for(const s in st) st[s] = Math.round(clampStat(s, st[s]) * 1000) / 1000;
   return st;
 }
-// Node Raid bag capacity: base + built modules + armour pockets (data/progression.js → raidBag, items.bagSlots).
-function raidBagCapacity(gear){
-  const B = PROG.raidBag; let n = B.base;
-  for(const m in B.modules) if((S.modules[m] || 0) >= 1) n += B.modules[m];
-  for(const g of (gear || [])) n += (ITEMS[g] && ITEMS[g].bagSlots) || 0;
-  return Math.min(B.max, n);
+// +2% speed per operator level above 1, capped (data/progression.js → operatorSpeed).
+function operatorSpeedBonus(level){
+  const O = PROG.playerStats.operatorSpeed; level = level === undefined ? operatorLevel().level : level;
+  return Math.min(O.cap, O.perLevel * Math.max(0, level - 1));
 }
+// Crafting skill: fewer Scrap per recipe (rounded, never below 0).
+function craftDiscount(){ const k = PROG.playerStats.skills.crafting; return k.craftDiscountPerLevel * skillLevel("crafting"); }
+function craftCost(r){ return Math.max(0, Math.round(r.scrapCost * (1 - craftDiscount()))); }
+function gainSkillXp(id, n){ S.skills = S.skills || {}; const b = skillLevel(id); S.skills[id] = (S.skills[id] || 0) + n; return skillLevel(id) > b; }
+// Weapon mastery: kills per weapon → 0..3 stars.
+function masteryKills(id){ return (S.mastery && S.mastery[id]) || 0; }
+function masteryStars(id, kills){
+  kills = kills === undefined ? masteryKills(id) : kills;
+  return PROG.playerStats.weaponMastery.killsForStar.filter(k => kills >= k).length;
+}
+function masteryNext(id){ const t = PROG.playerStats.weaponMastery.killsForStar; return t[masteryStars(id)] ?? null; }
+function starsHtml(id){ const n = masteryStars(id); return '<span class="stars" aria-label="' + n + ' of 3 mastery stars">' + "★".repeat(n) + '<i>' + "★".repeat(3 - n) + '</i></span>'; }
 function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
 const FREE_WEAPON = PROG.freeWeapon;
 // Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
@@ -1728,8 +1772,15 @@ function nodeRaidKit(){
   return { medkit:Math.min(want, have(PROG.kitItem)) };
 }
 function weaponParam(id){
-  const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
+  const w = masteredWeapon(id); if(!w) return "";
   return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr"].map(k => "," + k + ":" + w[k]).join("");
+}
+// Weapon stats after mastery stars (each star trims reload / shot interval a little).
+function masteredWeapon(id){
+  const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return null;
+  const out = Object.assign({}, w), st = masteryStars(id), per = PROG.playerStats.weaponMastery.perStar;
+  for(const k in per) if(k in out) out[k] = Math.round(out[k] * (1 + per[k] * st));
+  return out;
 }
 function weaponStatsLine(id){
   const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
@@ -1748,8 +1799,10 @@ function statsCardHtml(gear){
 }
 function skillXpFrom(r){
   const K = PROG.playerStats.skills, t = r.skills || {}, n = v => Number.isFinite(v) && v > 0 ? Math.min(v, 1e5) : 0;
-  return { athletics: n(t.distanceM)*K.athletics.xp.perMetre + n(t.dashes)*K.athletics.xp.perDash,
-           stealth: n(t.holdNodes)*K.stealth.xp.perHoldNode, vitality: n(t.damageTaken)*K.vitality.xp.perDamage };
+  const items = Array.isArray(r.extracted) ? r.extracted.reduce((a, x) => a + (typeof x === "string" ? 1 : n(x && x.qty) || 1), 0) : 0;
+  return { mobility: n(t.distanceM)*K.mobility.xp.perMetre + n(t.dashes)*K.mobility.xp.perDash,
+           stealth: n(t.holdNodes)*K.stealth.xp.perHoldNode,
+           crafting: r.outcome === "extract" ? Math.min(items, 50) * K.crafting.xp.perItemExtracted : 0 };
 }
 function newCoreLaunch(rand){
   rand = rand || Math.random;
@@ -1769,7 +1822,8 @@ function coreResultSummary(r, res){
   const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
   const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
     (res.kitLost ? " · medkits used/lost: " + res.kitLost : "") +
-    (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "");
+    (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "") +
+    (res.starUp ? " · mastery " + res.starUp + "!" : "");
   return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
 function ingestPendingCoreResult(storage){
@@ -1912,7 +1966,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && !baseAllows("navigation", screen))) return;
+    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && !baseAllows("navigation", screen))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
@@ -2200,8 +2254,10 @@ window.A = {
   craft(rid){
     const r = D.recipes.find(x=>x.id===rid);
     if(r.fabricatorLevel > (S.modules.fabricator||0)) return;
-    if(S.cur.scrap < r.scrapCost || !Object.keys(r.inputs).every(id => have(id) >= r.inputs[id])) return;
-    S.cur.scrap -= r.scrapCost;
+    const cost = craftCost(r);
+    if(S.cur.scrap < cost || !Object.keys(r.inputs).every(id => have(id) >= r.inputs[id])) return;
+    S.cur.scrap -= cost;
+    if(gainSkillXp("crafting", PROG.playerStats.skills.crafting.xp.perCraft)) toast("Crafting L" + skillLevel("crafting") + " — cheaper crafting");
     for(const id in r.inputs) removeItem(id, r.inputs[id]);
     if(r.output.currency){ S.cur[r.output.currency] = (S.cur[r.output.currency] || 0) + r.output.qty; revealCurrency(r.output.currency); }
     else addItem(r.output.itemId, r.output.qty);
@@ -2558,4 +2614,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { raidBagCapacity, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
