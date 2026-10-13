@@ -1,31 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets} from './town.js?v=1.40.1';
-import {setArea} from './levels.js?v=1.40.1';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.1';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.1';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.40.1';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.1';
-import {buildWorld,setNodeHold} from './world.js?v=1.40.1';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.1';
-// import {stepScavenging} from './scavenging.js?v=1.40.1';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.1';
-import {routeComplete} from './objectives.js?v=1.40.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.1';
-import {createBIT,stepBIT} from './bit.js?v=1.40.1';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.1';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.1';
+import {loadTownAssets} from './town.js?v=1.40.2';
+import {setArea} from './levels.js?v=1.40.2';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.40.2';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.40.2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.40.2';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction} from './round.js?v=1.40.2';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.40.2';
+import {buildWorld,setNodeHold} from './world.js?v=1.40.2';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.40.2';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.40.2';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.40.2';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.40.2';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.40.2';
+// import {stepScavenging} from './scavenging.js?v=1.40.2';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.40.2';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.40.2';
+import {routeComplete} from './objectives.js?v=1.40.2';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.40.2';
+import {createBIT,stepBIT} from './bit.js?v=1.40.2';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.40.2';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.40.2';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.40.2';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.40.2';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.40.1');
+const orderResponse=await fetch('./order.json?v=1.40.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -166,7 +166,8 @@ function updateHUD(){
   $('#health-value').textContent=round.health;$('.health').classList.toggle('urgent',round.health<=25);
   $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?'EXIT · OPEN':'EXIT · LOCKED';
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
+  if(open&&round.level.number===3&&!round.level.extractToastShown){round.level.extractToastShown=true;showExtractToast();}
   world.setExit(open);setCollisions();
 }
 function labelLoot(v){v.label=makeLabel('?',new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label','loot','?');setLootText(v);}
@@ -210,6 +211,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   if(label.caption.textContent!==text)label.caption.textContent=text;label.shortEl.textContent=door?(done?'':'DOOR'):done?'✓':'SEARCH';
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
   label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&Date.now()-ref.openedAt>1500;}}
+function showExtractToast(){const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);setTimeout(()=>t.remove(),6000);}
 function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
@@ -380,7 +382,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.1');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.40.2');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
