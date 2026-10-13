@@ -36,7 +36,7 @@ window.DATA.items = [
   { id:"purification_filter", name:"Purification Filter", family:"bio", rarity:"uncommon", sellValue:95, stackSize:5,
     desc:"Clean air is a luxury item now.", uses:["upgrade:rebirth_core","sell"] },
   // PROTOCOL (found only — never sold by vendors)
-  { id:"encrypted_drive", name:"Encrypted Drive", family:"protocol", rarity:"epic", sellValue:400, stackSize:3,
+  { id:"encrypted_drive", name:"Encrypted Drive", family:"protocol", protocolTarget:true, rarity:"epic", sellValue:400, stackSize:3,
     desc:"BIT can't read it yet. BIT really wants to read it.", uses:["upgrade:rebirth_core","story"] },
   { id:"ai_fragment", name:"AI Fragment", family:"protocol", rarity:"epic", sellValue:500, stackSize:3,
     desc:"A shard of something that used to think.", uses:["upgrade:rebirth_core","story"] },
