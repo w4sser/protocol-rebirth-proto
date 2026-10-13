@@ -1,7 +1,7 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {TOWN_DIMS} from './town-layout.js?v=1.39.1';
+import {TOWN_DIMS} from './town-layout.js?v=1.39.2';
 export const TOWN_KINDS=Object.keys(TOWN_DIMS);
 let cache=null;
 // Loads once per page; geometries/materials are flagged shared so world.dispose() never frees them.
@@ -9,14 +9,19 @@ export function loadTownAssets(base){
   if(cache)return cache;
   const loader=new GLTFLoader();
   cache=Promise.all(TOWN_KINDS.map(async kind=>{
-    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.39.1`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
+    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.39.2`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
     // some kit origins float above the ground: drop every asset so its lowest point sits at y=0
     const lift=-new THREE.Box3().setFromObject(g.scene).min.y,shift=new THREE.Matrix4().makeTranslation(0,lift,0);
     g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;
       if(o.material.name==='window_glow'){o.material.emissive?.set('#ffb85a');o.material.emissiveIntensity=2.6;}
       if(o.material.name==='lamp_glow')o.material.emissiveIntensity=1.6;
       parts.push({geometry:o.geometry,material:o.material,matrix:shift.clone().multiply(o.matrixWorld)});});
-    return [kind,parts];})).then(Object.fromEntries).catch(e=>{cache=null;throw e;});
+    return [kind,parts];})).then(list=>{const a=Object.fromEntries(list);
+    // wrecks: same car mesh, darker and desaturated materials (never rescaled)
+    a.car_wreck=a.car_boxy.map(p=>{const m=p.material.clone();m.userData.shared=true;if(m.color){const h={};m.color.getHSL(h);m.color.setHSL(h.h,h.s*.25,Math.max(.05,h.l*.6));}m.roughness=1;if(m.emissiveIntensity)m.emissiveIntensity=0;return {...p,material:m};});
+    // night ground reads too dark on phones: lift the ground palettes a little
+    for(const k of ['tile_grass','tile_asphalt','tile_sidewalk','tile_asphalt_grass','tile_sidewalk_grass','tile_asphalt_sidewalk'])for(const p of a[k]??[])if(p.material.color&&!p.material.userData.lifted){p.material.color.multiplyScalar(1.45);p.material.userData.lifted=true;}
+    return a;}).catch(e=>{cache=null;throw e;});
   return cache;
 }
 const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),UP=new THREE.Vector3(0,1,0);
@@ -26,7 +31,7 @@ function instance(group,parts,list,{cast=false,receive=true}={}){
     list.forEach((t,i)=>{_q.setFromAxisAngle(UP,t.ry??0);_p.set(t.x,t.y??0,t.z);_s.set(t.sx??1,t.sy??1,t.sz??1);_m.compose(_p,_q,_s).multiply(part.matrix);im.setMatrixAt(i,_m);});
     im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.castShadow=cast;im.receiveShadow=receive;group.add(im);return im;});
 }
-const CAST=new Set(['house_red','house_yellow','house_red_dark','house_yellow_dark','pine_tree','car_boxy','container','bus_shelter','streetlamp','hedge_segment','fence_segment','fence_short','fence_gate','electrical_cabinet']);
+const CAST=new Set(['car_wreck','house_red','house_yellow','house_red_dark','house_yellow_dark','pine_tree','car_boxy','container','bus_shelter','streetlamp','hedge_segment','fence_segment','fence_short','fence_gate','electrical_cabinet']);
 // low quality keeps 1 in N of the purely decorative bits
 const THIN={grass_tuft_small:3,grass_tuft_large:3,weed_tuft:3,bush_small:2,bush_cluster:2,pine_tree:2};
 const TILE_Y={tile_grass:-.3,tile_asphalt:-.1,tile_sidewalk:-.1,tile_asphalt_grass:-.09,tile_sidewalk_grass:-.09,tile_asphalt_sidewalk:-.09};
@@ -36,15 +41,18 @@ export function buildTown(level,group,assets,Q){
   for(const t of T.tiles)add(t.kind,{x:t.x,z:t.z,y:TILE_Y[t.kind]??-.1,ry:t.ry??0});
   for(const f of T.fences)add(f.kind??'fence_segment',{x:f.x,z:f.z,ry:f.rot*Math.PI/2,sx:f.stretch});
   for(const h of T.houses)add(h.kind,{x:h.x,z:h.z,ry:h.rot*Math.PI/2});
-  for(const c of T.cars)add('car_boxy',{x:c.x,z:c.z,ry:c.rot*Math.PI/2+(c.outside?.12:0)});
+  for(const c of T.cars)add(c.wreck?'car_wreck':'car_boxy',{x:c.x,z:c.z,ry:c.rot*Math.PI/2+(c.outside?.12:0)});
   for(const t of T.trees)add('pine_tree',{x:t.x,z:t.z,ry:t.r,sx:t.s,sy:t.s,sz:t.s});
-  for(const p of T.props??[])add(p.kind,{x:p.x,z:p.z,y:p.kind==='manhole'?-.12:0,ry:p.ry,sx:p.s,sy:p.s,sz:p.s});
+  for(const p of T.props??[])add(p.kind,{x:p.x,z:p.z,y:p.kind==='manhole'?-.12:0,ry:p.ry,sx:p.s,sy:p.s,sz:p.sz??p.s});
   if(T.busStop)add('bus_shelter',{x:T.busStop.x,z:T.busStop.z,ry:T.busStop.ry??0});
   for(const l of T.lamps)add('streetlamp',{x:l.x,z:l.z,ry:l.ry??0});
   for(const [kind,list] of byKind){const k=low?THIN[kind]:0,use=k?list.filter((_,i)=>i%k===0):list;
     instance(group,assets[kind],use,{cast:!low&&CAST.has(kind),receive:kind.startsWith('tile_')||!CAST.has(kind)});}
+  // low curb on every wall line: the playable edge is always readable
+  const curbMat=new THREE.MeshStandardMaterial({color:'#59646a',roughness:.9});
+  instance(group,[{geometry:new THREE.BoxGeometry(1,1,1),material:curbMat,matrix:new THREE.Matrix4()}],level.walls.map(w=>({x:w.x,z:w.z,y:.09,sx:w.w,sy:.18,sz:w.d})),{receive:true});
   // lamp glow: warm pool under each head; only a couple get a real light (none on low)
-  const pool=new THREE.MeshBasicMaterial({color:'#ffb35c',transparent:true,opacity:.08,blending:THREE.AdditiveBlending,depthWrite:false}),poolGeo=new THREE.CircleGeometry(2.3,28);
+  const pool=new THREE.MeshBasicMaterial({color:'#ffb35c',transparent:true,opacity:low?.2:.11,blending:THREE.AdditiveBlending,depthWrite:false}),poolGeo=new THREE.CircleGeometry(low?3:2.5,28);
   T.lamps.forEach((l,i)=>{const ry=l.ry??0,hx=l.x+Math.cos(ry)*.6,hz=l.z-Math.sin(ry)*.6;
     const p=new THREE.Mesh(poolGeo,pool);p.rotation.x=-Math.PI/2;p.position.set(hx,.03,hz);group.add(p);
     if(i<Q.lights){const pl=new THREE.PointLight('#ffb760',10,11,1.5);pl.position.set(hx,3.7,hz);group.add(pl);lights.push(pl);}});
