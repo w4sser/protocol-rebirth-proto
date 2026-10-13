@@ -1,6 +1,6 @@
 # Ekonomidesign: Protocol Rebirth (förslag, ej implementerat)
 
-Status: endast design (v1.34.1). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
+Status: endast design (v1.35.0). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
 
 ## 1. Nuläge (inventering)
 
@@ -112,3 +112,47 @@ En raid tar ca 3–5 min, så sikta på att en ny uppgradering är inom räckhå
 8. Ska "Scrap it" fungera för alla tiers?
 9. Behövs en lagergräns för valutor, eller bara stash-platser för föremål?
 10. Hur aggressiv ska Signals-monetiseringen vara i prototypen?
+
+## 10. Ägarens beslut – implementerat i v1.35.0
+1. **Salvage är sammanslagen med Scrap.** Scrap är nu den enda mjuka valutan.
+   - Gamla sparfiler konverteras med **1 Salvage = 2 Scrap** (`SALVAGE_TO_SCRAP`).
+   - `salvage_crate` ger **16 Scrap**.
+   - Alla Salvage-kostnader är dubblade och betalas i Scrap: Core L2 120, Fabricator L1 20 / L2 100, BIT Bay L1 20 / L2 90 (+6 Data Cores), Storage L1 50.
+   - Simulerade raids ger 20–50 Scrap (Industrial) och 30–70 Scrap (Transit).
+   - Kontraktsbelöningarna är 30 och 20 Scrap.
+2. **Data Cores kan köpas** hos vendorn: **1 Data Core = 120 Scrap eller 2 Signals**. Loot (`data_core` → 2) är fortfarande huvudkällan.
+3. **Ingen hållbarhet.** Utrustningen förloras bara vid död. Hållbarhet kan läggas till senare som ett fält per föremål utan att ändra resten.
+4. **Vapen kommer från tillverkning och loot.** Vendorn säljer inte längre SMG eller Shotgun. Ritningar (`blueprint:true`) i Fabricator:
+
+| Vapen | Fabricator | Material | Scrap |
+|---|---|---|---|
+| Vector SMG | L1 | 3 scrap_alloy (T1), 1 servo (T2), 1 polymer_plate (T1) | 40 |
+| Breach Shotgun | L2 | 2 scrap_alloy, 2 servo, 1 hydraulic_component (T3) | 60 |
+| Marksman Rifle | L2 | 1 optical_sensor, 1 circuit_board (T2), 1 encrypted_drive (T4), 2 scrap_alloy | 80 |
+
+5. **Döda föremål har fått sänkor:**
+   - **encrypted_drive** används i receptet för Marksman Rifle och i dekryptering. Den droppar nu också på Node Raid nivå 3.
+   - **rebirth_shard** kan omvandlas till 6 Data Cores (Fab L2, 20 Scrap) och droppar på nivå 3.
+   - **neural_core** kan omvandlas till 12 Data Cores (Fab L2, 30 Scrap) och droppar på nivå 3 och i Transit.
+   - **bio_sample** ger 1 bio_sample + 1 med_gel → 2 medkits (Fab L1), och används också i Purification Filter.
+   - **ammo_pack** är borttagen ur receptet, vendorn och lootborden, eftersom Node Raid inte använder ammo. Föremålet finns kvar i datan så att gamla sparfiler fungerar.
+
+## 11. Operator-nivå: upplåsningar nivå 1–10 (endast design)
+Kurvan finns redan: 50 + 25·(n−1) XP per nivå, så nivå 10 nås vid 1 350 XP, vilket är ca 50–60 raids. Principen är att varannan nivå ger ett nytt **val eller system** och varannan en liten **kraftökning**, så att varje nivå känns. Ingen upplåsning får göra döden riskfri.
+
+| Nivå | Upplåsning | Typ | Motivering |
+|---|---|---|---|
+| 1 | Grundoperatör, gratis karbin, 1 förbrukningsplats | Start | Enkel start. |
+| 2 | **Andra förbrukningsplatsen** (Item 2) | Loadout | Första beslutet: ta två medkits, eller ett och plats för något annat. Lär ut risk. |
+| 3 | **Loot-radar**: BIT pingar närmaste lootlåda i Node Raid (ikon på kartan, 10 s cooldown) | BIT-förmåga | Minskar letandet och knyter BIT till raiden. |
+| 4 | **Vendor tier 2**: Scout Rig, Dampener Cloak och fler T2-material på hyllan | Vendor | Ger Scrap en ny sänka i mittspelet. |
+| 5 | **+1 väskplats** (kapacitet 4 → 5) | Perk | Större vinst per extraktion och mer att förlora. Ren risk/belöning. |
+| 6 | **Dash-laddning ×2** (två dashes, delad cooldown) | Perk | Skicklighetsbaserad överlevnad; nya sätt att undvika fiender. |
+| 7 | **Ritning: förbättrade vapen** (t.ex. Vector SMG Mk II, +1 mag) via Fabricator | Ritning | Tillverkningen förblir den huvudsakliga vägen till vapen. |
+| 8 | **Snabbare nod-laddning** (−15 % hålltid på noder) | Perk | Kortare exponering och fler noder per raid; passar stealth-builds. |
+| 9 | **BIT-räddning+**: BIT kan rädda ett utrustat föremål vid död (en gång per 3 raids) | BIT-förmåga | Mildrar förlusten utan att ta bort den; knyter till bond. |
+| 10 | **Kosmetisk operatörsskin "Rebirth Veteran"** + titel i lobbyn | Kosmetik | Statusmål; ingen kraft. |
+
+Egna förslag efter nivå 10: perk-val vid varje ny nivå (välj 1 av 2), till exempel tystare steg eller längre extraktionsfönster, och prestige-säsonger.
+
+Öppet: ska nivåerna låsa upp zoner, eller ska zonerna förbli knutna till Core-nivån? (Förslag: Core-nivån styr zoner och Operator-nivån styr förmågor.)

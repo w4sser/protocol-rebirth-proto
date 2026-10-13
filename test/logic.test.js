@@ -59,14 +59,14 @@ for(let i=0;i<50;i++) assert(app.resolveRaid({zoneId:"industrial", riskId:"stand
 // death economics: insurance, secure slot, never-regress
 S = app.freshState(); app._setState(S);
 S.beat = 6; S.modules.rebirth_core = 1; S.modules.storage = 1; S.secureItem = "medkit";
-S.cur.salvage = 50; S.bondXp = 10; S.modules.bit_bay = 1;
+S.cur.scrap = 50; S.bondXp = 10; S.modules.bit_bay = 1;
 const R = { cfg:{zoneId:"industrial", riskId:"standard", insuranceId:"basic",
   loadout:["basic_carbine","scavenger_vest","medkit"], trackedItemId:null},
-  zone:"industrial", outcome:"death", loot:["cable","fuse"], salvage:20, dataCores:3, trackedFound:false };
+  zone:"industrial", outcome:"death", loot:["cable","fuse"], scrap:20, dataCores:3, trackedFound:false };
 app.applyRaidResult(R);
 assert.equal(R.saved.insured.length, 1); assert.equal(R.saved.insured[0], "scavenger_vest", "insurance never wastes a slot on the free carbine");
 assert.equal(S.opXp, 4, "death still gives operator XP");
-assert.equal(R.saved.secure, "medkit"); assert.equal(S.cur.salvage, 60); assert.equal(S.bondXp, 15);
+assert.equal(R.saved.secure, "medkit"); assert.equal(S.cur.scrap, 60, "death keeps half the scrap haul"); assert.equal(S.bondXp, 15);
 assert(S.modules.rebirth_core === 1 && R.progress.length >= 2);
 
 // --- Basic Carbine is infinite; vest is not a starter item; operator level curve ---
@@ -117,12 +117,12 @@ assert(sawDecision, "never saw a tracked find in 200 raids?");
 const origRnd = Math.random;
 Math.random = () => 0.01;   // 0.01 < deathChanceAdd -> dies
 let R2 = { cfg:{zoneId:"industrial", routeId:"reactor", riskId:"standard", insuranceId:"none", loadout:[], trackedItemId:null},
-  zone:"industrial", outcome:"extract", loot:["cable"], salvage:10, dataCores:2, trackedFound:false, decision:{eligible:true,resolved:false} };
+  zone:"industrial", outcome:"extract", loot:["cable"], scrap:10, dataCores:2, trackedFound:false, decision:{eligible:true,resolved:false} };
 let res = app.rollPushDeeper(R2);
 assert(res.died && R2.outcome === "death" && R2.pushedAndDied, "push can kill");
 Math.random = () => 0.5;    // survives -> extra rolls
 let R3 = { cfg:{zoneId:"industrial", routeId:"reactor", riskId:"standard", insuranceId:"none", loadout:[], trackedItemId:null},
-  zone:"industrial", outcome:"extract", loot:["cable"], salvage:10, dataCores:2, trackedFound:false, decision:{eligible:true,resolved:false} };
+  zone:"industrial", outcome:"extract", loot:["cable"], scrap:10, dataCores:2, trackedFound:false, decision:{eligible:true,resolved:false} };
 res = app.rollPushDeeper(R3);
 assert(!res.died && res.extra.length === window.DATA.raidConfig.pushDeeper.extraSlots && R3.loot.length === 3, "push adds loot");
 Math.random = origRnd;
@@ -136,7 +136,7 @@ assert.equal(app.stageCount({zoneId:"industrial", routeId:"control", riskId:"agg
 // planStages splits loot across stages and never loses items
 {
   const R = { cfg:{zoneId:"industrial", routeId:"reactor", riskId:"standard", trackedItemId:null},
-    loot:["cable","fuse","servo","circuit_board","scrap_alloy"], salvage:30, dataCores:6 };
+    loot:["cable","fuse","servo","circuit_board","scrap_alloy"], scrap:30, dataCores:6 };
   const plan = app.planStages(R, 3);
   assert.equal(plan.stages.length, 3, "3 stages");
   const all = plan.stages.reduce((a,s)=>a.concat(s.loot), []);
@@ -218,16 +218,16 @@ console.log("ALL LOGIC TESTS PASSED");
 // Item-sourced currency: salvage_crate / data_core convert on ingest (no formula grants).
 {
   const st = app.freshState(); app._setState(st);
-  const s0 = st.cur.salvage, d0 = st.cur.dataCores;
+  const s0 = st.cur.scrap, d0 = st.cur.dataCores;
   const r = app.ingestRaidResult({ schema:"protocol-rebirth/raid-result", version:1, raidId:"cur-1", seed:"c", outcome:"extract",
     levelsCleared:2, enemiesDefeated:0, nodesLit:0, remainingMs:0, extracted:["salvage_crate","salvage_crate","data_core","polymer_plate","servo"], lost:[], endedAt:1 });
   const I = Object.fromEntries(window.DATA.items.map(i => [i.id, i]));
-  assert.equal(st.cur.salvage, s0 + 2*I.salvage_crate.grantsCurrency.salvage);
+  assert.equal(st.cur.scrap, s0 + 2*I.salvage_crate.grantsCurrency.scrap, "crates become Scrap");
   assert.equal(st.cur.dataCores, d0 + I.data_core.grantsCurrency.dataCores);
   assert.equal(st.stash.salvage_crate || 0, 0, "currency loot never sits in the stash");
   assert.equal(st.stash.polymer_plate, (app.freshState().stash.polymer_plate||0) + 1);
-  assert(st.revealed.salvage && st.revealed.dataCores);
-  assert(/\+16 Salvage/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
+  assert(st.revealed.dataCores);
+  assert(/\+32 Scrap/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
   console.log("item-sourced currency OK");
 }
 

@@ -71,7 +71,7 @@ window.DATA.items = [
     slot:"consumable", desc:"Fabricator special. Smells like ozone.", uses:["loadout"] },
   // CURRENCY-SOURCING LOOT (Node Raid): converted on ingest, never stored in the stash.
   { id:"salvage_crate", name:"Salvage Crate", family:"mechanical", rarity:"common", sellValue:20, stackSize:10,
-    grantsCurrency:{ salvage:8 }, desc:"Sorted structural salvage. Becomes Salvage when you bring it home.", uses:["currency"] },
+    grantsCurrency:{ scrap:16 }, desc:"Sorted structural salvage. Becomes Scrap when you bring it home.", uses:["currency"] },
   { id:"data_core", name:"Data Core", family:"electronics", rarity:"uncommon", sellValue:60, stackSize:10,
     grantsCurrency:{ dataCores:2 }, desc:"Intact storage cell. Becomes Data Cores when you bring it home.", uses:["currency"] },
   { id:"ammo_pack", name:"Ammo Pack", family:"gear", rarity:"common", sellValue:25, stackSize:5,

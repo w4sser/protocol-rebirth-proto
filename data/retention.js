@@ -31,9 +31,9 @@ window.DATA.retention = {
   contracts: {
     unlockAfterBeat: "choice_upgrade",
     daily: [
-      { id: "extract_once", txt: "Extract once", action: "EXTRACT_COMPLETE", reward: { salvage: 15 } },
+      { id: "extract_once", txt: "Extract once", action: "EXTRACT_COMPLETE", reward: { scrap: 30 } },
       { id: "craft_one",    txt: "Craft one item", action: "ITEM_CRAFTED",   reward: { scrap: 30 } },
-      { id: "build_part",   txt: "Complete a module upgrade", action: "MODULE_BUILT", reward: { salvage: 10 } }
+      { id: "build_part",   txt: "Complete a module upgrade", action: "MODULE_BUILT", reward: { scrap: 20 } }
     ]
   },
 

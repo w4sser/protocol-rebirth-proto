@@ -6,7 +6,7 @@ Status: förslag + första steg implementerat (RaidResult v1 via localStorage).
 
 ### Meta (repo-roten: `index.html`, `app.js`, `data/*.js`)
 - **Sparning:** `localStorage["pr_meta_save"]`, `SAVE_VERSION = 7` (migrering från v6 finns). Ett objekt `S` med bl.a.
-  `cur` (valutor: `scrap`, `salvage`, `dataCores`, …), `stash` (item-id → antal), `modules` (modul-id → nivå),
+  `cur` (valutor: `scrap`, `dataCores`, …), `stash` (item-id → antal), `modules` (modul-id → nivå),
   `bondXp`, `tracked` (spårad uppgradering), `zoneIntel`, `raids`, `deaths`, `baseState`, `roomUnlocks`, `log`.
 - **Items:** `data/items.js` – t.ex. `cable`, `fuse`, `scrap_alloy`, `power_cell`, `medkit`, `ammo_pack`, `basic_carbine` …
 - **Raid idag:** helt simulerad. `resolveRaid(cfg)` med `cfg = {zoneId, routeId, riskId, loadout:[itemIds], insuranceId, trackedItemId}`
@@ -153,16 +153,16 @@ Tidig död ger några XP (simulerad död ger 5). Bond-trösklar: 30 / 80 / 150 /
 - Abandon från nivå-exit-skärmen är okej. Väskan förloras då också, eftersom den inte är säkrad.
 
 ## 8. Loot-täckning: alla bas-krav går att få från Node Raid
-Problem: Vault (Storage L1) kräver Salvage 25, Polymer Plate 2 och Servo 1, men Node Raid släppte bara
+Problem: Vault (Storage L1) kräver Scrap 50, Polymer Plate 2 och Servo 1, men Node Raid släppte bara
 cable/fuse/scrap_alloy/power_cell/medkit, så spelaren fastnade.
 
 **Granskning av alla krav (`data/modules.js`):**
 | Modul | Items | Valuta |
 |---|---|---|
-| Rebirth Core L1 / L2 | power_cell, scrap_alloy / power_relay, circuit_board ×2, ai_fragment | – / Salvage 60 |
-| Fabricator L1 / L2 | cable, fuse / circuit_board ×2, hydraulic_component | Salvage 10 / 50 |
-| BIT Bay L1 / L2 | optical_sensor, cable / memory_module | Salvage 10 / 45 + Data Cores 6 |
-| Storage/Vault L1 | polymer_plate ×2, servo | Salvage 25 |
+| Rebirth Core L1 / L2 | power_cell, scrap_alloy / power_relay, circuit_board ×2, ai_fragment | – / Scrap 120 |
+| Fabricator L1 / L2 | cable, fuse / circuit_board ×2, hydraulic_component | Scrap 20 / 50 |
+| BIT Bay L1 / L2 | optical_sensor, cable / memory_module | Scrap 20 / 45 + Data Cores 6 |
+| Storage/Vault L1 | polymer_plate ×2, servo | Scrap 50 |
 
 Rummen i basen låses upp av modulnivåer, så de har inga egna item-krav. Recept-inputs (`med_gel`, `bio_sample`, `transmitter` m.fl.)
 får komma från loot, vendor, byteshandel eller andra recept.
@@ -174,8 +174,8 @@ får komma från loot, vendor, byteshandel eller andra recept.
 - Tidiga delar ligger på nivå 1, mellandelar på nivå 2 och sällsynta delar djupare. Det ger ett skäl att fortsätta (med risk).
 
 **Valuta från items (inga formelgåvor):** två nya items i `data/items.js` med `grantsCurrency`:
-`salvage_crate` → **8 Salvage**, `data_core` → **2 Data Cores**. De omvandlas vid ingest och hamnar aldrig i stashen.
-Hela modulträdet kräver 200 Salvage (≈ 25 lådor) och 6 Data Cores (3 cores).
+`salvage_crate` → **16 Scrap** (v1.35: Salvage är sammanslagen med Scrap, 1 Salvage = 2 Scrap), `data_core` → **2 Data Cores**. De omvandlas vid ingest och hamnar aldrig i stashen.
+Hela modulträdet kräver 400 Scrap i byggkostnad (≈ 25 lådor) och 6 Data Cores (3 cores).
 
 **Test:** `test/loot-coverage.test.mjs` kontrollerar att varje item i varje modulkostnad finns i Node Raids loot, att Salvage och
 Data Cores har en item-källa, att alla core-loot-id:n finns i basens items och har etikett, och att recept-inputs går att få.
@@ -234,7 +234,7 @@ RaidResult har nu `skills: {distanceM, dashes, holdNodes, damageTaken}` samt `st
 Basen visar ett **Operator**-kort i raid-prep med stats, skill-nivåer/XP och den gear som riskeras.
 Bond-XP (BIT) är oförändrad och separat.
 
-## 11. Vapen och förbrukningsvaror i Node Raid (v1.34.1)
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.35.0)
 
 **Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
 

@@ -17,7 +17,7 @@ window.DATA.raidZones = [
       { itemId:"power_cell", weight:5 }, { itemId:"prewar_relic", weight:4 },
       { itemId:"hydraulic_component", weight:4 }, { itemId:"encrypted_drive", weight:1 }
     ],
-    salvageRange:[10,25], dataCoresOnExtract:[2,4],
+    scrapRange:[20,50], dataCoresOnExtract:[2,4],
     likelyFamilies:["power","mechanical","electronics"],
     routes:[
       { id:"tunnels", name:"Maintenance Tunnels", threat:1,
@@ -48,9 +48,9 @@ window.DATA.raidZones = [
       { itemId:"power_relay", weight:8 }, { itemId:"bio_sample", weight:10 },
       { itemId:"purification_filter", weight:8 }, { itemId:"prewar_relic", weight:6 },
       { itemId:"power_cell", weight:6 }, { itemId:"encrypted_drive", weight:3 },
-      { itemId:"ai_fragment", weight:2 }, { itemId:"rebirth_shard", weight:1 }
+      { itemId:"ai_fragment", weight:2 }, { itemId:"rebirth_shard", weight:1 }, { itemId:"neural_core", weight:1 }
     ],
-    salvageRange:[15,35], dataCoresOnExtract:[3,6],
+    scrapRange:[30,70], dataCoresOnExtract:[3,6],
     likelyFamilies:["electronics","bio","protocol"],
     routes:[
       { id:"concourse", name:"Upper Concourse", threat:2,
