@@ -21,7 +21,7 @@ window.DATA.progression = {
     cheapLoadoutItems:["medkit"]   // Basic Carbine is infinite; the vest is a later unlock
   },
   start:{
-    currencies:{ scrap:20, dataCores:0, salvage:0, signals:0 },
+    currencies:{ scrap:20, dataCores:0, signals:0 },   // Salvage merged into Scrap (v1.35, 1 Salvage = 2 Scrap)
     stash:{ power_cell:1, scrap_alloy:3, medkit:1 }   // Basic Carbine is infinite (never in stash); Scavenger Vest unlocks at Fabricator L1
   },
   // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
@@ -60,7 +60,7 @@ window.DATA.progression = {
 };
 
 // Progressive currency reveal (UI only — economy unchanged underneath).
-window.DATA.progression.currencyReveal = { scrap:"start", salvage:"first_raid", dataCores:"bit_online", signals:"insurance_offered" };
+window.DATA.progression.currencyReveal = { scrap:"start", dataCores:"bit_online", signals:"insurance_offered" };
 
 // Post-prototype playtest survey (3 taps, logged to the event log).
 window.DATA.progression.survey = [

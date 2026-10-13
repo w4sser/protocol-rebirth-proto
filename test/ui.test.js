@@ -199,10 +199,11 @@ assert(doc.querySelector(".riskbar.safe"), "no gear at risk once armor and medki
 assert(text().includes("RAID PLANNING UNLOCKED") && text().includes("FIELD CRAFTING"), "Fabricator reward is visible on prep");
 A.prepSet("routeId","control");
 assert(doc.querySelector(".mappanel").style.backgroundImage.includes("env_route_map"), "unlocked raid planning shows its map");
+A.devCur(); A.buy("med_gel"); A.buy("med_gel"); A.go("prep");
 const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-A.craft("ammo_pack");
+A.craft("medkit");
 const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-assert.equal(afterCraft.stash.ammo_pack, (beforeCraft.stash.ammo_pack || 0) + 1, "field crafting creates usable supplies from prep");
+assert.equal(afterCraft.stash.medkit, (beforeCraft.stash.medkit || 0) + 1, "field crafting creates usable supplies from prep");
 A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
 
@@ -289,7 +290,7 @@ assert(text().includes("EMERGENCY LOADOUT"), "emergency loadout");
 A.emergencyLoadout();
 
 // vendor/craft/stash + survey + end
-A.go("vendor"); A.buy("cable"); A.craft("ammo_pack");
+A.go("vendor"); A.buy("cable"); A.craft("medkit");
 A.go("stash"); A.itemDetail("cable"); A.sell("cable");
 // The choice upgrade must advance to a reachable end screen; repairing the final
 // room also promotes and persists the original refined bunker transformation.

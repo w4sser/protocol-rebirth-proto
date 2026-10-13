@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.34.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.35.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -45,10 +45,19 @@ function load(){
     if(raw){
       const st = JSON.parse(raw);
       if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); return st; }
     }
   }catch(e){}
   return freshState();
+}
+// v1.35: Salvage merged into Scrap. Legacy saves convert at SALVAGE_TO_SCRAP. Salvage Crates now grant Scrap.
+const SALVAGE_TO_SCRAP = 2;
+function migrateSalvage(st){
+  if(!st || !st.cur) return st;
+  if(st.cur.salvage){ st.cur.scrap = (st.cur.scrap || 0) + Math.floor(st.cur.salvage * SALVAGE_TO_SCRAP); }
+  delete st.cur.salvage;
+  if(st.revealed) delete st.revealed.salvage;
+  return st;
 }
 function migrateState(st){
   if(st.v !== 6) return st;
@@ -148,7 +157,7 @@ function roomPartsHtml(room){
   const next = room && room.destination && nextLevelDef(room.destination);
   if(!next) return "";
   return costParts(next.cost).map(part => '<span class="chip ' + (part.have >= part.need ? 'ok' : 'need') + '">' +
-    esc(part.kind === "item" ? ITEMS[part.id].name : (part.id === "dataCores" ? "Data Cores" : "Salvage")) + ' ' + Math.min(part.have,part.need) + '/' + part.need + '</span>').join(' ');
+    esc(part.kind === "item" ? ITEMS[part.id].name : (part.id === "dataCores" ? "Data Cores" : "Scrap")) + ' ' + Math.min(part.have,part.need) + '/' + part.need + '</span>').join(' ');
 }
 function bunkerStage(){
   let stage = 0;
@@ -180,14 +189,14 @@ function advanceBaseState(reason){
 }
 function costParts(cost){
   const parts = [];
-  if(cost.salvage) parts.push({ kind:"cur", id:"salvage", need:cost.salvage, have:S.cur.salvage });
+  if(cost.scrap) parts.push({ kind:"cur", id:"scrap", need:cost.scrap, have:S.cur.scrap });
   if(cost.dataCores) parts.push({ kind:"cur", id:"dataCores", need:cost.dataCores, have:S.cur.dataCores });
   for(const id in (cost.items||{})) parts.push({ kind:"item", id, need:cost.items[id], have:have(id) });
   return parts;
 }
 function canAfford(cost){ return costParts(cost).every(p => p.have >= p.need); }
 function payCost(cost){
-  if(cost.salvage) S.cur.salvage -= cost.salvage;
+  if(cost.scrap) S.cur.scrap -= cost.scrap;
   if(cost.dataCores) S.cur.dataCores -= cost.dataCores;
   for(const id in (cost.items||{})) removeItem(id, cost.items[id]);
 }
@@ -423,10 +432,10 @@ function resolveRaid(cfg){
   (beat.guaranteedDrops||[]).forEach(id => { if(!loot.includes(id)) loot.push(id); });
   const trackedFound = !!cfg.trackedItemId && loot.includes(cfg.trackedItemId);
 
-  const salvage = randInt(zone.salvageRange[0], zone.salvageRange[1]);
+  const scrap = randInt(zone.scrapRange[0], zone.scrapRange[1]);
   const dataCores = randInt(zone.dataCoresOnExtract[0], zone.dataCoresOnExtract[1]);
   const valuableFound = loot.some(id => ITEMS[id].rarity === "protocol" || ITEMS[id].rarity === "valuable");
-  const R = { cfg, zone: zone.id, outcome, loot, salvage, dataCores, trackedFound, forced };
+  const R = { cfg, zone: zone.id, outcome, loot, scrap, dataCores, trackedFound, forced };
   // one meaningful mid-raid decision: only on live (unforced) successful raids with tracked/valuable loot
   R.decision = { eligible: outcome === "extract" && !forced && (trackedFound || valuableFound), resolved: false };
   return R;
@@ -470,7 +479,7 @@ function planStages(R, n){
   for(let i=0;i<n;i++){
     const take = Math.ceil(loot.length / (n - i));
     stages.push({ loot: loot.splice(0, take),
-      salvage: Math.round(R.salvage / n), dataCores: Math.round(R.dataCores / n) });
+      scrap: Math.round(R.scrap / n), dataCores: Math.round(R.dataCores / n) });
   }
   if(loot.length) stages[stages.length-1].loot.push(...loot);
   return { stages, n, pushDeath: D.raidConfig.checkpoints.pushDeathChance };
@@ -489,7 +498,6 @@ function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 function applyRaidResult(R){
   const progress = [];
   S.raids++;
-  revealCurrency("salvage");
   S.zoneIntel[R.zone] = (S.zoneIntel[R.zone]||0) + 1;
   progress.push("Zone intel: " + ZONES[R.zone].name + " +1");
   const bondBefore = bondLevel();
@@ -497,12 +505,12 @@ function applyRaidResult(R){
   if(R.outcome === "extract"){
     R.loot.forEach(id => addItem(id,1));
     R.cfg.loadout.forEach(id => addItem(id,1)); // gear comes home
-    S.cur.salvage += R.salvage;
+    S.cur.scrap += R.scrap;
     S.cur.dataCores += R.dataCores;
-    progress.push("+" + R.salvage + " Salvage, +" + R.dataCores + " Data Cores");
+    progress.push("+" + R.scrap + " Scrap, +" + R.dataCores + " Data Cores");
     gainOpXp(PROG.operator.simExtractXp);
     if(bitOnline()){ S.bondXp += D.bit.xpPerExtract; progress.push("BIT Bond +" + D.bit.xpPerExtract + " XP"); }
-    act("EXTRACT_COMPLETE", { zone:R.zone, loot:R.loot, salvage:R.salvage, dataCores:R.dataCores, tracked:R.trackedFound });
+    act("EXTRACT_COMPLETE", { zone:R.zone, loot:R.loot, scrap:R.scrap, dataCores:R.dataCores, tracked:R.trackedFound });
   } else {
     S.deaths++;
     // survivors
@@ -514,8 +522,8 @@ function applyRaidResult(R){
       R.saved.secure = S.secureItem; addItem(S.secureItem,1);
     }
     if(bondLevel() >= 3 && R.loot.length){ R.saved.bitRescue = R.loot[0]; addItem(R.loot[0],1); }
-    const halfSalvage = Math.floor(R.salvage/2);
-    S.cur.salvage += halfSalvage;
+    const halfSalvage = Math.floor(R.scrap/2);
+    S.cur.scrap += halfSalvage;
     progress.push("+" + halfSalvage + " Salvage (recovered)");
     gainOpXp(PROG.operator.simDeathXp);
     if(bitOnline()){ S.bondXp += D.bit.xpPerDeath; progress.push("BIT Bond +" + D.bit.xpPerDeath + " XP"); }
@@ -619,7 +627,7 @@ function goalBarHtml(){
   const b = curBeat();
   return '<div class="goalbar">CURRENT GOAL<br><b>' + esc(b.goalText) + '</b></div>';
 }
-const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", salvage:"Salvage", signals:"Signals" };
+const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals" };
 function revealCurrency(id){
   if(!S.revealed) S.revealed = { scrap:true };   // safety for injected test states
   if(S.revealed[id]) return;
@@ -634,7 +642,7 @@ const CUR_ICONS = { scrap:"⚙", dataCores:"◆", salvage:"♻", signals:"📡",
 const ROOM_ICONS = { rebirth_core:"⚛", fabricator:"🛠", storage:"🔐", bit_bay:"🤖", living_quarters:"🛏" };
 const ITEM_ICONS = { basic_carbine:"🔫", smg_vector:"🔫", rifle_marksman:"🎯", shotgun_breach:"💥", cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
 function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? "🦺" : "▣"); }
-function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage"); }
+function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 function renderCurrencies(){
   const c = S.cur;
@@ -728,7 +736,7 @@ SCREENS.combatDemo = function(){
   const field = c.field;
   session.combatDemo = {
     x:field.spawnX, y:field.spawnY, hp:gameCfg.maxHealth, ammo:gameCfg.magazine,
-    kills:0, salvage:0, medGel:0, lastHit:0, lastShot:0, pulseReadyAt:0,
+    kills:0, scrap:0, medGel:0, lastHit:0, lastShot:0, pulseReadyAt:0,
     moving:{}, firing:false, drones:Array.from({length:droneCfg.count}, (_,i)=>({
       x:droneCfg.spawns[i%droneCfg.spawns.length][0], y:droneCfg.spawns[i%droneCfg.spawns.length][1], hp:droneCfg.maxHealth, id:i, alive:true
     })), pickups:[], running:true
@@ -780,7 +788,7 @@ SCREENS.combatDemo = function(){
       el.style.left=p.x+"%";el.style.top=p.y+"%";
       if(Math.hypot(g.x-p.x,g.y-p.y)<gameCfg.pickupRadius&&!p.taken){p.taken=true;el.remove();
         if(p.kind==="med"){g.medGel++;g.hp=Math.min(gameCfg.maxHealth,g.hp+c.loot.medGelHeal);A.combatFeedback("MED GEL +"+c.loot.medGelHeal,false);}
-        else {g.salvage+=c.loot.salvagePerDrone;A.combatFeedback("SALVAGE +"+c.loot.salvagePerDrone,false);}
+        else {g.scrap+=c.loot.scrapPerDrone;A.combatFeedback("SCRAP +"+c.loot.scrapPerDrone,false);}
         act("COMBAT_LOOT_COLLECTED",{kind:p.kind});
       }
     });
@@ -828,7 +836,7 @@ function closestUpgrade(){
   }
   return best;
 }
-function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage"); }
+function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 // FTUE ends once the scripted spine hands the player their first free choice.
 // Before that we teach with strong guidance; after, we stop deciding for them.
 function ftueOver(){
@@ -1073,7 +1081,7 @@ SCREENS.module = function(modId){
     }
     html += '<h2>Requirements</h2>';
     for(const p of costParts(next.cost)){
-      const name = p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Salvage");
+      const name = p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap");
       const okc = p.have >= p.need ? "ok" : "bad";
       html += '<div class="card row"><span>' + esc(name) + '</span><span class="' + okc + '">' + Math.min(p.have,p.need) + ' / ' + p.need + '</span></div>';
     }
@@ -1193,7 +1201,7 @@ SCREENS.prep = function(){
       (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div>' +
       '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div>' +
       '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Route &amp; risk choices</b><br><span class="small">Build the Fabricator to plan your own missions.</span></div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns salvage into raid supplies.</span></div>';
+      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns scrap into raid supplies.</span></div>';
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
@@ -1414,7 +1422,7 @@ SCREENS.checkpoint = function(){
     html += '<div class="card row" style="padding:6px 10px"><span' + (fl?' class="trackc"':'') + '>' + (fl?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
       (fl?'<span class="trackc small">tracked</span>':'<span class="small">' + (ITEMS[id].sellValue||0) + '</span>') + '</div>';
   }
-  html += '<div class="kv"><span>Haul value at risk</span><span class="warn">' + haulVal + ' + ' + rd.salvage + ' Salvage</span></div>';
+  html += '<div class="kv"><span>Haul value at risk</span><span class="warn">' + haulVal + ' + ' + rd.scrap + ' Scrap</span></div>';
 
   // The two choices
   html += '<div class="decision-actions"><button class="primary" onclick="A.extractNow()">EXTRACT NOW — SECURE ' + haulVal + '</button>' +
@@ -1482,6 +1490,11 @@ SCREENS.vendor = function(){
     html += '<div class="card row"><span>' + esc(ITEMS[s.itemId].name) + '</span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (afford?'':'opacity:.4') + '" ' +
       (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + s.price + ' Scrap</button></div>';
+  }
+  html += '<h2>Data Cores</h2>';
+  for(const x of (v.exchange || [])){
+    const [gc, gq] = Object.entries(x.give)[0], [rc, rq] = Object.entries(x.receive)[0], can = (S.cur[gc] || 0) >= gq;
+    html += '<div class="card row"><span>' + rq + ' ' + CUR_LABELS[rc] + '</span><button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can ? '' : 'opacity:.4') + '" ' + (can ? 'onclick="A.exchange(\'' + x.id + '\')"' : 'disabled') + '>' + gq + ' ' + CUR_LABELS[gc] + '</button></div>';
   }
   html += '<h2>Barter</h2>';
   v.barter.forEach((b,ix) => {
@@ -1571,7 +1584,7 @@ SCREENS.end = function(){
 function revealStage(){
   const rd = session.raid, st = rd.plan.stages[rd.stage];
   rd.haul.push(...st.loot);
-  rd.salvage += st.salvage;
+  rd.scrap += st.scrap;
   rd.dataCores += st.dataCores;
 }
 // End a staged raid: write the accumulated haul onto R, set outcome, then resolve.
@@ -1579,7 +1592,7 @@ function finalizeStaged(outcome){
   const rd = session.raid, R = session.pendingRaid;
   R.outcome = outcome;
   R.loot = rd.haul.slice();
-  R.salvage = rd.salvage;
+  R.scrap = rd.scrap;
   R.dataCores = rd.dataCores;
   R.trackedFound = !!R.cfg.trackedItemId && R.loot.includes(R.cfg.trackedItemId);
   if(outcome === "death") R.pushedAndDied = true;
@@ -1866,15 +1879,15 @@ window.A = {
     g.running=false;g.firing=false;
     const host=document.getElementById("combat-objective");if(host)host.textContent=extracted?"EXTRACT AVAILABLE":"SIGNAL LOST";
     const arena=document.getElementById("combat-arena");
-    if(arena)arena.insertAdjacentHTML("beforeend",'<div class="combat-end"><b>'+(extracted?"AREA SECURE":"YOU ARE DOWN")+'</b><span>'+(extracted?g.salvage+" Salvage · "+g.medGel+" Med Gel":"Try a different route around the drones")+'</span><button onclick="A.finishCombatDemo('+(extracted?"true":"false")+')">'+(extracted?"EXTRACT LOOT":"RETRY")+'</button></div>');
-    act(extracted?"COMBAT_AREA_SECURED":"COMBAT_TEST_FAILED",{kills:g.kills,salvage:g.salvage});
+    if(arena)arena.insertAdjacentHTML("beforeend",'<div class="combat-end"><b>'+(extracted?"AREA SECURE":"YOU ARE DOWN")+'</b><span>'+(extracted?g.scrap+" Scrap · "+g.medGel+" Med Gel":"Try a different route around the drones")+'</span><button onclick="A.finishCombatDemo('+(extracted?"true":"false")+')">'+(extracted?"EXTRACT LOOT":"RETRY")+'</button></div>');
+    act(extracted?"COMBAT_AREA_SECURED":"COMBAT_TEST_FAILED",{kills:g.kills,scrap:g.scrap});
   },
   finishCombatDemo(extracted){
     const g=session.combatDemo;if(!g)return;
     if(extracted){
-      S.cur.salvage+=g.salvage;
+      S.cur.scrap+=g.scrap;
       if(g.medGel)addItem(D.combat.loot.medGelItemId,g.medGel);
-      act("COMBAT_LOOT_EXTRACTED",{salvage:g.salvage,medGel:g.medGel});save();
+      act("COMBAT_LOOT_EXTRACTED",{scrap:g.scrap,medGel:g.medGel});save();
       this.endCombatDemo();
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
@@ -2041,7 +2054,7 @@ window.A = {
     const n = stageCount(cfg);
     if(!R.forced && !devForced && n >= 2){
       const plan = planStages(R, n);
-      session.raid = { R, plan, stage:0, haul:[], salvage:0, dataCores:0 };
+      session.raid = { R, plan, stage:0, haul:[], scrap:0, dataCores:0 };
       revealStage();
     } else {
       session.raid = null;
@@ -2138,6 +2151,14 @@ window.A = {
     A.go("base");
     bitDock(S.deaths && S.log[S.log.length-2] && S.log.some(e=>e.action==="PLAYER_DIED" && Date.now()-e.t < 60000) ? "player_died" : "extracted");
   },
+  exchange(xid){
+    const x = (D.vendors[0].exchange || []).find(e => e.id === xid); if(!x) return;
+    const [gc, gq] = Object.entries(x.give)[0], [rc, rq] = Object.entries(x.receive)[0];
+    if((S.cur[gc] || 0) < gq) return;
+    S.cur[gc] -= gq; S.cur[rc] = (S.cur[rc] || 0) + rq; revealCurrency(rc);
+    act("VENDOR_EXCHANGE", { id:xid });
+    toast("+" + rq + " " + CUR_LABELS[rc]); refresh();
+  },
   buy(id){
     const s = D.vendors[0].stock.find(x=>x.itemId===id);
     if(!s || !stockUnlocked(s) || S.cur.scrap < s.price) return;
@@ -2161,9 +2182,10 @@ window.A = {
     if(S.cur.scrap < r.scrapCost || !Object.keys(r.inputs).every(id => have(id) >= r.inputs[id])) return;
     S.cur.scrap -= r.scrapCost;
     for(const id in r.inputs) removeItem(id, r.inputs[id]);
-    addItem(r.output.itemId, r.output.qty);
+    if(r.output.currency){ S.cur[r.output.currency] = (S.cur[r.output.currency] || 0) + r.output.qty; revealCurrency(r.output.currency); }
+    else addItem(r.output.itemId, r.output.qty);
     act("ITEM_CRAFTED", { recipe: rid });
-    toast("Crafted " + ITEMS[r.output.itemId].name);
+    toast("Crafted " + (r.output.currency ? r.output.qty + " " + CUR_LABELS[r.output.currency] : ITEMS[r.output.itemId].name));
     refresh();
   },
   sendExpedition(){
@@ -2306,7 +2328,7 @@ window.A = {
   },
   /* dev */
   devForce(o){ session.devForce = o; act("DEV_FORCE",{o}); toast("Next raid: " + o); refresh(); },
-  devCur(){ S.cur.scrap+=100; S.cur.dataCores+=100; S.cur.salvage+=100; S.cur.signals+=100; act("DEV_CURRENCY",{}); refresh(); },
+  devCur(){ S.cur.scrap+=100; S.cur.dataCores+=100; S.cur.signals+=100; act("DEV_CURRENCY",{}); refresh(); },
   devBond(){
     const bl = bondLevel();
     const nxt = D.bit.bondLevels.find(b=>b.level===bl+1);
