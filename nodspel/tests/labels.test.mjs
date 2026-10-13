@@ -23,3 +23,15 @@ test('smooth fade and HUD exclusion',()=>{
   assert(overHUD(400,30,hud));assert(!overHUD(400,120,hud));
   assert(overHUD(250,70,hud,8,140,20),'label box edge touching HUD is hidden');assert(!overHUD(250,70,hud,8,20,20));
 });
+import {deoverlap,MAX_ENEMY_BARS} from '../labels.js';
+test('enemies: compact bar by default, name near/targeted, capped',()=>{
+  assert.equal(labelTier('enemy',8),'bar');assert.equal(labelTier('enemy',2),'full');
+  const items=Array.from({length:9},(_,i)=>({id:i,kind:'enemy',x:5+i,z:0}));items.push({id:'t',kind:'enemy',x:30,z:0,force:'full'});
+  const plan=planLabels(items,{x:0,z:0});
+  assert.equal([...plan.values()].filter(v=>v==='bar').length,MAX_ENEMY_BARS);assert.equal(plan.get('t'),'full','targeted enemy shows its name');
+});
+test('de-overlap: stacked enemies shift up, shock-pad icon never moves',()=>{
+  const s=deoverlap([{id:'pad',x:100,y:100,w:40,h:40,fixed:true},{id:'a',x:100,y:100,w:60,h:14},{id:'b',x:102,y:101,w:60,h:14}]);
+  assert.equal(s.get('pad'),0);assert(s.get('a')>0&&s.get('b')>0&&s.get('a')!==s.get('b'));
+  const far=deoverlap([{id:'x',x:0,y:100,w:60,h:14},{id:'y',x:300,y:100,w:60,h:14}]);assert.equal(far.get('x'),0);assert.equal(far.get('y'),0);
+});

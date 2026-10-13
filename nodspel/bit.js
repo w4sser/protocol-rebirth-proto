@@ -1,5 +1,5 @@
-import {RULES} from './levels.js?v=1.36.1';
-import {movePlayer} from './physics.mjs?v=1.36.1';
+import {RULES} from './levels.js?v=1.36.2';
+import {movePlayer} from './physics.mjs?v=1.36.2';
 export function createBIT(position){return {...position,lastPlayer:{...position},trail:[],healing:false,healCarry:0};}
 export function stepBIT(bit,round,position,dt,moving,solids,floors){
   const moved=Math.hypot(position.x-bit.lastPlayer.x,position.z-bit.lastPlayer.z)>.001;

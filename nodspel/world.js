@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.36.1';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.36.2';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.36.2';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -114,15 +114,16 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
   const hazards=(level.hazards??[]).map(h=>{
     const mat=new THREE.MeshBasicMaterial({color:'#e0c040',transparent:true,opacity:.18,side:THREE.DoubleSide,depthWrite:false});
     const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
-    const rr=Math.min(h.w,h.d)*.42,fill=new THREE.Mesh(new THREE.RingGeometry(rr-.12,rr,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
-    fill.rotation.x=-Math.PI/2;fill.position.set(h.x,.045,h.z);group.add(fill);
-    return {hazard:h,mat,fill};
+    const rr=Math.min(h.w,h.d)*.46,ring=(inner,mat)=>{const m=new THREE.Mesh(new THREE.RingGeometry(inner,rr,64,1,-Math.PI/2),mat);m.rotation.x=-Math.PI/2;m.position.set(h.x,.045,h.z);m.renderOrder=3;group.add(m);return m;};
+    const track=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#3a2f12',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+    const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;
+    return {hazard:h,mat,fill,track};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
   function animateHazards(now){for(const v of hazards){const t=hazardTiming(v.hazard,now);
     // recharge ring fills clockwise while the pad charges back up; hidden while live
-    const prog=t.state==='on'?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=t.state!=='on';v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
-    v.fill.material.color.set(t.state==='warn'?'#fff27a':'#c99a2a');
+    const prog=t.state==='on'?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=t.state!=='on';v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
+    v.fill.material.color.set(t.state==='warn'?'#fff27a':'#ffb820');
     if(t.state==='on'){v.mat.color.set('#ff3b1f');v.mat.opacity=.75;}
     else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}

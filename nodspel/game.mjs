@@ -1,27 +1,27 @@
 import * as THREE from './vendor/three.module.js';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.36.1';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.36.1';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.36.1';
-import {buildWorld,setNodeHold} from './world.js?v=1.36.1';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.36.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.36.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.36.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.36.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.36.1';
-// import {stepScavenging} from './scavenging.js?v=1.36.1';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.36.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.36.1';
-import {routeComplete} from './objectives.js?v=1.36.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.36.1';
-import {createBIT,stepBIT} from './bit.js?v=1.36.1';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.36.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.36.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.36.1';
-import {planLabels,labelOpacity,overHUD} from './labels.js?v=1.36.1';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.36.2';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,useHealthKit,stepNodeInteraction} from './round.js?v=1.36.2';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.36.2';
+import {buildWorld,setNodeHold} from './world.js?v=1.36.2';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.36.2';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.36.2';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.36.2';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.36.2';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.36.2';
+// import {stepScavenging} from './scavenging.js?v=1.36.2';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.36.2';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.36.2';
+import {routeComplete} from './objectives.js?v=1.36.2';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.36.2';
+import {createBIT,stepBIT} from './bit.js?v=1.36.2';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.36.2';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.36.2';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.36.2';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.36.2';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.36.1');
+const orderResponse=await fetch('./order.json?v=1.36.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -200,12 +200,12 @@ function loadLevel(){
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
-  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:makeLabel('⚡',new THREE.Vector3(h.x,.9,h.z),'hazard-label hazard-icon')}));
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:makeLabel('⚡',new THREE.Vector3(h.x,.35,h.z),'hazard-label hazard-icon')}));
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label','exit','EXIT');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label','room',room.name.toUpperCase());
   for(const v of world.enemies){
     v.maxHealth=v.enemy.health;
-    v.label=makeLabel(`${enemyName(v.enemy)} · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label');
+    v.label=makeLabel(`${enemyName(v.enemy)} · ${v.enemy.health}`,new THREE.Vector3(v.enemy.x,1.7,v.enemy.z),'enemy-label','enemy');v.label.enemy=v.enemy;
     const bar=document.createElement('div');bar.className='enemy-health-bar';bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Enemy health');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',v.maxHealth);
     v.healthSegments=createHealthSegments(bar,v.maxHealth);v.label.el.append(bar);v.healthBar=bar;
     v.flash=makeLabel('',new THREE.Vector3(v.enemy.x,.65,v.enemy.z),'enemy-hit-flash');v.flash.el.replaceChildren();
@@ -323,7 +323,7 @@ function refreshHudRects(now){if(now-hudRectsAt<500)return;hudRectsAt=now;
 function renderLabels(){
   refreshHudRects(performance.now());
   const items=labels.filter(l=>l.range&&!l.defeated).map(l=>({id:l.id,kind:l.range,x:l.point.x,z:l.point.z,
-    force:l===bitLabel?(bit?.healing?'full':'hidden'):(l===world.exitLabel&&!exitIsOpen(round)&&Math.hypot(l.point.x-position.x,l.point.z-position.z)>3.4?'dot':undefined)}));
+    force:l.range==='enemy'?(l.el.classList.contains('locked')||l.el.classList.contains('winding')?'full':undefined):l===bitLabel?(bit?.healing?'full':'hidden'):(l===world.exitLabel&&!exitIsOpen(round)&&Math.hypot(l.point.x-position.x,l.point.z-position.z)>3.4?'dot':undefined)}));
   const plan=planLabels(items,position);
   for(const l of labels){
     labelPoint.copy(l.point).project(camera);
@@ -333,16 +333,23 @@ function renderLabels(){
     if(!l.size&&!l.el.hidden&&l.el.offsetWidth)l.size=[l.el.offsetWidth,l.el.offsetHeight];
     const [lw,lh]=l.size??[mode==='dot'?10:80,mode==='dot'?10:24];
     l.el.hidden=l.defeated||l.obscured||mode==='hidden'||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9||overHUD(sx,sy,hudRects,8,lw,lh);
+    l.sx=sx;l.sy=sy;
     if(!l.el.hidden){l.el.style.left=`${sx}px`;l.el.style.top=`${sy}px`;
       if(l.range)l.el.style.opacity=labelOpacity(l.range,Math.hypot(l.point.x-position.x,l.point.z-position.z)).toFixed(2);}
   }
+  // shock-pad icons have priority; stacked enemy labels shift up (or hide) so nothing overlaps
+  const boxes=[];
+  for(const {label} of hazardLabels)if(!label.el.hidden)boxes.push({id:label.id,x:label.sx,y:label.sy+18,w:40,h:40,fixed:true});
+  for(const l of labels)if(l.range==='enemy'&&!l.el.hidden){const [w,h]=l.size??[60,14];boxes.push({id:l.id,x:l.sx,y:l.sy,w,h});}
+  const shifts=deoverlap(boxes);
+  for(const l of labels)if(l.range==='enemy'&&!l.el.hidden){const dy=shifts.get(l.id);if(dy===null)l.el.hidden=true;else if(dy)l.el.style.top=`${l.sy-dy}px`;}
 }
 let previous=performance.now();
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},state:()=>({position,level:round.level}),
-  openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.36.1');round.level=generateLevel(n,round.seed);loadLevel();}};
+  openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.36.2');round.level=generateLevel(n,round.seed);loadLevel();}};
 function frame(now){
   const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
   if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
