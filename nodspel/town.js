@@ -1,18 +1,21 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-export const TOWN_KINDS=['house_red','house_yellow','car_boxy','fence_segment','pine_tree','tile_grass','tile_asphalt','tile_sidewalk'];
+import {TOWN_DIMS} from './town-layout.js?v=1.39.0';
+export const TOWN_KINDS=Object.keys(TOWN_DIMS);
 let cache=null;
 // Loads once per page; geometries/materials are flagged shared so world.dispose() never frees them.
 export function loadTownAssets(base){
   if(cache)return cache;
   const loader=new GLTFLoader();
   cache=Promise.all(TOWN_KINDS.map(async kind=>{
-    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.38.1`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
+    const g=await loader.loadAsync(new URL(`${kind}.glb?v=1.39.0`,base).href);g.scene.updateMatrixWorld(true);const parts=[];
+    // some kit origins float above the ground: drop every asset so its lowest point sits at y=0
+    const lift=-new THREE.Box3().setFromObject(g.scene).min.y,shift=new THREE.Matrix4().makeTranslation(0,lift,0);
     g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.userData.shared=true;o.material.userData.shared=true;
       if(o.material.name==='window_glow'){o.material.emissive?.set('#ffb85a');o.material.emissiveIntensity=2.6;}
       if(o.material.name==='lamp_glow')o.material.emissiveIntensity=1.6;
-      parts.push({geometry:o.geometry,material:o.material,matrix:o.matrixWorld.clone()});});
+      parts.push({geometry:o.geometry,material:o.material,matrix:shift.clone().multiply(o.matrixWorld)});});
     return [kind,parts];})).then(Object.fromEntries).catch(e=>{cache=null;throw e;});
   return cache;
 }
@@ -23,36 +26,27 @@ function instance(group,parts,list,{cast=false,receive=true}={}){
     list.forEach((t,i)=>{_q.setFromAxisAngle(UP,t.ry??0);_p.set(t.x,t.y??0,t.z);_s.set(t.sx??1,t.sy??1,t.sz??1);_m.compose(_p,_q,_s).multiply(part.matrix);im.setMatrixAt(i,_m);});
     im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.castShadow=cast;im.receiveShadow=receive;group.add(im);return im;});
 }
+const CAST=new Set(['house_red','house_yellow','house_red_dark','house_yellow_dark','pine_tree','car_boxy','container','bus_shelter','streetlamp','hedge_segment','fence_segment','fence_short','fence_gate','electrical_cabinet']);
+// low quality keeps 1 in N of the purely decorative bits
+const THIN={grass_tuft_small:3,grass_tuft_large:3,weed_tuft:3,bush_small:2,bush_cluster:2,pine_tree:2};
+const TILE_Y={tile_grass:-.3,tile_asphalt:-.1,tile_sidewalk:-.1,tile_asphalt_grass:-.09,tile_sidewalk_grass:-.09,tile_asphalt_sidewalk:-.09};
 export function buildTown(level,group,assets,Q){
-  const T=level.town,low=!Q.shadows,lights=[];
-  const groundY={tile_grass:-.3,tile_asphalt:-.1,tile_sidewalk:-.1};
-  for(const kind of ['tile_grass','tile_asphalt','tile_sidewalk'])instance(group,assets[kind],T.tiles.filter(t=>t.kind===kind).map(t=>({x:t.x,z:t.z,y:groundY[kind]})),{receive:true});
-  instance(group,assets.fence_segment,T.fences.map(f=>({x:f.x,z:f.z,ry:f.rot*Math.PI/2,sx:f.stretch})),{cast:!low});
-  for(const kind of ['house_red','house_yellow'])instance(group,assets[kind],T.houses.filter(h=>h.kind===kind).map(h=>({x:h.x,z:h.z,ry:h.rot*Math.PI/2})),{cast:!low});
-  instance(group,assets.car_boxy,T.cars.map(c=>({x:c.x,z:c.z,ry:c.rot*Math.PI/2+(c.outside?.12:0)})),{cast:!low});
-  const trees=low?T.trees.filter((_,i)=>i%2===0):T.trees;
-  instance(group,assets.pine_tree,trees.map(t=>({x:t.x,z:t.z,ry:t.r,sx:t.s,sy:t.s,sz:t.s})),{cast:!low,receive:false});
-  // bushes: one instanced low-poly blob
-  const bushes=low?T.bushes.filter((_,i)=>i%3===0):T.bushes;
-  if(bushes.length){const bm=new THREE.MeshStandardMaterial({color:'#1d3a26',roughness:1,flatShading:true});
-    instance(group,[{geometry:new THREE.IcosahedronGeometry(1,0),material:bm,matrix:new THREE.Matrix4()}],bushes.map(b=>({x:b.x,z:b.z,y:b.s*.45,sx:b.s,sy:b.s*.8,sz:b.s})),{receive:false});}
-  // street lamps: emissive head + warm ground pool; only a couple get a real light (none on low)
-  const pole=new THREE.MeshStandardMaterial({color:'#1a2126',roughness:.7}),head=new THREE.MeshBasicMaterial({color:'#ffd08a',toneMapped:false});
-  const pool=new THREE.MeshBasicMaterial({color:'#ffb35c',transparent:true,opacity:.07,blending:THREE.AdditiveBlending,depthWrite:false});
-  const poolGeo=new THREE.CircleGeometry(2.2,28),cube=new THREE.BoxGeometry(1,1,1);
-  const bx=(parent,mat,x,y,z,w,h,d)=>{const m=new THREE.Mesh(cube,mat);m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=!low;parent.add(m);return m;};
-  T.lamps.forEach((l,i)=>{const g=new THREE.Group();g.position.set(l.x,0,l.z);group.add(g);
-    bx(g,pole,0,1.6,0,.12,3.2,.12);bx(g,pole,0,3.15,.3,.1,.08,.7);bx(g,head,0,3.05,.6,.34,.14,.34);
-    const p=new THREE.Mesh(poolGeo,pool);p.rotation.x=-Math.PI/2;p.position.set(0,.025,.6);g.add(p);
-    if(i<Q.lights){const pl=new THREE.PointLight('#ffb760',9,10,1.5);pl.position.set(0,2.9,.6);g.add(pl);lights.push(pl);}});
-  // bus stop with a glowing ad panel
-  if(T.busStop){const s=T.busStop,g=new THREE.Group();g.position.set(s.x,0,s.z);g.rotation.y=s.rot*Math.PI/2;group.add(g);
-    const metal=new THREE.MeshStandardMaterial({color:'#2a3238',roughness:.6}),glass=new THREE.MeshStandardMaterial({color:'#20333a',transparent:true,opacity:.55,roughness:.2}),wood=new THREE.MeshStandardMaterial({color:'#4a3324',roughness:.9});
-    const ad=new THREE.MeshBasicMaterial({color:'#5fe0e8',toneMapped:false});
-    bx(g,metal,0,2.35,0,3.1,.12,1.5);for(const sx of [-1.45,1.45])bx(g,metal,sx,1.15,-.6,.08,2.3,.08);
-    bx(g,glass,0,1.25,-.62,2.8,1.7,.04);bx(g,ad,1.5,1.2,0,.06,1.5,1);bx(g,wood,0,.45,-.35,2.2,.08,.45);}
-  // dumpsters stand in for the bunker crates (same colliders)
-  const dump=new THREE.MeshStandardMaterial({color:'#1e4842',roughness:.8}),lid=new THREE.MeshStandardMaterial({color:'#2c6058',roughness:.7});
-  for(const b of level.boxes){if(b.town)continue;bx(group,dump,b.x,b.h/2,b.z,b.w,b.h,b.d);bx(group,lid,b.x,b.h+.04,b.z,b.w+.06,.08,b.d+.06);}
+  const T=level.town,low=!Q.shadows,lights=[],byKind=new Map();
+  const add=(kind,t)=>{if(!assets[kind])return;if(!byKind.has(kind))byKind.set(kind,[]);byKind.get(kind).push(t);};
+  for(const t of T.tiles)add(t.kind,{x:t.x,z:t.z,y:TILE_Y[t.kind]??-.1,ry:t.ry??0});
+  for(const f of T.fences)add(f.kind??'fence_segment',{x:f.x,z:f.z,ry:f.rot*Math.PI/2,sx:f.stretch});
+  for(const h of T.houses)add(h.kind,{x:h.x,z:h.z,ry:h.rot*Math.PI/2});
+  for(const c of T.cars)add('car_boxy',{x:c.x,z:c.z,ry:c.rot*Math.PI/2+(c.outside?.12:0)});
+  for(const t of T.trees)add('pine_tree',{x:t.x,z:t.z,ry:t.r,sx:t.s,sy:t.s,sz:t.s});
+  for(const p of T.props??[])add(p.kind,{x:p.x,z:p.z,y:p.kind==='manhole'?-.12:0,ry:p.ry,sx:p.s,sy:p.s,sz:p.s});
+  if(T.busStop)add('bus_shelter',{x:T.busStop.x,z:T.busStop.z,ry:T.busStop.ry??0});
+  for(const l of T.lamps)add('streetlamp',{x:l.x,z:l.z,ry:l.ry??0});
+  for(const [kind,list] of byKind){const k=low?THIN[kind]:0,use=k?list.filter((_,i)=>i%k===0):list;
+    instance(group,assets[kind],use,{cast:!low&&CAST.has(kind),receive:kind.startsWith('tile_')||!CAST.has(kind)});}
+  // lamp glow: warm pool under each head; only a couple get a real light (none on low)
+  const pool=new THREE.MeshBasicMaterial({color:'#ffb35c',transparent:true,opacity:.08,blending:THREE.AdditiveBlending,depthWrite:false}),poolGeo=new THREE.CircleGeometry(2.3,28);
+  T.lamps.forEach((l,i)=>{const ry=l.ry??0,hx=l.x+Math.cos(ry)*.6,hz=l.z-Math.sin(ry)*.6;
+    const p=new THREE.Mesh(poolGeo,pool);p.rotation.x=-Math.PI/2;p.position.set(hx,.03,hz);group.add(p);
+    if(i<Q.lights){const pl=new THREE.PointLight('#ffb760',10,11,1.5);pl.position.set(hx,3.7,hz);group.add(pl);lights.push(pl);}});
   return {lights};
 }

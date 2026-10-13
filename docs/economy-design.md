@@ -1,6 +1,6 @@
 # Ekonomidesign: Protocol Rebirth (förslag, ej implementerat)
 
-Status: endast design (v1.38.1). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
+Status: endast design (v1.39.0). Alla siffror är startvärden att balansera i speltest. Källor: `data/items.js`, `data/modules.js`, `data/recipes.js`, `data/vendors.js`, `data/raid_zones.js`, `data/progression.js`, `data/bit.js` och `nodspel/levels.js`.
 
 ## 1. Nuläge (inventering)
 
@@ -113,7 +113,7 @@ En raid tar ca 3–5 min, så sikta på att en ny uppgradering är inom räckhå
 9. Behövs en lagergräns för valutor, eller bara stash-platser för föremål?
 10. Hur aggressiv ska Signals-monetiseringen vara i prototypen?
 
-## 10. Ägarens beslut – implementerat i v1.38.1
+## 10. Ägarens beslut – implementerat i v1.39.0
 1. **Salvage är sammanslagen med Scrap.** Scrap är nu den enda mjuka valutan.
    - Gamla sparfiler konverteras med **1 Salvage = 2 Scrap** (`SALVAGE_TO_SCRAP`).
    - `salvage_crate` ger **16 Scrap**.

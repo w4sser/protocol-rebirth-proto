@@ -160,6 +160,30 @@
       0.09,
       0.1,
       1
+    ],
+    "window_dark": [
+      0.07,
+      0.11,
+      0.13,
+      1
+    ],
+    "hedge": [
+      0.1,
+      0.22,
+      0.14,
+      1
+    ],
+    "weed": [
+      0.25,
+      0.31,
+      0.16,
+      1
+    ],
+    "mail_red": [
+      0.34,
+      0.12,
+      0.1,
+      1
     ]
   },
   "assets": [
@@ -250,6 +274,230 @@
       ],
       "origin": "center of footprint at ground level",
       "placement_notes": "2x2 m tile; passable"
+    },
+    {
+      "file": "streetlamp.glb",
+      "category": "street_prop",
+      "approx_dimensions_m": [
+        0.8,
+        4.2,
+        0.3
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; light source"
+    },
+    {
+      "file": "bus_shelter.glb",
+      "category": "street_prop",
+      "approx_dimensions_m": [
+        3.5,
+        2.3,
+        1.8
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; partial cover"
+    },
+    {
+      "file": "bush_small.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        0.9,
+        0.9,
+        0.8
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable decoration"
+    },
+    {
+      "file": "bush_cluster.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        1.7,
+        1.3,
+        1.4
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable decoration"
+    },
+    {
+      "file": "hedge_segment.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        2,
+        1.25,
+        1
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; hedge boundary"
+    },
+    {
+      "file": "grass_tuft_small.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        0.5,
+        0.6,
+        0.55
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable ground detail"
+    },
+    {
+      "file": "grass_tuft_large.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        0.9,
+        1,
+        0.85
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable ground detail"
+    },
+    {
+      "file": "weed_tuft.glb",
+      "category": "vegetation",
+      "approx_dimensions_m": [
+        0.75,
+        0.9,
+        0.7
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable ground detail"
+    },
+    {
+      "file": "container.glb",
+      "category": "cover",
+      "approx_dimensions_m": [
+        6,
+        2.6,
+        2.5
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; heavy cover"
+    },
+    {
+      "file": "electrical_cabinet.glb",
+      "category": "street_prop",
+      "approx_dimensions_m": [
+        0.8,
+        1.3,
+        0.65
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; minor cover"
+    },
+    {
+      "file": "mailbox.glb",
+      "category": "street_prop",
+      "approx_dimensions_m": [
+        0.5,
+        1.1,
+        0.4
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "blocks movement; small prop"
+    },
+    {
+      "file": "manhole.glb",
+      "category": "ground_detail",
+      "approx_dimensions_m": [
+        1,
+        0.18,
+        1
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "passable decoration"
+    },
+    {
+      "file": "fence_gate.glb",
+      "category": "fence",
+      "approx_dimensions_m": [
+        1.4,
+        1.2,
+        0.6
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "1.4 m gate; blocks movement when closed"
+    },
+    {
+      "file": "fence_corner.glb",
+      "category": "fence",
+      "approx_dimensions_m": [
+        2,
+        1.2,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "90-degree corner; blocks movement"
+    },
+    {
+      "file": "fence_short.glb",
+      "category": "fence",
+      "approx_dimensions_m": [
+        1,
+        1.2,
+        0.6
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "short 1 m segment; blocks movement"
+    },
+    {
+      "file": "house_red_dark.glb",
+      "category": "building",
+      "approx_dimensions_m": [
+        6,
+        4.1,
+        5.7
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "large; blocks movement; cover; unlit windows"
+    },
+    {
+      "file": "house_yellow_dark.glb",
+      "category": "building",
+      "approx_dimensions_m": [
+        6,
+        4.1,
+        5.7
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "large; blocks movement; cover; unlit windows"
+    },
+    {
+      "file": "tile_asphalt_sidewalk.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.09,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m passable transition tile"
+    },
+    {
+      "file": "tile_asphalt_grass.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.09,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m passable transition tile"
+    },
+    {
+      "file": "tile_sidewalk_grass.glb",
+      "category": "ground_tile",
+      "approx_dimensions_m": [
+        2,
+        0.09,
+        2
+      ],
+      "origin": "center of footprint at ground level",
+      "placement_notes": "2x2 m passable transition tile"
     }
+  ],
+  "kits": [
+    "Protocol Rebirth \u2014 Abandoned Town Starter Kit v0.1",
+    "Protocol Rebirth \u2014 Abandoned Town Dressing Kit v0.2"
   ]
 }
