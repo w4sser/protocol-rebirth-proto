@@ -234,7 +234,7 @@ RaidResult har nu `skills: {distanceM, dashes, holdNodes, damageTaken}` samt `st
 Basen visar ett **Operator**-kort i raid-prep med stats, skill-nivåer/XP och den gear som riskeras.
 Bond-XP (BIT) är oförändrad och separat.
 
-## 11. Vapen och förbrukningsvaror i Node Raid (v1.40.1)
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.40.2)
 
 **Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
 

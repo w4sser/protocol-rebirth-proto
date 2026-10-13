@@ -1,4 +1,4 @@
-// v1.40.1: the base lobby picks the Node Raid area and passes it to the core (&area=).
+// v1.40.2: the base lobby picks the Node Raid area and passes it to the core (&area=).
 const { JSDOM } = require("jsdom");const fs = require("fs");const assert = require("assert");const path = __dirname + "/..";
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });

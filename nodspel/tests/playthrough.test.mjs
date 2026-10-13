@@ -66,6 +66,7 @@ test('a player can shoot every node and walk through all three exits within one 
         if(number===2)assert.equal(crossedPassage,true,'the player walks through the narrow passage before lighting nodes');
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);
+      if(number===3)enterExit(round,{x:p.x+50,z:p.z},clock);// walk in from outside
       assert.equal(enterExit(round,p,clock),number===3?'complete':'next');
     }
     assert.equal(round.nodesLit,6);assert.equal(round.levelsCleared,3);assert.equal(round.cleared,true);

@@ -34,6 +34,7 @@ test('clearing three levels immediately ends and freezes the successful round',(
   const r=round.createRound('three',0);
   for(let number=1;number<=3;number++){
     for(const n of r.level.nodes)round.activateNode(r,n.id,number*1000);
+    if(number===3)round.enterExit(r,{x:-999,z:-999},number*1000);
     assert.equal(round.enterExit(r,r.level.exit,number*1000),number===3?'complete':'next');
   }
   assert.equal(r.cleared,true);assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.level.number,3);

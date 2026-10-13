@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.40.1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.1';
-import {emptyBag,bagItems} from './raid.js?v=1.40.1';
-import {traceTargets} from './physics.mjs?v=1.40.1';
+import {generateLevel,RULES} from './levels.js?v=1.40.2';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.40.2';
+import {emptyBag,bagItems} from './raid.js?v=1.40.2';
+import {traceTargets} from './physics.mjs?v=1.40.2';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -112,7 +112,12 @@ export function activateNode(round,id,now) {
 }
 export function enterExit(round,position,now) {
   tickRound(round,now);
-  if(round.cleared || !exitIsOpen(round) || Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)>round.level.exit.r)return null;
+  if(round.cleared || !exitIsOpen(round))return null;
+  const inZone=Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)<=round.level.exit.r;
+  // Final level: once the nodes are done the extract stays open and the raid goes on (timer + risk) until the
+  // player deliberately walks INTO the zone; being inside when it opens does not count.
+  if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
+  else if(!inZone)return null;
   // Owner rule: a level exit does NOT secure loot. The bag (same 4 slots) carries on, at risk,
   // until the player chooses Extract or clears the final level.
   round.exitLoot=bagItems(round.bag);
