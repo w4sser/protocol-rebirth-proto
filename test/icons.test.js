@@ -21,6 +21,23 @@ for(const m of prog.matchAll(/(?:icon|iconId):"([a-z0-9-]+)"/g)) used.add(m[1]);
 assert(used.size > 40, "icons are used (" + used.size + ")");
 for(const id of used) assert(ids.has(id), "sprite has icon #" + id);
 for(const id of ids) assert(fs.existsSync(path + "/assets/icons/" + id + ".svg"), "standalone svg for " + id);
+// v1.51: every item in data/items.js has its own bespoke icon (unique, exists, no generic fallback)
+{
+  const w = {}; new Function("window", fs.readFileSync(path + "/data/items.js", "utf8"))(w);
+  const D = w.PR_DATA || w.DATA || Object.values(w).find(v => v && v.items); const items = D.items;
+  assert(items.length >= 30, "items loaded (" + items.length + ")");
+  const seen = new Map();
+  for(const it of items){
+    assert(it.icon && /^item-/.test(it.icon), it.id + " names an item-* icon");
+    assert(ids.has(it.icon), it.id + " icon #" + it.icon + " exists in sprite");
+    assert(!seen.has(it.icon), it.id + " shares icon " + it.icon + " with " + seen.get(it.icon));
+    seen.set(it.icon, it.id);
+    assert(/--ic-loot/.test(fs.readFileSync(path + "/assets/icons/" + it.icon + ".svg", "utf8")), it.icon + " carries the amber loot accent (AD: amber = loot)");
+  }
+  for(const must of ["encrypted_drive", "archipelago_chart", "town_survey"]) assert(items.find(i => i.id === must), must + " present");
+  const fn = fs.readFileSync(path + "/app.js", "utf8").match(/function itemIcon[^\n]*/)[0];
+  assert(!/item-crate|item-vest/.test(fn), "itemIcon has no generic box/vest fallback");
+}
 // rendered screens: no pictographs in visible text or markup
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });

@@ -103,6 +103,46 @@ I={
 'power':'<path d="M12 3v8"/><path d="M7 6.2a7.5 7.5 0 1 0 10 0"/>',
 'infinity':'<path d="M12 12c-2-3-3.5-4-5.2-4a4 4 0 0 0 0 8c1.7 0 3.2-1 5.2-4s3.5-4 5.2-4a4 4 0 0 1 0 8c-1.7 0-3.2-1-5.2-4z"/>',
 }
+# v1.51 item icons, art direction ad06: one bespoke icon per item in data/items.js.
+# Rules: big readable silhouette (works at physical mobile size, no close-up detail), stroke = currentColor
+# (neutral / rarity colour), ONE amber loot accent (AD: amber = loot, reward) via var(--ic-loot).
+L='var(--ic-loot,#FF9D4D)'
+ITEMS={
+'item-powercell':'<rect x="6.5" y="5" width="11" height="15.5" rx="2.2"/><path d="M10 2.8h4"/><path d="M13 8.2 10.2 13h3.6L11 17.8" stroke="'+L+'"/>',
+'item-cable':'<path d="M5 3.5v5a3 3 0 0 0 3 3h8a3 3 0 0 1 3 3v6"/><rect x="3" y="2.5" width="4" height="3" rx=".8" stroke="'+L+'"/><path d="M17.5 20.5h3"/>',
+'item-fuse':'<rect x="6" y="7.5" width="12" height="9" rx="2"/><path d="M3 12h3M18 12h3"/><path d="M9.5 12h5" stroke="'+L+'"/>',
+'item-relay':'<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M7.5 18v2.5M16.5 18v2.5"/><path d="M13 8.5 10 12.5h4l-3 4" stroke="'+L+'"/>',
+'item-alloy':'<path d="M3.5 16 8 9h12.5L16 16z"/><path d="M3.5 16v3h12.5l4.5-7V9"/><path d="M9.5 12.5h5" stroke="'+L+'"/>',
+'item-servo':'<rect x="3.5" y="8" width="11" height="9" rx="1.6"/><circle cx="17.5" cy="12.5" r="3.5"/><circle cx="17.5" cy="12.5" r="1" fill="'+L+'" stroke="'+L+'"/><path d="M6.5 8V6h5v2"/>',
+'item-plate':'<path d="M5 4.5h14l1.5 3v9L19 19.5H5l-1.5-3v-9z"/><circle cx="7" cy="7.5" r=".6" fill="currentColor"/><circle cx="17" cy="16.5" r=".6" fill="currentColor"/><path d="M8.5 12h7" stroke="'+L+'"/>',
+'item-hydraulic':'<rect x="3" y="9" width="11" height="6" rx="1.4"/><path d="M14 12h7M21 9.5v5"/><path d="M6.5 9V6.5h4V9"/><path d="M6 12h5" stroke="'+L+'"/>',
+'item-circuit':'<rect x="4.5" y="4.5" width="15" height="15" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx=".8" stroke="'+L+'"/><path d="M12 4.5v5M4.5 12h5M14.5 12h5M12 14.5v5"/>',
+'item-sensor':'<rect x="3.5" y="7" width="12" height="10" rx="2"/><path d="M15.5 9.5 20.5 7v10l-5-2.5"/><circle cx="9.5" cy="12" r="2.4" stroke="'+L+'"/>',
+'item-memory':'<rect x="3" y="7.5" width="18" height="8" rx="1.2"/><path d="M6 15.5v2.5M10 15.5v2.5M14 15.5v2.5M18 15.5v2.5"/><path d="M7 11.5h10" stroke="'+L+'"/>',
+'item-transmitter':'<rect x="7" y="10" width="10" height="10.5" rx="1.8"/><path d="M12 10V4"/><path d="M7.8 3.8a6 6 0 0 0 0 5.4M16.2 3.8a6 6 0 0 1 0 5.4" stroke="'+L+'"/><path d="M9.5 16.5h5"/>',
+'item-medgel':'<path d="M8 3.5h8M9 3.5v3.5c-2.5 1-4 3.5-4 6.5a7 7 0 0 0 14 0c0-3-1.5-5.5-4-6.5V3.5"/><path d="M12 11v6M9 14h6" stroke="'+L+'"/>',
+'item-bio':'<path d="M9.5 3.5h5M10.5 3.5v6L5.5 18a1.8 1.8 0 0 0 1.6 2.5h9.8a1.8 1.8 0 0 0 1.6-2.5l-5-8.5v-6"/><path d="M7.5 15.5h9" stroke="'+L+'"/>',
+'item-filter':'<path d="M4 4.5h16l-6 7.5v6.5l-4 2v-8.5z"/><path d="M8 8.5h8" stroke="'+L+'"/>',
+'item-drive':'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 14.5h16"/><circle cx="16.5" cy="17" r=".6" fill="currentColor"/><rect x="9.5" y="8.5" width="5" height="3.5" rx=".6" stroke="'+L+'"/><path d="M10.5 8.5V7.5a1.5 1.5 0 0 1 3 0v1" stroke="'+L+'"/>',
+'item-ai':'<path d="M12 3.5 19.5 8v8L12 20.5 4.5 16V8z"/><path d="M12 8.5v3.5l3 2M12 12l-3 2" stroke="'+L+'"/><circle cx="12" cy="8.5" r=".9" fill="'+L+'" stroke="none"/>',
+'item-shard':'<path d="M12 2.5 17 9l-2.5 12.5h-5L7 9z"/><path d="M7 9h10M12 2.5v19" opacity=".45"/><path d="M10 13.5l2 2 2-2" stroke="'+L+'"/>',
+'item-neuralcore':'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" stroke="'+L+'"/><path d="M12 3.5V9M12 15v5.5M3.5 12H9M15 12h5.5"/>',
+'item-chart':'<path d="M4 6.5 9 4.5l6 2 5-2v13l-5 2-6-2-5 2z"/><path d="M7.5 13c1.5-2.5 3-1 4.5-3s2.5-1 4-2" stroke="'+L+'" stroke-dasharray="1.6 1.6"/><path d="M15.5 13.5l2 2M17.5 13.5l-2 2" stroke="'+L+'"/>',
+'item-survey':'<rect x="5" y="3.5" width="14" height="17" rx="1.8"/><path d="M9 3.5V5.5h6V3.5"/><path d="M7.5 18l3-5 2.5 2.5 3.5-6" stroke="'+L+'"/><path d="M8 9h4"/>',
+'item-relic':'<path d="M7 20.5h10M9 20.5V17h6v3.5"/><path d="M8 17c-2-2-3-4.5-3-7a7 7 0 0 1 14 0c0 2.5-1 5-3 7"/><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0" stroke="'+L+'"/>',
+'item-carbine':'<path d="M2.5 10.5h14l1.5-1.5h3.5v3.5H18l-1 1H9.5l-1.5 4.5H5l1-4.5H2.5z"/><path d="M11.5 13v1.8" stroke="'+L+'"/>',
+'item-smg':'<path d="M4 9h11l1.5-1.5H20v3h-3l-1 1h-3l-1.5 6H9l1-6H4z"/><path d="M13 11.5l-.6 3" stroke="'+L+'"/>',
+'item-rifle':'<path d="M2 12h16l1.5-1h2.5v2.5h-3l-2 1H9.5l-1 3.5H5.5l.7-3.5H2z"/><rect x="9" y="7" width="6" height="2.6" rx="1.3" stroke="'+L+'"/>',
+'item-shotgun':'<path d="M2.5 10.5h15l4 1v2l-4 1H10l-1.5 4H5.5l1-4H2.5z"/><path d="M11.5 12.5h4.5" stroke="'+L+'"/>',
+'item-vest':'<path d="M8 3.5 5 6v14h5.5v-5h3v5H19V6l-3-2.5-1.5 3h-5z"/><path d="M8 11h2.5M13.5 11H16" stroke="'+L+'"/>',
+'item-rig':'<path d="M7 3.5v17M17 3.5v17"/><path d="M7 8.5h10M7 15h10"/><rect x="9" y="10" width="6" height="3.5" rx=".8" stroke="'+L+'"/>',
+'item-cloak':'<path d="M12 3a4 4 0 0 0-4 4v1.5L4.5 20.5h15L16 8.5V7a4 4 0 0 0-4-4z"/><path d="M10 7.5h4" stroke="'+L+'"/><path d="M9 14c1 .8 2 .8 3 0s2-.8 3 0" opacity=".55"/>',
+'item-medkit':'<rect x="3.5" y="6.5" width="17" height="13" rx="2.5"/><path d="M9.5 6.5V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5"/><path d="M12 10v6M9 13h6" stroke="'+L+'"/>',
+'item-crate':'<rect x="3.5" y="6" width="17" height="13" rx="1.5"/><path d="M3.5 10.5h17"/><path d="M10 10.5v2.5h4v-2.5" stroke="'+L+'"/>',
+'item-datacore':'<path d="M12 3 19 12l-7 9-7-9z"/><path d="M8.8 12h6.4M12 7.5v9" stroke="'+L+'"/>',
+'item-ammo':'<rect x="4" y="9.5" width="16" height="10" rx="1.6"/><path d="M7 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M10.8 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M14.6 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4" stroke="'+L+'"/><path d="M4 13.5h16"/>',
+}
+I.update(ITEMS)
 os.makedirs('assets/icons',exist_ok=True)
 for k,v in I.items():
     open(f'assets/icons/{k}.svg','w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="pr-icon" aria-hidden="true">{v}</svg>\n')

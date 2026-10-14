@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.50.0';
+import {townizeLevel} from './town-layout.js?v=1.51.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
