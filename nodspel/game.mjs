@@ -1,32 +1,32 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.52.1';
-import {setArea} from './levels.js?v=1.52.1';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.52.1';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.52.1';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.52.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.52.1';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction} from './round.js?v=1.52.1';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.52.1';
-import {buildWorld,setNodeHold} from './world.js?v=1.52.1';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.52.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.52.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.52.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.52.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.52.1';
-// import {stepScavenging} from './scavenging.js?v=1.52.1';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.52.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.52.1';
-import {routeComplete} from './objectives.js?v=1.52.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.52.1';
-import {createBIT,stepBIT} from './bit.js?v=1.52.1';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.52.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.52.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.52.1';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.52.1';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.52.2';
+import {setArea} from './levels.js?v=1.52.2';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.52.2';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.52.2';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.52.2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.52.2';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction} from './round.js?v=1.52.2';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.52.2';
+import {buildWorld,setNodeHold} from './world.js?v=1.52.2';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.52.2';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.52.2';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.52.2';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.52.2';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.52.2';
+// import {stepScavenging} from './scavenging.js?v=1.52.2';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.52.2';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.52.2';
+import {routeComplete} from './objectives.js?v=1.52.2';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.52.2';
+import {createBIT,stepBIT} from './bit.js?v=1.52.2';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.52.2';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.52.2';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.52.2';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.52.2';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.52.1');
+const orderResponse=await fetch('./order.json?v=1.52.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -62,14 +62,15 @@ let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.52.1',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.52.1',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.52.2',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.52.2',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.52.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.52.2',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
-if(AREA_SEL==='town'){scene.background.set('#04080b');scene.fog.color.set('#04080b');scene.fog.near=30;scene.fog.far=60;
-  // night but readable; low quality has no point lights or shadows, so it gets more ambient
-  const lowQ=QUALITY==='low';hemi.color.set('#9bb4d4');hemi.groundColor.set('#1a2420');hemi.intensity=lowQ?1.35:1;sun.color.set('#b4c8e6');sun.intensity=lowQ?1.25:1.05;renderer.toneMappingExposure=lowQ?1.3:1.2;}
+if(DEBUG)areaNotice(`AREA SELECTED: ${AREA_SEL==='town'?'ABANDONED TOWN':AREA_SEL.toUpperCase()}`,7000);
+if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
+  // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
+  const lowQ=QUALITY==='low';hemi.color.set('#b9d3df');hemi.groundColor.set('#344236');hemi.intensity=lowQ?1.65:1.35;sun.color.set('#ecd2a6');sun.intensity=lowQ?1.35:1.2;renderer.toneMappingExposure=lowQ?1.35:1.3;}
 // Archipelago: cool dusk over open water, longer view distance (more open area)
 if(AREA_SEL==='archipelago'){scene.background.set('#0a1c26');scene.fog.color.set('#0a1c26');scene.fog.near=34;scene.fog.far=75;hemi.color.set('#cfe3ef');hemi.groundColor.set('#1d3340');hemi.intensity=QUALITY==='low'?1.4:1.1;sun.color.set('#ffe2c0');sun.intensity=1.2;}
 
@@ -397,7 +398,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.52.1');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.52.2');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
