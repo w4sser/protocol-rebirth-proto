@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.44.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.45.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -567,12 +567,19 @@ function closeAllPopups(){
   session.focusSpot = null;
   updateNav();
 }
-function overlay(html, onClose, cls){
+// Shared popup component (ui/popup.css): every boxed popup gets the top-left close X, the shared header,
+// backdrop tap-to-close and the pop-in animation. opts.noClose only for scripted FTUE/timed sequences.
+const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">✕</button>';
+function overlay(html, onClose, cls, opts){
+  opts = opts || {};
   const o = document.createElement("div");
   o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
+  if(!opts.noClose){ const card = o.querySelector(".bpop") || o.firstChild; card.classList.add("pop-card"); card.insertAdjacentHTML("afterbegin", POP_X); }
+  else o.dataset.noclose = "1";
   o.addEventListener("click", e => {
-    if(e.target.dataset.close !== undefined || e.target.id === "ovclose"){ o.remove(); if(onClose) onClose(); }
+    const t = e.target.closest ? e.target.closest("[data-close]") : null;
+    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || e.target === o.firstChild && o.querySelector(".bpop")))){ o.remove(); if(onClose) onClose(); }
   });
   document.getElementById("phone").appendChild(o);
   updateNav();
@@ -596,7 +603,7 @@ function bootSequence(next, done){
                  "> core temperature nominal",
                  "> lighting: sector A . . . ok",
                  "> CORE ONLINE"];
-  const o = overlay('<div class="boot" id="bootseq"></div>', done);
+  const o = overlay('<div class="boot" id="bootseq"></div>', done, null, { noClose:true });
   lines.forEach((l,i)=> setTimeout(()=>{
     const el = document.getElementById("bootseq");
     if(el) el.innerHTML += '<div>' + esc(l) + '</div>';
@@ -620,7 +627,7 @@ function bootSequence(next, done){
 
 function fakeAd(label, onDone){
   let sec = 3;
-  const o = overlay('<h1>ADVERTISEMENT</h1><p class="sub">' + esc(label) + '</p><div style="font-size:44px;margin:26px 0" id="adcount">3</div><p class="small">(fake ad — prototype)</p>');
+  const o = overlay('<h1>ADVERTISEMENT</h1><p class="sub">' + esc(label) + '</p><div style="font-size:44px;margin:26px 0" id="adcount">3</div><p class="small">(fake ad — prototype)</p>', null, null, { noClose:true });
   act("AD_STARTED", { label });
   const iv = setInterval(()=>{
     sec--;
@@ -1200,7 +1207,7 @@ SCREENS.prep = function(){
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
-  const missionOpen = '<section id="mission-panel" class="mission-panel"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head"><h1>🗺 Mission</h1><button type="button" class="iconbtn" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button></div>' +
+  const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><button type="button" class="pop-x" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button><div class="mp-head pop-head"><h1>🗺 Mission</h1></div>' +
     (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
@@ -2653,6 +2660,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const menuBtn = document.getElementById("menubtn"), menu = document.getElementById("settings-menu");
   const setMenu = open => { if(!menu) return; menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); };
   if(menuBtn) menuBtn.addEventListener("click", e => { e.stopPropagation(); setMenu(menu.hidden); });
+  { const sc = document.getElementById("settings-close"); if(sc) sc.addEventListener("click", e => { e.stopPropagation(); setMenu(false); }); }
   document.addEventListener("click", e => { if(menu && !menu.hidden && !menu.contains(e.target) && e.target !== menuBtn) setMenu(false); });
   const devBtn = document.getElementById("devbtn");
   if(devBtn) devBtn.addEventListener("click", () => { setMenu(false); A.go("dev"); });

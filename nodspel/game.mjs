@@ -1,31 +1,31 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.44.0';
-import {setArea} from './levels.js?v=1.44.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.44.0';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.44.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.44.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf} from './round.js?v=1.44.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.44.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.44.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.44.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.44.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.44.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.44.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.44.0';
-// import {stepScavenging} from './scavenging.js?v=1.44.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.44.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.44.0';
-import {routeComplete} from './objectives.js?v=1.44.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.44.0';
-import {createBIT,stepBIT} from './bit.js?v=1.44.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.44.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.44.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.44.0';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.44.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.45.0';
+import {setArea} from './levels.js?v=1.45.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.45.0';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.45.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.45.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf} from './round.js?v=1.45.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.45.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.45.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.45.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.45.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.45.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.45.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.45.0';
+// import {stepScavenging} from './scavenging.js?v=1.45.0';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.45.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.45.0';
+import {routeComplete} from './objectives.js?v=1.45.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.45.0';
+import {createBIT,stepBIT} from './bit.js?v=1.45.0';
+import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.45.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.45.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.45.0';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.45.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.44.0');
+const orderResponse=await fetch('./order.json?v=1.45.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -61,10 +61,10 @@ let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.44.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.44.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.45.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.45.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.44.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.45.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(AREA_SEL==='town'){scene.background.set('#04080b');scene.fog.color.set('#04080b');scene.fog.near=30;scene.fog.far=60;
   // night but readable; low quality has no point lights or shadows, so it gets more ambient
@@ -197,6 +197,8 @@ function renderInventory(){
 $('#use-kit').onclick=()=>useKit();
 $('#open-bag').onclick=()=>{if(round.over||resultPending)return;if(round.bagFull&&nearBlocked()){showSwap();return;}clearInput();renderInventory();$('#inventory').hidden=false;};
 $('#close-bag').onclick=()=>{$('#inventory').hidden=true;clearInput();};
+// shared popup: tap on the backdrop closes the bag too
+$('#inventory').addEventListener('click',e=>{if(e.target===$('#inventory'))$('#close-bag').onclick();});
 function renderEnemyFeedback(clock){
   for(const v of world.enemies){
     const alive=v.enemy.health>0&&v.enemy.active!==false;
@@ -391,7 +393,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.44.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.45.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -399,10 +401,10 @@ function showSwap(){{const t=document.getElementById('bag-toast');if(t)t.hidden=
   const info=round.bagFull;if(!info)return;
   const panel=$('.bag-panel');panel?.classList.remove('bag-full-flash');void panel?.offsetWidth;panel?.classList.add('bag-full-flash');
   const box=round.level.lootBoxes.find(b=>b.id===info.boxId);if(box&&!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
-  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row';el.setAttribute('role','dialog');el.setAttribute('aria-label','Bag full – swap');$('#viewport').append(el);}
+  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');el.setAttribute('aria-label','Bag full – swap');$('#viewport').append(el);}
   el.replaceChildren();
   const head=document.createElement('div');head.className='swap-head';head.innerHTML='<b>Bag full – swap?</b><span>Tap an item to drop it</span>';
-  const close=document.createElement('button');close.className='swap-close';close.type='button';close.textContent='✕';close.setAttribute('aria-label','Keep bag');close.onclick=hideSwap;head.append(close);el.append(head);
+  const close=document.createElement('button');close.className='pop-x swap-close';close.type='button';close.textContent='✕';close.setAttribute('aria-label','Keep bag');close.onclick=hideSwap;head.classList.add('pop-head');el.append(close,head);
   const row=document.createElement('div');row.className='swap-items';
   const chip=(id,isNew)=>{const b=document.createElement(isNew?'div':'button');const r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);b.textContent=ITEM_NAMES[id]??id;return b;};
   for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};row.append(b);}

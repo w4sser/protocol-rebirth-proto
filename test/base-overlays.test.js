@@ -55,10 +55,10 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(/closeAllPopups\(\);\s*session\.screenEnterTs/.test(fs.readFileSync(path + "/app.js", "utf8")), "A.go closes popups");
   assert(/closeAllPopups\(\);\s*\(window\.PR_NAVIGATE/.test(fs.readFileSync(path + "/app.js", "utf8")), "deploy closes popups");
   assert(d.getElementById("app-version").closest("#topbar"), "version label sits in the top bar, never over the bottom bar"); }
-// consistent BACK top-left; popups have no bottom BACK/✕; bottom bar hidden under a popup
+// consistent BACK top-left; popups use only the shared top-left X (POP_X, v1.45); bottom bar hidden under a popup
 { const A = w.A, d = w.document, app = fs.readFileSync(path + "/app.js", "utf8");
   assert(d.querySelector("#topbar > #navback:first-child"), "back button is first in the top bar");
-  assert(!/data-close>BACK</.test(app) && !/data-close aria-label="Close">✕/.test(app) && !/‹ (Base|Stash|Back)</.test(app), "no ad-hoc back/close buttons");
+  assert(!/data-close>BACK</.test(app) && (app.match(/data-close aria-label="Close">✕/g) || []).length === 1 /* only the shared POP_X (v1.45) */ && !/‹ (Base|Stash|Back)</.test(app), "no ad-hoc back/close buttons");
   A.go("base"); assert(d.getElementById("navback").hidden, "no back on base");
   A.go("dev"); assert(!d.getElementById("navback").hidden, "back on sub-screens");
   A.back(); assert.equal(d.body.dataset.screen, "base", "back -> base");
