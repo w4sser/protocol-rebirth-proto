@@ -1,4 +1,4 @@
-// v1.48.0: the base lobby picks the Node Raid area and passes it to the core (&area=).
+// v1.49.0: the base lobby picks the Node Raid area and passes it to the core (&area=).
 const { JSDOM } = require("jsdom");const fs = require("fs");const assert = require("assert");const path = __dirname + "/..";
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
@@ -45,6 +45,10 @@ function boot(save){
   const d = boot(); d.A.debugUnlockAreas(); assert.equal(d.w.__T.areaUnlocked('town'), true, "debug unlock");
   // scouting items are consumed on extract, not stashed
   const items = fs.readFileSync(path + "/data/items.js", "utf8"); assert(/scouts:"archipelago"/.test(items) && /scouts:"town"/.test(items)); }
+// v1.49: locked labels are anchored outside their own region (no crowding over the fog/lock)
+{ const src = fs.readFileSync(path + "/data/progression.js", "utf8"); const w = { DATA:{} }; new Function("window", src)(w);
+  for(const a of w.DATA.worldMap.areas){ const L = a.lockedLabel; if(!a.requires) continue; assert(L && L.anchor, a.id + " has an anchored locked label");
+    const R = a.region; assert(!(L.x > R.x && L.x < R.x + R.w && L.y > R.y && L.y < R.y + R.h), a.id + " locked label anchor sits outside its region"); } }
 // core honours the URL param (it wins over the remembered localStorage choice)
 { const g = fs.readFileSync(path + "/nodspel/game.mjs", "utf8"); assert(/AREA_PARAM\|\|/.test(g) && /Town failed to load/.test(g), "core reads area and shows a fallback notice"); }
 console.log("WORLD MAP / AREA TEST PASSED");

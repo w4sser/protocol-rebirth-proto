@@ -121,11 +121,11 @@ window.DATA.worldMap = {
     { id:"bunker", name:"Bunker", icon:"🏚", threat:1, region:{ x:1, y:50, w:30, h:44 }, label:{ x:16, y:46 }, requires:null,
       blurb:"The facility around the Rebirth Core. Cramped halls, light resistance.",
       zones:["Open Room","Narrow Passage","Dead End"] },
-    { id:"archipelago", name:"Archipelago", icon:"🏝", threat:2, region:{ x:42, y:32, w:28, h:42 }, label:{ x:56, y:28 }, lockedLabel:{ x:56, y:61 },
+    { id:"archipelago", name:"Archipelago", icon:"🏝", threat:2, region:{ x:42, y:32, w:28, h:42 }, label:{ x:51, y:76, anchor:"below" }, lockedLabel:{ x:51, y:76, anchor:"below" },
       requires:{ core:2, scoutItem:"archipelago_chart", from:"bunker" },
       blurb:"Open islands, piers and rock shores. Tougher patrols, better parts.",
       zones:["Landing","Pier Row","Lighthouse Rock"] },
-    { id:"town", name:"Town", icon:"🏡", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:82, y:34 },
+    { id:"town", name:"Town", icon:"🏡", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:78.5, y:1.5, anchor:"left" },
       requires:{ core:3, scoutItem:"town_survey", from:"archipelago" },
       blurb:"An abandoned town at night. The hardest raids so far.",
       zones:["Main Street","Houses","Depot"] }
