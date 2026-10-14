@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.49.0';
+import {townizeLevel} from './town-layout.js?v=1.50.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -71,7 +71,7 @@ export function houseItem(kind,number,roll){if(kind==='medicine_cabinet')return 
   return pickWeighted(RULES.loot.weights[number-1],kind==='loot_crate'?(roll-HOUSE_LOOT.crateRelay[number-1])/(1-HOUSE_LOOT.crateRelay[number-1]||1):roll);}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
-// v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker → Archipelago → Town.
+// v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
 // hpMul/dmgMul scale enemies (rounded), extraEnemies adds seeded enemies per level, mix overrides the
 // enemy-type mix, lootFrom blends the next level's table in (more T2), scout = guaranteed map item that
 // unlocks the next area in meta when extracted. Level index = zone (1..3).
@@ -234,7 +234,7 @@ function decorateLevel(level){
   }
   return level;
 }
-// Pulsing shock pad: 'off' → 'warn' (telegraph) → 'on' (damages).
+// Pulsing shock pad: 'off' -> 'warn' (telegraph) -> 'on' (damages).
 export function hazardTiming(hazard,now){
   const H=RULES.hazard,cycle=H.onMs+H.offMs,t=((now+hazard.phaseMs)%cycle+cycle)%cycle;
   if(t>=H.offMs)return {state:'on',msLeft:cycle-t};

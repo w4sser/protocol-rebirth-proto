@@ -73,6 +73,35 @@ I={
 'swap':'<path d="M4 8.5h14l-3.5-3.5M20 15.5H6l3.5 3.5"/>',
 'aim':'<circle cx="12" cy="12" r="7"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
 'info':'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01"/>',
+# v1.50 additions (full emoji replacement)
+'arrow-right':'<path d="M4.5 12h14M13.5 6.5 19 12l-5.5 5.5"/>',
+'chevron-right':'<path d="M9 5l7 7-7 7"/>',
+'chevron-up':'<path d="M5 15.5 12 8.5l7 7"/>',
+'chevron-down':'<path d="M5 8.5 12 15.5l7-7"/>',
+'chevron-left':'<path d="M15 5 8 12l7 7"/>',
+'dot':'<circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>',
+'player':'<path d="M12 4 18.5 19 12 15.5 5.5 19z" fill="'+A+'" fill-opacity=".25"/>',
+'bit-face':'<circle cx="12" cy="12" r="8.5"/><path d="M9 10.5h.01M15 10.5h.01" stroke-width="2.6"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/>',
+'sparkle':'<path d="M12 3c.8 4.6 2.4 6.2 7 7-4.6.8-6.2 2.4-7 7-.8-4.6-2.4-6.2-7-7 4.6-.8 6.2-2.4 7-7z"/><path d="M18.5 16.5v3M17 18h3" stroke="'+A+'"/>',
+'flag':'<path d="M5.5 21V4"/><path d="M5.5 4.5h12l-2.5 4 2.5 4h-12"/><path d="M9.5 4.5v8M13.5 4.5v8" opacity=".45"/>',
+'target':'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="'+A+'" stroke="none"/>',
+'build':'<path d="M14.5 4.5 19.5 9.5l-2 2-5-5z"/><path d="M13.5 8.5 4.5 17.5a1.4 1.4 0 0 0 2 2l9-9"/><path d="M17 4.5l2.5-1M19.5 7l1-2.5" stroke="'+A+'"/>',
+'play':'<circle cx="12" cy="12" r="8.5"/><path d="M10 8.5v7l5.5-3.5z" fill="'+A+'" fill-opacity=".35"/>',
+'phone-rotate':'<rect x="7.5" y="3" width="9" height="16" rx="2" transform="rotate(-90 12 12)"/><path d="M4 7.5A8.5 8.5 0 0 1 10 3.6M10 3.6 8.4 2M10 3.6 8.6 5.4" stroke="'+A+'"/><path d="M11 15.5h2"/>',
+'reset':'<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4v4h4"/>',
+'dev':'<path d="M8 8 4 12l4 4M16 8l4 4-4 4M13.5 5.5l-3 13"/>',
+'hit':'<path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5M5.3 5.3l3.5 3.5M15.2 15.2l3.5 3.5M5.3 18.7l3.5-3.5M15.2 8.8l3.5-3.5"/>',
+'track-on':'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6" fill="'+A+'" stroke="none"/>',
+'track-off':'<circle cx="12" cy="12" r="8"/>',
+'dash':'<path d="M6 18 18 6M9 6h9v9"/><path d="M3.5 14.5l3-3M9.5 20.5l3-3" opacity=".5"/>',
+'route-left':'<path d="M18 6 6 18M6 9v9h9"/>',
+'route-right':'<path d="M6 18 18 6M9 6h9v9"/>',
+'hazard':'<path d="M13 2.5 5.5 13.5h5.5L10 21.5l8.5-11.5H13z" fill="'+A+'" fill-opacity=".2"/>',
+'pickup':'<path d="M12 4 18 12l-6 8-6-8z" fill="'+A+'" fill-opacity=".3"/>',
+'plus':'<path d="M12 5v14M5 12h14"/>',
+'bar':'<rect x="8" y="4" width="8" height="16" rx="1.5" fill="currentColor" stroke="none"/>',
+'power':'<path d="M12 3v8"/><path d="M7 6.2a7.5 7.5 0 1 0 10 0"/>',
+'infinity':'<path d="M12 12c-2-3-3.5-4-5.2-4a4 4 0 0 0 0 8c1.7 0 3.2-1 5.2-4s3.5-4 5.2-4a4 4 0 0 1 0 8c-1.7 0-3.2-1-5.2-4z"/>',
 }
 os.makedirs('assets/icons',exist_ok=True)
 for k,v in I.items():
@@ -81,4 +110,6 @@ for k,v in I.items():
 sym=''.join(f'<symbol id="{k}" viewBox="0 0 24 24">{v}</symbol>' for k,v in I.items())
 open('assets/icons/sprite.svg','w').write(f'<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">{sym}</svg>\n')
 json.dump(list(I),open('/tmp/icons.json','w'))
+# nodspel is served on its own: ship the same sprite next to it
+open('nodspel/ui-icons.svg','w').write(open('assets/icons/sprite.svg').read())
 print(len(I))

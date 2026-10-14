@@ -32,7 +32,7 @@ window.DATA.progression = {
     stash:{ power_cell:1, scrap_alloy:3, medkit:1 }   // Basic Carbine is infinite (never in stash); Scavenger Vest unlocks at Fabricator L1
   },
   // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
-  // XP to go from level n to n+1 = xpBase + xpStep*(n-1)  →  L2 at 50, L3 at 125, L4 at 225, L5 at 350, L10 at 1350.
+  // XP to go from level n to n+1 = xpBase + xpStep*(n-1)  ->  L2 at 50, L3 at 125, L4 at 225, L5 at 350, L10 at 1350.
   operator:{ xpBase:50, xpStep:25, maxLevel:30, simExtractXp:12, simDeathXp:4, coreMinXp:3 },
   beats:[
     { id:"tutorial", type:"intro",
@@ -87,15 +87,15 @@ window.DATA.progression.playerStats = {
   // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
   // Three automatic skills (v1.41): they rise by playing, never need menus. Accessible: small, always-positive bonuses.
   skills:{
-    mobility:{ name:"Mobility", icon:"🏃", xpPerLevel:20, maxLevel:10, perLevel:{ speed:0.06, dashCooldownMs:-100 },
+    mobility:{ name:"Mobility", icon:"stat-speed", xpPerLevel:20, maxLevel:10, perLevel:{ speed:0.06, dashCooldownMs:-100 },
       xp:{ perMetre:0.1, perDash:1 }, desc:"Move and dash to run faster and dash more often." },
-    stealth:{ name:"Stealth", icon:"👁", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
+    stealth:{ name:"Stealth", icon:"stat-stealth", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
       xp:{ perHoldNode:5 }, desc:"Charge nodes up close; enemies notice you later." },
-    vitality:{ name:"Vitality", icon:"❤", xpPerLevel:20, maxLevel:10, perLevel:{ maxHealth:3 },
+    vitality:{ name:"Vitality", icon:"stat-health", xpPerLevel:20, maxLevel:10, perLevel:{ maxHealth:3 },
       xp:{ perDamage:0.1, perHeal:0.2, perSurvive:5 }, desc:"Take hits, heal and make it home to raise max HP (max +30)." },
-    search:{ name:"Search", icon:"🔍", xpPerLevel:10, maxLevel:10, perLevel:{ searchMult:-0.04 },
+    search:{ name:"Search", icon:"skill-search", xpPerLevel:10, maxLevel:10, perLevel:{ searchMult:-0.04 },
       xp:{ perSearch:4 }, desc:"Search wardrobes, crates and cabinets to search faster (max −40%)." },
-    crafting:{ name:"Crafting", icon:"🔧", xpPerLevel:15, maxLevel:10, perLevel:{}, craftDiscountPerLevel:0.03,
+    crafting:{ name:"Crafting", icon:"skill-crafting", xpPerLevel:15, maxLevel:10, perLevel:{}, craftDiscountPerLevel:0.03,
       xp:{ perCraft:6, perItemExtracted:1 }, desc:"Craft and bring loot home to pay less Scrap at the Fabricator." }
   },
   // Operator level adds a gentle speed bonus: +2% per level above 1, capped at +20%.
@@ -104,7 +104,7 @@ window.DATA.progression.playerStats = {
   weaponMastery:{ killsForStar:[10, 30, 75], perStar:{ rld:-0.06, int:-0.04 } }
 };
 
-// v1.44 world map + area progression (owner design 14 Oct). Order Bunker → Archipelago → Town.
+// v1.44 world map + area progression (owner design 14 Oct). Order Bunker -> Archipelago -> Town.
 // Unlock = two steps: Core level (access) + a scouting extract carrying the area's map item
 // (items.scouts). Zones are the core's level indexes (1..3) and light up when cleared (persisted).
 // Regions/labels/routes are % of the map image (data-driven; add areas + routes here as the map grows).
@@ -118,14 +118,14 @@ window.DATA.worldMap = {
     { from:"archipelago", to:"town", points:[[62,52],[70,50.5],[76,46.5],[81,40],[84.5,33]] }
   ],
   areas:[
-    { id:"bunker", name:"Bunker", icon:"🏚", iconId:"area-bunker", threat:1, region:{ x:1, y:50, w:30, h:44 }, label:{ x:16, y:46 }, requires:null,
+    { id:"bunker", name:"Bunker", iconId:"area-bunker", threat:1, region:{ x:1, y:50, w:30, h:44 }, label:{ x:16, y:46 }, requires:null,
       blurb:"The facility around the Rebirth Core. Cramped halls, light resistance.",
       zones:["Open Room","Narrow Passage","Dead End"] },
-    { id:"archipelago", name:"Archipelago", icon:"🏝", iconId:"area-archipelago", threat:2, region:{ x:42, y:32, w:28, h:42 }, label:{ x:51, y:76, anchor:"below" }, lockedLabel:{ x:51, y:76, anchor:"below" },
+    { id:"archipelago", name:"Archipelago", iconId:"area-archipelago", threat:2, region:{ x:42, y:32, w:28, h:42 }, label:{ x:51, y:76, anchor:"below" }, lockedLabel:{ x:51, y:76, anchor:"below" },
       requires:{ core:2, scoutItem:"archipelago_chart", from:"bunker" },
       blurb:"Open islands, piers and rock shores. Tougher patrols, better parts.",
       zones:["Landing","Pier Row","Lighthouse Rock"] },
-    { id:"town", name:"Town", icon:"🏡", iconId:"area-town", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:78.5, y:1.5, anchor:"left" },
+    { id:"town", name:"Town", iconId:"area-town", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:78.5, y:1.5, anchor:"left" },
       requires:{ core:3, scoutItem:"town_survey", from:"archipelago" },
       blurb:"An abandoned town at night. The hardest raids so far.",
       zones:["Main Street","Houses","Depot"] }

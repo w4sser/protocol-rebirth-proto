@@ -128,7 +128,7 @@ assert(doc.querySelector("#overlay button.primary"), "eligible room opens from i
 // Both base and raid-result build CTAs route through goBuild: locked rooms must explain access.
 A.goBuild("fabricator");
 assert(doc.querySelector('.room-spot.ready[data-room="fabricator"]'), "Core completion highlights Fabricator in green");
-assert(doc.querySelector('.room-spot.ready small').textContent.startsWith("✓"), "ready room checks its completed requirement");
+assert(doc.querySelector('.room-spot.ready small').querySelector('use[href$="#check"]'), "ready room checks its completed requirement");
 assert(doc.querySelector("#overlay button.primary").textContent.includes("RAID FOR REPAIR MATERIALS"), "missing materials prioritize raiding");
 assert(doc.getElementById("overlay").textContent.includes("Opening the room clears access"), "room explains why access is available");
 A.raidForRoom("fabricator");
@@ -172,7 +172,7 @@ A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 
 assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
-assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').textContent.includes("✓ Bring the Fabricator online"), "Vault checks its completed prerequisite");
+assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').innerHTML.includes('#check"></use></svg> Bring the Fabricator online'), "Vault checks its completed prerequisite");
 assert(text().includes("OPEN VAULT"), "base names the next room goal");
 A.raidForRoom("storage");
 assert(text().includes("Gather repair materials for Storage / Vault"), "raid goal follows the chosen next room instead of the scripted BIT goal");

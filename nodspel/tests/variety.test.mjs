@@ -66,7 +66,7 @@ test('hazard telegraph gives a long, counted-down warning',()=>{
   const t=hazardTiming(h,H.offMs-500);assert.equal(t.state,'warn');assert.equal(t.msToOn,500);
   assert.equal(hazardTiming(h,H.offMs+100).state,'on');
   const js=readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),world=readFileSync(new URL('../world.js',import.meta.url),'utf8');
-  assert.doesNotMatch(js,/SHOCK PAD'|⚡ CHARGING/,'shock pads carry no text label');assert.match(js,/'⚡'/,'lightning icon only');
+  assert.doesNotMatch(js,/SHOCK PAD'|⚡ CHARGING/,'shock pads carry no text label');assert.match(js,/setIconText\(l\.caption,'hazard',''\)/,'lightning icon only');
   assert.match(world,/recharge ring fills/,'pad shows a recharge fill ring');
 });
 test('node hints match the real mechanic (stand close, no key) on desktop and touch',()=>{

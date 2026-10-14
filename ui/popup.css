@@ -1,5 +1,5 @@
-/* Shared popup component (v1.49.0): one look for every boxed popup in base/meta and Node Raid.
-   Markup: <div class="pop-card"><button class="pop-x" data-close aria-label="Close">✕</button><h1|.pop-head>…</div>
+/* Shared popup component (v1.50.0): one look for every boxed popup in base/meta and Node Raid.
+   Markup: <div class="pop-card"><button class="pop-x" data-close aria-label="Close">[close icon]</button><h1|.pop-head>…</div>
    Close badge: circular 44px ring straddling the TOP-LEFT corner of the frame (v1.47); the frame keeps a 16px margin so it stays inside the safe area. Tap on the backdrop closes. */
 :where(.pop-card){position:relative}
 .pop-card{animation:pop-in .18s ease-out both}
