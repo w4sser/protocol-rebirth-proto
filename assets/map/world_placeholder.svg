@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 740" preserveAspectRatio="xMidYMid slice">
+  <!-- Placeholder world map (owner replaces with final art; keep the file name or change DATA.worldMap.background) -->
+  <defs>
+    <radialGradient id="sea" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#0f2733"/><stop offset="1" stop-color="#050c11"/></radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1d3a44" stroke-width="1" opacity=".5"/></pattern>
+  </defs>
+  <rect width="1600" height="740" fill="url(#sea)"/><rect width="1600" height="740" fill="url(#grid)"/>
+  <path d="M90 420 C150 330 330 300 470 340 C560 370 600 470 560 560 C510 660 330 690 200 650 C110 620 50 520 90 420Z" fill="#1d2a24" stroke="#3a5a4c" stroke-width="3"/>
+  <g fill="#1f2f2a" stroke="#3a5a4c" stroke-width="3">
+    <path d="M660 160 C720 120 800 140 810 200 C820 260 760 290 700 270 C650 250 630 200 660 160Z"/>
+    <path d="M850 230 C900 200 960 220 965 270 C970 320 910 340 870 320 C835 300 825 260 850 230Z"/>
+    <path d="M720 320 C770 300 820 330 810 380 C800 420 740 430 710 400 C690 375 695 335 720 320Z"/>
+    <circle cx="990" cy="150" r="32"/><circle cx="620" cy="290" r="22"/>
+  </g>
+  <path d="M1110 380 C1190 300 1400 290 1500 360 C1580 420 1560 560 1470 610 C1360 670 1180 650 1120 580 C1080 530 1070 430 1110 380Z" fill="#26241f" stroke="#5a5444" stroke-width="3"/>
+  <g stroke="#3d4a52" stroke-width="2" stroke-dasharray="10 10" fill="none" opacity=".8"><path d="M470 430 C560 360 620 330 690 300"/><path d="M960 300 C1030 340 1080 370 1130 420"/></g>
+</svg>

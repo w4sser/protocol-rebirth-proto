@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.43.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.44.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1319,13 +1319,52 @@ function slotTileHtml(def, locked){
     (!locked && options ? '<span class="badge need">' + options + '</span>' : '') + '</button>';
 }
 // Brawl-Stars-style lobby: operator centre stage, loadout tiles either side, compact PLAY bottom-right.
-// Area picker: which Node Raid map the core loads (passed as &area= to nodspel).
-const RAID_AREAS = [["bunker","🏚","BUNKER"],["town","🏡","TOWN"]];
-function raidArea(){ return RAID_AREAS.some(a => a[0] === S.area) ? S.area : "bunker"; }
-function areaPickerHtml(){
-  return '<div class="area-pick" role="radiogroup" aria-label="Raid area">' + RAID_AREAS.map(([id, ic, name]) =>
-    '<button type="button" role="radio" aria-checked="' + (raidArea() === id) + '" class="area-opt' + (raidArea() === id ? ' on' : '') + '" data-area="' + id + '" onclick="A.setArea(\'' + id + '\')"><i aria-hidden="true">' + ic + '</i>' + name + '</button>').join('') + '</div>';
+// v1.44 world map: areas, unlocks and zones all come from DATA.worldMap (data/progression.js).
+const WMAP = D.worldMap, AREA_DEFS = {}; WMAP.areas.forEach(a => AREA_DEFS[a.id] = a);
+const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(location.search || "");
+function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
+function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
+function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaCoreOk(id) && areaScouted(id); }
+function raidArea(){ return AREA_DEFS[S.area] && areaUnlocked(S.area) ? S.area : WMAP.areas[0].id; }
+function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
+// Requirement lines for a locked area: [text, done] pairs, both steps visible.
+function areaReqs(id){
+  const q = AREA_DEFS[id].requires; if(!q) return [];
+  const it = ITEMS[q.scoutItem], from = AREA_DEFS[q.from];
+  return [["Rebirth Core L" + q.core, areaCoreOk(id)], ["Scout: extract with " + (it ? it.name : q.scoutItem) + (from ? " (" + from.name + " zone " + from.zones.length + ")" : ""), areaScouted(id)]];
 }
+// Called from core ingest: scouting items + zone progress for the area that was raided.
+function applyAreaProgress(area, levelsCleared, extractedIds){
+  const notes = [];
+  S.areaZones = S.areaZones || {}; S.areaScouted = S.areaScouted || {};
+  if(AREA_DEFS[area]){ const z = new Set(areaZonesCleared(area)); const n = Math.min(AREA_DEFS[area].zones.length, Math.max(0, Math.floor(Number(levelsCleared) || 0)));
+    for(let i = 1; i <= n; i++) if(!z.has(i)){ z.add(i); notes.push(AREA_DEFS[area].name + ": " + AREA_DEFS[area].zones[i-1] + " cleared"); }
+    S.areaZones[area] = [...z].sort((a, b) => a - b); }
+  for(const id of extractedIds){ const t = ITEMS[id] && ITEMS[id].scouts; if(t && AREA_DEFS[t] && !S.areaScouted[t]){ S.areaScouted[t] = true; notes.push(AREA_DEFS[t].name + " scouted" + (areaUnlocked(t) ? " — UNLOCKED on the world map" : " — needs Rebirth Core L" + AREA_DEFS[t].requires.core)); } }
+  return notes;
+}
+function areaPickerHtml(){
+  const a = AREA_DEFS[raidArea()];
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">🗺</i><span><small>AREA</small><b>' + a.icon + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+}
+SCREENS.worldmap = function(){
+  $app().setAttribute("class", "s-worldmap");
+  const sel = raidArea();
+  const regions = WMAP.areas.map(a => {
+    const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region;
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + R.x + '%;top:' + R.y + '%;width:' + R.w + '%;height:' + R.h + '%"' +
+      (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"') + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' +
+      '<span class="wm-name">' + a.icon + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
+      (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' +
+              (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
+            : '<span class="wm-lock" aria-hidden="true">🔒</span><span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') +
+      '</button>';
+  }).join('');
+  const a = AREA_DEFS[sel];
+  $app().innerHTML = '<div class="worldmap" style="background-image:url(\'' + WMAP.background + '\')">' + '<div class="wm-fog"></div>' + regions +
+    '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">‹ BACK</button><h1>WORLD MAP</h1></div>' +
+    '<div class="wm-info"><b>' + a.icon + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
+};
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
@@ -1667,6 +1706,7 @@ function ingestRaidResult(r){
   const currency = {};
   // Currency-sourcing loot (salvage_crate, data_core) converts on the way in; everything else goes to the stash.
   added.forEach(id => {
+    if(ITEMS[id].scouts) return; // scouting items are consumed by the world map
     const g = ITEMS[id].grantsCurrency;
     if(!g){ addItem(id, 1); return; }
     for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
@@ -1703,7 +1743,8 @@ function ingestRaidResult(r){
   gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:kitOut - kitBack };
+  const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:kitOut - kitBack, areaNotes };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
@@ -1833,7 +1874,8 @@ function coreResultSummary(r, res){
   const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
     (res.kitLost ? " · medkits used/lost: " + res.kitLost : "") +
     (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "") +
-    (res.starUp ? " · mastery " + res.starUp + "!" : "");
+    (res.starUp ? " · mastery " + res.starUp + "!" : "") +
+    (res.areaNotes && res.areaNotes.some(n => /scouted/.test(n)) ? " · " + res.areaNotes.filter(n => /scouted/.test(n)).join(", ") : "");
   return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
 function ingestPendingCoreResult(storage){
@@ -1976,7 +2018,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && !baseAllows("navigation", screen))) return;
+    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && screen !== "worldmap" && !baseAllows("navigation", screen))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
@@ -2097,13 +2139,14 @@ window.A = {
       refresh("raid_prep");
     });
   },
-  setArea(id){ if(!RAID_AREAS.some(a => a[0] === id)) return; S.area = id; save(); refresh("raid_prep"); },
+  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; act("AREA_SELECTED", { area:id }); refresh(); },
+  debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit();
     // Deploy is free, but equipped gear (non-Basic weapon, armour) and medkits go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
     if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
-    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit };
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, area: raidArea() };
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
     closeAllPopups();
@@ -2624,4 +2667,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };

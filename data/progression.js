@@ -103,3 +103,24 @@ window.DATA.progression.playerStats = {
   // Weapon mastery: kills with a weapon earn up to 3 stars; each star makes it reload/fire a bit faster.
   weaponMastery:{ killsForStar:[10, 30, 75], perStar:{ rld:-0.06, int:-0.04 } }
 };
+
+// v1.44 world map + area progression (owner design 14 Oct). Order Bunker → Archipelago → Town.
+// Unlock = two steps: Core level (access) + a scouting extract carrying the area's map item
+// (items.scouts). Zones are the core's level indexes (1..3) and light up when cleared (persisted).
+// Regions are % of the map image; swap the background by replacing assets/map/world_placeholder.svg.
+window.DATA.worldMap = {
+  background:"assets/map/world_placeholder.svg",
+  areas:[
+    { id:"bunker", name:"Bunker", icon:"🏚", threat:1, region:{ x:9, y:34, w:27, h:44 }, requires:null,
+      blurb:"The facility around the Rebirth Core. Cramped halls, light resistance.",
+      zones:["Open Room","Narrow Passage","Dead End"] },
+    { id:"archipelago", name:"Archipelago", icon:"🏝", threat:2, region:{ x:39, y:14, w:23, h:46 },
+      requires:{ core:2, scoutItem:"archipelago_chart", from:"bunker" },
+      blurb:"Open islands, piers and rock shores. Tougher patrols, better parts.",
+      zones:["Landing","Pier Row","Lighthouse Rock"] },
+    { id:"town", name:"Town", icon:"🏡", threat:3, region:{ x:66, y:32, w:26, h:46 },
+      requires:{ core:3, scoutItem:"town_survey", from:"archipelago" },
+      blurb:"An abandoned town at night. The hardest raids so far.",
+      zones:["Main Street","Houses","Depot"] }
+  ]
+};

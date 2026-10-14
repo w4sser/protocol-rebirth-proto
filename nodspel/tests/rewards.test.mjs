@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,activateNode,enterExit} from '../round.js';
-import {generateLevel} from '../levels.js';
+import {generateLevel,RULES} from '../levels.js';
 import {createWeapon,fireWeapon,stepWeapon,assistAim} from '../weapon.js';
 import {createCombat,stepCombat} from '../combat.js';
-test('a kill immediately restores one shot and 15 health, once and capped',()=>{
+test('a kill immediately restores one shot and 12 health, once and capped',()=>{
   const r=createRound('reward',0),w=createWeapon();r.health=60;r.level.nodes=[];
   const foe=r.level.enemies[0];foe.x=3;foe.z=0;foe.health=1;
   fireWeapon(w,{x:0,z:0},{x:1,z:0},0);w.ammo=0;
-  stepWeapon(w,r,100,.3,[]);assert.equal(r.health,75);assert.equal(w.ammo,1);
-  stepWeapon(w,r,200,.3,[]);assert.equal(r.health,75);assert.equal(w.ammo,1);
+  stepWeapon(w,r,100,.3,[]);assert.equal(r.health,60+RULES.killReward.health);assert.equal(w.ammo,1);
+  stepWeapon(w,r,200,.3,[]);assert.equal(r.health,60+RULES.killReward.health);assert.equal(w.ammo,1);
 });
 test('level two has two active enemies in room two and two node-triggered reserves',()=>{
   const r=createRound('reserves',0);r.level=generateLevel(2,r.seed);
@@ -43,7 +43,7 @@ test('matching low-resource runs reach level two with more health and ammo after
     assert.equal(enterExit(r,r.level.exit,101),'next');
     assert.equal(r.level.number,2);results.push({health:r.health,ammo:w.ammo});
   }
-  assert.equal(results[1].health-results[0].health,15);
+  assert.equal(results[1].health-results[0].health,RULES.killReward.health);
   assert.equal(results[1].ammo-results[0].ammo,1);
 });
 test('kill health and ammo never exceed their caps',()=>{

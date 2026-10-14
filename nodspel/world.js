@@ -1,15 +1,16 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.43.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.43.0';
-import {buildTown} from './town.js?v=1.43.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.43.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.44.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.44.0';
+import {buildTown} from './town.js?v=1.44.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.44.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.44.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
   visual.holdRing.geometry.setDrawRange(0,Math.floor(fill*64)*6);
 }
 
-export function buildWorld(level,scene,{quality='high',town=null}={}) {
+export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) {
   const Q=qualitySettings(quality);
   const group=new THREE.Group();scene.add(group);
   const cube=new THREE.BoxGeometry(1,1,1),materials={};
@@ -19,7 +20,9 @@ export function buildWorld(level,scene,{quality='high',town=null}={}) {
   }
   const isTown=!!(level.town&&town);
   const townInfo=isTown?buildTown(level,group,town,Q):null;
-  if(!isTown)for(const f of level.floors){
+  const isArch=!!level.archipelago&&!isTown;
+  const archInfo=isArch?buildArchipelago(level,group,box,{pine,quality:Q}):null;
+  if(!isTown&&!isArch)for(const f of level.floors){
     box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);
     // panel floor: dark seams every 2 m + faint cyan trim line inset from the edges (theme tints the trim)
@@ -33,7 +36,7 @@ export function buildWorld(level,scene,{quality='high',town=null}={}) {
     const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.Float32BufferAttribute(trim,3));
     group.add(new THREE.LineSegments(tg,new THREE.LineBasicMaterial({color:level.theme?.trim&&level.number>1?level.theme.trim:PALETTE.neon,transparent:true,opacity:.28,toneMapped:false})));
   }
-  if(!isTown)for(const b of [...level.walls,...level.boxes]){
+  if(!isTown&&!isArch)for(const b of [...level.walls,...level.boxes]){
     const isBox=level.boxes.includes(b);
     box(b.x,b.h/2,b.z,b.w,b.h,b.d,isBox?PALETTE.box:PALETTE.wall);
     box(b.x,b.h+.025,b.z,b.w,.05,b.d,PALETTE.wallTop);
@@ -140,8 +143,8 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
   const prng=rngFrom(`${level.seed}:props`),spots=isTown?[]:propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
-  const props=spots.map(spot=>{const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
-  for(let k=0;k<Math.min(Q.lights,spots.length);k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
+  const props=spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
+  for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

@@ -45,6 +45,11 @@ window.DATA.items = [
   { id:"neural_core", name:"Neural Core", family:"protocol", rarity:"legendary", sellValue:800, stackSize:1,
     desc:"The Protocol's memory of itself.", uses:["upgrade:bit_bay","story"] },
   // VALUABLE (sell-only)
+  // v1.44 scouting items: extracting one scouts the next area on the world map (consumed on extract).
+  { id:"archipelago_chart", name:"Archipelago Chart", family:"valuable", rarity:"rare", sellValue:0, stackSize:1, scouts:"archipelago",
+    desc:"A waterproof chart of the islands beyond the bunker. Extract it to scout the Archipelago.", uses:["scout"] },
+  { id:"town_survey", name:"Town Survey", family:"valuable", rarity:"rare", sellValue:0, stackSize:1, scouts:"town",
+    desc:"Survey notes on the abandoned town across the strait. Extract it to scout the Town.", uses:["scout"] },
   { id:"prewar_relic", name:"Prewar Relic", family:"valuable", rarity:"legendary", sellValue:250, stackSize:5,
     desc:"Worthless to the facility. Priceless to a collector.", uses:["sell"] },
   // GEAR (loadout items)
