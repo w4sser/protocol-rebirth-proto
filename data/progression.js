@@ -107,18 +107,25 @@ window.DATA.progression.playerStats = {
 // v1.44 world map + area progression (owner design 14 Oct). Order Bunker → Archipelago → Town.
 // Unlock = two steps: Core level (access) + a scouting extract carrying the area's map item
 // (items.scouts). Zones are the core's level indexes (1..3) and light up when cleared (persisted).
-// Regions are % of the map image; swap the background by replacing assets/map/world_placeholder.svg.
+// Regions/labels/routes are % of the map image (data-driven; add areas + routes here as the map grows).
 window.DATA.worldMap = {
-  background:"assets/map/world_placeholder.svg",
+  background:"assets/map/world.webp", // owner art (PRB-58), 1536×1024
+  aspect:1.5, bg:"#00262b", // image is fitted with "contain" in a 3:2 stage; side bars use bg
+  // Unlock routes (dashed lines in the art), polyline points in % of the image. Lit when `to` is unlocked;
+  // pulsing when `from` is unlocked but `to` is still locked (the next goal).
+  routes:[
+    { from:"bunker", to:"archipelago", points:[[13,73],[22,66],[31,61],[38.5,62],[45,59.5],[52,54.5],[58.8,50.6]] },
+    { from:"archipelago", to:"town", points:[[62,52],[70,50.5],[76,46.5],[81,40],[84.5,33]] }
+  ],
   areas:[
-    { id:"bunker", name:"Bunker", icon:"🏚", threat:1, region:{ x:9, y:34, w:27, h:44 }, requires:null,
+    { id:"bunker", name:"Bunker", icon:"🏚", threat:1, region:{ x:1, y:50, w:30, h:44 }, label:{ x:16, y:46 }, requires:null,
       blurb:"The facility around the Rebirth Core. Cramped halls, light resistance.",
       zones:["Open Room","Narrow Passage","Dead End"] },
-    { id:"archipelago", name:"Archipelago", icon:"🏝", threat:2, region:{ x:39, y:14, w:23, h:46 },
+    { id:"archipelago", name:"Archipelago", icon:"🏝", threat:2, region:{ x:42, y:32, w:28, h:42 }, label:{ x:56, y:28 }, lockedLabel:{ x:56, y:61 },
       requires:{ core:2, scoutItem:"archipelago_chart", from:"bunker" },
       blurb:"Open islands, piers and rock shores. Tougher patrols, better parts.",
       zones:["Landing","Pier Row","Lighthouse Rock"] },
-    { id:"town", name:"Town", icon:"🏡", threat:3, region:{ x:66, y:32, w:26, h:46 },
+    { id:"town", name:"Town", icon:"🏡", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:82, y:34 },
       requires:{ core:3, scoutItem:"town_survey", from:"archipelago" },
       blurb:"An abandoned town at night. The hardest raids so far.",
       zones:["Main Street","Houses","Depot"] }

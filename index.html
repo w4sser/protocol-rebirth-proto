@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.47.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.47.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.48.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.48.0">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -650,20 +650,33 @@
   /* v1.44 world map: full-bleed art, safe-area padding for UI only */
   .area-pick.map-open{align-items:center;gap:6px;color:#e8f2ec;cursor:pointer;min-height:44px;padding:3px 10px;font:inherit}.map-open i{font-style:normal;font-size:20px}.map-open span{display:flex;flex-direction:column;line-height:1.05;text-align:left}.map-open small{font-size:9px;letter-spacing:.12em;color:#8fb3a6}.map-open b{font-size:13px}
   #app.s-worldmap{padding:0!important}
-  .worldmap{position:fixed;inset:0;z-index:60;background:#050c11 center/cover no-repeat;overflow:hidden;font-family:inherit}
-  .wm-fog{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 40%,#000a 100%);pointer-events:none}
+  .worldmap{position:fixed;inset:0;z-index:60;background:#00262b;overflow:hidden;font-family:inherit;display:grid;place-items:center}
+  /* v1.48 owner art (PRB-58): 3:2 stage fitted with "contain" so all areas stay visible in landscape; regions/labels/routes in % of the art */
+  .wm-stage{position:relative;aspect-ratio:var(--ar,1.5);height:min(100%,calc(100vw / var(--ar,1.5)));max-width:100%;background:center/100% 100% no-repeat;image-rendering:auto}
+  .wm-stage::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:0 0 40px 30px #00262b inset}
+  .wm-routes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .wm-route{fill:none;stroke-width:.55;stroke-linecap:round;stroke-dasharray:1.4 1.1;vector-effect:none}
+  .wm-route.dim{stroke:#4f7d80;opacity:.35}.wm-route.lit{stroke:#7ff3ff;opacity:.95;filter:drop-shadow(0 0 1px #3fe0ff)}
+  .wm-route.next{stroke:#e8c547;opacity:.95;animation:wm-march 1.2s linear infinite}
+  @keyframes wm-march{to{stroke-dashoffset:-2.5}}
+  .wm-fog{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,#000a 100%)}
   .wm-ui{position:absolute;top:calc(8px + var(--st,0px));left:calc(10px + var(--sl));right:calc(10px + var(--sr));display:flex;align-items:center;gap:12px;z-index:3;pointer-events:none}
   .wm-ui h1{margin:0;font-size:16px;letter-spacing:.2em;color:#cfe7dd;text-shadow:0 1px 3px #000}
   .wm-back{pointer-events:auto;min-height:44px;min-width:76px;border-radius:10px;border:2px solid #1b1100;background:#e8c547;color:#1b1100;font-weight:800;letter-spacing:.06em}
-  .wm-region{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px solid #6fd3c180;border-radius:22px;background:#0a2a2a44;color:#e8f2ec;cursor:pointer;font:inherit;padding:6px;z-index:2}
-  .wm-region.on{border-color:#e8c547;box-shadow:0 0 0 2px #e8c54766,0 0 24px #e8c54744 inset;background:#2a240a40}
-  .wm-region.locked{cursor:default;border:2px dashed #55606a;background:repeating-linear-gradient(135deg,#0b0f12d9 0 10px,#11171cd9 10px 20px);filter:saturate(.3)}
-  .wm-name{font-weight:800;font-size:15px;letter-spacing:.06em;text-shadow:0 1px 3px #000}.wm-name small{color:#e88a5a;font-size:10px}
-  .wm-zones{display:flex;gap:6px}.wm-zone{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:800;background:#18242a;color:#5d727a;border:2px solid #2d3d44}
+  .wm-region{position:absolute;border:2px solid transparent;border-radius:18px;background:transparent;cursor:pointer;padding:0;z-index:1;display:grid;place-items:center}
+  .wm-region.on{border-color:#e8c547aa;box-shadow:0 0 0 2px #e8c54733,0 0 30px #e8c54733 inset}
+  .wm-region.locked{cursor:default;border:2px dashed #7da2a6aa;background:repeating-linear-gradient(135deg,#031417cc 0 8px,#06222699 8px 16px);backdrop-filter:blur(2.5px) saturate(.4);-webkit-backdrop-filter:blur(2.5px) saturate(.4)}
+  .wm-region.locked .wm-lock{align-self:start;margin-top:14%}
+  .wm-lock{font-size:22px;filter:grayscale(1) brightness(1.5);text-shadow:0 2px 6px #000}
+  .wm-label{position:absolute;transform:translate(-50%,-100%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px 9px;border-radius:12px;background:#031a1ee0;border:1.5px solid #6fd3c1aa;color:#e8f2ec;cursor:pointer;white-space:nowrap;box-shadow:0 4px 12px #000a}
+  .wm-label.on{border-color:#e8c547;box-shadow:0 0 0 2px #e8c54755,0 4px 12px #000a}
+  .wm-label.locked{cursor:default;border-style:dashed;border-color:#7da2a6;background:#020d10e8;transform:translate(-50%,0)}
+  .wm-name{font-weight:800;font-size:13px;letter-spacing:.06em;text-shadow:0 1px 3px #000}.wm-name small{color:#e88a5a;font-size:9px}
+  .wm-zones{display:flex;gap:5px}.wm-zone{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10px;font-weight:800;background:#0d2025;color:#5d727a;border:2px solid #2d3d44}
   .wm-zone.lit{background:#6fd3c1;color:#08201c;border-color:#bff5ea;box-shadow:0 0 10px #6fd3c1}
-  .wm-sel,.wm-tap{font-size:10px;letter-spacing:.14em;color:#e8c547}.wm-tap{color:#9fb6ae}
-  .wm-lock{font-size:26px;filter:grayscale(1) brightness(1.4)}.wm-req{display:flex;flex-direction:column;gap:2px;font-size:11px;color:#c6ccd0;text-align:left;max-width:95%}.wm-req .ok{color:#7fe0a8}
-  .wm-info{position:absolute;bottom:calc(6px + var(--sb));left:50%;transform:translateX(-50%);max-width:46%;display:flex;flex-direction:column;gap:2px;background:#050c11cc;border:1px solid #2d3d44;border-radius:10px;padding:6px 10px;z-index:3;color:#e8f2ec}.wm-info small{font-size:11px;color:#a9bbb4}
+  .wm-sel,.wm-tap{font-size:9px;letter-spacing:.14em;color:#e8c547}.wm-tap{color:#9fb6ae}
+  .wm-req{display:flex;flex-direction:column;gap:1px;font-size:10px;color:#c6ccd0;text-align:left;white-space:normal;max-width:170px}.wm-req .ok{color:#7fe0a8}
+  .wm-info{position:absolute;bottom:calc(6px + var(--sb));right:calc(10px + var(--sr));max-width:min(30%,240px);display:flex;flex-direction:column;gap:2px;background:#031417d9;border:1px solid #2d4d52;border-radius:10px;padding:6px 10px;z-index:3;color:#e8f2ec}.wm-info small{font-size:10px;color:#a9bbb4}
   #app.s-prep{padding-left:calc(8px + var(--sl))!important;padding-right:calc(8px + var(--sr))!important;box-sizing:border-box;width:100%}
   #tabs{padding-left:calc(10px + var(--sl))!important;padding-right:calc(10px + var(--sr))!important}
   #overlay{padding-left:var(--sl)!important;padding-right:var(--sr)!important;padding-top:var(--st);padding-bottom:var(--sb);box-sizing:border-box}
@@ -671,7 +684,7 @@
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
-<link rel="stylesheet" href="ui/popup.css?v=1.47.0">
+<link rel="stylesheet" href="ui/popup.css?v=1.48.0">
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -679,13 +692,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.47.0</div>
+    <div id="app-version">v1.48.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings">✕</button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.47.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.48.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -700,15 +713,15 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.47.0"></script>
-<script src="data/modules.js?v=1.47.0"></script>
-<script src="data/bit.js?v=1.47.0"></script>
-<script src="data/raid_zones.js?v=1.47.0"></script>
-<script src="data/recipes.js?v=1.47.0"></script>
-<script src="data/vendors.js?v=1.47.0"></script>
-<script src="data/retention.js?v=1.47.0"></script>
-<script src="data/progression.js?v=1.47.0"></script>
-<script src="data/combat.js?v=1.47.0"></script>
-<script src="app.js?v=1.47.0"></script>
+<script src="data/items.js?v=1.48.0"></script>
+<script src="data/modules.js?v=1.48.0"></script>
+<script src="data/bit.js?v=1.48.0"></script>
+<script src="data/raid_zones.js?v=1.48.0"></script>
+<script src="data/recipes.js?v=1.48.0"></script>
+<script src="data/vendors.js?v=1.48.0"></script>
+<script src="data/retention.js?v=1.48.0"></script>
+<script src="data/progression.js?v=1.48.0"></script>
+<script src="data/combat.js?v=1.48.0"></script>
+<script src="app.js?v=1.48.0"></script>
 </body>
 </html>

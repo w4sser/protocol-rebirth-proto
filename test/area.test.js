@@ -1,4 +1,4 @@
-// v1.47.0: the base lobby picks the Node Raid area and passes it to the core (&area=).
+// v1.48.0: the base lobby picks the Node Raid area and passes it to the core (&area=).
 const { JSDOM } = require("jsdom");const fs = require("fs");const assert = require("assert");const path = __dirname + "/..";
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
@@ -34,7 +34,9 @@ function boot(save){
   const c = boot(st); c.A.go("prep"); let html = c.w.document.body.innerHTML;
   assert(/map-open/.test(html) && !/data-area="town"/.test(html), "lobby shows the world map button, not the old toggle");
   c.A.go("worldmap"); html = c.w.document.body.innerHTML;
-  assert(/class="worldmap"/.test(html) && /world_placeholder\.svg/.test(html), "map screen with swappable background");
+  assert(/class="worldmap"/.test(html) && /assets\/map\/world\.webp/.test(html) && /class="wm-stage"/.test(html), "map screen with the owner art in a 3:2 stage");
+  assert(/wm-route next" data-route="archipelago-town"/.test(html) && /wm-route lit" data-route="bunker-archipelago"/.test(html), "routes: lit to unlocked, pulsing next goal");
+  assert(/data-label="town"/.test(html) && /wm-label locked/.test(html), "labels per area; locked label shows requirements");
   assert(/wm-region locked" data-area="town"/.test(html) && /🔒/.test(html) && /Rebirth Core L3/.test(html) && /Town Survey/.test(html), "town fogged with lock + requirement");
   assert(/wm-back/.test(html), "back button");
   assert.equal((html.match(/<i class="wm-zone/g) || []).length, 6, "zones shown for the 2 open areas");
