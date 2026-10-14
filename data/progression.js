@@ -111,11 +111,22 @@ window.DATA.progression.playerStats = {
 window.DATA.worldMap = {
   background:"assets/map/world.webp", // owner art (PRB-58), 1536×1024
   aspect:1.5, bg:"#00262b", // image is fitted with "contain" in a 3:2 stage; side bars use bg
-  // Unlock routes (dashed lines in the art), polyline points in % of the image. Lit when `to` is unlocked;
-  // pulsing when `from` is unlocked but `to` is still locked (the next goal).
+  // Unlock routes, polyline points in % of the image. v1.52 (AD ad06): routes read through light and landmarks,
+  // not glowing dashed paths: the polyline is only a soft light wash (cyan when `to` is unlocked, faint amber
+  // toward the next goal), and `beacons` mark landmarks along it.
   routes:[
     { from:"bunker", to:"archipelago", points:[[13,73],[22,66],[31,61],[38.5,62],[45,59.5],[52,54.5],[58.8,50.6]] },
     { from:"archipelago", to:"town", points:[[62,52],[70,50.5],[76,46.5],[81,40],[84.5,33]] }
+  ],
+  // Landmark beacons (% of image). `area` = the area whose unlock lights it; the destination beacon of the
+  // next locked area glows a subtle amber (AD: amber = optional / higher-risk reward, cyan = powered systems).
+  beacons:[
+    { x:13, y:73, area:"bunker", name:"Bunker gate" },
+    { x:31, y:61, area:"bunker", name:"Radar mast" },
+    { x:45, y:59.5, area:"archipelago", name:"Ferry pier" },
+    { x:58.8, y:50.6, area:"archipelago", name:"Lighthouse rock", dest:true },
+    { x:76, y:46.5, area:"town", name:"Coast road" },
+    { x:84.5, y:33, area:"town", name:"Town depot", dest:true }
   ],
   areas:[
     { id:"bunker", name:"Bunker", iconId:"area-bunker", threat:1, region:{ x:1, y:50, w:30, h:44 }, label:{ x:16, y:46 }, requires:null,

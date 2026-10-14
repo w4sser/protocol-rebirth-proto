@@ -1,5 +1,6 @@
 # Bespoke icon set: 24px grid, 1.75 stroke, round caps, currentColor; accents via var(--ic-accent).
-import json,os
+import json,os,sys
+sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 A='var(--ic-accent,#7ff3ff)'
 I={
 # nav
@@ -143,6 +144,16 @@ ITEMS={
 'item-ammo':'<rect x="4" y="9.5" width="16" height="10" rx="1.6"/><path d="M7 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M10.8 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M14.6 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4" stroke="'+L+'"/><path d="M4 13.5h16"/>',
 }
 I.update(ITEMS)
+# v1.52 BIT icons: CRT body + the LOCKED face geometry (tools/bitface.py, AD ad06 p22-23). Never a generic smiley.
+from bitface import face_svg_elems
+C='var(--ic-accent,#3FE0D0)'
+def _bit(face_w, bx, by, bw, bh):
+    s=face_w/1000; fx=bx+(bw-face_w)/2; fy=by+(bh-875*s)/2+0.2
+    body=f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="3.6"/>'
+    return body+'<path d="M7.5 '+str(by)+'V3.2"/><circle cx="7.5" cy="2.6" r=".7" fill="currentColor" stroke="none"/><rect x="'+str(bx+bw)+'" y="'+str(by+4)+'" width="1.6" height="'+str(bh-8)+'" rx=".7"/><circle cx="'+str(bx+bw-2.2)+'" cy="'+str(by+2.1)+'" r=".55" fill="var(--ic-loot,#FF9D4D)" stroke="none"/>'+face_svg_elems(s,fx,fy,C)
+I['nav-bit']=_bit(12.5,3,5.5,16.5,14)
+I['bit-face']=_bit(13.5,2.5,5,17.5,15)
+
 os.makedirs('assets/icons',exist_ok=True)
 for k,v in I.items():
     open(f'assets/icons/{k}.svg','w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="pr-icon" aria-hidden="true">{v}</svg>\n')

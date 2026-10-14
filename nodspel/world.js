@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.51.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.51.0';
-import {buildTown} from './town.js?v=1.51.0';
-import {buildArchipelago,pineTree} from './archipelago.js?v=1.51.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.51.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.52.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.52.0';
+import {buildTown} from './town.js?v=1.52.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.52.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.52.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -52,10 +52,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
     const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4});
     const front=new THREE.Mesh(cube,coreMaterial);front.scale.set(.95,.7,.03);front.position.set(0,.69,.711);g.add(front);
     const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);
-    const light=new THREE.PointLight('#15d6be',0,8,1.6);light.position.y=1.9;g.add(light);
+    const light=new THREE.PointLight('#3FE0D0',0,8,1.6);light.position.y=1.9;g.add(light);
     const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
-    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#15d6be',side:THREE.DoubleSide,depthWrite:false}));
+    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false}));
     holdRing.rotation.x=-Math.PI/2;holdRing.position.y=.026;holdRing.visible=false;holdRing.geometry.setDrawRange(0,0);g.add(holdRing);
     return {node,group:g,coreMaterial,light,halo,holdRing};
   });
@@ -93,8 +93,8 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
     box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
-    const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#ff5a4f',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
-    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ff8d84',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
+    const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
+    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     return {enemy,group:g};
   });
   const exitMaterial=new THREE.MeshStandardMaterial({color:'#4d6a58',emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
@@ -138,7 +138,7 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
     // recharge ring fills clockwise while the pad charges back up; hidden while live
     const prog=t.state==='on'?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=t.state!=='on';v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
     v.fill.material.color.set(t.state==='warn'?'#fff27a':'#ffb820');
-    if(t.state==='on'){v.mat.color.set('#ff3b1f');v.mat.opacity=.75;}
+    if(t.state==='on'){v.mat.color.set('#E4705F');v.mat.opacity=.75;}
     else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
