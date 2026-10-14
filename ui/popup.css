@@ -4,7 +4,7 @@
 :where(.pop-card){position:relative}
 .pop-card{animation:pop-in .18s ease-out both}
 .pop-x,button.pop-x.pop-x{position:absolute;top:-16px;left:-16px;z-index:8;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;margin:0;
-  display:grid;place-items:center;border-radius:50%;border:3px solid var(--pop-ring,#6fd3c1);background:#10232a;color:#fff;
+  display:grid;place-items:center;border-radius:50%;border:3px solid var(--pop-ring,#75CFCC);background:#10232a;color:#fff;
   font:900 18px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 0 0 2px #050c11,0 3px 8px #000a;-webkit-tap-highlight-color:transparent}
 .pop-x:active{transform:scale(.92)}
 .pop-x:hover{background:#17343d}

@@ -38,6 +38,21 @@ for(const id of ids) assert(fs.existsSync(path + "/assets/icons/" + id + ".svg")
   const fn = fs.readFileSync(path + "/app.js", "utf8").match(/function itemIcon[^\n]*/)[0];
   assert(!/item-crate|item-vest/.test(fn), "itemIcon has no generic box/vest fallback");
 }
+// v1.52: BIT icons use the LOCKED face geometry (AD ad06 p23): vertical pill eyes 78x170 U, 486 U apart, filled smile
+{
+  const master = fs.readFileSync(path + "/assets/bit-face-master.svg", "utf8");
+  const eyes = [...master.matchAll(/<ellipse cx="([\d.]+)" cy="([\d.]+)" rx="([\d.]+)" ry="([\d.]+)"/g)].map(m => m.slice(1).map(Number));
+  assert.equal(eyes.length, 2, "master has two eyes");
+  assert(Math.abs(eyes[1][0] - eyes[0][0] - 486) < 0.01 && eyes[0][1] === 364 && eyes[0][2] * 2 === 78 && eyes[0][3] * 2 === 170, "eye geometry locked");
+  assert(/<path d="M[^"]+Z" fill="#75CFCC"/.test(master), "smile is a filled shape");
+  for(const id of ["nav-bit", "bit-face"]){
+    const svg = fs.readFileSync(path + "/assets/icons/" + id + ".svg", "utf8");
+    const e = [...svg.matchAll(/<ellipse cx="([\d.]+)" cy="[\d.]+" rx="([\d.]+)" ry="([\d.]+)"/g)].map(m => m.slice(1).map(Number));
+    assert.equal(e.length, 2, id + ": two pill eyes");
+    const k = e[0][1] / 39; assert(Math.abs(e[0][2] / k - 85) < 0.5 && Math.abs((e[1][0] - e[0][0]) / k - 486) < 2, id + ": eyes scaled uniformly from the master");
+    assert(/<path d="M[^"]+Z"[^>]*fill="var\(--ic-accent/.test(svg), id + ": filled tapered smile");
+  }
+}
 // rendered screens: no pictographs in visible text or markup
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });

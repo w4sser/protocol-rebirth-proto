@@ -36,6 +36,10 @@ function boot(save){
   c.A.go("worldmap"); html = c.w.document.body.innerHTML;
   assert(/class="worldmap"/.test(html) && /assets\/map\/world\.webp/.test(html) && /class="wm-stage"/.test(html), "map screen with the owner art in a 3:2 stage");
   assert(/wm-route next" data-route="archipelago-town"/.test(html) && /wm-route lit" data-route="bunker-archipelago"/.test(html), "routes: lit to unlocked, pulsing next goal");
+  // v1.52 AD: routes via light + landmarks: lit beacons for open areas, amber beacon at the next goal, no dashed glow
+  assert(/wm-beacon lit[^"]*" data-beacon="Lighthouse rock"/.test(html) && /wm-beacon next dest" data-beacon="Town depot"/.test(html) && /wm-beacon next" data-beacon="Coast road"/.test(html), "beacons: cyan when open, amber toward the next goal");
+  const css = fs.readFileSync(path + "/index.html", "utf8");
+  assert(!/\.wm-route[^{]*\{[^}]*stroke-dasharray/.test(css) && !/wm-march/.test(css.match(/\.wm-route\.next\{[^}]*\}/)[0]), "no glowing dashed / marching route lines");
   assert(/data-label="town"/.test(html) && /wm-label locked/.test(html), "labels per area; locked label shows requirements");
   assert(/wm-region locked" data-area="town"/.test(html) && /#lock"/.test(html) && /Rebirth Core L3/.test(html) && /Town Survey/.test(html), "town fogged with lock + requirement");
   assert(/wm-back/.test(html), "back button");

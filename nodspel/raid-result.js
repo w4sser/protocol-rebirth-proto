@@ -1,8 +1,8 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.51.0';
-import {RULES} from './levels.js?v=1.51.0';
-import {bagCap} from './round.js?v=1.51.0';
+import {bagItems} from './raid.js?v=1.52.0';
+import {RULES} from './levels.js?v=1.52.0';
+import {bagCap} from './round.js?v=1.52.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;

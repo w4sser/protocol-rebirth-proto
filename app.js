@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.51.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.52.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1369,6 +1369,12 @@ SCREENS.worldmap = function(){
     const st = areaUnlocked(r.to) ? "lit" : areaUnlocked(r.from) ? "next" : "dim";
     return '<polyline class="wm-route ' + st + '" data-route="' + r.from + '-' + r.to + '" points="' + r.points.map(p => p[0] + ',' + (p[1] / WMAP.aspect)).join(' ') + '"/>';
   }).join('');
+  // Landmark beacons: lit (cyan) once their area is open, the next locked area's beacons amber, rest dark.
+  const nextArea = (WMAP.areas.find(a => !areaUnlocked(a.id) && a.requires && areaUnlocked(a.requires.from)) || {}).id;
+  const beacons = (WMAP.beacons || []).map(b => {
+    const st = areaUnlocked(b.area) ? "lit" : b.area === nextArea ? "next" : "dark";
+    return '<i class="wm-beacon ' + st + (b.dest ? ' dest' : '') + '" data-beacon="' + esc(b.name) + '" style="left:' + b.x + '%;top:' + b.y + '%" title="' + esc(b.name) + '"></i>';
+  }).join('');
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
@@ -1381,7 +1387,7 @@ SCREENS.worldmap = function(){
   const a = AREA_DEFS[sel];
   $app().innerHTML = '<div class="worldmap" style="background-color:' + WMAP.bg + '">' +
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
-      '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + areas + '</div>' +
+      '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
     '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
     '<div class="wm-info"><b>' + IC(a.iconId) + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
