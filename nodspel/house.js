@@ -45,13 +45,14 @@ export function houseSolids(level){const h=level.house;if(!h)return [];return h.
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 // Touch-friendly interactions (no key): stand close to the door to open it, stand close to a
 // container inside to search it. Returns {changed, loot:[new lootBoxes]}.
-export function stepHouse(level,pos,now){const h=level.house,out={changed:false,loot:[]};if(!h)return out;
+// searchMult (Search skill, ?stats=srch:) scales HOUSE.searchMs; clamped 0.6..1.
+export function stepHouse(level,pos,now,searchMult=1){const sm=Math.min(1,Math.max(.6,Number(searchMult)||1));const h=level.house,out={changed:false,loot:[]};if(!h)return out;
   const d=h.door;
   if(!d.open){if(dist(pos,d)<=HOUSE.doorReach){d.startedAt??=now;d.progress=Math.min(1,(now-d.startedAt)/HOUSE.doorMs);if(d.progress>=1){d.open=true;d.openedAt=now;out.changed=true;}}else{d.startedAt=null;d.progress=0;}}
   const inside=inHouse(h,pos,.05);let best=null;
   for(const c of h.containers){if(c.searched)continue;const k=dist(pos,c);if(inside&&k<=HOUSE.searchReach&&(!best||k<dist(pos,best)))best=c;}
   for(const c of h.containers)if(c!==best&&!c.searched){c.startedAt=null;c.progress=0;}
-  if(best){best.startedAt??=now;best.progress=Math.min(1,(now-best.startedAt)/HOUSE.searchMs);
+  if(best){best.startedAt??=now;best.progress=Math.min(1,(now-best.startedAt)/(HOUSE.searchMs*sm));
     if(best.progress>=1){best.searched=true;best.searchedAt=now;out.changed=true;
       const box={id:`${best.id}-loot`,x:best.x,z:best.z,item:best.item,collected:false,house:true};level.lootBoxes.push(box);out.loot.push(box);}}
   h.searching=best?.id??null;return out;}

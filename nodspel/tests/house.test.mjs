@@ -79,3 +79,10 @@ test('roof fades out while the player is inside, camera-side walls cut away, all
     assert.ok(H.doorClosed.visible&&!H.doorOpen.visible);L.house.door.open=true;H.update(L.house.outside,1/30);assert.ok(!H.doorClosed.visible&&H.doorOpen.visible);
     w.dispose();assert.equal(scene.children.length,0);}
   assert.equal(freed,0);});
+
+test('Search skill: searchMult speeds container search, clamped to −40%',()=>{
+  const L=generateLevel(2,'e5c2d277-meta','town'),h=L.house;h.door.open=true;
+  const c=h.containers[0];stepHouse(L,c,0,.6);const r=stepHouse(L,c,HOUSE.searchMs*.6,.6);assert.ok(c.searched&&r.loot.length===1,'done at 60% of base time');
+  const L2=generateLevel(2,'e5c2d277-meta','town'),h2=L2.house;h2.door.open=true;
+  const c2=h2.containers[0];stepHouse(L2,c2,0,.1);stepHouse(L2,c2,HOUSE.searchMs*.5,.1);assert.ok(!c2.searched&&Math.abs(c2.progress-.5/.6)<.01,'clamped to 0.6');
+});

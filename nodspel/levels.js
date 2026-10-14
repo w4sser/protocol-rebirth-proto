@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.41.1';
+import {townizeLevel} from './town-layout.js?v=1.42.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
@@ -35,8 +35,8 @@ export const RULES=Object.freeze({
     {mix:{grunt:.4,rusher:.35,sentry:.25},hazards:2,hazardDps:12,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
   // Player stats. Meta computes them (skills + gear, data/progression.js) and passes ?stats=; core clamps again.
   // Without launch params (standalone) the new-player base applies: slower than before (3.6 vs 4.5 m/s).
-  playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:4000},
-    clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[2000,6000]},
+  playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:4000,searchMult:1},
+    clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[2000,6000],searchMult:[.6,1]},
     gear:['scavenger_vest','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach']},
   // Weapon launch params (?w=) are clamped to these ranges; missing keys fall back to RULES.weapon (Basic).
   weaponIds:['basic_carbine','smg_vector','rifle_marksman','shotgun_breach'],

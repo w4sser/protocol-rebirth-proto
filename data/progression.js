@@ -3,7 +3,8 @@ window.DATA = window.DATA || {};
 window.DATA.progression = {
   raidPrepUnlockModule:"fabricator",
   // Node Raid bag size (v1.40.5): base + module upgrades + armour pockets, capped (core clamps to 4..10 again).
-  raidBag:{ base:4, max:10, modules:{ storage:2 } },
+  // Spread over progression (owner 14 Oct): early game ~4–5 slots. Per Storage level, armour pockets, operator milestones.
+  raidBag:{ base:4, max:10, moduleLevels:{ storage:[1, 1, 1] }, operatorLevels:{ 8:1, 15:1 } },
   // default gear (was hardcoded in app.js, PRB-43): free infinite weapon, auto-equipped armor, Node Raid kit consumable
   freeWeapon:"basic_carbine",
   defaultLoadout:{ armor:"scavenger_vest", c1:"medkit" },
@@ -81,8 +82,8 @@ window.DATA.progression.survey = [
 // Player stats passed to Node Raid (core). See docs/meta-core-integration.md §10.
 // final = base + skill bonuses (level × perLevel) + gear modifiers, then clamped to `clamp` (core clamps again).
 window.DATA.progression.playerStats = {
-  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000 },
-  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000] },
+  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000, searchMult:1 },
+  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000], searchMult:[0.6,1] },
   // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
   // Three automatic skills (v1.41): they rise by playing, never need menus. Accessible: small, always-positive bonuses.
   skills:{
@@ -90,6 +91,8 @@ window.DATA.progression.playerStats = {
       xp:{ perMetre:0.1, perDash:1 }, desc:"Move and dash to run faster and dash more often." },
     stealth:{ name:"Stealth", icon:"👁", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
       xp:{ perHoldNode:5 }, desc:"Charge nodes up close; enemies notice you later." },
+    search:{ name:"Search", icon:"🔍", xpPerLevel:10, maxLevel:10, perLevel:{ searchMult:-0.04 },
+      xp:{ perSearch:4 }, desc:"Search wardrobes, crates and cabinets to search faster (max −40%)." },
     crafting:{ name:"Crafting", icon:"🔧", xpPerLevel:15, maxLevel:10, perLevel:{}, craftDiscountPerLevel:0.03,
       xp:{ perCraft:6, perItemExtracted:1 }, desc:"Craft and bring loot home to pay less Scrap at the Fabricator." }
   },
