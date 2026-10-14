@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.48.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.49.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1343,7 +1343,7 @@ function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
 function areaReqs(id){
   const q = AREA_DEFS[id].requires; if(!q) return [];
   const it = ITEMS[q.scoutItem], from = AREA_DEFS[q.from];
-  return [["Rebirth Core L" + q.core, areaCoreOk(id)], ["Scout: extract with " + (it ? it.name : q.scoutItem) + (from ? " (" + from.name + " zone " + from.zones.length + ")" : ""), areaScouted(id)]];
+  return [["Rebirth Core L" + q.core, areaCoreOk(id)], ["Extract " + (it ? it.name : q.scoutItem) + (from ? " · " + from.name + " Z" + from.zones.length : ""), areaScouted(id)]];
 }
 // Called from core ingest: scouting items + zone progress for the area that was raided.
 function applyAreaProgress(area, levelsCleared, extractedIds){
@@ -1371,7 +1371,7 @@ SCREENS.worldmap = function(){
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
     return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">🔒</span>') + '</button>' +
-      '<div class="wm-label' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
+      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
       '<span class="wm-name">' + a.icon + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') + '</div>';
