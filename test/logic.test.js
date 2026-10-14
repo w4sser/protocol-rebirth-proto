@@ -239,15 +239,16 @@ console.log("ALL LOGIC TESTS PASSED");
   const st = app.freshState(); app._setState(st);
   assert.deepEqual(app.playerStats([]), P.base, "new player = base stats");
   const vest = app.playerStats(["scavenger_vest"]);
-  assert.equal(vest.maxHealth, P.base.maxHealth + 15);
-  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:105,dcd:4000,srch:1");
+  assert.equal(vest.maxHealth, P.base.maxHealth); assert.equal(vest.shield, 25, "vest gives shield, not HP");
+  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:100,dcd:4000,srch:1,shd:10");
   const url = app.coreLaunchUrl("meta-x", "s", "../", { stats:app.playerStats([]), gear:["scout_rig"] });
-  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000%2Csrch%3A1&gear=scout_rig"), url);
+  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000%2Csrch%3A1%2Cshd%3A0&gear=scout_rig"), url);
   // skills from usage
   const xp = app.skillXpFrom({ skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } });
-  assert.deepEqual(xp, { mobility:50, stealth:10, search:0, crafting:0 });
+  assert.deepEqual(xp, { mobility:50, stealth:10, search:0, vitality:20, crafting:0 });
+  assert.equal(app.skillXpFrom({ outcome:"extract", skills:{ healed:25 } }).vitality, 25 * P.skills.vitality.xp.perHeal + P.skills.vitality.xp.perSurvive, "heal + survive xp");
   assert.equal(app.skillXpFrom({ skills:{ searches:3 } }).search, 3 * P.skills.search.xp.perSearch, "search xp from containers");
-  assert.deepEqual(Object.keys(P.skills), ["mobility","stealth","search","crafting"], "four automatic skills");
+  assert.deepEqual(Object.keys(P.skills), ["mobility","stealth","vitality","search","crafting"], "five automatic skills");
   assert.equal(app.skillXpFrom({ outcome:"extract", extracted:["a","b","c"], skills:{} }).crafting, 3, "crafting xp from extracted items");
   assert.equal(app.skillXpFrom({ outcome:"death", extracted:["a"], skills:{} }).crafting, 0);
   assert.equal(app.skillLevel("mobility", 19), 0); assert.equal(app.skillLevel("mobility", 20), 1);
@@ -260,13 +261,13 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.deepEqual(d.gearLost, ["scout_rig"], "timeout loses the gear"); assert.equal(st.stash.scout_rig, 0);
   assert.equal(st.coreLaunch, null);
   assert.equal(app.skillLevel("mobility"), 1, "mobility rose by use even on a loss");
-  assert.deepEqual(d.skillUps.sort(), ["Mobility L1"]);
+  assert.deepEqual(d.skillUps.sort(), ["Mobility L1", "Vitality L1"]);
   st.coreLaunch = { raidId:"g-ok", gear:["scout_rig"] };
   const e = app.ingestRaidResult({ ...base, raidId:"g-ok", outcome:"extract", skills:{} });
   assert.deepEqual(e.gearLost, []); assert.equal(st.stash.scout_rig, 1, "extract brings the gear home");
   const lvl = app.playerStats([]);
   assert.equal(lvl.speed, Math.round((P.base.speed + P.skills.mobility.perLevel.speed) * 1000) / 1000, "skill level raises speed");
-  assert.equal(lvl.maxHealth, P.base.maxHealth, "health comes from gear only");
+  assert.equal(lvl.maxHealth, P.base.maxHealth + P.skills.vitality.perLevel.maxHealth, "vitality raises max HP");
   // operator level: +2%/level above 1, capped at +20%
   assert.equal(app.operatorSpeedBonus(1), 0); assert.equal(app.operatorSpeedBonus(4), 0.06);
   assert.equal(app.operatorSpeedBonus(11), 0.2); assert.equal(app.operatorSpeedBonus(30), 0.2, "capped");
@@ -283,7 +284,7 @@ console.log("ALL LOGIC TESTS PASSED");
   const k = app.ingestRaidResult({ ...base, raidId:"g-kills", outcome:"extract", weapon:"basic_carbine", enemiesDefeated:T[0], skills:{} });
   assert.equal(st.mastery.basic_carbine, T[0]); assert(/★/.test(k.starUp), "first star announced");
   // save migration athletics → mobility
-  assert.deepEqual(app.migrateSkills({ skills:{ athletics:30, vitality:9, stealth:2 } }).skills, { mobility:30, stealth:2 });
+  assert.deepEqual(app.migrateSkills({ skills:{ athletics:30, vitality:9, stealth:2 } }).skills, { mobility:30, vitality:9, stealth:2 }, "vitality xp kept");
   assert(/Operator/.test(app.statsCardHtml(["scout_rig"])) && /Gear at risk: Scout Rig/.test(app.statsCardHtml(["scout_rig"])));
   // Raid bag capacity: base 4, Storage +2, armour pockets; passed to core as &bag=
   st.modules.storage = 0;

@@ -82,8 +82,8 @@ window.DATA.progression.survey = [
 // Player stats passed to Node Raid (core). See docs/meta-core-integration.md §10.
 // final = base + skill bonuses (level × perLevel) + gear modifiers, then clamped to `clamp` (core clamps again).
 window.DATA.progression.playerStats = {
-  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000, searchMult:1 },
-  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000], searchMult:[0.6,1] },
+  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000, searchMult:1, shield:0 },
+  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000], searchMult:[0.6,1], shield:[0,100] },
   // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
   // Three automatic skills (v1.41): they rise by playing, never need menus. Accessible: small, always-positive bonuses.
   skills:{
@@ -91,6 +91,8 @@ window.DATA.progression.playerStats = {
       xp:{ perMetre:0.1, perDash:1 }, desc:"Move and dash to run faster and dash more often." },
     stealth:{ name:"Stealth", icon:"👁", xpPerLevel:15, maxLevel:10, perLevel:{ stealth:0.03 },
       xp:{ perHoldNode:5 }, desc:"Charge nodes up close; enemies notice you later." },
+    vitality:{ name:"Vitality", icon:"❤", xpPerLevel:20, maxLevel:10, perLevel:{ maxHealth:3 },
+      xp:{ perDamage:0.1, perHeal:0.2, perSurvive:5 }, desc:"Take hits, heal and make it home to raise max HP (max +30)." },
     search:{ name:"Search", icon:"🔍", xpPerLevel:10, maxLevel:10, perLevel:{ searchMult:-0.04 },
       xp:{ perSearch:4 }, desc:"Search wardrobes, crates and cabinets to search faster (max −40%)." },
     crafting:{ name:"Crafting", icon:"🔧", xpPerLevel:15, maxLevel:10, perLevel:{}, craftDiscountPerLevel:0.03,

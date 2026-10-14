@@ -11,8 +11,8 @@ const op = w.document.querySelector("#currencies .oplvl");
 assert(op && op.tagName === "BUTTON", "operator level pill opens the panel");
 assert(/A.go\('operator'\)/.test(op.getAttribute("onclick"))); w.A.go("operator");
 const t = w.document.getElementById("app").textContent;
-for(const s of ["OPERATOR", "Mobility L0", "Stealth L0", "Crafting L0", "Search L0", "Weapon mastery", "Basic Carbine", "+0% speed", "0/10 kills"]) assert(t.includes(s), "panel shows " + s + " — got: " + t.slice(0, 400));
-assert.equal(w.document.querySelectorAll("#app .skillrow").length, 4);
+for(const s of ["OPERATOR", "Mobility L0", "Stealth L0", "Crafting L0", "Search L0", "Vitality L0", "Weapon mastery", "Basic Carbine", "+0% speed", "0/10 kills"]) assert(t.includes(s), "panel shows " + s + " — got: " + t.slice(0, 400));
+assert.equal(w.document.querySelectorAll("#app .skillrow").length, 5);
 assert(w.document.getElementById("back") || true);
 // Build cues (owner 14 Oct): starter stash affords Rebirth Core L1
 assert(w.document.querySelector("#tabs .nav-base .badge.build"), "BASE tab counts buildable upgrades");
