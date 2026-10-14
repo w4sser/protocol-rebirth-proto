@@ -1,6 +1,6 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "1.47.0",
+  "version": "1.48.0",
   "private": true,
   "scripts": {
     "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup",

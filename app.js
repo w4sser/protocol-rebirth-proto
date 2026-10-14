@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.47.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.48.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1361,19 +1361,26 @@ function areaPickerHtml(){
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
-  const sel = raidArea();
-  const regions = WMAP.areas.map(a => {
-    const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region;
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + R.x + '%;top:' + R.y + '%;width:' + R.w + '%;height:' + R.h + '%"' +
-      (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"') + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' +
+  const sel = raidArea(), pc = v => v + '%';
+  // Routes (dashed in the art): lit = destination unlocked; next = source open, destination still locked.
+  const routes = (WMAP.routes || []).map(r => {
+    const st = areaUnlocked(r.to) ? "lit" : areaUnlocked(r.from) ? "next" : "dim";
+    return '<polyline class="wm-route ' + st + '" data-route="' + r.from + '-' + r.to + '" points="' + r.points.map(p => p[0] + ',' + (p[1] / WMAP.aspect)).join(' ') + '"/>';
+  }).join('');
+  const areas = WMAP.areas.map(a => {
+    const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
+    const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">🔒</span>') + '</button>' +
+      '<div class="wm-label' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
       '<span class="wm-name">' + a.icon + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
-      (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' +
-              (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
-            : '<span class="wm-lock" aria-hidden="true">🔒</span><span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') +
-      '</button>';
+      (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
+            : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') + '</div>';
   }).join('');
   const a = AREA_DEFS[sel];
-  $app().innerHTML = '<div class="worldmap" style="background-image:url(\'' + WMAP.background + '\')">' + '<div class="wm-fog"></div>' + regions +
+  $app().innerHTML = '<div class="worldmap" style="background-color:' + WMAP.bg + '">' +
+    '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
+      '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + areas + '</div>' +
+    '<div class="wm-fog"></div>' +
     '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">‹ BACK</button><h1>WORLD MAP</h1></div>' +
     '<div class="wm-info"><b>' + a.icon + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
 };

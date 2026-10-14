@@ -307,7 +307,7 @@ RaidResult har nya fält: `weapon` (id) och `kitLeft: {medkit}`.
 
 **Världskartan:**
 - Ersätter Bunker/Town-växlaren i lobbyn.
-- Bakgrunden är `assets/map/world_placeholder.svg`. Byt fil eller ändra `background` för att byta bild.
+- Bakgrunden är `assets/map/world.webp` (ägarens art, PRB-58, v1.48.0). Den ligger i en 3:2-yta som skalas med "contain", så att alla områden syns i landskapsläge. Regioner, etiketter och `routes` anges i procent av bilden. De streckade rutterna lyser när målet är upplåst och pulserar gult när de visar nästa mål.
 - Regionerna anges i procent av bilden. Låsta regioner visas dimmiga med 🔒 och kravtext.
 
 ### Svårighet (v1.44.0)
