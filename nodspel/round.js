@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.46.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.46.0';
-import {emptyBag,bagItems} from './raid.js?v=1.46.0';
-import {traceTargets} from './physics.mjs?v=1.46.0';
+import {generateLevel,RULES} from './levels.js?v=1.47.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.47.0';
+import {emptyBag,bagItems} from './raid.js?v=1.47.0';
+import {traceTargets} from './physics.mjs?v=1.47.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -45,6 +45,9 @@ export function collectLoot(round,position,now,weapon){
   }
   return changed;
 }
+// Loot label action: health kits read SLOT FULL (dimmed) while the kit slot is at its max (v1.47).
+export function kitSlotFull(round){return (round?.kit?.medkit??0)>=RULES.kitMax.medkit;}
+export function lootAction(round,item){return item==='medkit'&&kitSlotFull(round)?{text:'SLOT FULL',full:true}:{text:'COLLECT',full:false};}
 export function dropItem(round,item,position,now){
   tickRound(round,now);if(round.over||!round.bag[item])return null;
   round.bag[item]--;
