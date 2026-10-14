@@ -1,0 +1,19 @@
+/* Shared popup component (v1.45.0): one look for every boxed popup in base/meta and Node Raid.
+   Markup: <div class="pop-card"><button class="pop-x" data-close aria-label="Close">✕</button><h1|.pop-head>…</div>
+   Close X sits TOP-LEFT (44×44 tap target, inside the card so inside the safe area). Tap on the backdrop closes. */
+.pop-card{position:relative;animation:pop-in .18s ease-out both}
+.pop-x,button.pop-x.pop-x{position:absolute;top:8px;left:8px;z-index:6;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;margin:0;
+  display:grid;place-items:center;border-radius:12px;border:2px solid #1b1100;background:#e8c547;color:#1b1100;
+  font:800 20px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 0 #1b1100;-webkit-tap-highlight-color:transparent}
+.pop-x:active{transform:translateY(1px) scale(.96)}
+.pop-x:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* shared header: room for the X on the left, same height/weight everywhere */
+.pop-card>.pop-x+h1,.pop-card>.pop-x+h2,.pop-card>.pop-x+.pop-head,.pop-card>.pop-x+.bpop-head,.pop-card>.pop-x+header,.pop-card .pop-head{
+  box-sizing:border-box;min-height:44px;padding-left:56px;padding-right:8px;margin-top:0;display:flex;align-items:center;gap:8px;
+  font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.pop-card>.pop-x+h1,.pop-card>.pop-x+h2{justify-content:center;padding-right:56px}
+.pop-card{padding-top:8px}
+@keyframes pop-in{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pop-card{animation:none}}
+.pop-backdrop{position:fixed;inset:0;background:rgba(4,7,10,.55);z-index:19;animation:pop-fade .15s ease-out both}
+@keyframes pop-fade{from{opacity:0}to{opacity:1}}
