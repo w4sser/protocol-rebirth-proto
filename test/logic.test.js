@@ -282,7 +282,7 @@ console.log("ALL LOGIC TESTS PASSED");
   assert(M.rld < W.rld && M.int < W.int && M.dmg === W.dmg, "3 stars: faster reload/fire, same damage");
   st.mastery = {};
   const k = app.ingestRaidResult({ ...base, raidId:"g-kills", outcome:"extract", weapon:"basic_carbine", enemiesDefeated:T[0], skills:{} });
-  assert.equal(st.mastery.basic_carbine, T[0]); assert(/★/.test(k.starUp), "first star announced");
+  assert.equal(st.mastery.basic_carbine, T[0]); assert(/1\/3 stars/.test(k.starUp), "first star announced");
   // save migration athletics → mobility
   assert.deepEqual(app.migrateSkills({ skills:{ athletics:30, vitality:9, stealth:2 } }).skills, { mobility:30, vitality:9, stealth:2 }, "vitality xp kept");
   assert(/Operator/.test(app.statsCardHtml(["scout_rig"])) && /Gear at risk: Scout Rig/.test(app.statsCardHtml(["scout_rig"])));

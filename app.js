@@ -1,3 +1,5 @@
+// v1.50.0 bespoke icons: IC(name) renders one icon of the SVG set (assets/icons/sprite.svg, tools/mkicons.py). No emoji in UI (test/icons.test.js).
+function IC(n){ return '<svg class="pr-ic" aria-hidden="true" focusable="false"><use href="assets/icons/sprite.svg#' + n + '"/></svg>'; }
 /* Protocol Rebirth — base (meta) layer. Version: APP_VERSION below.
    All economy values live in /data/*.js. This file contains logic + UI only.
    State mutations go through act() so the event log is complete. */
@@ -9,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.49.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.50.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -542,7 +544,7 @@ function applyRaidResult(R){
   const miss = trackedMissingItem();
   if(S.tracked && miss) progress.push("Tracked: " + MODS[S.tracked.module].name + " L" + S.tracked.level + " — need " + (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name);
   else if(S.tracked) progress.push("Tracked upgrade: ALL PARTS FOUND — go build it");
-  if(bondLevel() > bondBefore){ R.bondUp = bondLevel(); progress.push("BIT BOND LEVEL UP → " + bondLevel()); }
+  if(bondLevel() > bondBefore){ R.bondUp = bondLevel(); progress.push("BIT BOND LEVEL UP: L" + bondLevel()); }
   R.progress = progress;
   // beat advance on extraction during raid beats
   const b = curBeat();
@@ -569,7 +571,7 @@ function closeAllPopups(){
 }
 // Shared popup component (ui/popup.css): every boxed popup gets the top-left close X, the shared header,
 // backdrop tap-to-close and the pop-in animation. opts.noClose only for scripted FTUE/timed sequences.
-const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">✕</button>';
+const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">' + IC("close") + '</button>';
 function overlay(html, onClose, cls, opts){
   opts = opts || {};
   const o = document.createElement("div");
@@ -620,7 +622,7 @@ function bootSequence(next, done){
     let dust = '<div class="dustwrap">';
     for(let i=0;i<10;i++) dust += '<i style="left:' + (5+Math.random()*90) + '%;animation-delay:' + (Math.random()*0.9) + 's"></i>';
     dust += '</div>';
-    el.innerHTML += '<div class="bootflash">█ POWER RESTORED █</div>' + dust +
+    el.innerHTML += '<div class="bootflash">' + IC("power") + ' POWER RESTORED</div>' + dust +
       '<p style="margin:12px 0;font-size:13px;color:var(--txt)">' + esc(next.unlockText) + '</p>' +
       '<p class="small" style="margin-bottom:8px">BIT: lights. i missed lights.</p>' +
       '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
@@ -656,10 +658,10 @@ function revealCurrency(id){
     renderCurrencies();
   }
 }
-const CUR_ICONS = { scrap:"⚙", dataCores:"◆", salvage:"♻", signals:"📡", fuel:"⛽" };
-const ROOM_ICONS = { rebirth_core:"⚛", fabricator:"🛠", storage:"🔐", bit_bay:"🤖", living_quarters:"🛏" };
-const ITEM_ICONS = { basic_carbine:"🔫", smg_vector:"🔫", rifle_marksman:"🎯", shotgun_breach:"💥", cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
-function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? "🦺" : "▣"); }
+const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel") };
+const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
+const ITEM_ICONS = { basic_carbine:IC("item-carbine"), smg_vector:IC("item-smg"), rifle_marksman:IC("item-rifle"), shotgun_breach:IC("item-shotgun"), cable:IC("item-cable"), fuse:IC("item-fuse"), scrap_alloy:IC("item-alloy"), power_cell:IC("item-powercell"), medkit:IC("item-medkit"), polymer_plate:IC("item-plate"), servo:IC("item-servo"), optical_sensor:IC("item-sensor"), circuit_board:IC("item-circuit"), salvage_crate:IC("item-crate"), data_core:IC("cur-datacore"), hydraulic_component:IC("item-hydraulic"), memory_module:IC("item-memory"), power_relay:IC("item-relay"), ai_fragment:IC("item-ai"), bio_sample:IC("item-bio"), scavenger_vest:IC("item-vest"), scout_rig:IC("item-vest"), archipelago_chart:IC("item-chart"), town_survey:IC("item-survey") };
+function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? IC("item-vest") : IC("item-crate")); }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 function renderCurrencies(){
@@ -688,15 +690,15 @@ function navBadge(id){
   return null;
 }
 function renderTabs(){
-  const items = [["prep","⚔","RAID"],["stash","🎒","STASH"],["vendor","🛒","SHOP"],["bit","🤖","BIT"]];
-  items.unshift(["base","🏠","BASE"]);
+  const items = [["prep",IC("nav-raid"),"RAID"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"]];
+  items.unshift(["base",IC("nav-base"),"BASE"]);
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
     const active = session.screen === id;
     if(active) return '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
     return '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
-      '<span class="ni" aria-hidden="true">' + (ok ? icon : '🔒') + '</span>' + label +
+      '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
       (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
   }).join("");
 }
@@ -730,9 +732,9 @@ const SCREENS = {};
 SCREENS.combatDemo = function(){
   const c = D.combat;
   $app().innerHTML = '<div class="combat-shell">' +
-    '<header class="combat-head"><button class="combat-back" onclick="A.endCombatDemo()">‹ BASE</button>' +
+    '<header class="combat-head"><button class="combat-back" onclick="A.endCombatDemo()">' + IC("nav-back") + ' BASE</button>' +
       '<div><b>LIVE FIRE TEST</b><small>INDUSTRIAL ZONE · STAGE 2</small></div><div class="compass">N<br>0°</div></header>' +
-    '<div class="combat-hud"><div class="combat-map"><span class="map-player">▲</span><span class="map-hostiles">● ● ●</span></div>' +
+    '<div class="combat-hud"><div class="combat-map"><span class="map-player">' + IC("player") + '</span><span class="map-hostiles">' + IC("dot") + IC("dot") + IC("dot") + '</span></div>' +
       '<div class="combat-vitals"><div class="vital-label">VITALITY <b id="combat-hp">100 / 100</b></div><div class="vital-track"><i id="combat-hpbar"></i></div>' +
       '<div class="ammo-label"><span>CARBINE</span><b id="combat-ammo">18 / 18</b></div></div>' +
       '<div class="combat-objective"><small>OBJECTIVE</small><b id="combat-objective">Clear hostiles</b>' +
@@ -741,15 +743,15 @@ SCREENS.combatDemo = function(){
       '<div class="arena-vignette"></div><div class="arena-markers"></div>' +
       '<div class="combat-cover cover-one"></div><div class="combat-cover cover-two"></div>' +
       '<div id="combat-pickups"></div><div id="combat-hostiles"></div>' +
-      '<div class="combat-bit" id="combat-bit"><span>☺</span><small>BIT</small></div>' +
-      '<div class="combat-player" id="combat-player"><span>✦</span></div><div id="combat-effects"></div>' +
+      '<div class="combat-bit" id="combat-bit"><span>' + IC("bit-face") + '</span><small>BIT</small></div>' +
+      '<div class="combat-player" id="combat-player"><span>' + IC("sparkle") + '</span></div><div id="combat-effects"></div>' +
       '<div class="combat-feedback" id="combat-feedback">MOVE · FIRE · RECOVER</div></div>' +
     '<div class="combat-controls"><div class="combat-pad" aria-label="Movement controls">' +
-      '<button data-dir="up" aria-label="Move up">▲</button><button data-dir="left" aria-label="Move left">◀</button>' +
-      '<button data-dir="down" aria-label="Move down">▼</button><button data-dir="right" aria-label="Move right">▶</button></div>' +
+      '<button data-dir="up" aria-label="Move up">' + IC("chevron-up") + '</button><button data-dir="left" aria-label="Move left">' + IC("chevron-left") + '</button>' +
+      '<button data-dir="down" aria-label="Move down">' + IC("chevron-down") + '</button><button data-dir="right" aria-label="Move right">' + IC("chevron-right") + '</button></div>' +
       '<div class="combat-actions"><button class="combat-pulse" onclick="A.combatPulse()"><span>BIT</span><b>SCAN PULSE</b></button>' +
       '<button class="combat-fire" id="combat-fire"><b>FIRE</b><small id="combat-fire-label">HOLD TO SHOOT</small></button>' +
-      '<button class="combat-reload" onclick="A.combatReload()">↻ RELOAD</button></div></div>' +
+      '<button class="combat-reload" onclick="A.combatReload()">' + IC("restart") + ' RELOAD</button></div></div>' +
     '<div class="combat-foot"><span>WASD / ARROWS TO MOVE</span><span>SPACE TO FIRE · R TO RELOAD</span></div>' +
     '</div>';
   const gameCfg = c.player, droneCfg = c.drone;
@@ -886,7 +888,7 @@ function nextUpgradeHtml(){
   }
   const pct = Math.round(c.pct*100);
   if(!c.missing.length){
-    return '<div class="nextup"><div class="nu-head">✔ READY TO BUILD</div>' +
+    return '<div class="nextup"><div class="nu-head">' + IC("check") + ' READY TO BUILD</div>' +
       '<b>' + esc(c.m.name) + ' L' + c.next.level + '</b> <span class="small">— ' + esc(c.next.unlockText) + '</span>' +
       '<div class="nubar"><div style="width:100%"></div></div>' +
       '<button class="ghost" onclick="A.goBuild(\'' + c.m.id + '\')">BUILD IT NOW</button></div>';
@@ -896,7 +898,7 @@ function nextUpgradeHtml(){
     '<b>' + esc(c.m.name) + ' L' + c.next.level + '</b>' +
     '<div class="nubar"><div style="width:' + pct + '%"></div></div>' +
     '<div class="small warn">missing: ' + esc(missTxt) + '</div>' +
-    '<button class="primary" onclick="A.oneMoreRaid(\'' + c.m.id + '\',' + c.next.level + ')">ONE MORE RAID ›</button></div>';
+    '<button class="primary" onclick="A.oneMoreRaid(\'' + c.m.id + '\',' + c.next.level + ')">ONE MORE RAID ' + IC("chevron-right") + '</button></div>';
 }
 
 function mapPadding(vw, vh){
@@ -970,21 +972,21 @@ function setupBaseViewer(){
 function goalPillHtml(nextRoom){
   const pill = (cls, icon, head, body, onclick) => (onclick ? '<button type="button" class="goalpill ' + cls + '" onclick="' + onclick + '">' : '<div class="goalpill ' + cls + '">') +
     '<i aria-hidden="true">' + icon + '</i><span><small>' + head + '</small><b>' + esc(body) + '</b></span>' + (onclick ? '</button>' : '</div>');
-  if(curBeat().type === "end") return pill("ready", "🏁", "PROTOTYPE COMPLETE", "View stats", "A.go('end')");
-  if(nextRoom) return pill("ready", "🔓", "NEXT GOAL", "OPEN " + nextRoom.label.toUpperCase(), "A.openRoom('" + nextRoom.id + "')");
+  if(curBeat().type === "end") return pill("ready", IC("flag"), "PROTOTYPE COMPLETE", "View stats", "A.go('end')");
+  if(nextRoom) return pill("ready", IC("unlock"), "NEXT GOAL", "OPEN " + nextRoom.label.toUpperCase(), "A.openRoom('" + nextRoom.id + "')");
   if(coreLevel() >= 1){
     const miss = trackedMissingItem();
     if(!ftueOver() && miss && S.tracked){
-      return pill("need", "🎯", "NEXT UPGRADE · " + esc(MODS[S.tracked.module].name), (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name, "A.go('prep')");
+      return pill("need", IC("target"), "NEXT UPGRADE · " + esc(MODS[S.tracked.module].name), (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name, "A.go('prep')");
     }
-    if(!ftueOver() && S.tracked && MODS[S.tracked.module]) return pill("ready", "⚒", "ALL PARTS FOUND", "BUILD " + MODS[S.tracked.module].name.toUpperCase(), "A.openBuilding('" + S.tracked.module + "')");
+    if(!ftueOver() && S.tracked && MODS[S.tracked.module]) return pill("ready", IC("build"), "ALL PARTS FOUND", "BUILD " + MODS[S.tracked.module].name.toUpperCase(), "A.openBuilding('" + S.tracked.module + "')");
     const ready = ftueOver() ? buildableCount() : 0;
-    if(ready > 0) return pill("ready", "⚒", ready + " UPGRADE" + (ready > 1 ? "S" : "") + " READY", "Tap a ⚒ room", null);
+    if(ready > 0) return pill("ready", IC("build"), ready + " UPGRADE" + (ready > 1 ? "S" : "") + " READY", "Tap a glowing room", null);
   }
-  return pill("", "🎯", "CURRENT GOAL", curBeat().goalText || "", null);
+  return pill("", IC("target"), "CURRENT GOAL", curBeat().goalText || "", null);
 }
 function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
-  if(badge && badge[1] === "⚒") cls += " buildable";   // glow + bounce on rooms that can be built now
+  if(badge && badge[1] === IC("build")) cls += " buildable";   // glow + bounce on rooms that can be built now
   return '<button type="button" class="mapspot plate ' + cls + '" style="' + style + '" ' + attrs + '>' +
     '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">' + level + '</em>' : '') + '</span>' +
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
@@ -992,7 +994,7 @@ function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
 function moduleBadge(modId){
   const next = nextLevelDef(modId);
   if(!next || next.level > moduleCap(modId)) return null;
-  if(canAfford(next.cost)) return ["up","⚒"];
+  if(canAfford(next.cost)) return ["up",IC("build")];
   if(S.tracked && S.tracked.module === modId){
     const parts = costParts(next.cost);
     return ["need", parts.filter(p => p.have >= p.need).length + "/" + parts.length];
@@ -1022,13 +1024,13 @@ SCREENS.base = function(){
     const ready = !shownOpen && roomRequirementMet(room);
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
-    const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up","✓"] : null;
-    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">✦ ' + esc(selectedStyle.name) + '</span>' : '') : ready ? '✓ ' + esc(room.requirement.text) : '';
+    const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
+    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
     html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
-      shownOpen ? (ROOM_ICONS[room.id] || "▣") : (ready ? "🔓" : "🔒"), room.label, shownOpen ? lvl : null, badge, sub);
+      shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
-  html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">◎</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
+  html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
     '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + goalPillHtml(nextRoom) + '</div>';
   session.plateStage = stage;
   session.wake = false;
@@ -1038,7 +1040,7 @@ SCREENS.base = function(){
 
 // BIT hub: bond, expedition and daily contracts live here instead of crowding the map.
 SCREENS.bit = function(){
-  let html = '<h1>🤖 BIT</h1>';
+  let html = '<h1>' + IC("nav-bit") + ' BIT</h1>';
   if(!bitOnline()){ $app().innerHTML = html + '<div class="card">BIT Bay is offline. Repair it first.</div>'; return; }
   const bl = bondLevel();
   const cap = D.bit.bondLevels.find(b=>b.level===bl);
@@ -1053,7 +1055,7 @@ SCREENS.bit = function(){
     } else {
       const ec = D.retention.expedition.costScrap;
       html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
-        '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>⚙ ' + ec + '</button></div>' +
+        '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + IC("cur-scrap") + ' ' + ec + '</button></div>' +
         '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
     }
   }
@@ -1064,7 +1066,7 @@ SCREENS.bit = function(){
     for(const c of D.retention.contracts.daily){
       const st = S.contracts[c.id];
       const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
-      html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? "✔ " : "") + esc(c.txt) + '</span>' +
+      html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? IC("check") + " " : "") + esc(c.txt) + '</span>' +
         (st === "done"
           ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
           : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
@@ -1079,7 +1081,7 @@ SCREENS.module = function(modId){
   const next = nextLevelDef(modId);
   const visible = moduleVisible(modId);
   let html = ''+
-    '<h1>ⓘ ' + esc(m.name) + '</h1><div class="sub">Level ' + lvl + ' · ' + esc(m.blurb) + '</div>';
+    '<h1>' + IC("info") + ' ' + esc(m.name) + '</h1><div class="sub">Level ' + lvl + ' · ' + esc(m.blurb) + '</div>';
   if(!visible){
     html += '<div class="card"><span class="small">This section has no power. Restore the Rebirth Core first.</span></div>';
   } else if(!next){
@@ -1096,7 +1098,7 @@ SCREENS.module = function(modId){
     if(next.preview){
       html += '<div class="card"><div class="nu-head" style="color:var(--danger)">CURRENT STATE</div><span class="small">' + esc(next.preview.before) + '</span></div>';
       html += '<div class="card"><div class="nu-head">AFTER ' + (lvl ? "UPGRADE" : "REPAIR") + '</div>' +
-        next.preview.after.map(a => '<div class="small ok">▸ ' + esc(a) + '</div>').join("") + '</div>';
+        next.preview.after.map(a => '<div class="small ok">' + IC("chevron-right") + ' ' + esc(a) + '</div>').join("") + '</div>';
     } else {
       html += '<div class="card"><b>Unlocks:</b> <span class="small">' + esc(next.unlockText) + '</span></div>';
     }
@@ -1110,8 +1112,8 @@ SCREENS.module = function(modId){
       html += '<div class="card warn small">Locked — raise the Rebirth Core level first.</div>';
     } else {
       // PRB-45: pinned action bar so BUILD is reachable at 844×390 without scrolling
-      html += '<div class="actionbar"><button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? "◉ Tracking (tap to untrack)" : "○ Track this upgrade") + '</button>';
-      html += '<button class="primary' + (canAfford(next.cost) ? ' build-ready' : '') + '" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">' + (canAfford(next.cost) ? '⚒ BUILD' : 'BUILD') + '</button></div>';
+      html += '<div class="actionbar"><button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? IC("track-on") + " Tracking (tap to untrack)" : IC("track-off") + " Track this upgrade") + '</button>';
+      html += '<button class="primary' + (canAfford(next.cost) ? ' build-ready' : '') + '" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">' + (canAfford(next.cost) ? IC("build") + ' BUILD' : 'BUILD') + '</button></div>';
     }
   }
   // Curated self-expression: cosmetic look for this room (unlocks once the room is built)
@@ -1135,7 +1137,7 @@ SCREENS.stash = function(){
   const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id));
   for(const id of D.items.filter(i => i.free).map(i => i.id))
     html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) +
-      '<span class="qty" aria-label="infinite">∞</span></div>';
+      '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
   if(!ids.length) html += '</div><div class="card small">Empty. The surface has what you need.</div>';
   else {
     for(const id of ids){
@@ -1159,7 +1161,7 @@ SCREENS.itemDetail = function(id){
     const next = nextLevelDef(m.id);
     if(next && next.cost.items && next.cost.items[id]) neededFor.push(m.name + " L" + next.level);
   }
-  let html =     '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span> · own ' + (isFree(id) ? '∞' : '×' + have(id)) + '</div>' +
+  let html =     '<h1>' + esc(it.name) + '</h1><div class="sub">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span> · own ' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</div>' +
     '<div class="card small">' + esc(it.desc) + '</div>';
   if(isFree(id)){
     $app().innerHTML = html + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or dropped.</div>';
@@ -1173,7 +1175,7 @@ SCREENS.itemDetail = function(id){
   if((S.modules.fabricator||0) >= 1 && it.rarity === "common")
     html += '<button class="ghost" onclick="A.scrapIt(\'' + id + '\')">Scrap it (+' + Math.floor(it.sellValue*D.scrapJunkRate) + ' Scrap)</button>';
   if((S.modules.storage||0) >= 1)
-    html += '<button class="ghost" onclick="A.setSecure(\'' + id + '\')">' + (S.secureItem===id ? "★ Secure item (tap to clear)" : "Set as secure item") + '</button>';
+    html += '<button class="ghost" onclick="A.setSecure(\'' + id + '\')">' + (S.secureItem===id ? IC("star") + " Secure item (tap to clear)" : "Set as secure item") + '</button>';
   if(retMode() === "full" && ITEMS[id].family === "protocol" && ITEMS[id].protocolTarget){
     html += S.decrypt
       ? '<div class="card small">Decryption in progress — ~' + Math.max(0, Math.ceil((S.decrypt.returnAt - Date.now())/1000)) + 's left.</div>'
@@ -1212,7 +1214,7 @@ SCREENS.prep = function(){
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
-  const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>🗺 Mission</h1></div>' +
+  const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">' + IC("close") + '</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>' + IC("mission") + ' Mission</h1></div>' +
     (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
@@ -1221,9 +1223,9 @@ SCREENS.prep = function(){
       '<p>Search for repair materials, then return to restore the Fabricator.</p>' +
       '<div class="small">' + esc(zoneSel.name) + ' · ' + esc(routeOf(zoneSel,p.routeId).name) + ' · Standard risk</div>' +
       (target ? '<h2>Bring home</h2>' + roomPartsHtml(roomDef(target.id)) : '') + '</div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Route &amp; risk choices</b><br><span class="small">Build the Fabricator to plan your own missions.</span></div>' +
-      '<div class="card locked prep-locked" aria-disabled="true"><b>🔒 Field crafting</b><br><span class="small">The Fabricator turns scrap into raid supplies.</span></div>';
+      '<div class="card locked prep-locked" aria-disabled="true"><b>' + IC("lock") + ' Custom loadout</b><br><span class="small">Build the Fabricator to choose your gear.</span></div>' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>' + IC("lock") + ' Route &amp; risk choices</b><br><span class="small">Build the Fabricator to plan your own missions.</span></div>' +
+      '<div class="card locked prep-locked" aria-disabled="true"><b>' + IC("lock") + ' Field crafting</b><br><span class="small">The Fabricator turns scrap into raid supplies.</span></div>';
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
@@ -1239,7 +1241,7 @@ SCREENS.prep = function(){
       '<button class="ghost" onclick="A.emergencyLoadout()">EMERGENCY LOADOUT — ' + (eCost > 0 ? eCost + ' SCRAP' : 'FREE') + '</button></div>';
   }
 
-  html += '<div class="card prep-benefit"><span class="ok">✓ FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
+  html += '<div class="card prep-benefit"><span class="ok">' + IC("check") + ' FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
   html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
     const can = S.cur.scrap >= craftCost(recipe) && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
@@ -1252,7 +1254,7 @@ SCREENS.prep = function(){
       '<b>' + esc(ITEMS[miss.itemId].name) + '</b> <span class="small">' + miss.have + '/' + miss.need + '</span>' +
       (lead ? '<div class="kv"><span>Best known search</span><span class="trackc">' + esc(lead.zone.name) + ' — ' + esc(lead.route.name) + '</span></div>' +
         '<div class="kv"><span>Chance</span><span class="ok">' + lead.label + '</span></div>' +
-        '<div class="kv"><span>Threat</span><span class="warn">' + "▲".repeat(lead.route.threat) + '</span></div>' : '') +
+        '<div class="kv"><span>Threat</span><span class="warn">' + IC("threat").repeat(lead.route.threat) + '</span></div>' : '') +
       (bitOnline() && !bitAway() && lead ? '<div class="small" style="margin-top:4px">BIT: ' + esc(bitLine("route_reco", { route: lead.route.name, item: ITEMS[miss.itemId].name })) + '</div>' : '') +
       '</div>';
   }
@@ -1262,7 +1264,7 @@ SCREENS.prep = function(){
     const locked = coreLevel() < z.unlockedAtCore;
     html += '<div class="card tap ' + (locked?"locked":"") + (p.zoneId===z.id?" selected":"") + '" ' +
       (locked?"":'onclick="A.prepSet(\'zoneId\',\'' + z.id + '\')"') + '>' +
-      '<div class="row"><b>' + esc(z.name) + '</b><span class="small">threat ' + "▲".repeat(z.threat) + '</span></div>' +
+      '<div class="row"><b>' + esc(z.name) + '</b><span class="small">threat ' + IC("threat").repeat(z.threat) + '</span></div>' +
       '<div class="small">' + esc(z.tagline) + '</div>' +
       '<div>' + (bondLevel() >= 4
         ? [...z.lootTable].sort((a,b)=>b.weight-a.weight).slice(0,3).map(l=>'<span class="pill ok">' + esc(ITEMS[l.itemId].name) + '</span>').join("")
@@ -1277,7 +1279,7 @@ SCREENS.prep = function(){
     const slotsQ = Math.max(1, 4 + (rt.lootSlotMod||0));
     const chip = miss ? '<span class="pill trackc">' + esc(ITEMS[miss.itemId].name) + ': ' + chanceLabel(trackedChanceP(miss.itemId, zoneSel, rt, slotsQ)) + '</span>' : '';
     html += '<div class="card tap ' + (selr?"selected":"") + '" onclick="A.prepSet(\'routeId\',\'' + rt.id + '\')">' +
-      '<div class="row"><b>' + esc(rt.name) + '</b><span class="small warn">' + "▲".repeat(rt.threat) + '</span></div>' +
+      '<div class="row"><b>' + esc(rt.name) + '</b><span class="small warn">' + IC("threat").repeat(rt.threat) + '</span></div>' +
       '<div class="small">' + esc(rt.desc) + '</div>' +
       '<div>' + rt.families.map(f=>'<span class="pill">' + f + '</span>').join("") + chip +
       ((rt.lootSlotMod||0) !== 0 ? '<span class="pill">' + (rt.lootSlotMod>0?"+":"") + rt.lootSlotMod + ' loot</span>' : '') +
@@ -1304,7 +1306,7 @@ SCREENS.prep = function(){
     html += '</div>';
     const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
     if(tier.cost > S.cur.signals){
-      html += '<button class="ad" onclick="A.adSignals()">▶ WATCH AD — +' + PROG.insurance.adSignalsGrant + ' SIGNALS</button>';
+      html += '<button class="ad" onclick="A.adSignals()">' + IC("play") + ' WATCH AD — +' + PROG.insurance.adSignalsGrant + ' SIGNALS</button>';
     }
   }
   const fg = fuelGate();
@@ -1312,13 +1314,13 @@ SCREENS.prep = function(){
     html += '<h2>Fuel</h2><div class="card"><div class="row"><b>' + S.fuel + ' / ' + D.retention.fuel.max + '</b>' +
       '<span class="small">1 per raid · regens over time</span></div>' +
       (fg.siphon ? '<div class="small ok">Tracked upgrade almost done — BIT siphons reserve. Raid allowed.</div>' : '') +
-      (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">▶ WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
+      (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">' + IC("play") + ' WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
       '</div>';
   }
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
   $app().innerHTML = html;
 };
-const SLOT_DEFS = [["weapon","weapon","Weapon","🔫"],["armor","armor","Armor","🦺"],["c1","consumable","Item 1","✚"],["c2","consumable","Item 2","✚"]];
+const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")]];
 function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
 function slotTileHtml(def, locked){
   const [key, slot, label, icon] = def, p = session.prep;
@@ -1357,7 +1359,7 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">🗺</i><span><small>AREA</small><b>' + a.icon + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -1370,25 +1372,25 @@ SCREENS.worldmap = function(){
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">🔒</span>') + '</button>' +
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
       '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
-      '<span class="wm-name">' + a.icon + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
+      '<span class="wm-name">' + IC(a.iconId) + ' ' + esc(a.name) + ' <small class="threat">' + IC("threat").repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
-            : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') + '</div>';
+            : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>') + '</div>';
   }).join('');
   const a = AREA_DEFS[sel];
   $app().innerHTML = '<div class="worldmap" style="background-color:' + WMAP.bg + '">' +
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + areas + '</div>' +
     '<div class="wm-fog"></div>' +
-    '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">‹ BACK</button><h1>WORLD MAP</h1></div>' +
-    '<div class="wm-info"><b>' + a.icon + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
+    '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
+    '<div class="wm-info"><b>' + IC(a.iconId) + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
 };
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
     '<div class="lobby-top"><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
-      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">🗺 <span>MISSION</span></button></div>' +
+      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
@@ -1413,9 +1415,9 @@ function operatorRowHtml(gear){
   const st = playerStats(gear), P = PROG.playerStats;
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
-    chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + (st.shield ? chip("🛡", "Shield", Math.round(st.shield)) : "") + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
-    chip("🎒", "Bag slots", raidBagCapacity(gear)) + '</div>' +
+    chip(IC("stat-speed"), "Speed", st.speed.toFixed(1)) + chip(IC("stat-stealth"), "Stealth", Math.round(st.stealth*100) + "%") +
+    chip(IC("stat-health"), "Health", Math.round(st.maxHealth)) + (st.shield ? chip(IC("stat-shield"), "Shield", Math.round(st.shield)) : "") + chip(IC("stat-dash"), "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
+    chip(IC("stat-bag"), "Bag slots", raidBagCapacity(gear)) + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
     '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
 }
@@ -1423,8 +1425,8 @@ function gearRiskHtml(gear){
   const kit = nodeRaidKit();
   if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill(PROG.kitItem));
   return gear && gear.length
-    ? '<div class="riskbar" role="status">⚠ <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
-    : '<div class="riskbar safe" role="status">✓ No gear at risk<small> · raid loot is at risk until you extract</small></div>';
+    ? '<div class="riskbar" role="status">' + IC("warning") + ' <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
+    : '<div class="riskbar safe" role="status">' + IC("check") + ' No gear at risk<small> · raid loot is at risk until you extract</small></div>';
 }
 function prepTargetHtml(miss){
   if(!miss) return '';
@@ -1445,7 +1447,7 @@ SCREENS.raidsim = function(){
   $app().innerHTML = '<h1>' + esc(zone.name) + '</h1><div class="sub">' + depthTxt + '</div>' +
     '<div class="restbar"><div id="raidbar" style="width:0%"></div></div>' +
     '<div class="feed" id="raidfeed" style="margin-top:14px"></div>' +
-    '<button class="ghost" onclick="A.raidStep()">SKIP ›</button>';
+    '<button class="ghost" onclick="A.raidStep()">SKIP ' + IC("chevron-right") + '</button>';
   const feed = [];
   if(rd && rd.stage > 0) feed.push({ t:0.6, h:'<span class="hostile">» deeper in. it is louder down here.</span>' });
   else { feed.push({ t:1, h:'<span>» insertion complete. comms up.</span>' });
@@ -1493,17 +1495,17 @@ SCREENS.checkpoint = function(){
 
   // PRB-9: haul is the visual hero (icon chips + one big number); the two choices sit side by side with a risk meter.
   const riskPct = Math.round(pushDeath * 100), riskBars = Math.max(1, Math.min(5, Math.ceil(pushDeath * 10)));
-  html += '<div class="cp-wrap"><div class="cp-haul card"><div class="cp-haulhead"><span class="small">IN YOUR BAG · NOT SECURED</span><b class="cp-value">' + haulVal + '<small> + ' + rd.scrap + ' ⚙</small></b></div><div class="cp-chips">' +
+  html += '<div class="cp-wrap"><div class="cp-haul card"><div class="cp-haulhead"><span class="small">IN YOUR BAG · NOT SECURED</span><b class="cp-value">' + haulVal + '<small> + ' + rd.scrap + ' ' + IC("cur-scrap") + '</small></b></div><div class="cp-chips">' +
     (rd.haul.length ? rd.haul.map(id => { const fl = R.cfg.trackedItemId === id;
-      return '<span class="cp-chip r-' + ITEMS[id].rarity + (fl ? ' tracked' : '') + '" title="' + esc(ITEMS[id].name) + '"><i aria-hidden="true">' + itemIcon(id) + '</i>' + esc(ITEMS[id].name) + (fl ? ' ◉' : '') + '</span>'; }).join('') : '<span class="small">Empty so far</span>') +
+      return '<span class="cp-chip r-' + ITEMS[id].rarity + (fl ? ' tracked' : '') + '" title="' + esc(ITEMS[id].name) + '"><i aria-hidden="true">' + itemIcon(id) + '</i>' + esc(ITEMS[id].name) + (fl ? ' ' + IC("track-on") : '') + '</span>'; }).join('') : '<span class="small">Empty so far</span>') +
     '</div></div>';
   html += '<div class="decision-actions cp-choices">' +
-    '<button class="primary cp-extract" onclick="A.extractNow()"><b>EXTRACT</b><span>🔒 Keep ' + haulVal + '</span></button>' +
-    '<button class="ghost cp-push" onclick="A.pushDeeper()"><b>PUSH DEEPER ›</b><span class="cp-risk" aria-label="Risk ' + (bondLevel() >= 2 ? riskPct + '%' : dangerLabel) + '">' +
-      '☠ ' + '▮'.repeat(riskBars) + '<i>' + '▮'.repeat(5 - riskBars) + '</i>' + (bondLevel() >= 2 ? ' ' + riskPct + '%' : '') + '</span>' +
+    '<button class="primary cp-extract" onclick="A.extractNow()"><b>EXTRACT</b><span>' + IC("lock") + ' Keep ' + haulVal + '</span></button>' +
+    '<button class="ghost cp-push" onclick="A.pushDeeper()"><b>PUSH DEEPER ' + IC("chevron-right") + '</b><span class="cp-risk" aria-label="Risk ' + (bondLevel() >= 2 ? riskPct + '%' : dangerLabel) + '">' +
+      IC("skull") + ' ' + IC("bar").repeat(riskBars) + '<i>' + IC("bar").repeat(5 - riskBars) + '</i>' + (bondLevel() >= 2 ? ' ' + riskPct + '%' : '') + '</span>' +
       '<span>+ more loot' + (stagesLeft > 0 ? ' · ' + stagesLeft + ' left' : '') + '</span>' +
-      (deeperLabel ? '<span class="trackc">◉ ' + esc(ITEMS[miss.itemId].name) + ' likelier</span>' : '') + '</button>' +
-    '<div class="small cp-note">Die deeper → lose the bag.</div></div></div>';
+      (deeperLabel ? '<span class="trackc">' + IC("track-on") + ' ' + esc(ITEMS[miss.itemId].name) + ' likelier</span>' : '') + '</button>' +
+    '<div class="small cp-note">Die deeper, lose the bag.</div></div></div>';
   $app().innerHTML = html;
 };
 
@@ -1519,11 +1521,11 @@ SCREENS.result = function(){
         const nx = moduleVisible(m.id) && nextLevelDef(m.id);
         return nx && nx.level <= moduleCap(m.id) && nx.cost.items && nx.cost.items[id];
       });
-      html += '<div class="card row' + '"' + '><span' + (flagged?' class="trackc"':'') + '>' + (flagged?"◉ ":"") + esc(ITEMS[id].name) + '</span>' +
+      html += '<div class="card row' + '"' + '><span' + (flagged?' class="trackc"':'') + '>' + (flagged?IC("track-on") + " ":"") + esc(ITEMS[id].name) + '</span>' +
         (flagged ? '<span class="trackc small">tracked</span>' : isPart ? '<span class="ok small">upgrade part</span>' : '') + '</div>';
     }
     html += '<div class="progressmoved"><b>PROGRESS MOVED</b><br>' + R.progress.map(esc).join("<br>") + '</div>';
-    if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">▶ WATCH AD — 2× HAUL</button>';
+    if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">' + IC("play") + ' WATCH AD — 2× HAUL</button>';
   } else {
     const saved = R.saved;
     html = '<h1 class="bad">KIA</h1><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
@@ -1542,7 +1544,7 @@ SCREENS.result = function(){
     }
     html += '<div class="progressmoved"><b>PROGRESS MOVED — EVEN NOW</b><br>' + R.progress.map(esc).join("<br>") + '</div>';
     if(retMode() === "full"){
-      if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">▶ WATCH AD — RECOVER 1 ITEM</button>';
+      if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">' + IC("play") + ' WATCH AD — RECOVER 1 ITEM</button>';
       if(!R.bagRestored) html += '<button class="ghost" onclick="A.restoreBag()">RESTORE BAG — ' + PROG.recovery.restoreBagSignals + ' SIGNALS (have ' + S.cur.signals + ')</button>';
     }
     if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT — ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
@@ -1563,10 +1565,10 @@ SCREENS.operator = function(){
     id === "search" ? "−" + Math.round(-P.skills.search.perLevel.searchMult * skillLevel(id) * 100) + "% search time" : "−" + Math.round(craftDiscount() * 100) + "% Scrap";
   let html = '<h1>OPERATOR</h1><div class="opgrid">';
   html += '<div class="card opcard"><div class="ophead"><b class="opbig">' + op.level + '</b><span>LEVEL<br><small>' + (op.need ? op.into + ' / ' + op.need + ' XP' : 'MAX') + '</small></span></div>' +
-    bar(op.into || 0, op.need) + '<div class="small ok">🏃 +' + Math.round(operatorSpeedBonus() * 100) + '% speed <span class="muted">(+' + Math.round(P.operatorSpeed.perLevel * 100) + '%/level, max ' + Math.round(P.operatorSpeed.cap * 100) + '%)</span></div></div>';
+    bar(op.into || 0, op.need) + '<div class="small ok">' + IC("stat-speed") + ' +' + Math.round(operatorSpeedBonus() * 100) + '% speed <span class="muted">(+' + Math.round(P.operatorSpeed.perLevel * 100) + '%/level, max ' + Math.round(P.operatorSpeed.cap * 100) + '%)</span></div></div>';
   html += '<div class="card"><h2>Skills <small class="muted">grow by playing</small></h2>' + Object.keys(P.skills).map(id => {
     const k = P.skills[id], l = skillLevel(id), nx = skillNextXp(id), prev = l ? k.xpPerLevel * l * (l + 1) / 2 : 0;
-    return '<div class="skillrow"><i aria-hidden="true">' + k.icon + '</i><div><b>' + esc(k.name) + ' L' + l + '</b> <span class="ok small">' + effect(id) + '</span>' +
+    return '<div class="skillrow"><i aria-hidden="true">' + IC(k.icon) + '</i><div><b>' + esc(k.name) + ' L' + l + '</b> <span class="ok small">' + effect(id) + '</span>' +
       (nx === null ? bar(1, 1) : bar(skillXp(id) - prev, nx - prev)) + '<small>' + esc(k.desc) + '</small></div></div>';
   }).join('') + '</div>';
   const weapons = D.items.filter(i => i.weapon && (i.free || have(i.id) > 0 || masteryKills(i.id) > 0));
@@ -1598,7 +1600,7 @@ SCREENS.vendor = function(){
   v.barter.forEach((b,ix) => {
     const can = Object.keys(b.give).every(id => have(id) >= b.give[id]);
     const giveTxt = Object.keys(b.give).map(id => b.give[id] + "× " + ITEMS[id].name).join(" + ");
-    html += '<div class="card row"><span class="small">' + esc(giveTxt) + ' →<br><b>' + b.receive.qty + '× ' + esc(ITEMS[b.receive.itemId].name) + '</b></span>' +
+    html += '<div class="card row"><span class="small">' + esc(giveTxt) + ' ' + IC("arrow-right") + '<br><b>' + b.receive.qty + '× ' + esc(ITEMS[b.receive.itemId].name) + '</b></span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can?'':'opacity:.4') + '" ' +
       (can?'onclick="A.barter(' + ix + ')"':'disabled') + '>Trade</button></div>';
   });
@@ -1757,7 +1759,7 @@ function ingestRaidResult(r){
   // Weapon mastery: kills count for the weapon that went in (any outcome).
   const wid = typeof r.weapon === "string" && ITEMS[r.weapon] && ITEMS[r.weapon].weapon ? r.weapon : null, kills = Math.max(0, Math.min(200, Math.floor(Number(r.enemiesDefeated) || 0)));
   let starUp = null;
-  if(wid && kills){ S.mastery = S.mastery || {}; const b = masteryStars(wid); S.mastery[wid] = masteryKills(wid) + kills; if(masteryStars(wid) > b) starUp = ITEMS[wid].name + " " + "★".repeat(masteryStars(wid)); }
+  if(wid && kills){ S.mastery = S.mastery || {}; const b = masteryStars(wid); S.mastery[wid] = masteryKills(wid) + kills; if(masteryStars(wid) > b) starUp = ITEMS[wid].name + " " + masteryStars(wid) + "/3 stars"; }
   const xp = bitOnline() ? coreRaidXp(r) : 0;
   S.bondXp += xp;
   gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
@@ -1777,7 +1779,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "");
 }
-/* ---------- player stats & skills (data/progression.js → playerStats) ---------- */
+/* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
 // Cumulative xp for level n = xpPerLevel × n(n+1)/2 (each level costs a bit more).
 function skillLevel(id, xp){
@@ -1795,7 +1797,7 @@ function playerStats(gear){
   for(const s in st) st[s] = Math.round(clampStat(s, st[s]) * 1000) / 1000;
   return st;
 }
-// +2% speed per operator level above 1, capped (data/progression.js → operatorSpeed).
+// +2% speed per operator level above 1, capped (data/progression.js -> operatorSpeed).
 function operatorSpeedBonus(level){
   const O = PROG.playerStats.operatorSpeed; level = level === undefined ? operatorLevel().level : level;
   return Math.min(O.cap, O.perLevel * Math.max(0, level - 1));
@@ -1804,15 +1806,15 @@ function operatorSpeedBonus(level){
 function craftDiscount(){ const k = PROG.playerStats.skills.crafting; return k.craftDiscountPerLevel * skillLevel("crafting"); }
 function craftCost(r){ return Math.max(0, Math.round(r.scrapCost * (1 - craftDiscount()))); }
 function gainSkillXp(id, n){ S.skills = S.skills || {}; const b = skillLevel(id); S.skills[id] = (S.skills[id] || 0) + n; return skillLevel(id) > b; }
-// Weapon mastery: kills per weapon → 0..3 stars.
+// Weapon mastery: kills per weapon -> 0..3 stars.
 function masteryKills(id){ return (S.mastery && S.mastery[id]) || 0; }
 function masteryStars(id, kills){
   kills = kills === undefined ? masteryKills(id) : kills;
   return PROG.playerStats.weaponMastery.killsForStar.filter(k => kills >= k).length;
 }
 function masteryNext(id){ const t = PROG.playerStats.weaponMastery.killsForStar; return t[masteryStars(id)] ?? null; }
-function starsHtml(id){ const n = masteryStars(id); return '<span class="stars" aria-label="' + n + ' of 3 mastery stars">' + "★".repeat(n) + '<i>' + "★".repeat(3 - n) + '</i></span>'; }
-// Node Raid bag capacity: base + built modules + armour pockets (data/progression.js → raidBag, items.bagSlots).
+function starsHtml(id){ const n = masteryStars(id); return '<span class="stars" aria-label="' + n + ' of 3 mastery stars">' + IC("star").repeat(n) + '<i>' + IC("star").repeat(3 - n) + '</i></span>'; }
+// Node Raid bag capacity: base + built modules + armour pockets (data/progression.js -> raidBag, items.bagSlots).
 function raidBagCapacity(gear){
   const B = PROG.raidBag; let n = B.base;
   for(const m in B.moduleLevels) B.moduleLevels[m].forEach((v, i) => { if((S.modules[m] || 0) >= i + 1) n += v; });
@@ -1834,7 +1836,7 @@ function nodeRaidWeaponId(){
   const l = session.prep && session.prep.loadout, w = l && l.weapon;
   return w && ITEMS[w] && ITEMS[w].weapon && (ITEMS[w].free || have(w) > 0) ? w : FREE_WEAPON;
 }
-// Medkits in the consumable slots go into the raid (usable with Q / ✚) and are lost on death.
+// Medkits in the consumable slots go into the raid (usable with Q / kit button) and are lost on death.
 function nodeRaidKit(){
   const l = session.prep && session.prep.loadout; if(!l) return { medkit:0 };
   const want = ["c1","c2"].filter(k => l[k] === PROG.kitItem).length;
@@ -1979,7 +1981,7 @@ window.A = {
       const player=document.getElementById("combat-player");
       if(player)player.style.setProperty("--facing",Math.atan2(target.y-g.y,target.x-g.x)*180/Math.PI+"deg");
       const arena=document.getElementById("combat-arena"),fx=document.getElementById("combat-effects");
-      if(fx){fx.innerHTML='<i class="combat-beam" style="left:'+g.x+'%;top:'+g.y+'%;--tx:'+target.x+'%;--ty:'+target.y+'%"></i><b class="combat-hit" style="left:'+target.x+'%;top:'+target.y+'%">✳</b>';setTimeout(()=>{if(fx)fx.innerHTML="";},170);}
+      if(fx){fx.innerHTML='<i class="combat-beam" style="left:'+g.x+'%;top:'+g.y+'%;--tx:'+target.x+'%;--ty:'+target.y+'%"></i><b class="combat-hit" style="left:'+target.x+'%;top:'+target.y+'%">'+IC("hit")+'</b>';setTimeout(()=>{if(fx)fx.innerHTML="";},170);}
       target.hp--;
       if(target.hp<=0){
         target.alive=false;g.kills++;
@@ -1987,7 +1989,7 @@ window.A = {
         const index=g.kills-1, kind=(g.kills%D.combat.loot.medGelEvery===0)?"med":"scrap";
         g.pickups.push({x:target.x,y:target.y,kind,taken:false});
         const pickups=document.getElementById("combat-pickups");
-        if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?"+":"◆")+'</div>');
+        if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?IC("plus"):IC("pickup"))+'</div>');
         this.combatFeedback(kind==="med"?"DRONE DOWN · MED GEL DROPPED":"DRONE DOWN · SALVAGE DROPPED",false);
       }else this.combatFeedback("HIT",false);
     }
@@ -2008,7 +2010,7 @@ window.A = {
     g.drones.filter(d=>d.alive&&Math.hypot(d.x-g.x,d.y-g.y)<=c.bit.pulseRadius).forEach(d=>{d.hp-=c.bit.pulseDamage;hit++;if(d.hp<=0){
       d.alive=false;g.kills++;const el=document.getElementById("combat-drone-"+d.id);if(el)el.classList.add("destroyed");
       const kind=(g.kills%c.loot.medGelEvery===0)?"med":"scrap",index=g.kills-1;g.pickups.push({x:d.x,y:d.y,kind,taken:false});
-      const pickups=document.getElementById("combat-pickups");if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?"+":"◆")+'</div>');
+      const pickups=document.getElementById("combat-pickups");if(pickups)pickups.insertAdjacentHTML("beforeend",'<div class="combat-pickup '+kind+'" id="combat-pickup-'+index+'">'+(kind==="med"?IC("plus"):IC("pickup"))+'</div>');
     }});
     const arena=document.getElementById("combat-arena");if(arena){arena.classList.add("bit-pulsing");setTimeout(()=>arena.classList.remove("bit-pulsing"),600);}
     this.combatFeedback(hit?"BIT PULSE · "+hit+" TARGET" : "BIT PULSE · NO CONTACT",false);
@@ -2144,7 +2146,7 @@ window.A = {
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? '∞ FREE' : '×' + S.stash[id]) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + S.stash[id]) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
@@ -2408,8 +2410,8 @@ window.A = {
     const needsParts=next && !canAfford(next.cost);
     const prior=D.baseMap.rooms[room.stage - 2];
     const lore = (ready ? 'Access is available because this requirement is complete. Opening the room clears access; building it still costs repair materials. ' : '') + room.requirement.text;
-    overlay('<div class="bpop room"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ready ? '🔓' : '🔒') + '</span><h1>' + esc(room.label) + '</h1>' +
-      '<button type="button" class="iconbtn" onclick="var l=this.closest(\'.bpop\').querySelector(\'.lore\');l.hidden=!l.hidden" aria-label="Details and story">ⓘ</button></div>' +
+    overlay('<div class="bpop room"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ready ? IC("unlock") : IC("lock")) + '</span><h1>' + esc(room.label) + '</h1>' +
+      '<button type="button" class="iconbtn" onclick="var l=this.closest(\'.bpop\').querySelector(\'.lore\');l.hidden=!l.hidden" aria-label="Details and story">' + IC("info") + '</button></div>' +
       '<p class="lore" hidden>' + esc(lore) + '</p>' +
       (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
         (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' +
@@ -2431,16 +2433,16 @@ window.A = {
       const parts = costParts(next.cost);
       body = '<p class="eff">' + esc(next.benefitText || next.unlockText || m.blurb) + '</p><div class="costs">' + parts.map(p => {
         const ok = p.have >= p.need;
-        return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? '✓' : '!') + '</span></div>';
+        return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
       }).join("") + '</div>';
       const miss = parts.find(p => p.have < p.need);
       if(next.level > moduleCap(modId)) cta = '<button class="primary big" onclick="A.openBuilding(\'rebirth_core\')">UPGRADE CORE FIRST</button>';
       else if(!miss) cta = '<button class="primary big" onclick="A.build(\'' + modId + '\')">' + (lvl ? 'UPGRADE' : 'BUILD') + '</button>';
       else cta = '<button class="primary big raidcta" onclick="A.raidForModule(\'' + modId + '\')">RAID FOR ' + partIcon(miss) + ' ' + esc(partName(miss)).toUpperCase() + '</button>';
     }
-    overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || "▣") + '</span><h1>' + esc(m.name) + '</h1>' +
-      '<em>L' + lvl + (next ? ' → L' + next.level : '') + '</em>' +
-      '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">ⓘ</button>' +
+    overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || IC("item-crate")) + '</span><h1>' + esc(m.name) + '</h1>' +
+      '<em>L' + lvl + (next ? ' ' + IC("arrow-right") + ' L' + next.level : '') + '</em>' +
+      '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">' + IC("info") + '</button>' +
       '</div>' + body + cta + '</div>', clearMapFocus, "sheet");
     if(session.screen === "base") focusMapOn(modId);
   },
@@ -2525,8 +2527,8 @@ window.A = {
     S.beat = parseInt(document.getElementById("devbeat").value,10);
     act("DEV_JUMP",{beat: curBeat().id}); save(); refresh();
   },
-  // PRB-42: iOS Safari ignores a detached <a download>. Order: share sheet (File) → attached
-  // download link → new tab; a textarea + copy button is always shown as a last resort.
+  // PRB-42: iOS Safari ignores a detached <a download>. Order: share sheet (File) -> attached
+  // download link -> new tab; a textarea + copy button is always shown as a last resort.
   async devExport(){
     const json = JSON.stringify(S.log, null, 2), name = "pr_event_log.json";
     const blob = new Blob([json], {type:"application/json"});
@@ -2540,8 +2542,8 @@ window.A = {
       ta.value = json; ta.readOnly = true; ta.style.cssText = "flex:1;font:11px monospace;width:100%";
       const copy = document.createElement("button"); copy.textContent = "Copy to clipboard";
       copy.onclick = async () => {
-        try { await navigator.clipboard.writeText(json); copy.textContent = "Copied ✓"; }
-        catch(e){ ta.focus(); ta.select(); try { document.execCommand("copy"); copy.textContent = "Copied ✓"; } catch(_){ copy.textContent = "Select & copy manually"; } }
+        try { await navigator.clipboard.writeText(json); copy.textContent = "Copied"; }
+        catch(e){ ta.focus(); ta.select(); try { document.execCommand("copy"); copy.textContent = "Copied"; } catch(_){ copy.textContent = "Select & copy manually"; } }
       };
       const close = document.createElement("button"); close.textContent = "Close"; close.onclick = () => box.remove();
       box.append(ta, copy, close);
@@ -2654,7 +2656,7 @@ function setupSplash(){
   setTimeout(hide, 1800);
 }
 /* ---------- init ---------- */
-// ?reset=1 confirmed → storage cleared and page reloading, so skip booting the old state.
+// ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);

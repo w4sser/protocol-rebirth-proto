@@ -17,7 +17,7 @@ export function labelTier(kind,dist){
   if(dist<=r.mid)return kind==='enemy'?'bar':'short';
   return r.far;
 }
-// items: [{id,kind,x,z,force?}] → Map(id → 'hidden'|'dot'|'short'|'full')
+// items: [{id,kind,x,z,force?}] -> Map(id -> 'hidden'|'dot'|'short'|'full')
 export function planLabels(items,player,{maxFull=MAX_FULL}={}){
   const out=new Map(),fulls=[];
   for(const it of items){

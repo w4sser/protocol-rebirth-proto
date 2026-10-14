@@ -1,8 +1,8 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.49.0';
-import {RULES} from './levels.js?v=1.49.0';
-import {bagCap} from './round.js?v=1.49.0';
+import {bagItems} from './raid.js?v=1.50.0';
+import {RULES} from './levels.js?v=1.50.0';
+import {bagCap} from './round.js?v=1.50.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -39,7 +39,7 @@ export function readLaunch(search){
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
     weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity};
 }
-// ?w=id:rifle_marksman,dmg:2,mag:4,rld:900,int:450,rng:11,cone:5,ast:8,spr:0 → clamped weapon stats (missing → Basic).
+// ?w=id:rifle_marksman,dmg:2,mag:4,rld:900,int:450,rng:11,cone:5,ast:8,spr:0 -> clamped weapon stats (missing -> Basic).
 const WEAPON_KEYS={dmg:'damage',mag:'capacity',rld:'reloadMs',int:'shotIntervalMs',rng:'range',cone:'coneHalfAngleDegrees',ast:'assistAngleDegrees',spr:'spreadDegrees'};
 export function readWeapon(value){
   if(typeof value!=='string'||!value||value.length>160)return null;
@@ -55,14 +55,14 @@ export function readWeapon(value){
   for(const k of ['damage','capacity','reloadMs','shotIntervalMs'])if(k in out)out[k]=Math.round(out[k]);
   return out;
 }
-// ?kit=medkit:2 → consumables brought from base (clamped by RULES.kitMax).
+// ?kit=medkit:2 -> consumables brought from base (clamped by RULES.kitMax).
 export function readKit(value){
   const out={medkit:0};
   if(typeof value!=='string'||value.length>60)return out;
   for(const part of value.split(',')){const [k,v]=part.split(':'),n=Math.floor(Number(v));if(k in RULES.kitMax&&Number.isFinite(n))out[k]=Math.min(RULES.kitMax[k],Math.max(0,n));}
   return out;
 }
-// ?stats=spd:3.9,stl:0.12,hp:115,dcd:3700 → clamped stats; unknown keys and bad numbers fall back to base.
+// ?stats=spd:3.9,stl:0.12,hp:115,dcd:3700 -> clamped stats; unknown keys and bad numbers fall back to base.
 const STAT_KEYS={spd:'speed',stl:'stealth',hp:'maxHealth',dcd:'dashCooldownMs',srch:'searchMult',shd:'shield'};
 export function readStats(value){
   const P=RULES.playerStats,out={...P.base};
