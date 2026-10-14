@@ -686,6 +686,7 @@
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
 <link rel="stylesheet" href="ui/popup.css?v=1.49.0">
+<style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#9ff0ff;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px #3fe0ffaa) drop-shadow(0 0 5px #3fe0ff44);overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -694,7 +695,7 @@
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
     <div id="app-version">v1.49.0</div>
-    <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
+    <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings">✕</button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>

@@ -656,9 +656,11 @@ function revealCurrency(id){
     renderCurrencies();
   }
 }
-const CUR_ICONS = { scrap:"⚙", dataCores:"◆", salvage:"♻", signals:"📡", fuel:"⛽" };
-const ROOM_ICONS = { rebirth_core:"⚛", fabricator:"🛠", storage:"🔐", bit_bay:"🤖", living_quarters:"🛏" };
-const ITEM_ICONS = { basic_carbine:"🔫", smg_vector:"🔫", rifle_marksman:"🎯", shotgun_breach:"💥", cable:"〰", fuse:"🔌", scrap_alloy:"🔩", power_cell:"🔋", medkit:"✚", polymer_plate:"▦", servo:"⚙", optical_sensor:"👁", circuit_board:"▤", salvage_crate:"📦", data_core:"◆", hydraulic_component:"🛢", memory_module:"💾", power_relay:"⚡", ai_fragment:"🧠", bio_sample:"🧪" };
+// PROPOSAL (bespoke icons): IC() renders a sprite icon from assets/icons/sprite.svg
+const IC = n => '<svg class="pr-ic" aria-hidden="true" focusable="false"><use href="assets/icons/sprite.svg#' + n + '"/></svg>';
+const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel") };
+const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
+const ITEM_ICONS = { basic_carbine:IC("item-carbine"), smg_vector:IC("item-smg"), rifle_marksman:IC("item-rifle"), shotgun_breach:IC("item-shotgun"), cable:IC("item-cable"), fuse:IC("item-fuse"), scrap_alloy:IC("item-alloy"), power_cell:IC("item-powercell"), medkit:IC("item-medkit"), polymer_plate:IC("item-plate"), servo:IC("item-servo"), optical_sensor:IC("item-sensor"), circuit_board:IC("item-circuit"), salvage_crate:IC("item-crate"), data_core:IC("cur-datacore"), hydraulic_component:IC("item-hydraulic"), memory_module:IC("item-memory"), power_relay:IC("item-relay"), ai_fragment:IC("item-ai"), bio_sample:IC("item-bio"), scavenger_vest:IC("item-vest"), scout_rig:IC("item-vest"), archipelago_chart:IC("item-chart"), town_survey:IC("item-survey") };
 function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? "🦺" : "▣"); }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
@@ -688,15 +690,15 @@ function navBadge(id){
   return null;
 }
 function renderTabs(){
-  const items = [["prep","⚔","RAID"],["stash","🎒","STASH"],["vendor","🛒","SHOP"],["bit","🤖","BIT"]];
-  items.unshift(["base","🏠","BASE"]);
+  const items = [["prep",IC("nav-raid"),"RAID"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"]];
+  items.unshift(["base",IC("nav-base"),"BASE"]);
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
     const active = session.screen === id;
     if(active) return '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
     return '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
-      '<span class="ni" aria-hidden="true">' + (ok ? icon : '🔒') + '</span>' + label +
+      '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
       (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
   }).join("");
 }
@@ -1357,7 +1359,7 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">🗺</i><span><small>AREA</small><b>' + a.icon + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + (a.iconId ? IC(a.iconId) : a.icon) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -1370,9 +1372,9 @@ SCREENS.worldmap = function(){
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">🔒</span>') + '</button>' +
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
       '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
-      '<span class="wm-name">' + a.icon + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
+      '<span class="wm-name">' + (a.iconId ? IC(a.iconId) : a.icon) + ' ' + esc(a.name) + ' <small>' + "◆".repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓ ' : '• ') + esc(t) + '</span>').join('') + '</span>') + '</div>';
   }).join('');
@@ -1382,13 +1384,13 @@ SCREENS.worldmap = function(){
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + areas + '</div>' +
     '<div class="wm-fog"></div>' +
     '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">‹ BACK</button><h1>WORLD MAP</h1></div>' +
-    '<div class="wm-info"><b>' + a.icon + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
+    '<div class="wm-info"><b>' + (a.iconId ? IC(a.iconId) : a.icon) + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
 };
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
     '<div class="lobby-top"><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
-      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">🗺 <span>MISSION</span></button></div>' +
+      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
@@ -1413,9 +1415,9 @@ function operatorRowHtml(gear){
   const st = playerStats(gear), P = PROG.playerStats;
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
-    chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + (st.shield ? chip("🛡", "Shield", Math.round(st.shield)) : "") + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
-    chip("🎒", "Bag slots", raidBagCapacity(gear)) + '</div>' +
+    chip(IC("stat-speed"), "Speed", st.speed.toFixed(1)) + chip(IC("stat-stealth"), "Stealth", Math.round(st.stealth*100) + "%") +
+    chip(IC("stat-health"), "Health", Math.round(st.maxHealth)) + (st.shield ? chip(IC("stat-shield"), "Shield", Math.round(st.shield)) : "") + chip(IC("stat-dash"), "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
+    chip(IC("stat-bag"), "Bag slots", raidBagCapacity(gear)) + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
     '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
 }
