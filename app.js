@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.50.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.51.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -660,8 +660,8 @@ function revealCurrency(id){
 }
 const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel") };
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
-const ITEM_ICONS = { basic_carbine:IC("item-carbine"), smg_vector:IC("item-smg"), rifle_marksman:IC("item-rifle"), shotgun_breach:IC("item-shotgun"), cable:IC("item-cable"), fuse:IC("item-fuse"), scrap_alloy:IC("item-alloy"), power_cell:IC("item-powercell"), medkit:IC("item-medkit"), polymer_plate:IC("item-plate"), servo:IC("item-servo"), optical_sensor:IC("item-sensor"), circuit_board:IC("item-circuit"), salvage_crate:IC("item-crate"), data_core:IC("cur-datacore"), hydraulic_component:IC("item-hydraulic"), memory_module:IC("item-memory"), power_relay:IC("item-relay"), ai_fragment:IC("item-ai"), bio_sample:IC("item-bio"), scavenger_vest:IC("item-vest"), scout_rig:IC("item-vest"), archipelago_chart:IC("item-chart"), town_survey:IC("item-survey") };
-function itemIcon(id){ const it = ITEMS[id] || {}; return ITEM_ICONS[id] || (it.slot === "armor" || it.stats ? IC("item-vest") : IC("item-crate")); }
+// v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
+function itemIcon(id){ const it = ITEMS[id]; return it && it.icon ? IC(it.icon) : ""; }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 function renderCurrencies(){
