@@ -348,3 +348,10 @@ Fiende-HP avrundas. Exempel: L2 har 2 HP, vilket blir 3 i Archipelago och 3 i To
 - Kits laddas från stash vid deploy via ITEM 1 och ITEM 2, som tidigare.
 - Oanvända kits, både medtagna och upplockade, skickas som `kitLeft` och kommer hem till stash vid extract, max 2.
 - Vid död försvinner de enligt vanliga raidregler.
+- v1.47.0: ett kit på marken visar "Health kit · SLOT FULL" nedtonat medan sloten är full (`lootAction`).
+
+## 14. Popup-komponent (v1.45.0 → v1.47.0)
+
+- Stäng-badgen är en rund ring på 44 px som ligger över panelens övre vänstra hörn.
+- Kort klipper aldrig badgen: `overflow:visible`, och rullande innehåll ligger i ett eget inre element.
+- `:where(.pop-card)` gör att komponenten aldrig skriver över en panels egen positionering. Det var den buggen som bröt inställningsmenyn i v1.45–1.46.

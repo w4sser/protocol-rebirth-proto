@@ -24,3 +24,9 @@ test('unused kits (brought + picked up) are reported in kitLeft',()=>{
   const r=createRound('hk4',0);r.level.lootBoxes=[];r.kit={medkit:1};kitBox(r,'k5');collectLoot(r,{x:0,z:0},1);
   r.over=true;r.reason='extract';const res=buildRaidResult(r);assert.equal(res.kitLeft.medkit,2);assert.ok(!res.extracted.includes('medkit'));
 });
+import {lootAction,kitSlotFull} from '../round.js';
+test('ground health kit reads SLOT FULL while the slot is full, COLLECT otherwise',()=>{
+  const r=createRound('hk5',0);r.kit={medkit:1};assert.deepEqual(lootAction(r,'medkit'),{text:'COLLECT',full:false});
+  r.kit.medkit=2;assert.ok(kitSlotFull(r));assert.deepEqual(lootAction(r,'medkit'),{text:'SLOT FULL',full:true});
+  assert.equal(lootAction(r,'cable').text,'COLLECT','other loot unaffected');
+});

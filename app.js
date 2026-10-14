@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.46.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.47.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -575,11 +575,16 @@ function overlay(html, onClose, cls, opts){
   const o = document.createElement("div");
   o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
-  if(!opts.noClose){ const card = o.querySelector(".bpop") || o.firstChild; card.classList.add("pop-card"); card.insertAdjacentHTML("afterbegin", POP_X); }
+  if(!opts.noClose){
+    // v1.47: the close badge straddles the card's top-left corner, so it must live outside any scroller.
+    const bp = o.querySelector(".bpop");
+    if(bp){ o.firstChild.classList.add("pop-host"); bp.classList.add("pop-card"); bp.insertAdjacentHTML("afterbegin", POP_X); }
+    else { const fr = document.createElement("div"); fr.className = "pop-frame pop-card"; o.insertBefore(fr, o.firstChild); fr.appendChild(fr.nextSibling); fr.insertAdjacentHTML("afterbegin", POP_X); }
+  }
   else o.dataset.noclose = "1";
   o.addEventListener("click", e => {
     const t = e.target.closest ? e.target.closest("[data-close]") : null;
-    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || e.target === o.firstChild && o.querySelector(".bpop")))){ o.remove(); if(onClose) onClose(); }
+    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ o.remove(); if(onClose) onClose(); }
   });
   document.getElementById("phone").appendChild(o);
   updateNav();
@@ -1207,7 +1212,7 @@ SCREENS.prep = function(){
   const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
-  const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><button type="button" class="pop-x" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button><div class="mp-head pop-head"><h1>🗺 Mission</h1></div>' +
+  const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">✕</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>🗺 Mission</h1></div>' +
     (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
