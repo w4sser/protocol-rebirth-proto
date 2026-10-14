@@ -338,3 +338,13 @@ Fiende-HP avrundas. Exempel: L2 har 2 HP, vilket blir 3 i Archipelago och 3 i To
 - Båtarna ligger offshore och är bara visuella.
 
 **Sköldstapeln i HUD:** 64×9 px med ljus kant och glöd, så att den syns tydligt på telefon.
+
+
+## 13. Health kit-slot (v1.46.0)
+
+- Health kits som plockas upp i en raid hamnar i kit-sloten (✚-knappen och Q), inte i väskan.
+- Sloten rymmer max 2 (`RULES.kitMax.medkit` = `PROG.kitMax`).
+- När sloten är full ligger kitet kvar på marken. Spelaren får en kort notis som inte blockerar spelet, och väskan påverkas inte.
+- Kits laddas från stash vid deploy via ITEM 1 och ITEM 2, som tidigare.
+- Oanvända kits, både medtagna och upplockade, skickas som `kitLeft` och kommer hem till stash vid extract, max 2.
+- Vid död försvinner de enligt vanliga raidregler.

@@ -1,4 +1,4 @@
-// v1.45.0: every boxed popup uses the shared component (ui/popup.css): top-left close X (≥44px), shared header, backdrop tap-to-close.
+// v1.46.0: every boxed popup uses the shared component (ui/popup.css): top-left close X (≥44px), shared header, backdrop tap-to-close.
 const { JSDOM } = require("jsdom");const fs = require("fs");const assert = require("assert");const path = __dirname + "/..";
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
