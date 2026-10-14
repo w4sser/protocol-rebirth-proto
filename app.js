@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.42.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.43.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -53,7 +53,7 @@ function load(){
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
 function migrateSkills(st){
   if(st && st.skills && st.skills.athletics !== undefined){ st.skills.mobility = (st.skills.mobility || 0) + st.skills.athletics; delete st.skills.athletics; }
-  if(st && st.skills) delete st.skills.vitality;
+  // v1.43: Vitality is back (owner 14 Oct) — keep any saved vitality xp.
   return st;
 }
 // v1.35: Salvage merged into Scrap. Legacy saves convert at SALVAGE_TO_SCRAP. Salvage Crates now grant Scrap.
@@ -1356,7 +1356,7 @@ function operatorRowHtml(gear){
   const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
     chip("🏃", "Speed", st.speed.toFixed(1)) + chip("👁", "Stealth", Math.round(st.stealth*100) + "%") +
-    chip("❤", "Health", Math.round(st.maxHealth)) + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
+    chip("❤", "Health", Math.round(st.maxHealth)) + (st.shield ? chip("🛡", "Shield", Math.round(st.shield)) : "") + chip("⚡", "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
     chip("🎒", "Bag slots", raidBagCapacity(gear)) + '</div>' +
     '<div class="oskills">' + Object.keys(P.skills).map(id => '<span>' + esc(P.skills[id].name) + ' <b>L' + skillLevel(id) + '</b></span>').join('') +
     '<span>' + esc(ITEMS[nodeRaidWeaponId()].name) + ' ' + starsHtml(nodeRaidWeaponId()) + '</span></div></div>';
@@ -1501,6 +1501,7 @@ SCREENS.operator = function(){
   const op = operatorLevel(), P = PROG.playerStats, bar = (v, max) => '<span class="pbar"><span style="width:' + Math.round(100 * Math.min(1, max ? v / max : 1)) + '%"></span></span>';
   const effect = id => id === "mobility" ? "+" + (P.skills.mobility.perLevel.speed * skillLevel(id)).toFixed(2) + " m/s" :
     id === "stealth" ? Math.round(P.skills.stealth.perLevel.stealth * skillLevel(id) * 100) + "% harder to spot" :
+    id === "vitality" ? "+" + (P.skills.vitality.perLevel.maxHealth * skillLevel(id)) + " max HP" :
     id === "search" ? "−" + Math.round(-P.skills.search.perLevel.searchMult * skillLevel(id) * 100) + "% search time" : "−" + Math.round(craftDiscount() * 100) + "% Scrap";
   let html = '<h1>OPERATOR</h1><div class="opgrid">';
   html += '<div class="card opcard"><div class="ophead"><b class="opbig">' + op.level + '</b><span>LEVEL<br><small>' + (op.need ? op.into + ' / ' + op.need + ' XP' : 'MAX') + '</small></span></div>' +
@@ -1758,7 +1759,7 @@ function raidBagCapacity(gear){
   for(const g of (gear || [])) n += (ITEMS[g] && ITEMS[g].bagSlots) || 0;
   return Math.min(B.max, n);
 }
-function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs) + ",srch:" + st.searchMult; }
+function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs) + ",srch:" + st.searchMult + ",shd:" + Math.round(st.shield); }
 const FREE_WEAPON = PROG.freeWeapon;
 // Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
 function nodeRaidGear(){
@@ -1798,7 +1799,7 @@ function statsCardHtml(gear){
   const row = (k, v) => '<div class="kv"><span>' + k + '</span><span>' + v + '</span></div>';
   let html = '<div class="card operator-stats"><h2>Operator</h2>' +
     row("Speed", st.speed.toFixed(2) + " m/s") + row("Stealth", Math.round(st.stealth*100) + "% harder to spot") +
-    row("Max health", Math.round(st.maxHealth)) + row("Dash cooldown", (st.dashCooldownMs/1000).toFixed(1) + " s");
+    row("Max health", Math.round(st.maxHealth)) + (st.shield ? row("Shield", Math.round(st.shield) + " (absorbs hits first)") : "") + row("Dash cooldown", (st.dashCooldownMs/1000).toFixed(1) + " s");
   html += '<div class="small">' + Object.keys(P.skills).map(id => esc(P.skills[id].name) + " L" + skillLevel(id) +
     (skillNextXp(id) !== null ? " (" + Math.floor(skillXp(id)) + "/" + skillNextXp(id) + " xp)" : " (max)")).join(" · ") + '</div>';
   if(gear && gear.length) html += '<div class="small">Gear at risk: ' + gear.map(g => esc(ITEMS[g].name)).join(", ") + '</div>';
@@ -1810,6 +1811,7 @@ function skillXpFrom(r){
   return { mobility: n(t.distanceM)*K.mobility.xp.perMetre + n(t.dashes)*K.mobility.xp.perDash,
            stealth: n(t.holdNodes)*K.stealth.xp.perHoldNode,
            search: Math.min(n(t.searches), 20) * K.search.xp.perSearch,
+           vitality: n(t.damageTaken)*K.vitality.xp.perDamage + n(t.healed)*K.vitality.xp.perHeal + (r.outcome === "extract" ? K.vitality.xp.perSurvive : 0),
            crafting: r.outcome === "extract" ? Math.min(items, 50) * K.crafting.xp.perItemExtracted : 0 };
 }
 function newCoreLaunch(rand){

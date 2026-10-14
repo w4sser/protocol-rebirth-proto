@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.42.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.42.0';
-import {emptyBag,bagItems} from './raid.js?v=1.42.0';
-import {traceTargets} from './physics.mjs?v=1.42.0';
+import {generateLevel,RULES} from './levels.js?v=1.43.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.43.0';
+import {emptyBag,bagItems} from './raid.js?v=1.43.0';
+import {traceTargets} from './physics.mjs?v=1.43.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -11,7 +11,7 @@ export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now,stats=RULES.playerStats.base) {
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -57,7 +57,7 @@ export function swapLoot(round,boxId,dropId,now){
 // Medkits brought from base (round.kit) are used before looted ones; both are lost on death.
 export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||(!kit&&!round.bag.medkit)||round.health>=max)return false;
-  if(kit)round.kit.medkit--;else round.bag.medkit--;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);return true;
+  if(kit)round.kit.medkit--;else round.bag.medkit--;const before=round.health;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.healed=(round.telemetry.healed||0)+round.health-before;return true;
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
@@ -78,7 +78,9 @@ export function tickRound(round,now) {
 export function takeDamage(round,amount,now){
   tickRound(round,now);
   if(round.over || !Number.isFinite(amount) || amount<=0)return false;
-  if(round.telemetry)round.telemetry.damageTaken+=Math.min(amount,round.health);
+  // Vest shield (v1.43) absorbs damage first; it does not regenerate.
+  const absorbed=Math.min(round.shield||0,amount);if(absorbed){round.shield-=absorbed;amount-=absorbed;}
+  if(round.telemetry)round.telemetry.damageTaken+=absorbed+Math.min(amount,round.health);
   round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';}
   return true;

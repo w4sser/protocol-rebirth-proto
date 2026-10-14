@@ -223,8 +223,8 @@ Konstanterna finns i `data/progression.js → playerStats` (meta) och `nodspel/l
 **Utrustning** (armor-slotten i raid-prep, `stats` i `data/items.js`):
 | Item | Modifierare | Källa |
 |---|---|---|
-| Scavenger Vest | +15 HP | startstash, vendor, recept |
-| Scout Rig | +0,45 m/s, +5 HP | vendor (120 scrap), Node Raid-loot nivå 2–3 |
+| Scavenger Vest | 25 sköld (v1.43) | startstash, vendor, recept |
+| Scout Rig | +0,45 m/s, 10 sköld (v1.43) | vendor (120 scrap), Node Raid-loot nivå 2–3 |
 | Dampener Cloak | +0,18 stealth, +0,1 m/s, −10 HP | Node Raid-loot nivå 3 |
 
 **Flöde:** meta räknar ut `bas + skills + gear` och clampar. Värdena skickas som `&stats=spd:3.6,stl:0,hp:100,dcd:4000&gear=scout_rig`.
@@ -253,7 +253,18 @@ Bond-XP (BIT) är oförändrad och separat.
   - +1 vid operatörsnivå 8 och +1 vid nivå 15. Max 10.
 - **Byggsignaler:** rum som kan byggas lyser och studsar, BASE-fliken visar antalet och BUILD pulserar i modulvyn. På resultatskärmen är RETURN TO BASE alltid primär.
 
-## 11. Vapen och förbrukningsvaror i Node Raid (v1.42.0)
+### 10d. Vitality och sköld (v1.43.0)
+- **Vitality är tillbaka** som auto-skill:
+  - Ger +3 max HP per nivå, max +30 vid L10.
+  - XP: 0,1 per tagen skada, 0,2 per läkt HP (`RaidResult.skills.healed`) och 5 per lyckad extract.
+  - Sparad vitality-XP behålls.
+- **Sköld från västar:**
+  - Ger inte längre HP. Scavenger Vest ger 25 och Scout Rig 10.
+  - Värdena ligger i `items.stats.shield` och skickas som `shd:` i `?stats=`. Core clampar till 0–100.
+  - Skölden tar skada före HP och regenererar inte.
+  - HUD visar SHIELD bredvid HEALTH och en blå stapel ovanför spelarens HP-stapel.
+
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.43.0)
 
 **Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
 
