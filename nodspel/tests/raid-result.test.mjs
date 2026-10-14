@@ -11,7 +11,7 @@ test('death after a level exit loses everything carried in the raid',()=>{
   takeDamage(r,1000,11);
   const {skills,stats,gear,weapon,kitLeft,...res}=buildRaidResult(r,{endedAt:5});
   assert.deepEqual(gear,[]);assert.equal(weapon,'basic_carbine');assert.deepEqual(kitLeft,{medkit:0});assert.equal(stats.speed,3.6);assert.equal(skills.damageTaken,100);
-  assert.deepEqual(res,{schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:rr-death',seed:'rr-death',outcome:'death',reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:r.nodesLit,remainingMs:r.remainingMs,extracted:[],lost:['cable','fuse'],endedAt:5});
+  assert.deepEqual(res,{schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:rr-death',seed:'rr-death',area:'bunker',outcome:'death',reason:'death',levelsCleared:1,enemiesDefeated:0,nodesLit:r.nodesLit,remainingMs:r.remainingMs,extracted:[],lost:['cable','fuse'],endedAt:5});
 });
 test('result is written as JSON under the shared key',()=>{
   const r=createRound('rr-w',0);takeDamage(r,1000,1);const store={};

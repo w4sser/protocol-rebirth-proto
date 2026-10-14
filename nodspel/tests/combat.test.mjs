@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy} from '../round.js';
-import {generateLevel} from '../levels.js';
+import {generateLevel,RULES} from '../levels.js';
 const combat=await import('../combat.js').catch(()=>({}));
 // Baseline combat rules, without the gentler level-one tuning.
 const baseline=r=>Object.assign(r.level,{enemyDamage:undefined,enemyWindupMs:0,firstGraceMs:undefined,enemyCooldownMs:undefined});
@@ -11,7 +11,7 @@ test('an enemy fires after spawn grace and its projectile can damage the player'
   const c=combat.createCombat(r.level,0);
   combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);assert.equal(c.projectiles.length,0);
   combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
-  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[]);assert.equal(r.health,80);
+  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[]);assert.equal(r.health,100-RULES.combat.damage);
 });
 test('walls block enemy sight and a defeated enemy stops firing',()=>{
   assert.equal(typeof combat.createCombat,'function');

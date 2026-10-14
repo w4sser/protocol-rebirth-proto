@@ -1,10 +1,10 @@
-import {townizeLevel} from './town-layout.js?v=1.43.0';
+import {townizeLevel} from './town-layout.js?v=1.44.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Open Room'},
-    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1500,title:'Narrow Passage'},
-    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,title:'Dead End'},
+    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
   ],
   roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
@@ -18,7 +18,7 @@ export const RULES=Object.freeze({
   // early parts on level 1, mid parts on level 2, rare parts deeper. salvage_crate/data_core turn into
   // Salvage/Data Cores in the base (item-sourced currency). See docs/meta-core-integration.md §8.
   loot:{capacity:4,maxCapacity:10,counts:[1,6,3],
-    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core'],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey'],
     weights:[
       {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
@@ -46,7 +46,7 @@ export const RULES=Object.freeze({
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
-  killReward:{ammo:1,health:15},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:20,bulletSpeed:9,graceMs:3000,standoff:3.5},
+  killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
@@ -70,10 +70,21 @@ export function houseItem(kind,number,roll){if(kind==='medicine_cabinet')return 
   if(kind==='loot_crate'&&roll<HOUSE_LOOT.crateRelay[number-1])return 'power_relay';
   return pickWeighted(RULES.loot.weights[number-1],kind==='loot_crate'?(roll-HOUSE_LOOT.crateRelay[number-1])/(1-HOUSE_LOOT.crateRelay[number-1]||1):roll);}
 let AREA='bunker';
-export const AREAS=['bunker','town'];
+export const AREAS=['bunker','archipelago','town'];
+// v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker → Archipelago → Town.
+// hpMul/dmgMul scale enemies (rounded), extraEnemies adds seeded enemies per level, mix overrides the
+// enemy-type mix, lootFrom blends the next level's table in (more T2), scout = guaranteed map item that
+// unlocks the next area in meta when extracted. Level index = zone (1..3).
+export const AREA_RULES={
+  bunker:{hpMul:1,dmgMul:1,extraEnemies:[0,0,0],scout:{level:3,item:'archipelago_chart'}},
+  archipelago:{hpMul:1.25,dmgMul:1.15,extraEnemies:[0,1,2],sizeMul:1.25,lootNext:true,
+    mix:[{grunt:.7,rusher:.3},{grunt:.4,rusher:.35,sentry:.25},{grunt:.3,rusher:.4,sentry:.3}],scout:{level:3,item:'town_survey'}},
+  town:{hpMul:1.4,dmgMul:1.25,extraEnemies:[0,0,0]}};
 export function setArea(a){AREA=AREAS.includes(a)?a:'bunker';return AREA;}
 export function generateLevel(number,roundSeed,area=AREA){
-  const rule=RULES.levels[number-1];if(!rule)throw new RangeError('Level must be 1, 2 or 3.');
+  const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');
+  const AR=AREA_RULES[area]??AREA_RULES.bunker,sm=AR.sizeMul??1;
+  const rule=sm===1?base:{...base,size:{w:base.size.w.map(v=>v*sm),d:base.size.d.map(v=>v*sm)}},spacingR=RULES.spacing.map(v=>v*sm);
   const seed=`${roundSeed}:${number}`,rng=randomFromSeed(seed);
   const suffix=String(roundSeed).match(/-(\d+)$/),choiceRng=randomFromSeed(`${roundSeed}:choices`);
   const shortSide=suffix?(Number(suffix[1])%2?-1:1):(choiceRng()<.5?-1:1);
@@ -86,7 +97,7 @@ export function generateLevel(number,roundSeed,area=AREA){
     if(i){
       const prev=rooms[i-1];
       const choices=RULES.directions.filter(dir=>!equal(dir,prev.incoming??{x:0,z:1}));
-      const dir=number===2?{x:-shortSide,z:0}:pick(choices),spacing=between(...RULES.spacing);
+      const dir=number===2?{x:-shortSide,z:0}:pick(choices),spacing=between(...spacingR);
       room.x=prev.x+dir.x*spacing;room.z=prev.z+dir.z*spacing;
       prev.doors.push(dir);room.incoming=opposite(dir);room.doors.push(room.incoming);
       const a={x:prev.x+dir.x*prev.w/2,z:prev.z+dir.z*prev.d/2};
@@ -160,20 +171,39 @@ export function generateLevel(number,roundSeed,area=AREA){
         break;
       }
     }
-    const item=number===2&&i===1?'medkit':pickWeighted(RULES.loot.weights[number-1],lootRng());
+    const table=AR.lootNext?{...RULES.loot.weights[number-1],...Object.fromEntries(Object.entries(RULES.loot.weights[Math.min(number,2)]).map(([k,w])=>[k,(RULES.loot.weights[number-1][k]??0)+w]))}:RULES.loot.weights[number-1];
+    const item=number===2&&i===1?'medkit':pickWeighted(table,lootRng());
     lootBoxes.push({id:`loot-${i+1}`,...point,marked,item,collected:false});
   }
   const routeChoices=number===2?[
-    {kind:'node',dir:corridors[0].dir,length:RULES.spacing[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
+    {kind:'node',dir:corridors[0].dir,length:spacingR[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
   const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+  if(area!=='bunker')level.area=area;
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
     if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr());}}
+  if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;}
+  applyAreaRules(level,AR);
   return level;
 }
 
+// Area difficulty + scouting item on top of the seeded layout (bunker = identity apart from the scout item).
+export function applyAreaRules(level,AR){
+  const n=level.number,rng=randomFromSeed(`${level.seed}:area`);
+  if(AR.mix)for(const [i,e] of level.enemies.entries())if(i>0){const t=RULES.enemyTypes[pickWeighted(AR.mix[n-1],rng())],g=RULES.enemyTypes.grunt;
+    e.speed=(e.speed??0)/(RULES.enemyTypes[e.type]?.speedMul||1)*(t.speedMul||0);e.type=Object.keys(RULES.enemyTypes).find(k=>RULES.enemyTypes[k]===t);e.rangeMul=t.rangeMul;e.cooldownMul=t.cooldownMul;e.standoff=t.standoff;}
+  const solids=[...level.walls,...level.boxes],keep=[level.start,level.exit,...level.nodes];
+  for(let k=0;k<(AR.extraEnemies?.[n-1]??0);k++){const room=level.rooms[(k+1)%level.rooms.length],src=level.enemies.at(-1);
+    for(let a=0;a<300;a++){const p={x:room.x+(rng()-.5)*(room.w-3),z:room.z+(rng()-.5)*(room.d-3)};
+      if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.8&&Math.abs(p.z-o.z)<o.d/2+.8))continue;
+      if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<4)||level.enemies.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<1.5))continue;
+      level.enemies.push({...src,id:`enemy-${level.enemies.length+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,active:true,extra:true});break;}}
+  for(const e of level.enemies)e.health=Math.max(1,Math.round((e.health??RULES.enemyHealth)*AR.hpMul));
+  level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*AR.dmgMul);
+  if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
+}
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.
 function decorateLevel(level){
   const v=RULES.variety[level.number-1],rng=randomFromSeed(`${level.seed}:variety`);

@@ -69,7 +69,7 @@ test('level one enemy takes two shots and refills take 0.7 seconds',()=>{
   const r=createRound('balance',0),w=weapon.createWeapon();
   const foe=r.level.enemies[0];foe.x=3;foe.z=0;r.level.nodes=[];
   assert.equal(RULES.weapon.reloadMs,700);
-  assert.equal(RULES.combat.damage,20);
+  assert.equal(RULES.combat.damage,22,'v1.44: +10% enemy damage');
   assert.equal(foe.health,RULES.weapon.damage*2);
   for(let i=0;i<2;i++){
     assert.ok(weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},i*200));

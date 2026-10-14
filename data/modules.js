@@ -26,11 +26,23 @@ window.DATA.modules = [
         artBefore:"assets/production/core_dim.webp",
         artAfter:"assets/production/core_powered.webp",
         artAdd:"grid",
-        newGoal:"A new zone is open. The good electronics are there." }
+        newGoal:"A new zone is open. The good electronics are there." },
+      // v1.44: Core L3 gives access to the Town (with a Town Survey scouting extract) and Storage L3.
+      { level:3,
+        cost:{ scrap:240, items:{ power_relay:2, memory_module:2, encrypted_drive:1 } },
+        unlocks:["area_town_access","module_caps_3"],
+        unlockText:"Full output. BIT can reach the long-range relay toward the Town.",
+        benefitText:"Town access (scout it with a Town Survey from the Archipelago). Storage can reach L3.",
+        preview:{ before:"Stable power, but the long-range relay is still dark.",
+                  after:["Town area access on the world map","Storage can reach L3"] },
+        artBefore:"assets/production/core_dim.webp",
+        artAfter:"assets/production/core_powered.webp",
+        artAdd:"grid",
+        newGoal:"Scout the Town: extract a Town Survey from the Archipelago." }
     ]
   },
   {
-    id:"fabricator", name:"Fabricator", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2},
+    id:"fabricator", name:"Fabricator", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2,"3":2},
     blurb:"Turns junk into ammunition, meds and parts.",
     benefit:"Plan raids · Craft gear · Recycle junk",
     levels:[
@@ -56,7 +68,7 @@ window.DATA.modules = [
     ]
   },
   {
-    id:"bit_bay", name:"BIT Bay", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2},
+    id:"bit_bay", name:"BIT Bay", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2,"3":2},
     blurb:"Where BIT lives, heals, and levels the bond.",
     benefit:"Loot intel · Recovery support",
     levels:[

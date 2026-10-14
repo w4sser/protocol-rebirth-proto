@@ -282,3 +282,59 @@ Fiender har 3 HP: Basic och SMG behöver 3 träffar, geväret 2 och hagelgeväre
 **Medkits:** Medkits i förbrukningsslotsen (max 2) skickas som `?kit=medkit:n` och dras från stashen vid deploy. I raid används de med **Q** eller ✚-knappen (+30 HP); medkits från basen används före lootade. RaidResult rapporterar `kitLeft`. Vid extract kommer oanvända medkits hem, vid död förloras de. Ammo Pack påverkar bara den simulerade raiden.
 
 RaidResult har nya fält: `weapon` (id) och `kitLeft: {medkit}`.
+
+
+## 12. Områdesprogression och världskarta (v1.44.0)
+
+**Ordning:** Bunker (start) → Archipelago → Town.
+
+**Upplåsning sker i två steg (`DATA.worldMap` i `data/progression.js`):**
+1. Core-nivå ger åtkomst: Core L2 öppnar Archipelago och Core L3 öppnar Town.
+2. Spanaruppdrag: extracta med kartföremålet från föregående område.
+   - **Archipelago Chart** ligger alltid i Bunker zon 3.
+   - **Town Survey** ligger alltid i Archipelago zon 3.
+   - Föremålet förbrukas och sätter `S.areaScouted[id]`.
+
+**Core L3 och gamla saves:**
+- Core L3 kostar 240 scrap + 2× Power Relay + 2× Memory Module + 1× Encrypted Drive. Storage L3 kräver redan Core 3.
+- Gamla saves får inget grandfathering: ett låst sparat område faller tillbaka till Bunker.
+- `?debug` i meta-URL:en eller `A.debugUnlockAreas()` låser upp allt.
+
+**Zoner:**
+- En zon motsvarar ett level-index (1–3) i core.
+- `RaidResult.levelsCleared` tänder zonerna per område (`S.areaZones`). Detta gäller vid alla utfall.
+- `RaidResult.area` anger vilket område som faktiskt spelades.
+
+**Världskartan:**
+- Ersätter Bunker/Town-växlaren i lobbyn.
+- Bakgrunden är `assets/map/world_placeholder.svg`. Byt fil eller ändra `background` för att byta bild.
+- Regionerna anges i procent av bilden. Låsta regioner visas dimmiga med 🔒 och kravtext.
+
+### Svårighet (v1.44.0)
+
+**Globalt (L1 orörd för FTUE):**
+
+| Värde | Före | Efter |
+|---|---|---|
+| Fiendeskada | 20 | 22 |
+| Cooldown L2 | 1500 ms | 1400 ms |
+| Cooldown L3 | 1500 ms | 1350 ms |
+| Kill-läkning | +15 HP | +12 HP |
+
+**Per område (`AREA_RULES` i `nodspel/levels.js`):**
+
+| Område | Fiende-HP × | Skada × | Extra fiender L1/L2/L3 | Övrigt |
+|---|---|---|---|---|
+| Bunker | 1 | 1 | 0/0/0 | – |
+| Archipelago | 1,25 | 1,15 | 0/1/2 | Rum och avstånd ×1,25 (öppnare). Fler rushers. Lootbordet blandas med nästa nivås (mer T2). |
+| Town | 1,4 | 1,25 | 0/0/0 | Layout som tidigare. |
+
+Fiende-HP avrundas. Exempel: L2 har 2 HP, vilket blir 3 i Archipelago och 3 i Town.
+
+**Archipelago (`nodspel/archipelago.js`, första versionen):**
+- Rum renderas som öar (gräs och sand) på mörkt vatten och korridorer som träbryggor.
+- Väggar renderas som stenrader. Kollisionen är oförändrad och fungerar som naturlig gräns.
+- Props renderas som tallar från town-kitets `pine_tree.glb`, med en kon som reserv om filen inte laddar.
+- Båtarna ligger offshore och är bara visuella.
+
+**Sköldstapeln i HUD:** 64×9 px med ljus kant och glöd, så att den syns tydligt på telefon.
