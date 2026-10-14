@@ -3,7 +3,7 @@
 // World = c + R(ry)·local with x' = x cos + z sin, z' = -x sin + z cos.
 export const HOUSE={inner:4,wall:.2,height:2.6,door:1.0,gap:1.24,doorReach:1.35,doorMs:450,searchReach:1.05,searchMs:1600};
 // dims [w,h,d] mirror house_interior/manifest.json (approx_dimensions_m)
-export const HOUSE_DIMS={floor_4m:[4.3,.12,4.3],wall_plain_4m:[4,2.6,.16],wall_doorway_4m:[4,2.6,.16],wall_window_4m:[4,2.6,.16],door_closed:[.94,2.08,.07],door_open:[.07,2.08,.94],roof_removable_4m:[4.5,.16,4.5],table_small:[1.35,.84,.85],chair_wood:[.55,1.58,.55],sofa_two_seat:[2,1.5,.9],bed_single:[1.2,.87,2],kitchen_counter:[1.55,1.06,.72],fridge:[.82,1.85,.8],wardrobe:[1.05,1.68,.52],bookshelf:[1,1.45,.48],loot_crate:[.75,.72,.58],medicine_cabinet:[.52,.76,.4]};
+export const HOUSE_DIMS={floor_4m:[4.3,.22,4.3],wall_plain_4m:[4.05,2.6,.22],wall_doorway_4m:[4.05,2.6,.23],wall_window_4m:[4.05,2.6,.22],door_closed:[.94,2.08,.13],door_open:[.09,2.08,.94],roof_removable_4m:[4.5,.33,4.5],table_small:[1.42,.94,.9],chair_wood:[.55,1.54,.55],sofa_two_seat:[2,1.2,.9],bed_single:[1.2,.87,2],kitchen_counter:[1.58,1.05,.76],fridge:[.82,1.84,.8],wardrobe:[1.05,1.68,.52],bookshelf:[1,1.44,.5],loot_crate:[.76,.7,.58],medicine_cabinet:[.52,.76,.4]};
 export const HOUSE_KINDS=Object.keys(HOUSE_DIMS);
 // Furniture (local). rot = quarter turns; front of a prop faces local (-sin,-cos)(rot·90°).
 // The lane |x|<.6 from the doorway to the room centre stays empty.
