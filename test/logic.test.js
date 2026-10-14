@@ -240,13 +240,14 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.deepEqual(app.playerStats([]), P.base, "new player = base stats");
   const vest = app.playerStats(["scavenger_vest"]);
   assert.equal(vest.maxHealth, P.base.maxHealth + 15);
-  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:105,dcd:4000");
+  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:105,dcd:4000,srch:1");
   const url = app.coreLaunchUrl("meta-x", "s", "../", { stats:app.playerStats([]), gear:["scout_rig"] });
-  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000&gear=scout_rig"), url);
+  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000%2Csrch%3A1&gear=scout_rig"), url);
   // skills from usage
   const xp = app.skillXpFrom({ skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } });
-  assert.deepEqual(xp, { mobility:50, stealth:10, crafting:0 });
-  assert.deepEqual(Object.keys(P.skills), ["mobility","stealth","crafting"], "three automatic skills");
+  assert.deepEqual(xp, { mobility:50, stealth:10, search:0, crafting:0 });
+  assert.equal(app.skillXpFrom({ skills:{ searches:3 } }).search, 3 * P.skills.search.xp.perSearch, "search xp from containers");
+  assert.deepEqual(Object.keys(P.skills), ["mobility","stealth","search","crafting"], "four automatic skills");
   assert.equal(app.skillXpFrom({ outcome:"extract", extracted:["a","b","c"], skills:{} }).crafting, 3, "crafting xp from extracted items");
   assert.equal(app.skillXpFrom({ outcome:"death", extracted:["a"], skills:{} }).crafting, 0);
   assert.equal(app.skillLevel("mobility", 19), 0); assert.equal(app.skillLevel("mobility", 20), 1);
@@ -287,9 +288,11 @@ console.log("ALL LOGIC TESTS PASSED");
   // Raid bag capacity: base 4, Storage +2, armour pockets; passed to core as &bag=
   st.modules.storage = 0;
   assert.equal(app.raidBagCapacity([]), 4);
-  assert.equal(app.raidBagCapacity(["scavenger_vest"]), 6, "vest adds pockets");
+  assert.equal(app.raidBagCapacity(["scavenger_vest"]), 5, "vest adds a pocket");
   st.modules.storage = 1;
-  assert.equal(app.raidBagCapacity(["scout_rig"]), 7, "Storage upgrade raises raid bag");
+  assert.equal(app.raidBagCapacity(["scout_rig"]), 6, "Storage L1 raises raid bag");
+  st.modules.storage = 3; assert.equal(app.raidBagCapacity(["scout_rig"]), 8, "each Storage level +1");
+  st.opXp = 1e6; assert.equal(app.raidBagCapacity(["scout_rig"]), 10, "operator milestones; capped at 10"); st.opXp = 0; st.modules.storage = 1;
   assert(app.coreLaunchUrl("m", "s", "../", { bag:7 }).includes("&bag=7"));
   console.log("player stats OK");
 }

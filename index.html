@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.41.1" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.41.1">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.42.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.42.0">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -473,6 +473,14 @@
   .ptarget i{font-style:normal; font-size:24px;} .ptarget small{display:block; font:800 12px "Archivo",sans-serif; letter-spacing:.08em; color:var(--dim);} .ptarget b{font-size:15px;}
   .deploybar{position:sticky; bottom:0; z-index:10; padding:6px 0 4px; background:linear-gradient(transparent,var(--bg) 30%);}
   .deploybar button.primary.big{margin:0;}
+  /* Build cues (owner 14 Oct): buildable rooms glow + bounce, BASE tab counts them, BUILD pulses */
+  .mapspot.plate.buildable .tag{box-shadow:0 0 0 2px var(--accent,#3ee6d2),0 0 18px rgba(62,230,210,.7); animation:buildglow 1.6s ease-in-out infinite;}
+  .mapspot.plate.buildable .badge{top:50%; right:-14px; margin-top:-12px; animation:buildbounce 1.2s ease-in-out infinite;}
+  @keyframes buildglow{0%,100%{box-shadow:0 0 0 2px var(--accent,#3ee6d2),0 0 8px rgba(62,230,210,.4)}50%{box-shadow:0 0 0 2px var(--accent,#3ee6d2),0 0 22px rgba(62,230,210,.9)}}
+  @keyframes buildbounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}60%{transform:translateY(0)}}
+  #tabs .badge.build{background:var(--accent,#3ee6d2); color:#04201c;}
+  button.primary.build-ready{animation:buildglow 1.6s ease-in-out infinite;}
+  @media (prefers-reduced-motion:reduce){ .mapspot.plate.buildable .tag,.mapspot.plate.buildable .badge,button.primary.build-ready{animation:none;} }
   /* PRB-9: readable checkpoint */
   .cp-haul{margin:6px 0;} .cp-haulhead{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
   .cp-value{font-size:30px; color:var(--warn,#ffb547); line-height:1;} .cp-value small{font-size:14px; opacity:.8;}
@@ -646,13 +654,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()">‹</button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.41.1</div>
+    <div id="app-version">v1.42.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙</button>
     <div id="settings-menu" class="menu" role="menu" hidden>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device">↺ Reset progress</button>
       <button id="devbtn" type="button" role="menuitem">🛠 Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.41.1</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.42.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -667,15 +675,15 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon">📱</div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.41.1"></script>
-<script src="data/modules.js?v=1.41.1"></script>
-<script src="data/bit.js?v=1.41.1"></script>
-<script src="data/raid_zones.js?v=1.41.1"></script>
-<script src="data/recipes.js?v=1.41.1"></script>
-<script src="data/vendors.js?v=1.41.1"></script>
-<script src="data/retention.js?v=1.41.1"></script>
-<script src="data/progression.js?v=1.41.1"></script>
-<script src="data/combat.js?v=1.41.1"></script>
-<script src="app.js?v=1.41.1"></script>
+<script src="data/items.js?v=1.42.0"></script>
+<script src="data/modules.js?v=1.42.0"></script>
+<script src="data/bit.js?v=1.42.0"></script>
+<script src="data/raid_zones.js?v=1.42.0"></script>
+<script src="data/recipes.js?v=1.42.0"></script>
+<script src="data/vendors.js?v=1.42.0"></script>
+<script src="data/retention.js?v=1.42.0"></script>
+<script src="data/progression.js?v=1.42.0"></script>
+<script src="data/combat.js?v=1.42.0"></script>
+<script src="app.js?v=1.42.0"></script>
 </body>
 </html>

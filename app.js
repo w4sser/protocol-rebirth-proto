@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.41.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.42.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -665,6 +665,8 @@ function renderCurrencies(){
 }
 function navAllowed(id){ return id === "bit" ? bitOnline() : baseAllows("navigation", id); }
 function navBadge(id){
+  // Owner 14 Oct: the base tab counts what can be built right now.
+  if(id === "base"){ const n = buildableCount(); if(n) return ["up build", String(n)]; }
   if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
   if(id === "stash" && stashSlotsUsed() > stashCapacity()) return ["alert","!"];
   if(id === "bit" && contractsUnlocked()){
@@ -875,7 +877,7 @@ function nextUpgradeHtml(){
     return '<div class="nextup"><div class="nu-head">✔ READY TO BUILD</div>' +
       '<b>' + esc(c.m.name) + ' L' + c.next.level + '</b> <span class="small">— ' + esc(c.next.unlockText) + '</span>' +
       '<div class="nubar"><div style="width:100%"></div></div>' +
-      '<button class="primary" onclick="A.goBuild(\'' + c.m.id + '\')">BUILD IT NOW</button></div>';
+      '<button class="ghost" onclick="A.goBuild(\'' + c.m.id + '\')">BUILD IT NOW</button></div>';
   }
   const missTxt = c.missing.map(p => (p.need-p.have) + "× " + partName(p)).join(" · ");
   return '<div class="nextup"><div class="nu-head">NEXT UPGRADE — ' + pct + '%</div>' +
@@ -970,6 +972,7 @@ function goalPillHtml(nextRoom){
   return pill("", "🎯", "CURRENT GOAL", curBeat().goalText || "", null);
 }
 function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
+  if(badge && badge[1] === "⚒") cls += " buildable";   // glow + bounce on rooms that can be built now
   return '<button type="button" class="mapspot plate ' + cls + '" style="' + style + '" ' + attrs + '>' +
     '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">' + level + '</em>' : '') + '</span>' +
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
@@ -1096,7 +1099,7 @@ SCREENS.module = function(modId){
     } else {
       // PRB-45: pinned action bar so BUILD is reachable at 844×390 without scrolling
       html += '<div class="actionbar"><button class="ghost" onclick="A.track(\'' + modId + '\',' + next.level + ')">' + (isTracked ? "◉ Tracking (tap to untrack)" : "○ Track this upgrade") + '</button>';
-      html += '<button class="primary" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">BUILD</button></div>';
+      html += '<button class="primary' + (canAfford(next.cost) ? ' build-ready' : '') + '" ' + (canAfford(next.cost) ? "" : "disabled") + ' onclick="A.build(\'' + modId + '\')">' + (canAfford(next.cost) ? '⚒ BUILD' : 'BUILD') + '</button></div>';
     }
   }
   // Curated self-expression: cosmetic look for this room (unlocks once the room is built)
@@ -1486,10 +1489,9 @@ SCREENS.result = function(){
     }
     if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT — ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
-  // PRB-45/46: the primary next step (BUILD IT NOW when ready) lives in a pinned action bar with RETURN TO BASE
-  const nu = nextUpgradeHtml(), buildBtn = (nu.match(/<button class="primary" onclick="A\.goBuild\([^)]*\)">BUILD IT NOW<\/button>/) || [""])[0];
-  html += buildBtn ? nu.replace(buildBtn, "") : nu;
-  html += '<div class="actionbar">' + buildBtn + '<button class="ghost" onclick="A.backToBase()">RETURN TO BASE</button></div>';
+  // PRB-10/46 (owner 14 Oct): RETURN TO BASE is the pinned primary; the base itself shows what can be built.
+  html += nextUpgradeHtml();
+  html += '<div class="actionbar"><button class="primary" onclick="A.backToBase()">RETURN TO BASE</button></div>';
   $app().innerHTML = html;
 };
 
@@ -1498,7 +1500,8 @@ SCREENS.operator = function(){
   $app().setAttribute("class", "s-operator");
   const op = operatorLevel(), P = PROG.playerStats, bar = (v, max) => '<span class="pbar"><span style="width:' + Math.round(100 * Math.min(1, max ? v / max : 1)) + '%"></span></span>';
   const effect = id => id === "mobility" ? "+" + (P.skills.mobility.perLevel.speed * skillLevel(id)).toFixed(2) + " m/s" :
-    id === "stealth" ? Math.round(P.skills.stealth.perLevel.stealth * skillLevel(id) * 100) + "% harder to spot" : "−" + Math.round(craftDiscount() * 100) + "% Scrap";
+    id === "stealth" ? Math.round(P.skills.stealth.perLevel.stealth * skillLevel(id) * 100) + "% harder to spot" :
+    id === "search" ? "−" + Math.round(-P.skills.search.perLevel.searchMult * skillLevel(id) * 100) + "% search time" : "−" + Math.round(craftDiscount() * 100) + "% Scrap";
   let html = '<h1>OPERATOR</h1><div class="opgrid">';
   html += '<div class="card opcard"><div class="ophead"><b class="opbig">' + op.level + '</b><span>LEVEL<br><small>' + (op.need ? op.into + ' / ' + op.need + ' XP' : 'MAX') + '</small></span></div>' +
     bar(op.into || 0, op.need) + '<div class="small ok">🏃 +' + Math.round(operatorSpeedBonus() * 100) + '% speed <span class="muted">(+' + Math.round(P.operatorSpeed.perLevel * 100) + '%/level, max ' + Math.round(P.operatorSpeed.cap * 100) + '%)</span></div></div>';
@@ -1750,11 +1753,12 @@ function starsHtml(id){ const n = masteryStars(id); return '<span class="stars" 
 // Node Raid bag capacity: base + built modules + armour pockets (data/progression.js → raidBag, items.bagSlots).
 function raidBagCapacity(gear){
   const B = PROG.raidBag; let n = B.base;
-  for(const m in B.modules) if((S.modules[m] || 0) >= 1) n += B.modules[m];
+  for(const m in B.moduleLevels) B.moduleLevels[m].forEach((v, i) => { if((S.modules[m] || 0) >= i + 1) n += v; });
+  const ol = operatorLevel().level; for(const l in B.operatorLevels) if(ol >= +l) n += B.operatorLevels[l];
   for(const g of (gear || [])) n += (ITEMS[g] && ITEMS[g].bagSlots) || 0;
   return Math.min(B.max, n);
 }
-function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs); }
+function statsParam(st){ return "spd:" + st.speed + ",stl:" + st.stealth + ",hp:" + Math.round(st.maxHealth) + ",dcd:" + Math.round(st.dashCooldownMs) + ",srch:" + st.searchMult; }
 const FREE_WEAPON = PROG.freeWeapon;
 // Gear at risk in a Node Raid: armour + any non-free weapon (Basic is free and never lost).
 function nodeRaidGear(){
@@ -1805,6 +1809,7 @@ function skillXpFrom(r){
   const items = Array.isArray(r.extracted) ? r.extracted.reduce((a, x) => a + (typeof x === "string" ? 1 : n(x && x.qty) || 1), 0) : 0;
   return { mobility: n(t.distanceM)*K.mobility.xp.perMetre + n(t.dashes)*K.mobility.xp.perDash,
            stealth: n(t.holdNodes)*K.stealth.xp.perHoldNode,
+           search: Math.min(n(t.searches), 20) * K.search.xp.perSearch,
            crafting: r.outcome === "extract" ? Math.min(items, 50) * K.crafting.xp.perItemExtracted : 0 };
 }
 function newCoreLaunch(rand){

@@ -62,7 +62,7 @@ window.DATA.items = [
     slot:"weapon", weapon:{ dmg:3, mag:2, rld:1000, int:600, rng:4.5, cone:18, ast:22, spr:0 },
     desc:"One shell, one drone — if you get close.", uses:["loadout"] },
   { id:"scavenger_vest", name:"Scavenger Vest", family:"gear", rarity:"common", sellValue:45, stackSize:1,
-    slot:"armor", stats:{ maxHealth:15 }, bagSlots:2, desc:"More pockets than protection.", uses:["loadout"] },
+    slot:"armor", stats:{ maxHealth:15 }, bagSlots:1, desc:"More pockets than protection.", uses:["loadout"] },
   { id:"scout_rig", name:"Scout Rig", family:"gear", rarity:"uncommon", sellValue:80, stackSize:1,
     slot:"armor", stats:{ speed:0.45, maxHealth:5 }, bagSlots:1, desc:"Light webbing and good boots. You move like you mean it.", uses:["loadout"] },
   { id:"dampener_cloak", name:"Dampener Cloak", family:"gear", rarity:"rare", sellValue:110, stackSize:1,

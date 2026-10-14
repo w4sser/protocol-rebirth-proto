@@ -244,7 +244,16 @@ Bond-XP (BIT) är oförändrad och separat.
 - **Vapenmästerskap:** kills per vapen (`RaidResult.enemiesDefeated` + `weapon`) ger stjärnor vid 10, 30 och 75 kills. Varje stjärna ger −6 % reload och −4 % skottintervall och skickas via `?w=`. Core clampar som tidigare.
 - **Operatörspanel:** öppnas genom att trycka på LV-pillret i topbaren eller på Operator-kortet i raid-prep. Den visar nivå, speed-bonus, skills med progressbar och stjärnor per vapen.
 
-## 11. Vapen och förbrukningsvaror i Node Raid (v1.41.1)
+### 10c. Search-skill, väskkapacitet och byggsignaler (v1.42.0)
+- **Search** (auto-skill): 4 XP per genomsökt container (`RaidResult.skills.searches`). Varje nivå ger −4 % söktid, max −40 %. Värdet skickas som `srch:` i `?stats=`, och core clampar till 0,6–1.
+- **Raid-väskan:**
+  - Bas 4.
+  - +1 per Storage-nivå (L1/L2/L3; L3 kräver Core 3).
+  - Scavenger Vest +1 eller Scout Rig +1 (bara en armor-plats).
+  - +1 vid operatörsnivå 8 och +1 vid nivå 15. Max 10.
+- **Byggsignaler:** rum som kan byggas lyser och studsar, BASE-fliken visar antalet och BUILD pulserar i modulvyn. På resultatskärmen är RETURN TO BASE alltid primär.
+
+## 11. Vapen och förbrukningsvaror i Node Raid (v1.42.0)
 
 **Vapen styr core.** Varje vapen i `data/items.js` har ett `weapon`-block. Meta skickar det som `?w=id:<id>,dmg:..,mag:..,rld:..,int:..,rng:..,cone:..,ast:..,spr:..`. Core (`readWeapon` i `nodspel/raid-result.js`) godtar bara kända id (`RULES.weaponIds`) och klampar varje värde mot `RULES.weaponClamp`. Okänt eller saknat vapen ger Basic (`RULES.weapon`).
 

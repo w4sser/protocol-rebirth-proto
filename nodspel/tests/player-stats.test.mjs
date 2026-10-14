@@ -6,8 +6,8 @@ import {createRound,takeDamage,useHealthKit,stepNodeInteraction} from '../round.
 import {createDash,startDash,dashCharge} from '../dash.js';
 import * as combat from '../combat.js';
 test('stats param is parsed and clamped; junk falls back to the base',()=>{
-  assert.deepEqual(readStats('spd:3.9,stl:0.12,hp:115,dcd:3700'),{speed:3.9,stealth:.12,maxHealth:115,dashCooldownMs:3700});
-  assert.deepEqual(readStats('spd:99,stl:-1,hp:5,dcd:1'),{speed:6,stealth:0,maxHealth:50,dashCooldownMs:2000});
+  assert.deepEqual(readStats('spd:3.9,stl:0.12,hp:115,dcd:3700'),{speed:3.9,stealth:.12,maxHealth:115,dashCooldownMs:3700,searchMult:1});
+  assert.deepEqual(readStats('spd:99,stl:-1,hp:5,dcd:1'),{speed:6,stealth:0,maxHealth:50,dashCooldownMs:2000,searchMult:1});
   assert.deepEqual(readStats('spd:abc,zzz:4,hp:'),RULES.playerStats.base);
   assert.deepEqual(readStats(null),RULES.playerStats.base);
   assert.equal(RULES.playerStats.base.speed<4.5,true,'new players start slower than the old fixed 4.5 m/s');
@@ -33,5 +33,6 @@ test('stealth shrinks enemy detection range',()=>{
 test('raid result reports skill usage telemetry',()=>{
   const r=createRound('tele',0);r.telemetry.distanceM=42.4;r.telemetry.dashes=3;takeDamage(r,25,1);takeDamage(r,500,2);
   const res=buildRaidResult(r);
-  assert.deepEqual(res.skills,{distanceM:42,dashes:3,holdNodes:0,damageTaken:100});
+  assert.deepEqual(res.skills,{distanceM:42,dashes:3,holdNodes:0,damageTaken:100,searches:0});
 });
+test('srch stat is read and clamped',()=>{assert.equal(readStats('srch:0.8').searchMult,.8);assert.equal(readStats('srch:0.1').searchMult,.6);assert.equal(readStats('').searchMult,1);});

@@ -82,7 +82,7 @@ window.DATA.modules = [
     ]
   },
   {
-    id:"storage", name:"Storage / Vault", revealedAtCore:1, maxLevelByCore:{"1":1,"2":1},
+    id:"storage", name:"Storage / Vault", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2,"3":3},
     blurb:"Stash space, loadout presets, one secure slot.",
     benefit:"+8 stash slots · Secure one item",
     levels:[
@@ -96,7 +96,23 @@ window.DATA.modules = [
         artBefore:"assets/production/vault_broken.webp",
         artAfter:"assets/production/vault_sealed.webp",
         artAdd:"vault",
-        newGoal:"Pick a secure item before your next raid. Choose like it matters." }
+        newGoal:"Pick a secure item before your next raid. Choose like it matters." },
+      { level:2,
+        cost:{ scrap:120, items:{ polymer_plate:3, servo:2, hydraulic_component:1 } },
+        unlocks:["raid_bag_plus_1"],
+        unlockText:"Pack racks bolted in. You carry one more item out of every raid.",
+        benefitText:"+1 raid bag slot.",
+        preview:{ before:"Loose crates. You leave loot behind.", after:["Pack racks on the vault wall","+1 raid bag slot"] },
+        artBefore:"assets/production/vault_sealed.webp", artAfter:"assets/production/vault_sealed.webp", artAdd:"vault",
+        newGoal:"Fill the bigger bag. Then come home." },
+      { level:3,
+        cost:{ scrap:240, items:{ hydraulic_component:2, circuit_board:2, servo:2 } },
+        unlocks:["raid_bag_plus_1"],
+        unlockText:"Load-bearing harness rig. One more slot, every raid.",
+        benefitText:"+1 raid bag slot.",
+        preview:{ before:"The racks are full.", after:["Harness rig on the vault wall","+1 raid bag slot"] },
+        artBefore:"assets/production/vault_sealed.webp", artAfter:"assets/production/vault_sealed.webp", artAdd:"vault",
+        newGoal:"Bigger hauls. Bigger risks." }
     ]
   }
 ];
