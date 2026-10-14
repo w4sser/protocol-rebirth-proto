@@ -45,6 +45,17 @@ const D = { items:null };
   assert.equal(S().stash.smg_vector, 1, "weapon returns on extract");
   assert.equal(S().stash.medkit, 2, "1 left + 1 returned");
 }
+// v1.46: kits picked up in the raid go to the kit slot; unused ones (up to 2) come home on extract.
+{
+  const { w, nav, A, S } = boot();
+  A.go("prep"); A.prepLoadout("c1", ""); A.prepLoadout("c2", ""); const before = S().stash.medkit || 0; A.deployNodeRaid();
+  assert(!decodeURIComponent(nav[0]).includes("&kit="), "no kit brought");
+  const raidId = S().coreLaunch.raidId;
+  const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"extract", levelsCleared:3, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1, kitLeft:{ medkit:5 } });
+  assert(res.ok && res.kitBack === 2 && res.kitLost === 0, "picked-up kits come home, capped at the 2-kit slot");
+  assert.equal(S().stash.medkit, before + 2, "stashed and persisted");
+  assert.equal(JSON.parse(w.localStorage.getItem("pr_meta_save")).stash.medkit, before + 2, "saved");
+}
 {
   const { w, nav, A, S } = boot();
   A.go("prep"); A.chooseSlot("weapon", "smg_vector"); A.prepLoadout("c1", "medkit");

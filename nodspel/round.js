@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.45.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.45.0';
-import {emptyBag,bagItems} from './raid.js?v=1.45.0';
-import {traceTargets} from './physics.mjs?v=1.45.0';
+import {generateLevel,RULES} from './levels.js?v=1.46.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.46.0';
+import {emptyBag,bagItems} from './raid.js?v=1.46.0';
+import {traceTargets} from './physics.mjs?v=1.46.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -22,13 +22,19 @@ export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
-    if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;}
+    if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;box.kitFullNotified=false;}
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
       if(box.blockedUntilLeft)continue;
       if(box.item==='ammo_pack'){
         if(!weapon)continue;
         weapon.reserve+=box.ammoRounds??RULES.resources.ammoCrateRounds;
         {const wr=weapon.rule??RULES.weapon;if(weapon.ammo<wr.capacity&&weapon.reloadAt===null)weapon.reloadAt=now+wr.reloadMs;}
+      }else if(box.item==='medkit'){
+        // v1.46: health kits go to the kit slot (Q button), never the bag. Max RULES.kitMax.medkit;
+        // a full slot leaves the kit on the ground (one quiet notice per approach).
+        round.kit=round.kit||{medkit:0};
+        if((round.kit.medkit||0)>=RULES.kitMax.medkit){if(!box.kitFullNotified){box.kitFullNotified=true;round.kitFull={boxId:box.id,at:now};changed=true;}continue;}
+        round.kit.medkit=(round.kit.medkit||0)+1;round.kitPicked=(round.kitPicked||0)+1;
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
         if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
@@ -54,7 +60,7 @@ export function swapLoot(round,boxId,dropId,now){
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:dropId,collected:false,blockedUntilLeft:true,revealed:true};
   round.level.lootBoxes.push(dropped);round.bagFull=null;return dropped;
 }
-// Medkits brought from base (round.kit) are used before looted ones; both are lost on death.
+// Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
 export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||(!kit&&!round.bag.medkit)||round.health>=max)return false;
   if(kit)round.kit.medkit--;else round.bag.medkit--;const before=round.health;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.healed=(round.telemetry.healed||0)+round.health-before;return true;

@@ -74,7 +74,7 @@ test('defeated enemies count once across levels and reset with a new round',()=>
 
 test('health kits can be collected at full health and used later',()=>{
   const r=round.createRound('medkit',0);r.level.lootBoxes=[{id:'medkit',x:0,z:0,item:'medkit',collected:false}];
-  assert.equal(round.collectLoot(r,{x:0,z:0},1000),true);assert.equal(r.health,100);assert.equal(r.bag.medkit,1);
-  assert.equal(round.useHealthKit(r,1001),false);assert.equal(r.bag.medkit,1);
-  round.takeDamage(r,10,1100);assert.equal(round.useHealthKit(r,1200),true);assert.equal(r.health,100);assert.equal(r.bag.medkit,0);
+  assert.equal(round.collectLoot(r,{x:0,z:0},1000),true);assert.equal(r.health,100);assert.equal(r.kit.medkit,1);
+  assert.equal(round.useHealthKit(r,1001),false);assert.equal(r.kit.medkit,1);
+  round.takeDamage(r,10,1100);assert.equal(round.useHealthKit(r,1200),true);assert.equal(r.health,100);assert.equal(r.kit.medkit,0);
 });

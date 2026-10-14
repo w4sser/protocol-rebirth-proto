@@ -9,7 +9,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.45.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.46.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1732,7 +1732,8 @@ function ingestRaidResult(r){
   if(extracted) gear.forEach(id => addItem(id, 1));
   // Unused medkits come home on extract; used or lost ones are gone.
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
-  const kitBack = extracted ? Math.min(kitOut, Math.max(0, Math.floor(Number(r.kitLeft && r.kitLeft.medkit) || 0))) : 0;
+  // v1.46: kits picked up in the raid go to the kit slot too, so up to PROG.kitMax can come home (death loses them).
+  const kitBack = extracted ? Math.min(PROG.kitMax, Math.max(0, Math.floor(Number(r.kitLeft && r.kitLeft.medkit) || 0))) : 0;
   if(kitBack) addItem(PROG.kitItem, kitBack);
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
@@ -1751,7 +1752,7 @@ function ingestRaidResult(r){
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:kitOut - kitBack, areaNotes };
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), areaNotes };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
