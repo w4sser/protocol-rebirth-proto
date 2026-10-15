@@ -43,6 +43,16 @@ function boot(save){
   assert(/data-label="town"/.test(html) && /wm-label locked/.test(html), "labels per area; locked label shows requirements");
   assert(/wm-region locked" data-area="town"/.test(html) && /#lock"/.test(html) && /Rebirth Core L3/.test(html) && /Town Survey/.test(html), "town fogged with lock + requirement");
   assert(/wm-back/.test(html), "back button");
+  // v1.55 pannable map: stage larger than the viewport, centred on the selected area, no duplicate info card
+  { const doc = c.w.document, st = doc.querySelector(".wm-stage"), vw = doc.querySelector(".worldmap");
+    assert(!doc.querySelector(".wm-info"), "no stray duplicate area card");
+    assert(parseFloat(st.style.width) > 844 && parseFloat(st.style.height) > 390, "stage larger than the viewport");
+    assert(/translate\(-?\d+px,-?\d+px\)/.test(st.style.transform), "stage positioned by pan transform");
+    const ev = (t, x, y) => vw.dispatchEvent(new c.w.MouseEvent(t, { bubbles:true, clientX:x, clientY:y }));
+    const t0 = st.style.transform; ev("pointerdown", 400, 200); ev("pointermove", 403, 202); assert.equal(st.style.transform, t0, "a tap (<7px) does not pan");
+    ev("pointermove", 300, 160); assert.notEqual(st.style.transform, t0, "a drag pans"); ev("pointerup", 300, 160);
+    const css2 = fs.readFileSync(path + "/index.html", "utf8"); assert(/\.worldmap\{position:absolute;inset:0;z-index:1/.test(css2), "top bar and tab bar stay over the map");
+    assert(/function wmClamp/.test(fs.readFileSync(path + "/app.js", "utf8")), "pan clamped to the map + edge slack"); }
   assert.equal((html.match(/<i class="wm-zone/g) || []).length, 6, "zones shown for the 2 open areas");
   c.A.setArea("archipelago"); assert.equal(c.S().area, "archipelago");
   // debug unlock
