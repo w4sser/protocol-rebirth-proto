@@ -1,33 +1,33 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.58.0';
-import {loadBunkerAssets} from './bunker.js?v=1.58.0';
-import {setArea} from './levels.js?v=1.58.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.58.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.58.0';
-import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.58.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.58.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction} from './round.js?v=1.58.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.58.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.58.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.58.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.58.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.58.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.58.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.58.0';
-// import {stepScavenging} from './scavenging.js?v=1.58.0';
-import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.58.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.58.0';
-import {routeComplete} from './objectives.js?v=1.58.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.58.0';
-import {createBIT,stepBIT} from './bit.js?v=1.58.0';
-import {createHealthSegments,renderHealthSegments} from './hud.js?v=1.58.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.58.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.58.0';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.58.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.58.0&patch=checkpoint1';
+import {loadBunkerAssets} from './bunker.js?v=1.58.0&patch=checkpoint1';
+import {setArea} from './levels.js?v=1.58.0&patch=checkpoint1';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.58.0&patch=checkpoint1';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.58.0&patch=checkpoint1';
+import {moveWithActors,traceTargets,aimConePoints} from './physics.mjs?v=1.58.0&patch=checkpoint1';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.58.0&patch=checkpoint1';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction} from './round.js?v=1.58.0&patch=checkpoint1';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.58.0&patch=checkpoint1';
+import {buildWorld,setNodeHold} from './world.js?v=1.58.0&patch=checkpoint1';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.58.0&patch=checkpoint1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.58.0&patch=checkpoint1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.58.0&patch=checkpoint1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.58.0&patch=checkpoint1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.58.0&patch=checkpoint1';
+// import {stepScavenging} from './scavenging.js?v=1.58.0&patch=checkpoint1';
+import {buildRaidResult,writeRaidResult,readLaunch} from './raid-result.js?v=1.58.0&patch=checkpoint1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.58.0&patch=checkpoint1';
+import {routeComplete} from './objectives.js?v=1.58.0&patch=checkpoint1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.58.0&patch=checkpoint1';
+import {createBIT,stepBIT} from './bit.js?v=1.58.0&patch=checkpoint1';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.58.0&patch=checkpoint1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.58.0&patch=checkpoint1';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.58.0&patch=checkpoint1';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.58.0&patch=checkpoint1';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.58.0');
+const orderResponse=await fetch('./order.json?v=1.58.0&patch=checkpoint1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -68,7 +68,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.58.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.58.0&patch=checkpoint1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(DEBUG)areaNotice(`AREA SELECTED: ${AREA_SEL==='town'?'ABANDONED TOWN':AREA_SEL.toUpperCase()}`,7000);
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
@@ -86,6 +86,15 @@ const player=new THREE.Group();scene.add(player);
 box(0,.5,0,.62,.7,.62,'#bac4c7',player);box(0,.98,0,.48,.29,.46,'#e0e7e5',player);
 box(0,.97,.24,.32,.075,.025,'#2c4a54',player);box(0,.65,.58,.16,.16,.67,'#242d34',player);
 box(0,.67,.88,.18,.18,.12,'#75cfcc',player);box(-.23,.14,0,.19,.26,.42,'#27343d',player);box(.23,.14,0,.19,.26,.42,'#27343d',player);
+// A faint silhouette remains readable through foreground cover. Geometry and collisions stay unchanged.
+const playerOutline=new THREE.Group(),outlineMaterial=new THREE.LineBasicMaterial({color:'#75cfcc',transparent:true,opacity:.7,depthTest:false,depthWrite:false,toneMapped:false});
+for(const part of [...player.children])if(part.isMesh){
+  const edge=new THREE.LineSegments(new THREE.EdgesGeometry(part.geometry),outlineMaterial);
+  edge.position.copy(part.position);edge.rotation.copy(part.rotation);edge.scale.copy(part.scale);edge.renderOrder=7;playerOutline.add(edge);
+}
+player.add(playerOutline);
+const visibilityRay=new THREE.Raycaster(),visibilityPoint=new THREE.Vector3();let visibilityCheckAt=0;
+playerOutline.visible=false;
 const playerRing=new THREE.Mesh(new THREE.RingGeometry(.48,.53,48),new THREE.MeshBasicMaterial({color:'#b4d8d0',transparent:true,opacity:.55,side:THREE.DoubleSide}));
 playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const bitModel=new THREE.Group();scene.add(bitModel);bitModel.rotation.y=Math.PI/4;
@@ -175,13 +184,13 @@ function updateHUD(){
   $('#bag-items').textContent=bagText(round.bag);
   $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${bagCapacityOf(round)} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
   renderInventory();
-  const lit=round.level.nodes.filter(n=>n.active).length,open=exitIsOpen(round);
+  const level=displayLevel(round,resultPending),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&level.nodes.every(n=>n.active);
   $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
-  $('#progress').textContent=`NODES ${lit}/${round.level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
+  $('#progress').textContent=`NODES ${lit}/${level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
-  if(open&&round.level.number===3&&!round.level.extractToastShown){round.level.extractToastShown=true;showExtractToast();}
-  world.setExit(open);setCollisions();
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
+  if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
+  world.setExit(open);if(!resultPending)setCollisions();
 }
 function labelLoot(v){v.label=makeLabel('?',new THREE.Vector3(v.loot.x,.7,v.loot.z),v.loot.marked?'loot-label marked-loot':'loot-label','loot','?');setLootText(v);}
 function setLootText(v){const l=v.label,r=rarityOf(v.loot.item);l.el.dataset.rarity=v.loot.revealed?r:'unknown';
@@ -401,7 +410,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.58.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.58.0&patch=checkpoint1');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -460,8 +469,7 @@ function frameInner(now){
   const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
   if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
   tickRound(round,clock);
-  const seconds=Math.ceil(round.remainingMs/1000),time=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
-  if($('#time-left').textContent!==time)$('#time-left').textContent=time;
+  const seconds=renderRoundClock(round,resultPending,$('#time-left'),$('#summary-time'));
   $('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over)finishRound();
   if(!round.over&&!resultPending){
@@ -536,6 +544,7 @@ function frameInner(now){
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)setIconText(v.label.caption,'aim',`${enemyName(v.enemy)} · ${v.enemy.health}`);}
   const facing=facingDirection(holding,walkDirection,displayAim);
+  if(round.over)playerOutline.visible=false;
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);rangeRing.scale.setScalar(weapon.rule.range/RULES.weapon.range);aimCone.visible=aiming;
   if(aiming){
@@ -546,6 +555,11 @@ function frameInner(now){
     coneGeometry.attributes.position.needsUpdate=true;coneGeometry.setDrawRange(0,count/3);
   }
   target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
+  if(!round.over&&clock>=visibilityCheckAt){
+    visibilityCheckAt=clock+100;visibilityPoint.set(position.x,.65,position.z).sub(camera.position);
+    visibilityRay.set(camera.position,visibilityPoint.clone().normalize());visibilityRay.far=visibilityPoint.length()-.08;
+    playerOutline.visible=visibilityRay.intersectObject(world.group,true).some(hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:[hit.object.material]).some(m=>m.depthWrite&&m.visible));
+  }
   for(const cross of healCrosses){
     cross.group.visible=bit.healing&&round.health<100&&!round.over&&!resultPending;
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}

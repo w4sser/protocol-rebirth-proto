@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.58.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.58.0';
-import {emptyBag,bagItems} from './raid.js?v=1.58.0';
-import {traceTargets} from './physics.mjs?v=1.58.0';
+import {generateLevel,RULES} from './levels.js?v=1.58.0&patch=checkpoint1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.58.0&patch=checkpoint1';
+import {emptyBag,bagItems} from './raid.js?v=1.58.0&patch=checkpoint1';
+import {traceTargets} from './physics.mjs?v=1.58.0&patch=checkpoint1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -139,6 +139,7 @@ export function enterExit(round,position,now) {
   round.nodeInteraction=null;
   round.levelsCleared++;
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
+  round.exitLevel=round.level;
   round.level=generateLevel(round.level.number+1,round.seed);
   return 'next';
 }
