@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.55.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.56.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -305,6 +305,104 @@ function tickRetention(){
     S.pendingReport.push({ txt:"Decryption complete — " + lore.title + ": " + lore.text, lore: lore.id });
     act("DECRYPT_DONE", { lore: lore.id });
   }
+}
+/* ---------- v1.56 base idle/offline layer (data/retention.js: DATA.idle) ---------- */
+const IDLE = D.idle || { generator:{ ratePerHour:{}, capHours:8, minCollect:1 }, buildMinutes:{ default:{} }, fabricator:{ slots:{}, minutes:{}, defaultMinutes:10 }, scavenge:{ minutes:{}, scrap:[0,0], t1:[], t1Count:[0,0], t2:[], t2Chance:0 }, welcomeMinAwayMin:2 };
+function idleState(){
+  if(!S.idle) S.idle = { clock:0, genAt:0, builds:{}, fab:[], scav:null, freeBuildUsed:false, crafted:0, lastSeen:0, away:null };
+  const I = S.idle; I.builds = I.builds || {}; I.fab = I.fab || []; return I;
+}
+// Rollback guard: the idle clock only moves forward. If the device clock is set back, timers pause (nothing completes
+// early, nothing is lost) until real time passes the highest timestamp ever seen again.
+function idleNow(){ const I = idleState(), t = Date.now(); if(t > I.clock) I.clock = t; return I.clock; }
+const MIN = 60000, HOUR = 3600000;
+function genRate(){ return IDLE.generator.ratePerHour[coreLevel()] || 0; }
+function genCap(){ return Math.round(genRate() * IDLE.generator.capHours); }
+function genStored(now){ const I = idleState(); if(!genRate() || !I.genAt) return 0; return Math.min(genCap(), Math.floor((now - I.genAt) / HOUR * genRate())); }
+function buildMinutes(modId, level){ const t = IDLE.buildMinutes[modId] || IDLE.buildMinutes.default; return (t && t[level]) || IDLE.buildMinutes.default[level] || 0; }
+function fabMinutes(rid){ return IDLE.fabricator.minutes[rid] || IDLE.fabricator.defaultMinutes; }
+function fabSlots(){ return IDLE.fabricator.slots[S.modules.fabricator || 0] || 0; }
+function scavMinutes(){ return IDLE.scavenge.minutes[Math.min(2, S.modules.bit_bay || 0)] || 0; }
+function buildInProgress(modId){ return idleState().builds[modId] || null; }
+function fmtLeft(ms){ const m = Math.max(0, Math.ceil(ms / MIN)); return m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm'; }
+// Finishing a module level: same bookkeeping as an instant build (tracking, beats, base state). Payoff screens stay instant-only.
+function finishModuleLevel(modId, level){
+  S.modules[modId] = Math.max(S.modules[modId] || 0, level);
+  if(S.tracked && S.tracked.module === modId && S.tracked.level === level) S.tracked = null;
+  act("MODULE_BUILT", { module: modId, level });
+  advanceBaseState({ module:modId, level });
+  if(modId === "bit_bay" && level === 1) revealCurrency("dataCores");
+  if(modId === "fabricator" && level === 1) S.lastYieldAt = Date.now();
+  const b = curBeat();
+  if((b.type === "build" && b.module === modId && b.level === level) || (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
+}
+function craftOutput(r){
+  if(r.output.currency){ S.cur[r.output.currency] = (S.cur[r.output.currency] || 0) + r.output.qty; revealCurrency(r.output.currency); }
+  else addItem(r.output.itemId, r.output.qty);
+  act("ITEM_CRAFTED", { recipe: r.id });
+  return r.output.currency ? r.output.qty + " " + CUR_LABELS[r.output.currency] : (r.output.qty > 1 ? r.output.qty + "× " : "") + ITEMS[r.output.itemId].name;
+}
+function rollScavenge(rng){
+  const C = IDLE.scavenge, r = rng || Math.random, ri = ([a, b]) => a + Math.floor(r() * (b - a + 1)), items = {};
+  const n = ri(C.t1Count); for(let i = 0; i < n; i++){ const id = C.t1[Math.floor(r() * C.t1.length)]; items[id] = (items[id] || 0) + 1; }
+  if(r() < C.t2Chance){ const id = C.t2[Math.floor(r() * C.t2.length)]; items[id] = (items[id] || 0) + 1; }
+  return { scrap: ri(C.scrap), items };
+}
+// Resolve everything that finished up to "now" (also covers time spent offline). Returns report rows.
+function tickIdle(){
+  const I = idleState(), now = idleNow(), rows = [];
+  if(genRate() && !I.genAt) I.genAt = now;           // generator starts once the Core is online
+  for(const modId of Object.keys(I.builds)){ const b = I.builds[modId];
+    if(now >= b.doneAt){ delete I.builds[modId]; finishModuleLevel(modId, b.level); rows.push({ kind:"build", icon:"build", txt:MODS[modId].name + " L" + b.level + " finished" }); } }
+  while(I.fab.length && now >= I.fab[0].doneAt){ const job = I.fab.shift(), r = D.recipes.find(x => x.id === job.rid); if(r) rows.push({ kind:"craft", icon:"room-fabricator", txt:"Crafted " + craftOutput(r) }); }
+  if(I.scav && now >= I.scav.returnAt){ const loot = I.scav.loot; I.scav = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
+    act("SCAVENGE_RETURNED", loot);
+    rows.push({ kind:"scav", icon:"scavenge", txt:"BIT is back: +" + loot.scrap + " Scrap" + Object.entries(loot.items).map(([id, q]) => ", " + q + "× " + ITEMS[id].name).join("") }); }
+  if(rows.length){ I.away = I.away || { rows:[] }; I.away.rows.push(...rows); }
+  return rows;
+}
+// Welcome-back summary (non-blocking strip on the base): only after welcomeMinAwayMin away and only if something happened.
+function welcomeBack(){
+  const I = idleState(), now = idleNow(), away = I.lastSeen ? now - I.lastSeen : 0;
+  tickIdle();
+  const stored = genStored(now), rows = (I.away && I.away.rows) || [];
+  I.lastSeen = now;
+  if(away < IDLE.welcomeMinAwayMin * MIN || (!rows.length && stored < IDLE.generator.minCollect)) { I.away = null; return null; }
+  const w = { awayMs: away, rows: rows.slice(-6), stored }; session.welcome = w; I.away = null; save();
+  if(typeof setTimeout === "function" && !/jsdom/i.test((typeof navigator !== "undefined" && navigator.userAgent) || "")) setTimeout(() => { if(session.welcome === w) A.dismissWelcome(); }, 14000); // unobtrusive: fades on its own
+  return w;
+}
+function welcomeHtml(){
+  const w = session.welcome; if(!w || session.screen !== "base") return "";
+  const h = Math.floor(w.awayMs / HOUR), m = Math.round((w.awayMs % HOUR) / MIN);
+  return '<aside class="welcome pop-card" role="status" aria-live="polite"><b>' + IC("bit-face") + ' Welcome back</b><small>Away ' + (h ? h + 'h ' : '') + m + 'm. BIT kept things running.</small>' +
+    '<ul>' + w.rows.map(r => '<li>' + IC(r.icon) + ' ' + esc(r.txt) + '</li>').join("") + (w.stored >= IDLE.generator.minCollect ? '<li>' + IC("generator") + ' Recycler: ' + w.stored + ' Scrap ready</li>' : '') + '</ul>' +
+    '<button type="button" class="pop-x" onclick="A.dismissWelcome()" aria-label="Close welcome back">' + IC("close") + '</button></aside>';
+}
+function genCardHtml(){
+  if(!genRate()) return "";
+  const now = idleNow(), st = genStored(now), cap = genCap(), pct = Math.round(st / cap * 100);
+  return '<div class="idlecard gen"><i aria-hidden="true">' + IC("generator") + '</i><span><b>Scrap recycler · ' + genRate() + '/h</b><small>' + st + '/' + cap + ' stored' + (st >= cap ? ' · FULL' : ' · full in ' + fmtLeft((cap - st) / genRate() * HOUR) ) + '</small>' +
+    '<span class="ibar"><span style="width:' + pct + '%"></span></span></span><button type="button" class="ghost inline collect" ' + (st >= IDLE.generator.minCollect ? 'onclick="A.collectScrap()"' : 'disabled') + ' aria-label="Collect ' + st + ' scrap">' + IC("cur-scrap") + ' ' + st + '</button></div>';
+}
+function buildCardHtml(modId){
+  const b = buildInProgress(modId); if(!b) return "";
+  const now = idleNow(), pct = Math.min(100, Math.round((now - b.startAt) / (b.doneAt - b.startAt) * 100));
+  return '<div class="idlecard building"><i aria-hidden="true">' + IC("scaffold") + '</i><span><b>Building L' + b.level + '</b><small>' + fmtLeft(b.doneAt - now) + ' left · finishes even while you are away</small><span class="ibar"><span style="width:' + pct + '%"></span></span></span></div>';
+}
+function fabQueueHtml(){
+  if(!(S.modules.fabricator >= 1)) return "";
+  const I = idleState(), now = idleNow();
+  return '<div class="idlecard fabq"><i aria-hidden="true">' + IC("timer") + '</i><span><b>Fabricator queue · ' + I.fab.length + '/' + fabSlots() + '</b>' +
+    (I.fab.length ? I.fab.map((j, i) => { const r = D.recipes.find(x => x.id === j.rid); return '<small>' + (i ? 'Next: ' : 'Now: ') + esc(r ? r.name : j.rid) + ' · ' + fmtLeft(j.doneAt - now) + '</small>'; }).join("") : '<small>Idle. Queued crafts finish while you are away.</small>') + '</span></div>';
+}
+function scavCardHtml(){
+  if(!bitOnline()) return "";
+  const I = idleState(), now = idleNow();
+  if(I.scav) return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
+  const busy = !!S.expedition;
+  return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.</small></span>' +
+    '<button type="button" class="ghost inline" ' + (busy ? 'disabled' : 'onclick="A.sendScavenge()"') + '>SEND</button></div>';
 }
 function morningRows(){
   const R = D.retention, rows = [];
@@ -711,6 +809,10 @@ function checkBeatAutoAdvance(){
 }
 function refresh(bitTrigger, bitVars){
   tickRetention();
+  { const I = idleState(), now = idleNow();
+    if(I.lastSeen && now - I.lastSeen >= IDLE.welcomeMinAwayMin * MIN) welcomeBack();     // came back: summary strip
+    else { const rows = tickIdle(); I.away = null; for(const r of rows) toast(r.txt); }   // in-session: plain toasts
+    I.lastSeen = now; }
   checkBeatAutoAdvance();
   $app().setAttribute("class", "s-" + session.screen);
   document.body.dataset.screen = session.screen;
@@ -992,6 +1094,7 @@ function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
 }
 function moduleBadge(modId){
+  const bip = buildInProgress(modId); if(bip) return ["timer", IC("timer") + ' ' + fmtLeft(bip.doneAt - idleNow())];
   const next = nextLevelDef(modId);
   if(!next || next.level > moduleCap(modId)) return null;
   if(canAfford(next.cost)) return ["up",IC("build")];
@@ -1017,7 +1120,9 @@ SCREENS.base = function(){
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
-    plateHtml("core-spot", 'left:' + BM.core.x + '%;top:' + BM.core.y + '%', 'data-destination="rebirth_core" aria-label="' + esc(BM.core.label) + '"', ROOM_ICONS.rebirth_core, "Core", coreLevel(), baseAllows("interactions","rebirth_core") ? moduleBadge("rebirth_core") : null, "");
+    plateHtml("core-spot" + (buildInProgress("rebirth_core") ? " constructing" : ""), 'left:' + BM.core.x + '%;top:' + BM.core.y + '%', 'data-destination="rebirth_core" aria-label="' + esc(BM.core.label) + '"', ROOM_ICONS.rebirth_core, "Core", coreLevel(), baseAllows("interactions","rebirth_core") ? moduleBadge("rebirth_core") : null, "");
+  { const st = genStored(idleNow());
+    if(st >= IDLE.generator.minCollect) html += '<button type="button" class="gen-chip' + (st >= genCap() ? ' full' : '') + '" style="left:' + BM.core.x + '%;top:calc(' + BM.core.y + '% + 46px)" onclick="event.stopPropagation();A.collectScrap()" aria-label="Collect ' + st + ' scrap from the recycler">' + IC("generator") + '<b>+' + st + '</b></button>'; }
   for(const room of BM.rooms){
     const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
     const shownOpen = unlocked || previewUnlocked;
@@ -1026,12 +1131,12 @@ SCREENS.base = function(){
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
     const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
     const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
-    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : ''),
+    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + goalPillHtml(nextRoom) + '</div>';
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + goalPillHtml(nextRoom) + welcomeHtml() + '</div>';
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
@@ -1048,6 +1153,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
+  html += scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -1242,11 +1348,11 @@ SCREENS.prep = function(){
   }
 
   html += '<div class="card prep-benefit"><span class="ok">' + IC("check") + ' FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
-  html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
+  html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>' + fabQueueHtml();
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
     const can = S.cur.scrap >= craftCost(recipe) && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
     html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + craftCost(recipe) + ' Scrap</small></span>' +
-      '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>CRAFT</button></div>';
+      '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>' + (idleState().crafted ? IC("timer") + ' ' + fabMinutes(recipe.id) + 'm' : 'CRAFT') + '</button></div>';
   }
   html += '</details>';
   if(miss){
@@ -2123,16 +2229,19 @@ window.A = {
     closeBuildingPopup();
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
+    if(buildInProgress(modId)) return;
     payCost(next.cost);
-    S.modules[modId] = next.level;
-    if(S.tracked && S.tracked.module === modId && S.tracked.level === next.level) S.tracked = null;
-    act("MODULE_BUILT", { module: modId, level: next.level });
-    advanceBaseState({ module:modId, level:next.level });
-    if(modId === "bit_bay" && next.level === 1) revealCurrency("dataCores");
-    if(modId === "fabricator" && next.level === 1) S.lastYieldAt = Date.now();
-    const b = curBeat();
-    if((b.type === "build" && b.module === modId && b.level === next.level) ||
-       (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
+    // v1.56: L2+ upgrades run on a build timer (completes offline); the very first L2+ upgrade stays instant (FTUE).
+    const I = idleState(), mins = buildMinutes(modId, next.level);
+    if(next.level >= 2 && mins > 0 && I.freeBuildUsed){
+      const now = idleNow(); I.builds[modId] = { level:next.level, startAt:now, doneAt:now + mins * MIN };
+      if(S.tracked && S.tracked.module === modId && S.tracked.level === next.level) S.tracked = null;
+      act("BUILD_STARTED", { module:modId, level:next.level, minutes:mins });
+      toast(MODS[modId].name + " L" + next.level + " under construction · " + fmtLeft(mins * MIN));
+      refresh(); return;
+    }
+    if(next.level >= 2) I.freeBuildUsed = true;
+    finishModuleLevel(modId, next.level);
     // payoffs
     const isLightsOn = modId === "rebirth_core" && next.level === 1;
     const isBitOnline = modId === "bit_bay" && next.level === 1;
@@ -2383,18 +2492,34 @@ window.A = {
     if(r.fabricatorLevel > (S.modules.fabricator||0)) return;
     const cost = craftCost(r);
     if(S.cur.scrap < cost || !Object.keys(r.inputs).every(id => have(id) >= r.inputs[id])) return;
+    const I = idleState();
+    if(I.crafted > 0 && I.fab.length >= fabSlots()){ toast("Fabricator queue is full"); return; }
     S.cur.scrap -= cost;
     if(gainSkillXp("crafting", PROG.playerStats.skills.crafting.xp.perCraft)) toast("Crafting L" + skillLevel("crafting") + " — cheaper crafting");
     for(const id in r.inputs) removeItem(id, r.inputs[id]);
-    if(r.output.currency){ S.cur[r.output.currency] = (S.cur[r.output.currency] || 0) + r.output.qty; revealCurrency(r.output.currency); }
-    else addItem(r.output.itemId, r.output.qty);
-    act("ITEM_CRAFTED", { recipe: rid });
-    toast("Crafted " + (r.output.currency ? r.output.qty + " " + CUR_LABELS[r.output.currency] : ITEMS[r.output.itemId].name));
+    // v1.56: the first craft ever is instant (FTUE); afterwards crafts join the queue and finish over time, offline too.
+    if(!I.crafted){ I.crafted = 1; toast("Crafted " + craftOutput(r)); refresh(); return; }
+    const now = idleNow(), start = Math.max(now, I.fab.length ? I.fab[I.fab.length - 1].doneAt : now);
+    I.fab.push({ rid, startAt:start, doneAt:start + fabMinutes(rid) * MIN }); I.crafted++;
+    act("CRAFT_QUEUED", { recipe: rid, minutes: fabMinutes(rid) });
+    toast(r.name + " queued · ready in " + fmtLeft(start + fabMinutes(rid) * MIN - now));
     refresh();
   },
+  collectScrap(){
+    const now = idleNow(), st = genStored(now); if(st < IDLE.generator.minCollect) return;
+    const I = idleState(); I.genAt = st >= genCap() ? now : I.genAt + st / genRate() * HOUR; // keep the partial hour
+    S.cur.scrap += st; act("SCRAP_COLLECTED", { amount: st }); toast("+" + st + " Scrap from the recycler");
+    if(session.welcome) session.welcome.stored = 0; refresh();
+  },
+  sendScavenge(){
+    const I = idleState(); if(!bitOnline() || I.scav || S.expedition) return;
+    const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge() };
+    act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN)); refresh();
+  },
+  dismissWelcome(){ session.welcome = null; const el = document.querySelector(".welcome"); if(el) el.remove(); },
   sendExpedition(){
     const R = D.retention.expedition;
-    if(bitAway() || S.cur.scrap < R.costScrap || !bitOnline()) return;
+    if(bitAway() || (S.idle && S.idle.scav) || S.cur.scrap < R.costScrap || !bitOnline()) return;
     S.cur.scrap -= R.costScrap;
     const miss = trackedMissingItem();
     S.expedition = { returnAt: Date.now() + R.durationSec*1000, trackedItemId: miss ? miss.itemId : null };
@@ -2478,7 +2603,10 @@ window.A = {
     closeBuildingPopup();
     const lvl = S.modules[modId] || 0, next = nextLevelDef(modId);
     let body, cta;
-    if(!next){
+    if(buildInProgress(modId)){
+      body = buildCardHtml(modId);
+      cta = '<button class="primary big" disabled>' + IC("scaffold") + ' UNDER CONSTRUCTION</button>';
+    } else if(!next){
       body = '<p class="eff">Maximum level reached.</p>';
       cta = '<button class="primary big" disabled>MAX LEVEL</button>';
     } else {
@@ -2495,7 +2623,7 @@ window.A = {
     overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || IC("item-crate")) + '</span><h1>' + esc(m.name) + '</h1>' +
       '<em>L' + lvl + (next ? ' ' + IC("arrow-right") + ' L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">' + IC("info") + '</button>' +
-      '</div>' + body + cta + '</div>', clearMapFocus, "sheet");
+      '</div>' + (modId === "rebirth_core" ? genCardHtml() : modId === "fabricator" ? fabQueueHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta + '</div>', clearMapFocus, "sheet");
     if(session.screen === "base") focusMapOn(modId);
   },
   back(){
@@ -2564,6 +2692,7 @@ window.A = {
   devFinishTimers(){
     if(S.expedition) S.expedition.returnAt = 0;
     if(S.decrypt) S.decrypt.returnAt = 0;
+    { const I = idleState(); for(const k in I.builds) I.builds[k].doneAt = 0; for(const j of I.fab) j.doneAt = 0; if(I.scav) I.scav.returnAt = 0; tickIdle(); I.away = null; }
     tickRetention();
     const rows = morningRows();
     if(rows.length) A.showMorning(rows); else refresh();
@@ -2734,6 +2863,10 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
+  // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup)
+  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(() => { if(document.hidden || document.getElementById("overlay") || document.querySelector(".dragging")) return;
+    const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
+    if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
   if(S.introSeen){
     tickRetention();

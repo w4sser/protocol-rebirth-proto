@@ -156,3 +156,16 @@ Kurvan finns redan: 50 + 25·(n−1) XP per nivå, så nivå 10 nås vid 1 350 X
 Egna förslag efter nivå 10: perk-val vid varje ny nivå (välj 1 av 2), till exempel tystare steg eller längre extraktionsfönster, och prestige-säsonger.
 
 Öppet: ska nivåerna låsa upp zoner, eller ska zonerna förbli knutna till Core-nivån? (Förslag: Core-nivån styr zoner och Operator-nivån styr förmågor.)
+
+## 12. Idle/offline-system (v1.56.0, godkänt av ägaren)
+Alla siffror finns i `data/retention.js` → `DATA.idle`. Tiden räknas på spartiden (väggklocka i localStorage). Om klockan ställs bakåt pausas allt tills tiden har kommit ikapp. Ingenting blir klart i förväg och ingenting går förlorat. Inga push-notiser.
+
+| System | Siffror | Balans |
+|---|---|---|
+| **Scrap-återvinnare** (i Rebirth Core) | 6 / 10 / 15 Scrap per timme vid Core L1 / L2 / L3; lagret rymmer 8 h = 48 / 80 / 120 Scrap; samla in med ett tryck (chip vid Core + kort i Core-popupen) | En natt ≈ 1–2 raids värt Scrap (en raid ger 20–70). Det kompletterar raids och ersätter dem inte. |
+| **Byggtimer** L2+ | Fabricator/BIT Bay/Storage: L2 15 min, L3 60 min; Rebirth Core: L2 30 min, L3 120 min. Den **första** L2+-uppgraderingen är direkt (FTUE-valet) | Kostnaden betalas vid start, så inget kan förloras. Rummet får byggställning och blinkande bärnstenslampa. Bygget blir klart även offline. |
+| **Fabricator-kö** | Platser: L1 2, L2 3. Tider: medkit 3 min, väst 8, filter 10, relä/syntes 12–15, SMG 20, Shotgun/Rifle 30. Den första tillverkningen är direkt (FTUE) | Jobben körs efter varandra. Material och Scrap tas vid köläggning, och full kö tar ingenting. |
+| **BIT-scavenging** | 20 min (BIT Bay L1), 15 min (L2), gratis, misslyckas aldrig: 8–15 Scrap + 1–2 T1-delar (scrap_alloy, cable, fuse, polymer_plate, med_gel) + 15 % chans på en T2-del (servo, circuit_board, power_cell) | Ungefär 1/4 av en raids värde per körning. Kan inte köras samtidigt som en expedition. |
+| **Välkommen tillbaka** | Visas efter ≥ 2 min borta och bara om något hände. Det är en liten remsa överst på basen, inte en blockerande popup, och den stängs med X | Listar färdiga byggen, tillverkning, BIT:s fynd och lagrad Scrap. |
+
+Timvärde i passiv Scrap: L1 ca 6/h + scavenging ca 30/h om spelaren skickar BIT varje gång, mot ca 400/h aktivt i raids (20–70 Scrap per raid på 3–5 min). Passivt ger alltså ≤ 10 % av aktivt spel, så raids förblir huvudkällan.
