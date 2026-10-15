@@ -1,0 +1,943 @@
+{
+  "units": "metres",
+  "up_axis": "Y",
+  "front": "-Z",
+  "origin": "bottom centre",
+  "assets": [
+    {
+      "file": "floor_concrete_2m_a.glb",
+      "kind": "floor",
+      "approx_dimensions_m": [
+        2,
+        0.05,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Seamless 2×2 m tile; variants add restrained crack/oil surface blocks."
+    },
+    {
+      "file": "floor_concrete_2m_b.glb",
+      "kind": "floor",
+      "approx_dimensions_m": [
+        2,
+        0.05,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Seamless 2×2 m tile; variants add restrained crack/oil surface blocks."
+    },
+    {
+      "file": "floor_concrete_2m_c.glb",
+      "kind": "floor",
+      "approx_dimensions_m": [
+        2,
+        0.05,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Seamless 2×2 m tile; variants add restrained crack/oil surface blocks."
+    },
+    {
+      "file": "floor_grate_2m.glb",
+      "kind": "floor",
+      "approx_dimensions_m": [
+        2,
+        0.05,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Seamless 2×2 m module; recessed dark channel with steel bars."
+    },
+    {
+      "file": "wall_straight_2m_a.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2,
+        2.6,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "2 m grid, 0.3 m thick, pale top cap; _b has pipe brackets."
+    },
+    {
+      "file": "wall_straight_2m_b.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2,
+        2.6,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "2 m grid, 0.3 m thick, pale top cap; _b has pipe brackets."
+    },
+    {
+      "file": "wall_straight_2m_damaged.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2,
+        2.6,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "2 m grid, 0.3 m thick, pale top cap; _b has pipe brackets."
+    },
+    {
+      "file": "wall_corner_in.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2.3,
+        2.6,
+        2.3
+      ],
+      "collision": "box",
+      "notes": "Two 2 m legs; centered corner origin, 0.3 m thickness."
+    },
+    {
+      "file": "wall_corner_out.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2.3,
+        2.6,
+        2.3
+      ],
+      "collision": "box",
+      "notes": "Two 2 m legs; centered corner origin, 0.3 m thickness."
+    },
+    {
+      "file": "wall_t.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2,
+        2.6,
+        2
+      ],
+      "collision": "box",
+      "notes": "T junction on 2 m grid with lighter cap."
+    },
+    {
+      "file": "wall_end.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        0.3,
+        2.6,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Rounded/faceted cast end cap."
+    },
+    {
+      "file": "wall_doorway_2m.glb",
+      "kind": "wall",
+      "approx_dimensions_m": [
+        2,
+        2.6,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "1.4 m clear opening; collision should be built from two piers and lintel."
+    },
+    {
+      "file": "blast_door_open.glb",
+      "kind": "door",
+      "approx_dimensions_m": [
+        2,
+        2.4,
+        0.4
+      ],
+      "collision": "box",
+      "notes": "Sliding slab, hazard edge blocks and amber status light; open variant exposes aperture."
+    },
+    {
+      "file": "blast_door_closed.glb",
+      "kind": "door",
+      "approx_dimensions_m": [
+        2,
+        2.4,
+        0.4
+      ],
+      "collision": "box",
+      "notes": "Sliding slab, hazard edge blocks and amber status light; open variant exposes aperture."
+    },
+    {
+      "file": "pillar_square_a.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        0.6,
+        2.6,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Square load-bearing pillar with steel foot and light cap."
+    },
+    {
+      "file": "pillar_square_cracked.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        0.6,
+        2.6,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Square load-bearing pillar with steel foot and light cap."
+    },
+    {
+      "file": "node_terminal_idle.glb",
+      "kind": "interactive",
+      "approx_dimensions_m": [
+        1.2,
+        1.4,
+        1.2
+      ],
+      "collision": "box",
+      "notes": "CRT terminal on plinth; cyan display; light_anchor where powered."
+    },
+    {
+      "file": "node_terminal_shielded.glb",
+      "kind": "interactive",
+      "approx_dimensions_m": [
+        1.2,
+        1.4,
+        1.2
+      ],
+      "collision": "box",
+      "notes": "CRT terminal on plinth; cyan display; light_anchor where powered."
+    },
+    {
+      "file": "node_terminal_active.glb",
+      "kind": "interactive",
+      "approx_dimensions_m": [
+        1.2,
+        1.4,
+        1.2
+      ],
+      "collision": "box",
+      "notes": "CRT terminal on plinth; cyan display; light_anchor where powered."
+    },
+    {
+      "file": "shock_pad_off.glb",
+      "kind": "hazard",
+      "approx_dimensions_m": [
+        2,
+        0.06,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Floor plate with coral grille; powered states carry light_anchor."
+    },
+    {
+      "file": "shock_pad_warn.glb",
+      "kind": "hazard",
+      "approx_dimensions_m": [
+        2,
+        0.06,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Floor plate with coral grille; powered states carry light_anchor."
+    },
+    {
+      "file": "shock_pad_on.glb",
+      "kind": "hazard",
+      "approx_dimensions_m": [
+        2,
+        0.06,
+        2
+      ],
+      "collision": "walkable",
+      "notes": "Floor plate with coral grille; powered states carry light_anchor."
+    },
+    {
+      "file": "extract_hatch_locked.glb",
+      "kind": "objective",
+      "approx_dimensions_m": [
+        2.4,
+        2.2,
+        2.4
+      ],
+      "collision": "box",
+      "notes": "Floor hatch/frame and short cyan beacon mast; light_anchor included."
+    },
+    {
+      "file": "extract_hatch_open.glb",
+      "kind": "objective",
+      "approx_dimensions_m": [
+        2.4,
+        2.2,
+        2.4
+      ],
+      "collision": "box",
+      "notes": "Floor hatch/frame and short cyan beacon mast; light_anchor included."
+    },
+    {
+      "file": "loot_crate_common.glb",
+      "kind": "loot",
+      "approx_dimensions_m": [
+        0.8,
+        0.6,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Neutral military crate."
+    },
+    {
+      "file": "loot_crate_uncommon.glb",
+      "kind": "loot",
+      "approx_dimensions_m": [
+        0.9,
+        0.7,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Reinforced crate, amber lock lamp and rarity stripe."
+    },
+    {
+      "file": "loot_crate_rare.glb",
+      "kind": "loot",
+      "approx_dimensions_m": [
+        0.9,
+        0.7,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Reinforced crate, amber lock lamp and rarity stripe."
+    },
+    {
+      "file": "loot_crate_epic.glb",
+      "kind": "loot",
+      "approx_dimensions_m": [
+        0.9,
+        0.7,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Reinforced crate, amber lock lamp and rarity stripe."
+    },
+    {
+      "file": "loot_crate_legendary.glb",
+      "kind": "loot",
+      "approx_dimensions_m": [
+        0.9,
+        0.7,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Reinforced crate, amber lock lamp and rarity stripe."
+    },
+    {
+      "file": "cover_low_barrier_a.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        2,
+        0.9,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Jersey barrier silhouette; broken version has a missing corner."
+    },
+    {
+      "file": "cover_low_barrier_broken.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        2,
+        0.9,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Jersey barrier silhouette; broken version has a missing corner."
+    },
+    {
+      "file": "cover_sandbag_straight.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        1.6,
+        0.8,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Large readable sandbag rows; bend turns one end inward."
+    },
+    {
+      "file": "cover_sandbag_bend.glb",
+      "kind": "cover",
+      "approx_dimensions_m": [
+        1.6,
+        0.8,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Large readable sandbag rows; bend turns one end inward."
+    },
+    {
+      "file": "lamp_wall_amber_on.glb",
+      "kind": "lighting",
+      "approx_dimensions_m": [
+        0.3,
+        0.4,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Caged wall lamp; amber powered state includes light_anchor."
+    },
+    {
+      "file": "lamp_wall_amber_broken.glb",
+      "kind": "lighting",
+      "approx_dimensions_m": [
+        0.3,
+        0.4,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Caged wall lamp; amber powered state includes light_anchor."
+    },
+    {
+      "file": "crt_monitor_wall_on.glb",
+      "kind": "screen",
+      "approx_dimensions_m": [
+        0.6,
+        0.5,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Wall-mounted CRT with blank face; powered screen uses soft cyan."
+    },
+    {
+      "file": "crt_monitor_wall_off.glb",
+      "kind": "screen",
+      "approx_dimensions_m": [
+        0.6,
+        0.5,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Wall-mounted CRT with blank face; powered screen uses soft cyan."
+    },
+    {
+      "file": "pipe_run_2m_straight.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.3,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Faceted steel pipe on a 2 m module; valve adds hand wheel."
+    },
+    {
+      "file": "pipe_run_2m_bend.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.3,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Faceted steel pipe on a 2 m module; valve adds hand wheel."
+    },
+    {
+      "file": "pipe_run_2m_valve.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.3,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Faceted steel pipe on a 2 m module; valve adds hand wheel."
+    },
+    {
+      "file": "cable_run_2m_straight.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.08,
+        0.4
+      ],
+      "collision": "box",
+      "notes": "Five low-profile parallel insulated cable runs."
+    },
+    {
+      "file": "cable_run_2m_corner.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.08,
+        0.4
+      ],
+      "collision": "box",
+      "notes": "Five low-profile parallel insulated cable runs."
+    },
+    {
+      "file": "cable_tray_wall.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        2,
+        0.2,
+        0.4
+      ],
+      "collision": "box",
+      "notes": "Wall tray carrying bundled cables."
+    },
+    {
+      "file": "locker_row_closed.glb",
+      "kind": "storage",
+      "approx_dimensions_m": [
+        1.5,
+        2,
+        0.5
+      ],
+      "collision": "box",
+      "notes": "Three lockers; closed version has amber lock lamps."
+    },
+    {
+      "file": "locker_row_open.glb",
+      "kind": "storage",
+      "approx_dimensions_m": [
+        1.5,
+        2,
+        0.5
+      ],
+      "collision": "box",
+      "notes": "Three lockers; closed version has amber lock lamps."
+    },
+    {
+      "file": "desk_metal_a.glb",
+      "kind": "furniture",
+      "approx_dimensions_m": [
+        1.4,
+        0.8,
+        0.7
+      ],
+      "collision": "box",
+      "notes": "Metal desk; radio variant adds compact handset unit."
+    },
+    {
+      "file": "desk_metal_with_radio.glb",
+      "kind": "furniture",
+      "approx_dimensions_m": [
+        1.4,
+        0.8,
+        0.7
+      ],
+      "collision": "box",
+      "notes": "Metal desk; radio variant adds compact handset unit."
+    },
+    {
+      "file": "shelf_supply_full.glb",
+      "kind": "storage",
+      "approx_dimensions_m": [
+        1.8,
+        2,
+        0.5
+      ],
+      "collision": "box",
+      "notes": "Four-tier rack; full version has a few large supply boxes."
+    },
+    {
+      "file": "shelf_supply_empty.glb",
+      "kind": "storage",
+      "approx_dimensions_m": [
+        1.8,
+        2,
+        0.5
+      ],
+      "collision": "box",
+      "notes": "Four-tier rack; full version has a few large supply boxes."
+    },
+    {
+      "file": "generator_on.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        1.6,
+        1.3,
+        0.9
+      ],
+      "collision": "box",
+      "notes": "Compact generator; on state has cyan status lamp and light_anchor."
+    },
+    {
+      "file": "generator_off.glb",
+      "kind": "utility",
+      "approx_dimensions_m": [
+        1.6,
+        1.3,
+        0.9
+      ],
+      "collision": "box",
+      "notes": "Compact generator; on state has cyan status lamp and light_anchor."
+    },
+    {
+      "file": "radar_console.glb",
+      "kind": "interactive",
+      "approx_dimensions_m": [
+        2.4,
+        1.2,
+        0.8
+      ],
+      "collision": "box",
+      "notes": "Console with three legible CRTs and physical control row; light_anchor."
+    },
+    {
+      "file": "barrel_steel_upright.glb",
+      "kind": "prop",
+      "approx_dimensions_m": [
+        0.6,
+        0.9,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Faceted steel barrel, upright or on side."
+    },
+    {
+      "file": "barrel_steel_tipped.glb",
+      "kind": "prop",
+      "approx_dimensions_m": [
+        0.6,
+        0.9,
+        0.6
+      ],
+      "collision": "box",
+      "notes": "Faceted steel barrel, upright or on side."
+    },
+    {
+      "file": "debris_pile_a.glb",
+      "kind": "prop",
+      "approx_dimensions_m": [
+        1.2,
+        0.5,
+        1.2
+      ],
+      "collision": "box",
+      "notes": "Sparse large concrete chunks; low frequency silhouette."
+    },
+    {
+      "file": "debris_pile_b.glb",
+      "kind": "prop",
+      "approx_dimensions_m": [
+        1.2,
+        0.5,
+        1.2
+      ],
+      "collision": "box",
+      "notes": "Sparse large concrete chunks; low frequency silhouette."
+    },
+    {
+      "file": "alarm_lamp_coral_on.glb",
+      "kind": "lighting",
+      "approx_dimensions_m": [
+        0.25,
+        0.3,
+        0.25
+      ],
+      "collision": "box",
+      "notes": "Small caged coral alarm beacon; on state includes light_anchor."
+    },
+    {
+      "file": "alarm_lamp_coral_off.glb",
+      "kind": "lighting",
+      "approx_dimensions_m": [
+        0.25,
+        0.3,
+        0.25
+      ],
+      "collision": "box",
+      "notes": "Small caged coral alarm beacon; on state includes light_anchor."
+    },
+    {
+      "file": "sign_stencil_1.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_2.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_3.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_4.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_5.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_6.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_7.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_8.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_9.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_a.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_b.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_c.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "sign_stencil_arrow.glb",
+      "kind": "sign",
+      "approx_dimensions_m": [
+        0.8,
+        0.4,
+        0.02
+      ],
+      "collision": "box",
+      "notes": "Flat steel sign with abstract stencil bars; arrow variant is cyan exit cue."
+    },
+    {
+      "file": "vent_wall.glb",
+      "kind": "wall_prop",
+      "approx_dimensions_m": [
+        0.8,
+        0.6,
+        0.1
+      ],
+      "collision": "box",
+      "notes": "Steel wall vent with six broad louvers."
+    },
+    {
+      "file": "fan_wall.glb",
+      "kind": "wall_prop",
+      "approx_dimensions_m": [
+        0.6,
+        0.6,
+        0.3
+      ],
+      "collision": "box",
+      "notes": "Three-blade faceted fan in square wall housing."
+    },
+    {
+      "file": "bunk_bed.glb",
+      "kind": "furniture",
+      "approx_dimensions_m": [
+        2,
+        1.6,
+        0.9
+      ],
+      "collision": "box",
+      "notes": "Two-tier metal bunk with simple olive mattresses."
+    },
+    {
+      "file": "map_table.glb",
+      "kind": "furniture",
+      "approx_dimensions_m": [
+        1.6,
+        0.9,
+        1
+      ],
+      "collision": "box",
+      "notes": "Metal planning table, dimensions follow brief."
+    },
+    {
+      "file": "moss_patch.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.02,
+        1
+      ],
+      "collision": "none",
+      "notes": "Flat restrained olive-green floor/edge patch."
+    },
+    {
+      "file": "water_puddle.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1.5,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Flat muted reflective-color puddle; no transparency dependency."
+    },
+    {
+      "file": "decal_floor_marking_lane.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        2,
+        0.01,
+        0.35
+      ],
+      "collision": "none",
+      "notes": "Thin neutral lane marking with muted warning center stripe."
+    },
+    {
+      "file": "decal_hazard_stripes.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Black plane with sparse warning-orange bars."
+    },
+    {
+      "file": "decal_crack_a.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Low-frequency segmented concrete crack marking."
+    },
+    {
+      "file": "decal_crack_b.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Low-frequency segmented concrete crack marking."
+    },
+    {
+      "file": "decal_oil_stain.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Muted rust-brown flat oil stain."
+    },
+    {
+      "file": "decal_cable_scorch.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        1,
+        0.01,
+        1
+      ],
+      "collision": "none",
+      "notes": "Dark segmented cable scorch mark."
+    },
+    {
+      "file": "decal_arrow_exit.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        0.8,
+        0.01,
+        0.5
+      ],
+      "collision": "none",
+      "notes": "Small subtle cyan exit arrow."
+    },
+    {
+      "file": "decal_bit_smile_graffiti.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        0.8,
+        0.01,
+        0.6
+      ],
+      "collision": "none",
+      "notes": "BIT mark: two vertical pill eyes and filled tapered U smile."
+    }
+  ]
+}
