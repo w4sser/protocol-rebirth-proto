@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.54.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.55.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1390,8 +1390,54 @@ SCREENS.worldmap = function(){
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
     '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
-    '<div class="wm-info"><b>' + IC(a.iconId) + ' ' + esc(a.name) + '</b><small>' + esc(a.blurb) + '</small><small class="muted">Zones cleared ' + areaZonesCleared(sel).length + '/' + a.zones.length + '</small></div></div>';
+    '</div>';
+  setupWorldMapPan(sel);
 };
+// v1.55 pannable world map: the 3:2 art is laid out larger than the viewport ("cover" x1.35) and dragged like the
+// base background (7 px tap/drag threshold, pointer capture only on a real drag, edge slack so edge labels can be
+// pulled clear of the top bar / tab bar) plus a short inertial glide. Starts centred on the selected area.
+const WM_ZOOM = 1.35, WM_SLACK = 56;
+const wmRaf = f => (typeof requestAnimationFrame === "function" ? requestAnimationFrame(f) : 0), wmCancel = id => { if(typeof cancelAnimationFrame === "function") cancelAnimationFrame(id); };
+function wmClamp(x, y, vw, vh, sw, sh){
+  const minX = Math.min(0, vw - sw) - WM_SLACK, minY = Math.min(0, vh - sh) - WM_SLACK;
+  return [Math.max(minX, Math.min(WM_SLACK, x)), Math.max(minY, Math.min(WM_SLACK, y))];
+}
+function setupWorldMapPan(sel){
+  if(typeof document === "undefined") return;
+  const view = document.querySelector(".worldmap"), stage = view && view.querySelector(".wm-stage");
+  if(!view || !stage) return;
+  const ar = WMAP.aspect || 1.5, R = AREA_DEFS[sel].region;
+  if(!session.wmCam || session.wmCam.area !== sel) session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100 };
+  const cam = session.wmCam;
+  let dims = null, drag = null, moved = false, suppress = false, vel = { x:0, y:0 }, glide = 0;
+  function layout(){
+    const vw = view.clientWidth || 844, vh = view.clientHeight || 390;
+    const sw = Math.max(vw, vh * ar) * WM_ZOOM, sh = sw / ar; dims = { vw, vh, sw, sh };
+    stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
+    const [x, y] = wmClamp(vw / 2 - cam.fx * sw, vh / 2 - cam.fy * sh, vw, vh, sw, sh);
+    cam.fx = (vw / 2 - x) / sw; cam.fy = (vh / 2 - y) / sh;
+    stage.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+  }
+  view.addEventListener("pointerdown", e => { wmCancel(glide); drag = { x:e.clientX, y:e.clientY, fx:cam.fx, fy:cam.fy, t:Date.now(), lx:e.clientX, ly:e.clientY }; moved = false; vel = { x:0, y:0 }; });
+  view.addEventListener("pointermove", e => {
+    if(!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if(!moved && Math.hypot(dx, dy) > 7){ moved = true; suppress = true; view.classList.add("dragging"); if(view.setPointerCapture) view.setPointerCapture(e.pointerId); }
+    if(moved){ const now = Date.now(), dt = Math.max(1, now - drag.t);
+      const cap = v => Math.max(-2.5, Math.min(2.5, v)); vel = { x:cap((e.clientX - drag.lx) / Math.max(8, dt)), y:cap((e.clientY - drag.ly) / Math.max(8, dt)) }; drag.t = now; drag.lx = e.clientX; drag.ly = e.clientY;
+      cam.fx = drag.fx - dx / dims.sw; cam.fy = drag.fy - dy / dims.sh; layout(); e.preventDefault(); }
+  });
+  const finish = () => { const was = moved; drag = null; view.classList.remove("dragging"); setTimeout(() => { suppress = false; }, 0);
+    if(!was) return; let last = Date.now();
+    const step = now => { const dt = Math.min(40, now - last); last = now; vel.x *= Math.pow(0.9, dt / 16); vel.y *= Math.pow(0.9, dt / 16);
+      if(Math.hypot(vel.x, vel.y) < 0.02) return; cam.fx -= vel.x * dt / dims.sw; cam.fy -= vel.y * dt / dims.sh; layout(); glide = wmRaf(step); };
+    glide = wmRaf(step); };
+  view.addEventListener("pointerup", finish); view.addEventListener("pointercancel", finish);
+  // a drag that ends on a region/label must not select it
+  view.addEventListener("click", e => { if(e.detail !== 0 && (suppress || moved)){ e.preventDefault(); e.stopPropagation(); } }, true);
+  if(session.wmResize) window.removeEventListener("resize", session.wmResize);
+  session.wmResize = layout; window.addEventListener("resize", layout); layout();
+}
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +

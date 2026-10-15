@@ -1,10 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.54.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.54.0';
-import {buildTown} from './town.js?v=1.54.0';
-import {buildBunker,kitGroup,PROP_KINDS_BUNKER} from './bunker.js?v=1.54.0';
-import {buildArchipelago,pineTree} from './archipelago.js?v=1.54.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.54.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.55.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.55.0';
+import {buildTown} from './town.js?v=1.55.0';
+import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.55.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.55.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.55.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -146,7 +146,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     const rr=Math.min(h.w,h.d)*.46,ring=(inner,mat)=>{const m=new THREE.Mesh(new THREE.RingGeometry(inner,rr,64,1,-Math.PI/2),mat);m.rotation.x=-Math.PI/2;m.position.set(h.x,.045,h.z);m.renderOrder=3;group.add(m);return m;};
     const track=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#3a2f12',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
     const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;
-    let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,-.03,h.z);kit[st].visible=st==='off';group.add(kit[st]);}mat.opacity=.1;}
+    let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,LAYER.padTop-.06,h.z);kit[st].visible=st==='off';group.add(kit[st]);}mat.opacity=.1;}
     return {hazard:h,mat,fill,track,kit};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
@@ -160,7 +160,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
   const prng=rngFrom(`${level.seed}:props`),spots=isTown?[]:propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
-  const props=spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}if(K){const k=PROP_KINDS_BUNKER[Math.floor(prng()*PROP_KINDS_BUNKER.length)],p=kitGroup(K[k]);p.position.set(spot.x,0,spot.z);p.rotation.y=Math.floor(prng()*4)*Math.PI/2;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
+  const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
   return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
