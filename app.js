@@ -461,6 +461,20 @@ function questState(){
   return S.quests;
 }
 function questsOpen(){ return !!QD && bitOnline() && ftueOver(); }
+// Offer ready rewards at a safe base screen, once per quest per page session.
+// The quest itself stays unclaimed until the player chooses a reward.
+function showQuestReady(){
+  if(!session.questPromptsReady || !questsOpen() || !["base","bit"].includes(session.screen) || document.getElementById("overlay")) return;
+  const seen=session.questPromptsSeen || (session.questPromptsSeen=new Set());
+  const q=questState().list.find(q=>q.done&&!q.claimed&&!seen.has(q.id));
+  if(!q) return;
+  seen.add(q.id);
+  overlay('<div class="bpop quest-ready"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quest complete</h1></div>' +
+    '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p>' +
+    '<div class="card"><b>' + esc(questTitle(q)) + '</b><p class="ok">' + q.n + '/' + q.n + ' complete</p></div>' +
+    '<button type="button" class="primary big claim" onclick="A.questClaim(\'' + q.id + '\')">CLAIM</button>' +
+    '<button type="button" class="ghost" data-close data-later>Later</button></div>',()=>{updateNav();showQuestReady();},"sheet");
+}
 // Raid result -> quest progress (kills by type, house searches, extracted items, clean area clears).
 function questProgress(r){
   if(!questsOpen()) return []; questState();
@@ -926,6 +940,7 @@ function refresh(bitTrigger, bitVars){
   document.body.dataset.audioProfile = profile.audioProfile;
   SCREENS[session.screen](session.screenParam);
   bitDock(bitTrigger, bitVars);
+  showQuestReady();
 }
 
 /* ---------- screens ---------- */
@@ -2707,9 +2722,10 @@ window.A = {
   },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
+    const ready=document.querySelector('#overlay .quest-ready');if(ready)ready.closest('#overlay').remove();
     overlay('<div class="bpop qpick"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Pick a reward</h1></div>' +
       '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p><div class="qcards">' + q.rewards.map((c, i) => rewardCardHtml(c, i, qid)).join("") + '</div>' +
-      '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', null, "sheet");
+      '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', () => refresh(), "sheet");
   },
   questPick(qid, idx){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
@@ -3096,6 +3112,8 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = morningRows();
     if(rows.length) A.showMorning(rows);
   }
+  session.questPromptsReady=true;
+  showQuestReady();
 }
 /* export pure logic for headless tests */
 if(typeof module !== "undefined") module.exports = { areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
