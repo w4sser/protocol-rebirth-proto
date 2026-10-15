@@ -41,8 +41,9 @@ for(const f of ["data/modules.js","data/raid_zones.js","data/retention.js","data
   Object.assign(S().modules, { rebirth_core:1, fabricator:2 });
   S().cur.scrap = 500; S().stash = { scrap_alloy:7, servo:3, polymer_plate:1, hydraulic_component:1, optical_sensor:1, circuit_board:1, encrypted_drive:1, rebirth_shard:1, neural_core:1 };
   for(const r of ["smg_build","shotgun_build","rifle_build"]) A.craft(r);
+  A.devFinishTimers(); // v1.56: crafts after the first one are queued (finish over time)
   assert(S().stash.smg_vector === 1 && S().stash.shotgun_breach === 1 && S().stash.rifle_marksman === 1, "all three weapons crafted");
-  const d0 = S().cur.dataCores; A.craft("shard_synth"); A.craft("neural_synth");
+  const d0 = S().cur.dataCores; A.craft("shard_synth"); A.craft("neural_synth"); A.devFinishTimers();
   assert.equal(S().cur.dataCores, d0 + 18, "protocol items synthesize Data Cores"); }
 // 5) Dead items have a real sink (recipe input or module cost) or are gone from all loot.
 { const { w } = boot();

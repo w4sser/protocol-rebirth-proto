@@ -50,3 +50,19 @@ window.DATA.protocolLog = [
   { id: "log3", title: "FRAGMENT 003 — VISITOR",
     text: "A human found the door today. Statistically improbable. I have decided to be pleased about it." }
 ];
+
+// v1.56 base idle/offline layer (always on, not gated by retentionMode). Wall-clock timestamps in the save,
+// rollback-guarded (time never runs backwards: progress pauses until the clock catches up). Nothing is lost while away:
+// timers complete offline, the generator only stops filling at its cap. Numbers documented in docs/economy-design.md §12.
+window.DATA.idle = {
+  // Scrap recycler inside the Rebirth Core: scrap per hour by Core level; storage = capHours of output.
+  generator: { ratePerHour: { 1: 6, 2: 10, 3: 15 }, capHours: 8, minCollect: 1 },
+  // Upgrade build timers (minutes) for L2+. The first L2+ upgrade is instant (FTUE choice stays snappy).
+  buildMinutes: { default: { 2: 15, 3: 60 }, rebirth_core: { 2: 30, 3: 120 } },
+  // Fabricator queue: jobs run one after another; slots by Fabricator level. First craft ever is instant (FTUE).
+  fabricator: { slots: { 1: 2, 2: 3 }, minutes: { medkit: 3, bio_medkit: 3, armor_patch: 8, filter_rig: 10, relay_build: 15, shard_synth: 12, neural_synth: 15, smg_build: 20, shotgun_build: 30, rifle_build: 30 }, defaultMinutes: 10 },
+  // BIT scavenging run: free, short, never fails. Small T1 haul, a little scrap, rare T2.
+  scavenge: { minutes: { 1: 20, 2: 15 }, scrap: [8, 15], t1: ["scrap_alloy", "cable", "fuse", "polymer_plate", "med_gel"], t1Count: [1, 2], t2: ["servo", "circuit_board", "power_cell"], t2Chance: 0.15 },
+  // Welcome-back strip: only after this long away, and only if something happened.
+  welcomeMinAwayMin: 2
+};
