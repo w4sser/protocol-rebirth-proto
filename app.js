@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.56.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.57.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -276,7 +276,7 @@ function bestZoneFor(itemId){
 /* ---------- retention layer (data/retention.js; gated by retentionMode) ---------- */
 function retMode(){ return S.retentionMode || D.retention.defaultMode; }
 function bitAway(){ return !!S.expedition; }
-function dayStr(){ return new Date().toDateString(); }
+function dayStr(){ return new Date(Date.now()).toDateString(); }
 function tickRetention(){
   const R = D.retention, now = Date.now();
   if(retMode() === "full"){
@@ -403,6 +403,108 @@ function scavCardHtml(){
   const busy = !!S.expedition;
   return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.</small></span>' +
     '<button type="button" class="ghost inline" ' + (busy ? 'disabled' : 'onclick="A.sendScavenge()"') + '>SEND</button></div>';
+}
+/* ---------- v1.57 BIT Quests (data/quests.js): 3 per day, 1 free swap, always solvable with current unlocks ---------- */
+const QD = D.quests, QF = D.questFacts || {};
+const RARITY_HEX = { common:"#d6dde0", uncommon:"#3ddc6a", rare:"#3d8bff", epic:"#b05cff", legendary:"#ffc12e" };
+function questTier(){ return (areaUnlocked("town") || coreLevel() >= 3) ? 2 : (areaUnlocked("archipelago") || coreLevel() >= 2) ? 1 : 0; }
+// What the player can reach right now: unlocked areas, and per area the zones up to (highest cleared + 1).
+function questReach(){
+  const out = [];
+  for(const a of WMAP.areas){ if(!areaUnlocked(a.id) || !QF[a.id]) continue;
+    const top = Math.min(3, Math.max(0, ...areaZonesCleared(a.id)) + 1);
+    for(let n = 1; n <= top; n++) out.push({ area:a.id, level:n, f:QF[a.id][n] }); }
+  return out;
+}
+function questSolvable(q, reach){
+  reach = reach || questReach();
+  if(q.type === "kill") return reach.some(r => r.f.enemies.includes(q.enemy));
+  if(q.type === "search") return reach.some(r => r.f.houses >= 1);
+  if(q.type === "extract") return reach.some(r => r.f.items.includes(q.item) && (!q.area || r.area === q.area));
+  if(q.type === "clear") return reach.some(r => r.area === q.area && r.level === q.level);
+  return false;
+}
+function qn([a, b], rng){ return a + Math.floor(rng() * (b - a + 1)); }
+function areaName(id){ return (AREA_DEFS[id] && AREA_DEFS[id].name) || id; }
+function questLine(q){ return QD.lines[q.type].replace("{n}", q.n).replace("{type}", q.enemy || "").replace("{item}", q.item ? ITEMS[q.item].name : "").replace("{area}", areaName(q.area)).replace("{level}", q.level || ""); }
+function questTitle(q){
+  return q.type === "kill" ? "Defeat " + q.n + " " + q.enemy + (q.n > 1 ? "s" : "") : q.type === "search" ? "Search " + q.n + " house containers" :
+    q.type === "extract" ? "Extract " + q.n + "× " + ITEMS[q.item].name : "Clear " + areaName(q.area) + " zone " + q.level + " and extract";
+}
+function questIcon(q){ return q.type === "kill" ? "target" : q.type === "search" ? "pickup" : q.type === "extract" ? qItemIc(q.item) : (AREA_DEFS[q.area] || {}).iconId || "flag"; }
+function qItemIc(id){ return ITEMS[id].icon; }
+// Candidate pool from reachable facts; nudges first toward the next unlock (tracked part, then the next area's scout run).
+function questCandidates(rng){
+  const reach = questReach(), tier = questTier(), c = [], seen = new Set(), push = q => { const k = q.type + (q.enemy || q.item || q.area || "") + (q.level || ""); if(seen.has(k) || !questSolvable(q, reach)) return; seen.add(k); c.push(q); };
+  const miss = trackedMissingItem();
+  if(miss){ const r = reach.find(r => r.f.items.includes(miss.itemId)); if(r) push({ type:"extract", item:miss.itemId, area:r.area, n:1, nudge:true }); }
+  const next = WMAP.areas.find(a => !areaUnlocked(a.id) && a.requires && areaUnlocked(a.requires.from));
+  if(next){ const from = next.requires.from, top = reach.filter(r => r.area === from).reduce((m, r) => Math.max(m, r.level), 0); if(top) push({ type:"clear", area:from, level:top, n:1, nudge:true }); }
+  const types = [...new Set(reach.flatMap(r => r.f.enemies))];
+  for(const t of types) if(QD.kill[t]) push({ type:"kill", enemy:t, n:qn(QD.kill[t][tier], rng) });
+  if(reach.some(r => r.f.houses)) push({ type:"search", n:qn(QD.search[tier], rng) });
+  const items = [...new Set(reach.flatMap(r => r.f.items))].filter(id => ITEMS[id] && !ITEMS[id].weapon && ITEMS[id].slot !== "armor");
+  for(let i = 0; i < 3 && items.length; i++){ const id = items.splice(Math.floor(rng() * items.length), 1)[0], r = reach.find(r => r.f.items.includes(id)); push({ type:"extract", item:id, area:r.area, n:qn(QD.extract[tier], rng) }); }
+  for(const r of reach) if(r.level >= 2 || reach.length === 1) push({ type:"clear", area:r.area, level:r.level, n:1 });
+  return c;
+}
+function questState(){
+  const today = dayStr();
+  if(!S.quests || S.quests.day !== today){
+    const rng = Math.random, pool = questCandidates(rng), list = [];
+    // nudges first, then a varied mix (one per type where possible)
+    for(const q of pool.filter(q => q.nudge)) if(list.length < QD.perDay) list.push(q);
+    for(const t of ["kill","extract","search","clear"]) for(const q of pool) if(list.length < QD.perDay && q.type === t && !list.includes(q)) { list.push(q); break; }
+    for(const q of pool) if(list.length < QD.perDay && !list.includes(q)) list.push(q);
+    S.quests = { day:today, swaps:QD.freeSwapsPerDay, list:list.map((q, i) => Object.assign({ id:"q" + i + "-" + Date.now().toString(36), prog:0, done:false, claimed:false }, q)) };
+  }
+  return S.quests;
+}
+function questsOpen(){ return !!QD && bitOnline() && ftueOver(); }
+// Raid result -> quest progress (kills by type, house searches, extracted items, clean area clears).
+function questProgress(r){
+  if(!questsOpen()) return []; questState();
+  const doneNow = [], ext = r.outcome === "extract";
+  for(const q of S.quests.list){ if(q.done) continue;
+    let add = 0;
+    if(q.type === "kill") add = Math.max(0, Math.floor(Number(r.killsByType && r.killsByType[q.enemy]) || 0));
+    if(q.type === "search" && r.area === "town") add = Math.max(0, Math.floor(Number(r.skills && r.skills.searches) || 0));
+    if(q.type === "extract" && ext) add = r.extracted.filter(id => id === q.item).length;
+    if(q.type === "clear" && ext && r.area === q.area && (Number(r.levelsCleared) || 0) >= q.level) add = 1;
+    q.prog = Math.min(q.n, q.prog + add);
+    if(q.prog >= q.n){ q.done = true; q.rewards = questRewards(); doneNow.push(q); act("QUEST_DONE", { type:q.type }); }
+  }
+  return doneNow;
+}
+function questRewards(){
+  const t = questTier(), R = QD.reward, miss = trackedMissingItem();
+  const comp = miss && (QD.components.t1.includes(miss.itemId) || QD.components.t2.includes(miss.itemId)) ? miss.itemId : pick(t ? QD.components.t1.concat(QD.components.t2) : QD.components.t1);
+  const all = [{ kind:"scrap", n:R.scrap[t] }, { kind:"item", item:comp, n:1 }, { kind:"xp", n:R.xp[t] }];
+  all.splice(Math.floor(Math.random() * 3), 1);
+  return all.concat([{ kind:"mystery" }]);
+}
+function rollMystery(rng){
+  const M = QD.reward.mystery, r = (rng || Math.random)() * M.reduce((a, m) => a + m.w, 0);
+  let acc = 0; const m = M.find(x => (acc += x.w) > r) || M[0];
+  const pool = m.t2 ? QD.components.t2 : QD.components.t1, items = {};
+  for(let i = 0; i < (m.items || 0); i++){ const id = pool[Math.floor((rng || Math.random)() * pool.length)]; items[id] = (items[id] || 0) + 1; }
+  return { tier:m.tier, scrap:m.scrap || 0, items, dataCores:m.dataCores || 0 };
+}
+function rewardCardHtml(c, i, qid){
+  const body = c.kind === "scrap" ? IC("cur-scrap") + '<b>+' + c.n + '</b><small>Scrap</small>' : c.kind === "xp" ? IC("star") + '<b>+' + c.n + '</b><small>Operator XP</small>' :
+    c.kind === "item" ? IC(qItemIc(c.item)) + '<b>' + c.n + '×</b><small>' + esc(ITEMS[c.item].name) + '</small>' : IC("mystery") + '<b>?</b><small>Mystery box · could be better, could be worse</small>';
+  return '<button type="button" class="qcard ' + c.kind + '" onclick="A.questPick(\'' + qid + '\',' + i + ')">' + body + '</button>';
+}
+function questsHtml(){
+  if(!questsOpen()) return "";
+  const Q = questState(), open = Q.list.filter(q => !q.claimed), head = open.find(q => q.done) || open[0];
+  const bubble = head ? (head.done ? QD.lines.done : questLine(head)) : QD.lines.none;
+  return '<div class="card quests"><div class="row"><b>' + IC("quest") + ' BIT Quests</b><small class="muted">' + Q.list.filter(q => q.claimed).length + '/' + Q.list.length + ' today · new tomorrow</small></div>' +
+    '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(bubble) + '</span></p>' +
+    Q.list.map(q => '<div class="quest' + (q.done ? ' done' : '') + (q.claimed ? ' claimed' : '') + '" data-quest="' + q.type + '"><i aria-hidden="true">' + IC(questIcon(q)) + '</i><span><b>' + esc(questTitle(q)) + '</b>' +
+      '<span class="ibar"><span style="width:' + Math.round(q.prog / q.n * 100) + '%"></span></span><small>' + q.prog + '/' + q.n + (q.nudge ? ' · helps your next unlock' : '') + '</small></span>' +
+      (q.claimed ? '<em>' + IC("check") + '</em>' : q.done ? '<button type="button" class="ghost inline claim" onclick="A.questClaim(\'' + q.id + '\')">CLAIM</button>'
+        : (Q.swaps > 0 ? '<button type="button" class="ghost inline swap" onclick="A.questSwap(\'' + q.id + '\')" aria-label="Swap this quest (1 free per day)">' + IC("swap") + '</button>' : '')) + '</div>').join("") + '</div>';
 }
 function morningRows(){
   const R = D.retention, rows = [];
@@ -1153,7 +1255,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += scavCardHtml();
+  html += questsHtml() + scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -1891,6 +1993,7 @@ function ingestRaidResult(r){
     for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
   });
   S.raids++;
+  const questsDone = questProgress(r);
   const saved = { insured:[], secure:null, bitRescue:null };
   if(!extracted){
     // Timeout and abandon arrive as "death": same consequences as a simulated death.
@@ -1924,6 +2027,7 @@ function ingestRaidResult(r){
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
+  if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
   return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), areaNotes };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
@@ -2504,6 +2608,37 @@ window.A = {
     act("CRAFT_QUEUED", { recipe: rid, minutes: fabMinutes(rid) });
     toast(r.name + " queued · ready in " + fmtLeft(start + fabMinutes(rid) * MIN - now));
     refresh();
+  },
+  questSwap(qid){
+    const Q = questState(), i = Q.list.findIndex(q => q.id === qid); if(i < 0 || Q.swaps < 1 || Q.list[i].done) return;
+    const have = new Set(Q.list.map(q => q.type + (q.enemy || q.item || q.area || "") + (q.level || "")));
+    const alt = questCandidates(Math.random).filter(q => !have.has(q.type + (q.enemy || q.item || q.area || "") + (q.level || "")));
+    if(!alt.length){ toast("No other quest available right now"); return; }
+    Q.list[i] = Object.assign({ id:"q" + i + "-" + Date.now().toString(36), prog:0, done:false, claimed:false }, alt[Math.floor(Math.random() * alt.length)]);
+    Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh();
+  },
+  questClaim(qid){
+    const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
+    overlay('<div class="bpop qpick"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Pick a reward</h1></div>' +
+      '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p><div class="qcards">' + q.rewards.map((c, i) => rewardCardHtml(c, i, qid)).join("") + '</div>' +
+      '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', null, "sheet");
+  },
+  questPick(qid, idx){
+    const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
+    const c = q.rewards[idx]; if(!c) return;
+    q.claimed = true; S.bondXp += QD.bondXp;
+    let reveal = null;
+    if(c.kind === "scrap") S.cur.scrap += c.n;
+    else if(c.kind === "xp") S.opXp = (S.opXp || 0) + c.n;
+    else if(c.kind === "item") addItem(c.item, c.n);
+    else { reveal = rollMystery(); S.cur.scrap += reveal.scrap; for(const id in reveal.items) addItem(id, reveal.items[id]); if(reveal.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + reveal.dataCores; revealCurrency("dataCores"); } }
+    act("QUEST_CLAIMED", { kind:c.kind, tier: reveal ? reveal.tier : null });
+    const o = document.getElementById("overlay"); if(o) o.remove();
+    if(reveal){
+      overlay('<div class="bpop mreveal" style="--rc:' + RARITY_HEX[reveal.tier] + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("mystery") + '</span><h1>' + reveal.tier.toUpperCase() + '</h1></div>' +
+        '<div class="mrow"><span>' + IC("cur-scrap") + ' +' + reveal.scrap + ' Scrap</span>' + Object.entries(reveal.items).map(([id, n]) => '<span>' + IC(qItemIc(id)) + ' ' + n + '× ' + esc(ITEMS[id].name) + '</span>').join("") + (reveal.dataCores ? '<span>' + IC("cur-datacore") + ' +' + reveal.dataCores + ' Data Cores</span>' : '') + '</div>' +
+        '<button class="primary big" data-close>NICE</button></div>', () => refresh(), "sheet");
+    } else { toast("Reward claimed · +" + QD.bondXp + " Bond XP"); refresh(); }
   },
   collectScrap(){
     const now = idleNow(), st = genStored(now); if(st < IDLE.generator.minCollect) return;

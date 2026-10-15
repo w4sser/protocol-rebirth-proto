@@ -169,3 +169,34 @@ Alla siffror finns i `data/retention.js` → `DATA.idle`. Tiden räknas på spar
 | **Välkommen tillbaka** | Visas efter ≥ 2 min borta och bara om något hände. Det är en liten remsa överst på basen, inte en blockerande popup, och den stängs med X | Listar färdiga byggen, tillverkning, BIT:s fynd och lagrad Scrap. |
 
 Timvärde i passiv Scrap: L1 ca 6/h + scavenging ca 30/h om spelaren skickar BIT varje gång, mot ca 400/h aktivt i raids (20–70 Scrap per raid på 3–5 min). Passivt ger alltså ≤ 10 % av aktivt spel, så raids förblir huvudkällan.
+
+## 13. BIT Quests (v1.57)
+
+Daily short goals in the BIT tab. They exist to point the player at the next unlock, not to farm.
+
+- **3 quests per day**, generated on first BIT visit (or first raid) of the local day. No refill when they complete. **1 free swap** per day.
+- Shown only once the FTUE is over (`choice_upgrade` beat reached) and BIT Bay is built. FTUE untouched.
+- **Solvability:** `data/quests.js > questFacts` lists per area/zone the enemies (seen in >=60% of generated levels), loot items (>=20%) and house containers (Town only). The generator only offers quests whose facts are reachable now: unlocked areas, zones up to highest cleared + 1. `nodspel/tests/quest-facts.test.mjs` resamples the level generator so the table can't drift.
+- **Types and sizes by tier** (tier 0 = Bunker only, 1 = Archipelago / Core L2, 2 = Town / Core L3):
+
+| Type | Tier 0 | Tier 1 | Tier 2 |
+|---|---|---|---|
+| Kill grunts | 3-4 | 4-6 | 6-8 |
+| Kill sentries | 1 | 1-2 | 2-3 |
+| Kill rushers | 1-2 | 2-3 | 2-4 |
+| Search houses (Town) | 2 | 2-3 | 3-4 |
+| Extract item | 1 | 1 | 1-2 |
+| Clear zone + extract | 1 | 1 | 1 |
+
+- **Nudges first:** the tracked missing upgrade part (extract it) and the scout clear of the area that unlocks the next one.
+- **Reward: pick 1 of 3 cards.** Two of {Scrap 30/45/60, 1 component (tracked part if possible), Operator XP 20/30/40} plus a **mystery box**:
+
+| Rarity | Weight | Contents |
+|---|---|---|
+| Common | 30% | 15 Scrap |
+| Uncommon | 35% | 30 Scrap + 1 T1 part |
+| Rare | 22% | 50 Scrap + 1 T2 part |
+| Epic | 10% | 70 Scrap + 2 T2 parts |
+| Legendary | 3% | 120 Scrap + 2 T2 parts + 2 Data Cores |
+
+- Each claim gives **+12 BIT Bond XP**. Max per day: 3 quests, about 150 Scrap equivalent, which is below one Town extract. Scavenging is separate and runs at the same time.

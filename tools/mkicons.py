@@ -91,6 +91,8 @@ I={
 'generator':'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M7.5 7V5h3v2M13.5 7V5h3v2"/><path d="M12.5 9.5 10 13.5h3l-1.5 3.5" stroke="'+A+'"/>',
 'scavenge':'<path d="M4 18.5h16"/><path d="M6.5 18.5 9 9.5h6l2.5 9"/><path d="M10 9.5V6.5a2 2 0 0 1 4 0v3"/><circle cx="17.5" cy="6" r="2" stroke="'+A+'"/><path d="M19 7.5l1.5 1.5" stroke="'+A+'"/>',
 'scaffold':'<path d="M5 20V4M19 20V4M5 8h14M5 14h14"/><path d="M5 8l14 6M19 8 5 14" opacity=".55"/><circle cx="12" cy="4" r="1.3" fill="'+A+'" stroke="none"/>',
+'quest':'<rect x="5.5" y="4.5" width="13" height="16" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M8.5 10l1.5 1.5 3-3" stroke="'+A+'"/><path d="M8.5 15.5h7"/>',
+'mystery':'<path d="M3.5 9.5h17v10h-17z"/><path d="M3.5 9.5 6 5.5h12l2.5 4"/><path d="M12 5.5v14" opacity=".5"/><path d="M10.2 13a1.9 1.9 0 1 1 2.6 1.7c-.5.3-.8.6-.8 1.1M12 17.6h.01" stroke="'+A+'"/>',
 'play':'<circle cx="12" cy="12" r="8.5"/><path d="M10 8.5v7l5.5-3.5z" fill="'+A+'" fill-opacity=".35"/>',
 'phone-rotate':'<rect x="7.5" y="3" width="9" height="16" rx="2" transform="rotate(-90 12 12)"/><path d="M4 7.5A8.5 8.5 0 0 1 10 3.6M10 3.6 8.4 2M10 3.6 8.6 5.4" stroke="'+A+'"/><path d="M11 15.5h2"/>',
 'reset':'<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4v4h4"/>',

@@ -32,6 +32,6 @@ test('one miss plus two forgiving hits defeats level one and still leaves reload
   const foe=r.level.enemies[0];foe.x=3;foe.z=.7;
   fireWeapon(w,{x:0,z:0},{x:-1,z:0},0);stepWeapon(w,r,100,.4,[]);
   for(let i=1;i<=2;i++){fireWeapon(w,{x:0,z:0},{x:1,z:0},i*200);stepWeapon(w,r,i*200+100,.3,[]);}
-  assert.equal(foe.health,0);assert.equal(r.enemiesDefeated,1);assert.equal(r.over,false);
+  assert.equal(foe.health,0);assert.equal(r.enemiesDefeated,1);assert.equal(r.killsByType[foe.type],1,"kills tracked per type for BIT quests");assert.equal(r.over,false);
   weapon.tickWeapon(w,700);assert.ok(w.ammo>=1);
 });
