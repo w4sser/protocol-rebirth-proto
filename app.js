@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.57.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.58.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1593,58 +1593,145 @@ SCREENS.worldmap = function(){
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>') + '</div>';
   }).join('');
   const a = AREA_DEFS[sel];
-  $app().innerHTML = '<div class="worldmap" style="background-color:' + WMAP.bg + '">' +
+  $app().innerHTML = '<div class="worldmap" style="background-color:' + ((WMAP.fog && WMAP.fog.color) || WMAP.bg) + '">' +
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
-      '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + beacons + areas + '</div>' +
+      '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + wmFogSvg() + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
     '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
     '</div>';
   setupWorldMapPan(sel);
 };
-// v1.55 pannable world map: the 3:2 art is laid out larger than the viewport ("cover" x1.35) and dragged like the
-// base background (7 px tap/drag threshold, pointer capture only on a real drag, edge slack so edge labels can be
-// pulled clear of the top bar / tab bar) plus a short inertial glide. Starts centred on the selected area.
-const WM_ZOOM = 1.35, WM_SLACK = 56;
-const wmRaf = f => (typeof requestAnimationFrame === "function" ? requestAnimationFrame(f) : 0), wmCancel = id => { if(typeof cancelAnimationFrame === "function") cancelAnimationFrame(id); };
-function wmClamp(x, y, vw, vh, sw, sh){
-  const minX = Math.min(0, vw - sw) - WM_SLACK, minY = Math.min(0, vh - sh) - WM_SLACK;
-  return [Math.max(minX, Math.min(WM_SLACK, x)), Math.max(minY, Math.min(WM_SLACK, y))];
+// v1.58 world map camera: free drag + pinch + wheel zoom. Labels stay crisp because the stage is re-laid out at the
+// zoomed pixel size (no CSS scale); all positions are % of the stage. The camera lives in session.wmCam as the map
+// fraction at the viewport centre (fx, fy) plus zoom z (1 = "cover"). It is never reset by a re-render; it is only
+// centred on the selected area when the map is opened fresh. Bounds are soft: past the playable box the map follows
+// the finger with rubber-band resistance and springs back on release (no hard clamp while a finger is down).
+const WM_DEF_Z = 1.4, WM_MAX_Z = 2.5, WM_TAP = 7;
+const wmRaf = f => (typeof requestAnimationFrame === "function" ? requestAnimationFrame(f) : 0), wmCancel = id => { if(id && typeof cancelAnimationFrame === "function") cancelAnimationFrame(id); };
+// Playable box (map fractions) = every defined area region plus every route point, padded. Data-driven.
+function wmPlayBox(){
+  const pad = ((WMAP.fog && WMAP.fog.pad) || 3) / 100; let x0 = 1, y0 = 1, x1 = 0, y1 = 0;
+  const add = (x, y) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); };
+  for(const a of WMAP.areas){ const R = a.region; add(R.x / 100, R.y / 100); add((R.x + R.w) / 100, (R.y + R.h) / 100); }
+  for(const r of WMAP.routes || []) for(const p of r.points) add(p[0] / 100, p[1] / 100);
+  return { x0:Math.max(0, x0 - pad), y0:Math.max(0, y0 - pad), x1:Math.min(1, x1 + pad), y1:Math.min(1, y1 + pad) };
+}
+// iOS-style rubber band: continuous and monotone, resistance grows with the overshoot.
+function wmRubber(v, lo, hi, dim){
+  const c = 0.55, band = o => (o * c * dim) / (dim + c * o);
+  return v < lo ? lo - band(lo - v) : v > hi ? hi + band(v - hi) : v;
+}
+// Geometry for a viewport: cover width, zoom limits, and centre bounds for zoom z.
+function wmGeom(vw, vh, z){
+  const ar = WMAP.aspect || 1.5, cover = Math.max(vw, vh * ar), B = wmPlayBox(), bw = B.x1 - B.x0, bh = B.y1 - B.y0;
+  const zMin = Math.min(vw / bw, vh * ar / bh) / cover, zz = Math.max(zMin, Math.min(WM_MAX_Z, z)), s = cover * zz, sh = s / ar;
+  const hx = vw / 2 / s, hy = vh / 2 / sh, axis = (a0, a1, h) => a1 - a0 >= 2 * h ? [a0 + h, a1 - h] : [(a0 + a1) / 2, (a0 + a1) / 2];
+  return { ar, cover, zMin, z:zz, s, sh, bx:axis(B.x0, B.x1, hx), by:axis(B.y0, B.y1, hy), vw, vh };
 }
 function setupWorldMapPan(sel){
   if(typeof document === "undefined") return;
   const view = document.querySelector(".worldmap"), stage = view && view.querySelector(".wm-stage");
   if(!view || !stage) return;
-  const ar = WMAP.aspect || 1.5, R = AREA_DEFS[sel].region;
-  if(!session.wmCam || session.wmCam.area !== sel) session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100 };
-  const cam = session.wmCam;
-  let dims = null, drag = null, moved = false, suppress = false, vel = { x:0, y:0 }, glide = 0;
+  const R = AREA_DEFS[sel].region;
+  wmCancel(session.wmAnim); session.wmAnim = 0;
+  if(!session.wmCam) session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
+  const cam = session.wmCam; cam.area = sel;
+  const pts = new Map(); let g = null, moved = false, suppress = false, vel = { x:0, y:0 }, G = null;
+  const size = () => [view.clientWidth || 844, view.clientHeight || 390];
+  const origin = () => { const r = view.getBoundingClientRect ? view.getBoundingClientRect() : { left:0, top:0 }; return [r.left || 0, r.top || 0]; };
   function layout(){
-    const vw = view.clientWidth || 844, vh = view.clientHeight || 390;
-    const sw = Math.max(vw, vh * ar) * WM_ZOOM, sh = sw / ar; dims = { vw, vh, sw, sh };
-    stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
-    const [x, y] = wmClamp(vw / 2 - cam.fx * sw, vh / 2 - cam.fy * sh, vw, vh, sw, sh);
-    cam.fx = (vw / 2 - x) / sw; cam.fy = (vh / 2 - y) / sh;
-    stage.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+    const [vw, vh] = size(); G = wmGeom(vw, vh, cam.z); cam.z = G.z;
+    stage.style.width = G.s + 'px'; stage.style.height = G.sh + 'px';
+    const dx = wmRubber(cam.fx, G.bx[0], G.bx[1], vw / G.s), dy = wmRubber(cam.fy, G.by[0], G.by[1], vh / G.sh);
+    stage.style.transform = 'translate3d(' + (vw / 2 - dx * G.s).toFixed(2) + 'px,' + (vh / 2 - dy * G.sh).toFixed(2) + 'px,0)';
+    view.style.setProperty("--wmz", G.z.toFixed(3)); view.dataset.zoom = G.z.toFixed(2);
   }
-  view.addEventListener("pointerdown", e => { wmCancel(glide); drag = { x:e.clientX, y:e.clientY, fx:cam.fx, fy:cam.fy, t:Date.now(), lx:e.clientX, ly:e.clientY }; moved = false; vel = { x:0, y:0 }; });
-  view.addEventListener("pointermove", e => {
-    if(!drag) return;
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if(!moved && Math.hypot(dx, dy) > 7){ moved = true; suppress = true; view.classList.add("dragging"); if(view.setPointerCapture) view.setPointerCapture(e.pointerId); }
-    if(moved){ const now = Date.now(), dt = Math.max(1, now - drag.t);
-      const cap = v => Math.max(-2.5, Math.min(2.5, v)); vel = { x:cap((e.clientX - drag.lx) / Math.max(8, dt)), y:cap((e.clientY - drag.ly) / Math.max(8, dt)) }; drag.t = now; drag.lx = e.clientX; drag.ly = e.clientY;
-      cam.fx = drag.fx - dx / dims.sw; cam.fy = drag.fy - dy / dims.sh; layout(); e.preventDefault(); }
+  // Zoom to z keeping the map point under viewport point (px, py) fixed.
+  function zoomAt(z, px, py){
+    const [vw, vh] = size(), a = wmGeom(vw, vh, cam.z), wx = cam.fx + (px - vw / 2) / a.s, wy = cam.fy + (py - vh / 2) / a.sh, b = wmGeom(vw, vh, z);
+    cam.z = b.z; cam.fx = wx - (px - vw / 2) / b.s; cam.fy = wy - (py - vh / 2) / b.sh;
+  }
+  function centroid(){
+    const [ox, oy] = origin(), p = [...pts.values()], cx = p.reduce((s, q) => s + q.x, 0) / p.length - ox, cy = p.reduce((s, q) => s + q.y, 0) / p.length - oy;
+    const d = p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0; return { x:cx, y:cy, d };
+  }
+  // (Re)anchor the gesture on the current finger centroid; called whenever the finger count changes, so adding or
+  // lifting a finger never jumps the map.
+  function anchor(){
+    const c = centroid(), [vw, vh] = size(), a = wmGeom(vw, vh, cam.z);
+    g = { wx:cam.fx + (c.x - vw / 2) / a.s, wy:cam.fy + (c.y - vh / 2) / a.sh, z0:cam.z, d0:c.d || 1, lx:c.x, ly:c.y, t:Date.now() };
+  }
+  function apply(){
+    const c = centroid(), [vw, vh] = size();
+    if(pts.size > 1) cam.z = wmGeom(vw, vh, g.z0 * c.d / g.d0).z;
+    const b = wmGeom(vw, vh, cam.z); cam.fx = g.wx - (c.x - vw / 2) / b.s; cam.fy = g.wy - (c.y - vh / 2) / b.sh;
+    const now = Date.now(), dt = Math.max(8, now - g.t), cap = v => Math.max(-2.5, Math.min(2.5, v));
+    vel = pts.size > 1 ? { x:0, y:0 } : { x:cap((c.x - g.lx) / dt), y:cap((c.y - g.ly) / dt) }; g.lx = c.x; g.ly = c.y; g.t = now;
+    layout();
+  }
+  // After release: inertial glide, then a spring back inside the soft bounds. Runs on rAF, stops by itself.
+  function settle(){
+    wmCancel(session.wmAnim); let last = 0;
+    const step = now => {
+      const dt = last ? Math.min(40, now - last) : 16; last = now; const k = Math.pow(0.9, dt / 16), sp = 1 - Math.pow(0.78, dt / 16);
+      cam.fx -= vel.x * dt / G.s; cam.fy -= vel.y * dt / G.sh; vel.x *= k; vel.y *= k;
+      const tx = Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)), ty = Math.max(G.by[0], Math.min(G.by[1], cam.fy));
+      if(tx !== cam.fx){ vel.x *= 0.5; cam.fx += (tx - cam.fx) * sp; } if(ty !== cam.fy){ vel.y *= 0.5; cam.fy += (ty - cam.fy) * sp; }
+      const rest = Math.hypot(vel.x, vel.y) < 0.02 && Math.abs(tx - cam.fx) * G.s < 0.3 && Math.abs(ty - cam.fy) * G.sh < 0.3;
+      if(rest){ cam.fx = tx; cam.fy = ty; vel = { x:0, y:0 }; layout(); session.wmAnim = 0; return; }
+      layout(); session.wmAnim = wmRaf(step); };
+    session.wmAnim = wmRaf(step);
+  }
+  view.addEventListener("pointerdown", e => {
+    wmCancel(session.wmAnim); session.wmAnim = 0;
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY });
+    if(pts.size === 1){ moved = false; vel = { x:0, y:0 }; }
+    if(pts.size > 1){ if(!moved){ moved = true; suppress = true; view.classList.add("dragging"); } for(const id of pts.keys()) if(view.setPointerCapture) try { view.setPointerCapture(id); } catch(_){} }
+    anchor();
   });
-  const finish = () => { const was = moved; drag = null; view.classList.remove("dragging"); setTimeout(() => { suppress = false; }, 0);
-    if(!was) return; let last = Date.now();
-    const step = now => { const dt = Math.min(40, now - last); last = now; vel.x *= Math.pow(0.9, dt / 16); vel.y *= Math.pow(0.9, dt / 16);
-      if(Math.hypot(vel.x, vel.y) < 0.02) return; cam.fx -= vel.x * dt / dims.sw; cam.fy -= vel.y * dt / dims.sh; layout(); glide = wmRaf(step); };
-    glide = wmRaf(step); };
-  view.addEventListener("pointerup", finish); view.addEventListener("pointercancel", finish);
+  view.addEventListener("pointermove", e => {
+    const p = pts.get(e.pointerId); if(!p) return;
+    p.x = e.clientX; p.y = e.clientY;
+    if(!moved){ if(Math.hypot(p.x - p.x0, p.y - p.y0) <= WM_TAP) return;
+      // past the tap threshold: re-anchor at the current point so the map starts following without a jump
+      moved = true; suppress = true; view.classList.add("dragging"); if(view.setPointerCapture) try { view.setPointerCapture(e.pointerId); } catch(_){}
+      anchor(); return; }
+    apply(); if(e.preventDefault) e.preventDefault();
+  });
+  const up = e => {
+    if(!pts.has(e.pointerId)) return; pts.delete(e.pointerId);
+    if(pts.size){ anchor(); vel = { x:0, y:0 }; return; }
+    const was = moved; g = null; view.classList.remove("dragging"); setTimeout(() => { suppress = false; moved = false; }, 0);
+    if(was) settle();
+  };
+  view.addEventListener("pointerup", up); view.addEventListener("pointercancel", up);
+  view.addEventListener("wheel", e => {
+    e.preventDefault(); wmCancel(session.wmAnim); const [ox, oy] = origin(), px = e.clientX - ox, py = e.clientY - oy, unit = e.deltaMode === 1 ? 16 : 1;
+    const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
+    if(e.ctrlKey || mouse) zoomAt(cam.z * Math.exp(-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0015)), px, py);
+    else { cam.fx += e.deltaX / G.s; cam.fy += e.deltaY / G.sh; }
+    vel = { x:0, y:0 }; layout(); settle();
+  }, { passive:false });
   // a drag that ends on a region/label must not select it
-  view.addEventListener("click", e => { if(e.detail !== 0 && (suppress || moved)){ e.preventDefault(); e.stopPropagation(); } }, true);
+  view.addEventListener("click", e => { if(e.detail !== 0 && suppress){ e.preventDefault(); e.stopPropagation(); } }, true);
   if(session.wmResize) window.removeEventListener("resize", session.wmResize);
-  session.wmResize = layout; window.addEventListener("resize", layout); layout();
+  session.wmResize = () => { layout(); settle(); }; window.addEventListener("resize", session.wmResize); layout();
+  if(Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)) !== cam.fx || Math.max(G.by[0], Math.min(G.by[1], cam.fy)) !== cam.fy){
+    cam.fx = Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)); cam.fy = Math.max(G.by[0], Math.min(G.by[1], cam.fy)); layout(); }
+}
+// Fog of war: navy fog over everything except area regions and routes (soft feathered holes via a blurred mask).
+function wmFogSvg(){
+  const F = WMAP.fog || {}, ar = WMAP.aspect || 1.5, H = 100 / ar, pad = F.pad || 3, fe = F.feather || 2.2, rw = F.routeWidth || 9;
+  const holes = WMAP.areas.map(a => { const R = a.region, y = R.y / ar, h = R.h / ar;
+      return '<rect data-fog-hole="' + a.id + '" x="' + (R.x - pad) + '" y="' + (y - pad) + '" width="' + (R.w + 2 * pad) + '" height="' + (h + 2 * pad) + '" rx="' + (pad * 2) + '"/>'; }).join('') +
+    (WMAP.routes || []).map(r => '<polyline data-fog-route="' + r.from + '-' + r.to + '" fill="none" stroke="#000" stroke-width="' + rw + '" stroke-linecap="round" stroke-linejoin="round" points="' + r.points.map(p => p[0] + ',' + (p[1] / ar)).join(' ') + '"/>').join('');
+  const hq = typeof matchMedia === "function" && !matchMedia("(prefers-reduced-motion: reduce)").matches && (typeof navigator === "undefined" || (navigator.hardwareConcurrency || 4) >= 4);
+  return '<svg class="wm-fogmap' + (hq ? ' hq' : '') + '" viewBox="0 0 100 ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+    '<defs><filter id="wmFeather" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="' + fe + '"/></filter>' +
+    '<filter id="wmNoise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".035 .06" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .62  0 0 0 0 .78  0 0 0 .55 0"/></filter>' +
+    '<mask id="wmFogMask" maskUnits="userSpaceOnUse" x="-60" y="-60" width="220" height="' + (H + 120) + '"><rect x="-60" y="-60" width="220" height="' + (H + 120) + '" fill="#fff"/><g fill="#000" filter="url(#wmFeather)">' + holes + '</g></mask></defs>' +
+    '<g mask="url(#wmFogMask)"><rect class="fog" x="-60" y="-60" width="220" height="' + (H + 120) + '" fill="' + (F.color || "#0b1526") + '" fill-opacity="' + (F.opacity || 0.93) + '"/>' +
+    (hq ? '<rect class="fog-noise" x="-60" y="-60" width="220" height="' + (H + 120) + '" filter="url(#wmNoise)" opacity=".22"/>' : '') + '</g></svg>';
 }
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
@@ -2308,6 +2395,7 @@ window.A = {
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
     closeAllPopups();
     session.screenEnterTs = Date.now();
+    if(screen === "worldmap" && session.screen !== "worldmap") session.wmCam = null; // opened fresh: centre on the selected area
     session.screen = screen; session.screenParam = param;
     if(screen === "prep"){ session.prep = null; session.routeLogged = false; }
     act("SCREEN_VIEW", { screen, param });

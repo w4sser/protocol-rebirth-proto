@@ -1,9 +1,9 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "1.57.0",
+  "version": "1.58.0",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:mapzoom",
     "test:idle": "node test/idle.test.js",
     "test:popup": "node test/popup.test.js && node test/popup-fit.test.js",
     "test:icons": "node test/icons.test.js",
@@ -19,7 +19,8 @@
     "test:area": "node test/area.test.js",
     "test:export": "node test/export.test.js",
     "test:operator": "node test/operator.test.js",
-    "test:quests": "node test/quests.test.js"
+    "test:quests": "node test/quests.test.js",
+    "test:mapzoom": "node test/mapzoom.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

@@ -114,6 +114,9 @@ window.DATA.worldMap = {
   // Unlock routes, polyline points in % of the image. v1.52 (AD ad06): routes read through light and landmarks,
   // not glowing dashed paths: the polyline is only a soft light wash (cyan when `to` is unlocked, faint amber
   // toward the next goal), and `beacons` mark landmarks along it.
+  // v1.58 fog of war: everything outside area regions + routes is fogged (AD navy). Holes are generated from
+  // `areas[].region` and `routes`, so a new area added here is revealed automatically. Units: % of image width.
+  fog:{ color:"#0b1526", opacity:0.93, pad:3, feather:2.2, routeWidth:9 },
   routes:[
     { from:"bunker", to:"archipelago", points:[[13,73],[22,66],[31,61],[38.5,62],[45,59.5],[52,54.5],[58.8,50.6]] },
     { from:"archipelago", to:"town", points:[[62,52],[70,50.5],[76,46.5],[81,40],[84.5,33]] }
