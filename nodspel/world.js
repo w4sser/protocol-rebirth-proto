@@ -1,16 +1,17 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.53.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.53.0';
-import {buildTown} from './town.js?v=1.53.0';
-import {buildArchipelago,pineTree} from './archipelago.js?v=1.53.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.53.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.54.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.54.0';
+import {buildTown} from './town.js?v=1.54.0';
+import {buildBunker,kitGroup,PROP_KINDS_BUNKER} from './bunker.js?v=1.54.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.54.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.54.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
   visual.holdRing.geometry.setDrawRange(0,Math.floor(fill*64)*6);
 }
 
-export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) {
+export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunker=null}={}) {
   const Q=qualitySettings(quality);
   const group=new THREE.Group();scene.add(group);
   const cube=new THREE.BoxGeometry(1,1,1),materials={};
@@ -22,7 +23,11 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
   const townInfo=isTown?buildTown(level,group,town,Q):null;
   const isArch=!!level.archipelago&&!isTown;
   const archInfo=isArch?buildArchipelago(level,group,box,{pine,quality:Q}):null;
-  if(!isTown&&!isArch)for(const f of level.floors){
+  // Bunker kit (v1.54): GLB floors/walls/cover/dressing; procedural boxes stay as the fallback
+  const K=!isTown&&!isArch&&bunker?bunker:null;
+  const bunkerInfo=K?buildBunker(level,group,K,Q):null;
+  if(K)for(const f of level.floors)box(f.x,-.3,f.z,f.w+.1,.4,f.d+.1,PALETTE.base);
+  if(!isTown&&!isArch&&!K)for(const f of level.floors){
     box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);
     // panel floor: dark seams every 2 m + faint cyan trim line inset from the edges (theme tints the trim)
@@ -36,7 +41,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
     const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.Float32BufferAttribute(trim,3));
     group.add(new THREE.LineSegments(tg,new THREE.LineBasicMaterial({color:level.theme?.trim&&level.number>1?level.theme.trim:PALETTE.neon,transparent:true,opacity:.28,toneMapped:false})));
   }
-  if(!isTown&&!isArch)for(const b of [...level.walls,...level.boxes]){
+  if(!isTown&&!isArch&&!K)for(const b of [...level.walls,...level.boxes]){
     const isBox=level.boxes.includes(b);
     box(b.x,b.h/2,b.z,b.w,b.h,b.d,isBox?PALETTE.box:PALETTE.wall);
     box(b.x,b.h+.025,b.z,b.w,.05,b.d,PALETTE.wallTop);
@@ -46,40 +51,47 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
   }
   const nodes=level.nodes.map(node=>{
     const g=new THREE.Group();g.position.set(node.x,0,node.z);group.add(g);
+    const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4});
+    let kit=null;
+    if(K){const s=level.nodeSize??1.4;kit={};for(const st of ['idle','shielded','active']){kit[st]=kitGroup(K['node_terminal_'+st],{sx:s/1.2,sy:1,sz:s/1.2});g.add(kit[st]);}
+      const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(.5,.02,.5);top.position.y=1.42;g.add(top);}
+    else{
     box(0,.1,0,1.9,.2,1.9,'#1c262d',g);
     box(0,.65,0,1.4,1,1.4,'#34444c',g);
     box(0,1.23,0,1.6,.16,1.6,'#56666d',g);
-    const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4});
     const front=new THREE.Mesh(cube,coreMaterial);front.scale.set(.95,.7,.03);front.position.set(0,.69,.711);g.add(front);
-    const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);
+    const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);}
     const light=new THREE.PointLight('#3FE0D0',0,8,1.6);light.position.y=1.9;g.add(light);
     const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
     const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false}));
     holdRing.rotation.x=-Math.PI/2;holdRing.position.y=.026;holdRing.visible=false;holdRing.geometry.setDrawRange(0,0);g.add(holdRing);
-    return {node,group:g,coreMaterial,light,halo,holdRing};
+    const v={node,group:g,coreMaterial,light,halo,holdRing,kit};nodeKit(v);return v;
   });
+  function nodeKit(v){if(!v.kit)return;const st=v.node.active?'active':v.node.shielded?'shielded':'idle';for(const k in v.kit)v.kit[k].visible=k===st;}
   const exit=level.exit;
   const beamGeo=new THREE.CylinderGeometry(.12,.22,1,12,1,true),ringGeo=new THREE.RingGeometry(.62,.78,40);
   function lootVisual(loot){
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
     const tier=rarityOf(loot.item),color=lootColor(loot);
     const crate=new THREE.Group();g.add(crate);
-    box(0,.32,0,.9,.64,.9,'#3a4247',crate);box(0,.68,0,1,.08,1,'#5d676c',crate);
-    const band=new THREE.Mesh(cube,glow(color));band.scale.set(.92,.06,.92);band.position.y=.5;crate.add(band);
+    let kitCrates=null;
+    if(K){kitCrates={};for(const t of RARITY_ORDER){const k=K['loot_crate_'+t];if(!k)continue;kitCrates[t]=kitGroup(k,{sx:1.15,sy:1.15,sz:1.15});kitCrates[t].visible=t==='common';crate.add(kitCrates[t]);}}
+    else{box(0,.32,0,.9,.64,.9,'#3a4247',crate);box(0,.68,0,1,.08,1,'#5d676c',crate);}
+    const band=new THREE.Mesh(cube,glow(color));band.scale.set(K?1.08:.92,.05,K?.8:.92);band.position.y=K?.83:.5;crate.add(band);
     const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
     let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=2;beam.position.y=1;g.add(beam);}
     if(loot.marked){
       const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:'#75cfcc',side:THREE.DoubleSide,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
       const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
     }
-    const v={loot,group:g,crate,band,pulse,beam,color,tier,phase:(loot.x*7+loot.z*3)%6.28};
+    const v={loot,group:g,crate,band,pulse,beam,color,tier,kitCrates,phase:(loot.x*7+loot.z*3)%6.28};
     if(loot.revealed)applyReveal(v,false);
     return v;
   }
   // Switch an unidentified pickup to its rarity color (+ optional reveal burst).
   function applyReveal(v,fx=true){const c=RARITY_COLORS[v.tier],hi=RARITY_ORDER.indexOf(v.tier);v.color=c;
-    v.band.material=glow(c);v.pulse.material.color.set(c);
+    v.band.material=glow(c);if(v.kitCrates)for(const t in v.kitCrates)v.kitCrates[t].visible=t===(v.kitCrates[v.tier]?v.tier:'common');v.pulse.material.color.set(c);
     if(v.beam){v.beam.material.color.set(c);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
     if(fx)burst(v.loot.x,v.loot.z,c);}
   const lootBoxes=level.lootBoxes.map(lootVisual);
@@ -103,10 +115,13 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
   exitBeam.scale.y=Q.beams?6:3;exitBeam.position.set(exit.x,exitBeam.scale.y/2,exit.z);exitBeam.visible=false;group.add(exitBeam);
   let exitOpen=false;
   const gate=new THREE.Mesh(cube,exitMaterial);gate.scale.set(2,.85,.22);gate.position.set(exit.x,.55,exit.z);group.add(gate);
-  for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
+  let exitKit=null;
+  if(K){gate.scale.set(1.6,.04,.04);gate.position.y=.02;exitKit={};
+    for(const k of ['extract_hatch_locked','extract_hatch_open']){exitKit[k]=kitGroup(K[k],{sx:.9,sy:.7,sz:.9});exitKit[k].position.set(exit.x,0,exit.z);exitKit[k].visible=k.endsWith('locked');group.add(exitKit[k]);}}
+  else for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
   const exitPad=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.8),new THREE.MeshBasicMaterial({color:'#b49b64',transparent:true,opacity:.16,side:THREE.DoubleSide}));
   exitPad.rotation.x=-Math.PI/2;exitPad.position.set(exit.x,.022,exit.z);group.add(exitPad);
-  function setExit(open){exitOpen=open;gate.visible=!open;exitMaterial.color.set(open?EXTRACT_COLOR:'#4d6a58');exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?EXTRACT_COLOR:'#3c5a48');exitPad.material.opacity=open?.4:.18;exitBeam.visible=open;}
+  function setExit(open){exitOpen=open;gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}exitMaterial.color.set(open?EXTRACT_COLOR:'#4d6a58');exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?EXTRACT_COLOR:'#3c5a48');exitPad.material.opacity=open?.4:.18;exitBeam.visible=open;}
   // pickup burst: expanding ring + short flash (pooled per call; cheap)
   const bursts=[];
   function burst(x,z,color='#ffd04a'){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);bursts.push({m,t:0});}
@@ -119,7 +134,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null}={}) 
     if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
       exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
     for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);if(b.t>.5){group.remove(b.m);b.m.material.dispose();bursts.splice(i,1);}}
-for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
+for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
   function dispose(){
     const geometries=new Set(),mats=new Set();
     group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
@@ -131,20 +146,22 @@ for(const v of nodes){if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.co
     const rr=Math.min(h.w,h.d)*.46,ring=(inner,mat)=>{const m=new THREE.Mesh(new THREE.RingGeometry(inner,rr,64,1,-Math.PI/2),mat);m.rotation.x=-Math.PI/2;m.position.set(h.x,.045,h.z);m.renderOrder=3;group.add(m);return m;};
     const track=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#3a2f12',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
     const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;
-    return {hazard:h,mat,fill,track};
+    let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,-.03,h.z);kit[st].visible=st==='off';group.add(kit[st]);}mat.opacity=.1;}
+    return {hazard:h,mat,fill,track,kit};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
   function animateHazards(now){for(const v of hazards){const t=hazardTiming(v.hazard,now);
     // recharge ring fills clockwise while the pad charges back up; hidden while live
     const prog=t.state==='on'?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=t.state!=='on';v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
+    if(v.kit)for(const st in v.kit)v.kit[st].visible=st===t.state;
     v.fill.material.color.set(t.state==='warn'?'#fff27a':'#ffb820');
     if(t.state==='on'){v.mat.color.set('#E4705F');v.mat.opacity=.75;}
     else if(t.state==='warn'){const pulse=.5+.5*Math.sin(now/(40+t.msToOn/12));v.mat.color.set(pulse>.5?'#fff27a':'#ff9a1f');v.mat.opacity=.45+.4*pulse;}
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
   const prng=rngFrom(`${level.seed}:props`),spots=isTown?[]:propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
-  const props=spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
+  const props=spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}if(K){const k=PROP_KINDS_BUNKER[Math.floor(prng()*PROP_KINDS_BUNKER.length)],p=kitGroup(K[k]);p.position.set(spot.x,0,spot.z);p.rotation.y=Math.floor(prng()*4)*Math.PI/2;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
-  for(const v of nodes)if(v.node.shielded)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }
