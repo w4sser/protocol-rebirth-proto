@@ -20,7 +20,7 @@
     "test:export": "node test/export.test.js",
     "test:operator": "node test/operator.test.js",
     "test:quests": "node test/quests.test.js",
-    "test:mapzoom": "node test/mapzoom.test.js"
+    "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

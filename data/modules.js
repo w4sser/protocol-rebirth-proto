@@ -7,7 +7,7 @@ window.DATA.modules = [
     benefit:"Power facility · Expose access doors",
     levels:[
       { level:1,
-        cost:{ scrap:0, items:{ power_cell:1, scrap_alloy:2 } },
+        cost:{ scrap:0, items:{ scrap_alloy:2 } },
         unlocks:["lights_on","reveal_modules"],
         unlockText:"Emergency power restored. The Core hall breathes again.",
         benefitText:"Facility powered — sealed room access can now be cleared in sequence.",
@@ -15,7 +15,7 @@ window.DATA.modules = [
                   after:["Lights and machinery come on in the Core hall","The Fabricator access door can now be cleared","The rebuild can begin"] },
         artBefore:"assets/production/core_dim.webp",
         artAfter:"assets/production/core_powered.webp",
-        newGoal:"Bring the Fabricator online — find 1× Cable and 1× Fuse." },
+        newGoal:"Bring the Fabricator online — secure Cable and Scrap Alloy for your Scavenger Vest." },
       { level:2,
         cost:{ scrap:120, items:{ power_relay:1, circuit_board:2, ai_fragment:1 } },
         unlocks:["zone_transit","module_caps_2"],
@@ -47,10 +47,11 @@ window.DATA.modules = [
     benefit:"Plan raids · Craft gear · Recycle junk",
     levels:[
       { level:1,
-        cost:{ scrap:20, items:{ cable:1, fuse:1 } },
+        cost:{ scrap:20, items:{ cable:2, scrap_alloy:2 } },
+        commissioning:{scavenger_vest:1},
         unlocks:["recipes_basic","scrap_junk"],
-        unlockText:"Fabricator humming. Medkits, ammo, and junk recycling online.",
-        benefitText:"Raid planning unlocked: choose gear, routes and risk. Craft supplies from Raid Prep and recycle junk into Scrap.",
+        unlockText:"Fabricator online. Scavenger Vest assembled: +25 shield and +1 bag slot. Equipped on your next raid. Raid planning and crafting unlocked.",
+        benefitText:"Scavenger Vest: +25 shield and +1 bag slot, ready for your next raid. Choose gear and craft supplies.",
         preview:{ before:"Broken assembly arms over a dead printer bed. No control panel.",
                   after:["Craft medkits and ammo packs","Recycle common junk into Scrap","Rebuild lost gear without the vendor markup"] },
         artBefore:"assets/production/fab_broken.webp",
@@ -140,7 +141,7 @@ window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", 
 // Panoramic bunker progression. Every coordinate is normalized against the full
 // 1536×1024 plate, so artwork and controls share one camera transform.
 window.DATA.baseMap = {
-  world: { width:1536, height:1024, initialFocus:{ x:50, y:43 } },
+  world: { width:1536, height:1024, initialFocus:{ x:50, y:43 }, zoom:{min:1,max:2.4,wheel:.0015} },
   plates: [
     { stage:0, id:"found", art:"assets/production/bunker_plate_00_found.webp" },
     { stage:1, id:"fabricator", art:"assets/production/bunker_plate_01_fabricator.webp" },

@@ -4,17 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07151c">
-  <link rel="manifest" href="manifest.webmanifest?v=1.58.0&patch=checkpoint1">
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.58.0&patch=checkpoint1">
+  <link rel="manifest" href="manifest.webmanifest?v=1.58.0&patch=opening1">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/happy-node-large-180.png?v=1.58.0&patch=opening1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Node Raid">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Three seeded levels. Activate nodes, unlock exits and extract within eight minutes.">
   <title>Node Raid · Protocol Rebirth</title>
-  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.58.0&patch=checkpoint1">
-  <link rel="stylesheet" href="style.css?v=1.58.0&patch=checkpoint1">
-<link rel="stylesheet" href="../ui/popup.css?v=1.58.0&patch=checkpoint1">
+  <link rel="icon" type="image/svg+xml" href="icons/happy-node.svg?v=1.58.0&patch=opening1">
+  <link rel="stylesheet" href="style.css?v=1.58.0&patch=opening1">
+<link rel="stylesheet" href="../ui/popup.css?v=1.58.0&patch=opening1">
 </head>
 <body>
   <div class="landscape" id="viewport">
@@ -42,7 +42,7 @@
   <aside class="rotate" role="status"><span><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#phone-rotate"/></svg></span><h2>Rotate your phone</h2><p>Hold your phone in landscape to play.</p></aside>
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
-    import('./game.mjs?v=1.58.0&patch=checkpoint1').catch(error => {
+    import('./game.mjs?v=1.58.0&patch=opening1').catch(error => {
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';
       console.error(error);

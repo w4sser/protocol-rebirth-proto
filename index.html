@@ -790,6 +790,17 @@
   @media (prefers-reduced-motion:reduce){.wm-fogmap .fog-noise{animation:none}}
   .worldmap .wm-label,.worldmap .wm-beacon{backface-visibility:hidden}
 </style>
+<style>
+  :root{--raid-action:#FF9D4D;}
+  button.primary.big.raidcta,.playbtn,#tabs .nav-prep:not(.locked){background:var(--raid-action);color:#0d1a20;box-shadow:0 4px 0 #94501e;}
+  .progress-goal{display:flex;flex-direction:column;gap:4px;background:#0d1a20f5;border:1px solid #75cfcc;border-radius:12px;padding:10px;max-width:310px;font-size:12px;color:#f2e9d6;text-align:left;}
+  .progress-goal>b{font-size:15px;color:#75cfcc;}.progress-goal>div{display:flex;flex-wrap:wrap;gap:4px 12px;}.progress-goal small{color:#a7bfbd;}.progress-goal button{min-height:32px;font-size:11px;margin:0;padding:5px;}
+  .s-base .progress-goal{position:absolute;left:12px;bottom:12px;z-index:8;width:min(300px,calc(100% - 24px));}
+  .goal-target .tag{border:2px solid #75cfcc;box-shadow:0 0 16px #15d6be99;}.goal-target .tag:after{content:'NEXT';font-size:10px;color:#75cfcc;}
+  .overview{position:absolute;right:12px;top:10px;z-index:9;width:auto;min-height:36px;padding:5px 10px;background:#0d1a20;font-size:11px;}
+  .lobby-top .progress-goal{max-width:min(420px,60vw);font-size:11px;}.lobby-top .progress-goal>button{display:none;}
+  @media(max-height:500px){.s-base .progress-goal{padding:7px;max-width:270px;font-size:11px;}.lobby-top .progress-goal>span{max-width:400px;}.lobby-top .progress-goal small{display:none;}}
+</style>
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -818,16 +829,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.58.0"></script>
-<script src="data/modules.js?v=1.58.0"></script>
+<script src="data/items.js?v=1.58.0&patch=opening1"></script>
+<script src="data/modules.js?v=1.58.0&patch=opening1"></script>
 <script src="data/bit.js?v=1.58.0"></script>
 <script src="data/raid_zones.js?v=1.58.0"></script>
 <script src="data/recipes.js?v=1.58.0"></script>
 <script src="data/vendors.js?v=1.58.0"></script>
 <script src="data/retention.js?v=1.58.0"></script>
 <script src="data/quests.js?v=1.58.0"></script>
-<script src="data/progression.js?v=1.58.0"></script>
+<script src="data/progression.js?v=1.58.0&patch=opening1"></script>
 <script src="data/combat.js?v=1.58.0"></script>
-<script src="app.js?v=1.58.0&patch=costcontrast1"></script>
+<script src="app.js?v=1.58.0&patch=opening1"></script>
 </body>
 </html>

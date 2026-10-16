@@ -11,7 +11,7 @@ const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
-  window.eval(fs.readFileSync(path + "/" + s, "utf8"));
+  window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
 const tap = el => {
@@ -20,9 +20,13 @@ const tap = el => {
   el.dispatchEvent(new window.MouseEvent("click", { bubbles:true, clientX:100, clientY:100, detail:1 }));
 };
 const revealRoomThroughHotspot = id => {
+  // Fund later rooms explicitly; access no longer bypasses a paid activation.
+  const st=window.__TEST_STATE(),m=window.DATA.modules.find(m=>m.id===id),next=m&&m.levels.find(l=>l.level===(st.modules[id]||0)+1);
+  if(next){for(const [key,n] of Object.entries(next.cost.items||{}))st.stash[key]=Math.max(n,st.stash[key]||0);if(next.cost.scrap)st.cur.scrap=Math.max(st.cur.scrap,next.cost.scrap);}
+  A.go('base');
   tap(doc.querySelector('.room-spot[data-room="' + id + '"]'));
   const button = doc.querySelector("#overlay button.primary");
-  assert(button, id + " ready reveal panel"); A.unlockRoom(id);
+  assert(button, id + " ready reveal panel"); A.unlockRoom(id);A.back();
 };
 
 // shell
@@ -118,19 +122,19 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable")
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "powered_hub", "habitable state selects powered audio profile");
 assert(doc.querySelectorAll("#tabs button:not([disabled])").length >= 3, "habitable state unlocks navigation");
-assert(text().includes("OPEN FABRICATOR"), "base names the next room");
+assert(text().includes("Fabricator L1")&&text().includes("Scavenger Vest"), "base names the next room and usable benefit");
 assert(!text().includes("NEXT UPGRADE"), "next room has no competing upgrade card");
-assert(text().includes("Fabricator") && text().includes("Restore power"), "locked room shows its requirement");
+assert(text().includes("Fabricator") && text().includes("Cable"), "goal shows remaining repair materials");
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;
 tap(doc.querySelector('.room-spot[data-room="fabricator"]'));
 assert(doc.querySelector("#overlay button.primary"), "eligible room opens from its hotspot");
 (doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 // Both base and raid-result build CTAs route through goBuild: locked rooms must explain access.
 A.goBuild("fabricator");
-assert(doc.querySelector('.room-spot.ready[data-room="fabricator"]'), "Core completion highlights Fabricator in green");
-assert(doc.querySelector('.room-spot.ready small').querySelector('use[href$="#check"]'), "ready room checks its completed requirement");
+assert(doc.querySelector('.room-spot.goal-target[data-room="fabricator"]'), "Core completion highlights Fabricator target");
+assert(!doc.querySelector('.room-spot.ready[data-room="fabricator"]'), "unfunded room is not buildable");
 assert(doc.querySelector("#overlay button.primary").textContent.includes("RAID FOR REPAIR MATERIALS"), "missing materials prioritize raiding");
-assert(doc.getElementById("overlay").textContent.includes("Opening the room clears access"), "room explains why access is available");
+assert(!doc.getElementById("overlay").textContent.includes("Open access only"), "no free reveal bypass");
 A.raidForRoom("fabricator");
 assert.equal(doc.getElementById("app").className, "s-prep", "room raid CTA goes to prep");
 assert(!doc.getElementById("overlay"), "room raid CTA closes the panel");
@@ -139,15 +143,14 @@ A.unlockRoom("fabricator");
 const unlockCount = JSON.parse(window.localStorage.getItem("pr_meta_save")).log.filter(e=>e.action==="ROOM_UNLOCKED").length;
 A.unlockRoom("fabricator");
 assert.equal(JSON.parse(window.localStorage.getItem("pr_meta_save")).log.filter(e=>e.action==="ROOM_UNLOCKED").length, unlockCount, "repeated unlock is idempotent");
-assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_01"), "Fabricator reveal selects plate 01");
-assert.equal(doc.querySelector(".baseworld").style.transform, cameraBeforeReveal, "room reveal retains camera transform");
+assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "unfunded room stays covered");
 const unlocksBeforePreview = JSON.stringify(JSON.parse(window.localStorage.getItem("pr_meta_save")).roomUnlocks);
 A.go("dev"); A.devPlate(4);
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_04"), "developer can preview the final plate");
 assert(text().includes("PREVIEW"), "developer plate is visibly identified as a preview");
 assert.equal(JSON.stringify(JSON.parse(window.localStorage.getItem("pr_meta_save")).roomUnlocks), unlocksBeforePreview, "developer preview does not mutate unlock progress");
 A.devPlate(null);
-assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_01"), "developer can return to saved stage");
+assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "developer can return to saved stage");
 
 // raid_1
 A.go("prep");
@@ -166,25 +169,24 @@ assert(firstDeploy.loadout.includes(window.DATA.progression.starterRaid.loadout.
 assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card");
 A.backToBase();
-assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_01"), "raid return restores Fabricator plate");
+assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "extract funds but does not auto-activate the room");
 
 A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 
-assert(doc.querySelector('.room-spot.ready[data-room="storage"]'), "Fabricator completion highlights Vault");
-assert(doc.querySelector('.room-spot.ready[data-room="storage"] small').innerHTML.includes('#check"></use></svg> Bring the Fabricator online'), "Vault checks its completed prerequisite");
-assert(text().includes("OPEN VAULT"), "base names the next room goal");
+assert(doc.querySelector('.room-spot.goal-target[data-room="storage"]'), "Fabricator completion highlights Vault");
+assert(text().includes("Storage / Vault"), "base names the next room goal");
 A.raidForRoom("storage");
 assert(text().includes("Gather repair materials for Storage / Vault"), "raid goal follows the chosen next room instead of the scripted BIT goal");
 A.go("base"); A.track("bit_bay",1);
 revealRoomThroughHotspot("storage");
-assert(doc.querySelector('.room-spot.ready[data-room="bit_bay"]'), "Vault access highlights BIT Bay next");
+assert(doc.querySelector('.room-spot.goal-target[data-room="bit_bay"]'), "Vault activation highlights BIT Bay next");
 revealRoomThroughHotspot("bit_bay");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_03"), "ordered reveals retain Fabricator and Vault through BIT Bay");
 
 // raid_2 + insurance
 A.go("prep");
-assert(text().includes("Insurance") && text().includes("Optical Sensor"), "insurance + tracked target");
+assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor'), "insurance unlocked; completed BIT target is not stale");
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 4, "Fabricator unlocks customizable loadout slots");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
@@ -222,7 +224,7 @@ A.go("base");
 assert(doc.querySelector(".room-spot.unlocked[data-room=\"bit_bay\"]"), "BIT Bay remains available on the panoramic hub");
 assert(text().includes("Cozy Tech"), "chosen BIT Bay style remains visible on its panoramic hotspot");
 // The persistent habitable state remains active while individual rooms progress.
-assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable"), "habitable state remains stable as rooms are repaired");
+assert(doc.querySelector(".baseviewer").className.includes("hub-core_refined"), "paid canonical rooms promote the fully repaired base");
 
 // raid_3 death with premium insurance
 A.devForce("death");
@@ -300,7 +302,7 @@ A.devCur();
 doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
 doc.getElementById("devitem").value = "polymer_plate"; A.devGrant(); A.go("dev");
 doc.getElementById("devitem").value = "servo"; A.devGrant();
-A.go("module","storage"); A.build("storage");
+A.go("base"); // Vault L1 was already paid and activated in canonical order above.
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 assert(doc.querySelector(".baseviewer").className.includes("hub-core_refined"), "all repaired rooms persist the refined bunker state");
 revealRoomThroughHotspot("living_quarters");

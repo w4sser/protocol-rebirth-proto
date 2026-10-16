@@ -10,7 +10,7 @@ const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
-  window.eval(fs.readFileSync(path + "/" + s, "utf8"));
+  window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
 const sv = () => JSON.parse(window.localStorage.getItem("pr_meta_save"));
@@ -32,7 +32,7 @@ A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("prep"); A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
-A.openRoom("storage"); A.unlockRoom("storage"); A.openRoom("bit_bay"); A.unlockRoom("bit_bay");
+for(const id of ['storage','bit_bay']){const s=window.__TEST_STATE(),m=window.DATA.modules.find(m=>m.id===id),cost=m.levels[0].cost;for(const [key,n] of Object.entries(cost.items||{}))s.stash[key]=Math.max(n,s.stash[key]||0);s.cur.scrap=Math.max(s.cur.scrap,cost.scrap||0);A.openRoom(id);A.unlockRoom(id);}
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");

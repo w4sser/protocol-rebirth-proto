@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.58.0&patch=checkpoint1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.58.0&patch=checkpoint1';
-import {emptyBag,bagItems} from './raid.js?v=1.58.0&patch=checkpoint1';
-import {traceTargets} from './physics.mjs?v=1.58.0&patch=checkpoint1';
+import {generateLevel,RULES} from './levels.js?v=1.58.0&patch=opening1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.58.0&patch=opening1';
+import {emptyBag,bagItems} from './raid.js?v=1.58.0&patch=opening1';
+import {traceTargets} from './physics.mjs?v=1.58.0&patch=opening1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -40,7 +40,7 @@ export function collectLoot(round,position,now,weapon){
         if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;
       }
-      box.collected=true;changed=true;
+      box.collected=true;round.lastPickup={item:box.item,at:now};changed=true;
     }
   }
   return changed;

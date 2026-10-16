@@ -1,7 +1,7 @@
-import {RULES,hazardState} from './levels.js?v=1.58.0&patch=checkpoint1';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.58.0&patch=checkpoint1';
-import {takeDamage,tickRound} from './round.js?v=1.58.0&patch=checkpoint1';
-import {houseWaypoint} from './house.js?v=1.58.0&patch=checkpoint1';
+import {RULES,hazardState} from './levels.js?v=1.58.0&patch=opening1';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.58.0&patch=opening1';
+import {takeDamage,tickRound} from './round.js?v=1.58.0&patch=opening1';
+import {houseWaypoint} from './house.js?v=1.58.0&patch=opening1';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -24,6 +24,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     const seen=Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
     if(seen||enemy.lastHitAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
+    if(enemy.introGuard){stepGuard(enemy,combat,player,now,obstacles,target);continue;}
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
@@ -47,11 +48,34 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     combat.nextFire.set(enemy.id,now+(round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1));
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
-    const b=combat.projectiles[i],end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
+    const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
+    const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
     if(hit||b.life<=0){if(hit?.kind==='player')takeDamage(round,round.level.enemyDamage??rule.damage,now);combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
+}
+
+function stepGuard(enemy,combat,player,now,obstacles,target){
+  if(enemy.health<=0){enemy.attackPhase=null;enemy.windupAt=null;return;}
+  const cfg=RULES.intro;
+  if(enemy.attackPhase==='recovery'&&now<enemy.recoverUntil)return;
+  if(enemy.attackPhase==='recovery'){enemy.attackPhase=null;enemy.attackTarget=null;}
+  if(!enemy.attackPhase){
+    if(now<(combat.nextFire.get(enemy.id)??0)||Math.hypot(player.x-enemy.x,player.z-enemy.z)>RULES.combat.range)return;
+    if(traceTargets(enemy,player,obstacles,[target])?.kind!=='player')return;
+    enemy.attackTarget={x:player.x,z:player.z};enemy.attackPhase='warning';enemy.windupAt=now+cfg.warningMs;
+  }
+  const hit=enemy.lastHitAt!=null&&enemy.hitSerial!==(enemy.reactedHitSerial??0);
+  enemy.reactedHitSerial=enemy.hitSerial??0;
+  if(enemy.attackPhase==='warning'&&(now>=enemy.windupAt||cfg.counterOnHit&&hit)){
+    enemy.attackPhase='burst';enemy.burstEndsAt=now+(cfg.burstShots-1)*cfg.burstIntervalMs;enemy.windupAt=null;
+    const d=Math.hypot(enemy.attackTarget.x-enemy.x,enemy.attackTarget.z-enemy.z)||1,dx=(enemy.attackTarget.x-enemy.x)/d,dz=(enemy.attackTarget.z-enemy.z)/d;
+    // The committed salvo is independent of the shooter. Cover traces its whole
+    // path; rapid stationary fire cannot erase already committed bullets.
+    for(let i=0;i<cfg.burstShots;i++)combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range/RULES.combat.bulletSpeed});
+  }
+  if(enemy.attackPhase==='burst'&&now>=enemy.burstEndsAt){enemy.attackPhase='recovery';enemy.recoverUntil=now+cfg.recoveryMs;combat.nextFire.set(enemy.id,enemy.recoverUntil);}
 }
 
 // Shock pads damage the player while 'on'. Returns true when damage was dealt.

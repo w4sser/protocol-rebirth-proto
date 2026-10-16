@@ -45,7 +45,7 @@ assert(!app.advanceBaseState({ module:"storage", level:1 }), "refined transition
 S.beat = 2;
 for(let i=0;i<100;i++){
   const R = app.resolveRaid({zoneId:"industrial", riskId:"standard", insuranceId:"none", loadout:["basic_carbine"], trackedItemId:null});
-  assert.equal(R.outcome, "extract"); assert(R.loot.includes("cable") && R.loot.includes("fuse"));
+  assert.equal(R.outcome, "extract"); assert(R.loot.filter(id=>id==="cable").length>=2 && R.loot.includes("scrap_alloy"));
 }
 // aggressive risk can fail even in scripted beats
 let died = 0;

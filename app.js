@@ -153,6 +153,20 @@ function roomRequirementMet(room){
 function nextAccessRoom(){
   return D.baseMap.rooms.find(room => !roomUnlocked(room.id) && roomRequirementMet(room));
 }
+// One recipe-backed target. Existing post-onboarding manual tracking is retained.
+function progressionGoal(){
+  let id = coreLevel() < 1 ? "rebirth_core" : (D.baseMap.rooms.find(r => r.destination && !(S.modules[r.destination] > 0)) || {}).destination;
+  if(ftueOver() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
+  const m=MODS[id], next=m && nextLevelDef(id); if(!next) return null;
+  const parts=costParts(next.cost).filter(p=>p.kind==='item'||p.have<p.need).map(p=>({id:p.id,kind:p.kind==='cur'?'currency':'item',name:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).name,icon:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).icon,need:p.need,secured:p.have}));
+  const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
+  return {module:id,level:next.level,name:m.name,benefit:next.benefitText,parts,ready:canAfford(next.cost),following:following?following.label:null};
+}
+function progressionGoalHtml(){
+  const g=progressionGoal();if(!g)return "";
+  const missing=g.parts.filter(p=>p.secured<p.need);
+  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b><span>'+esc(g.benefit)+'</span><div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+(g.ready?'ACTIVATE':'VIEW UPGRADE')+'</button></section>';
+}
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
   const cfg = PROG.starterRaid;
@@ -164,7 +178,7 @@ function applyStarterRaid(){
 function roomPartsHtml(room){
   const next = room && room.destination && nextLevelDef(room.destination);
   if(!next) return "";
-  return costParts(next.cost).map(part => '<span class="chip ' + (part.have >= part.need ? 'ok' : 'need') + '">' +
+  return costParts(next.cost).filter(part=>part.have<part.need).map(part => '<span class="chip ' + (part.have >= part.need ? 'ok' : 'need') + '">' + partIcon(part) +
     esc(part.kind === "item" ? ITEMS[part.id].name : (part.id === "dataCores" ? "Data Cores" : "Scrap")) + ' ' + Math.min(part.have,part.need) + '/' + part.need + '</span>').join(' ');
 }
 function bunkerStage(){
@@ -327,12 +341,15 @@ function buildInProgress(modId){ return idleState().builds[modId] || null; }
 function fmtLeft(ms){ const m = Math.max(0, Math.ceil(ms / MIN)); return m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm'; }
 // Finishing a module level: same bookkeeping as an instant build (tracking, beats, base state). Payoff screens stay instant-only.
 function finishModuleLevel(modId, level){
+  const first=(S.modules[modId]||0)<level;
   S.modules[modId] = Math.max(S.modules[modId] || 0, level);
   if(S.tracked && S.tracked.module === modId && S.tracked.level === level) S.tracked = null;
   act("MODULE_BUILT", { module: modId, level });
   advanceBaseState({ module:modId, level });
   if(modId === "bit_bay" && level === 1) revealCurrency("dataCores");
   if(modId === "fabricator" && level === 1) S.lastYieldAt = Date.now();
+  const gift=first && MODS[modId].levels.find(l=>l.level===level).commissioning;
+  if(gift)for(const id in gift)addItem(id,gift[id]);
   const b = curBeat();
   if((b.type === "build" && b.module === modId && b.level === level) || (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
 }
@@ -650,8 +667,8 @@ function resolveRaid(cfg){
     loot[0] = cfg.trackedItemId;
   }
   // beat guaranteed drops always injected
-  (beat.guaranteedDrops||[]).forEach((id,ix) => { if(!loot.includes(id)) loot[Math.min(ix, loot.length-1) + (ix?1:0)] = id; });
-  (beat.guaranteedDrops||[]).forEach(id => { if(!loot.includes(id)) loot.push(id); });
+  const guaranteed={};for(const id of beat.guaranteedDrops||[])guaranteed[id]=(guaranteed[id]||0)+1;
+  for(const id in guaranteed)while(loot.filter(item=>item===id).length<guaranteed[id])loot.push(id);
   const trackedFound = !!cfg.trackedItemId && loot.includes(cfg.trackedItemId);
 
   const scrap = randInt(zone.scrapRange[0], zone.scrapRange[1]);
@@ -930,6 +947,7 @@ function refresh(bitTrigger, bitVars){
     else { const rows = tickIdle(); I.away = null; for(const r of rows) toast(r.txt); }   // in-session: plain toasts
     I.lastSeen = now; }
   checkBeatAutoAdvance();
+  {const goal=progressionGoal();if(goal&&!ftueOver()&&(!S.tracked||S.tracked.module!==goal.module||S.tracked.level!==goal.level)){S.tracked={module:goal.module,level:goal.level};save();}}
   $app().setAttribute("class", "s-" + session.screen);
   document.body.dataset.screen = session.screen;
   updateNav();
@@ -1145,15 +1163,17 @@ function setupBaseViewer(){
   const viewer = document.querySelector(".baseviewer"), world = document.querySelector(".baseworld");
   if(!viewer || !world) return;
   const cfg = D.baseMap.world;
-  if(!session.camera) session.camera = { x:cfg.initialFocus.x / 100, y:cfg.initialFocus.y / 100 };
+  if(!session.camera) session.camera = { x:cfg.initialFocus.x / 100, y:cfg.initialFocus.y / 100, zoom:1 };
+  session.camera.zoom ||= 1;
+  const pointers=new Map();
   let drag = null, moved = false, suppress = false;
   function layout(){
     const vw = viewer.clientWidth || 800, vh = viewer.clientHeight || 420;
-    const scale = Math.max(vw / cfg.width * 1.18, vh / cfg.height * 1.18);
+    const scale = Math.max(vw / cfg.width, vh / cfg.height) * session.camera.zoom;
     const sw = cfg.width * scale, sh = cfg.height * scale;
     session.cameraLayout = { sw, sh };
     // Slack lets edge plates be pulled clear of the HUD (bottom bar, goal pill, popup).
-    const pad = mapPadding(vw, vh);
+    const pad = {left:0,right:0,top:0,bottom:0};
     const minX = Math.min(0, vw - sw) - pad.right, minY = Math.min(0, vh - sh) - pad.bottom;
     let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
     x = Math.max(minX, Math.min(pad.left, x)); y = Math.max(minY, Math.min(pad.top, y));
@@ -1162,8 +1182,27 @@ function setupBaseViewer(){
     viewer.scrollLeft = 0; viewer.scrollTop = 0; // focus/scrollIntoView must never shift the HUD layer
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
   }
-  viewer.addEventListener("pointerdown", e => { drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y }; moved=false; });
+  function zoomAt(zoom,x,y){
+    const vw=viewer.clientWidth||800,vh=viewer.clientHeight||420,old=session.cameraLayout;
+    const fx=session.camera.x+(x-vw/2)/old.sw,fy=session.camera.y+(y-vh/2)/old.sh;
+    const before=session.camera.zoom;session.camera.zoom=Math.max(cfg.zoom.min,Math.min(cfg.zoom.max,zoom));
+    const ratio=session.camera.zoom/before;session.camera.x=fx-(x-vw/2)/(old.sw*ratio);session.camera.y=fy-(y-vh/2)/(old.sh*ratio);layout();
+  }
+  viewer.addEventListener("wheel",e=>{if(e.target.closest('button'))return;e.preventDefault();const b=viewer.getBoundingClientRect();zoomAt(session.camera.zoom*Math.exp(-e.deltaY*cfg.zoom.wheel),e.clientX-b.left,e.clientY-b.top);},{passive:false});
+  viewer.addEventListener("pointerdown", e => {
+    if(e.target.closest('button, input, .progress-goal')&&!e.target.closest('.mapspot'))return;
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    drag={ x:e.clientX, y:e.clientY, cx:session.camera.x, cy:session.camera.y };moved=false;
+    if(pointers.size>1){moved=true;suppress=true;}
+  });
   viewer.addEventListener("pointermove", e => {
+    if(!pointers.has(e.pointerId))return;
+    if(pointers.size===2){
+      const old=[...pointers.values()],dist=Math.hypot(old[0].x-old[1].x,old[0].y-old[1].y);
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const p=[...pointers.values()],mid={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};
+      const b=viewer.getBoundingClientRect();zoomAt(session.camera.zoom*Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)/(dist||1),mid.x-b.left,mid.y-b.top);
+      session.camera.x-=(mid.x-(old[0].x+old[1].x)/2)/session.cameraLayout.sw;session.camera.y-=(mid.y-(old[0].y+old[1].y)/2)/session.cameraLayout.sh;layout();moved=true;suppress=true;e.preventDefault();return;
+    }
     if(!drag) return;
     const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
     // Capture only an actual drag: capturing a tap redirects its click away from the hotspot.
@@ -1173,7 +1212,7 @@ function setupBaseViewer(){
     }
     if(moved){ const dims=session.cameraLayout; session.camera.x=drag.cx-dx/dims.sw; session.camera.y=drag.cy-dy/dims.sh; layout(); e.preventDefault(); }
   });
-  const finish = () => { drag=null; viewer.classList.remove("dragging"); setTimeout(()=>{ suppress=false; },0); };
+  const finish = e => { pointers.delete(e.pointerId);drag=null;viewer.classList.remove("dragging");if(!pointers.size)setTimeout(()=>{ suppress=false;moved=false; },0); };
   viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
   viewer.addEventListener("click", e => {
     const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); return; }
@@ -1228,6 +1267,7 @@ SCREENS.base = function(){
     D.modules.reduce((a,m)=>a+m.levels.length,0) * 100));
   const nextRoom = nextAccessRoom();
   const BM = D.baseMap;
+  const goal=progressionGoal();
   const hub = baseState();
   const savedStage = bunkerStage();
   const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
@@ -1237,23 +1277,24 @@ SCREENS.base = function(){
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
-    plateHtml("core-spot" + (buildInProgress("rebirth_core") ? " constructing" : ""), 'left:' + BM.core.x + '%;top:' + BM.core.y + '%', 'data-destination="rebirth_core" aria-label="' + esc(BM.core.label) + '"', ROOM_ICONS.rebirth_core, "Core", coreLevel(), baseAllows("interactions","rebirth_core") ? moduleBadge("rebirth_core") : null, "");
+    plateHtml("core-spot" + (goal&&goal.module==="rebirth_core"?" goal-target":"") + (buildInProgress("rebirth_core") ? " constructing" : ""), 'left:' + BM.core.x + '%;top:' + BM.core.y + '%', 'data-destination="rebirth_core" aria-label="' + esc(BM.core.label) + '"', ROOM_ICONS.rebirth_core, "Core", coreLevel(), baseAllows("interactions","rebirth_core") ? moduleBadge("rebirth_core") : null, "");
   { const st = genStored(idleNow());
     if(st >= IDLE.generator.minCollect) html += '<button type="button" class="gen-chip' + (st >= genCap() ? ' full' : '') + '" style="left:' + BM.core.x + '%;top:calc(' + BM.core.y + '% + 46px)" onclick="event.stopPropagation();A.collectScrap()" aria-label="Collect ' + st + ' scrap from the recycler">' + IC("generator") + '<b>+' + st + '</b></button>'; }
   for(const room of BM.rooms){
     const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
     const shownOpen = unlocked || previewUnlocked;
-    const ready = !shownOpen && roomRequirementMet(room);
+    const next=room.destination&&nextLevelDef(room.destination);
+    const ready = !shownOpen && roomRequirementMet(room) && (!next||canAfford(next.cost));
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
     const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
-    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
-    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : ''),
+    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : lvl>0?IC("check")+' ONLINE':'') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
+    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?' goal-target':'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + goalPillHtml(nextRoom) + welcomeHtml() + '</div>';
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div><button class="overview ghost" onclick="A.baseOverview()">OVERVIEW</button>' + (progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
@@ -1751,7 +1792,7 @@ function wmFogSvg(){
 function lobbyHtml(gear, miss, locked){
   const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
   return '<div class="lobby">' +
-    '<div class="lobby-top"><h1>Raid Prep</h1>' + prepTargetHtml(miss) +
+    '<div class="lobby-top"><h1>Raid Prep</h1>' + progressionGoalHtml() +
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
@@ -2141,7 +2182,8 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
-    (opts.area ? "&area=" + encodeURIComponent(opts.area) : "");
+    (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") +
+    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -2437,6 +2479,7 @@ window.A = {
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
+    const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
     payCost(next.cost);
     // v1.56: L2+ upgrades run on a build timer (completes offline); the very first L2+ upgrade stays instant (FTUE).
     const I = idleState(), mins = buildMinutes(modId, next.level);
@@ -2540,7 +2583,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, bag: raidBagCapacity(gear), area: raidArea() }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro:guidedRaid() }));
   },
   deploy(){
     if(!session.prep) return;
@@ -2825,14 +2868,13 @@ window.A = {
     const next=room.destination && nextLevelDef(room.destination);
     const needsParts=next && !canAfford(next.cost);
     const prior=D.baseMap.rooms[room.stage - 2];
-    const lore = (ready ? 'Access is available because this requirement is complete. Opening the room clears access; building it still costs repair materials. ' : '') + room.requirement.text;
+    const lore = (ready ? 'Activate with secured repair materials. Materials are spent once; access and the module come online together. ' : '') + room.requirement.text;
     overlay('<div class="bpop room"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ready ? IC("unlock") : IC("lock")) + '</span><h1>' + esc(room.label) + '</h1>' +
       '<button type="button" class="iconbtn" onclick="var l=this.closest(\'.bpop\').querySelector(\'.lore\');l.hidden=!l.hidden" aria-label="Details and story">' + IC("info") + '</button></div>' +
       '<p class="lore" hidden>' + esc(lore) + '</p>' +
       (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
-        (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>' +
-          '<button type="button" class="linkbtn" onclick="A.unlockRoom(\'' + room.id + '\')">Open access only (repairs still needed)</button>'
-          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">REVEAL ROOM</button>') :
+        (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>'
+          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">ACTIVATE ROOM</button>') :
         '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
       '</div>', clearMapFocus, "sheet");
   },
@@ -2890,9 +2932,12 @@ window.A = {
   },
   unlockRoom(id){
     const room=roomDef(id); if(!room || roomUnlocked(id) || !roomRequirementMet(room)) return;
+    const next=room.destination&&nextLevelDef(room.destination);if(next&&!canAfford(next.cost)){toast("Extract the remaining repair materials first");return;}
     S.roomUnlocks[id]=true; act("ROOM_UNLOCKED", { room:id, stage:room.stage });
+    if(next){A.build(room.destination);return;}
     const o=document.getElementById("overlay"); if(o) o.remove(); session.screen="base"; refresh(); toast(room.label + " revealed");
   },
+  baseOverview(){const cfg=D.baseMap.world;session.focusSpot=null;session.camera={x:cfg.initialFocus.x/100,y:cfg.initialFocus.y/100,zoom:1};if(session.cameraLayoutFn)session.cameraLayoutFn();},
   devPlate(stage){
     session.devPlateStage = stage === null ? null : Math.max(0, Math.min(D.baseMap.rooms.length, Number(stage)));
     act("DEV_PLATE_PREVIEW", { stage:session.devPlateStage }); session.screen="base"; refresh();

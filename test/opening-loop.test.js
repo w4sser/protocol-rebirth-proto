@@ -1,0 +1,30 @@
+const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('assert');
+const root=__dirname+'/..',files=['items','modules','bit','raid_zones','recipes','vendors','retention','quests','progression','combat'];
+function boot(save){const w=new JSDOM(fs.readFileSync(root+'/index.html','utf8'),{runScripts:'outside-only',url:'http://localhost/'}).window;
+  for(const f of files)w.eval(fs.readFileSync(root+'/data/'+f+'.js','utf8'));
+  if(save)w.localStorage.setItem('pr_meta_save',JSON.stringify(save));w.PR_NAVIGATE=u=>w.launchURL=u;
+  w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,progressionGoal,finishModuleLevel,ingestRaidResult,session:()=>session};');return w;}
+const w=boot(),A=w.A,T=w.T;A.dismissIntro();A.build('rebirth_core');A.go('base');
+let goal=T.progressionGoal();assert.equal(goal.module,'fabricator');
+assert.deepEqual(Array.from(goal.parts,p=>p.id).sort(),['cable','scrap_alloy']);
+assert(goal.benefit.includes('Vest'),'first funded upgrade previews usable gear');
+const old=T.state().modules.fabricator;A.unlockRoom('fabricator');assert.equal(T.state().modules.fabricator,old,'cannot reveal without paying');assert(!T.state().roomUnlocks.fabricator);
+A.go('prep');A.deployNodeRaid();const launch=new URL(w.launchURL,'http://localhost/');assert(launch.searchParams.has('goal'));assert.equal(JSON.parse(launch.searchParams.get('goal')).module,'fabricator');assert.equal(launch.searchParams.get('intro'),'1');
+const result={schema:'protocol-rebirth/raid-result',version:1,raidId:launch.searchParams.get('raidId'),seed:launch.searchParams.get('seed'),outcome:'extract',area:'bunker',levelsCleared:1,enemiesDefeated:0,nodesLit:1,remainingMs:400000,extracted:['cable','cable','scrap_alloy'],lost:[],endedAt:Date.now(),kitLeft:{medkit:1}};
+T.ingestRaidResult({...result,raidId:'failed-attempt',outcome:'death',extracted:[],lost:['cable']});assert.equal(T.state().stash.cable||0,0,'defeat never funds build');
+T.ingestRaidResult(result);const cable=T.state().stash.cable;T.ingestRaidResult(result);assert.equal(T.state().stash.cable,cable,'duplicate result never grants again');A.go('base');assert(T.progressionGoal().ready,'extraction funds activation');
+A.unlockRoom('fabricator');assert.equal(T.state().modules.fabricator,1);assert(T.state().roomUnlocks.fabricator);assert(T.state().stash.scavenger_vest>=1);assert(T.state().stash.cable===0,'materials paid');
+const vest=T.state().stash.scavenger_vest;A.unlockRoom('fabricator');assert.equal(T.state().stash.scavenger_vest,vest,'no repeated commissioning gift');
+A.go('prep');A.deployNodeRaid();assert(w.launchURL.includes('scavenger_vest'),'payoff equipped for next raid');assert(!new URL(w.launchURL,'http://localhost/').searchParams.has('intro'));assert(new URL(w.launchURL,'http://localhost/').searchParams.get('stats').includes('shd:25'),'vest passes real shield to combat');assert.equal(new URL(w.launchURL,'http://localhost/').searchParams.get('bag'),'5','vest adds a real raid bag slot');
+const saved=JSON.parse(w.localStorage.getItem('pr_meta_save')),re=boot(saved);assert.equal(re.T.state().modules.fabricator,1);assert.equal(re.T.progressionGoal().module,'storage','canonical next room');
+const advanced=JSON.parse(JSON.stringify(saved));Object.assign(advanced.modules,{rebirth_core:2,fabricator:2,storage:1,bit_bay:1});Object.assign(advanced.stash,{rifle_marksman:2,power_cell:3,circuit_board:4});advanced.beat=8;advanced.tracked={module:'rebirth_core',level:3};advanced.roomUnlocks={fabricator:true,storage:true,bit_bay:true};advanced.coreLaunch=null;
+const oldProfile=boot(advanced);assert.equal(oldProfile.T.state().stash.rifle_marksman,2);assert.equal(oldProfile.T.state().stash.power_cell,3);assert.equal(oldProfile.T.state().stash.circuit_board,4);assert.equal(oldProfile.T.progressionGoal().module,'rebirth_core','earned manual progression target retained');oldProfile.A.go('prep');assert(!oldProfile.document.querySelector('.starter-mission'),'progressed players retain advanced choices');oldProfile.close();
+console.log('OPENING LOOP PASSED');w.close();re.close();
+{const b=boot(),d=b.document;b.A.dismissIntro();b.A.go('base');const view=d.querySelector('.baseviewer');
+const event=(type,x,y,id=1)=>{const e=new b.MouseEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y});Object.defineProperty(e,'pointerId',{value:id});view.dispatchEvent(e);};
+const initial=d.querySelector('.baseworld').style.transform;view.dispatchEvent(new b.WheelEvent('wheel',{bubbles:true,cancelable:true,deltaY:-500,clientX:400,clientY:200}));assert(b.T.session().camera.zoom>1,'wheel zooms base');
+event('pointerdown',300,200,1);event('pointerdown',500,200,2);event('pointermove',600,200,2);assert(b.T.session().camera.zoom>2,'pinch zooms base');event('pointerup',600,200,2);event('pointerup',300,200,1);
+d.querySelector('.core-spot').dispatchEvent(new b.MouseEvent('click',{bubbles:true,detail:1}));assert(!d.querySelector('#overlay'),'pinch never activates a room');
+view.dispatchEvent(new b.WheelEvent('wheel',{bubbles:true,cancelable:true,deltaY:-100000,clientX:400,clientY:200}));assert.equal(b.T.session().camera.zoom,2.4,'maximum zoom');
+event('pointerdown',400,200);event('pointermove',100000,100000);event('pointerup',100000,100000);const tr=d.querySelector('.baseworld').style.transform.match(/translate\(([-\d.]+)px,([-\d.]+)px\)/);assert(+tr[1]<=0&&+tr[2]<=0,'pan cannot expose empty top/left space');
+b.A.baseOverview();assert.equal(b.T.session().camera.zoom,1);b.close();console.log('BASE CAMERA GESTURES PASSED');}

@@ -1,17 +1,19 @@
 // Protocol Rebirth prototype — item data. Pure data: tune freely, UI never hardcodes these.
-window.DATA = window.DATA || {};
-window.DATA.items = [
+var ITEM_DATA_ROOT = typeof window !== 'undefined' ? window : globalThis;
+ITEM_DATA_ROOT.DATA = ITEM_DATA_ROOT.DATA || {};
+ITEM_DATA_ROOT.DATA.currencies = {scrap:{name:'Scrap',icon:'cur-scrap'},dataCores:{name:'Data Cores',icon:'cur-datacore'}};
+ITEM_DATA_ROOT.DATA.items = [
   // POWER
   { id:"power_cell", icon:"item-powercell", name:"Power Cell", family:"power", rarity:"uncommon", sellValue:90, stackSize:5,
     desc:"Dense charge pack. The Core is hungry for these.", uses:["upgrade:rebirth_core","recipe"] },
-  { id:"cable", icon:"item-cable", name:"Cable", family:"power", rarity:"common", sellValue:25, stackSize:10,
+  { id:"cable", icon:"item-cable", name:"Cable", source:"Electrical storage", family:"power", rarity:"common", sellValue:25, stackSize:10,
     desc:"Industrial cabling. Unglamorous. Essential.", uses:["upgrade:fabricator","upgrade:bit_bay"] },
   { id:"fuse", icon:"item-fuse", name:"Fuse", family:"power", rarity:"common", sellValue:30, stackSize:10,
     desc:"Blown ones are everywhere. Working ones are not.", uses:["upgrade:fabricator","recipe"] },
   { id:"power_relay", icon:"item-relay", name:"Power Relay", family:"power", rarity:"rare", sellValue:140, stackSize:5,
     desc:"Routes power between facility sections.", uses:["upgrade:rebirth_core","recipe"] },
   // MECHANICAL
-  { id:"scrap_alloy", icon:"item-alloy", name:"Scrap Alloy", family:"mechanical", rarity:"common", sellValue:15, stackSize:20,
+  { id:"scrap_alloy", icon:"item-alloy", name:"Scrap Alloy", source:"Supply caches", family:"mechanical", rarity:"common", sellValue:15, stackSize:20,
     desc:"Structural metal. The facility eats it by the ton.", uses:["upgrade:rebirth_core","recipe"] },
   { id:"servo", icon:"item-servo", name:"Servo", family:"mechanical", rarity:"common", sellValue:40, stackSize:10,
     desc:"Small actuator. BIT's joints want them.", uses:["upgrade:storage","barter"] },
@@ -20,7 +22,7 @@ window.DATA.items = [
   { id:"hydraulic_component", icon:"item-hydraulic", name:"Hydraulic Component", family:"mechanical", rarity:"uncommon", sellValue:110, stackSize:5,
     desc:"Heavy actuation for doors and lifts.", uses:["upgrade:rebirth_core","barter"] },
   // ELECTRONICS
-  { id:"circuit_board", icon:"item-circuit", name:"Circuit Board", family:"electronics", rarity:"common", sellValue:45, stackSize:10,
+  { id:"circuit_board", icon:"item-circuit", name:"Circuit Board", source:"Technical storage", family:"electronics", rarity:"common", sellValue:45, stackSize:10,
     desc:"Salvaged logic. Half of them still work.", uses:["upgrade:rebirth_core","recipe"] },
   { id:"optical_sensor", icon:"item-sensor", name:"Optical Sensor", family:"electronics", rarity:"uncommon", sellValue:120, stackSize:5,
     desc:"Military-grade optics. BIT has opinions about getting one.", uses:["upgrade:bit_bay","recipe"] },

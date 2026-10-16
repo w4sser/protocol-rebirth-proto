@@ -11,9 +11,10 @@ for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones
 const doc = w.document; w.A.dismissIntro(); w.A.go("base");
 assert.equal(doc.getElementById("app").className, "s-base");
 const pe = el => w.getComputedStyle(el).pointerEvents;
-for(const sel of [".hubstate", "div.goalpill"]){
+for(const sel of [".hubstate"]){
   const el = doc.querySelector(sel); assert(el, sel + " exists"); assert.equal(pe(el), "none", sel + " must not take taps");
 }
+assert(doc.querySelector('.progress-goal'),'recipe-backed goal visible');
 const spots = [...doc.querySelectorAll(".mapspot")]; assert(spots.length >= 5);
 for(const s of spots) assert.notEqual(pe(s), "none", "map spots stay tappable");
 const z = el => Number(w.getComputedStyle(el).zIndex);

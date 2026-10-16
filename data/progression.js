@@ -29,7 +29,7 @@ window.DATA.progression = {
   },
   start:{
     currencies:{ scrap:20, dataCores:0, signals:0 },   // Salvage merged into Scrap (v1.35, 1 Salvage = 2 Scrap)
-    stash:{ power_cell:1, scrap_alloy:3, medkit:1 }   // Basic Carbine is infinite (never in stash); Scavenger Vest unlocks at Fabricator L1
+    stash:{ scrap_alloy:3, medkit:1 }   // Supplied Scrap Alloy powers Core; Cable enters through the first raid. Existing saves keep all items.
   },
   // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
   // XP to go from level n to n+1 = xpBase + xpStep*(n-1)  ->  L2 at 50, L3 at 125, L4 at 225, L5 at 350, L10 at 1350.
@@ -40,11 +40,11 @@ window.DATA.progression = {
       introTitle:"PROTOCOL REBIRTH",
       introText:"You made it out. A damaged drone — BIT — followed you home to a dead facility.\n\nBIT says it doesn't have to stay dead." },
     { id:"core_l1", type:"build", module:"rebirth_core", level:1,
-      goalText:"Restore the Rebirth Core — 1× Power Cell, 2× Scrap Alloy" },
+      goalText:"Restore the Rebirth Core — 2× Scrap Alloy (already secured)" },
     { id:"raid_1", type:"raid",
-      goalText:"Find 1× Cable and 1× Fuse for the Fabricator",
+      goalText:"Secure Cable and Scrap Alloy for the Fabricator — assemble your Scavenger Vest",
       forceOutcome:"extract", forceExceptRisk:"aggressive",
-      guaranteedDrops:["cable","fuse"], insuranceOffered:false,
+      guaranteedDrops:["cable","cable","scrap_alloy"], insuranceOffered:false,
       autoTrack:{ module:"fabricator", level:1 } },
     { id:"fabricator_l1", type:"build", module:"fabricator", level:1,
       goalText:"Build the Fabricator" },

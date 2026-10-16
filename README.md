@@ -1,11 +1,9 @@
 # Protocol Rebirth — Meta Prototype v0.1
 
 Playable prototype of the meta-game loop for **Protocol Rebirth** (mobile extraction shooter).
-Raids remain simulated for the meta-loop. Raid prep also includes a separate playable combat sandbox
-to test touch movement, shooting, BIT support, health and loot pickups.
+Raid Prep's DEPLOY launches the playable Three.js raid in `nodspel/`. Extraction returns loot to the base; death loses the carried bag. The older simulated raid and isolated combat sandbox remain available to tests/dev tools.
 
-**Play:** open `index.html`, or the GitHub Pages link for this repo. Landscape only. From Raid Prep,
-choose **Try the Combat Test** to enter the live-fire sandbox.
+**Play:** open the root GitHub Pages site, in landscape. Start at the base, restore the Core, then use RAID → DEPLOY. See [the opening playtest guide](docs/opening-playtest.md) for a fresh-save route and verification notes.
 
 ## Structure
 
