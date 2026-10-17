@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.59.0';
+import {townizeLevel} from './town-layout.js?v=1.60.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -21,7 +21,7 @@ export const RULES=Object.freeze({
   loot:{capacity:4,maxCapacity:10,counts:[1,6,3],
     types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey'],
     weights:[
-      {cable:3,scrap_alloy:3,power_cell:3,polymer_plate:2,servo:2,salvage_crate:2},
+      {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:2},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
       {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1}],
     pickupRadius:1.6},

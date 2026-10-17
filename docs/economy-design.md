@@ -200,3 +200,6 @@ Daily short goals in the BIT tab. They exist to point the player at the next unl
 | Legendary | 3% | 120 Scrap + 2 T2 parts + 2 Data Cores |
 
 - Each claim gives **+12 BIT Bond XP**. Max per day: 3 quests, about 150 Scrap equivalent, which is below one Town extract. Scavenging is separate and runs at the same time.
+
+## 14. L1-materialreduktion (v1.60.0, godkänt, PRB-73 PR A)
+Nivå 1 droppar bara Scrap Alloy, Cable och Polymer Plate (+ Salvage Crate som ger Scrap). Power Cell och Servo droppar från nivå 2. BIT Bay L1 kostar 2 Cable + 1 Polymer Plate + 20 Scrap, Storage L1 kostar 2 Polymer Plate + 2 Scrap Alloy + 50 Scrap, och Optical Sensor har flyttats till BIT Bay L2. Se docs/design-encounters-toolkit.md §3.
