@@ -17,7 +17,7 @@ window.DATA.modules = [
         artAfter:"assets/production/core_powered.webp",
         newGoal:"Bring the Fabricator online — secure Cable and Scrap Alloy for your Scavenger Vest." },
       { level:2,
-        cost:{ scrap:120, items:{ power_relay:1, circuit_board:2, ai_fragment:1 } },
+        cost:{ scrap:120, items:{ power_relay:1, circuit_board:1, power_cell:1, ai_fragment:1 } },
         unlocks:["zone_transit","module_caps_2"],
         unlockText:"Sector B unlocked. BIT found a way into the Transit Hub.",
         benefitText:"New raid zone: Transit Hub. Higher module caps (BIT Bay L2, Fabricator L2).",

@@ -18,7 +18,7 @@ for(const f of ["data/modules.js","data/raid_zones.js","data/retention.js","data
   assert(!/\bsalvage\b(?!_crate)/i.test(src(f).replace(/\/\/.*$/gm, "")), f + " has no Salvage currency");
 { const { w, S } = boot();
   assert.equal(w.__T.ratio, 2, "1 Salvage = 2 Scrap");
-  assert.equal(w.DATA.items.find(i => i.id === "salvage_crate").grantsCurrency.scrap, 16, "crate gives Scrap");
+  assert.equal(w.DATA.items.find(i => i.id === "salvage_crate").grantsCurrency.scrap, 24, "crate gives Scrap (v1.64: 16 -> 24)");
   assert.equal(w.DATA.modules.find(m => m.id === "fabricator").levels[0].cost.scrap, 20, "Fabricator L1 costs 20 Scrap");
   assert(!("salvage" in S().cur), "fresh save has no Salvage"); }
 // 2) Legacy save migrates Salvage -> Scrap.

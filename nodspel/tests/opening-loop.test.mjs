@@ -14,7 +14,7 @@ test('bank and carried requirements remain separate across drop, loss and excess
 });
 test('later goals count item-sourced currency without declaring a build ready too early',()=>{
  const g=readGoal(JSON.stringify({...goal,parts:[{id:'polymer_plate',need:2,secured:1},{kind:'currency',id:'scrap',need:50,secured:18}]}));assert(g,'canonical currencies can be tracked');
- assert(!goalProgress(g,{polymer_plate:1}).enoughCarried);const p=goalProgress(g,{polymer_plate:1,salvage_crate:2});assert(p.enoughCarried);assert.equal(p.parts[1].carried,32);assert.equal(p.parts[1].secured,18);
+ assert(!goalProgress(g,{polymer_plate:1}).enoughCarried);const p=goalProgress(g,{polymer_plate:1,salvage_crate:2});assert(p.enoughCarried);assert.equal(p.parts[1].carried,48);assert.equal(p.parts[1].secured,18);
 });
 test('alternate angle can collect supplies, hold the node and extract without killing the guard',()=>{
  for(const seed of ['angle-1','angle-2']){

@@ -1,9 +1,9 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "1.63.0",
+  "version": "1.64.0",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:mapzoom && npm run test:guardrails",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:mapzoom && npm run test:guardrails && npm run test:oscar",
     "test:guardrails": "node test/guardrails.test.js",
     "verify": "npm test && npm --prefix nodspel test && node scripts/layout-check.mjs",
     "test:idle": "node test/idle.test.js",
@@ -22,6 +22,7 @@
     "test:export": "node test/export.test.js",
     "test:operator": "node test/operator.test.js",
     "test:quests": "node test/quests.test.js",
+    "test:oscar": "node test/oscar.test.mjs",
     "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js"
   },
   "devDependencies": {

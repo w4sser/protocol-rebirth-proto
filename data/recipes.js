@@ -33,3 +33,28 @@ window.DATA.recipes = [
 ];
 // "Scrap it" (junk recycling): any common item -> scrap. Unlocked with Fabricator L1.
 window.DATA.scrapJunkRate = 0.5; // scrap gained = sellValue * rate
+
+// Single source of truth for "what is this item for?" (v1.64). Derived at call time from the REAL module costs and
+// recipe inputs, so the raid loot label, the first-find info card and the stash card can never promise a use that
+// does not exist. Returns { uses:[{kind,label,short}], sell, recycle, line }.
+window.DATA.itemInfo = function(id){
+  var D = window.DATA, it = (D.items || []).find(function(i){ return i.id === id; });
+  if(!it) return null;
+  var SHORT = { rebirth_core:"Core", fabricator:"Fab", bit_bay:"BIT Bay", storage:"Storage" }, uses = [];
+  (D.modules || []).forEach(function(m){ (m.levels || []).forEach(function(l){
+    if(l.cost && l.cost.items && l.cost.items[id]) uses.push({ kind:"upgrade", module:m.id, level:l.level, label:m.name + " L" + l.level, short:(SHORT[m.id] || m.name) + " L" + l.level });
+  }); });
+  (D.recipes || []).forEach(function(r){
+    if(r.inputs && r.inputs[id]) uses.push({ kind:"recipe", recipe:r.id, label:"Fabricator: " + r.name, short:"Fabricator" });
+  });
+  var mult = D.vendors && D.vendors[0] ? D.vendors[0].sellMultiplier : 1;
+  var sell = Math.floor((it.sellValue || 0) * mult);
+  var recycle = it.rarity === "common" ? Math.floor((it.sellValue || 0) * (D.scrapJunkRate || 0)) : 0;
+  var g = it.grantsCurrency, line;
+  if(g) line = Object.keys(g).map(function(c){ return "+" + g[c] + " " + (c === "scrap" ? "Scrap" : c === "dataCores" ? "Data Cores" : c); }).join(", ");
+  else if(it.slot || it.weapon) line = "Gear";
+  else if(it.scouts) line = "Scouting";
+  else { var up = uses.filter(function(u){ return u.kind === "upgrade"; })[0];
+    line = up ? "Base part · " + up.short : uses.length ? "Fabricator part" : "Sell " + sell; }
+  return { item:it, uses:uses, sell:sell, recycle:recycle, line:line };
+};

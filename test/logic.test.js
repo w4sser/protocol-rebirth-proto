@@ -224,12 +224,13 @@ console.log("ALL LOGIC TESTS PASSED");
   const r = app.ingestRaidResult({ schema:"protocol-rebirth/raid-result", version:1, raidId:"cur-1", seed:"c", outcome:"extract",
     levelsCleared:2, enemiesDefeated:0, nodesLit:0, remainingMs:0, extracted:["salvage_crate","salvage_crate","data_core","polymer_plate","servo"], lost:[], endedAt:1 });
   const I = Object.fromEntries(window.DATA.items.map(i => [i.id, i]));
-  assert.equal(st.cur.scrap, s0 + 2*I.salvage_crate.grantsCurrency.scrap, "crates become Scrap");
+  assert.equal(st.cur.scrap, s0 + 2*I.salvage_crate.grantsCurrency.scrap + 15, "crates become Scrap (+ L1+L2 extract bonus 5+10)");
+  assert.equal(r.scrapBonus, 15, "extract bonus for 2 cleared levels");
   assert.equal(st.cur.dataCores, d0 + I.data_core.grantsCurrency.dataCores);
   assert.equal(st.stash.salvage_crate || 0, 0, "currency loot never sits in the stash");
   assert.equal(st.stash.polymer_plate, (app.freshState().stash.polymer_plate||0) + 1);
   assert(st.revealed.dataCores);
-  assert(/\+32 Scrap/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
+  assert(/\+48 Scrap.*extract bonus \+15 Scrap/.test(app.coreResultSummary({ outcome:"extract", lost:[] }, r)));
   console.log("item-sourced currency OK");
 }
 

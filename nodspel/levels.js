@@ -1,5 +1,5 @@
-import {townizeLevel} from './town-layout.js?v=1.63.0';
-import {applyEncounters} from './encounters.js?v=1.63.0';
+import {townizeLevel} from './town-layout.js?v=1.64.0';
+import {applyEncounters} from './encounters.js?v=1.64.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -48,10 +48,12 @@ export const RULES=Object.freeze({
   // Loot ids are the base (meta) item ids. Weighted per level so every base repair part drops:
   // early parts on level 1, mid parts on level 2, rare parts deeper. salvage_crate/data_core turn into
   // Salvage/Data Cores in the base (item-sourced currency). See docs/meta-core-integration.md §8.
-  loot:{capacity:4,maxCapacity:10,counts:[1,6,3],
+  // v1.64: fixed Scrap per cleared level (L1, L2, L3), paid on extract only; mirrors DATA.progression.extractScrapBonus.
+  extractScrapBonus:[5,10,15],
+  loot:{capacity:4,maxCapacity:10,counts:[2,6,3],
     types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey'],
     weights:[
-      {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:2},
+      {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:4},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
       {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1}],
     pickupRadius:1.6},
@@ -96,6 +98,7 @@ export function randomFromSeed(seed){
 }
 const opposite=d=>({x:-d.x,z:-d.z});
 const equal=(a,b)=>a.x===b.x&&a.z===b.z;
+export function extractScrapBonus(levelsCleared){const B=RULES.extractScrapBonus,n=Math.max(0,Math.min(B.length,Math.floor(Number(levelsCleared)||0)));return B.slice(0,n).reduce((a,b)=>a+b,0);}
 export function pickWeighted(weights,roll){
   const entries=Object.entries(weights),total=entries.reduce((s,[,w])=>s+w,0);
   let r=roll*total;for(const [id,w] of entries){r-=w;if(r<0)return id;}

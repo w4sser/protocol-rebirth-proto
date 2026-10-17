@@ -140,3 +140,7 @@ html,body{background:#07151c}
 .node-label.keycard-loot{border-color:#E8A33D;color:#ffdf9c}.keycard-loot .node-marker{background:#E8A33D}
 .death-tip{margin:0 auto 14px;max-width:420px;padding:7px 12px;border-left:3px solid #3FE0D0;background:#0d1a20e6;color:#cfe7dd;font-size:12px;line-height:1.35;text-align:left}.death-tip .pr-ic{width:14px;height:14px;vertical-align:-2px;color:#3FE0D0}
 @media(max-height:500px){.encounter-hint{top:58px;font-size:10px}.death-tip{margin-bottom:8px;font-size:11px}}
+
+/* v1.64 loot purpose line (DATA.itemInfo): full label only */
+.loot-label{flex-wrap:wrap;justify-content:center}.loot-label .use-text{flex:0 0 100%;text-align:center;font-size:9px;font-weight:600;letter-spacing:.04em;color:var(--ad-loot);opacity:.9}
+.node-label .use-text:empty,.node-label[data-mode=short] .use-text,.node-label[data-mode=dot] .use-text{display:none}

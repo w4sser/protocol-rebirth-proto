@@ -12,10 +12,10 @@ function boot(save, t0){
 const MIN = 60000, H = 3600000, T0 = Date.UTC(2026, 9, 15, 8);
 const I = (() => { const d = new JSDOM("", { runScripts:"outside-only" }).window; d.eval(fs.readFileSync(path + "/data/retention.js", "utf8")); return d.DATA.idle; })();
 // numbers stay in the documented ranges
-assert.deepEqual(I.generator.ratePerHour, { 1:6, 2:10, 3:15 }); assert.equal(I.generator.capHours, 8);
+assert.deepEqual(I.generator.ratePerHour, { 1:10, 2:14, 3:20 }); assert.equal(I.generator.capHours, 8);
 for(const t of Object.values(I.buildMinutes)) for(const m of Object.values(t)) assert(m >= 15 && m <= 120, "build timers 15 min - 2 h");
 const doc = fs.readFileSync(path + "/docs/economy-design.md", "utf8");
-assert(/## 12\. Idle/.test(doc) && /6 \/ 10 \/ 15/.test(doc) && /48 \/ 80 \/ 120/.test(doc), "numbers documented in economy-design.md");
+assert(/## 12\. Idle/.test(doc) && /10 \/ 14 \/ 20/.test(doc) && /80 \/ 112 \/ 160/.test(doc), "numbers documented in economy-design.md");
 
 const g = boot(null, T0); g.A.dismissIntro(); const base = JSON.parse(JSON.stringify(g.S()));
 Object.assign(base.modules, { rebirth_core:1, fabricator:1, bit_bay:1, storage:1 }); base.baseState = "core_habitable"; base.introSeen = true;
@@ -23,10 +23,10 @@ base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true };
 { // 1) recycler: accrues per hour, caps at 8 h, one-tap collect keeps the partial hour
   const b = boot(base, T0); b.A.go("base");
   assert.equal(b.T.genStored(b.now), 0);
-  b.set(T0 + 3.5 * H); assert.equal(b.T.genStored(b.now), 21, "6/h for 3.5 h");
-  b.set(T0 + 30 * H); assert.equal(b.T.genStored(b.now), 48, "capped at 8 h (48)");
+  b.set(T0 + 3.5 * H); assert.equal(b.T.genStored(b.now), 35, "10/h for 3.5 h");
+  b.set(T0 + 30 * H); assert.equal(b.T.genStored(b.now), 80, "capped at 8 h (80)");
   b.A.go("base"); assert(b.doc.querySelector(".gen-chip"), "collect chip on the base map");
-  const s0 = b.S().cur.scrap; b.A.collectScrap(); assert.equal(b.S().cur.scrap, s0 + 48, "one-tap collect"); assert.equal(b.T.genStored(b.now), 0);
+  const s0 = b.S().cur.scrap; b.A.collectScrap(); assert.equal(b.S().cur.scrap, s0 + 80, "one-tap collect"); assert.equal(b.T.genStored(b.now), 0);
   b.set(T0 + 30 * H + 10 * MIN); assert.equal(b.T.genStored(b.now), 1); }
 { // clock rollback: nothing completes early, nothing is lost
   const b = boot(base, T0); b.A.go("base"); b.set(T0 + 2 * H); b.A.go("base"); const st = b.T.genStored(b.now);
@@ -34,7 +34,7 @@ base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true };
   assert.equal(b.S().idle.clock, T0 + 2 * H, "idle clock never moves backwards"); }
 { // 2) build timers: first L2+ instant (FTUE), later ones timed and finished offline via the save timestamps
   const s = JSON.parse(JSON.stringify(base)); s.cur.scrap = 9999; for(const id of Object.keys(s.stash)) s.stash[id] = 50;
-  Object.assign(s.stash, { power_relay:5, circuit_board:9, ai_fragment:5, hydraulic_component:5, memory_module:5, servo:9, cable:9, fuse:9, optical_sensor:9, transmitter:5 }); s.cur.dataCores = 50;
+  Object.assign(s.stash, { power_relay:5, circuit_board:9, ai_fragment:5, hydraulic_component:5, memory_module:5, servo:9, cable:9, fuse:9, optical_sensor:9, transmitter:5, power_cell:5 }); s.cur.dataCores = 50;
   const b = boot(s, T0); b.A.build("rebirth_core"); assert.equal(b.S().modules.rebirth_core, 2, "first L2 upgrade instant");
   b.A.build("fabricator"); assert.equal(b.S().modules.fabricator, 1, "second L2 upgrade is timed");
   const job = b.S().idle.builds.fabricator; assert.equal((job.doneAt - job.startAt) / MIN, 15);
@@ -63,7 +63,7 @@ base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true };
   const c = boot(JSON.parse(JSON.stringify(b.S())), T0 + 3 * H); c.A.go("base");
   assert.equal(c.S().cur.scrap, sc + run.loot.scrap, "scavenge loot delivered while away");
   const wel = c.doc.querySelector(".welcome"); assert(wel, "welcome-back strip shown");
-  assert(/BIT is back/.test(wel.textContent) && /Recycler: 18 Scrap ready/.test(wel.textContent), "summary lists what happened");
+  assert(/BIT is back/.test(wel.textContent) && /Recycler: 30 Scrap ready/.test(wel.textContent), "summary lists what happened");
   assert(!c.doc.getElementById("overlay"), "no blocking popup"); assert(wel.querySelector(".pop-x"), "shared close X");
   c.A.dismissWelcome(); assert(!c.doc.querySelector(".welcome")); }
 { // short absence: no welcome strip
