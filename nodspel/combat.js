@@ -1,8 +1,8 @@
-import {RULES,hazardState} from './levels.js?v=1.61.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.61.0';
-import {takeDamage,tickRound} from './round.js?v=1.61.0';
-import {houseWaypoint} from './house.js?v=1.61.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=1.61.0';
+import {RULES,hazardState} from './levels.js?v=1.62.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.62.0';
+import {takeDamage,tickRound} from './round.js?v=1.62.0';
+import {houseWaypoint} from './house.js?v=1.62.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=1.62.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -48,7 +48,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
       const way=houseWaypoint(round.level.house,enemy,player)??(enemy.swarm?doorwayWaypoint(round.level,enemy,player):null),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
-      if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && distance<14){
+      if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && (distance<14||enemy.swarm)){
         stepEnemy(round,enemy,goal,gd,obstacles,player,dt);
       }
     }
@@ -94,10 +94,15 @@ function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   const step=Math.min(gd,enemy.speed*dt),dx=(goal.x-enemy.x)/gd*step,dz=(goal.z-enemy.z)/gd*step;
   let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
   // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
-  if(enemy.swarm&&Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
-    enemy.slide??=1;
-    for(const side of [enemy.slide,-enemy.slide]){const alt=movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
-      if(Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>=step*.3){next=alt;enemy.slide=side;break;}}
+  // The sidestep is committed for a moment, otherwise the next normal step just slides them back onto the corner.
+  if(enemy.swarm){
+    const sidestep=side=>movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
+    if((enemy.slideLeft??0)>0){enemy.slideLeft-=dt;next=sidestep(enemy.slide);}
+    else if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
+      enemy.slide??=1;
+      for(const side of [enemy.slide,-enemy.slide]){const alt=sidestep(side);
+        if(Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>=step*.3){next=alt;enemy.slide=side;enemy.slideLeft=.4;break;}}
+    }
   }
   enemy.x=next.x;enemy.z=next.z;
 }
