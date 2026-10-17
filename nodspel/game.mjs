@@ -367,7 +367,8 @@ const ENC_HINT_KEY='nodspel.encounter-hints.v1';let seenHints=null,noticeUntil=0
 function loadSeenHints(){if(seenHints)return seenHints;seenHints={};try{Object.assign(seenHints,JSON.parse(localStorage.getItem(ENC_HINT_KEY)||'{}'));}catch{}return seenHints;}
 function markHintSeen(type){const s=loadSeenHints();s[type]=1;try{localStorage.setItem(ENC_HINT_KEY,JSON.stringify(s));}catch{}}
 function notice(text,ms=4200){let el=$('#encounter-hint');if(!el){el=document.createElement('div');el.id='encounter-hint';el.className='encounter-hint';el.setAttribute('role','status');$('#viewport').append(el);}
-  el.textContent=text;el.hidden=false;noticeUntil=Date.now()+ms;clearTimeout(notice.t);notice.t=setTimeout(()=>{el.hidden=true;},ms);}
+  // restart the fade (the element is reused; a finished `forwards` animation would leave it invisible)
+  el.textContent=text;el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';el.style.animationDuration=`${ms}ms`;noticeUntil=Date.now()+ms;clearTimeout(notice.t);notice.t=setTimeout(()=>{el.hidden=true;},ms);}
 function checkEncounterHints(clock){
   if(clock<noticeUntil)return;const seen=loadSeenHints();
   for(const enc of encountersOf(round.level)){

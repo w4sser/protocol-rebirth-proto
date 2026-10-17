@@ -54,7 +54,7 @@ window.DATA.itemInfo = function(id){
   if(g) line = Object.keys(g).map(function(c){ return "+" + g[c] + " " + (c === "scrap" ? "Scrap" : c === "dataCores" ? "Data Cores" : c); }).join(", ");
   else if(it.slot || it.weapon) line = "Gear";
   else if(it.scouts) line = "Scouting";
-  else { var up = uses.filter(function(u){ return u.kind === "upgrade"; })[0];
+  else { var ups = uses.filter(function(u){ return u.kind === "upgrade"; }), up = ups.filter(function(u){ return !(u.module === "rebirth_core" && u.level === 1); })[0] || ups[0]; // Core L1 is built in the intro
     line = up ? "Base part · " + up.short : uses.length ? "Fabricator part" : "Sell " + sell; }
   return { item:it, uses:uses, sell:sell, recycle:recycle, line:line };
 };
