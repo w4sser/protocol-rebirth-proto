@@ -158,6 +158,7 @@ async function baseRun([w,h]){
       const steps=[['base','A.go("base")'],['prep','A.go("prep")'],['stash','A.go("stash")'],['vendor','A.go("vendor")'],['bit','A.go("bit")'],['worldmap','A.go("worldmap")'],['operator','A.go("operator")'],
         ['prep-mission','A.go("prep");A.planToggle(true)'],['prep-slot','A.go("prep");A.pickSlot("weapon")'],
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
+        ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
         ['settings','A.go("base");document.getElementById("menubtn").click()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}

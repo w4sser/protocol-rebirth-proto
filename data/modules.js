@@ -190,3 +190,54 @@ window.DATA.styleOptions = {
 window.DATA.styleOverlay = {
   bit_bay: { x:66, y:34, w:30 }
 };
+
+// Upgrade reward tiles (v1.66.0). Pure and data-driven: every tile is derived from what the level really grants
+// (unlocks, commissioning gear + its stats, recipes gated on the level, tools unlocked by it, module cap raises).
+// Each tile carries `source` so tests can prove nothing is promised that the data does not grant.
+// Tile: { kind:"gear"|"stat"|"unlock", icon, value, label, source }. Returns [] for an unknown module/level.
+window.DATA.upgradeRewardTiles = function(moduleId, level){
+  var D = window.DATA, mod = (D.modules || []).filter(function(m){ return m.id === moduleId; })[0];
+  var def = mod && mod.levels.filter(function(l){ return l.level === level; })[0];
+  if(!def) return [];
+  var items = {}; (D.items || []).forEach(function(i){ items[i.id] = i; });
+  var tiles = [], has = function(u){ return (def.unlocks || []).indexOf(u) >= 0; };
+  var add = function(kind, icon, value, label, source){ tiles.push({ kind:kind, icon:icon, value:value, label:label, source:source }); };
+  Object.keys(def.commissioning || {}).forEach(function(id){
+    var it = items[id]; if(!it) return;
+    add("gear", it.icon, String(it.name).toUpperCase(), "ADDED TO STASH", "commissioning:" + id);
+    if(it.stats && it.stats.shield) add("stat", "stat-shield", "+" + it.stats.shield, "SHIELD", "item:" + id + ":stats.shield");
+    if(it.stats && it.stats.speed) add("stat", "stat-speed", "+" + it.stats.speed, "SPEED", "item:" + id + ":stats.speed");
+    if(it.bagSlots) add("stat", "stat-bag", "+" + it.bagSlots + " SLOT" + (it.bagSlots > 1 ? "S" : ""), "BAG", "item:" + id + ":bagSlots");
+  });
+  if(has("lights_on")) add("unlock", "power", "POWER", "RESTORED", "unlock:lights_on");
+  if(has("reveal_modules")) add("unlock", "unlock", "ROOMS", "ACCESS OPENED", "unlock:reveal_modules");
+  if(has("zone_transit")){
+    var z = (D.raidZones || []).filter(function(x){ return x.unlockedAtCore === level; })[0];
+    if(z) add("unlock", "route", String(z.name).toUpperCase(), "NEW RAID ZONE", "unlock:zone_transit");
+  }
+  if(has("area_town_access")){
+    var a = ((D.worldMap && D.worldMap.areas) || []).filter(function(x){ return x.requires && x.requires.core === level; })[0];
+    if(a) add("unlock", a.iconId || "area-town", String(a.name).toUpperCase(), a.requires.scoutItem ? "CORE REQ. MET" : "AREA ACCESS", "unlock:area_town_access");
+  }
+  var capKey = (def.unlocks || []).map(function(u){ return /^module_caps_(\d+)$/.exec(u); }).filter(Boolean)[0];
+  if(capKey){
+    var n = (D.modules || []).filter(function(m){ var c = m.maxLevelByCore || {}; return m.id !== "rebirth_core" && (c[String(level)] || 0) > (c[String(level - 1)] || 0); }).length; // the Core ignores its own cap table
+    if(n) add("unlock", "build", n + " ROOM" + (n > 1 ? "S" : ""), "HIGHER LEVEL CAP", "unlock:" + capKey[0]);
+  }
+  if(mod.id === "fabricator"){
+    var rc = (D.recipes || []).filter(function(r){ return r.fabricatorLevel === level; }).length;
+    if(rc) add("unlock", "build", rc + " RECIPE" + (rc > 1 ? "S" : ""), "CRAFTING", "recipes:" + level);
+  }
+  if(has("scrap_junk")) add("unlock", "restart", "SCRAP IT", "RECYCLE JUNK", "unlock:scrap_junk");
+  (D.items || []).forEach(function(it){
+    var u = it.tool && it.tool.unlock;
+    if(u && u.module === moduleId && u.level === level) add("unlock", it.icon, String(it.name).toUpperCase(), "TOOL · 1 FREE", "tool:" + it.id);
+  });
+  if(has("bit_online")) add("unlock", "bit-face", "BIT", "ONLINE", "unlock:bit_online");
+  if(has("loot_scan_1")) add("stat", "aim", "+1", "LOOT SCAN / RAID", "unlock:loot_scan_1");
+  if(has("bit_carry_1")) add("stat", "item-crate", "+1", "BIT CARRY ITEM", "unlock:bit_carry_1");
+  if(has("stash_plus_8")) add("stat", "item-crate", "+" + D.storageBonus, "STASH SLOTS", "unlock:stash_plus_8");
+  if(has("secure_slot")) add("unlock", "lock", "1 SLOT", "SURVIVES DEATH", "unlock:secure_slot");
+  if(has("raid_bag_plus_1")) add("stat", "stat-bag", "+1 SLOT", "RAID BAG", "unlock:raid_bag_plus_1");
+  return tiles;
+};
