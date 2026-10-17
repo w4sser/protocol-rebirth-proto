@@ -842,7 +842,7 @@
 #app.s-prep .lobby-side.right{display:block}
 #app.s-prep .lobby-bottom{display:flex;flex-direction:column;gap:8px;height:100%;min-height:0}
 #app.s-prep .lobby-bottom .area-pick{flex:1 1 0;min-height:0;align-self:stretch;margin:0;flex-direction:row;align-items:center;gap:8px;padding:6px 10px;overflow:hidden}
-#app.s-prep .lobby-bottom .area-pick span{min-width:0}#app.s-prep .lobby-bottom .area-pick.map-open span b{font-size:14px;white-space:nowrap}
+#app.s-prep .lobby-bottom .area-pick span{min-width:0}#app.s-prep .lobby-bottom .area-pick.map-open span b{font-size:13px;white-space:normal;overflow-wrap:anywhere;line-height:1.1}
 #app.s-prep .lobby-bottom .playbtn{flex:none;height:clamp(54px,19vh,72px);min-height:0;margin:0;align-self:stretch}
 #app.s-prep .progress-goal.compact{flex:none;max-width:none;width:100%;margin:0;box-sizing:border-box;gap:3px;padding:6px 10px;text-align:left;font:600 11px "IBM Plex Sans",system-ui,sans-serif;color:var(--ad-bone);border:0;border-left:3px solid var(--ad-loot);border-radius:10px;background:var(--ad-ink);cursor:pointer}
 #app.s-prep .progress-goal.compact>b{font-size:11px;letter-spacing:.06em;color:var(--ad-loot);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -861,6 +861,7 @@
 .rtiles[data-count="5"],.rtiles[data-count="6"]{flex-wrap:nowrap;gap:6px} .rtiles[data-count="5"] .rtile,.rtiles[data-count="6"] .rtile{flex:1 1 0;width:auto;max-width:96px;height:84px} .rtiles[data-count="5"] .rtile .pr-ic,.rtiles[data-count="6"] .rtile .pr-ic{width:28px;height:28px}
 .rtiles[data-count="5"] .rtile b,.rtiles[data-count="6"] .rtile b{font-size:11px} .rtiles[data-count="5"] .rtile small,.rtiles[data-count="6"] .rtile small{font-size:8px;letter-spacing:.04em}
 .reward-card>button.primary.big{background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);width:260px;max-width:100%;margin:12px auto 0;display:block;min-height:44px}
+.reward-goal{margin:8px 0 0;font-size:11px;color:var(--dim)} .reward-goal b{color:var(--ad-loot);letter-spacing:.08em;margin-right:4px}
 .reward-bit{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 0;font-size:11px;color:var(--dim)} .reward-bit .pr-ic{width:24px;height:24px;color:var(--ad-bit)}
 </style>
 </head>

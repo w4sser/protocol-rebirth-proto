@@ -217,11 +217,11 @@ window.DATA.upgradeRewardTiles = function(moduleId, level){
   }
   if(has("area_town_access")){
     var a = ((D.worldMap && D.worldMap.areas) || []).filter(function(x){ return x.requires && x.requires.core === level; })[0];
-    if(a) add("unlock", a.iconId || "area-town", String(a.name).toUpperCase(), "AREA ACCESS", "unlock:area_town_access");
+    if(a) add("unlock", a.iconId || "area-town", String(a.name).toUpperCase(), a.requires.scoutItem ? "CORE REQ. MET" : "AREA ACCESS", "unlock:area_town_access");
   }
   var capKey = (def.unlocks || []).map(function(u){ return /^module_caps_(\d+)$/.exec(u); }).filter(Boolean)[0];
   if(capKey){
-    var n = (D.modules || []).filter(function(m){ var c = m.maxLevelByCore || {}; return (c[String(level)] || 0) > (c[String(level - 1)] || 0); }).length;
+    var n = (D.modules || []).filter(function(m){ var c = m.maxLevelByCore || {}; return m.id !== "rebirth_core" && (c[String(level)] || 0) > (c[String(level - 1)] || 0); }).length; // the Core ignores its own cap table
     if(n) add("unlock", "build", n + " ROOM" + (n > 1 ? "S" : ""), "HIGHER LEVEL CAP", "unlock:" + capKey[0]);
   }
   if(mod.id === "fabricator"){

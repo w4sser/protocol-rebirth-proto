@@ -54,4 +54,9 @@ assert(host.querySelectorAll(".rtile").length === fab.length, "one DOM tile per 
 const bit = host.querySelector(".reward-bit"); assert(bit && /Build BIT Bay to wake it/.test(bit.textContent) && !bit.closest(".bpop"), "BIT line outside the card");
 assert(/^UPGRADE · /.test((() => { const h = doc.createElement("div"); h.innerHTML = w.__T.upgradeRewardHtml("storage", 2, false); return h.querySelector("h1").textContent; })()), "later levels titled UPGRADE");
 const o = w.eval("overlay(upgradeRewardHtml('fabricator',1,false),null,'reward')"); assert(doc.querySelector("#overlay.reward .bpop.pop-card > .pop-x"), "shared corner X"); o.remove();
+for(const m of D.modules) for(const l of m.levels) for(const t of D.upgradeRewardTiles(m.id, l.level)) if(/^unlock:module_caps_/.test(t.source)){
+  const n = D.modules.filter(x => x.id !== "rebirth_core" && ((x.maxLevelByCore || {})[l.level] || 0) > ((x.maxLevelByCore || {})[l.level - 1] || 0)).length;
+  assert(t.value.startsWith(n + " ROOM"), m.id + " L" + l.level + ": cap tile counts only rooms whose cap rises (Core excluded)"); }
+for(const a of D.worldMap.areas) if(a.requires && a.requires.scoutItem) for(const l of D.modules.find(x => x.id === "rebirth_core").levels)
+  for(const t of D.upgradeRewardTiles("rebirth_core", l.level)) if(t.value === a.name.toUpperCase()) assert(t.label !== "AREA ACCESS", "area that still needs scouting is not promised as access");
 console.log("REWARD TILES PASSED (" + checked + " module levels)");

@@ -883,6 +883,7 @@ function upgradeRewardHtml(modId, level, bitJustOnline){
   const bitOff = !bitJustOnline && !bitOnline();
   return '<div class="bpop reward-card"><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
     '<p class="reward-sub">' + esc(def.unlockText || def.benefitText || "") + '</p><div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
+    (def.newGoal ? '<p class="reward-goal"><b>NEXT</b> ' + esc(def.newGoal) + '</p>' : '') +
     '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
     (bitOff ? '<p class="reward-bit">' + IC("bit-face") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
 }
@@ -1610,10 +1611,10 @@ SCREENS.prep = function(){
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
   $app().innerHTML = html;
 };
-const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Heal",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
+const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
 function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
 // Quantity carried on a tile: medkits across both item slots (capped by stock) / tool charges.
-function slotQty(key){ return key === "c1" ? nodeRaidKit().medkit : key === "tool" ? (nodeRaidTool() || { n:0 }).n : 0; }
+function slotQty(key){ const l = session.prep.loadout; return (key === "c1" || key === "c2") && l[key] === PROG.kitItem ? Math.min(have(PROG.kitItem), ["c1","c2"].filter(k => l[k] === PROG.kitItem).length) : key === "tool" ? (nodeRaidTool() || { n:0 }).n : 0; }
 function slotTileHtml(def, locked, mini){
   const [key, slot, label, icon] = def, p = session.prep;
   if(locked && ownedForSlot(slot) > 0) locked = false; // never lock the player out of gear they own
