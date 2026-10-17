@@ -47,7 +47,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
-      const way=houseWaypoint(round.level.house,enemy,player),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
+      const way=houseWaypoint(round.level.house,enemy,player)??(enemy.swarm?doorwayWaypoint(round.level,enemy,player):null),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
       if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && distance<14){
         stepEnemy(round,enemy,goal,gd,obstacles,player,dt);
       }
@@ -76,10 +76,29 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
 // Encounter shots carry their source (for the result-screen tip) and a damage capped at maxHitFraction of max HP.
 function shotInfo(round,enemy){return enemy.encounter&&RULES.encounters[enemy.encounter]?.damagePct?{source:enemy.encounter,damage:encounterDamage(round,enemy.encounter)}:{};}
 
+// Swarm rushers chase in a straight line, which wedges them on a doorway's corner. When the player is in another
+// room or in a corridor they first head for the doorway that is closest to the player, then through it; in a
+// corridor (straight) or in the same room they simply go for the player, so a corridor makes them queue up.
+function doorwayWaypoint(level,enemy,player){
+  const inRoom=p=>level.rooms.findIndex(r=>Math.abs(p.x-r.x)<=r.w/2&&Math.abs(p.z-r.z)<=r.d/2);
+  const here=inRoom(enemy);if(here<0||here===inRoom(player))return null;
+  const room=level.rooms[here];let best=null,bd=Infinity;
+  for(const d of room.doors){const mouth={x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2},k=Math.hypot(player.x-mouth.x,player.z-mouth.z);if(k<bd){bd=k;best=mouth;best.out={x:mouth.x+d.x*.9,z:mouth.z+d.z*.9};}}
+  if(!best)return null;
+  return Math.hypot(enemy.x-best.x,enemy.z-best.z)<1.1?best.out:best;
+}
+
 // One movement step towards `goal` (gd = distance), blocked by walls, the player and other enemies.
 function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-  const next=movePlayer(enemy,{x:(goal.x-enemy.x)/gd*Math.min(gd,enemy.speed*dt),z:(goal.z-enemy.z)/gd*Math.min(gd,enemy.speed*dt)},blockers,round.level.floors,.48);
+  const step=Math.min(gd,enemy.speed*dt),dx=(goal.x-enemy.x)/gd*step,dz=(goal.z-enemy.z)/gd*step;
+  let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
+  // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
+  if(enemy.swarm&&Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
+    enemy.slide??=1;
+    for(const side of [enemy.slide,-enemy.slide]){const alt=movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
+      if(Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>=step*.3){next=alt;enemy.slide=side;break;}}
+  }
   enemy.x=next.x;enemy.z=next.z;
 }
 // Stationary shooter: intro guard (RULES.intro), Core guard and turret (RULES.encounters.*). A visible warning line,

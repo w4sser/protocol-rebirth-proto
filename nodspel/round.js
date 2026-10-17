@@ -158,6 +158,8 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
   if(round.over || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
+  // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
+  if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
   if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
   if(enemy.type==='generator'){
     // Not a kill: breaking the generator drops its node's shield for good.
