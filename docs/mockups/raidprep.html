@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><style>
+.stage{position:absolute;left:47px;right:47px;top:50px;bottom:72px;display:grid;grid-template-columns:230px 1fr 230px;gap:12px}
+.slots{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px}
+.slot{position:relative;border:1.5px solid #75cfcc55;border-radius:14px;background:linear-gradient(#11232b,#0b171d);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px}
+.slot svg{width:44px;height:44px;color:var(--ad-bit)}
+.slot b{font-size:12px}.slot small{font-size:10px;color:#a7bfbd;letter-spacing:.08em;text-transform:uppercase}
+.slot.empty{border-style:dashed;opacity:.75}.slot.empty svg{color:#7da2a6}
+.slot .n{position:absolute;right:8px;top:6px;font:800 13px system-ui;color:var(--ad-bone)}
+.risk{position:absolute;left:6px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--ad-loot)}
+.hero{position:relative;overflow:hidden;border-radius:16px;border:1px solid #75cfcc33;background:radial-gradient(ellipse at 50% 70%,#16343c,#07151c 70%)}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.stats{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);display:flex;gap:10px;padding:5px 12px;border-radius:20px;background:#07151ccc;font:700 12px system-ui}
+.stats span{display:flex;align-items:center;gap:3px}.stats svg{width:16px;height:16px;color:var(--ad-bit)}
+.right{display:flex;flex-direction:column;gap:8px}
+.area{flex:1;border:1.5px solid #75cfcc55;border-radius:14px;background:#0d1a20;padding:10px;display:flex;align-items:center;gap:10px}
+.area svg{width:40px;height:40px;color:var(--ad-cyan)}.area small{display:block;font-size:10px;color:#a7bfbd;letter-spacing:.1em}.area b{font-size:17px}
+.goal{border-left:3px solid var(--ad-loot);background:#0d1a20;border-radius:10px;padding:7px 10px;font-size:11px}
+.goal b{color:var(--ad-loot);font-size:11px;letter-spacing:.08em}.goal div{display:flex;gap:10px;margin-top:3px}.goal svg{width:16px;height:16px}
+.deploy{height:74px;border-radius:16px;background:var(--ad-primary);color:var(--ad-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 5px 0 var(--ad-primary-edge)}
+.deploy b{font:900 28px/1 system-ui;letter-spacing:.04em;font-style:italic}.deploy small{font-weight:800;font-size:11px;letter-spacing:.14em}
+.legend{position:absolute;left:47px;top:50px;font-size:10px;color:#a7bfbd;display:flex;align-items:center;gap:5px;transform:translateY(-14px)}
+.legend i{width:8px;height:8px;border-radius:50%;background:var(--ad-loot);display:inline-block}
+</style></head><body>
+<div class="top"><span class="chip"><svg class="i"><use href="../../assets/icons/sprite.svg#nav-back"/></svg></span><span class="chip">L1</span><span class="chip"><svg class="i"><use href="../../assets/icons/sprite.svg#cur-scrap"/></svg>66</span><span style="flex:1"></span><b style="letter-spacing:.14em">RAID PREP</b></div>
+<div class="stage">
+ <div class="slots">
+  <div class="slot"><span class="risk"></span><svg><use href="../../assets/icons/sprite.svg#item-carbine"/></svg><b>Basic Carbine</b><small>Weapon</small></div>
+  <div class="slot"><span class="risk"></span><svg><use href="../../assets/icons/sprite.svg#item-vest"/></svg><b>Scavenger Vest</b><small>Armor</small></div>
+  <div class="slot"><span class="risk"></span><span class="n">x1</span><svg><use href="../../assets/icons/sprite.svg#item-medkit"/></svg><b>Medkit</b><small>Heal</small></div>
+  <div class="slot empty"><svg><use href="../../assets/icons/sprite.svg#plus"/></svg><b>Add tool</b><small>Tool</small></div>
+ </div>
+ <div class="hero"><img src="../../assets/production/operator_op01.webp" alt="">
+  <div class="stats"><span><svg><use href="../../assets/icons/sprite.svg#stat-health"/></svg>100</span><span><svg><use href="../../assets/icons/sprite.svg#stat-shield"/></svg>25</span><span><svg><use href="../../assets/icons/sprite.svg#stat-speed"/></svg>3.6</span><span><svg><use href="../../assets/icons/sprite.svg#stat-bag"/></svg>5</span></div></div>
+ <div class="right">
+  <div class="area"><svg><use href="../../assets/icons/sprite.svg#area-bunker"/></svg><div><small>AREA</small><b>Bunker</b></div><svg style="width:20px;height:20px;margin-left:auto;color:#a7bfbd"><use href="../../assets/icons/sprite.svg#chevron-right"/></svg></div>
+  <div class="goal"><b>GOAL · STORAGE L1</b><div><span><svg class="i" style="width:16px;height:16px"><use href="../../assets/icons/sprite.svg#cur-scrap"/></svg> 44</span><span><svg class="i" style="width:16px;height:16px"><use href="../../assets/icons/sprite.svg#item-plate"/></svg> 2</span><span><svg class="i" style="width:16px;height:16px"><use href="../../assets/icons/sprite.svg#item-alloy"/></svg> 1</span></div></div>
+  <div class="deploy"><b>DEPLOY</b><small>NODE RAID</small></div>
+ </div>
+</div>
+<div class="legend"><i></i> lost if you die</div>
+<div class="tabs"><div class="tab">BASE</div><div class="tab on">RAID</div><div class="tab">STASH</div><div class="tab">SHOP</div><div class="tab">BIT</div></div>
+</body></html>

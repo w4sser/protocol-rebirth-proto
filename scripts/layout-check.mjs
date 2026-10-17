@@ -10,7 +10,12 @@ import {resolve,sep,extname,join} from 'node:path';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const OUT=resolve(process.env.LAYOUT_OUT||join(root,'verify-out'));
 const VIEWPORTS=[[844,390],[932,430],[667,375]];
+// Notch phone in landscape (iPhone 14-class): left/right 47 px, bottom home indicator 21 px.
+const INSETS={left:47,right:47,top:0,bottom:21};
+const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
 const failures=[];
+// Text UI that must stay inside the safe area too (checked like controls).
+const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,.round-hud,#weapon-name,#encounter-hint,.area-notice';
 const fail=(ctx,msg)=>{failures.push(`${ctx}: ${msg}`);};
 
 // ---- tiny static server (free port) ----
@@ -19,7 +24,11 @@ const server=createServer(async(req,res)=>{
   const p=decodeURIComponent(new URL(req.url,'http://x').pathname);
   const target=resolve(root,'.'+(p.endsWith('/')?p+'index.html':p));
   if(!target.startsWith(root+sep)){res.writeHead(403);res.end();return;}
-  try{res.writeHead(200,{'Content-Type':types[extname(target)]??'application/octet-stream','Cache-Control':'no-store'});res.end(await readFile(target));}
+  try{let body=await readFile(target);const ext=extname(target);
+    // Headless Chrome reports env(safe-area-inset-*) as 0. Rewrite them to a notch-landscape phone so UI that ignores the
+    // insets (or hardcodes 0px) shows up as leaving the safe area.
+    if(ext==='.css'||ext==='.html')body=String(body).replace(/env\(\s*safe-area-inset-(left|right|top|bottom)\s*(?:,[^()]*(?:\([^()]*\))?[^()]*)?\)/g,(_,side)=>INSETS[side]+'px');
+    res.writeHead(200,{'Content-Type':types[ext]??'application/octet-stream','Cache-Control':'no-store'});res.end(body);}
   catch{res.writeHead(404);res.end('Not found');}
 });
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -36,7 +45,7 @@ await mkdir(OUT,{recursive:true});
 const browser=await puppeteer.launch(launchOpts);
 
 // ---- in-page collectors (serialised into the page) ----
-function collect(extraSel){
+function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
   const vw=innerWidth,vh=innerHeight,items=[];
   const sel='button,a[href],[role=button],input,select,textarea,.tab,[onclick]'+(extraSel?','+extraSel:'');
   const name=el=>(el.id?'#'+el.id:el.tagName.toLowerCase())+(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/).slice(0,2).join('.'):'')+((el.getAttribute('aria-label')||el.textContent||'').trim().slice(0,18)?` "${(el.getAttribute('aria-label')||el.textContent).trim().replace(/\s+/g,' ').slice(0,18)}"`:'');
@@ -47,7 +56,7 @@ function collect(extraSel){
     if(el.matches('#overlay,#splash,.pop-backdrop,#tutorial,#round-over,#inventory,#fatal'))continue;
     if(layers.length&&!layers.some(l=>l.contains(el)))continue;
     const cs=getComputedStyle(el);
-    if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity<.05||cs.pointerEvents==='none'||el.closest('[hidden]')||!el.getClientRects().length)continue;
+    if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity<.05||(cs.pointerEvents==='none'&&!el.matches(ins.textSel||'#__none'))||el.closest('[hidden]')||!el.getClientRects().length)continue;
     const r=el.getBoundingClientRect();if(r.width<4||r.height<4)continue;
     let c={l:-1e9,t:-1e9,r:1e9,b:1e9},scrolls=false;
     for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){
@@ -65,13 +74,16 @@ function collect(extraSel){
     if(!outside&&(v.r<=0||v.l>=vw||v.b<=0||v.t>=vh))continue;                               // parked fully off-screen
     const top=outside?null:document.elementFromPoint((v.l+v.r)/2,(v.t+v.b)/2);
     const covered=!!top&&!(top===el||el.contains(top)||top.contains(el));
-    items.push({n:name(el),l:v.l,t:v.t,r:v.r,b:v.b,el,world,outside,covered:covered&&!world?name(top):null});
+    const unsafe=!world&&!outside&&!scrolls&&(r.left<ins.left-1||r.right>vw-ins.right+1||r.top<ins.top-1||r.bottom>vh-ins.bottom+1);
+    // text-only HUD panels (SAFE_TEXT) are checked for the safe area and the viewport only, not as tappable controls
+    if(ins.textSel&&el.matches(ins.textSel)&&!el.matches('button,a[href],[role=button],input')){items.push({n:name(el),l:v.l,t:v.t,r:v.r,b:v.b,el,world:true,textOnly:true,outside,unsafe,covered:null});continue;}
+    items.push({n:name(el),l:v.l,t:v.t,r:v.r,b:v.b,el,world,outside,unsafe,covered:covered&&!world?name(top):null});
   }
   // drop wrappers: if an item contains another item it's a container, not a competing control
   const res=[];
   for(const a of items){res.push({n:a.n,l:a.l,t:a.t,r:a.r,b:a.b,covered:a.covered,
-    outside:a.outside,
-    overlaps:items.filter(o=>o!==a&&!o.el.contains(a.el)&&!a.el.contains(o.el)&&a.world===o.world&&Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.t,o.t)>2&&items.indexOf(o)>items.indexOf(a)).map(o=>o.n)});}
+    outside:a.outside,unsafe:a.unsafe,
+    overlaps:a.textOnly?[]:items.filter(o=>o!==a&&!o.textOnly&&!o.el.contains(a.el)&&!a.el.contains(o.el)&&a.world===o.world&&Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.t,o.t)>2&&items.indexOf(o)>items.indexOf(a)).map(o=>o.n)});}
   return res;
 }
 function popupFit(){
@@ -105,7 +117,8 @@ function worldOverlaps(){
   return out;
 }
 async function report(page,ctx,extraSel=''){
-  for(const it of await page.evaluate(collect,extraSel)){
+  for(const it of await page.evaluate(collect,extraSel+(extraSel?',':'')+SAFE_TEXT,INS_ARG())){
+    if(it.unsafe)fail(ctx,`${it.n} is outside the safe area (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)}; insets L${INSETS.left} R${INSETS.right} B${INSETS.bottom})`);
     if(it.covered)fail(ctx,`${it.n} is covered by ${it.covered}`);
     if(it.outside)fail(ctx,`${it.n} leaves the viewport (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)})`);
     for(const o of it.overlaps)fail(ctx,`${it.n} overlaps ${o}`);
@@ -150,6 +163,62 @@ async function baseRun([w,h]){
 }
 
 // ---- raid (Node Raid) ----
+
+// Gameplay sweep: walk the player from the start to each node in small steps (as real movement does) and sample the
+// world labels every frame-ish. Fails on labels overlapping each other in ANY sample, and on flicker: a label that
+// toggles visibility 3+ times, or jumps more than 40 px between two samples while the camera only moves a little.
+function sampleLabels(){
+  window.__lc=window.__lc||0;
+  const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
+  const out={labels:{},overlaps:[],at:performance.now()},L=[];
+  for(const e of document.querySelectorAll('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)')){
+    if(!e.dataset.lc)e.dataset.lc=String(++window.__lc);
+    const v=!!vis(e),r=e.getBoundingClientRect(),t=e.textContent.trim().replace(/\s+/g,' ').slice(0,24);
+    // timed hazards (shock pads) switch on and off by design: they count for overlaps, not for flicker
+    out.labels[e.dataset.lc]={v,x:r.left+r.width/2,y:r.top+r.height/2,t:t||'.'+String(e.className).split(' ').slice(0,2).join('.'),timed:e.matches('.hazard-label')};
+    if(v&&r.width>2&&r.height>2)L.push({t,l:r.left,tp:r.top,r:r.right,b:r.bottom});
+  }
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],o=L[j];
+    if(Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2)out.overlaps.push(`"${a.t}" overlaps "${o.t}"`);}
+  return out;
+}
+async function sweepLabels(page,ctx){
+  const pts=await page.evaluate(()=>{const s=window.__NR.state();return {start:s.position,targets:s.level.nodes.map(n=>({x:n.x+1.2,z:n.z+1.2}))};});
+  const path=[];let cur=pts.start;
+  for(const t of pts.targets){const d=Math.hypot(t.x-cur.x,t.z-cur.z),n=Math.max(1,Math.ceil(d/.18));for(let i=1;i<=n;i++)path.push({x:cur.x+(t.x-cur.x)*i/n,z:cur.z+(t.z-cur.z)*i/n});cur=t;}
+  const hist={},overl=new Set();
+  for(const p of path.slice(0,90)){
+    await page.evaluate(q=>window.__NR.teleport(q.x,q.z),p);await settle(70);
+    const s=await page.evaluate(sampleLabels);
+    s.overlaps.forEach(m=>overl.add(m));
+    for(const [id,l] of Object.entries(s.labels))(hist[id]=hist[id]||[]).push({...l,at:s.at});
+  }
+  for(const m of overl)fail(ctx,`world label ${m} during gameplay`);
+  for(const h of Object.values(hist)){
+    if(h.some(x=>x.timed))continue;
+    let toggles=0,jump=0;
+    // flicker = 3+ visibility flips inside any 12 consecutive samples (~2 m of walking, longer than the 1.2 s show-hold); passing a range threshold once is fine
+    const flips=[];for(let i=1;i<h.length;i++){if(h[i].v!==h[i-1].v)flips.push(i);if(h[i].v&&h[i-1].v)jump=Math.max(jump,Math.hypot(h[i].x-h[i-1].x,h[i].y-h[i-1].y));}
+    // time-based (runner speed independent): 3 flips inside 1.1 s is faster than the game's 1.2 s show-hold allows
+    for(let i=0;i+2<flips.length;i++)if(h[flips[i+2]].at-h[flips[i]].at<1100)toggles=Math.max(toggles,3);
+    const name=h.find(x=>x.t)?.t||'label';
+    if(toggles>=3)fail(ctx,`world label "${name}" flickers (3 visibility flips within 1.1 s during a ${h.length}-step walk)`);
+    if(jump>40)fail(ctx,`world label "${name}" jitters (jumped ${Math.round(jump)} px between two frames)`);
+  }
+}
+// Owner playtest 2026-10-17: the meta intro raid with a tracked goal (NEEDED labels next to the node label).
+async function introGoalRun([w,h]){
+  const tag=`raid intro-goal ${w}x${h}`;console.log(tag);
+  const goal={module:'fabricator',level:1,name:'Fabricator',benefit:'Scavenger Vest',parts:[{id:'cable',need:2,secured:0},{id:'scrap_alloy',need:2,secured:1}]};
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=77d97187-meta&area=bunker&debug=1&q=high&intro=1&kit=medkit%3A1&goal=${encodeURIComponent(JSON.stringify(goal))}`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
+  await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
+  await sweepLabels(page,`${tag} L1`);
+  await shot(page,`raid-intro-goal-${w}x${h}`);
+  await page.close();
+}
 async function raidRun([w,h],area){
   const tag=`raid ${area} ${w}x${h}`;console.log(tag);
   const page=await newPage(w,h);
@@ -175,6 +244,7 @@ async function raidRun([w,h],area){
         for(const h of H)if(hit(L[i],h))out.push(`${L[i].k} "${L[i].t}" overlaps HUD ${h.t}`);}
       return out;});
     for(const m of labels)fail(ctx,`world label ${m}`);
+    await sweepLabels(page,ctx);
     await shot(page,`raid-${area}-${w}x${h}-L${level}`);
   }
   await page.close();
@@ -197,6 +267,7 @@ async function encShotRun([w,h]){
 
 try{
   await encShotRun([844,390]);
+  for(const vp of VIEWPORTS)await introGoalRun(vp);
   for(const vp of VIEWPORTS)await baseRun(vp);
   for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);
 }finally{await browser.close();server.close();}

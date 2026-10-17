@@ -144,3 +144,5 @@ html,body{background:#07151c}
 /* v1.64 loot purpose line (DATA.itemInfo): full label only */
 .loot-label{flex-wrap:wrap;justify-content:center}.loot-label .use-text{flex:0 0 100%;text-align:center;font-size:9px;font-weight:600;letter-spacing:.04em;color:var(--ad-loot);opacity:.9}
 .node-label .use-text:empty,.node-label[data-mode=short] .use-text,.node-label[data-mode=dot] .use-text{display:none}
+/* v1.65: keyboard hints (Q / E) mean nothing on touch and read as a stray 0 next to the count */
+@media (pointer:coarse){.kit-btn small,#tool-btn small{display:none}}

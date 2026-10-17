@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.64.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.65.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1184,7 +1184,9 @@ function setupBaseViewer(){
     const sw = cfg.width * scale, sh = cfg.height * scale;
     session.cameraLayout = { sw, sh };
     // Slack lets edge plates be pulled clear of the HUD (bottom bar, goal pill, popup).
-    const pad = {left:0,right:0,top:0,bottom:0};
+    // v1.65: the goal card (bottom-left) gets real slack so the plates under it can be pulled clear.
+    const card = document.querySelector(".s-base .progress-goal"), cardH = card && card.offsetHeight ? card.offsetHeight + 24 : 0;
+    const pad = {left:0,right:0,top:0,bottom:cardH};
     const minX = Math.min(0, vw - sw) - pad.right, minY = Math.min(0, vh - sh) - pad.bottom;
     let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
     x = Math.max(minX, Math.min(pad.left, x)); y = Math.max(minY, Math.min(pad.top, y));

@@ -66,3 +66,27 @@ export function deoverlap(boxes,{gap=2,maxShift=60}={}){
   }
   return out;
 }
+// v1.65 stable declutter (owner playtest: overlapping labels shifted every frame and flickered). No shifting at all:
+// labels are placed in priority order and a label that would overlap a placed one (or the HUD) is hidden. Hysteresis
+// keeps the picture still: a label that was shown gets a bonus, and a hidden one stays hidden for `holdMs`.
+// boxes: [{id,x,y,w,h,priority,anchorDy?}] (x centre, y bottom). state: Map kept by the caller across frames.
+export function resolveLabels(boxes,{hud=[],hudPad=8,gap=3,now=0,holdMs=1200,state=new Map()}={}){
+  const out=new Map(),placed=[];
+  const hit=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+gap&&!(a.y-a.h>=b.y+gap||b.y-b.h>=a.y+gap);
+  const score=b=>(b.priority||0)+(state.get(b.id)?.shown?8:0);
+  for(const b of [...boxes].sort((a,c)=>score(c)-score(a)||String(a.id).localeCompare(String(c.id)))){
+    const st=state.get(b.id)||{};
+    const blocked=placed.some(p=>hit(b,p))||overHUD(b.x,b.y,hud,hudPad,b.w,b.h);
+    if(blocked){st.shown=false;st.hiddenUntil=now+holdMs;}
+    else if(!st.shown&&(st.hiddenUntil??0)>now){/* still in hold: stay hidden, but do not reserve space */}
+    else{st.shown=true;placed.push(b);}
+    state.set(b.id,st);out.set(b.id,!!st.shown);
+  }
+  for(const id of [...state.keys()])if(!out.has(id))state.delete(id);
+  return out;
+}
+// Priority for resolveLabels: objectives first, then what the player is hunting, then threats, then the rest.
+export function labelPriority({kind,needed=false,attacking=false,dist=0}){
+  const base=kind==='node'||kind==='exit'?100:kind==='hazard'?95:needed?80:kind==='enemy'&&attacking?75:kind==='room'||kind==='house'?60:kind==='enemy'?50:kind==='loot'?40:30;
+  return base+Math.max(0,6-dist)/2; // nearer wins a tie, by at most 3
+}
