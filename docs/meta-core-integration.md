@@ -355,3 +355,10 @@ Fiende-HP avrundas. Exempel: L2 har 2 HP, vilket blir 3 i Archipelago och 3 i To
 - Stäng-badgen är en rund ring på 44 px som ligger över panelens övre vänstra hörn.
 - Kort klipper aldrig badgen: `overflow:visible`, och rullande innehåll ligger i ett eget inre element.
 - `:where(.pop-card)` gör att komponenten aldrig skriver över en panels egen positionering. Det var den buggen som bröt inställningsmenyn i v1.45–1.46.
+
+## v1.59 — Utrustning går direkt till karaktärsslottarna
+
+- Rustning (Scavenger Vest, Scout Rig, Dampener Cloak) och vapen (Vector SMG, Marksman Rifle, Breach Shotgun) som hittas i raid hamnar **aldrig i väskan**. Tom slot (eller Basic Carbine, som räknas som tom och aldrig tappas) utrustas automatiskt; rustningens stats (fart, sköld, maxHP, väskplats) appliceras direkt.
+- Upptagen slot: en diskret notis ("Armor slot taken · tap to swap"); tryck på notisen eller loot-etiketten för att öppna byt-raden (samma komponent som väskbyte). Det utbytta föremålet läggs på marken.
+- RaidResult har nytt fält `gearOut`: allt som är utrustat när rundan slutar. Vid extract läggs `gearOut` i stashen (fynd kommer hem, medtagen utrustning som bytts bort räknas som förlorad). Vid död/timeout/abandon förloras all medtagen utrustning som tidigare, och fynden försvinner.
+- Väskpopupen visar bara väskföremål.

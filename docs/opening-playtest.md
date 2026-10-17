@@ -17,7 +17,7 @@ Start from the root base page, not a bookmarked `nodspel/` seed. Use a private/i
 - Intro caches are relative placement rules within the existing seeded room, mirrored by the seed. Later area layouts are retained.
 - The first supply mission ends at its first extraction, so unfamiliar later material pools do not appear before its upgrade. Later raids retain the existing three levels.
 - Shared identities come directly from `data/items.js`, consumed by both the base and raid. Optional quantities and later loot remain random.
-- Base camera: drag, pinch or wheel; Overview returns to the initial bounded camera. Background and hotspots share the transform; HUD does not. Drag/pinch cannot activate rooms.
+- Base camera: drag, pinch or wheel (zoom 1×–2.4×, bounded). The Overview button was removed in v1.59 (owner). Background and hotspots share the transform; HUD does not. Drag/pinch cannot activate rooms.
 
 ## Verification record
 Automated checks cover bank/carried/excess/drop/loss counts, repeated raid-result ingestion, paid activation, one-time reward, real shield/bag launch stats, reload, seeded cache availability, node/cover separation, two complete tactical approaches and camera input bounds.

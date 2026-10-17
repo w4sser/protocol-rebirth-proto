@@ -1,7 +1,7 @@
-import {generateLevel,RULES} from './levels.js?v=1.58.0&patch=opening1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.58.0&patch=opening1';
-import {emptyBag,bagItems} from './raid.js?v=1.58.0&patch=opening1';
-import {traceTargets} from './physics.mjs?v=1.58.0&patch=opening1';
+import {generateLevel,RULES} from './levels.js?v=1.59.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.59.0';
+import {emptyBag,bagItems} from './raid.js?v=1.59.0';
+import {traceTargets} from './physics.mjs?v=1.59.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -11,7 +11,7 @@ export const ROUND_DURATION_MS=8*60*1000;
 export function createRound(seed,now,stats=RULES.playerStats.base) {
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -22,7 +22,7 @@ export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
-    if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;box.kitFullNotified=false;}
+    if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;box.kitFullNotified=false;box.gearNotified=false;}
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
       if(box.blockedUntilLeft)continue;
       if(box.item==='ammo_pack'){
@@ -35,6 +35,12 @@ export function collectLoot(round,position,now,weapon){
         round.kit=round.kit||{medkit:0};
         if((round.kit.medkit||0)>=RULES.kitMax.medkit){if(!box.kitFullNotified){box.kitFullNotified=true;round.kitFull={boxId:box.id,at:now};changed=true;}continue;}
         round.kit.medkit=(round.kit.medkit||0)+1;round.kitPicked=(round.kitPicked||0)+1;
+      }else if(gearSlotOf(box.item)){
+        // v1.59: equipment goes straight to its character slot, never the bag. Empty slot (or the free
+        // Basic Carbine) auto-equips; an occupied slot raises one quiet swap offer per approach.
+        const slot=gearSlotOf(box.item);round.equip=round.equip||{weapon:null,armor:null};
+        if(round.equip[slot]){if(!box.gearNotified){box.gearNotified=true;round.gearOffer={boxId:box.id,item:box.item,slot,at:now};changed=true;}continue;}
+        equipGear(round,box.item,now);
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
         if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
@@ -47,7 +53,7 @@ export function collectLoot(round,position,now,weapon){
 }
 // Loot label action: health kits read SLOT FULL (dimmed) while the kit slot is at its max (v1.47).
 export function kitSlotFull(round){return (round?.kit?.medkit??0)>=RULES.kitMax.medkit;}
-export function lootAction(round,item){return item==='medkit'&&kitSlotFull(round)?{text:'SLOT FULL',full:true}:{text:'COLLECT',full:false};}
+export function lootAction(round,item){const slot=gearSlotOf(item);if(slot)return round?.equip?.[slot]?{text:'SWAP',full:false}:{text:'EQUIP',full:false};return item==='medkit'&&kitSlotFull(round)?{text:'SLOT FULL',full:true}:{text:'COLLECT',full:false};}
 export function dropItem(round,item,position,now){
   tickRound(round,now);if(round.over||!round.bag[item])return null;
   round.bag[item]--;
@@ -62,6 +68,37 @@ export function swapLoot(round,boxId,dropId,now){
   round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:dropId,collected:false,blockedUntilLeft:true,revealed:true};
   round.level.lootBoxes.push(dropped);round.bagFull=null;return dropped;
+}
+// ---- v1.59 equipment slots (weapon / armor) ----
+// Gear data comes from data/items.js (shared with the base). The Basic Carbine is free and infinite:
+// it counts as an empty weapon slot and is never dropped. Equipped gear is at risk: it comes home only on extract.
+const GEAR=Object.fromEntries((globalThis.DATA?.items??[]).filter(i=>i.slot==='weapon'||i.slot==='armor').map(i=>[i.id,i]));
+export const gearItem=id=>GEAR[id]??null;
+export const gearSlotOf=id=>GEAR[id]&&!GEAR[id].free?GEAR[id].slot:null;
+export function initEquip(round,{weapon=null,gear=[]}={}){
+  round.equip={weapon:gearSlotOf(weapon)==='weapon'?weapon:null,armor:(gear||[]).find(id=>gearSlotOf(id)==='armor')??null};return round.equip;}
+export const equippedGear=round=>Object.values(round?.equip??{}).filter(Boolean);
+// Armor stats are deltas on top of the launch stats (which already include the armor worn from base).
+function applyArmor(round,oldId,newId){
+  const o=GEAR[oldId]?.stats??{},n=GEAR[newId]?.stats??{},C=RULES.playerStats.clamp;
+  for(const s of new Set([...Object.keys(o),...Object.keys(n)])){if(s==='shield')continue;const v=(round.stats[s]??0)-(o[s]||0)+(n[s]||0);round.stats[s]=C[s]?Math.min(C[s][1],Math.max(C[s][0],v)):v;}
+  round.maxHealth=round.stats.maxHealth;round.health=Math.min(round.health,round.maxHealth);
+  const ds=(n.shield||0)-(o.shield||0),[lo,hi]=C.shield;round.maxShield=Math.min(hi,Math.max(lo,(round.maxShield||0)+ds));round.shield=Math.max(0,Math.min(round.maxShield,(round.shield||0)+Math.max(0,ds)));
+  round.bagCapacity=bagCap(bagCapacityOf(round)-(GEAR[oldId]?.bagSlots||0)+(GEAR[newId]?.bagSlots||0));
+}
+export function equipGear(round,id,now){
+  const slot=gearSlotOf(id);if(!slot)return null;round.equip=round.equip||{weapon:null,armor:null};
+  const old=round.equip[slot];round.equip[slot]=id;if(slot==='armor')applyArmor(round,old,id);
+  round.lastEquip={slot,item:id,old,at:now};return old;
+}
+// Occupied slot: take the offered piece; the swapped-out one is dropped on the ground (revealed).
+export function swapGear(round,boxId,now){
+  tickRound(round,now);if(round.over)return null;
+  const box=round.level.lootBoxes.find(b=>b.id===boxId),slot=box&&gearSlotOf(box.item);
+  if(!box||box.collected||!slot||!round.equip?.[slot])return null;
+  const old=equipGear(round,box.item,now);box.collected=true;round.lastPickup={item:box.item,at:now};round.gearOffer=null;
+  const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:old,collected:false,blockedUntilLeft:true,revealed:true};
+  round.level.lootBoxes.push(dropped);return dropped;
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
 export function useHealthKit(round,now){

@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.58.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.59.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1294,7 +1294,7 @@ SCREENS.base = function(){
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div><button class="overview ghost" onclick="A.baseOverview()">OVERVIEW</button>' + (progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
@@ -2147,7 +2147,14 @@ function ingestRaidResult(r){
   // Gear taken on this raid: returns on extract; otherwise lost (secure item still survives, as for simulated deaths).
   const launch = S.coreLaunch && S.coreLaunch.raidId === r.raidId ? S.coreLaunch : null;
   const gear = launch ? launch.gear.filter(id => ITEMS[id]) : [];
-  if(extracted) gear.forEach(id => addItem(id, 1));
+  // v1.59: the core reports what is equipped at the end (gearOut). Gear found in the raid goes straight to the
+  // character slots there; on extract everything equipped comes home, gear swapped out in the raid stays behind.
+  const gearOut = Array.isArray(r.gearOut) ? r.gearOut.filter(id => typeof id === "string" && ITEMS[id] && ["weapon","armor"].includes(ITEMS[id].slot) && !ITEMS[id].free).slice(0, 2) : null;
+  const gearFound = [], swappedOut = [];
+  if(extracted && gearOut){
+    swappedOut.push(...gear);
+    gearOut.forEach(id => { addItem(id, 1); const i = swappedOut.indexOf(id); if(i >= 0) swappedOut.splice(i, 1); else gearFound.push(id); });
+  } else if(extracted) gear.forEach(id => addItem(id, 1));
   // Unused medkits come home on extract; used or lost ones are gone.
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
   // v1.46: kits picked up in the raid go to the kit slot too, so up to PROG.kitMax can come home (death loses them).
@@ -2155,7 +2162,8 @@ function ingestRaidResult(r){
   if(kitBack) addItem(PROG.kitItem, kitBack);
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
-  const gearLost = extracted ? [] : gear.filter(id => id !== saved.secure);
+  const gearLost = extracted ? swappedOut : gear.filter(id => id !== saved.secure);
+  gearFound.forEach(id => added.push(id));
   // Skills grow by use on every outcome.
   S.skills = S.skills || {};
   const before = {}, sx = skillXpFrom(r), skillUps = [];
@@ -2937,7 +2945,6 @@ window.A = {
     if(next){A.build(room.destination);return;}
     const o=document.getElementById("overlay"); if(o) o.remove(); session.screen="base"; refresh(); toast(room.label + " revealed");
   },
-  baseOverview(){const cfg=D.baseMap.world;session.focusSpot=null;session.camera={x:cfg.initialFocus.x/100,y:cfg.initialFocus.y/100,zoom:1};if(session.cameraLayoutFn)session.cameraLayoutFn();},
   devPlate(stage){
     session.devPlateStage = stage === null ? null : Math.max(0, Math.min(D.baseMap.rooms.length, Number(stage)));
     act("DEV_PLATE_PREVIEW", { stage:session.devPlateStage }); session.screen="base"; refresh();
