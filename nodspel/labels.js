@@ -43,6 +43,15 @@ export function labelOpacity(kind,dist){
 export function overHUD(x,y,rects,pad=8,w=0,h=0){const l=x-w/2,rt=x+w/2,t=y-h,b=y+h*.25;
   return rects.some(r=>rt>=r.left-pad&&l<=r.right+pad&&b>=r.top-pad&&t<=r.bottom+pad);}
 
+// Screen-space declutter for world labels: objective/info labels (node, exit, room, house) and shock-pad icons keep their
+// spot; enemy labels (movable) are pushed up until clear, or hidden past maxShift. labels: [{id,kind,x,y,w,h,fixed?}] -> Map(id -> dy|null)
+export const FIXED_LABEL_KINDS=new Set(['node','exit','room','house']);
+// Every world-space label takes part (loot, BIT, enemy badges/bars ...); `hud` rects are re-applied AFTER shifting so a pushed-up label never lands under the HUD.
+export function declutterLabels(labels,{hud=[],hudPad=8,...opts}={}){
+  const out=deoverlap(labels.map(l=>({...l,fixed:l.fixed??FIXED_LABEL_KINDS.has(l.kind)})),opts);
+  for(const l of labels){const dy=out.get(l.id);if(dy&&overHUD(l.x,l.y-dy,hud,hudPad,l.w,l.h))out.set(l.id,null);}
+  return out;
+}
 // De-overlap screen boxes: fixed boxes (e.g. shock-pad icons) never move; movable ones (enemy labels)
 // are pushed upward until clear, max `maxShift` px, else hidden. boxes: [{id,x,y,w,h,fixed?}] (x centre, y bottom)
 export function deoverlap(boxes,{gap=2,maxShift=60}={}){

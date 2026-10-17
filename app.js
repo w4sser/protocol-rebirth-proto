@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.62.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.63.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -3031,21 +3031,14 @@ window.A = {
     const json = JSON.stringify(S.log, null, 2), name = "pr_event_log.json";
     const blob = new Blob([json], {type:"application/json"});
     const showText = () => {
-      let box = document.getElementById("devexport");
-      if(box) box.remove();
-      box = document.createElement("div");
-      box.id = "devexport";
-      box.style.cssText = "position:fixed;inset:10% 8%;z-index:9999;background:#111;border:1px solid #555;padding:10px;display:flex;flex-direction:column;gap:8px";
-      const ta = document.createElement("textarea");
-      ta.value = json; ta.readOnly = true; ta.style.cssText = "flex:1;font:11px monospace;width:100%";
-      const copy = document.createElement("button"); copy.textContent = "Copy to clipboard";
+      const old = document.getElementById("devexport"); if(old) (old.closest("#overlay") || old).remove();
+      const box = overlay('<div id="devexport"><h1>Event log</h1><textarea readonly style="width:100%;height:40vh;font:11px monospace"></textarea><button type="button" class="primary" id="devcopy">Copy to clipboard</button></div>');
+      const ta = box.querySelector("textarea"), copy = box.querySelector("#devcopy");
+      ta.value = json;
       copy.onclick = async () => {
         try { await navigator.clipboard.writeText(json); copy.textContent = "Copied"; }
         catch(e){ ta.focus(); ta.select(); try { document.execCommand("copy"); copy.textContent = "Copied"; } catch(_){ copy.textContent = "Select & copy manually"; } }
       };
-      const close = document.createElement("button"); close.textContent = "Close"; close.onclick = () => box.remove();
-      box.append(ta, copy, close);
-      document.body.appendChild(box);
       return box;
     };
     try {
