@@ -116,7 +116,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
     const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
-    const out={enemy,group:g};
+    const out={enemy,group:g,eye};
     // Encounter 1: the front shield is a cyan plate that turns with the guard; shots from inside its arc are blocked.
     if(enemy.frontShield&&!enemy.introGuard){
       const arc=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,.9,20,1,true,-enemy.frontShield*Math.PI/180,2*enemy.frontShield*Math.PI/180),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));

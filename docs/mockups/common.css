@@ -1,0 +1,10 @@
+@import url("../../ui/tokens.css");
+*{box-sizing:border-box;margin:0}
+body{width:844px;height:390px;overflow:hidden;background:var(--ad-night);color:var(--ad-bone);font:500 13px "IBM Plex Sans",system-ui,sans-serif}
+svg{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}svg.i{width:24px;height:24px}
+.top{position:absolute;left:47px;right:47px;top:0;height:50px;display:flex;align-items:center;gap:10px}
+.chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid #75cfcc44;border-radius:20px;background:#0d1a20cc;font-weight:700}
+.tabs{position:absolute;left:47px;right:47px;bottom:21px;height:44px;display:flex;gap:8px}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid #75cfcc33;border-radius:12px;background:#0d1a20;font-weight:700;font-size:12px;letter-spacing:.06em}
+.tab.on{background:var(--ad-primary);color:var(--ad-ink);border-color:var(--ad-primary)}
+.note{position:absolute;right:47px;top:6px;font:600 10px "IBM Plex Mono",monospace;color:#75cfcc99}

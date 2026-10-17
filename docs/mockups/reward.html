@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><link rel="stylesheet" href="../../ui/popup.css"><style>
+.dim{position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,#3fe0d022,#000c 60%)}
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:600px;padding:18px 22px 16px;border-radius:20px;background:#0d1a20f2;border:2px solid var(--ad-cyan);box-shadow:0 0 40px #3fe0d033;text-align:center}
+.x{position:absolute;left:-16px;top:-16px;width:40px;height:40px;border-radius:50%;background:#0d1a20;border:2px solid var(--ad-bit);display:grid;place-items:center;color:var(--ad-bit)}
+.eyebrow{font:800 11px system-ui;letter-spacing:.24em;color:var(--ad-cyan)}
+h1{font:900 30px/1.1 system-ui;letter-spacing:.04em;margin:4px 0 2px}
+.sub{font-size:12px;color:#a7bfbd;margin-bottom:12px}
+.tiles{display:flex;gap:10px;justify-content:center}
+.tile{width:128px;height:128px;border-radius:16px;background:linear-gradient(#14303a,#0b171d);border:1.5px solid #75cfcc66;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:relative}
+.tile svg{width:52px;height:52px;color:var(--ad-bit)}
+.tile b{font:900 20px system-ui}.tile small{font-size:10px;letter-spacing:.12em;color:#a7bfbd}
+.tile.gear{border-color:var(--ad-loot)}.tile.gear svg{color:var(--ad-loot)}
+.tile.unlock svg{color:var(--ad-cyan)}
+.tile::after{content:"";position:absolute;inset:-4px;border-radius:19px;border:1px solid #3fe0d033}
+.cta{margin:14px auto 0;width:260px;height:48px;border-radius:14px;background:var(--ad-primary);color:var(--ad-ink);font:900 16px system-ui;letter-spacing:.1em;display:grid;place-items:center;box-shadow:0 4px 0 var(--ad-primary-edge)}
+.bit{position:absolute;left:47px;bottom:30px;display:flex;align-items:center;gap:8px;font-size:11px;color:#a7bfbd}
+.bit svg{width:28px;height:28px;color:var(--ad-bit)}
+</style></head><body>
+<div class="dim"></div>
+<div class="card"><span class="x"><svg class="i" style="width:18px;height:18px"><use href="../../assets/icons/sprite.svg#close"/></svg></span>
+ <div class="eyebrow">ROOM ONLINE</div><h1>FABRICATOR L1</h1><div class="sub">Your next raid starts stronger.</div>
+ <div class="tiles">
+  <div class="tile gear"><svg><use href="../../assets/icons/sprite.svg#item-vest"/></svg><b>VEST</b><small>EQUIPPED</small></div>
+  <div class="tile"><svg><use href="../../assets/icons/sprite.svg#stat-shield"/></svg><b>+25</b><small>SHIELD</small></div>
+  <div class="tile"><svg><use href="../../assets/icons/sprite.svg#stat-bag"/></svg><b>+1 SLOT</b><small>BAG</small></div>
+  <div class="tile unlock"><svg><use href="../../assets/icons/sprite.svg#build"/></svg><b>CRAFT</b><small>UNLOCKED</small></div>
+ </div>
+ <div class="cta">CONTINUE</div>
+</div>
+<div class="bit"><svg><use href="../../assets/icons/sprite.svg#bit-face"/></svg>BIT is still offline. Build BIT Bay to wake it.</div>
+</body></html>

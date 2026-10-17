@@ -213,7 +213,7 @@ function renderToolHUD(){
 // Decoy beacon: a small cyan pillar with a blinking cap, so the thrown decoy reads as an object in the world.
 const beaconPool=[];let beaconUsed=0;
 function placeDecoyBeacon(d,clock){let b=beaconPool[beaconUsed];
-  if(!b){b=new THREE.Group();const m=new THREE.MeshBasicMaterial({color:TOOL_CYAN,toneMapped:false});const post=new THREE.Mesh(new THREE.BoxGeometry(.14,.7,.14),m);post.position.y=.35;const cap=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.3),new THREE.MeshBasicMaterial({color:'#ffffff',toneMapped:false}));cap.position.y=.76;b.add(post,cap);b.userData.cap=cap;scene.add(b);beaconPool.push(b);}
+  if(!b){b=new THREE.Group();const m=new THREE.MeshBasicMaterial({color:TOOL_CYAN,toneMapped:false});const post=new THREE.Mesh(new THREE.BoxGeometry(.16,1.3,.16),m);post.position.y=.65;const cap=new THREE.Mesh(new THREE.BoxGeometry(.3,.12,.3),new THREE.MeshBasicMaterial({color:'#ffffff',toneMapped:false}));cap.position.y=1.36;b.add(post,cap);b.userData.cap=cap;scene.add(b);beaconPool.push(b);}
   beaconUsed++;b.visible=true;b.position.set(d.x,0,d.z);b.userData.cap.visible=Math.floor(clock/250)%2===0;}
 function renderToolFx(clock){
   toolFxUsed=0;beaconUsed=0;
@@ -343,6 +343,8 @@ function renderEnemyFeedback(clock){
     v.group.visible=alive;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=v.enemy.facing??Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);
     if(v.beam)v.beam.visible=alive&&v.enemy.health>0&&!!round.level.nodes.find(n=>n.id===v.enemy.node)?.shielded&&clock>=(round.level.nodes.find(n=>n.id===v.enemy.node)?.shieldDownUntil??0);
     if(v.shield)v.shield.visible=alive&&!v.enemy.introGuard;
+    // distracted by a decoy: the visor turns cyan (system colour of the decoy) so the state reads without the label
+    if(v.eye){const lured=!!v.enemy.lureTarget&&Date.now()<(v.enemy.lureUntil??0);v.eye.material.color.set(lured?TOOL_CYAN:'#E4705F');}
     // blocked shot: the plate flashes bright (spark) for a moment; first block explains the counter once
     if(v.shield){const ba=clock-(v.enemy.blockedAt??-Infinity);v.shield.material.opacity=ba<220?.95:.5;if(ba<220)firstHint('shield','Front shield blocks shots from the front. Flank to the side or back.');}
     if(v.cone){const e=v.enemy,s=e.sight||RULES.encounters.patrol.coneRange;v.cone.visible=alive&&!e.aggro;v.cone.scale.set(s,1,s);v.coneFill.material.opacity=e.alertAt!=null?.5:.2;}
