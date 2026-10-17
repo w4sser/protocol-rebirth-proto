@@ -2139,7 +2139,10 @@ function extractScrapBonus(levelsCleared){
 function usedForHtml(id){
   const info = D.itemInfo(id);
   if(!info || info.item.grantsCurrency || info.item.scouts) return "";
-  const list = info.uses.length ? info.uses.map(u => esc(u.label)).join(", ") : "nothing at the base yet. Sell it or keep it for a quest.";
+  const it = info.item, gear = it.slot || it.weapon || it.tool || (it.uses || []).includes("loadout") || /^tool_/.test(id);
+  const parts = info.uses.map(u => esc(u.label));
+  if(gear) parts.unshift("Raid loadout (equip in Raid Prep)");
+  const list = parts.length ? parts.join(", ") : "nothing at the base yet. Sell it or keep it for a quest.";
   return '<div class="card small usedfor"><b>Used for:</b> ' + list + '</div>';
 }
 function isInfoItem(id){ const it = ITEMS[id]; return !!it && !it.grantsCurrency && !it.scouts && !isFree(id); }
@@ -2161,7 +2164,7 @@ function maybeShowItemInfo(){
     return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
       usedForHtml(id).replace('card small usedfor', 'usedfor') +
       '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
-    '<button class="primary" data-close>GOT IT</button>');
+    '<button class="primary" data-close>GOT IT</button>', () => setTimeout(maybeShowItemInfo, 0));
 }
 function ingestRaidResult(r){
   if(!validRaidResult(r)) return { ok:false, reason:"invalid" };
