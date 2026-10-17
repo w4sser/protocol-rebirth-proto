@@ -170,7 +170,7 @@ async function baseRun([w,h]){
 function sampleLabels(){
   window.__lc=window.__lc||0;
   const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
-  const out={labels:{},overlaps:[]},L=[];
+  const out={labels:{},overlaps:[],at:performance.now()},L=[];
   for(const e of document.querySelectorAll('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)')){
     if(!e.dataset.lc)e.dataset.lc=String(++window.__lc);
     const v=!!vis(e),r=e.getBoundingClientRect(),t=e.textContent.trim().replace(/\s+/g,' ').slice(0,24);
@@ -191,7 +191,7 @@ async function sweepLabels(page,ctx){
     await page.evaluate(q=>window.__NR.teleport(q.x,q.z),p);await settle(70);
     const s=await page.evaluate(sampleLabels);
     s.overlaps.forEach(m=>overl.add(m));
-    for(const [id,l] of Object.entries(s.labels))(hist[id]=hist[id]||[]).push(l);
+    for(const [id,l] of Object.entries(s.labels))(hist[id]=hist[id]||[]).push({...l,at:s.at});
   }
   for(const m of overl)fail(ctx,`world label ${m} during gameplay`);
   for(const h of Object.values(hist)){
@@ -199,9 +199,10 @@ async function sweepLabels(page,ctx){
     let toggles=0,jump=0;
     // flicker = 3+ visibility flips inside any 12 consecutive samples (~2 m of walking, longer than the 1.2 s show-hold); passing a range threshold once is fine
     const flips=[];for(let i=1;i<h.length;i++){if(h[i].v!==h[i-1].v)flips.push(i);if(h[i].v&&h[i-1].v)jump=Math.max(jump,Math.hypot(h[i].x-h[i-1].x,h[i].y-h[i-1].y));}
-    for(let i=0;i+2<flips.length;i++)if(flips[i+2]-flips[i]<=12)toggles=Math.max(toggles,3);
+    // time-based (runner speed independent): 3 flips inside 1.1 s is faster than the game's 1.2 s show-hold allows
+    for(let i=0;i+2<flips.length;i++)if(h[flips[i+2]].at-h[flips[i]].at<1100)toggles=Math.max(toggles,3);
     const name=h.find(x=>x.t)?.t||'label';
-    if(toggles>=3)fail(ctx,`world label "${name}" flickers (3+ visibility flips within 12 frames of a ${h.length}-step walk)`);
+    if(toggles>=3)fail(ctx,`world label "${name}" flickers (3 visibility flips within 1.1 s during a ${h.length}-step walk)`);
     if(jump>40)fail(ctx,`world label "${name}" jitters (jumped ${Math.round(jump)} px between two frames)`);
   }
 }
