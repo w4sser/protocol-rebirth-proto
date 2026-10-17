@@ -150,6 +150,12 @@ ITEMS={
 'item-ammo':'<rect x="4" y="9.5" width="16" height="10" rx="1.6"/><path d="M7 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M10.8 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M14.6 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4" stroke="'+L+'"/><path d="M4 13.5h16"/>',
 }
 I.update(ITEMS)
+# v1.61 toolkit icons (Raid Prep tool slot + in-raid tool button): cyan = system, amber = loot accent
+I.update({
+'tool-grenade':'<circle cx="11.5" cy="14.5" r="6"/><path d="M9.5 8.8V7h4v1.8"/><path d="M13.5 7 17 5"/><circle cx="19" cy="4.4" r="1.3" stroke="'+L+'"/><path d="M8.6 14.5h5.8M11.5 11.6v5.8" stroke="'+L+'"/>',
+'tool-emp':'<path d="M12.8 7.5 10.6 12h2.8L11.2 16.5" stroke="'+L+'"/><path d="M7.6 7.8a6 6 0 0 0 0 8.4M16.4 7.8a6 6 0 0 1 0 8.4" stroke="'+A+'"/><path d="M4.8 5a10 10 0 0 0 0 14M19.2 5a10 10 0 0 1 0 14" stroke="'+A+'" opacity=".6"/>',
+'tool-decoy':'<rect x="8" y="9.5" width="8" height="9.5" rx="2"/><path d="M12 9.5V6"/><circle cx="12" cy="4.8" r="1.2" stroke="'+L+'"/><path d="M5.2 10a7 7 0 0 0 0 6M18.8 10a7 7 0 0 1 0 6" stroke="'+A+'"/><path d="M10 15.5h4" stroke="'+L+'"/>',
+})
 # v1.52 BIT icons: CRT body + the LOCKED face geometry (tools/bitface.py, AD ad06 p22-23). Never a generic smiley.
 from bitface import face_svg_elems
 C='var(--ic-accent,#3FE0D0)'

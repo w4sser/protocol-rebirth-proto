@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.60.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.61.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -350,8 +350,19 @@ function finishModuleLevel(modId, level){
   if(modId === "fabricator" && level === 1) S.lastYieldAt = Date.now();
   const gift=first && MODS[modId].levels.find(l=>l.level===level).commissioning;
   if(gift)for(const id in gift)addItem(id,gift[id]);
+  grantToolUnlocks(modId, level);
   const b = curBeat();
   if((b.type === "build" && b.module === modId && b.level === level) || (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
+}
+// Toolkit: the first charge of each tool is free when the module level that unlocks it (items.js tool.unlock) is built.
+function grantToolUnlocks(modId, level){
+  S.toolsGiven = S.toolsGiven || {};
+  for(const it of D.items){
+    const u = it.tool && it.tool.unlock;
+    if(!u || u.module !== modId || level < u.level || S.toolsGiven[it.id]) continue;
+    S.toolsGiven[it.id] = true; addItem(it.id, 1);
+    act("TOOL_UNLOCKED", { tool: it.id });
+  }
 }
 function craftOutput(r){
   if(r.output.currency){ S.cur[r.output.currency] = (S.cur[r.output.currency] || 0) + r.output.qty; revealCurrency(r.output.currency); }
@@ -1456,7 +1467,7 @@ SCREENS.prep = function(){
       routeId: null,
       riskId: "standard",
       insuranceId: "none",
-      loadout: { weapon:null, armor:null, c1:null, c2:null }
+      loadout: { weapon:null, armor:null, c1:null, c2:null, tool:null }
     };
     // sensible defaults from stash
     session.prep.loadout.weapon = PROG.freeWeapon; // free Basic is always available for Node Raid
@@ -1584,7 +1595,7 @@ SCREENS.prep = function(){
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
   $app().innerHTML = html;
 };
-const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")]];
+const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
 function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
 function slotTileHtml(def, locked){
   const [key, slot, label, icon] = def, p = session.prep;
@@ -1797,7 +1808,7 @@ function lobbyHtml(gear, miss, locked){
     '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
-    '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + slotTileHtml(SLOT_DEFS[3], locked) + '</div>' +
+    '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + (locked && !ownedForSlot("tool") ? slotTileHtml(SLOT_DEFS[3], locked) : '<div class="lslot-row">' + slotTileHtml(SLOT_DEFS[3], locked) + slotTileHtml(SLOT_DEFS[4], locked) + '</div>') + '</div>' +
     '<div class="lobby-bottom">' + gearRiskHtml(gear) + areaPickerHtml() +
       '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div>' +
     '</div>';
@@ -1827,6 +1838,8 @@ function operatorRowHtml(gear){
 function gearRiskHtml(gear){
   const kit = nodeRaidKit();
   if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill(PROG.kitItem));
+  const tool = nodeRaidTool();
+  if(tool) gear = (gear || []).concat([tool.id]);
   return gear && gear.length
     ? '<div class="riskbar" role="status">' + IC("warning") + ' <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
     : '<div class="riskbar safe" role="status">' + IC("check") + ' No gear at risk<small> · raid loot is at risk until you extract</small></div>';
@@ -2159,6 +2172,10 @@ function ingestRaidResult(r){
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
   // v1.46: kits picked up in the raid go to the kit slot too, so up to PROG.kitMax can come home (death loses them).
   const kitBack = extracted ? Math.min(PROG.kitMax, Math.max(0, Math.floor(Number(r.kitLeft && r.kitLeft.medkit) || 0))) : 0;
+  // The tool slot works like the kit: unused charges come home on extract (never more than were taken in), death loses them.
+  const toolOut = launch && launch.tool && ITEMS[launch.tool.id] ? launch.tool : null;
+  const toolBack = extracted && toolOut && r.toolLeft && r.toolLeft.id === toolOut.id ? Math.min(toolOut.n, Math.max(0, Math.floor(Number(r.toolLeft.n) || 0))) : 0;
+  if(toolBack) addItem(toolOut.id, toolBack);
   if(kitBack) addItem(PROG.kitItem, kitBack);
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
@@ -2179,7 +2196,7 @@ function ingestRaidResult(r){
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
   if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), areaNotes };
+  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
@@ -2190,6 +2207,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
+    (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") +
     (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
 }
@@ -2256,6 +2274,12 @@ function nodeRaidKit(){
   const want = ["c1","c2"].filter(k => l[k] === PROG.kitItem).length;
   return { medkit:Math.min(want, have(PROG.kitItem)) };
 }
+// The one tool in the tool slot (stash count = charges): taken at deploy, returned on extract, lost on death.
+function nodeRaidTool(){
+  const l = session.prep && session.prep.loadout, id = l && l.tool, it = id && ITEMS[id];
+  if(!it || it.slot !== "tool" || !it.tool || have(id) < 1) return null;
+  return { id, n:Math.min(have(id), it.tool.charges) };
+}
 function weaponParam(id){
   const w = masteredWeapon(id); if(!w) return "";
   return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr"].map(k => "," + k + ":" + w[k]).join("");
@@ -2309,6 +2333,7 @@ function coreResultSummary(r, res){
   const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
   const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
     (res.kitLost ? " · medkits used/lost: " + res.kitLost : "") +
+    (res.toolLost ? " · tool charges used/lost: " + res.toolLost : "") +
     (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "") +
     (res.starUp ? " · mastery " + res.starUp + "!" : "") +
     (res.areaNotes && res.areaNotes.some(n => /scouted/.test(n)) ? " · " + res.areaNotes.filter(n => /scouted/.test(n)).join(", ") : "");
@@ -2565,7 +2590,7 @@ window.A = {
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + S.stash[id]) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + S.stash[id] + (ITEMS[id].tool ? ' charge' + (S.stash[id] === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
@@ -2583,15 +2608,16 @@ window.A = {
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
-    const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit();
-    // Deploy is free, but equipped gear (non-Basic weapon, armour) and medkits go with you and are at risk.
+    const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
+    // Deploy is free, but equipped gear (non-Basic weapon, armour), medkits and the tool slot go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
     if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
-    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, area: raidArea() };
-    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit });
+    if(tool) removeItem(tool.id, tool.n);
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea() };
+    act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro:guidedRaid() }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro:guidedRaid() }));
   },
   deploy(){
     if(!session.prep) return;

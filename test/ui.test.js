@@ -187,7 +187,7 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 // raid_2 + insurance
 A.go("prep");
 assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor'), "insurance unlocked; completed BIT target is not stale");
-assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 4, "Fabricator unlocks customizable loadout slots");
+assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
 A.pickSlot("armor");

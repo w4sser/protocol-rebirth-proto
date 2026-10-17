@@ -1,4 +1,4 @@
-import {townizeLevel} from './town-layout.js?v=1.60.0';
+import {townizeLevel} from './town-layout.js?v=1.61.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -43,6 +43,13 @@ export const RULES=Object.freeze({
   weaponIds:['basic_carbine','smg_vector','rifle_marksman','shotgun_breach'],
   weaponClamp:{damage:[1,4],capacity:[1,12],reloadMs:[250,1600],shotIntervalMs:[80,1000],range:[3,12],coneHalfAngleDegrees:[3,25],assistAngleDegrees:[4,30],spreadDegrees:[0,12]},
   kitMax:{medkit:2},
+  // Toolkit (?tool=id:n). ids/charges must match data/items.js (tool_*); a test cross-checks them.
+  // throwRange: auto-aim radius and max arc distance; forward: where a tap lands with no target in range.
+  tools:{throwRange:6,forward:4,lureStopDistance:.8,dragPx:90,
+    defs:{
+      tool_grenade:{kind:'grenade',label:'Grenade',charges:2,fuseMs:1000,radius:2,damage:3},
+      tool_emp:{kind:'emp',label:'EMP',charges:1,radius:3,stunMs:4000,stunTypes:['sentry','turret']},
+      tool_decoy:{kind:'decoy',label:'Decoy',charges:2,radius:6,lureMs:5000}}},
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
   feedback:{hitFlashMs:240,damageNumberMs:700},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},

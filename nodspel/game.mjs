@@ -1,34 +1,35 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.60.0';
-import {loadBunkerAssets} from './bunker.js?v=1.60.0';
-import {setArea} from './levels.js?v=1.60.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.60.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.60.0';
-import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.60.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.60.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem} from './round.js?v=1.60.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.60.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.60.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.60.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.60.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.60.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.60.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.60.0';
-// import {stepScavenging} from './scavenging.js?v=1.60.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.60.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.60.0';
-import {routeComplete} from './objectives.js?v=1.60.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.60.0';
-import {createBIT,stepBIT} from './bit.js?v=1.60.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.60.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.60.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.60.0';
-import {MATERIALS,goalProgress,applyIntroEncounter} from './progression-goal.js?v=1.60.0';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.60.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.61.0';
+import {loadBunkerAssets} from './bunker.js?v=1.61.0';
+import {setArea} from './levels.js?v=1.61.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.61.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.61.0';
+import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.61.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.61.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem} from './round.js?v=1.61.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.61.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=1.61.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.61.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.61.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.61.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.61.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.61.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.61.0';
+// import {stepScavenging} from './scavenging.js?v=1.61.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.61.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.61.0';
+import {routeComplete} from './objectives.js?v=1.61.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.61.0';
+import {createBIT,stepBIT} from './bit.js?v=1.61.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.61.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.61.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.61.0';
+import {MATERIALS,goalProgress,applyIntroEncounter} from './progression-goal.js?v=1.61.0';
+import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.61.0';
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.60.0');
+const orderResponse=await fetch('./order.json?v=1.61.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -64,12 +65,12 @@ let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.60.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.60.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.61.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.61.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.60.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.61.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(DEBUG)areaNotice(`AREA SELECTED: ${AREA_SEL==='town'?'ABANDONED TOWN':AREA_SEL.toUpperCase()}`,7000);
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
@@ -152,13 +153,80 @@ function setupStick(selector,value,onShot){
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
 }
 setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
+// ---- Toolkit (nodspel/tools.js): round button above DASH. Tap = auto-throw at the nearest enemy in range (else forward);
+// hold + drag = arc preview with landing ring, release throws; cancel = pointercancel. Desktop: E. Cyan = system, coral = danger.
+const toolBtn=$('#tool-btn'),TOOL_CORAL='#E4705F',TOOL_CYAN='#3FE0D0',toolDrag={pointer:null,x:0,y:0,active:false,dir:null,dist:0};
+const toolColor=kind=>kind==='grenade'?TOOL_CORAL:TOOL_CYAN;
+const toolRingGeometry=new THREE.RingGeometry(.94,1,64),toolFxPool=[];let toolFxUsed=0;
+const toolArcPoints=Array.from({length:25},()=>new THREE.Vector3());
+const toolArc=new THREE.Line(new THREE.BufferGeometry().setFromPoints(toolArcPoints),new THREE.LineBasicMaterial({color:TOOL_CYAN,transparent:true,opacity:.85,depthTest:false}));toolArc.renderOrder=4;toolArc.frustumCulled=false;toolArc.visible=false;scene.add(toolArc);
+function toolFxRing(x,z,radius,color,opacity){
+  let m=toolFxPool[toolFxUsed];
+  if(!m){m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=4;scene.add(m);toolFxPool.push(m);}
+  toolFxUsed++;m.visible=true;m.position.set(x,.07,z);m.scale.setScalar(Math.max(.01,radius));m.material.color.set(color);m.material.opacity=opacity;
+}
+function clearToolFx(){for(const m of toolFxPool)m.visible=false;toolArc.visible=false;}
+function toolBlocked(){return !round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden||!canUseTool(round);}
+function throwToolAt(point){if(throwTool(round,position,point,Date.now(),playerSolids))renderToolHUD();}
+function toolTap(){
+  if(toolBlocked())return;
+  throwToolAt(autoThrowPoint(round,position,mouseKnown?aim:walkDirection,playerSolids));
+}
+function toolDragPoint(){return {x:position.x+toolDrag.dir.x*toolDrag.dist,z:position.z+toolDrag.dir.z*toolDrag.dist};}
+function cancelToolDrag(){if(toolDrag.pointer!==null&&toolBtn.hasPointerCapture?.(toolDrag.pointer))toolBtn.releasePointerCapture(toolDrag.pointer);toolDrag.pointer=null;toolDrag.active=false;toolBtn.classList.remove('dragging');}
+toolBtn.addEventListener('pointerdown',e=>{if(toolBlocked()||toolDrag.pointer!==null)return;e.preventDefault();Object.assign(toolDrag,{pointer:e.pointerId,x:e.clientX,y:e.clientY,active:false,dir:null,dist:0});(()=>{try{toolBtn.setPointerCapture(e.pointerId)}catch{}})();});
+toolBtn.addEventListener('pointermove',e=>{
+  if(e.pointerId!==toolDrag.pointer)return;e.preventDefault();
+  const dx=e.clientX-toolDrag.x,dy=e.clientY-toolDrag.y,length=Math.hypot(dx,dy);
+  if(length<RULES.aimControls.deadZonePx)return;
+  const d=screenToWorld(dx/length,dy/length);
+  toolDrag.active=true;toolDrag.dir=d;toolDrag.dist=Math.max(1,Math.min(1,length/RULES.tools.dragPx)*RULES.tools.throwRange);toolBtn.classList.add('dragging');
+});
+function releaseTool(e){
+  if(e.pointerId!==toolDrag.pointer)return;
+  const drag=toolDrag.active&&e.type==='pointerup',tap=!toolDrag.active&&e.type==='pointerup';
+  const point=drag?toolDragPoint():null;cancelToolDrag();
+  if(point&&!toolBlocked())throwToolAt(point);else if(tap)toolTap();
+}
+toolBtn.addEventListener('pointerup',releaseTool);toolBtn.addEventListener('pointercancel',releaseTool);
+toolBtn.addEventListener('click',e=>{if(e.detail===0)toolTap();});
+function renderToolHUD(){
+  const t=round.tool;toolBtn.hidden=!t;if(!t)return;
+  const key=`${t.kind}|${t.charges}`;
+  if(toolBtn.dataset.key!==key){
+    toolBtn.dataset.key=key;toolBtn.dataset.kind=t.kind;
+    const count=document.createElement('b'),hint=document.createElement('small');count.textContent=t.charges;hint.textContent='E';
+    toolBtn.replaceChildren(svgIcon(`tool-${t.kind}`),count,hint);
+  }
+  toolBtn.disabled=toolBlocked();
+  toolBtn.setAttribute('aria-label',`${toolDef(t.id).label} (E) · ${t.charges} left`);
+}
+function renderToolFx(clock){
+  toolFxUsed=0;
+  const fx=round.toolFx;
+  if(fx&&!round.over){
+    for(const g of fx.fuses){const p=Math.min(1,(clock-g.at)/(g.detonateAt-g.at));toolFxRing(g.x,g.z,g.radius,TOOL_CORAL,.3+.2*Math.sin(clock/60));toolFxRing(g.x,g.z,g.radius*p,TOOL_CORAL,.7);}
+    for(const d of fx.decoys){toolFxRing(d.x,d.z,d.radius,TOOL_CYAN,.12);toolFxRing(d.x,d.z,.5+.15*Math.sin(clock/120),TOOL_CYAN,.85);}
+    for(const p of fx.pulses){const k=Math.min(1,(clock-p.at)/(p.until-p.at));toolFxRing(p.x,p.z,p.radius*(.3+.7*k),toolColor(p.kind),.8*(1-k));}
+  }
+  for(let i=toolFxUsed;i<toolFxPool.length;i++)toolFxPool[i].visible=false;
+  // drag preview: arc from the thrower to the landing ring
+  const pv=toolDrag.active&&!toolBlocked()?previewThrow(round,position,toolDragPoint(),playerSolids):null;
+  toolArc.visible=!!pv;
+  if(pv){
+    const color=toolColor(pv.kind),pos=toolArc.geometry.attributes.position;
+    for(let i=0;i<toolArcPoints.length;i++){const t=i/(toolArcPoints.length-1);pos.setXYZ(i,position.x+(pv.x-position.x)*t,.5+Math.sin(t*Math.PI)*1.6,position.z+(pv.z-position.z)*t);}
+    pos.needsUpdate=true;toolArc.material.color.set(color);
+    toolFxRing(pv.x,pv.z,pv.radius,color,.9);
+  }
+}
 const raycaster=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),-.65),intersection=new THREE.Vector3(),mouse=new THREE.Vector2();
 let mouseDown=false,mouseKnown=false;
 function updateMouse(e){const r=stage.getBoundingClientRect();mouse.set((e.clientX-r.left)/viewWidth*2-1,1-(e.clientY-r.top)/viewHeight*2);mouseKnown=true;}
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
+window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
 window.addEventListener('keyup',e=>{if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
@@ -168,7 +236,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput(
 function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
 let labels=[],routeLabels=[];
 const enemyName=e=>!e.type||e.type==='grunt'?'ENEMY':e.type.toUpperCase();
-const enemyStateText=e=>`${e.introGuard?(e.windupAt!=null?'CHARGING · HIT TRIGGERS BURST':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
+const enemyStateText=e=>Date.now()<(e.stunnedUntil??0)?`STUNNED · ${e.health}`:e.lureTarget&&Date.now()<(e.lureUntil??0)?`LURED · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'CHARGING · HIT TRIGGERS BURST':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
 function makeLabel(text,point,kind,range=null,short=''){
   const el=document.createElement('div');el.className=`node-label ${kind}`;
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
@@ -190,7 +258,7 @@ function updateHUD(){
   const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&level.nodes.every(n=>n.active);
   $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
   $('#progress').textContent=`NODES ${lit}/${level.nodes.length} · RUN ${round.nodesLit}/${TOTAL_NODES}`;
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?(Date.now()<(v.node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':'SHIELDED · STAND CLOSE'):'STAND CLOSE';}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
   if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   world.setExit(open);if(!resultPending)setCollisions();
@@ -320,7 +388,7 @@ function reset(requestedSeed){
   dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
   // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.kit={...launch.kit};setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent='8:00';$('.timer').classList.remove('urgent');loadLevel();
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
 function finishRound(outcome=round.reason){
@@ -408,7 +476,7 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#abandon,#use-kit,#ammo-hud,#weapon-name';
+const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#use-kit,#ammo-hud,#weapon-name';
 let hudRects=[],hudRectsAt=0;
 function refreshHudRects(now){if(now-hudRectsAt<500)return;hudRectsAt=now;
   const box=$('#game').getBoundingClientRect();
@@ -442,7 +510,7 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.60.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.61.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -549,6 +617,7 @@ function frameInner(now){
     {const hs=stepHouse(round.level,position,clock,round.stats.searchMult);if(hs.loot.length)round.telemetry.searches=(round.telemetry.searches||0)+hs.loot.length;if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const healthBefore=round.health;
     stepCombat(round,combat,position,clock,dt,playerSolids);
+    if(stepTools(round,clock).length)updateHUD();
     stepHazards(round,position,clock,dt);world.animateHazards?.(clock);
     for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
       label.el.setAttribute('aria-label',t.state==='on'?'Shock pad active':t.state==='warn'?'Shock pad charging':'Shock pad');}
@@ -575,6 +644,7 @@ function frameInner(now){
   $('#dash').style.setProperty('--cooldown',`${dashRemaining/round.stats.dashCooldownMs*100}%`);
   $('#dash').setAttribute('aria-label',dashRemaining>0?`Dash cooldown ${(dashRemaining/1000).toFixed(1)} seconds`:'Dash ready');
   $('#dash-meter').setAttribute('aria-valuenow',Math.round(charge*100));$('#dash-fill').style.width=`${charge*100}%`;
+  renderToolHUD();renderToolFx(clock);
   playerRing.material.color.set(dash.remaining>0?'#3FE0D0':'#b4d8d0');
   playerRing.scale.setScalar(dash.remaining>0?1.35:1);
   const visibleProjectiles=round.over?[]:combat.projectiles.filter(b=>clock>=(b.releaseAt??0));
@@ -587,7 +657,7 @@ function frameInner(now){
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
     v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
-    v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?'SHIELDED · STAND CLOSE':'STAND CLOSE';
+    v.label.caption.textContent=v.node.active?'ACTIVE':v.node.shielded?(clock<(v.node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
   }
   
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);

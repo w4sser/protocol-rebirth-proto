@@ -28,7 +28,7 @@ for(const id of ids) assert(fs.existsSync(path + "/assets/icons/" + id + ".svg")
   assert(items.length >= 30, "items loaded (" + items.length + ")");
   const seen = new Map();
   for(const it of items){
-    assert(it.icon && /^item-/.test(it.icon), it.id + " names an item-* icon");
+    assert(it.icon && /^(item|tool)-/.test(it.icon), it.id + " names an item-* (or tool-*) icon");
     assert(ids.has(it.icon), it.id + " icon #" + it.icon + " exists in sprite");
     assert(!seen.has(it.icon), it.id + " shares icon " + it.icon + " with " + seen.get(it.icon));
     seen.set(it.icon, it.id);

@@ -126,3 +126,9 @@ html,body{background:#07151c}
 .loot-label.needed-loot{border-color:#75cfcc;box-shadow:0 0 0 1px #75cfcc66;color:#f2e9d6;font-weight:800}
 .gear-toast{background:#0d1a20eb;color:#f2e9d6;border-color:#75cfcc88;font:inherit;font-size:12px;animation-duration:2.6s}.gear-toast.tappable{pointer-events:auto;cursor:pointer;min-height:32px}
 #goal-pickup{position:absolute;z-index:15;top:95px;left:50%;transform:translateX(-50%);max-width:60vw;background:#0d1a20e8;color:#f2e9d6;border:1px solid #ff9d4d;border-radius:8px;padding:7px 10px;pointer-events:none;font-size:12px;}
+/* Toolkit button (v1.61): round, above DASH, inside the safe-area-inset viewport. Cyan = system; the grenade blast ring is coral (drawn in 3D). */
+#tool-btn{position:absolute;right:max(186px,calc(0px + 166px));bottom:104px;width:56px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;pointer-events:auto;touch-action:none;border:2px solid #3FE0D0;border-radius:50%;background:#183a35;color:#75cfcc;box-shadow:0 0 12px rgba(63,224,208,.12);cursor:pointer;z-index:6;padding:0;-webkit-tap-highlight-color:transparent}
+#tool-btn .pr-ic{width:22px;height:22px}#tool-btn b{font-size:15px;line-height:1;font-variant-numeric:tabular-nums;color:#f2e9d6}#tool-btn small{position:absolute;top:-6px;right:-4px;min-width:16px;padding:0 3px;border-radius:8px;background:#07151c;border:1px solid #3FE0D0;font-size:9px;line-height:14px;text-align:center}
+#tool-btn.dragging{background:#245a52;box-shadow:0 0 0 3px #3FE0D055}#tool-btn:disabled{border-color:#617874;color:#a1b5b0;background:#344349;box-shadow:none;cursor:default}#tool-btn:focus-visible{outline:2px solid white;outline-offset:3px}
+@media(max-height:500px){#tool-btn{right:max(154px,calc(0px + 142px));bottom:99px;width:52px;height:52px}}
+@media(max-width:650px){#tool-btn{right:max(141px,calc(0px + 130px))}}
