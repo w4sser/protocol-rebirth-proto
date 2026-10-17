@@ -174,7 +174,8 @@ function sampleLabels(){
   for(const e of document.querySelectorAll('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)')){
     if(!e.dataset.lc)e.dataset.lc=String(++window.__lc);
     const v=!!vis(e),r=e.getBoundingClientRect(),t=e.textContent.trim().replace(/\s+/g,' ').slice(0,24);
-    out.labels[e.dataset.lc]={v,x:r.left+r.width/2,y:r.top+r.height/2,t};
+    // timed hazards (shock pads) switch on and off by design: they count for overlaps, not for flicker
+    out.labels[e.dataset.lc]={v,x:r.left+r.width/2,y:r.top+r.height/2,t:t||'.'+String(e.className).split(' ').slice(0,2).join('.'),timed:e.matches('.hazard-label')};
     if(v&&r.width>2&&r.height>2)L.push({t,l:r.left,tp:r.top,r:r.right,b:r.bottom});
   }
   for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],o=L[j];
@@ -194,6 +195,7 @@ async function sweepLabels(page,ctx){
   }
   for(const m of overl)fail(ctx,`world label ${m} during gameplay`);
   for(const h of Object.values(hist)){
+    if(h.some(x=>x.timed))continue;
     let toggles=0,jump=0;
     // flicker = 3+ visibility flips inside any 12 consecutive samples (~2 m of walking, longer than the 1.2 s show-hold); passing a range threshold once is fine
     const flips=[];for(let i=1;i<h.length;i++){if(h[i].v!==h[i-1].v)flips.push(i);if(h[i].v&&h[i-1].v)jump=Math.max(jump,Math.hypot(h[i].x-h[i-1].x,h[i].y-h[i-1].y));}
