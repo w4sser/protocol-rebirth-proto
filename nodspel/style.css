@@ -132,3 +132,11 @@ html,body{background:#07151c}
 #tool-btn.dragging{background:#245a52;box-shadow:0 0 0 3px #3FE0D055}#tool-btn:disabled{border-color:#617874;color:#a1b5b0;background:#344349;box-shadow:none;cursor:default}#tool-btn:focus-visible{outline:2px solid white;outline-offset:3px}
 @media(max-height:500px){#tool-btn{right:max(154px,calc(0px + 142px));bottom:99px;width:52px;height:52px}}
 @media(max-width:650px){#tool-btn{right:max(141px,calc(0px + 130px))}}
+/* Encounters (PR C). AD palette: coral = danger, cyan = system, amber = loot. Everything sits inside #viewport (safe-area inset). */
+.encounter-hint{position:absolute;left:50%;top:56px;transform:translateX(-50%);z-index:9;max-width:calc(100% - 200px);padding:5px 12px;border:1px solid #75cfcc88;border-radius:14px;background:#0d1a20e6;color:#cfe7dd;font-size:11px;font-weight:700;letter-spacing:1.2px;text-align:center;pointer-events:none;animation:enchint 4.2s ease forwards}
+@keyframes enchint{0%{opacity:0;transform:translate(-50%,-6px)}8%,86%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+.node-label.door-label{border-color:#E4705F;color:#ffd0c8;font-weight:700}.door-label .node-marker{background:#E4705F}.door-label.done{border-color:#3FE0D0;color:#bff3ee}.door-label.done .node-marker{background:#3FE0D0}
+.node-label.spawn-label{border-color:#E4705F88;color:#ffb7ab;font-weight:700;background:#2a1214e0}.spawn-label .node-marker{background:#E4705F}
+.node-label.keycard-loot{border-color:#E8A33D;color:#ffdf9c}.keycard-loot .node-marker{background:#E8A33D}
+.death-tip{margin:0 auto 14px;max-width:420px;padding:7px 12px;border-left:3px solid #3FE0D0;background:#0d1a20e6;color:#cfe7dd;font-size:12px;line-height:1.35;text-align:left}.death-tip .pr-ic{width:14px;height:14px;vertical-align:-2px;color:#3FE0D0}
+@media(max-height:500px){.encounter-hint{top:46px;font-size:10px}.death-tip{margin-bottom:8px;font-size:11px}}

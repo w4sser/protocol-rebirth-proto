@@ -1,12 +1,42 @@
-import {townizeLevel} from './town-layout.js?v=1.61.0';
+import {townizeLevel} from './town-layout.js?v=1.62.0';
+import {applyEncounters} from './encounters.js?v=1.62.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Open Room'},
-    {rooms:2,nodes:2,enemies:4,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
-    {rooms:3,nodes:3,enemies:6,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
+    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
   ],
+  // Encounters (docs/design-encounters-toolkit.md §1): one named problem per level, placed by encounters.js.
+  // Every problem telegraphs >= telegraphMs (coral sight line / "!"), no single hit takes more than maxHitFraction
+  // of max HP, and each has a tool solution AND a movement/timing solution. damagePct = share of max HP (area dmgMul scales it).
+  // Regular enemy counts no longer ramp (levels[].enemies is 1 / 2 / 3 = one per room); the problems carry the difficulty.
+  encounters:{
+    maxHitFraction:.3,telegraphMs:1000,hintRange:9,
+    // problems per area, indexed by level (L1 one, L2 one + regular enemies, L3 two)
+    plan:{bunker:[['guard'],['turret'],['swarm','shield']],archipelago:[['guard'],['patrol'],['swarm','shield']],town:[['patrol'],['turret'],['door','shield']]},
+    // Core guard: stands by the node behind a front shield and turns slowly. Shots only count from behind / the side.
+    guard:{health:2,speed:1.4,distance:2.1,frontHalfAngleDeg:70,fireHalfAngleDeg:55,turnRadPerSec:.7,warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,damagePct:.1,counterOnHit:false},
+    // Turret behind cover: a sentry with long reach; a visible salvo, then a long recovery window to move in.
+    turret:{health:2,lane:4.4,side:2.2,fireHalfAngleDeg:180,turnRadPerSec:6,warningMs:1100,burstShots:3,burstIntervalMs:200,recoveryMs:2600,damagePct:.12,counterOnHit:false},
+    // Patrol: a fixed back-and-forth loop with a visible sight cone. Seen = a 1 s "!" before it reacts.
+    patrol:{health:2,length:5,walkSpeed:1,turnRadPerSec:3,pauseMs:700,coneRange:5.2,coneHalfAngleDeg:35,bumpRadius:.9,alertMs:1000,windupMs:1000,damagePct:.14},
+    // Swarm: rushers burst out of a spawn point when the player gets close (telegraph, then a short emergence pause).
+    swarm:{count:[4,5],health:2,speed:3,triggerRadius:6.5,warnMs:1000,emergeMs:2000,ring:.9,minEntry:6,damagePct:.06,cooldownMs:1400,windupMs:500},
+    // Shielded node: a generator close to the node keeps the shield up until shot (or EMP'd for a few seconds).
+    shield:{health:2,distance:2.5},
+    // Locked door in a corridor + a keycard in a crate; the longer side passage is always open.
+    door:{reach:1.7,height:1.6,thickness:.3,passageWidth:2,passageOffset:3},
+    hints:{guard:'GUARD · FLANK IT',turret:'TURRET · MOVE WHILE IT RECOVERS',patrol:'PATROL · STAY OUT OF ITS CONE',swarm:'SWARM · FALL BACK TO A CORRIDOR',shield:'SHIELD · BREAK THE GENERATOR',door:'LOCKED · FIND THE KEYCARD'},
+    names:{guard:'GUARD',turret:'TURRET',patrol:'PATROL',swarm:'RUSHER',generator:'GENERATOR'},
+    // Result-screen tip: the tool that solves the problem that killed the player.
+    tips:{guard:{tool:'tool_decoy',text:'a Decoy pulls the guard off the node. Or circle behind it: the shield only covers its front.'},
+      turret:{tool:'tool_emp',text:'an EMP shuts the turret down for 4 s. Or run between cover while it recovers.'},
+      patrol:{tool:'tool_decoy',text:'a Decoy draws the patrol away. Or sneak up behind it, outside its cone.'},
+      swarm:{tool:'tool_grenade',text:'a Grenade clears a swarm. Or fall back into a corridor so they queue up.'},
+      shield:{tool:'tool_emp',text:'an EMP drops the node shield for 4 s. Or shoot the generator.'},
+      door:{tool:null,text:'the keycard is in a crate, or take the longer side passage.'}}},
   roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
   loadout:{health:100,ammo:Infinity},
@@ -59,7 +89,7 @@ export const RULES=Object.freeze({
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
 export function totalNodes(){return RULES.levels.reduce((sum,level)=>sum+level.nodes,0);}
-function randomFromSeed(seed){
+export function randomFromSeed(seed){
   let state=2166136261;
   for(const c of String(seed))state=Math.imul(state^c.charCodeAt(0),16777619);
   return ()=>{state+=0x6D2B79F5;let n=Math.imul(state^(state>>>15),1|state);n^=n+Math.imul(n^(n>>>7),61|n);return ((n^(n>>>14))>>>0)/4294967296;};
@@ -85,8 +115,8 @@ export const AREAS=['bunker','archipelago','town'];
 // unlocks the next area in meta when extracted. Level index = zone (1..3).
 export const AREA_RULES={
   bunker:{hpMul:1,dmgMul:1,extraEnemies:[0,0,0],scout:{level:3,item:'archipelago_chart'}},
-  archipelago:{hpMul:1.25,dmgMul:1.15,extraEnemies:[0,1,2],sizeMul:1.25,lootNext:true,
-    mix:[{grunt:.7,rusher:.3},{grunt:.4,rusher:.35,sentry:.25},{grunt:.3,rusher:.4,sentry:.3}],scout:{level:3,item:'town_survey'}},
+  archipelago:{hpMul:1.25,dmgMul:1.15,extraEnemies:[0,0,0],sizeMul:1.25,lootNext:true,
+    mix:[{grunt:.7,rusher:.3},{rusher:.5,sentry:.5},{grunt:.3,rusher:.4,sentry:.3}],scout:{level:3,item:'town_survey'}},
   town:{hpMul:1.4,dmgMul:1.25,extraEnemies:[0,0,0]}};
 export function setArea(a){AREA=AREAS.includes(a)?a:'bunker';return AREA;}
 export function generateLevel(number,roundSeed,area=AREA){
@@ -157,7 +187,7 @@ export function generateLevel(number,roundSeed,area=AREA){
   if(number===2){
     const room=rooms[1];
     for(let i=0;i<enemies.length;i++){
-      enemies[i].x=room.x+(i%2===0?-3.3:3.3);enemies[i].z=room.z+(i<2?-4.1:1.1);enemies[i].active=i>=2;
+      enemies[i].x=room.x+(i%2===0?-3.3:3.3);enemies[i].z=room.z+(i<enemies.length/2?-4.1:1.1);enemies[i].active=i>=enemies.length/2;
     }
   }
   const last=rooms.at(-1),exit={x:last.x,z:last.z+RULES.exit.z,r:RULES.exit.r};
@@ -188,6 +218,8 @@ export function generateLevel(number,roundSeed,area=AREA){
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
   const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+  // Encounters shape the layout BEFORE the town re-skin, so a town side passage gets proper ground tiles.
+  applyEncounters(level,area,randomFromSeed(`${seed}:encounters`));
   if(area!=='bunker')level.area=area;
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
@@ -200,7 +232,8 @@ export function generateLevel(number,roundSeed,area=AREA){
 // Area difficulty + scouting item on top of the seeded layout (bunker = identity apart from the scout item).
 export function applyAreaRules(level,AR){
   const n=level.number,rng=randomFromSeed(`${level.seed}:area`);
-  if(AR.mix)for(const [i,e] of level.enemies.entries())if(i>0){const t=RULES.enemyTypes[pickWeighted(AR.mix[n-1],rng())],g=RULES.enemyTypes.grunt;
+  // Encounter enemies keep the type/stats encounters.js gave them.
+  if(AR.mix)for(const [i,e] of level.enemies.entries())if(i>0&&!e.encounter){const t=RULES.enemyTypes[pickWeighted(AR.mix[n-1],rng())],g=RULES.enemyTypes.grunt;
     e.speed=(e.speed??0)/(RULES.enemyTypes[e.type]?.speedMul||1)*(t.speedMul||0);e.type=Object.keys(RULES.enemyTypes).find(k=>RULES.enemyTypes[k]===t);e.rangeMul=t.rangeMul;e.cooldownMul=t.cooldownMul;e.standoff=t.standoff;}
   const solids=[...level.walls,...level.boxes],keep=[level.start,level.exit,...level.nodes];
   for(let k=0;k<(AR.extraEnemies?.[n-1]??0);k++){const room=level.rooms[(k+1)%level.rooms.length],src=level.enemies.at(-1);
@@ -209,7 +242,7 @@ export function applyAreaRules(level,AR){
       if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<4)||level.enemies.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<1.5))continue;
       level.enemies.push({...src,id:`enemy-${level.enemies.length+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,active:true,extra:true});break;}}
   for(const e of level.enemies)e.health=Math.max(1,Math.round((e.health??RULES.enemyHealth)*AR.hpMul));
-  level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*AR.dmgMul);
+  level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*AR.dmgMul);level.dmgMul=AR.dmgMul;
   if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
 }
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.

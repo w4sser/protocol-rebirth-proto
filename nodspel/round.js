@@ -1,7 +1,8 @@
-import {generateLevel,RULES} from './levels.js?v=1.61.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.61.0';
-import {emptyBag,bagItems} from './raid.js?v=1.61.0';
-import {traceTargets} from './physics.mjs?v=1.61.0';
+import {generateLevel,RULES} from './levels.js?v=1.62.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.62.0';
+import {emptyBag,bagItems} from './raid.js?v=1.62.0';
+import {traceTargets} from './physics.mjs?v=1.62.0';
+import {shieldBlocks} from './encounters.js?v=1.62.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -35,6 +36,9 @@ export function collectLoot(round,position,now,weapon){
         round.kit=round.kit||{medkit:0};
         if((round.kit.medkit||0)>=RULES.kitMax.medkit){if(!box.kitFullNotified){box.kitFullNotified=true;round.kitFull={boxId:box.id,at:now};changed=true;}continue;}
         round.kit.medkit=(round.kit.medkit||0)+1;round.kitPicked=(round.kitPicked||0)+1;
+      }else if(box.item==='keycard'){
+        // Encounter key: carried by the raid itself (never in the bag), spent on contact with its door.
+        round.keys=round.keys||[];round.keys.push(box.key);
       }else if(gearSlotOf(box.item)){
         // v1.59: equipment goes straight to its character slot, never the bag. Empty slot (or the free
         // Basic Carbine) auto-equips; an occupied slot raises one quiet swap offer per approach.
@@ -105,11 +109,28 @@ export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||(!kit&&!round.bag.medkit)||round.health>=max)return false;
   if(kit)round.kit.medkit--;else round.bag.medkit--;const before=round.health;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.healed=(round.telemetry.healed||0)+round.health-before;return true;
 }
+// Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
+// then drops for good) or an EMP holds the shield down for a few seconds. Shielded nodes without a generator charge as before.
+export const nodeShielded=(round,node,now)=>!!node.shielded&&!!node.generatorId&&!(now<(node.shieldDownUntil??0));
+// Encounter 3: a locked door is a solid until the player carrying its keycard walks up to it.
+export const doorSolids=level=>(level.doors??[]).filter(d=>d.locked).map(d=>({x:d.x,z:d.z,w:d.w,d:d.d,h:d.h,door:true}));
+export function stepDoors(round,position,now){
+  tickRound(round,now);if(round.over)return false;
+  let opened=false;
+  for(const door of round.level.doors??[]){
+    if(!door.locked)continue;const k=round.keys?.indexOf(door.key)??-1;if(k<0)continue;
+    const dx=Math.max(0,Math.abs(position.x-door.x)-door.w/2),dz=Math.max(0,Math.abs(position.z-door.z)-door.d/2);
+    if(Math.hypot(dx,dz)>RULES.encounters.door.reach)continue;
+    door.locked=false;door.openedAt=now;round.keys.splice(k,1);round.lastDoor={id:door.id,at:now};opened=true;
+  }
+  return opened;
+}
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
   if(round.over){round.nodeInteraction=null;return false;}
   const node=round.level.nodes.filter(n=>!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
   if(!node){round.nodeInteraction=null;return false;}
+  if(nodeShielded(round,node,now)){round.nodeInteraction=null;return false;}
   let hold=round.nodeInteraction;
   if(!hold||hold.id!==node.id)hold=round.nodeInteraction={id:node.id,startedAt:now,progress:0};
   hold.progress=Math.min(1,(now-hold.startedAt)/RULES.resources.nodeHoldMs);
@@ -131,10 +152,21 @@ export function takeDamage(round,amount,now){
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';}
   return true;
 }
-export function hitEnemy(round,id,now,damage=1){
+// `from` = where the hit comes from. Player weapon hits default to round.shooter (set by the game around weapon
+// calls); blasts and anything without an origin skip the guard's front shield.
+export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
   if(round.over || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
+  // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
+  if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
+  if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
+  if(enemy.type==='generator'){
+    // Not a kill: breaking the generator drops its node's shield for good.
+    enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);
+    if(enemy.health===0){const node=round.level.nodes.find(n=>n.id===enemy.node);if(node){node.shielded=false;node.shieldBroken=true;}round.generatorsDown=(round.generatorsDown??0)+1;}
+    return true;
+  }
   enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};round.health=Math.min(round.maxHealth??100,round.health+RULES.killReward.health);}return true;
 }
 export function roundSummary(round){
@@ -159,7 +191,8 @@ export function activateNode(round,id,now) {
   if(round.over || !node || node.active)return false;
   node.active=true;round.nodesLit++;
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
-  for(const enemy of round.level.enemies)if(enemy.active===false){enemy.active=true;enemy.spawnedAt=now;}
+  // Swarm rushers wait for their own spawn point, not for a node.
+  for(const enemy of round.level.enemies)if(enemy.active===false&&!enemy.swarm){enemy.active=true;enemy.spawnedAt=now;}
   return true;
 }
 export function enterExit(round,position,now) {
@@ -176,7 +209,7 @@ export function enterExit(round,position,now) {
   round.nodeInteraction=null;
   round.levelsCleared++;
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
-  round.exitLevel=round.level;
+  round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
   return 'next';
 }

@@ -1,7 +1,8 @@
-import {RULES,hazardState} from './levels.js?v=1.61.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.61.0';
-import {takeDamage,tickRound} from './round.js?v=1.61.0';
-import {houseWaypoint} from './house.js?v=1.61.0';
+import {RULES,hazardState} from './levels.js?v=1.62.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.62.0';
+import {takeDamage,tickRound} from './round.js?v=1.62.0';
+import {houseWaypoint} from './house.js?v=1.62.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=1.62.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -16,29 +17,38 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     for(const enemy of round.level.enemies)combat.nextFire.set(enemy.id,Math.max(combat.nextFire.get(enemy.id)??0,combat.graceUntil));
   }
   Object.assign(player,moveWithActors(player,{x:0,z:0},round.level.enemies,obstacles,round.level.floors,RULES.playerRadius));
+  // Encounters that run on their own clock: patrols keep walking and spawn points keep counting through the arrival grace.
+  stepPatrolWalk(round,player,now,dt,obstacles);
+  stepSpawners(round,combat,player,now);
   if(now<combat.graceUntil)return;
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
-    if(enemy.active===false||now<(enemy.spawnedAt??-Infinity)+rule.graceMs)continue;
-    // EMP: a stunned enemy neither moves nor fires; its wind-up is cancelled.
-    if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;continue;}
+    if(enemy.active===false||enemy.type==='generator'||now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??rule.graceMs))continue;
+    // EMP: a stunned enemy neither moves nor fires; its wind-up and salvo are cancelled (a fresh telegraph follows).
+    if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;continue;}
     // Decoy: a lured mover heads for the lure instead of the player and holds fire until it ends.
     if(enemy.lureTarget&&enemy.speed>0&&now<(enemy.lureUntil??Infinity)){
-      enemy.windupAt=null;
+      enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;
       const lx=enemy.lureTarget.x-enemy.x,lz=enemy.lureTarget.z-enemy.z,ld=Math.hypot(lx,lz);
-      if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt)stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z},ld,obstacles,player,dt);
+      if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt){
+        stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z},ld,obstacles,player,dt);
+        if(enemy.facing!==undefined)enemy.facing=turnToward(enemy.facing,angleTo(enemy,enemy.lureTarget),6*dt);
+      }
       continue;
     }
+    // Patrol: unaware until the sight cone catches the player (a 1 s "!" first) or it is shot.
+    if(enemy.patrol&&!enemy.introGuard&&!enemy.aggro&&enemy.health>0)patrolSight(round,enemy,player,now,obstacles,target);
     // Detection: stealth shrinks the range at which an enemy notices you. Once noticed (or shot) it stays aggro.
-    const seen=Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
+    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
     if(seen||enemy.lastHitAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
-    if(enemy.introGuard){stepGuard(enemy,combat,player,now,obstacles,target);continue;}
+    if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}
+    if(enemy.patrol&&enemy.health>0)enemy.facing=angleTo(enemy,player);
     if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
-      const way=houseWaypoint(round.level.house,enemy,player),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
-      if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && distance<14){
+      const way=houseWaypoint(round.level.house,enemy,player)??(enemy.swarm?doorwayWaypoint(round.level,enemy,player):null),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
+      if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && (distance<14||enemy.swarm)){
         stepEnemy(round,enemy,goal,gd,obstacles,player,dt);
       }
     }
@@ -47,35 +57,67 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(distance<.1 || distance>rule.range*(enemy.rangeMul??1)){enemy.windupAt=null;continue;}
     const cover=[...obstacles,...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
     if(traceTargets(enemy,player,cover,[target])?.kind!=='player'){enemy.windupAt=null;continue;}
-    // Telegraph: a visible wind-up precedes each shot when the level asks for one.
-    const windup=round.level.enemyWindupMs??0;
+    // Telegraph: a visible wind-up precedes each shot when the level (or the encounter) asks for one.
+    const windup=enemy.windupMs??round.level.enemyWindupMs??0;
     if(windup>0){enemy.windupAt??=now+windup;if(now<enemy.windupAt)continue;enemy.windupAt=null;}
     const dx=(player.x-enemy.x)/distance,dz=(player.z-enemy.z)/distance;
-    combat.projectiles.push({id:++combat.nextId,x:enemy.x+dx*.65,z:enemy.z+dz*.65,dx,dz,life:2});
-    combat.nextFire.set(enemy.id,now+(round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1));
+    combat.projectiles.push({id:++combat.nextId,x:enemy.x+dx*.65,z:enemy.z+dz*.65,dx,dz,life:2,...shotInfo(round,enemy)});
+    combat.nextFire.set(enemy.id,now+(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1));
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
     const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
-    if(hit||b.life<=0){if(hit?.kind==='player')takeDamage(round,round.level.enemyDamage??rule.damage,now);combat.projectiles.splice(i,1);}
+    if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??null,at:now};takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
+}
+
+// Encounter shots carry their source (for the result-screen tip) and a damage capped at maxHitFraction of max HP.
+function shotInfo(round,enemy){return enemy.encounter&&RULES.encounters[enemy.encounter]?.damagePct?{source:enemy.encounter,damage:encounterDamage(round,enemy.encounter)}:{};}
+
+// Swarm rushers chase in a straight line, which wedges them on a doorway's corner. When the player is in another
+// room or in a corridor they first head for the doorway that is closest to the player, then through it; in a
+// corridor (straight) or in the same room they simply go for the player, so a corridor makes them queue up.
+function doorwayWaypoint(level,enemy,player){
+  const inRoom=p=>level.rooms.findIndex(r=>Math.abs(p.x-r.x)<=r.w/2&&Math.abs(p.z-r.z)<=r.d/2);
+  const here=inRoom(enemy);if(here<0||here===inRoom(player))return null;
+  const room=level.rooms[here];let best=null,bd=Infinity;
+  for(const d of room.doors){const mouth={x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2},k=Math.hypot(player.x-mouth.x,player.z-mouth.z);if(k<bd){bd=k;best=mouth;best.out={x:mouth.x+d.x*.9,z:mouth.z+d.z*.9};}}
+  if(!best)return null;
+  return Math.hypot(enemy.x-best.x,enemy.z-best.z)<1.1?best.out:best;
 }
 
 // One movement step towards `goal` (gd = distance), blocked by walls, the player and other enemies.
 function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-  const next=movePlayer(enemy,{x:(goal.x-enemy.x)/gd*Math.min(gd,enemy.speed*dt),z:(goal.z-enemy.z)/gd*Math.min(gd,enemy.speed*dt)},blockers,round.level.floors,.48);
+  const step=Math.min(gd,enemy.speed*dt),dx=(goal.x-enemy.x)/gd*step,dz=(goal.z-enemy.z)/gd*step;
+  let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
+  // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
+  // The sidestep is committed for a moment, otherwise the next normal step just slides them back onto the corner.
+  if(enemy.swarm){
+    const sidestep=side=>movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
+    if((enemy.slideLeft??0)>0){enemy.slideLeft-=dt;next=sidestep(enemy.slide);}
+    else if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
+      enemy.slide??=1;
+      for(const side of [enemy.slide,-enemy.slide]){const alt=sidestep(side);
+        if(Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>=step*.3){next=alt;enemy.slide=side;enemy.slideLeft=.4;break;}}
+    }
+  }
   enemy.x=next.x;enemy.z=next.z;
 }
-function stepGuard(enemy,combat,player,now,obstacles,target){
+// Stationary shooter: intro guard (RULES.intro), Core guard and turret (RULES.encounters.*). A visible warning line,
+// then a committed salvo, then a recovery window. Encounter guards also turn slowly towards the player and only
+// start a warning when the player is inside their fire arc, so walking round behind them is safe.
+function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
   if(enemy.health<=0){enemy.attackPhase=null;enemy.windupAt=null;return;}
-  const cfg=RULES.intro;
+  const intro=!!enemy.introGuard,cfg=intro?RULES.intro:RULES.encounters[enemy.encounter];
+  if(!intro)enemy.facing=turnToward(enemy.facing??angleTo(enemy,player),angleTo(enemy,player),cfg.turnRadPerSec*dt);
   if(enemy.attackPhase==='recovery'&&now<enemy.recoverUntil)return;
   if(enemy.attackPhase==='recovery'){enemy.attackPhase=null;enemy.attackTarget=null;}
   if(!enemy.attackPhase){
-    if(now<(combat.nextFire.get(enemy.id)??0)||Math.hypot(player.x-enemy.x,player.z-enemy.z)>RULES.combat.range)return;
+    if(now<(combat.nextFire.get(enemy.id)??0)||Math.hypot(player.x-enemy.x,player.z-enemy.z)>RULES.combat.range*(enemy.rangeMul??1))return;
+    if(!intro&&angleDiff(enemy.facing,angleTo(enemy,player))>cfg.fireHalfAngleDeg*Math.PI/180)return;
     if(traceTargets(enemy,player,obstacles,[target])?.kind!=='player')return;
     enemy.attackTarget={x:player.x,z:player.z};enemy.attackPhase='warning';enemy.windupAt=now+cfg.warningMs;
   }
@@ -86,9 +128,46 @@ function stepGuard(enemy,combat,player,now,obstacles,target){
     const d=Math.hypot(enemy.attackTarget.x-enemy.x,enemy.attackTarget.z-enemy.z)||1,dx=(enemy.attackTarget.x-enemy.x)/d,dz=(enemy.attackTarget.z-enemy.z)/d;
     // The committed salvo is independent of the shooter. Cover traces its whole
     // path; rapid stationary fire cannot erase already committed bullets.
-    for(let i=0;i<cfg.burstShots;i++)combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range/RULES.combat.bulletSpeed});
+    const info=intro?{}:shotInfo(round,enemy);
+    for(let i=0;i<cfg.burstShots;i++)combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range*(enemy.rangeMul??1)/RULES.combat.bulletSpeed,...info});
   }
   if(enemy.attackPhase==='burst'&&now>=enemy.burstEndsAt){enemy.attackPhase='recovery';enemy.recoverUntil=now+cfg.recoveryMs;combat.nextFire.set(enemy.id,enemy.recoverUntil);}
+}
+
+// ---- patrol: fixed loop, visible sight cone ----
+function stepPatrolWalk(round,player,now,dt,obstacles){
+  for(const e of round.level.enemies){
+    const P=e.patrol;if(!P||e.introGuard||e.active===false||e.health<=0||e.aggro||e.alertAt!=null)continue;
+    e.sight=sightRange(round);
+    if(now<(e.stunnedUntil??0)||(e.lureTarget&&e.speed>0&&now<(e.lureUntil??Infinity)))continue;
+    const R=RULES.encounters.patrol,goal=P.points[P.i%P.points.length],gd=Math.hypot(goal.x-e.x,goal.z-e.z);
+    if(now<(e.pauseUntil??0)){e.facing=turnToward(e.facing??0,angleTo(e,goal),P.turn*dt);continue;}
+    if(gd<.12){P.i=(P.i+1)%P.points.length;e.pauseUntil=now+R.pauseMs;continue;}
+    const heading=angleTo(e,goal);e.facing=turnToward(e.facing??heading,heading,P.turn*dt);
+    if(angleDiff(e.facing,heading)>.35)continue;
+    const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(o=>o!==e&&o.health>0&&o.active!==false).map(o=>({x:o.x,z:o.z,r:o.r??.48}))];
+    const step=Math.min(gd,P.speed*dt),next=movePlayer(e,{x:(goal.x-e.x)/gd*step,z:(goal.z-e.z)/gd*step},blockers,round.level.floors,.48);
+    e.x=next.x;e.z=next.z;
+  }
+}
+// Seen = player inside the cone (range shrinks with stealth) with a clear line, or right behind the patrol (bump radius).
+// Being seen starts a 1 s "!" (alertAt); when it runs out the patrol goes aggro. A shot patrol is aggro at once (see stepCombat).
+function patrolSight(round,enemy,player,now,obstacles,target){
+  const R=RULES.encounters.patrol,range=enemy.sight=sightRange(round),stealth=round.stats?.stealth??0;
+  if(enemy.alertAt!=null){if(now>=enemy.alertAt){enemy.aggro=true;enemy.alertAt=null;}return;}
+  const d=Math.hypot(player.x-enemy.x,player.z-enemy.z);
+  const inView=inSightCone(enemy,player,range,R.coneHalfAngleDeg)||d<=R.bumpRadius*(1-stealth);
+  if(inView&&traceTargets(enemy,player,obstacles,[target])?.kind==='player'){enemy.alertAt=now+R.alertMs;}
+}
+
+// ---- swarm: a spawn point arms, warns for 1 s, then releases its rushers together ----
+function stepSpawners(round,combat,player,now){
+  for(const sp of round.level.spawners??[]){
+    if(sp.state==='armed'){if(Math.hypot(player.x-sp.x,player.z-sp.z)<=sp.trigger){sp.state='warning';sp.spawnAt=now+sp.warnMs;}continue;}
+    if(sp.state!=='warning'||now<sp.spawnAt)continue;
+    sp.state='spawned';
+    for(const e of round.level.enemies)if(e.swarm===sp.id&&e.health>0){e.active=true;e.aggro=true;e.spawnedAt=now;combat.nextFire.set(e.id,now+sp.emergeMs);}
+  }
 }
 
 // Shock pads damage the player while 'on'. Returns true when damage was dealt.

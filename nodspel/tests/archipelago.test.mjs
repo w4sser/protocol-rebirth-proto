@@ -7,7 +7,8 @@ test('archipelago is larger, harder and carries the Town Survey on level 3',()=>
     assert.equal(a.archipelago,true);assert.equal(a.area,'archipelago');assert.match(a.title,/^Archipelago/);
     const area=L=>L.rooms.reduce((s,r)=>s+r.w*r.d,0);assert.ok(area(a)>area(b)*1.3,'more open');
     assert.equal(a.enemies.length,b.enemies.length+AREA_RULES.archipelago.extraEnemies[n-1]);
-    assert.ok(a.enemies.every(e=>e.health>=Math.round((n===3?RULES.enemyHealth:RULES.levels[n-1].enemyHealth)*1.25)));
+    // encounter enemies (swarm rushers, generators, ...) carry their own health from RULES.encounters
+    assert.ok(a.enemies.filter(e=>!e.encounter).every(e=>e.health>=Math.round((n===3?RULES.enemyHealth:RULES.levels[n-1].enemyHealth)*1.25)));
     assert.ok(a.enemyDamage>b.enemyDamage);
     const solids=[...a.walls,...a.boxes];for(const e of a.enemies.filter(e=>e.extra))assert.ok(!solids.some(o=>Math.abs(e.x-o.x)<o.w/2+.4&&Math.abs(e.z-o.z)<o.d/2+.4),'extra enemy off walls');}
   assert.ok(generateLevel(3,'arch-s','archipelago').lootBoxes.some(b=>b.item==='town_survey'&&b.scout));
