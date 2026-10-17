@@ -1,36 +1,37 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.62.0';
-import {loadBunkerAssets} from './bunker.js?v=1.62.0';
-import {setArea} from './levels.js?v=1.62.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.62.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.62.0';
-import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.62.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.62.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors} from './round.js?v=1.62.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=1.62.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.62.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=1.62.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.62.0';
-import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.62.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.62.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.62.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.62.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.62.0';
-// import {stepScavenging} from './scavenging.js?v=1.62.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.62.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.62.0';
-import {routeComplete} from './objectives.js?v=1.62.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.62.0';
-import {createBIT,stepBIT} from './bit.js?v=1.62.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.62.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.62.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.62.0';
-import {MATERIALS,goalProgress,applyIntroEncounter} from './progression-goal.js?v=1.62.0';
-import {planLabels,labelOpacity,overHUD,deoverlap} from './labels.js?v=1.62.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.63.0';
+import {loadBunkerAssets} from './bunker.js?v=1.63.0';
+import {setArea} from './levels.js?v=1.63.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.63.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.63.0';
+import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.63.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.63.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors} from './round.js?v=1.63.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=1.63.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.63.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=1.63.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.63.0';
+import {RULES,totalNodes,hazardTiming} from './levels.js?v=1.63.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.63.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.63.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.63.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.63.0';
+// import {stepScavenging} from './scavenging.js?v=1.63.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.63.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.63.0';
+import {routeComplete} from './objectives.js?v=1.63.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.63.0';
+import {createBIT,stepBIT} from './bit.js?v=1.63.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.63.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.63.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.63.0';
+import {MATERIALS,goalProgress,applyIntroEncounter} from './progression-goal.js?v=1.63.0';
+import {planLabels,labelOpacity,overHUD,declutterLabels,FIXED_LABEL_KINDS} from './labels.js?v=1.63.0';
+const keys=new Set(),sticks=[];let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.62.0');
+const orderResponse=await fetch('./order.json?v=1.63.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -45,7 +46,8 @@ const earlyStart=document.documentElement.dataset.startRequested==='true';
 if(earlyStart)completeTutorial(tutorialStorage);
 let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
-$('#tutorial-start').onclick=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};
+let gameReady=false,queuedStart=null;
+$('#tutorial-start').onclick=()=>{const go=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};if(gameReady)go();else queuedStart=go;};
 const stage=$('#game');let viewWidth=stage.clientWidth,viewHeight=stage.clientHeight;
 const QUALITY=pickQuality({search:location.search,storage:localStorage,nav:navigator,screen}),QS=qualitySettings(QUALITY);document.documentElement.dataset.quality=QUALITY;
 const scene=new THREE.Scene();scene.background=new THREE.Color(PALETTE.bg);scene.fog=new THREE.Fog(PALETTE.fog,34,64);
@@ -66,12 +68,12 @@ let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.62.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.62.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.63.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.63.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.62.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.63.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;
 if(DEBUG)areaNotice(`AREA SELECTED: ${AREA_SEL==='town'?'ABANDONED TOWN':AREA_SEL.toUpperCase()}`,7000);
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
@@ -122,7 +124,7 @@ const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RUL
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
 const bulletGeometry=new THREE.BoxGeometry(RULES.weapon.shotRadius*2,.12,.38),bulletMaterial=new THREE.MeshBasicMaterial({color:'#75cfcc'});
-const bullets=[],keys=new Set(),movement={x:0,y:0},shooting={x:0,y:0},sticks=[];
+const bullets=[],movement={x:0,y:0},shooting={x:0,y:0};
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#E4705F'}),enemyMeshes=new Map();
 const launch=readLaunch(location.search);
 let hazardLabels=[];
@@ -222,7 +224,7 @@ function renderToolFx(clock){
   }
 }
 const raycaster=new THREE.Raycaster(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),-.65),intersection=new THREE.Vector3(),mouse=new THREE.Vector2();
-let mouseDown=false,mouseKnown=false;
+mouseDown=false;let mouseKnown=false;
 function updateMouse(e){const r=stage.getBoundingClientRect();mouse.set((e.clientX-r.left)/viewWidth*2-1,1-(e.clientY-r.top)/viewHeight*2);mouseKnown=true;}
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
@@ -519,11 +521,11 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#use-kit,#ammo-hud,#weapon-name';
+const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#use-kit,#ammo-hud,#weapon-name,.area-notice,#encounter-hint';
 let hudRects=[],hudRectsAt=0;
 function refreshHudRects(now){if(now-hudRectsAt<500)return;hudRectsAt=now;
   const box=$('#game').getBoundingClientRect();
-  hudRects=[...document.querySelectorAll(HUD_SELECTORS)].filter(e=>!e.hidden&&e.offsetParent!==null).map(e=>{const r=e.getBoundingClientRect();return {left:r.left-box.left,right:r.right-box.left,top:r.top-box.top,bottom:r.bottom-box.top};}).filter(r=>r.right>r.left);}
+  hudRects=[...document.querySelectorAll(HUD_SELECTORS)].filter(e=>!e.hidden&&e.getClientRects().length).map(e=>{const r=e.getBoundingClientRect();return {left:r.left-box.left,right:r.right-box.left,top:r.top-box.top,bottom:r.bottom-box.top};}).filter(r=>r.right>r.left);}
 function renderLabels(){
   refreshHudRects(performance.now());
   const items=labels.filter(l=>l.range&&!l.defeated).map(l=>({id:l.id,kind:l.range,x:l.point.x,z:l.point.z,
@@ -534,7 +536,7 @@ function renderLabels(){
     const sx=(labelPoint.x*.5+.5)*viewWidth,sy=(-labelPoint.y*.5+.5)*viewHeight;
     const mode=l.range?plan.get(l.id)??'hidden':'full';
     if(l.el.dataset.mode!==mode){l.el.dataset.mode=mode;l.size=null;}
-    if(!l.size&&!l.el.hidden&&l.el.offsetWidth)l.size=[l.el.offsetWidth,l.el.offsetHeight];
+    if(!l.size&&!l.el.hidden&&l.el.offsetWidth){l.size=[l.el.offsetWidth,l.el.offsetHeight];const m=new DOMMatrixReadOnly(getComputedStyle(l.el).transform);l.anchorDy=l.el.offsetHeight+(m.f||0);}
     const [lw,lh]=l.size??[mode==='dot'?10:80,mode==='dot'?10:24];
     l.el.hidden=l.defeated||l.obscured||mode==='hidden'||Math.abs(labelPoint.x)>.95||Math.abs(labelPoint.y)>.9||overHUD(sx,sy,hudRects,8,lw,lh);
     l.sx=sx;l.sy=sy;
@@ -544,16 +546,16 @@ function renderLabels(){
   // shock-pad icons have priority; stacked enemy labels shift up (or hide) so nothing overlaps
   const boxes=[];
   for(const {label} of hazardLabels)if(!label.el.hidden)boxes.push({id:label.id,x:label.sx,y:label.sy+18,w:40,h:40,fixed:true});
-  for(const l of labels)if(l.range==='enemy'&&!l.el.hidden){const [w,h]=l.size??[60,14];boxes.push({id:l.id,x:l.sx,y:l.sy,w,h});}
-  const shifts=deoverlap(boxes);
-  for(const l of labels)if(l.range==='enemy'&&!l.el.hidden){const dy=shifts.get(l.id);if(dy===null)l.el.hidden=true;else if(dy)l.el.style.top=`${l.sy-dy}px`;}
+  for(const l of labels)if(l.range&&!l.el.hidden){const [w,h]=l.size??[60,14];boxes.push({id:l.id,kind:l.range,x:l.sx,y:l.sy+(l.anchorDy??0),w,h});}
+  const shifts=declutterLabels(boxes,{hud:hudRects});
+  for(const l of labels)if(l.range&&!l.el.hidden){const dy=shifts.get(l.id);if(dy===null)l.el.hidden=true;else if(dy)l.el.style.top=`${l.sy-dy}px`;}
 }
 let previous=performance.now();
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.62.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.63.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -743,3 +745,4 @@ function frameInner(now){
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
 // Landscape only: on the first tap go fullscreen and lock orientation where supported (Android). iOS shows the .rotate screen.
 {const once=()=>{document.removeEventListener('pointerdown',once,true);try{const el=document.documentElement,fs=el.requestFullscreen||el.webkitRequestFullscreen,lock=()=>{try{screen.orientation?.lock?.('landscape')?.catch?.(()=>{});}catch{}};if(fs&&!document.fullscreenElement){const p=fs.call(el,{navigationUI:'hide'});p?.then?p.then(lock,lock):lock();}else lock();}catch{}};document.addEventListener('pointerdown',once,true);}
+gameReady=true;if(queuedStart){const q=queuedStart;queuedStart=null;q();}

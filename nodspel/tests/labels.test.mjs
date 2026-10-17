@@ -23,7 +23,18 @@ test('smooth fade and HUD exclusion',()=>{
   assert(overHUD(400,30,hud));assert(!overHUD(400,120,hud));
   assert(overHUD(250,70,hud,8,140,20),'label box edge touching HUD is hidden');assert(!overHUD(250,70,hud,8,20,20));
 });
-import {deoverlap,MAX_ENEMY_BARS} from '../labels.js';
+import {deoverlap,declutterLabels,MAX_ENEMY_BARS} from '../labels.js';
+test('declutter: guard hint stacked on a STAND CLOSE node label moves up, the node label stays',()=>{
+  const out=declutterLabels([{id:'node',kind:'node',x:400,y:200,w:110,h:24},{id:'guard',kind:'enemy',x:410,y:204,w:70,h:24}]);
+  assert.equal(out.get('node'),0);
+  assert(204-out.get('guard')<=200-24+0.01,'guard box sits wholly above the node label box');
+});
+test('declutter: separate labels untouched; unresolvable enemy label hides',()=>{
+  const apart=declutterLabels([{id:'a',kind:'node',x:0,y:100,w:100,h:20},{id:'b',kind:'enemy',x:300,y:100,w:60,h:20}]);
+  assert.equal(apart.get('a'),0);assert.equal(apart.get('b'),0);
+  const stack=[{id:'n',kind:'node',x:0,y:100,w:100,h:20},...[1,2,3,4].map(i=>({id:'e'+i,kind:'enemy',x:0,y:100,w:60,h:20}))];
+  const out=declutterLabels(stack,{maxShift:30});assert(out.get('e1')>0&&out.get('e1')<=30);assert.equal(out.get('e4'),null);
+});
 test('enemies: compact bar by default, name near/targeted, capped',()=>{
   assert.equal(labelTier('enemy',8),'bar');assert.equal(labelTier('enemy',2),'full');
   const items=Array.from({length:9},(_,i)=>({id:i,kind:'enemy',x:5+i,z:0}));items.push({id:'t',kind:'enemy',x:30,z:0,force:'full'});

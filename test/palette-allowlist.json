@@ -1,0 +1,9 @@
+{
+ "_note": "Colour ratchet for UI CSS. Counted: raw hex/rgb literals outside :root that are not an ui/tokens.css value and not a grey/black/white neutral. Per-file legacy count may only go DOWN (new UI must use var(--ad-*)). Regenerate lower with: node test/guardrails.test.js --update. 'colors' = extra literals allowed anywhere (keep empty unless the AD palette adds one).",
+ "colors": [],
+ "legacy": {
+  "index.html": 269,
+  "nodspel/style.css": 133,
+  "ui/popup.css": 2
+ }
+}

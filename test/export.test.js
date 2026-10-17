@@ -21,7 +21,7 @@ const boot = () => {
   assert(ta && JSON.parse(ta.value), "textarea fallback holds the JSON log");
   let copied = null;
   Object.defineProperty(w.navigator, "clipboard", { value:{ writeText:async t => { copied = t; } }, configurable:true });
-  w.document.querySelector("#devexport button").click();
+  w.document.querySelector("#devexport #devcopy").click();
   await new Promise(r => setTimeout(r, 0));
   assert.equal(copied, ta.value, "copy button copies the log");
   // 2) share API with files: used first

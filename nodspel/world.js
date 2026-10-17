@@ -1,10 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.62.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.62.0';
-import {buildTown} from './town.js?v=1.62.0';
-import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.62.0';
-import {buildArchipelago,pineTree} from './archipelago.js?v=1.62.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.62.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.63.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.63.0';
+import {buildTown} from './town.js?v=1.63.0';
+import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.63.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.63.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.63.0';
 const KEY_AMBER='#E8A33D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));

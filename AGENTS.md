@@ -1,77 +1,43 @@
-# Protocol Rebirth — meta prototype · agent guide
+# Protocol Rebirth — agent guide
 
-A playable, data-driven prototype of the meta-game loop (base restoration + simulated
-extraction raids) for **Protocol Rebirth**. Runs as a static site — open `index.html`,
-no build step, no backend. Published via GitHub Pages; landscape, mobile-first.
+## Product direction
+Mobile **landscape**, mass-market game: a Tarkov-lite extraction raid (Node Raid, `nodspel/`) feeding a base builder
+(meta layer: `index.html`, `app.js`, `style`/inline CSS, `data/*.js`). Static site, no build step, published via GitHub Pages.
+All economy/tuning values live in `data/*.js` (a test enforces it); every player action goes through `act()`.
 
-## Golden rules
-1. **All economy/tuning values live in `data/*.js`.** `app.js` is logic + UI only.
-   Never hardcode item ids, prices, drop rates or costs in `app.js` — a test enforces this.
-2. **Always run the tests before committing.** Keep them green; add coverage for new behaviour.
-3. **Bump the cache-bust tag** in `index.html` (`?v=X.Y.Z` on the local `<script>`/asset refs)
-   whenever you ship, so players' browsers fetch the new files without a hard reload.
-4. Save version: `SAVE_VERSION` in `app.js`. Bump it only when the state shape changes
-   (old saves are then discarded — fine in prototype phase).
+## Hard rules
+- Work only in this repo. Never force-push. Do not commit/push unless asked.
+- **No emoji or symbol glyphs** anywhere in UI sources. Icons are bespoke SVG in `assets/icons/sprite.svg`,
+  mirrored byte-for-byte to `nodspel/ui-icons.svg` (`cp assets/icons/sprite.svg nodspel/ui-icons.svg`).
+  Every item/currency in `data/items.js` has its own symbol.
+- **One popup component**: base uses `overlay()` in `app.js`, raid uses `.pop-card` + `.pop-x` (`ui/popup.css`).
+  Close badge is top-left. No ad-hoc modals, no inline `position:fixed` boxes. Popups must fit the viewport.
+- UI stays inside the safe area; the playfield/canvas is full-bleed. Notices are unobtrusive (small, short-lived,
+  never covering the HUD, timer or world labels).
+- **AD palette** (`ui/tokens.css`, `--ad-*`): cyan = BIT / system / extract, amber = loot, coral = danger,
+  orange (`--ad-primary`) = the one primary action (RAID tab, DEPLOY, PLAY/Start). New UI uses tokens, not raw hex.
+  `test/palette-allowlist.json` is a ratchet of legacy raw colours: it may only go down.
+- Meta raids are simulated; Live Fire stays an isolated sandbox. Monetization only in retention `full` mode.
+  Every raid moves at least one progression bar. See the invariants in `README.md` / `docs/`.
+- Design proposals (new systems, screens, economy changes) go to the owner **before** building.
 
-## Run the tests
+## Run the checks
 ```
-# pure logic (no deps)
-node test/logic.test.js
-# UI walkthrough + full-mode FTUE (need jsdom once)
-npm install jsdom            # or: NODE_PATH=/tmp/node_modules with a shared install
-node test/ui.test.js
-node test/ftue-full.test.js
+npm test                 # base logic + jsdom UI + guardrails (needs `npm ci`)
+cd nodspel && npm test   # raid unit tests (node:test)
+npm run verify           # both of the above + headless-Chrome layout check, screenshots in verify-out/
+node scripts/layout-check.mjs   # layout only (needs puppeteer, or puppeteer-core + CHROME_PATH)
 ```
-All three must print PASS. `test/ui.test.js` clicks the whole vertical slice; extend it
-when you add screens or flows.
+`test/guardrails.test.js` covers: no emoji, shared popup, palette tokens/ratchet, primary-button token, sprite sync
+and icon coverage, version agreement. `scripts/layout-check.mjs` checks overlap/covered/off-screen controls, popup fit,
+world-label and notice overlap, and canvas full-bleed at 844x390, 932x430 and 667x375.
 
-## Layout
-```
-index.html            shell + all CSS + per-screen backgrounds + cache-bust tags
-app.js                state store, raid sim, screens, actions, analytics (act()/log())
-data/
-  items.js modules.js raid_zones.js recipes.js vendors.js bit.js progression.js retention.js
-assets/reference/     ORIGINAL art (PNG) — never overwrite; source of truth
-assets/production/    derived, optimized .webp actually loaded by the game
-tools/add-art.py      crop/resize a reference image into a production .webp
-test/                 logic + jsdom UI tests
-```
+## Versioning
+Each PR bumps the version once and everywhere with the same number: every `?v=X.Y.Z` tag (`index.html`,
+`nodspel/index.html`, `nodspel/*.js` imports), `APP_VERSION` in `app.js`, and `package.json`. The guardrails test fails on a mismatch.
+Bump `SAVE_VERSION` only when the save shape changes.
 
-## Adding new artwork (the image pipeline)
-The owner usually generates art in an external image tool (e.g. ChatGPT) and uploads the
-raw PNGs to the repo. Chat attachments can be *seen* but not saved to the repo, so the
-file must land in `assets/reference/` first (on mobile: GitHub → Add file → Upload files;
-on desktop: drop it in the folder). Then:
-
-1. **Derive a production webp** (crop out any baked-in UI; keep a quiet zone for panels):
-   ```
-   python tools/add-art.py assets/reference/<file>.png <out_name> --maxw 1400 --q 80
-   # optional crop in PERCENT (left top right bottom):
-   python tools/add-art.py assets/reference/<file>.png <out_name> --crop 40 8 79 84
-   ```
-2. **Wire it in `data/*.js`** — pick the right hook:
-   - hub background per state → `modules.js` `hubStates[].env`
-   - module before/after → `modules.js` level `artBefore` / `artAfter`
-   - BIT Bay curated style → `modules.js` `styleOptions.bit_bay[].art`
-   - raid zone map → `raid_zones.js` zone `mapArt`
-   - full-screen backgrounds (prep/vendor/stash/end/…) → CSS `#app.s-<screen>` in `index.html`
-3. **Bump the cache-bust tag** in `index.html`.
-4. **Run all three test suites**, then commit + push. Pages redeploys automatically.
-
-Art direction: enclosed Cold-War bunker interior (no windows/exterior in the hub), the
-outside archipelago only appears during raids. Dark teal/navy, cyan UI accents, warm
-orange practical light, BIT = square CRT smiley. No national flags or symbols.
-
-## Core design invariants (don't regress)
-- Meta-game raids are **simulated**; the optional Live Fire test in Raid Prep is an isolated shooter-feel sandbox. It does not change simulated raid outcomes.
-- Player chooses **where/how** to search (zone + route + risk); the game decides **what**
-  drops. Routes bias family weights, never guarantee a specific item.
-- **Staged raids:** deep/risky routes yield 1–3 escalating extract-vs-push checkpoints;
-  short safe routes have none. Never promise a tracked item is deeper — show probability.
-- **Every raid moves at least one progression bar, even on death.** Base progress never regresses.
-- **FTUE is guided; after the first free choice, stop hand-picking upgrades** (show
-  "N upgrades ready" + glow, let the player choose).
-- **Monetization (ads/timers) only in retention `full` mode.** Default `core` mode is clean
-  so playtests measure whether the loop itself is fun.
-- Every economy value stays in `data/`; every player action goes through `act()` so the
-  event log stays complete (that log is how playtests are analysed).
+## Art and assets
+Originals live in `assets/reference/` (never overwrite); `tools/add-art.py` derives the `.webp` the game loads.
+Image pipeline details: `docs/art-pipeline-and-legacy-guide.md`. Art direction: `docs/art-direction.md` (enclosed Cold-War bunker hub, dark teal/navy, cyan UI accents, warm orange light,
+BIT = square CRT smiley, no national flags). Wire new art through `data/*.js` hooks, then bump the version.
