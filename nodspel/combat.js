@@ -1,7 +1,7 @@
-import {RULES,hazardState} from './levels.js?v=1.60.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.60.0';
-import {takeDamage,tickRound} from './round.js?v=1.60.0';
-import {houseWaypoint} from './house.js?v=1.60.0';
+import {RULES,hazardState} from './levels.js?v=1.61.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.61.0';
+import {takeDamage,tickRound} from './round.js?v=1.61.0';
+import {houseWaypoint} from './house.js?v=1.61.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -20,6 +20,15 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
     if(enemy.active===false||now<(enemy.spawnedAt??-Infinity)+rule.graceMs)continue;
+    // EMP: a stunned enemy neither moves nor fires; its wind-up is cancelled.
+    if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;continue;}
+    // Decoy: a lured mover heads for the lure instead of the player and holds fire until it ends.
+    if(enemy.lureTarget&&enemy.speed>0&&now<(enemy.lureUntil??Infinity)){
+      enemy.windupAt=null;
+      const lx=enemy.lureTarget.x-enemy.x,lz=enemy.lureTarget.z-enemy.z,ld=Math.hypot(lx,lz);
+      if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt)stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z},ld,obstacles,player,dt);
+      continue;
+    }
     // Detection: stealth shrinks the range at which an enemy notices you. Once noticed (or shot) it stays aggro.
     const seen=Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
     if(seen||enemy.lastHitAt!=null)enemy.aggro=true;
@@ -30,9 +39,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
       // through the house doorway when the player is on the other side of the shell
       const way=houseWaypoint(round.level.house,enemy,player),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
       if(gd>1e-6&&(way||distance>(enemy.standoff??rule.standoff)) && distance<14){
-        const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-        const next=movePlayer(enemy,{x:(goal.x-enemy.x)/gd*Math.min(gd,enemy.speed*dt),z:(goal.z-enemy.z)/gd*Math.min(gd,enemy.speed*dt)},blockers,round.level.floors,.48);
-        enemy.x=next.x;enemy.z=next.z;
+        stepEnemy(round,enemy,goal,gd,obstacles,player,dt);
       }
     }
     if(enemy.health<=0 || now<combat.nextFire.get(enemy.id))continue;
@@ -56,6 +63,12 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   }
 }
 
+// One movement step towards `goal` (gd = distance), blocked by walls, the player and other enemies.
+function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
+  const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
+  const next=movePlayer(enemy,{x:(goal.x-enemy.x)/gd*Math.min(gd,enemy.speed*dt),z:(goal.z-enemy.z)/gd*Math.min(gd,enemy.speed*dt)},blockers,round.level.floors,.48);
+  enemy.x=next.x;enemy.z=next.z;
+}
 function stepGuard(enemy,combat,player,now,obstacles,target){
   if(enemy.health<=0){enemy.attackPhase=null;enemy.windupAt=null;return;}
   const cfg=RULES.intro;

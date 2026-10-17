@@ -1,6 +1,6 @@
-import {RULES} from './levels.js?v=1.60.0';
-import {traceTargets} from './physics.mjs?v=1.60.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=1.60.0';
+import {RULES} from './levels.js?v=1.61.0';
+import {traceTargets} from './physics.mjs?v=1.61.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=1.61.0';
 
 export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon){
   const length=Math.hypot(direction.x,direction.z);
@@ -30,7 +30,7 @@ function weaponHit(start,end,obstacles,targets,rule=RULES.weapon){
 function applyWeaponHit(weapon,round,hit,now){
   const rule=weaponRule(weapon);
   // Shielded nodes (level 3) absorb shots and must be charged by standing close.
-  if(hit?.kind==='node')return hit.node.shielded?false:activateNode(round,hit.node.id,now);
+  if(hit?.kind==='node')return hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now); // EMP drops the shield for a few seconds
   if(hit?.kind!=='enemy')return false;
   const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage);
   if(round.enemiesDefeated>kills){const refill=Math.min(rule.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===rule.capacity||weapon.reserve===0)weapon.reloadAt=null;}

@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.60.0';
-import {RULES} from './levels.js?v=1.60.0';
-import {bagCap,equippedGear} from './round.js?v=1.60.0';
-import {readGoal} from './progression-goal.js?v=1.60.0';
+import {bagItems} from './raid.js?v=1.61.0';
+import {RULES} from './levels.js?v=1.61.0';
+import {bagCap,equippedGear} from './round.js?v=1.61.0';
+import {readGoal} from './progression-goal.js?v=1.61.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -19,8 +19,11 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null}={}){
     area:round.level?.area??'bunker',outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,killsByType:{...(round.killsByType??{})},nodesLit:round.nodesLit,
     remainingMs:round.remainingMs,extracted:bagItems(round.extracted),lost:bagItems(round.lost),endedAt,
     skills:round.telemetry?{distanceM:Math.round(round.telemetry.distanceM),dashes:round.telemetry.dashes,holdNodes:round.telemetry.holdNodes,damageTaken:Math.round(round.telemetry.damageTaken),searches:round.telemetry.searches||0,healed:Math.round(round.telemetry.healed||0)}:undefined,
-    stats:round.stats,gear:launch?.gear??[],gearOut:equippedGear(round),weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)}};
+    stats:round.stats,gear:launch?.gear??[],gearOut:equippedGear(round),weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
 }
+// The tool slot mirrors kitLeft: what is still unused at the end. Meta returns it on extract and drops it on death.
+// Only present when a tool was brought, so tool-less results keep their v1 shape.
+function toolLeft(round,launch){const id=round.tool?.id??launch?.tool?.id??null;return id?{toolLeft:{id,n:Math.max(0,Math.floor(round.tool?.charges??0))}}:{};}
 export function writeRaidResult(storage,result){
   if(!storage||!result)return false;
   try{storage.setItem(RAID_RESULT_KEY,JSON.stringify(result));return true;}catch{return false;}
@@ -38,7 +41,7 @@ export function readLaunch(search){
   const seed=p.get('seed')||null,rawId=p.get('raidId');
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
-    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1'};
+    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1'};
 }
 // ?w=id:rifle_marksman,dmg:2,mag:4,rld:900,int:450,rng:11,cone:5,ast:8,spr:0 -> clamped weapon stats (missing -> Basic).
 const WEAPON_KEYS={dmg:'damage',mag:'capacity',rld:'reloadMs',int:'shotIntervalMs',rng:'range',cone:'coneHalfAngleDegrees',ast:'assistAngleDegrees',spr:'spreadDegrees'};
@@ -62,6 +65,13 @@ export function readKit(value){
   if(typeof value!=='string'||value.length>60)return out;
   for(const part of value.split(',')){const [k,v]=part.split(':'),n=Math.floor(Number(v));if(k in RULES.kitMax&&Number.isFinite(n))out[k]=Math.min(RULES.kitMax[k],Math.max(0,n));}
   return out;
+}
+// ?tool=tool_grenade:2 -> the one toolkit item brought from base; charges clamped to RULES.tools.defs (unknown id -> null).
+export function readTool(value){
+  if(typeof value!=='string'||value.length>40)return null;
+  const [id,v]=value.split(':'),def=Object.hasOwn(RULES.tools.defs,id)?RULES.tools.defs[id]:null,n=Math.floor(Number(v));
+  if(!def||!Number.isFinite(n)||n<1)return null;
+  return {id,n:Math.min(def.charges,n)};
 }
 // ?stats=spd:3.9,stl:0.12,hp:115,dcd:3700 -> clamped stats; unknown keys and bad numbers fall back to base.
 const STAT_KEYS={spd:'speed',stl:'stealth',hp:'maxHealth',dcd:'dashCooldownMs',srch:'searchMult',shd:'shield'};

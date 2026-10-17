@@ -15,6 +15,13 @@ window.DATA.recipes = [
     inputs:{ scrap_alloy:2, servo:2, hydraulic_component:1 }, scrapCost:60, output:{ itemId:"shotgun_breach", qty:1 } },
   { id:"rifle_build", name:"Marksman Rifle", fabricatorLevel:2, blueprint:true,
     inputs:{ optical_sensor:1, circuit_board:1, encrypted_drive:1, scrap_alloy:2 }, scrapCost:80, output:{ itemId:"rifle_marksman", qty:1 } },
+  // Tools (stash count = charges; output qty = a full load). Level matches items.js tool.unlock.
+  { id:"decoy_build", name:"Decoy", fabricatorLevel:1,
+    inputs:{ cable:1, polymer_plate:1 }, scrapCost:10, output:{ itemId:"tool_decoy", qty:2 } },
+  { id:"grenade_build", name:"Grenade", fabricatorLevel:2,
+    inputs:{ scrap_alloy:1, fuse:1 }, scrapCost:10, output:{ itemId:"tool_grenade", qty:2 } },
+  { id:"emp_build", name:"EMP", fabricatorLevel:2,
+    inputs:{ cable:1, circuit_board:1 }, scrapCost:15, output:{ itemId:"tool_emp", qty:1 } },
   { id:"filter_rig", name:"Purification Filter", fabricatorLevel:2,
     inputs:{ bio_sample:2, polymer_plate:1 }, scrapCost:20, output:{ itemId:"purification_filter", qty:1 } },
   { id:"relay_build", name:"Power Relay", fabricatorLevel:2,

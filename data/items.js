@@ -82,5 +82,16 @@ ITEM_DATA_ROOT.DATA.items = [
   { id:"data_core", icon:"item-datacore", name:"Data Core", family:"electronics", rarity:"rare", sellValue:60, stackSize:10,
     grantsCurrency:{ dataCores:2 }, desc:"Intact storage cell. Becomes Data Cores when you bring it home.", uses:["currency"] },
   { id:"ammo_pack", icon:"item-ammo", name:"Ammo Pack", family:"gear", rarity:"common", sellValue:25, stackSize:5,
-    slot:"consumable", desc:"Standard rounds, pressed in-house.", uses:["loadout"] }
+    slot:"consumable", desc:"Standard rounds, pressed in-house.", uses:["loadout"] },
+  // TOOLS (Raid Prep tool slot, one per raid). Stash count = charges. tool.charges = most you carry in (and bring home);
+  // tool.unlock = Fabricator level that grants the first charge free. Effects/ranges live in nodspel RULES.tools (same ids).
+  { id:"tool_grenade", icon:"tool-grenade", name:"Grenade", family:"gear", rarity:"uncommon", sellValue:40, stackSize:6,
+    slot:"tool", tool:{ charges:2, unlock:{ module:"fabricator", level:2 } },
+    desc:"1 s fuse, 2 m blast, 3 damage. Thrown, does not bounce.", uses:["loadout"] },
+  { id:"tool_emp", icon:"tool-emp", name:"EMP", family:"gear", rarity:"uncommon", sellValue:60, stackSize:3,
+    slot:"tool", tool:{ charges:1, unlock:{ module:"fabricator", level:2 } },
+    desc:"Shuts down sentries and node shields within 3 m for 4 s.", uses:["loadout"] },
+  { id:"tool_decoy", icon:"tool-decoy", name:"Decoy", family:"gear", rarity:"common", sellValue:30, stackSize:6,
+    slot:"tool", tool:{ charges:2, unlock:{ module:"fabricator", level:1 } },
+    desc:"Lures enemies within 6 m for 5 s.", uses:["loadout"] }
 ];
