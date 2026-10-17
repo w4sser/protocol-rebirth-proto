@@ -27,4 +27,4 @@ event('pointerdown',300,200,1);event('pointerdown',500,200,2);event('pointermove
 d.querySelector('.core-spot').dispatchEvent(new b.MouseEvent('click',{bubbles:true,detail:1}));assert(!d.querySelector('#overlay'),'pinch never activates a room');
 view.dispatchEvent(new b.WheelEvent('wheel',{bubbles:true,cancelable:true,deltaY:-100000,clientX:400,clientY:200}));assert.equal(b.T.session().camera.zoom,2.4,'maximum zoom');
 event('pointerdown',400,200);event('pointermove',100000,100000);event('pointerup',100000,100000);const tr=d.querySelector('.baseworld').style.transform.match(/translate\(([-\d.]+)px,([-\d.]+)px\)/);assert(+tr[1]<=0&&+tr[2]<=0,'pan cannot expose empty top/left space');
-b.A.baseOverview();assert.equal(b.T.session().camera.zoom,1);b.close();console.log('BASE CAMERA GESTURES PASSED');}
+assert(!d.querySelector('.overview')&&!b.A.baseOverview,'no Overview button (owner: removed)');b.close();console.log('BASE CAMERA GESTURES PASSED');}

@@ -1,10 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=1.58.0&patch=opening1';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.58.0&patch=opening1';
-import {buildTown} from './town.js?v=1.58.0&patch=opening1';
-import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.58.0&patch=opening1';
-import {buildArchipelago,pineTree} from './archipelago.js?v=1.58.0&patch=opening1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.58.0&patch=opening1';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=1.59.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=1.59.0';
+import {buildTown} from './town.js?v=1.59.0';
+import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.59.0';
+import {buildArchipelago,pineTree} from './archipelago.js?v=1.59.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.59.0';
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -78,7 +78,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     let kitCrates=null;
     if(K){kitCrates={};for(const t of RARITY_ORDER){const k=K['loot_crate_'+t];if(!k)continue;kitCrates[t]=kitGroup(k,{sx:1.15,sy:1.15,sz:1.15});kitCrates[t].visible=t==='common';crate.add(kitCrates[t]);}}
     else{box(0,.32,0,.9,.64,.9,'#3a4247',crate);box(0,.68,0,1,.08,1,'#5d676c',crate);}
-    const band=new THREE.Mesh(cube,glow(color));band.scale.set(K?1.08:.92,.05,K?.8:.92);band.position.y=K?.83:.5;crate.add(band);
+    const band=new THREE.Mesh(cube,glow(color));band.scale.set(K?1.08:.92,.05,K?.8:.92);band.position.y=K?.84:.5;crate.add(band);
     const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
     let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=2;beam.position.y=1;g.add(beam);}
     if(loot.marked){

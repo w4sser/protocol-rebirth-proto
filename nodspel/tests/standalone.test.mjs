@@ -1,3 +1,4 @@
+import {gearSlotOf} from '../round.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,collectLoot,stepNodeInteraction,enterExit,exitIsOpen} from '../round.js';
@@ -13,7 +14,8 @@ test('marked level two crate supplies loot without changing unlimited reserve',(
     const r=createRound(`supplies-${i}`,0);r.level=generateLevel(2,r.seed);
     const box=r.level.lootBoxes.find(b=>b.marked),w=createWeapon(Infinity);
     assert.ok(Object.keys(RULES.loot.weights[1]).includes(box.item));collectLoot(r,box,1,w);
-    assert.equal(w.reserve,Infinity);assert.equal(w.ammo,3);assert.equal(r.bag[box.item],1);
+    assert.equal(w.reserve,Infinity);assert.equal(w.ammo,3);
+    if(gearSlotOf(box.item))assert.equal(r.equip[gearSlotOf(box.item)],box.item,'gear goes to its slot (v1.59)');else assert.equal(r.bag[box.item],1);
   }
 });
 test('aim endpoint stops at the nearest solid and ignores targets',()=>{
