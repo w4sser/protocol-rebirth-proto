@@ -10,7 +10,7 @@ import {RULES} from '../levels.js';
 // searched routes, rather than teleporting the player or lighting every node directly.
 test('a player can shoot every node and walk through all three exits within one round',()=>{
   for(const seed of ['whole-round-a','whole-round-b','whole-round-c']){
-    let clock=0;const round=createRound(seed,clock);
+    let clock=0,expectedKills=0;const round=createRound(seed,clock);
     for(let number=1;number<=3;number++){
       const level=round.level,w=createWeapon();let p={...level.start},crossedPassage=false;
       const solidBoxes=()=>[...level.walls,...level.boxes,...(exitIsOpen(round)?[]:[{x:level.exit.x,z:level.exit.z,w:2,d:.22}])];
@@ -51,7 +51,7 @@ test('a player can shoot every node and walk through all three exits within one 
       for(const enemy of level.enemies){if(enemy.active===false)continue;
         routeTo(p=>Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
         for(let hit=0;hit<(level.number<=2?2:RULES.enemyHealth)/RULES.weapon.damage;hit++)shoot(enemy);
-        assert.equal(enemy.health,0);
+        assert.equal(enemy.health,0);if(enemy.type!=='generator')expectedKills++;// breaking a generator is not a kill
       }
       for(const node of level.nodes){
         routeTo(p=>Math.hypot(p.x-node.x,p.z-node.z)<1.6 && traceTargets(p,node,solidBoxes(),level.nodes)?.node?.id===node.id);
@@ -70,7 +70,7 @@ test('a player can shoot every node and walk through all three exits within one 
       assert.equal(enterExit(round,p,clock),number===3?'complete':'next');
     }
     assert.equal(round.nodesLit,6);assert.equal(round.levelsCleared,3);assert.equal(round.cleared,true);
-    assert.equal(round.enemiesDefeated,9);assert.equal(round.reason,'complete');assert.equal(round.over,true);
+    assert.equal(round.enemiesDefeated,expectedKills);assert.ok(expectedKills>=5,'the active enemies of all three levels were beaten');assert.equal(round.reason,'complete');assert.equal(round.over,true);
     const frozen=round.remainingMs;assert.ok(clock<480000);tickRound(round,480000);assert.equal(round.remainingMs,frozen);
   }
 });

@@ -5,6 +5,7 @@ import {buildTown} from './town.js?v=1.61.0';
 import {buildBunker,kitGroup,planKitProps,LAYER} from './bunker.js?v=1.61.0';
 import {buildArchipelago,pineTree} from './archipelago.js?v=1.61.0';
 import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=1.61.0';
+const KEY_AMBER='#E8A33D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
   visual.holdRing.visible=!visual.node.active&&fill>0;
@@ -73,7 +74,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   const beamGeo=new THREE.CylinderGeometry(.12,.22,1,12,1,true),ringGeo=new THREE.RingGeometry(.62,.78,40);
   function lootVisual(loot){
     const g=new THREE.Group();g.position.set(loot.x,0,loot.z);group.add(g);
-    const tier=rarityOf(loot.item),color=lootColor(loot);
+    const tier=rarityOf(loot.item),color=loot.item==='keycard'?KEY_AMBER:lootColor(loot);
     const crate=new THREE.Group();g.add(crate);
     let kitCrates=null;
     if(K){kitCrates={};for(const t of RARITY_ORDER){const k=K['loot_crate_'+t];if(!k)continue;kitCrates[t]=kitGroup(k,{sx:1.15,sy:1.15,sz:1.15});kitCrates[t].visible=t==='common';crate.add(kitCrates[t]);}}
@@ -90,7 +91,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     return v;
   }
   // Switch an unidentified pickup to its rarity color (+ optional reveal burst).
-  function applyReveal(v,fx=true){const c=RARITY_COLORS[v.tier],hi=RARITY_ORDER.indexOf(v.tier);v.color=c;
+  function applyReveal(v,fx=true){const c=v.loot.item==='keycard'?KEY_AMBER:RARITY_COLORS[v.tier],hi=RARITY_ORDER.indexOf(v.tier);v.color=c;
     v.band.material=glow(c);if(v.kitCrates)for(const t in v.kitCrates)v.kitCrates[t].visible=t===(v.kitCrates[v.tier]?v.tier:'common');v.pulse.material.color.set(c);
     if(v.beam){v.beam.material.color.set(c);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
     if(fx)burst(v.loot.x,v.loot.z,c);}
@@ -103,11 +104,52 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   }
   const enemies=level.enemies.map(enemy=>{
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
+    if(enemy.type==='generator'){
+      // Encounter 6: a cyan (system) generator; a beam to its node shows the shield is still up.
+      box(0,.12,0,1,.24,1,'#243238',g);box(0,.62,0,.7,.8,.7,'#34505a',g);
+      const core=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#3FE0D0',toneMapped:false}));core.scale.set(.32,.5,.32);core.position.y=.66;g.add(core);
+      const node=level.nodes.find(n=>n.id===enemy.node),line=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,.9,0),new THREE.Vector3((node?.x??enemy.x)-enemy.x,1.1,(node?.z??enemy.z)-enemy.z)]);
+      const beam=new THREE.Line(line,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,toneMapped:false}));beam.frustumCulled=false;g.add(beam);
+      return {enemy,group:g,beam};
+    }
     box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
     box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
     const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
-    return {enemy,group:g};
+    const out={enemy,group:g};
+    // Encounter 1: the front shield is a cyan plate that turns with the guard; shots from inside its arc are blocked.
+    if(enemy.frontShield&&!enemy.introGuard){
+      const arc=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,.9,20,1,true,-enemy.frontShield*Math.PI/180,2*enemy.frontShield*Math.PI/180),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+      arc.position.y=.62;g.add(arc);out.shield=arc;
+    }
+    // Encounter 4: the patrol's sight cone lies on the floor (coral = danger); game.mjs scales it to the current range.
+    if(enemy.patrol){
+      const half=RULES.encounters.patrol.coneHalfAngleDeg*Math.PI/180,pts=[0,0];
+      for(let i=0;i<=16;i++){const a=-half+2*half*i/16;pts.push(Math.sin(a),Math.cos(a));}
+      const fill=[],edge=[];for(let i=0;i<16;i++){const a=pts[2+i*2],b=pts[3+i*2],c=pts[4+i*2],d=pts[5+i*2];fill.push(0,0,0,a,0,b,c,0,d);}
+      for(let i=0;i<=16;i++)edge.push(pts[2+i*2],0,pts[3+i*2]);
+      const cone=new THREE.Group(),fillGeo=new THREE.BufferGeometry();fillGeo.setAttribute('position',new THREE.Float32BufferAttribute(fill,3));
+      const fm=new THREE.Mesh(fillGeo,new THREE.MeshBasicMaterial({color:'#E4705F',transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));fm.renderOrder=2;cone.add(fm);
+      const eg=new THREE.BufferGeometry();eg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,...edge,0,0,0],3));
+      const em=new THREE.Line(eg,new THREE.LineBasicMaterial({color:'#E4705F',transparent:true,opacity:.85,toneMapped:false}));em.renderOrder=3;cone.add(em);
+      cone.position.y=.045;cone.scale.set(RULES.encounters.patrol.coneRange,1,RULES.encounters.patrol.coneRange);g.add(cone);out.cone=cone;out.coneFill=fm;
+    }
+    return out;
+  });
+  // Encounter 3: locked doors are dark panels with a coral light; once opened only a cyan floor strip stays.
+  const doors=(level.doors??[]).map(door=>{
+    const g=new THREE.Group();g.position.set(door.x,0,door.z);group.add(g);
+    const panel=box(0,door.h/2,0,door.w,door.h,door.d,'#2b3339',g);
+    const strip=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));strip.scale.set(door.w>door.d?door.w:.1,.05,door.w>door.d?.1:door.d);strip.position.y=door.h+.03;g.add(strip);
+    const mark=new THREE.Mesh(new THREE.PlaneGeometry(door.w>door.d?door.w:.5,door.w>door.d?.5:door.d),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.0,depthWrite:false,toneMapped:false}));mark.rotation.x=-Math.PI/2;mark.position.y=.03;g.add(mark);
+    return {door,group:g,panel,strip,mark};
+  });
+  // Encounter 5: a spawn point is a coral ring on the floor (pulses faster once armed -> warning); gone after the burst.
+  const spawners=(level.spawners??[]).map(sp=>{
+    const g=new THREE.Group();g.position.set(sp.x,0,sp.z);group.add(g);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(RULES.encounters.swarm.ring+.25,RULES.encounters.swarm.ring+.4,40),new THREE.MeshBasicMaterial({color:'#E4705F',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;g.add(ring);
+    const pad=new THREE.Mesh(new THREE.CircleGeometry(RULES.encounters.swarm.ring+.2,32),new THREE.MeshBasicMaterial({color:'#3a1416',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));pad.rotation.x=-Math.PI/2;pad.position.y=.03;g.add(pad);
+    return {sp,group:g,ring,pad};
   });
   const exitMaterial=new THREE.MeshStandardMaterial({color:'#4d6a58',emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
   const exitRings=[0,1].map(i=>{const m=new THREE.Mesh(new THREE.RingGeometry(1.25,1.42,48),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(exit.x,.035,exit.z);group.add(m);return m;});
@@ -134,6 +176,9 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
       exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
     for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);if(b.t>.5){group.remove(b.m);b.m.material.dispose();bursts.splice(i,1);}}
+for(const d of doors){const open=!d.door.locked;d.panel.visible=!open;d.strip.visible=!open;d.mark.material.opacity=open?.35+Math.sin(time*3)*.08:0;}
+    for(const s of spawners){const st=s.sp.state;s.group.visible=st!=='spawned';
+      s.ring.material.opacity=st==='warning'?.55+.45*Math.sin(time*18):.28+.12*Math.sin(time*2.4);s.ring.scale.setScalar(st==='warning'?1+.08*Math.sin(time*18):1);}
 for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
   function dispose(){
     const geometries=new Set(),mats=new Set();
@@ -163,5 +208,5 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;});
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,enemies,doors,spawners,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

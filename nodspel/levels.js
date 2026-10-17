@@ -23,7 +23,7 @@ export const RULES=Object.freeze({
     // Patrol: a fixed back-and-forth loop with a visible sight cone. Seen = a 1 s "!" before it reacts.
     patrol:{health:2,length:5,walkSpeed:1,turnRadPerSec:3,pauseMs:700,coneRange:5.2,coneHalfAngleDeg:35,bumpRadius:.9,alertMs:1000,windupMs:1000,damagePct:.14},
     // Swarm: rushers burst out of a spawn point when the player gets close (telegraph, then a short emergence pause).
-    swarm:{count:[4,5],health:1,speed:3,triggerRadius:6.5,warnMs:1000,emergeMs:1500,ring:1.1,fromEntry:2.5,damagePct:.06,cooldownMs:1400,windupMs:500},
+    swarm:{count:[4,5],health:1,speed:3,triggerRadius:6.5,warnMs:1000,emergeMs:1500,ring:1.1,minEntry:6,damagePct:.06,cooldownMs:1400,windupMs:500},
     // Shielded node: a generator close to the node keeps the shield up until shot (or EMP'd for a few seconds).
     shield:{health:2,distance:2.5},
     // Locked door in a corridor + a keycard in a crate; the longer side passage is always open.
@@ -116,7 +116,7 @@ export const AREAS=['bunker','archipelago','town'];
 export const AREA_RULES={
   bunker:{hpMul:1,dmgMul:1,extraEnemies:[0,0,0],scout:{level:3,item:'archipelago_chart'}},
   archipelago:{hpMul:1.25,dmgMul:1.15,extraEnemies:[0,0,0],sizeMul:1.25,lootNext:true,
-    mix:[{grunt:.7,rusher:.3},{grunt:.4,rusher:.35,sentry:.25},{grunt:.3,rusher:.4,sentry:.3}],scout:{level:3,item:'town_survey'}},
+    mix:[{grunt:.7,rusher:.3},{rusher:.5,sentry:.5},{grunt:.3,rusher:.4,sentry:.3}],scout:{level:3,item:'town_survey'}},
   town:{hpMul:1.4,dmgMul:1.25,extraEnemies:[0,0,0]}};
 export function setArea(a){AREA=AREAS.includes(a)?a:'bunker';return AREA;}
 export function generateLevel(number,roundSeed,area=AREA){

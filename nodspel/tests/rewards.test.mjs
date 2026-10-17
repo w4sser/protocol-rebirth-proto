@@ -14,11 +14,19 @@ test('a kill immediately restores one shot and 12 health, once and capped',()=>{
 test('level two has two active enemies in room two and two node-triggered reserves',()=>{
   const r=createRound('reserves',0);r.level=generateLevel(2,r.seed);
   assert.ok(r.level.enemies.every(e=>e.health===2));
-  assert.equal(r.level.enemies.filter(e=>e.active!==false).length,2);
-  const room=r.level.rooms[1];assert.ok(r.level.enemies.every(e=>Math.abs(e.x-room.x)<room.w/2&&Math.abs(e.z-room.z)<room.d/2));
+  // PR C: enemy counts no longer ramp. Room two holds one active enemy and one node-triggered reserve; the level's
+  // problem (turret / patrol) is a separate encounter enemy placed in the start room.
+  const regular=r.level.enemies.filter(e=>!e.encounter);
+  assert.equal(regular.filter(e=>e.active!==false).length,1);
+  const room=r.level.rooms[1];assert.ok(regular.every(e=>Math.abs(e.x-room.x)<room.w/2&&Math.abs(e.z-room.z)<room.d/2));
   activateNode(r,r.level.nodes[0].id,2000);
-  assert.equal(r.level.enemies.filter(e=>e.active!==false).length,4);
+  assert.equal(regular.filter(e=>e.active!==false).length,2);
   const c=createCombat(r.level,0);stepCombat(r,c,{x:room.x,z:room.z+2},2100,.1,[]);assert.equal(c.projectiles.length,0);
+});
+test('swarm rushers wait for their spawn point: lighting a node never wakes them',()=>{
+  const r=createRound('swarm-wait',0);r.level=generateLevel(3,r.seed);
+  const swarm=r.level.enemies.filter(e=>e.swarm);assert.ok(swarm.length>=4&&swarm.every(e=>e.active===false));
+  activateNode(r,r.level.nodes[0].id,2000);assert.ok(swarm.every(e=>e.active===false));
 });
 test('a newly entered room grants three seconds without enemy fire',()=>{
   const r=createRound('entry',0);r.level=generateLevel(2,r.seed);

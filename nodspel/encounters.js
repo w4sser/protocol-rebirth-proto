@@ -11,6 +11,7 @@
 //   swarm   fall back into a corridor so they queue      | Grenade on the spawn cluster
 //   shield  shoot the generator                          | EMP drops the node shield
 import {RULES} from './levels.js?v=1.61.0';
+import {traceTargets} from './physics.mjs?v=1.61.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door'];
@@ -50,7 +51,17 @@ export function deathTip(round){
 const solidsOf=level=>[...level.walls,...level.boxes,...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
 const nearRect=(o,p,m)=>Math.abs(p.x-o.x)<o.w/2+m&&Math.abs(p.z-o.z)<o.d/2+m;
 const onFloor=(level,p,m=.3)=>level.floors.some(f=>Math.abs(p.x-f.x)<=f.w/2-m&&Math.abs(p.z-f.z)<=f.d/2-m);
-const spotFree=(level,p,clear,solids=solidsOf(level))=>onFloor(level,p)&&!solids.some(o=>nearRect(o,p,clear));
+// The town's enterable house is cut into a room's back (north / west) wall later; keep that band free of encounter
+// objects so a house always finds its doorway lane (town-layout.placeHouse).
+let townBand=false,bandWidth=2.7;
+const inBand=(level,p)=>townBand&&level.rooms.some(r=>Math.abs(p.x-r.x)<=r.w/2&&Math.abs(p.z-r.z)<=r.d/2&&(p.z<r.z-r.d/2+bandWidth||p.x<r.x-r.w/2+bandWidth));
+const spotFree=(level,p,clear,solids=solidsOf(level))=>onFloor(level,p)&&!inBand(level,p)&&!solids.some(o=>nearRect(o,p,clear));
+// A 1.1 m cover must not pinch a gap the player (0.72 m wide) cannot pass: every neighbour edge is >= 1.05 m away.
+function coverFits(level,p,solids,gap=1.05){
+  if(!onFloor(level,p,.8)||inBand(level,p))return false;
+  return solids.every(o=>{const gx=Math.abs(p.x-o.x)-(1.1+o.w)/2,gz=Math.abs(p.z-o.z)-(1.1+o.d)/2;
+    if(gx<0&&gz<0)return false;return (gx>0&&gz>0?Math.hypot(gx,gz):Math.max(gx,gz))>=gap;});
+}
 const keepList=level=>[level.start,level.exit,...level.nodes,...level.lootBoxes,...level.enemies,...(level.hazards??[])];
 const roomIndexOf=(level,p)=>level.rooms.findIndex(r=>Math.abs(p.x-r.x)<=r.w/2&&Math.abs(p.z-r.z)<=r.d/2);
 const round2=v=>Math.round(v*100)/100;
@@ -69,7 +80,7 @@ function note(level,entry){level.encounters.push(entry);return entry;}
 
 export function applyEncounters(level,area,rng){
   const plan=RULES.encounters.plan[area]?.[level.number-1]??[];
-  level.encounters=[];
+  level.encounters=[];townBand=area==='town';bandWidth=2.7;
   for(const type of plan)PLACERS[type]?.(level,rng);
   return level.encounters;
 }
@@ -91,23 +102,31 @@ function placeGuard(level,rng){
 function placeTurret(level,rng){
   const C=RULES.encounters.turret,room=level.rooms[0],S=level.start,solids=solidsOf(level),keep=keepList(level);
   const mouths=room.doors.map(d=>({x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2}));
-  for(let attempt=0;attempt<400;attempt++){
-    const T={x:round2(room.x+(rng()-.5)*(room.w-3.6)),z:round2(room.z+(rng()-.5)*(room.d-3.6))};
-    const d=dist(T,S);if(d<C.lane+.8||d>C.lane+3.2)continue;
-    if(!spotFree(level,T,1.4,solids)||keep.some(o=>dist(T,o)<2.4)||mouths.some(m=>dist(T,m)<3))continue;
-    const covers=[];let ok=true;
-    for(const f of [.4,.72]){
-      let placed=null;
-      for(const lat of [0,.9,-.9]){const q={x:S.x+(T.x-S.x)*f,z:S.z+(T.z-S.z)*f};const nx=-(T.z-S.z)/d,nz=(T.x-S.x)/d;const p={x:round2(q.x+nx*lat),z:round2(q.z+nz*lat)};
-        const box={x:p.x,z:p.z,w:1.1,d:1.1,h:1.1,encounterCover:true};
-        if(spotFree(level,p,.9,[...solids,...covers])&&!keep.some(o=>dist(p,o)<1.6)){placed=box;break;}}
-      if(!placed){ok=false;break;}covers.push(placed);
+  // scan the room on a grid (seeded order); tier 0 is the comfortable layout, tier 1 accepts a shorter lane and tighter margins
+  const grid=[];for(let x=room.x-room.w/2+1.5;x<=room.x+room.w/2-1.5;x+=.5)for(let z=room.z-room.d/2+1.5;z<=room.z+room.d/2-1.5;z+=.5)grid.push({x:round2(x),z:round2(z)});
+  const order=shuffled(grid,rng);
+  // The turret must see the start (a partition wall may split the room) and the lane needs 1-2 crates of cover.
+  // Tier 0: two covers, comfortable gaps; tier 1: tighter gaps and a shorter lane; tier 2: one cover, thinner house band.
+  for(const tier of [0,1,2,3]){
+    bandWidth=tier>=2?1.5:2.7;const gap=tier===0?1.05:tier===3?.8:.9,fractions=tier>=2?[.5]:[.4,.72];
+    for(const T of order){
+      const d=dist(T,S);if(d<C.lane-(tier===0?0:tier===3?1.6:.8)||d>C.lane+3.6)continue;
+      // loot crates may sit near the turret (risk / reward); start, exit, nodes and enemies may not
+      if(!spotFree(level,T,1.1,solids)||keep.some(o=>dist(T,o)<(o.item?1.2:2)-tier*.4)||mouths.some(m=>dist(T,m)<2.4-tier*.9))continue;
+      if(traceTargets(T,S,solids,[])?.kind==='wall')continue;
+      const covers=[];let ok=true;
+      for(const f of fractions){
+        let placed=null;
+        for(const lat of [0,.9,-.9]){const q={x:S.x+(T.x-S.x)*f,z:S.z+(T.z-S.z)*f};const nx=-(T.z-S.z)/d,nz=(T.x-S.x)/d;const p={x:round2(q.x+nx*lat),z:round2(q.z+nz*lat)};
+          if(coverFits(level,p,[...solids,...covers],gap)&&!keep.some(o=>dist(p,o)<1.6-tier*.2)){placed={x:p.x,z:p.z,w:1.1,d:1.1,h:1.1,encounterCover:true};break;}}
+        if(!placed){ok=false;break;}covers.push(placed);
+      }
+      if(!ok)continue;
+      level.boxes.push(...covers);
+      const e=makeEnemy(level,'sentry',{x:T.x,z:T.z,health:C.health,encounter:'turret',facing:angleTo(T,S),active:true});
+      note(level,{type:'turret',enemyId:e.id,x:T.x,z:T.z,covers:covers.map(b=>({x:b.x,z:b.z})),from:{x:S.x,z:S.z}});
+      return;
     }
-    if(!ok)continue;
-    level.boxes.push(...covers);
-    const e=makeEnemy(level,'sentry',{x:T.x,z:T.z,health:C.health,encounter:'turret',facing:angleTo(T,S),active:true});
-    note(level,{type:'turret',enemyId:e.id,x:T.x,z:T.z,covers:covers.map(b=>({x:b.x,z:b.z})),from:{x:S.x,z:S.z}});
-    return;
   }
 }
 
@@ -117,13 +136,13 @@ function placePatrol(level,rng){
   const room=L1?level.rooms[0]:level.rooms.at(-1),focus=L1?level.nodes[0]:(room.partition??level.nodes.at(-1));
   const solids=solidsOf(level),dirs=L1?[[1,0],[0,1],[.7071,.7071],[.7071,-.7071]]:[[1,0],[0,1]];
   const tries=[];
-  for(const len of [P.length,3.6])for(const off of [2.6,3.2,2.2,3.8])for(const [ux,uz] of dirs)for(const sg of [1,-1])tries.push({len,off,ux,uz,sg});
+  for(const len of [P.length,3.6])for(const off of [2.6,3.2,2.2,3.8])for(const [ux,uz] of dirs)for(const sg of [1,-1])for(const along of [0,-1.2,1.2,-2.4,2.4,-3.6,3.6])tries.push({len,off,ux,uz,sg,along});
   for(const t of shuffled(tries,rng).sort((a,b)=>b.len-a.len)){
-    const nx=-t.uz*t.sg,nz=t.ux*t.sg,c={x:focus.x+nx*t.off,z:focus.z+nz*t.off};
+    const nx=-t.uz*t.sg,nz=t.ux*t.sg,c={x:focus.x+nx*t.off+t.ux*t.along,z:focus.z+nz*t.off+t.uz*t.along};
     const a={x:round2(c.x-t.ux*t.len/2),z:round2(c.z-t.uz*t.len/2)},b={x:round2(c.x+t.ux*t.len/2),z:round2(c.z+t.uz*t.len/2)};
     if(roomIndexOf(level,a)!==roomIndexOf(level,room)||roomIndexOf(level,b)!==roomIndexOf(level,room))continue;
     if(!segmentFree(level,a,b,1,solids))continue;
-    if([a,b,c].some(p=>dist(p,level.start)<3.4||dist(p,level.exit)<2.4||level.nodes.some(n=>dist(p,n)<1.8)))continue;
+    if([a,b,c].some(p=>dist(p,level.start)<3.4||dist(p,level.exit)<1.5||level.nodes.some(n=>dist(p,n)<1.8)))continue;
     const enemy=L1?level.enemies[0]:makeEnemy(level,'grunt',{});
     const base=RULES.levels[level.number-1];
     Object.assign(enemy,{x:a.x,z:a.z,health:P.health,speed:base.enemySpeed??1,encounter:'patrol',patrol:{points:[a,b],i:1,speed:P.walkSpeed,turn:P.turnRadPerSec},
@@ -139,11 +158,15 @@ function placeSwarm(level,rng){
   const entry=room.incoming?{x:room.x+room.incoming.x*room.w/2,z:room.z+room.incoming.z*room.d/2}:level.start;
   const exits=room.doors.filter(d=>!room.incoming||d.x!==room.incoming.x||d.z!==room.incoming.z).map(d=>({x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2}));
   const need=S.ring+.9;
-  for(let attempt=0;attempt<600;attempt++){
-    const P={x:round2(room.x+(rng()-.5)*(room.w-2*need-1)),z:round2(room.z+(rng()-.5)*(room.d-2*need-1))};
-    if(dist(P,entry)<S.triggerRadius+S.fromEntry||exits.some(e=>dist(P,e)<3.2))continue;
-    if(!spotFree(level,P,need,solids)||keep.some(o=>dist(P,o)<need+1))continue;
-    const count=S.count[0]+Math.floor(rng()*(S.count[1]-S.count[0]+1)),a0=rng()*2*PI,id=`swarm-${level.number}`,ids=[];
+  // drawn up front so the swarm size does not depend on how many placement attempts the room needed
+  const count=S.count[0]+Math.floor(rng()*(S.count[1]-S.count[0]+1)),a0=rng()*2*PI;
+  // grid scan in seeded order; tier 1 (small rooms) accepts a spawn point closer to the entry and the exit door
+  const grid=[];for(let x=room.x-room.w/2+need;x<=room.x+room.w/2-need;x+=.5)for(let z=room.z-room.d/2+need;z<=room.z+room.d/2-need;z+=.5)grid.push({x:round2(x),z:round2(z)});
+  const order=shuffled(grid,rng);
+  for(const tier of [0,1,2])for(const P of order){
+    if(dist(P,entry)<S.minEntry-tier*1.5||exits.some(e=>dist(P,e)<3.2-tier*1.2))continue;
+    if(!spotFree(level,P,need,solids)||keep.some(o=>dist(P,o)<(o.r?need:need+.4)-tier*.4))continue;
+    const id=`swarm-${level.number}`,ids=[];
     for(let k=0;k<count;k++){const a=a0+k/count*2*PI;
       const e=makeEnemy(level,'rusher',{x:round2(P.x+Math.sin(a)*S.ring),z:round2(P.z+Math.cos(a)*S.ring),health:S.health,speed:S.speed,encounter:'swarm',swarm:id,active:false,
         graceMs:S.emergeMs,windupMs:S.windupMs,cooldownMs:S.cooldownMs,cooldownMul:1});
@@ -159,10 +182,14 @@ function placeShield(level,rng){
   const G=RULES.encounters.shield;let node=level.nodes.find(n=>n.shielded);
   if(!node){node=level.nodes.at(-1);node.shielded=true;}
   const solids=solidsOf(level),room=level.rooms[Math.max(0,roomIndexOf(level,node))],cands=[];
-  for(let k=0;k<16;k++){const a=k/16*2*PI,p={x:round2(node.x+Math.sin(a)*G.distance),z:round2(node.z+Math.cos(a)*G.distance)};
-    if(!spotFree(level,p,1,solids)||roomIndexOf(level,p)!==roomIndexOf(level,node))continue;
-    if([level.start,level.exit].some(o=>dist(p,o)<2.2)||level.lootBoxes.some(o=>dist(p,o)<1.4)||level.enemies.some(o=>dist(p,o)<1.6))continue;
-    cands.push({p,score:dist(p,room)});}
+  // 2.5 m from the node by default; up to 2.8 m still lets one EMP (3 m) cover generator and node together
+  for(const r of [G.distance,G.distance-.3,G.distance+.3]){
+    for(let k=0;k<16;k++){
+      const a=k/16*2*PI,p={x:round2(node.x+Math.sin(a)*r),z:round2(node.z+Math.cos(a)*r)};
+      if(!spotFree(level,p,.9,solids)||roomIndexOf(level,p)!==roomIndexOf(level,node))continue;
+      if([level.start,level.exit].some(o=>dist(p,o)<2)||level.lootBoxes.some(o=>dist(p,o)<1.2)||level.enemies.some(o=>dist(p,o)<1.4))continue;
+      cands.push({p,score:dist(p,room)});}
+    if(cands.length)break;}
   if(!cands.length)return;
   const {p}=shuffled(cands,rng).sort((a,b)=>a.score-b.score).slice(0,3)[0];
   const e=makeEnemy(level,'grunt',{x:p.x,z:p.z,health:G.health,speed:0,type:'generator',encounter:'shield',node:node.id,rangeMul:0,cooldownMul:1,standoff:0,active:true});
