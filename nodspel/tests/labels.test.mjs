@@ -46,3 +46,20 @@ test('de-overlap: stacked enemies shift up, shock-pad icon never moves',()=>{
   assert.equal(s.get('pad'),0);assert(s.get('a')>0&&s.get('b')>0&&s.get('a')!==s.get('b'));
   const far=deoverlap([{id:'x',x:0,y:100,w:60,h:14},{id:'y',x:300,y:100,w:60,h:14}]);assert.equal(far.get('x'),0);assert.equal(far.get('y'),0);
 });
+
+import {resolveLabels,labelPriority} from '../labels.js';
+test('resolveLabels never shifts: the lower-priority overlapping label hides, and stays hidden for the hold',()=>{
+  const state=new Map(),node={id:'n',x:100,y:100,w:100,h:20,priority:labelPriority({kind:'node'})},loot={id:'l',x:110,y:104,w:80,h:20,priority:labelPriority({kind:'loot',needed:true})};
+  let out=resolveLabels([node,loot],{now:0,state});assert.equal(out.get('n'),true);assert.equal(out.get('l'),false);
+  out=resolveLabels([node,{...loot,x:400}],{now:100,state});assert.equal(out.get('l'),false,'hold keeps it hidden right after');
+  out=resolveLabels([node,{...loot,x:400}],{now:1000,state});assert.equal(out.get('l'),true,'back after the hold');
+});
+test('resolveLabels: a shown label keeps its spot against a slightly higher newcomer (no ping-pong)',()=>{
+  const state=new Map(),a={id:'a',x:100,y:100,w:80,h:20,priority:50},b={id:'b',x:300,y:100,w:80,h:20,priority:53};
+  resolveLabels([a,b],{now:0,state});
+  const out=resolveLabels([a,{...b,x:110}],{now:50,state});assert.equal(out.get('a'),true);assert.equal(out.get('b'),false);
+});
+test('labelPriority: objective > needed loot > attacking enemy > enemy > loot',()=>{
+  const p=k=>labelPriority(k);
+  assert(p({kind:'node'})>p({kind:'loot',needed:true})&&p({kind:'loot',needed:true})>p({kind:'enemy',attacking:true})&&p({kind:'enemy',attacking:true})>p({kind:'enemy'})&&p({kind:'enemy'})>p({kind:'loot'}));
+});
