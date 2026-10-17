@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.65.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.66.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -162,9 +162,10 @@ function progressionGoal(){
   const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
   return {module:id,level:next.level,name:m.name,benefit:next.benefitText,parts,ready:canAfford(next.cost),following:following?following.label:null};
 }
-function progressionGoalHtml(){
+function progressionGoalHtml(compact){
   const g=progressionGoal();if(!g)return "";
   const missing=g.parts.filter(p=>p.secured<p.need);
+  if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="Next upgrade: '+esc(g.name)+' L'+g.level+'"><b>GOAL · '+esc(g.name).toUpperCase()+' L'+g.level+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
   return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b><span>'+esc(g.benefit)+'</span><div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+(g.ready?'ACTIVATE':'VIEW UPGRADE')+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
@@ -874,6 +875,17 @@ function bootSequence(next, done){
   return o;
 }
 
+// v1.66 reward screen: one shared popup for every room/upgrade completion. Tiles come from DATA.upgradeRewardTiles
+// (data/modules.js), i.e. from what the level really grants. The BIT-offline line sits outside the card.
+function upgradeRewardHtml(modId, level, bitJustOnline){
+  const m = MODS[modId], def = m.levels.find(l => l.level === level), first = level === m.levels[0].level;
+  const list = D.upgradeRewardTiles(modId, level), tiles = list.map(t => '<div class="rtile ' + t.kind + '" data-source="' + esc(t.source) + '">' + IC(t.icon) + '<b>' + esc(t.value) + '</b><small>' + esc(t.label) + '</small></div>').join('');
+  const bitOff = !bitJustOnline && !bitOnline();
+  return '<div class="bpop reward-card"><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
+    '<p class="reward-sub">' + esc(def.unlockText || def.benefitText || "") + '</p><div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
+    '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
+    (bitOff ? '<p class="reward-bit">' + IC("bit-face") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
+}
 function fakeAd(label, onDone){
   let sec = 3;
   const o = overlay('<h1>ADVERTISEMENT</h1><p class="sub">' + esc(label) + '</p><div style="font-size:44px;margin:26px 0" id="adcount">3</div><p class="small">(fake ad — prototype)</p>', null, null, { noClose:true });
@@ -1598,17 +1610,22 @@ SCREENS.prep = function(){
   html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
   $app().innerHTML = html;
 };
-const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
+const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Heal",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
 function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
-function slotTileHtml(def, locked){
+// Quantity carried on a tile: medkits across both item slots (capped by stock) / tool charges.
+function slotQty(key){ return key === "c1" ? nodeRaidKit().medkit : key === "tool" ? (nodeRaidTool() || { n:0 }).n : 0; }
+function slotTileHtml(def, locked, mini){
   const [key, slot, label, icon] = def, p = session.prep;
   if(locked && ownedForSlot(slot) > 0) locked = false; // never lock the player out of gear they own
-  const id = p.loadout[key], it = id && ITEMS[id];
-  const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot && !ITEMS[x].free).length + (slot === "weapon" ? 1 : 0);
-  return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
+  const id = p.loadout[key], it = id && ITEMS[id], qty = mini ? 0 : slotQty(key);
+  const risk = it && !it.free; // everything equipped except the free Basic weapon is lost on death
+  const empty = ownedForSlot(slot) ? 'Empty' : 'None owned';
+  return '<button type="button" class="lslot' + (mini ? ' mini' : '') + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
     (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
-    '<i aria-hidden="true">' + (it ? itemIcon(id) : icon) + '</i><small>' + label + '</small><b>' + (it ? esc(it.name) : (options ? 'Empty' : 'None owned')) + '</b>' +
-    (!locked && options ? '<span class="badge need">' + options + '</span>' : '') + '</button>';
+    (risk ? '<span class="rdot" aria-hidden="true"></span>' : '') +
+    '<i aria-hidden="true">' + (it ? itemIcon(id) : (mini ? IC("plus") : icon)) + '</i>' +
+    (mini ? '' : '<b>' + (it ? esc(it.name) : (!locked && ownedForSlot(slot) ? empty : (slot === "tool" ? 'Add tool' : empty))) + '</b><small>' + label + '</small>') +
+    (qty > 0 ? '<span class="qty">x' + qty + '</span>' : '') + '</button>';
 }
 // Brawl-Stars-style lobby: operator centre stage, loadout tiles either side, compact PLAY bottom-right.
 // v1.44 world map: areas, unlocks and zones all come from DATA.worldMap (data/progression.js).
@@ -1804,16 +1821,16 @@ function wmFogSvg(){
     (hq ? '<rect class="fog-noise" x="-60" y="-60" width="220" height="' + (H + 120) + '" filter="url(#wmNoise)" opacity=".22"/>' : '') + '</g></svg>';
 }
 function lobbyHtml(gear, miss, locked){
-  const p = session.prep, w = p.loadout.weapon && ITEMS[p.loadout.weapon];
+  const medSlot = slotTileHtml(SLOT_DEFS[2], locked), toolOk = !(locked && !ownedForSlot("tool"));
   return '<div class="lobby">' +
-    '<div class="lobby-top"><h1>Raid Prep</h1>' + progressionGoalHtml() +
+    '<div class="lobby-top"><h1>Raid Prep</h1>' + gearRiskHtml(gear) +
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
-    '<div class="lobby-side left">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) + '</div>' +
+    '<div class="lobby-side left"><div class="slotgrid">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
+      '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' + (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '') + '</div></div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
-    '<div class="lobby-side right">' + slotTileHtml(SLOT_DEFS[2], locked) + (locked && !ownedForSlot("tool") ? slotTileHtml(SLOT_DEFS[3], locked) : '<div class="lslot-row">' + slotTileHtml(SLOT_DEFS[3], locked) + slotTileHtml(SLOT_DEFS[4], locked) + '</div>') + '</div>' +
-    '<div class="lobby-bottom">' + gearRiskHtml(gear) + areaPickerHtml() +
-      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div>' +
+    '<div class="lobby-side right"><div class="lobby-bottom">' + areaPickerHtml() + progressionGoalHtml(true) +
+      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div></div>' +
     '</div>';
 }
 function loadoutSlotsHtml(locked){
@@ -1830,7 +1847,7 @@ function loadoutSlotsHtml(locked){
 }
 function operatorRowHtml(gear){
   const st = playerStats(gear), P = PROG.playerStats;
-  const chip = (icon, label, val) => '<span class="ostat" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
+  const chip = (icon, label, val) => '<span class="ostat" data-stat="' + label.split(" ")[0].toLowerCase() + '" title="' + label + '"><i aria-hidden="true">' + icon + '</i><b>' + val + '</b><small>' + label + '</small></span>';
   return '<div class="card operator-stats compact tap" onclick="A.go(\'operator\')" role="button" aria-label="Open operator panel"><div class="ostats">' +
     chip(IC("stat-speed"), "Speed", st.speed.toFixed(1)) + chip(IC("stat-stealth"), "Stealth", Math.round(st.stealth*100) + "%") +
     chip(IC("stat-health"), "Health", Math.round(st.maxHealth)) + (st.shield ? chip(IC("stat-shield"), "Shield", Math.round(st.shield)) : "") + chip(IC("stat-dash"), "Dash", (st.dashCooldownMs/1000).toFixed(1) + "s") +
@@ -1843,9 +1860,10 @@ function gearRiskHtml(gear){
   if(kit.medkit) gear = (gear || []).concat(Array(kit.medkit).fill(PROG.kitItem));
   const tool = nodeRaidTool();
   if(tool) gear = (gear || []).concat([tool.id]);
+  // Tiles carry the amber dot; this line is the legend (full list stays available to screen readers).
   return gear && gear.length
-    ? '<div class="riskbar" role="status">' + IC("warning") + ' <b>At risk:</b> ' + gear.map(g => itemIcon(g) + ' ' + esc(ITEMS[g].name)).join(", ") + '<small> · lost on death, timeout or abandon</small></div>'
-    : '<div class="riskbar safe" role="status">' + IC("check") + ' No gear at risk<small> · raid loot is at risk until you extract</small></div>';
+    ? '<div class="riskbar" role="status"><span class="rdot" aria-hidden="true"></span> lost if you die<span class="sr-only"> · At risk: ' + gear.map(g => esc(ITEMS[g].name)).join(", ") + '</span></div>'
+    : '<div class="riskbar safe" role="status">' + IC("check") + ' No gear at risk</div>';
 }
 function prepTargetHtml(miss){
   if(!miss) return '';
@@ -2575,17 +2593,7 @@ window.A = {
       save();
       bootSequence(next, finish);
     } else {
-      let bdust = '<div class="dustwrap">';
-      for(let i=0;i<8;i++) bdust += '<i style="left:' + (5+Math.random()*90) + '%;animation-delay:' + (Math.random()*0.7) + 's"></i>';
-      bdust += '</div>';
-      const artAfter = next.artAfter ? '<div class="modart tall" style="background-image:url(\'' + next.artAfter + '\')"></div>' : '';
-      const ovEl = overlay('<h1 class="ok">' + esc(MODS[modId].name).toUpperCase() + ' L' + next.level + '</h1>' + bdust + artAfter +
-        '<p style="margin:14px 0;font-size:13px">' + esc(next.unlockText) + '</p>' +
-        '<p class="small" style="margin-bottom:10px">BIT: ' + esc(bitLine(isBitOnline ? "bond_up" : "module_built")) + '</p>' +
-        '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
-        '<div class="card" style="text-align:left"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal) + '</div>' +
-        '<button class="primary" data-close>CONTINUE</button>', finish);
-      ovEl.querySelector(".inner").classList.add("shake");
+      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
   },
   sell(id){

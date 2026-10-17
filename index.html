@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.65.1" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.65.1">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.66.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.66.0">
 <link rel="preload" as="image" href="assets/production/splash.webp">
 <title>Protocol Rebirth</title>
 <style>
@@ -699,8 +699,8 @@
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.65.1">
-<link rel="stylesheet" href="ui/popup.css?v=1.65.1">
+<link rel="stylesheet" href="ui/tokens.css?v=1.66.0">
+<link rel="stylesheet" href="ui/popup.css?v=1.66.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -809,6 +809,60 @@
   /* v1.64 item info: Used for + first-find card (shared popup) */
   .usedfor b{color:var(--ad-loot)} .infocard{text-align:left;margin:6px 0} .infocard .ic-head{display:flex;align-items:center;gap:6px;margin-bottom:4px} .infocard .ic-head .sicon{width:22px;height:22px}
 </style>
+<style id="lobby3">/* v1.66 Raid Prep: 2x2 big slots | operator + stat strip | area + goal + DEPLOY. Amber dot = lost if you die. */
+#app.s-prep .lobby{display:grid;gap:8px;height:100%;min-height:0;box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px);
+  grid-template-columns:minmax(150px,35%) minmax(0,1fr) minmax(150px,27%);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"top top top" "left hero right"}
+#app.s-prep .lobby-top{grid-area:top;display:flex;align-items:center;gap:8px;min-height:0;min-width:0}
+#app.s-prep .lobby-top .riskbar{flex:1;margin:0;padding:0 2px;min-height:0;border:0;background:none;box-shadow:none;font-size:10px;color:var(--dim);display:flex;align-items:center;gap:5px;align-self:center}
+#app.s-prep .lobby-top .mission-btn{min-height:32px;padding:0 12px;font-size:12px;margin-left:auto}
+#app.s-prep .rdot,#app.s-prep .lobby-top .riskbar .rdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ad-loot);flex:none}
+#app.s-prep .lslot .rdot{position:absolute;left:7px;top:7px}
+#app.s-prep .lobby-side{min-height:0;min-width:0;display:block}
+#app.s-prep .slotgrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:100%;min-height:0}
+#app.s-prep .slotgrid>.lslot,#app.s-prep .slotwrap>.lslot:not(.mini){min-height:0;min-width:0;width:100%;height:100%;flex:none;border-radius:14px;gap:2px;padding:4px;overflow:hidden}
+#app.s-prep .slotwrap{display:flex;gap:4px;min-height:0;min-width:0}
+#app.s-prep .slotwrap>.lslot:not(.mini){flex:1 1 0;width:auto}
+#app.s-prep .lslot b{font-size:12px;max-width:100%;padding:0 4px;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app.s-prep .lslot small{display:block;font-size:10px;letter-spacing:.08em}
+#app.s-prep .lslot i{display:flex;font-size:0}
+#app.s-prep .lslot i .pr-ic{width:clamp(26px,9vh,42px);height:clamp(26px,9vh,42px)}
+#app.s-prep .lslot:not(.filled){border-style:dashed;opacity:.85}
+#app.s-prep .lslot .qty{position:absolute;right:8px;bottom:5px;font:800 12px system-ui,sans-serif;color:var(--ad-bone)}
+#app.s-prep .lslot.mini{flex:none;width:26px;height:100%;min-height:0;min-width:0;padding:0;border-radius:10px;border-width:1.5px;display:grid;place-items:center}
+#app.s-prep .lslot.mini i .pr-ic{width:16px;height:16px}
+#app.s-prep .lslot.mini .rdot{left:50%;top:5px;transform:translateX(-50%);width:6px;height:6px}
+#app.s-prep .lobby-hero .hero-weapon{display:none}
+#app.s-prep .lobby-hero .hero-art{position:absolute!important;inset:0 0 34px 0!important;background-size:contain!important;background-position:50% 100%!important}
+#app.s-prep .lobby-hero .operator-stats.compact{position:absolute;left:50%;right:auto;top:auto;bottom:6px;transform:translateX(-50%);width:auto;max-width:calc(100% - 12px);margin:0;padding:4px 10px;border-radius:20px;background:rgba(7,21,28,.8);display:block}
+#app.s-prep .lobby-hero .ostats{display:flex;flex-direction:row;gap:10px;justify-content:center;width:auto}
+#app.s-prep .lobby-hero .ostat{display:flex;flex-direction:row;align-items:center;gap:3px;padding:0}
+#app.s-prep .lobby-hero .ostat[data-stat=stealth],#app.s-prep .lobby-hero .ostat[data-stat=dash],#app.s-prep .lobby-hero .ostat small,#app.s-prep .lobby-hero .oskills{display:none}
+#app.s-prep .lobby-hero .ostat b{font-size:12px}
+#app.s-prep .lobby-hero .ostat i{font-size:0} #app.s-prep .lobby-hero .ostat .pr-ic{width:16px;height:16px}
+#app.s-prep .lobby-side.right{display:block}
+#app.s-prep .lobby-bottom{display:flex;flex-direction:column;gap:8px;height:100%;min-height:0}
+#app.s-prep .lobby-bottom .area-pick{flex:1 1 0;min-height:0;align-self:stretch;margin:0;flex-direction:row;align-items:center;gap:8px;padding:6px 10px;overflow:hidden}
+#app.s-prep .lobby-bottom .area-pick span{min-width:0}#app.s-prep .lobby-bottom .area-pick.map-open span b{font-size:14px;white-space:nowrap}
+#app.s-prep .lobby-bottom .playbtn{flex:none;height:clamp(54px,19vh,72px);min-height:0;margin:0;align-self:stretch}
+#app.s-prep .progress-goal.compact{flex:none;max-width:none;width:100%;margin:0;box-sizing:border-box;gap:3px;padding:6px 10px;text-align:left;font:600 11px "IBM Plex Sans",system-ui,sans-serif;color:var(--ad-bone);border:0;border-left:3px solid var(--ad-loot);border-radius:10px;background:var(--ad-ink);cursor:pointer}
+#app.s-prep .progress-goal.compact>b{font-size:11px;letter-spacing:.06em;color:var(--ad-loot);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app.s-prep .progress-goal.compact>div{display:flex;flex-wrap:wrap;gap:2px 10px} #app.s-prep .progress-goal.compact .pr-ic{width:15px;height:15px}
+/* v1.66 reward screen (shared popup): X corner, tiles from DATA.upgradeRewardTiles, CONTINUE, BIT line outside the card */
+#overlay.reward .inner{max-width:640px} #overlay.reward .inner.pop-host{overflow:visible}
+.reward-card{text-align:center;padding:14px 20px 12px!important;border-color:var(--ad-cyan)!important}
+.reward-title{font:900 clamp(18px,5.5vh,28px)/1.1 system-ui,sans-serif!important;letter-spacing:.04em;justify-content:center;margin:0}
+.reward-title span{font-size:.5em;letter-spacing:.2em;color:var(--ad-cyan);margin-right:.6em}
+.reward-sub{font-size:12px;color:var(--dim);margin:2px 0 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rtiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.rtile{box-sizing:border-box;width:120px;height:104px;border-radius:14px;background:var(--solid);border:1.5px solid color-mix(in srgb,var(--ad-bit) 40%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px;min-width:0}
+.rtile .pr-ic{width:40px;height:40px;color:var(--ad-bit)} .rtile b{font:900 16px/1.1 system-ui,sans-serif;max-width:100%;overflow-wrap:anywhere;text-align:center}
+.rtile small{font-size:9px;letter-spacing:.1em;color:var(--dim);text-align:center}
+.rtile.gear{border-color:var(--ad-loot)} .rtile.gear .pr-ic{color:var(--ad-loot)} .rtile.unlock .pr-ic{color:var(--ad-cyan)}
+.rtiles[data-count="5"],.rtiles[data-count="6"]{flex-wrap:nowrap;gap:6px} .rtiles[data-count="5"] .rtile,.rtiles[data-count="6"] .rtile{flex:1 1 0;width:auto;max-width:96px;height:84px} .rtiles[data-count="5"] .rtile .pr-ic,.rtiles[data-count="6"] .rtile .pr-ic{width:28px;height:28px}
+.rtiles[data-count="5"] .rtile b,.rtiles[data-count="6"] .rtile b{font-size:11px} .rtiles[data-count="5"] .rtile small,.rtiles[data-count="6"] .rtile small{font-size:8px;letter-spacing:.04em}
+.reward-card>button.primary.big{background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);width:260px;max-width:100%;margin:12px auto 0;display:block;min-height:44px}
+.reward-bit{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 0;font-size:11px;color:var(--dim)} .reward-bit .pr-ic{width:24px;height:24px;color:var(--ad-bit)}
+</style>
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -816,13 +870,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.65.1</div>
+    <div id="app-version">v1.66.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.65.1</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.66.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -837,16 +891,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to start"><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.65.1"></script>
-<script src="data/modules.js?v=1.65.1"></script>
-<script src="data/bit.js?v=1.65.1"></script>
-<script src="data/raid_zones.js?v=1.65.1"></script>
-<script src="data/recipes.js?v=1.65.1"></script>
-<script src="data/vendors.js?v=1.65.1"></script>
-<script src="data/retention.js?v=1.65.1"></script>
-<script src="data/quests.js?v=1.65.1"></script>
-<script src="data/progression.js?v=1.65.1"></script>
-<script src="data/combat.js?v=1.65.1"></script>
-<script src="app.js?v=1.65.1"></script>
+<script src="data/items.js?v=1.66.0"></script>
+<script src="data/modules.js?v=1.66.0"></script>
+<script src="data/bit.js?v=1.66.0"></script>
+<script src="data/raid_zones.js?v=1.66.0"></script>
+<script src="data/recipes.js?v=1.66.0"></script>
+<script src="data/vendors.js?v=1.66.0"></script>
+<script src="data/retention.js?v=1.66.0"></script>
+<script src="data/quests.js?v=1.66.0"></script>
+<script src="data/progression.js?v=1.66.0"></script>
+<script src="data/combat.js?v=1.66.0"></script>
+<script src="app.js?v=1.66.0"></script>
 </body>
 </html>
