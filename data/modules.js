@@ -74,7 +74,7 @@ window.DATA.modules = [
     benefit:"Loot intel · Recovery support",
     levels:[
       { level:1,
-        cost:{ scrap:20, items:{ optical_sensor:1, cable:1 } },
+        cost:{ scrap:20, items:{ cable:2, polymer_plate:1 } },
         unlocks:["bit_online","loot_scan_1"],
         unlockText:"BIT is back online. One loot scan per raid. BIT is pleased. Statistically.",
         benefitText:"BIT adds one loot scan per raid and recommends where to search for tracked items.",
@@ -84,7 +84,7 @@ window.DATA.modules = [
         artAfter:"assets/production/bitbay_online.webp",
         newGoal:"Choose your path: Storage (less friction) or save for Core L2 (new zone)." },
       { level:2,
-        cost:{ scrap:90, dataCores:6, items:{ memory_module:1 } },
+        cost:{ scrap:90, dataCores:6, items:{ memory_module:1, optical_sensor:1 } },
         unlocks:["bit_carry_1"],
         unlockText:"Cargo rack installed — BIT hauls one extra item home. Hardware, not sentiment.",
         benefitText:"BIT carries one extra item home from every successful extraction.",
@@ -100,7 +100,7 @@ window.DATA.modules = [
     benefit:"+8 stash slots · Secure one item",
     levels:[
       { level:1,
-        cost:{ scrap:50, items:{ polymer_plate:2, servo:1 } },
+        cost:{ scrap:50, items:{ polymer_plate:2, scrap_alloy:2 } },
         unlocks:["stash_plus_8","secure_slot"],
         unlockText:"Vault sealed. +8 stash slots and one secure slot — it survives your death.",
         benefitText:"+8 stash slots. One secure slot: that item survives your death.",

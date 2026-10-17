@@ -30,7 +30,8 @@ for(const r of D.recipes) for(const id in r.inputs)
   assert(coreDrops.has(id) || vendorIds.has(id) || recipeOut.has(id), "recipe " + r.id + " input " + id + " is unobtainable");
 // FTUE vault blocker regression: the exact items the owner got stuck on.
 for(const id of ["polymer_plate","servo"]) assert(coreDrops.has(id));
-assert(RULES.loot.weights[0].polymer_plate > 0 && RULES.loot.weights[0].servo > 0, "vault parts already drop on level one");
+assert(RULES.loot.weights[0].polymer_plate > 0 && RULES.loot.weights[0].scrap_alloy > 0, "vault L1 parts already drop on level one");
+assert.deepEqual(Object.keys(RULES.loot.weights[0]).sort(), ["cable","polymer_plate","salvage_crate","scrap_alloy"], "L1 pool: 3 common materials + salvage (v1.60)");
 // Simulated drops in BOTH areas, every level (Town adds house containers). Owner blocker: Power Relay for Core L2.
 const coreL2 = D.modules.find(m => /core/i.test(m.id)).levels.filter(l => l.level <= 2).flatMap(l => Object.keys(l.cost.items || {}));
 const RUNS = 150, seen = {};
