@@ -52,7 +52,7 @@ test('resolveLabels never shifts: the lower-priority overlapping label hides, an
   const state=new Map(),node={id:'n',x:100,y:100,w:100,h:20,priority:labelPriority({kind:'node'})},loot={id:'l',x:110,y:104,w:80,h:20,priority:labelPriority({kind:'loot',needed:true})};
   let out=resolveLabels([node,loot],{now:0,state});assert.equal(out.get('n'),true);assert.equal(out.get('l'),false);
   out=resolveLabels([node,{...loot,x:400}],{now:100,state});assert.equal(out.get('l'),false,'hold keeps it hidden right after');
-  out=resolveLabels([node,{...loot,x:400}],{now:1000,state});assert.equal(out.get('l'),true,'back after the hold');
+  out=resolveLabels([node,{...loot,x:400}],{now:1500,state});assert.equal(out.get('l'),true,'back after the hold');
 });
 test('resolveLabels: a shown label keeps its spot against a slightly higher newcomer (no ping-pong)',()=>{
   const state=new Map(),a={id:'a',x:100,y:100,w:80,h:20,priority:50},b={id:'b',x:300,y:100,w:80,h:20,priority:53};

@@ -70,7 +70,7 @@ export function deoverlap(boxes,{gap=2,maxShift=60}={}){
 // labels are placed in priority order and a label that would overlap a placed one (or the HUD) is hidden. Hysteresis
 // keeps the picture still: a label that was shown gets a bonus, and a hidden one stays hidden for `holdMs`.
 // boxes: [{id,x,y,w,h,priority,anchorDy?}] (x centre, y bottom). state: Map kept by the caller across frames.
-export function resolveLabels(boxes,{hud=[],hudPad=8,gap=3,now=0,holdMs=700,state=new Map()}={}){
+export function resolveLabels(boxes,{hud=[],hudPad=8,gap=3,now=0,holdMs=1200,state=new Map()}={}){
   const out=new Map(),placed=[];
   const hit=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+gap&&!(a.y-a.h>=b.y+gap||b.y-b.h>=a.y+gap);
   const score=b=>(b.priority||0)+(state.get(b.id)?.shown?8:0);

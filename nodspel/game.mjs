@@ -273,9 +273,10 @@ function setCollisions(){
 }
 // A node with a live generator cannot be charged: the label says what breaks the shield.
 const nodeCaption=(node,clock)=>node.active?'ACTIVE':node.shielded?(clock<(node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':node.generatorId?'SHIELDED · BREAK THE GENERATOR':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
+// medkit button sits right of the bag panel, top-aligned: the panel grows with the NEED list, and below it the move stick needs the room
+function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit');if(bp&&k&&bp.offsetHeight){const r=bp.getBoundingClientRect(),v=(k.offsetParent||document.body).getBoundingClientRect();k.style.top=`${Math.round(r.top-v.top)}px`;k.style.left=`${Math.round(r.right-v.left+8)}px`;}}
 function updateHUD(){
-  // medkit button sits right of the bag panel, top-aligned: the panel grows with the NEED list, and below it the move stick needs the room
-  {const bp=$('.bag-panel'),k=$('#use-kit');if(bp&&k&&bp.offsetHeight){const r=bp.getBoundingClientRect(),v=(k.offsetParent||document.body).getBoundingClientRect();k.style.top=`${Math.round(r.top-v.top)}px`;k.style.left=`${Math.round(r.right-v.left+8)}px`;}}
+  placeKitButton();
   renderGoalTracker();
   renderBagContents($('#bag-items'),round.bag);
   $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${bagCapacityOf(round)} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
@@ -304,7 +305,7 @@ function renderGoalTracker(){
   const title=document.createElement('b');title.textContent=`NEED · ${launch.goal.name} L${launch.goal.level}`;el.append(title);
   for(const part of p.parts){const line=document.createElement('span');line.classList.toggle('done',part.remaining===0);line.title=`Home ${part.secured} + ${extracted?'secured':'bag'} ${part.carried}`;setIconText(line,part.icon,`${Math.min(part.need,part.secured+part.carried)}/${part.need} ${part.name}`);el.append(line);}
   const state=document.createElement('small');state.textContent=round.over?(extracted?(p.enoughCarried?'SECURED · ACTIVATE IN BASE':'Secured · keep collecting next raid'):'BAG LOST · HOME SUPPLIES KEPT'):p.secured?'Already secured at home':p.enoughCarried?'ENOUGH CARRIED · EXTRACT TO SECURE':'Collect supplies · bag is at risk';if(round.over||p.enoughCarried||p.secured)el.append(state);el.classList.toggle('enough',p.enoughCarried);
-  {const panel=$('.bag-panel'),kit=$('#use-kit');if(panel&&kit){const r=panel.getBoundingClientRect(),v=viewport.getBoundingClientRect();kit.style.top=r.height?`${Math.max(140,Math.round(r.bottom-v.top+8))}px`:'';}}
+  placeKitButton();
   if(round.lastPickup&&Date.now()-round.lastPickup.at<3000){
     const part=p.parts.find(p=>p.id===round.lastPickup.item);if(part){let toast=$('#goal-pickup');if(!toast){toast=document.createElement('div');toast.id='goal-pickup';toast.setAttribute('role','status');viewport.append(toast);}setIconText(toast,part.icon,`${part.name} ${Math.min(part.need,part.secured+part.carried)}/${part.need}${p.enoughCarried?' · enough carried — extract':` · for ${launch.goal.name}`}`);toast.hidden=false;clearTimeout(toast.hideTimer);toast.hideTimer=setTimeout(()=>toast.hidden=true,2200);}
   }
@@ -576,14 +577,14 @@ function renderLabels(){
   for(const l of labels)if(l.range&&!l.el.hidden&&shown.get(l.id)===false)l.el.hidden=true;
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
   const now=performance.now();
-  for(const l of [...labels,...hazardLabels.map(h=>h.label)]){if(!l.range&&!hazardLabels.some(h=>h.label===l))continue;
+  for(const l of new Set([...labels,...hazardLabels.map(h=>h.label)])){if(!l.range&&!hazardLabels.some(h=>h.label===l))continue;
     if(l.el.hidden){l.wantSince=undefined;l.wasShown=false;continue;}
     if(l.wasShown)continue;
     l.wantSince??=now;
     if(l.everShown&&now-l.wantSince<LABEL_SHOW_HOLD_MS){l.el.hidden=true;continue;}
     l.wasShown=l.everShown=true;}
 }
-const LABEL_SHOW_HOLD_MS=700;
+const LABEL_SHOW_HOLD_MS=1200;
 const labelState=new Map();
 let previous=performance.now();
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.

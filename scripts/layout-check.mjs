@@ -12,6 +12,7 @@ const OUT=resolve(process.env.LAYOUT_OUT||join(root,'verify-out'));
 const VIEWPORTS=[[844,390],[932,430],[667,375]];
 // Notch phone in landscape (iPhone 14-class): left/right 47 px, bottom home indicator 21 px.
 const INSETS={left:47,right:47,top:0,bottom:21};
+const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
 const failures=[];
 // Text UI that must stay inside the safe area too (checked like controls).
 const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,.round-hud,#weapon-name,#encounter-hint,.area-notice';
@@ -55,7 +56,7 @@ function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
     if(el.matches('#overlay,#splash,.pop-backdrop,#tutorial,#round-over,#inventory,#fatal'))continue;
     if(layers.length&&!layers.some(l=>l.contains(el)))continue;
     const cs=getComputedStyle(el);
-    if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity<.05||cs.pointerEvents==='none'||el.closest('[hidden]')||!el.getClientRects().length)continue;
+    if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity<.05||(cs.pointerEvents==='none'&&!el.matches(ins.textSel||'#__none'))||el.closest('[hidden]')||!el.getClientRects().length)continue;
     const r=el.getBoundingClientRect();if(r.width<4||r.height<4)continue;
     let c={l:-1e9,t:-1e9,r:1e9,b:1e9},scrolls=false;
     for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){
@@ -74,13 +75,15 @@ function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
     const top=outside?null:document.elementFromPoint((v.l+v.r)/2,(v.t+v.b)/2);
     const covered=!!top&&!(top===el||el.contains(top)||top.contains(el));
     const unsafe=!world&&!outside&&!scrolls&&(r.left<ins.left-1||r.right>vw-ins.right+1||r.top<ins.top-1||r.bottom>vh-ins.bottom+1);
+    // text-only HUD panels (SAFE_TEXT) are checked for the safe area and the viewport only, not as tappable controls
+    if(ins.textSel&&el.matches(ins.textSel)&&!el.matches('button,a[href],[role=button],input')){items.push({n:name(el),l:v.l,t:v.t,r:v.r,b:v.b,el,world:true,textOnly:true,outside,unsafe,covered:null});continue;}
     items.push({n:name(el),l:v.l,t:v.t,r:v.r,b:v.b,el,world,outside,unsafe,covered:covered&&!world?name(top):null});
   }
   // drop wrappers: if an item contains another item it's a container, not a competing control
   const res=[];
   for(const a of items){res.push({n:a.n,l:a.l,t:a.t,r:a.r,b:a.b,covered:a.covered,
     outside:a.outside,unsafe:a.unsafe,
-    overlaps:items.filter(o=>o!==a&&!o.el.contains(a.el)&&!a.el.contains(o.el)&&a.world===o.world&&Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.t,o.t)>2&&items.indexOf(o)>items.indexOf(a)).map(o=>o.n)});}
+    overlaps:a.textOnly?[]:items.filter(o=>o!==a&&!o.textOnly&&!o.el.contains(a.el)&&!a.el.contains(o.el)&&a.world===o.world&&Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.t,o.t)>2&&items.indexOf(o)>items.indexOf(a)).map(o=>o.n)});}
   return res;
 }
 function popupFit(){
@@ -114,7 +117,7 @@ function worldOverlaps(){
   return out;
 }
 async function report(page,ctx,extraSel=''){
-  for(const it of await page.evaluate(collect,extraSel+(extraSel?',':'')+SAFE_TEXT,INSETS)){
+  for(const it of await page.evaluate(collect,extraSel+(extraSel?',':'')+SAFE_TEXT,INS_ARG())){
     if(it.unsafe)fail(ctx,`${it.n} is outside the safe area (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)}; insets L${INSETS.left} R${INSETS.right} B${INSETS.bottom})`);
     if(it.covered)fail(ctx,`${it.n} is covered by ${it.covered}`);
     if(it.outside)fail(ctx,`${it.n} leaves the viewport (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)})`);
@@ -192,11 +195,11 @@ async function sweepLabels(page,ctx){
   for(const m of overl)fail(ctx,`world label ${m} during gameplay`);
   for(const h of Object.values(hist)){
     let toggles=0,jump=0;
-    // flicker = 3+ visibility flips inside any 8 consecutive samples (~1.4 m of walking); passing a range threshold once is fine
+    // flicker = 3+ visibility flips inside any 12 consecutive samples (~2 m of walking, longer than the 1.2 s show-hold); passing a range threshold once is fine
     const flips=[];for(let i=1;i<h.length;i++){if(h[i].v!==h[i-1].v)flips.push(i);if(h[i].v&&h[i-1].v)jump=Math.max(jump,Math.hypot(h[i].x-h[i-1].x,h[i].y-h[i-1].y));}
-    for(let i=0;i+2<flips.length;i++)if(flips[i+2]-flips[i]<=8)toggles=Math.max(toggles,3);
+    for(let i=0;i+2<flips.length;i++)if(flips[i+2]-flips[i]<=12)toggles=Math.max(toggles,3);
     const name=h.find(x=>x.t)?.t||'label';
-    if(toggles>=3)fail(ctx,`world label "${name}" flickers (3+ visibility flips within 8 frames of a ${h.length}-step walk)`);
+    if(toggles>=3)fail(ctx,`world label "${name}" flickers (3+ visibility flips within 12 frames of a ${h.length}-step walk)`);
     if(jump>40)fail(ctx,`world label "${name}" jitters (jumped ${Math.round(jump)} px between two frames)`);
   }
 }
