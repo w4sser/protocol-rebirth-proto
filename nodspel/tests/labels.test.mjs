@@ -56,7 +56,7 @@ test('resolveLabels never shifts: the lower-priority overlapping label hides, an
 });
 test('resolveLabels: a shown label keeps its spot against a slightly higher newcomer (no ping-pong)',()=>{
   const state=new Map(),a={id:'a',x:100,y:100,w:80,h:20,priority:50},b={id:'b',x:300,y:100,w:80,h:20,priority:53};
-  resolveLabels([a,b],{now:0,state});
+  resolveLabels([a],{now:0,state});
   const out=resolveLabels([a,{...b,x:110}],{now:50,state});assert.equal(out.get('a'),true);assert.equal(out.get('b'),false);
 });
 test('labelPriority: objective > needed loot > attacking enemy > enemy > loot',()=>{
