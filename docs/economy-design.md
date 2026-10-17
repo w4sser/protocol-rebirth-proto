@@ -162,13 +162,31 @@ Alla siffror finns i `data/retention.js` → `DATA.idle`. Tiden räknas på spar
 
 | System | Siffror | Balans |
 |---|---|---|
-| **Scrap-återvinnare** (i Rebirth Core) | 6 / 10 / 15 Scrap per timme vid Core L1 / L2 / L3; lagret rymmer 8 h = 48 / 80 / 120 Scrap; samla in med ett tryck (chip vid Core + kort i Core-popupen) | En natt ≈ 1–2 raids värt Scrap (en raid ger 20–70). Det kompletterar raids och ersätter dem inte. |
+| **Scrap-återvinnare** (i Rebirth Core) | 10 / 14 / 20 Scrap per timme vid Core L1 / L2 / L3 (v1.64, tidigare 6 / 10 / 15); lagret rymmer 8 h = 80 / 112 / 160 Scrap; samla in med ett tryck (chip vid Core + kort i Core-popupen) | En natt ≈ 1–2 raids värt Scrap (en raid ger ca 47–72, se nedan). Det kompletterar raids och ersätter dem inte. |
 | **Byggtimer** L2+ | Fabricator/BIT Bay/Storage: L2 15 min, L3 60 min; Rebirth Core: L2 30 min, L3 120 min. Den **första** L2+-uppgraderingen är direkt (FTUE-valet) | Kostnaden betalas vid start, så inget kan förloras. Rummet får byggställning och blinkande bärnstenslampa. Bygget blir klart även offline. |
 | **Fabricator-kö** | Platser: L1 2, L2 3. Tider: medkit 3 min, väst 8, filter 10, relä/syntes 12–15, SMG 20, Shotgun/Rifle 30. Den första tillverkningen är direkt (FTUE) | Jobben körs efter varandra. Material och Scrap tas vid köläggning, och full kö tar ingenting. |
 | **BIT-scavenging** | 20 min (BIT Bay L1), 15 min (L2), gratis, misslyckas aldrig: 8–15 Scrap + 1–2 T1-delar (scrap_alloy, cable, fuse, polymer_plate, med_gel) + 15 % chans på en T2-del (servo, circuit_board, power_cell) | Ungefär 1/4 av en raids värde per körning. Kan inte köras samtidigt som en expedition. |
 | **Välkommen tillbaka** | Visas efter ≥ 2 min borta och bara om något hände. Det är en liten remsa överst på basen, inte en blockerande popup, och den stängs med X | Listar färdiga byggen, tillverkning, BIT:s fynd och lagrad Scrap. |
 
-Timvärde i passiv Scrap: L1 ca 6/h + scavenging ca 30/h om spelaren skickar BIT varje gång, mot ca 400/h aktivt i raids (20–70 Scrap per raid på 3–5 min). Passivt ger alltså ≤ 10 % av aktivt spel, så raids förblir huvudkällan.
+Timvärde i passiv Scrap: L1 ca 10/h + scavenging ca 30/h om spelaren skickar BIT varje gång, mot ca 700–1000/h aktivt i raids (47–72 Scrap per raid på 3–5 min). Passivt ger alltså klart under 10 % av aktivt spel, så raids förblir huvudkällan.
+
+### 12.1 Scrap i Node Raid (v1.64, Oscars playtest)
+Den gamla simulerade `scrapRange` gäller inte längre. Node Raid ger Scrap från två källor, och bara vid extract (död/timeout = 0):
+
+| Källa | Siffror |
+|---|---|
+| **Salvage Crate** (tar en bagplats) | 24 Scrap (tidigare 16). L1-vikt 4 av 15 (tidigare 2), L1 har 2 lådor (tidigare 1) |
+| **Extract-bonus** (tar ingen bagplats) | +5 / +10 / +15 per klarad nivå L1 / L2 / L3, alltså 5 / 15 / 30 totalt. Visas på resultatskärmen |
+
+Förväntad Scrap per extraherad raid (från de riktiga loot-tabellerna): L1+L2 ca 47 (tidigare ca 15), hela raiden ca 72 (tidigare ca 22).
+
+| Mål (efter Fabricator L1) | Scrap | Raids före | Raids nu |
+|---|---|---|---|
+| Storage L1 (BIT Bay L1 + Storage L1) | 70 | 4 | 1 (2 om bara L1+L2 klaras) |
+| Första L2-uppgraderingen (Fabricator L2) | 170 | 8 | 3 |
+| Rebirth Core L2 (alla L1 + L2 på vägen) | 500 | 23 | 7 |
+
+Rebirth Core L2 kostar nu 1 Circuit Board + 1 Power Cell (i stället för 2 Circuit Board), så Power Cell har en riktig användning. `test/oscar.test.mjs` räknar om målen från datan så att de inte kan glida.
 
 ## 13. BIT Quests (v1.57)
 

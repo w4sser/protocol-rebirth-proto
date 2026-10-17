@@ -7,7 +7,7 @@ import {createRound,takeDamage,activateNode,enterExit,roundSummary} from '../rou
 const state=await import('../round.js');
 test('loot boxes are seeded with a short-route crate and a guarded crate on level two',()=>{
   const first=generateLevel(1,'loot'),second=generateLevel(2,'loot');
-  assert.equal(first.lootBoxes?.length,1);assert.equal(second.lootBoxes?.length,6);
+  assert.equal(first.lootBoxes?.length,2);assert.equal(second.lootBoxes?.length,6);
   assert.deepEqual(second.lootBoxes,generateLevel(2,'loot').lootBoxes);
   for(const box of second.lootBoxes){assert.ok([...LOOT_RULES.loot.types,'ammo_pack'].includes(box.item));}
 });

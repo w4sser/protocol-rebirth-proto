@@ -1,8 +1,8 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {TOWN_DIMS} from './town-layout.js?v=1.63.0';
-import {HOUSE_KINDS,HOUSE_DIMS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.63.0';
+import {TOWN_DIMS} from './town-layout.js?v=1.64.0';
+import {HOUSE_KINDS,HOUSE_DIMS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=1.64.0';
 export const TOWN_KINDS=Object.keys(TOWN_DIMS);
 let cache=null;
 // Per-asset load report (also on window.__townLoad): failed GLBs get a procedural stand-in instead of
@@ -30,7 +30,7 @@ function prepare(g){g.scene.updateMatrixWorld(true);const parts=[];
 // Loads once per page; geometries/materials are flagged shared so world.dispose() never frees them.
 export function loadTownAssets(base,opts={}){
   if(cache)return cache;
-  const items=[...TOWN_KINDS.map(k=>({key:k,url:`${k}.glb?v=1.63.0`,dims:TOWN_DIMS[k]})),...HOUSE_KINDS.map(k=>({key:'hi_'+k,url:`house_interior/${k}.glb?v=1.63.0`,dims:HOUSE_DIMS[k]}))];
+  const items=[...TOWN_KINDS.map(k=>({key:k,url:`${k}.glb?v=1.64.0`,dims:TOWN_DIMS[k]})),...HOUSE_KINDS.map(k=>({key:'hi_'+k,url:`house_interior/${k}.glb?v=1.64.0`,dims:HOUSE_DIMS[k]}))];
   if(typeof window!=='undefined')window.__townLoad=townLoad;
   cache=loadKit(base,items,opts).then(a=>{
     if(townLoad.failed.length>items.length/2)throw new Error(`town kit failed: ${townLoad.failed.length}/${items.length} assets (${townLoad.failed[0]?.error})`);

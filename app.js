@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.63.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.64.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1442,6 +1442,7 @@ SCREENS.itemDetail = function(id){
     $app().innerHTML = html + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or dropped.</div>';
     return;
   }
+  html += usedForHtml(id);
   if(neededFor.length) html += '<div class="card small trackc">Needed for: ' + esc(neededFor.join(", ")) + '</div>';
   if(miss && miss.itemId === id) html += '<div class="flagbanner">TRACKED UPGRADE ITEM — NEEDED ' + miss.have + '/' + miss.need + '</div>';
   html += '<div class="kv"><span>Sell value</span><span>' + Math.floor(it.sellValue * D.vendors[0].sellMultiplier) + ' Scrap</span></div>';
@@ -2130,6 +2131,41 @@ function coreRaidXp(r){
   return n(r.nodesLit)*X.perNode + n(r.enemiesDefeated)*X.perEnemy + n(r.levelsCleared)*X.perLevelCleared +
     (r.outcome === "extract" ? X.extractBonus : 0);
 }
+function extractScrapBonus(levelsCleared){
+  const B = PROG.extractScrapBonus || [], n = Math.max(0, Math.min(B.length, Math.floor(Number(levelsCleared) || 0)));
+  return B.slice(0, n).reduce((a, b) => a + b, 0);
+}
+// v1.64 "Used for": every upgrade and recipe that really consumes the item (DATA.itemInfo is the single source of truth).
+function usedForHtml(id){
+  const info = D.itemInfo(id);
+  if(!info || info.item.grantsCurrency || info.item.scouts) return "";
+  const it = info.item, gear = it.slot || it.weapon || it.tool || (it.uses || []).includes("loadout") || /^tool_/.test(id);
+  const parts = info.uses.map(u => esc(u.label));
+  if(gear) parts.unshift("Raid loadout (equip in Raid Prep)");
+  const list = parts.length ? parts.join(", ") : "nothing at the base yet. Sell it or keep it for a quest.";
+  return '<div class="card small usedfor"><b>Used for:</b> ' + list + '</div>';
+}
+function isInfoItem(id){ const it = ITEMS[id]; return !!it && !it.grantsCurrency && !it.scouts && !isFree(id); }
+// First time an item type comes home: one info card (shared popup) at the base, never mid-raid. Old saves seed
+// "seen" from the stash so returning players are not flooded; the FTUE keeps its own scripted cards.
+function markSeenItems(ids){
+  if(!S.seenItems){ S.seenItems = {}; Object.keys(S.stash || {}).forEach(k => S.seenItems[k] = 1); }
+  const fresh = [];
+  ids.forEach(id => { if(isInfoItem(id) && !S.seenItems[id]){ S.seenItems[id] = 1; fresh.push(id); } });
+  if(fresh.length && ftueOver()){ S.itemInfoQueue = (S.itemInfoQueue || []).concat(fresh).slice(-6); }
+  return fresh;
+}
+function maybeShowItemInfo(){
+  if(typeof document === "undefined" || !S.itemInfoQueue || !S.itemInfoQueue.length || document.getElementById("overlay") || session.screen !== "base") return;
+  const ids = S.itemInfoQueue.splice(0, 3).filter(id => ITEMS[id]);
+  if(!ids.length) return;
+  save();
+  overlay('<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + ids.map(id => { const info = D.itemInfo(id), it = info.item;
+    return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
+      usedForHtml(id).replace('card small usedfor', 'usedfor') +
+      '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
+    '<button class="primary" data-close>GOT IT</button>', () => setTimeout(maybeShowItemInfo, 0));
+}
 function ingestRaidResult(r){
   if(!validRaidResult(r)) return { ok:false, reason:"invalid" };
   S.coreRaidsIngested = S.coreRaidsIngested || [];
@@ -2140,6 +2176,7 @@ function ingestRaidResult(r){
   // Only items come home (no formula salvage/dataCores).
   const extracted = r.outcome === "extract";
   const added = extracted ? r.extracted.slice() : [];
+  if(extracted) markSeenItems(added);
   const currency = {};
   // Currency-sourcing loot (salvage_crate, data_core) converts on the way in; everything else goes to the stash.
   added.forEach(id => {
@@ -2148,6 +2185,9 @@ function ingestRaidResult(r){
     if(!g){ addItem(id, 1); return; }
     for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
   });
+  // v1.64: fixed Scrap bonus per cleared level, paid on extract only (death/timeout = 0, like all raid loot).
+  const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) : 0;
+  if(scrapBonus){ S.cur.scrap = (S.cur.scrap||0) + scrapBonus; revealCurrency("scrap"); }
   S.raids++;
   const questsDone = questProgress(r);
   const saved = { insured:[], secure:null, bitRescue:null };
@@ -2196,7 +2236,7 @@ function ingestRaidResult(r){
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
   if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
-  return { ok:true, added, currency, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes };
+  return { ok:true, added, currency, scrapBonus, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
@@ -2337,7 +2377,7 @@ function coreResultSummary(r, res){
     (res.skillUps && res.skillUps.length ? " · " + res.skillUps.join(", ") + "!" : "") +
     (res.starUp ? " · mastery " + res.starUp + "!" : "") +
     (res.areaNotes && res.areaNotes.some(n => /scouted/.test(n)) ? " · " + res.areaNotes.filter(n => /scouted/.test(n)).join(", ") : "");
-  return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
+  return head + " — " + (loot || "no loot secured") + tail + (cur ? " (" + cur + ")" : "") + (res.scrapBonus ? " · extract bonus +" + res.scrapBonus + " Scrap" : "") + (r.lost.length ? " · lost " + r.lost.length : "") + (res.xp ? " · BIT +" + res.xp + " XP" : "");
 }
 function ingestPendingCoreResult(storage){
   let raw = null;
@@ -3178,6 +3218,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
+  maybeShowItemInfo();
   if(S.introSeen){
     tickRetention();
     const rows = morningRows();

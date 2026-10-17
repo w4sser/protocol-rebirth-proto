@@ -68,6 +68,8 @@ window.DATA.progression = {
 
 // Progressive currency reveal (UI only — economy unchanged underneath).
 window.DATA.progression.currencyReveal = { scrap:"start", dataCores:"bit_online", signals:"insurance_offered" };
+// v1.64: fixed Scrap bonus per cleared Node Raid level (L1, L2, L3), paid on extract only, no bag space. Mirrors nodspel RULES.extractScrapBonus (test-enforced).
+window.DATA.progression.extractScrapBonus = [5, 10, 15];
 
 // Post-prototype playtest survey (3 taps, logged to the event log).
 window.DATA.progression.survey = [

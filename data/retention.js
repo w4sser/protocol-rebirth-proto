@@ -56,7 +56,7 @@ window.DATA.protocolLog = [
 // timers complete offline, the generator only stops filling at its cap. Numbers documented in docs/economy-design.md §12.
 window.DATA.idle = {
   // Scrap recycler inside the Rebirth Core: scrap per hour by Core level; storage = capHours of output.
-  generator: { ratePerHour: { 1: 6, 2: 10, 3: 15 }, capHours: 8, minCollect: 1 },
+  generator: { ratePerHour: { 1: 10, 2: 14, 3: 20 }, capHours: 8, minCollect: 1 },
   // Upgrade build timers (minutes) for L2+. The first L2+ upgrade is instant (FTUE choice stays snappy).
   buildMinutes: { default: { 2: 15, 3: 60 }, rebirth_core: { 2: 30, 3: 120 } },
   // Fabricator queue: jobs run one after another; slots by Fabricator level. First craft ever is instant (FTUE).
