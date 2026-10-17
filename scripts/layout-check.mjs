@@ -128,7 +128,13 @@ async function report(page,ctx,extraSel=''){
     if(p.scroll&&p.n!=='#mission-panel')fail(ctx,`popup ${p.n} needs its own scroll (scrollHeight > clientHeight)`);
   }
 }
-const shot=(page,name)=>page.screenshot({path:join(OUT,name+'.png')});
+// never screenshot mid-fade: wait until the splash is gone, then assert it really is (no half-transparent overlay left)
+const shot=async(page,name)=>{
+  await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{});
+  const left=await page.evaluate(()=>{const s=document.getElementById('splash');return s?getComputedStyle(s).opacity:null;});
+  if(left!==null)fail(`${name}`,`splash still in DOM (opacity ${left}) when base should be interactive`);
+  return page.screenshot({path:join(OUT,name+'.png')});
+};
 const settle=ms=>new Promise(r=>setTimeout(r,ms));
 async function newPage(w,h){
   const page=await browser.newPage();
@@ -145,7 +151,7 @@ async function baseRun([w,h]){
     const page=await newPage(w,h);
     await page.goto(BASE+'/index.html',{waitUntil:'load'});await settle(900);
     if(mode==='progressed')await page.evaluate(PROGRESSED);
-    if(mode==='fresh')await page.waitForFunction(()=>{const s=document.getElementById('splash');return !s||getComputedStyle(s).display==='none'||+getComputedStyle(s).opacity<.05;},{timeout:8000}).catch(e=>fail(`${tag} fresh landing`,`splash never went away: ${String(e).slice(0,60)}`));
+    if(mode==='fresh')await page.waitForFunction(()=>{const s=document.getElementById('splash');return !s||!s.isConnected;},{timeout:8000}).catch(e=>fail(`${tag} fresh landing`,`splash never went away: ${String(e).slice(0,60)}`));
     await settle(300);
     await report(page,`${tag} ${mode} landing`);await shot(page,`base-${w}x${h}-${mode}-landing`);
     if(mode==='progressed'){
