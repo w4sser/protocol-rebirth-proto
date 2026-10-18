@@ -1285,7 +1285,7 @@ function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
   if(!card || !card.offsetHeight) return;
-  const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 6;
+  const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
   plates.forEach((p, i) => {
