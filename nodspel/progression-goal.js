@@ -40,6 +40,7 @@ export function applyFirstPayoff(level,payoff,bag=RULES.loot.capacity){
   const solids=[...level.walls,...level.boxes],spots=[...level.nodes,level.exit,...level.enemies,...level.lootBoxes],placed=[];
   for(const p of cells){
     if(placed.length>=want)break;
+    if(Math.hypot(p.x-level.start.x,p.z-level.start.z)<RULES.loot.pickupRadius+cfg.startClear)continue;
     if(Math.abs(p.x-room.x)>hw||Math.abs(p.z-room.z)>hd)continue;
     if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+cfg.clear/2&&Math.abs(p.z-o.z)<o.d/2+cfg.clear/2))continue;
     if(spots.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<cfg.clear+(o.r||0)))continue;

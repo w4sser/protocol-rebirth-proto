@@ -18,6 +18,7 @@ test('loot_cluster seeds a dense cluster near spawn on free floor, level 1 only'
     assert(Math.hypot(b.x-l.start.x,b.z-l.start.z)<=6,'near spawn');assert(inRoom(l,b,1),'inside room');
     assert(![...l.walls,...l.boxes].some(o=>Math.abs(b.x-o.x)<o.w/2&&Math.abs(b.z-o.z)<o.d/2),'not inside a solid');
     assert(![...l.nodes,l.exit,...l.enemies].some(o=>Math.hypot(b.x-o.x,b.z-o.z)<1),'clear of objectives');
+    assert(Math.hypot(b.x-l.start.x,b.z-l.start.z)>RULES.loot.pickupRadius,'not auto-collected at spawn');
     assert.equal(b.collected,false);assert(RULES.loot.types.includes(b.item));
    }
    assert.equal(new Set(added.map(b=>b.id)).size,n);
