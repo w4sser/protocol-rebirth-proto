@@ -881,7 +881,7 @@ function bootSequence(next, done){
 // in the aria-label). NEXT is kept only when it names somewhere/something to go for, cut to its first clause.
 function rewardNextLine(def){
   const g = String((def && def.newGoal) || "").split(/ — |\. /)[0].replace(/\.$/, "").trim(); if(!g) return "";
-  const names = D.modules.map(m => m.name).concat(WMAP_NAMES(), D.items.map(i => i.name)).map(n => String(n).split(/ \/ /)[0].toLowerCase());
+  const names = D.modules.map(m => m.name).concat(WMAP_NAMES(), D.items.map(i => i.name)).flatMap(n => String(n).toLowerCase().split(/ \/ /)); // "Storage / Vault" matches both aliases
   return names.some(n => n.length > 2 && g.toLowerCase().includes(n)) ? g : "";
 }
 function WMAP_NAMES(){ return ((D.worldMap && D.worldMap.areas) || []).map(a => a.name).concat((D.raidZones || []).map(z => z.name)); }
@@ -889,7 +889,7 @@ function upgradeRewardHtml(modId, level, bitJustOnline){
   const m = MODS[modId], def = m.levels.find(l => l.level === level), first = level === m.levels[0].level;
   const list = D.upgradeRewardTiles(modId, level), tiles = list.map(t => '<div class="rtile ' + t.kind + '" data-source="' + esc(t.source) + '">' + IC(t.icon) + '<b>' + esc(t.value) + '</b><small>' + esc(t.label) + '</small></div>').join('');
   const bitOff = !bitJustOnline && !bitOnline(), nextLine = rewardNextLine(def);
-  return '<div class="bpop reward-card" aria-label="' + esc(def.unlockText || def.benefitText || "") + '"><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
+  return '<div class="bpop reward-card"><span class="sr-only">' + esc(def.unlockText || def.benefitText || "") + '</span><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
     '<div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
     (nextLine ? '<p class="reward-goal"><b>NEXT</b> ' + esc(nextLine) + '</p>' : '') +
     '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
