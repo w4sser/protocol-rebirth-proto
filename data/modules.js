@@ -191,7 +191,7 @@ window.DATA.styleOverlay = {
   bit_bay: { x:66, y:34, w:30 }
 };
 
-// Upgrade reward tiles (v1.66.0). Pure and data-driven: every tile is derived from what the level really grants
+// Upgrade reward tiles (v1.66.1). Pure and data-driven: every tile is derived from what the level really grants
 // (unlocks, commissioning gear + its stats, recipes gated on the level, tools unlocked by it, module cap raises).
 // Each tile carries `source` so tests can prove nothing is promised that the data does not grant.
 // Tile: { kind:"gear"|"stat"|"unlock", icon, value, label, source }. Returns [] for an unknown module/level.

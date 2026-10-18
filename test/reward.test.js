@@ -1,4 +1,4 @@
-// v1.66.0 reward screen: tiles are derived from data (DATA.upgradeRewardTiles) and never promise more than the level grants.
+// v1.66.1 reward screen: tiles are derived from data (DATA.upgradeRewardTiles) and never promise more than the level grants.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
 const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
 const w = dom.window;
@@ -59,4 +59,10 @@ for(const m of D.modules) for(const l of m.levels) for(const t of D.upgradeRewar
   assert(t.value.startsWith(n + " ROOM"), m.id + " L" + l.level + ": cap tile counts only rooms whose cap rises (Core excluded)"); }
 for(const a of D.worldMap.areas) if(a.requires && a.requires.scoutItem) for(const l of D.modules.find(x => x.id === "rebirth_core").levels)
   for(const t of D.upgradeRewardTiles("rebirth_core", l.level)) if(t.value === a.name.toUpperCase()) assert(t.label !== "AREA ACCESS", "area that still needs scouting is not promised as access");
+// v1.66.1 no redundant text: no description paragraph, and no visible paragraph repeats a tile value
+for(const m of D.modules) for(const l of m.levels){ const h = doc.createElement("div"); h.innerHTML = w.__T.upgradeRewardHtml(m.id, l.level, true);
+  assert(!h.querySelector(".reward-sub"), m.id + " L" + l.level + ": no description paragraph above the tiles");
+  const vals = D.upgradeRewardTiles(m.id, l.level).map(t => t.value.toLowerCase()).filter(v => /\d/.test(v)); // granted amounts (+25, +1 SLOT, 5 RECIPES) live in tiles only
+  for(const p of h.querySelectorAll("p")) for(const v of vals) assert(!p.textContent.toLowerCase().includes(v), m.id + " L" + l.level + ": paragraph repeats tile '" + v + "'");
+  const g = h.querySelector(".reward-goal"); if(g) assert(g.textContent.length <= 80, m.id + " L" + l.level + ": NEXT line is short"); }
 console.log("REWARD TILES PASSED (" + checked + " module levels)");
