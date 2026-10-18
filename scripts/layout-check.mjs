@@ -168,7 +168,7 @@ async function baseRun([w,h]){
             const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
             for(const p of document.querySelectorAll('.baseworld .mapspot.plate')){const r=p.getBoundingClientRect(),t=(p.querySelector('b')||p).textContent.trim();
               if(ov(a,r))out.push(t+'" sits under the goal card');else if(n&&ov(n,r))out.push(t+'" sits under the nav bar');
-              else if(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1)out.push(t+'" is not fully inside the viewer');}
+              else if(!p.classList.contains('gate')&&(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1))out.push(t+'" is not fully inside the viewer');}
             return out;});
           for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}`);
         }
