@@ -241,3 +241,15 @@ window.DATA.upgradeRewardTiles = function(moduleId, level){
   if(has("raid_bag_plus_1")) add("stat", "stat-bag", "+1 SLOT", "RAID BAG", "unlock:raid_bag_plus_1");
   return tiles;
 };
+
+// Goal card effect tiles (v1.67): at most `max` tiles, taken ONLY from upgradeRewardTiles(module, level) (same icon/value/label
+// as the reward screen). Stable priority: stat tiles (what changes: +25 SHIELD, +1 SLOT), then unlocks (CRAFTING, tools),
+// then gear (its name only fills a spare slot). Identical value+label pairs are shown once.
+window.DATA.goalEffectTiles = function(moduleId, level, max){
+  var rank = { stat:0, unlock:1, gear:2 }, seen = {};
+  return window.DATA.upgradeRewardTiles(moduleId, level).map(function(t, i){ return { t:t, i:i }; })
+    .sort(function(a, b){ return rank[a.t.kind] - rank[b.t.kind] || a.i - b.i; })
+    .map(function(x){ return x.t; })
+    .filter(function(t){ var k = t.value + "|" + t.label; if(seen[k]) return false; seen[k] = 1; return true; })
+    .slice(0, max || 3);
+};

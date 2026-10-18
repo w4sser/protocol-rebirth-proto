@@ -66,6 +66,17 @@ window.DATA.progression = {
   ]
 };
 
+// v1.67 first upgrade pays off immediately (one-time). Upgrade id "module:level" -> the payoff the NEXT unguided raid
+// shows. Only the first qualifying completed upgrade ever fires (S.payoff pending, S.payoffDone once consumed).
+// loot_cluster: upgrade added bag room, so the raid places a dense loot cluster near spawn (tuning: nodspel RULES.payoff).
+// free_tool: upgrade unlocked tools, so the raid starts with a free `tool` x `charges` equipped (never taken from, or returned to, the stash).
+window.DATA.progression.firstUpgradePayoff = {
+  "fabricator:1": { kind:"loot_cluster" },
+  "fabricator:2": { kind:"free_tool", tool:"tool_grenade", charges:1 },
+  "storage:2":    { kind:"loot_cluster" },
+  "storage:3":    { kind:"loot_cluster" }
+};
+
 // Progressive currency reveal (UI only — economy unchanged underneath).
 window.DATA.progression.currencyReveal = { scrap:"start", dataCores:"bit_online", signals:"insurance_offered" };
 // v1.64: fixed Scrap bonus per cleared Node Raid level (L1, L2, L3), paid on extract only, no bag space. Mirrors nodspel RULES.extractScrapBonus (test-enforced).

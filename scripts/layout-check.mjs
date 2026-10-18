@@ -163,6 +163,15 @@ async function baseRun([w,h]){
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
+        if(name==='base'){ // v1.67: room plates never sit under the goal card
+          const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs');if(!c||!vw)return [];
+            const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
+            for(const p of document.querySelectorAll('.baseworld .mapspot.plate')){const r=p.getBoundingClientRect(),t=(p.querySelector('b')||p).textContent.trim();
+              if(ov(a,r))out.push(t+'" sits under the goal card');else if(n&&ov(n,r))out.push(t+'" sits under the nav bar');
+              else if(!p.classList.contains('gate')&&(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1))out.push(t+'" is not fully inside the viewer');}
+            return out;});
+          for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}`);
+        }
       }
     }
     await page.close();
@@ -226,6 +235,22 @@ async function introGoalRun([w,h]){
   await shot(page,`raid-intro-goal-${w}x${h}`);
   await page.close();
 }
+// v1.67: first-upgrade payoff raid (bunker, bag cache near spawn + BIT notice) must not overlap HUD, timer or world labels.
+async function payoffRun([w,h]){
+  const tag=`raid payoff ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=77d97187-payoff&area=bunker&debug=1&q=high&bag=5&kit=medkit%3A1&payoff=loot_cluster`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1200);
+  await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
+  await sweepLabels(page,`${tag} L1`);
+  const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
+    return {sp,n:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).length,pts:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};});
+  const vis=pay.pts.filter(p=>p.x>10&&p.x<pay.w-10&&p.y>10&&p.y<pay.h-10&&Math.hypot(p.x-pay.sp.x,p.y-pay.sp.y)>34&&!pay.hud.some(r=>p.x>r.left-4&&p.x<r.right+4&&p.y>r.top-4&&p.y<r.bottom+4));
+  if(!pay.n||vis.length<Math.min(pay.n,5))fail(tag,`payoff cluster not clearly visible at start (${vis.length}/${pay.n} clear of edges, player and HUD)`);
+  await shot(page,`raid-payoff-${w}x${h}`);
+  await page.close();
+}
 async function raidRun([w,h],area){
   const tag=`raid ${area} ${w}x${h}`;console.log(tag);
   const page=await newPage(w,h);
@@ -275,6 +300,7 @@ async function encShotRun([w,h]){
 try{
   await encShotRun([844,390]);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
+  for(const vp of VIEWPORTS)await payoffRun(vp);
   for(const vp of VIEWPORTS)await baseRun(vp);
   for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);
 }finally{await browser.close();server.close();}
