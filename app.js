@@ -1231,6 +1231,7 @@ function setupBaseViewer(){
     world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
     viewer.scrollLeft = 0; viewer.scrollTop = 0; // focus/scrollIntoView must never shift the HUD layer
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
+    clearPlatesFromCard(viewer, card, scale);
   }
   function zoomAt(zoom,x,y){
     const vw=viewer.clientWidth||800,vh=viewer.clientHeight||420,old=session.cameraLayout;
@@ -1277,6 +1278,26 @@ function setupBaseViewer(){
   const next=D.baseMap.plates[shownStage+1]; if(next){ const img=new Image(); img.src=next.art; }
 }
 
+// v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
+// right of it when that is out of view or would cover another plate. Uses the independent `translate` property,
+// so the plate's own transform is untouched.
+function clearPlatesFromCard(viewer, card, scale){
+  const plates = [...viewer.querySelectorAll(".mapspot.plate")];
+  plates.forEach(p => { p.style.translate = ""; });
+  if(!card || !card.offsetHeight) return;
+  const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 6;
+  const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+  const rects = plates.map(p => p.getBoundingClientRect());
+  plates.forEach((p, i) => {
+    const r = rects[i]; if(!hit(r, c)) return;
+    const moves = [[0, c.top - gap - r.bottom], [c.right + gap - r.left, 0]];
+    for(const [dx, dy] of moves){
+      const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
+      if(m.top < v.top + gap || m.right > v.right - gap || hit(m, c) || rects.some((o, j) => j !== i && hit(m, o))) continue;
+      p.style.translate = (dx / scale) + "px " + (dy / scale) + "px"; rects[i] = m; return;
+    }
+  });
+}
 function goalPillHtml(nextRoom){
   const pill = (cls, icon, head, body, onclick) => (onclick ? '<button type="button" class="goalpill ' + cls + '" onclick="' + onclick + '">' : '<div class="goalpill ' + cls + '">') +
     '<i aria-hidden="true">' + icon + '</i><span><small>' + head + '</small><b>' + esc(body) + '</b></span>' + (onclick ? '</button>' : '</div>');

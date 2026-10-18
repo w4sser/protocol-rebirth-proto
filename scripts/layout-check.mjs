@@ -163,6 +163,11 @@ async function baseRun([w,h]){
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
+        if(name==='base'){ // v1.67: room plates never sit under the goal card
+          const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal');if(!c)return [];const a=c.getBoundingClientRect();
+            return [...document.querySelectorAll('.baseworld .mapspot.plate')].filter(p=>{const r=p.getBoundingClientRect();return Math.min(a.right,r.right)-Math.max(a.left,r.left)>2&&Math.min(a.bottom,r.bottom)-Math.max(a.top,r.top)>2;}).map(p=>(p.querySelector('b')||p).textContent.trim());});
+          for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}" sits under the goal card`);
+        }
       }
     }
     await page.close();
