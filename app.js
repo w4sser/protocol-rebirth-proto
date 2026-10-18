@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.66.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.66.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -877,13 +877,21 @@ function bootSequence(next, done){
 
 // v1.66 reward screen: one shared popup for every room/upgrade completion. Tiles come from DATA.upgradeRewardTiles
 // (data/modules.js), i.e. from what the level really grants. The BIT-offline line sits outside the card.
+// v1.66.1 "no redundant text": the tiles carry what the level grants, so the description paragraph is gone (it stays
+// in the aria-label). NEXT is kept only when it names somewhere/something to go for, cut to its first clause.
+function rewardNextLine(def){
+  const g = String((def && def.newGoal) || "").split(/ — |\. /)[0].replace(/\.$/, "").trim(); if(!g) return "";
+  const names = D.modules.map(m => m.name).concat(WMAP_NAMES(), D.items.map(i => i.name)).flatMap(n => String(n).toLowerCase().split(/ \/ /)); // "Storage / Vault" matches both aliases
+  return names.some(n => n.length > 2 && g.toLowerCase().includes(n)) ? g : "";
+}
+function WMAP_NAMES(){ return ((D.worldMap && D.worldMap.areas) || []).map(a => a.name).concat((D.raidZones || []).map(z => z.name)); }
 function upgradeRewardHtml(modId, level, bitJustOnline){
   const m = MODS[modId], def = m.levels.find(l => l.level === level), first = level === m.levels[0].level;
   const list = D.upgradeRewardTiles(modId, level), tiles = list.map(t => '<div class="rtile ' + t.kind + '" data-source="' + esc(t.source) + '">' + IC(t.icon) + '<b>' + esc(t.value) + '</b><small>' + esc(t.label) + '</small></div>').join('');
-  const bitOff = !bitJustOnline && !bitOnline();
-  return '<div class="bpop reward-card"><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
-    '<p class="reward-sub">' + esc(def.unlockText || def.benefitText || "") + '</p><div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
-    (def.newGoal ? '<p class="reward-goal"><b>NEXT</b> ' + esc(def.newGoal) + '</p>' : '') +
+  const bitOff = !bitJustOnline && !bitOnline(), nextLine = rewardNextLine(def);
+  return '<div class="bpop reward-card"><span class="sr-only">' + esc(def.unlockText || def.benefitText || "") + '</span><h1 class="reward-title"><span>' + (first ? 'ROOM ONLINE' : 'UPGRADE') + ' · </span>' + esc(m.name).toUpperCase() + ' L' + level + '</h1>' +
+    '<div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
+    (nextLine ? '<p class="reward-goal"><b>NEXT</b> ' + esc(nextLine) + '</p>' : '') +
     '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
     (bitOff ? '<p class="reward-bit">' + IC("bit-face") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
 }
@@ -1314,7 +1322,7 @@ SCREENS.base = function(){
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
     const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
-    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : lvl>0?IC("check")+' ONLINE':'') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
+    const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
     html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?' goal-target':'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
