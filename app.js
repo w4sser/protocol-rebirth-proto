@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.66.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.67.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -35,6 +35,7 @@ function freshState(){
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
+    payoff: null, payoffDone: false,
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -47,10 +48,18 @@ function load(){
     if(raw){
       const st = JSON.parse(raw);
       if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); return st; }
     }
   }catch(e){}
   return freshState();
+}
+// v1.67: first-upgrade payoff (PROG.firstUpgradePayoff). Saves that already own a payoff upgrade never get a late one.
+function migratePayoff(st){
+  if(st.payoff === undefined) st.payoff = null;
+  if(st.payoffDone === undefined){
+    st.payoffDone = Object.keys(PROG.firstUpgradePayoff).some(k => { const [m, l] = k.split(":"); return ((st.modules && st.modules[m]) || 0) >= +l; });
+  }
+  return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
 function migrateSkills(st){
@@ -162,11 +171,17 @@ function progressionGoal(){
   const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
   return {module:id,level:next.level,name:m.name,benefit:next.benefitText,parts,ready:canAfford(next.cost),following:following?following.label:null};
 }
+// Effect tiles for the goal card: only what DATA.upgradeRewardTiles says the level grants (max 3, priority in DATA.goalEffectTiles).
+function goalEffectTiles(g){ return g ? D.goalEffectTiles(g.module, g.level, 3) : []; }
+function goalTilesHtml(g){
+  const tiles = goalEffectTiles(g);
+  return tiles.length ? '<div class="gtiles" data-count="' + tiles.length + '">' + tiles.map(t => '<div class="gtile ' + t.kind + '" data-source="' + esc(t.source) + '">' + IC(t.icon) + '<span><b>' + esc(t.value) + '</b><small>' + esc(t.label) + '</small></span></div>').join('') + '</div>' : '';
+}
 function progressionGoalHtml(compact){
   const g=progressionGoal();if(!g)return "";
   const missing=g.parts.filter(p=>p.secured<p.need);
   if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="Next upgrade: '+esc(g.name)+' L'+g.level+'"><b>GOAL · '+esc(g.name).toUpperCase()+' L'+g.level+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
-  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b><span>'+esc(g.benefit)+'</span><div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+(g.ready?'ACTIVATE':'VIEW UPGRADE')+'</button></section>';
+  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+(g.ready?'ACTIVATE':'VIEW UPGRADE')+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
@@ -352,6 +367,7 @@ function finishModuleLevel(modId, level){
   const gift=first && MODS[modId].levels.find(l=>l.level===level).commissioning;
   if(gift)for(const id in gift)addItem(id,gift[id]);
   grantToolUnlocks(modId, level);
+  if(first && !S.payoffDone && !S.payoff && PROG.firstUpgradePayoff[modId + ":" + level]) S.payoff = { pending:modId + ":" + level };
   const b = curBeat();
   if((b.type === "build" && b.module === modId && b.level === level) || (b.type === "build_any" && b.modules.includes(modId))) advanceBeat();
 }
@@ -2278,6 +2294,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") +
+    (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
     (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
@@ -2348,6 +2365,15 @@ function nodeRaidTool(){
   const l = session.prep && session.prep.loadout, id = l && l.tool, it = id && ITEMS[id];
   if(!it || it.slot !== "tool" || !it.tool || have(id) < 1) return null;
   return { id, n:Math.min(have(id), it.tool.charges) };
+}
+// One-time first-upgrade payoff (PROG.firstUpgradePayoff): consumed by the first unguided raid deploy after the upgrade.
+// free_tool waits (stays pending) while the player carries their own tool. Returns {kind, freeTool} or null.
+function takeFirstPayoff(hasTool){
+  const key = S.payoff && S.payoff.pending, cfg = key && PROG.firstUpgradePayoff[key];
+  if(S.payoffDone || !cfg || (cfg.kind === "free_tool" && (hasTool || !ITEMS[cfg.tool]))) return null;
+  S.payoff = null; S.payoffDone = true;
+  act("PAYOFF_USED", { upgrade:key, kind:cfg.kind });
+  return { kind:cfg.kind, freeTool:cfg.kind === "free_tool" ? { id:cfg.tool, n:cfg.charges || 1 } : null };
 }
 function weaponParam(id){
   const w = masteredWeapon(id); if(!w) return "";
@@ -2668,15 +2694,16 @@ window.A = {
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
+    const intro = guidedRaid(), pay = intro ? null : takeFirstPayoff(!!tool), launchTool = tool || (pay && pay.freeTool) || null;
     // Deploy is free, but equipped gear (non-Basic weapon, armour), medkits and the tool slot go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
     if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
     if(tool) removeItem(tool.id, tool.n);
-    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea() };
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea() }; // a free payoff tool is launch-only: never in coreLaunch.tool, so nothing returns to the stash
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro:guidedRaid() }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
   },
   deploy(){
     if(!session.prep) return;
@@ -3247,4 +3274,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   showQuestReady();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };

@@ -122,7 +122,7 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable")
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "powered_hub", "habitable state selects powered audio profile");
 assert(doc.querySelectorAll("#tabs button:not([disabled])").length >= 3, "habitable state unlocks navigation");
-assert(text().includes("Fabricator L1")&&text().includes("Scavenger Vest"), "base names the next room and usable benefit");
+assert(text().includes("Fabricator L1")&&text().includes("+25")&&text().includes("+1 SLOT"), "base names the next room and usable benefit");
 assert(!text().includes("NEXT UPGRADE"), "next room has no competing upgrade card");
 assert(text().includes("Fabricator") && text().includes("Cable"), "goal shows remaining repair materials");
 const cameraBeforeReveal = doc.querySelector(".baseworld").style.transform;

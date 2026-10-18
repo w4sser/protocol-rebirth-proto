@@ -1,11 +1,12 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "1.66.1",
+  "version": "1.67.0",
   "private": true,
   "scripts": {
-    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:mapzoom && npm run test:reward && npm run test:guardrails && npm run test:oscar",
+    "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:mapzoom && npm run test:reward && npm run test:payoff && npm run test:guardrails && npm run test:oscar",
     "test:guardrails": "node test/guardrails.test.js",
     "test:reward": "node test/reward.test.js",
+    "test:payoff": "node test/payoff.test.js",
     "verify": "npm test && npm --prefix nodspel test && node scripts/layout-check.mjs",
     "test:idle": "node test/idle.test.js",
     "test:popup": "node test/popup.test.js && node test/popup-fit.test.js",

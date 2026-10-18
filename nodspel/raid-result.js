@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.66.1';
-import {RULES} from './levels.js?v=1.66.1';
-import {bagCap,equippedGear} from './round.js?v=1.66.1';
-import {readGoal} from './progression-goal.js?v=1.66.1';
+import {bagItems} from './raid.js?v=1.67.0';
+import {RULES} from './levels.js?v=1.67.0';
+import {bagCap,equippedGear} from './round.js?v=1.67.0';
+import {readGoal} from './progression-goal.js?v=1.67.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -41,8 +41,10 @@ export function readLaunch(search){
   const seed=p.get('seed')||null,rawId=p.get('raidId');
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
-    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1'};
+    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',payoff:readPayoff(p.get('payoff'))};
 }
+// ?payoff=loot_cluster -> one-time first-upgrade payoff (RULES.payoff keys only; anything else -> null).
+export function readPayoff(value){return typeof value==='string'&&Object.hasOwn(RULES.payoff,value)?value:null;}
 // ?w=id:rifle_marksman,dmg:2,mag:4,rld:900,int:450,rng:11,cone:5,ast:8,spr:0 -> clamped weapon stats (missing -> Basic).
 const WEAPON_KEYS={dmg:'damage',mag:'capacity',rld:'reloadMs',int:'shotIntervalMs',rng:'range',cone:'coneHalfAngleDegrees',ast:'assistAngleDegrees',spr:'spreadDegrees'};
 export function readWeapon(value){

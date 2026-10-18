@@ -226,6 +226,18 @@ async function introGoalRun([w,h]){
   await shot(page,`raid-intro-goal-${w}x${h}`);
   await page.close();
 }
+// v1.67: first-upgrade payoff raid (bunker, bag cache near spawn + BIT notice) must not overlap HUD, timer or world labels.
+async function payoffRun([w,h]){
+  const tag=`raid payoff ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=77d97187-payoff&area=bunker&debug=1&q=high&bag=5&kit=medkit%3A1&payoff=loot_cluster`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1200);
+  await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
+  await sweepLabels(page,`${tag} L1`);
+  await shot(page,`raid-payoff-${w}x${h}`);
+  await page.close();
+}
 async function raidRun([w,h],area){
   const tag=`raid ${area} ${w}x${h}`;console.log(tag);
   const page=await newPage(w,h);
@@ -275,6 +287,7 @@ async function encShotRun([w,h]){
 try{
   await encShotRun([844,390]);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
+  for(const vp of VIEWPORTS)await payoffRun(vp);
   for(const vp of VIEWPORTS)await baseRun(vp);
   for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);
 }finally{await browser.close();server.close();}
