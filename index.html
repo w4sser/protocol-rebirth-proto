@@ -802,12 +802,12 @@
   .progress-goal>b{font-size:15px;color:#75cfcc;}.progress-goal>div{display:flex;flex-wrap:wrap;gap:4px 12px;}.progress-goal small{color:#a7bfbd;}.progress-goal button{min-height:32px;font-size:11px;margin:0;padding:5px;}
   .s-base .progress-goal{position:absolute;left:calc(12px + var(--sl));bottom:12px;z-index:8;width:min(300px,calc(100% - 24px));}
   /* v1.67 goal effect tiles: max 3 compact tiles (icon + value + label) from DATA.upgradeRewardTiles */
-  .progress-goal>.gtiles{display:flex;flex-wrap:nowrap;gap:4px}.gtile{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:8px;background:var(--solid);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent)}
-  .gtile .pr-ic{flex:none;width:18px;height:18px;color:var(--ad-bit)}.gtile.gear{border-color:var(--ad-loot)}.gtile.gear .pr-ic{color:var(--ad-loot)}
-  .gtile>span{display:flex;flex-direction:column;min-width:0;line-height:1.1}.gtile b{font:900 11px/1.1 system-ui,sans-serif;color:#f2e9d6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gtile small{font-size:7px;letter-spacing:.06em;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .progress-goal>.gtiles{display:flex;flex-wrap:nowrap;gap:3px}.gtile{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:3px;padding:3px 4px;border-radius:8px;background:var(--solid);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent)}
+  .gtile .pr-ic{flex:none;width:16px;height:16px;color:var(--ad-bit)}.gtile.gear{border-color:var(--ad-loot)}.gtile.gear .pr-ic{color:var(--ad-loot)}
+  .gtile>span{display:flex;flex-direction:column;min-width:0;line-height:1.1}.gtile b{font:900 11px/1.1 system-ui,sans-serif;color:var(--ad-bone);white-space:nowrap}.gtile small{font-size:8px;letter-spacing:.04em;color:var(--dim);white-space:nowrap}
   .goal-target .tag{border:2px solid #75cfcc;box-shadow:0 0 16px #3fe0d099;}.goal-target .tag:after{content:'NEXT';font-size:10px;color:#75cfcc;}
   .lobby-top .progress-goal{max-width:min(420px,60vw);font-size:11px;}.lobby-top .progress-goal>button{display:none;}
-  @media(max-height:500px){.s-base .progress-goal{padding:6px 7px;max-width:270px;font-size:11px;gap:3px;}.s-base .progress-goal>b{font-size:14px;line-height:1.1}.s-base .progress-goal button{min-height:28px;padding:3px}.s-base .progress-goal>div:not(.gtiles){gap:2px 10px}.gtile{padding:2px 4px}.gtile .pr-ic{width:16px;height:16px}.s-base .progress-goal>small{display:none;}.lobby-top .progress-goal>span{max-width:400px;}.lobby-top .progress-goal>small{display:none;}}
+  @media(max-height:500px){.s-base .progress-goal{padding:6px 7px;max-width:270px;font-size:11px;gap:3px;}.s-base .progress-goal>b{font-size:14px;line-height:1.1}.s-base .progress-goal button{min-height:28px;padding:3px}.s-base .progress-goal>div:not(.gtiles){gap:2px 10px}.gtile{padding:2px 3px}.s-base .progress-goal>small{display:none;}.lobby-top .progress-goal>span{max-width:400px;}.lobby-top .progress-goal>small{display:none;}}
   /* v1.61: Item 2 + Tool share one row so the right column keeps two rows above DEPLOY */
   #app.s-prep .lobby-side .lslot-row{display:flex;gap:6px;flex:1 1 0;min-height:0}#app.s-prep .lobby-side .lslot-row .lslot{flex:1 1 0;min-width:0}
   /* v1.64 item info: Used for + first-find card (shared popup) */

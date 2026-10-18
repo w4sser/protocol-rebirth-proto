@@ -172,7 +172,14 @@ function progressionGoal(){
   return {module:id,level:next.level,name:m.name,benefit:next.benefitText,parts,ready:canAfford(next.cost),following:following?following.label:null};
 }
 // Effect tiles for the goal card: only what DATA.upgradeRewardTiles says the level grants (max 3, priority in DATA.goalEffectTiles).
-function goalEffectTiles(g){ return g ? D.goalEffectTiles(g.module, g.level, 3) : []; }
+// Deterministic fit rule (no measuring): estimated width per tile = chrome 29px + longest of value (11px bold, ~7px/char) and
+// label (8px, ~5.5px/char); the lowest-priority tiles are dropped until the row fits the narrowest card (250px). Never truncated.
+function goalEffectTiles(g){
+  const tiles = g ? D.goalEffectTiles(g.module, g.level, 3) : [];
+  const w = t => 29 + Math.max(7 * String(t.value).length, 5.5 * String(t.label).length);
+  while(tiles.length > 1 && tiles.reduce((a, t) => a + w(t), 3 * (tiles.length - 1)) > 250) tiles.pop();
+  return tiles;
+}
 function goalTilesHtml(g){
   const tiles = goalEffectTiles(g);
   return tiles.length ? '<div class="gtiles" data-count="' + tiles.length + '">' + tiles.map(t => '<div class="gtile ' + t.kind + '" data-source="' + esc(t.source) + '">' + IC(t.icon) + '<span><b>' + esc(t.value) + '</b><small>' + esc(t.label) + '</small></span></div>').join('') + '</div>' : '';
@@ -1285,15 +1292,19 @@ function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
   if(!card || !card.offsetHeight) return;
+  const nav = document.getElementById("tabs"), n = nav && nav.offsetHeight ? nav.getBoundingClientRect() : null;
   const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
   plates.forEach((p, i) => {
-    const r = rects[i]; if(!hit(r, c)) return;
-    const moves = [[0, c.top - gap - r.bottom], [c.right + gap - r.left, 0]];
+    const r = rects[i];
+    // Blocked: under the card, or in the strip below the card top where the card column / nav bar hides it.
+    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n));
+    if(!blocked) return;
+    const moves = [[0, c.top - gap - r.bottom], [c.right + gap - r.left, 0], [c.right + gap - r.left, c.top - gap - r.bottom]];
     for(const [dx, dy] of moves){
       const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
-      if(m.top < v.top + gap || m.right > v.right - gap || hit(m, c) || rects.some((o, j) => j !== i && hit(m, o))) continue;
+      if(m.top < v.top + gap || m.right > v.right - gap || hit(m, c) || (n && hit(m, n)) || rects.some((o, j) => j !== i && hit(m, o))) continue;
       p.style.translate = (dx / scale) + "px " + (dy / scale) + "px"; rects[i] = m; return;
     }
   });
