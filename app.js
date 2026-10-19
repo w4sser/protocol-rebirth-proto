@@ -1757,7 +1757,7 @@ SCREENS.worldmap = function(){
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + wmFogSvg() + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
-    '<div class="wm-ui"><h1>WORLD MAP</h1></div>' +
+    '<h1 class="sr-only">World map</h1>' +
     '</div>';
   setupWorldMapPan(sel);
 };
