@@ -55,7 +55,7 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   const cam = b.T.session().wmCam, D = b.w.DATA.worldMap, T = D.areas.find(a => a.id === "archipelago").region, B = D.areas[0].region;
   assert.equal(b.T.wmNewUnlockTarget(), "archipelago");
   assert(cam.intro && cam.intro.area === "archipelago" && cam.fx < (T.x + T.w / 2) / 100 - 0.1 && cam.z === 1.4, "starts at the selected area default framing, glide pending");
-  b.flush(); assert.equal(cam.intro, null, "glide finished"); assert(cam.z > 1.4 && cam.z <= D.newUnlockZoom.z + 1e-6, "closer zoom " + cam.z);
+  b.flush(); assert.equal(cam.intro, null, "glide finished"); assert(cam.z > 1 && cam.z <= D.newUnlockZoom.z + 1e-6, "fit zoom " + cam.z);
   assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02 && cam.fy * 100 > T.y && cam.fy * 100 < T.y + T.h + 12, "centred on the new area"); }
 { // framing: region + label card fit the visible box (viewport minus chrome) with padding, at the largest zoom that allows it
   const b = boot(), D = b.w.DATA.worldMap, A = D.areas.find(a => a.id === "archipelago"), lbl = { w:150, h:70 }, pad = D.newUnlockZoom.pad;
