@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.69.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.69.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -2624,6 +2624,7 @@ window.A = {
     const el = document.querySelector(".intro"); if(el) el.classList.add("done");
   },
   dismissIntro(){
+    document.body.classList.remove("startup-bunker-intro");
     S.introSeen = true;
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
@@ -3259,10 +3260,67 @@ function setupSplash(){
   document.addEventListener("pointerdown", once, true);
   if(!sp) return;
   let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
-  const hide = () => { sp.classList.add("out"); setTimeout(() => sp.remove(), 500); };
   if(shown){ sp.remove(); return; }
-  sp.addEventListener("click", () => { lockLandscape(); hide(); });
-  setTimeout(hide, 1800);
+  const body = document.body;
+  body.classList.add("splash-active");
+  if(!S.introSeen) body.classList.add("startup-bunker-intro");
+  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer;
+  const pendingImages = [];
+  const reduced = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const finish = () => {
+    if(phase === "done") return;
+    phase = "done";
+    clearTimeout(autoTimer); clearTimeout(endTimer); clearTimeout(loadTimer);
+    pendingImages.forEach(img => { img.onload = img.onerror = null; });
+    body.classList.remove("splash-active", "startup-descending");
+    document.removeEventListener("visibilitychange", onVisibility);
+    sp.remove();
+  };
+  const begin = () => {
+    if(phase !== "ready") return;
+    phase = "descending"; clearTimeout(autoTimer);
+    sp.setAttribute("aria-label", "Skip bunker entrance");
+    if(reduced()){
+      sp.classList.add("out"); endTimer = setTimeout(finish, 200);
+    } else {
+      body.classList.add("startup-descending"); sp.classList.add("descending");
+      // Keep a timer as well as animationend: interrupted animations must never block play.
+      endTimer = setTimeout(finish, 1450);
+    }
+  };
+  const ready = () => {
+    if(phase !== "loading") return;
+    phase = "ready"; clearTimeout(loadTimer);
+    if(requested) begin(); else autoTimer = setTimeout(begin, 1400);
+  };
+  const activate = () => {
+    lockLandscape();
+    if(phase === "descending"){ finish(); return; }
+    requested = true; begin();
+  };
+  const onVisibility = () => { if(document.hidden) finish(); };
+  document.addEventListener("visibilitychange", onVisibility);
+  sp.addEventListener("click", activate);
+  sp.addEventListener("keydown", e => {
+    if(e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(); }
+  });
+  sp.querySelector(".splash-track")?.addEventListener("animationend", e => {
+    if(e.animationName === "surfaceDeparture") finish();
+  });
+  const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
+    D.baseMap.plates[bunkerStage()].art];
+  let remaining = art.length;
+  for(const src of art){
+    const img = new Image(); pendingImages.push(img);
+    let settled = false;
+    img.onload = img.onerror = () => {
+      if(settled) return; settled = true;
+      if(--remaining === 0) ready();
+    };
+    img.src = src;
+    if(img.complete) img.onload();
+  }
+  if(phase === "loading") loadTimer = setTimeout(ready, 2500);
 }
 /* ---------- init ---------- */
 // ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
