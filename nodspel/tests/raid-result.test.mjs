@@ -55,9 +55,9 @@ test('abandon loses the bag and is reported as death; timeout is reported as tim
   const res=buildRaidResult(r);
   assert.equal(res.outcome,'death');assert.equal(res.reason,'abandon');assert.deepEqual(res.lost,['fuse']);
 });
-test('launched raids hide Restart in favour of Abandon, and level exits offer Extract or Next level',async()=>{
+test('launched raids hide Restart in favour of Abandon, and checkpoints offer explicit extraction or continued risk',async()=>{
   const {readFile}=await import('node:fs/promises');
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8'),js=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
-  assert.match(html,/<button id="abandon"[^>]*hidden>/);assert.match(html,/<button id="extract-raid" hidden>Extract<\/button><button id="continue-raid" hidden>Next level<\/button>/);
+  assert.match(html,/<button id="abandon"[^>]*hidden>/);assert.match(html,/<button id="extract-raid"[^>]*hidden>Extract &amp; secure<\/button><button id="continue-raid"[^>]*hidden>Continue raid<\/button>/);
   assert.match(js,/\$\('#reset'\)\.hidden=!!launch\.returnUrl/);assert.match(js,/\$\('#new-round'\)\.hidden=!!launch\.returnUrl/);
 });

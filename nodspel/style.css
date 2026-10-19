@@ -160,3 +160,55 @@ html,body{background:#07151c}
 .swap-goal{font-size:10px;color:var(--ad-bit);margin:0 0 6px 32px}
 
 body:has(#swap-row[data-kind=bag]:not([hidden])) .area-notice{visibility:hidden}
+
+/* Outcome-first raid report: one shared popup, no gameplay HUD competing with it. */
+#round-over{z-index:25;padding:16px 24px;background:color-mix(in srgb,var(--ad-night) 94%,transparent)}
+#round-over .result-card{--result-signal:var(--ad-bit);width:min(820px,100%);max-height:100%;box-sizing:border-box;padding:0;overflow:visible;text-align:left;background:var(--ad-night);border:1px solid color-mix(in srgb,var(--result-signal) 45%,var(--ad-ink));animation:none;color:var(--ad-bone)}
+#round-over[data-outcome=checkpoint] .result-card{--result-signal:var(--ad-primary)}
+#round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) .result-card{--result-signal:var(--ad-danger)}
+.result-brand{display:flex;justify-content:space-between;gap:10px;padding:11px 16px 11px 36px;border-bottom:1px solid var(--ad-ink);font:10px 'IBM Plex Mono',monospace;letter-spacing:1px;color:var(--ad-bit)}
+.result-brand #round-over-eyebrow{color:var(--result-signal);font-size:10px}
+.result-body{display:grid;grid-template-columns:minmax(150px,.85fr) minmax(0,1.35fr)}
+.result-outcome{padding:16px;border-right:1px solid var(--ad-ink);display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,color-mix(in srgb,var(--result-signal) 8%,var(--ad-night)),var(--ad-night))}
+.result-symbol{color:var(--result-signal)}.result-symbol .pr-ic{width:28px;height:28px}
+#round-over .result-card h2{font:800 clamp(23px,3.8vw,36px)/1 'Archivo',sans-serif;color:var(--result-signal);letter-spacing:-.6px;margin:0;overflow-wrap:anywhere}
+#round-over .result-card p{margin:0;font-size:12px;line-height:1.4;color:var(--ad-bone)}
+.result-meta{margin-top:auto;display:flex;flex-direction:column;gap:4px;font:9px 'IBM Plex Mono',monospace;color:var(--ad-bit)}
+.result-meta b{font-weight:400}
+.result-content{padding:15px 16px;min-width:0}
+.result-content h3{font:10px 'IBM Plex Mono',monospace;letter-spacing:1px;color:var(--ad-bit);margin:0 0 9px}
+#result-report{display:flex;flex-direction:column;gap:8px}
+.result-loot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:12px}
+.result-item{background:var(--ad-ink);border-radius:5px;display:flex;align-items:center;gap:6px;justify-content:space-between;padding:8px;font-size:11px;min-width:0}
+.result-item>span{min-width:0;overflow-wrap:anywhere}.result-item .pr-ic{color:var(--ad-loot);width:16px;height:16px}.result-item>b{flex:none;color:var(--ad-loot);font-variant-numeric:tabular-nums}
+#round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) .result-item>b{color:var(--ad-danger)}
+#round-over .result-card .result-small{font-size:10px;color:var(--ad-bit)}
+#round-over .result-card .result-bonus{font-size:11px;color:var(--ad-loot)}
+.result-goal{background:var(--ad-ink);padding:9px 10px;border-left:3px solid var(--result-signal);border-radius:0 5px 5px 0;display:flex;flex-direction:column;gap:4px;font-size:11px}
+.result-goal>span{font-size:10px;line-height:1.4;color:var(--ad-bit)}.result-goal.ready>span{color:var(--ad-loot)}
+#round-over .result-card .death-tip{font-size:10px;line-height:1.35;color:var(--ad-bit);margin:0;padding:0;border:0;background:none}
+.result-footer{padding:11px 16px;border-top:1px solid var(--ad-ink);background:var(--ad-ink);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.result-footer-copy{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:10px;color:var(--ad-bit)}
+#round-over .result-card #result-details-toggle{align-self:flex-start;min-height:28px;padding:4px 0;background:none;border:0;color:var(--ad-bit);font-size:11px;text-decoration:underline}
+#round-over .result-actions{flex:none;flex-wrap:nowrap;gap:8px}
+#round-over .result-actions button{min-height:44px;padding:10px 13px;border:1px solid var(--ad-primary);background:var(--ad-primary);color:var(--ad-night);font:700 11px 'IBM Plex Sans',sans-serif;text-transform:uppercase;white-space:nowrap}
+#round-over .result-actions .result-secondary{background:transparent;color:var(--ad-bone);border-color:var(--ad-bit)}
+.result-detail-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.result-all-loot{display:flex;flex-direction:column;gap:3px;font-size:11px}
+.result-item.compact{padding:3px 0;background:none;font-size:10px;border-radius:0}
+#round-over .summary-stats{margin:0;display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:12px}
+#round-over .summary-stats div{min-width:0}#round-over .summary-stats dt{font-size:9px;color:var(--ad-bit)}#round-over .summary-stats dd{font:700 13px 'IBM Plex Mono',monospace;margin:4px 0 0;color:var(--ad-bone)}
+.round-ended :is(.hud,.bag-panel,.level-corner,#player-health,#player-shield,#world-labels,footer,#use-kit){visibility:hidden}
+body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,#level-toast,#extract-toast,#encounter-hint){visibility:hidden}
+@media(max-height:400px){.result-symbol{display:none}.result-outcome{padding:12px;gap:8px}.result-content{padding:12px}.result-brand{padding-top:8px;padding-bottom:8px}.result-footer{padding:8px 12px}.result-goal{padding:7px 9px}#result-report{gap:6px}.result-item{padding:6px}#round-over .result-card .death-tip{font-size:9px}.result-footer-copy #result-next{max-width:155px}}
+@media(max-width:600px){.result-footer{align-items:flex-start;flex-direction:column}.result-body{grid-template-columns:minmax(125px,.8fr) minmax(0,1.2fr)}#round-over .result-actions{width:100%;justify-content:flex-end}.result-brand>span:first-child{display:none}}
+
+#round-over::before{content:'';position:fixed;inset:calc(-1*var(--st)) calc(-1*var(--sr)) calc(-1*var(--sb)) calc(-1*var(--sl));background:color-mix(in srgb,var(--ad-night) 94%,transparent);z-index:-1;pointer-events:none}
+#round-over.show-details .result-body{display:block}
+#round-over.show-details .result-outcome{display:none}
+#round-over .result-all-loot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:5px 10px}
+#round-over .result-detail-columns{grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr)}
+#round-over .result-detail-tip{font-size:10px;line-height:1.35;color:var(--ad-bit);margin-top:10px}
+@media(max-height:400px){.result-footer-copy #result-next{display:none}#result-report .death-tip{display:none}.result-item.compact{padding:2px 0}}
+
+#round-over .result-item.result-recovered>b,#round-over .result-item.result-recovered .pr-ic{color:var(--ad-bit)}

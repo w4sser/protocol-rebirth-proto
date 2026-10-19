@@ -1,6 +1,7 @@
 // Protocol Rebirth prototype — BIT bond levels and dialogue.
-window.DATA = window.DATA || {};
-window.DATA.bit = {
+var BIT_DATA_ROOT = typeof window !== 'undefined' ? window : globalThis;
+BIT_DATA_ROOT.DATA = BIT_DATA_ROOT.DATA || {};
+BIT_DATA_ROOT.DATA.bit = {
   // Bond levels per META_v0.1 §4.2. xp thresholds are cumulative.
   // Bond = relation & intelligence. Hardware (loot scan, cargo) lives in BIT Bay levels.
   bondLevels:[
