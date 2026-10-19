@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.69.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.69.2"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -35,7 +35,7 @@ function freshState(){
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
-    payoff: null, payoffDone: false,
+    payoff: null, payoffDone: false, areaSeen: {},
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -48,7 +48,7 @@ function load(){
     if(raw){
       const st = JSON.parse(raw);
       if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
     }
   }catch(e){}
   return freshState();
@@ -58,6 +58,16 @@ function migratePayoff(st){
   if(st.payoff === undefined) st.payoff = null;
   if(st.payoffDone === undefined){
     st.payoffDone = Object.keys(PROG.firstUpgradePayoff).some(k => { const [m, l] = k.split(":"); return ((st.modules && st.modules[m]) || 0) >= +l; });
+  }
+  return st;
+}
+// v1.69.2: NEW badge on freshly unlocked map areas. Saves without areaSeen mark every area they already have open
+// as seen, so veterans get no surprise badge (no SAVE_VERSION bump: the field is additive).
+function migrateAreaSeen(st){
+  if(st.areaSeen && typeof st.areaSeen === "object") return st;
+  st.areaSeen = {};
+  for(const a of (D.worldMap && D.worldMap.areas) || []){
+    if(a.requires && ((st.modules && st.modules.rebirth_core) || 0) >= a.requires.core && st.areaScouted && st.areaScouted[a.id]) st.areaSeen[a.id] = true;
   }
   return st;
 }
@@ -968,6 +978,7 @@ function navBadge(id){
   // Owner 14 Oct: the base tab counts what can be built right now.
   if(id === "base"){ const n = buildableCount(); if(n) return ["up build", String(n)]; }
   if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
+  if(id === "prep" && wmNewUnlockTarget()) return ["alert","!"];
   if(id === "stash" && stashSlotsUsed() > stashCapacity()) return ["alert","!"];
   if(id === "bit" && contractsUnlocked()){
     const n = Object.values(S.contracts || {}).filter(v => v === "done").length;
@@ -1691,6 +1702,10 @@ const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(l
 function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
 function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
 function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaCoreOk(id) && areaScouted(id); }
+// Unlocked for real (not via debug) and not yet selected/tapped by the player.
+function areaUnseen(id){ const a = AREA_DEFS[id]; return !!(a && a.requires && !DEBUG_AREAS && !S.debugAreas && areaUnlocked(id) && !(S.areaSeen && S.areaSeen[id])); }
+// First unseen unlocked area in data order, or null. Drives the NEW badges and the map-open zoom.
+function wmNewUnlockTarget(){ const a = WMAP.areas.find(x => areaUnseen(x.id)); return a ? a.id : null; }
 function raidArea(){ return AREA_DEFS[S.area] && areaUnlocked(S.area) ? S.area : WMAP.areas[0].id; }
 function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
 // Requirement lines for a locked area: [text, done] pairs, both steps visible.
@@ -1711,7 +1726,7 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span>' + (wmNewUnlockTarget() ? '<em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -1730,8 +1745,8 @@ SCREENS.worldmap = function(){
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
-      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
+      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' + (areaUnseen(a.id) ? '<em class="wm-new" aria-label="New area">NEW</em>' : '') +
       '<span class="wm-name">' + IC(a.iconId) + ' ' + esc(a.name) + ' <small class="threat">' + IC("threat").repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>') + '</div>';
@@ -1778,7 +1793,12 @@ function setupWorldMapPan(sel){
   if(!view || !stage) return;
   const R = AREA_DEFS[sel].region;
   wmCancel(session.wmAnim); session.wmAnim = 0;
-  if(!session.wmCam) session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
+  if(!session.wmCam){
+    session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
+    // Fresh open with an unseen unlock: fly to it once (cam.intro holds the target until the glide ends or the user takes over).
+    const nt = wmNewUnlockTarget(), NZ = WMAP.newUnlockZoom;
+    if(nt && NZ && nt !== sel){ const T = AREA_DEFS[nt].region; session.wmCam.intro = { fx:(T.x + T.w / 2) / 100, fy:(T.y + T.h / 2) / 100, z:NZ.z, ms:NZ.ms, left:NZ.ms }; }
+  }
   const cam = session.wmCam; cam.area = sel;
   const pts = new Map(); let g = null, moved = false, suppress = false, vel = { x:0, y:0 }, G = null;
   const size = () => [view.clientWidth || 844, view.clientHeight || 390];
@@ -1827,7 +1847,7 @@ function setupWorldMapPan(sel){
     session.wmAnim = wmRaf(step);
   }
   view.addEventListener("pointerdown", e => {
-    wmCancel(session.wmAnim); session.wmAnim = 0;
+    wmCancel(session.wmAnim); session.wmAnim = 0; cam.intro = null;
     pts.set(e.pointerId, { x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY });
     if(pts.size === 1){ moved = false; vel = { x:0, y:0 }; }
     if(pts.size > 1){ if(!moved){ moved = true; suppress = true; view.classList.add("dragging"); } for(const id of pts.keys()) if(view.setPointerCapture) try { view.setPointerCapture(id); } catch(_){} }
@@ -1850,7 +1870,7 @@ function setupWorldMapPan(sel){
   };
   view.addEventListener("pointerup", up); view.addEventListener("pointercancel", up);
   view.addEventListener("wheel", e => {
-    e.preventDefault(); wmCancel(session.wmAnim); const [ox, oy] = origin(), px = e.clientX - ox, py = e.clientY - oy, unit = e.deltaMode === 1 ? 16 : 1;
+    e.preventDefault(); wmCancel(session.wmAnim); cam.intro = null; const [ox, oy] = origin(), px = e.clientX - ox, py = e.clientY - oy, unit = e.deltaMode === 1 ? 16 : 1;
     const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
     if(e.ctrlKey || mouse) zoomAt(cam.z * Math.exp(-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0015)), px, py);
     else { cam.fx += e.deltaX / G.s; cam.fy += e.deltaY / G.sh; }
@@ -1862,6 +1882,25 @@ function setupWorldMapPan(sel){
   session.wmResize = () => { layout(); settle(); }; window.addEventListener("resize", session.wmResize); layout();
   if(Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)) !== cam.fx || Math.max(G.by[0], Math.min(G.by[1], cam.fy)) !== cam.fy){
     cam.fx = Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)); cam.fy = Math.max(G.by[0], Math.min(G.by[1], cam.fy)); layout(); }
+  if(cam.intro) flyToNew();
+  // Ease-out glide to the new area at the closer zoom, then stay put (the user can pan from there). A re-render
+  // mid-flight resumes with the time left. Reduced motion jumps straight there.
+  function flyToNew(){
+    const I = cam.intro, [vw, vh] = size(), E = wmGeom(vw, vh, I.z);
+    const to = { fx:Math.max(E.bx[0], Math.min(E.bx[1], I.fx)), fy:Math.max(E.by[0], Math.min(E.by[1], I.fy)), z:E.z };
+    const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduce || I.left <= 0){ Object.assign(cam, to); cam.intro = null; layout(); return; }
+    const from = { fx:cam.fx, fy:cam.fy, z:cam.z }, total = I.left; let t0 = 0;
+    const step = now => {
+      if(!cam.intro) return; if(!t0) t0 = now;
+      const el = Math.min(total, now - t0), k = 1 - Math.pow(1 - el / total, 3);
+      cam.fx = from.fx + (to.fx - from.fx) * k; cam.fy = from.fy + (to.fy - from.fy) * k; cam.z = from.z + (to.z - from.z) * k; I.left = total - el;
+      layout();
+      if(el >= total){ cam.fx = to.fx; cam.fy = to.fy; cam.z = to.z; cam.intro = null; layout(); session.wmAnim = 0; return; }
+      session.wmAnim = wmRaf(step);
+    };
+    session.wmAnim = wmRaf(step);
+  }
 }
 // Fog of war: navy fog over everything except area regions and routes (soft feathered holes via a blurred mask).
 function wmFogSvg(){
@@ -2723,7 +2762,7 @@ window.A = {
       refresh("raid_prep");
     });
   },
-  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; act("AREA_SELECTED", { area:id }); refresh(); },
+  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
@@ -3364,4 +3403,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   showQuestReady();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
