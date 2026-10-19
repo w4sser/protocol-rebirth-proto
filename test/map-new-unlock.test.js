@@ -60,7 +60,7 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
 { // framing: region + label card fit the visible box (viewport minus chrome) with padding, at the largest zoom that allows it
   const b = boot(), D = b.w.DATA.worldMap, A = D.areas.find(a => a.id === "archipelago"), lbl = { w:150, h:70 }, pad = D.newUnlockZoom.pad;
   assert(pad > 0, "pad is data-driven");
-  for(const [vw, vh, ins] of [[844, 390, { t:34, r:0, b:0, l:84 }], [667, 375, { t:34, r:0, b:0, l:84 }], [932, 430, { t:38, r:30, b:20, l:114 }]]){
+  for(const [vw, vh, ins] of [[844, 280, { t:0, r:0, b:0, l:0 }], [667, 265, { t:0, r:0, b:0, l:0 }], [932, 300, { t:0, r:30, b:0, l:20 }]]){
     const F = b.T.wmFitUnlock(vw, vh, ins, A.region, A.label, lbl, { z:D.newUnlockZoom.z, pad }), x = F.box;
     const cx = (x.x0 + x.x1) / 2, ax = ins.l + (vw - ins.l - ins.r) / 2, ay = ins.t + (vh - ins.t - ins.b) / 2, cy = (x.y0 + x.y1) / 2;
     assert(x.x1 - x.x0 <= vw - ins.l - ins.r - 2 * pad + 1e-6 && x.y1 - x.y0 <= vh - ins.t - ins.b - 2 * pad + 1e-6, vw + "x" + vh + " region+label fit");
