@@ -1,0 +1,68 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Quest log mockup</title>
+<link rel="stylesheet" href="../../ui/tokens.css">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:844px;height:390px;overflow:hidden;background:var(--ad-night);color:var(--ad-bone);font:600 12px/1.2 system-ui,sans-serif}
+.i{width:22px;height:22px;display:block}
+.s{width:16px;height:16px;display:block}
+.ic{background:currentColor;-webkit-mask:var(--u) center/contain no-repeat;mask:var(--u) center/contain no-repeat;flex:none}
+.tab,.q{color:var(--ad-bone)}.tab.on,.q.sel,.ot{color:var(--ad-cyan)}.rt{color:var(--ad-loot)}
+.top{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid rgba(63,224,208,.18)}
+.x{width:28px;height:28px;border-radius:50%;border:1px solid rgba(242,233,214,.3);display:grid;place-items:center}
+.top h1{font-size:14px;letter-spacing:.12em;color:var(--ad-cyan)}
+.chips{margin-left:14px;display:flex;gap:6px;align-items:center;color:var(--ad-loot);font-size:13px}
+.wrap{display:grid;grid-template-columns:60px 300px 1fr;height:350px}
+.tabs{display:flex;flex-direction:column;gap:8px;padding:12px 8px;border-right:1px solid rgba(63,224,208,.12)}
+.tab{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:rgba(242,233,214,.04);position:relative}
+.tab.on{background:rgba(63,224,208,.16);outline:1.5px solid var(--ad-cyan)}
+.tab .n{position:absolute;top:-4px;right:-4px;background:var(--ad-cyan);color:var(--ad-ink);border-radius:8px;font-size:10px;padding:1px 5px}
+.list{padding:12px;display:flex;flex-direction:column;gap:6px;border-right:1px solid rgba(63,224,208,.12)}
+.q{display:flex;align-items:center;gap:10px;height:44px;padding:0 10px;border-radius:10px;background:rgba(242,233,214,.04)}
+.q.sel{background:rgba(63,224,208,.12);outline:1.5px solid var(--ad-cyan)}
+.q.done{opacity:.4}.q.lock{opacity:.3}
+.q b{flex:1;font-size:13px}
+.pips{display:flex;gap:3px}.pips i{width:8px;height:8px;border-radius:2px;background:rgba(242,233,214,.18)}.pips i.f{background:var(--ad-cyan)}
+.det{padding:14px 16px;display:flex;flex-direction:column;gap:12px;position:relative}
+.det h2{font-size:18px}.lbl{font-size:10px;letter-spacing:.14em;opacity:.55}
+.obj{display:flex;gap:8px}
+.ot{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(63,224,208,.08)}
+.ot span{font-size:16px}
+.bar{height:6px;border-radius:3px;background:rgba(242,233,214,.12);overflow:hidden;width:160px}.bar i{display:block;height:100%;width:66%;background:var(--ad-cyan)}
+.rw{display:flex;gap:8px}
+.rt{width:62px;height:62px;border-radius:10px;background:rgba(232,197,71,.08);outline:1px solid rgba(232,197,71,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ad-loot);font-size:13px}
+.trk{position:absolute;right:16px;bottom:14px;height:44px;padding:0 18px;border-radius:22px;border:1.5px solid var(--ad-cyan);color:var(--ad-cyan);display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:.08em;background:var(--ad-cyan);color:var(--ad-ink)}
+.hud{margin-left:auto;color:var(--ad-cyan);display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(7,21,28,.85);outline:1px solid rgba(63,224,208,.4)}
+.hud .lbl{opacity:.6}
+</style></head><body>
+<div class="top"><div class="x"><span class="s ic" style="--u:url(../../assets/icons/close.svg)"></span></div><span class="i ic" style="--u:url(../../assets/icons/quest.svg)"></span><h1>QUESTS</h1>
+<div class="hud"><span class="s ic" style="--u:url(../../assets/icons/item-servo.svg)"></span><span>1/2</span><div class="bar" style="width:48px"><i style="width:50%"></i></div></div><div class="chips"><span class="i ic" style="--u:url(../../assets/icons/mission.svg)"></span>4</div></div>
+<div class="wrap">
+ <div class="tabs">
+  <div class="tab"><span class="i ic" style="--u:url(../../assets/icons/area-bunker.svg)"></span></div>
+  <div class="tab on"><span class="i ic" style="--u:url(../../assets/icons/area-archipelago.svg)"></span><span class="n">1</span></div>
+  <div class="tab"><span class="i ic" style="--u:url(../../assets/icons/lock.svg)"></span></div>
+  <div class="tab"><span class="i ic" style="--u:url(../../assets/icons/timer.svg)"></span><span class="n">3</span></div>
+ </div>
+ <div class="list">
+  <div class="q done"><span class="i ic" style="--u:url(../../assets/icons/check.svg)"></span><b>Landfall</b></div>
+  <div class="q done"><span class="i ic" style="--u:url(../../assets/icons/check.svg)"></span><b>Patrol Route</b></div>
+  <div class="q sel"><span class="i ic" style="--u:url(../../assets/icons/item-servo.svg)"></span><b>Salt Damage</b><div class="pips"><i class="f"></i><i></i></div></div>
+  <div class="q lock"><span class="i ic" style="--u:url(../../assets/icons/lock.svg)"></span><b>Buoy Network</b></div>
+  <div class="q lock"><span class="i ic" style="--u:url(../../assets/icons/lock.svg)"></span><b>Ghost Signal</b></div>
+  <div class="q lock"><span class="i ic" style="--u:url(../../assets/icons/lock.svg)"></span><b>Rush Hour</b></div>
+ </div>
+ <div class="det">
+  <div><div class="lbl">ARCHIPELAGO  3 / 8</div><h2>Salt Damage</h2></div>
+  <div class="obj">
+   <div class="ot"><span class="i ic" style="--u:url(../../assets/icons/area-archipelago.svg)"></span><span>L2</span></div>
+   <div class="ot"><span class="i ic" style="--u:url(../../assets/icons/item-servo.svg)"></span><span>1 / 2</span></div>
+   <div class="ot"><span class="i ic" style="--u:url(../../assets/icons/route.svg)"></span><span>Extract</span></div>
+  </div>
+  <div class="lbl">REWARD</div>
+  <div class="rw">
+   <div class="rt"><span class="i ic" style="--u:url(../../assets/icons/mission.svg)"></span>1</div>
+   <div class="rt"><span class="i ic" style="--u:url(../../assets/icons/star.svg)"></span>30</div>
+  </div>
+  <div class="trk"><span class="s ic" style="--u:url(../../assets/icons/track-on.svg)"></span>TRACKED</div>
+ </div>
+</div></body></html>
