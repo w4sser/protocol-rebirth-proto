@@ -1797,7 +1797,8 @@ function setupWorldMapPan(sel){
     session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
     // Fresh open with an unseen unlock: fly to it once (cam.intro holds the target until the glide ends or the user takes over).
     const nt = wmNewUnlockTarget(), NZ = WMAP.newUnlockZoom;
-    if(nt && NZ && nt !== sel){ const T = AREA_DEFS[nt].region; session.wmCam.intro = { fx:(T.x + T.w / 2) / 100, fy:(T.y + T.h / 2) / 100, z:NZ.z, ms:NZ.ms, left:NZ.ms }; }
+    if(nt && NZ && nt !== sel){ const T = AREA_DEFS[nt].region; const L = AREA_DEFS[nt].label, cy = T.y + T.h / 2;   // frame the region, weighted toward its label so the NEW badge stays in view
+      session.wmCam.intro = { fx:(T.x + T.w / 2) / 100, fy:(L ? (cy + 4 * L.y) / 5 : cy) / 100, z:NZ.z, ms:NZ.ms, left:NZ.ms }; }
   }
   const cam = session.wmCam; cam.area = sel;
   const pts = new Map(); let g = null, moved = false, suppress = false, vel = { x:0, y:0 }, G = null;

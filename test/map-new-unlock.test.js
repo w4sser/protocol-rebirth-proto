@@ -51,7 +51,7 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   assert.equal(b.T.wmNewUnlockTarget(), "archipelago");
   assert(cam.intro && cam.fx < (T.x + T.w / 2) / 100 - 0.1 && cam.z === 1.4, "starts at the selected area default framing, glide pending");
   b.flush(); assert.equal(cam.intro, null, "glide finished"); assert(cam.z > 1.4 && Math.abs(cam.z - D.newUnlockZoom.z) < 1e-6, "closer zoom " + cam.z);
-  assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02 && Math.abs(cam.fy - (T.y + T.h / 2) / 100) < 0.02, "centred on the new area");
+  assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02 && Math.abs(cam.fy - ((T.y + T.h / 2) + 4 * D.areas[1].label.y) / 500) < 0.02 && cam.fy * 100 > T.y && cam.fy * 100 < T.y + T.h + 6, "centred on the new area, label in frame");
   b.A.go("prep"); assert.equal(b.T.wmNewUnlockTarget(), "archipelago", "still unseen"); }
 { // reduced motion jumps directly
   const b = boot(); unlock(b); b.w.matchMedia = () => ({ matches:true }); b.A.go("worldmap");
