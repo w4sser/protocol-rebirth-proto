@@ -869,7 +869,7 @@ function overlay(html, onClose, cls, opts){
   return o;
 }
 // Shared BACK (top-left in the top bar): closes the open popup, else goes up one screen.
-const BACK_TARGET = { itemDetail:"stash", module:"base" };
+const BACK_TARGET = { itemDetail:"stash", module:"base", worldmap:"prep" };
 function updateNav(){
   if(typeof document === "undefined") return;
   const b = document.getElementById("navback"), tb = document.getElementById("topbar"), ov = !!document.getElementById("overlay");
@@ -1757,7 +1757,7 @@ SCREENS.worldmap = function(){
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + wmFogSvg() + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
-    '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
+    '<div class="wm-ui"><h1>WORLD MAP</h1></div>' +
     '</div>';
   setupWorldMapPan(sel);
 };
@@ -1788,6 +1788,23 @@ function wmGeom(vw, vh, z){
   const hx = vw / 2 / s, hy = vh / 2 / sh, axis = (a0, a1, h) => a1 - a0 >= 2 * h ? [a0 + h, a1 - h] : [(a0 + a1) / 2, (a0 + a1) / 2];
   return { ar, cover, zMin, z:zz, s, sh, bx:axis(B.x0, B.x1, hx), by:axis(B.y0, B.y1, hy), vw, vh };
 }
+// New-unlock framing (pure, px): the largest zoom <= min(zMax, WM_MAX_Z), >= zMin, at which the whole region plus its
+// label card fits inside the visible box (viewport minus chrome insets `ins` {t,r,b,l}) with `pad` px around it.
+// Returns the camera (map fractions at the viewport centre) that centres that union box in the visible box.
+function wmFitUnlock(vw, vh, ins, R, L, lbl, o){
+  const ar = WMAP.aspect || 1.5, cover = Math.max(vw, vh * ar), pad = o.pad || 0;
+  const availW = Math.max(1, vw - ins.l - ins.r - 2 * pad), availH = Math.max(1, vh - ins.t - ins.b - 2 * pad);
+  // label extent in px relative to its anchor point (default: card sits above the point, centred)
+  const an = (L && L.anchor) || "", lx0 = an === "left" ? -lbl.w : -lbl.w / 2, lx1 = an === "left" ? 0 : lbl.w / 2, ly0 = an === "below" || an === "left" ? 0 : -lbl.h, ly1 = ly0 + lbl.h;
+  const box = z => { const s = cover * z, sh = s / ar, X = s / 100, Y = sh / 100, lp = L || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
+    return { x0:Math.min(R.x * X, lp.x * X + lx0), x1:Math.max((R.x + R.w) * X, lp.x * X + lx1), y0:Math.min(R.y * Y, lp.y * Y + ly0), y1:Math.max((R.y + R.h) * Y, lp.y * Y + ly1), s, sh }; };
+  const fits = z => { const b = box(z); return b.x1 - b.x0 <= availW && b.y1 - b.y0 <= availH; };
+  const g = wmGeom(vw, vh, 1), top = Math.max(g.zMin, Math.min(WM_MAX_Z, o.z || WM_MAX_Z));
+  let z = top;
+  if(!fits(top)){ let lo = g.zMin, hi = top; for(let i = 0; i < 30; i++){ const m = (lo + hi) / 2; if(fits(m)) lo = m; else hi = m; } z = lo; }
+  const b = box(z), ax = ins.l + (vw - ins.l - ins.r) / 2, ay = ins.t + (vh - ins.t - ins.b) / 2;
+  return { z, fx:((b.x0 + b.x1) / 2 + (vw / 2 - ax)) / b.s, fy:((b.y0 + b.y1) / 2 + (vh / 2 - ay)) / b.sh, box:b, ins, pad };
+}
 function setupWorldMapPan(sel){
   if(typeof document === "undefined") return;
   const view = document.querySelector(".worldmap"), stage = view && view.querySelector(".wm-stage");
@@ -1798,13 +1815,30 @@ function setupWorldMapPan(sel){
     session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
     // Fresh open with an unseen unlock: fly to it once (cam.intro holds the target until the glide ends or the user takes over).
     const nt = wmNewUnlockTarget(), NZ = WMAP.newUnlockZoom;
-    if(nt && NZ && nt !== sel){ const T = AREA_DEFS[nt].region; const L = AREA_DEFS[nt].label, cy = T.y + T.h / 2;   // frame the region, weighted toward its label so the NEW badge stays in view
-      session.wmCam.intro = { fx:(T.x + T.w / 2) / 100, fy:(L ? (cy + 4 * L.y) / 5 : cy) / 100, z:NZ.z, ms:NZ.ms, left:NZ.ms }; }
+    if(nt && NZ && nt !== sel) session.wmCam.intro = { area:nt, ms:NZ.ms, left:NZ.ms };
   }
   const cam = session.wmCam; cam.area = sel;
   const pts = new Map(); let g = null, moved = false, suppress = false, vel = { x:0, y:0 }, G = null;
   const size = () => [view.clientWidth || 844, view.clientHeight || 390];
   const origin = () => { const r = view.getBoundingClientRect ? view.getBoundingClientRect() : { left:0, top:0 }; return [r.left || 0, r.top || 0]; };
+  // Visible map area: the view minus the title row, the nav bar (side or bottom) and safe-area insets, measured from the DOM.
+  function chrome(){
+    const ins = { t:0, r:0, b:0, l:0 }; if(!view.getBoundingClientRect) return ins;
+    const v = view.getBoundingClientRect(), hit = r => r && r.width > 0 && r.height > 0 && r.right > v.left && r.left < v.right && r.bottom > v.top && r.top < v.bottom;
+    const h = view.querySelector(".wm-ui h1"), hr = h && h.getBoundingClientRect(); if(hit(hr)) ins.t = Math.max(0, hr.bottom - v.top);
+    const nav = document.getElementById("tabs"), nr = nav && nav.getBoundingClientRect();
+    if(hit(nr)){ if(nr.width >= nr.height) ins.b = Math.max(0, v.bottom - nr.top); else if(nr.left + nr.width / 2 < (v.left + v.right) / 2) ins.l = Math.max(0, nr.right - v.left); else ins.r = Math.max(0, v.right - nr.left); }
+    if(typeof getComputedStyle === "function"){ const pr = document.createElement("div"); pr.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;padding:var(--st,0px) var(--sr,0px) var(--sb,0px) var(--sl,0px)"; view.appendChild(pr);
+      const cs = getComputedStyle(pr), n = k => parseFloat(cs[k]) || 0, w = document.defaultView; pr.remove();
+      const sb = n("paddingBottom"), sr = n("paddingRight"), sl = n("paddingLeft"), st = n("paddingTop");
+      if(w && v.bottom >= w.innerHeight - 1) ins.b = Math.max(ins.b, sb); if(v.right >= w.innerWidth - 1) ins.r = Math.max(ins.r, sr); if(v.left <= 1) ins.l = Math.max(ins.l, sl); if(v.top <= 1) ins.t = Math.max(ins.t, st); }
+    return ins;
+  }
+  function introTarget(id, vw, vh){
+    const A = AREA_DEFS[id], lab = view.querySelector('.wm-label[data-label="' + id + '"]'), lr = lab && lab.getBoundingClientRect ? lab.getBoundingClientRect() : null;
+    const lbl = lr && lr.width > 0 ? { w:lr.width, h:lr.height } : { w:150, h:64 };
+    return wmFitUnlock(vw, vh, chrome(), A.region, A.label, lbl, { z:WMAP.newUnlockZoom.z, pad:WMAP.newUnlockZoom.pad });
+  }
   function layout(){
     const [vw, vh] = size(); G = wmGeom(vw, vh, cam.z); cam.z = G.z;
     stage.style.width = G.s + 'px'; stage.style.height = G.sh + 'px';
@@ -1888,8 +1922,8 @@ function setupWorldMapPan(sel){
   // Ease-out glide to the new area at the closer zoom, then stay put (the user can pan from there). A re-render
   // mid-flight resumes with the time left. Reduced motion jumps straight there.
   function flyToNew(){
-    const I = cam.intro, [vw, vh] = size(), E = wmGeom(vw, vh, I.z);
-    const to = { fx:Math.max(E.bx[0], Math.min(E.bx[1], I.fx)), fy:Math.max(E.by[0], Math.min(E.by[1], I.fy)), z:E.z };
+    const I = cam.intro, [vw, vh] = size(), F = introTarget(I.area, vw, vh), E = wmGeom(vw, vh, F.z);
+    const to = { fx:Math.max(E.bx[0], Math.min(E.bx[1], F.fx)), fy:Math.max(E.by[0], Math.min(E.by[1], F.fy)), z:E.z };
     const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
     if(reduce || I.left <= 0){ Object.assign(cam, to); cam.intro = null; layout(); return; }
     const from = { fx:cam.fx, fy:cam.fy, z:cam.z }, total = I.left; let t0 = 0;

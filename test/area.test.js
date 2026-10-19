@@ -42,7 +42,7 @@ function boot(save){
   assert(!/\.wm-route[^{]*\{[^}]*stroke-dasharray/.test(css) && !/wm-march/.test(css.match(/\.wm-route\.next\{[^}]*\}/)[0]), "no glowing dashed / marching route lines");
   assert(/data-label="town"/.test(html) && /wm-label locked/.test(html), "labels per area; locked label shows requirements");
   assert(/wm-region locked" data-area="town"/.test(html) && /#lock"/.test(html) && /Rebirth Core L3/.test(html) && /Town Survey/.test(html), "town fogged with lock + requirement");
-  assert(/wm-back/.test(html), "back button");
+  assert(!/wm-back/.test(html) && /<h1>WORLD MAP<\/h1>/.test(html), "no map-specific back; shared header chevron only");
   // v1.55 pannable map: stage larger than the viewport, centred on the selected area, no duplicate info card
   { const doc = c.w.document, st = doc.querySelector(".wm-stage"), vw = doc.querySelector(".worldmap");
     assert(!doc.querySelector(".wm-info"), "no stray duplicate area card");

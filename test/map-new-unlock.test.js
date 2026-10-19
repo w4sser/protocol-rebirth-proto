@@ -7,7 +7,7 @@ function boot(save, url){
   for(const f of files) w.eval(fs.readFileSync(root + "/data/" + f + ".js", "utf8"));
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   w.PR_NAVIGATE = () => {};
-  w.eval(fs.readFileSync(root + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, session:()=>session, wmNewUnlockTarget, areaUnlocked };");
+  w.eval(fs.readFileSync(root + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, session:()=>session, wmNewUnlockTarget, areaUnlocked, wmFitUnlock };");
   w.A.dismissIntro();
   const flush = () => { let t = 0, n = 400; while(raf.length && n--){ t += 100; raf.shift()(t); } };
   return { w, d:w.document, T:w.__T, A:w.A, flush };
@@ -54,10 +54,24 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   const b = boot(); unlock(b); b.A.go("worldmap");
   const cam = b.T.session().wmCam, D = b.w.DATA.worldMap, T = D.areas.find(a => a.id === "archipelago").region, B = D.areas[0].region;
   assert.equal(b.T.wmNewUnlockTarget(), "archipelago");
-  assert(cam.intro && cam.fx < (T.x + T.w / 2) / 100 - 0.1 && cam.z === 1.4, "starts at the selected area default framing, glide pending");
-  b.flush(); assert.equal(cam.intro, null, "glide finished"); assert(cam.z > 1.4 && Math.abs(cam.z - D.newUnlockZoom.z) < 1e-6, "closer zoom " + cam.z);
-  assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02 && Math.abs(cam.fy - ((T.y + T.h / 2) + 4 * D.areas[1].label.y) / 500) < 0.02 && cam.fy * 100 > T.y && cam.fy * 100 < T.y + T.h + 6, "centred on the new area, label in frame");
-  b.A.go("prep"); assert.equal(b.T.wmNewUnlockTarget(), "archipelago", "still unseen"); }
+  assert(cam.intro && cam.intro.area === "archipelago" && cam.fx < (T.x + T.w / 2) / 100 - 0.1 && cam.z === 1.4, "starts at the selected area default framing, glide pending");
+  b.flush(); assert.equal(cam.intro, null, "glide finished"); assert(cam.z > 1.4 && cam.z <= D.newUnlockZoom.z + 1e-6, "closer zoom " + cam.z);
+  assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02 && cam.fy * 100 > T.y && cam.fy * 100 < T.y + T.h + 12, "centred on the new area"); }
+{ // framing: region + label card fit the visible box (viewport minus chrome) with padding, at the largest zoom that allows it
+  const b = boot(), D = b.w.DATA.worldMap, A = D.areas.find(a => a.id === "archipelago"), lbl = { w:150, h:70 }, pad = D.newUnlockZoom.pad;
+  assert(pad > 0, "pad is data-driven");
+  for(const [vw, vh, ins] of [[844, 390, { t:34, r:0, b:0, l:84 }], [667, 375, { t:34, r:0, b:0, l:84 }], [932, 430, { t:38, r:30, b:20, l:114 }]]){
+    const F = b.T.wmFitUnlock(vw, vh, ins, A.region, A.label, lbl, { z:D.newUnlockZoom.z, pad }), x = F.box;
+    const cx = (x.x0 + x.x1) / 2, ax = ins.l + (vw - ins.l - ins.r) / 2, ay = ins.t + (vh - ins.t - ins.b) / 2, cy = (x.y0 + x.y1) / 2;
+    assert(x.x1 - x.x0 <= vw - ins.l - ins.r - 2 * pad + 1e-6 && x.y1 - x.y0 <= vh - ins.t - ins.b - 2 * pad + 1e-6, vw + "x" + vh + " region+label fit");
+    // screen position of the union box given the camera: must sit inside the visible box
+    const sx = v => vw / 2 + v - F.fx * x.s, sy = v => vh / 2 + v - F.fy * x.sh;
+    assert(sx(x.x0) >= ins.l + pad - 1e-6 && sx(x.x1) <= vw - ins.r - pad + 1e-6 && sy(x.y0) >= ins.t + pad - 1e-6 && sy(x.y1) <= vh - ins.b - pad + 1e-6, vw + "x" + vh + " box inside visible area");
+    assert(Math.abs(sx(cx) - ax) < 1e-6 && Math.abs(sy(cy) - ay) < 1e-6, "centred in the visible area");
+    // label sits below the region's own area (anchor below) and the region top is covered by the box
+    assert(x.y0 <= A.region.y * x.sh / 100 + 1e-6 && x.y1 >= A.label.y * x.sh / 100 + lbl.h - 1e-6, "box covers region top and label bottom"); }
+}
+{ const b = boot(); unlock(b); b.A.go("worldmap"); b.flush(); b.A.go("prep"); assert.equal(b.T.wmNewUnlockTarget(), "archipelago", "still unseen"); }
 { // reduced motion jumps directly
   const b = boot(); unlock(b); b.w.matchMedia = () => ({ matches:true }); b.A.go("worldmap");
   const cam = b.T.session().wmCam, T = b.w.DATA.worldMap.areas[1].region;

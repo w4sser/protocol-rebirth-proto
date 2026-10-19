@@ -123,7 +123,7 @@ window.DATA.progression.playerStats = {
 // Regions/labels/routes are % of the map image (data-driven; add areas + routes here as the map grows).
 window.DATA.worldMap = {
   background:"assets/map/world.webp", // owner art (PRB-58), 1536×1024
-  newUnlockZoom:{ ms:800, z:1.7 }, // map opens with a fresh, unseen unlocked area: ease-out glide to it at this zoom
+  newUnlockZoom:{ ms:800, z:1.7, pad:14 }, // map opens with a fresh, unseen unlocked area: ease-out glide to it; z = max zoom, pad = px kept clear around region + label inside the visible map
   aspect:1.5, bg:"#00262b", // image is fitted with "contain" in a 3:2 stage; side bars use bg
   // Unlock routes, polyline points in % of the image. v1.52 (AD ad06): routes read through light and landmarks,
   // not glowing dashed paths: the polyline is only a soft light wash (cyan when `to` is unlocked, faint amber
