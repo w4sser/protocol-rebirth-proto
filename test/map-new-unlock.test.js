@@ -32,6 +32,11 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   assert(!b.d.querySelector(".wm-new"), "label cleared"); assert(!b.d.querySelector(".new-tag"), "map button cleared"); assert(!tabAlert(b), "tab cleared");
   const saved = JSON.parse(b.w.localStorage.getItem("pr_meta_save")); assert.equal(saved.areaSeen.archipelago, true);
   const re = boot(saved); re.A.go("worldmap"); assert.equal(re.T.wmNewUnlockTarget(), null, "stays seen after reload"); assert(!re.d.querySelector(".wm-new")); }
+{ // debug access does not mark an area seen; the later real unlock still shows NEW
+  const b = boot(); prime(b); const S = b.T.S(); S.debugAreas = true; b.A.setArea("archipelago");
+  assert(!(S.areaSeen && S.areaSeen.archipelago), "debug select leaves it unseen");
+  S.debugAreas = false; S.modules.rebirth_core = 2; S.areaScouted = { archipelago:true };
+  assert.equal(b.T.wmNewUnlockTarget(), "archipelago"); }
 { // tapping the label marks it seen too
   const b = boot(); unlock(b); b.A.go("worldmap"); b.w.eval(b.d.querySelector('.wm-label[data-label="archipelago"]').getAttribute("onclick")); // jsdom (outside-only) does not run inline handlers
   assert.equal(b.T.wmNewUnlockTarget(), null); }

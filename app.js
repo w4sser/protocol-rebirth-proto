@@ -1701,7 +1701,8 @@ const WMAP = D.worldMap, AREA_DEFS = {}; WMAP.areas.forEach(a => AREA_DEFS[a.id]
 const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(location.search || "");
 function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
 function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
-function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaCoreOk(id) && areaScouted(id); }
+function areaEarned(id){ return areaCoreOk(id) && areaScouted(id); }
+function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaEarned(id); }
 // Unlocked for real (not via debug) and not yet selected/tapped by the player.
 function areaUnseen(id){ const a = AREA_DEFS[id]; return !!(a && a.requires && !DEBUG_AREAS && !S.debugAreas && areaUnlocked(id) && !(S.areaSeen && S.areaSeen[id])); }
 // First unseen unlocked area in data order, or null. Drives the NEW badges and the map-open zoom.
@@ -1880,7 +1881,7 @@ function setupWorldMapPan(sel){
   // a drag that ends on a region/label must not select it
   view.addEventListener("click", e => { if(e.detail !== 0 && suppress){ e.preventDefault(); e.stopPropagation(); } }, true);
   if(session.wmResize) window.removeEventListener("resize", session.wmResize);
-  session.wmResize = () => { layout(); settle(); }; window.addEventListener("resize", session.wmResize); layout();
+  session.wmResize = () => { layout(); if(cam.intro){ wmCancel(session.wmAnim); session.wmAnim = 0; flyToNew(); } else settle(); }; window.addEventListener("resize", session.wmResize); layout();
   if(Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)) !== cam.fx || Math.max(G.by[0], Math.min(G.by[1], cam.fy)) !== cam.fy){
     cam.fx = Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)); cam.fy = Math.max(G.by[0], Math.min(G.by[1], cam.fy)); layout(); }
   if(cam.intro) flyToNew();
@@ -2763,7 +2764,7 @@ window.A = {
       refresh("raid_prep");
     });
   },
-  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; act("AREA_SELECTED", { area:id }); refresh(); },
+  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
