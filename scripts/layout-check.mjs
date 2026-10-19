@@ -155,7 +155,7 @@ async function baseRun([w,h]){
     await settle(300);
     await report(page,`${tag} ${mode} landing`);await shot(page,`base-${w}x${h}-${mode}-landing`);
     if(mode==='progressed'){
-      const steps=[['base','A.go("base")'],['prep','A.go("prep")'],['stash','A.go("stash")'],['vendor','A.go("vendor")'],['bit','A.go("bit")'],['worldmap','A.go("worldmap")'],['worldmap-new','S.modules.rebirth_core=2;S.areaScouted={archipelago:true};S.areaSeen={};session.screen="base";session.wmCam=null;A.go("worldmap")'],['operator','A.go("operator")'],
+      const steps=[['base','A.go("base")'],['prep','A.go("prep")'],['stash','A.go("stash")'],['vendor','A.go("vendor")'],['bit','A.go("bit")'],['worldmap','A.go("worldmap")'],['worldmap-new','S.modules.rebirth_core=2;S.areaScouted={archipelago:true};S.areaSeen={};session.screen="base";session.wmCam=null;A.go("worldmap")'],['prep-new','S.modules.rebirth_core=2;S.areaScouted={archipelago:true};S.areaSeen={};A.go("prep")'],['operator','A.go("operator")'],
         ['prep-mission','A.go("prep");A.planToggle(true)'],['prep-slot','A.go("prep");A.pickSlot("weapon")'],
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],

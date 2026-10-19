@@ -1726,7 +1726,7 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span>' + (wmNewUnlockTarget() ? '<em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</button>';
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
