@@ -155,14 +155,14 @@ async function baseRun([w,h]){
     await settle(300);
     await report(page,`${tag} ${mode} landing`);await shot(page,`base-${w}x${h}-${mode}-landing`);
     if(mode==='progressed'){
-      const steps=[['base','A.go("base")'],['prep','A.go("prep")'],['stash','A.go("stash")'],['vendor','A.go("vendor")'],['bit','A.go("bit")'],['worldmap','A.go("worldmap")'],['operator','A.go("operator")'],
+      const steps=[['base','A.go("base")'],['prep','A.go("prep")'],['stash','A.go("stash")'],['vendor','A.go("vendor")'],['bit','A.go("bit")'],['worldmap','A.go("worldmap")'],['worldmap-new','S.modules.rebirth_core=2;S.areaScouted={archipelago:true};S.areaSeen={};session.screen="base";session.wmCam=null;A.go("worldmap")'],['prep-new','S.modules.rebirth_core=2;S.areaScouted={archipelago:true};S.areaSeen={};A.go("prep")'],['operator','A.go("operator")'],
         ['prep-mission','A.go("prep");A.planToggle(true)'],['prep-slot','A.go("prep");A.pickSlot("weapon")'],
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
         ['settings','A.go("base");document.getElementById("menubtn").click()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
-        await settle(350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
+        await settle(name==='worldmap-new'?1300:350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
         if(name==='base'){ // v1.67: room plates never sit under the goal card
           const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs');if(!c||!vw)return [];
             const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
