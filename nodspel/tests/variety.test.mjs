@@ -71,6 +71,6 @@ test('hazard telegraph gives a long, counted-down warning',()=>{
 });
 test('node hints match the real mechanic (stand close, no key) on desktop and touch',()=>{
   const html=readFileSync(new URL('../index.html',import.meta.url),'utf8'),js=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
-  assert.match(html,/desktop-help[^]*stand close to a node/);assert.doesNotMatch(html,/touch-help/); // v1.66.1: touch sticks are labelled (MOVE / AIM), no duplicate hint strip
+  assert.match(html,/desktop-help[^]*stand by gate control/);assert.doesNotMatch(html,/touch-help/); // v1.66.1: touch sticks are labelled (MOVE / AIM), no duplicate hint strip
   assert.match(js,/'STAND CLOSE'/);assert.doesNotMatch(js.replace("if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}",''),/KeyE/,'E is the tool key only, never a node key');
 });
