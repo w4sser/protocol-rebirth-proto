@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.68.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.68.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
 
@@ -1328,7 +1328,7 @@ function goalPillHtml(nextRoom){
 function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
   if(badge && badge[1] === IC("build")) cls += " buildable";   // glow + bounce on rooms that can be built now
   return '<button type="button" class="mapspot plate ' + cls + '" style="' + style + '" ' + attrs + '>' +
-    '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">' + level + '</em>' : '') + '</span>' +
+    '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">LVL ' + level + '</em>' : '') + '</span>' +
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
 }
 function moduleBadge(modId){

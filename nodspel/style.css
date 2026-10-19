@@ -146,3 +146,17 @@ html,body{background:#07151c}
 .node-label .use-text:empty,.node-label[data-mode=short] .use-text,.node-label[data-mode=dot] .use-text{display:none}
 /* v1.65: keyboard hints (Q / E) mean nothing on touch and read as a stray 0 next to the count */
 @media (pointer:coarse){.kit-btn small,#tool-btn small{display:none}}
+
+/* Bag guidance: one-tap trades; incoming item stays visible while carried slots scroll. */
+.swap-row[data-kind=bag]{animation:none;box-sizing:border-box;width:max-content;max-width:calc(100% - 48px - var(--sl) - var(--sr))}
+.swap-row[data-kind=bag] .swap-items{overflow:visible}
+.swap-carried{display:flex;flex:1 1 auto;gap:6px;overflow-x:auto;min-width:0;padding:3px}
+.swap-row[data-kind=bag] .swap-item{flex:none;flex-direction:column;gap:3px;min-width:92px}
+.swap-purpose,.swap-suggestion{font-size:8px;line-height:1.2;letter-spacing:.03em}
+.swap-purpose{color:var(--ad-bone);opacity:.75}
+.swap-needed .swap-purpose{color:var(--ad-loot);opacity:1;font-weight:700}
+.swap-suggested{outline:2px solid var(--ad-loot);outline-offset:0}
+.swap-suggestion{color:var(--ad-loot);font-weight:700}
+.swap-goal{font-size:10px;color:var(--ad-bit);margin:0 0 6px 32px}
+
+body:has(#swap-row[data-kind=bag]:not([hidden])) .area-notice{visibility:hidden}
