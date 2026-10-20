@@ -15,6 +15,7 @@ const ids = new Set();
 for(const [cid, ch] of Object.entries(C)){
   assert.equal(ch.steps.length, 8, cid + ": 8 steps");
   for(const s of ch.steps){
+    assert(typeof s.brief === 'string' && s.brief.length > 0 && s.brief.length <= 48 && !/[^\x20-\x7e]/.test(s.brief), cid + ' ' + s.id + ': plain brief <= 48 chars');
     assert(!ids.has(s.id), "unique id " + s.id); ids.add(s.id);
     assert(s.title && s.area && s.objective.n > 0 && ["extract","kill","clear","handin"].includes(s.objective.type), s.id + ": shape");
     const o = s.objective, all = [o.item].concat(Object.keys(o.items || {}), Object.keys(s.reward.items || {}), Object.keys(s.reward.tools || {})).filter(Boolean);

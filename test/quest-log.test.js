@@ -38,6 +38,7 @@ assert.equal(log.querySelectorAll(".qrow.lock").length, 7, "future steps are loc
 assert(log.querySelector(".qobj .qt use[href$='#item-cable']") && log.querySelector(".qobj").textContent.includes("0/3"), "objective tiles");
 assert(log.querySelector(".qrw .qt use[href$='#cur-scrap']") && log.querySelector(".qrw .qt use[href$='#star']"), "reward tiles");
 assert(!/[←-⯿☀-➿\u{1F300}-\u{1FAFF}]/u.test(log.textContent), "no glyphs");
+A.questLog("bunker", 0); { const br = d.querySelector('#overlay .qlog .qdet .qbrief'); assert(br, 'brief line shown'); assert.equal(br.textContent, T.chainActive('bunker').brief); log = d.querySelector('#overlay .qlog'); }
 // TRACK toggle: already tracked -> TRACKED; a locked step shows no toggle
 assert(log.querySelector(".qtrack.on") && log.querySelector(".qtrack").textContent.includes("TRACKED"));
 A.questLog("bunker", 3); log = d.querySelector("#overlay .qlog"); assert(!log.querySelector(".qtrack"), "future step: no track toggle"); assert(log.querySelector(".qobj.dim"));
