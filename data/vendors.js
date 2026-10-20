@@ -29,3 +29,19 @@ window.DATA.vendors = [
     sellMultiplier:0.6
   }
 ];
+
+// v1.72 BIT trader (Contract Chips, docs/design-retention-quests.md 2). Chips come from chain quests, rare loot, the Drive/Relic
+// alternatives below and (stub) the weekly op. kind: recipe | item | hardPass | cosmetic. weeklyCap = buys per ISO week.
+// soon:true tiles are shown disabled (hard variants do not exist yet). Memory Module / Hydraulic Component stand in for Tidal Coil / Frost Glass.
+window.DATA.chipShop = {
+  // sources: stash item -> chips per piece (alternative to its Scrap value); label is the button text
+  sources: { encrypted_drive: { chips: 2, label: "Recycle" }, prewar_relic: { chips: 1, label: "Sell to BIT" } },
+  weeklyOp: [ { topPct: 10, chips: 5 }, { topPct: 50, chips: 2 } ],
+  stock: [
+    { id:"bp_rifle", kind:"recipe", recipe:"rifle_build", icon:"item-rifle", name:"Marksman Rifle blueprint", price:8 },
+    { id:"mat_memory", kind:"item", itemId:"memory_module", qty:1, price:4, weeklyCap:1 },
+    { id:"mat_hydraulic", kind:"item", itemId:"hydraulic_component", qty:1, price:4, weeklyCap:1 },
+    { id:"pass_bunker", kind:"hardPass", area:"bunker", icon:"area-bunker", name:"Bunker Hard pass", price:5, soon:true },
+    { id:"bit_amber", kind:"cosmetic", cosmetic:"bit_amber", icon:"bit-face", name:"BIT amber glow", price:3 }
+  ]
+};

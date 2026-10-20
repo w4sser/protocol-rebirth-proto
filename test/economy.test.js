@@ -40,6 +40,8 @@ for(const f of ["data/modules.js","data/raid_zones.js","data/retention.js","data
   assert.deepEqual(bp, ["rifle_marksman","shotgun_breach","smg_vector"]);
   Object.assign(S().modules, { rebirth_core:1, fabricator:2 });
   S().cur.scrap = 500; S().stash = { scrap_alloy:7, servo:3, polymer_plate:1, hydraulic_component:1, optical_sensor:1, circuit_board:1, encrypted_drive:1, rebirth_shard:1, neural_core:1 };
+  A.craft("rifle_build"); A.devFinishTimers(); assert(!S().stash.rifle_marksman, "rifle blueprint is locked until unlocked (Chip trader / quest)");
+  S().unlocks = { recipes:{ rifle_build:true } };
   for(const r of ["smg_build","shotgun_build","rifle_build"]) A.craft(r);
   A.devFinishTimers(); // v1.56: crafts after the first one are queued (finish over time)
   assert(S().stash.smg_vector === 1 && S().stash.shotgun_breach === 1 && S().stash.rifle_marksman === 1, "all three weapons crafted");

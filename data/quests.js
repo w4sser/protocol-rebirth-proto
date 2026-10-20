@@ -31,8 +31,8 @@ window.DATA.quests = {
 //  extract: extract in `area` (levelsCleared >= level - 1) with n of `item` (counts accumulate over raids)
 //  clear:   extract from `area` with levelsCleared >= level, n times;  kill: n of `enemy` killed in `area`
 //  handin:  deliver `items` from the stash through QUEST_HANDIN (n = total count)
-// Rewards: scrap, xp (operator), items {id:n}, tools {id:n} (stash), dataCores, chips (Contract Chips, silent until the chip UI).
-// `unlock` is data only for now (hard variant, recipe, cosmetic): nothing grants it yet.
+// Rewards: scrap, xp (operator), items {id:n}, tools {id:n} (stash), dataCores, chips (Contract Chips, spent at the BIT trader).
+// `unlock` {recipe, hard, cosmetic}: recipe/cosmetic/hard are stored in S.unlocks on turn-in (recipe also opens a matching locked recipe id or output item).
 // Proxies: shield guard -> clear Bunker L1; EMP on turret -> kill 1 sentry in Bunker; swarm L3 -> clear Bunker L3;
 // patrol -> clear Archipelago L1 twice; Tidal Coil does not exist yet -> memory_module stands in for it (A5, A7).
 window.DATA.questChains = {

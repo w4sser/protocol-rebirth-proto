@@ -17,6 +17,7 @@ I={
 # currencies
 'cur-scrap':'<path d="M12 3.5 19.4 7.8v8.4L12 20.5l-7.4-4.3V7.8z"/><circle cx="12" cy="12" r="2.8"/>',
 'cur-datacore':'<path d="M12 3 19 12l-7 9-7-9z"/><path d="M5 12h14M12 3v18" opacity=".5"/>',
+'cur-chip':'<path d="M7 5.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 17V7A1.5 1.5 0 0 1 7 5.5z"/><path d="M9 3.5v2M12 3.5v2M15 3.5v2M9 18.5v2M12 18.5v2M15 18.5v2"/><circle cx="12" cy="12" r="2.4"/>',
 'cur-signals':'<path d="M12 13v7.5"/><circle cx="12" cy="11.5" r="1.6"/><path d="M8.3 8a5.2 5.2 0 0 0 0 7M15.7 8a5.2 5.2 0 0 1 0 7M5.4 5.4a9 9 0 0 0 0 12.7M18.6 5.4a9 9 0 0 1 0 12.7"/>',
 'cur-fuel':'<path d="M6 20V5.5A1.5 1.5 0 0 1 7.5 4h6A1.5 1.5 0 0 1 15 5.5V20M4.5 20h12"/><path d="M8.5 8h4"/><path d="M15 10h1.5a1.5 1.5 0 0 1 1.5 1.5v5a1.2 1.2 0 0 0 2.4 0V9l-2.4-2.5"/>',
 # rooms / modules
@@ -146,6 +147,7 @@ ITEMS={
 'item-cloak':'<path d="M12 3a4 4 0 0 0-4 4v1.5L4.5 20.5h15L16 8.5V7a4 4 0 0 0-4-4z"/><path d="M10 7.5h4" stroke="'+L+'"/><path d="M9 14c1 .8 2 .8 3 0s2-.8 3 0" opacity=".55"/>',
 'item-medkit':'<rect x="3.5" y="6.5" width="17" height="13" rx="2.5"/><path d="M9.5 6.5V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5"/><path d="M12 10v6M9 13h6" stroke="'+L+'"/>',
 'item-crate':'<rect x="3.5" y="6" width="17" height="13" rx="1.5"/><path d="M3.5 10.5h17"/><path d="M10 10.5v2.5h4v-2.5" stroke="'+L+'"/>',
+'item-chip':'<path d="M7 5.5h10a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 17V7A1.5 1.5 0 0 1 7 5.5z"/><path d="M9 3.5v2M12 3.5v2M15 3.5v2M9 18.5v2M12 18.5v2M15 18.5v2"/><circle cx="12" cy="12" r="2.4" stroke="var(--ic-loot,#FF9D4D)"/>',
 'item-datacore':'<path d="M12 3 19 12l-7 9-7-9z"/><path d="M8.8 12h6.4M12 7.5v9" stroke="'+L+'"/>',
 'item-ammo':'<rect x="4" y="9.5" width="16" height="10" rx="1.6"/><path d="M7 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M10.8 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4M14.6 9.5V5.5a1.2 1.2 0 0 1 2.4 0v4" stroke="'+L+'"/><path d="M4 13.5h16"/>',
 }

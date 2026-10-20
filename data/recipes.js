@@ -13,7 +13,7 @@ window.DATA.recipes = [
     inputs:{ scrap_alloy:3, servo:1, polymer_plate:1 }, scrapCost:40, output:{ itemId:"smg_vector", qty:1 } },
   { id:"shotgun_build", name:"Breach Shotgun", fabricatorLevel:2, blueprint:true,
     inputs:{ scrap_alloy:2, servo:2, hydraulic_component:1 }, scrapCost:60, output:{ itemId:"shotgun_breach", qty:1 } },
-  { id:"rifle_build", name:"Marksman Rifle", fabricatorLevel:2, blueprint:true,
+  { id:"rifle_build", name:"Marksman Rifle", fabricatorLevel:2, blueprint:true, locked:true, // locked: bought with Contract Chips (data/vendors.js chipShop) or a quest unlock
     inputs:{ optical_sensor:1, circuit_board:1, encrypted_drive:1, scrap_alloy:2 }, scrapCost:80, output:{ itemId:"rifle_marksman", qty:1 } },
   // Tools (stash count = charges; output qty = a full load). Level matches items.js tool.unlock.
   { id:"decoy_build", name:"Decoy", fabricatorLevel:1,

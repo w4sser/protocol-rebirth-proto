@@ -159,7 +159,7 @@ async function baseRun([w,h]){
         ['prep-mission','A.go("prep");A.planToggle(true)'],['prep-slot','A.go("prep");A.pickSlot("weapon")'],
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
-        ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
+        ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-trader','A.go("base");S.cur.chips=6;S.unlocks={recipes:{},hard:{},hardPass:{},cosmetics:{},chipBuys:{mat_memory:{week:Math.floor((Date.now()/864e5-4)/7),n:1}}};A.chipShop()'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
         ['settings','A.go("base");document.getElementById("menubtn").click()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}

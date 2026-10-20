@@ -560,12 +560,24 @@ function trackedQuest(){
   const def = chainActive(id);
   return { chain:id, step:def, prog: def.objective.type === "handin" ? chainHandinProg(def) : chainState(id).prog, n:chainStepN(def) };
 }
+// Unlock bag (lazy, no save bump): recipes/cosmetics/hard/hardPass are flags by id; chipBuys = { shopId:{ week, n } }.
+function unl(){ const u = S.unlocks = S.unlocks || {}; for(const k of ["recipes", "hard", "hardPass", "cosmetics", "chipBuys"]) u[k] = u[k] || {}; return u; }
+function recipeOpen(r){ return !r.locked || !!unl().recipes[r.id]; }
+// Quest reward unlock { recipe, hard, cosmetic }: a recipe id (or its output item) opens the matching locked recipe; the rest is stored for later systems.
+function grantUnlock(x){
+  const u = unl();
+  if(x.recipe){ u.recipes[x.recipe] = true; for(const r of D.recipes) if(r.id === x.recipe || (r.output && r.output.itemId === x.recipe)) u.recipes[r.id] = true; }
+  if(x.hard) u.hard[x.hard] = true;
+  if(x.cosmetic) u.cosmetics[x.cosmetic] = true;
+  act("UNLOCK_GRANTED", x);
+}
 function chainReward(def){
   const R = def.reward;
   if(R.scrap){ S.cur.scrap += R.scrap; revealCurrency("scrap"); }
   if(R.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + R.dataCores; revealCurrency("dataCores"); }
-  if(R.chips) S.cur.chips = (S.cur.chips || 0) + R.chips;
+  if(R.chips){ S.cur.chips = (S.cur.chips || 0) + R.chips; revealCurrency("chips"); }
   if(R.xp) gainOpXp(R.xp);
+  if(R.unlock) grantUnlock(R.unlock);
   for(const id in R.items || {}) addItem(id, R.items[id]);
   for(const id in R.tools || {}) addItem(id, R.tools[id]);
 }
@@ -648,7 +660,7 @@ function chainRewardTiles(R){
   const t = [];
   if(R.scrap) t.push(qTile("cur-scrap", R.scrap, "", "Scrap"));
   if(R.xp) t.push(qTile("star", R.xp, "", "Operator XP"));
-  if(R.chips) t.push(qTile("mission", R.chips, "", "Contract Chips"));
+  if(R.chips) t.push(qTile("cur-chip", R.chips, "", "Contract Chips"));
   if(R.dataCores) t.push(qTile("cur-datacore", R.dataCores, "", "Data Cores"));
   for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
   if(R.unlock) t.push(qTile("unlock", "", "", "Unlock"));
@@ -686,7 +698,7 @@ function questLogHtml(tab, sel){
       (state === "cur" ? '<div class="qact">' + (chainHandable(tab) ? '<button type="button" class="primary" onclick="A.QUEST_HANDIN({chain:\'' + tab + '\'})">HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'TRACKED' : 'TRACK') + '</button></div>' : '') + '</div>';
   }
-  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><em class="qchips">' + IC("mission") + (S.cur.chips || 0) + '</em></div>' +
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
     '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
 }
 // Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE.
@@ -709,6 +721,29 @@ function chainDoneToast(list){
 function questEntryHtml(){
   const t = trackedQuest(); if(!t && !questsOpen()) return "";
   return '<button type="button" class="card questentry" onclick="A.questLog()">' + IC("quest") + '<b>QUESTS</b>' + (t ? '<span>' + qTile(qObjIcon(t.step.objective), t.prog + "/" + t.n, "") + '</span>' : '') + IC("chevron-right") + '</button>';
+}
+// BIT trader (Contract Chips). Week id = whole weeks since Monday 1970-01-05 UTC.
+function chipWeek(){ return Math.floor((Date.now() / 864e5 - 4) / 7); }
+function chipOwned(e){ const u = unl(); return e.kind === "recipe" ? !!u.recipes[e.recipe] : e.kind === "cosmetic" ? !!u.cosmetics[e.cosmetic] : e.kind === "hardPass" ? !!u.hardPass[e.area] : false; }
+function chipLeft(e){ if(!e.weeklyCap) return Infinity; const b = unl().chipBuys[e.id]; return e.weeklyCap - (b && b.week === chipWeek() ? b.n : 0); }
+function chipTile(e){
+  const ic = e.icon || ITEMS[e.itemId].icon, nm = e.name || ITEMS[e.itemId].name, owned = chipOwned(e), capped = chipLeft(e) <= 0, off = e.soon || owned || capped, poor = !off && (S.cur.chips || 0) < e.price;
+  const tag = e.soon ? IC("lock") : owned ? IC("check") : capped ? IC("timer") : 'BUY';
+  return '<button type="button" class="ctile' + (off ? ' off' : '') + (poor ? ' poor' : '') + '"' + (off ? ' disabled' : ' onclick="A.chipBuy(\'' + e.id + '\')"') + ' aria-label="' + esc(nm) + '">' +
+    IC(ic) + '<small>' + esc(nm) + '</small><span class="cprice">' + IC("cur-chip") + '<b>' + e.price + '</b></span><span class="cbuy">' + tag + '</span></button>';
+}
+function traderHtml(){
+  return '<div class="bpop trader"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-shop") + '</span><h1>Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
+    '<div class="ctiles">' + D.chipShop.stock.map(chipTile).join("") + '</div></div>';
+}
+function traderEntryHtml(){
+  if(!ftueOver() || !D.chipShop) return "";
+  return '<button type="button" class="card questentry" onclick="A.chipShop()">' + IC("nav-shop") + '<b>TRADER</b><span class="qt">' + IC("cur-chip") + '<b>' + (S.cur.chips || 0) + '</b></span>' + IC("chevron-right") + '</button>';
+}
+// Weekly op placement -> chips (stub, not wired until the weekly op exists). percentile = top-N percent (10 = top 10 %).
+function weeklyOpChips(percentile){
+  const t = D.chipShop.weeklyOp.find(x => percentile <= x.topPct);
+  return t ? t.chips : 0;
 }
 function morningRows(){
   const R = D.retention, rows = [];
@@ -1071,7 +1106,7 @@ function goalBarHtml(){
   const b = curBeat();
   return '<div class="goalbar">CURRENT GOAL<br><b>' + esc(b.goalText) + '</b></div>';
 }
-const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals" };
+const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals", chips:"Chips" };
 function revealCurrency(id){
   if(!S.revealed) S.revealed = { scrap:true };   // safety for injected test states
   if(S.revealed[id]) return;
@@ -1082,7 +1117,7 @@ function revealCurrency(id){
     renderCurrencies();
   }
 }
-const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel") };
+const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel"), chips:IC("cur-chip") };
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
 // v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
 function itemIcon(id){ const it = ITEMS[id]; return it && it.icon ? IC(it.icon) : ""; }
@@ -1094,7 +1129,7 @@ function renderCurrencies(){
   const op = operatorLevel();
   let h = '<button class="cur oplvl" onclick="A.go(\'operator\')" title="Operator level — tap for skills" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></button>';
   h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
-  h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
+  h += Object.keys(CUR_LABELS).filter(id => id === "chips" ? c.chips > 0 : S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
   if(bitOnline()){
     const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
     h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
@@ -1532,7 +1567,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questEntryHtml() + scavCardHtml();
+  html += '<div class="bitrow">' + questEntryHtml() + traderEntryHtml() + '</div>' + scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -1660,6 +1695,8 @@ SCREENS.itemDetail = function(id){
   html += '<button class="ghost" onclick="A.reserve(\'' + id + '\')">' + (S.reserved[id] ? "Unreserve" : "Reserve for upgrade") + '</button>';
   if((S.modules.fabricator||0) >= 1 && it.rarity === "common")
     html += '<button class="ghost" onclick="A.scrapIt(\'' + id + '\')">Scrap it (+' + Math.floor(it.sellValue*D.scrapJunkRate) + ' Scrap)</button>';
+  const cs = D.chipShop.sources[id];
+  if(cs) html += '<button class="ghost" onclick="A.chipTradeIn(\'' + id + '\')">' + esc(cs.label) + ' (+' + cs.chips + ' ' + IC("cur-chip") + ')</button>';
   if((S.modules.storage||0) >= 1)
     html += '<button class="ghost" onclick="A.setSecure(\'' + id + '\')">' + (S.secureItem===id ? IC("star") + " Secure item (tap to clear)" : "Set as secure item") + '</button>';
   if(retMode() === "full" && ITEMS[id].family === "protocol" && ITEMS[id].protocolTarget){
@@ -1729,7 +1766,7 @@ SCREENS.prep = function(){
 
   html += '<div class="card prep-benefit"><span class="ok">' + IC("check") + ' FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
   html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>' + fabQueueHtml();
-  for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
+  for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator && recipeOpen(r))){
     const can = S.cur.scrap >= craftCost(recipe) && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
     html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + craftCost(recipe) + ' Scrap</small></span>' +
       '<button class="ghost" style="width:auto" ' + (can ? 'onclick="A.craft(\'' + recipe.id + '\')"' : 'disabled') + '>' + (idleState().crafted ? IC("timer") + ' ' + fabMinutes(recipe.id) + 'm' : 'CRAFT') + '</button></div>';
@@ -2303,7 +2340,7 @@ SCREENS.vendor = function(){
   });
   if((S.modules.fabricator||0) >= 1){
     html += '<h2>Crafting — Fabricator L' + S.modules.fabricator + '</h2>';
-    for(const r of D.recipes){
+    for(const r of D.recipes.filter(recipeOpen)){
       const gated = r.fabricatorLevel > (S.modules.fabricator||0);
       const parts = Object.keys(r.inputs).map(id => Math.min(have(id),r.inputs[id]) + "/" + r.inputs[id] + " " + ITEMS[id].name).join(" · ");
       const can = !gated && S.cur.scrap >= craftCost(r) && Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
@@ -2891,6 +2928,31 @@ window.A = {
     toast("Recycled: +" + gain + " Scrap");
     refresh();
   },
+  chipShop(){
+    const ov = document.getElementById("overlay"); if(ov) ov.remove();
+    overlay(traderHtml(), () => refresh(), "qlogov");
+  },
+  chipBuy(id){
+    const e = D.chipShop.stock.find(x => x.id === id); if(!e || e.soon || chipOwned(e)) return;
+    if(chipLeft(e) <= 0){ toast("Weekly limit reached"); return; }
+    if((S.cur.chips || 0) < e.price){ toast("Not enough Chips"); return; }
+    S.cur.chips -= e.price;
+    const u = unl();
+    if(e.kind === "recipe") u.recipes[e.recipe] = true;
+    else if(e.kind === "cosmetic") u.cosmetics[e.cosmetic] = true;
+    else if(e.kind === "hardPass") u.hardPass[e.area] = true;
+    else if(e.kind === "item") addItem(e.itemId, e.qty || 1);
+    if(e.weeklyCap){ const b = u.chipBuys[e.id]; u.chipBuys[e.id] = b && b.week === chipWeek() ? { week:b.week, n:b.n + 1 } : { week:chipWeek(), n:1 }; }
+    act("CHIP_BUY", { id });
+    refresh(); if(document.querySelector("#overlay .trader")) this.chipShop();
+  },
+  chipTradeIn(id){
+    const cs = D.chipShop.sources[id]; if(!cs || have(id) < 1 || S.reserved[id]) return;
+    removeItem(id, 1); S.cur.chips = (S.cur.chips || 0) + cs.chips; revealCurrency("chips");
+    act("CHIP_TRADE_IN", { id, chips:cs.chips });
+    toast("+" + cs.chips + " Chips");
+    refresh();
+  },
   setSecure(id){
     S.secureItem = S.secureItem === id ? null : id;
     act("SECURE_SET", { id: S.secureItem });
@@ -3097,7 +3159,7 @@ window.A = {
   },
   craft(rid){
     const r = D.recipes.find(x=>x.id===rid);
-    if(r.fabricatorLevel > (S.modules.fabricator||0)) return;
+    if(r.fabricatorLevel > (S.modules.fabricator||0) || !recipeOpen(r)) return;
     const cost = craftCost(r);
     if(S.cur.scrap < cost || !Object.keys(r.inputs).every(id => have(id) >= r.inputs[id])) return;
     const I = idleState();
@@ -3583,4 +3645,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   showQuestReady();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, weeklyOpChips, grantUnlock, recipeOpen, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
