@@ -46,6 +46,12 @@ export function applyFirstPayoff(level,payoff,bag=RULES.loot.capacity){
     if(spots.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<cfg.clear+(o.r||0)))continue;
     placed.push(p);
   }
-  placed.forEach((p,i)=>level.lootBoxes.push({id:`payoff-${i}`,x:p.x,z:p.z,item:cfg.items[i%cfg.items.length],marked:true,revealed:true,collected:false,source:cfg.source}));
+  // Pick each item from the cycle but skip kinds already on a neighbouring spot, so adjacent labels never read the same.
+  const used=[];
+  placed.forEach((p,i)=>{
+    let k=i;for(let t=0;t<cfg.items.length;t++,k++){const it=cfg.items[k%cfg.items.length];if(!used.some(u=>u.item===it&&Math.hypot(u.x-p.x,u.z-p.z)<=cfg.spacing*1.5))break;}
+    const item=cfg.items[k%cfg.items.length];used.push({x:p.x,z:p.z,item});
+    level.lootBoxes.push({id:`payoff-${i}`,x:p.x,z:p.z,item,marked:true,revealed:true,collected:false,source:cfg.source});
+  });
   return placed.length;
 }
