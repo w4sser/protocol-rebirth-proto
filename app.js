@@ -626,6 +626,80 @@ function questsHtml(){
       (q.claimed ? '<em>' + IC("check") + '</em>' : q.done ? '<button type="button" class="ghost inline claim" onclick="A.questClaim(\'' + q.id + '\')">CLAIM</button>'
         : (Q.swaps > 0 ? '<button type="button" class="ghost inline swap" onclick="A.questSwap(\'' + q.id + '\')" aria-label="Swap this quest (1 free per day)">' + IC("swap") + '</button>' : '')) + '</div>').join("") + '</div>';
 }
+// ---- quest log (v1.71): area tabs + Daily, chain steps, detail with objective / reward tiles, one TRACK toggle ----
+function qObjIcon(o){ return o.type === "extract" ? ITEMS[o.item].icon : o.type === "kill" ? "skull" : o.type === "handin" ? ITEMS[Object.keys(o.items)[0]].icon : "route"; }
+function qTile(ic, txt, cls, label){ return '<span class="qt ' + (cls || "") + '"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + IC(ic) + (txt !== "" && txt != null ? '<b>' + esc(txt) + '</b>' : '') + '</span>'; }
+function chainPips(prog, n){
+  if(n > 8) return '<span class="ibar"><span style="width:' + Math.round(prog / n * 100) + '%"></span></span>';
+  let h = ""; for(let i = 0; i < n; i++) h += '<i' + (i < prog ? ' class="f"' : '') + '></i>';
+  return '<span class="pips">' + h + '</span>';
+}
+function chainRewardTiles(R){
+  const t = [];
+  if(R.scrap) t.push(qTile("cur-scrap", R.scrap, "", "Scrap"));
+  if(R.xp) t.push(qTile("star", R.xp, "", "Operator XP"));
+  if(R.chips) t.push(qTile("mission", R.chips, "", "Contract Chips"));
+  if(R.dataCores) t.push(qTile("cur-datacore", R.dataCores, "", "Data Cores"));
+  for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
+  if(R.unlock) t.push(qTile("unlock", "", "", "Unlock"));
+  return t.join("");
+}
+// done = n/n, future = 0/n; the current step shows live progress.
+function chainObjTiles(def, prog, n){
+  const o = def.objective, t = [];
+  if(o.type !== "handin") t.push(qTile((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area", (AREA_DEFS[def.area] || {}).name));
+  if(o.type === "handin") for(const id in o.items) t.push(qTile(ITEMS[id].icon, Math.min(o.items[id], prog === n ? o.items[id] : have(id)) + "/" + o.items[id], "", ITEMS[id].name));
+  else t.push(qTile(qObjIcon(o), prog + "/" + n, "", o.type === "kill" ? o.enemy : o.type === "extract" ? ITEMS[o.item].name : "Clear"));
+  return t.join("");
+}
+function chainHandable(id){ const def = chainActive(id); return !!def && def.objective.type === "handin" && Object.keys(def.objective.items).every(k => have(k) >= def.objective.items[k]); }
+function questLogHtml(tab, sel){
+  const ids = Object.keys(QC), daily = questsOpen();
+  if(tab !== "daily" && !chainAvailable(tab)) tab = (trackedQuest() || {}).chain || ids.find(chainAvailable) || (daily ? "daily" : null);
+  const tabs = ids.map(id => {
+    const ok = chainAvailable(id), a = ((QC[id].steps[0] || {}).area);
+    return '<button type="button" class="qtab' + (id === tab ? ' on' : '') + '"' + (ok ? ' onclick="A.questLog(\'' + id + '\')"' : ' disabled') + ' aria-label="' + esc(QC[id].name) + '">' + IC(ok ? (AREA_DEFS[a] || {}).iconId || "flag" : "lock") + '</button>';
+  }).join("") + (daily ? '<button type="button" class="qtab' + (tab === "daily" ? ' on' : '') + '" onclick="A.questLog(\'daily\')" aria-label="Daily quests">' + IC("timer") +
+    (questState().list.some(q => q.done && !q.claimed) ? '<i class="qn">' + questState().list.filter(q => q.done && !q.claimed).length + '</i>' : '') + '</button>' : '');
+  let body = '';
+  if(tab === "daily") body = '<div class="qdaily">' + questsHtml() + '</div>';
+  else if(tab){
+    const ch = QC[tab], st = chainState(tab), cur = Math.min(st.step, ch.steps.length - 1), i = sel == null || sel < 0 || sel >= ch.steps.length ? cur : sel, def = ch.steps[i];
+    const state = i < st.step ? "done" : i === st.step ? "cur" : "lock", tq = trackedQuest(), tracked = !!tq && tq.chain === tab;
+    const prog = state === "done" ? chainStepN(def) : state === "lock" ? 0 : (tq && tq.chain === tab ? tq.prog : def.objective.type === "handin" ? chainHandinProg(def) : st.prog), n = chainStepN(def);
+    const list = ch.steps.map((s, k) => {
+      const ks = k < st.step ? "done" : k === st.step ? "cur" : "lock", p = ks === "cur" ? (s.objective.type === "handin" ? chainHandinProg(s) : st.prog) : 0;
+      return '<button type="button" class="qrow ' + ks + (k === i ? ' sel' : '') + '" onclick="A.questLog(\'' + tab + '\',' + k + ')">' + IC(ks === "done" ? "check" : ks === "lock" ? "lock" : qObjIcon(s.objective)) + '<b>' + esc(s.title) + '</b>' + (ks === "cur" ? chainPips(p, chainStepN(s)) : '') + '</button>';
+    }).join("");
+    body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + '</h2></div>' +
+      '<div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div>' +
+      (state === "cur" ? '<div class="qact">' + (chainHandable(tab) ? '<button type="button" class="primary" onclick="A.QUEST_HANDIN({chain:\'' + tab + '\'})">HAND IN</button>' : '') +
+        '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'TRACKED' : 'TRACK') + '</button></div>' : '') + '</div>';
+  }
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><em class="qchips">' + IC("mission") + (S.cur.chips || 0) + '</em></div>' +
+    '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
+}
+// Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE.
+function trackedGoalHtml(){
+  if(!ftueOver()) return "";
+  const t = trackedQuest(); if(!t) return "";
+  const o = t.step.objective;
+  return '<button type="button" class="progress-goal qgoal" onclick="A.questLog(\'' + t.chain + '\')" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC("quest") + ' ' + esc(t.step.title) + '</b><div class="qgrow">' +
+    qTile(qObjIcon(o), t.prog + "/" + t.n, "") + chainPips(t.prog, t.n) + '</div></button>';
+}
+// Launch param for the raid HUD chip: only when the tracked quest is in the area being raided (hand-ins have no raid objective).
+function questLaunchParam(){
+  const t = ftueOver() && trackedQuest(); if(!t || t.step.area !== raidArea()) return null;
+  const o = t.step.objective; if(o.type === "handin") return null;
+  return o.type + ":" + (o.type === "extract" ? o.item : o.type === "kill" ? o.enemy : (o.level || 1)) + ":" + t.prog + ":" + t.n;
+}
+function chainDoneToast(list){
+  for(const c of list) toast("", '<span class="qdone">' + IC("check") + '<b>' + esc(c.title) + '</b>' + chainRewardTiles(c.reward) + '</span>');
+}
+function questEntryHtml(){
+  const t = trackedQuest(); if(!t && !questsOpen()) return "";
+  return '<button type="button" class="card questentry" onclick="A.questLog()">' + IC("quest") + '<b>QUESTS</b>' + (t ? '<span>' + qTile(qObjIcon(t.step.objective), t.prog + "/" + t.n, "") + '</span>' : '') + IC("chevron-right") + '</button>';
+}
 function morningRows(){
   const R = D.retention, rows = [];
   if(retMode() === "core"){ S.pendingReport = []; return rows; }
@@ -875,9 +949,9 @@ function applyRaidResult(R){
 /* ---------- UI helpers ---------- */
 const $app = () => document.getElementById("app");
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function toast(msg){
+function toast(msg, html){
   const t = document.createElement("div");
-  t.className = "toastmsg"; t.textContent = msg;
+  t.className = "toastmsg"; if(html) t.innerHTML = html; else t.textContent = msg;
   document.getElementById("toast").appendChild(t);
   setTimeout(()=>t.remove(), 2600);
 }
@@ -1430,7 +1504,7 @@ SCREENS.base = function(){
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
@@ -1447,7 +1521,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questsHtml() + scavCardHtml();
+  html += questEntryHtml() + questsHtml() + scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -2381,6 +2455,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") +
+    (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
     (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
 }
@@ -2791,7 +2866,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
   },
   deploy(){
     if(!session.prep) return;
@@ -2969,18 +3044,24 @@ window.A = {
     const alt = questCandidates(Math.random).filter(q => !have.has(q.type + (q.enemy || q.item || q.area || "") + (q.level || "")));
     if(!alt.length){ toast("No other quest available right now"); return; }
     Q.list[i] = Object.assign({ id:"q" + i + "-" + Date.now().toString(36), prog:0, done:false, claimed:false }, alt[Math.floor(Math.random() * alt.length)]);
-    Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh();
+    Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog("daily");
   },
-  QUEST_TRACK(p){ if(!p || !chainActive(p.chain)) return; S.trackedQuest = p.chain; act("QUEST_TRACK", { chain:p.chain }); refresh(); },
+  questLog(tab, sel){
+    const open = document.querySelector("#overlay .qlog");
+    if(!tab) tab = open ? open.dataset.tab : (trackedQuest() || {}).chain;
+    const ov = document.getElementById("overlay"); if(ov) ov.remove();
+    overlay(questLogHtml(tab, sel), () => refresh(), "qlogov");
+  },
+  QUEST_TRACK(p){ if(!p || !chainActive(p.chain)) return; S.trackedQuest = p.chain; act("QUEST_TRACK", { chain:p.chain }); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog(p.chain); },
   QUEST_HANDIN(p){
     const def = p && chainActive(p.chain); if(!def || def.objective.type !== "handin") return;
     const items = def.objective.items; if(!Object.keys(items).every(k => have(k) >= items[k])) return;
     for(const k in items) removeItem(k, items[k]);
-    chainComplete(p.chain); refresh();
+    chainComplete(p.chain); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog(p.chain);
   },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
-    const ready=document.querySelector('#overlay .quest-ready');if(ready)ready.closest('#overlay').remove();
+    const ready=document.querySelector('#overlay .quest-ready, #overlay .qlog');if(ready)ready.closest('#overlay').remove();
     overlay('<div class="bpop qpick"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Pick a reward</h1></div>' +
       '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p><div class="qcards">' + q.rewards.map((c, i) => rewardCardHtml(c, i, qid)).join("") + '</div>' +
       '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', () => refresh(), "sheet");
@@ -3416,6 +3497,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.summary) toast(coreIngest.summary);
+  if(coreIngest && coreIngest.chainsDone) chainDoneToast(coreIngest.chainsDone);
   maybeShowItemInfo();
   if(S.introSeen){
     tickRetention();

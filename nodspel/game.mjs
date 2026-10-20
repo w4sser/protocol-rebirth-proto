@@ -25,7 +25,7 @@ import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.70.0';
 import {routeComplete} from './objectives.js?v=1.70.0';
 import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.70.0';
 import {createBIT,stepBIT} from './bit.js?v=1.70.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock} from './hud.js?v=1.70.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip} from './hud.js?v=1.70.0';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.70.0';
 import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.70.0';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=1.70.0';
@@ -277,8 +277,14 @@ function setCollisions(){
 const nodeCaption=(node,clock)=>node.active?'ACTIVE':node.shielded?(clock<(node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':node.generatorId?'SHIELDED · BREAK THE GENERATOR':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
 // medkit button sits right of the bag panel, top-aligned: the panel grows with the NEED list, and below it the move stick needs the room
 function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit');if(bp&&k&&bp.offsetHeight){const r=bp.getBoundingClientRect(),v=(k.offsetParent||document.body).getBoundingClientRect();k.style.top=`${Math.round(r.top-v.top)}px`;k.style.left=`${Math.round(r.right-v.left+8)}px`;}}
+function renderQuestChip(){
+  const el=$('#quest-chip'),c=questChip(launch.quest,round);if(!el)return;
+  el.hidden=!c;if(!c)return;
+  const key=`${c.item||c.type}:${c.prog}/${c.n}`;if(el.dataset.key===key)return;el.dataset.key=key;
+  setIconText(el,c.item?MATERIALS[c.item]?.icon??'pickup':c.type==='kill'?'skull':'route',`${c.prog}/${c.n}`);el.classList.toggle('done',c.done);
+}
 function updateHUD(){
-  placeKitButton();
+  placeKitButton();renderQuestChip();
   renderGoalTracker();
   renderBagContents($('#bag-items'),round.bag);
   $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${bagCapacityOf(round)} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
