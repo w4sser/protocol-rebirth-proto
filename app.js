@@ -1360,10 +1360,9 @@ function setupBaseViewer(){
     const scale = Math.max(vw / cfg.width, vh / cfg.height) * session.camera.zoom;
     const sw = cfg.width * scale, sh = cfg.height * scale;
     session.cameraLayout = { sw, sh };
-    // Slack lets edge plates be pulled clear of the HUD (bottom bar, goal pill, popup).
-    // v1.65: the goal card (bottom-left) gets real slack so the plates under it can be pulled clear.
-    const card = document.querySelector(".s-base .progress-goal"), cardH = card && card.offsetHeight ? card.offsetHeight + 24 : 0;
-    const pad = {left:0,right:0,top:0,bottom:cardH};
+    // The camera never leaves the art: no gutter below or beside the bunker at any zoom (zoom.min = 1 always covers the viewer).
+    const card = document.querySelector(".s-base .progress-goal");
+    const pad = {left:0,right:0,top:0,bottom:0};
     const minX = Math.min(0, vw - sw) - pad.right, minY = Math.min(0, vh - sh) - pad.bottom;
     let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
     x = Math.max(minX, Math.min(pad.left, x)); y = Math.max(minY, Math.min(pad.top, y));
@@ -3479,13 +3478,26 @@ function lockLandscape(doc){
     else lock();
   }catch(e){}
 }
+// Base loading overlay when the splash is skipped: covers the HUD until the bunker art is loaded and painted, then fades out.
+function showBaseLoader(){
+  if(/jsdom/i.test(navigator.userAgent || "")) return;
+  const el = document.createElement("div");
+  el.id = "boot-loader"; el.className = "pr-loader"; el.setAttribute("role", "status"); el.setAttribute("aria-label", "Loading");
+  el.innerHTML = IC("bit-face") + '<div class="pr-loader-bar"><i></i></div>';
+  document.body.appendChild(el);
+  let done = false;
+  const hide = () => { if(done) return; done = true; requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.add("out"); setTimeout(() => el.remove(), 260); })); };
+  const img = new Image(); img.onload = img.onerror = hide; img.src = D.baseMap.plates[bunkerStage()].art;
+  if(img.complete) hide();
+  setTimeout(hide, 4000);
+}
 function setupSplash(){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return;
   let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
-  if(shown){ sp.remove(); return; }
+  if(shown){ sp.remove(); showBaseLoader(); return; }
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");

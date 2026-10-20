@@ -16,8 +16,10 @@
   <link rel="stylesheet" href="style.css?v=1.71.1">
 <link rel="stylesheet" href="../ui/tokens.css?v=1.71.1">
 <link rel="stylesheet" href="../ui/popup.css?v=1.71.1">
+<link rel="stylesheet" href="../ui/loader.css?v=1.71.1">
 </head>
 <body>
+  <div id="boot-loader" class="pr-loader" role="status" aria-label="Loading"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#bit-face"/></svg><div class="pr-loader-bar"><i></i></div></div>
   <div class="landscape" id="viewport">
   <main id="game" aria-label="Game world"></main>
   <header class="hud">
@@ -79,6 +81,7 @@
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
     import('./game.mjs?v=1.71.1').catch(error => {
+      document.querySelector('#boot-loader')?.remove();
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';
       console.error(error);

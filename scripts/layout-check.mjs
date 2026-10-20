@@ -116,7 +116,10 @@ function worldOverlaps(){
   }
   return out;
 }
+// the boot loader (raid + base) covers everything until the first frame; checks and screenshots wait for it to be gone
+const loaderGone=page=>page.waitForFunction(()=>!document.getElementById('boot-loader'),{timeout:20000}).catch(()=>fail('loader','boot loader never went away'));
 async function report(page,ctx,extraSel=''){
+  await loaderGone(page);
   for(const it of await page.evaluate(collect,extraSel+(extraSel?',':'')+SAFE_TEXT,INS_ARG())){
     if(it.unsafe)fail(ctx,`${it.n} is outside the safe area (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)}; insets L${INSETS.left} R${INSETS.right} B${INSETS.bottom})`);
     if(it.covered)fail(ctx,`${it.n} is covered by ${it.covered}`);
@@ -130,6 +133,7 @@ async function report(page,ctx,extraSel=''){
 }
 // never screenshot mid-fade: wait until the splash is gone, then assert it really is (no half-transparent overlay left)
 const shot=async(page,name)=>{
+  await loaderGone(page);
   await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{});
   const left=await page.evaluate(()=>{const s=document.getElementById('splash');return s?getComputedStyle(s).opacity:null;});
   if(left!==null)fail(`${name}`,`splash still in DOM (opacity ${left}) when base should be interactive`);
@@ -298,8 +302,52 @@ async function encShotRun([w,h]){
   await page.close();
 }
 
+// Raid boot loader: while the scene loads it must cover the whole viewport (HUD included), then fade out and leave the DOM.
+async function raidLoadingRun([w,h]){
+  const tag=`raid-loading ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=layout&debug=1&q=high&area=bunker`,{waitUntil:'domcontentloaded'});
+  const info=await page.evaluate(()=>{const l=document.getElementById('boot-loader');if(!l)return null;const r=l.getBoundingClientRect(),cs=getComputedStyle(l);
+    const hud=document.querySelector('.round-hud'),hr=hud&&hud.getBoundingClientRect(),top=hr&&document.elementFromPoint(hr.left+hr.width/2,hr.top+hr.height/2);
+    return {full:Math.abs(r.width-innerWidth)<2&&Math.abs(r.height-innerHeight)<2,opacity:+cs.opacity,covers:!top||l.contains(top),face:!!l.querySelector('use[href$="#bit-face"]'),bar:!!l.querySelector('.pr-loader-bar i')};});
+  if(!info)fail(tag,'boot loader missing at DOM ready');
+  else{if(!info.full)fail(tag,'loader is not full-screen');if(!info.covers)fail(tag,'HUD is drawn above the loader');if(!info.face||!info.bar)fail(tag,'loader lacks BIT face or progress bar');
+    await page.screenshot({path:join(OUT,`raid-loading-${w}x${h}.png`)});}
+  await loaderGone(page);
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await page.close();
+}
+// Base after a raid: the secured-loot strip and the level toast queue (one at a time, never over a popup, never over the HUD).
+async function baseAfterRaidRun([w,h]){
+  const tag=`base-after-raid ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html',{waitUntil:'load'});await settle(900);
+  await page.evaluate(PROGRESSED);await settle(200);
+  await page.evaluate(()=>{
+    const res=ingestRaidResult({schema:'protocol-rebirth/raid-result',version:1,raidId:'layout-'+Date.now(),seed:'s',area:'bunker',outcome:'extract',levelsCleared:3,enemiesDefeated:4,nodesLit:6,remainingMs:1,extracted:['cable','power_cell','scrap_alloy','fuse'],lost:[],endedAt:1});
+    toast('',coreResultStripHtml({outcome:'extract',lost:[]},res)||'');toast('Operator level 4');toast('Second notice');
+    window.__q=document.querySelectorAll('#toast .toastmsg').length;
+  });
+  await settle(500);
+  const one=await page.evaluate(()=>document.querySelectorAll('#toast .toastmsg').length);
+  if(one!==1)fail(tag,`toasts overlap: ${one} visible at once (queue must show one at a time)`);
+  const bad=await page.evaluate(()=>{const t=document.querySelector('#toast .toastmsg');if(!t)return ['no toast shown'];const a=t.getBoundingClientRect(),out=[],vw=innerWidth;
+    for(const e of document.querySelectorAll('#topbar,#tabs,#bitdock,.progress-goal,.goalpill')){if(!e.offsetHeight||getComputedStyle(e).visibility==='hidden')continue;const r=e.getBoundingClientRect();
+      if(Math.min(a.right,r.right)-Math.max(a.left,r.left)>2&&Math.min(a.bottom,r.bottom)-Math.max(a.top,r.top)>2)out.push('toast overlaps '+(e.id||e.className));}
+    if(a.right>vw-1||a.left<0||!t.querySelector('.qt use'))out.push('toast outside viewport or without item tiles');return out;});
+  for(const m of bad)fail(tag,m);
+  await shot(page,`base-after-raid-${w}x${h}`);
+  // a popup opened while toasts are queued hides/defers them
+  await page.evaluate(()=>{A.questLog('daily');});await settle(700);
+  const vis=await page.evaluate(()=>{const t=document.querySelector('#toast .toastmsg'),o=document.getElementById('overlay');return !!(o&&t&&getComputedStyle(document.getElementById('toast')).visibility!=='hidden');});
+  if(vis)fail(tag,'toast visible while a popup is open');
+  await page.close();
+}
+
 try{
   await encShotRun([844,390]);
+  for(const vp of VIEWPORTS)await raidLoadingRun(vp);
+  for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
   for(const vp of VIEWPORTS)await payoffRun(vp);
   for(const vp of VIEWPORTS)await baseRun(vp);

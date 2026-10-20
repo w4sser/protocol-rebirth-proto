@@ -11,7 +11,9 @@ for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones
   window.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = window.document, A = window.A;
 assert.equal(window.localStorage.getItem("pr_raid_result_v1"), null, "pending result consumed on boot");
-assert.equal(doc.getElementById("toast").textContent, "Node Raid: extracted — +1 Cable, +1 Power Cell · extract bonus +30 Scrap", "result toast shown");
+{ const st = doc.querySelector("#toast .qdone.secured"); assert(st, "secured loot strip toast shown");
+  console.log(st.innerHTML);
+  assert(!/Node Raid:/.test(doc.getElementById("toast").textContent), "no plain-text raid summary"); }
 const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert(saved.coreRaidsIngested.includes("meta-test-1") && saved.stash.cable >= 1, "ingest persisted");
 A.dismissIntro(); A.playCombatDemo(); A.endCombatDemo();

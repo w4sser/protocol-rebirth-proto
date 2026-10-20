@@ -779,6 +779,8 @@ function frameInner(now){
   world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderer.render(scene,camera);requestAnimationFrame(frame);
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
+// Boot loader stays up until the first frame has been rendered and painted, then fades out.
+{const bl=document.getElementById('boot-loader');if(bl)requestAnimationFrame(()=>requestAnimationFrame(()=>{bl.classList.add('out');setTimeout(()=>bl.remove(),260);}));}
 // Landscape only: on the first tap go fullscreen and lock orientation where supported (Android). iOS shows the .rotate screen.
 {const once=()=>{document.removeEventListener('pointerdown',once,true);try{const el=document.documentElement,fs=el.requestFullscreen||el.webkitRequestFullscreen,lock=()=>{try{screen.orientation?.lock?.('landscape')?.catch?.(()=>{});}catch{}};if(fs&&!document.fullscreenElement){const p=fs.call(el,{navigationUI:'hide'});p?.then?p.then(lock,lock):lock();}else lock();}catch{}};document.addEventListener('pointerdown',once,true);}
 gameReady=true;if(queuedStart){const q=queuedStart;queuedStart=null;q();}

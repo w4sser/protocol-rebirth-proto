@@ -80,7 +80,7 @@ for(const [name, s] of Object.entries(STATES)){
   assert(seen.common / 4000 > 0.2 && seen.legendary / 4000 < 0.06); }
 { // raid ingest flags the quest and coexists with scavenging (both cards on the BIT screen)
   const b = boot(STATES.townAll, T0); b.A.go("bit"); assert(!b.doc.querySelector(".card.quests"), "no old card on BIT"); b.A.questLog("daily"); assert(b.doc.querySelector(".card.quests")); }
-{ // A real raid return surfaces completed quests without needing to visit BIT.
+{ // A real raid return badges completed quests (no auto-popup); claiming happens in the quest log Daily tab.
   const b=boot(STATES.fresh,T0);b.T.questState();const s=JSON.parse(JSON.stringify(b.S()));
   s.quests.list=[
     {id:'popup-a',type:'kill',enemy:'grunt',n:1,prog:0,done:false,claimed:false},
@@ -88,30 +88,25 @@ for(const [name, s] of Object.entries(STATES)){
   ];
   const r={schema:'protocol-rebirth/raid-result',version:1,raidId:'quest-popup-raid',seed:'popup',area:'bunker',outcome:'extract',levelsCleared:1,enemiesDefeated:1,killsByType:{grunt:1},nodesLit:1,remainingMs:400000,extracted:[],lost:[],skills:{},endedAt:T0};
   const c=boot(s,T0,r),d=c.doc;
-  const ready=()=>d.querySelector('.quest-ready');
-  assert(ready(),'completed quest opens a claim popup on raid return');
-  assert.equal(d.querySelectorAll('#overlay').length,1,'one popup at a time');
-  assert(ready().textContent.includes('Quest complete'));
+  assert(!d.querySelector('.quest-ready'),'no auto claim popup on raid return');
+  assert(!d.getElementById('overlay'),'no popup opened by quest completion');
+  { const nb=d.querySelector('#tabs .nav-bit .badge'); assert(nb && nb.textContent==='2','BIT nav badge shows ready count'); }
+  c.A.go('bit'); const entry=d.querySelector('.questentry .qn'); assert(entry && entry.textContent==='2','QUESTS entry shows ready count');
   const before=c.S().bondXp;
-  assert(ready().querySelector('.claim').getAttribute('onclick').includes("A.questClaim('popup-a')"),'Claim is wired to the offered quest');
+  c.A.questLog('daily');
+  assert(d.querySelector('.qtab .qn') && d.querySelector('.qtab .qn').textContent==='2','Daily tab badge shows ready count');
+  assert(d.querySelector('.quest .claim'),'claim lives in the Daily tab');
   c.A.questClaim('popup-a');
   assert.equal(d.querySelectorAll('.qpick .qcard').length,3,'Claim opens existing reward choice');
   c.A.questPick('popup-a',0);
   assert(c.S().quests.list[0].claimed);
   assert.equal(c.S().bondXp,before+Q.bondXp);
-  assert(ready(),'next completed quest is offered after claiming');
-  assert.equal(d.querySelectorAll('#overlay').length,1,'reward choice does not stack on the next popup');
-  ready().querySelector('[data-later]').click();
-  assert(!ready(),'Later closes the notification without granting a reward');
-  assert(!c.S().quests.list[1].claimed);
-  c.A.go('base');assert(!ready(),'dismissed quest does not nag again on navigation');
-  c.A.questLog('daily');assert(d.querySelector('.quest .claim'),'Later keeps the existing BIT claim action');
   c.A.questPick('popup-a',0);assert.equal(c.S().bondXp,before+Q.bondXp,'no double reward');
   const saved=JSON.parse(c.w.localStorage.getItem('pr_meta_save'));
   assert(saved.quests.list[0].claimed,'claim persists');
   const reloaded=boot(saved,T0,r);
   assert.equal(reloaded.S().quests.list[0].prog,1,'duplicate raid does not add quest progress');
   assert.equal(reloaded.S().bondXp,c.S().bondXp,'reload does not award twice');
-  assert(reloaded.doc.querySelector('.quest-ready'),'unclaimed reward is offered again in a new session');
+  assert(!reloaded.doc.getElementById('overlay'),'no popup in a new session either');
 }
 console.log("quests ok");
