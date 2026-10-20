@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.71.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.71.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 8;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips)
 
@@ -695,7 +695,7 @@ function trackedGoalHtml(){
   const t = trackedQuest(); if(!t) return "";
   const o = t.step.objective;
   return '<button type="button" class="progress-goal qgoal" onclick="A.questLog(\'' + t.chain + '\')" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC("quest") + ' ' + esc(t.step.title) + '</b><div class="qgrow">' +
-    qTile(qObjIcon(o), t.prog + "/" + t.n, "") + chainPips(t.prog, t.n) + '</div></button>';
+    qTile(qObjIcon(o), t.prog + "/" + t.n, "") + '</div></button>';
 }
 // Launch param for the raid HUD chip: only when the tracked quest is in the area being raided (hand-ins have no raid objective).
 function questLaunchParam(){
@@ -1532,7 +1532,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questEntryHtml() + questsHtml() + scavCardHtml();
+  html += questEntryHtml() + scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +

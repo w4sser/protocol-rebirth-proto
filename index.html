@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.71.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.71.0">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.71.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.71.1" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.71.1">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.71.1">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -597,7 +597,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.71.0") center/contain no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.71.1") center/contain no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -722,8 +722,8 @@
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.71.0">
-<link rel="stylesheet" href="ui/popup.css?v=1.71.0">
+<link rel="stylesheet" href="ui/tokens.css?v=1.71.1">
+<link rel="stylesheet" href="ui/popup.css?v=1.71.1">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -803,7 +803,7 @@
   .quest button.inline{flex:none;min-height:44px;min-width:56px;margin:0}.quest .claim{color:#FF9D4D;border-color:#FF9D4D}
   /* v1.71 quest log (844x390 fit) + tracked quest card + quest entry in BIT Bay; tokens only */
   #overlay.qlogov{justify-content:center}#overlay.qlogov .inner{max-width:800px}
-  .bpop.qlog{width:min(780px,calc(100% - 32px));height:min(300px,calc(100dvh - var(--tb-h,0px) - 60px));display:flex;flex-direction:column;padding:6px 10px 10px;box-sizing:border-box}
+  .bpop.qlog{width:min(780px,calc(100% - 32px));height:min(330px,calc(100dvh - var(--tb-h,0px) - 34px));display:flex;flex-direction:column;padding:6px 10px 10px;box-sizing:border-box}
   .qlog .qchips{display:flex;align-items:center;gap:4px;background:none;color:var(--ad-loot);font:800 14px "Archivo",sans-serif}.qlog .qchips svg{width:20px;height:20px}
   .bpop.qlog{text-align:left}.qlog .bpop-head h1{text-align:left;margin-left:4px}.qdet h2{color:var(--ad-bone);text-align:left}
   .qwrap{flex:1;min-height:0;display:grid;grid-template-columns:56px minmax(190px,270px) 1fr;gap:10px}
@@ -812,9 +812,9 @@
   .qtab{position:relative;width:44px;height:44px;min-height:44px;margin:0;padding:0;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);border:0;color:var(--ad-bone)}
   .qtab svg{width:24px;height:24px}.qtab.on{color:var(--ad-cyan);background:color-mix(in srgb,var(--ad-cyan) 16%,transparent);outline:1.5px solid var(--ad-cyan)}.qtab:disabled{opacity:.35}
   .qtab .qn{position:absolute;top:-4px;right:-4px;background:var(--ad-cyan);color:var(--ad-ink);border-radius:8px;font:800 10px/1 "Archivo",sans-serif;padding:2px 5px;font-style:normal}
-  .qlist{display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;padding:2px}
-  .qrow{display:flex;align-items:center;gap:8px;min-height:36px;margin:0;padding:0 10px;border-radius:10px;border:0;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);color:var(--ad-bone);text-align:left;flex:none}
-  .qrow svg{width:22px;height:22px;flex:none}.qrow b{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qlist{display:flex;flex-direction:column;gap:1px;overflow-y:auto;min-height:0;padding:2px}
+  .qrow{display:flex;align-items:center;gap:6px;min-height:26px;height:26px;margin:0;padding:0 8px;border-radius:8px;border:0;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);color:var(--ad-bone);text-align:left;flex:none}
+  .qrow svg{width:18px;height:18px;flex:none}.qrow b{flex:1;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .qrow.cur{color:var(--ad-cyan)}.qrow.cur b{color:var(--ad-bone)}.qrow.done{opacity:.45}.qrow.lock{opacity:.3}
   .qrow.sel{background:color-mix(in srgb,var(--ad-cyan) 12%,transparent);outline:1.5px solid var(--ad-cyan)}
   .pips{display:flex;gap:3px;flex:none}.pips i{width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--ad-bone) 18%,transparent)}.pips i.f{background:var(--ad-cyan)}
@@ -929,13 +929,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.71.0</div>
+    <div id="app-version">v1.71.1</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.71.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.71.1</span></div>
     </div>
   </div>
   <div id="main">
@@ -950,16 +950,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.71.0"></script>
-<script src="data/modules.js?v=1.71.0"></script>
-<script src="data/bit.js?v=1.71.0"></script>
-<script src="data/raid_zones.js?v=1.71.0"></script>
-<script src="data/recipes.js?v=1.71.0"></script>
-<script src="data/vendors.js?v=1.71.0"></script>
-<script src="data/retention.js?v=1.71.0"></script>
-<script src="data/quests.js?v=1.71.0"></script>
-<script src="data/progression.js?v=1.71.0"></script>
-<script src="data/combat.js?v=1.71.0"></script>
-<script src="app.js?v=1.71.0"></script>
+<script src="data/items.js?v=1.71.1"></script>
+<script src="data/modules.js?v=1.71.1"></script>
+<script src="data/bit.js?v=1.71.1"></script>
+<script src="data/raid_zones.js?v=1.71.1"></script>
+<script src="data/recipes.js?v=1.71.1"></script>
+<script src="data/vendors.js?v=1.71.1"></script>
+<script src="data/retention.js?v=1.71.1"></script>
+<script src="data/quests.js?v=1.71.1"></script>
+<script src="data/progression.js?v=1.71.1"></script>
+<script src="data/combat.js?v=1.71.1"></script>
+<script src="app.js?v=1.71.1"></script>
 </body>
 </html>

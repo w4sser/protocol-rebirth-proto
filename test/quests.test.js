@@ -41,7 +41,7 @@ for(const [name, s] of Object.entries(STATES)){
     for(const q of L){ const ok = q.type === "kill" ? R.some(r => r.f.enemies.includes(q.enemy)) : q.type === "search" ? R.some(r => r.f.houses > 0)
         : q.type === "extract" ? R.some(r => r.area === q.area && r.f.items.includes(q.item)) : R.some(r => r.area === q.area && r.level === q.level);
       assert(ok, name + ": unsolvable quest " + JSON.stringify(q)); assert(q.n >= 1); } }
-  b.A.go("bit"); assert(b.doc.querySelector(".card.quests") && b.doc.querySelectorAll(".quest").length === 3, name + ": rendered");
+  b.A.questLog("daily"); assert(b.doc.querySelector(".qlog .card.quests") && b.doc.querySelectorAll(".qlog .quest").length === 3, name + ": rendered in quest log"); b.A.go("bit"); assert(!b.doc.querySelector(".card.quests"), name + ": no card on BIT screen");
   assert(b.doc.querySelector(".scav, .card.scav, [data-scav], .idlecard") || true); }
 { // fresh: no town, so no search quests and no town-only enemies
   const b = boot(STATES.fresh, T0); for(let d = 0; d < 30; d++){ b.set(T0 + d * DAY); for(const q of b.T.questState().list){ assert.notEqual(q.type, "search"); assert(q.area !== "town" && q.area !== "archipelago"); } } }
@@ -72,15 +72,14 @@ for(const [name, s] of Object.entries(STATES)){
   const b = boot(STATES.townAll, T0); const Qs = b.T.questState(), before = JSON.stringify(Qs.list[0]);
   b.A.questSwap(Qs.list[0].id); assert.equal(b.T.questState().swaps, 0); assert.notEqual(JSON.stringify(b.T.questState().list[0]), before);
   const k = JSON.stringify(b.T.questState().list[1]); b.A.questSwap(b.T.questState().list[1].id); assert.equal(JSON.stringify(b.T.questState().list[1]), k, "second swap refused");
-  b.A.go("bit"); assert(!b.doc.querySelector(".quest .swap"), "swap buttons hidden when used"); }
+  b.A.questLog("daily"); assert(!b.doc.querySelector(".quest .swap"), "swap buttons hidden when used"); }
 { // mystery distribution covers all tiers, better and worse than the shown cards
   const b = boot(STATES.fresh, T0); let seed = 7; const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647, seen = {};
   for(let i = 0; i < 4000; i++){ const m = b.T.rollMystery(rng); seen[m.tier] = (seen[m.tier] || 0) + 1; }
   for(const t of ["common","uncommon","rare","epic","legendary"]) assert(seen[t] > 0, t);
   assert(seen.common / 4000 > 0.2 && seen.legendary / 4000 < 0.06); }
 { // raid ingest flags the quest and coexists with scavenging (both cards on the BIT screen)
-  const b = boot(STATES.townAll, T0); b.A.go("bit"); assert(b.doc.querySelector(".card.quests"));
-  assert(b.doc.body.innerHTML.indexOf("card quests") >= 0); }
+  const b = boot(STATES.townAll, T0); b.A.go("bit"); assert(!b.doc.querySelector(".card.quests"), "no old card on BIT"); b.A.questLog("daily"); assert(b.doc.querySelector(".card.quests")); }
 { // A real raid return surfaces completed quests without needing to visit BIT.
   const b=boot(STATES.fresh,T0);b.T.questState();const s=JSON.parse(JSON.stringify(b.S()));
   s.quests.list=[
@@ -106,7 +105,7 @@ for(const [name, s] of Object.entries(STATES)){
   assert(!ready(),'Later closes the notification without granting a reward');
   assert(!c.S().quests.list[1].claimed);
   c.A.go('base');assert(!ready(),'dismissed quest does not nag again on navigation');
-  c.A.go('bit');assert(d.querySelector('.quest .claim'),'Later keeps the existing BIT claim action');
+  c.A.questLog('daily');assert(d.querySelector('.quest .claim'),'Later keeps the existing BIT claim action');
   c.A.questPick('popup-a',0);assert.equal(c.S().bondXp,before+Q.bondXp,'no double reward');
   const saved=JSON.parse(c.w.localStorage.getItem('pr_meta_save'));
   assert(saved.quests.list[0].claimed,'claim persists');
