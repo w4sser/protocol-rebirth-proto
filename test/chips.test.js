@@ -56,6 +56,11 @@ assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
 // migration: v8 save keeps everything and gains the new fields; v7 too
 { for(const v of [7, 8]){ const old = JSON.parse(JSON.stringify(fresh)); old.v = v; delete old.chipShop; delete old.unlocks; if(v === 7){ delete old.chains; delete old.trackedQuest; delete old.cur.chips; } old.cur.scrap = 91;
     const b = boot(old), s = b.S(); assert.equal(s.v, 9); assert.equal(s.cur.scrap, 91); assert.equal(s.cur.chips, 0); assert(s.unlocks.hard && s.chipShop.bought); } }
+// migration backfills unlock flags from completed chain steps only (B4 recipe, B8 hard+cosmetic done; A8 not), no rewards replayed
+{ const old = JSON.parse(JSON.stringify(fresh)); old.v = 8; delete old.chipShop; delete old.unlocks; old.cur.scrap = 5; old.cur.chips = 1;
+  old.chains = { bunker:{ step:8, prog:0 }, archipelago:{ step:7, prog:0 } };
+  const s = boot(old).S(); assert.equal(s.unlocks.recipe.tool_emp, true); assert.equal(s.unlocks.hard.bunker, true); assert.equal(s.unlocks.cosmetic.bit_bunker, true);
+  assert(!s.unlocks.recipe.gull_drone && !s.unlocks.hard.archipelago, "incomplete step not granted"); assert.equal(s.cur.scrap, 5); assert.equal(s.cur.chips, 1); }
 // UI: shop opens in the shared popup, tiles buy via the click path, rows for Drive/Relic, no glyphs, quest log chip count opens it
 { const b = mk(12); b.S().stash.encrypted_drive = 1; const d = b.d; b.A.chipShop();
   const ov = d.querySelector("#overlay.chipshopov"); assert(ov && ov.querySelector(".pop-card .cshop, .pop-card.cshop") && ov.querySelector(".pop-x"), "shared popup");

@@ -111,6 +111,10 @@ function migrateChains(st){
 function migrateChips(st){
   st.chipShop = st.chipShop || { week:"", bought:{} };
   st.unlocks = st.unlocks || {}; for(const k of ["recipe", "cosmetic", "hard"]) st.unlocks[k] = st.unlocks[k] || {};
+  // Backfill unlock flags from chain steps already completed (S.chains[id].step = steps done); flags only, no currency/items.
+  const chains = (window.DATA && window.DATA.questChains) || {};
+  for(const id in chains){ const done = (st.chains && st.chains[id] && st.chains[id].step) || 0;
+    chains[id].steps.slice(0, done).forEach(def => { const u = def.reward && def.reward.unlock; if(u) for(const k of ["recipe", "cosmetic", "hard"]) if(u[k]) st.unlocks[k][u[k]] = true; }); }
   st.v = SAVE_VERSION;
   return st;
 }
