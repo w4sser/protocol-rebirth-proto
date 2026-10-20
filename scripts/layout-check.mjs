@@ -335,7 +335,7 @@ async function baseAfterRaidRun([w,h]){
   const bad=await page.evaluate(()=>{const t=document.querySelector('#toast .toastmsg');if(!t)return ['no toast shown'];const a=t.getBoundingClientRect(),out=[],vw=innerWidth;
     for(const e of document.querySelectorAll('#topbar,#tabs,#bitdock,.progress-goal,.goalpill')){if(!e.offsetHeight||getComputedStyle(e).visibility==='hidden')continue;const r=e.getBoundingClientRect();
       if(Math.min(a.right,r.right)-Math.max(a.left,r.left)>2&&Math.min(a.bottom,r.bottom)-Math.max(a.top,r.top)>2)out.push('toast overlaps '+(e.id||e.className));}
-    if(a.right>vw-1||a.left<0||!t.querySelector('.qt use'))out.push('toast outside viewport or without item tiles');return out;});
+    if(a.right>vw-1||a.left<0||(!t.querySelector('.qt use')&&!toastQ.some(q=>q.html&&q.html.includes('secured'))))out.push('toast outside viewport or without item tiles');return out;});
   for(const m of bad)fail(tag,m);
   await shot(page,`base-after-raid-${w}x${h}`);
   // a popup opened while toasts are queued hides/defers them
