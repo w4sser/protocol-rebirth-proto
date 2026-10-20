@@ -28,7 +28,7 @@
     "test:chains": "node test/quest-chains.test.js",
     "test:questlog": "node test/quest-log.test.js",
     "test:oscar": "node test/oscar.test.mjs",
-    "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js"
+    "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js && node test/map-new-unlock.test.js"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

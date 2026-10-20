@@ -35,7 +35,7 @@ function freshState(){
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
-    payoff: null, payoffDone: false,
+    payoff: null, payoffDone: false, areaSeen: {},
     chains: {}, trackedQuest: null,
     log: []
   };
@@ -51,7 +51,7 @@ function load(){
       if(st.v === 6) migrateState(st);
       if(st.v === 7) migrateChains(st);
       if(st.v === 6 || st.v === 7) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
     }
   }catch(e){}
   return freshState();
@@ -61,6 +61,16 @@ function migratePayoff(st){
   if(st.payoff === undefined) st.payoff = null;
   if(st.payoffDone === undefined){
     st.payoffDone = Object.keys(PROG.firstUpgradePayoff).some(k => { const [m, l] = k.split(":"); return ((st.modules && st.modules[m]) || 0) >= +l; });
+  }
+  return st;
+}
+// v1.69.2: NEW badge on freshly unlocked map areas. Saves without areaSeen mark every area they already have open
+// as seen, so veterans get no surprise badge (no SAVE_VERSION bump: the field is additive).
+function migrateAreaSeen(st){
+  if(st.areaSeen && typeof st.areaSeen === "object") return st;
+  st.areaSeen = {};
+  for(const a of (D.worldMap && D.worldMap.areas) || []){
+    if(a.requires && ((st.modules && st.modules.rebirth_core) || 0) >= a.requires.core && st.areaScouted && st.areaScouted[a.id]) st.areaSeen[a.id] = true;
   }
   return st;
 }
@@ -987,7 +997,7 @@ function overlay(html, onClose, cls, opts){
   return o;
 }
 // Shared BACK (top-left in the top bar): closes the open popup, else goes up one screen.
-const BACK_TARGET = { itemDetail:"stash", module:"base" };
+const BACK_TARGET = { itemDetail:"stash", module:"base", worldmap:"prep" };
 function updateNav(){
   if(typeof document === "undefined") return;
   const b = document.getElementById("navback"), tb = document.getElementById("topbar"), ov = !!document.getElementById("overlay");
@@ -1096,6 +1106,7 @@ function navBadge(id){
   // Owner 14 Oct: the base tab counts what can be built right now.
   if(id === "base"){ const n = buildableCount(); if(n) return ["up build", String(n)]; }
   if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
+  if(id === "prep" && wmNewUnlockTarget()) return ["alert","!"];
   if(id === "stash" && stashSlotsUsed() > stashCapacity()) return ["alert","!"];
   if(id === "bit" && contractsUnlocked()){
     const n = Object.values(S.contracts || {}).filter(v => v === "done").length;
@@ -1818,7 +1829,12 @@ const WMAP = D.worldMap, AREA_DEFS = {}; WMAP.areas.forEach(a => AREA_DEFS[a.id]
 const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(location.search || "");
 function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
 function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
-function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaCoreOk(id) && areaScouted(id); }
+function areaEarned(id){ return areaCoreOk(id) && areaScouted(id); }
+function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaEarned(id); }
+// Unlocked for real (not via debug) and not yet selected/tapped by the player.
+function areaUnseen(id){ const a = AREA_DEFS[id]; return !!(a && a.requires && !DEBUG_AREAS && !S.debugAreas && areaUnlocked(id) && !(S.areaSeen && S.areaSeen[id])); }
+// First unseen unlocked area in data order, or null. Drives the NEW badges and the map-open zoom.
+function wmNewUnlockTarget(){ const a = WMAP.areas.find(x => areaUnseen(x.id)); return a ? a.id : null; }
 function raidArea(){ return AREA_DEFS[S.area] && areaUnlocked(S.area) ? S.area : WMAP.areas[0].id; }
 function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
 // Requirement lines for a locked area: [text, done] pairs, both steps visible.
@@ -1839,7 +1855,7 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -1858,8 +1874,8 @@ SCREENS.worldmap = function(){
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
-      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' +
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
+      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' + (areaUnseen(a.id) ? '<em class="wm-new" aria-label="New area">NEW</em>' : '') +
       '<span class="wm-name">' + IC(a.iconId) + ' ' + esc(a.name) + ' <small class="threat">' + IC("threat").repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>') + '</div>';
@@ -1869,7 +1885,7 @@ SCREENS.worldmap = function(){
     '<div class="wm-stage" style="--ar:' + WMAP.aspect + ';background-image:url(\'' + WMAP.background + '\')">' +
       '<svg class="wm-routes" viewBox="0 0 100 ' + (100 / WMAP.aspect) + '" preserveAspectRatio="none" aria-hidden="true">' + routes + '</svg>' + wmFogSvg() + beacons + areas + '</div>' +
     '<div class="wm-fog"></div>' +
-    '<div class="wm-ui"><button type="button" class="wm-back" onclick="A.go(\'prep\')" aria-label="Back to raid prep">' + IC("nav-back") + ' BACK</button><h1>WORLD MAP</h1></div>' +
+    '<h1 class="sr-only">World map</h1>' +
     '</div>';
   setupWorldMapPan(sel);
 };
@@ -1900,17 +1916,57 @@ function wmGeom(vw, vh, z){
   const hx = vw / 2 / s, hy = vh / 2 / sh, axis = (a0, a1, h) => a1 - a0 >= 2 * h ? [a0 + h, a1 - h] : [(a0 + a1) / 2, (a0 + a1) / 2];
   return { ar, cover, zMin, z:zz, s, sh, bx:axis(B.x0, B.x1, hx), by:axis(B.y0, B.y1, hy), vw, vh };
 }
+// New-unlock framing (pure, px): the largest zoom <= min(zMax, WM_MAX_Z), >= zMin, at which the whole region plus its
+// label card fits inside the visible box (viewport minus chrome insets `ins` {t,r,b,l}) with `pad` px around it.
+// Returns the camera (map fractions at the viewport centre) that centres that union box in the visible box.
+function wmFitUnlock(vw, vh, ins, R, L, lbl, o){
+  const ar = WMAP.aspect || 1.5, cover = Math.max(vw, vh * ar), pad = o.pad || 0;
+  const availW = Math.max(1, vw - ins.l - ins.r - 2 * pad);
+  // label extent in px relative to its anchor point (default: card sits above the point, centred)
+  const an = (L && L.anchor) || "", lx0 = an === "left" ? -lbl.w : -lbl.w / 2, lx1 = an === "left" ? 0 : lbl.w / 2, ly0 = an === "below" || an === "left" ? 0 : -lbl.h, ly1 = ly0 + lbl.h;
+  const box = z => { const s = cover * z, sh = s / ar, X = s / 100, Y = sh / 100, lp = L || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
+    return { x0:Math.min(R.x * X, lp.x * X + lx0), x1:Math.max((R.x + R.w) * X, lp.x * X + lx1), y0:Math.min(R.y * Y, lp.y * Y + ly0), y1:Math.max((R.y + R.h) * Y, lp.y * Y + ly1), s, sh }; };
+  const g = wmGeom(vw, vh, 1), top = Math.max(g.zMin, Math.min(WM_MAX_Z, o.z || WM_MAX_Z));
+  const solve = t => { const aH = Math.max(1, vh - t - ins.b - 2 * pad), ok = z => { const b = box(z); return b.x1 - b.x0 <= availW && b.y1 - b.y0 <= aH; };
+    let z = top; if(!ok(top)){ let lo = g.zMin, hi = top; for(let i = 0; i < 30; i++){ const m = (lo + hi) / 2; if(ok(m)) lo = m; else hi = m; } z = lo; }
+    const b = box(z), ay = t + (vh - t - ins.b) / 2, ax = ins.l + (vw - ins.l - ins.r) / 2;
+    return { z, fx:((b.x0 + b.x1) / 2 + (vw / 2 - ax)) / b.s, fy:((b.y0 + b.y1) / 2 + (vh / 2 - ay)) / b.sh, box:b, ins:{ t, r:ins.r, b:ins.b, l:ins.l }, pad }; };
+  const F = solve(ins.t);
+  return F;
+}
 function setupWorldMapPan(sel){
   if(typeof document === "undefined") return;
   const view = document.querySelector(".worldmap"), stage = view && view.querySelector(".wm-stage");
   if(!view || !stage) return;
   const R = AREA_DEFS[sel].region;
   wmCancel(session.wmAnim); session.wmAnim = 0;
-  if(!session.wmCam) session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
+  if(!session.wmCam){
+    session.wmCam = { area:sel, fx:(R.x + R.w / 2) / 100, fy:(R.y + R.h / 2) / 100, z:WM_DEF_Z };
+    // Fresh open with an unseen unlock: fly to it once (cam.intro holds the target until the glide ends or the user takes over).
+    const nt = wmNewUnlockTarget(), NZ = WMAP.newUnlockZoom;
+    if(nt && NZ && nt !== sel) session.wmCam.intro = { area:nt, ms:NZ.ms, left:NZ.ms };
+  }
   const cam = session.wmCam; cam.area = sel;
   const pts = new Map(); let g = null, moved = false, suppress = false, vel = { x:0, y:0 }, G = null;
   const size = () => [view.clientWidth || 844, view.clientHeight || 390];
   const origin = () => { const r = view.getBoundingClientRect ? view.getBoundingClientRect() : { left:0, top:0 }; return [r.left || 0, r.top || 0]; };
+  // Visible map area: the view minus the nav bar (side or bottom) and safe-area insets, measured from the DOM.
+  function chrome(){
+    const ins = { t:0, r:0, b:0, l:0 }; if(!view.getBoundingClientRect) return ins;
+    const v = view.getBoundingClientRect(), hit = r => r && r.width > 0 && r.height > 0 && r.right > v.left && r.left < v.right && r.bottom > v.top && r.top < v.bottom;
+      const nav = document.getElementById("tabs"), nr = nav && nav.getBoundingClientRect();
+    if(hit(nr)){ if(nr.width >= nr.height) ins.b = Math.max(0, v.bottom - nr.top); else if(nr.left + nr.width / 2 < (v.left + v.right) / 2) ins.l = Math.max(0, nr.right - v.left); else ins.r = Math.max(0, v.right - nr.left); }
+    if(typeof getComputedStyle === "function"){ const pr = document.createElement("div"); pr.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;padding:var(--st,0px) var(--sr,0px) var(--sb,0px) var(--sl,0px)"; view.appendChild(pr);
+      const cs = getComputedStyle(pr), n = k => parseFloat(cs[k]) || 0, w = document.defaultView; pr.remove();
+      const sb = n("paddingBottom"), sr = n("paddingRight"), sl = n("paddingLeft"), st = n("paddingTop");
+      if(w && v.bottom >= w.innerHeight - 1) ins.b = Math.max(ins.b, sb); if(v.right >= w.innerWidth - 1) ins.r = Math.max(ins.r, sr); if(v.left <= 1) ins.l = Math.max(ins.l, sl); if(v.top <= 1) ins.t = Math.max(ins.t, st); }
+    return ins;
+  }
+  function introTarget(id, vw, vh){
+    const A = AREA_DEFS[id], lab = view.querySelector('.wm-label[data-label="' + id + '"]'), lr = lab && lab.getBoundingClientRect ? lab.getBoundingClientRect() : null;
+    const lbl = lr && lr.width > 0 ? { w:lr.width, h:lr.height } : { w:150, h:64 };
+    return wmFitUnlock(vw, vh, chrome(), A.region, A.label, lbl, { z:WMAP.newUnlockZoom.z, pad:WMAP.newUnlockZoom.pad });
+  }
   function layout(){
     const [vw, vh] = size(); G = wmGeom(vw, vh, cam.z); cam.z = G.z;
     stage.style.width = G.s + 'px'; stage.style.height = G.sh + 'px';
@@ -1955,7 +2011,7 @@ function setupWorldMapPan(sel){
     session.wmAnim = wmRaf(step);
   }
   view.addEventListener("pointerdown", e => {
-    wmCancel(session.wmAnim); session.wmAnim = 0;
+    wmCancel(session.wmAnim); session.wmAnim = 0; cam.intro = null;
     pts.set(e.pointerId, { x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY });
     if(pts.size === 1){ moved = false; vel = { x:0, y:0 }; }
     if(pts.size > 1){ if(!moved){ moved = true; suppress = true; view.classList.add("dragging"); } for(const id of pts.keys()) if(view.setPointerCapture) try { view.setPointerCapture(id); } catch(_){} }
@@ -1978,7 +2034,7 @@ function setupWorldMapPan(sel){
   };
   view.addEventListener("pointerup", up); view.addEventListener("pointercancel", up);
   view.addEventListener("wheel", e => {
-    e.preventDefault(); wmCancel(session.wmAnim); const [ox, oy] = origin(), px = e.clientX - ox, py = e.clientY - oy, unit = e.deltaMode === 1 ? 16 : 1;
+    e.preventDefault(); wmCancel(session.wmAnim); cam.intro = null; const [ox, oy] = origin(), px = e.clientX - ox, py = e.clientY - oy, unit = e.deltaMode === 1 ? 16 : 1;
     const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
     if(e.ctrlKey || mouse) zoomAt(cam.z * Math.exp(-e.deltaY * unit * (e.ctrlKey ? 0.01 : 0.0015)), px, py);
     else { cam.fx += e.deltaX / G.s; cam.fy += e.deltaY / G.sh; }
@@ -1987,9 +2043,28 @@ function setupWorldMapPan(sel){
   // a drag that ends on a region/label must not select it
   view.addEventListener("click", e => { if(e.detail !== 0 && suppress){ e.preventDefault(); e.stopPropagation(); } }, true);
   if(session.wmResize) window.removeEventListener("resize", session.wmResize);
-  session.wmResize = () => { layout(); settle(); }; window.addEventListener("resize", session.wmResize); layout();
+  session.wmResize = () => { layout(); if(cam.intro){ wmCancel(session.wmAnim); session.wmAnim = 0; flyToNew(); } else settle(); }; window.addEventListener("resize", session.wmResize); layout();
   if(Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)) !== cam.fx || Math.max(G.by[0], Math.min(G.by[1], cam.fy)) !== cam.fy){
     cam.fx = Math.max(G.bx[0], Math.min(G.bx[1], cam.fx)); cam.fy = Math.max(G.by[0], Math.min(G.by[1], cam.fy)); layout(); }
+  if(cam.intro) flyToNew();
+  // Ease-out glide to the new area at the closer zoom, then stay put (the user can pan from there). A re-render
+  // mid-flight resumes with the time left. Reduced motion jumps straight there.
+  function flyToNew(){
+    const I = cam.intro, [vw, vh] = size(), F = introTarget(I.area, vw, vh), E = wmGeom(vw, vh, F.z);
+    const to = { fx:Math.max(E.bx[0], Math.min(E.bx[1], F.fx)), fy:Math.max(E.by[0], Math.min(E.by[1], F.fy)), z:E.z };
+    const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduce || I.left <= 0){ Object.assign(cam, to); cam.intro = null; layout(); return; }
+    const from = { fx:cam.fx, fy:cam.fy, z:cam.z }, total = I.left; let t0 = 0;
+    const step = now => {
+      if(!cam.intro) return; if(!t0) t0 = now;
+      const el = Math.min(total, now - t0), k = 1 - Math.pow(1 - el / total, 3);
+      cam.fx = from.fx + (to.fx - from.fx) * k; cam.fy = from.fy + (to.fy - from.fy) * k; cam.z = from.z + (to.z - from.z) * k; I.left = total - el;
+      layout();
+      if(el >= total){ cam.fx = to.fx; cam.fy = to.fy; cam.z = to.z; cam.intro = null; layout(); session.wmAnim = 0; return; }
+      session.wmAnim = wmRaf(step);
+    };
+    session.wmAnim = wmRaf(step);
+  }
 }
 // Fog of war: navy fog over everything except area regions and routes (soft feathered holes via a blurred mask).
 function wmFogSvg(){
@@ -2853,7 +2928,7 @@ window.A = {
       refresh("raid_prep");
     });
   },
-  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; act("AREA_SELECTED", { area:id }); refresh(); },
+  setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
@@ -3508,4 +3583,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   showQuestReady();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
