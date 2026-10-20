@@ -118,7 +118,7 @@ function placeTurret(level,rng){
       for(const f of fractions){
         let placed=null;
         for(const lat of [0,.9,-.9]){const q={x:S.x+(T.x-S.x)*f,z:S.z+(T.z-S.z)*f};const nx=-(T.z-S.z)/d,nz=(T.x-S.x)/d;const p={x:round2(q.x+nx*lat),z:round2(q.z+nz*lat)};
-          if(coverFits(level,p,[...solids,...covers],gap)&&!keep.some(o=>dist(p,o)<1.6-tier*.2)){placed={x:p.x,z:p.z,w:1.1,d:1.1,h:1.1,encounterCover:true};break;}}
+          if(coverFits(level,p,[...solids,...covers],gap)&&!keep.some(o=>dist(p,o)<1.6-tier*.2)&&!(level.hazards??[]).some(h=>Math.abs(p.x-h.x)<h.w/2+.55&&Math.abs(p.z-h.z)<h.d/2+.55)){placed={x:p.x,z:p.z,w:1.1,d:1.1,h:1.1,encounterCover:true};break;}}
         if(!placed){ok=false;break;}covers.push(placed);
       }
       if(!ok)continue;

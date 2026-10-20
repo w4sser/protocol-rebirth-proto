@@ -9,7 +9,8 @@ test('the full layout and objects reproduce from a seed',()=>{
 test('restarts change room geometry and connections, not just object placement',()=>{
   for(const n of [1,2,3]){
     const layouts=new Set(Array.from({length:12},(_,i)=>JSON.stringify(generateLevel(n,`restart-${i}`).rooms)));
-    assert.ok(layouts.size>5);
+    // v1.73: the bunker's level 1 is the fixed control room (tests/start-room.test.mjs); levels 2 and 3 still vary
+    if(n===1)assert.equal(layouts.size,1,'start room geometry is fixed');else assert.ok(layouts.size>5);
     if(n>1){const links=new Set(Array.from({length:12},(_,i)=>JSON.stringify(generateLevel(n,`restart-${i}`).corridors.map(c=>c.dir))));assert.ok(links.size>1,'connection directions change too');}
   }
 });
