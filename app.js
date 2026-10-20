@@ -3497,7 +3497,7 @@ function setupSplash(){
   document.addEventListener("pointerdown", once, true);
   if(!sp) return;
   let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
-  if(shown){ sp.remove(); showBaseLoader(); return; }
+  if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return; }
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");
