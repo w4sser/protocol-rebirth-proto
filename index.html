@@ -819,6 +819,7 @@
   .qrow.sel{background:color-mix(in srgb,var(--ad-cyan) 12%,transparent);outline:1.5px solid var(--ad-cyan)}
   .pips{display:flex;gap:3px;flex:none}.pips i{width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--ad-bone) 18%,transparent)}.pips i.f{background:var(--ad-cyan)}
   .qdet{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;padding:4px 4px 0;overflow-y:auto}
+  .qdet .qbrief{margin:2px 0 0;font-size:12px;color:var(--ad-bone);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .qdet h2{font-size:18px;margin:0}.qdet small{font-size:10px;letter-spacing:.12em;opacity:.6}
   .qobj,.qrw{display:flex;flex-wrap:wrap;gap:8px}.qobj.dim{opacity:.4}
   .qt{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;background:color-mix(in srgb,var(--ad-cyan) 9%,transparent);color:var(--ad-cyan);font-size:15px}
@@ -831,6 +832,9 @@
   .progress-goal.qgoal{cursor:pointer}.qgoal .qgrow{display:flex;align-items:center;gap:8px}.qgoal .qt{padding:3px 8px;font-size:13px}.qgoal .qt svg{width:18px;height:18px}.qgoal .qt b{font-size:13px}
   .card.questentry{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;color:var(--ad-bone);text-align:left}.questentry>svg{width:22px;height:22px;color:var(--ad-cyan);flex:none}.questentry>b{flex:1;letter-spacing:.08em;font-size:13px}
   .questentry .qt{padding:3px 8px;font-size:13px}.questentry .qt svg{width:18px;height:18px}.questentry .qt b{font-size:13px}
+  .questentry{position:relative}.questentry .qn{background:var(--ad-cyan);color:var(--ad-ink);border-radius:8px;font:800 11px/1 "Archivo",sans-serif;padding:3px 6px;font-style:normal}
+  body.has-overlay #toast{visibility:hidden}
+  .toastmsg .qdone.secured{flex-wrap:wrap;gap:4px 6px}.toastmsg .qdone.secured .qt{padding:3px 7px;background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 30%,transparent)}.toastmsg .qdone.secured .qt.lost{color:var(--ad-danger,#e8644c)}
   .toastmsg .qdone{display:flex;align-items:center;gap:8px;color:var(--ad-cyan)}.toastmsg .qdone>svg{width:18px;height:18px;flex:none}.toastmsg .qdone>b{flex:1;font-size:13px;color:var(--ad-bone)}.toastmsg .qdone .qt{padding:2px 6px;color:var(--ad-loot);background:none}.toastmsg .qdone .qt svg{width:16px;height:16px}.toastmsg .qdone .qt b{font-size:12px}
   .qcards{display:flex;gap:8px}.qcard{flex:1 1 0;min-width:0;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;border:2px solid #2E5C63;background:#0b1a22;color:#F2E9D6;padding:8px 6px;--ic-accent:#FF9D4D}
   .qcard svg{width:30px;height:30px;color:#75CFCC}.qcard b{font:800 17px "Archivo",sans-serif}.qcard small{font-size:10px;color:#9fb6b4;line-height:1.25}
