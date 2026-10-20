@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.71.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.71.2"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 8;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips)
 
