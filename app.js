@@ -51,10 +51,22 @@ function load(){
       if(st.v === 6) migrateState(st);
       if(st.v === 7) migrateChains(st);
       if(st.v === 6 || st.v === 7) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migrateRecipeLocks(st); return st; }
     }
   }catch(e){}
   return freshState();
+}
+// Recipes that became locked after shipping (data/recipes.js grandfather:true). One-time grandfathering (flagged so it never
+// re-runs): saves that could already craft one (fabricator >= its old gate) or own its output keep it; fresh saves stay locked.
+function migrateRecipeLocks(st){
+  const u = st.unlocks = st.unlocks || {}; u.recipes = u.recipes || {};
+  if(u.recipesGrandfathered) return st;
+  u.recipesGrandfathered = true;
+  const owned = JSON.stringify([st.stash || {}, st.loadout || {}]);
+  for(const r of D.recipes) if(r.locked && r.grandfather){
+    if(((st.modules && st.modules.fabricator) || 0) >= (r.fabricatorLevel || 1) || (st.stash && st.stash[r.output.itemId]) || owned.includes(r.output.itemId)) u.recipes[r.id] = true;
+  }
+  return st;
 }
 // v1.67: first-upgrade payoff (PROG.firstUpgradePayoff). Saves that already own a payoff upgrade never get a late one.
 function migratePayoff(st){

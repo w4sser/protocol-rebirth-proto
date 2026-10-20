@@ -68,6 +68,22 @@ assert(S().unlocks.recipes.gull_drone && S().unlocks.hard.archipelago, "A8 store
 delete S().unlocks.recipes.rifle_build; w.DATA.questChains.bunker.steps[0].reward = { unlock:{ recipe:"rifle_marksman" } };
 S().chains.bunker = { step:0, prog:0 }; T.chainComplete("bunker"); assert(S().unlocks.recipes.rifle_build, "recipe unlock by output item opens the locked recipe");
 
+// grandfathering: existing saves that could craft the rifle keep it (once); fresh / low-level saves stay locked
+function loadWith(save){
+  const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
+  const x = dom.window; for(const f of DATA_FILES) x.eval(fs.readFileSync(path + "/" + f, "utf8")); x.PR_NAVIGATE = () => {};
+  const src = fs.readFileSync(path + "/app.js", "utf8"), key = /SAVE_KEY\s*=\s*(["'`][^"'`]+["'`])/.exec(src)[1];
+  x.eval("localStorage.setItem(" + key + ", " + JSON.stringify(JSON.stringify(save)) + ")");
+  x.eval(src + "\n;window.__T={ S:()=>S };"); return x.__T.S();
+}
+const base = JSON.parse(JSON.stringify(S())); base.unlocks = {}; base.stash = {}; base.modules.fabricator = 2;
+assert(loadWith(base).unlocks.recipes.rifle_build, "fabricator 2 save keeps the rifle recipe");
+const own = JSON.parse(JSON.stringify(base)); own.modules.fabricator = 0; own.stash = { rifle_marksman:1 };
+assert(loadWith(own).unlocks.recipes.rifle_build, "owning a rifle keeps the recipe");
+const low = JSON.parse(JSON.stringify(base)); low.modules.fabricator = 1;
+const lo = loadWith(low); assert(!lo.unlocks.recipes.rifle_build, "low-level save stays locked");
+lo.modules.fabricator = 2; assert(!loadWith(JSON.parse(JSON.stringify(lo))).unlocks.recipes.rifle_build, "no re-grant on later loads");
+
 // weekly op stub
 assert.equal(T.weeklyOpChips(5), 5); assert.equal(T.weeklyOpChips(10), 5); assert.equal(T.weeklyOpChips(30), 2); assert.equal(T.weeklyOpChips(50), 2); assert.equal(T.weeklyOpChips(80), 0);
 console.log("chips ok");
