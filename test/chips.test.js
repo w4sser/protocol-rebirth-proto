@@ -71,4 +71,10 @@ assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
   b.A.chipExchange("drive"); assert.equal(b.S().cur.chips, 9); assert(d.querySelector("[data-ex=drive].off"));
   d.querySelector("#overlay .pop-x").click(); assert(!d.querySelector("#overlay.chipshopov"));
   b.A.questLog("bunker"); assert.equal(d.querySelector(".qlog button.qchips").getAttribute("onclick"), "A.chipShop()", "chip count in the quest log opens the shop"); }
+// tile names come from data; Chips pill in the top bar appears once chips > 0
+{ assert(CS.items.every(it => typeof it.short === "string" && it.short.length > 0 && it.short.length <= 18), "short name per catalog entry");
+  const b = mk(12), d = b.d; b.A.chipShop();
+  for(const it of CS.items) assert.equal(d.querySelector("[data-chip=" + it.id + "] .cs-nm").textContent, it.short);
+  b.A.chipBuy("mat_memory"); d.querySelector("#overlay .pop-x").click(); const pill = d.querySelector("#currencies .cur-chips"); assert(pill && pill.querySelector("use[href$='#cur-chip']") && pill.querySelector("b").textContent === "8", "chips pill in top bar");
+  const z = mk(0); z.A.chipShop(); z.d.querySelector("#overlay .pop-x").click(); assert(!z.d.querySelector("#currencies .cur-chips"), "no chips pill at 0"); }
 console.log("chips.test.js ok"); process.exit(0);
