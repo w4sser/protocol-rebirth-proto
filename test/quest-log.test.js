@@ -61,7 +61,7 @@ A.questLog("bunker"); log = d.querySelector("#overlay .qlog"); const hi = log.qu
 A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B4"); assert(!d.querySelector("#overlay .qlog .qact .primary"), "no hand in after");
 b.S().chains.bunker.step = 3; b.S().chains.bunker.prog = 0;
 // launch param (bunker raid, tracked fuse quest on L2)
-assert.equal(T.questLaunchParam(), "extract:fuse:0:2");
+assert.equal(T.questLaunchParam(), "extract:fuse:0:2:2");
 assert(b.w.eval('coreLaunchUrl("r","s","../",{quest:"extract:fuse:0:2"})').includes("&quest=extract%3Afuse%3A0%3A2"));
 // auto turn-in: completed steps show as one short row with reward tiles in the toast area
 d.querySelector("#overlay [data-close]").click(); b.S().chains.bunker.step = 0;

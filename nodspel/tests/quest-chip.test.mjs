@@ -19,3 +19,12 @@ test('chip ticks with carried items, kills and cleared levels',()=>{
   assert.equal(questChip(readQuest('clear:2:0:1'),{levelsCleared:1}).prog,0);assert.equal(questChip(readQuest('clear:2:0:1'),{levelsCleared:2}).done,true);
   assert.equal(questChip(null,{}),null);
 });
+test('extract chip with level waits for levelsCleared >= level-1; absent level is backward compatible',()=>{
+  const q=readQuest('extract:cable:1:3:3');assert.equal(q.level,3);
+  assert.equal(questChip(q,{bag:{cable:2},levelsCleared:1}).prog,1);
+  assert.equal(questChip(q,{bag:{cable:2},levelsCleared:2}).prog,3);
+  assert.equal(questChip(readQuest('extract:cable:1:3:1'),{bag:{cable:1},levelsCleared:0}).prog,2);
+  assert.equal(readQuest('extract:cable:1:3:9').level,undefined);assert.equal(readQuest('kill:grunt:0:3:2').level,undefined);
+  assert.equal(questChip(readQuest('extract:cable:1:3'),{bag:{cable:1}}).prog,2);
+  assert.equal(readLaunch('?quest=extract%3Acable%3A1%3A3%3A2').quest.level,2);
+});

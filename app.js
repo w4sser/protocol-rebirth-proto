@@ -701,7 +701,7 @@ function trackedGoalHtml(){
 function questLaunchParam(){
   const t = ftueOver() && trackedQuest(); if(!t || t.step.area !== raidArea()) return null;
   const o = t.step.objective; if(o.type === "handin") return null;
-  return o.type + ":" + (o.type === "extract" ? o.item : o.type === "kill" ? o.enemy : (o.level || 1)) + ":" + t.prog + ":" + t.n;
+  return o.type + ":" + (o.type === "extract" ? o.item : o.type === "kill" ? o.enemy : (o.level || 1)) + ":" + t.prog + ":" + t.n + (o.type === "extract" ? ":" + (o.level || 1) : "");
 }
 function chainDoneToast(list){
   for(const c of list) toast("", '<span class="qdone">' + IC("check") + '<b>' + esc(c.title) + '</b>' + chainRewardTiles(c.reward) + '</span>');
