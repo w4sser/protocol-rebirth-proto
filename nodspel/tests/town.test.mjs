@@ -39,7 +39,8 @@ test('natural boundaries: fences are a minority, never more than 2 in a row, tal
   let fence=0,total=0,kinds=new Set();
   for(let i=0;i<20;i++)for(const n of [1,2,3]){const L=generateLevel(n,'nb'+i,'town'),B=generateLevel(n,'nb'+i);
     // PR C: the town's locked-door level also carries a side passage (extra walls); everything else is identical.
-    if(!L.doors?.length)assert.deepEqual(L.walls,cutLike(B,L),'wall colliders identical to bunker apart from the doorway');
+    // v1.73: the bunker's level 1 is the hand-built control room (closet included), which the town does not share.
+    if(!L.doors?.length&&!B.startRoom)assert.deepEqual(L.walls,cutLike(B,L),'wall colliders identical to bunker apart from the doorway');
     for(const b of L.town.boundary){let run=0;for(const k of b.seq){kinds.add(k);run=k.startsWith('fence')?run+1:0;assert.ok(run<=2,`run ${b.seq}`);if(b.front)assert.ok(!['house','container','car','pine'].includes(k),'camera side stays low');}}
     for(const f of L.town.fences)fence+={fence_segment:2,fence_short:1,fence_gate:1.4}[f.kind];total+=L.walls.reduce((a,w)=>a+Math.max(w.w,w.d),0);}
   assert.ok(fence/total<=.27,`fence share ${(fence/total).toFixed(2)}`);

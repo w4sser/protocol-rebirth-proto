@@ -1,11 +1,11 @@
-import {townizeLevel} from './town-layout.js?v=1.71.2';
-import {applyEncounters} from './encounters.js?v=1.71.2';
+import {townizeLevel} from './town-layout.js?v=1.72.0';
+import {applyEncounters} from './encounters.js?v=1.72.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   // v1.67 first-upgrade payoff (meta sends ?payoff=kind once). loot_cluster: >= bag capacity pickups on free floor near spawn
   // (centred offsetZ from start toward the room, `spacing` apart, `margin` from walls, `clear` from solids/objectives, pickupRadius+`startClear` from the spawn so nothing is auto-collected at t=0).
-  payoff:{loot_cluster:{count:6,offsetZ:-2.4,spacing:1,margin:1.3,clear:1.4,startClear:0.3,items:['cable','scrap_alloy','polymer_plate','cable','scrap_alloy','salvage_crate','polymer_plate','cable','scrap_alloy','salvage_crate'],source:'BIT · BAG CACHE',notice:'Bigger bag. Grab it all.'},
+  payoff:{loot_cluster:{count:6,offsetZ:-2.4,spacing:1.4,margin:1.3,clear:1.4,startClear:0.3,items:['cable','scrap_alloy','polymer_plate','cable','scrap_alloy','salvage_crate','polymer_plate','cable','scrap_alloy','salvage_crate'],source:'BIT · BAG CACHE',notice:'Bigger bag. Grab it all.'},
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Open Room'},
@@ -41,6 +41,35 @@ export const RULES=Object.freeze({
       swarm:{tool:'tool_grenade',text:'a Grenade clears a swarm. Or fall back into a corridor so they queue up.'},
       shield:{tool:'tool_emp',text:'an EMP drops the node shield for 4 s. Or shoot the generator.'},
       door:{tool:null,text:'the keycard is in a crate, or take the longer side passage.'}}},
+  // v1.73 start room + layout pools. Level 1 (bunker) opens in a fixed hand-built pre-war control room where BIT wakes:
+  // same geometry every raid, only the loot crate (3 spots) and the closet door (lockChance, keycard at `key`) vary.
+  // The closet always holds the second crate; a locked door is optional, nodes and extract never sit behind it.
+  startRoom:{x:0,z:0,w:13,d:12,name:'Control Room',crateSpots:[{x:-5.2,z:-4.4},{x:5.2,z:-4.4},{x:-5.2,z:1.8}],
+    lockChance:.35,key:{x:-5,z:-.4},closet:{dir:{x:1,z:0},length:3.5,width:2}},
+  // Layout pools (4-6 per level, hand-authored; picked from the raid seed by layoutIdFor). Offsets are relative to the room centre.
+  // rooms[i]:{w,d}; spacing/dirs (level 3) shape the route; nodes/enemies/exit/loot place the objects.
+  // An authored loot spot that is blocked falls back to the seeded free-floor search.
+  layouts:[
+    [{id:'a',nodes:[{x:2.5,z:.7}],enemies:[{x:-2.8,z:.7}],exit:{x:0,z:-2.9}},
+     {id:'b',nodes:[{x:-2.5,z:.7}],enemies:[{x:2.8,z:.7}],exit:{x:0,z:-2.9}},
+     {id:'c',nodes:[{x:2,z:.7}],enemies:[{x:-2.8,z:.7}],exit:{x:-2.8,z:-3.4}},
+     {id:'d',nodes:[{x:-2.5,z:.7}],enemies:[{x:2.8,z:.7}],exit:{x:2.8,z:-3.4}},
+     {id:'e',nodes:[{x:2.5,z:.7}],enemies:[{x:-2.8,z:.7}],exit:{x:0,z:-4.2}}],
+    [{id:'a',rooms:[{w:12,d:12},{w:11,d:11}],spacing:[16],enemies:[{x:-3.8,z:-3.9},{x:3.3,z:1.1}],exit:{x:0,z:2.9},loot:[null,{x:-4,z:1.4},{x:4,z:1.4},{x:-3.4,z:-3.4},{x:0,z:1.2},{x:3.8,z:-3.4}]},
+     {id:'b',rooms:[{w:12,d:12},{w:10,d:12}],spacing:[15],enemies:[{x:3.8,z:-3.9},{x:-3.3,z:1.1}],exit:{x:-1,z:2.9},loot:[null,{x:4,z:1.4},{x:-4,z:1.4},{x:3.4,z:-3.4},{x:-2.4,z:1.2},{x:-3.8,z:-3.4}]},
+     {id:'c',rooms:[{w:11,d:12},{w:12,d:11}],spacing:[16.5],enemies:[{x:-3.9,z:-3.8},{x:3.6,z:1.5}],exit:{x:1,z:2.9},loot:[null,{x:-3.6,z:2.2},{x:3.6,z:2.2},{x:-4.2,z:-3.6},{x:2.4,z:1.2},{x:4.2,z:-3.6}]},
+     {id:'d',rooms:[{w:12,d:12},{w:11,d:10}],spacing:[17],enemies:[{x:3.9,z:-3.8},{x:-3.5,z:1.3}],exit:{x:0,z:2.9},loot:[null,{x:0,z:1.4},{x:-4.6,z:1.4},{x:4,z:-3.6},{x:-1.8,z:1.2},{x:-4.2,z:-3.4}]},
+     {id:'e',rooms:[{w:12,d:12},{w:12,d:11}],spacing:[15.5],enemies:[{x:-3.8,z:-3.9},{x:3.2,z:1.2}],exit:{x:-1,z:2.8},loot:[null,{x:3.6,z:1.6},{x:-3.6,z:1.6},{x:-3.8,z:-3.4},{x:1.8,z:1.2},{x:3.8,z:-3.4}]}],
+    [{id:'a',rooms:[{w:11,d:11},{w:11,d:11},{w:11,d:11}],dirs:[{x:1,z:0},{x:0,z:-1}],spacing:[16,16],deadEnd:{dir:{x:-1,z:0},length:5},
+      nodes:[{x:2.5,z:.6},{x:-2.5,z:-.6},{x:2.5,z:.8}],enemies:[{x:-3.2,z:-4.1},{x:3.2,z:-4.1},{x:-3.2,z:-4.1}],exit:{x:0,z:2.9},loot:[null,{x:-3.6,z:3.4},{x:3.6,z:3.4}]},
+     {id:'b',rooms:[{w:12,d:10},{w:10,d:12},{w:12,d:12}],dirs:[{x:0,z:-1},{x:1,z:0}],spacing:[15,17],deadEnd:{dir:{x:1,z:0},length:4.5},
+      nodes:[{x:-2.5,z:.8},{x:2.5,z:-.8},{x:-2.5,z:.6}],enemies:[{x:3.4,z:-3.8},{x:-3.4,z:-4},{x:3.4,z:-4.1}],exit:{x:1.5,z:2.6},loot:[null,{x:3.8,z:3.2},{x:-3.8,z:3.2}]},
+     {id:'c',rooms:[{w:12,d:11},{w:11,d:11},{w:11,d:12}],dirs:[{x:-1,z:0},{x:0,z:-1}],spacing:[17,16],deadEnd:{dir:{x:1,z:0},length:5.5},
+      nodes:[{x:2.5,z:-.8},{x:2.5,z:.8},{x:-2.5,z:-.6}],enemies:[{x:-3.1,z:-3.9},{x:3.1,z:-4.1},{x:-3.1,z:-4.1}],exit:{x:-1.5,z:2.6},loot:[null,{x:-3.4,z:3.2},{x:3.4,z:3.2}]},
+     {id:'d',rooms:[{w:12,d:12},{w:11,d:10},{w:10,d:10}],dirs:[{x:0,z:1},{x:1,z:0}],spacing:[18,16],deadEnd:{dir:{x:-1,z:0},length:6},
+      nodes:[{x:-2.5,z:-.5},{x:-2.5,z:.9},{x:2.5,z:-.9}],enemies:[{x:3.3,z:-4},{x:3.5,z:-3.9},{x:-3.3,z:-3.9}],exit:{x:0,z:2.4},loot:[null,{x:3.6,z:3.2},{x:-3.2,z:3}]},
+     {id:'e',rooms:[{w:11,d:12},{w:12,d:11},{w:12,d:10}],dirs:[{x:1,z:0},{x:0,z:1}],spacing:[15,16],deadEnd:{dir:{x:-1,z:0},length:4},
+      nodes:[{x:2.5,z:.9},{x:-2.5,z:-.9},{x:2.5,z:-.5}],enemies:[{x:-3.5,z:-4},{x:3.5,z:-4},{x:-3.5,z:-3.9}],exit:{x:-1,z:2.8},loot:[null,{x:-3.8,z:3.4},{x:3.8,z:3.2}]}]],
   roomNames:['Storage','Workshop','Hall'],
   choices:{shortLength:[2.4,3.4],signDistance:2.6,markedX:2.2,markedZ:-1.4},
   loadout:{health:100,ammo:Infinity},
@@ -94,6 +123,10 @@ export const RULES=Object.freeze({
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
 });
+// Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.
+export function layoutFor(seed,number){const pool=RULES.layouts[number-1];return pool[Math.floor(randomFromSeed(`${seed}:layout:${number}`)()*pool.length)];}
+export const layoutIdFor=(seed,number)=>layoutFor(seed,number).id;
+const round2=v=>Math.round(v*100)/100;
 export function totalNodes(){return RULES.levels.reduce((sum,level)=>sum+level.nodes,0);}
 export function randomFromSeed(seed){
   let state=2166136261;
@@ -136,13 +169,16 @@ export function generateLevel(number,roundSeed,area=AREA){
   const between=(a,b)=>Math.round((a+rng()*(b-a))*100)/100;
   const pick=items=>items[Math.floor(rng()*items.length)];
   const rooms=[],floors=[],walls=[],boxes=[],nodes=[],enemies=[],corridors=[],deadEnds=[];
-  const t=RULES.wallThickness,door=rule.passage;
+  // v1.73: Level 1 of the bunker opens in the fixed control room; every level draws its layout from a seeded pool.
+  const lay=layoutFor(roundSeed,number),SR=number===1&&area==='bunker'?RULES.startRoom:null,srRng=randomFromSeed(`${roundSeed}:startroom`);
+  const t=RULES.wallThickness,door=SR?SR.closet.width:rule.passage,closets=[];
   for(let i=0;i<rule.rooms;i++){
-    const room={x:between(...RULES.startRoomOffset),z:between(...RULES.startRoomOffset),w:between(...rule.size.w),d:between(...rule.size.d),name:RULES.roomNames[i],doors:[]};
+    const ar=lay.rooms?.[i],room={x:between(...RULES.startRoomOffset),z:between(...RULES.startRoomOffset),w:ar?ar.w*sm:between(...rule.size.w),d:ar?ar.d*sm:between(...rule.size.d),name:RULES.roomNames[i],doors:[]};
+    if(SR&&i===0)Object.assign(room,{x:SR.x,z:SR.z,w:SR.w,d:SR.d,name:SR.name});
     if(i){
       const prev=rooms[i-1];
       const choices=RULES.directions.filter(dir=>!equal(dir,prev.incoming??{x:0,z:1}));
-      const dir=number===2?{x:-shortSide,z:0}:pick(choices),spacing=between(...spacingR);
+      const dir=number===2?{x:-shortSide,z:0}:lay.dirs?.[i-1]??pick(choices),spacing=lay.spacing?.[i-1]!=null?lay.spacing[i-1]*sm:between(...spacingR);
       room.x=prev.x+dir.x*spacing;room.z=prev.z+dir.z*spacing;
       prev.doors.push(dir);room.incoming=opposite(dir);room.doors.push(room.incoming);
       const a={x:prev.x+dir.x*prev.w/2,z:prev.z+dir.z*prev.d/2};
@@ -151,16 +187,22 @@ export function generateLevel(number,roundSeed,area=AREA){
     }
     rooms.push(room);floors.push({...room});
   }
-  if(rule.deadEnd||number===2){
-    const room=rooms[0],dir=number===2?{x:shortSide,z:0}:pick(RULES.directions.filter(d=>d.z===0&&!room.doors.some(p=>equal(p,d))));
-    const length=between(...(number===2?RULES.choices.shortLength:RULES.deadEndLength));
+  // A branch off room 0 that ends in a wall: the level-3 wrong turn, the level-2 side route and the control room closet.
+  const addBranch=(room,dir,length,list)=>{
     room.doors.push(dir);
     const edge={x:room.x+dir.x*room.w/2,z:room.z+dir.z*room.d/2};
     const branch={x:edge.x+dir.x*length/2,z:edge.z+dir.z*length/2,w:dir.x?length:door,d:dir.z?length:door,width:door,length,connections:1,roomIndex:0,dir,end:{x:edge.x+dir.x*(length-.8),z:edge.z+dir.z*(length-.8)}};
-    deadEnds.push(branch);
+    list.push(branch);
     walls.push({x:edge.x+dir.x*(length-t/2),z:edge.z+dir.z*(length-t/2),w:dir.x?t:door,d:dir.z?t:door,h:.9});
+    return branch;
+  };
+  if(rule.deadEnd||number===2){
+    const room=rooms[0],free=d=>d.z===0&&!room.doors.some(p=>equal(p,d)),authored=lay.deadEnd&&free(lay.deadEnd.dir)?lay.deadEnd:null;
+    const dir=number===2?{x:shortSide,z:0}:authored?authored.dir:pick(RULES.directions.filter(free));
+    addBranch(room,dir,authored?.length??between(...(number===2?RULES.choices.shortLength:RULES.deadEndLength)),deadEnds);
   }
-  for(const corridor of [...corridors,...deadEnds]){
+  if(SR)addBranch(rooms[0],SR.closet.dir,SR.closet.length,closets);
+  for(const corridor of [...corridors,...deadEnds,...closets]){
     // Overlap the seam slightly: rounded centers and dimensions must never
     // produce a floating-point crack between room and corridor footprints.
     floors.push({...corridor,w:corridor.w+(corridor.dir.x?.08:0),d:corridor.d+(corridor.dir.z?.08:0)});
@@ -184,9 +226,10 @@ export function generateLevel(number,roundSeed,area=AREA){
     }
     if(!rule.nodesBeyondPassage||i===rooms.length-1){
       const count=rule.nodesBeyondPassage?rule.nodes:1;
-      for(let j=0;j<count;j++)nodes.push({id:`node-${nodes.length+1}`,x:x+(number===1?2.5:rule.nodesBeyondPassage?(j===0?-2.3:2.3):side*2.5),z:z+(number===1?.7:rule.partition?-3.2:between(-1.1,1.1)),r:.8,active:false});
+      const no=number!==2&&lay.nodes?.[i];
+      for(let j=0;j<count;j++)nodes.push({id:`node-${nodes.length+1}`,...no?{x:x+no.x,z:z+no.z}:{x:x+(number===1?2.5:rule.nodesBeyondPassage?(j===0?-2.3:2.3):side*2.5),z:z+(number===1?.7:rule.partition?-3.2:between(-1.1,1.1))},r:.8,active:false});
     }
-    for(let j=0;j<rule.enemies/rule.rooms;j++)enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',x:x+(j===0?-1:1)*(number===1?2.8:between(2.8,3.6)),z:z+(number===1?.7:rule.enemySpawnZ??(rule.partition?1.1:between(-4,-2.9))),r:.48,health:rule.enemyHealth??RULES.enemyHealth,speed:rule.enemySpeed});
+    for(let j=0;j<rule.enemies/rule.rooms;j++){const eo=number!==2&&lay.enemies?.[enemies.length];enemies.push({id:`enemy-${enemies.length+1}`,kind:'enemy',...eo?{x:x+eo.x,z:z+eo.z}:{x:x+(j===0?-1:1)*(number===1?2.8:between(2.8,3.6)),z:z+(number===1?.7:rule.enemySpawnZ??(rule.partition?1.1:between(-4,-2.9)))},r:.48,health:rule.enemyHealth??RULES.enemyHealth,speed:rule.enemySpeed});}
     // Corner bands protect the center cross, every edge doorway, partition
     // approach and node branch. Crates cannot disconnect the walkable graph.
     for(const sign of [-1,1])boxes.push({x:x+sign*between(2.8,w/2-1.3),z:z+between(Math.max(3.5,d/2-2),d/2-1.3),w:1.1,d:1.1,h:1.1});
@@ -194,19 +237,29 @@ export function generateLevel(number,roundSeed,area=AREA){
   if(number===2){
     const room=rooms[1];
     for(let i=0;i<enemies.length;i++){
-      enemies[i].x=room.x+(i%2===0?-3.3:3.3);enemies[i].z=room.z+(i<enemies.length/2?-4.1:1.1);enemies[i].active=i>=enemies.length/2;
+      const eo=lay.enemies?.[i];
+      enemies[i].x=room.x+(eo?eo.x:i%2===0?-3.3:3.3);enemies[i].z=room.z+(eo?eo.z:i<enemies.length/2?-4.1:1.1);enemies[i].active=i>=enemies.length/2;
     }
   }
   const last=rooms.at(-1),exit={x:last.x,z:last.z+RULES.exit.z,r:RULES.exit.r};
   if(number===1){exit.x=last.x;exit.z=last.z-2.9;}
+  if(lay.exit){exit.x=last.x+lay.exit.x;exit.z=last.z+lay.exit.z;}
   const start=rule.deadEnd?{x:rooms[0].x,z:rooms[0].z+.8}:{...RULES.start};
-  const lootRng=randomFromSeed(`${seed}:loot`),lootBoxes=[];
+  const lootRng=randomFromSeed(`${seed}:loot`),lootBoxes=[],crateIdx=Math.floor(srRng()*(SR?.crateSpots.length??1)),locked=SR&&srRng()<SR.lockChance;
+  // an authored crate spot must be clear of walls, crates, objectives and other pickups
+  const lootBlocked=p=>[...walls,...boxes].some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6)||[...nodes,exit,...lootBoxes].some(o=>Math.hypot(p.x-o.x,p.z-o.z)<1.8);
   for(let i=0;i<RULES.loot.counts[number-1];i++){
     const marked=i===0,room=number===2?rooms[i<3?0:1]:rooms[i]??rooms[0];
     let point;
     if(marked&&deadEnds.length)point={x:deadEnds[0].end.x-deadEnds[0].dir.x*(number===2?.2:0),z:deadEnds[0].end.z-deadEnds[0].dir.z*(number===2?.2:0)};
+    else if(SR&&marked)point={...SR.crateSpots[crateIdx]};
+    else if(SR&&i===1)point={x:closets[0].end.x,z:closets[0].end.z};
     else if(marked&&number===1)point={x:room.x+shortSide*RULES.choices.markedX,z:room.z+RULES.choices.markedZ};
     else {
+      const ao=lay.loot?.[i],spot=ao&&{x:room.x+ao.x,z:room.z+ao.z};
+      if(spot&&!lootBlocked(spot))point=spot;
+    }
+    if(!point){
       // Nonblocking pickups occupy free seeded floor space, away from objectives
       // and one another. Room assignment spreads level two across both rooms.
       for(let attempt=0;attempt<1000;attempt++){
@@ -220,11 +273,18 @@ export function generateLevel(number,roundSeed,area=AREA){
     const item=number===2&&i===1?'medkit':pickWeighted(table,lootRng());
     lootBoxes.push({id:`loot-${i+1}`,...point,marked,item,collected:false});
   }
+  // A locked closet door is optional: nodes and extract stay in the room. The keycard crate lies in the room at a fixed spot.
+  const doors=[];
+  if(locked){
+    const c=closets[0],th=RULES.encounters.door.thickness;
+    doors.push({id:'door-1',x:round2(c.x-c.dir.x*c.length/2+c.dir.x*.3),z:c.z,w:th,d:c.width,h:RULES.encounters.door.height,locked:true,key:'key-1'});
+    lootBoxes.push({id:'key-1',...SR.key,item:'keycard',key:'key-1',marked:false,revealed:true,collected:false,source:'KEYCARD · OPENS THE LOCKED DOOR'});
+  }
   const routeChoices=number===2?[
     {kind:'node',dir:corridors[0].dir,length:spacingR[0],sign:{x:rooms[0].x+corridors[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}},
     {kind:'loot',dir:deadEnds[0].dir,length:deadEnds[0].length,sign:{x:rooms[0].x+deadEnds[0].dir.x*RULES.choices.signDistance,z:rooms[0].z+1.5}}
   ]:[];
-  const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit});
+  const level=decorateLevel({number,seed,choiceSide:shortSide,title:rule.title,enemyCooldownMs:rule.enemyCooldownMs,enemyDamage:rule.enemyDamage,enemyWindupMs:rule.enemyWindupMs,firstGraceMs:rule.firstGraceMs,rooms,floors,walls,boxes,lootBoxes,nodes,enemies,corridors,deadEnds,routeChoices,start,exit,layoutId:lay.id,...SR?{startRoom:true,closet:closets[0],...doors.length?{doors}:{}}:{}});
   // Encounters shape the layout BEFORE the town re-skin, so a town side passage gets proper ground tiles.
   applyEncounters(level,area,randomFromSeed(`${seed}:encounters`));
   if(area!=='bunker')level.area=area;
@@ -272,11 +332,11 @@ function decorateLevel(level){
     let placed=false;
     for(let k=0;k<rooms.length&&!placed;k++){const room=rooms[(h+k)%rooms.length];
     for(let attempt=0;attempt<200;attempt++){
-      const p={x:room.x+(rng()-.5)*(room.w-H.size-1),z:room.z+(rng()-.5)*(room.d-H.size-1)};
+      const p={x:round2(room.x+(rng()-.5)*(room.w-H.size-1)),z:round2(room.z+(rng()-.5)*(room.d-H.size-1))};
       if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+H.size/2+.3&&Math.abs(p.z-o.z)<o.d/2+H.size/2+.3))continue;
       if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.clearance))continue;
       if(level.hazards.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<H.size*2))continue;
-      level.hazards.push({id:`hazard-${h+1}`,x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100,w:H.size,d:H.size,phaseMs:Math.floor(rng()*(H.onMs+H.offMs)),dps:v.hazardDps??H.damagePerSecond});
+      level.hazards.push({id:`hazard-${h+1}`,x:p.x,z:p.z,w:H.size,d:H.size,phaseMs:Math.floor(rng()*(H.onMs+H.offMs)),dps:v.hazardDps??H.damagePerSecond});
       placed=true;break;
     }}
   }
