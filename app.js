@@ -758,7 +758,7 @@ function chipTileHtml(it){
   const c = chipCanBuy(it.id), owned = c.reason === "owned", ic = it.kind === "item" ? ITEMS[it.ref].icon : it.icon;
   const nm = it.kind === "item" ? ITEMS[it.ref].name : it.name;
   return '<button type="button" class="cs-tile' + (owned ? ' owned' : c.ok ? '' : ' off') + '" data-chip="' + it.id + '" onclick="A.chipBuy(\'' + it.id + '\')" aria-label="' + esc(nm + ", " + it.price + " Contract Chips" + (c.ok ? "" : ". " + CHIP_WHY[c.reason])) + '">' +
-    '<span class="cs-ic">' + IC(ic) + (it.kind === "item" && it.qty > 1 ? '<em>' + it.qty + '</em>' : '') + '</span>' +
+    '<span class="cs-ic">' + IC(ic) + (it.kind === "item" && it.qty > 1 ? '<em>' + it.qty + '</em>' : '') + '</span><span class="cs-nm">' + esc(it.short) + '</span>' +
     (owned ? '<span class="qt">' + IC("check") + '</span>' : c.reason === "cap" ? '<span class="qt">' + IC("timer") + '</span>' : qTile("cur-chip", it.price, "")) + '</button>';
 }
 function chipExchangeHtml(kind){
@@ -1151,7 +1151,7 @@ function goalBarHtml(){
   return '<div class="goalbar">CURRENT GOAL<br><b>' + esc(b.goalText) + '</b></div>';
 }
 const CUR_ICON_IDS = { scrap:"cur-scrap", dataCores:"cur-datacore", signals:"cur-signals", fuel:"cur-fuel", chips:"cur-chip" };
-const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals" };
+const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals" };   // revealable pills; Contract Chips get a pill once owned (renderCurrencies)
 function revealCurrency(id){
   if(!CUR_LABELS[id]) return;   // chips have no currency-bar pill
   if(!S.revealed) S.revealed = { scrap:true };   // safety for injected test states
@@ -1163,7 +1163,7 @@ function revealCurrency(id){
     renderCurrencies();
   }
 }
-const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel") };
+const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel"), chips:IC("cur-chip") };
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
 // v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
 function itemIcon(id){ const it = ITEMS[id]; return it && it.icon ? IC(it.icon) : ""; }
@@ -1176,6 +1176,7 @@ function renderCurrencies(){
   let h = '<button class="cur oplvl" onclick="A.go(\'operator\')" title="Operator level — tap for skills" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></button>';
   h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
   h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
+  h += (c.chips || 0) > 0 ? pill("chips", "Chips", c.chips) : '';
   if(bitOnline()){
     const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
     h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';

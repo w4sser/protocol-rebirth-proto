@@ -63,13 +63,13 @@ window.DATA.questChains = {
 // yet: memory_module stands in for the area material (same stand-in as chain steps A5/A7).
 window.DATA.chipShop = {
   items: [
-    { id:"bp_gull_drone", kind:"recipe", ref:"gull_drone", name:"Gull Drone blueprint", icon:"tool-emp", price:10 },
-    { id:"mat_memory", kind:"item", ref:"memory_module", qty:1, name:"Area material", icon:"item-memory", price:4, weeklyCap:1 },
-    { id:"hard_bunker", kind:"hard", ref:"bunker", name:"Hard pass: Bunker", icon:"area-bunker", price:5 },
-    { id:"hard_archipelago", kind:"hard", ref:"archipelago", name:"Hard pass: Archipelago", icon:"area-archipelago", price:5 },
-    { id:"hard_town", kind:"hard", ref:"town", name:"Hard pass: Town", icon:"area-town", price:5 },
-    { id:"bit_bunker", kind:"cosmetic", ref:"bit_bunker", name:"BIT look: Bunker", icon:"nav-bit", price:3 },
-    { id:"bit_neon", kind:"cosmetic", ref:"bit_neon", name:"BIT look: Neon", icon:"nav-bit", price:8 }
+    { id:"bp_gull_drone", short:"Gull Drone", kind:"recipe", ref:"gull_drone", name:"Gull Drone blueprint", icon:"tool-emp", price:10 },
+    { id:"mat_memory", short:"Area Material", kind:"item", ref:"memory_module", qty:1, name:"Area material", icon:"item-memory", price:4, weeklyCap:1 },
+    { id:"hard_bunker", short:"Hard: Bunker", kind:"hard", ref:"bunker", name:"Hard pass: Bunker", icon:"area-bunker", price:5 },
+    { id:"hard_archipelago", short:"Hard: Archipelago", kind:"hard", ref:"archipelago", name:"Hard pass: Archipelago", icon:"area-archipelago", price:5 },
+    { id:"hard_town", short:"Hard: Town", kind:"hard", ref:"town", name:"Hard pass: Town", icon:"area-town", price:5 },
+    { id:"bit_bunker", short:"BIT: Bunker", kind:"cosmetic", ref:"bit_bunker", name:"BIT look: Bunker", icon:"nav-bit", price:3 },
+    { id:"bit_neon", short:"BIT: Neon", kind:"cosmetic", ref:"bit_neon", name:"BIT look: Neon", icon:"nav-bit", price:8 }
   ],
   // Alternative sources, handled by the BIT trader. drive: Encrypted Drive -> chips. relic: Prewar Relic -> chips (alt to its scrap sale).
   recycle: { drive: { item:"encrypted_drive", chips:2 }, relic: { item:"prewar_relic", chips:1 } },
