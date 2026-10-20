@@ -10,8 +10,8 @@
 //   patrol  sneak up behind it, outside the cone         | Decoy draws it away
 //   swarm   fall back into a corridor so they queue      | Grenade on the spawn cluster
 //   shield  shoot the generator                          | EMP drops the node shield
-import {RULES} from './levels.js?v=1.71.0';
-import {traceTargets} from './physics.mjs?v=1.71.0';
+import {RULES} from './levels.js?v=1.71.1';
+import {traceTargets} from './physics.mjs?v=1.71.1';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door'];
