@@ -234,7 +234,7 @@ async function introGoalRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=77d97187-meta&area=bunker&debug=1&q=high&intro=1&kit=medkit%3A1&goal=${encodeURIComponent(JSON.stringify(goal))}`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
   await shot(page,`raid-intro-goal-${w}x${h}`);
@@ -246,7 +246,7 @@ async function payoffRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=77d97187-payoff&area=bunker&debug=1&q=high&bag=5&kit=medkit%3A1&payoff=loot_cluster`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1200);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1200);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
   const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
@@ -262,7 +262,7 @@ async function raidRun([w,h],area){
   await page.goto(`${BASE}/nodspel/?seed=layout&debug=1&q=high&area=${area}&quest=extract%3Acable%3A1%3A3`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
   await report(page,`${tag} tutorial`);await shot(page,`raid-${area}-${w}x${h}-tutorial`);
-  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
   const fb=await page.evaluate(()=>{const c=document.querySelector('#game').getBoundingClientRect();return [c.left,c.top,c.width,c.height,innerWidth,innerHeight];});
   if(Math.abs(fb[0])>1||Math.abs(fb[1])>1||Math.abs(fb[2]-fb[4])>1||Math.abs(fb[3]-fb[5])>1)fail(tag,`canvas is not full-bleed (${fb.slice(0,4).map(Math.round)} vs ${fb[4]}x${fb[5]})`);
   for(const level of [1,2,3]){
@@ -293,7 +293,7 @@ async function encShotRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=enc-shot&area=bunker&debug=1&q=high`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});
   for(const wait of [3000,1500]){
     await settle(wait);
     for(const m of await page.evaluate(worldOverlaps))fail(`${tag} L1`,`world label ${m}`);
@@ -323,6 +323,7 @@ async function baseAfterRaidRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(BASE+'/index.html',{waitUntil:'load'});await settle(900);
   await page.evaluate(PROGRESSED);await settle(200);
+  await page.waitForFunction(()=>!document.querySelector('#toast .toastmsg')&&!toastQ.length,{timeout:20000}).catch(()=>{});
   await page.evaluate(()=>{
     const res=ingestRaidResult({schema:'protocol-rebirth/raid-result',version:1,raidId:'layout-'+Date.now(),seed:'s',area:'bunker',outcome:'extract',levelsCleared:3,enemiesDefeated:4,nodesLit:6,remainingMs:1,extracted:['cable','power_cell','scrap_alloy','fuse'],lost:[],endedAt:1});
     toast('',coreResultStripHtml({outcome:'extract',lost:[]},res)||'');toast('Operator level 4');toast('Second notice');
