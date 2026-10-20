@@ -768,7 +768,7 @@ function chipExchangeHtml(kind){
 }
 function chipShopHtml(){
   return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
-    '<div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
+    '<div class="cs-grid" style="--cs-cols:' + CS.items.length + '">' + CS.items.map(chipTileHtml).join("") + '</div>' +
     '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>';
 }
 function chipShopOpen(){

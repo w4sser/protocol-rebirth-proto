@@ -30,9 +30,9 @@ const mk = chips => { const b = boot(fresh); b.A.dismissIntro(); b.S().cur.chips
   assert(b.T.chipBuy("bp_gull_drone").reason === "chips" && b.T.chipBuy("bit_bunker").ok && b.S().unlocks.cosmetic.bit_bunker); assert.equal(b.S().cur.chips, 4); }
 { const b = mk(10); assert(b.T.chipBuy("bp_gull_drone").ok); assert.equal(b.S().unlocks.recipe.gull_drone, true); assert.equal(b.S().cur.chips, 0); }
 // weekly cap: material 1/week, resets with a new ISO week
-{ const b = mk(20), before = b.S().stash.memory_module || 0; assert(b.T.chipBuy("mat_memory").ok); assert.equal(b.S().stash.memory_module, before + 1);
-  const r = b.T.chipBuy("mat_memory"); assert.deepEqual([r.ok, r.reason], [false, "cap"]); assert.equal(b.S().cur.chips, 16);
-  b.S().chipShop.week = "2000-W01"; assert(b.T.chipBuy("mat_memory").ok, "new week resets the cap"); assert.equal(b.S().cur.chips, 12); }
+{ const b = mk(20), before = b.S().stash.tidal_coil || 0; assert(b.T.chipBuy("mat_tidal_coil").ok); assert.equal(b.S().stash.tidal_coil, before + 1);
+  const r = b.T.chipBuy("mat_tidal_coil"); assert.deepEqual([r.ok, r.reason], [false, "cap"]); assert.equal(b.S().cur.chips, 16);
+  b.S().chipShop.week = "2000-W01"; assert(b.T.chipBuy("mat_tidal_coil").ok, "new week resets the cap"); assert.equal(b.S().cur.chips, 12); }
 assert.equal(g.T.isoWeekId(new g.w.Date(Date.UTC(2026, 9, 19))), "2026-W43"); assert.equal(g.T.isoWeekId(new g.w.Date(Date.UTC(2027, 0, 3))), "2026-W53");
 assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
 // Drive recycle and Relic sale
@@ -75,6 +75,6 @@ assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
 { assert(CS.items.every(it => typeof it.short === "string" && it.short.length > 0 && it.short.length <= 18), "short name per catalog entry");
   const b = mk(12), d = b.d; b.A.chipShop();
   for(const it of CS.items) assert.equal(d.querySelector("[data-chip=" + it.id + "] .cs-nm").textContent, it.short);
-  b.A.chipBuy("mat_memory"); d.querySelector("#overlay .pop-x").click(); const pill = d.querySelector("#currencies .cur-chips"); assert(pill && pill.querySelector("use[href$='#cur-chip']") && pill.querySelector("b").textContent === "8", "chips pill in top bar");
+  b.A.chipBuy("mat_tidal_coil"); d.querySelector("#overlay .pop-x").click(); const pill = d.querySelector("#currencies .cur-chips"); assert(pill && pill.querySelector("use[href$='#cur-chip']") && pill.querySelector("b").textContent === "8", "chips pill in top bar");
   const z = mk(0); z.A.chipShop(); z.d.querySelector("#overlay .pop-x").click(); assert(!z.d.querySelector("#currencies .cur-chips"), "no chips pill at 0"); }
 console.log("chips.test.js ok"); process.exit(0);

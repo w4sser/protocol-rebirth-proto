@@ -58,7 +58,7 @@ export function buildProp(kind,spot,box,rng){
 }
 
 // Loot is amber/gold; extraction and powered systems are cyan.
-export const LOOT_TIER={rare:['rifle_marksman','shotgun_breach','smg_vector','ai_fragment','power_relay','encrypted_drive','rebirth_shard','neural_core','dampener_cloak'],
+export const LOOT_TIER={rare:['rifle_marksman','shotgun_breach','smg_vector','ai_fragment','power_relay','encrypted_drive','rebirth_shard','neural_core','dampener_cloak','tidal_coil','frost_glass','core_ash'],
   uncommon:['power_cell','circuit_board','optical_sensor','hydraulic_component','memory_module','data_core','scout_rig','bio_sample','servo']};
 export const LOOT_COLORS={common:'#ffa23a',uncommon:'#ffd04a',rare:'#fff1a6'};
 export const EXTRACT_COLOR='#3FE0D0';
