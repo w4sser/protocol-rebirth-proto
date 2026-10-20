@@ -1,5 +1,5 @@
-import {townizeLevel} from './town-layout.js?v=1.72.0';
-import {applyEncounters} from './encounters.js?v=1.72.0';
+import {townizeLevel} from './town-layout.js?v=1.73.0';
+import {applyEncounters} from './encounters.js?v=1.73.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -8,7 +8,7 @@ export const RULES=Object.freeze({
   payoff:{loot_cluster:{count:6,offsetZ:-2.4,spacing:1.4,margin:1.3,clear:1.4,startClear:0.3,items:['cable','scrap_alloy','polymer_plate','cable','scrap_alloy','salvage_crate','polymer_plate','cable','scrap_alloy','salvage_crate'],source:'BIT · BAG CACHE',notice:'Bigger bag. Grab it all.'},
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
-    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Open Room'},
+    {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
     {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
     {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
   ],
@@ -84,11 +84,11 @@ export const RULES=Object.freeze({
   // v1.64: fixed Scrap per cleared level (L1, L2, L3), paid on extract only; mirrors DATA.progression.extractScrapBonus.
   extractScrapBonus:[5,10,15],
   loot:{capacity:4,maxCapacity:10,counts:[2,6,3],
-    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey'],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip'],
     weights:[
       {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:4},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
-      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1}],
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1,contract_chip:.5}],
     pickupRadius:1.6},
   // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
   enemyTypes:{

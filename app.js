@@ -11,9 +11,9 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.72.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.73.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 8;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips)
+const SAVE_VERSION = 9;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks)
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -36,7 +36,7 @@ function freshState(){
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     payoff: null, payoffDone: false, areaSeen: {},
-    chains: {}, trackedQuest: null,
+    chains: {}, trackedQuest: null, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -50,7 +50,8 @@ function load(){
       const st = JSON.parse(raw);
       if(st.v === 6) migrateState(st);
       if(st.v === 7) migrateChains(st);
-      if(st.v === 6 || st.v === 7) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
+      if(st.v === 8) migrateChips(st);
+      if(st.v === 6 || st.v === 7 || st.v === 8) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
       if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
     }
   }catch(e){}
@@ -103,6 +104,17 @@ function migrateState(st){
 function migrateChains(st){
   st.chains = st.chains || {}; if(st.trackedQuest === undefined) st.trackedQuest = null;
   st.cur = st.cur || {}; if(st.cur.chips === undefined) st.cur.chips = 0;
+  st.v = 8;
+  return migrateChips(st);
+}
+// v9: chip shop weekly purchases and stored quest/shop unlocks (recipe, cosmetic, hard-variant pass).
+function migrateChips(st){
+  st.chipShop = st.chipShop || { week:"", bought:{} };
+  st.unlocks = st.unlocks || {}; for(const k of ["recipe", "cosmetic", "hard"]) st.unlocks[k] = st.unlocks[k] || {};
+  // Backfill unlock flags from chain steps already completed (S.chains[id].step = steps done); flags only, no currency/items.
+  const chains = (window.DATA && window.DATA.questChains) || {};
+  for(const id in chains){ const done = (st.chains && st.chains[id] && st.chains[id].step) || 0;
+    chains[id].steps.slice(0, done).forEach(def => { const u = def.reward && def.reward.unlock; if(u) for(const k of ["recipe", "cosmetic", "hard"]) if(u[k]) st.unlocks[k][u[k]] = true; }); }
   st.v = SAVE_VERSION;
   return st;
 }
@@ -553,6 +565,7 @@ function chainReward(def){
   if(R.scrap){ S.cur.scrap += R.scrap; revealCurrency("scrap"); }
   if(R.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + R.dataCores; revealCurrency("dataCores"); }
   if(R.chips) S.cur.chips = (S.cur.chips || 0) + R.chips;
+  if(R.unlock) grantUnlock(R.unlock);
   if(R.xp) gainOpXp(R.xp);
   for(const id in R.items || {}) addItem(id, R.items[id]);
   for(const id in R.tools || {}) addItem(id, R.tools[id]);
@@ -636,7 +649,7 @@ function chainRewardTiles(R){
   const t = [];
   if(R.scrap) t.push(qTile("cur-scrap", R.scrap, "", "Scrap"));
   if(R.xp) t.push(qTile("star", R.xp, "", "Operator XP"));
-  if(R.chips) t.push(qTile("mission", R.chips, "", "Contract Chips"));
+  if(R.chips) t.push(qTile("cur-chip", R.chips, "", "Contract Chips"));
   if(R.dataCores) t.push(qTile("cur-datacore", R.dataCores, "", "Data Cores"));
   for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
   if(R.unlock) t.push(qTile("unlock", "", "", "Unlock"));
@@ -674,7 +687,7 @@ function questLogHtml(tab, sel){
       (state === "cur" ? '<div class="qact">' + (chainHandable(tab) ? '<button type="button" class="primary" onclick="A.QUEST_HANDIN({chain:\'' + tab + '\'})">HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'TRACKED' : 'TRACK') + '</button></div>' : '') + '</div>';
   }
-  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><em class="qchips">' + IC("mission") + (S.cur.chips || 0) + '</em></div>' +
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><button type="button" class="qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + (S.cur.chips || 0) + '</button></div>' +
     '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
 }
 // Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE.
@@ -694,9 +707,81 @@ function questLaunchParam(){
 function chainDoneToast(list){
   for(const c of list) toast("", '<span class="qdone">' + IC("check") + '<b>' + esc(c.title) + '</b>' + chainRewardTiles(c.reward) + '</span>');
 }
+/* ---------- v1.73 Contract Chips: BIT trader (data/quests.js DATA.chipShop) ---------- */
+const CS = D.chipShop || { items:[], recycle:{}, weeklyOp:[] };
+function isoWeekId(d){
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())), dow = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dow);
+  const y = t.getUTCFullYear(), wk = Math.ceil(((t - Date.UTC(y, 0, 1)) / 86400000 + 1) / 7);
+  return y + "-W" + (wk < 10 ? "0" : "") + wk;
+}
+function chipShopState(){ const w = isoWeekId(new Date()); if(!S.chipShop || S.chipShop.week !== w) S.chipShop = { week:w, bought:{} }; return S.chipShop; }
+function unlockBucket(kind){ S.unlocks = S.unlocks || {}; return S.unlocks[kind] || (S.unlocks[kind] = {}); }
+// Stored unlocks from quest rewards and the shop: { recipe:id, cosmetic:id, hard:areaId }. Flags only; hard variants and BIT looks have no consumer yet.
+function grantUnlock(u){ for(const k of ["recipe", "cosmetic", "hard"]) if(u && u[k]) unlockBucket(k)[u[k]] = true; }
+function chipItem(id){ return CS.items.find(x => x.id === id); }
+function chipOwned(it){ return it.kind !== "item" && !!unlockBucket(it.kind)[it.ref]; }
+function chipWeekLeft(it){ return it.weeklyCap ? Math.max(0, it.weeklyCap - (chipShopState().bought[it.id] || 0)) : Infinity; }
+// Returns { ok, reason } with reason one of unknown | owned | cap | chips.
+function chipCanBuy(id){
+  const it = chipItem(id); if(!it) return { ok:false, reason:"unknown" };
+  if(chipOwned(it)) return { ok:false, reason:"owned" };
+  if(chipWeekLeft(it) < 1) return { ok:false, reason:"cap" };
+  if((S.cur.chips || 0) < it.price) return { ok:false, reason:"chips" };
+  return { ok:true };
+}
+function chipBuy(id){
+  const c = chipCanBuy(id); if(!c.ok) return c;
+  const it = chipItem(id);
+  S.cur.chips -= it.price;
+  if(it.kind === "item"){ addItem(it.ref, it.qty || 1); chipShopState().bought[it.id] = (chipShopState().bought[it.id] || 0) + 1; }
+  else unlockBucket(it.kind)[it.ref] = true;
+  act("CHIPS_BUY", { id, price:it.price });
+  return c;
+}
+// kind: "drive" (Encrypted Drive) or "relic" (Prewar Relic, alternative to its Scrap sale). Reserved stacks are not sold.
+function chipExchange(kind){
+  const r = CS.recycle[kind]; if(!r) return { ok:false, reason:"unknown" };
+  if(have(r.item) < 1 || S.reserved[r.item]) return { ok:false, reason:"none" };
+  removeItem(r.item, 1); S.cur.chips = (S.cur.chips || 0) + r.chips;
+  act(kind === "drive" ? "CHIPS_RECYCLE_DRIVE" : "CHIPS_SELL_RELIC", { chips:r.chips });
+  return { ok:true, chips:r.chips };
+}
+// Weekly operation reward hook (the weekly op does not exist yet; nothing calls this). pct = 0-100 where 1 = top 1 %.
+function grantWeeklyChips(pct){
+  const row = CS.weeklyOp.find(r => pct <= r.topPct), n = row ? row.chips : 0;
+  if(n){ S.cur.chips = (S.cur.chips || 0) + n; act("CHIPS_WEEKLY_OP", { pct, chips:n }); }
+  return n;
+}
+const CHIP_WHY = { owned:"Already owned", cap:"Weekly limit reached", chips:"Not enough Contract Chips", none:"None to trade", unknown:"Unavailable" };
+function chipTileHtml(it){
+  const c = chipCanBuy(it.id), owned = c.reason === "owned", ic = it.kind === "item" ? ITEMS[it.ref].icon : it.icon;
+  const nm = it.kind === "item" ? ITEMS[it.ref].name : it.name;
+  return '<button type="button" class="cs-tile' + (owned ? ' owned' : c.ok ? '' : ' off') + '" data-chip="' + it.id + '" onclick="A.chipBuy(\'' + it.id + '\')" aria-label="' + esc(nm + ", " + it.price + " Contract Chips" + (c.ok ? "" : ". " + CHIP_WHY[c.reason])) + '">' +
+    '<span class="cs-ic">' + IC(ic) + (it.kind === "item" && it.qty > 1 ? '<em>' + it.qty + '</em>' : '') + '</span>' +
+    (owned ? '<span class="qt">' + IC("check") + '</span>' : c.reason === "cap" ? '<span class="qt">' + IC("timer") + '</span>' : qTile("cur-chip", it.price, "")) + '</button>';
+}
+function chipExchangeHtml(kind){
+  const r = CS.recycle[kind], n = have(r.item), ok = n > 0 && !S.reserved[r.item];
+  return '<button type="button" class="cs-tile ex' + (ok ? '' : ' off') + '" data-ex="' + kind + '" onclick="A.chipExchange(\'' + kind + '\')" aria-label="' + esc("Trade 1 " + ITEMS[r.item].name + " for " + r.chips + " Contract Chips" + (ok ? "" : ". " + CHIP_WHY.none)) + '">' +
+    '<span class="cs-ic">' + IC(ITEMS[r.item].icon) + '<em>' + n + '</em></span><span class="qt">' + IC("arrow-right") + '</span>' + qTile("cur-chip", "+" + r.chips, "") + '</button>';
+}
+function chipShopHtml(){
+  return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
+    '<div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
+    '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>';
+}
+function chipShopOpen(){
+  const ov = document.getElementById("overlay"); if(ov) ov.remove();
+  overlay(chipShopHtml(), () => refresh(), "chipshopov");
+}
 function questEntryHtml(){
   const t = trackedQuest(); if(!t && !questsOpen()) return "";
   return '<button type="button" class="card questentry" onclick="A.questLog()">' + IC("quest") + '<b>QUESTS</b>' + (dailyReadyCount() ? '<i class="qn">' + dailyReadyCount() + '</i>' : '') + (t ? '<span>' + qTile(qObjIcon(t.step.objective), t.prog + "/" + t.n, "") + '</span>' : '') + IC("chevron-right") + '</button>';
+}
+function traderEntryHtml(){
+  if(!bitOnline() || !ftueOver()) return "";
+  return '<button type="button" class="card questentry traderentry" onclick="A.chipShop()">' + IC("nav-bit") + '<b>TRADER</b>' + qTile("cur-chip", S.cur.chips || 0, "") + IC("chevron-right") + '</button>';
 }
 function morningRows(){
   const R = D.retention, rows = [];
@@ -1065,9 +1150,10 @@ function goalBarHtml(){
   const b = curBeat();
   return '<div class="goalbar">CURRENT GOAL<br><b>' + esc(b.goalText) + '</b></div>';
 }
-const CUR_ICON_IDS = { scrap:"cur-scrap", dataCores:"cur-datacore", signals:"cur-signals", fuel:"cur-fuel" };
+const CUR_ICON_IDS = { scrap:"cur-scrap", dataCores:"cur-datacore", signals:"cur-signals", fuel:"cur-fuel", chips:"cur-chip" };
 const CUR_LABELS = { scrap:"Scrap", dataCores:"Cores", signals:"Signals" };
 function revealCurrency(id){
+  if(!CUR_LABELS[id]) return;   // chips have no currency-bar pill
   if(!S.revealed) S.revealed = { scrap:true };   // safety for injected test states
   if(S.revealed[id]) return;
   S.revealed[id] = true;
@@ -1525,7 +1611,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questEntryHtml() + scavCardHtml();
+  html += questEntryHtml() + traderEntryHtml() + scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -2319,6 +2405,7 @@ SCREENS.dev = function(){
     '<button onclick="A.devForce(\'death\')">Force next: FAILURE</button>' +
     '<button onclick="A.devCur()">+100 all currencies</button>' +
     '<button onclick="A.devBond()">+1 BIT Bond level</button>' +
+    '<button onclick="A.devChips()">+20 Chips, 2 Drives, 2 Relics</button>' +
     '<button onclick="A.devSkipRaid()">Skip raid (auto-resolve)</button>' +
     '<button onclick="A.devExport()">Export event log</button>' +
     '<button onclick="A.devReset()" style="color:var(--danger)">RESET SAVE</button>' +
@@ -2655,7 +2742,7 @@ function coreResultSummary(r, res){
   const head = r.outcome === "extract" ? "Node Raid: extracted" : r.outcome === "death" ? "Node Raid: you died" : "Node Raid: time ran out";
   const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id]||0) + 1);
   const loot = Object.keys(counts).map(id => "+" + counts[id] + " " + ITEMS[id].name).join(", ");
-  const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || c)).join(", ");
+  const cur = Object.keys((res && res.currency) || {}).map(c => "+" + res.currency[c] + " " + (CUR_LABELS[c] || (D.currencies[c] || {}).name || c)).join(", ");
   const tail = (res.gearLost && res.gearLost.length ? " · gear lost: " + res.gearLost.map(id => ITEMS[id].name).join(", ") : "") +
     (res.kitLost ? " · medkits used/lost: " + res.kitLost : "") +
     (res.toolLost ? " · tool charges used/lost: " + res.toolLost : "") +
@@ -2669,7 +2756,7 @@ function coreResultStripHtml(r, res){
   if(!res || !res.ok) return null;
   const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id] || 0) + 1);
   const t = Object.keys(counts).map(id => qTile(ITEMS[id].icon, counts[id], "", ITEMS[id].name));
-  for(const c in res.currency || {}) t.push(qTile(CUR_ICON_IDS[c] || "cur-scrap", res.currency[c], "", CUR_LABELS[c] || c));
+  for(const c in res.currency || {}) t.push(qTile(CUR_ICON_IDS[c] || "cur-scrap", res.currency[c], "", CUR_LABELS[c] || (D.currencies[c] || {}).name || c));
   if(res.scrapBonus) t.push(qTile("cur-scrap", "+" + res.scrapBonus, "bonus", "Extract bonus"));
   if(res.xp) t.push(qTile("star", res.xp, "", "BIT XP"));
   const lost = (res.gearLost || []).length + (r.lost || []).length;
@@ -3127,6 +3214,18 @@ window.A = {
     Q.list[i] = Object.assign({ id:"q" + i + "-" + Date.now().toString(36), prog:0, done:false, claimed:false }, alt[Math.floor(Math.random() * alt.length)]);
     Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog("daily");
   },
+  chipShop(){ chipShopOpen(); },
+  chipBuy(id){
+    const r = chipBuy(id), it = chipItem(id);
+    toast(r.ok ? "Bought: " + (it.kind === "item" ? ITEMS[it.ref].name : it.name) : CHIP_WHY[r.reason]);
+    if(document.querySelector("#overlay .cshop")) chipShopOpen(); else refresh();
+  },
+  chipExchange(kind){
+    const r = chipExchange(kind);
+    toast(r.ok ? "+" + r.chips + " Contract Chips" : CHIP_WHY[r.reason]);
+    if(document.querySelector("#overlay .cshop")) chipShopOpen(); else refresh();
+  },
+  devChips(){ S.cur.chips = (S.cur.chips || 0) + 20; for(const k in CS.recycle) addItem(CS.recycle[k].item, 2); act("DEV_CHIPS", {}); refresh(); },
   questLog(tab, sel){
     const open = document.querySelector("#overlay .qlog");
     if(!tab) tab = open ? open.dataset.tab : (trackedQuest() || {}).chain;
@@ -3600,4 +3699,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   }
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel };

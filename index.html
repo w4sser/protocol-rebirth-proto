@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.72.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.72.0">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.72.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.73.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.73.0">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.73.0">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -597,7 +597,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.72.0") center/contain no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.73.0") center/contain no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -722,9 +722,9 @@
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.72.0">
-<link rel="stylesheet" href="ui/popup.css?v=1.72.0">
-<link rel="stylesheet" href="ui/loader.css?v=1.72.0">
+<link rel="stylesheet" href="ui/tokens.css?v=1.73.0">
+<link rel="stylesheet" href="ui/popup.css?v=1.73.0">
+<link rel="stylesheet" href="ui/loader.css?v=1.73.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -803,6 +803,14 @@
   .quest.done .ibar>span{background:#FF9D4D}.quest.claimed{opacity:.55}.quest em{color:#3ddc6a;font-style:normal}.quest em svg{width:22px;height:22px}
   .quest button.inline{flex:none;min-height:44px;min-width:56px;margin:0}.quest .claim{color:#FF9D4D;border-color:#FF9D4D}
   /* v1.71 quest log (844x390 fit) + tracked quest card + quest entry in BIT Bay; tokens only */
+  .qlog .qchips{border:0;cursor:pointer;padding:0}
+  #overlay.chipshopov{justify-content:center}#overlay.chipshopov .inner{max-width:780px}
+  .bpop.cshop{width:min(760px,calc(100% - 32px));max-height:calc(100dvh - var(--tb-h,0px) - 34px);overflow:auto;padding:6px 12px 12px;box-sizing:border-box;text-align:left}
+  .cshop .bpop-head h1{text-align:left;margin-left:4px}.cshop .qchips{display:flex;align-items:center;gap:4px;background:none;color:var(--ad-loot);font:800 14px "Archivo",sans-serif}.cshop .qchips svg{width:20px;height:20px}
+  .cs-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.cs-ex{padding-top:8px;border-top:1px solid color-mix(in srgb,var(--ad-cyan) 25%,transparent)}
+  .cs-tile{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:78px;min-height:44px;padding:6px 8px;border-radius:12px;border:0;background:color-mix(in srgb,var(--ad-cyan) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-cyan) 30%,transparent);color:var(--ad-bone);cursor:pointer}
+  .cs-tile.ex{flex-direction:row;gap:8px}.cs-tile.off{opacity:.5}.cs-tile.owned{outline-color:var(--ad-cyan)}
+  .cs-ic{position:relative;display:inline-flex;color:var(--ad-loot)}.cs-ic svg{width:34px;height:34px}.cs-ic em{position:absolute;right:-6px;bottom:-4px;font:800 12px "Archivo",sans-serif;font-style:normal;color:var(--ad-bone)}
   #overlay.qlogov{justify-content:center}#overlay.qlogov .inner{max-width:800px}
   .bpop.qlog{width:min(780px,calc(100% - 32px));height:min(330px,calc(100dvh - var(--tb-h,0px) - 34px));display:flex;flex-direction:column;padding:6px 10px 10px;box-sizing:border-box}
   .qlog .qchips{display:flex;align-items:center;gap:4px;background:none;color:var(--ad-loot);font:800 14px "Archivo",sans-serif}.qlog .qchips svg{width:20px;height:20px}
@@ -934,13 +942,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.72.0</div>
+    <div id="app-version">v1.73.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.72.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.73.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -955,16 +963,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.72.0"></script>
-<script src="data/modules.js?v=1.72.0"></script>
-<script src="data/bit.js?v=1.72.0"></script>
-<script src="data/raid_zones.js?v=1.72.0"></script>
-<script src="data/recipes.js?v=1.72.0"></script>
-<script src="data/vendors.js?v=1.72.0"></script>
-<script src="data/retention.js?v=1.72.0"></script>
-<script src="data/quests.js?v=1.72.0"></script>
-<script src="data/progression.js?v=1.72.0"></script>
-<script src="data/combat.js?v=1.72.0"></script>
-<script src="app.js?v=1.72.0"></script>
+<script src="data/items.js?v=1.73.0"></script>
+<script src="data/modules.js?v=1.73.0"></script>
+<script src="data/bit.js?v=1.73.0"></script>
+<script src="data/raid_zones.js?v=1.73.0"></script>
+<script src="data/recipes.js?v=1.73.0"></script>
+<script src="data/vendors.js?v=1.73.0"></script>
+<script src="data/retention.js?v=1.73.0"></script>
+<script src="data/quests.js?v=1.73.0"></script>
+<script src="data/progression.js?v=1.73.0"></script>
+<script src="data/combat.js?v=1.73.0"></script>
+<script src="app.js?v=1.73.0"></script>
 </body>
 </html>

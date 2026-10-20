@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateLevel} from '../levels.js';
+import {generateLevel,RULES} from '../levels.js';
 import {traceTargets,movePlayer} from '../physics.mjs';
 
 test('the full layout and objects reproduce from a seed',()=>{
@@ -54,4 +54,12 @@ function checkRoutes(level){
 }
 test('crates never obstruct nodes, exit or the dead end across ninety layouts',()=>{
   for(let s=0;s<30;s++)for(const n of [1,2,3])checkRoutes(generateLevel(n,`routes-${s}`));
+});
+
+test('contract_chip is rare loot on level 3 only (weight 0.5, v1.73)',()=>{
+  const w=RULES.loot.weights;
+  assert.equal(w[2].contract_chip,.5);
+  assert.equal(w[0].contract_chip,undefined);assert.equal(w[1].contract_chip,undefined);
+  assert(RULES.loot.types.includes('contract_chip'));
+  assert.deepEqual(Object.keys(w[2]).filter(k=>w[2][k]<1),['contract_chip']);
 });

@@ -134,7 +134,7 @@ test('enemy count no longer ramps: regular enemies stay at 1 / 2 / 3 in every ar
     else assert.equal(regular.length,n,`${area} L${n} regular enemies`);
   }
   assert.deepEqual(RULES.levels.map(l=>l.enemies),[1,2,3]);
-  assert.deepEqual(RULES.levels.map(l=>l.title),['Open Room','Narrow Passage','Dead End']);
+  assert.deepEqual(RULES.levels.map(l=>l.title),['Control Room','Narrow Passage','Dead End']);
 });
 
 test('placement is seeded, deterministic, on free floor, reachable, and never breaks the level',()=>{
