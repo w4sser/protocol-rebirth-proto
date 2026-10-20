@@ -8,7 +8,7 @@ Each round starts with 100 health, an empty bag, three loaded rounds and nine re
 
 `levels.js` defines room sizes, connections, passages, obstacles, nodes, loot, enemies and weapon tuning. The same seed recreates the same choices. Restart changes the seed and swaps the short route's side. Cover never blocks the paths to nodes or exits.
 
-- **Open Room:** one visible node, one enemy and one loot crate near the player.
+- **Control Room:** one visible node, one enemy and one loot crate near the player.
 - **Narrow Passage:** two rooms connected by a narrow passage. Two hidden nodes and two initial enemies occupy the second room; two more enemies activate after the first node. A short loot branch and a longer node route are visible from the start.
 - **Dead End:** three rooms, six faster enemies and a branching dead end containing the marked loot crate. The exit is in the third room along the other route.
 

@@ -1,7 +1,7 @@
 // Protocol Rebirth prototype — item data. Pure data: tune freely, UI never hardcodes these.
 var ITEM_DATA_ROOT = typeof window !== 'undefined' ? window : globalThis;
 ITEM_DATA_ROOT.DATA = ITEM_DATA_ROOT.DATA || {};
-ITEM_DATA_ROOT.DATA.currencies = {scrap:{name:'Scrap',icon:'cur-scrap'},dataCores:{name:'Data Cores',icon:'cur-datacore'}};
+ITEM_DATA_ROOT.DATA.currencies = {scrap:{name:'Scrap',icon:'cur-scrap'},dataCores:{name:'Data Cores',icon:'cur-datacore'},chips:{name:'Contract Chips',icon:'cur-chip'}};
 ITEM_DATA_ROOT.DATA.items = [
   // POWER
   { id:"power_cell", icon:"item-powercell", name:"Power Cell", family:"power", rarity:"uncommon", sellValue:90, stackSize:5,
@@ -81,6 +81,8 @@ ITEM_DATA_ROOT.DATA.items = [
     grantsCurrency:{ scrap:24 }, desc:"Sorted structural salvage. Becomes Scrap when you bring it home.", uses:["currency"] },
   { id:"data_core", icon:"item-datacore", name:"Data Core", family:"electronics", rarity:"rare", sellValue:60, stackSize:10,
     grantsCurrency:{ dataCores:2 }, desc:"Intact storage cell. Becomes Data Cores when you bring it home.", uses:["currency"] },
+  { id:"contract_chip", icon:"item-chip", name:"Contract Chip", family:"protocol", rarity:"rare", sellValue:0, stackSize:10,
+    grantsCurrency:{ chips:1 }, desc:"BIT's trade token. Becomes a Contract Chip when you bring it home.", uses:["currency"] },
   { id:"ammo_pack", icon:"item-ammo", name:"Ammo Pack", family:"gear", rarity:"common", sellValue:25, stackSize:5,
     slot:"consumable", desc:"Standard rounds, pressed in-house.", uses:["loadout"] },
   // TOOLS (Raid Prep tool slot, one per raid). Stash count = charges. tool.charges = most you carry in (and bring home);
