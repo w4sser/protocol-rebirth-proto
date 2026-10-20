@@ -11,9 +11,9 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.69.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.70.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 7;   // v7 adds explicit panoramic room unlock state
+const SAVE_VERSION = 8;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips)
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -36,6 +36,7 @@ function freshState(){
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     payoff: null, payoffDone: false, areaSeen: {},
+    chains: {}, trackedQuest: null,
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -47,7 +48,9 @@ function load(){
     const raw = localStorage.getItem(SAVE_KEY);
     if(raw){
       const st = JSON.parse(raw);
-      if(st.v === 6){ migrateState(st); localStorage.setItem(SAVE_KEY, JSON.stringify(st)); }
+      if(st.v === 6) migrateState(st);
+      if(st.v === 7) migrateChains(st);
+      if(st.v === 6 || st.v === 7) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
       if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
     }
   }catch(e){}
@@ -93,6 +96,13 @@ function migrateState(st){
   st.roomUnlocks = {};
   if(st.baseState !== "core_found") for(const room of D.baseMap.rooms.slice(0, 3)) st.roomUnlocks[room.id] = true;
   if(st.baseState === "core_refined") st.roomUnlocks.living_quarters = true;
+  st.v = 7;
+  return st;
+}
+// v8: quest chains and Contract Chips. Old saves start every chain at step 1.
+function migrateChains(st){
+  st.chains = st.chains || {}; if(st.trackedQuest === undefined) st.trackedQuest = null;
+  st.cur = st.cur || {}; if(st.cur.chips === undefined) st.cur.chips = 0;
   st.v = SAVE_VERSION;
   return st;
 }
@@ -536,6 +546,50 @@ function showQuestReady(){
     '<div class="card"><b>' + esc(questTitle(q)) + '</b><p class="ok">' + q.n + '/' + q.n + ' complete</p></div>' +
     '<button type="button" class="primary big claim" onclick="A.questClaim(\'' + q.id + '\')">CLAIM</button>' +
     '<button type="button" class="ghost" data-close data-later>Later</button></div>',()=>{updateNav();showQuestReady();},"sheet");
+}
+// ---- quest chains (v1.70): data in DATA.questChains, state S.chains[id] = { step, prog } ----
+const QC = D.questChains || {};
+function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() : areaUnlocked(id)); }
+function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.chains[id] = { step:0, prog:0 }); }
+function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
+function chainStepN(def){ return def.objective.n; }
+function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], have(k)), 0)); }
+function trackedQuest(){
+  if(!S.trackedQuest || !chainActive(S.trackedQuest)) S.trackedQuest = Object.keys(QC).find(chainActive) || null;
+  const id = S.trackedQuest; if(!id) return null;
+  const def = chainActive(id);
+  return { chain:id, step:def, prog: def.objective.type === "handin" ? chainHandinProg(def) : chainState(id).prog, n:chainStepN(def) };
+}
+function chainReward(def){
+  const R = def.reward;
+  if(R.scrap){ S.cur.scrap += R.scrap; revealCurrency("scrap"); }
+  if(R.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + R.dataCores; revealCurrency("dataCores"); }
+  if(R.chips) S.cur.chips = (S.cur.chips || 0) + R.chips;
+  if(R.xp) gainOpXp(R.xp);
+  for(const id in R.items || {}) addItem(id, R.items[id]);
+  for(const id in R.tools || {}) addItem(id, R.tools[id]);
+}
+function chainComplete(id){
+  const def = chainActive(id), st = chainState(id);
+  chainReward(def); st.step++; st.prog = 0;
+  act("QUEST_CHAIN_STEP", { chain:id, step:def.id });
+  return { chain:id, id:def.id, title:def.title, reward:def.reward };
+}
+// Raid result -> chain progress. Completed steps turn in automatically; returns them for the result screen.
+function chainProgress(r){
+  const done = [], ext = r.outcome === "extract", lv = Number(r.levelsCleared) || 0;
+  for(const id of Object.keys(QC)){
+    const def = chainActive(id); if(!def || def.objective.type === "handin") continue;
+    const o = def.objective, st = chainState(id); let add = 0;
+    if(r.area === def.area){
+      if(o.type === "kill") add = Math.max(0, Math.floor(Number(r.killsByType && r.killsByType[o.enemy]) || 0));
+      if(o.type === "extract" && ext && lv >= (o.level || 1) - 1) add = r.extracted.filter(x => x === o.item).length;
+      if(o.type === "clear" && ext && lv >= o.level) add = 1;
+    }
+    st.prog = Math.min(o.n, st.prog + add);
+    if(st.prog >= o.n) done.push(chainComplete(id)); // one step per chain per raid; the next starts fresh
+  }
+  return done;
 }
 // Raid result -> quest progress (kills by type, house searches, extracted items, clean area clears).
 function questProgress(r){
@@ -2341,7 +2395,7 @@ function ingestRaidResult(r){
   const scrapBonus = extracted ? extractScrapBonus(r.levelsCleared) : 0;
   if(scrapBonus){ S.cur.scrap = (S.cur.scrap||0) + scrapBonus; revealCurrency("scrap"); }
   S.raids++;
-  const questsDone = questProgress(r);
+  const questsDone = questProgress(r), chainsDone = chainProgress(r);
   const saved = { insured:[], secure:null, bitRescue:null };
   if(!extracted){
     // Timeout and abandon arrive as "death": same consequences as a simulated death.
@@ -2388,7 +2442,8 @@ function ingestRaidResult(r){
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
   if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
-  return { ok:true, added, currency, scrapBonus, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes };
+  if(chainsDone.length) areaNotes.push("Quest complete: " + chainsDone.map(c => c.title).join(", "));
+  return { ok:true, added, currency, scrapBonus, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes, chainsDone };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
@@ -2991,6 +3046,13 @@ window.A = {
     Q.list[i] = Object.assign({ id:"q" + i + "-" + Date.now().toString(36), prog:0, done:false, claimed:false }, alt[Math.floor(Math.random() * alt.length)]);
     Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh();
   },
+  QUEST_TRACK(p){ if(!p || !chainActive(p.chain)) return; S.trackedQuest = p.chain; act("QUEST_TRACK", { chain:p.chain }); refresh(); },
+  QUEST_HANDIN(p){
+    const def = p && chainActive(p.chain); if(!def || def.objective.type !== "handin") return;
+    const items = def.objective.items; if(!Object.keys(items).every(k => have(k) >= items[k])) return;
+    for(const k in items) removeItem(k, items[k]);
+    chainComplete(p.chain); refresh();
+  },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
     const ready=document.querySelector('#overlay .quest-ready');if(ready)ready.closest('#overlay').remove();
@@ -3439,4 +3501,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   showQuestReady();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, stashSlotsUsed, operatorLevel };

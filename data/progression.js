@@ -28,7 +28,7 @@ window.DATA.progression = {
     cheapLoadoutItems:["medkit"]   // Basic Carbine is infinite; the vest is a later unlock
   },
   start:{
-    currencies:{ scrap:20, dataCores:0, signals:0 },   // Salvage merged into Scrap (v1.35, 1 Salvage = 2 Scrap)
+    currencies:{ scrap:20, dataCores:0, signals:0, chips:0 },   // Salvage merged into Scrap (v1.35, 1 Salvage = 2 Scrap)
     stash:{ scrap_alloy:3, medkit:1 }   // Supplied Scrap Alloy powers Core; Cable enters through the first raid. Existing saves keep all items.
   },
   // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
