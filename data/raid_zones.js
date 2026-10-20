@@ -48,7 +48,7 @@ window.DATA.raidZones = [
       { itemId:"power_relay", weight:8 }, { itemId:"bio_sample", weight:10 },
       { itemId:"purification_filter", weight:8 }, { itemId:"prewar_relic", weight:6 },
       { itemId:"power_cell", weight:6 }, { itemId:"encrypted_drive", weight:3 },
-      { itemId:"ai_fragment", weight:2 }, { itemId:"rebirth_shard", weight:1 }, { itemId:"neural_core", weight:1 }
+      { itemId:"ai_fragment", weight:2 }, { itemId:"tidal_coil", weight:3 }, { itemId:"frost_glass", weight:3 }, { itemId:"rebirth_shard", weight:1 }, { itemId:"neural_core", weight:1 }
     ],
     scrapRange:[30,70], dataCoresOnExtract:[3,6],
     likelyFamilies:["electronics","bio","protocol"],

@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.73.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.74.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 9;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks)
 
@@ -768,7 +768,7 @@ function chipExchangeHtml(kind){
 }
 function chipShopHtml(){
   return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
-    '<div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
+    '<div class="cs-grid" style="--cs-cols:' + CS.items.length + '">' + CS.items.map(chipTileHtml).join("") + '</div>' +
     '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>';
 }
 function chipShopOpen(){

@@ -1,5 +1,5 @@
-import {townizeLevel} from './town-layout.js?v=1.73.1';
-import {applyEncounters} from './encounters.js?v=1.73.1';
+import {townizeLevel} from './town-layout.js?v=1.74.0';
+import {applyEncounters} from './encounters.js?v=1.74.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -84,11 +84,11 @@ export const RULES=Object.freeze({
   // v1.64: fixed Scrap per cleared level (L1, L2, L3), paid on extract only; mirrors DATA.progression.extractScrapBonus.
   extractScrapBonus:[5,10,15],
   loot:{capacity:4,maxCapacity:10,counts:[2,6,3],
-    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip'],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip','tidal_coil','frost_glass','core_ash'],
     weights:[
       {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:4},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
-      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1,contract_chip:.5}],
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1,contract_chip:.5,core_ash:.4}],
     pickupRadius:1.6},
   // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
   enemyTypes:{
@@ -144,9 +144,13 @@ export function pickWeighted(weights,roll){
 // House containers (Town): medicine cabinet = medkit; the crate is the guaranteed Core-upgrade path
 // (level 3: always a power relay, level 2: 40 %), the rest roll from the level table.
 export const HOUSE_LOOT={crateRelay:[0,.4,1]};
-export function houseItem(kind,number,roll){if(kind==='medicine_cabinet')return 'medkit';
+export function houseItem(kind,number,roll,area='town'){if(kind==='medicine_cabinet')return 'medkit';
   if(kind==='loot_crate'&&roll<HOUSE_LOOT.crateRelay[number-1])return 'power_relay';
-  return pickWeighted(RULES.loot.weights[number-1],kind==='loot_crate'?(roll-HOUSE_LOOT.crateRelay[number-1])/(1-HOUSE_LOOT.crateRelay[number-1]||1):roll);}
+  return pickWeighted(areaTable(area,number,'house'),kind==='loot_crate'?(roll-HOUSE_LOOT.crateRelay[number-1])/(1-HOUSE_LOOT.crateRelay[number-1]||1):roll);}
+// v1.75 area materials: extra weights merged into the level table (index = level - 1). `world` = floor loot boxes,
+// `house` = Town house containers. Frost Glass is house-only; Core Ash (level table, any area) waits for Hard variants.
+export const AREA_LOOT={archipelago:{world:[{},{tidal_coil:5},{tidal_coil:10}]},town:{house:[{},{frost_glass:8},{frost_glass:10}]}};
+export function areaTable(area,number,where){return{...RULES.loot.weights[number-1],...AREA_LOOT[area]?.[where]?.[number-1]};}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
 // v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
@@ -269,7 +273,7 @@ export function generateLevel(number,roundSeed,area=AREA){
         break;
       }
     }
-    const table=AR.lootNext?{...RULES.loot.weights[number-1],...Object.fromEntries(Object.entries(RULES.loot.weights[Math.min(number,2)]).map(([k,w])=>[k,(RULES.loot.weights[number-1][k]??0)+w]))}:RULES.loot.weights[number-1];
+    const table=AR.lootNext?{...areaTable(area,number,'world'),...Object.fromEntries(Object.entries(RULES.loot.weights[Math.min(number,2)]).filter(([k])=>k!=='core_ash').map(([k,w])=>[k,(areaTable(area,number,'world')[k]??0)+w]))}:areaTable(area,number,'world');
     const item=number===2&&i===1?'medkit':pickWeighted(table,lootRng());
     lootBoxes.push({id:`loot-${i+1}`,...point,marked,item,collected:false});
   }
@@ -290,7 +294,7 @@ export function generateLevel(number,roundSeed,area=AREA){
   if(area!=='bunker')level.area=area;
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
-    if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr());}}
+    if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr(),area);}}
   if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;}
   applyAreaRules(level,AR);
   return level;

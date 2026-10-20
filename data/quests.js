@@ -3,7 +3,7 @@
 // plus searchable house containers (Town only). nodspel/tests/quest-facts.test.mjs keeps these in sync with
 // the core; the quest generator only builds quests from facts the player can currently reach.
 window.DATA = window.DATA || {};
-window.DATA.questFacts = {"bunker":{"1":{"enemies":["grunt"],"items":["cable","scrap_alloy"],"houses":0},"2":{"enemies":["grunt","sentry"],"items":["circuit_board","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","scrap_alloy","servo"],"houses":0},"3":{"enemies":["grunt","rusher","sentry"],"items":["power_relay"],"houses":0}},"archipelago":{"1":{"enemies":["grunt"],"items":[],"houses":0},"2":{"enemies":["grunt","rusher","sentry"],"items":["ai_fragment","circuit_board","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","servo"],"houses":0},"3":{"enemies":["grunt","rusher","sentry"],"items":["power_relay"],"houses":0}},"town":{"1":{"enemies":["grunt"],"items":["cable","medkit","polymer_plate","scrap_alloy"],"houses":3},"2":{"enemies":["grunt","sentry"],"items":["ai_fragment","cable","circuit_board","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","scrap_alloy","servo","smg_vector"],"houses":3},"3":{"enemies":["grunt","rusher","sentry"],"items":["ai_fragment","circuit_board","hydraulic_component","medkit","memory_module","power_relay"],"houses":3}}};
+window.DATA.questFacts = {"bunker":{"1":{"enemies":["grunt"],"items":["cable","scrap_alloy"],"houses":0},"2":{"enemies":["grunt","sentry"],"items":["circuit_board","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","scrap_alloy","servo"],"houses":0},"3":{"enemies":["grunt","rusher","sentry"],"items":["power_relay"],"houses":0}},"archipelago":{"1":{"enemies":["grunt"],"items":[],"houses":0},"2":{"enemies":["grunt","rusher","sentry"],"items":["ai_fragment","circuit_board","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","servo","tidal_coil"],"houses":0},"3":{"enemies":["grunt","rusher","sentry"],"items":["power_relay","tidal_coil"],"houses":0}},"town":{"1":{"enemies":["grunt"],"items":["cable","medkit","polymer_plate","scrap_alloy"],"houses":3},"2":{"enemies":["grunt","sentry"],"items":["ai_fragment","cable","circuit_board","frost_glass","fuse","medkit","optical_sensor","polymer_plate","power_cell","power_relay","scrap_alloy","servo","smg_vector"],"houses":3},"3":{"enemies":["grunt","rusher","sentry"],"items":["ai_fragment","circuit_board","frost_glass","hydraulic_component","medkit","memory_module","power_relay"],"houses":3}}};
 window.DATA.quests = {
   perDay: 3, freeSwapsPerDay: 1, bondXp: 12,
   // n ranges by difficulty tier (0 = just after FTUE, 1 = Core L2 or Archipelago open, 2 = Town open or Core L3)
@@ -34,7 +34,7 @@ window.DATA.quests = {
 // Rewards: scrap, xp (operator), items {id:n}, tools {id:n} (stash), dataCores, chips (Contract Chips, silent until the chip UI).
 // `unlock` is data only for now (hard variant, recipe, cosmetic): nothing grants it yet.
 // Proxies: shield guard -> clear Bunker L1; EMP on turret -> kill 1 sentry in Bunker; swarm L3 -> clear Bunker L3;
-// patrol -> clear Archipelago L1 twice; Tidal Coil does not exist yet -> memory_module stands in for it (A5, A7).
+// patrol -> clear Archipelago L1 twice.
 window.DATA.questChains = {
   bunker: { name: "Wake the Core", steps: [
     { id:"B1", title:"Power Trace", brief:"Bring 3 Cable home from the Bunker", area:"bunker", objective:{ type:"extract", item:"cable", level:1, n:3 }, reward:{ scrap:40, xp:20 } },
@@ -51,20 +51,21 @@ window.DATA.questChains = {
     { id:"A2", title:"Patrol Route", brief:"Clear Archipelago level 1 twice", area:"archipelago", objective:{ type:"clear", level:1, n:2 }, reward:{ items:{ optical_sensor:1 } } },
     { id:"A3", title:"Salt Damage", brief:"Bring 2 Servo home from Archipelago L2", area:"archipelago", objective:{ type:"extract", item:"servo", level:2, n:2 }, reward:{ chips:1, xp:30 } },
     { id:"A4", title:"Buoy Network", brief:"Hand in 1 Transmitter from your stash", area:"archipelago", objective:{ type:"handin", items:{ transmitter:1 }, n:1 }, reward:{ chips:2 } },
-    { id:"A5", title:"Ghost Signal", brief:"Bring 1 AI Fragment home from the Archipelago", area:"archipelago", objective:{ type:"extract", item:"ai_fragment", n:1 }, reward:{ items:{ memory_module:1 } } },
+    { id:"A5", title:"Ghost Signal", brief:"Bring 1 AI Fragment home from the Archipelago", area:"archipelago", objective:{ type:"extract", item:"ai_fragment", n:1 }, reward:{ items:{ tidal_coil:1 } } },
     { id:"A6", title:"Rush Hour", brief:"Take down 4 Rushers in the Archipelago", area:"archipelago", objective:{ type:"kill", enemy:"rusher", n:4 }, reward:{ tools:{ tool_grenade:2 } } },
-    { id:"A7", title:"Lighthouse", brief:"Bring 1 Power Relay home from Archipelago L3", area:"archipelago", objective:{ type:"extract", level:3, n:1, item:"power_relay" }, reward:{ items:{ memory_module:2 }, dataCores:1 } },
+    { id:"A7", title:"Lighthouse", brief:"Bring 1 Power Relay home from Archipelago L3", area:"archipelago", objective:{ type:"extract", level:3, n:1, item:"power_relay" }, reward:{ items:{ tidal_coil:2 }, dataCores:1 } },
     { id:"A8", title:"Storm Front", brief:"Clear Archipelago level 3 and extract", area:"archipelago", objective:{ type:"clear", level:3, n:1 }, reward:{ chips:3, unlock:{ recipe:"gull_drone", hard:"archipelago" } } }
   ] }
 };
 // v1.73 Contract Chips (docs/design-retention-quests.md section 2). BIT trader catalog + alternative chip sources.
 // Shop item kinds: recipe (blueprint flag, S.unlocks.recipe), item (stash item, weeklyCap per ISO week), hard (hard-variant
-// pass flag per area, S.unlocks.hard), cosmetic (BIT look flag, S.unlocks.cosmetic). Tidal Coil / Frost Glass do not exist
-// yet: memory_module stands in for the area material (same stand-in as chain steps A5/A7).
+// pass flag per area, S.unlocks.hard), cosmetic (BIT look flag, S.unlocks.cosmetic). Area materials (Tidal Coil, Frost Glass) are
+// real items since v1.75.
 window.DATA.chipShop = {
   items: [
     { id:"bp_gull_drone", short:"Gull Drone", kind:"recipe", ref:"gull_drone", name:"Gull Drone blueprint", icon:"tool-emp", price:10 },
-    { id:"mat_memory", short:"Area Material", kind:"item", ref:"memory_module", qty:1, name:"Area material", icon:"item-memory", price:4, weeklyCap:1 },
+    { id:"mat_tidal_coil", short:"Tidal Coil", kind:"item", ref:"tidal_coil", qty:1, name:"Tidal Coil", icon:"item-tidal-coil", price:4, weeklyCap:1 },
+    { id:"mat_frost_glass", short:"Frost Glass", kind:"item", ref:"frost_glass", qty:1, name:"Frost Glass", icon:"item-frost-glass", price:4, weeklyCap:1 },
     { id:"hard_bunker", short:"Hard: Bunker", kind:"hard", ref:"bunker", name:"Hard pass: Bunker", icon:"area-bunker", price:5 },
     { id:"hard_archipelago", short:"Hard: Archipelago", kind:"hard", ref:"archipelago", name:"Hard pass: Archipelago", icon:"area-archipelago", price:5 },
     { id:"hard_town", short:"Hard: Town", kind:"hard", ref:"town", name:"Hard pass: Town", icon:"area-town", price:5 },

@@ -61,5 +61,5 @@ test('contract_chip is rare loot on level 3 only (weight 0.5, v1.73)',()=>{
   assert.equal(w[2].contract_chip,.5);
   assert.equal(w[0].contract_chip,undefined);assert.equal(w[1].contract_chip,undefined);
   assert(RULES.loot.types.includes('contract_chip'));
-  assert.deepEqual(Object.keys(w[2]).filter(k=>w[2][k]<1),['contract_chip']);
+  assert.deepEqual(Object.keys(w[2]).filter(k=>w[2][k]<1),['contract_chip','core_ash']);
 });
