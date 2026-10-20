@@ -15,3 +15,11 @@ export function renderRoundClock(round,checkpoint,main,summary){
   if(checkpoint&&summary.textContent!==text)summary.textContent=text;
   return seconds;
 }
+
+// Tracked chain quest chip under the timer: live count = saved progress + what this raid has carried / killed so far.
+export function questChip(quest,round){
+  if(!quest)return null;
+  const live=quest.type==='extract'?(quest.level&&!(round?.levelsCleared>=quest.level-1))?0:Math.max(0,Math.floor(round?.bag?.[quest.target]||0)):quest.type==='kill'?Math.max(0,Math.floor(round?.killsByType?.[quest.target]||0)):(round?.levelsCleared>=quest.target?1:0);
+  const prog=Math.min(quest.n,quest.prog+live);
+  return {type:quest.type,item:quest.type==='extract'?quest.target:null,prog,n:quest.n,done:prog>=quest.n};
+}

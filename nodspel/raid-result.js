@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.70.0';
-import {RULES} from './levels.js?v=1.70.0';
-import {bagCap,equippedGear} from './round.js?v=1.70.0';
-import {readGoal} from './progression-goal.js?v=1.70.0';
+import {bagItems} from './raid.js?v=1.71.0';
+import {RULES} from './levels.js?v=1.71.0';
+import {bagCap,equippedGear} from './round.js?v=1.71.0';
+import {readGoal} from './progression-goal.js?v=1.71.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -41,7 +41,20 @@ export function readLaunch(search){
   const seed=p.get('seed')||null,rawId=p.get('raidId');
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
-    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',payoff:readPayoff(p.get('payoff'))};
+    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
+}
+// ?quest=extract:cable:1:3 | kill:sentry:0:3 | clear:2:0:1 (type:target:progress:n[:level]) -> the tracked chain quest for the HUD chip (anything else -> null).
+const QUEST_ENEMIES=['grunt','sentry','rusher'];
+export function readQuest(value){
+  if(typeof value!=='string'||value.length>60)return null;
+  const [type,target,p,n,lvl]=value.split(':'),prog=Math.floor(Number(p)),need=Math.floor(Number(n));
+  if(!['extract','kill','clear'].includes(type)||!Number.isFinite(prog)||!Number.isFinite(need)||need<1||need>99||prog<0)return null;
+  if(type==='extract'&&!globalThis.DATA?.items?.some(i=>i.id===target))return null;
+  if(type==='kill'&&!QUEST_ENEMIES.includes(target))return null;
+  if(type==='clear'&&!(Number(target)>=1&&Number(target)<=3))return null;
+  const q={type,target:type==='clear'?Number(target):target,prog:Math.min(prog,need),n:need};
+  const level=Math.floor(Number(lvl));if(type==='extract'&&lvl!==undefined&&level>=1&&level<=3)q.level=level; // optional 5th field: extract needs levelsCleared >= level-1
+  return q;
 }
 // ?payoff=loot_cluster -> one-time first-upgrade payoff (RULES.payoff keys only; anything else -> null).
 export function readPayoff(value){return typeof value==='string'&&Object.hasOwn(RULES.payoff,value)?value:null;}

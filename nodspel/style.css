@@ -212,3 +212,5 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 @media(max-height:400px){.result-footer-copy #result-next{display:none}#result-report .death-tip{display:none}.result-item.compact{padding:2px 0}}
 
 #round-over .result-item.result-recovered>b,#round-over .result-item.result-recovered .pr-ic{color:var(--ad-bit)}
+
+.quest-chip{position:absolute;top:calc(100% + 4px);right:0;display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--ad-night) 85%,transparent);border:1px solid color-mix(in srgb,var(--ad-cyan) 40%,transparent);color:var(--ad-cyan);font:700 12px/1 'Archivo',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}.quest-chip .pr-ic{width:14px;height:14px}.quest-chip.done{color:var(--ad-loot);border-color:color-mix(in srgb,var(--ad-loot) 40%,transparent)}
