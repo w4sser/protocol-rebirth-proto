@@ -733,7 +733,7 @@ function questRaidBtn(chain, def, ready){
 const HANDIN_MS = 700;
 function handInHtml(id){
   const def = chainActive(id), o = def.objective, big = (ic, txt, cls, label) => qTile(ic, txt, "big " + (cls || ""), label);
-  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, firHave(k) + "/" + o.items[k], "fir ok", ITEMS[k].name + " (found in raid)")).join("") :
+  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, Math.min(firHave(k), o.items[k]) + "/" + o.items[k], "fir ok", ITEMS[k].name + " (found in raid)")).join("") :
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
