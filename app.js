@@ -732,7 +732,7 @@ function questLogHtml(tab, sel){
 // RAID in the quest detail: the normal deploy flow, aimed at the quest's area (raids always start at level 1). Disabled while the area is locked.
 function questRaidBtn(chain, def, ready){
   const ok = areaUnlocked(def.area) && !guidedRaid();
-  return '<button type="button" class="qraid' + (ready ? ' ghost' : ' primary') + '"' + (ok ? ' onclick="A.QUEST_RAID({chain:\'' + chain + '\'})"' : ' disabled') + ' aria-label="Raid ' + esc((AREA_DEFS[def.area] || {}).name || def.area) + '">' + IC(ok ? "nav-raid" : "lock") + 'RAID</button>';
+  return '<button type="button" class="qraid' + (ready ? ' ghost' : ' primary') + '"' + (ok ? ' onclick="A.QUEST_RAID({chain:\'' + chain + '\'})"' : ' disabled') + ' aria-label="Raid ' + esc((AREA_DEFS[def.area] || {}).name || def.area) + '">' + IC(ok ? "nav-raid" : "lock") + (ready ? "" : "RAID") + '</button>';
 }
 // ---- HAND IN popup (v1.76): shown whenever a chain step's objective is met. Item tiles are consumed, reward tiles pop, BIT cheers. ----
 const HANDIN_MS = 700;
