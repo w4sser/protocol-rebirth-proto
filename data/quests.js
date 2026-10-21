@@ -60,17 +60,18 @@ window.DATA.questChains = {
 // v1.73 Contract Chips (docs/design-retention-quests.md section 2). BIT trader catalog + alternative chip sources.
 // Shop item kinds: recipe (blueprint flag, S.unlocks.recipe), item (stash item, weeklyCap per ISO week), hard (hard-variant
 // pass flag per area, S.unlocks.hard), cosmetic (BIT look flag, S.unlocks.cosmetic). Area materials (Tidal Coil, Frost Glass) are
-// real items since v1.75.
+// real items since v1.75. hero: optional large art (assets/art/*.webp), shown only in the trader preview and hand-in reveal, never as an icon.
+// bit_bunker / bit_neon keep their ids (save compat); they are displayed as BIT: Arctic / BIT: Rust.
 window.DATA.chipShop = {
   items: [
-    { id:"bp_gull_drone", short:"Gull Drone", kind:"recipe", ref:"gull_drone", name:"Gull Drone blueprint", icon:"tool-emp", price:10 },
-    { id:"mat_tidal_coil", short:"Tidal Coil", kind:"item", ref:"tidal_coil", qty:1, name:"Tidal Coil", icon:"item-tidal-coil", price:4, weeklyCap:1 },
-    { id:"mat_frost_glass", short:"Frost Glass", kind:"item", ref:"frost_glass", qty:1, name:"Frost Glass", icon:"item-frost-glass", price:4, weeklyCap:1 },
+    { id:"bp_gull_drone", short:"Gull Drone", kind:"recipe", ref:"gull_drone", name:"Gull Drone blueprint", icon:"item-gull-drone", hero:"assets/art/gull-drone.webp", price:10 },
+    { id:"mat_tidal_coil", short:"Tidal Coil", kind:"item", ref:"tidal_coil", qty:1, name:"Tidal Coil", icon:"item-tidal-coil", hero:"assets/art/tidal-coil.webp", price:4, weeklyCap:1 },
+    { id:"mat_frost_glass", short:"Frost Glass", kind:"item", ref:"frost_glass", qty:1, name:"Frost Glass", icon:"item-frost-glass", hero:"assets/art/frost-glass.webp", price:4, weeklyCap:1 },
     { id:"hard_bunker", short:"Hard: Bunker", kind:"hard", ref:"bunker", name:"Hard pass: Bunker", icon:"area-bunker", price:5 },
     { id:"hard_archipelago", short:"Hard: Archipelago", kind:"hard", ref:"archipelago", name:"Hard pass: Archipelago", icon:"area-archipelago", price:5 },
     { id:"hard_town", short:"Hard: Town", kind:"hard", ref:"town", name:"Hard pass: Town", icon:"area-town", price:5 },
-    { id:"bit_bunker", short:"BIT: Bunker", kind:"cosmetic", ref:"bit_bunker", name:"BIT look: Bunker", icon:"nav-bit", price:3 },
-    { id:"bit_neon", short:"BIT: Neon", kind:"cosmetic", ref:"bit_neon", name:"BIT look: Neon", icon:"nav-bit", price:8 }
+    { id:"bit_bunker", short:"BIT: Arctic", kind:"cosmetic", ref:"bit_bunker", name:"BIT look: Arctic", icon:"bit-look-arctic", hero:"assets/art/bit-arctic.webp", price:3 },
+    { id:"bit_neon", short:"BIT: Rust", kind:"cosmetic", ref:"bit_neon", name:"BIT look: Rust", icon:"bit-look-rust", hero:"assets/art/bit-rust.webp", price:8 }
   ],
   // Alternative sources, handled by the BIT trader. drive: Encrypted Drive -> chips. relic: Prewar Relic -> chips (alt to its scrap sale).
   recycle: { drive: { item:"encrypted_drive", chips:2 }, relic: { item:"prewar_relic", chips:1 } },

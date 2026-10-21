@@ -685,13 +685,13 @@ function chainPips(prog, n){
   let h = ""; for(let i = 0; i < n; i++) h += '<i' + (i < prog ? ' class="f"' : '') + '></i>';
   return '<span class="pips">' + h + '</span>';
 }
-function chainRewardTiles(R){
+function chainRewardTiles(R, hero){
   const t = [];
   if(R.scrap) t.push(qTile("cur-scrap", R.scrap, "", "Scrap"));
   if(R.xp) t.push(qTile("star", R.xp, "", "Operator XP"));
   if(R.chips) t.push(qTile("cur-chip", R.chips, "", "Contract Chips"));
   if(R.dataCores) t.push(qTile("cur-datacore", R.dataCores, "", "Data Cores"));
-  for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
+  for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(hero && ITEMS[id].hero ? handInItemTile(id, R[k][id], "") : qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
   if(R.unlock) t.push(qTile("unlock", "", "", "Unlock"));
   return t.join("");
 }
@@ -736,13 +736,18 @@ function questRaidBtn(chain, def, ready){
 }
 // ---- HAND IN popup (v1.76): shown whenever a chain step's objective is met. Item tiles are consumed, reward tiles pop, BIT cheers. ----
 const HANDIN_MS = 700;
+// Hand-in tile for an item: its hero art (large) when it has one, else the usual icon tile.
+function handInItemTile(id, txt, cls){
+  const it = ITEMS[id]; if(!it.hero) return qTile(it.icon, txt, cls, it.name);
+  return '<span class="qt hero ' + (cls || "") + '" title="' + esc(it.name) + '">' + heroImg(it.hero, "hi-hero") + '<b>' + esc(txt) + '</b>' + (/\bfir\b/.test(cls || "") ? firMark() : '') + '</span>';
+}
 function handInHtml(id){
   const def = chainActive(id), o = def.objective, big = (ic, txt, cls, label) => qTile(ic, txt, "big " + (cls || ""), label);
-  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, Math.min(handinHave(k), o.items[k]) + "/" + o.items[k], (raidFindable(k) ? "fir " : "") + "ok", ITEMS[k].name + (raidFindable(k) ? " (found in raid)" : ""))).join("") :
+  const req = o.type === "handin" ? Object.keys(o.items).map(k => ITEMS[k].hero ? handInItemTile(k, Math.min(handinHave(k), o.items[k]) + "/" + o.items[k], "big " + (raidFindable(k) ? "fir " : "") + "ok") : big(ITEMS[k].icon, Math.min(handinHave(k), o.items[k]) + "/" + o.items[k], (raidFindable(k) ? "fir " : "") + "ok", ITEMS[k].name + (raidFindable(k) ? " (found in raid)" : ""))).join("") :
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
-    '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward) + '</div></div>' +
+    '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward, true) + '</div></div>' +
     '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
 }
 // Opens the popup for a ready step (back = "log" returns to the quest log on close). Returns the overlay or null.
@@ -832,12 +837,23 @@ function grantWeeklyChips(pct){
   return n;
 }
 const CHIP_WHY = { owned:"Already owned", cap:"Weekly limit reached", chips:"Not enough Contract Chips", none:"None to trade", unknown:"Unavailable" };
+function chipName(it){ return it.kind === "item" ? ITEMS[it.ref].name : it.name; }
+// Hero art (data hook `hero`): large picture for the preview / hand-in reveal only. Items inherit it from data/items.js.
+function chipHero(it){ return it.hero || (it.kind === "item" ? ITEMS[it.ref].hero : "") || ""; }
+function heroImg(src, cls){ return '<img class="' + cls + '" src="' + esc(src) + '" alt="" decoding="async" draggable="false">'; }
 function chipTileHtml(it){
-  const c = chipCanBuy(it.id), owned = c.reason === "owned", ic = it.kind === "item" ? ITEMS[it.ref].icon : it.icon;
-  const nm = it.kind === "item" ? ITEMS[it.ref].name : it.name;
-  return '<button type="button" class="cs-tile' + (owned ? ' owned' : c.ok ? '' : ' off') + '" data-chip="' + it.id + '" onclick="A.chipBuy(\'' + it.id + '\')" aria-label="' + esc(nm + ", " + it.price + " Contract Chips" + (c.ok ? "" : ". " + CHIP_WHY[c.reason])) + '">' +
+  const c = chipCanBuy(it.id), owned = c.reason === "owned", ic = it.kind === "item" ? ITEMS[it.ref].icon : it.icon, sel = chipSelId() === it.id;
+  return '<button type="button" class="cs-tile' + (owned ? ' owned' : c.ok ? '' : ' off') + (sel ? ' sel' : '') + '" data-chip="' + it.id + '" aria-pressed="' + sel + '" onclick="A.chipSelect(\'' + it.id + '\')" aria-label="' + esc(chipName(it) + ", " + it.price + " Contract Chips" + (c.ok ? "" : ". " + CHIP_WHY[c.reason])) + '">' +
     '<span class="cs-ic">' + IC(ic) + (it.kind === "item" && it.qty > 1 ? '<em>' + it.qty + '</em>' : '') + '</span><span class="cs-nm">' + esc(it.short) + '</span>' +
     (owned ? '<span class="qt">' + IC("check") + '</span>' : c.reason === "cap" ? '<span class="qt">' + IC("timer") + '</span>' : qTile("cur-chip", it.price, "")) + '</button>';
+}
+function chipSelId(){ return session.chipSel && chipItem(session.chipSel) ? session.chipSel : (CS.items[0] || {}).id; }
+// Selected-item preview (side pane): hero art when the item has it, else its icon, plus name, price and BUY.
+function chipPreviewHtml(it){
+  const c = chipCanBuy(it.id), hero = chipHero(it), ic = it.kind === "item" ? ITEMS[it.ref].icon : it.icon;
+  const btn = c.ok ? '<button type="button" class="primary cs-buy" data-buy="' + it.id + '" onclick="A.chipBuy(\'' + it.id + '\')">BUY' + qTile("cur-chip", it.price, "") + '</button>'
+    : '<button type="button" class="primary cs-buy" disabled data-buy="' + it.id + '">' + esc(CHIP_WHY[c.reason]) + '</button>';
+  return '<div class="cs-prev" data-prev="' + it.id + '"><div class="cs-art">' + (hero ? heroImg(hero, "cs-hero") : IC(ic)) + '</div><h2>' + esc(chipName(it)) + '</h2>' + btn + '</div>';
 }
 function chipExchangeHtml(kind){
   const r = CS.recycle[kind], n = have(r.item), ok = n > 0 && !S.reserved[r.item];
@@ -846,8 +862,8 @@ function chipExchangeHtml(kind){
 }
 function chipShopHtml(){
   return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
-    '<div class="cs-grid" style="--cs-cols:' + CS.items.length + '">' + CS.items.map(chipTileHtml).join("") + '</div>' +
-    '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>';
+    '<div class="cs-body"><div class="cs-list"><div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
+    '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>' + chipPreviewHtml(chipItem(chipSelId())) + '</div></div>';
 }
 function chipShopOpen(){
   const ov = document.getElementById("overlay"); if(ov) ov.remove();
@@ -3302,9 +3318,10 @@ window.A = {
     Q.swaps--; act("QUEST_SWAPPED", {}); toast("BIT: " + QD.lines.swap); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog("daily");
   },
   chipShop(){ chipShopOpen(); },
+  chipSelect(id){ if(!chipItem(id)) return; session.chipSel = id; chipShopOpen(); },
   chipBuy(id){
-    const r = chipBuy(id), it = chipItem(id);
-    toast(r.ok ? "Bought: " + (it.kind === "item" ? ITEMS[it.ref].name : it.name) : CHIP_WHY[r.reason]);
+    const r = chipBuy(id), it = chipItem(id); session.chipSel = id;
+    toast(r.ok ? "Bought: " + chipName(it) : CHIP_WHY[r.reason]);
     if(document.querySelector("#overlay .cshop")) chipShopOpen(); else refresh();
   },
   chipExchange(kind){
@@ -3344,11 +3361,12 @@ window.A = {
     act("QUEST_RAID", { chain:p.chain, step:def.id, area:def.area, level:def.objective.level || 1 });
     A.deployNodeRaid();
   },
-  // Debug hooks for screenshots: A.handInDemo("handin"|"extract") opens the popup with a ready step; A.questLogDemo() opens the log with FIR stock.
+  // Debug hooks for screenshots: A.handInDemo("handin"|"extract"|"hero") opens the popup with a ready step; A.questLogDemo() opens the log with FIR stock.
   handInDemo(kind){
     S.beat = Math.max(S.beat, PROG.beats.findIndex(b => b.id === "choice_upgrade"));
-    const chain = kind === "extract" ? "bunker" : "bunker", st = chainState(chain);
-    if(kind === "extract"){ st.step = 0; st.prog = QC[chain].steps[0].objective.n; }
+    const chain = kind === "hero" ? "archipelago" : "bunker", st = chainState(chain);
+    if(kind === "hero"){ S.debugAreas = true; st.step = QC[chain].steps.findIndex(x => x.id === "A5"); st.prog = QC[chain].steps[st.step].objective.n; }
+    else if(kind === "extract"){ st.step = 0; st.prog = QC[chain].steps[0].objective.n; }
     else { st.step = 2; st.prog = 0; S.stash.scrap_alloy = Math.max(2, S.stash.scrap_alloy || 0); S.stash.polymer_plate = Math.max(1, S.stash.polymer_plate || 0); S.fir = Object.assign(S.fir || {}, { scrap_alloy: S.stash.scrap_alloy, polymer_plate: S.stash.polymer_plate }); }
     S.trackedQuest = chain; if(session.screen !== "base") A.go("base");
     session.handInShown = {}; handInShow(chain, "base");

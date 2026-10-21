@@ -12,7 +12,8 @@ for(const id in MATS){ const it = ITEMS[id], [icon, rarity] = MATS[id];
   assert(it.sellValue > 0 && it.stackSize >= 1);
   assert(sprite.includes('id="' + icon + '"'), icon + " in sprite");
   const svg = fs.readFileSync(path + "/assets/icons/" + icon + ".svg", "utf8");
-  assert(/PLACEHOLDER/.test(svg) && /PLACEHOLDER/.test(sprite.slice(sprite.indexOf('id="' + icon + '"'), sprite.indexOf("</symbol>", sprite.indexOf('id="' + icon + '"')))), icon + " is marked as a placeholder");
+  assert(!/PLACEHOLDER/.test(svg) && !/PLACEHOLDER/.test(sprite), icon + " is final art, no placeholder marker");
+  assert(it.hero && fs.existsSync(path + "/" + it.hero), id + " has hero art"); assert(/--ic-loot/.test(svg), icon + " keeps the amber accent");
   assert.strictEqual(D.items.filter(i => i.icon === icon).length, 1, icon + " is unique to the item"); }
 // meta raid zones: area materials only in the later Transit Hub table, never the Industrial Zone, never Core Ash (needs Hard variants)
 for(const z of D.raidZones){ const ids = z.lootTable.map(e => e.itemId);
@@ -34,7 +35,14 @@ assert(!/memory_module|item-memory/.test(questSrc), "no memory_module stand-in i
 assert(D.questFacts.archipelago[2].items.includes("tidal_coil") && D.questFacts.archipelago[3].items.includes("tidal_coil"));
 assert(D.questFacts.town[2].items.includes("frost_glass") && D.questFacts.town[3].items.includes("frost_glass"));
 assert(!D.questFacts.archipelago[1].items.includes("tidal_coil") && !D.questFacts.bunker[3].items.includes("tidal_coil"));
-// trader grid fits: column count follows the item count
+// trader grid fits: tiles left, preview right
 const app = fs.readFileSync(path + "/app.js", "utf8"), html = fs.readFileSync(path + "/index.html", "utf8");
-assert(/--cs-cols:' \+ CS\.items\.length/.test(app) && /repeat\(var\(--cs-cols,7\)/.test(html), "chip grid column count follows CS.items");
+assert(/repeat\(4,minmax\(0,1fr\)\)/.test(html) && /class="cs-body"/.test(app), "trader: 4-col tile grid beside the preview pane");
+// v1.76 hero art + BIT looks: hero is data-driven; looks keep ids but display as Arctic / Rust with own icons
+{ const cs = D.chipShop.items, by = Object.fromEntries(cs.map(i => [i.id, i]));
+  assert.deepStrictEqual([by.bit_bunker.short, by.bit_bunker.icon, by.bit_bunker.hero], ["BIT: Arctic", "bit-look-arctic", "assets/art/bit-arctic.webp"]);
+  assert.deepStrictEqual([by.bit_neon.short, by.bit_neon.icon, by.bit_neon.hero], ["BIT: Rust", "bit-look-rust", "assets/art/bit-rust.webp"]);
+  assert.deepStrictEqual([by.bp_gull_drone.icon, by.bp_gull_drone.hero], ["item-gull-drone", "assets/art/gull-drone.webp"]);
+  for(const i of cs) if(i.hero) assert(fs.existsSync(path + "/" + i.hero), i.id + " hero file");
+  for(const id of ["item-gull-drone", "bit-look-arctic", "bit-look-rust"]) assert(sprite.includes('id="' + id + '"') && fs.existsSync(path + "/assets/icons/" + id + ".svg"), id); }
 console.log("area-materials ok");

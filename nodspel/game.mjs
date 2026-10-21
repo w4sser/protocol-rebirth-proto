@@ -72,6 +72,8 @@ let AREA_SEL=AREA_PARAM||(()=>{try{return localStorage.getItem('nr_area');}catch
 if(AREA_PARAM){try{localStorage.setItem('nr_area',AREA_PARAM);}catch{}}
 let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
+// Seed label is a dev-only overlay: needs ?debug=1&seed-label=1, never plain ?debug=1.
+const SEED_LABEL=DEBUG&&new URLSearchParams(location.search).get('seed-label')==='1';
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
     if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.75.1',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
@@ -477,7 +479,7 @@ function loadLevelInner(){
     renderHouseLabels();}
   if(false)for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'LEFT':'RIGHT'} · ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,Date.now());
-  { const sl=$('#seed-label'); sl.textContent=`SEED ${round.seed}`; sl.hidden=!DEBUG; }
+  { const sl=$('#seed-label'); sl.textContent=`SEED ${round.seed}`; sl.hidden=!SEED_LABEL; }
   // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
   $('#level-corner').hidden=false;
