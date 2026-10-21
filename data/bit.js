@@ -48,6 +48,11 @@ BIT_DATA_ROOT.DATA.bit = {
       "another system online. the facility remembers what it was.",
       "construction complete. i have already updated the to-do list. it grew."
     ],
+    quest_handin:[
+      "delivered. i filed it under: you are good at this.",
+      "that is a correct answer. i checked twice.",
+      "paperwork complete. reward dispatched. please act surprised."
+    ],
     bond_up:[
       "bond level up. i would hug you but i am a drone.",
       "our working relationship has been upgraded. perks included.",

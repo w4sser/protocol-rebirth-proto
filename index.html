@@ -846,6 +846,40 @@
   .card.questentry{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:0 0 8px;color:var(--ad-bone);text-align:left}.questentry>svg{width:22px;height:22px;color:var(--ad-cyan);flex:none}.questentry>b{flex:1;letter-spacing:.08em;font-size:13px}
   .questentry .qt{padding:3px 8px;font-size:13px}.questentry .qt svg{width:18px;height:18px}.questentry .qt b{font-size:13px}
   .questentry{position:relative}.questentry .qn{background:var(--ad-cyan);color:var(--ad-ink);border-radius:8px;font:800 11px/1 "Archivo",sans-serif;padding:3px 6px;font-style:normal}
+  /* v1.76 found-in-raid marker, quest toggle states, HAND IN popup */
+  .firmk{position:absolute;top:2px;left:2px;display:grid;place-items:center;width:14px;height:14px;color:var(--ad-loot);pointer-events:none}.firmk svg{width:14px;height:14px}
+  .slot .firmk{top:3px;left:5px}.qt{position:relative}.qt .firmk{top:-5px;left:auto;right:-5px;border-radius:50%;background:var(--ad-ink)}
+  .qt.ok{outline:1px solid color-mix(in srgb,var(--ad-cyan) 55%,transparent)}
+  .qfir{display:inline-flex;align-items:center;gap:3px;margin-left:8px;vertical-align:middle;padding:2px 6px;border-radius:6px;font:800 10px "Archivo",sans-serif;letter-spacing:.1em;color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 12%,transparent)}.qfir svg{width:13px;height:13px}
+  .firline{display:flex;align-items:center;gap:6px;color:var(--ad-loot)}.firline svg{width:16px;height:16px}
+  .qrow.trk{box-shadow:inset 3px 0 0 var(--ad-cyan)}.qrow.rdy .pips i{background:var(--ad-cyan)}
+  .qtab.trk::after{content:"";position:absolute;left:3px;bottom:3px;width:7px;height:7px;border-radius:50%;background:var(--ad-cyan)}.qtab.rdy{animation:hiPulse 1.6s ease-in-out infinite}
+  .progress-goal.qgoal.rdy{outline:1.5px solid var(--ad-cyan);animation:hiPulse 1.6s ease-in-out infinite}
+  .qact button:disabled{opacity:.4}.qtrack{transition:background .15s,color .15s}.qtrack.pulse{animation:hiPop .35s ease-out}
+  .qact .qraid.ghost{border:1.5px solid color-mix(in srgb,var(--ad-bone) 40%,transparent);background:none;color:var(--ad-bone)}
+  .qact button.primary{background:var(--ad-primary);color:var(--ad-ink);box-shadow:0 3px 0 var(--ad-primary-edge)}
+  #overlay.handinov{justify-content:center}.bpop.handin{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - var(--tb-h,0px) - 34px);display:flex;flex-direction:column;gap:10px;align-items:center;padding:8px 14px 14px;text-align:center}
+  .handin .bpop-head{width:100%;justify-content:center;gap:8px}.handin .bpop-head h1{margin:0;font-size:20px;color:var(--ad-bone)}
+  .hi-bit{width:34px;height:34px;color:var(--ad-bit);display:grid;place-items:center}.hi-bit svg{width:30px;height:30px}
+  .hi-bit.cheer,.handin.paid .hi-bit{animation:hiCheer .7s ease-out;color:var(--ad-cyan);filter:drop-shadow(0 0 8px var(--ad-cyan))}
+  .hi-stage{display:flex;align-items:center;justify-content:center;gap:14px;width:100%}
+  .hi-req,.hi-rw{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .hi-arrow{color:var(--ad-cyan);opacity:.7}.hi-arrow svg{width:28px;height:28px}
+  .handin .qt.big{flex-direction:column;gap:4px;min-width:74px;padding:12px 10px}.handin .qt.big svg{width:38px;height:38px}.handin .qt.big b{font-size:17px}
+  .handin .hi-rw .qt{color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 35%,transparent);min-width:62px;padding:10px 8px;flex-direction:column;opacity:.45;transform:scale(.92);filter:saturate(.6)}
+  .handin .hi-rw .qt svg{width:30px;height:30px}
+  .handin.consuming .hi-req .qt{animation:hiConsume .6s ease-in forwards}
+  .handin.paid .hi-req{visibility:hidden}.handin.paid .hi-arrow{opacity:.25}
+  .handin.paid .hi-rw .qt{opacity:1;transform:none;filter:none;animation:hiReward .55s cubic-bezier(.2,1.6,.4,1) both;box-shadow:0 0 18px color-mix(in srgb,var(--ad-loot) 55%,transparent)}
+  .handin.paid .hi-rw .qt:nth-child(2){animation-delay:.08s}.handin.paid .hi-rw .qt:nth-child(3){animation-delay:.16s}.handin.paid .hi-rw .qt:nth-child(4){animation-delay:.24s}
+  .handin .hi-go{width:min(260px,100%);min-height:52px;margin:0;font-size:18px;letter-spacing:.14em;background:var(--ad-primary);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge)}
+  .handin.paid .hi-go{background:var(--ad-cyan);box-shadow:none}
+  @keyframes hiConsume{0%{opacity:1;transform:none}60%{opacity:.9;transform:translateX(18px) scale(.9)}100%{opacity:0;transform:translateX(46px) scale(.3)}}
+  @keyframes hiReward{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes hiCheer{0%{transform:scale(1)}30%{transform:scale(1.35) rotate(-6deg)}60%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1)}}
+  @keyframes hiPop{0%{transform:scale(.92)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+  @keyframes hiPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px color-mix(in srgb,var(--ad-cyan) 55%,transparent)}}
+  @media (prefers-reduced-motion:reduce){.handin *,.handin,.qtrack,.qtab.rdy,.progress-goal.qgoal.rdy{animation:none!important;transition:none!important}.handin.consuming .hi-req .qt{opacity:.2}.handin.paid .hi-rw .qt{transform:none}}
   body.has-overlay #toast{visibility:hidden}
   .toastmsg .qdone.secured{flex-wrap:wrap;gap:4px 6px}.toastmsg .qdone.secured .qt{padding:3px 7px;background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 30%,transparent)}.toastmsg .qdone.secured .qt.lost{color:var(--ad-danger,#e8644c)}
   .toastmsg .qdone{display:flex;align-items:center;gap:8px;color:var(--ad-cyan)}.toastmsg .qdone>svg{width:18px;height:18px;flex:none}.toastmsg .qdone>b{flex:1;font-size:13px;color:var(--ad-bone)}.toastmsg .qdone .qt{padding:2px 6px;color:var(--ad-loot);background:none}.toastmsg .qdone .qt svg{width:16px;height:16px}.toastmsg .qdone .qt b{font-size:12px}

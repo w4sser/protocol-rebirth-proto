@@ -13,7 +13,7 @@ const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const APP_VERSION = "1.75.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 9;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks)
+const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -36,7 +36,7 @@ function freshState(){
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     payoff: null, payoffDone: false, areaSeen: {},
-    chains: {}, trackedQuest: null, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
+    chains: {}, trackedQuest: null, fir: {}, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -47,11 +47,12 @@ function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
     if(raw){
-      const st = JSON.parse(raw);
+      const st = JSON.parse(raw), was = st.v;
       if(st.v === 6) migrateState(st);
       if(st.v === 7) migrateChains(st);
       if(st.v === 8) migrateChips(st);
-      if(st.v === 6 || st.v === 7 || st.v === 8) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
+      if(st.v === 9) migrateFir(st);
+      if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
       if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
     }
   }catch(e){}
@@ -115,6 +116,13 @@ function migrateChips(st){
   const chains = (window.DATA && window.DATA.questChains) || {};
   for(const id in chains){ const done = (st.chains && st.chains[id] && st.chains[id].step) || 0;
     chains[id].steps.slice(0, done).forEach(def => { const u = def.reward && def.reward.unlock; if(u) for(const k of ["recipe", "cosmetic", "hard"]) if(u[k]) st.unlocks[k][u[k]] = true; }); }
+  st.v = 9;
+  return migrateFir(st);
+}
+// v10: found-in-raid counts (S.fir[id] = how many of the stashed stack were extracted from a raid). Everything already in
+// the stash counts as found in raid, so nobody loses hand-in progress.
+function migrateFir(st){
+  st.fir = {}; for(const id in st.stash || {}) if(st.stash[id] > 0) st.fir[id] = st.stash[id];
   st.v = SAVE_VERSION;
   return st;
 }
@@ -143,10 +151,24 @@ function stashSlotsUsed(){
   return n;
 }
 function have(id){ return isFree(id) ? Infinity : (S.stash[id] || 0); }
-function addItem(id, qty){ if(isFree(id)) return; S.stash[id] = (S.stash[id]||0) + qty; }
+// fir = found in raid (extracted). Bought, crafted, reward and returned-gear items are not; they only count for plain uses.
+function addItem(id, qty, fir){
+  if(isFree(id)) return;
+  S.stash[id] = (S.stash[id]||0) + qty;
+  if(fir){ S.fir = S.fir || {}; S.fir[id] = (S.fir[id]||0) + qty; }
+}
+function firHave(id){ return isFree(id) ? 0 : Math.min((S.fir && S.fir[id]) || 0, S.stash[id] || 0); }
+// Spending keeps found-in-raid items for last: the stack's non-FIR part goes first.
+function firClamp(id){ if(S.fir && S.fir[id] !== undefined){ S.fir[id] = Math.min(S.fir[id], S.stash[id] || 0); if(S.fir[id] < 1) delete S.fir[id]; } }
+// Consume found-in-raid copies (hand-ins): the stack shrinks and so does its FIR part; any non-FIR copies stay.
+function removeFirItem(id, qty){
+  const q = Math.min(qty, firHave(id)); if(q < 1) return;
+  S.fir[id] -= q; removeItem(id, q);
+}
 function removeItem(id, qty){
   if(isFree(id)) return;
   S.stash[id] = Math.max(0, (S.stash[id]||0) - qty);
+  firClamp(id);
   if(S.reserved[id] && S.stash[id] < 1) delete S.reserved[id];
   if(S.secureItem === id && S.stash[id] < 1) S.secureItem = null;
 }
@@ -553,8 +575,16 @@ function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() : 
 function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.chains[id] = { step:0, prog:0 }); }
 function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
 function chainStepN(def){ return def.objective.n; }
-function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], have(k)), 0)); }
+// Hand-ins only take found-in-raid items (S.fir), never bought, crafted or reward ones.
+function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], firHave(k)), 0)); }
+// An objective that is met but not yet handed in. The step only advances (and pays) through chainComplete().
+function chainReady(id){
+  const def = chainActive(id); if(!def) return false;
+  const o = def.objective;
+  return o.type === "handin" ? Object.keys(o.items).every(k => firHave(k) >= o.items[k]) : chainState(id).prog >= o.n;
+}
 function trackedQuest(){
+  if(S.trackedQuest === "none") return null; // the player switched tracking off
   if(!S.trackedQuest || !chainActive(S.trackedQuest)) S.trackedQuest = Object.keys(QC).find(chainActive) || null;
   const id = S.trackedQuest; if(!id) return null;
   const def = chainActive(id);
@@ -570,13 +600,16 @@ function chainReward(def){
   for(const id in R.items || {}) addItem(id, R.items[id]);
   for(const id in R.tools || {}) addItem(id, R.tools[id]);
 }
+// The one turn-in: only when the objective is met (so a second call can never pay twice). Hand-ins consume found-in-raid items.
 function chainComplete(id){
-  const def = chainActive(id), st = chainState(id);
+  if(!chainReady(id)) return null;
+  const def = chainActive(id), st = chainState(id), o = def.objective;
+  if(o.type === "handin") for(const k in o.items) removeFirItem(k, o.items[k]);
   chainReward(def); st.step++; st.prog = 0;
   act("QUEST_CHAIN_STEP", { chain:id, step:def.id });
   return { chain:id, id:def.id, title:def.title, reward:def.reward };
 }
-// Raid result -> chain progress. Completed steps turn in automatically; returns them for the result screen.
+// Raid result -> chain progress. A met objective waits for the HAND IN popup; returns the steps that just became ready.
 function chainProgress(r){
   const done = [], ext = r.outcome === "extract", lv = Number(r.levelsCleared) || 0;
   for(const id of Object.keys(QC)){
@@ -587,8 +620,8 @@ function chainProgress(r){
       if(o.type === "extract" && ext && lv >= (o.level || 1) - 1) add = r.extracted.filter(x => x === o.item).length;
       if(o.type === "clear" && ext && lv >= o.level) add = 1;
     }
-    st.prog = Math.min(o.n, st.prog + add);
-    if(st.prog >= o.n) done.push(chainComplete(id)); // one step per chain per raid; the next starts fresh
+    const was = st.prog >= o.n; st.prog = Math.min(o.n, st.prog + add);
+    if(!was && st.prog >= o.n) done.push({ chain:id, id:def.id, title:def.title }); // one step per chain per raid; the next starts after the hand in
   }
   return done;
 }
@@ -639,7 +672,9 @@ function questsHtml(){
 }
 // ---- quest log (v1.71): area tabs + Daily, chain steps, detail with objective / reward tiles, one TRACK toggle ----
 function qObjIcon(o){ return o.type === "extract" ? ITEMS[o.item].icon : o.type === "kill" ? "skull" : o.type === "handin" ? ITEMS[Object.keys(o.items)[0]].icon : "route"; }
-function qTile(ic, txt, cls, label){ return '<span class="qt ' + (cls || "") + '"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + IC(ic) + (txt !== "" && txt != null ? '<b>' + esc(txt) + '</b>' : '') + '</span>'; }
+// FIR = found in raid: small marker on tiles whose items must come out of a raid (stash, hand-in requirements).
+function firMark(){ return '<i class="firmk" title="Found in raid" aria-hidden="true">' + IC("fir") + '</i>'; }
+function qTile(ic, txt, cls, label){ return '<span class="qt ' + (cls || "") + '"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + IC(ic) + (txt !== "" && txt != null ? '<b>' + esc(txt) + '</b>' : '') + (/\bfir\b/.test(cls || "") ? firMark() : '') + '</span>'; }
 function chainPips(prog, n){
   if(n > 8) return '<span class="ibar"><span style="width:' + Math.round(prog / n * 100) + '%"></span></span>';
   let h = ""; for(let i = 0; i < n; i++) h += '<i' + (i < prog ? ' class="f"' : '') + '></i>';
@@ -659,17 +694,16 @@ function chainRewardTiles(R){
 function chainObjTiles(def, prog, n){
   const o = def.objective, t = [];
   if(o.type !== "handin") t.push(qTile((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area", (AREA_DEFS[def.area] || {}).name));
-  if(o.type === "handin") for(const id in o.items) t.push(qTile(ITEMS[id].icon, Math.min(o.items[id], prog === n ? o.items[id] : have(id)) + "/" + o.items[id], "", ITEMS[id].name));
+  if(o.type === "handin") for(const id in o.items){ const got = Math.min(o.items[id], prog === n ? o.items[id] : firHave(id)); t.push(qTile(ITEMS[id].icon, got + "/" + o.items[id], "fir" + (got >= o.items[id] ? " ok" : ""), ITEMS[id].name + " (found in raid)")); }
   else t.push(qTile(qObjIcon(o), prog + "/" + n, "", o.type === "kill" ? o.enemy : o.type === "extract" ? ITEMS[o.item].name : "Clear"));
   return t.join("");
 }
-function chainHandable(id){ const def = chainActive(id); return !!def && def.objective.type === "handin" && Object.keys(def.objective.items).every(k => have(k) >= def.objective.items[k]); }
 function questLogHtml(tab, sel){
   const ids = Object.keys(QC), daily = questsOpen();
   if(tab !== "daily" && !chainAvailable(tab)) tab = (trackedQuest() || {}).chain || ids.find(chainAvailable) || (daily ? "daily" : null);
   const tabs = ids.map(id => {
     const ok = chainAvailable(id), a = ((QC[id].steps[0] || {}).area);
-    return '<button type="button" class="qtab' + (id === tab ? ' on' : '') + '"' + (ok ? ' onclick="A.questLog(\'' + id + '\')"' : ' disabled') + ' aria-label="' + esc(QC[id].name) + '">' + IC(ok ? (AREA_DEFS[a] || {}).iconId || "flag" : "lock") + '</button>';
+    return '<button type="button" class="qtab' + (id === tab ? ' on' : '') + (ok && (trackedQuest() || {}).chain === id ? ' trk' : '') + (ok && chainReady(id) ? ' rdy' : '') + '"' + (ok ? ' onclick="A.questLog(\'' + id + '\')"' : ' disabled') + ' aria-label="' + esc(QC[id].name) + '">' + IC(ok ? (AREA_DEFS[a] || {}).iconId || "flag" : "lock") + '</button>';
   }).join("") + (daily ? '<button type="button" class="qtab' + (tab === "daily" ? ' on' : '') + '" onclick="A.questLog(\'daily\')" aria-label="Daily quests">' + IC("timer") +
     (dailyReadyCount() ? '<i class="qn">' + dailyReadyCount() + '</i>' : '') + '</button>' : '');
   let body = '';
@@ -680,22 +714,64 @@ function questLogHtml(tab, sel){
     const prog = state === "done" ? chainStepN(def) : state === "lock" ? 0 : (tq && tq.chain === tab ? tq.prog : def.objective.type === "handin" ? chainHandinProg(def) : st.prog), n = chainStepN(def);
     const list = ch.steps.map((s, k) => {
       const ks = k < st.step ? "done" : k === st.step ? "cur" : "lock", p = ks === "cur" ? (s.objective.type === "handin" ? chainHandinProg(s) : st.prog) : 0;
-      return '<button type="button" class="qrow ' + ks + (k === i ? ' sel' : '') + '" onclick="A.questLog(\'' + tab + '\',' + k + ')">' + IC(ks === "done" ? "check" : ks === "lock" ? "lock" : qObjIcon(s.objective)) + '<b>' + esc(s.title) + '</b>' + (ks === "cur" ? chainPips(p, chainStepN(s)) : '') + '</button>';
+      return '<button type="button" class="qrow ' + ks + (k === i ? ' sel' : '') + (ks === "cur" && tracked ? ' trk' : '') + (ks === "cur" && chainReady(tab) ? ' rdy' : '') + '" onclick="A.questLog(\'' + tab + '\',' + k + ')">' + IC(ks === "done" ? "check" : ks === "lock" ? "lock" : qObjIcon(s.objective)) + '<b>' + esc(s.title) + '</b>' + (ks === "cur" ? chainPips(p, chainStepN(s)) : '') + '</button>';
     }).join("");
-    body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
+    body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + (def.objective.type === "handin" ? '<span class="qfir" title="Only items found in a raid count">' + IC("fir") + 'FIR</span>' : '') + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
       '<div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div>' +
-      (state === "cur" ? '<div class="qact">' + (chainHandable(tab) ? '<button type="button" class="primary" onclick="A.QUEST_HANDIN({chain:\'' + tab + '\'})">HAND IN</button>' : '') +
-        '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'TRACKED' : 'TRACK') + '</button></div>' : '') + '</div>';
+      (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
+        '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }
   return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><button type="button" class="qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + (S.cur.chips || 0) + '</button></div>' +
     '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
+}
+// RAID in the quest detail: the normal deploy flow, aimed at the quest's area (raids always start at level 1). Disabled while the area is locked.
+function questRaidBtn(chain, def, ready){
+  const ok = areaUnlocked(def.area) && !guidedRaid();
+  return '<button type="button" class="qraid' + (ready ? ' ghost' : ' primary') + '"' + (ok ? ' onclick="A.QUEST_RAID({chain:\'' + chain + '\'})"' : ' disabled') + ' aria-label="Raid ' + esc((AREA_DEFS[def.area] || {}).name || def.area) + '">' + IC(ok ? "nav-raid" : "lock") + 'RAID</button>';
+}
+// ---- HAND IN popup (v1.76): shown whenever a chain step's objective is met. Item tiles are consumed, reward tiles pop, BIT cheers. ----
+const HANDIN_MS = 700;
+function handInHtml(id){
+  const def = chainActive(id), o = def.objective, big = (ic, txt, cls, label) => qTile(ic, txt, "big " + (cls || ""), label);
+  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, firHave(k) + "/" + o.items[k], "fir ok", ITEMS[k].name + " (found in raid)")).join("") :
+    big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
+  return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
+    '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
+    '<div class="hi-stage"><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward) + '</div></div>' +
+    '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
+}
+// Opens the popup for a ready step (back = "log" returns to the quest log on close). Returns the overlay or null.
+function handInShow(id, back){
+  if(typeof document === "undefined" || !chainReady(id)) return null;
+  const ov = document.getElementById("overlay"); if(ov) ov.remove();
+  session.handInShown = session.handInShown || {};
+  session.handInShown[id + ":" + chainActive(id).id] = 1;
+  return overlay(handInHtml(id), () => { if(back === "log") A.questLog(id, Math.min(chainState(id).step, QC[id].steps.length - 1)); else refresh(); }, "handinov");
+}
+// Base load / back from a raid: one popup per ready step per session (the quest log can always reopen it).
+function maybeShowHandIn(){
+  if(typeof document === "undefined" || !ftueOver() || document.getElementById("overlay") || session.screen !== "base") return null;
+  const tq = trackedQuest(), ids = (tq ? [tq.chain] : []).concat(Object.keys(QC));
+  session.handInShown = session.handInShown || {};
+  const id = ids.find(c => chainReady(c) && !session.handInShown[c + ":" + chainActive(c).id]);
+  return id ? handInShow(id, "base") : null;
+}
+function handInPlay(pop){
+  pop.classList.add("consuming");
+  const go = pop.querySelector(".hi-go"); if(go) go.disabled = true;
+  setTimeout(() => {
+    if(!pop.isConnected) return;
+    pop.classList.add("paid");
+    if(go){ go.disabled = false; go.textContent = "DONE"; go.setAttribute("data-close", ""); go.removeAttribute("onclick"); }
+    bitDock("quest_handin");
+  }, HANDIN_MS);
 }
 // Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE.
 function trackedGoalHtml(){
   if(!ftueOver()) return "";
   const t = trackedQuest(); if(!t) return "";
   const o = t.step.objective;
-  return '<button type="button" class="progress-goal qgoal" onclick="A.questLog(\'' + t.chain + '\')" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC("quest") + ' ' + esc(t.step.title) + '</b><div class="qgrow">' +
+  return '<button type="button" class="progress-goal qgoal' + (chainReady(t.chain) ? ' rdy' : '') + '" onclick="A.questLog(\'' + t.chain + '\')" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC("quest") + ' ' + esc(t.step.title) + '</b><div class="qgrow">' +
     qTile(qObjIcon(o), t.prog + "/" + t.n, "") + '</div></button>';
 }
 // Launch param for the raid HUD chip: only when the tracked quest is in the area being raided (hand-ins have no raid objective).
@@ -703,9 +779,6 @@ function questLaunchParam(){
   const t = ftueOver() && trackedQuest(); if(!t || t.step.area !== raidArea()) return null;
   const o = t.step.objective; if(o.type === "handin") return null;
   return o.type + ":" + (o.type === "extract" ? o.item : o.type === "kill" ? o.enemy : (o.level || 1)) + ":" + t.prog + ":" + t.n + (o.type === "extract" ? ":" + (o.level || 1) : "");
-}
-function chainDoneToast(list){
-  for(const c of list) toast("", '<span class="qdone">' + IC("check") + '<b>' + esc(c.title) + '</b>' + chainRewardTiles(c.reward) + '</span>');
 }
 /* ---------- v1.73 Contract Chips: BIT trader (data/quests.js DATA.chipShop) ---------- */
 const CS = D.chipShop || { items:[], recycle:{}, weeklyOp:[] };
@@ -777,7 +850,7 @@ function chipShopOpen(){
 }
 function questEntryHtml(){
   const t = trackedQuest(); if(!t && !questsOpen()) return "";
-  return '<button type="button" class="card questentry" onclick="A.questLog()">' + IC("quest") + '<b>QUESTS</b>' + (dailyReadyCount() ? '<i class="qn">' + dailyReadyCount() + '</i>' : '') + (t ? '<span>' + qTile(qObjIcon(t.step.objective), t.prog + "/" + t.n, "") + '</span>' : '') + IC("chevron-right") + '</button>';
+  return '<button type="button" class="card questentry" onclick="A.questLog()">' + IC("quest") + '<b>QUESTS</b>' + (dailyReadyCount() ? '<i class="qn">' + dailyReadyCount() + '</i>' : '') + (t ? '<span>' + qTile(qObjIcon(t.step.objective), t.prog + "/" + t.n, chainReady(t.chain) ? "ok" : "") + '</span>' : '') + IC("chevron-right") + '</button>';
 }
 function traderEntryHtml(){
   if(!bitOnline() || !ftueOver()) return "";
@@ -988,7 +1061,7 @@ function applyRaidResult(R){
   const bondBefore = bondLevel();
 
   if(R.outcome === "extract"){
-    R.loot.forEach(id => addItem(id,1));
+    R.loot.forEach(id => addItem(id,1,true));
     R.cfg.loadout.forEach(id => addItem(id,1)); // gear comes home
     S.cur.scrap += R.scrap;
     S.cur.dataCores += R.dataCores;
@@ -1711,7 +1784,7 @@ SCREENS.stash = function(){
       if(S.reserved[id]) cls.push("reserved");
       if(S.secureItem === id) cls.push("secure");
       html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
-        '<span class="qty">×' + S.stash[id] + '</span></div>';
+        (firHave(id) ? firMark() : '') + '<span class="qty">×' + S.stash[id] + '</span></div>';
     }
     html += '</div>';
   }
@@ -1733,6 +1806,7 @@ SCREENS.itemDetail = function(id){
     return;
   }
   html += usedForHtml(id);
+  if(firHave(id)) html += '<div class="card small firline">' + IC("fir") + ' Found in raid ×' + firHave(id) + (firHave(id) < have(id) ? ' of ' + have(id) : '') + '</div>';
   if(neededFor.length) html += '<div class="card small trackc">Needed for: ' + esc(neededFor.join(", ")) + '</div>';
   if(miss && miss.itemId === id) html += '<div class="flagbanner">TRACKED UPGRADE ITEM — NEEDED ' + miss.have + '/' + miss.need + '</div>';
   html += '<div class="kv"><span>Sell value</span><span>' + Math.floor(it.sellValue * D.vendors[0].sellMultiplier) + ' Scrap</span></div>';
@@ -1750,21 +1824,24 @@ SCREENS.itemDetail = function(id){
   $app().innerHTML = html;
 };
 
+function ensurePrep(){
+  if(session.prep) return session.prep;
+  session.prep = {
+    zoneId: D.raidZones.find(z=>coreLevel()>=z.unlockedAtCore).id,
+    routeId: null,
+    riskId: "standard",
+    insuranceId: "none",
+    loadout: { weapon:null, armor:null, c1:null, c2:null, tool:null }
+  };
+  // sensible defaults from stash
+  session.prep.loadout.weapon = PROG.freeWeapon; // free Basic is always available for Node Raid
+  if(have(PROG.defaultLoadout.armor)) session.prep.loadout.armor = PROG.defaultLoadout.armor;
+  if(have(PROG.defaultLoadout.c1)) session.prep.loadout.c1 = PROG.defaultLoadout.c1;
+  return session.prep;
+}
 SCREENS.prep = function(){
   const beat = curBeat();
-  if(!session.prep){
-    session.prep = {
-      zoneId: D.raidZones.find(z=>coreLevel()>=z.unlockedAtCore).id,
-      routeId: null,
-      riskId: "standard",
-      insuranceId: "none",
-      loadout: { weapon:null, armor:null, c1:null, c2:null, tool:null }
-    };
-    // sensible defaults from stash
-    session.prep.loadout.weapon = PROG.freeWeapon; // free Basic is always available for Node Raid
-    if(have(PROG.defaultLoadout.armor)) session.prep.loadout.armor = PROG.defaultLoadout.armor;
-    if(have(PROG.defaultLoadout.c1)) session.prep.loadout.c1 = PROG.defaultLoadout.c1;
-  }
+  ensurePrep();
   if(guidedRaid()) applyStarterRaid();
   const p = session.prep;
   const zoneSel = ZONES[p.zoneId];
@@ -2525,7 +2602,7 @@ function maybeShowItemInfo(){
     return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
       usedForHtml(id).replace('card small usedfor', 'usedfor') +
       '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
-    '<button class="primary" data-close>GOT IT</button>', () => setTimeout(maybeShowItemInfo, 0));
+    '<button class="primary" data-close>GOT IT</button>', () => setTimeout(() => { maybeShowItemInfo(); maybeShowHandIn(); }, 0));
 }
 function ingestRaidResult(r){
   if(!validRaidResult(r)) return { ok:false, reason:"invalid" };
@@ -2543,7 +2620,7 @@ function ingestRaidResult(r){
   added.forEach(id => {
     if(ITEMS[id].scouts) return; // scouting items are consumed by the world map
     const g = ITEMS[id].grantsCurrency;
-    if(!g){ addItem(id, 1); return; }
+    if(!g){ addItem(id, 1, true); return; }
     for(const c in g){ S.cur[c] = (S.cur[c]||0) + g[c]; currency[c] = (currency[c]||0) + g[c]; revealCurrency(c); }
   });
   // v1.64: fixed Scrap bonus per cleared level, paid on extract only (death/timeout = 0, like all raid loot).
@@ -2597,7 +2674,7 @@ function ingestRaidResult(r){
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
   if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
-  if(chainsDone.length) areaNotes.push("Quest complete: " + chainsDone.map(c => c.title).join(", "));
+  if(chainsDone.length) areaNotes.push("Quest ready to hand in: " + chainsDone.map(c => c.title).join(", "));
   return { ok:true, added, currency, scrapBonus, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes, chainsDone };
 }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
@@ -3112,7 +3189,7 @@ window.A = {
   adDouble(){
     const R = session.pendingRaid;
     fakeAd("2× haul", ()=>{
-      R.loot.forEach(id => addItem(id,1));
+      R.loot.forEach(id => addItem(id,1,true));
       R.doubled = true;
       act("HAUL_DOUBLED", { loot: R.loot }); save();
       toast("Haul doubled");
@@ -3230,15 +3307,47 @@ window.A = {
   questLog(tab, sel){
     const open = document.querySelector("#overlay .qlog");
     if(!tab) tab = open ? open.dataset.tab : (trackedQuest() || {}).chain;
+    if(tab && tab !== "daily" && sel == null && chainReady(tab) && handInShow(tab, "log")) return;
     const ov = document.getElementById("overlay"); if(ov) ov.remove();
     overlay(questLogHtml(tab, sel), () => refresh(), "qlogov");
   },
-  QUEST_TRACK(p){ if(!p || !chainActive(p.chain)) return; S.trackedQuest = p.chain; act("QUEST_TRACK", { chain:p.chain }); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog(p.chain); },
+  // Toggle: a second press on the tracked quest switches tracking off (the goal card goes back to the upgrade goal).
+  QUEST_TRACK(p){
+    if(!p || !chainActive(p.chain)) return;
+    const on = (trackedQuest() || {}).chain === p.chain;
+    S.trackedQuest = on ? "none" : p.chain; act("QUEST_TRACK", { chain:p.chain, on:!on });
+    refresh(); if(document.querySelector("#overlay .qlog")){ this.questLog(p.chain); const b = document.querySelector("#overlay .qtrack"); if(b) b.classList.add("pulse"); }
+  },
+  handInOpen(chain, back){ handInShow(chain, back); },
+  // The one turn-in. Pays once (chainComplete refuses a step that is not ready); the popup animation is cosmetic.
   QUEST_HANDIN(p){
-    const def = p && chainActive(p.chain); if(!def || def.objective.type !== "handin") return;
-    const items = def.objective.items; if(!Object.keys(items).every(k => have(k) >= items[k])) return;
-    for(const k in items) removeItem(k, items[k]);
-    chainComplete(p.chain); refresh(); if(document.querySelector("#overlay .qlog")) this.questLog(p.chain);
+    const id = p && p.chain; if(!id || !chainReady(id)) return;
+    const res = chainComplete(id); if(!res) return;
+    const pop = document.querySelector('#overlay .handin[data-chain="' + id + '"]');
+    refresh();
+    if(pop) handInPlay(pop);
+    else if(document.querySelector("#overlay .qlog")) this.questLog(id);
+  },
+  // RAID from the quest detail: aim the normal deploy flow at the quest's area and track the quest so the raid HUD chip shows it.
+  QUEST_RAID(p){
+    const def = p && chainActive(p.chain); if(!def || guidedRaid() || !areaUnlocked(def.area)) return;
+    S.area = def.area; S.trackedQuest = p.chain; ensurePrep();
+    act("QUEST_RAID", { chain:p.chain, step:def.id, area:def.area, level:def.objective.level || 1 });
+    A.deployNodeRaid();
+  },
+  // Debug hooks for screenshots: A.handInDemo("handin"|"extract") opens the popup with a ready step; A.questLogDemo() opens the log with FIR stock.
+  handInDemo(kind){
+    S.beat = Math.max(S.beat, PROG.beats.findIndex(b => b.id === "choice_upgrade"));
+    const chain = kind === "extract" ? "bunker" : "bunker", st = chainState(chain);
+    if(kind === "extract"){ st.step = 0; st.prog = QC[chain].steps[0].objective.n; }
+    else { st.step = 2; st.prog = 0; S.stash.scrap_alloy = Math.max(2, S.stash.scrap_alloy || 0); S.stash.polymer_plate = Math.max(1, S.stash.polymer_plate || 0); S.fir = Object.assign(S.fir || {}, { scrap_alloy: S.stash.scrap_alloy, polymer_plate: S.stash.polymer_plate }); }
+    S.trackedQuest = chain; if(session.screen !== "base") A.go("base");
+    session.handInShown = {}; handInShow(chain, "base");
+  },
+  questLogDemo(){
+    S.beat = Math.max(S.beat, PROG.beats.findIndex(b => b.id === "choice_upgrade")); S.debugAreas = true;
+    chainState("bunker").step = 2; S.stash.scrap_alloy = 1; S.stash.polymer_plate = 1; S.fir = Object.assign(S.fir || {}, { scrap_alloy: 1 });
+    A.go("base"); A.questLog("bunker", 2);
   },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
@@ -3691,13 +3800,13 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.strip) toast("", coreIngest.strip);
-  if(coreIngest && coreIngest.chainsDone) chainDoneToast(coreIngest.chainsDone);
   maybeShowItemInfo();
   if(S.introSeen){
     tickRetention();
     const rows = morningRows();
     if(rows.length) A.showMorning(rows);
   }
+  maybeShowHandIn();
 }
 /* export pure logic for headless tests */
 if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel };

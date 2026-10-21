@@ -7,7 +7,7 @@ const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 9);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 10);
 assert.equal(S.retentionMode, "core");
 assert.equal(window.DATA.combat.player.maxHealth, 100, "combat test tuning is data-driven");
 assert.equal(S.baseState, "core_found", "new saves start at the found Core");

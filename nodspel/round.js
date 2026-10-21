@@ -48,7 +48,7 @@ export function collectLoot(round,position,now,weapon){
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
         if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
-        round.bag[box.item]++;
+        round.bag[box.item]++;round.lastBagPickup={item:box.item,at:now};
       }
       box.collected=true;round.lastPickup={item:box.item,at:now};changed=true;
     }

@@ -214,3 +214,21 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 #round-over .result-item.result-recovered>b,#round-over .result-item.result-recovered .pr-ic{color:var(--ad-bit)}
 
 .quest-chip{position:absolute;top:calc(100% + 4px);right:0;display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--ad-night) 85%,transparent);border:1px solid color-mix(in srgb,var(--ad-cyan) 40%,transparent);color:var(--ad-cyan);font:700 12px/1 'Archivo',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}.quest-chip .pr-ic{width:14px;height:14px}.quest-chip.done{color:var(--ad-loot);border-color:color-mix(in srgb,var(--ad-loot) 40%,transparent)}
+/* v1.76 icon-based raid HUD: room pips + gate-control tile (top-right), bag/NEED item tiles, pickup toasts. Tokens only. */
+.level-corner{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:5px 8px;max-width:190px;border-left-color:var(--ad-cyan)}
+.room-pips{display:flex;align-items:center;gap:4px}
+.room-pips i{display:block;width:12px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--ad-bone) 22%,transparent)}
+.room-pips i.done{background:var(--ad-cyan);opacity:.6}.room-pips i.cur{width:20px;background:var(--ad-cyan);box-shadow:0 0 6px var(--ad-cyan)}
+.room-obj{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;background:color-mix(in srgb,var(--ad-cyan) 12%,transparent);color:var(--ad-cyan);font:600 11px 'IBM Plex Mono',ui-monospace,monospace}
+.room-obj .pr-ic{width:14px;height:14px}.room-obj.done{background:var(--ad-cyan);color:var(--ad-ink)}
+.level-corner #seed-label{flex-basis:100%;font-size:8px}
+.bag-tiles{display:flex;flex-wrap:wrap;gap:3px;max-width:116px}.bag-tiles .bag-empty{font-size:8px;color:var(--ad-bone);opacity:.6}
+.item-tile{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:24px;height:22px;padding:0 3px;border-radius:4px;border:1px solid var(--rc,var(--ad-bone));background:color-mix(in srgb,var(--ad-ink) 80%,transparent);color:var(--rc,var(--ad-bone))}
+.item-tile .pr-ic{width:15px;height:15px;color:var(--rc,var(--ad-bone))}.item-tile b{font:700 9px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ad-bone)}.item-tile b:empty{display:none}
+.need-tiles{display:flex;flex-wrap:wrap;gap:3px}.need-tiles .item-tile.done{border-color:var(--ad-cyan);background:color-mix(in srgb,var(--ad-cyan) 14%,transparent)}.need-tiles .item-tile.done b{color:var(--ad-cyan)}
+#pickup-toasts{position:absolute;z-index:6;display:flex;flex-direction:column;gap:3px;pointer-events:none;width:132px}
+.pickup-toast{display:flex;align-items:center;gap:5px;max-width:100%;padding:3px 7px 3px 5px;border-left:3px solid var(--rc,var(--ad-bone));border-radius:4px;background:color-mix(in srgb,var(--ad-ink) 90%,transparent);color:var(--rc,var(--ad-bone));font:600 10px 'IBM Plex Mono',ui-monospace,monospace;animation:pickupToast 1.8s ease-out forwards}
+.pickup-toast .pr-ic{width:15px;height:15px;flex:none}.pickup-toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes pickupToast{0%{opacity:0;transform:translateX(-8px)}12%{opacity:1;transform:none}72%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.pickup-toast{animation:none}}
+.round-ended #pickup-toasts{visibility:hidden}
