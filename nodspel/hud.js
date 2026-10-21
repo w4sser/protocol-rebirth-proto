@@ -23,3 +23,13 @@ export function questChip(quest,round){
   const prog=Math.min(quest.n,quest.prog+live);
   return {type:quest.type,item:quest.type==='extract'?quest.target:null,prog,n:quest.n,done:prog>=quest.n};
 }
+
+// Compact room progress (top-right): three level pips (done / current / next) and the gate-control count shown as an icon tile.
+export const ROOM_COUNT=3;
+export function roomPips(number,total=ROOM_COUNT){return Array.from({length:total},(_,i)=>i+1<number?'done':i+1===number?'cur':'next');}
+export function roomProgress(level,total=ROOM_COUNT){
+  const lit=level.nodes.filter(n=>n.active).length,count=level.nodes.length;
+  return {pips:roomPips(level.number,total),lit,total:count,text:`${lit}/${count}`,done:count>0&&lit>=count,label:`Room ${level.number} of ${total}: ${level.title}, gate controls ${lit} of ${count}`};
+}
+// Bag as icon tiles: one tile per item type with its count, in carry order.
+export function bagTiles(bag){return Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n}));}

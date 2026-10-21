@@ -7,7 +7,7 @@ function boot(save){
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, trackedQuest, chainActive, chainState, ingestRaidResult, questLaunchParam, chainDoneToast };");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, trackedQuest, chainActive, chainState, ingestRaidResult, questLaunchParam, chainReady };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document };
 }
 const g = boot(null); g.A.dismissIntro();
@@ -40,14 +40,14 @@ assert(log.querySelector(".qrw .qt use[href$='#cur-scrap']") && log.querySelecto
 assert(!/[←-⯿☀-➿\u{1F300}-\u{1FAFF}]/u.test(log.textContent), "no glyphs");
 A.questLog("bunker", 0); { const br = d.querySelector('#overlay .qlog .qdet .qbrief'); assert(br, 'brief line shown'); assert.equal(br.textContent, T.chainActive('bunker').brief); log = d.querySelector('#overlay .qlog'); }
 // TRACK toggle: already tracked -> TRACKED; a locked step shows no toggle
-assert(log.querySelector(".qtrack.on") && log.querySelector(".qtrack").textContent.includes("TRACKED"));
+assert(log.querySelector(".qtrack.on") && log.querySelector(".qtrack").textContent.includes("Tracked"));
 A.questLog("bunker", 3); log = d.querySelector("#overlay .qlog"); assert(!log.querySelector(".qtrack"), "future step: no track toggle"); assert(log.querySelector(".qobj.dim"));
 assert.equal(d.querySelectorAll("#overlay").length, 1, "never stacked popups");
 // switching track changes the tracked quest and the card
 b.S().debugAreas = true; A.questLog("archipelago");
-log = d.querySelector("#overlay .qlog"); assert(log.querySelector(".qtrack:not(.on)").textContent.includes("TRACK"));
+log = d.querySelector("#overlay .qlog"); assert(log.querySelector(".qtrack:not(.on)").textContent.trim() === "Track");
 A.QUEST_TRACK({ chain:"archipelago" }); assert.equal(T.trackedQuest().chain, "archipelago");
-log = d.querySelector("#overlay .qlog"); assert(log.querySelector(".qtrack.on"), "now TRACKED");
+log = d.querySelector("#overlay .qlog"); assert(log.querySelector(".qtrack.on"), "now Tracked"); assert(log.querySelector(".qrow.cur.trk"), "tracked step highlighted in the list"); assert(log.querySelector(".qtab.trk use[href$='#area-archipelago']"), "tracked tab marked");
 assert(d.querySelector(".s-base .qgoal").textContent.includes("Landfall"), "card follows the tracked quest");
 assert.equal(T.questLaunchParam(), null, "area bunker raid: archipelago quest has no chip");
 // daily tab shows the existing daily quests
@@ -57,16 +57,19 @@ d.querySelector("#overlay [data-close]").click(); assert(!d.getElementById("over
 A.go("bit"); const ent = d.querySelector(".questentry"); assert(ent, "QUESTS entry in BIT Bay"); assert.equal(ent.getAttribute("onclick"), "A.questLog()"); A.questLog(); assert(d.querySelector("#overlay .qlog"), "entry opens the log");
 // hand-in
 d.querySelector("#overlay [data-close]").click();
-A.QUEST_TRACK({ chain:"bunker" }); b.S().chains.bunker.step = 2; b.S().stash.scrap_alloy = 3; b.S().stash.polymer_plate = 1;
-A.questLog("bunker"); log = d.querySelector("#overlay .qlog"); const hi = log.querySelector(".qact .primary"); assert(hi && hi.textContent.includes("HAND IN"), "HAND IN when the stash has the items");
-A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B4"); assert(!d.querySelector("#overlay .qlog .qact .primary"), "no hand in after");
+A.QUEST_TRACK({ chain:"bunker" }); b.S().chains.bunker.step = 2; b.S().stash.scrap_alloy = 3; b.S().stash.polymer_plate = 1; b.S().fir = {};
+A.questLog("bunker"); log = d.querySelector("#overlay .qlog"); assert(log && ![...log.querySelectorAll(".qact button")].some(x => x.textContent.includes("HAND IN")), "plain copies: no HAND IN, the log stays open");
+assert(log.querySelector(".qobj .qt.fir .firmk"), "requirement tiles carry the FIR marker"); assert(log.querySelector(".qfir"), "FIR tag on the quest");
+b.S().fir = { scrap_alloy: 3, polymer_plate: 1 };
+A.questLog("bunker"); assert(d.querySelector("#overlay .handin"), "ready quest opens the HAND IN popup"); assert.equal(d.querySelectorAll("#overlay").length, 1);
+A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B4");
 b.S().chains.bunker.step = 3; b.S().chains.bunker.prog = 0;
 // launch param (bunker raid, tracked fuse quest on L2)
 assert.equal(T.questLaunchParam(), "extract:fuse:0:2:2");
 assert(b.w.eval('coreLaunchUrl("r","s","../",{quest:"extract:fuse:0:2"})').includes("&quest=extract%3Afuse%3A0%3A2"));
-// auto turn-in: completed steps show as one short row with reward tiles in the toast area
-d.querySelector("#overlay [data-close]").click(); b.S().chains.bunker.step = 0;
+// completed extract steps wait for the HAND IN popup (no silent turn-in, no toast)
+d.querySelector("#overlay [data-close]") && d.querySelector("#overlay [data-close]").click(); b.S().chains.bunker.step = 0;
 const res = T.ingestRaidResult({ schema:"protocol-rebirth/raid-result", version:1, raidId:"x1", outcome:"extract", area:"bunker", levelsCleared:1, extracted:["cable","cable","cable"], lost:[], killsByType:{} });
-T.chainDoneToast(res.chainsDone);
-const row = d.querySelector("#toast .qdone"); assert(row && row.textContent.includes("Power Trace") && row.querySelectorAll(".qt").length === 2, "one row, two reward tiles"); assert(!d.getElementById("overlay"), "no extra modal");
+assert.deepEqual(res.chainsDone.map(c => c.id), ["B1"]); assert.equal(T.chainActive("bunker").id, "B1", "still B1 until handed in");
+A.go("base"); assert(!d.getElementById("overlay"), "no popup yet"); const shown = b.w.eval("maybeShowHandIn()"); assert(shown && d.querySelector("#overlay .handin"), "popup on base load");
 console.log("QUEST LOG TEST PASSED");

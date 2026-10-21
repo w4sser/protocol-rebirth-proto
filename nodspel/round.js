@@ -1,8 +1,8 @@
-import {generateLevel,RULES} from './levels.js?v=1.74.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.74.0';
-import {emptyBag,bagItems} from './raid.js?v=1.74.0';
-import {traceTargets} from './physics.mjs?v=1.74.0';
-import {shieldBlocks} from './encounters.js?v=1.74.0';
+import {generateLevel,RULES} from './levels.js?v=1.75.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.75.0';
+import {emptyBag,bagItems} from './raid.js?v=1.75.0';
+import {traceTargets} from './physics.mjs?v=1.75.0';
+import {shieldBlocks} from './encounters.js?v=1.75.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -48,7 +48,7 @@ export function collectLoot(round,position,now,weapon){
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
         if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
-        round.bag[box.item]++;
+        round.bag[box.item]++;round.lastBagPickup={item:box.item,at:now};
       }
       box.collected=true;round.lastPickup={item:box.item,at:now};changed=true;
     }

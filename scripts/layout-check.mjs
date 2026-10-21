@@ -15,7 +15,7 @@ const INSETS={left:47,right:47,top:0,bottom:21};
 const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
 const failures=[];
 // Text UI that must stay inside the safe area too (checked like controls).
-const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,.round-hud,#weapon-name,#encounter-hint,.area-notice';
+const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,#seed-label,.round-hud,#weapon-name,#encounter-hint,.area-notice,.pickup-toast,.room-pips';
 const fail=(ctx,msg)=>{failures.push(`${ctx}: ${msg}`);};
 
 // ---- tiny static server (free port) ----
@@ -95,6 +95,12 @@ function popupFit(){
     out.push({n:(el.id?'#'+el.id:'.'+el.className.split(' ')[0]),scroll:el.scrollHeight>el.clientHeight+1,
       outside:r.left<-1||r.top<-1||r.right>vw+1||r.bottom>vh+1||(xr&&(xr.left<-1||xr.top<-1))});
   }
+  // quest detail buttons (RAID / HAND IN / Track) must sit fully inside the detail pane, which does not scroll
+  for(const d of document.querySelectorAll('.qlog .qdet')){
+    const dr=d.getBoundingClientRect();
+    for(const b of d.querySelectorAll('.qact button')){const r=b.getBoundingClientRect();
+      out.push({n:'.qdet '+b.textContent.trim(),scroll:false,outside:r.left<dr.left-1||r.right>dr.right+1||r.top<dr.top-1||r.bottom>dr.bottom+1||r.bottom>vh+1||r.height<43});}
+  }
   return out;
 }
 
@@ -106,7 +112,7 @@ function worldOverlaps(){
   const sel=s=>[...document.querySelectorAll(s)].filter(vis);
   const L=sel('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)').map(e=>box(e,'label'))
     .concat(sel('#world-labels .enemy-health-bar,#world-labels .node-meter').map(e=>box(e,'bar',`${e.closest('.node-label')?.textContent.trim().slice(0,16)||e.id} ${e.className}`)))
-    .concat(sel('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,#level-toast,#extract-toast').map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2&&r.b-r.tp>1);
+    .concat(sel('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,.pickup-toast,#level-toast,#extract-toast').map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2&&r.b-r.tp>1);
   const H=sel('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.stick').map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
   const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
   const out=[];
@@ -163,7 +169,7 @@ async function baseRun([w,h]){
         ['prep-mission','A.go("prep");A.planToggle(true)'],['prep-slot','A.go("prep");A.pickSlot("weapon")'],
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
-        ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
+        ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-handin','A.go("base");A.handInDemo()'],['pop-handin-extract','A.go("base");A.handInDemo("extract")'],['pop-quests-fir','A.questLogDemo()'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
         ['settings','A.go("base");document.getElementById("menubtn").click()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
@@ -273,7 +279,7 @@ async function raidRun([w,h],area){
       const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
       const box=(e,k)=>{const r=e.getBoundingClientRect();return {k,t:e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
       // world labels + transient notices must not overlap each other, nor the HUD (timer, bag, dash, sticks ...)
-      const L=[...document.querySelectorAll('#world-labels>*:not(.enemy-damage)')].filter(vis).map(e=>box(e,'label')).concat([...document.querySelectorAll('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,#level-toast,#extract-toast')].filter(vis).map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2);
+      const L=[...document.querySelectorAll('#world-labels>*:not(.enemy-damage)')].filter(vis).map(e=>box(e,'label')).concat([...document.querySelectorAll('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,.pickup-toast,#level-toast,#extract-toast')].filter(vis).map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2);
       const H=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(vis).map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
       const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
       const out=[];
@@ -283,6 +289,15 @@ async function raidRun([w,h],area){
     for(const m of labels)fail(ctx,`world label ${m}`);
     await sweepLabels(page,ctx);
     await shot(page,`raid-${area}-${w}x${h}-L${level}`);
+    if(level===1){ // v1.76: four quick pickups -> at most 3 toasts, stacked under the bag panel, inside the safe area, clear of HUD and labels
+      await page.evaluate(()=>window.__NR.pickupDemo());await settle(1300);
+      const n=await page.evaluate(()=>document.querySelectorAll('.pickup-toast').length);
+      if(n<1||n>3)fail(ctx,`pickup toasts visible: ${n} (expected 1 to 3)`);
+      await report(page,`${ctx} pickup-toasts`,'.stick,#reset,#open-bag');
+      for(const m of await page.evaluate(worldOverlaps))fail(`${ctx} pickup-toasts`,`world label ${m}`);
+      await shot(page,`raid-${area}-${w}x${h}-pickup-toasts`);
+      await settle(1200);
+    }
   }
   await page.close();
 }

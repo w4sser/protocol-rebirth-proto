@@ -7,7 +7,7 @@ function boot(save){
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainActive, trackedQuest, chainProgress, ingestRaidResult, ftueOver };");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainActive, trackedQuest, chainProgress, ingestRaidResult, ftueOver, chainReady };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T };
 }
 const g = boot(null), C = g.w.DATA.questChains, ITEMS = g.w.DATA.items;
@@ -28,7 +28,7 @@ assert.equal(ids.size, 16);
 g.A.dismissIntro(); const fresh = JSON.parse(JSON.stringify(g.S()));
 const v7 = JSON.parse(JSON.stringify(fresh)); v7.v = 7; delete v7.chains; delete v7.trackedQuest; delete v7.cur.chips; v7.cur.scrap = 77;
 const m = boot(v7), s7 = m.S();
-assert.equal(s7.v, 9); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
+assert.equal(s7.v, 10); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
 
 // state: after FTUE, bunker open, archipelago locked
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 8; open.cur.scrap = 0;
@@ -42,22 +42,30 @@ T.ingestRaidResult(raid({ extracted:["cable"] }));
 assert.equal(T.trackedQuest().prog, 1); assert.equal(T.chainState("bunker").step, 0);
 assert.equal(T.ingestRaidResult(raid({ outcome:"death", extracted:[], lost:["cable"] })).chainsDone.length, 0, "death never counts");
 const sc = S().cur.scrap, r1 = T.ingestRaidResult(raid({ extracted:["cable","cable"] }));
-assert.deepEqual(r1.chainsDone.map(c => c.id), ["B1"], "B1 turned in automatically");
+assert.deepEqual(r1.chainsDone.map(c => c.id), ["B1"], "B1 reported ready");
+assert.equal(T.chainState("bunker").step, 0, "no silent turn-in"); const sc2 = S().cur.scrap; assert(T.chainReady("bunker")); b.A.QUEST_HANDIN({ chain:"bunker" });
 assert.equal(T.chainState("bunker").step, 1); assert.equal(T.chainState("bunker").prog, 0);
-assert(S().cur.scrap >= sc + 40, "B1 scrap granted"); assert.equal(T.trackedQuest().step.id, "B2", "keeps tracking the chain");
-T.ingestRaidResult(raid({ levelsCleared:0, area:"bunker" })); assert.equal(T.chainActive("bunker").id, "B2", "uncleared level does not count");
-T.ingestRaidResult(raid({})); assert.equal(S().stash.tool_decoy, 2, "B2 decoys granted"); assert.equal(T.chainActive("bunker").id, "B3");
+assert.equal(S().cur.scrap, sc2 + 40, "B1 scrap granted by the hand in"); assert.equal(T.trackedQuest().step.id, "B2", "keeps tracking the chain");
+b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainState("bunker").step, 1, "second press is a no-op");
+T.ingestRaidResult(raid({ levelsCleared:0, area:"bunker" })); assert(!T.chainReady("bunker"), "uncleared level does not count");
+T.ingestRaidResult(raid({})); assert(T.chainReady("bunker")); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(S().stash.tool_decoy, 2, "B2 decoys granted"); assert.equal(T.chainActive("bunker").id, "B3");
 
-// hand-in: needs the items, removes them, completes the step
-assert.equal(T.trackedQuest().prog, 2, "start stash scrap alloy counts"); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B3", "missing items: nothing happens");
+S().fir = {}; // (the migrated test save counted its whole stash as found in raid)
+// hand-in: only found-in-raid items count, they are removed, the step completes once
+assert.equal(T.trackedQuest().prog, 0, "start-stash scrap alloy is not found in raid"); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B3", "missing items: nothing happens");
 S().stash.scrap_alloy = 5; S().stash.polymer_plate = 1;
+assert.equal(T.trackedQuest().prog, 0, "bought/granted copies never count"); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B3");
+S().fir = { scrap_alloy: 3, polymer_plate: 1 };
 assert.equal(T.trackedQuest().prog, 3); b.A.QUEST_HANDIN({ chain:"bunker" });
-assert.equal(S().stash.scrap_alloy, 3, "2 removed"); assert(!S().stash.polymer_plate, "items removed"); assert.equal(S().cur.chips, 1); assert.equal(T.chainActive("bunker").id, "B4");
+assert.equal(S().stash.scrap_alloy, 3, "2 removed"); assert.equal(S().fir.scrap_alloy, 1, "only FIR copies were consumed"); assert(!S().stash.polymer_plate, "items removed"); assert.equal(S().cur.chips, 1); assert.equal(T.chainActive("bunker").id, "B4");
+b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(S().cur.chips, 1, "no double grant");
 
 // tracking: archipelago opens, explicit track, finishing a chain moves on
 S().debugAreas = true; assert.equal(T.chainActive("archipelago").id, "A1");
 b.A.QUEST_TRACK({ chain:"archipelago" }); assert.equal(T.trackedQuest().chain, "archipelago");
 b.A.QUEST_TRACK({ chain:"nope" }); assert.equal(T.trackedQuest().chain, "archipelago", "invalid track ignored");
+b.A.QUEST_TRACK({ chain:"archipelago" }); assert.equal(T.trackedQuest(), null, "second press untracks"); assert.equal(S().trackedQuest, "none");
+b.A.QUEST_TRACK({ chain:"archipelago" }); assert.equal(T.trackedQuest().chain, "archipelago", "tracks again");
 S().chains.archipelago.step = 8; assert.equal(T.chainActive("archipelago"), null, "finished chain has no active step");
 assert.equal(T.trackedQuest().chain, "bunker", "auto-tracks the next available chain");
 S().chains.bunker.step = 8; assert.equal(T.trackedQuest(), null);
