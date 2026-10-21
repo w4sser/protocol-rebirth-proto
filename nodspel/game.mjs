@@ -287,7 +287,7 @@ function renderQuestChip(){
 function renderRoomBox(level){
   const p=roomProgress(level),box=$('#level-corner'),pips=$('#room-pips'),obj=$('#room-obj');if(!box||!pips||!obj)return;
   pips.replaceChildren(...p.pips.map(c=>{const i=document.createElement('i');i.className=c;return i;}));
-  const key=`${p.lit}/${p.total}`;if(obj.dataset.key!==key){obj.dataset.key=key;setIconText(obj,'unlock',p.text);}
+  const key=`${p.lit}/${p.total}`;if(obj.dataset.key!==key){obj.dataset.key=key;setIconText(obj,'gate-node',p.text);}
   obj.classList.toggle('done',p.done);box.setAttribute('aria-label',p.label);box.title=p.label;
 }
 // Pickup toasts: icon + name in rarity colour under the bag panel; stack of at most 3, each fades after TOAST_MS.
@@ -312,7 +312,7 @@ function updateHUD(){
   placeKitButton();placePickupToasts();renderQuestChip();
   renderGoalTracker();
   renderBagContents($('#bag-items'),round.bag);
-  $('#bag-count').textContent=`BAG ${bagItems(round.bag).length}/${bagCapacityOf(round)} · AT RISK${round.levelsCleared?' · CARRIED':''}`;
+  {const n=bagItems(round.bag).length,cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
   const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&level.nodes.every(n=>n.active);
   $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
@@ -328,7 +328,7 @@ function itemTile(id,text,cls=''){const t=document.createElement('span');t.class
 function renderBagContents(el,bag){
   const tiles=bagTiles(bag),key=JSON.stringify(tiles);if(el.dataset.tiles===key)return;el.dataset.tiles=key;
   el.replaceChildren();
-  if(!tiles.length){const e=document.createElement('small');e.className='bag-empty';e.textContent='Empty';el.append(e);return;}
+  if(!tiles.length)return;
   for(const {id,n} of tiles)el.append(itemTile(id,n>1?`${n}`:'',n>1?'counted':''));
 }
 function renderGoalTracker(){

@@ -869,14 +869,19 @@
   .handin .hi-rw .qt{color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 35%,transparent);min-width:62px;padding:10px 8px;flex-direction:column;opacity:.45;transform:scale(.92);filter:saturate(.6)}
   .handin .hi-rw .qt svg{width:30px;height:30px}
   .handin.consuming .hi-req .qt{animation:hiConsume .6s ease-in forwards}
-  .handin.paid .hi-req{visibility:hidden}.handin.paid .hi-arrow{opacity:.25}
-  .handin.paid .hi-rw .qt{opacity:1;transform:none;filter:none;animation:hiReward .55s cubic-bezier(.2,1.6,.4,1) both;box-shadow:0 0 18px color-mix(in srgb,var(--ad-loot) 55%,transparent)}
+  .hi-cheer{display:none;color:var(--ad-cyan);filter:drop-shadow(0 0 12px var(--ad-cyan));flex:none}.hi-cheer svg{width:84px;height:84px}
+  .handin.paid .hi-req,.handin.paid .hi-arrow,.handin.paid .hi-bit{display:none}.handin.paid .hi-cheer{display:block;animation:hiBitJump .9s cubic-bezier(.3,1.5,.5,1) both,hiBitIdle 1.4s ease-in-out .9s infinite}
+  .handin.paid .hi-rw{gap:14px}.handin.paid .hi-rw .qt{min-width:86px;padding:14px 12px}.handin.paid .hi-rw .qt svg{width:44px;height:44px}.handin.paid .hi-rw .qt b{font-size:20px}
+  .handin.paid .hi-rw .qt{opacity:1;transform:none;filter:none;animation:hiReward .55s cubic-bezier(.2,1.6,.4,1) both,hiGlow 1.6s ease-in-out .6s infinite;box-shadow:0 0 24px color-mix(in srgb,var(--ad-loot) 70%,transparent);outline-width:2px;outline-color:var(--ad-loot)}
   .handin.paid .hi-rw .qt:nth-child(2){animation-delay:.08s}.handin.paid .hi-rw .qt:nth-child(3){animation-delay:.16s}.handin.paid .hi-rw .qt:nth-child(4){animation-delay:.24s}
   .handin .hi-go{width:min(260px,100%);min-height:52px;margin:0;font-size:18px;letter-spacing:.14em;background:var(--ad-primary);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge)}
   .handin.paid .hi-go{background:var(--ad-cyan);box-shadow:none}
   @keyframes hiConsume{0%{opacity:1;transform:none}60%{opacity:.9;transform:translateX(18px) scale(.9)}100%{opacity:0;transform:translateX(46px) scale(.3)}}
   @keyframes hiReward{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
   @keyframes hiCheer{0%{transform:scale(1)}30%{transform:scale(1.35) rotate(-6deg)}60%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1)}}
+  @keyframes hiBitJump{0%{transform:translateY(24px) scale(.5) rotate(-12deg);opacity:0}45%{transform:translateY(-14px) scale(1.25) rotate(8deg);opacity:1}70%{transform:translateY(2px) scale(.95) rotate(-4deg)}100%{transform:none}}
+  @keyframes hiBitIdle{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-5px) rotate(3deg)}}
+  @keyframes hiGlow{0%,100%{box-shadow:0 0 16px color-mix(in srgb,var(--ad-loot) 50%,transparent)}50%{box-shadow:0 0 32px color-mix(in srgb,var(--ad-loot) 85%,transparent)}}
   @keyframes hiPop{0%{transform:scale(.92)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
   @keyframes hiPulse{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 10px color-mix(in srgb,var(--ad-cyan) 55%,transparent)}}
   @media (prefers-reduced-motion:reduce){.handin *,.handin,.qtrack,.qtab.rdy,.progress-goal.qgoal.rdy{animation:none!important;transition:none!important}.handin.consuming .hi-req .qt{opacity:.2}.handin.paid .hi-rw .qt{transform:none}}

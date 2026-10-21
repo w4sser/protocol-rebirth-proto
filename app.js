@@ -737,7 +737,7 @@ function handInHtml(id){
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
-    '<div class="hi-stage"><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward) + '</div></div>' +
+    '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward) + '</div></div>' +
     '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
 }
 // Opens the popup for a ready step (back = "log" returns to the quest log on close). Returns the overlay or null.
