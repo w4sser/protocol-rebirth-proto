@@ -722,7 +722,7 @@ function questLogHtml(tab, sel){
       return '<button type="button" class="qrow ' + ks + (k === i ? ' sel' : '') + (ks === "cur" && tracked ? ' trk' : '') + (ks === "cur" && chainReady(tab) ? ' rdy' : '') + '" onclick="A.questLog(\'' + tab + '\',' + k + ')">' + IC(ks === "done" ? "check" : ks === "lock" ? "lock" : qObjIcon(s.objective)) + '<b>' + esc(s.title) + '</b>' + (ks === "cur" ? chainPips(p, chainStepN(s)) : '') + '</button>';
     }).join("");
     body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + (handinFir(def) ? '<span class="qfir" title="Only items found in a raid count">' + IC("fir") + 'FIR</span>' : '') + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
-      '<div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div>' +
+      '<div class="qtiles"><div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div></div>' +
       (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }

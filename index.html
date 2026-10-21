@@ -819,7 +819,7 @@
   .bpop.qlog{width:min(780px,calc(100% - 32px));height:min(330px,calc(100dvh - var(--tb-h,0px) - 34px));display:flex;flex-direction:column;padding:6px 10px 10px;box-sizing:border-box}
   .qlog .qchips{display:flex;align-items:center;gap:4px;background:none;color:var(--ad-loot);font:800 14px "Archivo",sans-serif}.qlog .qchips svg{width:20px;height:20px}
   .bpop.qlog{text-align:left}.qlog .bpop-head h1{text-align:left;margin-left:4px}.qdet h2{color:var(--ad-bone);text-align:left}
-  .qwrap{flex:1;min-height:0;display:grid;grid-template-columns:56px minmax(190px,270px) 1fr;gap:10px}
+  .qwrap{flex:1;min-height:0;display:grid;grid-template-columns:56px minmax(140px,180px) 1fr;gap:10px}
   .qwrap:has(.qdaily){grid-template-columns:56px 1fr}
   .qtabs{display:flex;flex-direction:column;gap:6px;padding-top:2px}
   .qtab{position:relative;width:44px;height:44px;min-height:44px;margin:0;padding:0;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);border:0;color:var(--ad-bone)}
@@ -831,15 +831,15 @@
   .qrow.cur{color:var(--ad-cyan)}.qrow.cur b{color:var(--ad-bone)}.qrow.done{opacity:.45}.qrow.lock{opacity:.3}
   .qrow.sel{background:color-mix(in srgb,var(--ad-cyan) 12%,transparent);outline:1.5px solid var(--ad-cyan)}
   .pips{display:flex;gap:3px;flex:none}.pips i{width:8px;height:8px;border-radius:2px;background:color-mix(in srgb,var(--ad-bone) 18%,transparent)}.pips i.f{background:var(--ad-cyan)}
-  .qdet{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0;padding:4px 4px 0;overflow-y:auto}
+  .qdet{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;padding:2px 4px 0;overflow:hidden}
   .qdet .qbrief{margin:2px 0 0;font-size:12px;color:var(--ad-bone);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .qdet h2{font-size:18px;margin:0}.qdet small{font-size:10px;letter-spacing:.12em;opacity:.6}
-  .qobj,.qrw{display:flex;flex-wrap:wrap;gap:8px}.qobj.dim{opacity:.4}
-  .qt{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:10px;background:color-mix(in srgb,var(--ad-cyan) 9%,transparent);color:var(--ad-cyan);font-size:15px}
+  .qtiles{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-width:0}.qobj,.qrw{display:flex;flex-wrap:wrap;gap:6px;min-width:0}.qrw{margin-left:auto;justify-content:flex-end}.qobj.dim{opacity:.4}
+  .qt{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:10px;background:color-mix(in srgb,var(--ad-cyan) 9%,transparent);color:var(--ad-cyan);font-size:15px}
   .qt svg{width:22px;height:22px}.qt b{font:800 15px "Archivo",sans-serif;color:var(--ad-bone)}
-  .qrw .qt{flex-direction:column;justify-content:center;gap:3px;min-width:58px;padding:8px;color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 35%,transparent)}
-  .qact{display:flex;gap:8px;justify-content:flex-end;margin-top:auto;padding-bottom:2px}
-  .qact button{min-height:44px;margin:0;padding:0 16px;border-radius:22px;font:800 13px "Archivo",sans-serif;letter-spacing:.08em;display:flex;align-items:center;gap:8px}
+  .qrw .qt{flex-direction:column;justify-content:center;gap:2px;min-width:52px;padding:5px 6px;color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 9%,transparent);outline:1px solid color-mix(in srgb,var(--ad-loot) 35%,transparent)}
+  .qact{display:flex;flex:none;gap:6px;justify-content:flex-end;margin-top:auto;padding-bottom:2px}
+  .qact button{flex:0 0 auto;width:auto;min-width:96px;min-height:44px;margin:0;padding:0 12px;border-radius:22px;font:800 13px "Archivo",sans-serif;letter-spacing:.08em;display:flex;align-items:center;gap:8px}
   .qtrack{border:1.5px solid var(--ad-cyan);background:none;color:var(--ad-cyan)}.qtrack.on{background:var(--ad-cyan);color:var(--ad-ink)}.qtrack svg{width:18px;height:18px}
   .qdaily{overflow-y:auto;min-height:0}.qdaily .quests{margin:0}
   .progress-goal.qgoal{cursor:pointer}.qgoal .qgrow{display:flex;align-items:center;gap:8px}.qgoal .qt{padding:3px 8px;font-size:13px}.qgoal .qt svg{width:18px;height:18px}.qgoal .qt b{font-size:13px}

@@ -95,6 +95,12 @@ function popupFit(){
     out.push({n:(el.id?'#'+el.id:'.'+el.className.split(' ')[0]),scroll:el.scrollHeight>el.clientHeight+1,
       outside:r.left<-1||r.top<-1||r.right>vw+1||r.bottom>vh+1||(xr&&(xr.left<-1||xr.top<-1))});
   }
+  // quest detail buttons (RAID / HAND IN / Track) must sit fully inside the detail pane, which does not scroll
+  for(const d of document.querySelectorAll('.qlog .qdet')){
+    const dr=d.getBoundingClientRect();
+    for(const b of d.querySelectorAll('.qact button')){const r=b.getBoundingClientRect();
+      out.push({n:'.qdet '+b.textContent.trim(),scroll:false,outside:r.left<dr.left-1||r.right>dr.right+1||r.top<dr.top-1||r.bottom>dr.bottom+1||r.bottom>vh+1||r.height<43});}
+  }
   return out;
 }
 
