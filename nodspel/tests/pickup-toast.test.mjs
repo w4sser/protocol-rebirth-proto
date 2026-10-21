@@ -34,3 +34,10 @@ test('toast container wiring: under the bag panel, rarity colour, tokens only, r
   assert(!/#[0-9a-fA-F]{3,8}\b/.test(blk),'new HUD css uses tokens, no raw colours');
   assert(/prefers-reduced-motion[^}]*pickup-toast\{animation:none/.test(blk));
 });
+
+test('pickup toasts are HUD rects for world-label collision avoidance',()=>{
+  assert.match(src('../game.mjs').match(/const HUD_SELECTORS='([^']*)'/)[1],/\.pickup-toast\b/);
+});
+test('debug seed label stays inside the safe area',()=>{
+  assert.match(src('../style.css'),/#seed-label\{[^}]*max-width:calc\(100vw - var\(--sl\) - var\(--sr\)/);
+});

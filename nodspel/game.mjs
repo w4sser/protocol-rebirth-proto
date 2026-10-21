@@ -562,7 +562,7 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.area-notice,#encounter-hint,.stick';
+const HUD_SELECTORS='.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.area-notice,#encounter-hint,.stick,.pickup-toast';
 let hudRects=[],hudRectsAt=0;
 function refreshHudRects(now){if(now-hudRectsAt<500)return;hudRectsAt=now;
   const box=$('#game').getBoundingClientRect();

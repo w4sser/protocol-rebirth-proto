@@ -575,13 +575,18 @@ function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() : 
 function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.chains[id] = { step:0, prog:0 }); }
 function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
 function chainStepN(def){ return def.objective.n; }
-// Hand-ins only take found-in-raid items (S.fir), never bought, crafted or reward ones.
-function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], firHave(k)), 0)); }
+// Hand-ins of items that can drop in a raid (any questFacts loot list) only take found-in-raid copies (S.fir), never bought,
+// crafted or reward ones. Items no raid drops (e.g. the Transmitter) take plain stash copies, otherwise the chain would block.
+const RAID_FINDABLE = new Set(Object.values(QF).flatMap(a => Object.values(a).flatMap(l => l.items || [])));
+function raidFindable(id){ return RAID_FINDABLE.has(id); }
+function handinHave(id){ return raidFindable(id) ? firHave(id) : have(id); }
+function handinFir(def){ return def.objective.type === "handin" && Object.keys(def.objective.items).some(raidFindable); }
+function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], handinHave(k)), 0)); }
 // An objective that is met but not yet handed in. The step only advances (and pays) through chainComplete().
 function chainReady(id){
   const def = chainActive(id); if(!def) return false;
   const o = def.objective;
-  return o.type === "handin" ? Object.keys(o.items).every(k => firHave(k) >= o.items[k]) : chainState(id).prog >= o.n;
+  return o.type === "handin" ? Object.keys(o.items).every(k => handinHave(k) >= o.items[k]) : chainState(id).prog >= o.n;
 }
 function trackedQuest(){
   if(S.trackedQuest === "none") return null; // the player switched tracking off
@@ -604,7 +609,7 @@ function chainReward(def){
 function chainComplete(id){
   if(!chainReady(id)) return null;
   const def = chainActive(id), st = chainState(id), o = def.objective;
-  if(o.type === "handin") for(const k in o.items) removeFirItem(k, o.items[k]);
+  if(o.type === "handin") for(const k in o.items) raidFindable(k) ? removeFirItem(k, o.items[k]) : removeItem(k, o.items[k]);
   chainReward(def); st.step++; st.prog = 0;
   act("QUEST_CHAIN_STEP", { chain:id, step:def.id });
   return { chain:id, id:def.id, title:def.title, reward:def.reward };
@@ -694,7 +699,7 @@ function chainRewardTiles(R){
 function chainObjTiles(def, prog, n){
   const o = def.objective, t = [];
   if(o.type !== "handin") t.push(qTile((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area", (AREA_DEFS[def.area] || {}).name));
-  if(o.type === "handin") for(const id in o.items){ const got = Math.min(o.items[id], prog === n ? o.items[id] : firHave(id)); t.push(qTile(ITEMS[id].icon, got + "/" + o.items[id], "fir" + (got >= o.items[id] ? " ok" : ""), ITEMS[id].name + " (found in raid)")); }
+  if(o.type === "handin") for(const id in o.items){ const got = Math.min(o.items[id], prog === n ? o.items[id] : handinHave(id)); t.push(qTile(ITEMS[id].icon, got + "/" + o.items[id], (raidFindable(id) ? "fir" : "") + (got >= o.items[id] ? " ok" : ""), ITEMS[id].name + (raidFindable(id) ? " (found in raid)" : ""))); }
   else t.push(qTile(qObjIcon(o), prog + "/" + n, "", o.type === "kill" ? o.enemy : o.type === "extract" ? ITEMS[o.item].name : "Clear"));
   return t.join("");
 }
@@ -716,7 +721,7 @@ function questLogHtml(tab, sel){
       const ks = k < st.step ? "done" : k === st.step ? "cur" : "lock", p = ks === "cur" ? (s.objective.type === "handin" ? chainHandinProg(s) : st.prog) : 0;
       return '<button type="button" class="qrow ' + ks + (k === i ? ' sel' : '') + (ks === "cur" && tracked ? ' trk' : '') + (ks === "cur" && chainReady(tab) ? ' rdy' : '') + '" onclick="A.questLog(\'' + tab + '\',' + k + ')">' + IC(ks === "done" ? "check" : ks === "lock" ? "lock" : qObjIcon(s.objective)) + '<b>' + esc(s.title) + '</b>' + (ks === "cur" ? chainPips(p, chainStepN(s)) : '') + '</button>';
     }).join("");
-    body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + (def.objective.type === "handin" ? '<span class="qfir" title="Only items found in a raid count">' + IC("fir") + 'FIR</span>' : '') + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
+    body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + (handinFir(def) ? '<span class="qfir" title="Only items found in a raid count">' + IC("fir") + 'FIR</span>' : '') + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
       '<div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div>' +
       (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
@@ -733,7 +738,7 @@ function questRaidBtn(chain, def, ready){
 const HANDIN_MS = 700;
 function handInHtml(id){
   const def = chainActive(id), o = def.objective, big = (ic, txt, cls, label) => qTile(ic, txt, "big " + (cls || ""), label);
-  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, Math.min(firHave(k), o.items[k]) + "/" + o.items[k], "fir ok", ITEMS[k].name + " (found in raid)")).join("") :
+  const req = o.type === "handin" ? Object.keys(o.items).map(k => big(ITEMS[k].icon, Math.min(handinHave(k), o.items[k]) + "/" + o.items[k], (raidFindable(k) ? "fir " : "") + "ok", ITEMS[k].name + (raidFindable(k) ? " (found in raid)" : ""))).join("") :
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
@@ -2646,6 +2651,8 @@ function ingestRaidResult(r){
     swappedOut.push(...gear);
     gearOut.forEach(id => { addItem(id, 1); const i = swappedOut.indexOf(id); if(i >= 0) swappedOut.splice(i, 1); else gearFound.push(id); });
   } else if(extracted) gear.forEach(id => addItem(id, 1));
+  // Newly found equipment is found-in-raid; gear that went in and came back out is not.
+  gearFound.forEach(id => { S.fir = S.fir || {}; S.fir[id] = Math.min((S.fir[id] || 0) + 1, S.stash[id] || 0); });
   // Unused medkits come home on extract; used or lost ones are gone.
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
   // v1.46: kits picked up in the raid go to the kit slot too, so up to PROG.kitMax can come home (death loses them).
@@ -2654,7 +2661,9 @@ function ingestRaidResult(r){
   const toolOut = launch && launch.tool && ITEMS[launch.tool.id] ? launch.tool : null;
   const toolBack = extracted && toolOut && r.toolLeft && r.toolLeft.id === toolOut.id ? Math.min(toolOut.n, Math.max(0, Math.floor(Number(r.toolLeft.n) || 0))) : 0;
   if(toolBack) addItem(toolOut.id, toolBack);
-  if(kitBack) addItem(PROG.kitItem, kitBack);
+  if(kitBack){ addItem(PROG.kitItem, kitBack, false);
+    // Only kits beyond the ones taken in were found in the raid.
+    if(kitBack > kitOut){ S.fir = S.fir || {}; S.fir[PROG.kitItem] = Math.min((S.fir[PROG.kitItem] || 0) + kitBack - kitOut, S.stash[PROG.kitItem]); } }
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? swappedOut : gear.filter(id => id !== saved.secure);

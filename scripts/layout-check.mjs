@@ -15,7 +15,7 @@ const INSETS={left:47,right:47,top:0,bottom:21};
 const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
 const failures=[];
 // Text UI that must stay inside the safe area too (checked like controls).
-const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,.round-hud,#weapon-name,#encounter-hint,.area-notice,.pickup-toast,.room-pips';
+const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,#seed-label,.round-hud,#weapon-name,#encounter-hint,.area-notice,.pickup-toast,.room-pips';
 const fail=(ctx,msg)=>{failures.push(`${ctx}: ${msg}`);};
 
 // ---- tiny static server (free port) ----

@@ -7,7 +7,7 @@ function boot(save){
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.nav = []; w.PR_NAVIGATE = u => w.nav.push(u);
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainReady, ingestRaidResult, maybeShowHandIn, trackedQuest, firHave, migrateFir, HANDIN_MS, session };");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainReady, ingestRaidResult, maybeShowHandIn, trackedQuest, firHave, migrateFir, raidFindable, handinFir, chainActive, HANDIN_MS, session };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document };
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -35,6 +35,21 @@ assert.equal(S().stash[vend.itemId] - (S().fir[vend.itemId] || 0), 1, "bought co
 A.go("stash"); assert(d.querySelector("#app .slot .firmk use[href$='#fir']"), "FIR marker on stash tiles");
 b.w.eval("addItem('cable', 2)"); assert.equal(T.firHave("cable"), 0, "granted copies are not FIR");
 b.w.eval("removeItem('scrap_alloy', 1)"); assert.equal(T.firHave("scrap_alloy"), 1, "FIR clamps with the stack");
+
+// ---- FIR only applies to items a raid can drop: A4 (Transmitter) takes plain stash copies ----
+{ const a = boot(open), at = a.T, as = a.S; assert(!at.raidFindable("transmitter") && at.raidFindable("scrap_alloy"));
+  as().debugAreas = true; as().chains.archipelago = { step:3, prog:0 }; as().stash = { transmitter: 1 }; as().fir = {};
+  assert.equal(at.chainActive("archipelago").id, "A4"); assert(!at.handinFir(at.chainActive("archipelago")), "no FIR tag on A4");
+  assert(at.chainReady("archipelago"), "a bartered Transmitter completes A4"); a.A.go("base"); a.A.questLog("archipelago");
+  assert(!a.d.querySelector("#overlay .qfir, #overlay .qt.fir"), "no FIR tag or marker on A4"); a.d.querySelector("#overlay .pop-x").click();
+  a.A.QUEST_HANDIN({ chain:"archipelago" }); assert(!as().stash.transmitter, "transmitter consumed"); }
+
+// ---- FIR credit for newly found gear and medkits, not for gear brought in ----
+{ const e = boot(open), et = e.T, es = e.S; es().stash = {}; es().fir = {};
+  const r0 = es().stash; es().coreLaunch = { raidId:"gx", gear:["basic_carbine"], kit:{ medkit:1 } };
+  et.ingestRaidResult(raid({ raidId:"gx", extracted:[], gearOut:["basic_carbine","smg_vector"], kitLeft:{ medkit:2 } }));
+  assert.equal(et.firHave("smg_vector"), 1, "found gear is FIR"); assert.equal(et.firHave("basic_carbine"), 0, "brought-in gear is not");
+  assert.equal(et.firHave("medkit"), 1, "only the medkit beyond the one taken in is FIR"); }
 
 // ---- hand in: popup appears, consumes only FIR, pays once ----
 S().chains.bunker.step = 2; S().stash = { scrap_alloy: 5, polymer_plate: 1 }; S().fir = { scrap_alloy: 2, polymer_plate: 1 };
