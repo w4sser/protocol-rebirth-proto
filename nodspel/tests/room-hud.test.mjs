@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {roomPips,roomProgress,bagTiles} from '../hud.js?v=1.75.0';
-import {createRound,activateNode} from '../round.js?v=1.75.0';
+import {roomPips,roomProgress,bagTiles} from '../hud.js?v=1.75.1';
+import {createRound,activateNode} from '../round.js?v=1.75.1';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('three pips: done, current, next',()=>{
@@ -18,6 +18,6 @@ test('bag renders as icon tiles with counts, empty entries skipped',()=>{
 test('markup: icon room box, seed hidden unless debug, no text-only gate line',()=>{
   const html=src('../index.html'),g=src('../game.mjs');
   assert(/id="room-pips"/.test(html)&&/id="room-obj"/.test(html));assert(!/GATE CONTROLS/.test(html+g),'no "GATE CONTROLS n/n" text box');
-  assert(/sl\.hidden=!DEBUG/.test(g),'seed only with ?debug');assert(/id="seed-label" hidden/.test(html));
+  assert(/sl\.hidden=!SEED_LABEL/.test(g)&&/SEED_LABEL=DEBUG&&[^\n]*'seed-label'/.test(g),'seed only with ?debug=1&seed-label=1');assert(/id="seed-label" hidden/.test(html));
   assert(/class="item-tile|item-tile/.test(g)&&/need-tiles/.test(g),'bag + NEED rows are item tiles');
 });

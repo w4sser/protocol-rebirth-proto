@@ -48,11 +48,11 @@ ITEM_DATA_ROOT.DATA.items = [
     desc:"The Protocol's memory of itself.", uses:["recipe","story"] },
   // AREA MATERIALS (v1.75, docs/design-retention-quests.md sections 1.4, 2, 3): one per area, found only there.
   // Tidal Coil: Archipelago L2+. Frost Glass: Town L2+ (house containers). Core Ash: L3 in any area until Hard variants exist.
-  { id:"tidal_coil", icon:"item-tidal-coil", name:"Tidal Coil", family:"power", rarity:"rare", sellValue:160, stackSize:5,
+  { id:"tidal_coil", icon:"item-tidal-coil", hero:"assets/art/tidal-coil.webp", name:"Tidal Coil", family:"power", rarity:"rare", sellValue:160, stackSize:5,
     desc:"Salt-cured induction coil from the Archipelago. Quest reward and BIT trade good.", uses:["quest","barter","sell"] },
-  { id:"frost_glass", icon:"item-frost-glass", name:"Frost Glass", family:"mechanical", rarity:"rare", sellValue:150, stackSize:5,
+  { id:"frost_glass", icon:"item-frost-glass", hero:"assets/art/frost-glass.webp", name:"Frost Glass", family:"mechanical", rarity:"rare", sellValue:150, stackSize:5,
     desc:"Pane that never thawed. Turns up in Town houses.", uses:["quest","barter","sell"] },
-  { id:"core_ash", icon:"item-core-ash", name:"Core Ash", family:"protocol", rarity:"epic", sellValue:350, stackSize:3,
+  { id:"core_ash", icon:"item-core-ash", hero:"assets/art/core-ash.webp", name:"Core Ash", family:"protocol", rarity:"epic", sellValue:350, stackSize:3,
     desc:"What a burned-out Core leaves behind. Deep runs only.", uses:["sell"] },
   // VALUABLE (sell-only)
   // v1.44 scouting items: extracting one scouts the next area on the world map (consumed on extract).

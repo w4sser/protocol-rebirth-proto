@@ -108,5 +108,7 @@ assert(S().log.filter(e => e.action === "QUEST_CHAIN_STEP" && e.payload.step ===
   // ---- debug hooks ----
   { const dm = boot(open); dm.A.handInDemo(); assert(dm.d.querySelector("#overlay .handin .hi-req .qt.fir")); dm.d.querySelector("#overlay .pop-x").click();
     dm.A.handInDemo("extract"); assert(dm.d.querySelector("#overlay .handin")); dm.d.querySelector("#overlay .pop-x").click(); dm.A.questLogDemo(); assert(dm.d.querySelector("#overlay .qlog")); }
+  { const hm = boot(open); hm.A.handInDemo("hero"); const im = hm.d.querySelector("#overlay .handin .hi-rw .qt.hero img.hi-hero"); assert(im && im.getAttribute("src") === "assets/art/tidal-coil.webp", "reward with hero art shows it large");
+    assert(!hm.d.querySelector("#overlay .handin .hi-rw .qt.hero use"), "hero replaces the small icon in the reveal"); hm.d.querySelector("#overlay .pop-x").click(); }
   console.log("HANDIN TEST PASSED");
 })().catch(e => { console.error(e); process.exit(1); });

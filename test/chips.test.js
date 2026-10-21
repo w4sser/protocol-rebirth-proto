@@ -67,7 +67,11 @@ assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
   assert.equal(ov.querySelectorAll("[data-chip]").length, CS.items.length); assert.equal(ov.querySelectorAll("[data-ex]").length, 2);
   assert(ov.querySelector(".qchips svg use[href$='#cur-chip']") && ov.querySelector("[data-ex=drive] use[href$='#item-drive']"));
   assert(!/[←-⯿☀-➿\u{1F300}-\u{1FAFF}]/u.test(ov.textContent), "no glyphs");
-  assert.equal(ov.querySelector("[data-chip=hard_town]").getAttribute("onclick"), "A.chipBuy('hard_town')"); b.A.chipBuy("hard_town"); assert.equal(b.S().cur.chips, 7); assert(d.querySelector("[data-chip=hard_town].owned"), "owned state shown");
+  assert.equal(ov.querySelector("[data-chip=hard_town]").getAttribute("onclick"), "A.chipSelect('hard_town')", "tile selects, does not buy");
+  b.A.chipSelect("hard_town"); { const pv = d.querySelector("#overlay .cs-prev"); assert(pv && pv.dataset.prev === "hard_town" && pv.querySelector("h2").textContent === "Hard pass: Town" && pv.querySelector("[data-buy=hard_town]").getAttribute("onclick") === "A.chipBuy('hard_town')", "preview with name + BUY"); assert.equal(b.S().cur.chips, 12, "selecting does not spend"); }
+  b.A.chipSelect("bp_gull_drone"); { const im = d.querySelector("#overlay .cs-prev img.cs-hero"); assert(im && im.getAttribute("src") === "assets/art/gull-drone.webp", "hero art in preview"); }
+  b.A.chipSelect("bit_neon"); assert.equal(d.querySelector("#overlay .cs-prev h2").textContent, "BIT look: Rust"); assert(d.querySelector("#overlay .cs-prev img.cs-hero[src$='bit-rust.webp']"));
+  b.A.chipSelect("hard_town"); assert(!d.querySelector("#overlay .cs-prev img"), "no art, icon only"); b.A.chipBuy("hard_town"); assert.equal(b.S().cur.chips, 7); assert(d.querySelector("[data-chip=hard_town].owned"), "owned state shown");
   b.A.chipExchange("drive"); assert.equal(b.S().cur.chips, 9); assert(d.querySelector("[data-ex=drive].off"));
   d.querySelector("#overlay .pop-x").click(); assert(!d.querySelector("#overlay.chipshopov"));
   b.A.questLog("bunker"); assert.equal(d.querySelector(".qlog button.qchips").getAttribute("onclick"), "A.chipShop()", "chip count in the quest log opens the shop"); }
