@@ -10,6 +10,9 @@ import {resolve,sep,extname,join} from 'node:path';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const OUT=resolve(process.env.LAYOUT_OUT||join(root,'verify-out'));
 const VIEWPORTS=[[844,390],[932,430],[667,375]];
+// Short landscape heights for the post-raid result popup (widths 667/844/932/1024).
+const RESULT_VIEWPORTS=[[667,375],[844,390],[932,430],[1024,471]];
+const EXTRACT_URL=`nodspel/?seed=layout&debug=1&q=high&area=bunker&return=..%2Findex.html&gear=scavenger_vest&goal=${encodeURIComponent(JSON.stringify({module:'fabricator',level:1,name:'Fabricator',parts:[{id:'cable',need:2,secured:0}]}))}`;
 // Notch phone in landscape (iPhone 14-class): left/right 47 px, bottom home indicator 21 px.
 const INSETS={left:47,right:47,top:0,bottom:21};
 const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
@@ -360,7 +363,36 @@ async function baseAfterRaidRun([w,h]){
   await page.close();
 }
 
+// Post-raid EXTRACTED popup: the panel fits the viewport and the primary button is fully visible, even with a long loot list.
+async function extractPopupRun([w,h]){
+  const tag=`extract-popup ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/${EXTRACT_URL}`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(800);
+  await page.evaluate(()=>{const ids=globalThis.DATA.items.map(i=>i.id).filter(id=>!['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box'].includes(id));window.__NR.extractDemo(['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box',ids[0]]);});await settle(500);
+  const r=await page.evaluate(()=>{
+    const card=document.querySelector('#round-over .result-card'),btn=document.querySelector('#return-base'),x=card.querySelector(':scope>.pop-x');
+    const c=card.getBoundingClientRect(),b=btn.getBoundingClientRect(),f=document.querySelector('.result-footer').getBoundingClientRect(),xr=x.getBoundingClientRect();
+    const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
+    return {vw:innerWidth,vh:innerHeight,card:[c.left,c.top,c.right,c.bottom],btn:[b.left,b.top,b.right,b.bottom],btnHidden:btn.hidden,btnVisible:!btn.hidden&&getComputedStyle(btn).visibility!=='hidden',onTop:!!hit&&(hit===btn||btn.contains(hit)),footerBottom:f.bottom,x:[xr.left,xr.top,xr.right,xr.bottom],
+      emoji:/\p{Extended_Pictographic}/u.test(card.textContent),moreText:/more item types/i.test(card.textContent),tiles:card.querySelectorAll('#result-loot .result-tile').length};});
+  if(!r.btnVisible)fail(tag,'primary button (Return to base) is not displayed');
+  if(r.card[0]<-1||r.card[1]<-1||r.card[2]>r.vw+1||r.card[3]>r.vh+1)fail(tag,`panel does not fit the viewport (${r.card.map(Math.round)} in ${r.vw}x${r.vh})`);
+  if(r.btn[0]<-1||r.btn[1]<-1||r.btn[2]>r.vw+1||r.btn[3]>r.vh+1)fail(tag,`primary button is cut off (${r.btn.map(Math.round)} in ${r.vw}x${r.vh})`);
+  if(r.btn[3]>r.card[3]+1||r.btn[1]<r.card[1]-1)fail(tag,'primary button is outside the panel');
+  if(!r.onTop)fail(tag,'primary button is covered by another element');
+  if(r.tiles<8)fail(tag,`expected the capped 10-type loot list (8 tiles), got ${r.tiles}`);
+  if(r.x[0]<0||r.x[1]<0||r.x[2]>r.vw||r.x[3]>r.vh)fail(tag,`close badge not fully on screen (${r.x.map(Math.round)})`);
+  if(r.moreText)fail(tag,'"more item types" text line is back');
+  if(r.emoji)fail(tag,'emoji in result popup');
+  if(!r.tiles)fail(tag,'no loot tiles');
+  await shot(page,`extract-popup-${w}x${h}`);
+  await page.close();
+}
+
 try{
+  for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
   await encShotRun([844,390]);
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
   for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);

@@ -50,7 +50,9 @@ test('renderer replaces checkpoint content on final loss, caps preview but prese
     const root=document.querySelector('#round-over'),r=raid();
     for(const id of ['fuse','optical_sensor','power_cell','data_core'])r.bag[id]=1;
     renderResult(root,resultView(r,{launch,pending:true}));assert.equal(root.dataset.outcome,'checkpoint');
-    assert.equal(root.querySelectorAll('#result-loot .result-item').length,4);assert(root.querySelectorAll('#result-all-loot .result-item').length>4);
+    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,6,'every item type is an icon tile');assert(!root.querySelector('#result-more'),'no "more item types" text line');assert.equal(root.querySelectorAll('#result-all-loot .result-item').length,6);
+    for(const it of globalThis.DATA.items.slice(0,12))r.bag[it.id]=1;renderResult(root,resultView(r,{launch,pending:true}));
+    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,8);assert.match(root.querySelector('#result-loot .result-tile-more').textContent,/^\+\d+$/);
     toggleResultDetails(root);assert(root.querySelector('#result-report').hidden);assert.equal(root.querySelector('#result-details-toggle').getAttribute('aria-expanded'),'true');
     takeDamage(r,1000,10000);renderResult(root,resultView(r,{launch,pending:true}));
     assert.equal(root.dataset.outcome,'death');assert.equal(root.querySelector('#round-over-title').textContent,'YOU DIED');
