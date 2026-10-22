@@ -1,12 +1,13 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=1.75.1';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=1.75.1';
-import {extractScrapBonus} from './levels.js?v=1.75.1';
-import {ROUND_DURATION_MS} from './round.js?v=1.75.1';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.75.1';
+import '../data/bit.js?v=1.75.2';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=1.75.2';
+import {extractScrapBonus} from './levels.js?v=1.75.2';
+import {ROUND_DURATION_MS} from './round.js?v=1.75.2';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.75.2';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
+const MAX_TILES=8;
 const total=rows=>rows.reduce((n,r)=>n+r.n,0);
 export const resultTime=ms=>{const s=Math.ceil(Math.max(0,ms)/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
 
@@ -41,7 +42,7 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const level=checkpoint?(round.exitLevel??round.level):round.level;
   return {kind,checkpoint,safe,integrated,eyebrow,title,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
     lootTitle:checkpoint?'CARRIED · NOT SECURED':safe?'SECURED LOOT':'LOST FROM BAG',empty:checkpoint?'Your bag is empty.':safe?'No loot carried out.':'No items lost from your bag.',
-    retained:!checkpoint&&integrated?'Earned XP and home supplies are kept.':'',
+    retained:!checkpoint&&integrated?'XP and supplies kept':'',
     meta:`${String(level.area??'bunker').toUpperCase()} · ${round.levelsCleared} SECTOR${round.levelsCleared===1?'':'S'} CLEARED`,
     time:resultTime(round.remainingMs),elapsed:resultTime(ROUND_DURATION_MS-round.remainingMs),
     next:checkpoint?'Extract now, or continue with your bag at risk.':safe&&goalReady?'Next: return to base for your upgrade.':safe?(integrated?'Your supplies are ready at the base.':'Start a fresh raid to keep practicing.'):'Regroup for your next raid.',
@@ -56,10 +57,15 @@ export function renderResult(root,view){
   text('#result-clock-label',view.checkpoint?'TIME LEFT':'TIME IN RAID');text('#result-clock',view.checkpoint?view.time:view.elapsed);
   text('#result-loot-title',`${view.lootTitle} · ${view.totals.items}`);
   const list=(el,rows,compact=false)=>{el.replaceChildren();for(const row of rows){const chip=doc.createElement('div');chip.className=compact?'result-item compact':'result-item';chip.classList.toggle('result-recovered',!!row.recovered);const label=doc.createElement('span');setIconText(label,row.icon,row.name);const n=doc.createElement('b');n.textContent=`${view.safe||row.recovered?'+':''}${row.n}`;chip.append(label,n);el.append(chip);}};
-  list($('#result-loot'),view.rows.slice(0,4));
+  // Icon tiles with counts (name on hover / for screen readers). Everything fits, or the last tile becomes a compact +N.
+  const tiles=(el,rows,sign='')=>{el.replaceChildren();const shown=rows.length>MAX_TILES?rows.slice(0,MAX_TILES-1):rows;
+    for(const row of shown){const tile=doc.createElement('div');tile.className='result-tile';tile.title=row.name;tile.setAttribute('role','img');tile.setAttribute('aria-label',`${row.name} ${sign}${row.n}`);const n=doc.createElement('b');n.textContent=`${sign}${row.n}`;tile.append(svgIcon(row.icon),n);el.append(tile);}
+    if(shown.length<rows.length){const more=doc.createElement('div');more.className='result-tile result-tile-more';more.title='More item types in Raid details';more.setAttribute('aria-label',`${rows.length-shown.length} more item types`);const n=doc.createElement('b');n.textContent=`+${rows.length-shown.length}`;more.append(n);el.append(more);}};
+  tiles($('#result-loot'),view.rows,view.safe?'+':'');
   if(!view.rows.length)text('#result-loot',view.empty);
-  text('#result-more',view.rows.length>4?`${view.rows.length-4} more item types in Raid details`:'');$('#result-more').hidden=view.rows.length<=4;
-  const gearText=view.gear.map(g=>g.name).join(', ');text('#result-gear',gearText?`${view.checkpoint?'Equipped · at risk':view.safe?'Equipment returned':'Equipment lost'}: ${gearText}`:'');$('#result-gear').hidden=!gearText;
+  const gearEl=$('#result-gear');gearEl.replaceChildren();gearEl.hidden=!view.gear.length;
+  if(view.gear.length){const cap=doc.createElement('span');cap.textContent=view.checkpoint?'AT RISK':view.safe?'RETURNED':'LOST';gearEl.append(cap);
+    for(const g of view.gear){const chip=doc.createElement('span');chip.className='result-chip';chip.title=g.name;chip.setAttribute('role','img');chip.setAttribute('aria-label',`${g.name} ${cap.textContent.toLowerCase()}`);chip.append(svgIcon(g.icon));gearEl.append(chip);}}
   text('#result-recovery',view.recovered.length?`Recovery: ${total(view.recovered)} item${total(view.recovered)===1?'':'s'} returned at base · see Raid details`:'');$('#result-recovery').hidden=!view.recovered.length;
   text('#result-bonus',view.bonus?`${view.checkpoint?'On extraction':'Extraction bonus'}: +${view.bonus} Scrap`:'');$('#result-bonus').hidden=!view.bonus;
   text('#result-goal-title',view.goalTitle);text('#result-goal-text',view.goalText);$('#result-goal').hidden=!view.goalTitle;$('#result-goal').classList.toggle('ready',view.goalReady);
