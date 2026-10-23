@@ -28,7 +28,7 @@ assert.equal(ids.size, 16);
 g.A.dismissIntro(); const fresh = JSON.parse(JSON.stringify(g.S()));
 const v7 = JSON.parse(JSON.stringify(fresh)); v7.v = 7; delete v7.chains; delete v7.trackedQuest; delete v7.cur.chips; v7.cur.scrap = 77;
 const m = boot(v7), s7 = m.S();
-assert.equal(s7.v, 10); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
+assert.equal(s7.v, 11); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
 
 // state: after FTUE, bunker open, archipelago locked
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 8; open.cur.scrap = 0;
