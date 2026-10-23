@@ -66,3 +66,23 @@ window.DATA.idle = {
   // Welcome-back strip: only after this long away, and only if something happened.
   welcomeMinAwayMin: 2
 };
+
+// v1.81 T1-D: bunker power / urgency (docs/design-t1-clear-loop.md §3, milder numbers approved 2026-10-23).
+// One meter 0-100. Idle drain is mild; offline almost none (cap). Rooms shut off only below shutoffAt (Core + last room stay on).
+window.DATA.bunkerPower = {
+  start: 100,
+  warnAt: 30,
+  shutoffAt: 10,
+  restoreAt: 25,
+  // ~1 point per 17.5 real minutes while the base is open (mid of 15-20).
+  idleMsPerPoint: 17.5 * 60 * 1000,
+  offlineCap: 3,
+  raidDrainMin: 1,
+  raidDrainMax: 2,
+  // +1 extra drain per module currently at L2+ when a raid returns.
+  l2RaidExtra: 1,
+  reinforce: { scrap: 18, gain: 25, cooldownMs: 45 * 1000 },
+  // Maintenance quest shown in the tracked slot when power is low (scrap reinforce stays separate).
+  maintain: { title: "Wall Charge", brief: "Hand in 2 Cable to restore bunker power", items: { cable: 2 }, energy: 40, scrap: 10 },
+  coreUpgradeGain: 30
+};

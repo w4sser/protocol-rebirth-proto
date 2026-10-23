@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.80.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.81.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -53,7 +53,7 @@ function load(){
       if(st.v === 8) migrateChips(st);
       if(st.v === 9) migrateFir(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); return st; }
     }
   }catch(e){}
   return freshState();
@@ -74,6 +74,14 @@ function migrateAreaSeen(st){
   for(const a of (D.worldMap && D.worldMap.areas) || []){
     if(a.requires && ((st.modules && st.modules.rebirth_core) || 0) >= a.requires.core && st.areaScouted && st.areaScouted[a.id]) st.areaSeen[a.id] = true;
   }
+  return st;
+}
+
+// v1.81 T1-D: bunker power (additive; no SAVE_VERSION bump). Start at 100 once Core is online.
+function migratePower(st){
+  if(st.power && typeof st.power.value === "number") return st;
+  const core = (st.modules && st.modules.rebirth_core) || 0;
+  st.power = { value: core >= 1 ? 100 : 0, at: 0, offlineDrained: 0, reinforceAt: 0, lastRoom: null, maintain: null };
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -420,6 +428,7 @@ function fmtLeft(ms){ const m = Math.max(0, Math.ceil(ms / MIN)); return m >= 60
 function finishModuleLevel(modId, level){
   const first=(S.modules[modId]||0)<level;
   S.modules[modId] = Math.max(S.modules[modId] || 0, level);
+  if(first && modId === "rebirth_core" && level >= 2) gainPower(BP.coreUpgradeGain || 30, "core_upgrade");
   if(S.tracked && S.tracked.module === modId && S.tracked.level === level) S.tracked = null;
   act("MODULE_BUILT", { module: modId, level });
   advanceBaseState({ module:modId, level });
@@ -471,6 +480,7 @@ function tickIdle(){
 function welcomeBack(){
   const I = idleState(), now = idleNow(), away = I.lastSeen ? now - I.lastSeen : 0;
   tickIdle();
+  if(away > 0) tickPower({ offline:true });
   const stored = genStored(now), rows = (I.away && I.away.rows) || [];
   I.lastSeen = now;
   if(away < IDLE.welcomeMinAwayMin * MIN || (!rows.length && stored < IDLE.generator.minCollect)) { I.away = null; return null; }
@@ -485,6 +495,154 @@ function welcomeHtml(){
     '<ul>' + w.rows.map(r => '<li>' + IC(r.icon) + ' ' + esc(r.txt) + '</li>').join("") + (w.stored >= IDLE.generator.minCollect ? '<li>' + IC("generator") + ' Recycler: ' + w.stored + ' Scrap ready</li>' : '') + '</ul>' +
     '<button type="button" class="pop-x" onclick="A.dismissWelcome()" aria-label="Close welcome back">' + IC("close") + '</button></aside>';
 }
+
+/* ---------- v1.81 T1-D bunker power (DATA.bunkerPower; milder drain) ---------- */
+const BP = D.bunkerPower || { start:100, warnAt:30, shutoffAt:10, restoreAt:25, idleMsPerPoint:17.5*60*1000, offlineCap:3, raidDrainMin:1, raidDrainMax:2, l2RaidExtra:1, reinforce:{ scrap:18, gain:25, cooldownMs:45000 }, maintain:{ title:"Wall Charge", brief:"Hand in 2 Cable to restore bunker power", items:{ cable:2 }, energy:40, scrap:10 }, coreUpgradeGain:30 };
+function powerState(){
+  if(!S.power) S.power = { value:0, at:0, offlineDrained:0, reinforceAt:0, lastRoom:null, maintain:null };
+  const P = S.power;
+  if(P.value == null) P.value = 0;
+  if(P.at == null) P.at = 0;
+  if(P.offlineDrained == null) P.offlineDrained = 0;
+  if(P.reinforceAt == null) P.reinforceAt = 0;
+  if(P.lastRoom === undefined) P.lastRoom = null;
+  if(P.maintain === undefined) P.maintain = null;
+  return P;
+}
+function powerOnline(){ return ftueOver() && coreLevel() >= 1; }
+function powerValue(){ tickPower(); return Math.max(0, Math.min(100, Math.round(powerState().value))); }
+function powerTier(){ const v = powerValue(); return v < BP.shutoffAt ? "crit" : v < BP.warnAt ? "warn" : "ok"; }
+function l2ModuleLevels(){
+  let n = 0;
+  for(const id of Object.keys(MODS)){ const lv = S.modules[id] || 0; if(lv >= 2) n += lv - 1; }
+  return n;
+}
+function tickPower(opts){
+  opts = opts || {};
+  if(!powerOnline()) return powerState();
+  const P = powerState(), now = idleNow();
+  if(!P.at){ P.at = now; if(P.value <= 0 && coreLevel() >= 1) P.value = BP.start; return P; }
+  const dt = Math.max(0, now - P.at);
+  if(dt <= 0) return P;
+  if(opts.offline){
+    const room = Math.floor(dt / BP.idleMsPerPoint);
+    const add = Math.min(BP.offlineCap - (P.offlineDrained || 0), room);
+    if(add > 0){ P.value = Math.max(0, P.value - add); P.offlineDrained = (P.offlineDrained || 0) + add; }
+  } else {
+    const pts = dt / BP.idleMsPerPoint;
+    if(pts > 0) P.value = Math.max(0, P.value - pts);
+    P.offlineDrained = 0;
+  }
+  P.at = now;
+  syncMaintainQuest();
+  return P;
+}
+function drainPowerRaid(){
+  if(!powerOnline()) return 0;
+  tickPower();
+  const P = powerState();
+  const base = BP.raidDrainMin + Math.floor(Math.random() * (BP.raidDrainMax - BP.raidDrainMin + 1));
+  const extra = (BP.l2RaidExtra || 0) * l2ModuleLevels();
+  const n = base + extra;
+  P.value = Math.max(0, P.value - n);
+  act("POWER_RAID_DRAIN", { n, base, extra });
+  syncMaintainQuest();
+  save();
+  return n;
+}
+function gainPower(n, why){
+  if(!n) return;
+  const P = powerState();
+  P.value = Math.min(100, Math.max(0, P.value) + n);
+  act("POWER_GAIN", { n, why: why || "" });
+  syncMaintainQuest();
+  save();
+}
+function syncMaintainQuest(){
+  if(!powerOnline()){ powerState().maintain = null; return; }
+  const P = powerState(), v = P.value;
+  if(v >= BP.warnAt){ P.maintain = null; return; }
+  if(!P.maintain) P.maintain = { prog: 0 };
+  if(v < BP.shutoffAt && S.trackedQuest !== "maintain") S.trackedQuest = "maintain";
+}
+function maintainDef(){
+  const m = BP.maintain; if(!m) return null;
+  const items = m.items || { cable: 2 };
+  const n = Object.values(items).reduce((a, x) => a + x, 0);
+  const prog = Object.keys(items).reduce((a, id) => a + Math.min(items[id], have(id)), 0);
+  return { id:"maintain", title:m.title, brief:m.brief, items, n, prog: Math.min(n, prog), energy:m.energy, scrap:m.scrap || 0 };
+}
+function maintainReady(){ const d = maintainDef(); return d && d.prog >= d.n; }
+function roomPowered(modId){
+  if(!powerOnline()) return true;
+  if(modId === "rebirth_core") return true;
+  if(powerValue() >= BP.shutoffAt) return true;
+  return powerState().lastRoom === modId;
+}
+function markRoomUsed(modId){ if(modId && modId !== "rebirth_core") powerState().lastRoom = modId; }
+function reinforceCost(){ return (BP.reinforce && BP.reinforce.scrap) || 18; }
+function canReinforce(){
+  if(!powerOnline()) return { ok:false, reason:"offline" };
+  tickPower();
+  const R = BP.reinforce || {}, now = idleNow(), P = powerState();
+  if(P.value >= 100) return { ok:false, reason:"full" };
+  if(P.reinforceAt && now < P.reinforceAt) return { ok:false, reason:"cooldown" };
+  if((S.cur.scrap || 0) < (R.scrap || 18)) return { ok:false, reason:"scrap" };
+  return { ok:true };
+}
+function doReinforce(){
+  const c = canReinforce(); if(!c.ok) return c;
+  const R = BP.reinforce || {}, P = powerState();
+  S.cur.scrap -= R.scrap || 18;
+  P.reinforceAt = idleNow() + (R.cooldownMs || 45000);
+  gainPower(R.gain || 25, "reinforce");
+  act("POWER_REINFORCE", { scrap:R.scrap, gain:R.gain });
+  return { ok:true };
+}
+function completeMaintain(){
+  const d = maintainDef(); if(!d || d.prog < d.n) return null;
+  for(const id in d.items){ if(have(id) < d.items[id]) return null; }
+  for(const id in d.items) removeItem(id, d.items[id]);
+  if(d.scrap) S.cur.scrap = (S.cur.scrap || 0) + d.scrap;
+  gainPower(d.energy, "maintain");
+  powerState().maintain = null;
+  if(S.trackedQuest === "maintain") S.trackedQuest = null;
+  act("POWER_MAINTAIN", { energy:d.energy });
+  return d;
+}
+function loopPhase(){
+  if(!ftueOver()) return null;
+  tickPower();
+  const v = powerState().value;
+  if(v < BP.warnAt) return { id:"protect", label:"Skydda bunkern", line:"Keep bunker power up" };
+  if(coreLevel() < 3 && chainActive("bunker")) return { id:"wake", label:"Vack Core", line:"Raise the Rebirth Core" };
+  const next = typeof wmNextTarget === "function" ? wmNextTarget() : null;
+  if(next){ const a = AREA_DEFS[next]; return { id:"zone", label:"Oppna nasta zon", line: a ? ("Unlock " + a.name) : "Open the next zone" }; }
+  if(chainActive("bunker") || chainActive("archipelago")) return { id:"wake", label:"Vack Core", line:"Follow the quest chain" };
+  return { id:"wake", label:"Vack Core", line:"Raise the Rebirth Core" };
+}
+function powerMeterHtml(){
+  if(!powerOnline()) return "";
+  const v = powerValue(), tier = powerTier(), lbl = "Bunkerstrom";
+  return '<button type="button" class="cur power-meter ' + tier + '" onclick="A.powerTap()" title="' + lbl + ' ' + v + '/100" aria-label="' + lbl + ' ' + v + ' of 100' + (tier === "warn" ? ". Warning" : tier === "crit" ? ". Critical" : "") + '">' +
+    '<i aria-hidden="true">' + IC("power") + '</i><span class="pm-track" aria-hidden="true"><span class="pm-fill" style="width:' + v + '%"></span></span><b>' + v + '</b></button>';
+}
+function powerPopupHtml(){
+  tickPower();
+  const v = powerValue(), tier = powerTier(), R = BP.reinforce || {}, c = canReinforce(), d = maintainDef();
+  const warn = tier === "warn" ? '<p class="pwr-warn">' + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
+    tier === "crit" ? '<p class="pwr-warn crit">' + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
+  const rein = '<button type="button" class="primary' + (c.ok ? '' : ' off') + '" ' + (c.ok ? 'onclick="A.reinforce()"' : 'disabled') + '>' + IC("stat-shield") + ' REINFORCE · ' + IC("cur-scrap") + ' ' + (R.scrap || 18) + ' · +' + (R.gain || 25) + '</button>' +
+    (!c.ok && c.reason === "scrap" ? '<small class="sub">Need more Scrap</small>' : !c.ok && c.reason === "cooldown" ? '<small class="sub">Reinforce cooling down</small>' : !c.ok && c.reason === "full" ? '<small class="sub">Power is full</small>' : '');
+  const mReady = d && d.prog >= d.n;
+  const maint = d ? '<div class="card small pwr-maint"><b>' + IC("quest") + ' ' + esc(d.title) + '</b><small>' + esc(d.brief) + '</small><div class="qgrow">' +
+    Object.keys(d.items).map(id => qTile(ITEMS[id].icon, Math.min(d.items[id], have(id)) + "/" + d.items[id], have(id) >= d.items[id] ? "ok" : "", ITEMS[id].name)).join("") +
+    '</div><button type="button" class="' + (mReady ? "primary" : "ghost") + '"' + (mReady ? ' onclick="A.maintainHandIn()"' : ' disabled') + '>' + (mReady ? "HAND IN · +" + d.energy + " power" : "Need parts") + '</button></div>' : "";
+  return '<div class="bpop pwrpop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("power") + '</span><h1>Bunkerstrom</h1><em>' + v + '/100</em></div>' +
+    '<div class="pwr-bar ' + tier + '"><span style="width:' + v + '%"></span></div>' + warn +
+    '<p class="sub">Idle drain is mild. Offline almost none. RAID still works when rooms go dark.</p>' + rein + maint + '</div>';
+}
+
 function genCardHtml(){
   if(!genRate()) return "";
   const now = idleNow(), st = genStored(now), cap = genCap(), pct = Math.round(st / cap * 100);
@@ -590,6 +748,15 @@ function chainReady(id){
 }
 function trackedQuest(){
   if(S.trackedQuest === "none") return null; // the player switched tracking off
+  // T1-D: low bunker power puts the maintenance quest in the single tracked slot.
+  if(powerOnline() && powerState().value < BP.warnAt){
+    syncMaintainQuest();
+    const m = maintainDef();
+    if(m){
+      S.trackedQuest = "maintain";
+      return { chain:"maintain", step:{ id:"M1", title:m.title, brief:m.brief, area:null, objective:{ type:"handin", items:m.items, n:m.n } }, prog:m.prog, n:m.n, maintain:true };
+    }
+  } else if(S.trackedQuest === "maintain") S.trackedQuest = null;
   if(!S.trackedQuest || !chainActive(S.trackedQuest)) S.trackedQuest = Object.keys(QC).find(chainActive) || null;
   const id = S.trackedQuest; if(!id) return null;
   const def = chainActive(id);
@@ -802,8 +969,10 @@ function handInPlay(pop){
 function trackedGoalHtml(){
   if(!ftueOver()) return "";
   const t = trackedQuest(); if(!t) return "";
-  const o = t.step.objective;
-  return '<button type="button" class="progress-goal qgoal' + (chainReady(t.chain) ? ' rdy' : '') + '" onclick="A.questLog(\'' + t.chain + '\')" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC("quest") + ' ' + esc(t.step.title) + '</b><div class="qgrow">' +
+  const o = t.step.objective, phase = loopPhase(), ready = t.maintain ? maintainReady() : chainReady(t.chain);
+  const click = t.maintain ? 'A.powerTap()' : 'A.questLog(\'' + t.chain + '\')';
+  const ctx = phase ? '<small class="qphase" data-phase="' + phase.id + '">' + esc(phase.label) + (phase.line ? ' · ' + esc(phase.line) : '') + '</small>' : '';
+  return '<button type="button" class="progress-goal qgoal' + (ready ? ' rdy' : '') + (t.maintain ? ' maintain' : '') + '" onclick="' + click + '" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC(t.maintain ? "power" : "quest") + ' ' + esc(t.step.title) + '</b>' + ctx + '<div class="qgrow">' +
     qTile(qObjIcon(o), t.prog + "/" + t.n, "") + '</div></button>';
 }
 // Launch param for the raid HUD chip: only when the tracked quest is in the area being raided (hand-ins have no raid objective).
@@ -1138,6 +1307,7 @@ function applyRaidResult(R){
   if(S.tracked && miss) progress.push("Tracked: " + MODS[S.tracked.module].name + " L" + S.tracked.level + " — need " + (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name);
   else if(S.tracked) progress.push("Tracked upgrade: ALL PARTS FOUND — go build it");
   if(bondLevel() > bondBefore){ R.bondUp = bondLevel(); progress.push("BIT BOND LEVEL UP: L" + bondLevel()); }
+  const pd = drainPowerRaid(); if(pd) progress.push("Bunker power -" + pd);
   R.progress = progress;
   // beat advance on extraction during raid beats
   const b = curBeat();
@@ -1294,6 +1464,7 @@ function renderCurrencies(){
   h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
   h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
   h += (c.chips || 0) > 0 ? pill("chips", "Chips", c.chips) : '';
+  h += powerMeterHtml();
   if(bitOnline()){
     const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
     h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
@@ -1338,7 +1509,7 @@ function refresh(bitTrigger, bitVars){
   tickRetention();
   { const I = idleState(), now = idleNow();
     if(I.lastSeen && now - I.lastSeen >= IDLE.welcomeMinAwayMin * MIN) welcomeBack();     // came back: summary strip
-    else { const rows = tickIdle(); I.away = null; for(const r of rows) toast(r.txt); }   // in-session: plain toasts
+    else { const rows = tickIdle(); tickPower(); I.away = null; for(const r of rows) toast(r.txt); }   // in-session: plain toasts + mild power drain
     I.lastSeen = now; }
   checkBeatAutoAdvance();
   {const goal=progressionGoal();if(goal&&!ftueOver()&&(!S.tracked||S.tracked.module!==goal.module||S.tracked.level!==goal.level)){S.tracked={module:goal.module,level:goal.level};save();}}
@@ -1711,7 +1882,7 @@ SCREENS.base = function(){
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
     const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
     const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
-    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?' goal-target':'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : ''),
+    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?' goal-target':'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : '') + (room.destination && shownOpen && !roomPowered(room.destination) ? ' powered-off' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
@@ -2167,7 +2338,9 @@ function applyAreaProgress(area, levelsCleared, extractedIds){
 }
 function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
-  return '<button type="button" class="area-pick map-open" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + '</b></span></button>';
+  const tq = trackedQuest(), pip = tq && tq.step && tq.step.area === a.id;
+  const lv = tq && tq.step && tq.step.objective && tq.step.objective.level;
+  return '<button type="button" class="area-pick map-open' + (pip ? ' quest-target' : '') + '" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + (pip ? ', tracked quest here' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + (pip ? ' <em class="qpip" title="Tracked quest" aria-label="Tracked quest"></em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + (pip && lv ? ' L' + lv : '') + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -2187,10 +2360,11 @@ SCREENS.worldmap = function(){
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
     const isNext = !open && a.id === nextArea, help = isNext ? areaUnlockHelp(a.id) : null, go = help && help.kind ? ' role="button" tabindex="0" onclick="A.wmLocked(\'' + a.id + '\')"' : '';
     const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : go || ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (isNext ? ' next' : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
+    const questHere = !!(trackedQuest() && trackedQuest().step && trackedQuest().step.area === a.id);
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (isNext ? ' next' : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + (questHere ? ' quest-target' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
       '<div class="wm-label' + (open ? '' : ' locked') + (isNext ? ' next' : '') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : go) + '>' + (areaUnseen(a.id) ? '<em class="wm-new" aria-label="New area">NEW</em>' : '') +
       '<span class="wm-name">' + IC(a.iconId) + ' ' + esc(a.name) + ' <small class="threat">' + IC("threat").repeat(a.threat) + '</small></span>' +
-      (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
+      (open ? '<span class="wm-zones">' + a.zones.map((n, i) => { const tq = trackedQuest(), ql = tq && tq.step && tq.step.area === a.id && (tq.step.objective.level || 1) === (i + 1); return '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + (ql ? ' qpip' : '') + '" title="' + esc(n) + (ql ? ' · tracked' : '') + '">' + (i + 1) + '</i>'; }).join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
             : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>' + (help ? '<small class="wm-blurb">' + esc(help.blurb) + '</small>' + (help.kind ? '<span class="wm-cta" data-cta="' + help.kind + '">' + IC(help.kind === "core" ? "room-core" : "nav-raid") + help.label + '</span>' : '') : '')) + '</div>';
   }).join('');
   const a = AREA_DEFS[sel];
@@ -2832,7 +3006,9 @@ function ingestRaidResult(r){
   gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
   if(extracted && curBeat().type === "raid") advanceBeat();
   act("CORE_RAID_INGESTED", { raidId:r.raidId, outcome:r.outcome, reason:r.reason || null, extracted:r.extracted, lost:r.lost, xp, saved });
+  const powerDrain = drainPowerRaid();
   const areaNotes = applyAreaProgress(AREA_DEFS[r.area] ? r.area : (launch && launch.area) || WMAP.areas[0].id, r.levelsCleared, added);
+  if(powerDrain) areaNotes.push("Bunker power -" + powerDrain);
   if(questsDone.length) areaNotes.push("BIT quest done: " + questsDone.map(q => questTitle(q)).join(", ") + " (claim in the BIT tab)");
   if(chainsDone.length) areaNotes.push("Quest ready to hand in: " + chainsDone.map(c => c.title).join(", "));
   return { ok:true, added, currency, scrapBonus, xp, saved, gearLost, skillUps, starUp, kitBack, kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes, chainsDone };
@@ -3531,7 +3707,29 @@ window.A = {
     overlay(questLogHtml(tab, sel), () => refresh(), "qlogov");
   },
   // Toggle: a second press on the tracked quest switches tracking off (the goal card goes back to the upgrade goal).
+  powerTap(){
+    if(!powerOnline()) return;
+    tickPower();
+    overlay(powerPopupHtml(), null, "sheet");
+    if(powerTier() !== "ok") bitDock(powerTier() === "crit" ? "energy_critical" : "energy_low");
+  },
+  reinforce(){
+    const r = doReinforce();
+    if(!r.ok){ toast(r.reason === "scrap" ? "Need more Scrap" : r.reason === "cooldown" ? "Reinforce cooling down" : "Cannot reinforce"); return; }
+    toast("Walls reinforced · +" + ((BP.reinforce && BP.reinforce.gain) || 25) + " power");
+    const o = document.getElementById("overlay"); if(o) o.remove();
+    refresh();
+  },
+  maintainHandIn(){
+    const d = completeMaintain();
+    if(!d){ toast("Need the parts first"); return; }
+    toast(d.title + " · +" + d.energy + " power");
+    const o = document.getElementById("overlay"); if(o) o.remove();
+    refresh();
+    maybeShowHandIn();
+  },
   QUEST_TRACK(p){
+    if(p && p.chain === "maintain"){ S.trackedQuest = "maintain"; act("QUEST_TRACK", { chain:"maintain", on:true }); refresh(); return; }
     if(!p || !chainActive(p.chain)) return;
     const on = (trackedQuest() || {}).chain === p.chain;
     S.trackedQuest = on ? "none" : p.chain; act("QUEST_TRACK", { chain:p.chain, on:!on });
@@ -3687,6 +3885,10 @@ window.A = {
   openBuilding(modId){
     const m = MODS[modId]; if(!m || !baseAllows("interactions", modId)) return;
     const room = roomDef(modId); if(modId !== "rebirth_core" && room && !roomUnlocked(modId)) return A.openRoom(modId);
+    if(modId !== "rebirth_core" && !roomPowered(modId)){
+      overlay(powerPopupHtml(), null, "sheet"); bitDock("energy_critical"); return;
+    }
+    markRoomUsed(modId);
     closeBuildingPopup();
     const lvl = S.modules[modId] || 0, next = nextLevelDef(modId);
     let body, cta;
@@ -4029,4 +4231,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, BP, powerState, migratePower };

@@ -58,6 +58,16 @@ BIT_DATA_ROOT.DATA.bit = {
       "our working relationship has been upgraded. perks included.",
       "i have decided to trust you with more of my features. use them wisely."
     ],
+    energy_low:[
+      "Strommen dippar. Forstark vaggarna.",
+      "Power is dipping. Reinforce the walls before the lights go.",
+      "The grid is soft. Tap the power meter or bring me two Cable."
+    ],
+    energy_critical:[
+      "Rooms are dark. Core stays lit. Reinforce or hand in Cable.",
+      "Non-Core systems offline. RAID still works. Everything else waits.",
+      "I can see the Core. I cannot see the Fabricator. That is a problem."
+    ],
     raid_prep:[
       "check your insurance. i checked mine. i don't have any. i'm the insurance.",
       "loadout looks... adequate. that's a compliment. from me it is.",
