@@ -11,6 +11,12 @@ BIT_DATA_ROOT.DATA.bit = {
     { level:4, xp:150, capability:"BIT reveals each zone's most likely drops." },
     { level:5, xp:250, capability:"BIT remembers zones — tracked items found twice as fast." }
   ],
+  // v1.86 T3 (PRB-94): three BIT skills, unlocked by bond level, ONE active at a time (S.bitSkill). Mild by design.
+  skills:[
+    { id:"zone_scout",    bond:2, name:"Zone scout",    brief:"Marks the best zone and route for your tracked part, and shows what drops there." },
+    { id:"shield_burst",  bond:3, name:"Shield burst",  brief:"BIT pulses a shield at deploy: +15 shield once per raid.", shield:15 },
+    { id:"loot_priority", bond:4, name:"Loot priority", brief:"Scavenge runs lean toward your tracked part (about 60% of picks), when BIT can fetch it.", bias:0.6 }
+  ],
   xpPerExtract:15,
   xpPerDeath:5,
   // Node Raid (core) bond XP. Granted like simulated raids (only while BIT Bay is online).

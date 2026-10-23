@@ -61,7 +61,8 @@ base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true };
   assert(run.loot.scrap >= 8 && run.loot.scrap <= 15 && items >= 1 && items <= 3, "small haul");
   // 5) welcome-back strip after time away (non-blocking, not an overlay)
   const c = boot(JSON.parse(JSON.stringify(b.S())), T0 + 3 * H); c.A.go("base");
-  assert.equal(c.S().cur.scrap, sc + run.loot.scrap, "scavenge loot delivered while away");
+  assert.equal(c.S().cur.scrap, sc, "v1.86: scavenge loot waits for Confirm (not auto-deposited)"); assert.deepEqual(c.S().idle.scavPending, run.loot);
+  c.A.confirmHaul(); assert.equal(c.S().cur.scrap, sc + run.loot.scrap, "scavenge loot delivered on Confirm"); c.A.go("base");
   const wel = c.doc.querySelector(".welcome"); assert(wel, "welcome-back strip shown");
   assert(/BIT is back/.test(wel.textContent) && /Recycler: 30 Scrap ready/.test(wel.textContent), "summary lists what happened");
   assert(!c.doc.getElementById("overlay"), "no blocking popup"); assert(wel.querySelector(".pop-x"), "shared close X");
