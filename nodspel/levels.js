@@ -1,8 +1,8 @@
-import {townizeLevel} from './town-layout.js?v=1.84.0';
-import {applyEncounters} from './encounters.js?v=1.84.0';
+import {townizeLevel} from './town-layout.js?v=1.85.0';
+import {applyEncounters} from './encounters.js?v=1.85.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
-  intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
+  intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   // v1.67 first-upgrade payoff (meta sends ?payoff=kind once). loot_cluster: >= bag capacity pickups on free floor near spawn
   // (centred offsetZ from start toward the room, `spacing` apart, `margin` from walls, `clear` from solids/objectives, pickupRadius+`startClear` from the spawn so nothing is auto-collected at t=0).
   payoff:{loot_cluster:{count:6,offsetZ:-2.4,spacing:1.4,margin:1.3,clear:1.4,startClear:0.3,items:['cable','scrap_alloy','polymer_plate','cable','scrap_alloy','salvage_crate','polymer_plate','cable','scrap_alloy','salvage_crate'],source:'BIT · BAG CACHE',notice:'Bigger bag. Grab it all.'},
@@ -123,7 +123,7 @@ export const RULES=Object.freeze({
     gear:['scavenger_vest','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach']},
   // Weapon launch params (?w=) are clamped to these ranges; missing keys fall back to RULES.weapon (Basic).
   weaponIds:['basic_carbine','smg_vector','rifle_marksman','shotgun_breach'],
-  weaponClamp:{damage:[1,4],capacity:[1,12],reloadMs:[250,1600],shotIntervalMs:[80,1000],range:[3,12],coneHalfAngleDegrees:[3,25],assistAngleDegrees:[4,30],spreadDegrees:[0,12]},
+  weaponClamp:{damage:[1,4],capacity:[1,12],reloadMs:[250,1600],shotIntervalMs:[80,1000],range:[3,12],coneHalfAngleDegrees:[3,25],assistAngleDegrees:[4,30],spreadDegrees:[0,12],knockback:[0,2],pellets:[1,9],homingDegreesPerSecond:[0,240]},
   kitMax:{medkit:2},
   // Toolkit (?tool=id:n). ids/charges must match data/items.js (tool_*); a test cross-checks them.
   // throwRange: auto-aim radius and max arc distance; forward: where a tap lands with no target in range.
@@ -138,7 +138,7 @@ export const RULES=Object.freeze({
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
-  weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65},
+  weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
 });
 // Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.
 export function layoutFor(seed,number){const pool=RULES.layouts[number-1];return pool[Math.floor(randomFromSeed(`${seed}:layout:${number}`)()*pool.length)];}

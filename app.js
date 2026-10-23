@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.84.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.85.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -3164,7 +3164,7 @@ function takeFirstPayoff(hasTool){
 }
 function weaponParam(id){
   const w = masteredWeapon(id); if(!w) return "";
-  return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr"].map(k => "," + k + ":" + w[k]).join("");
+  return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr","kb","pel","hom"].filter(k => w[k] !== undefined).map(k => "," + k + ":" + w[k]).join("");
 }
 // Weapon stats after mastery stars (each star trims reload / shot interval a little).
 function masteredWeapon(id, lvl){
