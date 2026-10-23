@@ -153,7 +153,7 @@ window.DATA.worldMap = {
       requires:{ core:2, scoutItem:"archipelago_chart", from:"bunker" },
       blurb:"Open islands, piers and rock shores. Tougher patrols, better parts.",
       zones:["Landing","Pier Row","Lighthouse Rock"] },
-    { id:"town", name:"Town", iconId:"area-town", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:78.5, y:1.5, anchor:"left" },
+    { id:"town", name:"Town", iconId:"area-town", threat:3, region:{ x:80, y:11, w:16, h:20 }, label:{ x:80, y:36 }, lockedLabel:{ x:96, y:32.5, anchor:"left" },
       requires:{ core:3, scoutItem:"town_survey", from:"archipelago" },
       blurb:"An abandoned town at night. The hardest raids so far.",
       zones:["Main Street","Houses","Depot"] }

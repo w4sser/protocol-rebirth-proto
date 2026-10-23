@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.79.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.80.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -2140,11 +2140,20 @@ function areaUnseen(id){ const a = AREA_DEFS[id]; return !!(a && a.requires && !
 function wmNewUnlockTarget(){ const a = WMAP.areas.find(x => areaUnseen(x.id)); return a ? a.id : null; }
 function raidArea(){ return AREA_DEFS[S.area] && areaUnlocked(S.area) ? S.area : WMAP.areas[0].id; }
 function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
-// Requirement lines for a locked area: [text, done] pairs, both steps visible.
+// Requirement lines for a locked area: [text, done] pairs, both steps visible (short labels: "Core L3", "Town Survey").
 function areaReqs(id){
   const q = AREA_DEFS[id].requires; if(!q) return [];
+  const it = ITEMS[q.scoutItem];
+  return [["Core L" + q.core, areaCoreOk(id)], [it ? it.name : q.scoutItem, areaScouted(id)]];
+}
+// The locked area the loop points at: source area open, itself still locked (null when everything is open).
+function wmNextTarget(){ const a = WMAP.areas.find(x => !areaUnlocked(x.id) && x.requires && areaUnlocked(x.requires.from)); return a ? a.id : null; }
+// One-line blurb + CTA for a locked area: Core first, then the scout run. kind = "core" (go raise Core) or "scout" (Raid Prep, `from` preselected).
+function areaUnlockHelp(id){
+  const q = AREA_DEFS[id].requires; if(!q) return null;
   const it = ITEMS[q.scoutItem], from = AREA_DEFS[q.from];
-  return [["Rebirth Core L" + q.core, areaCoreOk(id)], ["Extract " + (it ? it.name : q.scoutItem) + (from ? " · " + from.name + " Z" + from.zones.length : ""), areaScouted(id)]];
+  const blurb = "Core " + q.core + " + " + (it ? it.name : q.scoutItem) + " from " + (from ? from.name : q.from) + ".";
+  return !areaCoreOk(id) ? { kind:"core", label:"RAISE CORE", blurb, from:q.from } : !areaScouted(id) ? { kind:"scout", label:"SCOUT", blurb, from:q.from } : { kind:null, label:"", blurb, from:q.from };
 }
 // Called from core ingest: scouting items + zone progress for the area that was raided.
 function applyAreaProgress(area, levelsCleared, extractedIds){
@@ -2169,19 +2178,20 @@ SCREENS.worldmap = function(){
     return '<polyline class="wm-route ' + st + '" data-route="' + r.from + '-' + r.to + '" points="' + r.points.map(p => p[0] + ',' + (p[1] / WMAP.aspect)).join(' ') + '"/>';
   }).join('');
   // Landmark beacons: lit (cyan) once their area is open, the next locked area's beacons amber, rest dark.
-  const nextArea = (WMAP.areas.find(a => !areaUnlocked(a.id) && a.requires && areaUnlocked(a.requires.from)) || {}).id;
+  const nextArea = wmNextTarget();
   const beacons = (WMAP.beacons || []).map(b => {
     const st = areaUnlocked(b.area) ? "lit" : b.area === nextArea ? "next" : "dark";
     return '<i class="wm-beacon ' + st + (b.dest ? ' dest' : '') + '" data-beacon="' + esc(b.name) + '" style="left:' + b.x + '%;top:' + b.y + '%" title="' + esc(b.name) + '"></i>';
   }).join('');
   const areas = WMAP.areas.map(a => {
     const open = areaUnlocked(a.id), z = areaZonesCleared(a.id), R = a.region, L = (!open && a.lockedLabel) || a.label || { x:R.x + R.w / 2, y:R.y + R.h / 2 };
-    const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : ' aria-disabled="true"';
-    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
-      '<div class="wm-label' + (open ? '' : ' locked') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : '') + '>' + (areaUnseen(a.id) ? '<em class="wm-new" aria-label="New area">NEW</em>' : '') +
+    const isNext = !open && a.id === nextArea, help = isNext ? areaUnlockHelp(a.id) : null, go = help && help.kind ? ' role="button" tabindex="0" onclick="A.wmLocked(\'' + a.id + '\')"' : '';
+    const tap = open ? ' onclick="A.setArea(\'' + a.id + '\')"' : go || ' aria-disabled="true"';
+    return '<button type="button" class="wm-region' + (open ? '' : ' locked') + (isNext ? ' next' : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-area="' + a.id + '" style="left:' + pc(R.x) + ';top:' + pc(R.y) + ';width:' + pc(R.w) + ';height:' + pc(R.h) + '"' + tap + ' aria-label="' + esc(a.name) + (open ? '' : ' (locked)') + '">' + (open ? '' : '<span class="wm-lock" aria-hidden="true">' + IC('lock') + '</span>') + '</button>' +
+      '<div class="wm-label' + (open ? '' : ' locked') + (isNext ? ' next' : '') + (L.anchor ? ' at-' + L.anchor : '') + (sel === a.id ? ' on' : '') + (areaUnseen(a.id) ? ' fresh' : '') + '" data-label="' + a.id + '" style="left:' + pc(L.x) + ';top:' + pc(L.y) + '"' + (open ? ' onclick="A.setArea(\'' + a.id + '\')"' : go) + '>' + (areaUnseen(a.id) ? '<em class="wm-new" aria-label="New area">NEW</em>' : '') +
       '<span class="wm-name">' + IC(a.iconId) + ' ' + esc(a.name) + ' <small class="threat">' + IC("threat").repeat(a.threat) + '</small></span>' +
       (open ? '<span class="wm-zones">' + a.zones.map((n, i) => '<i class="wm-zone' + (z.includes(i + 1) ? ' lit' : '') + '" title="' + esc(n) + '">' + (i + 1) + '</i>').join('') + '</span>' + (sel === a.id ? '<span class="wm-sel">SELECTED</span>' : '<span class="wm-tap">TAP TO SELECT</span>')
-            : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>') + '</div>';
+            : '<span class="wm-req">' + areaReqs(a.id).map(([t, ok]) => '<span class="' + (ok ? 'ok' : '') + '">' + (ok ? IC("check") : IC("dot")) + ' ' + esc(t) + '</span>').join('') + '</span>' + (help ? '<small class="wm-blurb">' + esc(help.blurb) + '</small>' + (help.kind ? '<span class="wm-cta" data-cta="' + help.kind + '">' + IC(help.kind === "core" ? "room-core" : "nav-raid") + help.label + '</span>' : '') : '')) + '</div>';
   }).join('');
   const a = AREA_DEFS[sel];
   $app().innerHTML = '<div class="worldmap" style="background-color:' + ((WMAP.fog && WMAP.fog.color) || WMAP.bg) + '">' +
@@ -3298,6 +3308,14 @@ window.A = {
       toast("+" + PROG.insurance.adSignalsGrant + " Signals");
       refresh("raid_prep");
     });
+  },
+  // Locked next-target tap / CTA: Core short -> base Core popup; Core ok but scout missing -> Raid Prep with the scout `from` area preselected.
+  wmLocked(id){
+    const h = AREA_DEFS[id] && areaUnlockHelp(id); if(!h || !h.kind || areaUnlocked(id)) return;
+    act("WM_UNLOCK_CTA", { area:id, kind:h.kind });
+    if(h.kind === "core"){ A.go("base"); A.openBuilding("rebirth_core"); return; }
+    if(areaUnlocked(h.from)) S.area = h.from;
+    A.go("prep");
   },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
