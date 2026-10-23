@@ -146,6 +146,16 @@ window.DATA.stashCapacityFor = function(storageLevel){
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
 window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", storage:"vault" };
 
+// v1.82 T2: short per-room explanation shown on every room tap (locked or open). One blurb + up to 3 icon tiles; icons are
+// sprite ids, tiles mirror the module blurbs/benefits above and docs/design-encounters-toolkit.md (Fabricator crafts the toolkit).
+window.DATA.roomExplain = {
+  rebirth_core:   { blurb:"The facility's heart. Powers every room and sets how far you can build.", tiles:[{ icon:"power", label:"POWER" }, { icon:"unlock", label:"ROOMS" }, { icon:"route", label:"ZONES" }] },
+  fabricator:     { blurb:"Turns junk into meds, gear and raid tools.", tiles:[{ icon:"build", label:"CRAFT" }, { icon:"tool-grenade", label:"TOOLS" }, { icon:"restart", label:"SCRAP IT" }] },
+  storage:        { blurb:"The Vault. More stash space and a slot that survives death.", tiles:[{ icon:"item-crate", label:"STASH" }, { icon:"lock", label:"SAFE SLOT" }] },
+  bit_bay:        { blurb:"BIT's dock. Scouts loot in raids and scavenges while you are away.", tiles:[{ icon:"bit-face", label:"BIT" }, { icon:"aim", label:"LOOT SCAN" }, { icon:"scavenge", label:"SCAVENGE" }] },
+  living_quarters:{ blurb:"Rest between raids. Recharges the bunker and readies you for the next one.", tiles:[{ icon:"timer", label:"REST" }, { icon:"power", label:"POWER" }, { icon:"stat-shield", label:"SHIELD" }] }
+};
+
 // Panoramic bunker progression. Every coordinate is normalized against the full
 // 1536×1024 plate, so artwork and controls share one camera transform.
 window.DATA.baseMap = {

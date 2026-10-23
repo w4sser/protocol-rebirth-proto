@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.81.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.82.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -610,6 +610,27 @@ function completeMaintain(){
   act("POWER_MAINTAIN", { energy:d.energy });
   return d;
 }
+/* ---------- v1.82 T2 Living Quarters rest (DATA.rest): +bunker power now, buff for the NEXT raid only ---------- */
+const RST = D.rest || { powerGain:10, buff:{ shield:20 }, label:"Rested" };
+function restState(){ if(!S.rest) S.rest = { buff:null, at:0 }; if(S.rest.buff === undefined) S.rest.buff = null; return S.rest; }
+function restBuff(){ return restState().buff; }
+function canRest(){
+  if(!roomUnlocked("living_quarters")) return { ok:false, reason:"locked" };
+  if(!roomPowered("living_quarters")) return { ok:false, reason:"power" };
+  if(restBuff()) return { ok:false, reason:"rested" };
+  return { ok:true };
+}
+function doRest(){
+  const c = canRest(); if(!c.ok) return c;
+  restState().buff = Object.assign({}, RST.buff); restState().at = idleNow();
+  markRoomUsed("living_quarters");
+  if(powerOnline() && powerState().value < 100) gainPower(RST.powerGain, "rest");
+  act("ROOM_REST", { buff:RST.buff, gain:RST.powerGain });
+  return { ok:true };
+}
+// The buff is consumed the moment the next raid launches (deployNodeRaid), win or lose; it never carries over twice.
+function takeRestBuff(){ const b = restBuff(); if(!b) return null; restState().buff = null; act("REST_BUFF_USED", { buff:b }); return b; }
+function restBuffText(b){ b = b || restBuff(); return b ? Object.keys(b).map(k => "+" + b[k] + " " + k.toUpperCase()).join(" ") : ""; }
 function loopPhase(){
   if(!ftueOver()) return null;
   tickPower();
@@ -659,6 +680,26 @@ function fabQueueHtml(){
   const I = idleState(), now = idleNow();
   return '<div class="idlecard fabq"><i aria-hidden="true">' + IC("timer") + '</i><span><b>Fabricator queue · ' + I.fab.length + '/' + fabSlots() + '</b>' +
     (I.fab.length ? I.fab.map((j, i) => { const r = D.recipes.find(x => x.id === j.rid); return '<small>' + (i ? 'Next: ' : 'Now: ') + esc(r ? r.name : j.rid) + ' · ' + fmtLeft(j.doneAt - now) + '</small>'; }).join("") : '<small>Idle. Queued crafts finish while you are away.</small>') + '</span></div>';
+}
+// Short room explanation (DATA.roomExplain): one blurb + icon tiles. Shown on every room tap, locked or open.
+function roomExplainHtml(id){
+  const x = (D.roomExplain || {})[id]; if(!x) return "";
+  return '<div class="rx"><p>' + esc(x.blurb) + '</p><div class="rxt">' + x.tiles.map(t => '<span><i aria-hidden="true">' + IC(t.icon) + '</i>' + esc(t.label) + '</span>').join("") + '</div></div>';
+}
+// Fabricator room craft list: every unlocked recipe is craftable here (A.craft); higher-level tool recipes show their Fab gate.
+function fabCraftHtml(){
+  const lvl = S.modules.fabricator || 0, first = !idleState().crafted;
+  const rows = D.recipes.filter(r => r.fabricatorLevel <= lvl || (ITEMS[r.output.itemId] && ITEMS[r.output.itemId].tool))
+    .sort((a, b) => (a.fabricatorLevel > lvl) - (b.fabricatorLevel > lvl) || (!!(ITEMS[b.output.itemId] && ITEMS[b.output.itemId].tool)) - (!!(ITEMS[a.output.itemId] && ITEMS[a.output.itemId].tool)));
+  return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
+    const gated = r.fabricatorLevel > lvl, cost = craftCost(r), inOk = Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
+    const can = !gated && S.cur.scrap >= cost && inOk;
+    const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
+    const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + IC(ico) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
+      (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
+        : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
+  }).join("") + '</div>';
 }
 function scavCardHtml(){
   if(!bitOnline()) return "";
@@ -3497,6 +3538,8 @@ window.A = {
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
+    const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
+    if(rb) for(const k in rb) stats[k] = clampStat(k, stats[k] + rb[k]);
     const intro = guidedRaid(), pay = intro ? null : takeFirstPayoff(!!tool), launchTool = tool || (pay && pay.freeTool) || null;
     // Deploy is free, but equipped gear (non-Basic weapon, armour), medkits and the tool slot go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
@@ -3671,12 +3714,13 @@ window.A = {
     if(gainSkillXp("crafting", PROG.playerStats.skills.crafting.xp.perCraft)) toast("Crafting L" + skillLevel("crafting") + " — cheaper crafting");
     for(const id in r.inputs) removeItem(id, r.inputs[id]);
     // v1.56: the first craft ever is instant (FTUE); afterwards crafts join the queue and finish over time, offline too.
-    if(!I.crafted){ I.crafted = 1; toast("Crafted " + craftOutput(r)); refresh(); return; }
+    const inRoom = !!document.querySelector('#overlay .bpop[data-module="fabricator"]'), again = () => { refresh(); if(inRoom) A.openBuilding("fabricator"); };
+    if(!I.crafted){ I.crafted = 1; toast("Crafted " + craftOutput(r)); again(); return; }
     const now = idleNow(), start = Math.max(now, I.fab.length ? I.fab[I.fab.length - 1].doneAt : now);
     I.fab.push({ rid, startAt:start, doneAt:start + fabMinutes(rid) * MIN }); I.crafted++;
     act("CRAFT_QUEUED", { recipe: rid, minutes: fabMinutes(rid) });
     toast(r.name + " queued · ready in " + fmtLeft(start + fabMinutes(rid) * MIN - now));
-    refresh();
+    again();
   },
   questSwap(qid){
     const Q = questState(), i = Q.list.findIndex(q => q.id === qid); if(i < 0 || Q.swaps < 1 || Q.list[i].done) return;
@@ -3867,7 +3911,11 @@ window.A = {
   },
   openRoom(id){
     const room=roomDef(id); if(!room) return;
-    if(roomUnlocked(id)){ if(room.destination) A.openBuilding(room.destination); else overlay('<h1>Living Quarters</h1><p class="sub">A quiet place to recover between raids. Full room systems arrive beyond this prototype.</p><button class="primary" data-close>RETURN TO CORE</button>'); return; }
+    if(roomUnlocked(id)){
+      if(room.destination) A.openBuilding(room.destination);
+      else if(id === "living_quarters") A.openQuarters();
+      return;
+    }
     const ready=roomRequirementMet(room);
     const next=room.destination && nextLevelDef(room.destination);
     const needsParts=next && !canAfford(next.cost);
@@ -3875,12 +3923,34 @@ window.A = {
     const lore = (ready ? 'Activate with secured repair materials. Materials are spent once; access and the module come online together. ' : '') + room.requirement.text;
     overlay('<div class="bpop room"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ready ? IC("unlock") : IC("lock")) + '</span><h1>' + esc(room.label) + '</h1>' +
       '<button type="button" class="iconbtn" onclick="var l=this.closest(\'.bpop\').querySelector(\'.lore\');l.hidden=!l.hidden" aria-label="Details and story">' + IC("info") + '</button></div>' +
-      '<p class="lore" hidden>' + esc(lore) + '</p>' +
+      roomExplainHtml(id) + '<p class="lore" hidden>' + esc(lore) + '</p>' +
       (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
         (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>'
           : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">ACTIVATE ROOM</button>') :
         '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
       '</div>', clearMapFocus, "sheet");
+  },
+  // v1.82 T2: Living Quarters (room-only, no module): Rest = +bunker power and a next-raid buff (once per raid).
+  openQuarters(){
+    const room = roomDef("living_quarters"); if(!room || !roomUnlocked("living_quarters")) return;
+    if(!roomPowered("living_quarters")){ overlay(powerPopupHtml(), null, "sheet"); bitDock("energy_critical"); return; }
+    markRoomUsed("living_quarters");
+    closeBuildingPopup();
+    const b = restBuff(), c = canRest(), pv = powerOnline() ? powerValue() : null;
+    const status = b
+      ? '<div class="idlecard rested"><i aria-hidden="true">' + IC("stat-shield") + '</i><span><b>' + esc(RST.label) + ' · ' + esc(restBuffText(b)) + '</b><small>Applies to your next raid only.</small></span></div>'
+      : '<div class="idlecard"><i aria-hidden="true">' + IC("timer") + '</i><span><b>Not rested</b><small>Rest once before a raid: +' + RST.powerGain + ' power and ' + esc(restBuffText(RST.buff)) + ' next raid.</small></span></div>';
+    const meter = pv == null ? '' : '<div class="idlecard"><i aria-hidden="true">' + IC("power") + '</i><span><b>Bunker power ' + pv + '/100</b><span class="ibar"><span style="width:' + pv + '%"></span></span></span></div>';
+    overlay('<div class="bpop" data-module="living_quarters"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + ROOM_ICONS.living_quarters + '</span><h1>' + esc(room.label) + '</h1></div>' +
+      roomExplainHtml("living_quarters") + status + meter +
+      '<button class="primary big" ' + (c.ok ? 'onclick="A.rest()"' : 'disabled') + '>' + (c.ok ? 'REST' : 'RESTED · DEPLOY TO USE IT') + '</button></div>', clearMapFocus, "sheet");
+    if(session.screen === "base") focusMapOn("living_quarters");
+  },
+  rest(){
+    const r = doRest();
+    if(!r.ok){ toast(r.reason === "rested" ? "Already rested for the next raid" : "Cannot rest right now"); return; }
+    toast(RST.label + " · " + restBuffText() + " next raid");
+    refresh(); A.openQuarters();
   },
   openBuilding(modId){
     const m = MODS[modId]; if(!m || !baseAllows("interactions", modId)) return;
@@ -3909,10 +3979,11 @@ window.A = {
       else if(!miss) cta = '<button class="primary big" onclick="A.build(\'' + modId + '\')">' + (lvl ? 'UPGRADE' : 'BUILD') + '</button>';
       else cta = '<button class="primary big raidcta" onclick="A.raidForModule(\'' + modId + '\')">RAID FOR ' + partIcon(miss) + ' ' + esc(partName(miss)).toUpperCase() + '</button>';
     }
-    overlay('<div class="bpop" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || IC("item-crate")) + '</span><h1>' + esc(m.name) + '</h1>' +
+    overlay('<div class="bpop' + (modId === "fabricator" ? ' fabpop' : '') + '" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || IC("item-crate")) + '</span><h1>' + esc(m.name) + '</h1>' +
       '<em>L' + lvl + (next ? ' ' + IC("arrow-right") + ' L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">' + IC("info") + '</button>' +
-      '</div>' + (modId === "rebirth_core" ? genCardHtml() : modId === "fabricator" ? fabQueueHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta + '</div>', clearMapFocus, "sheet");
+      '</div>' + roomExplainHtml(modId) + (modId === "fabricator" ? '<div class="fabcols"><div class="fabl">' + fabQueueHtml() + fabCraftHtml() + '</div><div class="fabr">' + body + cta + '</div></div>'
+      : (modId === "rebirth_core" ? genCardHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta) + '</div>', clearMapFocus, modId === "fabricator" ? "sheet fabroom" : "sheet");
     if(session.screen === "base") focusMapOn(modId);
   },
   back(){
@@ -4231,4 +4302,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, BP, powerState, migratePower };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower };

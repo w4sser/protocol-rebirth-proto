@@ -86,3 +86,7 @@ window.DATA.bunkerPower = {
   maintain: { title: "Wall Charge", brief: "Hand in 2 Cable to restore bunker power", items: { cable: 2 }, energy: 40, scrap: 10 },
   coreUpgradeGain: 30
 };
+
+// v1.82 T2: Living Quarters rest. One rest per raid: restores some bunker power and grants a buff that applies to the NEXT
+// raid only (consumed when that raid launches). Mild on purpose: a nudge, not a loadout.
+window.DATA.rest = { powerGain: 10, buff: { shield: 20 }, label: "Rested" };
