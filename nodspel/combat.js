@@ -1,13 +1,13 @@
-import {RULES,hazardState} from './levels.js?v=1.83.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.83.0';
-import {takeDamage,tickRound} from './round.js?v=1.83.0';
-import {houseWaypoint} from './house.js?v=1.83.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=1.83.0';
+import {RULES,hazardState} from './levels.js?v=1.84.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=1.84.0';
+import {takeDamage,tickRound} from './round.js?v=1.84.0';
+import {houseWaypoint} from './house.js?v=1.84.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=1.84.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
   const grace=level.firstGraceMs??RULES.combat.graceMs;
-  return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
+  return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],blasts:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
 }
 export function stepCombat(round,combat,player,now,dt,obstacles){
   tickRound(round,now);if(round.over)return;
@@ -20,6 +20,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   // Encounters that run on their own clock: patrols keep walking and spawn points keep counting through the arrival grace.
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
+  stepBlasts(round,combat,player,now);
   if(now<combat.graceUntil)return;
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
@@ -59,7 +60,11 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(traceTargets(enemy,player,cover,[target])?.kind!=='player'){enemy.windupAt=null;continue;}
     // Telegraph: a visible wind-up precedes each shot when the level (or the encounter) asks for one.
     const windup=enemy.windupMs??round.level.enemyWindupMs??0;
-    if(windup>0){enemy.windupAt??=now+windup;if(now<enemy.windupAt)continue;enemy.windupAt=null;}
+    if(windup>0){
+      // Thrower: the landing spot is fixed when the warning starts (a coral ring is drawn there), so walking out of it is the dodge.
+      if(enemy.windupAt==null&&enemy.type==='thrower')enemy.attackTarget={x:player.x,z:player.z};
+      enemy.windupAt??=now+windup;if(now<enemy.windupAt)continue;enemy.windupAt=null;}
+    if(enemy.type==='thrower'){lobGrenade(round,combat,enemy,now);continue;}
     const dx=(player.x-enemy.x)/distance,dz=(player.z-enemy.z)/distance;
     combat.projectiles.push({id:++combat.nextId,x:enemy.x+dx*.65,z:enemy.z+dz*.65,dx,dz,life:2,...shotInfo(round,enemy)});
     combat.nextFire.set(enemy.id,now+(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1));
@@ -71,6 +76,23 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??null,at:now};takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
+}
+
+// Grenade thrower: after its warning it lobs a blast onto the ringed spot; it detonates fuseMs later (stepBlasts).
+// A thrower killed during the warning never lobs; a blast already in the air still lands (leave the ring).
+function lobGrenade(round,combat,enemy,now){
+  const G=RULES.encounters.grenadier,at=enemy.attackTarget;enemy.attackTarget=null;
+  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:'grenadier',enemyId:enemy.id});
+  combat.nextFire.set(enemy.id,now+G.cooldownMs);
+}
+function stepBlasts(round,combat,player,now){
+  for(let i=combat.blasts.length-1;i>=0;i--){
+    const b=combat.blasts[i];if(now<b.detonateAt)continue;
+    combat.blasts.splice(i,1);
+    if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,at:now};takeDamage(round,encounterDamage(round,'grenadier'),now);}
+    (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
+  }
+  if(combat.booms)combat.booms=combat.booms.filter(b=>now-b.at<600);
 }
 
 // Encounter shots carry their source (for the result-screen tip) and a damage capped at maxHitFraction of max HP.

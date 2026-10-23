@@ -15,7 +15,7 @@ test('town levels keep every node, pickup, enemy and the exit reachable; car col
 test('town layout is deterministic and gameplay identical to bunker apart from added cover',()=>{
   const a=generateLevel(2,'same','town'),b=generateLevel(2,'same','town'),c=generateLevel(2,'same');
   assert.deepEqual(a.town,b.town);assert.deepEqual(a.nodes,c.nodes);assert.deepEqual(a.lootBoxes,c.lootBoxes);assert.deepEqual(a.walls,cutLike(c,a));
-  assert.deepEqual(a.boxes.filter(x=>x.town==='electrical_cabinet').map(b=>[b.x,b.z]),c.boxes.map(b=>[b.x,b.z]),'crates become cabinets in place');
+  assert.deepEqual(a.boxes.filter(x=>x.town==='electrical_cabinet'&&!x.encounterCover).map(b=>[b.x,b.z]),c.boxes.filter(x=>!x.encounterCover).map(b=>[b.x,b.z]),'crates become cabinets in place');
 });
 test('setArea switches the default and rejects unknown areas',()=>{assert.equal(setArea('town'),'town');assert.equal(generateLevel(1,'s').area,'town');assert.equal(setArea('moon'),'bunker');assert.equal(generateLevel(1,'s').area,undefined);});
 test('town world builds with fake assets, instancing parts, and dispose keeps shared asset resources',()=>{

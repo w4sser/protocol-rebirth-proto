@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateLevel,RULES} from '../levels.js';
+import {generateLevel,RULES,AREA_RULES} from '../levels.js';
 import {traceTargets,movePlayer} from '../physics.mjs';
 
 test('the full layout and objects reproduce from a seed',()=>{
@@ -17,7 +17,7 @@ test('restarts change room geometry and connections, not just object placement',
 test('each level has its requested identity, hidden nodes and a real dead-end branch',()=>{
   for(let s=0;s<20;s++){
     const [a,b,c]=[1,2,3].map(n=>generateLevel(n,`identity-${s}`));
-    assert.equal(a.rooms.length,1);assert.equal(a.nodes.length,1);assert.equal(a.enemies.length,1);
+    assert.equal(a.rooms.length,1);assert.equal(a.nodes.length,1);assert.equal(a.enemies.length,1+AREA_RULES.bunker.extraEnemies[0]);
     assert.equal(traceTargets(a.start,a.nodes[0],a.walls,[a.nodes[0]])?.kind,'node','first node is in plain sight');
     assert.equal(traceTargets(a.start,a.enemies[0],[...a.walls,...a.boxes],a.enemies)?.kind,'enemy','first enemy is in plain sight');
     assert.equal(b.rooms.length,2);assert.equal(b.nodes.length,2);

@@ -1,8 +1,8 @@
 # Designförslag: problem per nivå, verktyg och färre material i början (PRB-73)
-*Endast design. Inget är byggt förrän ägaren godkänt det.*
+*Status: byggt. PR A (material, v1.6x), PR B (verktyg) och PR C (möten, `nodspel/encounters.js`) finns i spelet. Combat-pass (PRB-92, v1.84.0) har flyttat vakten till L2+, lagt till granatkastaren, höjt antalet fiender och byggt Hard (se §5).*
 
 ## Varför
-I playtesten tyckte spelarna att raids var för lätta och kändes som ett släp. Idag blir det svårare genom att det kommer fler fiender: Open Room har 1 fiende, Narrow Passage 4 och Dead End 6 (enligt `nodspel/levels.js`). Förslaget är att varje nivå i stället får **ett tydligt problem att lösa** och att spelaren har **en liten verktygslåda** att lösa det med. Fiendetyperna grunt, rusher och sentry, de skyddade noderna (shielded nodes), stötplattorna, skydden och introduktionsvakten (`introGuard`: varning, salva, återhämtning) finns redan, så förslaget bygger vidare på dem.
+I playtesten tyckte spelarna att raids var för lätta och kändes som ett släp. Ursprungligen blev det svårare genom att det kom fler fiender (1, 4 och 6). Lösningen blev att varje nivå i stället fick **ett tydligt problem att lösa** och att spelaren har **en liten verktygslåda** att lösa det med. Fiendetyperna grunt, rusher, sentry och (nytt i v1.84) thrower, de skyddade noderna (shielded nodes), stötplattorna, skydden och introduktionsvakten (`introGuard`: varning, salva, återhämtning) bygger alla på samma system.
 
 ## 1. Möten: ett problem per nivå
 Varje problem har tre regler:
@@ -12,15 +12,16 @@ Varje problem har tre regler:
 
 | # | Möte | Mekanik (befintligt system) | Lösning | Var |
 |---|---|---|---|---|
-| 1 | **Kärnvakt** | Vakt som står still vid noden, med frontsköld (introvakten utökad) | Flankera bakifrån, eller locka bort den med lockbete | Bunker L1 (lärs ut), alla områden |
-| 2 | **Torn bakom skydd** | Sentry-fiende med lång räckvidd och skydd framför sig | EMP stänger av den i 4 sekunder, eller spring mellan skydden under återhämtningen | Bunker L2, Town L2 |
+| 1 | **Kärnvakt** | Vakt som står still vid noden, med frontsköld (introvakten utökad). Vänd mot partitionsluckan där spelaren kommer ut | Flankera bakifrån, eller locka bort den med lockbete | Bunker L2 (lärs ut här, aldrig L1), Hard L2–L3 |
+| 2 | **Torn bakom skydd** | Sentry-fiende med lång räckvidd och skydd framför sig | EMP stänger av den i 4 sekunder, eller spring mellan skydden under återhämtningen | Town L2, Hard L2 |
 | 3 | **Låst dörr** | Rummet med noden är stängt. Nyckelkortet ligger i en låda (loot-systemet) | Hitta kortet, eller ta en längre sidoväg | Town L2–3 (hus finns redan) |
-| 4 | **Patrull** | Grunt som går en fast slinga och har en synlig synkon | Smyg bakom den (stealth-statsen finns redan), eller använd lockbete | Town L1–2, Archipelago |
-| 5 | **Svärm** | 4–5 rushers kommer samtidigt ur en spawnpunkt | Granat, eller backa in i en korridor | Bunker L3, Archipelago L3 |
+| 4 | **Patrull** | Grunt som går en fast slinga och har en synlig synkon | Smyg bakom den (stealth-statsen finns redan), eller använd lockbete | L1 i alla områden (lär ut varningen), Hard L1 |
+| 5 | **Svärm** | 4–5 rushers kommer samtidigt ur en spawnpunkt | Granat, eller backa in i en korridor | Bunker L3, Archipelago L3, Hard L3 |
 | 6 | **Skyddad nod** (befintlig) | Noden är skyddad tills en generator har slagits ut | Skjut eller EMP:a generatorn | Alla områden, L3 |
+| 7 | **Granatkastare** (ny, v1.84) | Fiende av typen `thrower` som stannar på ca 5 m, visar en coral ring på golvet där den ska kasta (varning 1,2 s), och sprängladdningen går av 1 s senare (samma sprängtid och radie som spelarens granat, 2 m). Skada 22 % av max HP (aldrig över 30 %) | Kliv ut ur ringen efter varningen, eller ta ut den (2 HP) innan den kastar. Dödas den under varningen kastas inget | Archipelago L2, slumpad i L2–L3-mixen, Hard L1–L2 |
 
 **Spelaren lär sig problemet själv:** första gången ett problem dyker upp är rummet litet, problemet står ensamt och etiketten har en kort ledtråd, till exempel "VAKT · FLANKERA". Ledtråden ges bara en gång (sparas lokalt) och visas som en diskret notis. **Retry:** dör man förlorar man som vanligt det man bär på, men resultatskärmen säger vad som löser problemet ("Tips: EMP stoppar tornet").
-**Fördelning:** L1 har ett problem, L2 har ett problem plus vanliga fiender, och L3 kombinerar två problem. Antalet fiender ökar inte längre.
+**Fördelning (v1.84):** L1 har ett mjukt problem (patrull, aldrig frontsköld), L2 har ett problem plus fler vanliga fiender, och L3 kombinerar två problem och har flest fiender. Basantalet `levels[].enemies` är fortfarande 1 / 2 / 3, men `AREA_RULES.extraEnemies` lägger till vanliga fiender ovanpå (se §5).
 
 ## 2. Verktygslåda
 | Verktyg | Effekt | Laddningar | Tillverkas i Fabricator | Ikon (egen SVG) |
@@ -67,3 +68,31 @@ Filer: `data/items.js` (tool_grenade, tool_emp, tool_decoy med slot "tool"), `da
 Filer: `nodspel/levels.js` (RULES.encounters och ett problem per nivå och område), ny `nodspel/encounters.js` (placering i seedat rum, generaliserar `applyIntroEncounter`), `nodspel/combat.js` (frontsköld, patrullslinga, svärm-spawn), `nodspel/round.js` (nyckelkort och låst dörr), `nodspel/world.js` (dörr och synkon), `nodspel/game.mjs` (ledtrådsetiketter, tips på resultatskärmen), `nodspel/tests/encounters.test.mjs`. Varje möte måste ha ett test som visar att det går att lösa både med och utan verktyg.
 
 Ordning: A, sedan B, sedan C. C bygger på verktygen i B.
+
+## 5. Combat-pass (PRB-92, v1.84.0)
+**Plan per område** (`RULES.encounters.plan`, indexerat på nivå):
+
+| Område | L1 | L2 | L3 |
+|---|---|---|---|
+| Bunker | patrull | frontskyddsvakt | svärm + skyddad nod |
+| Archipelago | patrull | granatkastare | svärm + skyddad nod |
+| Town | patrull | torn bakom skydd | låst dörr + skyddad nod |
+
+- **Vakten flyttades från L1 till L2+.** Playtesten sa att frontskölden var kul men för tidig. L1 får aldrig `frontShield` (testat för alla områden, normal och Hard). Vakten tittar mot luckan i rummets partitionsvägg (eller dörren) och inte mot startpunkten, så att första mötet sker i dess front och man ser loopen: **flankera eller locka (lockbete) → skölden är nere → burst**. Varningen är 1 s (`guard.warningMs`), salvan 3 skott, sedan 1,6 s återhämtning att gå in på. Ledtråden `GUARD · FLANK IT` visas en gång.
+- **Fler fiender.** `AREA_RULES.extraEnemies` är nu Bunker `[1,2,3]`, Archipelago `[1,2,4]`, Town `[1,3,4]` (tidigare alla 0). Extra fiender är vanliga seedade fiender som typas av nivåns mix (bunker använder `RULES.variety`); på L2 vaknar varannan extra först när noden tänds (reserver). Resultat: kroppar L1 < L2 < L3 i alla områden (testat).
+- **Mixen** innehåller nu `thrower` på L2 och L3 (Bunker 15 %, Archipelago 20 %), utöver granatkastaren som garanterat möte i Archipelago L2.
+- **Svårare per nivå**, inte per mötesregel: varningar är oförändrade (>= 1 s) och ingen träff tar mer än 30 % av max HP.
+
+**Hard** (`RULES.hard`, `docs/design-retention-quests.md` §5). Ingång: Raid Prep har en **HARD**-knapp (coral kant) när områdets Hard-flagga är upplåst (`S.unlocks.hard[area]`, kedjefinal eller 5 Chips) och Rebirth Core är L3. Ett Hard-deploy skickar `?hard=1`.
+
+| Regel | Värde i spelet |
+|---|---|
+| Fiender | HP x1,4 och skada x1,2 ovanpå områdets multiplikatorer; `RULES.hard.extraEnemies` `[1,1,2]` ovanpå områdets |
+| Möten | 2–3 per nivå (`RULES.hard.plan`), L2–L3 har vakten som elit; ingen vakt på L1 |
+| Timer | x0,8 (6:24 i stället för 8:00), `round.durationMs` |
+| Loot | nästa nivås tabell blandas in (tier-skift) och Core Ash läggs till på L2 (1,5) och L3 (3) i världsvikterna |
+| Seed | `hard^<seed>` ger samma layoutpool men en annan dragning, deterministiskt |
+| Resultat | raid-resultatet får `hard:true`; inga nya utrustningsförluster utöver de vanliga reglerna |
+
+Inte byggt: Hard-kort på världskartan (växeln i Raid Prep räcker), legendary-droppar och veckooperationen.
+

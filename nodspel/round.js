@@ -1,8 +1,8 @@
-import {generateLevel,RULES} from './levels.js?v=1.83.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.83.0';
-import {emptyBag,bagItems} from './raid.js?v=1.83.0';
-import {traceTargets} from './physics.mjs?v=1.83.0';
-import {shieldBlocks} from './encounters.js?v=1.83.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=1.84.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.84.0';
+import {emptyBag,bagItems} from './raid.js?v=1.84.0';
+import {traceTargets} from './physics.mjs?v=1.84.0';
+import {shieldBlocks} from './encounters.js?v=1.84.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -10,9 +10,11 @@ export const ROUND_DURATION_MS=8*60*1000;
 //   const order=readOrder(requestedOrder);
 // stats: validated player stats (see raid-result.js readStats); defaults to the new-player base.
 export function createRound(seed,now,stats=RULES.playerStats.base) {
+  // Hard raids run on a shorter clock (RULES.hard.timerMul); round.durationMs is the raid's full length.
+  const durationMs=Math.round(ROUND_DURATION_MS*(isHard()?RULES.hard.timerMul:1));
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},deadline:now+ROUND_DURATION_MS,remainingMs:ROUND_DURATION_MS,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -139,7 +141,7 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
 }
 export function tickRound(round,now) {
   if(round.over)return;
-  round.remainingMs=Math.max(0,Math.min(ROUND_DURATION_MS,round.deadline-now));
+  round.remainingMs=Math.max(0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
   if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';}
 }
 export function takeDamage(round,amount,now){

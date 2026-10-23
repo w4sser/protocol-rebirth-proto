@@ -10,11 +10,13 @@
 //   patrol  sneak up behind it, outside the cone         | Decoy draws it away
 //   swarm   fall back into a corridor so they queue      | Grenade on the spawn cluster
 //   shield  shoot the generator                          | EMP drops the node shield
-import {RULES} from './levels.js?v=1.83.0';
-import {traceTargets} from './physics.mjs?v=1.83.0';
+//   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
+// The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
+import {RULES} from './levels.js?v=1.84.0';
+import {traceTargets} from './physics.mjs?v=1.84.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
-export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door'];
+export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door','grenadier'];
 // Facing is an angle a with forward = (sin a, cos a): the same convention as three.js rotation.y on +z.
 export const facingVec=a=>({x:Math.sin(a),z:Math.cos(a)});
 export const angleTo=(from,to)=>Math.atan2(to.x-from.x,to.z-from.z);
@@ -78,23 +80,29 @@ function makeEnemy(level,type,over){
 }
 function note(level,entry){level.encounters.push(entry);return entry;}
 
-export function applyEncounters(level,area,rng){
-  const plan=RULES.encounters.plan[area]?.[level.number-1]??[];
+export function applyEncounters(level,area,rng,hard=false){
+  const plan=(hard?RULES.hard.plan:RULES.encounters.plan)[area]?.[level.number-1]??[];
   level.encounters=[];townBand=area==='town';bandWidth=2.7;
   for(const type of plan)PLACERS[type]?.(level,rng);
   return level.encounters;
 }
 
-// 1 Core guard: the level's first enemy stands by the node, facing the start, behind a front shield.
+// Where the player comes from into the room that holds `p`: the gap in its partition, else its door, else the start (first room).
+function arrival(level,p){const room=level.rooms[roomIndexOf(level,p)];
+  if(room?.partition)return {x:room.partition.x,z:room.partition.z}; // the gap in the partition wall: the player walks out of it
+  return room?.incoming?{x:room.x+room.incoming.x*room.w/2,z:room.z+room.incoming.z*room.d/2}:level.start;}
+
+// 1 Core guard: the level's first enemy stands by the node, facing where the player arrives, behind a front shield.
+// Level 1 never gets one (it is too early for a shield; L1 teaches the patrol).
 function placeGuard(level,rng){
-  const G=RULES.encounters.guard,enemy=level.enemies[0],node=level.nodes[0];if(!enemy||!node)return;
+  const G=RULES.encounters.guard,enemy=level.enemies[0],node=level.nodes[0];if(!enemy||!node||level.number===1)return;
   const solids=solidsOf(level),keep=[level.start,level.exit],cands=[];
   for(let k=0;k<16;k++){const a=k/16*2*PI,p={x:round2(node.x+Math.sin(a)*G.distance),z:round2(node.z+Math.cos(a)*G.distance)};
     if(!spotFree(level,p,1,solids)||keep.some(o=>dist(p,o)<2.6))continue;
-    const d=dist(p,level.start);cands.push({p,ok:d>=4.2&&d<=6.8});}
+    const d=dist(p,arrival(level,p));cands.push({p,ok:d>=4.2&&d<=6.8});}
   const pool=shuffled(cands.filter(c=>c.ok).length?cands.filter(c=>c.ok):cands,rng);if(!pool.length)return;
   const {p}=pool[0];
-  Object.assign(enemy,{x:p.x,z:p.z,speed:G.speed,health:G.health,encounter:'guard',frontShield:G.frontHalfAngleDeg,facing:angleTo(p,level.start),active:true});
+  Object.assign(enemy,{x:p.x,z:p.z,speed:G.speed,health:G.health,encounter:'guard',frontShield:G.frontHalfAngleDeg,facing:angleTo(p,arrival(level,p)),active:true});
   note(level,{type:'guard',enemyId:enemy.id,nodeId:node.id,x:p.x,z:p.z});
 }
 
@@ -232,4 +240,18 @@ function placeDoor(level,rng){
   note(level,{type:'door',doorId:door.id,keyBoxId:box.id,x:door.x,z:door.z,passage:{x:round2(px),z:round2(pz),w:bw}});
 }
 
-const PLACERS={guard:placeGuard,turret:placeTurret,patrol:placePatrol,swarm:placeSwarm,shield:placeShield,door:placeDoor};
+// 7 Grenade thrower: a new enemy in the node room (first room on L1), >= 5 m from the start, that lobs a blast at where you stand.
+function placeGrenadier(level,rng){
+  const G=RULES.encounters.grenadier,room=level.number===1?level.rooms[0]:level.rooms.at(-1),solids=solidsOf(level),keep=keepList(level);
+  const grid=[];for(let x=room.x-room.w/2+1.5;x<=room.x+room.w/2-1.5;x+=.5)for(let z=room.z-room.d/2+1.5;z<=room.z+room.d/2-1.5;z+=.5)grid.push({x:round2(x),z:round2(z)});
+  const order=shuffled(grid,rng);
+  for(const tier of [0,1,2])for(const p of order){
+    if(!spotFree(level,p,1,solids)||dist(p,level.start)<G.distance-tier*1.5||keep.some(o=>dist(p,o)<(o.item?1.2:2.4)-tier*.5))continue;
+    const T=RULES.enemyTypes.thrower,base=RULES.levels[level.number-1];
+    const e=makeEnemy(level,'thrower',{x:p.x,z:p.z,health:G.health,speed:(base.enemySpeed??1)*T.speedMul,encounter:'grenadier',windupMs:G.warningMs,cooldownMs:G.cooldownMs,cooldownMul:1,active:true});
+    note(level,{type:'grenadier',enemyId:e.id,x:p.x,z:p.z});
+    return;
+  }
+}
+
+const PLACERS={grenadier:placeGrenadier,guard:placeGuard,turret:placeTurret,patrol:placePatrol,swarm:placeSwarm,shield:placeShield,door:placeDoor};
