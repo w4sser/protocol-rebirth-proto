@@ -127,8 +127,26 @@ function worldOverlaps(){
 }
 // the boot loader (raid + base) covers everything until the first frame; checks and screenshots wait for it to be gone
 const loaderGone=page=>page.waitForFunction(()=>!document.getElementById('boot-loader'),{timeout:20000}).catch(()=>fail('loader','boot loader never went away'));
+// Base shell must fill the visual viewport: #phone covers it and the bottom tab bar sits at the true bottom, leaving no dead band
+// (only the real safe-area inset lives INSIDE #tabs as padding, so its bottom edge still reaches the viewport bottom).
+function shellFill(){
+  const vh=innerHeight,vv=window.visualViewport,ph=document.getElementById('phone'),tabs=document.getElementById('tabs');
+  const pr=ph&&ph.getBoundingClientRect(),shown=tabs&&getComputedStyle(tabs).display!=='none'&&tabs.getClientRects().length,tr=shown&&tabs.getBoundingClientRect();
+  return {vh,vvh:vv?vv.height:vh,phoneTop:pr&&pr.top,phoneBottom:pr&&pr.bottom,tabsBottom:tr?tr.bottom:null,tabsTop:tr?tr.top:null,bodyH:document.body.getBoundingClientRect().height};
+}
+async function checkShell(page,ctx){
+  const m=await page.evaluate(shellFill);
+  if(m.phoneBottom==null){fail(ctx,'#phone missing');return;}
+  if(Math.abs(m.phoneTop)>1||Math.abs(m.phoneBottom-m.vh)>1)fail(ctx,`#phone (${Math.round(m.phoneTop)} to ${Math.round(m.phoneBottom)}) does not fill the viewport height ${m.vh}`);
+  if(m.tabsBottom!=null){
+    const gap=m.vh-m.tabsBottom;
+    if(gap>2)fail(ctx,`dead band of ${Math.round(gap)}px below #tabs (tabs bottom ${Math.round(m.tabsBottom)}, viewport ${m.vh}; at most the ${INSETS.bottom}px safe-area inset may sit under the buttons, inside the bar)`);
+    if(gap<-2)fail(ctx,`#tabs bottom ${Math.round(m.tabsBottom)} is below the viewport bottom ${m.vh}`);
+  }
+}
 async function report(page,ctx,extraSel=''){
   await loaderGone(page);
+  if(/^base /.test(ctx))await checkShell(page,ctx);
   for(const it of await page.evaluate(collect,extraSel+(extraSel?',':'')+SAFE_TEXT,INS_ARG())){
     if(it.unsafe)fail(ctx,`${it.n} is outside the safe area (${Math.round(it.l)},${Math.round(it.t)} to ${Math.round(it.r)},${Math.round(it.b)}; insets L${INSETS.left} R${INSETS.right} B${INSETS.bottom})`);
     if(it.covered)fail(ctx,`${it.n} is covered by ${it.covered}`);
