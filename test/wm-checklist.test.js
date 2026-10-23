@@ -1,4 +1,4 @@
-// v1.80.0 T1-C: locked world-map checklist (Core N + scout item), amber next target, CTA routing.
+// v1.81.0 T1-C: locked world-map checklist (Core N + scout item), amber next target, CTA routing.
 const { JSDOM } = require("jsdom");const fs = require("fs");const assert = require("assert");const path = __dirname + "/..";
 function boot(mod){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
