@@ -269,7 +269,7 @@ const encounterState=e=>{const t=Date.now();
   return null;};
 const enemyStateText=e=>Date.now()<(e.stunnedUntil??0)?`STUNNED · ${e.health}`:e.lureTarget&&Date.now()<(e.lureUntil??0)?`DISTRACTED · ${e.health}`:!e.introGuard&&encounterState(e)?`${enemyName(e)} · ${encounterState(e)} · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'CHARGING · HIT TRIGGERS BURST':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
 function makeLabel(text,point,kind,range=null,short=''){
-  const el=document.createElement('div');el.className=`node-label ${kind}`;
+  const el=document.createElement('div');el.className=`node-label ${kind}`;el.hidden=true; // unpositioned until renderLabels places it; visible ones would pile up at the origin
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
   const caption=document.createElement('span');caption.className='full-text';caption.textContent=text;el.append(caption);
   const shortEl=document.createElement('span');shortEl.className='short-text';shortEl.textContent=short;el.append(shortEl);
