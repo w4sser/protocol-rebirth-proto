@@ -565,7 +565,7 @@
   .mission-panel{position:absolute; inset:0; z-index:15; overflow-y:auto; background:rgba(7,21,28,.97); padding:12px 16px 20px;}
   .mission-panel[hidden]{display:none;}
   /* v1.47: mission is a framed panel; its close badge is a sibling on the frame corner (the panel scrolls) */
-  #app .mission-panel{inset:18px calc(10px + var(--sr,0px)) 8px calc(18px + var(--sl,0px)); border:2px solid #75CFCC; border-radius:16px; padding:10px 16px 20px; overflow-y:auto!important; z-index:20;} #app .mission-x.pop-x{position:absolute; top:2px; left:calc(2px + var(--sl,0px)); z-index:21;} .mp-head.pop-head{padding-left:28px;}
+  #app .mission-panel{inset:calc(var(--tb-h,0px) + 18px) calc(10px + var(--sr,0px)) calc(var(--nav-h,0px) + 8px) calc(18px + var(--sl,0px)); border:2px solid #75CFCC; border-radius:16px; padding:10px 16px 20px; overflow-y:auto!important; z-index:20;} #app .mission-x.pop-x{position:absolute; top:calc(var(--tb-h,0px) + 2px); left:calc(2px + var(--sl,0px)); z-index:21;} .mp-head.pop-head{padding-left:28px;}
   /* v1.47 close badge on the frame corner: hosts must not clip it */
   #overlay .inner.pop-host{overflow:visible; max-height:none;} #overlay .bpop.pop-card{margin-top:16px; margin-left:16px;}
   #overlay .pop-frame{width:100%; max-width:480px; max-height:calc(100% - 16px); display:flex; flex-direction:column; box-sizing:border-box;} #overlay .pop-frame>.inner{flex:1; min-height:0; max-width:none;}
@@ -732,7 +732,7 @@
   #app.s-base{padding:0;}
   #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   .qlog .qtabs{padding-top:26px}
-  #app.s-prep{padding-top:calc(var(--tb-h,0px) + 2px)!important; padding-bottom:calc(var(--nav-h,0px) + 6px)!important;}
+  body #app.s-prep{padding-top:calc(var(--tb-h,0px) + 2px)!important; padding-bottom:calc(var(--nav-h,0px) + 6px)!important;}
   @media (orientation:landscape) and (max-height:480px){
     #tabs{position:absolute!important; background:none!important; border:0!important;}
     #app{padding-bottom:calc(var(--nav-h,0px) + 8px); padding-top:calc(var(--tb-h,0px) + 2px);}
