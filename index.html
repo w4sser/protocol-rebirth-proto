@@ -720,7 +720,7 @@
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
 
-  .qlog .qtab.qchips{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;margin-top:auto;color:var(--ad-loot);cursor:pointer}.qlog .qtab.qchips svg{width:20px;height:20px}.qlog .qtab.qchips .qn{position:static;background:none;color:var(--ad-loot);padding:0;font-size:12px;line-height:1}
+  .qlog .qtabx.qchips{position:relative;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:10px;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;margin-top:auto;color:var(--ad-loot);cursor:pointer}.qlog .qtabx.qchips svg{width:20px;height:20px}.qlog .qtabx.qchips .qn{position:static;background:none;color:var(--ad-loot);padding:0;font-size:12px;line-height:1}
   /* v1.78 floating HUD: no full-width bars. Chips/buttons float over a full-bleed #main; --tb-h/--nav-h are measured (app.js updateNav). */
   #main{position:absolute; inset:0; flex:none;}
   #topbar{position:absolute!important; top:0; left:0; right:0; background:none!important; border:0!important; pointer-events:none; z-index:25;}

@@ -726,7 +726,7 @@ function questLogHtml(tab, sel){
       (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }
-  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="qwrap"><div class="qtabs">' + tabs + '<button type="button" class="qtab qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + '<i class="qn">' + (S.cur.chips || 0) + '</i></button></div>' + body + '</div></div>';
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="qwrap"><div class="qtabs">' + tabs + '<button type="button" class="qtabx qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + '<i class="qn">' + (S.cur.chips || 0) + '</i></button></div>' + body + '</div></div>';
 }
 // RAID in the quest detail: the normal deploy flow, aimed at the quest's area (raids always start at level 1). Disabled while the area is locked.
 function questRaidBtn(chain, def, ready){
