@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.75.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.76.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -1291,13 +1291,13 @@ function navBadge(id){
   return null;
 }
 function renderTabs(){
-  const items = [["prep",IC("nav-raid"),"RAID"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"]];
-  items.unshift(["base",IC("nav-base"),"BASE"]);
+  const items = [["base",IC("nav-base"),"BASE"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"],["prep",IC("nav-raid"),"RAID"]];
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
-    const active = session.screen === id;
-    if(active) return '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
+    const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
+    const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
+    if(active) return gap + '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
-    return '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + '" ' +
+    return gap + '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + pulse + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
       '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
       (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
