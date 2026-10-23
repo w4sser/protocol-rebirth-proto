@@ -24,7 +24,7 @@ if(process.env.CHROME_PATH) launchOpts.executablePath = process.env.CHROME_PATH;
 await mkdir(OUT, { recursive:true });
 const browser = await puppeteer.launch(launchOpts);
 const settle = ms => new Promise(r => setTimeout(r, ms));
-async function shot(name, setup, vp){
+async function shot(name, setup, vp, after){
   vp = vp || [844, 390];
   const page = await browser.newPage();
   await page.setViewport({ width:vp[0], height:vp[1], isMobile:true, hasTouch:true, deviceScaleFactor:2 });
@@ -33,7 +33,9 @@ async function shot(name, setup, vp){
   await page.evaluate(() => { document.getElementById('splash')?.click(); });
   await settle(200);
   await page.evaluate(setup);
-  await settle(600);
+  await settle(500);
+  if(after) await page.evaluate(after);
+  await settle(400);
   await page.screenshot({ path: join(OUT, name + '.png') });
   await page.close();
   try { await access('/workspace/prp-qh-shots'); await copyFile(join(OUT, name + '.png'), join('/workspace/prp-qh-shots', name + '.png')); } catch {}
@@ -41,8 +43,9 @@ async function shot(name, setup, vp){
 }
 const SEED = `S.introSeen=true;S.beat=PROG.beats.length-1;S.modules={rebirth_core:2,fabricator:1,bit_bay:1,storage:1};S.roomUnlocks={fabricator:true,storage:true,bit_bay:true};S.baseState='core_habitable';S.bondXp=150;S.bitSkill='zone_scout';S.revealed={scrap:true};document.querySelectorAll('#overlay').forEach(o=>o.remove());`;
 const PEND = `idleState().scavPending={scrap:12,items:{cable:1,scrap_alloy:1}};`;
+const SCROLL_SKILLS = `document.querySelector('.bitskills')?.scrollIntoView({block:'center'});`;
 for(const [tag, vp] of [['', [844, 390]], ['-667', [667, 375]], ['-932', [932, 430]]]){
-  await shot('t3-bit-skills' + tag, SEED + PEND + `A.go('bit');`, vp);
+  await shot('t3-bit-skills' + tag, SEED + `A.go('bit');`, vp, SCROLL_SKILLS);
   await shot('t3-bit-confirm' + tag, SEED + PEND + `A.go('bit');A.openHaul();`, vp);
 }
 await browser.close(); server.close();
