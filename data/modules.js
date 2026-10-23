@@ -96,14 +96,15 @@ window.DATA.modules = [
   },
   {
     id:"storage", name:"Storage / Vault", revealedAtCore:1, maxLevelByCore:{"1":1,"2":2,"3":3},
-    blurb:"Stash space, loadout presets, one secure slot.",
-    benefit:"+8 stash slots · Secure one item",
+    blurb:"Stash expansion, loadout presets, one secure slot.",
+    benefit:"Stash expansion: +8 / +6 / +6 slots · Secure one item",
     levels:[
       { level:1,
         cost:{ scrap:50, items:{ polymer_plate:2, scrap_alloy:2 } },
+        stashSlots:8,
         unlocks:["stash_plus_8","secure_slot"],
-        unlockText:"Vault sealed. +8 stash slots and one secure slot — it survives your death.",
-        benefitText:"+8 stash slots. One secure slot: that item survives your death.",
+        unlockText:"Vault sealed. Stash expansion: +8 slots, and one secure slot that survives your death.",
+        benefitText:"Stash expansion +8 slots. One secure slot: that item survives your death.",
         preview:{ before:"A vault door hanging off its hinges. Containers looted and scattered.",
                   after:["Vault door seals","+8 stash slots","Secure slot: one chosen item survives death"] },
         artBefore:"assets/production/vault_broken.webp",
@@ -112,18 +113,20 @@ window.DATA.modules = [
         newGoal:"Pick a secure item before your next raid. Choose like it matters." },
       { level:2,
         cost:{ scrap:120, items:{ polymer_plate:3, servo:2, hydraulic_component:1 } },
-        unlocks:["raid_bag_plus_1"],
-        unlockText:"Pack racks bolted in. You carry one more item out of every raid.",
-        benefitText:"+1 raid bag slot.",
-        preview:{ before:"Loose crates. You leave loot behind.", after:["Pack racks on the vault wall","+1 raid bag slot"] },
+        stashSlots:6,
+        unlocks:["raid_bag_plus_1","stash_plus_6"],
+        unlockText:"Pack racks bolted in. Stash expansion: +6 slots, and you carry one more item out of every raid.",
+        benefitText:"Stash expansion +6 slots. +1 raid bag slot.",
+        preview:{ before:"Loose crates. You leave loot behind.", after:["Pack racks on the vault wall","+6 stash slots","+1 raid bag slot"] },
         artBefore:"assets/production/vault_sealed.webp", artAfter:"assets/production/vault_sealed.webp", artAdd:"vault",
         newGoal:"Fill the bigger bag. Then come home." },
       { level:3,
         cost:{ scrap:240, items:{ hydraulic_component:2, circuit_board:2, servo:2 } },
-        unlocks:["raid_bag_plus_1"],
-        unlockText:"Load-bearing harness rig. One more slot, every raid.",
-        benefitText:"+1 raid bag slot.",
-        preview:{ before:"The racks are full.", after:["Harness rig on the vault wall","+1 raid bag slot"] },
+        stashSlots:6,
+        unlocks:["raid_bag_plus_1","stash_plus_6"],
+        unlockText:"Load-bearing harness rig. Stash expansion: +6 slots, and one more raid bag slot.",
+        benefitText:"Stash expansion +6 slots. +1 raid bag slot.",
+        preview:{ before:"The racks are full.", after:["Harness rig on the vault wall","+6 stash slots","+1 raid bag slot"] },
         artBefore:"assets/production/vault_sealed.webp", artAfter:"assets/production/vault_sealed.webp", artAdd:"vault",
         newGoal:"Bigger hauls. Bigger risks." }
     ]
@@ -132,7 +135,12 @@ window.DATA.modules = [
 
 // Base stash capacity before Storage upgrades.
 window.DATA.baseStashCapacity = 12;
-window.DATA.storageBonus = 8;
+// Storage / Vault levels add stash slots through their own `stashSlots` (cumulative over built levels).
+window.DATA.stashCapacityFor = function(storageLevel){
+  var cap = window.DATA.baseStashCapacity, m = (window.DATA.modules || []).filter(function(x){ return x.id === "storage"; })[0];
+  ((m && m.levels) || []).forEach(function(l){ if(l.level <= (storageLevel || 0)) cap += l.stashSlots || 0; });
+  return cap;
+};
 
 // Facility layout (rows of rooms, top to bottom) and per-module art style.
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
@@ -236,7 +244,7 @@ window.DATA.upgradeRewardTiles = function(moduleId, level){
   if(has("bit_online")) add("unlock", "bit-face", "BIT", "ONLINE", "unlock:bit_online");
   if(has("loot_scan_1")) add("stat", "aim", "+1", "LOOT SCAN / RAID", "unlock:loot_scan_1");
   if(has("bit_carry_1")) add("stat", "item-crate", "+1", "BIT CARRY ITEM", "unlock:bit_carry_1");
-  if(has("stash_plus_8")) add("stat", "item-crate", "+" + D.storageBonus, "STASH SLOTS", "unlock:stash_plus_8");
+  if(def.stashSlots) add("stat", "item-crate", "+" + def.stashSlots, "STASH SLOTS", "stash:" + level);
   if(has("secure_slot")) add("unlock", "lock", "1 SLOT", "SURVIVES DEATH", "unlock:secure_slot");
   if(has("raid_bag_plus_1")) add("stat", "stat-bag", "+1 SLOT", "RAID BAG", "unlock:raid_bag_plus_1");
   return tiles;
