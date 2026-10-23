@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.83.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.84.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -1039,7 +1039,7 @@ function isoWeekId(d){
 }
 function chipShopState(){ const w = isoWeekId(new Date()); if(!S.chipShop || S.chipShop.week !== w) S.chipShop = { week:w, bought:{} }; return S.chipShop; }
 function unlockBucket(kind){ S.unlocks = S.unlocks || {}; return S.unlocks[kind] || (S.unlocks[kind] = {}); }
-// Stored unlocks from quest rewards and the shop: { recipe:id, cosmetic:id, hard:areaId }. Flags only; hard variants and BIT looks have no consumer yet.
+// Stored unlocks from quest rewards and the shop: { recipe:id, cosmetic:id, hard:areaId }. Flags only; the hard flag is read by hardAvailable() (Raid Prep HARD toggle), BIT looks have no consumer yet.
 function grantUnlock(u){ for(const k of ["recipe", "cosmetic", "hard"]) if(u && u[k]) unlockBucket(k)[u[k]] = true; }
 function chipItem(id){ return CS.items.find(x => x.id === id); }
 function chipOwned(it){ return it.kind !== "item" && !!unlockBucket(it.kind)[it.ref]; }
@@ -2358,6 +2358,9 @@ function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.r
 function areaUnseen(id){ const a = AREA_DEFS[id]; return !!(a && a.requires && !DEBUG_AREAS && !S.debugAreas && areaUnlocked(id) && !(S.areaSeen && S.areaSeen[id])); }
 // First unseen unlocked area in data order, or null. Drives the NEW badges and the map-open zoom.
 function wmNewUnlockTarget(){ const a = WMAP.areas.find(x => areaUnseen(x.id)); return a ? a.id : null; }
+// Hard variant (docs/design-retention-quests.md section 5): the area's Hard flag is unlocked AND the Rebirth Core is at L3. Raid Prep toggles it (session only).
+function hardAvailable(id){ return !!(AREA_DEFS[id] && S.unlocks && S.unlocks.hard && S.unlocks.hard[id] && coreLevel() >= 3); }
+function hardOn(){ return session.hard === true && hardAvailable(raidArea()); }
 function raidArea(){ return AREA_DEFS[S.area] && areaUnlocked(S.area) ? S.area : WMAP.areas[0].id; }
 function areaZonesCleared(id){ return (S.areaZones && S.areaZones[id]) || []; }
 // Requirement lines for a locked area: [text, done] pairs, both steps visible (short labels: "Core L3", "Town Survey").
@@ -2620,6 +2623,7 @@ function lobbyHtml(gear, miss, locked){
   const medSlot = slotTileHtml(SLOT_DEFS[2], locked), toolOk = !(locked && !ownedForSlot("tool"));
   return '<div class="lobby">' +
     '<div class="lobby-top"><h1>Raid Prep</h1>' + gearRiskHtml(gear) +
+      (hardAvailable(raidArea()) ? '<button type="button" class="hard-btn' + (hardOn() ? ' on' : '') + '" onclick="A.toggleHard()" aria-pressed="' + hardOn() + '" aria-label="Hard variant ' + (hardOn() ? 'on' : 'off') + '"><span>HARD</span><small>' + (hardOn() ? 'ON' : 'OFF') + '</small></button>' : '') +
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
     '<div class="lobby-side left"><div class="slotgrid">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
       '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' + (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '') + '</div></div>' +
@@ -3072,7 +3076,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
-    (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") +
+    (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
     (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
     (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
@@ -3610,6 +3614,7 @@ window.A = {
     if(areaUnlocked(h.from)) S.area = h.from;
     A.go("prep");
   },
+  toggleHard(){ if(!hardAvailable(raidArea())) return; session.hard = !hardOn(); act("HARD_TOGGLED", { area:raidArea(), on:session.hard }); refresh(); },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
@@ -3621,11 +3626,12 @@ window.A = {
     gear.forEach(id => removeItem(id, 1));
     if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
     if(tool) removeItem(tool.id, tool.n);
-    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea() }; // a free payoff tool is launch-only: never in coreLaunch.tool, so nothing returns to the stash
+    const hard = !intro && hardOn();
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea(), hard }; // a free payoff tool is launch-only: never in coreLaunch.tool, so nothing returns to the stash
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
   },
   deploy(){
     if(!session.prep) return;
@@ -4378,4 +4384,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };

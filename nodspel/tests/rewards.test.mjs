@@ -11,16 +11,17 @@ test('a kill immediately restores one shot and 12 health, once and capped',()=>{
   stepWeapon(w,r,100,.3,[]);assert.equal(r.health,60+RULES.killReward.health);assert.equal(w.ammo,1);
   stepWeapon(w,r,200,.3,[]);assert.equal(r.health,60+RULES.killReward.health);assert.equal(w.ammo,1);
 });
-test('level two has two active enemies in room two and two node-triggered reserves',()=>{
+test('level two: one base enemy in room two, the shield guard by the node, extra bodies with node-triggered reserves',()=>{
   const r=createRound('reserves',0);r.level=generateLevel(2,r.seed);
   assert.ok(r.level.enemies.every(e=>e.health===2));
-  // PR C: enemy counts no longer ramp. Room two holds one active enemy and one node-triggered reserve; the level's
-  // problem (turret / patrol) is a separate encounter enemy placed in the start room.
-  const regular=r.level.enemies.filter(e=>!e.encounter);
-  assert.equal(regular.filter(e=>e.active!==false).length,1);
+  // Combat pass: the base 1 / 2 / 3 enemies stay (the L2 problem takes the second one), AREA_RULES.extraEnemies adds bodies on top;
+  // every other L2 extra is a reserve that wakes when the node lights.
+  const regular=r.level.enemies.filter(e=>!e.encounter&&!e.extra),extras=r.level.enemies.filter(e=>e.extra);
+  assert.equal(regular.length,1);assert.equal(regular[0].active!==false,true);
   const room=r.level.rooms[1];assert.ok(regular.every(e=>Math.abs(e.x-room.x)<room.w/2&&Math.abs(e.z-room.z)<room.d/2));
+  assert.equal(extras.length,2);assert.equal(extras.filter(e=>e.active===false).length,1,'one reserve');
   activateNode(r,r.level.nodes[0].id,2000);
-  assert.equal(regular.filter(e=>e.active!==false).length,2);
+  assert.ok(extras.every(e=>e.active!==false));
   const c=createCombat(r.level,0);stepCombat(r,c,{x:room.x,z:room.z+2},2100,.1,[]);assert.equal(c.projectiles.length,0);
 });
 test('swarm rushers wait for their spawn point: lighting a node never wakes them',()=>{

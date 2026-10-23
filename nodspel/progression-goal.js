@@ -1,5 +1,5 @@
-import '../data/items.js?v=1.83.0';
-import {RULES} from './levels.js?v=1.83.0';
+import '../data/items.js?v=1.84.0';
+import {RULES} from './levels.js?v=1.84.0';
 export const MATERIALS={...globalThis.DATA.currencies,...Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,{name:i.name,icon:i.icon,source:i.source}]))};
 export function readGoal(value){
   if(typeof value!=='string'||value.length>4000)return null;
@@ -23,7 +23,7 @@ export function applyIntroEncounter(level,goal){
   Object.assign(level.nodes[0],{x:r.x+s*cfg.nodeX,z:r.z+cfg.nodeZ});
   level.start={x:r.x-s*cfg.lane,z:r.z+cfg.startZ};
   level.boxes=[{x:r.x-s*cfg.lane,z:r.z+cfg.coverZ,w:cfg.coverSize,d:cfg.coverSize,h:1.4,introCover:true}];
-  const enemy=level.enemies[0];Object.assign(enemy,{x:r.x-s*cfg.lane,z:r.z+cfg.guardZ,speed:0,introGuard:true,active:true});level.enemies=[enemy];
+  const enemy=level.enemies[0];for(const k of ['patrol','encounter','aggro','alertAt','facing','windupMs','frontShield'])delete enemy[k];Object.assign(enemy,{x:r.x-s*cfg.lane,z:r.z+cfg.guardZ,speed:0,introGuard:true,active:true});level.encounters=[];level.enemies=[enemy];
   level.lootBoxes=[];
   let i=0;for(const p of goal.parts){const currency=p.kind==='currency'&&globalThis.DATA.items.find(item=>item.grantsCurrency?.[p.id]);const count=Math.ceil(Math.max(0,p.need-p.secured)/(currency?currency.grantsCurrency[p.id]:1));for(let n=0;n<count;n++,i++)level.lootBoxes.push({id:`supply-${i}`,x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing,item:currency?currency.id:p.id,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});}
   level.lootBoxes.push({id:'optional-cache',x:r.x-s*cfg.optionalX,z:r.z+cfg.optionalZ,item:cfg.optionalItems[s<0?0:1],marked:true,revealed:true,collected:false,optional:true,source:'OPTIONAL · EXTRA LOOT'});

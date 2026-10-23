@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.83.0';
-import {RULES} from './levels.js?v=1.83.0';
-import {bagCap,equippedGear} from './round.js?v=1.83.0';
-import {readGoal} from './progression-goal.js?v=1.83.0';
+import {bagItems} from './raid.js?v=1.84.0';
+import {RULES} from './levels.js?v=1.84.0';
+import {bagCap,equippedGear} from './round.js?v=1.84.0';
+import {readGoal} from './progression-goal.js?v=1.84.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -16,7 +16,7 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null}={}){
   if(!round||!round.over)return null;
   const raidId=launch?.raidId&&launch.seed===round.seed?launch.raidId:`nodspel:${round.seed}`;
   return {schema:RAID_RESULT_SCHEMA,version:RAID_RESULT_VERSION,raidId,seed:round.seed,
-    area:round.level?.area??'bunker',outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,killsByType:{...(round.killsByType??{})},nodesLit:round.nodesLit,
+    area:round.level?.area??'bunker',...round.hard?{hard:true}:{},outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,killsByType:{...(round.killsByType??{})},nodesLit:round.nodesLit,
     remainingMs:round.remainingMs,extracted:bagItems(round.extracted),lost:bagItems(round.lost),endedAt,
     skills:round.telemetry?{distanceM:Math.round(round.telemetry.distanceM),dashes:round.telemetry.dashes,holdNodes:round.telemetry.holdNodes,damageTaken:Math.round(round.telemetry.damageTaken),searches:round.telemetry.searches||0,healed:Math.round(round.telemetry.healed||0)}:undefined,
     stats:round.stats,gear:launch?.gear??[],gearOut:equippedGear(round),weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
@@ -41,7 +41,7 @@ export function readLaunch(search){
   const seed=p.get('seed')||null,rawId=p.get('raidId');
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
-    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
+    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
 }
 // ?quest=extract:cable:1:3 | kill:sentry:0:3 | clear:2:0:1 (type:target:progress:n[:level]) -> the tracked chain quest for the HUD chip (anything else -> null).
 const QUEST_ENEMIES=['grunt','sentry','rusher'];
