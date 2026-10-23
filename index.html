@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.82.0" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.82.0">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.82.0">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.83.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.83.0">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.83.0">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -600,7 +600,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.82.0") center/contain no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.83.0") center/contain no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -754,9 +754,9 @@
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.82.0">
-<link rel="stylesheet" href="ui/popup.css?v=1.82.0">
-<link rel="stylesheet" href="ui/loader.css?v=1.82.0">
+<link rel="stylesheet" href="ui/tokens.css?v=1.83.0">
+<link rel="stylesheet" href="ui/popup.css?v=1.83.0">
+<link rel="stylesheet" href="ui/loader.css?v=1.83.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -957,6 +957,12 @@
   .stashpop .sp-fir{display:flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:var(--ad-loot)}.stashpop .sp-fir svg{width:14px;height:14px}
   .stashpop .sp-qty{display:flex;align-items:center;gap:6px}.stashpop .sp-qty b{min-width:30px;text-align:center;font:800 18px "Archivo",sans-serif}
   .stashpop .sp-qty button{width:auto;flex:1 1 0;min-width:44px;padding:4px 6px}
+  .gearpop .gu-lvl{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}.gearpop .gu-pips{display:flex;gap:4px}
+  .gearpop .gu-pips .gu-pip{display:block;width:16px;height:6px;border-radius:3px;background:var(--solid);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent)}.gearpop .gu-pips .gu-pip.on{background:var(--ad-loot);border-color:var(--ad-loot)}
+  .gearpop .gu-tiles{justify-content:flex-start;flex-wrap:nowrap}.gearpop .gu-tiles .rtile{width:92px;height:84px;position:relative}.gearpop .gu-tiles .rtile .pr-ic{width:24px;height:24px}.gearpop .gu-tiles .rtile b{font-size:14px}
+  .gearpop .gu-next{font:700 9px/1 system-ui,sans-serif;font-style:normal;color:var(--ad-cyan)}
+  .gearpop .gu-cost{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px}.gearpop .gu-c{display:inline-flex;align-items:center;gap:3px}.gearpop .gu-c svg{width:16px;height:16px}.gearpop .gu-c.bad{color:var(--ad-danger)}
+  .gearpop .gu-mastery{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--dim)}.gearpop .gu-mastery svg{width:14px;height:14px}.gearpop .gu-mastery .stars,.gearpop .gu-mastery .stars i{display:inline-flex;flex-wrap:nowrap;white-space:nowrap}
   .stashpop button.primary.big{margin-top:6px;min-height:44px;font-size:15px}
   .stashpop .sp-r>button.ghost{margin-top:6px;min-height:44px}
   .stashpop .sp-r button svg,.stashpop .qcrow svg{width:16px;height:16px;vertical-align:-3px}
@@ -1113,13 +1119,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.82.0</div>
+    <div id="app-version">v1.83.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.82.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.83.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -1134,16 +1140,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.82.0"></script>
-<script src="data/modules.js?v=1.82.0"></script>
-<script src="data/bit.js?v=1.82.0"></script>
-<script src="data/raid_zones.js?v=1.82.0"></script>
-<script src="data/recipes.js?v=1.82.0"></script>
-<script src="data/vendors.js?v=1.82.0"></script>
-<script src="data/retention.js?v=1.82.0"></script>
-<script src="data/quests.js?v=1.82.0"></script>
-<script src="data/progression.js?v=1.82.0"></script>
-<script src="data/combat.js?v=1.82.0"></script>
-<script src="app.js?v=1.82.0"></script>
+<script src="data/items.js?v=1.83.0"></script>
+<script src="data/modules.js?v=1.83.0"></script>
+<script src="data/bit.js?v=1.83.0"></script>
+<script src="data/raid_zones.js?v=1.83.0"></script>
+<script src="data/recipes.js?v=1.83.0"></script>
+<script src="data/vendors.js?v=1.83.0"></script>
+<script src="data/retention.js?v=1.83.0"></script>
+<script src="data/quests.js?v=1.83.0"></script>
+<script src="data/progression.js?v=1.83.0"></script>
+<script src="data/combat.js?v=1.83.0"></script>
+<script src="app.js?v=1.83.0"></script>
 </body>
 </html>

@@ -11,9 +11,9 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.82.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.83.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
+const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -36,7 +36,7 @@ function freshState(){
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     payoff: null, payoffDone: false, areaSeen: {},
-    chains: {}, trackedQuest: null, fir: {}, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
+    chains: {}, trackedQuest: null, fir: {}, gearUp: {}, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -52,6 +52,7 @@ function load(){
       if(st.v === 7) migrateChains(st);
       if(st.v === 8) migrateChips(st);
       if(st.v === 9) migrateFir(st);
+      if(st.v === 10) migrateGearUp(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
       if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); return st; }
     }
@@ -131,6 +132,12 @@ function migrateChips(st){
 // the stash counts as found in raid, so nobody loses hand-in progress.
 function migrateFir(st){
   st.fir = {}; for(const id in st.stash || {}) if(st.stash[id] > 0) st.fir[id] = st.stash[id];
+  st.v = 10;
+  return st;
+}
+// v1.83 T4: per-item gear upgrade levels (additive field).
+function migrateGearUp(st){
+  if(!st.gearUp || typeof st.gearUp !== "object") st.gearUp = {};
   st.v = SAVE_VERSION;
   return st;
 }
@@ -2088,6 +2095,7 @@ function stashWarnings(id, qty){
 }
 function stashPopHtml(){
   const p = session.stashPop, id = p.id, it = ITEMS[id], info = D.itemInfo(id);
+  if(gearKind(id) && !p.sellView && !p.confirm && (isFree(id) || have(id) > 0)) return gearPopHtml(id);
   const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
   const meta = '<div class="sp-meta">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div><div class="eff">' + esc(it.desc) + '</div>';
   if(isFree(id)) return '<div class="bpop stashpop">' + head + meta + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or recycled.</div></div>';
@@ -3083,7 +3091,10 @@ function playerStats(gear){
   const P = PROG.playerStats, st = Object.assign({}, P.base);
   for(const id in P.skills){ const l = skillLevel(id); for(const s in P.skills[id].perLevel) st[s] += P.skills[id].perLevel[s] * l; }
   st.speed *= 1 + operatorSpeedBonus();
-  for(const g of (gear || [])) for(const s in ((ITEMS[g] && ITEMS[g].stats) || {})) st[s] += ITEMS[g].stats[s];
+  for(const g of (gear || [])){
+    for(const s in ((ITEMS[g] && ITEMS[g].stats) || {})) st[s] += ITEMS[g].stats[s];
+    if(gearKind(g) === "armor") st.shield += gearEffect(g).shield - ((ITEMS[g].stats || {}).shield || 0);
+  }
   for(const s in st) st[s] = Math.round(clampStat(s, st[s]) * 1000) / 1000;
   return st;
 }
@@ -3152,11 +3163,70 @@ function weaponParam(id){
   return "id:" + id + ["dmg","mag","rld","int","rng","cone","ast","spr"].map(k => "," + k + ":" + w[k]).join("");
 }
 // Weapon stats after mastery stars (each star trims reload / shot interval a little).
-function masteredWeapon(id){
+function masteredWeapon(id, lvl){
   const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return null;
-  const out = Object.assign({}, w), st = masteryStars(id), per = PROG.playerStats.weaponMastery.perStar;
+  const out = Object.assign({}, w), st = masteryStars(id), per = PROG.playerStats.weaponMastery.perStar, up = gearEffect(id, lvl);
   for(const k in per) if(k in out) out[k] = Math.round(out[k] * (1 + per[k] * st));
+  out.int = Math.round(out.int * (1 + up.intMul)); out.dmg += up.dmg;
   return out;
+}
+// ---- gear upgrades (v1.83 T4, data: PROG.gearUpgrade) ----
+// Basic Carbine: free forever, so it only gets 2 light rate-only levels (no materials beyond the cheap tier-1 ones) and its mastery stars
+// are shown in the same popup. Levels are keyed by item id, so a lost and re-crafted copy keeps its upgrades.
+function gearKind(id){ const it = ITEMS[id]; return !it ? null : it.weapon ? "weapon" : it.slot === "armor" ? "armor" : null; }
+function gearLevel(id){ return Math.min(gearMax(id), (S.gearUp && S.gearUp[id]) || 0); }
+function gearMax(id){ const G = PROG.gearUpgrade; return gearKind(id) ? ((G.byId[id] && G.byId[id].maxLevel) || G.maxLevel) : 0; }
+// Effect of an upgrade level (default: the item's current level): damage bonus, shot-interval multiplier delta, total shield.
+function gearEffect(id, lvl){
+  const G = PROG.gearUpgrade, kind = gearKind(id); lvl = lvl === undefined ? gearLevel(id) : lvl;
+  if(kind === "weapon"){ const d = (G.byId[id] && G.byId[id].dmgAt) || G.weapon.dmgAt; return { dmg:d[lvl] || 0, intMul:G.weapon.intPerLevel * lvl, shield:0 }; }
+  if(kind === "armor") return { dmg:0, intMul:0, shield:((ITEMS[id].stats || {}).shield || 0) + G.armor.shieldPerLevel * lvl };
+  return { dmg:0, intMul:0, shield:0 };
+}
+function gearCost(id, lvl){
+  const G = PROG.gearUpgrade, kind = gearKind(id);
+  return { scrap:G.scrapByRarity[ITEMS[id].rarity] * lvl, items:Object.assign({}, G.items[kind][lvl - 1]) };
+}
+// "" = can upgrade now, else a short reason.
+function gearBlock(id){
+  if(!gearKind(id)) return "Not upgradable";
+  if(have(id) < 1) return "None left";
+  const lvl = gearLevel(id); if(lvl >= gearMax(id)) return "Max level";
+  const parts = costParts(gearCost(id, lvl + 1)), miss = parts.find(p => p.have < p.need);
+  return miss ? "Need " + (miss.need - miss.have) + " more " + partName(miss) : "";
+}
+function gearUpgrade(id){
+  if(gearBlock(id)) return false;
+  const lvl = gearLevel(id) + 1, cost = gearCost(id, lvl);
+  payCost(cost); S.gearUp = S.gearUp || {}; S.gearUp[id] = lvl;
+  act("GEAR_UPGRADED", { id, level:lvl, scrap:cost.scrap, items:cost.items });
+  return true;
+}
+// Effect tiles for the upgrade popup: current value plus the next level's change (when there is one).
+function gearTilesHtml(id){
+  const kind = gearKind(id), lvl = gearLevel(id), nxt = lvl < gearMax(id) ? lvl + 1 : null;
+  const tile = (icon, label, val, nv) => '<div class="rtile gear" data-stat="' + label.toLowerCase().replace(/ /g, "") + '">' + IC(icon) + '<b>' + esc(String(val)) + '</b><small>' + esc(label) + '</small>' +
+    (nv !== null && nv !== val ? '<em class="gu-next">' + esc(String(nv)) + ' next</em>' : '') + '</div>';
+  if(kind === "armor"){ const a = gearEffect(id, lvl).shield, b = nxt ? gearEffect(id, nxt).shield : null; return '<div class="rtiles gu-tiles">' + tile("stat-shield", "SHIELD", a, b) + '</div>'; }
+  const w = masteredWeapon(id), n = nxt ? masteredWeapon(id, nxt) : null, rate = x => Math.round(60000 / x.int);
+  return '<div class="rtiles gu-tiles">' + tile("stat-dmg", "DAMAGE", w.dmg, n ? n.dmg : null) + tile("stat-rate", "FIRE RATE", rate(w) + "/min", n ? rate(n) + "/min" : null) + '</div>';
+}
+function gearPopHtml(id){
+  const it = ITEMS[id], lvl = gearLevel(id), max = gearMax(id), why = gearBlock(id), nxt = lvl < max ? lvl + 1 : null;
+  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
+  const cost = nxt ? costParts(gearCost(id, nxt)).map(p => '<span class="gu-c' + (p.have < p.need ? ' bad' : '') + '">' + partIcon(p) + p.need + (p.kind === "item" ? ' ' + esc(ITEMS[p.id].name) : '') + '</span>').join("") : "";
+  let mastery = "";
+  if(isFree(id)){
+    const nk = masteryNext(id), k = masteryKills(id);
+    mastery = '<div class="gu-mastery">Mastery ' + starsHtml(id) + ' <span>' + (nk === null ? 'max' : (nk - k) + ' kills to next star') + '</span></div>';
+  }
+  return '<div class="bpop stashpop gearpop" data-gear="' + id + '">' + head + '<div class="sp-body"><div class="sp-l"><div class="sp-meta">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
+    '<div class="gu-lvl" aria-label="Upgrade level ' + lvl + ' of ' + max + '"><b>LEVEL ' + lvl + '/' + max + '</b><span class="gu-pips">' + Array.from({ length:max }, (_, i) => '<span class="gu-pip' + (i < lvl ? ' on' : '') + '"></span>').join("") + '</span></div>' +
+    gearTilesHtml(id) + mastery + '</div><div class="sp-r">' +
+    (nxt ? '<div class="gu-cost" aria-label="Cost">' + cost + '</div>' : '') +
+    '<button class="primary big" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
+    (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
+    (isFree(id) ? '' : '<button type="button" class="linkbtn" onclick="A.stashSellView()">SELL OR RECYCLE</button>') + '</div></div></div>';
 }
 function weaponStatsLine(id){
   const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
@@ -3458,6 +3528,12 @@ window.A = {
     if(mode === "sell") A.sell(id, qty); else A.recycle(id, qty);
     updateNav();
   },
+  gearUpgrade(id){
+    if(!gearUpgrade(id)) return;
+    const o = ITEMS[id]; toast(o.name + " upgraded to L" + gearLevel(id));
+    if(session.stashPop) stashPopRender(); refresh();
+  },
+  stashSellView(){ const p = session.stashPop; if(!p) return; p.sellView = true; stashPopRender(); },
   stashBack(){ const p = session.stashPop; if(!p) return; p.confirm = null; stashPopRender(); },
   openQuickClean(){
     session.quickClean = { sel:quickCleanDefault(quickCleanList()), confirm:false }; quickCleanRender();
@@ -4302,4 +4378,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };

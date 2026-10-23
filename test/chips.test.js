@@ -12,7 +12,7 @@ function boot(save){
 }
 const g = boot(null); g.A.dismissIntro();
 const fresh = JSON.parse(JSON.stringify(g.S())), CS = g.w.DATA.chipShop;
-assert.equal(fresh.v, 10); assert.deepEqual(Object.keys(fresh.unlocks).sort(), ["cosmetic", "hard", "recipe"]);
+assert.equal(fresh.v, 11); assert.deepEqual(Object.keys(fresh.unlocks).sort(), ["cosmetic", "hard", "recipe"]);
 const ITEMS = g.w.DATA.items;
 // catalog sanity: prices in range, items exist, icons exist in sprite
 const sprite = fs.readFileSync(path + "/assets/icons/sprite.svg", "utf8");
@@ -55,7 +55,7 @@ assert.deepEqual([mk(5).T.chipCanBuy("nope").reason], ["unknown"]);
 { const b = mk(0); assert.equal(b.T.grantWeeklyChips(80), 0); assert.equal(b.S().cur.chips, 0); assert.equal(b.T.grantWeeklyChips(50), 2); assert.equal(b.T.grantWeeklyChips(10), 5); assert.equal(b.T.grantWeeklyChips(1), 5); assert.equal(b.S().cur.chips, 12); }
 // migration: v8 save keeps everything and gains the new fields; v7 too
 { for(const v of [7, 8]){ const old = JSON.parse(JSON.stringify(fresh)); old.v = v; delete old.chipShop; delete old.unlocks; if(v === 7){ delete old.chains; delete old.trackedQuest; delete old.cur.chips; } old.cur.scrap = 91;
-    const b = boot(old), s = b.S(); assert.equal(s.v, 10); assert.equal(s.cur.scrap, 91); assert.equal(s.cur.chips, 0); assert(s.unlocks.hard && s.chipShop.bought); } }
+    const b = boot(old), s = b.S(); assert.equal(s.v, 11); assert.equal(s.cur.scrap, 91); assert.equal(s.cur.chips, 0); assert(s.unlocks.hard && s.chipShop.bought); } }
 // migration backfills unlock flags from completed chain steps only (B4 recipe, B8 hard+cosmetic done; A8 not), no rewards replayed
 { const old = JSON.parse(JSON.stringify(fresh)); old.v = 8; delete old.chipShop; delete old.unlocks; old.cur.scrap = 5; old.cur.chips = 1;
   old.chains = { bunker:{ step:8, prog:0 }, archipelago:{ step:7, prog:0 } };

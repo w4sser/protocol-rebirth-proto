@@ -159,3 +159,19 @@ window.DATA.worldMap = {
       zones:["Main Street","Houses","Depot"] }
   ]
 };
+
+// v1.83 T4 (PRB-91): light gear upgrades from the stash. Levels are stored per item id (S.gearUp) so a lost-and-recrafted copy keeps them.
+// Weapons: fire rate (shot interval) every level, +damage at the levels in dmgAt (index = level). Armour: +shield per level.
+// Cost of level N = Scrap (scrapByRarity x N) + the materials in items[slot][N-1]. Basic Carbine is free forever: it gets 2 rate-only levels
+// (byId override) and its mastery stars stay visible in the same popup.
+window.DATA.progression.gearUpgrade = {
+  maxLevel:3,
+  byId:{ basic_carbine:{ maxLevel:2, dmgAt:[0, 0, 0] } },
+  weapon:{ dmgAt:[0, 0, 1, 1], intPerLevel:-0.07 },
+  armor:{ shieldPerLevel:8 },
+  scrapByRarity:{ common:30, uncommon:50, rare:80, epic:120, legendary:160 },
+  items:{
+    weapon:[{ scrap_alloy:1 }, { servo:1 }, { servo:2, scrap_alloy:1 }],
+    armor:[{ polymer_plate:1 }, { polymer_plate:2 }, { polymer_plate:2, cable:2 }]
+  }
+};
