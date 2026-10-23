@@ -1,5 +1,5 @@
-import {goalProgress} from './progression-goal.js?v=1.77.0';
-import {RARITY_ORDER,rarityOf} from './rarity.js?v=1.77.0';
+import {goalProgress} from './progression-goal.js?v=1.77.1';
+import {RARITY_ORDER,rarityOf} from './rarity.js?v=1.77.1';
 
 const itemDef=id=>globalThis.DATA.items.find(item=>item.id===id);
 const relates=(part,id)=>part.kind==='currency'?!!itemDef(id)?.grantsCurrency?.[part.id]:part.id===id;
