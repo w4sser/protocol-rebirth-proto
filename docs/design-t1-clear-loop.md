@@ -1,7 +1,7 @@
 # T1 · Tydlig loop (PRB-89)
 
-Status: **design proposal — väntar på Robert-godkännande innan build.**  
-Branch: `design/t1-clear-loop`. Inga spelkodsändringar i denna PR.  
+Status: **godkänt av Robert 2026-10-23** — mildare energi (§3). Build startar med **T1-A**.  
+Branch: `design/t1-clear-loop` (design). Implementation: `feat/t1-handin-payoff` (T1-A).  
 Grund: playtest 2026-10-23, `data/quests.js` (Wake the Core), `data/progression.js` (world map), `data/modules.js` (Core L2/L3), area-progression-minne (Bunker → Archipelago → Town).
 
 ## Problem (playtest)
@@ -78,30 +78,31 @@ Mass-market: en mätare, tydlig drain, tydlig fail, tydlig recovery. Ingen sim m
 - Namn: **Bunker power** (svenska UI: *Bunkerström*).
 - Placering: bas-HUD, bredvid/ovan scrap — tunn cyan bar 0–100.
 - Start efter FTUE (Core L1): **100**.
-- Visuell: full = cyan; &lt;40 = amber; &lt;15 = coral pulse.
+- Visuell: full = cyan; &lt;30 = amber (varning); &lt;10 = coral pulse.
 
 ### Vad som dränerar
 
 | Källa | Drain | Kommentar |
 |---|---|---|
-| Tid i bas (idle) | ~1 / 8 min realtid (pausas offline-cap, t.ex. max 20 förlorade medan appen stängd) | Mild tick — inte straffklocka |
-| Genomförd raid (oavsett utfall) | 3–5 | "Faciliteten går på övervarv" |
+| Tid i bas (idle) | ~1 / **15–20 min** realtid | Mild tick — inte straffklocka |
+| Offline (app stängd) | **nästan ingen** (cap ~2–3 totalt medan stängd) | Inte ett straff för att lägga undan spelet |
+| Genomförd raid (oavsett utfall) | **1–2** | Lätt "övervarv", inte 3–5 |
 | Rum på L2+ | +1 extra per sådan nivå vid raid-retur | Mer bas = mer att skydda |
 
-Siffror är startvärden för playtest.
+**Beslutat (Robert):** mildare energi — siffrorna ovan ersätter den ursprungliga aggressivare tabellen.
 
 ### Vad som failar vid låg energi
 
 | Nivå | Effekt |
 |---|---|
-| **&lt; 40** | Varning: BIT-rad "Strömmen dippar. Förstärk väggarna." Rum-plattor dimmas lätt. |
-| **&lt; 15** | **Rum stängs av** (utom Core + 1 senast använda rum): Fabricator/BIT Bay/Storage går inte att öppna för craft/hand-in tills energi ≥ 25. RAID fortfarande möjligt. |
-| **0** | Samma som &lt;15 + tracked quest tvingas till underhåll (se recovery). Ingen hardcore-wipe, ingen loot-förlust i basen. |
+| **&lt; 30** | Varning: BIT-rad "Strömmen dippar. Förstärk väggarna." Rum-plattor dimmas lätt. |
+| **&lt; 10** | **Rum stängs av** (utom Core + 1 senast använda rum): Fabricator/BIT Bay/Storage går inte att öppna för craft/hand-in tills energi ≥ 25. RAID fortfarande möjligt. |
+| **0** | Samma som &lt;10 + tracked quest tvingas till underhåll (se recovery). Ingen hardcore-wipe, ingen loot-förlust i basen. |
 
 ### Recovery (spelaren förstår på 5 sek)
 
-1. **Förstärk väggar** — 1-tap på basen (kostar scrap + 1 vanlig del, t.ex. Polymer Plate). +25 energi. Cooldown/kort animation.
-2. **Core maintenance-quest** (kort kedja eller dailyliknande, 1 aktiv): t.ex. *Hand in 2 Cable* eller *Extract 1 Fuse* → +40 energi + liten chip/scrap. Syns som tracked när energi &lt; 40 eller spelaren trycker på mätaren.
+1. **Förstärk väggar** — 1-tap på basen (**billigare**: scrap-only, låg kostnad; ingen del krävs i T1). +25 energi. Cooldown/kort animation.
+2. **Core maintenance-quest** (kort kedja eller dailyliknande, 1 aktiv): t.ex. *Hand in 2 Cable* eller *Extract 1 Fuse* → +40 energi + liten chip/scrap. Syns som tracked när energi &lt; 30 eller spelaren trycker på mätaren.
 3. Core-upgrade (L2/L3) ger engångs **+30** (faciteten andas).
 
 **Utanför scope T1:** fiender som attackerar basen, PvE-defense-minispel.
@@ -153,23 +154,23 @@ Samma mönster för Archipelago (Core 2 + Archipelago Chart) så spelaren lär s
 1. Efter FTUE ser spelaren alltid **ett** tydligt nästa mål i goal-card-sloten (tracked quest eller Core-upgrade).
 2. Varje hand-in i *Wake the Core* visar **UNLOCKAR:** … (rum/zon/vapen/verktyg/nästa steg), verifierat i hand-in-popup på telefonbredd.
 3. World map Town (låst) visar Core 3 + Town Survey; fel CTA går till rätt yta.
-4. Energi &lt; 15 stänger av minst ett icke-Core-rum; reinforce eller maintenance-quest återställer till ≥ 25; RAID går fortfarande.
+4. Energi &lt; 10 stänger av minst ett icke-Core-rum; reinforce eller maintenance-quest återställer till ≥ 25; RAID går fortfarande.
 5. Inga game-code-ändringar i *denna* design-PR; implementation bara efter Robert-godkännande av detta doc.
 6. CI / layout-check grön på respektive build-PR.
 
 ---
 
-## 7. Öppna frågor till Robert
+## 7. Beslut (Robert 2026-10-23)
 
-1. **Energi-aggressivitet:** mild (tabell §3) eller vassare (rum av vid &lt;30, högre raid-drain)?  
-2. **Reinforce-kostnad:** Scrap-only vs Scrap + del — vilken del (Polymer Plate / Cable)?  
-3. **Underhåll vs Wake the Core:** får maintenance **ersätta** tracked kedja under låg energi, eller bara **prompt** ovanpå?  
-4. **Payoff-språk:** engelska i UI (som nu) eller svenska? (Detta doc är SE; spelet är EN.)  
-5. **B8 / hard unlock:** ska T1-A visa "UNLOCKAR: Bunker Hard" innan grant-logiken är klar, eller vänta till grant-PR?  
-6. **Idle-drain offline:** max-förlust 20 medan appen stängd — OK, eller ingen offline-drain?
+1. **Energi-aggressivitet:** **mildare** — idle ~1/15–20 min, raid drain 1–2, rum av vid **&lt;10**, varning vid **&lt;30**. (Inte den vassare varianten.)
+2. **Reinforce-kostnad:** **billigare / scrap-only** i T1 (ingen del krävs).
+3. **Underhåll vs Wake the Core:** oförändrat öppet för T1-D — default: prompt ovanpå tills playtest säger annat.
+4. **Payoff-språk:** UI-label **UNLOCKAR:** (svenska etikett) + engelsk body-copy som spelet i övrigt.
+5. **B8 / hard unlock:** T1-A **visar** "UNLOCKAR: Bunker Hard · BIT look Arctic" även om grant redan finns / speglas från `reward.unlock`.
+6. **Idle-drain offline:** **nästan ingen** offline-drain (cap ~2–3).
 
 ---
 
-## Beslut efter godkännande
+## Build-ordning efter godkännande
 
-När Robert säger go: starta **T1-A** (payoff-copy) + **T1-C** (map checklist) som första build-PR:ar; uppdatera PRB-89 status → In Progress.
+Starta **T1-A** (payoff-copy) först; **T1-C** parallellt ok. **T1-D (energi) senare — implementera inte ännu.** PRB-89 = In Progress.
