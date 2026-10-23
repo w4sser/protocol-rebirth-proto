@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.77.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.78.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -726,8 +726,7 @@ function questLogHtml(tab, sel){
       (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }
-  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><button type="button" class="qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + (S.cur.chips || 0) + '</button></div>' +
-    '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="qwrap"><div class="qtabs">' + tabs + '<button type="button" class="qtab qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + '<i class="qn">' + (S.cur.chips || 0) + '</i></button></div>' + body + '</div></div>';
 }
 // RAID in the quest detail: the normal deploy flow, aimed at the quest's area (raids always start at level 1). Disabled while the area is locked.
 function questRaidBtn(chain, def, ready){
@@ -1176,10 +1175,11 @@ function updateNav(){
   const b = document.getElementById("navback"), tb = document.getElementById("topbar"), ov = !!document.getElementById("overlay");
   document.body.classList.toggle("has-overlay", ov);
   if(tb) document.documentElement.style.setProperty("--tb-h", (tb.offsetHeight || 0) + "px");
+  const nv = document.getElementById("tabs"); if(nv) document.documentElement.style.setProperty("--nav-h", (nv.offsetHeight || 0) + "px");
   if(b) b.hidden = !(ov || (session.screen && session.screen !== "base" && session.screen !== "intro"));
 }
 if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
-  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); });
+  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
