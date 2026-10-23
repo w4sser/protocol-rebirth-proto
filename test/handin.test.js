@@ -61,7 +61,9 @@ let pop = d.querySelector("#overlay .handin"); assert(pop && pop.closest(".pop-c
 assert(d.querySelector("#overlay .pop-x[data-close]") && pop.firstElementChild.classList.contains("pop-x") || pop.querySelector(".pop-x"), "close X from the shared component");
 assert.equal(pop.querySelectorAll(".hi-req .qt").length, 2, "one tile per required item"); assert(pop.querySelector(".hi-req .qt.fir .firmk"), "FIR marker on requirement tiles");
 assert(pop.querySelector(".hi-req").textContent.includes("2/2") && pop.querySelector(".hi-req").textContent.includes("1/1"), "have/need counts");
-assert(pop.querySelectorAll(".hi-rw .qt").length >= 1, "reward tiles"); const go = pop.querySelector("button.primary.big.hi-go"); assert(go && go.textContent.includes("HAND IN"), "big primary HAND IN");
+assert(pop.querySelectorAll(".hi-rw .qt").length >= 1, "reward tiles");
+assert(pop.querySelector(".hi-unlock") && pop.querySelector(".hi-unlock").textContent.includes("UNLOCKAR:"), "T1-A UNLOCKAR line");
+const go = pop.querySelector("button.primary.big.hi-go"); assert(go && go.textContent.includes("HAND IN"), "big primary HAND IN");
 assert(!T.maybeShowHandIn(), "not twice per session once shown");
 const chips = S().cur.chips; assert.equal(go.getAttribute("onclick"), "A.QUEST_HANDIN({chain:'bunker'})"); A.QUEST_HANDIN({ chain:"bunker" });
 assert(pop.classList.contains("consuming"), "item tiles animate out"); assert(!pop.classList.contains("paid"));
