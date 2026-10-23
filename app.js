@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.85.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.86.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -464,9 +464,11 @@ function craftOutput(r){
   act("ITEM_CRAFTED", { recipe: r.id });
   return r.output.currency ? r.output.qty + " " + CUR_LABELS[r.output.currency] : (r.output.qty > 1 ? r.output.qty + "× " : "") + ITEMS[r.output.itemId].name;
 }
-function rollScavenge(rng){
+function scavPools(){ return IDLE.scavenge.t1.concat(IDLE.scavenge.t2); }
+// focus: { itemId, p } (Loot priority skill) - each basic pick becomes the tracked part with chance p.
+function rollScavenge(rng, focus){
   const C = IDLE.scavenge, r = rng || Math.random, ri = ([a, b]) => a + Math.floor(r() * (b - a + 1)), items = {};
-  const n = ri(C.t1Count); for(let i = 0; i < n; i++){ const id = C.t1[Math.floor(r() * C.t1.length)]; items[id] = (items[id] || 0) + 1; }
+  const n = ri(C.t1Count); for(let i = 0; i < n; i++){ const id = focus && r() < focus.p ? focus.itemId : C.t1[Math.floor(r() * C.t1.length)]; items[id] = (items[id] || 0) + 1; }
   if(r() < C.t2Chance){ const id = C.t2[Math.floor(r() * C.t2.length)]; items[id] = (items[id] || 0) + 1; }
   return { scrap: ri(C.scrap), items };
 }
@@ -477,9 +479,9 @@ function tickIdle(){
   for(const modId of Object.keys(I.builds)){ const b = I.builds[modId];
     if(now >= b.doneAt){ delete I.builds[modId]; finishModuleLevel(modId, b.level); rows.push({ kind:"build", icon:"build", txt:MODS[modId].name + " L" + b.level + " finished" }); } }
   while(I.fab.length && now >= I.fab[0].doneAt){ const job = I.fab.shift(), r = D.recipes.find(x => x.id === job.rid); if(r) rows.push({ kind:"craft", icon:"room-fabricator", txt:"Crafted " + craftOutput(r) }); }
-  if(I.scav && now >= I.scav.returnAt){ const loot = I.scav.loot; I.scav = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
+  if(I.scav && now >= I.scav.returnAt){ const loot = I.scav.loot; I.scav = null; I.scavPending = loot;   // v1.86: waits for the player's Confirm (persisted in S.idle)
     act("SCAVENGE_RETURNED", loot);
-    rows.push({ kind:"scav", icon:"scavenge", txt:"BIT is back: +" + loot.scrap + " Scrap" + Object.entries(loot.items).map(([id, q]) => ", " + q + "× " + ITEMS[id].name).join("") }); }
+    rows.push({ kind:"scav", icon:"scavenge", txt:"BIT is back with a haul. Confirm it in BIT." }); }
   if(rows.length){ I.away = I.away || { rows:[] }; I.away.rows.push(...rows); }
   return rows;
 }
@@ -708,13 +710,45 @@ function fabCraftHtml(){
         : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
   }).join("") + '</div>';
 }
+function scavLootText(loot){ return "+" + loot.scrap + " Scrap" + Object.entries(loot.items).map(([id, q]) => ", " + q + "× " + ITEMS[id].name).join(""); }
+function scavPending(){ return (S.idle && S.idle.scavPending) || null; }
+// Confirm: the only place a BIT haul is deposited. Clears pending first so a double tap can never pay twice.
+function confirmScav(){
+  const I = idleState(), loot = I.scavPending; if(!loot) return false;
+  I.scavPending = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
+  act("SCAVENGE_CONFIRMED", loot); save(); return true;
+}
+// Active BIT skill (S.bitSkill) counts only while its bond level is met and BIT Bay is online.
+function bitSkillDef(id){ return (D.bit.skills || []).find(k => k.id === id) || null; }
+function bitSkillUnlocked(id){ const k = bitSkillDef(id); return !!k && bitOnline() && bondLevel() >= k.bond; }
+function bitSkillOn(id){ return S.bitSkill === id && bitSkillUnlocked(id); }
+function scoutLead(){ const miss = bitSkillOn("zone_scout") && !bitAway() ? trackedMissingItem() : null; const lead = miss && bestLead(miss.itemId); return lead ? { miss, lead } : null; }
+function bitShieldBurst(){ const k = bitSkillDef("shield_burst"); return k && bitSkillOn("shield_burst") && !bitAway() ? k.shield : 0; }
 function scavCardHtml(){
   if(!bitOnline()) return "";
-  const I = idleState(), now = idleNow();
+  const I = idleState(), now = idleNow(), pend = scavPending();
+  if(pend) return '<div class="idlecard scav pending"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is back with a haul</b><small>' + esc(scavLootText(pend)) + '. Waiting for your Confirm.</small></span>' +
+    '<button type="button" class="primary inline" onclick="A.openHaul()">CONFIRM</button></div>';
   if(I.scav) return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
-  const busy = !!S.expedition;
-  return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.</small></span>' +
+  const busy = !!S.expedition, miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, aim = miss && scavPools().includes(miss.itemId) ? miss : null;
+  return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.' + (aim ? ' Priority: ' + esc(ITEMS[aim.itemId].name) + '.' : '') + '</small></span>' +
     '<button type="button" class="ghost inline" ' + (busy ? 'disabled' : 'onclick="A.sendScavenge()"') + '>SEND</button></div>';
+}
+function haulPopupHtml(pend){
+  return '<div class="bpop haulpop" data-module="bit_bay"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("scavenge") + '</span><h1>BIT is back</h1></div>' +
+    '<p class="eff">BIT brought this back from the scavenging run. It stays here until you confirm.</p><div class="costs">' +
+    '<div class="cost ok"><i aria-hidden="true">' + IC("cur-scrap") + '</i><b>+' + pend.scrap + '</b><span class="cname">Scrap</span></div>' +
+    Object.entries(pend.items).map(([id, q]) => '<div class="cost ok"><i aria-hidden="true">' + IC(ITEMS[id].icon) + '</i><b>+' + q + '</b><span class="cname">' + esc(ITEMS[id].name) + '</span></div>').join("") + '</div>' +
+    '<button class="primary big" onclick="A.confirmHaul()">CONFIRM</button></div>';
+}
+function bitSkillsHtml(){
+  const rows = D.bit.skills.map(k => {
+    const open = bitSkillUnlocked(k.id), on = bitSkillOn(k.id);
+    return '<div class="kv bitskill' + (on ? ' on' : '') + (open ? '' : ' locked') + '" data-skill="' + k.id + '"><span><b>' + esc(k.name) + '</b><br><small>' + esc(k.brief) + '</small></span>' +
+      (open ? '<button type="button" class="' + (on ? 'primary' : 'ghost') + ' inline" onclick="A.setBitSkill(\'' + k.id + '\')">' + (on ? 'ACTIVE' : 'SET') + '</button>'
+            : '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' Bond LV ' + k.bond + '</button>') + '</div>';
+  }).join("");
+  return '<div class="card bitskills"><div class="row"><b>BIT skills</b><span class="small">One active at a time</span></div>' + rows + '</div>';
 }
 /* ---------- v1.57 BIT Quests (data/quests.js): 3 per day, 1 free swap, always solvable with current unlocks ---------- */
 const QD = D.quests, QF = D.questFacts || {};
@@ -1515,7 +1549,7 @@ function renderCurrencies(){
   h += powerMeterHtml();
   if(bitOnline()){
     const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
-    h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
+    h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + (scavPending() ? ', haul waiting' : '') + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
   }
   document.getElementById("currencies").innerHTML = h;
 }
@@ -1952,7 +1986,7 @@ SCREENS.bit = function(){
   html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
     '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
     '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questEntryHtml() + traderEntryHtml() + scavCardHtml();
+  html += questEntryHtml() + traderEntryHtml() + scavCardHtml() + bitSkillsHtml();
   if(retMode() !== "core"){
     if(bitAway()){
       html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
@@ -2264,6 +2298,7 @@ SCREENS.prep = function(){
       (lead ? '<div class="kv"><span>Best known search</span><span class="trackc">' + esc(lead.zone.name) + ' — ' + esc(lead.route.name) + '</span></div>' +
         '<div class="kv"><span>Chance</span><span class="ok">' + lead.label + '</span></div>' +
         '<div class="kv"><span>Threat</span><span class="warn">' + IC("threat").repeat(lead.route.threat) + '</span></div>' : '') +
+      (scoutLead() ? '<div class="small scoutnote" style="margin-top:4px">' + IC("bit-face") + ' Zone scout: ' + esc(lead.zone.name) + ' via ' + esc(lead.route.name) + '</div>' : '') +
       (bitOnline() && !bitAway() && lead ? '<div class="small" style="margin-top:4px">BIT: ' + esc(bitLine("route_reco", { route: lead.route.name, item: ITEMS[miss.itemId].name })) + '</div>' : '') +
       '</div>';
   }
@@ -2275,7 +2310,7 @@ SCREENS.prep = function(){
       (locked?"":'onclick="A.prepSet(\'zoneId\',\'' + z.id + '\')"') + '>' +
       '<div class="row"><b>' + esc(z.name) + '</b><span class="small">threat ' + IC("threat").repeat(z.threat) + '</span></div>' +
       '<div class="small">' + esc(z.tagline) + '</div>' +
-      '<div>' + (bondLevel() >= 4
+      '<div>' + (scoutLead() && scoutLead().lead.zone.id === z.id ? '<span class="pill ok">BIT SCOUT</span>' : '') + (bondLevel() >= 4 || (scoutLead() && scoutLead().lead.zone.id === z.id)
         ? [...z.lootTable].sort((a,b)=>b.weight-a.weight).slice(0,3).map(l=>'<span class="pill ok">' + esc(ITEMS[l.itemId].name) + '</span>').join("")
         : z.likelyFamilies.map(f=>'<span class="pill">' + f + '</span>').join("")) +
       '<span class="pill">intel ' + (S.zoneIntel[z.id]||0) + '</span>' +
@@ -2286,7 +2321,7 @@ SCREENS.prep = function(){
   for(const rt of (zoneSel.routes||[])){
     const selr = p.routeId === rt.id;
     const slotsQ = Math.max(1, 4 + (rt.lootSlotMod||0));
-    const chip = miss ? '<span class="pill trackc">' + esc(ITEMS[miss.itemId].name) + ': ' + chanceLabel(trackedChanceP(miss.itemId, zoneSel, rt, slotsQ)) + '</span>' : '';
+    const chip = (scoutLead() && scoutLead().lead.route.id === rt.id && scoutLead().lead.zone.id === zoneSel.id ? '<span class="pill ok">BIT SCOUT</span>' : '') + (miss ? '<span class="pill trackc">' + esc(ITEMS[miss.itemId].name) + ': ' + chanceLabel(trackedChanceP(miss.itemId, zoneSel, rt, slotsQ)) + '</span>' : '');
     html += '<div class="card tap ' + (selr?"selected":"") + '" onclick="A.prepSet(\'routeId\',\'' + rt.id + '\')">' +
       '<div class="row"><b>' + esc(rt.name) + '</b><span class="small warn">' + IC("threat").repeat(rt.threat) + '</span></div>' +
       '<div class="small">' + esc(rt.desc) + '</div>' +
@@ -3621,6 +3656,7 @@ window.A = {
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
     const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
     if(rb) for(const k in rb) stats[k] = clampStat(k, stats[k] + rb[k]);
+    const sb = bitShieldBurst(); if(sb) stats.shield = clampStat("shield", stats.shield + sb);   // BIT Shield burst skill (v1.86)
     const intro = guidedRaid(), pay = intro ? null : takeFirstPayoff(!!tool), launchTool = tool || (pay && pay.freeTool) || null;
     // Deploy is free, but equipped gear (non-Basic weapon, armour), medkits and the tool slot go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
@@ -3924,14 +3960,25 @@ window.A = {
     if(session.welcome) session.welcome.stored = 0; refresh();
   },
   sendScavenge(){
-    const I = idleState(); if(!bitOnline() || I.scav || S.expedition) return;
-    const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge() };
+    const I = idleState(); if(!bitOnline() || I.scav || I.scavPending || S.expedition) return;   // one BIT assignment at a time; confirm the last haul first
+    const miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, k = bitSkillDef("loot_priority");
+    const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge(null, miss && scavPools().includes(miss.itemId) ? { itemId:miss.itemId, p:k.bias } : null) };
     act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN)); refresh();
+  },
+  openHaul(){ const pend = scavPending(); if(!pend) return; overlay(haulPopupHtml(pend), null, "sheet"); },
+  confirmHaul(){
+    const pend = scavPending(); if(!pend) return;
+    closeAllPopups(); confirmScav(); toast(scavLootText(pend)); refresh();
+  },
+  setBitSkill(id){
+    if(!bitSkillUnlocked(id)) return;
+    S.bitSkill = S.bitSkill === id ? null : id;     // exactly one (or none): picking another replaces the active one
+    act("BIT_SKILL_SET", { skill:S.bitSkill }); save(); refresh();
   },
   dismissWelcome(){ session.welcome = null; const el = document.querySelector(".welcome"); if(el) el.remove(); },
   sendExpedition(){
     const R = D.retention.expedition;
-    if(bitAway() || (S.idle && S.idle.scav) || S.cur.scrap < R.costScrap || !bitOnline()) return;
+    if(bitAway() || (S.idle && (S.idle.scav || S.idle.scavPending)) || S.cur.scrap < R.costScrap || !bitOnline()) return;
     S.cur.scrap -= R.costScrap;
     const miss = trackedMissingItem();
     S.expedition = { returnAt: Date.now() + R.durationSec*1000, trackedItemId: miss ? miss.itemId : null };
@@ -4384,4 +4431,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };

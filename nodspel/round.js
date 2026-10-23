@@ -1,8 +1,8 @@
-import {generateLevel,RULES,isHard} from './levels.js?v=1.85.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.85.0';
-import {emptyBag,bagItems} from './raid.js?v=1.85.0';
-import {traceTargets} from './physics.mjs?v=1.85.0';
-import {shieldBlocks} from './encounters.js?v=1.85.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=1.86.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=1.86.0';
+import {emptyBag,bagItems} from './raid.js?v=1.86.0';
+import {traceTargets} from './physics.mjs?v=1.86.0';
+import {shieldBlocks} from './encounters.js?v=1.86.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
