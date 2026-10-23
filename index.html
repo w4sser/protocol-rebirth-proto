@@ -731,6 +731,8 @@
   #app{padding-top:calc(var(--tb-h,0px) + 4px); padding-bottom:calc(var(--nav-h,0px) + 8px);}
   #app.s-base{padding:0;}
   #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
+  .qlog .qtabs{padding-top:26px}
+  #app.s-prep{padding-top:calc(var(--tb-h,0px) + 2px)!important; padding-bottom:calc(var(--nav-h,0px) + 6px)!important;}
   @media (orientation:landscape) and (max-height:480px){
     #tabs{position:absolute!important; background:none!important; border:0!important;}
     #app{padding-bottom:calc(var(--nav-h,0px) + 8px); padding-top:calc(var(--tb-h,0px) + 2px);}
@@ -963,7 +965,7 @@
   button.primary.big.raidcta,.playbtn,#tabs .nav-prep:not(.locked){background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);}
   .progress-goal{display:flex;flex-direction:column;gap:4px;background:#0d1a20f5;border:1px solid #75cfcc;border-radius:12px;padding:10px;max-width:310px;font-size:12px;color:#f2e9d6;text-align:left;}
   .progress-goal>b{font-size:15px;color:#75cfcc;}.progress-goal>div{display:flex;flex-wrap:wrap;gap:4px 12px;}.progress-goal small{color:#a7bfbd;}.progress-goal button{min-height:32px;font-size:11px;margin:0;padding:5px;}
-  .s-base .progress-goal{position:absolute;left:calc(12px + var(--sl));bottom:12px;z-index:8;width:min(300px,calc(100% - 24px));}
+  .s-base .progress-goal{position:absolute;left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);z-index:8;width:min(300px,calc(100% - 24px));}
   /* v1.67 goal effect tiles: max 3 compact tiles (icon + value + label) from DATA.upgradeRewardTiles */
   .progress-goal>.gtiles{display:flex;flex-wrap:nowrap;gap:3px}.gtile{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:3px;padding:3px 4px;border-radius:8px;background:var(--solid);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent)}
   .gtile .pr-ic{flex:none;width:16px;height:16px;color:var(--ad-bit)}.gtile.gear{border-color:var(--ad-loot)}.gtile.gear .pr-ic{color:var(--ad-loot)}

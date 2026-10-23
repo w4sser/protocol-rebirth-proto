@@ -1605,19 +1605,22 @@ function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
   if(!card || !card.offsetHeight) return;
-  const nav = document.getElementById("tabs"), n = nav && nav.offsetHeight ? nav.getBoundingClientRect() : null;
+  const box = id => { const e = document.getElementById(id); return e && e.offsetHeight ? e.getBoundingClientRect() : null; };
+  const n = box("tabs"), tb = box("topbar");
   const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
+  const bad = m => hit(m, c) || (n && hit(m, n)) || (tb && hit(m, tb));
   plates.forEach((p, i) => {
     const r = rects[i];
-    // Blocked: under the card, or in the strip below the card top where the card column / nav bar hides it.
-    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n));
+    // Blocked: under the card, or in the strip below the card top where the card column hides it, or under the floating nav / top chips.
+    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n)) || (tb && hit(r, tb));
     if(!blocked) return;
-    const moves = [[0, c.top - gap - r.bottom], [c.right + gap - r.left, 0], [c.right + gap - r.left, c.top - gap - r.bottom]];
+    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? Math.min(c.top, n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
+    const moves = [[0, up], [right, 0], [right, up], [0, lift], [right, lift], [0, drop], [right, drop]];
     for(const [dx, dy] of moves){
       const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
-      if(m.top < v.top + gap || m.right > v.right - gap || hit(m, c) || (n && hit(m, n)) || rects.some((o, j) => j !== i && hit(m, o))) continue;
+      if(m.top < v.top + gap || m.right > v.right - gap || bad(m) || rects.some((o, j) => j !== i && hit(m, o))) continue;
       p.style.translate = (dx / scale) + "px " + (dy / scale) + "px"; rects[i] = m; return;
     }
   });

@@ -65,7 +65,12 @@ function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
     for(let p=el.parentElement;p&&p!==document.documentElement;p=p.parentElement){
       const o=getComputedStyle(p);
       if(/auto|scroll/.test(o.overflowX+o.overflowY))scrolls=true;
-      if(o.overflowX!=='visible'||o.overflowY!=='visible'){const pr=p.getBoundingClientRect();c={l:Math.max(c.l,pr.left),t:Math.max(c.t,pr.top),r:Math.min(c.r,pr.right),b:Math.min(c.b,pr.bottom)};}
+      if(o.overflowX!=='visible'||o.overflowY!=='visible'){const pr=p.getBoundingClientRect();let pt=pr.top,pb=pr.bottom;
+        if(p.id==='app'){ // v1.78 floating HUD: #app is full-bleed, so scrolling content hidden under the chips/buttons counts as scrolled away
+          const tb=document.getElementById('topbar'),nv=document.getElementById('tabs');
+          if(scrolls&&tb&&tb.offsetHeight)pt=Math.max(pt,tb.getBoundingClientRect().bottom);
+          if(scrolls&&nv&&nv.offsetHeight)pb=Math.min(pb,nv.getBoundingClientRect().top);}
+        c={l:Math.max(c.l,pr.left),t:Math.max(c.t,pt),r:Math.min(c.r,pr.right),b:Math.min(c.b,pb)};}
     }
     // pannable world content (base plates, world-map regions) may legitimately sit under HUD panels / scroll away
     const world=el.matches('.mapspot,.wm-region,.wm-beacon,.wm-label');
@@ -199,10 +204,10 @@ async function baseRun([w,h]){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(name==='worldmap-new'?1300:350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
         if(name==='base'){ // v1.67: room plates never sit under the goal card
-          const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs');if(!c||!vw)return [];
-            const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
+          const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs'),tbar=document.getElementById('topbar');if(!c||!vw)return [];
+            const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,tbr=tbar&&tbar.offsetHeight?tbar.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
             for(const p of document.querySelectorAll('.baseworld .mapspot.plate')){const r=p.getBoundingClientRect(),t=(p.querySelector('b')||p).textContent.trim();
-              if(ov(a,r))out.push(t+'" sits under the goal card');else if(n&&ov(n,r))out.push(t+'" sits under the nav bar');
+              if(ov(a,r))out.push(t+'" sits under the goal card');else if(n&&ov(n,r))out.push(t+'" sits under the nav bar');else if(tbr&&!p.classList.contains('gate')&&ov(tbr,r))out.push(t+'" sits under the top chips');
               else if(!p.classList.contains('gate')&&(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1))out.push(t+'" is not fully inside the viewer');}
             return out;});
           for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}`);
