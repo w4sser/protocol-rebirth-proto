@@ -593,13 +593,25 @@ function renderLabels(){
     if(!l.el.hidden){l.el.style.left=`${sx}px`;l.el.style.top=`${sy}px`;
       if(l.range)l.el.style.opacity=labelOpacity(l.range,Math.hypot(l.point.x-position.x,l.point.z-position.z)).toFixed(2);}
   }
-  // shock-pad icons have priority; stacked enemy labels shift up (or hide) so nothing overlaps
+  // shock-pad icons have priority; enemy badges on/near a pad hide so the lightning icon stays readable
+  for(const l of labels){
+    if(l.range!=='enemy'||l.el.hidden)continue;
+    for(const {hazard} of hazardLabels){
+      if(Math.hypot(l.point.x-hazard.x,l.point.z-hazard.z)<1.4){l.el.hidden=true;break;}
+    }
+  }
   const boxes=[];
-  // measure the real size every frame (text changes with range mode / state); one layout pass, reads only
+  // real screen boxes — fixed 40x40 hazard approx missed pad-vs-enemy overlaps on 667x375 CI
   for(const l of labels)if(l.range&&!l.el.hidden&&l.el.offsetWidth){l.size=[l.el.offsetWidth,l.el.offsetHeight];}
-  for(const {label} of hazardLabels)if(!label.el.hidden)boxes.push({id:label.id,x:label.sx,y:label.sy+18,w:40,h:40,priority:labelPriority({kind:'hazard'})});
-  for(const l of labels)if(l.range&&!l.el.hidden){const [w,h]=l.size??[60,14];
-    boxes.push({id:l.id,x:l.sx,y:l.sy+(l.anchorDy??0),w,h,priority:labelPriority({kind:l.range,needed:l.el.classList.contains('needed-loot'),attacking:l.el.classList.contains('winding')||l.el.classList.contains('locked'),dist:Math.hypot(l.point.x-position.x,l.point.z-position.z)})});}
+  for(const {label} of hazardLabels)if(!label.el.hidden){
+    const r=label.el.getBoundingClientRect(),w=Math.max(r.width,28)+8,h=Math.max(r.height,28)+8;
+    boxes.push({id:label.id,x:r.width?r.left+r.width/2:label.sx,y:r.height?r.bottom:label.sy+18,w,h,priority:labelPriority({kind:'hazard'})});
+  }
+  for(const l of labels)if(l.range&&!l.el.hidden){
+    const r=l.el.getBoundingClientRect();
+    const w=r.width||(l.size?l.size[0]:60),h=r.height||(l.size?l.size[1]:14);
+    boxes.push({id:l.id,x:r.width?r.left+r.width/2:l.sx,y:r.height?r.bottom:l.sy+(l.anchorDy??0),w,h,priority:labelPriority({kind:l.range,needed:l.el.classList.contains('needed-loot'),attacking:l.el.classList.contains('winding')||l.el.classList.contains('locked'),dist:Math.hypot(l.point.x-position.x,l.point.z-position.z)})});
+  }
   const shown=resolveLabels(boxes,{hud:hudRects,now:performance.now(),state:labelState});
   for(const {label} of hazardLabels)if(!label.el.hidden&&shown.get(label.id)===false)label.el.hidden=true;
   for(const l of labels)if(l.range&&!l.el.hidden&&shown.get(l.id)===false)l.el.hidden=true;
