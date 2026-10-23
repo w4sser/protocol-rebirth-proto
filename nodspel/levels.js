@@ -1,5 +1,5 @@
-import {townizeLevel} from './town-layout.js?v=1.76.0';
-import {applyEncounters} from './encounters.js?v=1.76.0';
+import {townizeLevel} from './town-layout.js?v=1.77.0';
+import {applyEncounters} from './encounters.js?v=1.77.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},

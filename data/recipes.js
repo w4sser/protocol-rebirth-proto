@@ -34,6 +34,32 @@ window.DATA.recipes = [
 // "Scrap it" (junk recycling): any common item -> scrap. Unlocked with Fabricator L1.
 window.DATA.scrapJunkRate = 0.5; // scrap gained = sellValue * rate
 
+// Quick clean (stash OVERFLOW): only items worth at most this much Scrap each are suggested.
+window.DATA.quickCleanMaxValue = 60;
+
+// Recycle map (v1.77): item -> base material it breaks down into. Always lossy (test: the output is worth less than the input).
+// Base materials are the stackable commons the base builds with: Scrap Alloy (mechanical, power, bio filler) and Cable /
+// Circuit Board (power / electronics parts). Not listed = not recyclable (base materials themselves, protocol and story
+// items, valuables, gear, currencies, tools). `reason` strings for the disabled button come from recycleBlockReason().
+window.DATA.recycleTo = {
+  cable:{ to:"scrap_alloy", qty:1 }, fuse:{ to:"scrap_alloy", qty:1 }, power_cell:{ to:"cable", qty:2 }, power_relay:{ to:"cable", qty:3 },
+  servo:{ to:"scrap_alloy", qty:2 }, polymer_plate:{ to:"scrap_alloy", qty:1 }, hydraulic_component:{ to:"scrap_alloy", qty:3 },
+  circuit_board:{ to:"scrap_alloy", qty:1 }, optical_sensor:{ to:"circuit_board", qty:2 }, memory_module:{ to:"circuit_board", qty:2 },
+  transmitter:{ to:"circuit_board", qty:2 },
+  med_gel:{ to:"scrap_alloy", qty:1 }, bio_sample:{ to:"scrap_alloy", qty:1 }, purification_filter:{ to:"scrap_alloy", qty:2 },
+  tidal_coil:{ to:"cable", qty:2 }, frost_glass:{ to:"scrap_alloy", qty:2 }
+};
+window.DATA.recycleBlockReason = function(id){
+  var D = window.DATA, it = (D.items || []).find(function(i){ return i.id === id; });
+  if(!it) return "Unknown item";
+  if(it.free) return "Always available";
+  if(D.recycleTo[id]) return "";
+  if(it.id === "scrap_alloy") return "Already a base material";
+  if(it.slot || it.weapon || it.tool || (it.uses || []).indexOf("loadout") >= 0) return "Gear can only be sold";
+  if(it.family === "protocol" || (it.uses || []).indexOf("story") >= 0) return "Too valuable to break down";
+  return "Nothing to salvage";
+};
+
 // Single source of truth for "what is this item for?" (v1.64). Derived at call time from the REAL module costs and
 // recipe inputs, so the raid loot label, the first-find info card and the stash card can never promise a use that
 // does not exist. Returns { uses:[{kind,label,short}], sell, recycle, line }.
@@ -56,5 +82,22 @@ window.DATA.itemInfo = function(id){
   else if(it.scouts) line = "Scouting";
   else { var ups = uses.filter(function(u){ return u.kind === "upgrade"; }), up = ups.filter(function(u){ return !(u.module === "rebirth_core" && u.level === 1); })[0] || ups[0]; // Core L1 is built in the intro
     line = up ? "Base part · " + up.short : uses.length ? "Fabricator part" : "Sell " + sell; }
-  return { item:it, uses:uses, sell:sell, recycle:recycle, line:line };
+  // Usage flags for stash tile icons, all derived from existing data: quest (chain objectives, quest items), build (module
+  // costs, recipes), shop (vendor stock / barter), chip (chip shop item or chip recycle source).
+  var chains = D.questChains || {}, quest = (it.uses || []).indexOf("quest") >= 0, shop = false, chip = false;
+  Object.keys(chains).forEach(function(c){ (chains[c].steps || []).forEach(function(st){
+    var o = st.objective || {};
+    if((o.items && o.items[id]) || o.item === id || (st.reward && st.reward.items && st.reward.items[id])) quest = true;
+  }); });
+  (D.vendors || []).forEach(function(v){
+    (v.stock || []).forEach(function(x){ if(x.itemId === id) shop = true; });
+    (v.barter || []).forEach(function(b){ if(b.give[id] || b.receive.itemId === id) shop = true; });
+  });
+  var cs = D.chipShop;
+  if(cs){
+    (cs.items || []).forEach(function(x){ if(x.kind === "item" && x.ref === id) chip = true; });
+    Object.keys(cs.recycle || {}).forEach(function(k){ if(cs.recycle[k].item === id) chip = true; });
+  }
+  var usage = { quest:quest, build:uses.length > 0, shop:shop, chip:chip };
+  return { item:it, uses:uses, sell:sell, recycle:recycle, line:line, usage:usage };
 };

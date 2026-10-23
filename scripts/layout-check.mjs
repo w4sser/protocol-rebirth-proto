@@ -158,6 +158,8 @@ async function newPage(w,h){
 
 // ---- base (meta) ----
 const PROGRESSED="document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
+// v1.77 stash: stuffed stash (OVERFLOW + usage icons), sell/recycle popup, quest-warning confirm, quick-clean popup.
+const STUFF='S.modules.storage=0;S.stash={cable:7,fuse:10,scrap_alloy:20,servo:10,med_gel:10,bio_sample:10,power_cell:5,polymer_plate:10,circuit_board:10,optical_sensor:5,memory_module:5,purification_filter:5,hydraulic_component:5,transmitter:3,power_relay:5,tidal_coil:5,frost_glass:5,core_ash:3,prewar_relic:5};S.fir={polymer_plate:10,scrap_alloy:4};S.chains={bunker:{step:2,prog:0}};';
 async function baseRun([w,h]){
   const tag=`base ${w}x${h}`;console.log(tag);
   for(const mode of ['fresh','progressed']){
@@ -173,6 +175,7 @@ async function baseRun([w,h]){
         ['pop-core','A.go("base");A.openBuilding("rebirth_core")'],['pop-fabricator','A.go("base");A.openBuilding("fabricator")'],['pop-storage','A.go("base");A.openBuilding("storage")'],
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
         ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-handin','A.go("base");A.handInDemo()'],['pop-handin-extract','A.go("base");A.handInDemo("extract")'],['pop-quests-fir','A.questLogDemo()'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
+        ['stash-stuffed',STUFF+'A.go("stash")'],['pop-stash-sell',STUFF+'A.go("stash");A.openStashItem("cable");A.stashQty(1)'],['pop-stash-warn',STUFF+'A.go("stash");A.openStashItem("polymer_plate");A.stashQty(0);A.stashAct("sell")'],['pop-stash-free',STUFF+'A.go("stash");A.openStashItem("basic_carbine")'],['pop-stash-clean',STUFF+'A.go("stash");A.openQuickClean()'],
         ['settings','A.go("base");document.getElementById("menubtn").click()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}

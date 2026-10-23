@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.76.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.77.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -141,7 +141,7 @@ function bondLevel(){
   return lvl;
 }
 function stashCapacity(){
-  return D.baseStashCapacity + (S.modules.storage >= 1 ? D.storageBonus : 0);
+  return D.stashCapacityFor(S.modules.storage || 0);
 }
 // Free items (Basic Carbine) are infinite: never stored, never counted, never lost/sold.
 function isFree(id){ return !!(ITEMS[id] && ITEMS[id].free); }
@@ -1790,12 +1790,21 @@ SCREENS.module = function(modId){
   $app().innerHTML = html;
 };
 
+// Stash usage icons (v1.77): sprite icons from D.itemInfo(id).usage, which derives from module costs, recipes, quest chains,
+// vendor stock / barter and the chip shop. Nothing is stored per item.
+const STASH_USES = [["quest","quest","Quest item"],["build","build","Base build / upgrade"],["shop","nav-shop","Trader"],["chip","cur-chip","Chip shop"]];
+function usageIconsHtml(id){
+  const info = D.itemInfo(id), u = info && info.usage; if(!u) return "";
+  const on = STASH_USES.filter(x => u[x[0]]); if(!on.length) return "";
+  return '<span class="uses" aria-label="Used for: ' + on.map(x => x[2]).join(", ") + '">' + on.map(x => '<i class="u-' + x[0] + '" title="' + x[2] + '">' + IC(x[1]) + '</i>').join("") + '</span>';
+}
+function stashOverflowing(){ return stashSlotsUsed() > stashCapacity(); }
 SCREENS.stash = function(){
   let html = '<h1>Stash</h1><div class="sub">' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots' +
-    (stashSlotsUsed() > stashCapacity() ? ' <span class="bad">OVERFLOW</span>' : '') + '</div><div class="grid">';
+    (stashOverflowing() ? ' <button type="button" class="ovf-btn" onclick="A.openQuickClean()">OVERFLOW · CLEAN UP</button>' : '') + '</div><div class="grid">';
   const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id));
   for(const id of D.items.filter(i => i.free).map(i => i.id))
-    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) +
+    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
   if(!ids.length) html += '</div><div class="card small">Empty. The surface has what you need.</div>';
   else {
@@ -1804,13 +1813,102 @@ SCREENS.stash = function(){
       const cls = ["slot","r-"+it.rarity];
       if(S.reserved[id]) cls.push("reserved");
       if(S.secureItem === id) cls.push("secure");
-      html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.itemDetail(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
-        (firHave(id) ? firMark() : '') + '<span class="qty">×' + S.stash[id] + '</span></div>';
+      html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
+        (firHave(id) ? firMark() : '') + usageIconsHtml(id) + '<span class="qty">×' + S.stash[id] + '</span></div>';
     }
     html += '</div>';
   }
   $app().innerHTML = html;
 };
+
+// ---- stash sell / recycle popup (v1.77) ----
+function sellGain(id, qty){ return Math.floor(ITEMS[id].sellValue * D.vendors[0].sellMultiplier) * qty; }
+function recycleOf(id){ return D.recycleTo[id] && ITEMS[D.recycleTo[id].to] ? D.recycleTo[id] : null; }
+// Why this item must not be sold / recycled at all ("" = allowed).
+function stashBlock(id, mode){
+  if(isFree(id)) return "Always available";
+  if(have(id) < 1) return "None left";
+  if(S.reserved[id]) return "Reserved for an upgrade";
+  if(mode === "recycle" && !recycleOf(id)) return D.recycleBlockReason(id);
+  if(mode === "sell" && !(ITEMS[id].sellValue > 0)) return "No sale value";
+  return "";
+}
+// Things that make removing `qty` of `id` risky: active hand-in objective (incl. found-in-raid copies), tracked upgrade, secure item.
+function stashWarnings(id, qty){
+  const w = [], left = have(id) - qty;
+  for(const c of Object.keys(QC)){
+    const def = chainActive(c), o = def && def.objective;
+    if(!o || o.type !== "handin" || !o.items[id]) continue;
+    const need = o.items[id], fir = raidFindable(id), after = fir ? Math.min(firHave(id), left) : left;
+    if(after < need) w.push(fir ? 'Quest "' + def.title + '" hand-in needs ' + need + ' found-in-raid. You would keep ' + Math.max(0, after) + '.' : 'Quest "' + def.title + '" hand-in needs ' + need + '. You would keep ' + Math.max(0, after) + '.');
+  }
+  const miss = S.tracked && MODS[S.tracked.module] && MODS[S.tracked.module].levels.find(l => l.level === S.tracked.level);
+  if(miss && miss.cost.items && miss.cost.items[id] && left < miss.cost.items[id]) w.push("Tracked upgrade " + MODS[S.tracked.module].name + " L" + S.tracked.level + " needs " + miss.cost.items[id] + ".");
+  if(S.secureItem === id) w.push("This is your secure item.");
+  return w;
+}
+function stashPopHtml(){
+  const p = session.stashPop, id = p.id, it = ITEMS[id], info = D.itemInfo(id);
+  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
+  const meta = '<div class="sp-meta">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div><div class="eff">' + esc(it.desc) + '</div>';
+  if(isFree(id)) return '<div class="bpop stashpop">' + head + meta + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or recycled.</div></div>';
+  p.qty = Math.max(1, Math.min(p.qty, have(id)));
+  const q = p.qty, rec = recycleOf(id), uses = info && info.uses.length ? [...new Set(info.uses.map(u => u.short))].map(esc).join(", ") : "";
+  const usedFor = uses ? '<div class="sp-used"><b>Used for:</b> ' + uses + '</div>' : '';
+  if(p.confirm){
+    const mode = p.confirm, w = stashWarnings(id, q);
+    const what = mode === "sell" ? "Sell " + q + " for +" + sellGain(id, q) + " Scrap" : "Recycle " + q + " into " + rec.qty * q + " " + ITEMS[rec.to].name;
+    return '<div class="bpop stashpop">' + head + '<div class="sp-warn" role="alert"><b>' + (w.length ? "Are you sure?" : "Confirm") + '</b>' + w.map(x => '<div>' + esc(x) + '</div>').join("") + '</div>' +
+      '<div class="sp-act"><button class="primary big" onclick="A.stashConfirm()">' + esc(what).toUpperCase() + '</button><button class="ghost" onclick="A.stashBack()">CANCEL</button></div></div>';
+  }
+  const bs = stashBlock(id, "sell"), br = stashBlock(id, "recycle");
+  const fir = firHave(id) ? '<div class="sp-fir">' + IC("fir") + ' Found in raid ×' + firHave(id) + '</div>' : '';
+  return '<div class="bpop stashpop">' + head + '<div class="sp-body"><div class="sp-l">' + meta + usedFor + fir + '</div><div class="sp-r">' +
+    '<div class="sp-qty"><button class="ghost" aria-label="Less" onclick="A.stashQty(-1)"' + (q <= 1 ? ' disabled' : '') + '>−</button><b>' + q + '</b>' +
+    '<button class="ghost" aria-label="More" onclick="A.stashQty(1)"' + (q >= have(id) ? ' disabled' : '') + '>+</button>' +
+    '<button class="ghost" onclick="A.stashQty(0)"' + (q >= have(id) ? ' disabled' : '') + '>ALL</button></div>' +
+    '<button class="primary big" onclick="A.stashAct(\'sell\')"' + (bs ? ' disabled' : '') + '>SELL +' + sellGain(id, q) + ' SCRAP</button>' +
+    (bs ? '<div class="sp-why">' + esc(bs) + '</div>' : '') +
+    '<button class="ghost" onclick="A.stashAct(\'recycle\')"' + (br ? ' disabled' : '') + '>RECYCLE' + (rec ? ' +' + rec.qty * q + ' ' + IC(ITEMS[rec.to].icon) : '') + '</button>' +
+    (br ? '<div class="sp-why">' + esc(br) + '</div>' : (rec ? '<div class="sp-why">into ' + esc(ITEMS[rec.to].name) + '</div>' : '')) +
+    '<button type="button" class="linkbtn" onclick="A.openItemDetail(\'' + id + '\')">MORE OPTIONS</button></div></div></div>';
+}
+function stashPopRender(){
+  const old = document.getElementById("overlay"); if(old) old.remove();
+  overlay(stashPopHtml(), () => { session.stashPop = null; refresh(); }, "sheet");
+}
+// Quick clean (overflow): suggested sellables, low value, not needed anywhere, not reserved / secure / free.
+function quickCleanList(){
+  const out = [], nextNeeds = {};
+  for(const m of D.modules){ const n = nextLevelDef(m.id); if(n && n.cost.items) for(const k in n.cost.items) nextNeeds[k] = 1; }
+  for(const id of Object.keys(S.stash)){
+    const it = ITEMS[id], n = S.stash[id];
+    if(!it || n < 1 || isFree(id) || S.reserved[id] || S.secureItem === id || !(it.sellValue > 0) || it.sellValue > D.quickCleanMaxValue) continue;
+    if(nextNeeds[id] || stashWarnings(id, n).length) continue;
+    out.push({ id, qty:n, slots:Math.ceil(n / (it.stackSize || 1)), gain:sellGain(id, n) });
+  }
+  return out.sort((a, b) => ITEMS[a.id].sellValue - ITEMS[b.id].sellValue || a.id.localeCompare(b.id));
+}
+function quickCleanDefault(list){
+  const sel = {}; let over = stashSlotsUsed() - stashCapacity();
+  for(const r of list){ if(over <= 0) break; sel[r.id] = true; over -= r.slots; }
+  return sel;
+}
+function quickCleanHtml(){
+  const qc = session.quickClean, list = quickCleanList(), over = stashSlotsUsed() - stashCapacity();
+  const pick = list.filter(r => qc.sel[r.id]), gain = pick.reduce((a, r) => a + r.gain, 0), freed = pick.reduce((a, r) => a + r.slots, 0);
+  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("item-crate") + '</span><h1>Quick clean</h1><em>' + stashSlotsUsed() + ' / ' + stashCapacity() + '</em></div>';
+  if(qc.confirm) return '<div class="bpop stashpop">' + head + '<div class="sp-warn" role="alert"><b>Confirm</b><div>Sell ' + pick.length + ' stack' + (pick.length === 1 ? '' : 's') + ' and free ' + freed + ' slot' + (freed === 1 ? '' : 's') + '. This cannot be undone.</div></div>' +
+    '<div class="sp-act"><button class="primary big" onclick="A.quickCleanConfirm()">SELL FOR +' + gain + ' SCRAP</button><button class="ghost" onclick="A.quickCleanBack()">CANCEL</button></div></div>';
+  if(!list.length) return '<div class="bpop stashpop">' + head + '<div class="card small">Nothing safe to suggest. Everything left is reserved, secure or needed. Sell items from the stash one by one.</div></div>';
+  return '<div class="bpop stashpop">' + head + '<div class="sp-sub">' + (over > 0 ? 'Over by ' + over + ' slot' + (over === 1 ? '' : 's') + '. ' : '') + 'Low-value items nothing needs.</div><div class="qclist">' +
+    list.map(r => '<button type="button" class="qcrow' + (qc.sel[r.id] ? ' on' : '') + '" aria-pressed="' + !!qc.sel[r.id] + '" onclick="A.quickCleanToggle(\'' + r.id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(r.id) + '</span><span class="qn">' + esc(ITEMS[r.id].name) + ' ×' + r.qty + '</span><span class="qg">+' + r.gain + '</span>' + (qc.sel[r.id] ? IC("check") : '') + '</button>').join("") +
+    '</div><button class="primary big" onclick="A.quickCleanAsk()"' + (pick.length ? '' : ' disabled') + '>SELL SELECTED +' + gain + ' · FREES ' + freed + '</button></div>';
+}
+function quickCleanRender(){
+  const old = document.getElementById("overlay"); if(old) old.remove();
+  overlay(quickCleanHtml(), () => { session.quickClean = null; refresh(); }, "sheet");
+}
 
 SCREENS.itemDetail = function(id){
   const it = ITEMS[id];
@@ -3065,12 +3163,62 @@ window.A = {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
   },
-  sell(id){
+  sell(id, qty){
     if(isFree(id)) return;
     if(have(id) < 1 || S.reserved[id]) { toast(S.reserved[id] ? "Reserved for an upgrade" : "None left"); return; }
-    const gain = Math.floor(ITEMS[id].sellValue * D.vendors[0].sellMultiplier);
-    removeItem(id,1); S.cur.scrap += gain;
-    act("ITEM_SOLD", { id, gain });
+    const q = Math.max(1, Math.min(qty || 1, have(id))), gain = sellGain(id, q);
+    removeItem(id, q); S.cur.scrap += gain;
+    act("ITEM_SOLD", { id, gain, qty:q });
+    toast("+ " + gain + " Scrap");
+    refresh();
+  },
+  recycle(id, qty){
+    const rec = recycleOf(id); if(stashBlock(id, "recycle")) return;
+    const q = Math.max(1, Math.min(qty || 1, have(id))), out = rec.qty * q;
+    removeItem(id, q); addItem(rec.to, out);
+    act("ITEM_RECYCLED", { id, qty:q, to:rec.to, out });
+    toast("Recycled: +" + out + " " + ITEMS[rec.to].name);
+    refresh();
+  },
+  openStashItem(id){
+    if(!ITEMS[id]) return;
+    session.stashPop = { id, qty:1, confirm:null }; stashPopRender();
+  },
+  openItemDetail(id){ const o = document.getElementById("overlay"); if(o) o.remove(); session.stashPop = null; A.itemDetail(id); },
+  stashQty(d){
+    const p = session.stashPop; if(!p) return;
+    p.qty = d === 0 ? have(p.id) : p.qty + d; stashPopRender();
+  },
+  // SELL / RECYCLE: warn first when a quest, hand-in or tracked upgrade still needs the copies.
+  stashAct(mode){
+    const p = session.stashPop; if(!p || stashBlock(p.id, mode)) return;
+    p.qty = Math.max(1, Math.min(p.qty, have(p.id)));
+    p.mode = mode;
+    if(stashWarnings(p.id, p.qty).length){ p.confirm = mode; stashPopRender(); return; }
+    A.stashConfirm();
+  },
+  stashConfirm(){
+    const p = session.stashPop; if(!p || !p.mode) return;
+    const { id, qty, mode } = p; session.stashPop = null;
+    const o = document.getElementById("overlay"); if(o) o.remove();
+    if(mode === "sell") A.sell(id, qty); else A.recycle(id, qty);
+    updateNav();
+  },
+  stashBack(){ const p = session.stashPop; if(!p) return; p.confirm = null; stashPopRender(); },
+  openQuickClean(){
+    session.quickClean = { sel:quickCleanDefault(quickCleanList()), confirm:false }; quickCleanRender();
+  },
+  quickCleanToggle(id){ const qc = session.quickClean; if(!qc) return; if(qc.sel[id]) delete qc.sel[id]; else qc.sel[id] = true; quickCleanRender(); },
+  quickCleanAsk(){ const qc = session.quickClean; if(qc && Object.keys(qc.sel).length){ qc.confirm = true; quickCleanRender(); } },
+  quickCleanBack(){ const qc = session.quickClean; if(qc){ qc.confirm = false; quickCleanRender(); } },
+  quickCleanConfirm(){
+    const qc = session.quickClean; if(!qc) return;
+    const ok = quickCleanList().filter(r => qc.sel[r.id]); session.quickClean = null;
+    const o = document.getElementById("overlay"); if(o) o.remove();
+    let gain = 0;
+    for(const r of ok){ removeItem(r.id, r.qty); gain += r.gain; }
+    S.cur.scrap += gain;
+    act("STASH_QUICK_CLEAN", { items:ok.map(r => r.id), gain });
     toast("+ " + gain + " Scrap");
     refresh();
   },

@@ -22,13 +22,14 @@ for(const m of D.modules) for(const l of m.levels){
       if(b === "stats.speed") assert(items[a].stats.speed, id + ": speed tile needs a speed stat");
       if(b === "bagSlots") assert(items[a].bagSlots && t.value.startsWith("+" + items[a].bagSlots), id + ": bag tile matches item bagSlots");
     }
+    else if(kind === "stash") assert(m.id === "storage" && l.stashSlots > 0, id + ": stash tile only for a level with stashSlots");
     else if(kind === "unlock") assert(unlocks.includes(a), id + ": unlock tile only for a listed unlock (" + a + ")");
     else if(kind === "recipes") assert(m.id === "fabricator" && D.recipes.some(r => r.fabricatorLevel === l.level), id + ": recipe tile needs recipes at this level");
     else if(kind === "tool") assert(items[a].tool.unlock.module === m.id && items[a].tool.unlock.level === l.level, id + ": tool tile only for a tool this level unlocks");
     else assert.fail(id + ": unknown tile source " + t.source);
     // text claims
     if(/SLOT/.test(t.value + t.label) && t.kind === "stat"){ const n = parseInt(t.value.replace(/\D/g, ""), 10);
-      const okBag = unlocks.includes("raid_bag_plus_1") || gift.some(g => items[g].bagSlots === n), okStash = unlocks.includes("stash_plus_8") && n === D.storageBonus;
+      const okBag = unlocks.includes("raid_bag_plus_1") || gift.some(g => items[g].bagSlots === n), okStash = m.id === "storage" && l.stashSlots === n;
       assert(okBag || okStash, id + ": '+N SLOT' tile only when data grants slots"); }
     if(/SHIELD/.test(t.label)) assert(gift.some(g => items[g].stats && items[g].stats.shield), id + ": shield tile needs shield data");
     if(/RECIPE|CRAFT/.test(t.value + t.label)) assert(D.recipes.some(r => r.fabricatorLevel === l.level) && m.id === "fabricator", id + ": recipe tile needs recipes");
@@ -37,7 +38,7 @@ for(const m of D.modules) for(const l of m.levels){
   // the reverse: the headline grants are shown
   if(gift.length) assert(tiles.some(t => t.source.startsWith("commissioning:")), id + ": commissioned gear is shown");
   if(unlocks.includes("raid_bag_plus_1")) assert(tiles.some(t => t.value === "+1 SLOT"), id + ": bag slot unlock is shown");
-  if(unlocks.includes("stash_plus_8")) assert(tiles.some(t => t.value === "+" + D.storageBonus), id + ": stash unlock is shown");
+  if(l.stashSlots) assert(tiles.some(t => t.value === "+" + l.stashSlots && /STASH/.test(t.label)), id + ": stash expansion is shown");
   checked++;
 }
 assert(checked >= 8, "all module levels checked");
