@@ -22,6 +22,12 @@ open.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; open.beat = 
 
 const b = boot(open), { A, d, T } = b; A.dismissIntro(); A.go("base");
 assert(T.trackedQuest(), "a chain is tracked");
+// v1.76 tab bar: RAID last (far right, after the gap), pulsing while a quest is tracked and the tab is usable
+{ const tabs = [...d.querySelectorAll("#tabs > button, #tabs > .nav-gap")];
+  assert.deepEqual(tabs.filter(x => x.tagName === "BUTTON").map(x => x.getAttribute("aria-label").replace(" (locked)", "")), ["BASE","STASH","SHOP","BIT","RAID"]);
+  assert(tabs[tabs.length - 2].classList.contains("nav-gap") && tabs[tabs.length - 1].classList.contains("nav-prep"), "gap sits right before RAID");
+  const raid = d.querySelector("#tabs .nav-prep");
+  assert.equal(raid.classList.contains("quest-pulse"), !raid.classList.contains("locked"), "pulse follows tracked quest on a usable RAID tab"); }
 // tracked goal card replaces the goal card in the same slot
 const card = d.querySelector(".s-base .progress-goal.qgoal");
 assert(card, "tracked quest card on base"); assert.equal(d.querySelectorAll(".s-base .progress-goal").length, 1, "one card in the slot");
