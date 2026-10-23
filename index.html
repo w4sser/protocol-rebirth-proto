@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.77.1" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.77.1">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.77.1">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.78.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.78.0">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.78.0">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -565,7 +565,7 @@
   .mission-panel{position:absolute; inset:0; z-index:15; overflow-y:auto; background:rgba(7,21,28,.97); padding:12px 16px 20px;}
   .mission-panel[hidden]{display:none;}
   /* v1.47: mission is a framed panel; its close badge is a sibling on the frame corner (the panel scrolls) */
-  #app .mission-panel{inset:18px calc(10px + var(--sr,0px)) 8px calc(18px + var(--sl,0px)); border:2px solid #75CFCC; border-radius:16px; padding:10px 16px 20px; overflow-y:auto!important; z-index:20;} #app .mission-x.pop-x{position:absolute; top:2px; left:calc(2px + var(--sl,0px)); z-index:21;} .mp-head.pop-head{padding-left:28px;}
+  #app .mission-panel{inset:calc(var(--tb-h,0px) + 18px) calc(10px + var(--sr,0px)) calc(var(--nav-h,0px) + 8px) calc(18px + var(--sl,0px)); border:2px solid #75CFCC; border-radius:16px; padding:10px 16px 20px; overflow-y:auto!important; z-index:20;} #app .mission-x.pop-x{position:absolute; top:calc(var(--tb-h,0px) + 2px); left:calc(2px + var(--sl,0px)); z-index:21;} .mp-head.pop-head{padding-left:28px;}
   /* v1.47 close badge on the frame corner: hosts must not clip it */
   #overlay .inner.pop-host{overflow:visible; max-height:none;} #overlay .bpop.pop-card{margin-top:16px; margin-left:16px;}
   #overlay .pop-frame{width:100%; max-width:480px; max-height:calc(100% - 16px); display:flex; flex-direction:column; box-sizing:border-box;} #overlay .pop-frame>.inner{flex:1; min-height:0; max-width:none;}
@@ -595,7 +595,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.77.1") center/contain no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.78.0") center/contain no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -636,7 +636,7 @@
   #tabs button.active[disabled]{opacity:1;}
   .navback{flex:none; width:44px; height:44px; font-size:26px; line-height:1; font-weight:700;}
   .navback[hidden]{display:none;}
-  #overlay,#overlay.sheet{top:var(--tb-h,0px); z-index:24;}
+  #overlay,#overlay.sheet{top:0; z-index:24;}
   body.has-overlay #tabs{display:none!important;}
   body.has-overlay #bitdock{display:none!important;}
   @media (orientation:landscape) and (max-height:480px){ #bitdock{display:none!important;} } /* never overlays content in landscape */
@@ -719,10 +719,32 @@
   #bitdock{margin-left:var(--sl)}body[data-screen=prep] #bitdock{margin-left:0;margin-right:var(--sr)}
   .goalpill{left:calc(10px + var(--sl))!important;max-width:min(360px,calc(100% - 20px - var(--sl) - var(--sr)))!important}
   .toastmsg,#toast{margin-left:var(--sl);margin-right:var(--sr)}
+
+  .qlog .qtabx.qchips{position:relative;width:44px;height:44px;min-height:44px;padding:0;border:0;border-radius:10px;background:color-mix(in srgb,var(--ad-bone) 5%,transparent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;margin-top:auto;color:var(--ad-loot);cursor:pointer}.qlog .qtabx.qchips svg{width:20px;height:20px}.qlog .qtabx.qchips .qn{position:static;background:none;color:var(--ad-loot);padding:0;font-size:12px;line-height:1}
+  /* v1.78 floating HUD: no full-width bars. Chips/buttons float over a full-bleed #main; --tb-h/--nav-h are measured (app.js updateNav). */
+  #main{position:absolute; inset:0; flex:none;}
+  #topbar{position:absolute!important; top:0; left:0; right:0; background:none!important; border:0!important; pointer-events:none; z-index:25;}
+  #topbar>*{pointer-events:auto;} #topbar #currencies,#topbar .title,#topbar #app-version{pointer-events:none;} #topbar .cur{pointer-events:auto;}
+  #topbar .title{display:none;}
+  #tabs{position:absolute!important; left:0; right:0; bottom:0; background:none!important; border:0!important; pointer-events:none;}
+  #tabs>*{pointer-events:auto;} #tabs .nav-gap{pointer-events:none;}
+  #app{padding-top:calc(var(--tb-h,0px) + 4px); padding-bottom:calc(var(--nav-h,0px) + 8px);}
+  #app.s-base{padding:0;}
+  #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
+  .qlog .qtabs{padding-top:26px}
+  body #app.s-prep{padding-top:calc(var(--tb-h,0px) + 4px)!important; padding-bottom:calc(var(--nav-h,0px) + 10px)!important;}
+  @media (orientation:landscape) and (max-height:480px){
+    #tabs{position:absolute!important; background:none!important; border:0!important;}
+    #app{padding-bottom:calc(var(--nav-h,0px) + 8px); padding-top:calc(var(--tb-h,0px) + 2px);}
+    #app.s-base{padding:0;}
+    body:not([data-screen=base]) #app,#app.s-result,#app.s-module,#app.s-end,#app.s-operator{padding-bottom:calc(var(--nav-h,0px) + 8px);}
+    body:not([data-screen=base]) #bitdock{bottom:calc(var(--nav-h,0px) + 8px);}
+    #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
+  }
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.77.1">
-<link rel="stylesheet" href="ui/popup.css?v=1.77.1">
-<link rel="stylesheet" href="ui/loader.css?v=1.77.1">
+<link rel="stylesheet" href="ui/tokens.css?v=1.78.0">
+<link rel="stylesheet" href="ui/popup.css?v=1.78.0">
+<link rel="stylesheet" href="ui/loader.css?v=1.78.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -753,6 +775,15 @@
   #app.s-prep .lobby-hero .ostats{display:flex;flex-direction:column;justify-content:space-evenly;gap:2px;width:100%}
   #app.s-prep .lobby-hero .ostat{display:flex;flex-direction:row;justify-content:flex-start;gap:6px;padding:2px 4px;min-height:0}
   #app.s-prep .lobby-hero .ostat b{font-size:13px}
+}
+
+/* v1.78: lobby2 used to force 6px pad + height:100% which put DEPLOY/slots under floating tabs
+   and left MISSION under the settings chip. Clear the measured HUD; keep lobby in the content box. */
+@media (orientation:landscape) and (max-height:500px){
+  #app.s-prep{padding-top:calc(var(--tb-h,0px) + 4px)!important;padding-bottom:calc(var(--nav-h,0px) + 10px)!important}
+  #app.s-prep .lobby{height:auto!important;max-height:100%}
+  #app.s-prep .mission-btn{margin-right:56px}
+  #app.s-prep .lobby-hero .operator-stats.compact{bottom:auto;max-height:calc(100% - 8px)}
 }
 
   /* v1.55 popup fit (PRB): building popups always fit the viewport; costs in one row; the CTA never clips */
@@ -943,7 +974,7 @@
   button.primary.big.raidcta,.playbtn,#tabs .nav-prep:not(.locked){background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);}
   .progress-goal{display:flex;flex-direction:column;gap:4px;background:#0d1a20f5;border:1px solid #75cfcc;border-radius:12px;padding:10px;max-width:310px;font-size:12px;color:#f2e9d6;text-align:left;}
   .progress-goal>b{font-size:15px;color:#75cfcc;}.progress-goal>div{display:flex;flex-wrap:wrap;gap:4px 12px;}.progress-goal small{color:#a7bfbd;}.progress-goal button{min-height:32px;font-size:11px;margin:0;padding:5px;}
-  .s-base .progress-goal{position:absolute;left:calc(12px + var(--sl));bottom:12px;z-index:8;width:min(300px,calc(100% - 24px));}
+  .s-base .progress-goal{position:absolute;left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);z-index:8;width:min(300px,calc(100% - 24px));}
   /* v1.67 goal effect tiles: max 3 compact tiles (icon + value + label) from DATA.upgradeRewardTiles */
   .progress-goal>.gtiles{display:flex;flex-wrap:nowrap;gap:3px}.gtile{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:3px;padding:3px 4px;border-radius:8px;background:var(--solid);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent)}
   .gtile .pr-ic{flex:none;width:16px;height:16px;color:var(--ad-bit)}.gtile.gear{border-color:var(--ad-loot)}.gtile.gear .pr-ic{color:var(--ad-loot)}
@@ -1018,13 +1049,13 @@
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.77.1</div>
+    <div id="app-version">v1.78.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.77.1</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.78.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -1039,16 +1070,16 @@
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.77.1"></script>
-<script src="data/modules.js?v=1.77.1"></script>
-<script src="data/bit.js?v=1.77.1"></script>
-<script src="data/raid_zones.js?v=1.77.1"></script>
-<script src="data/recipes.js?v=1.77.1"></script>
-<script src="data/vendors.js?v=1.77.1"></script>
-<script src="data/retention.js?v=1.77.1"></script>
-<script src="data/quests.js?v=1.77.1"></script>
-<script src="data/progression.js?v=1.77.1"></script>
-<script src="data/combat.js?v=1.77.1"></script>
-<script src="app.js?v=1.77.1"></script>
+<script src="data/items.js?v=1.78.0"></script>
+<script src="data/modules.js?v=1.78.0"></script>
+<script src="data/bit.js?v=1.78.0"></script>
+<script src="data/raid_zones.js?v=1.78.0"></script>
+<script src="data/recipes.js?v=1.78.0"></script>
+<script src="data/vendors.js?v=1.78.0"></script>
+<script src="data/retention.js?v=1.78.0"></script>
+<script src="data/quests.js?v=1.78.0"></script>
+<script src="data/progression.js?v=1.78.0"></script>
+<script src="data/combat.js?v=1.78.0"></script>
+<script src="app.js?v=1.78.0"></script>
 </body>
 </html>

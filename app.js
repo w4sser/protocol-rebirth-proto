@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.77.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.78.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -726,8 +726,7 @@ function questLogHtml(tab, sel){
       (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }
-  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Quests</h1><button type="button" class="qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + (S.cur.chips || 0) + '</button></div>' +
-    '<div class="qwrap"><div class="qtabs">' + tabs + '</div>' + body + '</div></div>';
+  return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="qwrap"><div class="qtabs">' + tabs + '<button type="button" class="qtabx qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + '<i class="qn">' + (S.cur.chips || 0) + '</i></button></div>' + body + '</div></div>';
 }
 // RAID in the quest detail: the normal deploy flow, aimed at the quest's area (raids always start at level 1). Disabled while the area is locked.
 function questRaidBtn(chain, def, ready){
@@ -1176,10 +1175,11 @@ function updateNav(){
   const b = document.getElementById("navback"), tb = document.getElementById("topbar"), ov = !!document.getElementById("overlay");
   document.body.classList.toggle("has-overlay", ov);
   if(tb) document.documentElement.style.setProperty("--tb-h", (tb.offsetHeight || 0) + "px");
+  const nv = document.getElementById("tabs"); if(nv) document.documentElement.style.setProperty("--nav-h", (nv.offsetHeight || 0) + "px");
   if(b) b.hidden = !(ov || (session.screen && session.screen !== "base" && session.screen !== "intro"));
 }
 if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
-  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); });
+  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
@@ -1302,6 +1302,7 @@ function renderTabs(){
       '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
       (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
   }).join("");
+  if(typeof updateNav === "function") updateNav();
 }
 function checkBeatAutoAdvance(){
   const b = curBeat();
@@ -1605,19 +1606,22 @@ function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
   if(!card || !card.offsetHeight) return;
-  const nav = document.getElementById("tabs"), n = nav && nav.offsetHeight ? nav.getBoundingClientRect() : null;
+  const box = id => { const e = document.getElementById(id); return e && e.offsetHeight ? e.getBoundingClientRect() : null; };
+  const n = box("tabs"), tb = box("topbar");
   const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
+  const bad = m => hit(m, c) || (n && hit(m, n)) || (tb && hit(m, tb));
   plates.forEach((p, i) => {
     const r = rects[i];
-    // Blocked: under the card, or in the strip below the card top where the card column / nav bar hides it.
-    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n));
+    // Blocked: under the card, or in the strip below the card top where the card column hides it, or under the floating nav / top chips.
+    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n)) || (tb && hit(r, tb));
     if(!blocked) return;
-    const moves = [[0, c.top - gap - r.bottom], [c.right + gap - r.left, 0], [c.right + gap - r.left, c.top - gap - r.bottom]];
+    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? Math.min(c.top, n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
+    const moves = [[0, up], [right, 0], [right, up], [0, lift], [right, lift], [0, drop], [right, drop]];
     for(const [dx, dy] of moves){
       const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
-      if(m.top < v.top + gap || m.right > v.right - gap || hit(m, c) || (n && hit(m, n)) || rects.some((o, j) => j !== i && hit(m, o))) continue;
+      if(m.top < v.top + gap || m.right > v.right - gap || bad(m) || rects.some((o, j) => j !== i && hit(m, o))) continue;
       p.style.translate = (dx / scale) + "px " + (dy / scale) + "px"; rects[i] = m; return;
     }
   });
