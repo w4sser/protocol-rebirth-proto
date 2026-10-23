@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.78.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.79.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 10;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir)
 
@@ -733,6 +733,28 @@ function questRaidBtn(chain, def, ready){
   const ok = areaUnlocked(def.area) && !guidedRaid();
   return '<button type="button" class="qraid' + (ready ? ' ghost' : ' primary') + '"' + (ok ? ' onclick="A.QUEST_RAID({chain:\'' + chain + '\'})"' : ' disabled') + ' aria-label="Raid ' + esc((AREA_DEFS[def.area] || {}).name || def.area) + '">' + IC(ok ? "nav-raid" : "lock") + (ready ? "" : "RAID") + '</button>';
 }
+// T1-A: hand-in / quest-complete payoff — WHAT it unlocks (reward.unlocksText, else unlock + next step title).
+function unlockBits(u){
+  if(!u) return [];
+  const out = [];
+  if(u.recipe){ const it = ITEMS[u.recipe]; out.push((it && it.name ? it.name : u.recipe) + " recipe"); }
+  if(u.hard){ const a = AREA_DEFS[u.hard]; out.push((a && a.name ? a.name : u.hard) + " Hard"); }
+  if(u.cosmetic){
+    const shop = ((D.chipShop || {}).items || []).find(x => x.kind === "cosmetic" && x.ref === u.cosmetic);
+    out.push(shop ? shop.name : u.cosmetic);
+  }
+  return out;
+}
+function questUnlocksText(chain, def){
+  if(!def) return "";
+  if(def.reward && def.reward.unlocksText) return def.reward.unlocksText;
+  const bits = unlockBits(def.reward && def.reward.unlock);
+  const steps = (QC[chain] && QC[chain].steps) || [];
+  const i = steps.findIndex(s => s.id === def.id);
+  const next = i >= 0 && i + 1 < steps.length ? steps[i + 1] : null;
+  if(next) bits.push("next step " + next.title);
+  return bits.length ? bits.join(" · ") : "next step in the chain";
+}
 // ---- HAND IN popup (v1.76): shown whenever a chain step's objective is met. Item tiles are consumed, reward tiles pop, BIT cheers. ----
 const HANDIN_MS = 700;
 // Hand-in tile for an item: its hero art (large) when it has one, else the usual icon tile.
@@ -746,6 +768,7 @@ function handInHtml(id){
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
+    '<p class="hi-unlock"><b>UNLOCKAR:</b> ' + esc(questUnlocksText(id, def)) + '</p>' +
     '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward, true) + '</div></div>' +
     '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
 }
@@ -3988,4 +4011,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits };

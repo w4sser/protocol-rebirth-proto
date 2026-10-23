@@ -32,19 +32,20 @@ window.DATA.quests = {
 //  clear:   extract from `area` with levelsCleared >= level, n times;  kill: n of `enemy` killed in `area`
 //  handin:  deliver `items` from the stash through QUEST_HANDIN (n = total count)
 // Rewards: scrap, xp (operator), items {id:n}, tools {id:n} (stash), dataCores, chips (Contract Chips, silent until the chip UI).
-// `unlock` is data only for now (hard variant, recipe, cosmetic): nothing grants it yet.
+// `unlock` (hard / recipe / cosmetic) is granted by chainReward/grantUnlock.
+// `unlocksText` (T1-A): hand-in / quest-complete payoff copy — WHAT it unlocks (room/zone/weapon/next step).
 // Proxies: shield guard -> clear Bunker L1; EMP on turret -> kill 1 sentry in Bunker; swarm L3 -> clear Bunker L3;
 // patrol -> clear Archipelago L1 twice.
 window.DATA.questChains = {
   bunker: { name: "Wake the Core", steps: [
-    { id:"B1", title:"Power Trace", brief:"Bring 3 Cable home from the Bunker", area:"bunker", objective:{ type:"extract", item:"cable", level:1, n:3 }, reward:{ scrap:40, xp:20 } },
-    { id:"B2", title:"Guard Duty", brief:"Clear Bunker level 1 and extract", area:"bunker", objective:{ type:"clear", level:1, n:1 }, reward:{ tools:{ tool_decoy:2 } } },
-    { id:"B3", title:"Spare Parts", brief:"Hand in 3 parts from your stash", area:"bunker", objective:{ type:"handin", items:{ scrap_alloy:2, polymer_plate:1 }, n:3 }, reward:{ chips:1 } },
-    { id:"B4", title:"Fuse Box", brief:"Bring 2 Fuse home from Bunker L2", area:"bunker", objective:{ type:"extract", item:"fuse", level:2, n:2 }, reward:{ scrap:60, unlock:{ recipe:"tool_emp" } } },
-    { id:"B5", title:"Lights Out", brief:"Take down 1 Sentry in Bunker L2", area:"bunker", objective:{ type:"kill", enemy:"sentry", level:2, n:1 }, reward:{ items:{ power_cell:1 }, chips:1 } },
-    { id:"B6", title:"Sentry Sweep", brief:"Take down 3 Sentries in the Bunker", area:"bunker", objective:{ type:"kill", enemy:"sentry", n:3 }, reward:{ items:{ circuit_board:1 } } },
-    { id:"B7", title:"Deep Relay", brief:"Bring 1 Power Relay home from Bunker L3", area:"bunker", objective:{ type:"extract", item:"power_relay", level:3, n:1 }, reward:{ chips:2, xp:30 } },
-    { id:"B8", title:"Swarm Protocol", brief:"Clear Bunker level 3 and extract", area:"bunker", objective:{ type:"clear", level:3, n:1 }, reward:{ unlock:{ hard:"bunker", cosmetic:"bit_bunker" } } }
+    { id:"B1", title:"Power Trace", brief:"Bring 3 Cable home from the Bunker", area:"bunker", objective:{ type:"extract", item:"cable", level:1, n:3 }, reward:{ scrap:40, xp:20, unlocksText:"next step Guard Duty · Core track continues" } },
+    { id:"B2", title:"Guard Duty", brief:"Clear Bunker level 1 and extract", area:"bunker", objective:{ type:"clear", level:1, n:1 }, reward:{ tools:{ tool_decoy:2 }, unlocksText:"Decoy ×2 in stash · next Spare Parts" } },
+    { id:"B3", title:"Spare Parts", brief:"Hand in 3 parts from your stash", area:"bunker", objective:{ type:"handin", items:{ scrap_alloy:2, polymer_plate:1 }, n:3 }, reward:{ chips:1, unlocksText:"1 Contract Chip — trade at BIT · next Fuse Box (Bunker L2)" } },
+    { id:"B4", title:"Fuse Box", brief:"Bring 2 Fuse home from Bunker L2", area:"bunker", objective:{ type:"extract", item:"fuse", level:2, n:2 }, reward:{ scrap:60, unlock:{ recipe:"tool_emp" }, unlocksText:"EMP recipe · Bunker L2 tool" } },
+    { id:"B5", title:"Lights Out", brief:"Take down 1 Sentry in Bunker L2", area:"bunker", objective:{ type:"kill", enemy:"sentry", level:2, n:1 }, reward:{ items:{ power_cell:1 }, chips:1, unlocksText:"Power Cell for Core/rooms · Chip" } },
+    { id:"B6", title:"Sentry Sweep", brief:"Take down 3 Sentries in the Bunker", area:"bunker", objective:{ type:"kill", enemy:"sentry", n:3 }, reward:{ items:{ circuit_board:1 }, unlocksText:"Circuit Board (Core L2 part)" } },
+    { id:"B7", title:"Deep Relay", brief:"Bring 1 Power Relay home from Bunker L3", area:"bunker", objective:{ type:"extract", item:"power_relay", level:3, n:1 }, reward:{ chips:2, xp:30, unlocksText:"Power Relay home · closer to Core L3 / Town access" } },
+    { id:"B8", title:"Swarm Protocol", brief:"Clear Bunker level 3 and extract", area:"bunker", objective:{ type:"clear", level:3, n:1 }, reward:{ unlock:{ hard:"bunker", cosmetic:"bit_bunker" }, unlocksText:"Bunker Hard · BIT look Arctic" } }
   ] },
   archipelago: { name: "Signals at Sea", steps: [
     { id:"A1", title:"Landfall", brief:"Clear Archipelago level 1 and extract", area:"archipelago", objective:{ type:"clear", level:1, n:1 }, reward:{ scrap:50 } },
