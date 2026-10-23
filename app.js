@@ -1302,6 +1302,7 @@ function renderTabs(){
       '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
       (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
   }).join("");
+  if(typeof updateNav === "function") updateNav();
 }
 function checkBeatAutoAdvance(){
   const b = curBeat();

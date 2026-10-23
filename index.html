@@ -636,7 +636,7 @@
   #tabs button.active[disabled]{opacity:1;}
   .navback{flex:none; width:44px; height:44px; font-size:26px; line-height:1; font-weight:700;}
   .navback[hidden]{display:none;}
-  #overlay,#overlay.sheet{top:var(--tb-h,0px); z-index:24;}
+  #overlay,#overlay.sheet{top:0; z-index:24;}
   body.has-overlay #tabs{display:none!important;}
   body.has-overlay #bitdock{display:none!important;}
   @media (orientation:landscape) and (max-height:480px){ #bitdock{display:none!important;} } /* never overlays content in landscape */
@@ -732,7 +732,7 @@
   #app.s-base{padding:0;}
   #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   .qlog .qtabs{padding-top:26px}
-  body #app.s-prep{padding-top:calc(var(--tb-h,0px) + 2px)!important; padding-bottom:calc(var(--nav-h,0px) + 6px)!important;}
+  body #app.s-prep{padding-top:calc(var(--tb-h,0px) + 4px)!important; padding-bottom:calc(var(--nav-h,0px) + 10px)!important;}
   @media (orientation:landscape) and (max-height:480px){
     #tabs{position:absolute!important; background:none!important; border:0!important;}
     #app{padding-bottom:calc(var(--nav-h,0px) + 8px); padding-top:calc(var(--tb-h,0px) + 2px);}
@@ -775,6 +775,15 @@
   #app.s-prep .lobby-hero .ostats{display:flex;flex-direction:column;justify-content:space-evenly;gap:2px;width:100%}
   #app.s-prep .lobby-hero .ostat{display:flex;flex-direction:row;justify-content:flex-start;gap:6px;padding:2px 4px;min-height:0}
   #app.s-prep .lobby-hero .ostat b{font-size:13px}
+}
+
+/* v1.78: lobby2 used to force 6px pad + height:100% which put DEPLOY/slots under floating tabs
+   and left MISSION under the settings chip. Clear the measured HUD; keep lobby in the content box. */
+@media (orientation:landscape) and (max-height:500px){
+  #app.s-prep{padding-top:calc(var(--tb-h,0px) + 4px)!important;padding-bottom:calc(var(--nav-h,0px) + 10px)!important}
+  #app.s-prep .lobby{height:auto!important;max-height:100%}
+  #app.s-prep .mission-btn{margin-right:56px}
+  #app.s-prep .lobby-hero .operator-stats.compact{bottom:auto;max-height:calc(100% - 8px)}
 }
 
   /* v1.55 popup fit (PRB): building popups always fit the viewport; costs in one row; the CTA never clips */
