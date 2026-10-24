@@ -1239,6 +1239,58 @@
   #overlay.fabov .fabcols{flex:1 1 auto;min-height:0;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
   #overlay.fabov .fabl{height:100%;overflow-y:auto;overscroll-behavior:contain}
   #overlay.fabov .fabl *{max-height:none}
+
+  /* v1.95 PART 2: fullscreen BIT talent screen (same pattern as wpnov/fabov above) */
+  #overlay.bitov{position:fixed!important;inset:0!important;padding:0!important;z-index:60!important;align-items:stretch!important;justify-content:stretch!important;background:#05090b}
+  #overlay.bitov .inner,#overlay.bitov .inner.pop-host{max-width:none!important;width:100%;height:100%;max-height:none!important;margin:0;padding:0}
+  #overlay.bitov .bpop.bitpop{margin:0!important;max-width:none!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0;border:0;box-sizing:border-box;padding:8px calc(12px + var(--sr,0px)) calc(8px + env(safe-area-inset-bottom,0px)) calc(56px + var(--sl,0px))!important;display:flex;flex-direction:column;gap:6px;overflow:hidden!important}
+  #overlay.bitov .pop-x{top:10px!important;left:calc(10px + var(--sl,0px))!important}
+  .bithead{display:flex;align-items:center;gap:8px;flex:none}
+  .bitbond{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0}
+  .bitbond b{display:flex;align-items:center;gap:4px;font:800 12px "Archivo",sans-serif;white-space:nowrap;color:var(--ad-bone,#F2E9D6)}
+  .bitbond b svg{width:15px;height:15px}
+  .bitxpbar{flex:1 1 auto;min-width:30px;height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden}
+  .bitxpbar>span{display:block;height:100%;background:var(--ad-cyan)}
+  .bitxp{font-size:10px;color:var(--dim);white-space:nowrap;flex:none}
+  .bitpoints{flex:none;padding:3px 9px;border-radius:999px;border:1.5px solid var(--ad-primary);color:var(--ad-primary);font:800 11px "Archivo",sans-serif;white-space:nowrap}
+  .bitreset{flex:none;white-space:nowrap}
+  .bittabs{display:flex;gap:5px;flex:none}
+  .bittabs button{flex:1;min-width:0;padding:5px 2px;border-radius:9px;border:1.5px solid var(--line);background:rgba(0,0,0,.3);color:var(--txt);font:800 11px "Archivo",sans-serif;letter-spacing:.04em}
+  .bittabs button.active{border-color:var(--ad-cyan);color:var(--ad-cyan)}
+  .bitbody{flex:1 1 auto;min-height:0;overflow:hidden}
+  .tabpanel{display:none}
+  .tabpanel.active{display:block;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .tabpanel.talentstab.active{display:flex;flex-direction:column;overflow:hidden}
+  .talroot{flex:1 1 auto;min-height:0;display:flex;gap:8px;overflow:hidden}
+  .talbranches{flex:1 1 auto;min-width:0;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden}
+  .talbranch{flex:1 1 0;min-width:108px;display:flex;flex-direction:column;overflow-y:auto;background:rgba(255,255,255,.03);border:1.5px solid var(--line);border-radius:10px;padding:5px}
+  .talbranch-head{display:flex;align-items:center;gap:4px;padding:0 2px 5px;border-bottom:1px solid var(--line);margin-bottom:3px;flex:none;color:var(--branch-color)}
+  .talbranch-head svg{width:14px;height:14px;flex:none}
+  .talbranch-head b{flex:1 1 auto;min-width:0;font:800 11px "Archivo",sans-serif;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt)}
+  .talbranch-head .small{flex:none;color:var(--dim)}
+  .talrow{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 0}
+  .talrow-nodes{display:flex;gap:4px;align-items:stretch;justify-content:center;width:100%}
+  .talor{align-self:center;font-size:9px;color:var(--dim);flex:none}
+  .talnode{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;border:1.5px solid var(--line);border-radius:9px;background:rgba(0,0,0,.25);color:var(--txt);font:700 9px "Archivo",sans-serif;cursor:pointer}
+  .talnode b{font-size:9px;line-height:1.1;white-space:normal;text-align:center;overflow-wrap:anywhere}
+  .talnode svg{width:12px;height:12px;color:var(--ad-loot)}
+  .talnode .pips{display:flex;gap:2px}
+  .talnode .pip{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)}
+  .talnode .pip.on{background:var(--branch-color,var(--ad-cyan))}
+  .talnode.on{border-color:var(--branch-color,var(--ad-cyan))}
+  .talnode.sel{box-shadow:0 0 0 2px var(--branch-color,var(--ad-cyan))}
+  .talnode.locked{opacity:.45;cursor:default}
+  .talnode.core{border-width:2px}
+  .talrowlock{font-size:8px;color:var(--dim);text-align:center}
+  .taldetail{flex:0 0 190px;min-width:0;display:flex;flex-direction:column;overflow-y:auto;border-left:1px solid var(--line);padding-left:8px;gap:4px}
+  .taldetail h3{margin:0;font-size:13px;display:flex;align-items:center;gap:5px;color:var(--ad-bone,#F2E9D6)}
+  .taldetail h3 svg{width:14px;height:14px;color:var(--ad-loot)}
+  .taldetail .ranktxt{font-size:10px;color:var(--dim)}
+  .taldetail p{margin:0;font-size:11px;color:var(--dim);line-height:1.3}
+  .taldetail .nextrank{font-size:10px;color:var(--ad-cyan)}
+  .taldetail .rowlockmsg{font-size:10px;color:var(--ad-danger)}
+  .taldetail .learnbtn{margin-top:auto;flex:none}
+  .talempty{font-size:11px;color:var(--dim);text-align:center;margin:auto 0}
 </style>
 </head>
 <body class="base-dark">

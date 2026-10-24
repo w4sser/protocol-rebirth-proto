@@ -43,13 +43,16 @@ const finishRun = b => { b.A.sendScavenge(); const I = b.S().idle; I.scav.return
   const s = JSON.parse(JSON.stringify(b.S())); s.idle.lastSeen -= 3600000; s.idle.scav.returnAt = 0; const c = boot(s); c.A.go("base");
   assert.equal(c.S().cur.scrap, sc, "welcome-back does not deposit"); assert(/BIT is back/.test(c.d.querySelector(".welcome").textContent)); assert(c.S().idle.scavPending); }
 
-// 5) skills: still bond-gated in the (soon replaced) BIT skills card; actual effect now needs the talent learned too.
+// 5) v1.95 PART 2 UI: the three skills are now `.talnode.core` in the TALENTS tab of the BIT screen, gated by
+// branch spend (not a direct bond threshold) — see test/v195-talents.test.js for the full UI assertions.
 { const b = fresh(s => { s.bondXp = 0; }); b.A.go("bit");
-  assert.equal(b.d.querySelectorAll(".bitskill").length, 3, "three skill rows"); assert.equal(b.d.querySelectorAll(".bitskill:not(.locked)").length, 0, "all locked at bond 1");
-  b.A.setBitSkill("zone_scout"); assert(!b.S().bitSkill, "locked skill cannot be set"); }
-{ const b = fresh(s => { s.bondXp = 150; }); b.A.go("bit");   // bond 4
-  assert.equal(b.d.querySelectorAll(".bitskill:not(.locked)").length, 3, "bond threshold still unlocks the row (UI only)");
-  assert(!b.T.bitSkillOn("shield_burst") && !b.T.bitSkillOn("loot_priority"), "bond alone no longer turns a skill on: it must be learned"); }
+  assert.equal(b.d.querySelectorAll(".talnode.core").length, 3, "three core nodes, one per branch");
+  assert.equal(b.d.querySelectorAll(".talnode.core.locked").length, 3, "no points spent in any branch: all core nodes locked"); }
+{ const b = fresh(s => { s.bondXp = 250; }); // bond 5 -> 4 points: enough to open exactly one branch's row 2
+  for(let i = 0; i < 3; i++) b.T.learnTalent("guardian_plating"); b.A.go("bit");
+  assert(!b.d.querySelector('.talnode.core[onclick*="shield_burst"]').classList.contains("locked"), "row 2 opens once 3 points are spent in that branch");
+  assert(b.d.querySelector('.talnode.core[onclick*="zone_scout"]').classList.contains("locked"), "a different branch's core stays locked");
+  assert(!b.T.bitSkillOn("shield_burst"), "row open is not the same as learned: it must still be learned to turn on"); }
 // Core nodes sit at row 2 (3 points in the branch's row-1 node, then 1 more): learning one no longer locks out the others.
 const learnCore = (b, row1Id, coreId) => { for(let i = 0; i < 3; i++) b.T.learnTalent(row1Id); return b.T.learnTalent(coreId); };
 { const b = fresh(s => { s.bondXp = 250; }); // bond 5 -> 4 points, exactly enough for one branch's core node
