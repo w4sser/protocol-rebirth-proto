@@ -770,11 +770,11 @@ function confirmScav(){
 /* ---------- v1.95 BIT Talents (data/bit-talents.js): data-driven branches, WoW-classic row gates ---------- */
 // Node ids and effect keys all come from TAL; app.js never hardcodes a branch/node beyond the shared "core" ids
 // (zone_scout/shield_burst/loot_priority) that also name the pre-existing BIT skills they replace.
-function talentNodeDef(id){ for(const b of TAL.branches){ const n = b.nodes.find(n => n.id === id); if(n) return { node:n, branch:b }; } return null; }
+function talentNodeDef(id){ if(!TAL) return null; for(const b of TAL.branches){ const n = b.nodes.find(n => n.id === id); if(n) return { node:n, branch:b }; } return null; }
 function talentRank(id){ return (S.talents && S.talents.spent && S.talents.spent[id]) || 0; }
 function talentLearned(id){ return talentRank(id) > 0; }
-function branchSpent(branchId){ const b = TAL.branches.find(b => b.id === branchId); return b ? b.nodes.reduce((s, n) => s + talentRank(n.id), 0) : 0; }
-function talentSpentTotal(){ return TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0); }
+function branchSpent(branchId){ if(!TAL) return 0; const b = TAL.branches.find(b => b.id === branchId); return b ? b.nodes.reduce((s, n) => s + talentRank(n.id), 0) : 0; }
+function talentSpentTotal(){ return TAL ? TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0) : 0; }
 function talentPoints(){ return Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
 function talentPointsAvailable(){ return talentPoints() - talentSpentTotal(); }
 function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= 3 * (row - 1); }
@@ -805,6 +805,7 @@ function respecTalents(){
 // Cumulative value of every learned node sharing this effect key, at its current rank (0 if none learned).
 function talentVal(key){
   let v = 0;
+  if(!TAL) return v;
   for(const b of TAL.branches) for(const n of b.nodes) if(n.effect && n.effect.key === key){ const r = talentRank(n.id); if(r > 0) v += n.effect.perRank[r - 1]; }
   return v;
 }

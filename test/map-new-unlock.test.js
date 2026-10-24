@@ -1,6 +1,6 @@
 // v1.69.2: a newly unlocked world-map area is obvious: NEW badge, tab alert, zoom-in on open, seen flag persisted.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), root = __dirname + "/..";
-const files = ["items","modules","bit","raid_zones","recipes","vendors","retention","quests","progression","combat"];
+const files = ["items","modules","bit","bit-talents","raid_zones","recipes","vendors","retention","quests","progression","combat"];
 function boot(save, url){
   const dom = new JSDOM(fs.readFileSync(root + "/index.html", "utf8"), { runScripts:"outside-only", url:url || "http://localhost/index.html" });
   const w = dom.window, raf = []; w.requestAnimationFrame = f => (raf.push(f), raf.length); w.cancelAnimationFrame = () => {};
