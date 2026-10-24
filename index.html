@@ -1160,7 +1160,7 @@
   #overlay.wpnov .inner,#overlay.wpnov .inner.pop-host{max-width:none!important;width:100%;height:100%;max-height:none!important;margin:0;padding:0}
   #overlay.wpnov .bpop.pop-card,#overlay.wpnov .bpop.wpnscreen{margin:0!important;max-width:none!important;max-height:none!important;width:100%;height:100%;border:0;border-radius:0}
   #overlay.wpnov .bpop.wpnscreen{padding:0 var(--sr) env(safe-area-inset-bottom,0px) var(--sl)!important;box-sizing:border-box}
-  #overlay.wpnov .wpn-name{padding-right:58px!important;box-sizing:border-box;min-width:0}#overlay.wpnov .wpn-name em{display:none}#overlay.wpnov .wpn-name h1{min-width:0;overflow-wrap:anywhere}
+  #overlay.wpnov .wpn-name{padding-right:66px!important;box-sizing:border-box;min-width:0}#overlay.wpnov .wpn-name em{display:none}#overlay.wpnov .wpn-name h1{min-width:0;overflow-wrap:anywhere}
   .wpn-name{padding-right:58px}.wtier{white-space:nowrap;flex:none}@media (max-width:900px){.wpn-name h1{font-size:17px}}
   .lslot-up{color:#050505}.lslot-up svg{stroke:#050505;color:#050505;stroke-width:3}
 
@@ -1171,6 +1171,7 @@
   .wpnscreen.tier3 .wpn-l{background:radial-gradient(ellipse 70% 60% at 50% 42%,color-mix(in srgb,var(--ad-loot) 16%,transparent),transparent 70%),radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.85) 100%),#07090a!important}
   .wpn-bench{border-bottom:0;box-shadow:none}
   .wpn-hero{position:relative;display:grid;width:92%;max-height:100%;place-items:center}
+  .wpn-hero,.wpn-hero img{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important}
   .wpn-hero img{grid-area:1/1;width:100%;max-height:58vh;object-fit:contain;filter:drop-shadow(0 14px 18px rgba(0,0,0,.85));user-select:none}
   .wpn-hero img.old{animation:wartout .7s ease forwards}.wpn-hero img.fadein{animation:wartin .7s ease}
   @keyframes wartout{to{opacity:0;transform:scale(1.03)}}@keyframes wartin{from{opacity:0;transform:scale(.97)}}
@@ -1179,8 +1180,11 @@
   svg.wlead path{fill:none;stroke:rgba(255,255,255,.28);stroke-width:1}svg.wlead path.on{stroke:var(--ad-cyan)}
   svg.wlead circle{fill:var(--ad-bone);opacity:.7}
   .wpnscreen .wslots{grid-template-columns:repeat(auto-fit,minmax(0,1fr));position:relative;z-index:2}
+  .wpnscreen .wslot[data-slot=stock]{order:0}.wpnscreen .wslot[data-slot=optic]{order:1}.wpnscreen .wslot[data-slot=mag]{order:2}.wpnscreen .wslot[data-slot=barrel]{order:3}
   .wslot.stock{border-style:solid;border-color:rgba(255,255,255,.18);cursor:default}
   .wpnscreen .wpn-mk{font-size:22px}
+  #overlay.wpnov .wpn-name{flex-wrap:wrap;row-gap:4px}#overlay.wpnov .wpn-name h1{flex:1 0 100%;white-space:normal;overflow-wrap:normal}
+  @media (max-width:900px){#overlay.wpnov .bpop.wpnscreen{grid-template-columns:60% 40%}}
   .slot img.ic-art,img.ic-art{object-fit:contain;width:100%;height:auto;max-height:100%;aspect-ratio:auto}
   @media (prefers-reduced-motion:reduce){.wpn-hero img.old{display:none}.wpn-hero img.fadein{animation:none}}
   /* v1.91 merge tiers + attachments */

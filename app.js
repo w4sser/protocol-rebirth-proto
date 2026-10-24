@@ -3321,7 +3321,7 @@ function drawLeaders(){
   svg.innerHTML = Object.keys(set.anchors).map(k => {
     const box = host.querySelector('.wslot[data-slot="' + k + '"]'); if(!box) return "";
     const B = box.getBoundingClientRect(), a = set.anchors[k], x1 = I.left - H.left + a[0] * I.width, y1 = I.top - H.top + a[1] * I.height, x2 = B.left - H.left + B.width / 2, y2 = B.top - H.top;
-    return '<path class="' + (box.classList.contains("fitted") ? "on" : "") + '" d="M' + x1.toFixed(1) + " " + y1.toFixed(1) + " L" + x1.toFixed(1) + " " + ((y1 + y2) / 2).toFixed(1) + " L" + x2.toFixed(1) + " " + ((y1 + y2) / 2).toFixed(1) + " L" + x2.toFixed(1) + " " + y2.toFixed(1) + '"/><circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="3"/>';
+    return '<path class="' + (box.classList.contains("fitted") ? "on" : "") + '" d="M' + x1.toFixed(1) + " " + y1.toFixed(1) + " L" + x2.toFixed(1) + " " + (y2 - 10).toFixed(1) + " L" + x2.toFixed(1) + " " + y2.toFixed(1) + '"/><circle cx="' + x1.toFixed(1) + '" cy="' + y1.toFixed(1) + '" r="3"/>';
   }).join("");
 }
 if(typeof window !== "undefined" && window.addEventListener) window.addEventListener("resize", () => drawLeaders());
