@@ -2136,7 +2136,7 @@ function invSlotHtml(id){
 // They never compete for space, and OVERFLOW / Quick Clean only ever touch the Stash.
 SCREENS.stash = function(){
   const ids = invIds().sort(stashOrder), gear = ids.filter(isArmoryItem), mats = ids.filter(id => !isArmoryItem(id));
-  let html = '<h1>Stash</h1><nav class="inv-jump" aria-label="Sections"><a href="#inv-armory" class="on">' + IC("item-carbine") + ' Armory <b>' + armorySlotsUsed() + '/' + armoryCapacity() + '</b></a><a href="#inv-stash">' + IC("item-crate") + ' Materials <b>' + stashSlotsUsed() + '/' + stashCapacity() + '</b></a></nav>';
+  let html = '<h1>Stash</h1><nav class="inv-jump" aria-label="Sections"><button type="button" onclick="A.invJump(\'inv-armory\')">' + IC("item-carbine") + ' Armory <b>' + armorySlotsUsed() + '/' + armoryCapacity() + '</b></button><button type="button" onclick="A.invJump(\'inv-stash\')">' + IC("item-crate") + ' Materials <b>' + stashSlotsUsed() + '/' + stashCapacity() + '</b></button></nav>';
   html += '<section class="inv-sec armory" id="inv-armory"><div class="sub"><b>ARMORY</b> · ' + armorySlotsUsed() + ' / ' + armoryCapacity() + ' slots · gear you can equip' +
     (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div><div class="grid">';
   for(const id of D.items.filter(i => i.free).map(i => i.id))
@@ -3430,6 +3430,7 @@ function finishRaid(){
 
 /* ---------- actions ---------- */
 window.A = {
+  invJump(id){ const el = document.getElementById(id); if(el) el.scrollIntoView({ block:"start", behavior:"smooth" }); },
   playCombatDemo(){
     this.clearCombatDemo();
     session.screen="combatDemo";

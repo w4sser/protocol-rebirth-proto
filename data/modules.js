@@ -143,7 +143,7 @@ window.DATA.stashCapacityFor = function(storageLevel){
 };
 
 // v1.89 Armory (gear) capacity: its own slots, +4 per Storage level. Gear never uses Stash (material) slots.
-window.DATA.baseArmoryCapacity = 8;
+window.DATA.baseArmoryCapacity = 12;
 window.DATA.armoryCapacityFor = function(storageLevel){ return window.DATA.baseArmoryCapacity + 4 * (storageLevel || 0); };
 
 // Facility layout (rows of rooms, top to bottom) and per-module art style.
