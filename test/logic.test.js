@@ -7,7 +7,7 @@ const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 11);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 12);
 assert.equal(S.retentionMode, "core");
 assert.equal(window.DATA.combat.player.maxHealth, 100, "combat test tuning is data-driven");
 assert.equal(S.baseState, "core_found", "new saves start at the found Core");
@@ -71,7 +71,7 @@ assert(S.modules.rebirth_core === 1 && R.progress.length >= 2);
 
 // --- Basic Carbine is infinite; vest is not a starter item; operator level curve ---
 { const F = app.freshState(); app._setState(F);
-  assert(!F.stash.basic_carbine && !F.stash.scavenger_vest, "start stash has no carbine/vest entries");
+  assert(!F.stash.basic_carbine && !((F.stash.scavenger_vest || 0) + ((F.armory || {}).scavenger_vest || 0)), "start stash has no carbine/vest entries");
   assert.equal(app.have("basic_carbine"), Infinity, "carbine always available");
   app.removeItem("basic_carbine", 1); assert.equal(app.have("basic_carbine"), Infinity, "carbine can't be lost");
   const used = app.stashSlotsUsed(); app.addItem("basic_carbine", 3); assert.equal(app.stashSlotsUsed(), used, "carbine never takes slots");
@@ -256,25 +256,25 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.equal(app.skillLevel("mobility", 60), 2); assert.equal(app.skillLevel("mobility", 1e6), P.skills.mobility.maxLevel);
   const base = { schema:"protocol-rebirth/raid-result", version:1, seed:"s", levelsCleared:1, enemiesDefeated:0, nodesLit:0, remainingMs:0, extracted:[], lost:[], endedAt:1,
     skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } };
-  st.stash.scout_rig = 0;
+  (st.armory && (st.armory.scout_rig = 0), st.stash).scout_rig = 0;
   st.coreLaunch = { raidId:"g-death", gear:["scout_rig"] };
   const d = app.ingestRaidResult({ ...base, raidId:"g-death", outcome:"timeout" });
-  assert.deepEqual(d.gearLost, ["scout_rig"], "timeout loses the gear"); assert.equal(st.stash.scout_rig, 0);
+  assert.deepEqual(d.gearLost, ["scout_rig"], "timeout loses the gear"); assert.equal(((st.stash.scout_rig || 0) + ((st.armory || {}).scout_rig || 0)), 0);
   assert.equal(st.coreLaunch, null);
   assert.equal(app.skillLevel("mobility"), 1, "mobility rose by use even on a loss");
   assert.deepEqual(d.skillUps.sort(), ["Mobility L1", "Vitality L1"]);
   st.coreLaunch = { raidId:"g-ok", gear:["scout_rig"] };
   const e = app.ingestRaidResult({ ...base, raidId:"g-ok", outcome:"extract", skills:{} });
-  assert.deepEqual(e.gearLost, []); assert.equal(st.stash.scout_rig, 1, "extract brings the gear home");
+  assert.deepEqual(e.gearLost, []); assert.equal(((st.stash.scout_rig || 0) + ((st.armory || {}).scout_rig || 0)), 1, "extract brings the gear home");
   // v1.59: core reports equipped gear (gearOut): raid-found gear comes home, gear swapped out in the raid stays behind
-  st.stash.scout_rig = 0; st.stash.smg_vector = 0; st.stash.scavenger_vest = 0;
+  (st.armory && (st.armory.scout_rig = 0), st.stash).scout_rig = 0; (st.armory && (st.armory.smg_vector = 0), st.stash).smg_vector = 0; (st.armory && (st.armory.scavenger_vest = 0), st.stash).scavenger_vest = 0;
   st.coreLaunch = { raidId:"g-swap", gear:["scout_rig"] };
   const g = app.ingestRaidResult({ ...base, raidId:"g-swap", outcome:"extract", skills:{}, gearOut:["scavenger_vest","smg_vector","basic_carbine","evil"] });
-  assert.deepEqual(g.gearLost, ["scout_rig"], "swapped-out rig left in the raid"); assert.equal(st.stash.scout_rig, 0);
-  assert.equal(st.stash.scavenger_vest, 1); assert.equal(st.stash.smg_vector, 1, "found weapon comes home"); assert(g.added.includes("smg_vector"));
+  assert.deepEqual(g.gearLost, ["scout_rig"], "swapped-out rig left in the raid"); assert.equal(((st.stash.scout_rig || 0) + ((st.armory || {}).scout_rig || 0)), 0);
+  assert.equal(((st.stash.scavenger_vest || 0) + ((st.armory || {}).scavenger_vest || 0)), 1); assert.equal(((st.stash.smg_vector || 0) + ((st.armory || {}).smg_vector || 0)), 1, "found weapon comes home"); assert(g.added.includes("smg_vector"));
   st.coreLaunch = { raidId:"g-die", gear:["scout_rig"] };
   const h = app.ingestRaidResult({ ...base, raidId:"g-die", outcome:"death", skills:{}, gearOut:["smg_vector"] });
-  assert.equal(st.stash.smg_vector, 1, "death: equipped found gear is lost"); assert.deepEqual(h.gearLost, ["scout_rig"]);
+  assert.equal(((st.stash.smg_vector || 0) + ((st.armory || {}).smg_vector || 0)), 1, "death: equipped found gear is lost"); assert.deepEqual(h.gearLost, ["scout_rig"]);
   const lvl = app.playerStats([]);
   assert.equal(lvl.speed, Math.round((P.base.speed + P.skills.mobility.perLevel.speed) * 1000) / 1000, "skill level raises speed");
   assert.equal(lvl.maxHealth, P.base.maxHealth + P.skills.vitality.perLevel.maxHealth, "vitality raises max HP");

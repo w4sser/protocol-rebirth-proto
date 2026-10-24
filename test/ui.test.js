@@ -205,7 +205,7 @@ A.devCur(); A.buy("med_gel"); A.buy("med_gel"); A.go("prep");
 const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 A.craft("medkit");
 const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-assert.equal(afterCraft.stash.medkit, (beforeCraft.stash.medkit || 0) + 1, "field crafting creates usable supplies from prep");
+assert.equal(((afterCraft.stash.medkit || 0) + ((afterCraft.armory || {}).medkit || 0)), (((beforeCraft.stash.medkit || 0) + ((beforeCraft.armory || {}).medkit || 0)) || 0) + 1, "field crafting creates usable supplies from prep");
 A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
 
@@ -284,7 +284,7 @@ assert(!doc.getElementById("overlay"), "no morning report without events");
 A.go("stash");
 while(true){
   const sv = JSON.parse(window.localStorage.getItem("pr_meta_save"));
-  const wid = Object.keys(sv.stash).find(id => sv.stash[id] > 0 && window.DATA.items.find(i=>i.id===id).slot === "weapon");
+  const inv = Object.assign({}, sv.stash, sv.armory || {}); const wid = Object.keys(inv).find(id => inv[id] > 0 && window.DATA.items.find(i=>i.id===id).slot === "weapon");
   if(!wid) break;
   A.sell(wid);
 }

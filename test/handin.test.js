@@ -13,7 +13,7 @@ function boot(save){
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const g = boot(null); g.A.dismissIntro();
 const fresh = JSON.parse(JSON.stringify(g.S()));
-assert.equal(fresh.v, 11); assert.deepEqual(fresh.fir, {}, "fresh saves start with no FIR counts");
+assert.equal(fresh.v, 12); assert.deepEqual(fresh.fir, {}, "fresh saves start with no FIR counts");
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 10; open.cur.scrap = 0;
 Object.assign(open.modules, { rebirth_core:1, fabricator:1, bit_bay:1, storage:1 }); open.baseState = "core_habitable"; open.introSeen = true;
 open.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; open.beat = g.w.DATA.progression.beats.findIndex(b => b.id === "choice_upgrade");
@@ -21,8 +21,8 @@ let n = 0; const raid = o => Object.assign({ schema:"protocol-rebirth/raid-resul
 
 // ---- migration: v9 stash counts as found in raid ----
 { const v9 = JSON.parse(JSON.stringify(open)); v9.v = 9; delete v9.fir; v9.stash = { scrap_alloy: 4, cable: 2 };
-  const m = boot(v9), s = m.S(); assert.equal(s.v, 11); assert.deepEqual(s.fir, { scrap_alloy: 4, cable: 2 }, "existing stash is FIR");
-  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 11, "migrated save is stored"); }
+  const m = boot(v9), s = m.S(); assert.equal(s.v, 12); assert.deepEqual(s.fir, { scrap_alloy: 4, cable: 2 }, "existing stash is FIR");
+  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 12, "migrated save is stored"); }
 
 // ---- FIR tagging: extraction yes, purchase / reward / dead raid no ----
 const b = boot(open), { A, T, d } = b, S = b.S; A.go("base");
@@ -31,7 +31,7 @@ T.ingestRaidResult(raid({ extracted:["scrap_alloy","scrap_alloy","polymer_plate"
 assert.equal(S().fir.scrap_alloy, 2); assert.equal(S().fir.polymer_plate, 1);
 T.ingestRaidResult(raid({ outcome:"death", extracted:[], lost:["cable"] })); assert(!S().fir.cable, "dead raid brings nothing");
 const vend = b.w.DATA.vendors[0].stock.find(x => !x.requires); A.buy(vend.itemId);
-assert.equal(S().stash[vend.itemId] - (S().fir[vend.itemId] || 0), 1, "bought copy is not FIR");
+assert.equal(((S().stash[vend.itemId] || 0) + ((S().armory || {})[vend.itemId] || 0)) - (S().fir[vend.itemId] || 0), 1, "bought copy is not FIR");
 A.go("stash"); assert(d.querySelector("#app .slot .firmk use[href$='#fir']"), "FIR marker on stash tiles");
 b.w.eval("addItem('cable', 2)"); assert.equal(T.firHave("cable"), 0, "granted copies are not FIR");
 b.w.eval("removeItem('scrap_alloy', 1)"); assert.equal(T.firHave("scrap_alloy"), 1, "FIR clamps with the stack");

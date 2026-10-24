@@ -77,5 +77,5 @@ for(const [id, stats] of [["smg_vector", ["damage","firerate"]], ["scavenger_ves
   const old = JSON.parse(JSON.stringify(saved)); old.v = 10; delete old.gearUp;
   const m = boot(old); assert.equal(m.S().v, m.T.SV); assert.deepEqual(m.S().gearUp, {}, "v10 save migrates additively"); assert.equal(m.S().cur.scrap, saved.cur.scrap);
 }
-assert.equal(g.T.SV, 11);
+assert.equal(g.T.SV, 12);
 console.log("t4-gear-upgrade ok"); process.exit(0);

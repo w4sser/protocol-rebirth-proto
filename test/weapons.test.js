@@ -36,25 +36,25 @@ const D = { items:null };
   const url = decodeURIComponent(nav[0]);
   assert(url.includes("&w=id:smg_vector,dmg:1,mag:8,rld:450,int:110,rng:6,cone:10,ast:14,spr:5"), "weapon stats passed to core: " + url);
   assert(url.includes("&kit=medkit:2") && url.includes("gear=smg_vector,scavenger_vest"), "kit + gear passed");
-  assert.equal(S().stash.smg_vector || 0, 0, "taken weapon leaves the stash");
-  assert.equal(S().stash.medkit, 1, "two medkits leave the stash");
+  assert.equal(((S().stash.smg_vector || 0) + ((S().armory || {}).smg_vector || 0)) || 0, 0, "taken weapon leaves the stash");
+  assert.equal(((S().stash.medkit || 0) + ((S().armory || {}).medkit || 0)), 1, "two medkits leave the stash");
   // Extract with one medkit left: weapon, armour and 1 medkit come home.
   const raidId = S().coreLaunch.raidId;
   const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1, kitLeft:{ medkit:1 } });
   assert(res.ok && res.kitBack === 1 && res.kitLost === 1, "unused medkit returns");
-  assert.equal(S().stash.smg_vector, 1, "weapon returns on extract");
-  assert.equal(S().stash.medkit, 2, "1 left + 1 returned");
+  assert.equal(((S().stash.smg_vector || 0) + ((S().armory || {}).smg_vector || 0)), 1, "weapon returns on extract");
+  assert.equal(((S().stash.medkit || 0) + ((S().armory || {}).medkit || 0)), 2, "1 left + 1 returned");
 }
 // v1.46: kits picked up in the raid go to the kit slot; unused ones (up to 2) come home on extract.
 {
   const { w, nav, A, S } = boot();
-  A.go("prep"); A.prepLoadout("c1", ""); A.prepLoadout("c2", ""); const before = S().stash.medkit || 0; A.deployNodeRaid();
+  A.go("prep"); A.prepLoadout("c1", ""); A.prepLoadout("c2", ""); const before = ((S().stash.medkit || 0) + ((S().armory || {}).medkit || 0)) || 0; A.deployNodeRaid();
   assert(!decodeURIComponent(nav[0]).includes("&kit="), "no kit brought");
   const raidId = S().coreLaunch.raidId;
   const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"extract", levelsCleared:3, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1, kitLeft:{ medkit:5 } });
   assert(res.ok && res.kitBack === 2 && res.kitLost === 0, "picked-up kits come home, capped at the 2-kit slot");
-  assert.equal(S().stash.medkit, before + 2, "stashed and persisted");
-  assert.equal(JSON.parse(w.localStorage.getItem("pr_meta_save")).stash.medkit, before + 2, "saved");
+  assert.equal(((S().stash.medkit || 0) + ((S().armory || {}).medkit || 0)), before + 2, "stashed and persisted");
+  { const sv = JSON.parse(w.localStorage.getItem("pr_meta_save")); assert.equal((sv.stash.medkit || 0) + ((sv.armory || {}).medkit || 0), before + 2, "saved"); }
 }
 {
   const { w, nav, A, S } = boot();
@@ -63,7 +63,7 @@ const D = { items:null };
   const raidId = S().coreLaunch.raidId;
   const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"death", levelsCleared:0, enemiesDefeated:0, nodesLit:0, remainingMs:1, extracted:[], lost:[], endedAt:1, kitLeft:{ medkit:1 } });
   assert(res.gearLost.includes("smg_vector") && res.kitBack === 0, "death loses the weapon and the medkit");
-  assert.equal(S().stash.smg_vector || 0, 0);
+  assert.equal(((S().stash.smg_vector || 0) + ((S().armory || {}).smg_vector || 0)) || 0, 0);
   // Basic is never consumed.
   nav.length = 0; A.go("prep"); A.chooseSlot("weapon", "basic_carbine"); A.deployNodeRaid();
   assert(decodeURIComponent(nav[0]).includes("w=id:basic_carbine") && !/gear=[^&]*basic_carbine/.test(decodeURIComponent(nav[0])), "Basic goes in free, never as gear");
@@ -82,7 +82,7 @@ const D = { items:null };
     if(guided){ S().modules.fabricator = 0; }
     S().stash = { medkit:1 };
     const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId:"loot-" + id + guided, seed:"x", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[id], lost:[], endedAt:1 });
-    assert(res.ok && S().stash[id] === 1, id + " lands in stash");
+    assert(res.ok && ((S().stash[id] || 0) + ((S().armory || {})[id] || 0)) === 1, id + " lands in stash");
     A.go("prep");
     const key = it.slot === "weapon" ? "weapon" : "armor";
     A.pickSlot(key);
@@ -119,12 +119,12 @@ const D = { items:null };
   assert(/Grenade/.test(w.document.querySelector(".riskbar").textContent), "risk bar lists the tool");
   A.deployNodeRaid();
   assert(decodeURIComponent(nav[0]).includes("&tool=tool_grenade:2"), "tool + charges in launch url (capped at 2 of the 3 owned): " + decodeURIComponent(nav[0]));
-  assert.equal(S().stash.tool_grenade, 1, "the carried charges leave the stash");
+  assert.equal(((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)), 1, "the carried charges leave the stash");
   const raidId = S().coreLaunch.raidId;
   const base = { schema:"protocol-rebirth/raid-result", version:1, seed:"x", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1 };
   const res = w.__T.ingest({ ...base, raidId, toolLeft:{ id:"tool_grenade", n:1 } });
   assert(res.ok && res.toolBack === 1 && res.toolLost === 1, "one unused charge returns, one was used");
-  assert.equal(S().stash.tool_grenade, 2, "1 left in stash + 1 returned");
+  assert.equal(((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)), 2, "1 left in stash + 1 returned");
 }
 {
   const { w, nav, A, S } = boot();
@@ -134,7 +134,7 @@ const D = { items:null };
   const raidId = S().coreLaunch.raidId;
   const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"death", levelsCleared:0, enemiesDefeated:0, nodesLit:0, remainingMs:1, extracted:[], lost:[], endedAt:1, toolLeft:{ id:"tool_emp", n:1 } });
   assert(res.ok && res.toolBack === 0 && res.toolLost === 1, "death loses the unused charge");
-  assert.equal(S().stash.tool_emp || 0, 0);
+  assert.equal(((S().stash.tool_emp || 0) + ((S().armory || {}).tool_emp || 0)) || 0, 0);
 }
 {
   // a forged toolLeft can neither add charges nor swap the tool for another one
@@ -144,23 +144,23 @@ const D = { items:null };
   const raidId = S().coreLaunch.raidId;
   const res = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId, seed:"x", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1, toolLeft:{ id:"tool_decoy", n:99 } });
   assert.equal(res.toolBack, 2, "capped at what was taken in");
-  assert.equal(S().stash.tool_decoy, 2);
+  assert.equal(((S().stash.tool_decoy || 0) + ((S().armory || {}).tool_decoy || 0)), 2);
   nav.length = 0; A.go("prep"); A.deployNodeRaid(); // slot still set; no kit/tool param for a different id
   const r2 = S().coreLaunch.raidId;
   const bad = w.__T.ingest({ schema:"protocol-rebirth/raid-result", version:1, raidId:r2, seed:"y", outcome:"extract", levelsCleared:1, enemiesDefeated:0, nodesLit:1, remainingMs:1, extracted:[], lost:[], endedAt:1, toolLeft:{ id:"tool_grenade", n:2 } });
   assert.equal(bad.toolBack, 0, "mismatched tool id is ignored");
-  assert.equal(S().stash.tool_grenade || 0, 0);
+  assert.equal(((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)) || 0, 0);
 }
 {
   // first charge of each tool is free when the Fabricator level that unlocks it is built (once)
   const { w, S } = boot();
   S().stash = {}; S().toolsGiven = {};
   w.__T.finish("fabricator", 1);
-  assert.equal(S().stash.tool_decoy, 1, "Fabricator L1 grants one Decoy charge");
-  assert(!S().stash.tool_grenade && !S().stash.tool_emp, "grenade/EMP wait for L2");
+  assert.equal(((S().stash.tool_decoy || 0) + ((S().armory || {}).tool_decoy || 0)), 1, "Fabricator L1 grants one Decoy charge");
+  assert(!((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)) && !((S().stash.tool_emp || 0) + ((S().armory || {}).tool_emp || 0)), "grenade/EMP wait for L2");
   w.__T.finish("fabricator", 2);
-  assert.equal(S().stash.tool_grenade, 1); assert.equal(S().stash.tool_emp, 1);
+  assert.equal(((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)), 1); assert.equal(((S().stash.tool_emp || 0) + ((S().armory || {}).tool_emp || 0)), 1);
   w.__T.finish("fabricator", 2); w.__T.finish("fabricator", 1);
-  assert.equal(S().stash.tool_decoy, 1, "granted once only"); assert.equal(S().stash.tool_grenade, 1);
+  assert.equal(((S().stash.tool_decoy || 0) + ((S().armory || {}).tool_decoy || 0)), 1, "granted once only"); assert.equal(((S().stash.tool_grenade || 0) + ((S().armory || {}).tool_grenade || 0)), 1);
 }
 console.log("WEAPONS + KIT TEST PASSED");

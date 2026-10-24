@@ -31,7 +31,7 @@ const finishRun = b => { b.A.sendScavenge(); const I = b.S().idle; I.scav.return
   r.A.openHaul(); const pop = r.d.querySelector("#overlay .bpop.haulpop"); assert(pop && pop.classList.contains("pop-card") && pop.querySelector(".pop-x"), "shared overlay popup with X");
   r.w.eval(pop.querySelector("button.primary").getAttribute("onclick"));
   assert.equal(r.S().cur.scrap, sc + loot.scrap, "confirm deposits scrap"); assert(!r.S().idle.scavPending);
-  for(const id in loot.items) assert.equal(r.S().stash[id], (stash0[id] || 0) + loot.items[id], "confirm deposits " + id);
+  for(const id in loot.items) assert.equal((r.S().stash[id] || 0) + ((r.S().armory || {})[id] || 0), (stash0[id] || 0) + loot.items[id], "confirm deposits " + id);
   const after = JSON.stringify([r.S().cur, r.S().stash]); r.A.confirmHaul(); r.A.confirmHaul(); assert.equal(JSON.stringify([r.S().cur, r.S().stash]), after, "no double deposit");
   const r2 = boot(JSON.parse(r.w.localStorage.getItem("pr_meta_save"))); assert(!r2.S().idle.scavPending, "cleared pending persists");
   r2.A.sendScavenge(); assert(r2.S().idle.scav, "can send again after confirm"); }
