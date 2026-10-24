@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.87.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.88.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -1528,7 +1528,7 @@ function revealCurrency(id){
   S.revealed[id] = true;
   act("CURRENCY_REVEALED", { id });
   if(typeof document !== "undefined" && document.getElementById("toast")){
-    toast("New resource: " + CUR_LABELS[id]);
+    toast("New resource: " + CUR_LABELS[id] + " · tap it in the top bar to learn more");
     renderCurrencies();
   }
 }
@@ -1538,19 +1538,40 @@ const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricato
 function itemIcon(id){ const it = ITEMS[id]; return it && it.icon ? IC(it.icon) : ""; }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
+// v1.88 contextual top bar (docs/design-armory.md d): Level, Scrap and Power everywhere; other currencies only on the screen that
+// spends them, or for a few seconds after they change. Every pill is tappable and explains itself (A.curInfo).
+const CUR_CONTEXT = { dataCores:["base","module","vendor","craft"], signals:["prep"], chips:["bit"] };
+const CUR_INFO = {
+  scrap:{ name:"Scrap", what:"Main currency: builds, upgrades, crafting and trader buys.", where:"Extract from raids and sell spare loot.", go:"vendor" },
+  dataCores:{ name:"Data Cores", what:"Rare build currency for higher module levels.", where:"Data Core loot on deeper levels (L2/L3) and BIT hauls.", go:"base" },
+  signals:{ name:"Signals", what:"Pays for raid insurance in Raid Prep.", where:"Rewards and optional ads.", go:"prep" },
+  chips:{ name:"Contract Chips", what:"Trade at BIT's chip shop for materials and unlocks.", where:"Finish quest steps.", go:"bit" },
+  fuel:{ name:"Fuel", what:"One fuel per deploy.", where:"Refills over time.", go:"prep" }
+};
+const curSeen = {}, curFlash = {};
+function curVisible(id, val){
+  if(curSeen[id] !== undefined && curSeen[id] !== val){ curFlash[id] = Date.now() + 3000; setTimeout(() => { if(typeof renderCurrencies === "function") renderCurrencies(); }, 3100); }
+  curSeen[id] = val;
+  return !CUR_CONTEXT[id] || CUR_CONTEXT[id].includes(session.screen) || (curFlash[id] || 0) > Date.now();
+}
+function curInfoHtml(id){
+  const I = CUR_INFO[id]; if(!I) return "";
+  const val = id === "fuel" ? S.fuel : (S.cur[id] || 0);
+  return '<div class="bpop curinfo" data-cur="' + id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + CUR_ICONS[id] + '</span><h1>' + esc(I.name) + '</h1><em>' + val + '</em></div>' +
+    '<p class="ci-what">' + esc(I.what) + '</p><p class="small ci-where">' + IC("pickup") + ' ' + esc(I.where) + '</p>' +
+    (I.go && session.screen !== I.go && navAllowed(I.go) ? '<button class="ghost" onclick="closeBuildingPopup();A.go(\'' + I.go + '\')">GO</button>' : '') + '</div>';
+}
 function renderCurrencies(){
   const c = S.cur;
-  const pill = (id, label, val) => '<span class="cur cur-' + id + '" title="' + label + '"><i aria-hidden="true">' + CUR_ICONS[id] + '</i><span class="lbl">' + label + ' </span><b>' + val + '</b></span>';
+  for(const k of ["scrap","dataCores","signals","chips"]) curVisible(k, c[k] || 0); // track changes even while hidden / at 0
+  const pill = (id, label, val) => curVisible(id, val) ? '<button type="button" class="cur cur-' + id + '" title="' + label + '" aria-label="' + label + ' ' + val + ', tap to explain" onclick="A.curInfo(\'' + id + '\')"><i aria-hidden="true">' + CUR_ICONS[id] + '</i><span class="lbl">' + label + ' </span><b>' + val + '</b></button>' : '';
   const op = operatorLevel();
   let h = '<button class="cur oplvl" onclick="A.go(\'operator\')" title="Operator level — tap for skills" aria-label="Operator level ' + op.level + (op.need ? ', ' + op.into + ' of ' + op.need + ' XP' : '') + '"><i>' + op.level + '</i><span class="opbar"><span class="oplbl">LV ' + op.level + '</span><span class="optrack"><span style="width:' + (op.need ? Math.round(op.into / op.need * 100) : 100) + '%"></span></span><span class="opxp">' + (op.need ? op.into + '/' + op.need + ' XP' : 'MAX') + '</span></span></button>';
   h += retMode() === "full" ? pill("fuel", "Fuel", S.fuel + '/' + D.retention.fuel.max) : '';
   h += Object.keys(CUR_LABELS).filter(id => S.revealed[id]).map(id => pill(id, CUR_LABELS[id], c[id])).join("");
   h += (c.chips || 0) > 0 ? pill("chips", "Chips", c.chips) : '';
   h += powerMeterHtml();
-  if(bitOnline()){
-    const bl = bondLevel(), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
-    h += '<button class="cur bondpill" onclick="A.go(\'bit\')" aria-label="BIT bond level ' + bl + (scavPending() ? ', haul waiting' : '') + '"><i>' + bl + '</i><span class="lbl">Bond </span><b>' + S.bondXp + (nxt ? '/' + nxt.xp : '') + '</b></button>';
-  }
+  // v1.88: BIT Bond moved off the top bar into a level badge on the BIT nav button (renderTabs).
   document.getElementById("currencies").innerHTML = h;
 }
 function navAllowed(id){ return id === "bit" ? bitOnline() : baseAllows("navigation", id); }
@@ -1571,12 +1592,13 @@ function renderTabs(){
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
     const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
     const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
-    if(active) return gap + '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + '</button>';
+    const bond = id === "bit" && bitOnline() ? '<span class="bondlv" title="BIT Bond level" aria-label="Bond level ' + bondLevel() + '">' + bondLevel() + '</span>' : '';
+    if(active) return gap + '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + bond + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
     return gap + '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + pulse + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
       '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
-      (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + '</button>';
+      (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + bond + '</button>';
   }).join("");
   if(typeof updateNav === "function") updateNav();
 }
@@ -3605,6 +3627,7 @@ window.A = {
   openQuickClean(){
     session.quickClean = { sel:quickCleanDefault(quickCleanList()), confirm:false }; quickCleanRender();
   },
+  curInfo(id){ if(!CUR_INFO[id]) return; act("CURRENCY_INFO", { id }); overlay(curInfoHtml(id), null, "sheet curinfoov"); },
   quickCleanToggle(id){ const qc = session.quickClean; if(!qc) return; if(qc.sel[id]) delete qc.sel[id]; else qc.sel[id] = true; quickCleanRender(); },
   quickCleanAsk(){ const qc = session.quickClean; if(qc && Object.keys(qc.sel).length){ qc.confirm = true; quickCleanRender(); } },
   quickCleanBack(){ const qc = session.quickClean; if(qc){ qc.confirm = false; quickCleanRender(); } },
