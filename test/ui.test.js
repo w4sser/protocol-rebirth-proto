@@ -82,7 +82,7 @@ assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(text().includes("PLATE 00"), "dormant plate label");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "dormant_core", "found state restores audio profile");
 assert.equal(doc.querySelectorAll("#tabs button:not([disabled]):not(.active)").length, 0, "found state locks non-base navigation");
-assert.equal(doc.querySelectorAll("#tabs button").length, 5, "full bottom bar BASE/RAID/STASH/SHOP/BIT on every main screen");
+assert.equal(doc.querySelectorAll("#tabs button").length, 6, "full bottom bar incl. WEAPONS on every main screen");
 A.go("module","fabricator");
 assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot open its module flow");
 
@@ -213,7 +213,7 @@ A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
 assert(text().includes("BIT — Bond LV"), "bond card on the BIT screen");
-assert(!doc.querySelector("#currencies .bondpill") && doc.querySelector("#tabs .nav-bit .bondlv"), "v1.88: bond level is a badge on the BIT button, not a top-bar pill");
+assert(!doc.querySelector("#currencies .bondpill") && !doc.querySelector("#tabs .nav-bit .bondlv"), "v1.94: bond level shown on the BIT screen only");
 assert(doc.querySelector("#tabs .nav-bit:not([disabled])"), "BIT button unlocked in bottom bar");
 // curated self-expression: cosmetic style for the built BIT Bay
 A.go("module","bit_bay");

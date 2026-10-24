@@ -18,7 +18,7 @@ const b = boot(old), S = b.S(), T = b.T, q = s => b.d.querySelector(s);
 assert.equal(T.tierLabel("basic_carbine"), "MK I · SALVAGED");
 assert.equal(T.weaponArtSrc("basic_carbine", 512), "assets/weapons/carbine-1-512");
 assert.equal(T.tierLabel("shotgun_breach"), "MK III · CUSTOM");
-assert.equal(T.weaponArtSrc("rifle_marksman", 1600), "", "marksman keeps svg fallback");
+assert.equal(T.weaponArtSrc("rifle_marksman", 1600), "assets/weapons/marksman-1-1600", "v1.94 marksman placeholder silhouette");
 b.A.openStashItem("shotgun_breach");
 assert(q(".wpn-hero img.cur").getAttribute("src") === "assets/weapons/shotgun-3-1600.webp");
 assert(q('.wslot.stock[data-slot=stock]'), "stock box for leader line");

@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.93.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.94.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 14;   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
 //   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
@@ -1610,31 +1610,35 @@ function renderCurrencies(){
   // v1.88: BIT Bond moved off the top bar into a level badge on the BIT nav button (renderTabs).
   document.getElementById("currencies").innerHTML = h;
 }
-function navAllowed(id){ return id === "bit" ? bitOnline() : baseAllows("navigation", id); }
+function navAllowed(id){ return id === "bit" ? bitOnline() : id === "arms" ? baseAllows("navigation", "stash") : baseAllows("navigation", id); }
+// v1.94: WEAPONS nav opens the upgrade bench for the weapon you last equipped (free carbine otherwise).
+function armsWeapon(){ const w = S.loadout && S.loadout.weapon; return w && ITEMS[w] && (isFree(w) || have(w) > 0) ? w : PROG.freeWeapon; }
+function ownedWeapons(){ return Object.keys(ITEMS).filter(id => gearKind(id) === "weapon" && (isFree(id) || have(id) > 0)); }
 function navBadge(id){
   // Owner 14 Oct: the base tab counts what can be built right now.
-  if(id === "base"){ const n = buildableCount(); if(n) return ["up build", String(n)]; }
-  if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
-  if(id === "prep" && wmNewUnlockTarget()) return ["alert","!"];
-  if(id === "stash" && (stashOverflowing() || armoryOverflowing())) return ["alert","!"];
+  // v1.94: badges are words, only for something you can act on now, and carry a tap-explain title.
+  if(id === "base"){ const n = buildableCount(); if(n) return ["up build", n + " BUILD", n + " room" + (n === 1 ? "" : "s") + " can be built or upgraded now"]; }
+  if(id === "prep" && wmNewUnlockTarget()) return ["alert","NEW", "A new raid area is open"];
+  if(id === "stash" && (stashOverflowing() || armoryOverflowing())) return ["alert","FULL", "Stash is over capacity: sell, recycle or upgrade extras"];
+  if(id === "bit" && bitOnline() && scavPending()) return ["up","HAUL", "BIT is back with a haul: confirm it"];
   if(id === "bit" && (contractsUnlocked() || dailyReadyCount())){
     const n = Object.values(S.contracts || {}).filter(v => v === "done").length + dailyReadyCount();
-    if(n) return ["up", String(n)];
+    if(n) return ["up", n + " READY", n + " quest reward" + (n === 1 ? "" : "s") + " ready to claim"];
   }
   return null;
 }
 function renderTabs(){
-  const items = [["base",IC("nav-base"),"BASE"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"],["prep",IC("nav-raid"),"RAID"]];
+  const items = [["base",IC("nav-base"),"BASE"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"],["arms",IC("item-carbine"),"WEAPONS"],["prep",IC("nav-raid"),"RAID"]];
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
     const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
     const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
-    const bond = id === "bit" && bitOnline() ? '<span class="bondlv" title="BIT Bond level" aria-label="Bond level ' + bondLevel() + '">' + bondLevel() + '</span>' : '';
+    const bond = ''; // v1.94: Bond level lives on the BIT screen, not as an unexplained number on the nav
     if(active) return gap + '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + bond + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
     return gap + '<button type="button" class="nav-' + id + (active ? ' active' : '') + (ok ? '' : ' locked') + pulse + '" ' +
       (ok ? 'onclick="A.go(\'' + id + '\')"' : 'disabled aria-disabled="true"') + ' aria-label="' + label + (ok ? '' : ' (locked)') + '">' +
       '<span class="ni" aria-hidden="true">' + (ok ? icon : IC('lock')) + '</span>' + label +
-      (b ? '<span class="badge ' + b[0] + '">' + b[1] + '</span>' : '') + bond + '</button>';
+      (b ? '<span class="badge word ' + b[0] + '" title="' + b[2] + '" onclick="event.stopPropagation();toast(\'' + b[2] + '\')">' + b[1] + '</span>' : '') + bond + '</button>';
   }).join("");
   if(typeof updateNav === "function") updateNav();
 }
@@ -3478,7 +3482,7 @@ function weaponScreenHtml(id){
     : '<span class="wpn-art t' + tier + '" aria-hidden="true">' + IC(ITEMS[id].icon) + Object.keys(ATT_ITEM).filter(k => at[k]).map(k => '<i class="watt watt-' + k + '">' + IC(ITEMS[ATT_ITEM[k]].icon) + '</i>').join("") + '</span>';
   setTimeout(drawLeaders, 30);
   return '<div class="bpop stashpop gearpop wpnscreen tier' + tier + ' r-' + tierRarity(id) + '" data-gear="' + id + '" data-tier="' + tier + '"><div class="wpn-l"><div class="wpn-bench">' + art + '<span class="wpn-mk" aria-hidden="true">' + tierLabel(id) + '</span></div>' + wpnSlotsHtml(id) + '</div>' +
-    '<div class="wpn-r"><button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button><div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier rar-' + tierRarity(id) + '">' + tierLabel(id) + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
+    '<div class="wpn-r">' + (ownedWeapons().length > 1 ? '<div class="wpn-switch" role="tablist" aria-label="Your weapons">' + ownedWeapons().map(w => '<button type="button" role="tab" class="' + (w === id ? 'on' : '') + '" aria-selected="' + (w === id) + '" onclick="closeAllPopups();A.openWeapon(\'' + w + '\')" title="' + esc(ITEMS[w].name) + '">' + itemIcon(w) + '</button>').join("") + '</div>' : '') + (WART.sets[it.art] && WART.sets[it.art].placeholder ? '<div class="wpn-ph">Placeholder art</div>' : '') + '<button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button><div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier rar-' + tierRarity(id) + '">' + tierLabel(id) + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
     '<div class="gu-lvl" aria-label="Upgrade level ' + lvl + ' of ' + max + '"><b>LEVEL ' + lvl + '/' + max + '</b><span class="gu-pips">' + Array.from({ length:max }, (_, i) => '<span class="gu-pip' + (i < lvl ? ' on' : '') + '"></span>').join("") + '</span></div>' +
     wpnBarsHtml(id) + mastery + mergeRow +
     (canMerge ? '<button class="primary big merge" onclick="A.gearMerge(\'' + id + '\')">' + (free ? 'REBUILD TO ' : 'MERGE TO ') + nextName + '</button>' : '') +
@@ -3703,6 +3707,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
+    if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && screen !== "worldmap" && !baseAllows("navigation", screen))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
@@ -3863,7 +3868,7 @@ window.A = {
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + (gearKind(id) === "weapon" ? '<span class="pick-up" role="button" tabindex="0" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();event.stopPropagation();A.openWeapon(\'' + id + '\')}">UPGRADE</span>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
@@ -4350,7 +4355,7 @@ window.A = {
       '<em>L' + lvl + (next ? ' ' + IC("arrow-right") + ' L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">' + IC("info") + '</button>' +
       '</div>' + roomExplainHtml(modId) + (modId === "fabricator" ? '<div class="fabcols"><div class="fabl">' + fabQueueHtml() + fabCraftHtml() + '</div><div class="fabr">' + body + cta + '</div></div>'
-      : (modId === "rebirth_core" ? genCardHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta) + '</div>', clearMapFocus, modId === "fabricator" ? "sheet fabroom" : "sheet");
+      : (modId === "rebirth_core" ? genCardHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta) + '</div>', clearMapFocus, modId === "fabricator" ? "sheet fabroom fabov" : "sheet");
     if(session.screen === "base") focusMapOn(modId);
   },
   back(){

@@ -21,7 +21,7 @@ const z = el => Number(w.getComputedStyle(el).zIndex);
 assert(z(spots[0]) > z(doc.querySelector(".hubstate")), "map spots sit above the state label");
 // HUD: plates carry a solid tag, bottom bar + settings menu exist
 for(const s of spots) assert(s.querySelector(".tag"), "every map spot is a solid building plate");
-assert.equal(doc.querySelectorAll("#tabs button").length, 5, "bottom bar BASE/RAID/STASH/SHOP/BIT");
+assert.equal(doc.querySelectorAll("#tabs button").length, 6, "bottom bar BASE/STASH/SHOP/BIT/WEAPONS/RAID");
 assert(doc.querySelector("#settings-menu[hidden] #reset-progress"), "Reset lives in the closed settings menu");
 doc.getElementById("menubtn").click();
 assert(!doc.getElementById("settings-menu").hidden, "gear opens settings");
