@@ -22,7 +22,7 @@ let n = 0; const raid = o => Object.assign({ schema:"protocol-rebirth/raid-resul
 // ---- migration: v9 stash counts as found in raid ----
 { const v9 = JSON.parse(JSON.stringify(open)); v9.v = 9; delete v9.fir; v9.stash = { scrap_alloy: 4, cable: 2 };
   const m = boot(v9), s = m.S(); assert.equal(s.v, 14); assert.deepEqual(s.fir, { scrap_alloy: 4, cable: 2 }, "existing stash is FIR");
-  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 13, "migrated save is stored"); }
+  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 14, "migrated save is stored"); }
 
 // ---- FIR tagging: extraction yes, purchase / reward / dead raid no ----
 const b = boot(open), { A, T, d } = b, S = b.S; A.go("base");

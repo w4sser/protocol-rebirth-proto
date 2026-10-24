@@ -40,7 +40,7 @@ assert.equal(T.masteredWeapon("smg_vector").rng, r0 + 2); assert(T.masteredWeapo
 assert(/rng:/.test(T.weaponParam("smg_vector")) && T.weaponParam("smg_vector").includes("rng:" + (r0 + 2)), "raid gets attachment stats");
 assert(q(".wpn-hero img.cur").getAttribute("src").includes("smg-2-1600.webp"), "Mk II art"); assert(/RESTORED/.test(q(".wpnscreen .wtier").textContent));
 // kept on merge to Mk III
-T.addItem("smg_vector", 2); b.A.gearMerge("smg_vector"); assert.equal(T.gearTier("smg_vector"), 3); assert(S.attach.smg_vector.barrel && S.attach.smg_vector.mag, "attachments kept");
+assert(/6 more/.test(T.mergeBlock("smg_vector")), "Mk III needs 7 on hand (9 total)"); T.addItem("smg_vector", 6); b.A.gearMerge("smg_vector"); assert.equal(T.gearTier("smg_vector"), 3); assert(S.attach.smg_vector.barrel && S.attach.smg_vector.mag, "attachments kept");
 assert.equal(T.mergeBlock("smg_vector"), "Max tier");
 // armor merge via popup
 T.addItem("scavenger_vest", 1); const sh0 = T.gearEffect("scavenger_vest").shield; b.w.eval("closeAllPopups()"); b.A.openStashItem("scavenger_vest");
