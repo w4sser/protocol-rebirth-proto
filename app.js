@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.86.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.87.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -36,7 +36,7 @@ function freshState(){
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
     payoff: null, payoffDone: false, areaSeen: {},
-    chains: {}, trackedQuest: null, fir: {}, gearUp: {}, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
+    chains: {}, trackedQuest: null, fir: {}, gearUp: {}, loadout: null, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
@@ -2078,13 +2078,18 @@ function usageIconsHtml(id){
   const on = STASH_USES.filter(x => u[x[0]]); if(!on.length) return "";
   return '<span class="uses" aria-label="Used for: ' + on.map(x => x[2]).join(", ") + '">' + on.map(x => '<i class="u-' + x[0] + '" title="' + x[2] + '">' + IC(x[1]) + '</i>').join("") + '</span>';
 }
+// v1.87 stash order: weapons, then gear (armor / rigs), consumables + tools, then materials; rarity high to low, then name.
+const RARITY_RANK = { legendary:0, epic:1, rare:2, uncommon:3, common:4 };
+function stashGroup(id){ const it = ITEMS[id]; return it.weapon ? 0 : it.slot === "armor" || /rig|vest|cloak/.test(id) ? 1 : (it.slot === "consumable" || it.tool || /^tool_/.test(id) || (it.uses || []).includes("loadout")) ? 2 : 3; }
+function stashOrder(a, b){ return stashGroup(a) - stashGroup(b) || (RARITY_RANK[ITEMS[a].rarity] ?? 5) - (RARITY_RANK[ITEMS[b].rarity] ?? 5) || ITEMS[a].name.localeCompare(ITEMS[b].name); }
+function upMark(id){ return gearKind(id) && !gearBlock(id) ? '<span class="upmark" title="Upgrade available" aria-label="Upgrade available">' + IC("chevron-up") + '</span>' : ''; }
 function stashOverflowing(){ return stashSlotsUsed() > stashCapacity(); }
 SCREENS.stash = function(){
   let html = '<h1>Stash</h1><div class="sub">' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots' +
     (stashOverflowing() ? ' <button type="button" class="ovf-btn" onclick="A.openQuickClean()">OVERFLOW · CLEAN UP</button>' : '') + '</div><div class="grid">';
-  const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id));
+  const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id)).sort(stashOrder);
   for(const id of D.items.filter(i => i.free).map(i => i.id))
-    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) +
+    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
   if(!ids.length) html += '</div><div class="card small">Empty. The surface has what you need.</div>';
   else {
@@ -2094,7 +2099,7 @@ SCREENS.stash = function(){
       if(S.reserved[id]) cls.push("reserved");
       if(S.secureItem === id) cls.push("secure");
       html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
-        (firHave(id) ? firMark() : '') + usageIconsHtml(id) + '<span class="qty">×' + S.stash[id] + '</span></div>';
+        (firHave(id) ? firMark() : '') + upMark(id) + usageIconsHtml(id) + '<span class="qty">×' + S.stash[id] + '</span></div>';
     }
     html += '</div>';
   }
@@ -2159,16 +2164,26 @@ function stashPopRender(){
   overlay(stashPopHtml(), () => { session.stashPop = null; refresh(); }, "sheet");
 }
 // Quick clean (overflow): suggested sellables, low value, not needed anywhere, not reserved / secure / free.
-function quickCleanList(){
+// v1.87: never gear or anything the player can equip / use in a raid (weapons, armor, Medkit, tools such as EMP).
+function usableGear(id){
+  const it = ITEMS[id]; if(!it) return false;
+  return !!(it.family === "gear" || it.weapon || it.slot || it.tool || /^tool_/.test(id) || (it.uses || []).includes("loadout") || gearKind(id));
+}
+function quickCleanList(fallback){
   const out = [], nextNeeds = {};
+  const questWant = {}; // active quest-step items (extract / hand-in) are never suggested
+  for(const c of Object.keys(QC)){ const d = chainActive(c), o = d && d.objective; if(!o) continue; if(o.item) questWant[o.item] = 1; if(o.items) for(const k in o.items) questWant[k] = 1; }
   for(const m of D.modules){ const n = nextLevelDef(m.id); if(n && n.cost.items) for(const k in n.cost.items) nextNeeds[k] = 1; }
   for(const id of Object.keys(S.stash)){
     const it = ITEMS[id], n = S.stash[id];
-    if(!it || n < 1 || isFree(id) || S.reserved[id] || S.secureItem === id || !(it.sellValue > 0) || it.sellValue > D.quickCleanMaxValue) continue;
-    if(nextNeeds[id] || stashWarnings(id, n).length) continue;
+    if(!it || n < 1 || isFree(id) || usableGear(id) || S.reserved[id] || S.secureItem === id || !(it.sellValue > 0)) continue;
+    if(!fallback && it.sellValue > D.quickCleanMaxValue) continue;
+    if(nextNeeds[id] || questWant[id] || stashWarnings(id, n).length) continue;
     out.push({ id, qty:n, slots:Math.ceil(n / (it.stackSize || 1)), gain:sellGain(id, n) });
   }
-  return out.sort((a, b) => ITEMS[a.id].sellValue - ITEMS[b.id].sellValue || a.id.localeCompare(b.id));
+  out.sort((a, b) => ITEMS[a.id].sellValue - ITEMS[b.id].sellValue || a.id.localeCompare(b.id));
+  // Nothing low-value and unneeded: offer only the three cheapest spare materials.
+  return out.length || fallback ? out : quickCleanList(true).slice(0, 3);
 }
 function quickCleanDefault(list){
   const sel = {}; let over = stashSlotsUsed() - stashCapacity();
@@ -2237,7 +2252,20 @@ function ensurePrep(){
   session.prep.loadout.weapon = PROG.freeWeapon; // free Basic is always available for Node Raid
   if(have(PROG.defaultLoadout.armor)) session.prep.loadout.armor = PROG.defaultLoadout.armor;
   if(have(PROG.defaultLoadout.c1)) session.prep.loadout.c1 = PROG.defaultLoadout.c1;
+  restoreSavedLoadout(session.prep);
   return session.prep;
+}
+// v1.87: the last chosen loadout lives in the save (S.loadout), so leaving Raid Prep (or reloading) keeps the spec.
+// Only slots whose item is still owned (or the free weapon) are restored; the rest keep the defaults above.
+function savedLoadoutOk(key, id){
+  if(id === null) return key !== "weapon";
+  const def = SLOT_DEFS.find(d => d[0] === key), it = ITEMS[id];
+  return !!(def && it && (id === FREE_WEAPON || (it.slot === def[1] && have(id) > 0)));
+}
+function restoreSavedLoadout(p){
+  const L = S.loadout; if(!L || typeof L !== "object") return;
+  for(const key of Object.keys(p.loadout)) if(key in L && savedLoadoutOk(key, L[key])) p.loadout[key] = L[key];
+  p.loadoutTouched = true;
 }
 SCREENS.prep = function(){
   const beat = curBeat();
@@ -3633,7 +3661,8 @@ window.A = {
   prepLoadout(slot, id){
     if(!session.prep || (id && (!ITEMS[id] || have(id) < 1))) return;
     if(slot === "weapon" && !id) id = FREE_WEAPON; // weapon slot is never empty: the free Basic is always there
-    session.prep.loadout[slot] = id || null; session.prep.loadoutTouched = true; refresh("raid_prep"); },
+    session.prep.loadout[slot] = id || null; session.prep.loadoutTouched = true;
+    S.loadout = Object.assign({}, session.prep.loadout); save(); refresh("raid_prep"); },
   adSignals(){
     fakeAd("+"+PROG.insurance.adSignalsGrant+" Signals", ()=>{
       S.cur.signals += PROG.insurance.adSignalsGrant; save();
