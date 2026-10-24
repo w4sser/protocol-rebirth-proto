@@ -3458,7 +3458,7 @@ function wpnSlotsHtml(id){
   const tier = weaponTier(id);
   return '<div class="wslots" aria-label="Attachment slots">' + WPN_SLOTS.map(([key, name, eff, need]) => {
     const open = tier >= need, fitted = !!attachOf(id)[key], can = open && !fitted && !attachBlock(id, key);
-    const sub = fitted ? eff + ' · fitted' : !open ? 'Mk ' + TIER_NAMES[need - 1] : can ? 'TAP TO FIT ' + eff : (isFree(id) ? 'Craft guns only' : eff + ' · craft at Fabricator');
+    const sub = fitted ? eff + ' · fitted' : !open ? 'Mk ' + TIER_NAMES[need - 1] : can ? 'TAP TO FIT ' + eff : (eff + ' · craft at Fabricator');
     return '<button type="button" class="wslot' + (fitted ? ' fitted open' : open ? ' open' : ' locked') + (can ? ' can' : '') + '" data-slot="' + key + '"' + (can ? ' onclick="A.fitAttachment(\'' + id + '\',\'' + key + '\')"' : ' disabled') + '>' +
       '<b>' + (fitted ? IC(ITEMS[ATT_ITEM[key]].icon) + ' ' : '') + name + '</b><small>' + sub + '</small></button>';
   }).join("") + (ITEMS[id].art ? '<div class="wslot stock open" data-slot="stock"><b>Stock</b><small>' + gradeName(id) + (weaponGrade(id) < 4 && gearTier(id) >= 3 ? ' · fit all 3 for Svartverk' : '') + '</small></div>' : '') + '</div>';
@@ -3471,7 +3471,7 @@ function weaponScreenHtml(id){
   const tier = gearTier(id), at = attachOf(id), mb = mergeBlock(id), canMerge = !mb, free = isFree(id), nextName = tier < 3 ? 'MK ' + TIER_NAMES[tier] + (ITEMS[id].art ? ' · ' + WART.grades[tier].toUpperCase() : '') : '';
   preloadWeaponArt(id);
   const mergeRow = free ? '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>REBUILD</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? rebuildCost(id) + ' Scrap rebuilds it as ' + nextName : esc(mb) + ' · then ' + rebuildCost(id) + ' Scrap') + '</small></div>' :
-    '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>MERGE ' + Math.min(have(id), mergeNeed(id)) + '/' + mergeNeed(id) + '</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? mergeNeed(id) + ' copies become 1 ' + nextName : esc(mb)) + '</small></div>';
+    '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>MERGE' + (tier >= 3 ? '' : ' ' + Math.min(have(id), mergeNeed(id)) + '/' + mergeNeed(id)) + '</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? mergeNeed(id) + ' copies become 1 ' + nextName : esc(mb)) + '</small></div>';
   const src = weaponArtSrc(id, 1600), prev = LAST_ART && LAST_ART.id === id && LAST_ART.src !== src ? LAST_ART.src : null;
   LAST_ART = { id, src };
   const art = src ? '<span class="wpn-hero g' + weaponGrade(id) + '" aria-hidden="true">' + (prev ? '<img class="old" src="' + prev + '.webp" alt="">' : '') + weaponArtImg(id, 1600, "cur" + (prev ? " fadein" : "")).replace('<img ', '<img onload="drawLeaders()" ') + '</span>'
