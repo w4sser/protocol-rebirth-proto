@@ -82,6 +82,25 @@ Nav: BIT button opens the BIT screen; top tabs: **TALENTS · TASKS · QUESTS · 
   bottom sheet.
 - BIT nav badge shows **POINTS** only when unspent points exist (actionable, with a tap-explain).
 
+## Future: Combat branch (not built)
+A fourth branch, same shape as the other three (5 rows, row 3 choice, row 5 capstone), for a combat-leaning BIT:
+BIT fires at enemies, marks targets, and buffs the player's damage in raids.
+
+- PvE only, same as every other branch — it buffs how BIT fights alongside you against raid enemies, never
+  anything aimed at other players.
+- Talents are passive and always on, same as Scout/Guardian/Scavenger. BIT still runs **one active task** at a
+  time; a combat companion during a raid is that task's raid-companion slot, not a second thing running in
+  parallel with scavenge/expedition.
+- Rows (illustrative, not final — mirrors the existing branch template):
+  - Row 1: small passive (e.g. mark chance / fire rate ranks).
+  - Row 2: core node (BIT actively fires at marked targets) plus a second small passive.
+  - Row 3: choice node — e.g. *Suppressor* (marked targets take +dmg from the player) **or** *Overwatch* (BIT
+    fires independently at the nearest threat).
+  - Row 4: passives (reload assist, mark radius, etc.).
+  - Row 5: capstone — a single strong raid-combat effect, same weight as Recon Drone / Safe Return / Lucky Find.
+- Added purely by extending `data/bit-talents.js` with a fourth branch entry — no change to the points/row-gate/
+  respec engine in `app.js`, which is already branch-agnostic (see Implementation status below).
+
 ## Open questions
 - Bond cap (20?) and xp curve after Bond 10.
 - Whether Safe Return is too strong vs. the death rule; fallback: saves one *material*, not gear.

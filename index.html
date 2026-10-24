@@ -1218,7 +1218,9 @@
   @media (prefers-reduced-motion:reduce){.mergeburst,.wpnscreen.merged,.wpnscreen.merged .wpn-art svg{animation:none}.mergeburst{opacity:0}}
 
   /* v1.94 playtest fixes */
-  .welcome{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important;z-index:30;max-height:calc(100% - 170px);overflow-y:auto}
+  /* v1.95: bottom-right collided with the Living Quarters room plate; bottom-left is never free either (the
+     progress-goal card already lives there, above the nav). Top-right under the top bar is the clear corner. */
+  .welcome{top:calc(64px + env(safe-area-inset-top,0px))!important;bottom:auto!important;z-index:30;max-height:calc(100% - 170px);overflow-y:auto}
   #app.s-bit,#app.s-stash,#app.s-vendor,#app.s-operator,#app.s-module{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important}
   .idlecard{flex-wrap:nowrap}.idlecard>span{flex:1 1 auto!important;min-width:0!important;width:auto!important}
   .idlecard>button.inline{flex:0 0 auto!important;width:auto!important;max-width:40%;align-self:center;position:static!important;padding:0 18px}
