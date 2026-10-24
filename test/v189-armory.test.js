@@ -10,7 +10,7 @@ function boot(save){
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();
-assert.equal(g.T.SV, 12);
+assert.equal(g.T.SV, 13);
 const ids = Object.keys(g.D.items ? Object.fromEntries(g.D.items.map(i => [i.id, i])) : {});
 const gearId = g.D.items.find(i => !i.free && g.T.stashGroup(i.id) === 0).id, consId = g.D.items.find(i => !i.free && g.T.stashGroup(i.id) === 2);
 const matId = g.D.items.find(i => !i.free && g.T.stashGroup(i.id) >= 3).id;
@@ -21,7 +21,7 @@ old.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; old.beat = g.
 old.stash = { [gearId]:2, [matId]:7 }; if(consId) old.stash[consId.id] = 3;
 old.fir = { [gearId]:1, [matId]:2 }; old.gearUp = { [gearId]:2 }; old.reserved = { [gearId]:1 };
 const b = boot(old), S = b.S();
-assert.equal(S.v, 12); assert.equal(S.armory[gearId], 2, "gear moved"); assert(!S.stash[gearId], "gear not left in stash");
+assert.equal(S.v, 13); assert.equal(S.armory[gearId], 2, "gear moved"); assert(!S.stash[gearId], "gear not left in stash");
 assert.equal(S.stash[matId], 7, "materials stay"); if(consId) assert.equal(S.armory[consId.id], 3, "consumables to armory");
 assert.equal(b.T.have(gearId), 2); assert.equal(b.T.firHave(gearId), 1); assert.equal(S.gearUp[gearId], 2); assert(S.reserved[gearId]);
 // routing + removal
@@ -35,5 +35,5 @@ assert(b.T.armoryCapacity() >= 8 && b.T.armorySlotsUsed() >= 1);
 b.A.go("stash"); if(!b.d.querySelector("#inv-armory")) console.log(b.d.querySelector("#app").innerHTML.slice(0,400)); const ar = b.d.querySelector("#inv-armory"), ma = b.d.querySelector("#inv-stash");
 assert(ar && ma && ar.textContent.includes(g.D.items.find(i => i.id === gearId).name) && ma.textContent.includes(g.D.items.find(i => i.id === matId).name), "two sections");
 // idempotent reload
-b.w.eval("save && save()"); const again = boot(JSON.parse(b.w.localStorage.getItem("pr_meta_save"))); assert.equal(again.T.have(matId), 8); assert.equal(again.S().v, 12);
+b.w.eval("save && save()"); const again = boot(JSON.parse(b.w.localStorage.getItem("pr_meta_save"))); assert.equal(again.T.have(matId), 8); assert.equal(again.S().v, 13);
 console.log("V1.89 ARMORY TEST PASSED");

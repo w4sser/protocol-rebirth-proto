@@ -15,6 +15,13 @@ window.DATA.recipes = [
     inputs:{ scrap_alloy:2, servo:2, hydraulic_component:1 }, scrapCost:60, output:{ itemId:"shotgun_breach", qty:1 } },
   { id:"rifle_build", name:"Marksman Rifle", fabricatorLevel:2, blueprint:true,
     inputs:{ optical_sensor:1, circuit_board:1, encrypted_drive:1, scrap_alloy:2 }, scrapCost:80, output:{ itemId:"rifle_marksman", qty:1 } },
+  // v1.91 attachments (fitted from the weapon screen; give Servo / Optical Sensor / Circuit Board a clear use)
+  { id:"att_barrel_build", name:"Long Barrel", fabricatorLevel:1,
+    inputs:{ servo:2, scrap_alloy:1 }, scrapCost:40, output:{ itemId:"att_barrel", qty:1 } },
+  { id:"att_mag_build", name:"Extended Mag", fabricatorLevel:2,
+    inputs:{ servo:1, circuit_board:1 }, scrapCost:60, output:{ itemId:"att_mag", qty:1 } },
+  { id:"att_optic_build", name:"Optic", fabricatorLevel:2,
+    inputs:{ optical_sensor:1, circuit_board:1 }, scrapCost:80, output:{ itemId:"att_optic", qty:1 } },
   // Tools (stash count = charges; output qty = a full load). Level matches items.js tool.unlock.
   { id:"decoy_build", name:"Decoy", fabricatorLevel:1,
     inputs:{ cable:1, polymer_plate:1 }, scrapCost:10, output:{ itemId:"tool_decoy", qty:2 } },
