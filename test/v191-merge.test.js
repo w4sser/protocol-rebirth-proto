@@ -38,7 +38,7 @@ const r0 = T.masteredWeapon("smg_vector").rng, m0 = T.masteredWeapon("smg_vector
 b.w.eval(q('.wslot[data-slot=barrel]').getAttribute("onclick")); b.w.eval(q('.wslot[data-slot=mag]').getAttribute("onclick"));
 assert.equal(T.masteredWeapon("smg_vector").rng, r0 + 2); assert(T.masteredWeapon("smg_vector").mag > m0); assert(q('.wslot.fitted[data-slot=barrel]'));
 assert(/rng:/.test(T.weaponParam("smg_vector")) && T.weaponParam("smg_vector").includes("rng:" + (r0 + 2)), "raid gets attachment stats");
-assert(q(".wpn-art .watt-barrel"), "art shows the barrel");
+assert(q(".wpn-hero img.cur").getAttribute("src").includes("smg-2-1600.webp"), "Mk II art"); assert(/RESTORED/.test(q(".wpnscreen .wtier").textContent));
 // kept on merge to Mk III
 T.addItem("smg_vector", 2); b.A.gearMerge("smg_vector"); assert.equal(T.gearTier("smg_vector"), 3); assert(S.attach.smg_vector.barrel && S.attach.smg_vector.mag, "attachments kept");
 assert.equal(T.mergeBlock("smg_vector"), "Max tier");

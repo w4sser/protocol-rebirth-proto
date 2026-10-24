@@ -183,3 +183,15 @@ window.DATA.progression.gearMerge = {
   attach:{ barrel:{ rng:2 }, mag:{ magPct:0.25 }, optic:{ dmg:1 } },
   attachItem:{ barrel:"att_barrel", mag:"att_mag", optic:"att_optic" }
 };
+
+// v1.92 weapon art: grade = Mk tier, or 4 (Svartverk) at Mk III with every attachment fitted.
+// files[grade-1] = which art file exists for that grade (smg has no Svartverk art yet -> reuses Custom).
+// anchors: barrel/mag/optic/stock points as fractions of the trimmed image (leader lines).
+window.DATA.progression.weaponArt = {
+  grades:["Salvaged","Restored","Custom","Svartverk"],
+  sets:{
+    carbine:{ files:[1,2,3,4], anchors:{ barrel:[0.95,0.22], mag:[0.46,0.78], optic:[0.40,0.08], stock:[0.06,0.45] } },
+    shotgun:{ files:[1,2,3,4], anchors:{ barrel:[0.96,0.38], mag:[0.70,0.62], optic:[0.33,0.10], stock:[0.05,0.55] } },
+    smg:{ files:[1,2,3,3], anchors:{ barrel:[0.94,0.30], mag:[0.62,0.88], optic:[0.50,0.10], stock:[0.06,0.40] } }
+  }
+};

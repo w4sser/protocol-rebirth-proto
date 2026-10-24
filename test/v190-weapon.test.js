@@ -16,7 +16,7 @@ st.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; st.beat = g.D.
 const b = boot(st), q = s => b.d.querySelector(s);
 b.A.openStashItem("smg_vector"); assert(q("#overlay.wpnov .wpnscreen"), "weapon opens fullscreen");
 assert.deepEqual([...b.d.querySelectorAll(".wpnscreen .wbar")].map(e => e.dataset.stat), ["damage","firerate","mag","range"]);
-assert.equal(b.d.querySelectorAll(".wpnscreen .wslot").length, 3); assert(q(".wpnscreen .wslot.open[data-slot=barrel]"));
+assert.equal(b.d.querySelectorAll(".wpnscreen button.wslot").length, 3); assert(q(".wpnscreen .wslot.open[data-slot=barrel]"));
 assert(q(".wpnscreen .wpn-close")); b.w.eval(q(".wpn-close").getAttribute("onclick")); assert(!q("#overlay"), "own close works");
 b.A.openStashItem("scavenger_vest"); assert(q("#overlay .gearpop") && !q("#overlay.wpnov"), "armor keeps the popup"); b.w.eval("closeAllPopups()");
 b.A.go("prep"); b.A.prepLoadout("weapon", "smg_vector"); const up = q('.lslot[data-slot=weapon] .lslot-up'); assert(up, "prep weapon tile has bench button");
