@@ -85,4 +85,24 @@ const learnCore = (b, row1Id, coreId) => { for(let i = 0; i < 3; i++) b.T.learnT
   assert(b.T.scoutLead(), "scout finds a lead for the tracked part"); b.A.go("prep");
   assert(b.d.querySelector(".scoutnote"), "scout note rendered"); assert(b.d.body.textContent.includes("BIT SCOUT"), "lead zone marked");
   const off = fresh(s => { s.bondXp = 250; s.tracked = { module:"bit_bay", level:2 }; s.stash = {}; }); assert.equal(off.T.scoutLead(), null, "no hint when the node is not learned"); }
-console.log("T3 BIT CONFIRM + SKILLS TEST PASSED");
+// 7) Queued notices wait for the persistent BIT overlay without scheduling a retry loop,
+// survive tab replacement, and appear when the screen closes.
+(async () => {
+  const b = fresh();
+  try {
+    await new Promise(resolve => setImmediate(resolve)); // install the DOMContentLoaded observer
+    b.A.go("bit");
+    const delays = [], nativeTimeout = b.w.setTimeout.bind(b.w);
+    b.w.setTimeout = (fn, ms, ...args) => { delays.push(ms); return nativeTimeout(fn, ms, ...args); };
+    b.w.eval('toast("Queued talent notice")');
+    assert.deepEqual(delays, [], "waiting behind BIT must not schedule recurring timers");
+    assert(!b.d.querySelector("#toast .toastmsg"), "notice stays hidden while BIT is open");
+    b.A.bitTab("tasks");
+    await new Promise(resolve => setImmediate(resolve));
+    assert(!b.d.querySelector("#toast .toastmsg"), "replacing the BIT overlay keeps the notice queued");
+    b.d.querySelector("#overlay .pop-x").click();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(b.d.querySelector("#toast .toastmsg").textContent, "Queued talent notice", "closing BIT wakes the queued notice");
+    console.log("T3 BIT CONFIRM + SKILLS TEST PASSED");
+  } finally { b.w.close(); }
+})().catch(err => { console.error(err); process.exitCode = 1; });

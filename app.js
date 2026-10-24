@@ -1612,11 +1612,13 @@ function applyRaidResult(R){
 const $app = () => document.getElementById("app");
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 // Toasts are a queue: one at a time, never while a popup is open (deferred until it closes).
-const toastQ = []; let toastShowing = false, toastWait = null;
+const toastQ = []; let toastShowing = false;
 function toast(msg, html){ toastQ.push({ msg, html }); toastPump(); }
 function toastPump(){
   if(typeof document === "undefined" || toastShowing || !toastQ.length) return;
-  if(document.getElementById("overlay")){ if(!toastWait) toastWait = setTimeout(() => { toastWait = null; toastPump(); }, 400); return; }
+  // Fullscreen screens such as BIT can keep an overlay open indefinitely. Wait for
+  // its removal (observed below) rather than polling while a notice is queued.
+  if(document.getElementById("overlay")) return;
   const q = toastQ.shift(), t = document.createElement("div");
   t.className = "toastmsg"; if(q.html) t.innerHTML = q.html; else t.textContent = q.msg;
   document.getElementById("toast").appendChild(t);
@@ -1665,7 +1667,7 @@ function updateNav(){
   if(b) b.hidden = !(ov || (session.screen && session.screen !== "base" && session.screen !== "intro"));
 }
 if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
-  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
+  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(() => { updateNav(); toastPump(); }).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",

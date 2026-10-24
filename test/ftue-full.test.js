@@ -36,14 +36,15 @@ for(const id of ['storage','bit_bay']){const s=window.__TEST_STATE(),m=window.DA
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
-assert(text().includes("BIT — Bond LV"), "BIT online");
+assert(doc.querySelector("#overlay .bitpop .bitbond").textContent.includes("Bond LV"), "BIT online");
 A.devForce("extract");
 A.go("prep"); A.prepSet("insuranceId","none"); A.deploy(); A.raidStep();
 if(text().includes("DECISION POINT")) A.extractNow();
 A.backToBase();
 if(sv().beat >= 7){
   A.go("bit");
-  assert(text().includes("Daily contracts"), "contracts visible post-FTUE in full mode");
+  A.bitTab("tasks");
+  assert(doc.querySelector("#overlay .tasktab.active").textContent.includes("Daily contracts"), "contracts visible post-FTUE in full mode");
 }
 console.log("FTUE FULL-MODE WALKTHROUGH PASSED (beat=" + sv().beat + ", fuel=" + sv().fuel + ")");
 process.exit(0);
