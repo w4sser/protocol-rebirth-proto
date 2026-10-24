@@ -860,7 +860,7 @@ function talentNodeHtml(node, branch, selId){
 function talentRowHtml(branch, row, selId){
   const nodes = branch.nodes.filter(n => n.row === row);
   const body = nodes.length > 1
-    ? nodes.map((n, i) => (i > 0 ? '<span class="talor">or</span>' : "") + talentNodeHtml(n, branch, selId)).join("")
+    ? nodes.map((n, i) => (i > 0 && n.choiceGroup && n.choiceGroup === nodes[i - 1].choiceGroup ? '<span class="talor">or</span>' : "") + talentNodeHtml(n, branch, selId)).join("")
     : talentNodeHtml(nodes[0], branch, selId);
   return '<div class="talrow"><div class="talrow-nodes">' + body + '</div>' +
     (!talentRowUnlocked(branch, row) ? '<div class="talrowlock">Spend ' + talentRowReq(row) + ' in ' + esc(branch.name) + '</div>' : "") + '</div>';
