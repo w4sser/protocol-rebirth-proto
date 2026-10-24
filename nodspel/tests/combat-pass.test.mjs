@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RULES,AREAS,AREA_RULES,generateLevel,ruleSet} from '../levels.js';
 // the Hard flag lives in the module instance round.js imports (it carries the ?v= tag), so flip it there
-import {setHard,isHard} from '../levels.js?v=1.89.0';
+import {setHard,isHard} from '../levels.js?v=1.90.0';
 import {createRound,ROUND_DURATION_MS,hitEnemy} from '../round.js';
 import {createCombat,stepCombat} from '../combat.js';
 import {readLaunch,buildRaidResult} from '../raid-result.js';

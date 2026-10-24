@@ -11,7 +11,7 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.89.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.90.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 12;   // v12 (v1.89) splits gear into S.armory (weapons, armor/rigs, consumables, tools); S.stash keeps materials.
 //   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
@@ -1566,11 +1566,13 @@ const CUR_INFO = {
   chips:{ name:"Contract Chips", what:"Trade at BIT's chip shop for materials and unlocks.", where:"Finish quest steps.", go:"bit" },
   fuel:{ name:"Fuel", what:"One fuel per deploy.", where:"Refills over time.", go:"prep" }
 };
+// v1.90: a changed currency only pops in on screens where it is earned or matters (not e.g. Data Cores on the Stash).
+const CUR_FLASH = { dataCores:["bit","quests"], signals:["bit","base","quests"], chips:["base","quests","prep"] };
 const curSeen = {}, curFlash = {};
 function curVisible(id, val){
   if(curSeen[id] !== undefined && curSeen[id] !== val){ curFlash[id] = Date.now() + 3000; setTimeout(() => { if(typeof renderCurrencies === "function") renderCurrencies(); }, 3100); }
   curSeen[id] = val;
-  return !CUR_CONTEXT[id] || CUR_CONTEXT[id].includes(session.screen) || (curFlash[id] || 0) > Date.now();
+  return !CUR_CONTEXT[id] || CUR_CONTEXT[id].includes(session.screen) || ((curFlash[id] || 0) > Date.now() && (CUR_FLASH[id] || []).includes(session.screen));
 }
 function curInfoHtml(id){
   const I = CUR_INFO[id]; if(!I) return "";
@@ -2204,7 +2206,8 @@ function stashPopHtml(){
 }
 function stashPopRender(){
   const old = document.getElementById("overlay"); if(old) old.remove();
-  overlay(stashPopHtml(), () => { session.stashPop = null; refresh(); }, "sheet");
+  const html = stashPopHtml();
+  overlay(html, () => { session.stashPop = null; refresh(); }, html.includes("wpnscreen") ? "sheet wpnov" : "sheet");
 }
 // Quick clean (overflow): suggested sellables, low value, not needed anywhere, not reserved / secure / free.
 // v1.87: never gear or anything the player can equip / use in a raid (weapons, armor, Medkit, tools such as EMP).
@@ -2450,7 +2453,8 @@ function slotTileHtml(def, locked, mini){
     (risk ? '<span class="rdot" aria-hidden="true"></span>' : '') +
     '<i aria-hidden="true">' + (it ? itemIcon(id) : (mini ? IC("plus") : icon)) + '</i>' +
     (mini ? '' : '<b>' + (it ? esc(it.name) : (!locked && ownedForSlot(slot) ? empty : (slot === "tool" ? 'Add tool' : empty))) + '</b><small>' + label + '</small>') +
-    (qty > 0 ? '<span class="qty">x' + qty + '</span>' : '') + '</button>';
+    (qty > 0 ? '<span class="qty">x' + qty + '</span>' : '') +
+    (key === "weapon" && it && !mini && gearKind(id) === "weapon" ? '<span class="lslot-up" role="button" tabindex="0" aria-label="Open ' + esc(it.name) + ' bench" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')">' + IC("chevron-up") + '</span>' : '') + '</button>';
 }
 // Brawl-Stars-style lobby: operator centre stage, loadout tiles either side, compact PLAY bottom-right.
 // v1.44 world map: areas, unlocks and zones all come from DATA.worldMap (data/progression.js).
@@ -3322,6 +3326,7 @@ function gearTilesHtml(id){
   return '<div class="rtiles gu-tiles">' + tile("stat-dmg", "DAMAGE", w.dmg, n ? n.dmg : null) + tile("stat-rate", "FIRE RATE", rate(w) + "/min", n ? rate(n) + "/min" : null) + '</div>';
 }
 function gearPopHtml(id){
+  if(gearKind(id) === "weapon") return weaponScreenHtml(id);
   const it = ITEMS[id], lvl = gearLevel(id), max = gearMax(id), why = gearBlock(id), nxt = lvl < max ? lvl + 1 : null;
   const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
   const cost = nxt ? costParts(gearCost(id, nxt)).map(p => '<span class="gu-c' + (p.have < p.need ? ' bad' : '') + '">' + partIcon(p) + p.need + (p.kind === "item" ? ' ' + esc(ITEMS[p.id].name) : '') + '</span>').join("") : "";
@@ -3337,6 +3342,46 @@ function gearPopHtml(id){
     '<button class="primary big" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
     (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
     (isFree(id) ? '' : '<button type="button" class="linkbtn" onclick="A.stashSellView()">SELL OR RECYCLE</button>') + '</div></div></div>';
+}
+// ---- v1.90 fullscreen weapon screen (docs/design-armory.md c) ----
+// Weapons get a full-screen bench: big art left, tier badge + level pips + 4 stat bars (current + ghost for the next level) right,
+// 3 attachment slots under the art (shown now; crafting arrives with Mk tiers in v1.91), one big UPGRADE button. Armor keeps the popup.
+const WPN_BARS = [["damage","DMG","stat-dmg",w => w.dmg],["firerate","RATE","stat-rate",w => Math.round(60000 / w.int)],["mag","MAG","item-ammo",w => w.mag],["range","RANGE","item-sensor",w => w.rng]];
+const WPN_SLOTS = [["barrel","Barrel","+RANGE",1],["mag","Mag","+MAG",2],["optic","Optic","+DMG at range",3]];
+function weaponTier(id){ return 1; } // Mk I for every gun until merge tiers land (v1.91)
+function wpnBarMax(i){
+  let m = 1; for(const it of D.items) if(it.weapon){ const top = masteredWeapon(it.id, gearMax(it.id)); m = Math.max(m, WPN_BARS[i][3](top), WPN_BARS[i][3](it.weapon)); }
+  return m;
+}
+function wpnBarsHtml(id){
+  const lvl = gearLevel(id), nxt = lvl < gearMax(id) ? lvl + 1 : null, w = masteredWeapon(id), n = nxt ? masteredWeapon(id, nxt) : null;
+  return '<div class="wbars">' + WPN_BARS.map(([key, label, icon, f], i) => {
+    const max = wpnBarMax(i), v = f(w), nv = n ? f(n) : v, pc = x => Math.max(4, Math.min(100, Math.round(x / max * 100)));
+    return '<div class="wbar" data-stat="' + key + '">' + IC(icon) + '<small>' + label + '</small><span class="wtrack"><i class="wcur" style="width:' + pc(v) + '%"></i>' +
+      (nv > v ? '<i class="wghost" style="left:' + pc(v) + '%;width:' + (pc(nv) - pc(v)) + '%"></i>' : '') + '</span><b>' + v + (key === "firerate" ? '/min' : key === "range" ? 'm' : '') + '</b>' +
+      (nv !== v ? '<em class="gu-next">+' + (nv - v) + '</em>' : '') + '</div>';
+  }).join("") + '</div>';
+}
+function wpnSlotsHtml(id){
+  const tier = weaponTier(id);
+  return '<div class="wslots" aria-label="Attachment slots">' + WPN_SLOTS.map(([key, name, eff, need]) => {
+    const open = tier >= need;
+    return '<div class="wslot' + (open ? ' open' : ' locked') + '" data-slot="' + key + '"><b>' + name + '</b><small>' + (open ? eff + ' · empty' : 'Mk ' + ["I","II","III"][need - 1]) + '</small></div>';
+  }).join("") + '</div>';
+}
+function weaponScreenHtml(id){
+  const it = ITEMS[id], lvl = gearLevel(id), max = gearMax(id), why = gearBlock(id), nxt = lvl < max ? lvl + 1 : null;
+  const cost = nxt ? costParts(gearCost(id, nxt)).map(p => '<span class="gu-c' + (p.have < p.need ? ' bad' : '') + '">' + partIcon(p) + p.need + (p.kind === "item" ? ' ' + esc(ITEMS[p.id].name) : '') + '</span>').join("") : "";
+  let mastery = "";
+  if(isFree(id)){ const nk = masteryNext(id), k = masteryKills(id); mastery = '<div class="gu-mastery">Mastery ' + starsHtml(id) + ' <span>' + (nk === null ? 'max' : (nk - k) + ' kills to next star') + '</span></div>'; }
+  return '<div class="bpop stashpop gearpop wpnscreen r-' + it.rarity + '" data-gear="' + id + '"><div class="wpn-l"><div class="wpn-bench"><span class="wpn-art" aria-hidden="true">' + itemIcon(id) + '</span></div>' + wpnSlotsHtml(id) + '</div>' +
+    '<div class="wpn-r"><button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button><div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier">MK ' + ["I","II","III"][weaponTier(id) - 1] + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
+    '<div class="gu-lvl" aria-label="Upgrade level ' + lvl + ' of ' + max + '"><b>LEVEL ' + lvl + '/' + max + '</b><span class="gu-pips">' + Array.from({ length:max }, (_, i) => '<span class="gu-pip' + (i < lvl ? ' on' : '') + '"></span>').join("") + '</span></div>' +
+    wpnBarsHtml(id) + mastery +
+    (nxt ? '<div class="gu-cost" aria-label="Cost">' + cost + '</div>' : '') +
+    '<button class="primary big" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
+    (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
+    (isFree(id) ? '' : '<button type="button" class="linkbtn" onclick="A.stashSellView()">SELL OR RECYCLE</button>') + '</div></div>';
 }
 function weaponStatsLine(id){
   const w = ITEMS[id] && ITEMS[id].weapon; if(!w) return "";
@@ -3430,6 +3475,7 @@ function finishRaid(){
 
 /* ---------- actions ---------- */
 window.A = {
+  openWeapon(id){ if(gearKind(id) === "weapon") A.openStashItem(id); },
   invJump(id){ const el = document.getElementById(id); if(el) el.scrollIntoView({ block:"start", behavior:"smooth" }); },
   playCombatDemo(){
     this.clearCombatDemo();
@@ -3643,6 +3689,7 @@ window.A = {
     if(!gearUpgrade(id)) return;
     const o = ITEMS[id]; toast(o.name + " upgraded to L" + gearLevel(id));
     if(session.stashPop) stashPopRender(); refresh();
+    const ws = document.querySelector("#overlay .wpnscreen"); if(ws) ws.classList.add("chunk"); // payoff: art punch + shake
   },
   stashSellView(){ const p = session.stashPop; if(!p) return; p.sellView = true; stashPopRender(); },
   stashBack(){ const p = session.stashPop; if(!p) return; p.confirm = null; stashPopRender(); },
