@@ -57,7 +57,7 @@ for(const id of ids) assert(fs.existsSync(path + "/assets/icons/" + id + ".svg")
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window;if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
-  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
+  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8"));
   return { w, A:w.A, doc:w.document };

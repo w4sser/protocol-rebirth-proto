@@ -3,7 +3,7 @@ const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert
 function boot(mut){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window, raf = []; w.requestAnimationFrame = f => (raf.push(f), raf.length); w.cancelAnimationFrame = () => {};
-  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
+  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   if(mut) mut(w.DATA);
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, session:()=>session, wmGeom, wmPlayBox, wmRubber };");

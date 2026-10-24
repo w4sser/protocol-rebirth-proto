@@ -7,7 +7,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage.setItem("pr_raid_result_v1", JSON.stringify({ schema:"protocol-rebirth/raid-result", version:1, raidId:"meta-test-1", seed:"s",
   outcome:"extract", levelsCleared:3, enemiesDefeated:4, nodesLit:6, remainingMs:1, extracted:["cable","power_cell"], lost:[], endedAt:1 }));
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = window.document, A = window.A;
 assert.equal(window.localStorage.getItem("pr_raid_result_v1"), null, "pending result consumed on boot");

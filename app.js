@@ -11,9 +11,11 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.94.0"; // keep in sync with ?v= in index.html and nodspel/
+const TAL   = D.bitTalents;
+const APP_VERSION = "1.95.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 14;   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
+const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
+//   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
 //   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
 //   // v12 (v1.89) splits gear into S.armory (weapons, armor/rigs, consumables, tools); S.stash keeps materials.
 //   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
@@ -27,7 +29,8 @@ function freshState(){
     v:SAVE_VERSION, beat:0,
     cur: Object.assign({}, PROG.start.currencies),
     stash: Object.assign({}, PROG.start.stash), armory: {}, gearTier: {}, attach: {},
-    reserved: {}, secureItem: null,
+    reserved: {}, secureItem: null, guardianMaterial: null,
+    talents: { spent:{}, respecs:0 },
     modules: {}, bondXp: 0, opXp: 0,
     tracked: null, trackedStreak: 0,
     zoneIntel: {}, raids: 0, deaths: 0,
@@ -59,8 +62,9 @@ function load(){
       if(st.v === 11) migrateArmory(st);
       if(st.v === 12) migrateTiers(st);
       if(st.v === 13) migrateBuilt(st);
+      if(st.v === 14) migrateTalents(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
     }
   }catch(e){}
   return freshState();
@@ -170,6 +174,14 @@ function migrateBuilt(st){
 }
 // v1.93: the built copy (tier, attachments, upgrade level) is the one you carry; losing it on death resets the gun to a plain Mk I.
 function loseBuilt(id){ if(!ITEMS[id] || ITEMS[id].free) return; for(const k of ["gearTier","attach","gearUp"]) if(S[k]) delete S[k][id]; }
+// v15 (v1.95): BIT talent tree (docs/design-bit-skill-tree.md). The one active skill becomes 1 point in the matching
+// core node (data/bit-talents.js), so nobody loses what they had; talents are never lost after this.
+function migrateTalents(st){
+  st.talents = { spent:{}, respecs:0 };
+  if(st.bitSkill && ["zone_scout","shield_burst","loot_priority"].includes(st.bitSkill)) st.talents.spent[st.bitSkill] = 1;
+  if(st.guardianMaterial === undefined) st.guardianMaterial = null;
+  st.v = 15; return st;
+}
 function migrateTiers(st){ if(!st.gearTier || typeof st.gearTier !== "object") st.gearTier = {}; if(!st.attach || typeof st.attach !== "object") st.attach = {}; st.v = 13; return st; }
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
@@ -751,10 +763,54 @@ function confirmScav(){
   I.scavPending = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
   act("SCAVENGE_CONFIRMED", loot); save(); return true;
 }
-// Active BIT skill (S.bitSkill) counts only while its bond level is met and BIT Bay is online.
+/* ---------- v1.95 BIT Talents (data/bit-talents.js): data-driven branches, WoW-classic row gates ---------- */
+// Node ids and effect keys all come from TAL; app.js never hardcodes a branch/node beyond the shared "core" ids
+// (zone_scout/shield_burst/loot_priority) that also name the pre-existing BIT skills they replace.
+function talentNodeDef(id){ for(const b of TAL.branches){ const n = b.nodes.find(n => n.id === id); if(n) return { node:n, branch:b }; } return null; }
+function talentRank(id){ return (S.talents && S.talents.spent && S.talents.spent[id]) || 0; }
+function talentLearned(id){ return talentRank(id) > 0; }
+function branchSpent(branchId){ const b = TAL.branches.find(b => b.id === branchId); return b ? b.nodes.reduce((s, n) => s + talentRank(n.id), 0) : 0; }
+function talentSpentTotal(){ return TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0); }
+function talentPoints(){ return Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
+function talentPointsAvailable(){ return talentPoints() - talentSpentTotal(); }
+function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= 3 * (row - 1); }
+function talentChoiceTaken(branch, group){ return branch.nodes.find(n => n.choiceGroup === group && talentLearned(n.id)) || null; }
+function talentCanLearn(id){
+  const t = talentNodeDef(id); if(!t || talentPointsAvailable() < 1) return false;
+  const { node, branch } = t;
+  if(talentRank(id) >= node.ranks || !talentRowUnlocked(branch, node.row)) return false;
+  if(node.choiceGroup){ const taken = talentChoiceTaken(branch, node.choiceGroup); if(taken && taken.id !== id) return false; }
+  return true;
+}
+function learnTalent(id){
+  if(!talentCanLearn(id)) return false;
+  S.talents.spent[id] = talentRank(id) + 1;
+  act("TALENT_LEARNED", { id, rank:S.talents.spent[id] });
+  return true;
+}
+function talentRespecCost(){ return S.talents.respecs ? Math.min(1000, 200 * S.talents.respecs) : 0; }
+function respecTalents(){
+  const cost = talentRespecCost();
+  if(cost > S.cur.scrap) return false;
+  S.cur.scrap -= cost;
+  S.talents.spent = {};
+  S.talents.respecs = (S.talents.respecs || 0) + 1;
+  act("TALENTS_RESPEC", { cost });
+  return true;
+}
+// Cumulative value of every learned node sharing this effect key, at its current rank (0 if none learned).
+function talentVal(key){
+  let v = 0;
+  for(const b of TAL.branches) for(const n of b.nodes) if(n.effect && n.effect.key === key){ const r = talentRank(n.id); if(r > 0) v += n.effect.perRank[r - 1]; }
+  return v;
+}
+// A "material" is a stashable, non-free item that is not usable gear (weapon/armor/tool/consumable); the Guardian
+// capstone fallback only ever rescues this kind of item, picked by id (never a hardcoded item string).
+function isMaterialItem(id){ return !!ITEMS[id] && !isFree(id) && !usableGear(id); }
+// Legacy BIT skills (bond-gated) are now the row-2 core node of their branch: passive once learned, no single toggle.
 function bitSkillDef(id){ return (D.bit.skills || []).find(k => k.id === id) || null; }
 function bitSkillUnlocked(id){ const k = bitSkillDef(id); return !!k && bitOnline() && bondLevel() >= k.bond; }
-function bitSkillOn(id){ return S.bitSkill === id && bitSkillUnlocked(id); }
+function bitSkillOn(id){ return bitOnline() && talentLearned(id); }
 function scoutLead(){ const miss = bitSkillOn("zone_scout") && !bitAway() ? trackedMissingItem() : null; const lead = miss && bestLead(miss.itemId); return lead ? { miss, lead } : null; }
 function bitShieldBurst(){ const k = bitSkillDef("shield_burst"); return k && bitSkillOn("shield_burst") && !bitAway() ? k.shield : 0; }
 function scavCardHtml(){

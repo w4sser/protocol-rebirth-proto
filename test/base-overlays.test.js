@@ -6,7 +6,7 @@ const path = __dirname + "/..";
 const html = fs.readFileSync(path + "/index.html", "utf8");
 const dom = new JSDOM(html, { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
 const w = dom.window;
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   w.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = w.document; w.A.dismissIntro(); w.A.go("base");
 assert.equal(doc.getElementById("app").className, "s-base");
