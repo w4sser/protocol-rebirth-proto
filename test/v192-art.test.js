@@ -26,12 +26,12 @@ for(const k of ["barrel","mag","optic"]) b.w.eval(q('.wslot[data-slot=' + k + ']
 assert.equal(T.weaponGrade("shotgun_breach"), 4); assert.equal(T.tierLabel("shotgun_breach"), "MK III · SVARTVERK");
 assert(q(".wpn-hero.g4 img.cur").getAttribute("src").includes("shotgun-4-1600"), "Svartverk art");
 assert(q(".wpn-hero img.old") && q(".wpn-hero img.old").getAttribute("src").includes("shotgun-3-1600"), "crossfade from Custom");
-// smg has no Svartverk art yet -> Custom file
+// smg Svartverk art (v1.93)
 b.A.openStashItem("smg_vector"); for(const k of ["barrel","mag","optic"]) b.w.eval(q('.wslot[data-slot=' + k + ']').getAttribute("onclick"));
-assert.equal(T.weaponGrade("smg_vector"), 4); assert(q(".wpn-hero img.cur").getAttribute("src").includes("smg-3-1600"));
+assert.equal(T.weaponGrade("smg_vector"), 4); assert(q(".wpn-hero img.cur").getAttribute("src").includes("smg-4-1600"));
 // armory tiles use the 512 art; marksman keeps its svg
 b.w.eval("closeAllPopups()"); b.A.go("stash");
-assert(b.d.querySelector('img.ic-art[src*="smg-3-512.webp"]'), "tile art");
+assert(b.d.querySelector('img.ic-art[src*="smg-4-512.webp"]'), "tile art");
 const fs2 = require("fs"); for(const k of ["carbine-1","carbine-4","shotgun-4","smg-1","smg-3"]) for(const w of [512,1600]) for(const e of ["webp","png"]) assert(fs2.existsSync(path + "/assets/weapons/" + k + "-" + w + "." + e), k + w + e);
 console.log("V1.92 ART TEST PASSED");
 process.exit(0);

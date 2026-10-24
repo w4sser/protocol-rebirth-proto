@@ -10,14 +10,14 @@ function boot(save){
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();
-assert.equal(g.T.SV, 13);
+assert.equal(g.T.SV, 14);
 const old = JSON.parse(JSON.stringify(g.S())); delete old.gearTier; delete old.attach; old.v = 12;
 Object.assign(old.modules, { rebirth_core:1, fabricator:2, bit_bay:1, storage:1 }); old.baseState = "core_habitable"; old.introSeen = true;
 old.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; old.beat = g.D.progression.beats.length - 1; old.cur.scrap = 2000;
 old.armory = { smg_vector:3, scavenger_vest:2 }; old.gearUp = { smg_vector:3 }; old.stash = { servo:6, scrap_alloy:6, circuit_board:3, optical_sensor:2 };
 const b = boot(old), S = b.S(), T = b.T, q = s => b.d.querySelector(s);
 // migration: additive, nothing lost
-assert.equal(S.v, 13); assert.deepEqual(S.gearTier, {}); assert.deepEqual(S.attach, {}); assert.equal(T.have("smg_vector"), 3); assert.equal(S.gearUp.smg_vector, 3);
+assert.equal(S.v, 14); assert.deepEqual(S.gearTier, {}); assert.deepEqual(S.attach, {}); assert.equal(T.have("smg_vector"), 3); assert.equal(S.gearUp.smg_vector, 3);
 assert.equal(T.gearTier("smg_vector"), 1); assert.equal(T.gearMax("smg_vector"), 3);
 // merge
 assert(/1 more/.test(T.mergeBlock("scavenger_vest")), "2 vests can't merge");
@@ -40,7 +40,7 @@ assert.equal(T.masteredWeapon("smg_vector").rng, r0 + 2); assert(T.masteredWeapo
 assert(/rng:/.test(T.weaponParam("smg_vector")) && T.weaponParam("smg_vector").includes("rng:" + (r0 + 2)), "raid gets attachment stats");
 assert(q(".wpn-hero img.cur").getAttribute("src").includes("smg-2-1600.webp"), "Mk II art"); assert(/RESTORED/.test(q(".wpnscreen .wtier").textContent));
 // kept on merge to Mk III
-T.addItem("smg_vector", 2); b.A.gearMerge("smg_vector"); assert.equal(T.gearTier("smg_vector"), 3); assert(S.attach.smg_vector.barrel && S.attach.smg_vector.mag, "attachments kept");
+assert(/6 more/.test(T.mergeBlock("smg_vector")), "Mk III needs 7 on hand (9 total)"); T.addItem("smg_vector", 6); b.A.gearMerge("smg_vector"); assert.equal(T.gearTier("smg_vector"), 3); assert(S.attach.smg_vector.barrel && S.attach.smg_vector.mag, "attachments kept");
 assert.equal(T.mergeBlock("smg_vector"), "Max tier");
 // armor merge via popup
 T.addItem("scavenger_vest", 1); const sh0 = T.gearEffect("scavenger_vest").shield; b.w.eval("closeAllPopups()"); b.A.openStashItem("scavenger_vest");
