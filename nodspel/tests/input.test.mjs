@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from '../input.js?v=1.93.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from '../input.js?v=1.94.0';
 test('movement, aim and dash keys are game keys',()=>{for(const k of ['KeyW','KeyA','KeyS','KeyD','Space','ShiftLeft','ArrowUp'])assert.ok(isGameKey(k));assert.equal(isGameKey('KeyQ'),false);});
 test('text inputs keep normal typing',()=>{assert.ok(isTypingTarget({tagName:'INPUT'}));assert.equal(isTypingTarget({tagName:'BUTTON'}),false);assert.equal(isTypingTarget(null),false);});
 test('a pointer click releases focus from HUD buttons so WASD keeps working',()=>{

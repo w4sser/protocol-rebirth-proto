@@ -192,6 +192,8 @@ window.DATA.progression.weaponArt = {
   sets:{
     carbine:{ files:[1,2,3,4], anchors:{ barrel:[0.97,0.30], mag:[0.49,0.74], optic:[0.47,0.08], stock:[0.06,0.35] } },
     shotgun:{ files:[1,2,3,4], anchors:{ barrel:[0.98,0.30], mag:[0.72,0.45], optic:[0.43,0.10], stock:[0.06,0.45] } },
+    // v1.94: placeholder silhouette until real Marksman art lands (same file for every grade).
+    marksman:{ files:[1,1,1,1], placeholder:true, anchors:{ barrel:[0.97,0.30], mag:[0.50,0.78], optic:[0.47,0.08], stock:[0.05,0.35] } },
     smg:{ files:[1,2,3,4], anchors:{ barrel:[0.96,0.28], mag:[0.62,0.86], optic:[0.55,0.10], stock:[0.05,0.25] } }
   }
 };

@@ -90,7 +90,7 @@ for(const [name, s] of Object.entries(STATES)){
   const c=boot(s,T0,r),d=c.doc;
   assert(!d.querySelector('.quest-ready'),'no auto claim popup on raid return');
   assert(!d.getElementById('overlay'),'no popup opened by quest completion');
-  { const nb=d.querySelector('#tabs .nav-bit .badge'); assert(nb && nb.textContent==='2','BIT nav badge shows ready count'); }
+  { const nb=d.querySelector('#tabs .nav-bit .badge'); assert(nb && nb.textContent==='2 READY' && nb.title,'BIT nav badge says what is ready'); }
   c.A.go('bit'); const entry=d.querySelector('.questentry .qn'); assert(entry && entry.textContent==='2','QUESTS entry shows ready count');
   const before=c.S().bondXp;
   c.A.questLog('daily');

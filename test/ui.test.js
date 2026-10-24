@@ -82,7 +82,7 @@ assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(text().includes("PLATE 00"), "dormant plate label");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "dormant_core", "found state restores audio profile");
 assert.equal(doc.querySelectorAll("#tabs button:not([disabled]):not(.active)").length, 0, "found state locks non-base navigation");
-assert.equal(doc.querySelectorAll("#tabs button").length, 5, "full bottom bar BASE/RAID/STASH/SHOP/BIT on every main screen");
+assert.equal(doc.querySelectorAll("#tabs button").length, 6, "full bottom bar incl. WEAPONS on every main screen");
 A.go("module","fabricator");
 assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot open its module flow");
 

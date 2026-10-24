@@ -70,7 +70,7 @@ ITEM_DATA_ROOT.DATA.items = [
   { id:"smg_vector", art:"smg", icon:"item-smg", name:"Vector SMG", family:"gear", rarity:"uncommon", sellValue:110, stackSize:1,
     slot:"weapon", weapon:{ dmg:1, mag:8, rld:450, int:110, rng:6, cone:10, ast:14, spr:5, kb:0, pel:1, hom:0 },
     desc:"Sprays fast, hits soft. Big magazine.", uses:["loadout"] },
-  { id:"rifle_marksman", icon:"item-rifle", name:"Marksman Rifle", family:"gear", rarity:"rare", sellValue:160, stackSize:1,
+  { id:"rifle_marksman", art:"marksman", icon:"item-rifle", name:"Marksman Rifle", family:"gear", rarity:"rare", sellValue:160, stackSize:1,
     slot:"weapon", weapon:{ dmg:2, mag:4, rld:900, int:450, rng:11, cone:5, ast:8, spr:0, kb:0, pel:1, hom:0 },
     desc:"Long reach, tight lock. Slow and deliberate.", uses:["loadout"] },
   { id:"shotgun_breach", art:"shotgun", icon:"item-shotgun", name:"Breach Shotgun", family:"gear", rarity:"uncommon", sellValue:130, stackSize:1,
