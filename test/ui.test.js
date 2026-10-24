@@ -213,7 +213,7 @@ A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
 assert(text().includes("BIT — Bond LV"), "bond card on the BIT screen");
-assert(!doc.querySelector("#currencies .bondpill") && doc.querySelector("#tabs .nav-bit .bondlv"), "v1.88: bond level is a badge on the BIT button, not a top-bar pill");
+assert(!doc.querySelector("#currencies .bondpill") && !doc.querySelector("#tabs .nav-bit .bondlv"), "v1.94: bond level shown on the BIT screen only");
 assert(doc.querySelector("#tabs .nav-bit:not([disabled])"), "BIT button unlocked in bottom bar");
 // curated self-expression: cosmetic style for the built BIT Bay
 A.go("module","bit_bay");
