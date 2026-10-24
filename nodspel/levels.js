@@ -1,5 +1,5 @@
-import {townizeLevel} from './town-layout.js?v=1.86.0';
-import {applyEncounters} from './encounters.js?v=1.86.0';
+import {townizeLevel} from './town-layout.js?v=1.87.0';
+import {applyEncounters} from './encounters.js?v=1.87.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -168,6 +168,8 @@ export function houseItem(kind,number,roll,area='town'){if(kind==='medicine_cabi
 // `house` = Town house containers. Frost Glass is house-only; Core Ash (level table, any area) waits for Hard variants.
 export const AREA_LOOT={archipelago:{world:[{},{tidal_coil:5},{tidal_coil:10}]},town:{house:[{},{frost_glass:8},{frost_glass:10}]}};
 export function areaTable(area,number,where){return{...RULES.loot.weights[number-1],...AREA_LOOT[area]?.[where]?.[number-1]};}
+let QUEST_LOOT=null;
+export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level}:null;}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
 // v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
@@ -346,6 +348,9 @@ export function applyAreaRules(level,AR){
   for(const e of level.enemies)e.health=Math.max(1,Math.round((e.health??RULES.enemyHealth)*AR.hpMul));
   level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*AR.dmgMul);level.dmgMul=AR.dmgMul;
   if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
+  // v1.87 tracked extract quest (e.g. Fuse Box: 2 Fuse from Bunker L2): its level always holds at least one of the item, so the step
+  // takes ~1-2 raids instead of a ~10 % roll. Never replaces the scout item. Off unless the meta launch tracks such a quest.
+  if(QUEST_LOOT&&QUEST_LOOT.level===n&&!level.lootBoxes.some(b=>b.item===QUEST_LOOT.item)){const b=level.lootBoxes.find(x=>!x.scout&&!x.key);if(b){b.item=QUEST_LOOT.item;b.quest=true;}}
 }
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.
 function decorateLevel(level){
