@@ -4296,8 +4296,8 @@ window.A = {
     S.bitSkill = S.bitSkill === id ? null : id;     // exactly one (or none): picking another replaces the active one
     act("BIT_SKILL_SET", { skill:S.bitSkill }); save(); refresh();
   },
-  learnTalent(id){ if(learnTalent(id)) refresh(); },
-  respecTalents(){ if(respecTalents()) refresh(); },
+  learnTalent(id){ const ok = learnTalent(id); if(ok) refresh(); return ok; },
+  respecTalents(){ const ok = respecTalents(); if(ok) refresh(); return ok; },
   dismissWelcome(){ session.welcome = null; const el = document.querySelector(".welcome"); if(el) el.remove(); },
   sendExpedition(){
     const R = D.retention.expedition;

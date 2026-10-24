@@ -25,7 +25,7 @@ const scoutRow1 = "scout_keen_sensors", guardianRow1 = "guardian_plating", scavR
 // 2) row gate: row 2 needs 3 points already spent in that branch; can't skip to the core node or over-learn a maxed node.
 { const b = fresh(s => { s.bondXp = 250; });
   assert(!b.T.talentCanLearn("zone_scout"), "row 2 locked before row 1 is spent");
-  assert(b.A.learnTalent("zone_scout") === undefined); assert.equal(b.T.talentRank("zone_scout"), 0, "learnTalent refuses a locked node");
+  assert.equal(b.A.learnTalent("zone_scout"), false); assert.equal(b.T.talentRank("zone_scout"), 0, "learnTalent refuses a locked node");
   assert(b.T.talentCanLearn(scoutRow1)); b.A.learnTalent(scoutRow1); b.A.learnTalent(scoutRow1);
   assert(!b.T.talentCanLearn("zone_scout"), "still short (2/3 spent in branch)");
   b.A.learnTalent(scoutRow1); assert.equal(b.T.talentRank(scoutRow1), 3, "Keen Sensors maxed at rank 3");
@@ -35,20 +35,19 @@ const scoutRow1 = "scout_keen_sensors", guardianRow1 = "guardian_plating", scavR
   b.A.learnTalent("zone_scout"); assert.equal(b.T.talentRank("zone_scout"), 1);
   assert.equal(b.T.talentPointsAvailable(), 0, "all 4 bond-5 points spent"); }
 
-// 3) choice row: pick 1 of 2; the other is blocked until a respec.
+// 3) choice row: pick 1 of 2; the other is blocked until a respec. (Row 3 needs 6 points in-branch, more than Bond 5's
+// 4-point cap can reach today — data/bit.js only defines bond levels up to 5 — so this overrides bondLevel() to
+// isolate the choice-group rule itself; the bond-cap ceiling is a known, documented limit, not a bug under test here.)
 { const b = fresh(s => { s.bondXp = 250; });
-  for(let i = 0; i < 3; i++) b.A.learnTalent(guardianRow1); b.A.learnTalent("shield_burst");
-  assert(b.T.talentCanLearn("guardian_second_wind") && b.T.talentCanLearn("guardian_overcharge"), "both choices open before either is taken");
-  assert(b.T.talentPointsAvailable() === 0, "no points left to actually take the choice at bond 5 (row3 gate needs 6 in-branch)");
-  // simulate a higher bond for the choice-group exclusivity check in isolation
+  b.w.eval("bondLevel = function(){ return 8; };"); // 7 points: enough to reach row 3 (needs 6 spent) with 1 to spare
   b.S().talents.spent[guardianRow1] = 3; b.S().talents.spent.shield_burst = 1; b.S().talents.spent.guardian_warning_chirp = 2;
-  b.S().bondXp = 999999; // plenty of points for this isolated check
+  assert(b.T.talentCanLearn("guardian_second_wind") && b.T.talentCanLearn("guardian_overcharge"), "both choices open before either is taken");
   b.A.learnTalent("guardian_second_wind");
   assert.equal(b.T.talentRank("guardian_second_wind"), 1);
   assert(!b.T.talentCanLearn("guardian_overcharge"), "the sibling choice is locked once one is taken");
   assert(b.A.respecTalents(), "first respec is free");
   assert.equal(b.T.talentRank("guardian_second_wind"), 0, "respec clears every learned node");
-  assert(b.T.talentCanLearn("guardian_overcharge") === false, "row/points reset too: nothing is pre-spent after a respec"); }
+  assert(!b.T.talentCanLearn("guardian_overcharge"), "row/points reset too: nothing is pre-spent after a respec"); }
 
 // 4) respec cost: free once, then 200 Scrap x respec count, capped at 1000; refuses without enough Scrap.
 { const b = fresh(s => { s.bondXp = 250; s.cur.scrap = 0; });
@@ -96,15 +95,19 @@ for(const old of ["zone_scout", "shield_burst", "loot_priority", null]){
 { const b = fresh(s => { s.bondXp = 250; });
   b.A.setGuardianMaterial("cable");
   b.S().talents.spent.guardian_safe_return = 1; // isolate the capstone from the (currently unreachable at bond 5) row-5 gate
-  const R = { cfg:{ loadout:[], trackedItemId:null }, zone:g.D.raidZones[0].id, outcome:"death", loot:["cable","fuse"], scrap:0, dataCores:0, trackedFound:false };
+  // "fuse" first so the pre-existing Bond-3 bitRescue (always grabs loot[0]) claims it, not the talent material --
+  // this proves the capstone is an independent rescue, not a relabel of the Bond perk.
+  const R = { cfg:{ loadout:[], trackedItemId:null }, zone:g.D.raidZones[0].id, outcome:"death", loot:["fuse","cable"], scrap:0, dataCores:0, trackedFound:false };
   b.T.applyRaidResult(R);
-  assert.equal(R.saved.talentMaterial, "cable"); assert.equal(b.T.S().stash.cable || 0, 1, "the material comes home");
+  assert.equal(R.saved.bitRescue, "fuse"); assert.equal(R.saved.talentMaterial, "cable"); assert.equal(b.T.S().stash.cable || 0, 1, "the material comes home");
   const R2 = { cfg:{ loadout:[], trackedItemId:null }, zone:g.D.raidZones[0].id, outcome:"death", loot:["fuse"], scrap:0, dataCores:0, trackedFound:false };
   b.T.applyRaidResult(R2); assert(!R2.saved.talentMaterial, "not found this raid: nothing to rescue");
   // Node Raid ingest path shares the same rescue logic.
-  const r = { raidId:"r1", outcome:"death", lost:["cable"], extracted:[], levelsCleared:0, gearOut:[] };
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"r1", outcome:"death", lost:["fuse","cable"], extracted:[], levelsCleared:0, gearOut:[] };
+  const before = b.T.S().stash.cable || 0;
   const ing = b.T.ingestRaidResult(r);
-  assert(ing.ok !== false); }
+  assert.notEqual(ing.ok, false, "ingest accepted: " + (ing.reason || "ok"));
+  assert.equal((b.T.S().stash.cable || 0) - before, 1, "ingest path also rescues the pre-chosen material"); }
 
 // 8) Scavenger hooks: Deep Pockets/Lucky Find (rollScavenge), Night Shift (genCap).
 { const b = fresh(s => { s.bondXp = 250; s.modules.rebirth_core = 1; });
