@@ -52,12 +52,12 @@ for(const id of ["rebirth_core","fabricator","storage","bit_bay","living_quarter
   assert(b.doc.querySelector("#overlay .fabq"), "queue shown");
   const before = b.S().cur.scrap;
   assert(/A\.craft\('decoy_build'\)/.test(rows("decoy_build").querySelector("button").getAttribute("onclick"))); b.A.craft("decoy_build");
-  assert.equal(b.S().stash.tool_decoy, 2, "first craft is instant");
+  assert.equal(((b.S().stash.tool_decoy || 0) + ((b.S().armory || {}).tool_decoy || 0)), 2, "first craft is instant");
   assert(b.S().cur.scrap < before);
   assert(b.doc.querySelector('#overlay .bpop[data-module="fabricator"]'), "popup stays open after craft");
   b.A.craft("grenade_build");
   assert.equal(b.S().idle.fab.length, 1, "second craft queues");
-  assert(!b.S().stash.tool_grenade, "queued, not instant");
+  assert(!((b.S().stash.tool_grenade || 0) + ((b.S().armory || {}).tool_grenade || 0)), "queued, not instant");
   b.A.craft("emp_build"); assert.equal(b.S().idle.fab.length, 2);
   b.A.craft("emp_build"); assert.equal(b.S().idle.fab.length, 3, "L2 has 3 slots"); b.A.craft("decoy_build"); assert.equal(b.S().idle.fab.length, 3, "queue cap respected");
 }

@@ -142,6 +142,10 @@ window.DATA.stashCapacityFor = function(storageLevel){
   return cap;
 };
 
+// v1.89 Armory (gear) capacity: its own slots, +4 per Storage level. Gear never uses Stash (material) slots.
+window.DATA.baseArmoryCapacity = 12;
+window.DATA.armoryCapacityFor = function(storageLevel){ return window.DATA.baseArmoryCapacity + 4 * (storageLevel || 0); };
+
 // Facility layout (rows of rooms, top to bottom) and per-module art style.
 window.DATA.baseLayout = [["rebirth_core"], ["fabricator", "bit_bay"], ["storage"]];
 window.DATA.moduleArt = { rebirth_core:"core", fabricator:"fab", bit_bay:"bit", storage:"vault" };

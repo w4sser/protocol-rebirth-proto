@@ -11,9 +11,10 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.88.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.89.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 11;   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
+const SAVE_VERSION = 12;   // v12 (v1.89) splits gear into S.armory (weapons, armor/rigs, consumables, tools); S.stash keeps materials.
+//   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
@@ -23,7 +24,7 @@ function freshState(){
   const st = {
     v:SAVE_VERSION, beat:0,
     cur: Object.assign({}, PROG.start.currencies),
-    stash: Object.assign({}, PROG.start.stash),
+    stash: Object.assign({}, PROG.start.stash), armory: {},
     reserved: {}, secureItem: null,
     modules: {}, bondXp: 0, opXp: 0,
     tracked: null, trackedStreak: 0,
@@ -53,8 +54,9 @@ function load(){
       if(st.v === 8) migrateChips(st);
       if(st.v === 9) migrateFir(st);
       if(st.v === 10) migrateGearUp(st);
+      if(st.v === 11) migrateArmory(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); return st; }
     }
   }catch(e){}
   return freshState();
@@ -138,9 +140,22 @@ function migrateFir(st){
 // v1.83 T4: per-item gear upgrade levels (additive field).
 function migrateGearUp(st){
   if(!st.gearUp || typeof st.gearUp !== "object") st.gearUp = {};
-  st.v = SAVE_VERSION;
+  st.v = 11;
   return st;
 }
+// v1.89 (v12): Armory vs Stash (docs/design-armory.md a). Gear moves from S.stash into S.armory; counts, FIR and upgrade
+// levels are untouched, nothing is dropped. splitArmory is idempotent and also runs on every load (cleans injected states).
+function isArmoryItem(id){ return !!ITEMS[id] && !isFree(id) && stashGroup(id) <= 2; }
+function splitArmory(st){
+  if(!st.armory || typeof st.armory !== "object") st.armory = {};
+  for(const id of Object.keys(st.stash || {})){
+    if(!isArmoryItem(id)) continue;
+    const n = st.stash[id] || 0; delete st.stash[id];
+    if(n > 0) st.armory[id] = (st.armory[id] || 0) + n;
+  }
+  return st;
+}
+function migrateArmory(st){ splitArmory(st); st.v = 12; return st; }
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
 }
@@ -160,21 +175,23 @@ function stashCapacity(){
 }
 // Free items (Basic Carbine) are infinite: never stored, never counted, never lost/sold.
 function isFree(id){ return !!(ITEMS[id] && ITEMS[id].free); }
-function stashSlotsUsed(){
-  let n = 0;
-  for(const id in S.stash){ if(S.stash[id] > 0 && !isFree(id)) n += Math.ceil(S.stash[id] / (ITEMS[id].stackSize||1)); }
-  return n;
-}
-function have(id){ return isFree(id) ? Infinity : (S.stash[id] || 0); }
+function invIds(){ return [...new Set([...Object.keys(S.stash || {}), ...Object.keys(S.armory || {})])].filter(id => ITEMS[id] && qty(id) > 0 && !isFree(id)); }
+function qty(id){ return ((S.stash && S.stash[id]) || 0) + ((S.armory && S.armory[id]) || 0); }
+function slotsFor(armory){ let n = 0; for(const id of invIds()) if(isArmoryItem(id) === armory) n += Math.ceil(qty(id) / (ITEMS[id].stackSize || 1)); return n; }
+function stashSlotsUsed(){ return slotsFor(false); }
+function armorySlotsUsed(){ return slotsFor(true); }
+function armoryCapacity(){ return D.armoryCapacityFor(S.modules.storage || 0); }
+function have(id){ return isFree(id) ? Infinity : qty(id); }
 // fir = found in raid (extracted). Bought, crafted, reward and returned-gear items are not; they only count for plain uses.
 function addItem(id, qty, fir){
   if(isFree(id)) return;
-  S.stash[id] = (S.stash[id]||0) + qty;
+  const bag = isArmoryItem(id) ? (S.armory = S.armory || {}) : S.stash;
+  bag[id] = (bag[id]||0) + qty;
   if(fir){ S.fir = S.fir || {}; S.fir[id] = (S.fir[id]||0) + qty; }
 }
-function firHave(id){ return isFree(id) ? 0 : Math.min((S.fir && S.fir[id]) || 0, S.stash[id] || 0); }
+function firHave(id){ return isFree(id) ? 0 : Math.min((S.fir && S.fir[id]) || 0, qty(id)); }
 // Spending keeps found-in-raid items for last: the stack's non-FIR part goes first.
-function firClamp(id){ if(S.fir && S.fir[id] !== undefined){ S.fir[id] = Math.min(S.fir[id], S.stash[id] || 0); if(S.fir[id] < 1) delete S.fir[id]; } }
+function firClamp(id){ if(S.fir && S.fir[id] !== undefined){ S.fir[id] = Math.min(S.fir[id], qty(id)); if(S.fir[id] < 1) delete S.fir[id]; } }
 // Consume found-in-raid copies (hand-ins): the stack shrinks and so does its FIR part; any non-FIR copies stay.
 function removeFirItem(id, qty){
   const q = Math.min(qty, firHave(id)); if(q < 1) return;
@@ -182,10 +199,11 @@ function removeFirItem(id, qty){
 }
 function removeItem(id, qty){
   if(isFree(id)) return;
-  S.stash[id] = Math.max(0, (S.stash[id]||0) - qty);
+  let left = qty; S.armory = S.armory || {};
+  for(const bag of isArmoryItem(id) ? [S.armory, S.stash] : [S.stash, S.armory]){ const take = Math.min(left, bag[id] || 0); if(take){ bag[id] -= take; left -= take; } }
   firClamp(id);
-  if(S.reserved[id] && S.stash[id] < 1) delete S.reserved[id];
-  if(S.secureItem === id && S.stash[id] < 1) S.secureItem = null;
+  if(S.reserved[id] && have(id) < 1) delete S.reserved[id];
+  if(S.secureItem === id && have(id) < 1) S.secureItem = null;
 }
 function stockUnlocked(s){ return !s.requires || (S.modules[s.requires.module] || 0) >= s.requires.level; }
 // Operator level (overall player level) from total raid XP; curve in DATA.progression.operator.
@@ -1580,7 +1598,7 @@ function navBadge(id){
   if(id === "base"){ const n = buildableCount(); if(n) return ["up build", String(n)]; }
   if(id === "prep" && !ftueOver() && trackedMissingItem()) return ["alert","!"];
   if(id === "prep" && wmNewUnlockTarget()) return ["alert","!"];
-  if(id === "stash" && stashSlotsUsed() > stashCapacity()) return ["alert","!"];
+  if(id === "stash" && (stashOverflowing() || armoryOverflowing())) return ["alert","!"];
   if(id === "bit" && (contractsUnlocked() || dailyReadyCount())){
     const n = Object.values(S.contracts || {}).filter(v => v === "done").length + dailyReadyCount();
     if(n) return ["up", String(n)];
@@ -2106,26 +2124,29 @@ function stashGroup(id){ const it = ITEMS[id]; return it.weapon ? 0 : it.slot ==
 function stashOrder(a, b){ return stashGroup(a) - stashGroup(b) || (RARITY_RANK[ITEMS[a].rarity] ?? 5) - (RARITY_RANK[ITEMS[b].rarity] ?? 5) || ITEMS[a].name.localeCompare(ITEMS[b].name); }
 function upMark(id){ return gearKind(id) && !gearBlock(id) ? '<span class="upmark" title="Upgrade available" aria-label="Upgrade available">' + IC("chevron-up") + '</span>' : ''; }
 function stashOverflowing(){ return stashSlotsUsed() > stashCapacity(); }
+function armoryOverflowing(){ return armorySlotsUsed() > armoryCapacity(); }
+function invSlotHtml(id){
+  const it = ITEMS[id], cls = ["slot","r-"+it.rarity];
+  if(S.reserved[id]) cls.push("reserved");
+  if(S.secureItem === id) cls.push("secure");
+  return '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
+    (firHave(id) ? firMark() : '') + upMark(id) + usageIconsHtml(id) + '<span class="qty">×' + qty(id) + '</span></div>';
+}
+// v1.89: one screen, two stores. ARMORY (gear: weapons, armor/rigs, consumables, tools; own capacity) on top, STASH (materials) below.
+// They never compete for space, and OVERFLOW / Quick Clean only ever touch the Stash.
 SCREENS.stash = function(){
-  let html = '<h1>Stash</h1><div class="sub">' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots' +
-    (stashOverflowing() ? ' <button type="button" class="ovf-btn" onclick="A.openQuickClean()">OVERFLOW · CLEAN UP</button>' : '') + '</div><div class="grid">';
-  const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && !isFree(id)).sort(stashOrder);
+  const ids = invIds().sort(stashOrder), gear = ids.filter(isArmoryItem), mats = ids.filter(id => !isArmoryItem(id));
+  let html = '<h1>Stash</h1><nav class="inv-jump" aria-label="Sections"><button type="button" onclick="A.invJump(\'inv-armory\')">' + IC("item-carbine") + ' Armory <b>' + armorySlotsUsed() + '/' + armoryCapacity() + '</b></button><button type="button" onclick="A.invJump(\'inv-stash\')">' + IC("item-crate") + ' Materials <b>' + stashSlotsUsed() + '/' + stashCapacity() + '</b></button></nav>';
+  html += '<section class="inv-sec armory" id="inv-armory"><div class="sub"><b>ARMORY</b> · ' + armorySlotsUsed() + ' / ' + armoryCapacity() + ' slots · gear you can equip' +
+    (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div><div class="grid">';
   for(const id of D.items.filter(i => i.free).map(i => i.id))
     html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
-  if(!ids.length) html += '</div><div class="card small">Empty. The surface has what you need.</div>';
-  else {
-    for(const id of ids){
-      const it = ITEMS[id];
-      const cls = ["slot","r-"+it.rarity];
-      if(S.reserved[id]) cls.push("reserved");
-      if(S.secureItem === id) cls.push("secure");
-      html += '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
-        (firHave(id) ? firMark() : '') + upMark(id) + usageIconsHtml(id) + '<span class="qty">×' + S.stash[id] + '</span></div>';
-    }
-    html += '</div>';
-  }
-  $app().innerHTML = html;
+  html += gear.map(invSlotHtml).join("") + '</div></section>';
+  html += '<section class="inv-sec mats" id="inv-stash"><div class="sub"><b>STASH</b> · ' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots · materials' +
+    (stashOverflowing() ? ' <button type="button" class="ovf-btn" onclick="A.openQuickClean()">OVERFLOW · CLEAN UP</button>' : '') + '</div>';
+  html += mats.length ? '<div class="grid">' + mats.map(invSlotHtml).join("") + '</div>' : '<div class="card small">Empty. The surface has what you need.</div>';
+  $app().innerHTML = html + '</section>';
 };
 
 // ---- stash sell / recycle popup (v1.77) ----
@@ -2196,8 +2217,8 @@ function quickCleanList(fallback){
   const questWant = {}; // active quest-step items (extract / hand-in) are never suggested
   for(const c of Object.keys(QC)){ const d = chainActive(c), o = d && d.objective; if(!o) continue; if(o.item) questWant[o.item] = 1; if(o.items) for(const k in o.items) questWant[k] = 1; }
   for(const m of D.modules){ const n = nextLevelDef(m.id); if(n && n.cost.items) for(const k in n.cost.items) nextNeeds[k] = 1; }
-  for(const id of Object.keys(S.stash)){
-    const it = ITEMS[id], n = S.stash[id];
+  for(const id of invIds()){
+    const it = ITEMS[id], n = qty(id);
     if(!it || n < 1 || isFree(id) || usableGear(id) || S.reserved[id] || S.secureItem === id || !(it.sellValue > 0)) continue;
     if(!fallback && it.sellValue > D.quickCleanMaxValue) continue;
     if(nextNeeds[id] || questWant[id] || stashWarnings(id, n).length) continue;
@@ -2326,7 +2347,7 @@ SCREENS.prep = function(){
     $app().innerHTML = html; return;
   }
   html += missionOpen + '<div class="prepgrid"><div class="pcol"><div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
-  const ownsWeapon = Object.keys(S.stash).some(id => S.stash[id] > 0 && ITEMS[id].slot === "weapon");
+  const ownsWeapon = invIds().some(id => ITEMS[id].slot === "weapon");
   if(!ownsWeapon){
     const eCost = Math.min(PROG.recovery.cheapLoadoutScrap, S.cur.scrap);
     html += '<div class="card warn"><b>No weapon left.</b><br><span class="small">' +
@@ -2415,7 +2436,7 @@ SCREENS.prep = function(){
   $app().innerHTML = html;
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
-function ownedForSlot(slot){ return Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x] && ITEMS[x].slot === slot && !ITEMS[x].free).length; }
+function ownedForSlot(slot){ return invIds().filter(x => ITEMS[x].slot === slot).length; }
 // Quantity carried on a tile: medkits across both item slots (capped by stock) / tool charges.
 function slotQty(key){ const l = session.prep.loadout; return (key === "c1" || key === "c2") && l[key] === PROG.kitItem ? Math.min(have(PROG.kitItem), ["c1","c2"].filter(k => l[k] === PROG.kitItem).length) : key === "tool" ? (nodeRaidTool() || { n:0 }).n : 0; }
 function slotTileHtml(def, locked, mini){
@@ -2722,7 +2743,7 @@ function loadoutSlotsHtml(locked){
   const p = session.prep;
   return '<div class="lslots">' + SLOT_DEFS.map(([key, slot, label, icon]) => {
     const id = p.loadout[key], it = id && ITEMS[id];
-    const options = Object.keys(S.stash).filter(x => S.stash[x] > 0 && ITEMS[x].slot === slot).length;
+    const options = invIds().filter(x => ITEMS[x].slot === slot).length;
     void it; return slotTileHtml([key, slot, label, icon], locked);
     return '<button type="button" class="lslot' + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
       (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
@@ -3055,7 +3076,7 @@ function isInfoItem(id){ const it = ITEMS[id]; return !!it && !it.grantsCurrency
 // First time an item type comes home: one info card (shared popup) at the base, never mid-raid. Old saves seed
 // "seen" from the stash so returning players are not flooded; the FTUE keeps its own scripted cards.
 function markSeenItems(ids){
-  if(!S.seenItems){ S.seenItems = {}; Object.keys(S.stash || {}).forEach(k => S.seenItems[k] = 1); }
+  if(!S.seenItems){ S.seenItems = {}; [...Object.keys(S.stash || {}), ...Object.keys(S.armory || {})].forEach(k => S.seenItems[k] = 1); }
   const fresh = [];
   ids.forEach(id => { if(isInfoItem(id) && !S.seenItems[id]){ S.seenItems[id] = 1; fresh.push(id); } });
   if(fresh.length && ftueOver()){ S.itemInfoQueue = (S.itemInfoQueue || []).concat(fresh).slice(-6); }
@@ -3115,7 +3136,7 @@ function ingestRaidResult(r){
     gearOut.forEach(id => { addItem(id, 1); const i = swappedOut.indexOf(id); if(i >= 0) swappedOut.splice(i, 1); else gearFound.push(id); });
   } else if(extracted) gear.forEach(id => addItem(id, 1));
   // Newly found equipment is found-in-raid; gear that went in and came back out is not.
-  gearFound.forEach(id => { S.fir = S.fir || {}; S.fir[id] = Math.min((S.fir[id] || 0) + 1, S.stash[id] || 0); });
+  gearFound.forEach(id => { S.fir = S.fir || {}; S.fir[id] = Math.min((S.fir[id] || 0) + 1, qty(id)); });
   // Unused medkits come home on extract; used or lost ones are gone.
   const kitOut = launch && launch.kit ? Math.max(0, launch.kit.medkit || 0) : 0;
   // v1.46: kits picked up in the raid go to the kit slot too, so up to PROG.kitMax can come home (death loses them).
@@ -3126,7 +3147,7 @@ function ingestRaidResult(r){
   if(toolBack) addItem(toolOut.id, toolBack);
   if(kitBack){ addItem(PROG.kitItem, kitBack, false);
     // Only kits beyond the ones taken in were found in the raid.
-    if(kitBack > kitOut){ S.fir = S.fir || {}; S.fir[PROG.kitItem] = Math.min((S.fir[PROG.kitItem] || 0) + kitBack - kitOut, S.stash[PROG.kitItem]); } }
+    if(kitBack > kitOut){ S.fir = S.fir || {}; S.fir[PROG.kitItem] = Math.min((S.fir[PROG.kitItem] || 0) + kitBack - kitOut, qty(PROG.kitItem)); } }
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? swappedOut : gear.filter(id => id !== saved.secure);
@@ -3409,6 +3430,7 @@ function finishRaid(){
 
 /* ---------- actions ---------- */
 window.A = {
+  invJump(id){ const el = document.getElementById(id); if(el) el.scrollIntoView({ block:"start", behavior:"smooth" }); },
   playCombatDemo(){
     this.clearCombatDemo();
     session.screen="combatDemo";
@@ -3673,11 +3695,11 @@ window.A = {
     if(!session.prep) return;
     const def = SLOT_DEFS.find(d => d[0] === key); if(!def) return;
     if(guidedRaid() && !ownedForSlot(def[1])) return;
-    const ids = Object.keys(S.stash).filter(id => S.stash[id] > 0 && ITEMS[id].slot === def[1] && !ITEMS[id].free);
+    const ids = invIds().filter(id => ITEMS[id].slot === def[1]);
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + S.stash[id] + (ITEMS[id].tool ? ' charge' + (S.stash[id] === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },

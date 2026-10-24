@@ -28,7 +28,7 @@ assert.equal(ids.size, 16);
 g.A.dismissIntro(); const fresh = JSON.parse(JSON.stringify(g.S()));
 const v7 = JSON.parse(JSON.stringify(fresh)); v7.v = 7; delete v7.chains; delete v7.trackedQuest; delete v7.cur.chips; v7.cur.scrap = 77;
 const m = boot(v7), s7 = m.S();
-assert.equal(s7.v, 11); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
+assert.equal(s7.v, 12); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
 
 // state: after FTUE, bunker open, archipelago locked
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 8; open.cur.scrap = 0;
@@ -48,7 +48,7 @@ assert.equal(T.chainState("bunker").step, 1); assert.equal(T.chainState("bunker"
 assert.equal(S().cur.scrap, sc2 + 40, "B1 scrap granted by the hand in"); assert.equal(T.trackedQuest().step.id, "B2", "keeps tracking the chain");
 b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainState("bunker").step, 1, "second press is a no-op");
 T.ingestRaidResult(raid({ levelsCleared:0, area:"bunker" })); assert(!T.chainReady("bunker"), "uncleared level does not count");
-T.ingestRaidResult(raid({})); assert(T.chainReady("bunker")); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(S().stash.tool_decoy, 2, "B2 decoys granted"); assert.equal(T.chainActive("bunker").id, "B3");
+T.ingestRaidResult(raid({})); assert(T.chainReady("bunker")); b.A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(((S().stash.tool_decoy || 0) + ((S().armory || {}).tool_decoy || 0)), 2, "B2 decoys granted"); assert.equal(T.chainActive("bunker").id, "B3");
 
 S().fir = {}; // (the migrated test save counted its whole stash as found in raid)
 // hand-in: only found-in-raid items count, they are removed, the step completes once
