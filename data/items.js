@@ -82,6 +82,13 @@ ITEM_DATA_ROOT.DATA.items = [
     slot:"armor", stats:{ speed:0.45, shield:10 }, bagSlots:1, desc:"Light webbing and good boots. You move like you mean it.", uses:["loadout"] },
   { id:"dampener_cloak", icon:"item-cloak", name:"Dampener Cloak", family:"gear", rarity:"rare", sellValue:110, stackSize:1,
     slot:"armor", stats:{ stealth:0.18, speed:0.1, maxHealth:-10 }, desc:"Soaks up sound and heat. Not bullets.", uses:["loadout"] },
+  // v1.91 attachments: crafted at the Fabricator from existing T2 parts, fitted to one gun for good (kept on merge). Armory items.
+  { id:"att_barrel", icon:"item-att-barrel", name:"Long Barrel", family:"gear", rarity:"uncommon", sellValue:40, stackSize:3,
+    slot:"attachment", desc:"Barrel attachment: +2 m range. Fit it on the weapon screen.", uses:["attachment"] },
+  { id:"att_mag", icon:"item-att-mag", name:"Extended Mag", family:"gear", rarity:"rare", sellValue:60, stackSize:3,
+    slot:"attachment", desc:"Mag attachment: +25% magazine. Needs a Mk II gun.", uses:["attachment"] },
+  { id:"att_optic", icon:"item-att-optic", name:"Optic", family:"gear", rarity:"rare", sellValue:70, stackSize:3,
+    slot:"attachment", desc:"Optic attachment: +1 damage. Needs a Mk III gun.", uses:["attachment"] },
   { id:"medkit", icon:"item-medkit", name:"Medkit", family:"gear", rarity:"common", sellValue:35, stackSize:5,
     slot:"consumable", desc:"Fabricator special. Smells like ozone.", uses:["loadout"] },
   // CURRENCY-SOURCING LOOT (Node Raid): converted on ingest, never stored in the stash.

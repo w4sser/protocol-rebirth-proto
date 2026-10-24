@@ -175,3 +175,10 @@ window.DATA.progression.gearUpgrade = {
     armor:[{ polymer_plate:1 }, { polymer_plate:2 }, { polymer_plate:2, cable:2 }]
   }
 };
+
+// v1.91 merge tiers + attachments (docs/design-armory.md b/c). 3 copies of a gun / armor -> next Mk (max Mk III).
+// Each Mk: +1 max upgrade level, +1 DMG (guns) or +10 shield (armor), +1 attachment slot (Barrel Mk I, Mag Mk II, Optic Mk III).
+window.DATA.progression.gearMerge = {
+  copies:3, dmgPerTier:1, shieldPerTier:10,
+  attach:{ barrel:{ rng:2 }, mag:{ magPct:0.25 }, optic:{ dmg:1 } }
+};
