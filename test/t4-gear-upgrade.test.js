@@ -19,10 +19,10 @@ const pop = b => b.d.querySelector("#overlay .bpop.gearpop");
 const txt = (b, sel) => [...b.d.querySelectorAll(sel)].map(e => e.textContent).join("|");
 
 // 1) popup opens for weapon, vest and the free carbine; shared popup + X; effect tiles
-for(const [id, stats] of [["smg_vector", ["damage","firerate"]], ["scavenger_vest", ["shield"]], ["basic_carbine", ["damage","firerate"]]]){
+for(const [id, stats] of [["smg_vector", ["damage","firerate","mag","range"]], ["scavenger_vest", ["shield"]], ["basic_carbine", ["damage","firerate","mag","range"]]]){
   const b = fresh(); b.A.openStashItem(id);
   const p = pop(b); assert(p, id + " opens gear popup"); assert(p.classList.contains("pop-card") && p.querySelector(".pop-x"), id + " shared popup + X");
-  assert.deepEqual([...p.querySelectorAll(".rtile")].map(t => t.dataset.stat), stats, id + " effect tiles");
+  assert.deepEqual([...p.querySelectorAll(".rtile,.wbar")].map(t => t.dataset.stat), stats, id + " effect tiles");
   assert(p.querySelector("button.primary"), id + " upgrade button"); assert(p.querySelector(".gu-cost"), id + " cost readout");
   assert(p.querySelector(".gu-lvl"), id + " level shown");
 }
@@ -32,12 +32,12 @@ for(const [id, stats] of [["smg_vector", ["damage","firerate"]], ["scavenger_ves
 // 2) upgrade spends scrap + materials, bumps level and tiles
 { const b = fresh(), S = () => b.S();
   b.A.openStashItem("smg_vector");
-  const before = txt(b, ".gearpop .rtile b"), c = b.T.gearCost("smg_vector", 1), scrap0 = S().cur.scrap, alloy0 = S().stash.scrap_alloy;
+  const before = txt(b, ".gearpop .rtile b, .gearpop .wbar b"), c = b.T.gearCost("smg_vector", 1), scrap0 = S().cur.scrap, alloy0 = S().stash.scrap_alloy;
   assert.equal(b.T.gearBlock("smg_vector"), ""); b.w.eval(b.d.querySelector(".gearpop button.primary").getAttribute("onclick"));
   assert.equal(b.T.gearLevel("smg_vector"), 1); assert.equal(S().gearUp.smg_vector, 1);
   assert.equal(S().cur.scrap, scrap0 - c.scrap); assert.equal(S().stash.scrap_alloy, alloy0 - c.items.scrap_alloy);
   assert(S().log.some(l => l.action === "GEAR_UPGRADED" && l.payload.id === "smg_vector"), "GEAR_UPGRADED logged");
-  assert.notEqual(txt(b, ".gearpop .rtile b"), before, "tiles changed"); assert(/LEVEL 1\//.test(pop(b).textContent), "popup rerendered at L1");
+  assert.notEqual(txt(b, ".gearpop .rtile b, .gearpop .wbar b"), before, "tiles changed"); assert(/LEVEL 1\//.test(pop(b).textContent), "popup rerendered at L1");
   const w0 = b.T.masteredWeapon("smg_vector", 0), w1 = b.T.masteredWeapon("smg_vector");
   assert(w1.int < w0.int, "fire rate up"); assert(/dmg:1/.test(b.T.weaponParam("smg_vector")));
   b.A.gearUpgrade("smg_vector"); assert.equal(b.T.gearLevel("smg_vector"), 2);
@@ -48,7 +48,7 @@ for(const [id, stats] of [["smg_vector", ["damage","firerate"]], ["scavenger_ves
 { const b = fresh(); const s0 = b.T.playerStats(["scavenger_vest"]).shield;
   b.A.gearUpgrade("scavenger_vest"); const s1 = b.T.playerStats(["scavenger_vest"]).shield;
   assert.equal(s1 - s0, b.D.progression.gearUpgrade.armor.shieldPerLevel, "shield per level");
-  b.A.openStashItem("scavenger_vest"); assert(/SHIELD/.test(pop(b).textContent) && /33/.test(txt(b, ".gearpop .rtile b")));
+  b.A.openStashItem("scavenger_vest"); assert(/SHIELD/.test(pop(b).textContent) && /33/.test(txt(b, ".gearpop .rtile b, .gearpop .wbar b")));
 }
 // 4) unaffordable / max
 { const b = fresh(); b.S().cur.scrap = 0; b.A.openStashItem("smg_vector");

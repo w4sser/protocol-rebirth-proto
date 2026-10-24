@@ -22,7 +22,8 @@ b.A.go("base"); assert(has("dataCores") && !has("signals"), "base shows Data Cor
 b.A.go("prep"); assert(has("signals") && !has("dataCores"), "prep shows Signals");
 b.A.go("bit"); assert(has("chips"), "BIT shows Chips");
 assert(!b.d.querySelector("#currencies .bondpill") && b.d.querySelector("#tabs .nav-bit .bondlv"), "bond is a BIT-button badge");
-b.A.go("stash"); b.S().cur.signals = 9; b.w.renderCurrencies(); assert(has("signals"), "a changed currency flashes in");
+b.A.go("stash"); b.S().cur.dataCores = 12; b.w.renderCurrencies(); assert(!has("dataCores"), "no pop on an unrelated screen");
+b.A.go("bit"); b.S().cur.signals = 9; b.w.renderCurrencies(); assert(has("signals"), "a changed currency flashes in where it matters");
 b.w.eval("A.curInfo('dataCores')"); const ci = b.d.querySelector("#overlay .curinfo"); assert(ci && /module levels/i.test(ci.textContent), "tap explains Data Cores");
 for(const k of ["scrap","dataCores","signals","chips"]) { b.w.eval("closeAllPopups()"); b.w.eval("A.curInfo('" + k + "')"); assert(b.d.querySelector("#overlay .curinfo[data-cur=" + k + "]"), k + " explainer"); }
 console.log("V1.88 TOPBAR TEST PASSED");
