@@ -180,5 +180,6 @@ window.DATA.progression.gearUpgrade = {
 // Each Mk: +1 max upgrade level, +1 DMG (guns) or +10 shield (armor), +1 attachment slot (Barrel Mk I, Mag Mk II, Optic Mk III).
 window.DATA.progression.gearMerge = {
   copies:3, dmgPerTier:1, shieldPerTier:10,
-  attach:{ barrel:{ rng:2 }, mag:{ magPct:0.25 }, optic:{ dmg:1 } }
+  attach:{ barrel:{ rng:2 }, mag:{ magPct:0.25 }, optic:{ dmg:1 } },
+  attachItem:{ barrel:"att_barrel", mag:"att_mag", optic:"att_optic" }
 };

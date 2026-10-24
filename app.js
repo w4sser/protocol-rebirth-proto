@@ -3321,7 +3321,7 @@ function gearMerge(id){
   return true;
 }
 // Attachments: crafted at the Fabricator (armory items att_*), fitted from the weapon screen. Bound to the gun for good, kept on merge.
-const ATT_ITEM = { barrel:"att_barrel", mag:"att_mag", optic:"att_optic" };
+const ATT_ITEM = PROG.gearMerge.attachItem;
 function attachBlock(id, slot){
   if(gearKind(id) !== "weapon" || isFree(id)) return "Craft guns only";
   const need = WPN_SLOTS.find(x => x[0] === slot)[3];
