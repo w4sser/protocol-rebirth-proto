@@ -86,3 +86,28 @@ Nav: BIT button opens the BIT screen; top tabs: **TALENTS · TASKS · QUESTS · 
 - Bond cap (20?) and xp curve after Bond 10.
 - Whether Safe Return is too strong vs. the death rule; fallback: saves one *material*, not gear.
 - Art: node icons reuse ui-icons.svg; branch headers need three small BIT poses.
+
+## Implementation status (v1.95 PART 1 — logic + data only, no screen yet)
+Branches/nodes live in `data/bit-talents.js`; points/row-gates/respec and `talentVal(key)` live in `app.js`
+(`talentPoints`, `talentCanLearn`, `learnTalent`, `respecTalents`, `talentVal`, exposed as `A.learnTalent(id)` /
+`A.respecTalents()`). Guardian capstone is the doc fallback: `A.setGuardianMaterial(id)` pre-chooses one
+**material** (never gear — enforced by `isMaterialItem`); on death, if `guardian_safe_return` is learned and that
+material was found this raid, BIT saves it (`R.saved.talentMaterial` / `saved.talentMaterial`).
+
+Wired to an existing hook (effect key -> where it's applied):
+- `scoutKeenSensors` -> `resolveRaid`, tracked-item roll chance, only in BIT's marked zone (`scoutLead`).
+- `scoutCore` (`zone_scout`), `guardianCore` (`shield_burst`), `scavCore` (`loot_priority`) -> `bitSkillOn(id)`
+  now checks `talentLearned(id)` instead of the old single `S.bitSkill` toggle; all three can be on at once.
+- `guardianPlatingShield` -> `A.deployNodeRaid`, added to deploy shield alongside Shield Burst.
+- `guardianSafeReturn` -> capstone, see above.
+- `scavDeepPockets` -> `rollScavenge`, extra basic-part rolls.
+- `scavQuickLegs` -> `scavMinutes`.
+- `scavSalvager` -> `A.scrapIt` recycle yield.
+- `scavHaggler` -> `A.buy` vendor price.
+- `scavNightShift` -> `genCap` (generator offline cap hours only — scavenge has no offline-cap system today).
+- `scavLuckyFind` -> `rollScavenge`, capstone.
+
+No existing hook yet (node is data-driven and learnable; effect is a no-op until Node Raid/UI work lands) —
+all need `nodspel/` (raid-side) or new UI plumbing, out of scope for logic-only Part 1:
+- `scoutLongPing`, `scoutPathfinder`, `scoutAppraiser`, `scoutMemoryBanks`, `scoutReconDrone`
+- `guardianWarningChirp`, `guardianSecondWind`, `guardianOvercharge`, `guardianFieldMedic`

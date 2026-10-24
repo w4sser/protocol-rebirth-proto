@@ -1,13 +1,13 @@
 // Headless logic tests. Run: node test/logic.test.js (from prototype/)
 global.window = {};
 const P = __dirname + "/..";
-for(const f of ["items","modules","bit","raid_zones","recipes","vendors","retention","progression","combat"]) require(P+"/data/"+f+".js");
+for(const f of ["items","modules","bit","bit-talents","raid_zones","recipes","vendors","retention","progression","combat"]) require(P+"/data/"+f+".js");
 global.window.DATA = window.DATA;
 const app = require(P+"/app.js");
 const assert = require("assert");
 
 let S = app.freshState(); app._setState(S);
-assert.equal(S.cur.scrap, 20); assert.equal(S.v, 14);
+assert.equal(S.cur.scrap, 20); assert.equal(S.v, 15);
 assert.equal(S.retentionMode, "core");
 assert.equal(window.DATA.combat.player.maxHealth, 100, "combat test tuning is data-driven");
 assert.equal(S.baseState, "core_found", "new saves start at the found Core");
