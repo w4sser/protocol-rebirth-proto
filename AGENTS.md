@@ -41,3 +41,10 @@ Bump `SAVE_VERSION` only when the save shape changes.
 Originals live in `assets/reference/` (never overwrite); `tools/add-art.py` derives the `.webp` the game loads.
 Image pipeline details: `docs/art-pipeline-and-legacy-guide.md`. Art direction: `docs/art-direction.md` (enclosed Cold-War bunker hub, dark teal/navy, cyan UI accents, warm orange light,
 BIT = square CRT smiley, no national flags). Wire new art through `data/*.js` hooks, then bump the version.
+
+## Work split (mandatory)
+Claude Code (`claude -p`) does ALL implementation, debugging and small fixes. Codex (`codex exec`) reviews diffs
+before merge. The orchestrating assistant (Grok Bot) only plans scoped prompts, verifies (`npm run verify`, CI,
+screenshots), merges and updates Linear — and must keep its own token usage minimal (scoped context, no reading
+large files unnecessarily). Grok Bot falls back to doing work itself only when Claude or Codex hit limits, and it
+must say so when that happens.
