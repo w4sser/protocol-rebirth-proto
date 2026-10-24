@@ -3707,7 +3707,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "arms"){ closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
+    if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && screen !== "worldmap" && !baseAllows("navigation", screen))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
@@ -3868,7 +3868,7 @@ window.A = {
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + (gearKind(id) === "weapon" ? '<span class="pick-up" role="button" tabindex="0" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')">UPGRADE</span>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + (gearKind(id) === "weapon" ? '<span class="pick-up" role="button" tabindex="0" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();event.stopPropagation();A.openWeapon(\'' + id + '\')}">UPGRADE</span>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },

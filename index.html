@@ -451,6 +451,14 @@
     body:not([data-screen=base]) #bitdock{bottom:calc(64px + env(safe-area-inset-bottom,0px));}
     #app.s-prep>button.primary,#app.s-decision .decision-actions{position:sticky; left:auto; right:auto; bottom:0; width:100%;}
   }
+  @media (max-width:720px){
+    #tabs{gap:3px;}
+    #tabs button{min-width:0; max-width:76px; padding:3px 1px; gap:2px; font-size:10px;}
+    #tabs .nav-prep{width:84px; font-size:11px;}
+    #tabs .nav-gap{width:1px;}
+    #tabs .ni{font-size:16px;}
+    #tabs .nav-prep .ni{font-size:20px;}
+  }
   #overlay.sheet{z-index:30;}
   
   /* ===== v1.29 raid prep (compact, CoC style) ===== */
@@ -1226,7 +1234,7 @@
   .wpn-ph{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ad-orange,#FF9D4D)}
   #overlay.fabov{position:fixed!important;inset:0!important;padding:0!important;z-index:60!important;align-items:stretch!important;justify-content:stretch!important;background:#05090b}
   #overlay.fabov .inner,#overlay.fabov .inner.pop-host{max-width:none!important;width:100%;height:100%;max-height:none!important;margin:0;padding:0}
-  #overlay.fabov .bpop.fabpop{margin:0!important;max-width:none!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0;border:0;box-sizing:border-box;padding:10px calc(14px + var(--sr,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(64px + var(--sl,0px))!important;display:flex;flex-direction:column;overflow:hidden}
+  #overlay.fabov .bpop.fabpop{margin:0!important;max-width:none!important;width:100%!important;height:100%!important;max-height:none!important;border-radius:0;border:0;box-sizing:border-box;padding:10px calc(14px + var(--sr,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(64px + var(--sl,0px))!important;display:flex;flex-direction:column;overflow:hidden!important}
   #overlay.fabov .pop-x{top:10px!important;left:calc(10px + var(--sl,0px))!important}
   #overlay.fabov .fabcols{flex:1 1 auto;min-height:0;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
   #overlay.fabov .fabl{height:100%;overflow-y:auto;overscroll-behavior:contain}
