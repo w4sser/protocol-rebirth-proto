@@ -11,9 +11,10 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.92.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.93.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 13;   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
+const SAVE_VERSION = 14;   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
+//   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
 //   // v12 (v1.89) splits gear into S.armory (weapons, armor/rigs, consumables, tools); S.stash keeps materials.
 //   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
 
@@ -57,6 +58,7 @@ function load(){
       if(st.v === 10) migrateGearUp(st);
       if(st.v === 11) migrateArmory(st);
       if(st.v === 12) migrateTiers(st);
+      if(st.v === 13) migrateBuilt(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
       if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; return st; }
     }
@@ -159,6 +161,15 @@ function splitArmory(st){
 }
 function migrateArmory(st){ splitArmory(st); st.v = 12; return st; }
 // v13: additive. Every owned gun / armor starts at Mk I with no attachments; levels, counts and FIR are untouched.
+function migrateBuilt(st){
+  const out = (st.coreLaunch && Array.isArray(st.coreLaunch.gear)) ? st.coreLaunch.gear : [];
+  const n = id => ((st.stash && st.stash[id]) || 0) + ((st.armory && st.armory[id]) || 0);
+  for(const k of ["gearTier","attach","gearUp"]) if(st[k] && typeof st[k] === "object")
+    for(const id of Object.keys(st[k])) if(!(ITEMS[id] && ITEMS[id].free) && !n(id) && !out.includes(id)) delete st[k][id];
+  st.v = 14; return st;
+}
+// v1.93: the built copy (tier, attachments, upgrade level) is the one you carry; losing it on death resets the gun to a plain Mk I.
+function loseBuilt(id){ if(!ITEMS[id] || ITEMS[id].free) return; for(const k of ["gearTier","attach","gearUp"]) if(S[k]) delete S[k][id]; }
 function migrateTiers(st){ if(!st.gearTier || typeof st.gearTier !== "object") st.gearTier = {}; if(!st.attach || typeof st.attach !== "object") st.attach = {}; st.v = 13; return st; }
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
@@ -1401,6 +1412,7 @@ function applyRaidResult(R){
     progress.push("+" + halfSalvage + " Salvage (recovered)");
     gainOpXp(PROG.operator.simDeathXp);
     if(bitOnline()){ S.bondXp += D.bit.xpPerDeath; progress.push("BIT Bond +" + D.bit.xpPerDeath + " XP"); }
+    R.cfg.loadout.filter(id => !R.saved.insured.includes(id) && id !== R.saved.secure).forEach(loseBuilt);
     act("PLAYER_DIED", { zone:R.zone, lost:R.cfg.loadout, insured:R.saved.insured, secure:R.saved.secure });
   }
   // tracked bookkeeping
@@ -1557,7 +1569,7 @@ function revealCurrency(id){
 const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage:IC("cur-scrap"), signals:IC("cur-signals"), fuel:IC("cur-fuel"), chips:IC("cur-chip") };
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
 // v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
-function itemIcon(id){ const it = ITEMS[id]; if(it && it.art && typeof weaponArtSrc === "function"){ const a = weaponArtImg(id, 512, "pr-icon ic-art"); if(a) return a; } return it && it.icon ? IC(it.icon) : ""; }
+function itemIcon(id){ const it = ITEMS[id]; if(it && it.artImg) return '<img class="pr-icon ic-art" src="assets/weapons/' + it.artImg + '-512.webp" alt="" draggable="false" onerror="this.onerror=null;this.src=this.src.replace(/webp$/,\'png\')">'; if(it && it.art && typeof weaponArtSrc === "function"){ const a = weaponArtImg(id, 512, "pr-icon ic-art"); if(a) return a; } return it && it.icon ? IC(it.icon) : ""; }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 // v1.88 contextual top bar (docs/design-armory.md d): Level, Scrap and Power everywhere; other currencies only on the screen that
@@ -3159,6 +3171,7 @@ function ingestRaidResult(r){
   else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? swappedOut : gear.filter(id => id !== saved.secure);
+  gearLost.forEach(loseBuilt);
   gearFound.forEach(id => added.push(id));
   // Skills grow by use on every outcome.
   S.skills = S.skills || {};
@@ -3311,6 +3324,8 @@ function tierLabel(id){ return "MK " + TIER_NAMES[gearTier(id) - 1] + (ITEMS[id]
 function weaponArtSrc(id, w){ const it = ITEMS[id], set = it && it.art && WART.sets[it.art]; if(!set) return ""; return "assets/weapons/" + it.art + "-" + set.files[weaponGrade(id) - 1] + "-" + w; }
 function weaponArtImg(id, w, cls){ const b = weaponArtSrc(id, w); if(!b) return ""; return '<img class="' + cls + '" src="' + b + '.webp" alt="" draggable="false" onerror="this.onerror=null;this.src=this.src.replace(/webp$/,\'png\')">'; }
 let LAST_ART = null;
+const ART_PRELOADED = {};
+function preloadWeaponArt(id){ const b = weaponArtSrc(id, 1600); if(!b || ART_PRELOADED[b] || typeof Image === "undefined") return; ART_PRELOADED[b] = 1; const im = new Image(); im.src = b + ".webp"; }
 function drawLeaders(){
   const scr = document.querySelector(".wpnscreen"), img = scr && scr.querySelector(".wpn-hero img.cur"), host = scr && scr.querySelector(".wpn-l");
   if(!img || !host || !img.getBoundingClientRect) return;
@@ -3327,16 +3342,23 @@ function drawLeaders(){
 if(typeof window !== "undefined" && window.addEventListener) window.addEventListener("resize", () => drawLeaders());
 const TIER_NAMES = ["I","II","III"], RARITY_UP = ["common","uncommon","rare","epic","legendary"];
 function tierRarity(id){ const r = ITEMS[id].rarity, i = RARITY_UP.indexOf(r); return i < 0 ? r : RARITY_UP[Math.min(RARITY_UP.length - 1, i + gearTier(id) - 1)]; }
+function mergeNeed(id){ const c = PROG.gearMerge.copies; return Array.isArray(c) ? c[Math.min(c.length, gearTier(id)) - 1] : c; }
+function rebuildCost(id){ return PROG.gearMerge.freeRebuildScrap[Math.min(1, gearTier(id) - 1)]; }
 function mergeBlock(id){
-  if(!gearKind(id) || isFree(id)) return "Can't merge";
+  if(!gearKind(id)) return "Can't merge";
   if(gearTier(id) >= 3) return "Max tier";
-  const n = have(id), need = PROG.gearMerge.copies;
+  if(isFree(id)){
+    if(gearLevel(id) < gearMax(id)) return "Max level L" + gearMax(id) + " first";
+    return S.cur.scrap >= rebuildCost(id) ? "" : "Need " + rebuildCost(id) + " Scrap";
+  }
+  const n = have(id), need = mergeNeed(id);
   return n >= need ? "" : (need - n) + " more " + ITEMS[id].name + " to merge";
 }
 function gearMerge(id){
   if(mergeBlock(id)) return false;
   const from = gearTier(id), to = from + 1;
-  removeItem(id, PROG.gearMerge.copies - 1); // 3 copies become 1 (the one you keep)
+  if(isFree(id)) S.cur.scrap -= rebuildCost(id); // Basic Carbine: rebuilt with Scrap, never merged
+  else removeItem(id, mergeNeed(id) - 1); // the built copy + plain copies become 1 (Mk II: 3 in total, Mk III: 9 in total)
   S.gearTier = S.gearTier || {}; S.gearTier[id] = to; S.gearUp = S.gearUp || {}; S.gearUp[id] = 0;
   act("GEAR_MERGED", { id, from, to });
   return true;
@@ -3344,7 +3366,7 @@ function gearMerge(id){
 // Attachments: crafted at the Fabricator (armory items att_*), fitted from the weapon screen. Bound to the gun for good, kept on merge.
 const ATT_ITEM = PROG.gearMerge.attachItem;
 function attachBlock(id, slot){
-  if(gearKind(id) !== "weapon" || isFree(id)) return "Craft guns only";
+  if(gearKind(id) !== "weapon") return "Guns only";
   const need = WPN_SLOTS.find(x => x[0] === slot)[3];
   if(gearTier(id) < need) return "Unlocks at Mk " + TIER_NAMES[need - 1];
   if(attachOf(id)[slot]) return "Fitted";
@@ -3446,8 +3468,10 @@ function weaponScreenHtml(id){
   const cost = nxt ? costParts(gearCost(id, nxt)).map(p => '<span class="gu-c' + (p.have < p.need ? ' bad' : '') + '">' + partIcon(p) + p.need + (p.kind === "item" ? ' ' + esc(ITEMS[p.id].name) : '') + '</span>').join("") : "";
   let mastery = "";
   if(isFree(id)){ const nk = masteryNext(id), k = masteryKills(id); mastery = '<div class="gu-mastery">Mastery ' + starsHtml(id) + ' <span>' + (nk === null ? 'max' : (nk - k) + ' kills to next star') + '</span></div>'; }
-  const tier = gearTier(id), at = attachOf(id), mb = mergeBlock(id), canMerge = !mb, mergeRow = isFree(id) ? '' :
-    '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>MERGE ' + Math.min(have(id), PROG.gearMerge.copies) + '/' + PROG.gearMerge.copies + '</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? '3 copies become 1 Mk ' + TIER_NAMES[tier] : esc(mb)) + '</small></div>';
+  const tier = gearTier(id), at = attachOf(id), mb = mergeBlock(id), canMerge = !mb, free = isFree(id), nextName = tier < 3 ? 'MK ' + TIER_NAMES[tier] + (ITEMS[id].art ? ' · ' + WART.grades[tier].toUpperCase() : '') : '';
+  preloadWeaponArt(id);
+  const mergeRow = free ? '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>REBUILD</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? rebuildCost(id) + ' Scrap rebuilds it as ' + nextName : esc(mb) + ' · then ' + rebuildCost(id) + ' Scrap') + '</small></div>' :
+    '<div class="wmerge' + (canMerge ? ' ready' : '') + '"><b>MERGE ' + Math.min(have(id), mergeNeed(id)) + '/' + mergeNeed(id) + '</b><small>' + (tier >= 3 ? 'Max tier' : canMerge ? mergeNeed(id) + ' copies become 1 ' + nextName : esc(mb)) + '</small></div>';
   const src = weaponArtSrc(id, 1600), prev = LAST_ART && LAST_ART.id === id && LAST_ART.src !== src ? LAST_ART.src : null;
   LAST_ART = { id, src };
   const art = src ? '<span class="wpn-hero g' + weaponGrade(id) + '" aria-hidden="true">' + (prev ? '<img class="old" src="' + prev + '.webp" alt="">' : '') + weaponArtImg(id, 1600, "cur" + (prev ? " fadein" : "")).replace('<img ', '<img onload="drawLeaders()" ') + '</span>'
@@ -3457,7 +3481,7 @@ function weaponScreenHtml(id){
     '<div class="wpn-r"><button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button><div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier rar-' + tierRarity(id) + '">' + tierLabel(id) + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
     '<div class="gu-lvl" aria-label="Upgrade level ' + lvl + ' of ' + max + '"><b>LEVEL ' + lvl + '/' + max + '</b><span class="gu-pips">' + Array.from({ length:max }, (_, i) => '<span class="gu-pip' + (i < lvl ? ' on' : '') + '"></span>').join("") + '</span></div>' +
     wpnBarsHtml(id) + mastery + mergeRow +
-    (canMerge ? '<button class="primary big merge" onclick="A.gearMerge(\'' + id + '\')">MERGE TO MK ' + TIER_NAMES[tier] + '</button>' : '') +
+    (canMerge ? '<button class="primary big merge" onclick="A.gearMerge(\'' + id + '\')">' + (free ? 'REBUILD TO ' : 'MERGE TO ') + nextName + '</button>' : '') +
     (nxt ? '<div class="gu-cost" aria-label="Cost">' + cost + '</div>' : '') +
     '<button class="' + (canMerge ? 'ghost' : 'primary big') + ' upg" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
     (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
