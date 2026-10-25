@@ -1,6 +1,6 @@
 // v1.70 quest chains: data validity, progress + auto turn-in, hand-in, tracking, v7 save migration.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window;
@@ -28,7 +28,7 @@ assert.equal(ids.size, 16);
 g.A.dismissIntro(); const fresh = JSON.parse(JSON.stringify(g.S()));
 const v7 = JSON.parse(JSON.stringify(fresh)); v7.v = 7; delete v7.chains; delete v7.trackedQuest; delete v7.cur.chips; v7.cur.scrap = 77;
 const m = boot(v7), s7 = m.S();
-assert.equal(s7.v, 14); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
+assert.equal(s7.v, 15); assert.deepEqual(s7.chains, {}); assert.equal(s7.trackedQuest, null); assert.equal(s7.cur.chips, 0); assert.equal(s7.cur.scrap, 77, "old data kept");
 
 // state: after FTUE, bunker open, archipelago locked
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 8; open.cur.scrap = 0;

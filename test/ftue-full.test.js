@@ -9,7 +9,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html","utf8"), { runScripts
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
@@ -36,14 +36,15 @@ for(const id of ['storage','bit_bay']){const s=window.__TEST_STATE(),m=window.DA
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
-assert(text().includes("BIT — Bond LV"), "BIT online");
+assert(doc.querySelector("#overlay .bitpop .bitbond").textContent.includes("Bond LV"), "BIT online");
 A.devForce("extract");
 A.go("prep"); A.prepSet("insuranceId","none"); A.deploy(); A.raidStep();
 if(text().includes("DECISION POINT")) A.extractNow();
 A.backToBase();
 if(sv().beat >= 7){
   A.go("bit");
-  assert(text().includes("Daily contracts"), "contracts visible post-FTUE in full mode");
+  A.bitTab("tasks");
+  assert(doc.querySelector("#overlay .tasktab.active").textContent.includes("Daily contracts"), "contracts visible post-FTUE in full mode");
 }
 console.log("FTUE FULL-MODE WALKTHROUGH PASSED (beat=" + sv().beat + ", fuel=" + sv().fuel + ")");
 process.exit(0);

@@ -4,7 +4,7 @@ function boot(save, t0){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window; let now = t0; w.Date.now = () => now;
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
-  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
+  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, genStored, genCap, tickIdle, welcomeBack, session:()=>session };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, doc:w.document, set:t => { now = t; }, get now(){ return now; } };

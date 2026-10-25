@@ -1,6 +1,6 @@
 // v1.93 full art pack + built-copy gear (save v14) + carbine rebuild + 3/9 merge. (prev: v1.92 weapon art: grade names, hero art per tier, Svartverk, crossfade, art icons. (was: v1.91 merge tiers (3 copies -> next Mk) + Fabricator attachments, v12->v13 save migration.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
   const w = dom.window; if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
@@ -9,7 +9,7 @@ function boot(save){
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, stashCapacity, stashSlotsUsed, stashWarnings, quickCleanList, firHave, stashGroup, have, addItem, removeItem, armorySlotsUsed, armoryCapacity, isArmoryItem, SV:SAVE_VERSION, gearTier, gearMax, gearLevel, masteredWeapon, mergeBlock, weaponParam, gearEffect, weaponGrade, gradeName, tierLabel, weaponArtSrc, mergeNeed, mergeBlock, gearMerge, ingestRaidResult, gearLevel, gearMax, preloadWeaponArt };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
-const g = boot(null); g.A.dismissIntro(); assert.equal(g.T.SV, 14);
+const g = boot(null); g.A.dismissIntro(); assert.equal(g.T.SV, 15);
 const old = JSON.parse(JSON.stringify(g.S())); old.v = 13;
 Object.assign(old.modules, { rebirth_core:1, fabricator:2, bit_bay:1, storage:1 }); old.baseState = "core_habitable"; old.introSeen = true;
 old.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; old.beat = g.D.progression.beats.length - 1; old.cur.scrap = 5000;
@@ -17,7 +17,7 @@ old.armory = { smg_vector:1, att_barrel:3, att_mag:3, att_optic:3 };
 old.gearTier = { smg_vector:2, shotgun_breach:3, basic_carbine:1 }; old.attach = { shotgun_breach:{ barrel:1 }, smg_vector:{ barrel:1 } }; old.gearUp = { shotgun_breach:2, smg_vector:1 };
 const b = boot(old), S = b.S(), T = b.T, q = s => b.d.querySelector(s);
 // migration v13 -> v14: orphaned shotgun build (no copy owned) cleared, owned smg kept
-assert.equal(S.v, 14); assert(!S.gearTier.shotgun_breach && !S.attach.shotgun_breach && !S.gearUp.shotgun_breach, "orphan cleared"); assert.equal(T.gearTier("smg_vector"), 2);
+assert.equal(S.v, 15); assert(!S.gearTier.shotgun_breach && !S.attach.shotgun_breach && !S.gearUp.shotgun_breach, "orphan cleared"); assert.equal(T.gearTier("smg_vector"), 2);
 // 3/9 merge cost: Mk II needs 3 on hand, Mk III 7 (built Mk II + 6 = 9 base copies in total)
 assert.equal(T.mergeNeed("smg_vector"), 7); assert(/6 more/.test(T.mergeBlock("smg_vector")));
 // death loses the built copy: carried smg -> plain Mk I copies remain

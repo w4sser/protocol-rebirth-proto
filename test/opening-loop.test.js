@@ -1,5 +1,5 @@
 const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('assert');
-const root=__dirname+'/..',files=['items','modules','bit','raid_zones','recipes','vendors','retention','quests','progression','combat'];
+const root=__dirname+'/..',files=['items','modules','bit','bit-talents','raid_zones','recipes','vendors','retention','quests','progression','combat'];
 function boot(save){const w=new JSDOM(fs.readFileSync(root+'/index.html','utf8'),{runScripts:'outside-only',url:'http://localhost/'}).window;
   for(const f of files)w.eval(fs.readFileSync(root+'/data/'+f+'.js','utf8'));
   if(save)w.localStorage.setItem('pr_meta_save',JSON.stringify(save));w.PR_NAVIGATE=u=>w.launchURL=u;

@@ -1,6 +1,6 @@
 // v1.76 HAND IN popup, found-in-raid (FIR) tracking, TRACK toggle, quest RAID button, debug hooks.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
   const w = dom.window;
@@ -13,7 +13,7 @@ function boot(save){
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const g = boot(null); g.A.dismissIntro();
 const fresh = JSON.parse(JSON.stringify(g.S()));
-assert.equal(fresh.v, 14); assert.deepEqual(fresh.fir, {}, "fresh saves start with no FIR counts");
+assert.equal(fresh.v, 15); assert.deepEqual(fresh.fir, {}, "fresh saves start with no FIR counts");
 const open = JSON.parse(JSON.stringify(fresh)); open.v = 10; open.cur.scrap = 0;
 Object.assign(open.modules, { rebirth_core:1, fabricator:1, bit_bay:1, storage:1 }); open.baseState = "core_habitable"; open.introSeen = true;
 open.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; open.beat = g.w.DATA.progression.beats.findIndex(b => b.id === "choice_upgrade");
@@ -21,8 +21,8 @@ let n = 0; const raid = o => Object.assign({ schema:"protocol-rebirth/raid-resul
 
 // ---- migration: v9 stash counts as found in raid ----
 { const v9 = JSON.parse(JSON.stringify(open)); v9.v = 9; delete v9.fir; v9.stash = { scrap_alloy: 4, cable: 2 };
-  const m = boot(v9), s = m.S(); assert.equal(s.v, 14); assert.deepEqual(s.fir, { scrap_alloy: 4, cable: 2 }, "existing stash is FIR");
-  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 14, "migrated save is stored"); }
+  const m = boot(v9), s = m.S(); assert.equal(s.v, 15); assert.deepEqual(s.fir, { scrap_alloy: 4, cable: 2 }, "existing stash is FIR");
+  assert.equal(JSON.parse(m.w.localStorage.getItem("pr_meta_save")).v, 15, "migrated save is stored"); }
 
 // ---- FIR tagging: extraction yes, purchase / reward / dead raid no ----
 const b = boot(open), { A, T, d } = b, S = b.S; A.go("base");

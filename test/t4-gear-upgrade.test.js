@@ -1,6 +1,6 @@
 // v1.83 T4 (PRB-91): gear upgrade popup in the Stash, costs, persistence, Basic Carbine path.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
   const w = dom.window; if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
@@ -77,5 +77,5 @@ for(const [id, stats] of [["smg_vector", ["damage","firerate","mag","range"]], [
   const old = JSON.parse(JSON.stringify(saved)); old.v = 10; delete old.gearUp;
   const m = boot(old); assert.equal(m.S().v, m.T.SV); assert.deepEqual(m.S().gearUp, {}, "v10 save migrates additively"); assert.equal(m.S().cur.scrap, saved.cur.scrap);
 }
-assert.equal(g.T.SV, 14);
+assert.equal(g.T.SV, 15);
 console.log("t4-gear-upgrade ok"); process.exit(0);

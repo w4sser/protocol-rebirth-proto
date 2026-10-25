@@ -7,7 +7,7 @@ function boot(){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window, nav = [];
   w.PR_NAVIGATE = u => nav.push(u);
-  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"])
+  for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"])
     w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   // Test hook appended in the same eval so it shares app.js lexical scope.
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, ingest:r=>ingestRaidResult(r), finish:(m, l)=>finishModuleLevel(m, l) };");

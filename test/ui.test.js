@@ -10,10 +10,11 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
+const bitTasksText = () => doc.querySelector("#overlay .tasktab.active").textContent;
 const tap = el => {
   el.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles:true, clientX:100, clientY:100 }));
   el.dispatchEvent(new window.MouseEvent("pointerup", { bubbles:true, clientX:100, clientY:100 }));
@@ -212,7 +213,7 @@ A.deploy(); A.raidStep(); A.backToBase();
 A.go("module","bit_bay"); A.build("bit_bay");
 ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 A.go("bit");
-assert(text().includes("BIT — Bond LV"), "bond card on the BIT screen");
+assert(doc.querySelector("#overlay .bitpop .bitbond").textContent.includes("Bond LV"), "bond card on the BIT screen");
 assert(!doc.querySelector("#currencies .bondpill") && !doc.querySelector("#tabs .nav-bit .bondlv"), "v1.94: bond level shown on the BIT screen only");
 assert(doc.querySelector("#tabs .nav-bit:not([disabled])"), "BIT button unlocked in bottom bar");
 // curated self-expression: cosmetic style for the built BIT Bay
@@ -262,17 +263,17 @@ window.eval("Math.random = window.__origRnd;");
 A.backToBase();
 
 // retention: core mode has none of it
-A.go("bit");
-assert(!text().includes("Send BIT on expedition"), "no expedition in core mode");
+A.go("bit", "tasks");
+assert(!bitTasksText().includes("Send BIT on expedition"), "no expedition in core mode");
 // full mode
 A.go("dev"); doc.getElementById("devret").value = "full"; A.devRetMode();
 assert(doc.getElementById("currencies").textContent.includes("Fuel"), "fuel chip in full");
-A.go("bit");
-assert(text().includes("Send BIT on expedition"), "expedition card in full");
+A.go("bit", "tasks");
+assert(bitTasksText().includes("Send BIT on expedition"), "expedition card in full");
 A.go("prep"); assert(text().includes("Fuel"), "fuel section on prep");
 // expedition round trip via dev timer
-A.go("bit"); A.sendExpedition();
-assert(text().includes("BIT is in the field"), "expedition running");
+A.go("bit", "tasks"); A.sendExpedition();
+assert(bitTasksText().includes("BIT is in the field"), "expedition running");
 A.go("dev"); A.devFinishTimers();
 const ovm = doc.getElementById("overlay");
 assert(ovm && ovm.textContent.includes("MORNING REPORT"), "morning report on return");

@@ -3,7 +3,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 const fs = require("fs");
 const assert = require("assert");
 const path = __dirname + "/..";
-const SCRIPTS = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"];
+const SCRIPTS = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"];
 function boot(url, seed, answer){
   const vc = new VirtualConsole(); // jsdom does not implement navigation; keep output quiet
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url, virtualConsole:vc });

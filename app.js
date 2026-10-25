@@ -11,9 +11,11 @@ const ITEMS = {}; D.items.forEach(i => ITEMS[i.id] = i);
 const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
-const APP_VERSION = "1.94.0"; // keep in sync with ?v= in index.html and nodspel/
+const TAL   = D.bitTalents;
+const APP_VERSION = "1.95.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-const SAVE_VERSION = 14;   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
+const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
+//   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
 //   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
 //   // v12 (v1.89) splits gear into S.armory (weapons, armor/rigs, consumables, tools); S.stash keeps materials.
 //   // v8 adds quest chains (S.chains, S.trackedQuest) and Contract Chips (S.cur.chips); v9 adds the chip shop (S.chipShop) and stored unlocks (S.unlocks); v10 adds found-in-raid counts (S.fir); v11 adds gear upgrade levels (S.gearUp)
@@ -27,7 +29,8 @@ function freshState(){
     v:SAVE_VERSION, beat:0,
     cur: Object.assign({}, PROG.start.currencies),
     stash: Object.assign({}, PROG.start.stash), armory: {}, gearTier: {}, attach: {},
-    reserved: {}, secureItem: null,
+    reserved: {}, secureItem: null, guardianMaterial: null,
+    talents: { spent:{}, respecs:0 },
     modules: {}, bondXp: 0, opXp: 0,
     tracked: null, trackedStreak: 0,
     zoneIntel: {}, raids: 0, deaths: 0,
@@ -59,8 +62,9 @@ function load(){
       if(st.v === 11) migrateArmory(st);
       if(st.v === 12) migrateTiers(st);
       if(st.v === 13) migrateBuilt(st);
+      if(st.v === 14) migrateTalents(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
     }
   }catch(e){}
   return freshState();
@@ -170,6 +174,14 @@ function migrateBuilt(st){
 }
 // v1.93: the built copy (tier, attachments, upgrade level) is the one you carry; losing it on death resets the gun to a plain Mk I.
 function loseBuilt(id){ if(!ITEMS[id] || ITEMS[id].free) return; for(const k of ["gearTier","attach","gearUp"]) if(S[k]) delete S[k][id]; }
+// v15 (v1.95): BIT talent tree (docs/design-bit-skill-tree.md). The one active skill becomes 1 point in the matching
+// core node (data/bit-talents.js), so nobody loses what they had; talents are never lost after this.
+function migrateTalents(st){
+  st.talents = { spent:{}, respecs:0 };
+  if(st.bitSkill && ["zone_scout","shield_burst","loot_priority"].includes(st.bitSkill)) st.talents.spent[st.bitSkill] = 1;
+  if(st.guardianMaterial === undefined) st.guardianMaterial = null;
+  st.v = 15; return st;
+}
 function migrateTiers(st){ if(!st.gearTier || typeof st.gearTier !== "object") st.gearTier = {}; if(!st.attach || typeof st.attach !== "object") st.attach = {}; st.v = 13; return st; }
 function log(action, payload){
   S.log.push({ t: Date.now(), action, payload: payload || {} });
@@ -456,12 +468,12 @@ function idleState(){
 function idleNow(){ const I = idleState(), t = Date.now(); if(t > I.clock) I.clock = t; return I.clock; }
 const MIN = 60000, HOUR = 3600000;
 function genRate(){ return IDLE.generator.ratePerHour[coreLevel()] || 0; }
-function genCap(){ return Math.round(genRate() * IDLE.generator.capHours); }
+function genCap(){ return Math.round(genRate() * (IDLE.generator.capHours + talentVal("scavNightShift"))); } // Scavenger: Night Shift (v1.95, generator half; scavenge has no offline cap today)
 function genStored(now){ const I = idleState(); if(!genRate() || !I.genAt) return 0; return Math.min(genCap(), Math.floor((now - I.genAt) / HOUR * genRate())); }
 function buildMinutes(modId, level){ const t = IDLE.buildMinutes[modId] || IDLE.buildMinutes.default; return (t && t[level]) || IDLE.buildMinutes.default[level] || 0; }
 function fabMinutes(rid){ return IDLE.fabricator.minutes[rid] || IDLE.fabricator.defaultMinutes; }
 function fabSlots(){ return IDLE.fabricator.slots[S.modules.fabricator || 0] || 0; }
-function scavMinutes(){ return IDLE.scavenge.minutes[Math.min(2, S.modules.bit_bay || 0)] || 0; }
+function scavMinutes(){ return Math.round((IDLE.scavenge.minutes[Math.min(2, S.modules.bit_bay || 0)] || 0) * (1 - talentVal("scavQuickLegs"))); } // Scavenger: Quick Legs (v1.95)
 function buildInProgress(modId){ return idleState().builds[modId] || null; }
 function fmtLeft(ms){ const m = Math.max(0, Math.ceil(ms / MIN)); return m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm'; }
 // Finishing a module level: same bookkeeping as an instant build (tracking, beats, base state). Payoff screens stay instant-only.
@@ -501,8 +513,12 @@ function scavPools(){ return IDLE.scavenge.t1.concat(IDLE.scavenge.t2); }
 // focus: { itemId, p } (Loot priority skill) - each basic pick becomes the tracked part with chance p.
 function rollScavenge(rng, focus){
   const C = IDLE.scavenge, r = rng || Math.random, ri = ([a, b]) => a + Math.floor(r() * (b - a + 1)), items = {};
-  const n = ri(C.t1Count); for(let i = 0; i < n; i++){ const id = focus && r() < focus.p ? focus.itemId : C.t1[Math.floor(r() * C.t1.length)]; items[id] = (items[id] || 0) + 1; }
-  if(r() < C.t2Chance){ const id = C.t2[Math.floor(r() * C.t2.length)]; items[id] = (items[id] || 0) + 1; }
+  const n = ri(C.t1Count) + talentVal("scavDeepPockets"); // Scavenger: Deep Pockets (v1.95)
+  for(let i = 0; i < n; i++){ const id = focus && r() < focus.p ? focus.itemId : C.t1[Math.floor(r() * C.t1.length)]; items[id] = (items[id] || 0) + 1; }
+  const miss = trackedMissingItem();
+  // Scavenger capstone: Lucky Find — 1 in 4 hauls includes a rare part from the tracked chain (v1.95).
+  if(talentVal("scavLuckyFind") && miss && C.t2.includes(miss.itemId) && r() < 0.25) items[miss.itemId] = (items[miss.itemId] || 0) + 1;
+  else if(r() < C.t2Chance){ const id = C.t2[Math.floor(r() * C.t2.length)]; items[id] = (items[id] || 0) + 1; }
   return { scrap: ri(C.scrap), items };
 }
 // Resolve everything that finished up to "now" (also covers time spent offline). Returns report rows.
@@ -751,10 +767,55 @@ function confirmScav(){
   I.scavPending = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
   act("SCAVENGE_CONFIRMED", loot); save(); return true;
 }
-// Active BIT skill (S.bitSkill) counts only while its bond level is met and BIT Bay is online.
+/* ---------- v1.95 BIT Talents (data/bit-talents.js): data-driven branches and row-gate step ---------- */
+// Node ids and effect keys all come from TAL; app.js never hardcodes a branch/node beyond the shared "core" ids
+// (zone_scout/shield_burst/loot_priority) that also name the pre-existing BIT skills they replace.
+function talentNodeDef(id){ if(!TAL) return null; for(const b of TAL.branches){ const n = b.nodes.find(n => n.id === id); if(n) return { node:n, branch:b }; } return null; }
+function talentRank(id){ return (S.talents && S.talents.spent && S.talents.spent[id]) || 0; }
+function talentLearned(id){ return talentRank(id) > 0; }
+function branchSpent(branchId){ if(!TAL) return 0; const b = TAL.branches.find(b => b.id === branchId); return b ? b.nodes.reduce((s, n) => s + talentRank(n.id), 0) : 0; }
+function talentSpentTotal(){ return TAL ? TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0) : 0; }
+function talentPoints(){ return Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
+function talentPointsAvailable(){ return talentPoints() - talentSpentTotal(); }
+function talentRowReq(row){ return ((TAL && TAL.rowGateStep) || 0) * (row - 1); }
+function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= talentRowReq(row); }
+function talentChoiceTaken(branch, group){ return branch.nodes.find(n => n.choiceGroup === group && talentLearned(n.id)) || null; }
+function talentCanLearn(id){
+  const t = talentNodeDef(id); if(!t || talentPointsAvailable() < 1) return false;
+  const { node, branch } = t;
+  if(talentRank(id) >= node.ranks || !talentRowUnlocked(branch, node.row)) return false;
+  if(node.choiceGroup){ const taken = talentChoiceTaken(branch, node.choiceGroup); if(taken && taken.id !== id) return false; }
+  return true;
+}
+function learnTalent(id){
+  if(!talentCanLearn(id)) return false;
+  S.talents.spent[id] = talentRank(id) + 1;
+  act("TALENT_LEARNED", { id, rank:S.talents.spent[id] });
+  return true;
+}
+function talentRespecCost(){ return S.talents.respecs ? Math.min(1000, 200 * S.talents.respecs) : 0; }
+function respecTalents(){
+  const cost = talentRespecCost();
+  if(cost > S.cur.scrap) return false;
+  S.cur.scrap -= cost;
+  S.talents.spent = {};
+  S.talents.respecs = (S.talents.respecs || 0) + 1;
+  act("TALENTS_RESPEC", { cost });
+  return true;
+}
+// Cumulative value of every learned node sharing this effect key, at its current rank (0 if none learned).
+function talentVal(key){
+  let v = 0;
+  if(!TAL) return v;
+  for(const b of TAL.branches) for(const n of b.nodes) if(n.effect && n.effect.key === key){ const r = talentRank(n.id); if(r > 0) v += n.effect.perRank[r - 1]; }
+  return v;
+}
+// A "material" is a stashable, non-free item that is not usable gear (weapon/armor/tool/consumable); the Guardian
+// capstone fallback only ever rescues this kind of item, picked by id (never a hardcoded item string).
+function isMaterialItem(id){ return !!ITEMS[id] && !isFree(id) && !usableGear(id); }
+// Legacy BIT skills (bond-gated) are now the row-2 core node of their branch: passive once learned, no single toggle.
 function bitSkillDef(id){ return (D.bit.skills || []).find(k => k.id === id) || null; }
-function bitSkillUnlocked(id){ const k = bitSkillDef(id); return !!k && bitOnline() && bondLevel() >= k.bond; }
-function bitSkillOn(id){ return S.bitSkill === id && bitSkillUnlocked(id); }
+function bitSkillOn(id){ return bitOnline() && talentLearned(id); }
 function scoutLead(){ const miss = bitSkillOn("zone_scout") && !bitAway() ? trackedMissingItem() : null; const lead = miss && bestLead(miss.itemId); return lead ? { miss, lead } : null; }
 function bitShieldBurst(){ const k = bitSkillDef("shield_burst"); return k && bitSkillOn("shield_burst") && !bitAway() ? k.shield : 0; }
 function scavCardHtml(){
@@ -774,14 +835,129 @@ function haulPopupHtml(pend){
     Object.entries(pend.items).map(([id, q]) => '<div class="cost ok"><i aria-hidden="true">' + IC(ITEMS[id].icon) + '</i><b>+' + q + '</b><span class="cname">' + esc(ITEMS[id].name) + '</span></div>').join("") + '</div>' +
     '<button class="primary big" onclick="A.confirmHaul()">CONFIRM</button></div>';
 }
-function bitSkillsHtml(){
-  const rows = D.bit.skills.map(k => {
-    const open = bitSkillUnlocked(k.id), on = bitSkillOn(k.id);
-    return '<div class="kv bitskill' + (on ? ' on' : '') + (open ? '' : ' locked') + '" data-skill="' + k.id + '"><span><b>' + esc(k.name) + '</b><br><small>' + esc(k.brief) + '</small></span>' +
-      (open ? '<button type="button" class="' + (on ? 'primary' : 'ghost') + ' inline" onclick="A.setBitSkill(\'' + k.id + '\')">' + (on ? 'ACTIVE' : 'SET') + '</button>'
-            : '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' Bond LV ' + k.bond + '</button>') + '</div>';
-  }).join("");
-  return '<div class="card bitskills"><div class="row"><b>BIT skills</b><span class="small">One active at a time</span></div>' + rows + '</div>';
+/* ---------- v1.95 PART 2: BIT fullscreen screen (reuses the #overlay.wpnov / .fabov fullscreen pattern) ----------
+   Tabs: TALENTS (the tree below) · TASKS (scavenge/expedition/contracts) · QUESTS/TRADER (existing entry cards).
+   The TALENTS tab is rendered generically from TAL.branches: app.js never hardcodes a branch or node id here. */
+const TAL_BRANCH_ICON = { scout:"aim", guardian:"stat-shield", scavenger:"scavenge" };
+const TAL_BRANCH_COLOR = { cyan:"var(--ad-cyan)", coral:"var(--ad-danger)", amber:"var(--ad-loot)" };
+function talentFmtVal(v){ return (v > 0 && v < 1) ? Math.round(v * 100) + "%" : Math.round(v * 100) / 100; }
+function talentNodeHtml(node, branch, selId){
+  const rank = talentRank(node.id), learned = rank > 0;
+  const rowOpen = talentRowUnlocked(branch, node.row);
+  const taken = node.choiceGroup ? talentChoiceTaken(branch, node.choiceGroup) : null;
+  const blocked = !!taken && taken.id !== node.id;
+  const locked = !rowOpen || blocked;
+  const cls = ["talnode"];
+  if(learned) cls.push("on");
+  if(locked) cls.push("locked");
+  if(node.capstone) cls.push("capstone");
+  if(bitSkillDef(node.id)) cls.push("core");
+  if(selId === node.id) cls.push("sel");
+  const pips = node.ranks > 1 ? '<span class="pips">' + Array.from({ length:node.ranks }, (_, i) => '<span class="pip' + (i < rank ? ' on' : '') + '"></span>').join("") + '</span>' : "";
+  return '<button type="button" class="' + cls.join(" ") + '" onclick="A.selectTalent(\'' + node.id + '\')" aria-label="' + esc(node.name) + (locked ? " (locked)" : "") + '">' +
+    (node.capstone ? IC("star") : "") + '<b>' + esc(node.name) + '</b>' + pips + '</button>';
+}
+function talentRowHtml(branch, row, selId){
+  const nodes = branch.nodes.filter(n => n.row === row);
+  const body = nodes.length > 1
+    ? nodes.map((n, i) => (i > 0 && n.choiceGroup && n.choiceGroup === nodes[i - 1].choiceGroup ? '<span class="talor">or</span>' : "") + talentNodeHtml(n, branch, selId)).join("")
+    : talentNodeHtml(nodes[0], branch, selId);
+  return '<div class="talrow"><div class="talrow-nodes">' + body + '</div>' +
+    (!talentRowUnlocked(branch, row) ? '<div class="talrowlock">Spend ' + talentRowReq(row) + ' in ' + esc(branch.name) + '</div>' : "") + '</div>';
+}
+function talentBranchHtml(branch, selId){
+  const rows = [1, 2, 3, 4, 5].map(r => talentRowHtml(branch, r, selId)).join("");
+  return '<div class="talbranch" style="--branch-color:' + TAL_BRANCH_COLOR[branch.color] + '">' +
+    '<div class="talbranch-head">' + IC(TAL_BRANCH_ICON[branch.id] || "nav-bit") + '<b>' + esc(branch.name).toUpperCase() + '</b><span class="small">' + branchSpent(branch.id) + '</span></div>' +
+    rows + '</div>';
+}
+function talentDetailHtml(selId){
+  const t = selId && talentNodeDef(selId);
+  if(!t) return '<div class="taldetail"><p class="talempty">Tap a node to see its effect.</p></div>';
+  const { node, branch } = t, rank = talentRank(node.id), maxed = rank >= node.ranks;
+  const taken = node.choiceGroup ? talentChoiceTaken(branch, node.choiceGroup) : null;
+  const blocked = !!taken && taken.id !== node.id;
+  const rowOpen = talentRowUnlocked(branch, node.row), canLearn = talentCanLearn(node.id);
+  return '<div class="taldetail" style="--branch-color:' + TAL_BRANCH_COLOR[branch.color] + '">' +
+    '<h3>' + (node.capstone ? IC("star") : "") + esc(node.name) + '</h3>' +
+    '<div class="ranktxt">Rank ' + rank + '/' + node.ranks + '</div>' +
+    '<p>' + esc(node.desc) + '</p>' +
+    (maxed ? '<div class="nextrank">Next rank: —</div>' : '<div class="nextrank">Next rank: ' + talentFmtVal(node.effect.perRank[rank]) + '</div>') +
+    (!rowOpen ? '<div class="rowlockmsg">Spend ' + talentRowReq(node.row) + ' in ' + esc(branch.name) + '</div>' : "") +
+    (blocked ? '<div class="rowlockmsg">Already chose ' + esc(taken.name) + '. Respec to change.</div>' : "") +
+    '<button type="button" class="primary big learnbtn" ' + (canLearn ? 'onclick="A.learnTalent(\'' + node.id + '\')"' : "disabled") + '>' + (maxed ? "MAXED" : "LEARN · 1 POINT") + '</button>' +
+    '</div>';
+}
+function talentsTabHtml(){
+  if(!TAL) return '<div class="card small">Talents unavailable.</div>';
+  const selId = session.bitNode;
+  return '<div class="talroot"><div class="talbranches">' + TAL.branches.map(b => talentBranchHtml(b, selId)).join("") + '</div>' + talentDetailHtml(selId) + '</div>';
+}
+// TASKS tab: the existing scavenge/expedition/contracts cards, unchanged, just relocated off the old single-column screen.
+function bitTasksTabHtml(){
+  let html = scavCardHtml();
+  if(retMode() !== "core"){
+    if(bitAway()){
+      html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
+        Math.max(0, Math.ceil((S.expedition.returnAt - Date.now()) / 1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
+    } else {
+      const ec = D.retention.expedition.costScrap;
+      html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
+        '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + IC("cur-scrap") + ' ' + ec + '</button></div>' +
+        '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
+    }
+  }
+  if(contractsUnlocked()){
+    const today = dayStr();
+    if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
+    html += '<h2>Daily contracts</h2>';
+    for(const c of D.retention.contracts.daily){
+      const st = S.contracts[c.id];
+      const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
+      html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? IC("check") + " " : "") + esc(c.txt) + '</span>' +
+        (st === "done"
+          ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
+          : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
+    }
+  }
+  return html;
+}
+function bitHeaderHtml(){
+  const bl = bondLevel(), cap = D.bit.bondLevels.find(b => b.level === bl), nxt = D.bit.bondLevels.find(b => b.level === bl + 1);
+  const pct = nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100;
+  const avail = talentPointsAvailable(), spent = talentSpentTotal(), cost = talentRespecCost();
+  const canReset = spent > 0 && S.cur.scrap >= cost;
+  return '<div class="bithead">' +
+    '<div class="bitbond"><b>' + IC("nav-bit") + ' Bond LV ' + bl + '</b>' +
+    '<span class="bitxpbar"><span style="width:' + pct + '%"></span></span>' +
+    '<span class="bitxp">' + S.bondXp + (nxt ? '/' + nxt.xp : "") + ' xp</span></div>' +
+    (avail > 0 ? '<div class="bitpoints">POINTS ' + avail + ' available</div>' : "") +
+    '<button type="button" class="ghost inline bitreset" ' + (canReset ? "" : "disabled") + ' onclick="A.respecTalents()">' + IC("reset") + ' RESET' +
+    (spent > 0 ? (cost > 0 ? " · " + cost + " SCRAP" : " · FREE") : "") + '</button>' +
+    '</div>';
+}
+const BIT_TABS = [["talents", "TALENTS"], ["tasks", "TASKS"], ["quests", "QUESTS"], ["trader", "TRADER"]];
+function bitScreenHtml(tab){
+  tab = BIT_TABS.some(t => t[0] === tab) ? tab : "talents";
+  const panel = (key, cls, body) => '<div class="tabpanel ' + cls + (tab === key ? " active" : "") + '">' + body + '</div>';
+  return '<div class="bpop bitpop" data-module="bit_bay">' + bitHeaderHtml() +
+    '<div class="bittabs" role="tablist">' + BIT_TABS.map(([key, label]) => '<button type="button" role="tab" class="' + (tab === key ? "active" : "") + '" aria-selected="' + (tab === key) + '" onclick="A.bitTab(\'' + key + '\')">' + label + '</button>').join("") + '</div>' +
+    '<div class="bitbody">' +
+      panel("talents", "talentstab", talentsTabHtml()) +
+      panel("tasks", "tasktab", bitTasksTabHtml()) +
+      panel("quests", "questtab", questEntryHtml() || '<div class="card small">No active quests yet.</div>') +
+      panel("trader", "tradertab", traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') +
+    '</div></div>';
+}
+// Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
+// A quest/hand-in popup opened from the QUESTS tab stacks a second #overlay on top without removing the BIT one
+// first (so its own close handler can return to the right place); while that's up, leave the BIT overlay alone —
+// recreating it here would bury the child popup instead of letting it survive a background refresh().
+function bitRender(tab){
+  if(document.querySelectorAll("#overlay").length > 1) return;
+  const old = document.getElementById("overlay"); if(old) old.remove();
+  session.screenParam = tab || session.screenParam || "talents";
+  overlay(bitScreenHtml(session.screenParam), () => A.go("base"), "sheet bitov");
 }
 /* ---------- v1.57 BIT Quests (data/quests.js): 3 per day, 1 free swap, always solvable with current unlocks ---------- */
 const QD = D.quests, QF = D.questFacts || {};
@@ -1302,7 +1478,8 @@ function resolveRaid(cfg){
     let id;
     if(i===0 && cfg.trackedItemId && table.some(l=>l.itemId===cfg.trackedItemId && l.weight>0)){
       const e = table.find(l=>l.itemId===cfg.trackedItemId);
-      id = Math.random() < Math.min((e.weight*3)/totalW, 0.9) ? cfg.trackedItemId : rollFromTable(table);
+      const lead = scoutLead(), keenSensors = lead && lead.lead.zone.id === zone.id ? talentVal("scoutKeenSensors") : 0; // Scout: Keen Sensors (v1.95)
+      id = Math.random() < Math.min((e.weight*3)/totalW + keenSensors, 0.97) ? cfg.trackedItemId : rollFromTable(table);
     } else id = rollFromTable(table);
     loot.push(id);
   }
@@ -1407,6 +1584,10 @@ function applyRaidResult(R){
       R.saved.secure = S.secureItem; addItem(S.secureItem,1);
     }
     if(bondLevel() >= 3 && R.loot.length){ R.saved.bitRescue = R.loot[0]; addItem(R.loot[0],1); }
+    // Guardian capstone (fallback per docs/design-bit-skill-tree.md): saves ONE pre-chosen material, if found this raid.
+    if(talentLearned("guardian_safe_return") && S.guardianMaterial && R.loot.includes(S.guardianMaterial) && R.saved.bitRescue !== S.guardianMaterial){
+      R.saved.talentMaterial = S.guardianMaterial; addItem(S.guardianMaterial,1);
+    }
     const halfSalvage = Math.floor(R.scrap/2);
     S.cur.scrap += halfSalvage;
     progress.push("+" + halfSalvage + " Salvage (recovered)");
@@ -1435,11 +1616,13 @@ function applyRaidResult(R){
 const $app = () => document.getElementById("app");
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 // Toasts are a queue: one at a time, never while a popup is open (deferred until it closes).
-const toastQ = []; let toastShowing = false, toastWait = null;
+const toastQ = []; let toastShowing = false;
 function toast(msg, html){ toastQ.push({ msg, html }); toastPump(); }
 function toastPump(){
   if(typeof document === "undefined" || toastShowing || !toastQ.length) return;
-  if(document.getElementById("overlay")){ if(!toastWait) toastWait = setTimeout(() => { toastWait = null; toastPump(); }, 400); return; }
+  // Fullscreen screens such as BIT can keep an overlay open indefinitely. Wait for
+  // its removal (observed below) rather than polling while a notice is queued.
+  if(document.getElementById("overlay")) return;
   const q = toastQ.shift(), t = document.createElement("div");
   t.className = "toastmsg"; if(q.html) t.innerHTML = q.html; else t.textContent = q.msg;
   document.getElementById("toast").appendChild(t);
@@ -1488,7 +1671,7 @@ function updateNav(){
   if(b) b.hidden = !(ov || (session.screen && session.screen !== "base" && session.screen !== "intro"));
 }
 if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
-  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(updateNav).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
+  document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(() => { updateNav(); toastPump(); }).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",
@@ -1621,6 +1804,10 @@ function navBadge(id){
   if(id === "prep" && wmNewUnlockTarget()) return ["alert","NEW", "A new raid area is open"];
   if(id === "stash" && (stashOverflowing() || armoryOverflowing())) return ["alert","FULL", "Stash is over capacity: sell, recycle or upgrade extras"];
   if(id === "bit" && bitOnline() && scavPending()) return ["up","HAUL", "BIT is back with a haul: confirm it"];
+  if(id === "bit" && bitOnline() && talentPointsAvailable() > 0){
+    const n = talentPointsAvailable();
+    return ["up", n + " POINTS", n + " BIT talent point" + (n === 1 ? "" : "s") + " available to spend"];
+  }
   if(id === "bit" && (contractsUnlocked() || dailyReadyCount())){
     const n = Object.values(S.contracts || {}).filter(v => v === "done").length + dailyReadyCount();
     if(n) return ["up", n + " READY", n + " quest reward" + (n === 1 ? "" : "s") + " ready to claim"];
@@ -2038,42 +2225,11 @@ SCREENS.base = function(){
   setupBaseViewer();
 };
 
-// BIT hub: bond, expedition and daily contracts live here instead of crowding the map.
-SCREENS.bit = function(){
-  let html = '<h1>' + IC("nav-bit") + ' BIT</h1>';
-  if(!bitOnline()){ $app().innerHTML = html + '<div class="card">BIT Bay is offline. Repair it first.</div>'; return; }
-  const bl = bondLevel();
-  const cap = D.bit.bondLevels.find(b=>b.level===bl);
-  const nxt = D.bit.bondLevels.find(b=>b.level===bl+1);
-  html += '<div class="card"><div class="row"><b>BIT — Bond LV ' + bl + '</b><span class="small">' + S.bondXp + ' xp' + (nxt? ' / ' + nxt.xp : '') + '</span></div>' +
-    '<div class="restbar"><div style="width:' + (nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100) + '%"></div></div>' +
-    '<div class="small">' + esc(cap.capability) + '</div></div>';
-  html += questEntryHtml() + traderEntryHtml() + scavCardHtml() + bitSkillsHtml();
-  if(retMode() !== "core"){
-    if(bitAway()){
-      html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
-        Math.max(0, Math.ceil((S.expedition.returnAt - Date.now())/1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
-    } else {
-      const ec = D.retention.expedition.costScrap;
-      html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
-        '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + IC("cur-scrap") + ' ' + ec + '</button></div>' +
-        '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
-    }
-  }
-  if(contractsUnlocked()){
-    const today = dayStr();
-    if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
-    html += '<h2>Daily contracts</h2>';
-    for(const c of D.retention.contracts.daily){
-      const st = S.contracts[c.id];
-      const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
-      html += '<div class="card row"><span' + (st ? ' class="ok"' : '') + '>' + (st ? IC("check") + " " : "") + esc(c.txt) + '</span>' +
-        (st === "done"
-          ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
-          : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
-    }
-  }
-  $app().innerHTML = html;
+// BIT hub: fullscreen (reuses the #overlay.wpnov/.fabov pattern, see bitScreenHtml). $app() stays empty behind it.
+SCREENS.bit = function(tab){
+  if(!bitOnline()){ $app().innerHTML = '<h1>' + IC("nav-bit") + ' BIT</h1><div class="card">BIT Bay is offline. Repair it first.</div>'; return; }
+  $app().innerHTML = "";
+  bitRender(tab);
 };
 
 SCREENS.module = function(modId){
@@ -2947,16 +3103,19 @@ SCREENS.operator = function(){
   $app().innerHTML = html;
 };
 
+// Scavenger: Haggler (v1.95) discounts Trader prices — shared by the vendor screen and the actual purchase so the
+// price shown and the price charged (and the afford check gating the button) can never drift apart.
+function vendorPrice(s){ return Math.round(s.price * (1 - talentVal("scavHaggler"))); }
 SCREENS.vendor = function(){
   const v = D.vendors[0];
   let html = '<h1>' + esc(v.name) + '</h1><div class="sub">' + esc(v.blurb) + '</div>';
   html += '<h2>Buy</h2>';
   for(const s of v.stock){
     if(!stockUnlocked(s)) continue;
-    const afford = S.cur.scrap >= s.price;
+    const price = vendorPrice(s), afford = S.cur.scrap >= price;
     html += '<div class="card row"><span>' + esc(ITEMS[s.itemId].name) + '</span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (afford?'':'opacity:.4') + '" ' +
-      (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + s.price + ' Scrap</button></div>';
+      (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + price + ' Scrap</button></div>';
   }
   html += '<h2>Data Cores</h2>';
   for(const x of (v.exchange || [])){
@@ -3147,6 +3306,10 @@ function ingestRaidResult(r){
     // Node Raid deploys with no meta loadout yet, so insurance/secure item have nothing to recover.
     S.deaths++;
     if(bondLevel() >= 3 && r.lost.length && ITEMS[r.lost[0]]){ saved.bitRescue = r.lost[0]; addItem(r.lost[0], 1); }
+    // Guardian capstone (fallback per docs/design-bit-skill-tree.md): saves ONE pre-chosen material, if found this raid.
+    if(talentLearned("guardian_safe_return") && S.guardianMaterial && r.lost.includes(S.guardianMaterial) && saved.bitRescue !== S.guardianMaterial){
+      saved.talentMaterial = S.guardianMaterial; addItem(S.guardianMaterial, 1);
+    }
   }
   // Gear taken on this raid: returns on extract; otherwise lost (secure item still survives, as for simulated deaths).
   const launch = S.coreLaunch && S.coreLaunch.raidId === r.raidId ? S.coreLaunch : null;
@@ -3840,7 +4003,7 @@ window.A = {
   },
   scrapIt(id){
     if(have(id) < 1 || S.reserved[id]) return;
-    const gain = Math.floor(ITEMS[id].sellValue * D.scrapJunkRate);
+    const gain = Math.floor(ITEMS[id].sellValue * D.scrapJunkRate * (1 + talentVal("scavSalvager"))); // Scavenger: Salvager (v1.95)
     removeItem(id,1); S.cur.scrap += gain;
     act("ITEM_SCRAPPED", { id, gain });
     toast("Recycled: +" + gain + " Scrap");
@@ -3849,6 +4012,13 @@ window.A = {
   setSecure(id){
     S.secureItem = S.secureItem === id ? null : id;
     act("SECURE_SET", { id: S.secureItem });
+    refresh();
+  },
+  // Guardian capstone (Safe Return, fallback): pre-choose which material BIT tries to save on death (not gear).
+  setGuardianMaterial(id){
+    if(id && !isMaterialItem(id)) return;
+    S.guardianMaterial = S.guardianMaterial === id ? null : id;
+    act("GUARDIAN_MATERIAL_SET", { id: S.guardianMaterial });
     refresh();
   },
   prepSet(key, val){
@@ -3899,7 +4069,7 @@ window.A = {
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
     const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
     if(rb) for(const k in rb) stats[k] = clampStat(k, stats[k] + rb[k]);
-    const sb = bitShieldBurst(); if(sb) stats.shield = clampStat("shield", stats.shield + sb);   // BIT Shield burst skill (v1.86)
+    const sb = bitShieldBurst() + talentVal("guardianPlatingShield"); if(sb) stats.shield = clampStat("shield", stats.shield + sb);   // BIT Shield burst skill (v1.86) + Guardian Plating (v1.95)
     const intro = guidedRaid(), pay = intro ? null : takeFirstPayoff(!!tool), launchTool = tool || (pay && pay.freeTool) || null;
     // Deploy is free, but equipped gear (non-Basic weapon, armour), medkits and the tool slot go with you and are at risk.
     gear.forEach(id => removeItem(id, 1));
@@ -4049,9 +4219,11 @@ window.A = {
   },
   buy(id){
     const s = D.vendors[0].stock.find(x=>x.itemId===id);
-    if(!s || !stockUnlocked(s) || S.cur.scrap < s.price) return;
-    S.cur.scrap -= s.price; addItem(id,1);
-    act("VENDOR_BUY", { id, price: s.price });
+    if(!s) return;
+    const price = vendorPrice(s);
+    if(!stockUnlocked(s) || S.cur.scrap < price) return;
+    S.cur.scrap -= price; addItem(id,1);
+    act("VENDOR_BUY", { id, price });
     toast("Bought " + ITEMS[id].name);
     refresh();
   },
@@ -4208,16 +4380,19 @@ window.A = {
     const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge(null, miss && scavPools().includes(miss.itemId) ? { itemId:miss.itemId, p:k.bias } : null) };
     act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN)); refresh();
   },
-  openHaul(){ const pend = scavPending(); if(!pend) return; overlay(haulPopupHtml(pend), null, "sheet"); },
+  openHaul(){
+    const pend = scavPending(); if(!pend) return;
+    const old = document.getElementById("overlay"); if(old) old.remove();   // BIT screen is itself an overlay now: swap, don't stack
+    overlay(haulPopupHtml(pend), () => refresh(), "sheet");
+  },
   confirmHaul(){
     const pend = scavPending(); if(!pend) return;
     closeAllPopups(); confirmScav(); toast(scavLootText(pend)); refresh();
   },
-  setBitSkill(id){
-    if(!bitSkillUnlocked(id)) return;
-    S.bitSkill = S.bitSkill === id ? null : id;     // exactly one (or none): picking another replaces the active one
-    act("BIT_SKILL_SET", { skill:S.bitSkill }); save(); refresh();
-  },
+  learnTalent(id){ const ok = learnTalent(id); if(ok) refresh(); return ok; },
+  respecTalents(){ const ok = respecTalents(); if(ok) refresh(); return ok; },
+  bitTab(tab){ if(!bitOnline()) return; session.bitNode = null; bitRender(tab); },
+  selectTalent(id){ if(!talentNodeDef(id)) return; session.bitNode = id; bitRender(session.screenParam); },
   dismissWelcome(){ session.welcome = null; const el = document.querySelector(".welcome"); if(el) el.remove(); },
   sendExpedition(){
     const R = D.retention.expedition;
@@ -4660,8 +4835,12 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
-  // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup)
-  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(() => { if(document.hidden || document.getElementById("overlay") || document.querySelector(".dragging")) return;
+  // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup).
+  // The BIT screen overlay is exempt: it's the TASKS tab's own home, so a scavenge/expedition completing while
+  // it's open should still update it (any other popup still blocks, same as before).
+  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(() => {
+    const ov = document.getElementById("overlay");
+    if(document.hidden || (ov && !ov.classList.contains("bitov")) || document.querySelector(".dragging")) return;
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.strip) toast("", coreIngest.strip);

@@ -13,7 +13,8 @@ World of Warcraft talent tree where you commit to a real branch, and BIT deserve
 ## Points
 - 1 point per Bond level from Bond 2 (Bond 1 = BIT online, 0 points). Bond cap 20 gives 19 points.
 - A full branch is 15 points, so you can finish one branch and dip into a second, never max everything.
-- Row gates: row N needs 3·(N−1) points spent **in that branch** (WoW classic rule).
+- Row gates: row N needs 2·(N−1) points spent **in that branch** (`rowGateStep` in `data/bit-talents.js`; rows
+  1-3 cap at 7 points in-branch, so a step of 3 would make rows 4-5 unreachable — 2 keeps every row reachable).
 - Respec: free once, then 200 Scrap × number of respecs (cap 1000). Done at the BIT Bay.
 
 ## Branches
@@ -77,12 +78,59 @@ Nav: BIT button opens the BIT screen; top tabs: **TALENTS · TASKS · QUESTS · 
 └───────────────┴───────────────┴───────────────┴────────────────────────────┘
  (o) learned  ( ) available/locked  [XX] core node  <A>/<B> choice row  ★ capstone
 ```
-- Columns light up by branch colour; locked rows are dim with "Spend 6 in Scout" text.
+- Columns light up by branch colour; locked rows are dim with "Spend 4 in Scout" text.
 - Tap a node → right panel details + LEARN. Portrait at 844 px: same three columns, detail panel becomes a
   bottom sheet.
 - BIT nav badge shows **POINTS** only when unspent points exist (actionable, with a tap-explain).
 
+## Future: Combat branch (not built)
+A fourth branch, same shape as the other three (5 rows, row 3 choice, row 5 capstone), for a combat-leaning BIT:
+BIT fires at enemies, marks targets, and buffs the player's damage in raids.
+
+- PvE only, same as every other branch — it buffs how BIT fights alongside you against raid enemies, never
+  anything aimed at other players.
+- Talents are passive and always on, same as Scout/Guardian/Scavenger. BIT still runs **one active task** at a
+  time; a combat companion during a raid is that task's raid-companion slot, not a second thing running in
+  parallel with scavenge/expedition.
+- Rows (illustrative, not final — mirrors the existing branch template):
+  - Row 1: small passive (e.g. mark chance / fire rate ranks).
+  - Row 2: core node (BIT actively fires at marked targets) plus a second small passive.
+  - Row 3: choice node — e.g. *Suppressor* (marked targets take +dmg from the player) **or** *Overwatch* (BIT
+    fires independently at the nearest threat).
+  - Row 4: passives (reload assist, mark radius, etc.).
+  - Row 5: capstone — a single strong raid-combat effect, same weight as Recon Drone / Safe Return / Lucky Find.
+- Added purely by extending `data/bit-talents.js` with a fourth branch entry — no change to the points/row-gate/
+  respec engine in `app.js`, which is already branch-agnostic (see Implementation status below).
+
 ## Open questions
-- Bond cap (20?) and xp curve after Bond 10.
 - Whether Safe Return is too strong vs. the death rule; fallback: saves one *material*, not gear.
 - Art: node icons reuse ui-icons.svg; branch headers need three small BIT poses.
+
+Resolved: Bond cap is 20 (`data/bit.js` `bondLevels`, 19 points total); xp deltas past level 5 keep rising by 30
+per level so the climb to 20 stays slow.
+
+## Implementation status (v1.95 PART 1 — logic + data only, no screen yet)
+Branches/nodes and the row-gate step live in `data/bit-talents.js`; points/row-gates/respec and `talentVal(key)`
+live in `app.js` (`talentPoints`, `talentRowReq`, `talentCanLearn`, `learnTalent`, `respecTalents`, `talentVal`,
+exposed as `A.learnTalent(id)` / `A.respecTalents()`). Guardian capstone is the doc fallback:
+`A.setGuardianMaterial(id)` pre-chooses one **material** (never gear — enforced by `isMaterialItem`); on death, if
+`guardian_safe_return` is learned and that material was found this raid, BIT saves it (`R.saved.talentMaterial` /
+`saved.talentMaterial`).
+
+Wired to an existing hook (effect key -> where it's applied):
+- `scoutKeenSensors` -> `resolveRaid`, tracked-item roll chance, only in BIT's marked zone (`scoutLead`).
+- `scoutCore` (`zone_scout`), `guardianCore` (`shield_burst`), `scavCore` (`loot_priority`) -> `bitSkillOn(id)`
+  now checks `talentLearned(id)` instead of the old single `S.bitSkill` toggle; all three can be on at once.
+- `guardianPlatingShield` -> `A.deployNodeRaid`, added to deploy shield alongside Shield Burst.
+- `guardianSafeReturn` -> capstone, see above.
+- `scavDeepPockets` -> `rollScavenge`, extra basic-part rolls.
+- `scavQuickLegs` -> `scavMinutes`.
+- `scavSalvager` -> `A.scrapIt` recycle yield.
+- `scavHaggler` -> `A.buy` vendor price.
+- `scavNightShift` -> `genCap` (generator offline cap hours only — scavenge has no offline-cap system today).
+- `scavLuckyFind` -> `rollScavenge`, capstone.
+
+No existing hook yet (node is data-driven and learnable; effect is a no-op until Node Raid/UI work lands) —
+all need `nodspel/` (raid-side) or new UI plumbing, out of scope for logic-only Part 1:
+- `scoutLongPing`, `scoutPathfinder`, `scoutAppraiser`, `scoutMemoryBanks`, `scoutReconDrone`
+- `guardianWarningChirp`, `guardianSecondWind`, `guardianOvercharge`, `guardianFieldMedic`

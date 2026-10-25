@@ -1,6 +1,6 @@
 // v1.91 merge tiers (3 copies -> next Mk) + Fabricator attachments, v12->v13 save migration.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
-const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
+const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html", pretendToBeVisual:true });
   const w = dom.window; if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
@@ -10,14 +10,14 @@ function boot(save){
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();
-assert.equal(g.T.SV, 14);
+assert.equal(g.T.SV, 15);
 const old = JSON.parse(JSON.stringify(g.S())); delete old.gearTier; delete old.attach; old.v = 12;
 Object.assign(old.modules, { rebirth_core:1, fabricator:2, bit_bay:1, storage:1 }); old.baseState = "core_habitable"; old.introSeen = true;
 old.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; old.beat = g.D.progression.beats.length - 1; old.cur.scrap = 2000;
 old.armory = { smg_vector:3, scavenger_vest:2 }; old.gearUp = { smg_vector:3 }; old.stash = { servo:6, scrap_alloy:6, circuit_board:3, optical_sensor:2 };
 const b = boot(old), S = b.S(), T = b.T, q = s => b.d.querySelector(s);
 // migration: additive, nothing lost
-assert.equal(S.v, 14); assert.deepEqual(S.gearTier, {}); assert.deepEqual(S.attach, {}); assert.equal(T.have("smg_vector"), 3); assert.equal(S.gearUp.smg_vector, 3);
+assert.equal(S.v, 15); assert.deepEqual(S.gearTier, {}); assert.deepEqual(S.attach, {}); assert.equal(T.have("smg_vector"), 3); assert.equal(S.gearUp.smg_vector, 3);
 assert.equal(T.gearTier("smg_vector"), 1); assert.equal(T.gearMax("smg_vector"), 3);
 // merge
 assert(/1 more/.test(T.mergeBlock("scavenger_vest")), "2 vests can't merge");
