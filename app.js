@@ -529,7 +529,8 @@ function tickIdle(){
   if(genRate() && !I.genAt) I.genAt = now;           // generator starts once the Core is online
   for(const modId of Object.keys(I.builds)){ const b = I.builds[modId];
     if(now >= b.doneAt){ delete I.builds[modId]; finishModuleLevel(modId, b.level); rows.push({ kind:"build", icon:"build", txt:MODS[modId].name + " L" + b.level + " finished" }); } }
-  while(I.fab.length && now >= I.fab[0].doneAt){ const job = I.fab.shift(), r = D.recipes.find(x => x.id === job.rid); if(r) rows.push({ kind:"craft", icon:"room-fabricator", txt:"Crafted " + craftOutput(r) }); }
+  /* v1.99.1 */
+  // Finished crafts stay in their slots until collected; timestamps still advance offline.
   if(I.scav && now >= I.scav.returnAt){ const loot = I.scav.loot; I.scav = null; I.scavPending = loot;   // v1.86: waits for the player's Confirm (persisted in S.idle)
     act("SCAVENGE_RETURNED", loot);
     rows.push({ kind:"scav", icon:"scavenge", txt:"BIT is back with a haul. Confirm it in BIT." }); }
@@ -735,11 +736,35 @@ function buildCardHtml(modId){
   const now = idleNow(), pct = Math.min(100, Math.round((now - b.startAt) / (b.doneAt - b.startAt) * 100));
   return '<div class="idlecard building"><i aria-hidden="true">' + IC("scaffold") + '</i><span><b>Building L' + b.level + '</b><small>' + fmtLeft(b.doneAt - now) + ' left · finishes even while you are away</small><span class="ibar"><span style="width:' + pct + '%"></span></span></span></div>';
 }
+/* v1.99.1 */
+let fabCountdownTimer = null;
+function startFabCountdowns(){
+  if(fabCountdownTimer === null) fabCountdownTimer = setInterval(updateFabCountdowns, 1000);
+}
+function fabCountdown(ms){
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+function updateFabCountdowns(){
+  const rows = document.querySelectorAll('.fabq[open] .fab-job');
+  if(!rows.length){ clearInterval(fabCountdownTimer); fabCountdownTimer = null; return; }
+  const now = idleNow();
+  for(const row of rows){
+    const left = Number(row.dataset.doneAt) - now, ready = left <= 0;
+    row.querySelector('.fab-time').textContent = ready ? 'Ready' : fabCountdown(left) + ' remaining';
+    const btn = row.querySelector('.fab-collect'); btn.hidden = !ready; btn.disabled = !ready;
+  }
+}
 function fabQueueHtml(){
   if(!(S.modules.fabricator >= 1)) return "";
+  if(session.fabQueueOpen) startFabCountdowns();
   const I = idleState(), now = idleNow();
-  return '<div class="idlecard fabq"><i aria-hidden="true">' + IC("timer") + '</i><span><b>Fabricator queue · ' + I.fab.length + '/' + fabSlots() + '</b>' +
-    (I.fab.length ? I.fab.map((j, i) => { const r = D.recipes.find(x => x.id === j.rid); return '<small>' + (i ? 'Next: ' : 'Now: ') + esc(r ? r.name : j.rid) + ' · ' + fmtLeft(j.doneAt - now) + '</small>'; }).join("") : '<small>Idle. Queued crafts finish while you are away.</small>') + '</span></div>';
+  return '<details class="idlecard fabq"' + (session.fabQueueOpen ? ' open' : '') + '><summary onclick="A.toggleFabQueue(event)">' + IC("timer") + '<b>Fabricator queue · ' + I.fab.length + '/' + fabSlots() + '</b></summary><div class="fab-jobs">' +
+    (I.fab.length ? I.fab.map((j, i) => {
+      const r = D.recipes.find(x => x.id === j.rid), ready = j.doneAt <= now;
+      const icon = r ? (r.output.currency ? IC(CUR_ICON_IDS[r.output.currency] || 'room-fabricator') : itemIcon(r.output.itemId)) : IC('room-fabricator');
+      return '<div class="fab-job" data-done-at="' + j.doneAt + '"><i aria-hidden="true">' + icon + '</i><span><b>' + esc(r ? r.name : j.rid) + '</b><small class="fab-time">' + (ready ? 'Ready' : fabCountdown(j.doneAt - now) + ' remaining') + '</small></span><button type="button" class="ghost inline fab-collect" onclick="A.collectFab(' + i + ')"' + (ready ? '' : ' hidden disabled') + '>COLLECT</button></div>';
+    }).join('') : '<small>Idle. Queued crafts finish while you are away.</small>') + '</div></details>';
 }
 // Short room explanation (DATA.roomExplain): one blurb + icon tiles. Shown on every room tap, locked or open.
 function roomExplainHtml(id){
@@ -1886,6 +1911,8 @@ function navBadge(id){
 function renderTabs(){
   const items = [["base",IC("nav-base"),"BASE"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"],["arms",IC("item-carbine"),"WEAPONS"],["prep",IC("nav-raid"),"RAID"]];
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
+    /* v1.99.1 */
+    if(id === "prep" && session.screen === "prep") return "";
     const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
     const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
     const bond = ''; // v1.94: Bond level lives on the BIT screen, not as an unexplained number on the nav
@@ -4309,6 +4336,25 @@ window.A = {
     toast("Traded for " + ITEMS[b.receive.itemId].name);
     refresh();
   },
+  /* v1.99.1 */
+  toggleFabQueue(event){
+    event.preventDefault();
+    session.fabQueueOpen = !event.currentTarget.parentElement.open;
+    for(const queue of document.querySelectorAll('.fabq')) queue.open = session.fabQueueOpen;
+    if(session.fabQueueOpen) startFabCountdowns();
+    act("FAB_QUEUE_TOGGLED", { open:session.fabQueueOpen });
+  },
+  collectFab(index){
+    const I = idleState(), job = I.fab[index];
+    if(!job || idleNow() < job.doneAt) return;
+    const r = D.recipes.find(x => x.id === job.rid); if(!r) return;
+    const inRoom = !!document.querySelector('#overlay .bpop[data-module="fabricator"]');
+    I.fab.splice(index, 1);
+    const result = craftOutput(r);
+    act("CRAFT_COLLECTED", { recipe:job.rid });
+    toast("Crafted " + result); refresh();
+    if(inRoom) A.openBuilding("fabricator");
+  },
   craft(rid){
     const r = D.recipes.find(x=>x.id===rid);
     if(r.fabricatorLevel > (S.modules.fabricator||0)) return;
@@ -4400,7 +4446,8 @@ window.A = {
     const def = p && chainActive(p.chain); if(!def || guidedRaid() || !areaUnlocked(def.area)) return;
     S.area = def.area; S.trackedQuest = p.chain; ensurePrep();
     act("QUEST_RAID", { chain:p.chain, step:def.id, area:def.area, level:def.objective.level || 1 });
-    A.deployNodeRaid();
+    /* v1.99.1 */
+    A.go("prep");
   },
   // Debug hooks for screenshots: A.handInDemo("handin"|"extract"|"hero") opens the popup with a ready step; A.questLogDemo() opens the log with FIR stock.
   handInDemo(kind){
