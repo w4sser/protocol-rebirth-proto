@@ -1412,6 +1412,15 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .bit-quartermaster{width:26px;height:26px}
 .bit-death{width:40px;height:40px;max-height:15vh}
 .result-head{display:flex;align-items:center;gap:8px}
+
+/* v1.99.1 */
+/* #1: Bunkerstrom (pop-core) power popup can run taller than the viewport in phone landscape (warning line +
+   REINFORCE + the Wall Charge HAND IN card); let it scroll internally instead of spilling past the screen edge.
+   The close badge (.pop-x) is positioned off a non-scrolling ancestor, so it is unaffected by this. */
+#overlay.sheet .bpop.pwrpop{overflow-y:auto;overflow-x:hidden}
+/* #5: reserve enough space for the fullscreen weapon-switch thumbnails so the close X (offset by the safe-area
+   inset on notched phones) never overlaps them. */
+.wpn-switch{margin-right:calc(66px + env(safe-area-inset-right,0px))}
 </style>
 </head>
 <body class="base-dark">
