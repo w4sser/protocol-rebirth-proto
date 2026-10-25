@@ -10,7 +10,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-lines.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
@@ -191,7 +191,7 @@ assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
-/* v1.99.1 */
+/* v1.99.2 */
 assert(!doc.querySelector('#tabs .nav-prep') && !doc.querySelector('#tabs .nav-gap'), "deploy screen has no redundant RAID tab or gap");
 A.pickSlot("armor");
 assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker");
@@ -209,7 +209,7 @@ const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 A.craft("medkit");
 const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert.equal(((afterCraft.stash.medkit || 0) + ((afterCraft.armory || {}).medkit || 0)), (((beforeCraft.stash.medkit || 0) + ((beforeCraft.armory || {}).medkit || 0)) || 0) + 1, "field crafting creates usable supplies from prep");
-/* v1.99.1 */
+/* v1.99.2 */
 {
   // outside-only jsdom does not compile inline handlers; exercise them explicitly.
   const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
@@ -386,6 +386,114 @@ assert(text().includes("QUICK QUESTION"), "survey first");
 for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);
 assert(text().includes("END OF PROTOTYPE"), "end screen");
 assert(window.DATA.progression.survey.length === 6, "six survey questions");
+
+/* v1.99.2: outcome reactions are ordered, cached, and use the shipped portraits. */
+{
+  const pools = window.DATA.bitSummary.pools;
+  for(const pool of Object.values(pools)) assert(pool.lines.length >= 3 && pool.lines.length <= 4, 'small varied BIT pool');
+  const react = (r, res) => window.pickRaidReaction({outcome:'extract', ...r}, {added:[], ...res});
+  const common = ['scrap_alloy','cable'];
+  assert.equal(react({}, {added:['power_relay'], questChanges:[{complete:true}], returnedGear:['smg_vector']}).trigger, 'rare', 'rare precedes quest and weapon');
+  assert.equal(react({}, {questChanges:[{complete:true}],returnedGear:['smg_vector']}).trigger, 'quest', 'quest precedes weapon');
+  assert.equal(react({}, {returnedGear:['smg_vector']}).mood, 'smug', 'surviving weapon reaction');
+  assert.equal(react({health:5,maxHealth:100}, {added:common}).mood, 'relieved', 'close-call health');
+  assert.equal(react({shield:0,maxShield:20}, {added:common}).trigger, 'close', 'depleted shield');
+  assert.equal(react({elapsedMs:100}, {}).trigger, 'empty', 'near empty precedes short');
+  assert.equal(react({elapsedMs:100}, {added:common,stashBefore:{cable:8}}).trigger, 'glut', 'duplicates precede short');
+  assert.equal(react({elapsedMs:100}, {added:common}).trigger, 'short', 'brief quiet raid');
+  assert.equal(react({}, {added:common}).trigger, 'generic', 'generic fallback');
+  assert.equal(react({outcome:'death'}, {added:['power_relay']}).mood, 'disappointed', 'death overrides rare');
+  assert.equal(react({outcome:'timeout'}, {}).trigger, 'death', 'timeout uses death voice');
+
+  // Boot real return flows: ingest once, one shared popup, itemised ledger and one BIT line.
+  for(const [outcome, gearOut] of [['extract',['smg_vector']], ['death',['smg_vector','scavenger_vest']], ['death',['rifle_marksman','scavenger_vest']]]){
+    const rd = new JSDOM(fs.readFileSync(path + '/index.html','utf8'), {runScripts:'outside-only',url:'http://localhost/'});
+    const w = rd.window, seed = JSON.parse(JSON.stringify(window.__TEST_STATE()));
+    seed.introSeen = true; seed.retentionMode = 'core'; seed.bondXp = 0;
+    seed.modules.bit_bay = 1; seed.secureItem = null; seed.coreRaidsIngested = [];
+    seed.coreLaunch = {raidId:'summary-test',gear:['smg_vector'],kit:{medkit:2},tool:{id:'tool_emp',n:2},area:'bunker'};
+    seed.quests = {day:window.dayStr(),swaps:0,list:[{id:'summary-q',type:'extract',item:'cable',n:2,prog:0,done:false,claimed:false}]};
+    const result = {schema:'protocol-rebirth/raid-result',version:1,raidId:'summary-test',outcome,area:'bunker',levelsCleared:1,nodesLit:1,enemiesDefeated:0,
+      extracted:outcome==='extract'?['cable','cable','salvage_crate']:[],lost:outcome==='death'?['cable','cable']:[],gearOut,weapon:'smg_vector',kitLeft:{medkit:1},toolLeft:{id:'tool_emp',n:1},health:60,maxHealth:100,elapsedMs:90000};
+    w.localStorage.setItem('pr_meta_save',JSON.stringify(seed)); w.localStorage.setItem('pr_raid_result_v1',JSON.stringify(result));
+    w.URL.createObjectURL = () => 'blob:fake';
+    const scripts = [...doc.querySelectorAll('script[src]')].map(el => el.getAttribute('src').split('?')[0]).filter(src => !src.startsWith('http'));
+    for(const src of scripts) w.eval(fs.readFileSync(path + '/' + src,'utf8'));
+    const popup = w.document.querySelector('#overlay .raid-summary-pop.pop-card');
+    assert(popup && w.document.querySelectorAll('#overlay').length === 1, 'one merged shared result popup on return');
+    assert(popup.textContent.includes('GAINED') && popup.textContent.includes('LOST / CONSUMED'), 'both ledger sections');
+    assert(popup.textContent.includes('Operator XP'), 'operator progression shown on every outcome');
+    assert.equal(popup.querySelectorAll('.summary-bit p').length,1,'exactly one BIT line');
+    assert(popup.querySelector('source').srcset.includes('bit-summary-'), 'existing summary art through bitImg');
+    assert(popup.querySelector('.summary-ledger[tabindex]'), 'long ledger can be scrolled by keyboard');
+    const gainRows = [...popup.querySelectorAll('.summary-row.gain')];
+    const lossRows = [...popup.querySelectorAll('.summary-row.loss')];
+    if(outcome==='extract'){
+      assert(gainRows.some(el=>el.textContent.includes('SMG')), 'equipped weapon brought home');
+      assert(gainRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='2'), 'duplicate materials aggregate');
+      assert(gainRows.some(el=>el.textContent.includes('Scrap')), 'converted currency and extract bonus shown');
+      assert(lossRows.some(el=>el.textContent.includes('Medkit') && el.querySelector('b').textContent==='1'), 'consumed medkit shown on survival');
+      assert(!lossRows.some(el=>el.textContent.includes('SMG')), 'returned gear is not lost');
+      assert(gainRows.some(el=>el.textContent.includes('complete') && el.textContent.includes('2/2')), 'quest completion progress is itemised');
+    } else {
+      assert(lossRows.some(el=>el.textContent.includes('SMG') && el.querySelector('b').textContent==='1'), 'launch gear lost exactly once on death, even if still equipped');
+      assert(lossRows.some(el=>el.textContent.includes('Scavenger Vest') && el.querySelector('b').textContent==='1'), 'armor found and equipped during the raid is lost on death');
+      if(gearOut.includes('rifle_marksman')) assert(lossRows.some(el=>el.textContent.includes('Marksman Rifle') && el.querySelector('b').textContent==='1'), 'found replacement weapon is lost alongside launch gear');
+      assert(!gainRows.some(el=>/Scavenger Vest|Marksman Rifle|SMG/.test(el.textContent)), 'lost equipment is not shown as gained');
+      assert(lossRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='2'), 'bag loss counted');
+      assert(popup.querySelector('source').srcset.includes('disappointed'), 'death mood');
+    }
+    assert.equal(w.localStorage.getItem('pr_raid_result_v1'), null,'return consumed exactly once');
+    assert.equal(w.ingestRaidResult(result).reason,'duplicate','summary does not grant rewards twice');
+    rd.window.close();
+  }
+}
+/* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
+{
+  const source = fs.readFileSync(path + '/nodspel/game.mjs','utf8');
+  const start = source.indexOf('function finishRound('), end = source.indexOf("\n$('#result-details-toggle')", start);
+  const events = [];
+  const finish = new Function('$','round','launch','writeRaidResult','buildRaidResult','clearInput','location',
+    'let resultPending=false; return (' + source.slice(start,end) + ');')(
+      () => ({hidden:true}), {over:true,reason:'extract',seed:'s1'}, {returnUrl:'../index.html',raidId:'r1',seed:'s1'},
+      () => {events.push('stored');return true;}, () => ({}), () => events.push('cleared'), {assign:url=>events.push(url)});
+  finish();
+  assert.deepEqual(events,['stored','cleared','../index.html'],'persist then return directly for the one merged summary');
+}
+/* v1.99.2: real badge handlers open, highlight and scroll the matching tab content. */
+{
+  const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
+  const oldScroll = window.HTMLElement.prototype.scrollIntoView;
+  let scrolled = null;
+  window.HTMLElement.prototype.scrollIntoView = function(){ scrolled = this; };
+  const press = el => { assert(el,'badge exists'); el.onclick = window.Function('event',el.getAttribute('onclick')); el.click(); };
+  st.modules.bit_bay = 1; st.bondXp = 0; st.talents = {spent:{},respecs:0}; st.retentionMode = 'core';
+  st.idle.scavPending = {items:{cable:1},scrap:0};
+  A.go('base');
+  press(doc.querySelector('#tabs .nav-bit .badge'));
+  assert(doc.querySelector('#overlay .tasktab.active'), 'HAUL badge opens TASKS');
+  assert(scrolled && scrolled.matches('.scav.pending.badge-pulse'), 'pending haul pulses and scrolls');
+  assert(doc.querySelector('#overlay .bittabs [aria-selected=true] .bit-tab-badge').textContent==='HAUL', 'TASKS tab has haul badge');
+  st.idle.scavPending = null;
+  st.quests = {day:window.dayStr(),swaps:0,list:[{id:'badge-q',type:'extract',item:'cable',n:1,prog:1,done:true,claimed:false,rewards:[]}]};
+  A.go('base');
+  press(doc.querySelector('#tabs .nav-bit .badge'));
+  assert(doc.querySelector('#overlay .questtab.active'), 'READY badge opens QUESTS');
+  assert(doc.querySelector('#overlay .bittabs [aria-selected=true] .bit-tab-badge').textContent.includes('READY'), 'destination tab owns badge');
+  assert(scrolled && scrolled.matches('.quest.done.badge-pulse'), 'ready quest pulses and scrolls into view');
+  A.go('base'); st.bondXp = window.DATA.bit.bondLevels.find(b=>b.level===2).xp;
+  press(doc.querySelector('#tabs .nav-bit .badge'));
+  assert(doc.querySelector('#overlay .talentstab.active'), 'POINTS badge opens TALENTS');
+  assert(scrolled.matches('.talnode.badge-pulse'), 'learnable node pulses and scrolls');
+  st.bondXp = 0; st.retentionMode = 'full'; st.contractsDay = window.dayStr();
+  const contract = window.DATA.retention.contracts.daily[0]; st.contracts = {[contract.id]:'done'};
+  A.go('base'); press(doc.querySelector('#tabs .nav-bit .badge'));
+  assert(doc.querySelector('#overlay .tasktab.active'), 'contract READY opens TASKS even when daily quests are ready');
+  assert(scrolled.matches('[data-contract="' + contract.id + '"].badge-pulse'), 'ready contract pulses and scrolls');
+  Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
+  window.HTMLElement.prototype.scrollIntoView = oldScroll;
+  A.go('base');
+}
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 for(const a of ["SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",

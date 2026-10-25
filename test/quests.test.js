@@ -41,7 +41,8 @@ for(const [name, s] of Object.entries(STATES)){
     for(const q of L){ const ok = q.type === "kill" ? R.some(r => r.f.enemies.includes(q.enemy)) : q.type === "search" ? R.some(r => r.f.houses > 0)
         : q.type === "extract" ? R.some(r => r.area === q.area && r.f.items.includes(q.item)) : R.some(r => r.area === q.area && r.level === q.level);
       assert(ok, name + ": unsolvable quest " + JSON.stringify(q)); assert(q.n >= 1); } }
-  b.A.questLog("daily"); assert(b.doc.querySelector(".qlog .card.quests") && b.doc.querySelectorAll(".qlog .quest").length === 3, name + ": rendered in quest log"); b.A.go("bit"); assert(!b.doc.querySelector(".card.quests"), name + ": no card on BIT screen");
+  b.A.questLog("daily"); assert(b.doc.querySelector(".qlog .card.quests") && b.doc.querySelectorAll(".qlog .quest").length === 3, name + ": rendered in quest log"); b.A.go("bit"); assert(!b.doc.querySelector(".tabpanel.active .card.quests"), name + ": no quest card on the default BIT tab");
+  b.A.bitTab("quests"); assert.equal(b.doc.querySelectorAll(".tabpanel.active .card.quests .quest").length, 3, name + ": daily quests available in BIT Quests tab");
   assert(b.doc.querySelector(".scav, .card.scav, [data-scav], .idlecard") || true); }
 { // fresh: no town, so no search quests and no town-only enemies
   const b = boot(STATES.fresh, T0); for(let d = 0; d < 30; d++){ b.set(T0 + d * DAY); for(const q of b.T.questState().list){ assert.notEqual(q.type, "search"); assert(q.area !== "town" && q.area !== "archipelago"); } } }
@@ -78,9 +79,9 @@ for(const [name, s] of Object.entries(STATES)){
   for(let i = 0; i < 4000; i++){ const m = b.T.rollMystery(rng); seen[m.tier] = (seen[m.tier] || 0) + 1; }
   for(const t of ["common","uncommon","rare","epic","legendary"]) assert(seen[t] > 0, t);
   assert(seen.common / 4000 > 0.2 && seen.legendary / 4000 < 0.06); }
-{ // raid ingest flags the quest and coexists with scavenging (both cards on the BIT screen)
-  const b = boot(STATES.townAll, T0); b.A.go("bit"); assert(!b.doc.querySelector(".card.quests"), "no old card on BIT"); b.A.questLog("daily"); assert(b.doc.querySelector(".card.quests")); }
-{ // A real raid return badges completed quests (no auto-popup); claiming happens in the quest log Daily tab.
+{ // Daily quests remain available in the quest log as well as the BIT Quests tab.
+  const b = boot(STATES.townAll, T0); b.A.go("bit"); assert(!b.doc.querySelector(".tabpanel.active .card.quests"), "no quest card on the default BIT tab"); b.A.questLog("daily"); assert(b.doc.querySelector(".qlog .card.quests")); }
+{ // A real raid return summarizes and badges completed quests; claiming happens in the quest log Daily tab.
   const b=boot(STATES.fresh,T0);b.T.questState();const s=JSON.parse(JSON.stringify(b.S()));
   s.quests.list=[
     {id:'popup-a',type:'kill',enemy:'grunt',n:1,prog:0,done:false,claimed:false},
@@ -89,7 +90,8 @@ for(const [name, s] of Object.entries(STATES)){
   const r={schema:'protocol-rebirth/raid-result',version:1,raidId:'quest-popup-raid',seed:'popup',area:'bunker',outcome:'extract',levelsCleared:1,enemiesDefeated:1,killsByType:{grunt:1},nodesLit:1,remainingMs:400000,extracted:[],lost:[],skills:{},endedAt:T0};
   const c=boot(s,T0,r),d=c.doc;
   assert(!d.querySelector('.quest-ready'),'no auto claim popup on raid return');
-  assert(!d.getElementById('overlay'),'no popup opened by quest completion');
+  assert(d.querySelector('#overlay .raid-summary-pop'),'raid return opens the merged summary');
+  d.querySelector('#overlay [data-close]').click();
   { const nb=d.querySelector('#tabs .nav-bit .badge'); assert(nb && nb.textContent==='2 READY' && nb.title,'BIT nav badge says what is ready'); }
   c.A.go('bit'); const entry=d.querySelector('.questentry .qn'); assert(entry && entry.textContent==='2','QUESTS entry shows ready count');
   const before=c.S().bondXp;
