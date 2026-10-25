@@ -1355,7 +1355,8 @@
     #overlay .bpop.pop-card[data-module="rebirth_core"]>.pop-x{left:auto;right:6px}
     #overlay .bpop.pop-card[data-module="rebirth_core"]>.bpop-head{padding-left:0;padding-right:104px}
     #overlay .bpop.pop-card[data-module="rebirth_core"]>.bpop-head>.iconbtn{position:absolute;top:6px;right:58px}
-    .qlog .qtabs{padding-top:54px}
+    #overlay .bpop.qlog{padding-left:60px;max-height:calc(100dvh - var(--tb-h,0px) - var(--st) - var(--sb) - 34px)}
+    .qlog .qtabs{padding-top:2px;min-height:0;overflow-y:auto}
     #app.s-stash::after{content:"";display:block;height:34px;margin-top:-34px;position:sticky;bottom:0;pointer-events:none;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.6) 55%,rgba(0,0,0,.8))}
     .talnode b{font-size:11px;overflow-wrap:break-word;word-break:normal}
     .talnode{padding:3px 2px;gap:1px}
@@ -1376,6 +1377,10 @@
     .nextunlock small{font-size:10px;color:var(--dim)}
   }
   /* v1.98 */
+  .qlog .qwrap{grid-template-rows:minmax(0,1fr)}
+  .qlog .qdet{overflow-y:auto}
+  .qlog .qdet>*{flex-shrink:0}
+  .qlog .qact{position:sticky;bottom:0;background:var(--ad-ink)}
   .handin .hi-body{width:100%;min-height:0;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .bithead{border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:2px}
   button.ghost.inline.bitreset{border:0;background:none;padding:2px 0;min-height:0;width:auto;color:var(--dim);font:700 11px "IBM Plex Sans",sans-serif;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--dim) 55%,transparent)}
