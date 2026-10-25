@@ -1802,8 +1802,8 @@ function itemIcon(id){ const it = ITEMS[id]; if(it && it.artImg) return '<img cl
 // v1.99: item art (docs/art-oct25-item-manifest.json) — real renders for base materials, salvage, tools and valuables,
 // delivered as assets/items/<id>-512.{webp,png}. Weapons/attachments keep their own art via itemIcon above; this hook
 // defers to it so artImg stays weapon-only. No id allowlist here (economy ids stay out of app.js, see test/logic.test.js):
-// every non-weapon item is tried against its own art path, and onerror falls back to the sprite icon when none was
-// delivered for that id, or the PNG/WebP fails to load.
+// every non-weapon item is tried against its own art path: onerror first drops the <source> to retry the plain PNG
+// (picture doesn't do this on its own), then falls back to the sprite icon if the PNG also fails or no art exists.
 function itemImg(id, cls){
   const it = ITEMS[id];
   if(!it) return "";
@@ -1811,7 +1811,7 @@ function itemImg(id, cls){
   const sprite = it.icon ? IC(it.icon) : "";
   const base = "assets/items/" + id + "-512";
   return '<picture class="pr-itemimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
-    '<img class="pr-item-art" src="' + base + '.png" alt="" draggable="false" onerror="this.closest(\'.pr-itemimg\').classList.add(\'art-err\')"></picture>' +
+    '<img class="pr-item-art" src="' + base + '.png" alt="" draggable="false" onerror="var s=this.previousElementSibling;if(s){s.remove()}else{this.closest(\'.pr-itemimg\').classList.add(\'art-err\')}"></picture>' +
     '<i class="pr-itemimg-fb" aria-hidden="true">' + sprite + '</i>';
 }
 // v1.99: BIT mood portraits (docs/art-oct25-handoff.md) — square transparent cutouts at assets/bit/<name>.{webp,png}
@@ -1819,7 +1819,7 @@ function itemImg(id, cls){
 function bitImg(name, cls){
   const base = "assets/bit/" + name;
   return '<picture class="pr-bitimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
-    '<img class="pr-bit-art" src="' + base + '.png" alt="" draggable="false" onerror="this.closest(\'.pr-bitimg\').classList.add(\'art-err\')"></picture>' +
+    '<img class="pr-bit-art" src="' + base + '.png" alt="" draggable="false" onerror="var s=this.previousElementSibling;if(s){s.remove()}else{this.closest(\'.pr-bitimg\').classList.add(\'art-err\')}"></picture>' +
     '<i class="pr-bitimg-fb" aria-hidden="true">' + IC("bit-face") + '</i>';
 }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
