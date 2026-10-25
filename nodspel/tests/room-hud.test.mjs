@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {roomPips,roomProgress,bagTiles} from '../hud.js?v=1.96.1';
-import {createRound,activateNode} from '../round.js?v=1.96.1';
+import {roomPips,roomProgress,bagTiles} from '../hud.js?v=1.97.0';
+import {createRound,activateNode} from '../round.js?v=1.97.0';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('three pips: done, current, next',()=>{

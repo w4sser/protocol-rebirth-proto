@@ -6,7 +6,7 @@ function boot(save){
   const w = dom.window; if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = u => { w.launchURL = u; };
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, SV:SAVE_VERSION, talentPoints, talentPointsAvailable, talentCanLearn, talentRank, talentLearned, branchSpent, talentVal, talentRespecCost, bitSkillOn, isMaterialItem, rollScavenge, genCap, resolveRaid, scoutLead, applyRaidResult, ingestRaidResult };");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, SV:SAVE_VERSION, talentPoints, talentPointsAvailable, talentCanLearn, talentRank, talentLearned, branchSpent, talentVal, talentRespecCost, bitSkillOn, isMaterialItem, rollScavenge, genCap, resolveRaid, scoutLead, applyRaidResult, ingestRaidResult, bitNextTalentUnlock };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();
@@ -137,7 +137,7 @@ for(const old of ["zone_scout", "shield_burst", "loot_priority", null]){
   b.S().talents.spent.scout_keen_sensors = 3;
   assert.equal(b.T.talentVal("scoutKeenSensors"), 0.15, "Keen Sensors maxed"); }
 
-// 10) regression (v1.96.1): the BIT screen's background refresh() (triggered by any A.* action while session.screen
+// 10) regression (v1.97.0): the BIT screen's background refresh() (triggered by any A.* action while session.screen
 // is "bit") must not destroy a quest-log or hand-in popup opened on top of it — bitRender() only replaces #overlay
 // when it isn't currently one of those two popups (see bitRender's comment in app.js).
 { const b = fresh(s => { s.bondXp = 250; });
@@ -169,4 +169,13 @@ for(const old of ["zone_scout", "shield_burst", "loot_priority", null]){
   const offenders = ids.filter(id => new RegExp('["\'`]' + id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + '["\'`]').test(src));
   assert.deepEqual(offenders, [], "app.js must not hardcode item ids: " + offenders.join(", "));
 }
+// 12) regression (v1.97): bitNextTalentUnlock skips a node whose choice-group sibling is already learned,
+// advancing past it to the next actually-learnable node (Salvager taken -> Haggler is blocked -> Night Shift).
+{ const b = fresh(s => { s.bondXp = 250; });
+  b.S().talents.spent.scav_deep_pockets = 3; b.S().talents.spent.loot_priority = 1; b.S().talents.spent.scav_quick_legs = 2;
+  b.S().talents.spent.scav_salvager = 1; // takes the scav_row3 choice group over Haggler
+  const info = b.T.bitNextTalentUnlock("scavenger");
+  assert(info, "there is a next unlock");
+  assert.equal(info.name, "Night Shift", "Haggler is blocked by the Salvager choice; next unlock skips to Night Shift"); }
+
 console.log("V195 TALENTS TEST PASSED");

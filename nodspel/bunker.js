@@ -2,8 +2,8 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {loadKit,instance} from './town.js?v=1.96.1';
-import {rngFrom} from './art.js?v=1.96.1';
+import {loadKit,instance} from './town.js?v=1.97.0';
+import {rngFrom} from './art.js?v=1.97.0';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -97,7 +97,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=1.96.1`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=1.97.0`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
