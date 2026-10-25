@@ -1358,6 +1358,17 @@
     .talrow-nodes{gap:3px}
     .talbranch{padding:4px}
     .talbranches{gap:4px}
+    /* v1.97 compact BIT TASKS/QUESTS/TRADER tabs: 2-up grid + "Next unlock" card instead of mostly-empty panels */
+    .bitgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:stretch}
+    .bitgrid:has(>:only-child){grid-template-columns:1fr}
+    .bitgrid>.idlecard,.bitgrid>.card{margin:0;height:100%;box-sizing:border-box}
+    .tasktab .idlecard,.tasktab .card.row{padding:5px 8px}
+    .tasktab h2{margin:6px 0 4px;font-size:12px}
+    .nextunlock{display:flex;flex-direction:column;justify-content:center;gap:2px}
+    .nextunlock b{display:flex;align-items:center;gap:4px;font:800 9px "Archivo",sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+    .nextunlock b svg{width:13px;height:13px;color:var(--ad-cyan)}
+    .nextunlock>span{font-size:12px;font-weight:700;color:var(--ad-bone,#F2E9D6);overflow-wrap:anywhere}
+    .nextunlock small{font-size:10px;color:var(--dim)}
   }
 </style>
 </head>

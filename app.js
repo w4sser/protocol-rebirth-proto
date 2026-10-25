@@ -795,6 +795,36 @@ function learnTalent(id){
   act("TALENT_LEARNED", { id, rank:S.talents.spent[id] });
   return true;
 }
+// v1.97 BIT tab "Next unlock" cards: the next not-yet-maxed node in a talent branch (tasks tab -> Scavenger,
+// since that branch powers scavenge/expedition), the next quest-chain payoff, and the next trader one-off item.
+// No new rules: reuses talentRowUnlocked/talentPointsAvailable, questUnlocksText and the chip shop catalog.
+function bitNextTalentUnlock(branchId){
+  if(!TAL) return null;
+  const branch = TAL.branches.find(b => b.id === branchId); if(!branch) return null;
+  const node = branch.nodes.find(n => talentRank(n.id) < n.ranks);
+  if(!node) return null;
+  const req = !talentRowUnlocked(branch, node.row) ? "Spend " + talentRowReq(node.row) + " in " + branch.name
+    : talentPointsAvailable() > 0 ? "1 point ready to spend"
+    : "1 point at Bond LV " + (bondLevel() + 1);
+  return { name:node.name, req };
+}
+function tasksNextUnlockInfo(){ return bitNextTalentUnlock("scavenger"); }
+function questNextUnlockInfo(){
+  const t = trackedQuest();
+  if(t && !t.maintain) return { name:questUnlocksText(t.chain, t.step), req:'Finish "' + t.step.title + '"' };
+  const locked = Object.keys(QC).find(id => !chainAvailable(id));
+  if(locked) return { name:QC[locked].name, req:"Unlocks in " + areaName((QC[locked].steps[0] || {}).area) };
+  return null;
+}
+function traderNextUnlockInfo(){
+  const it = CS.items.find(it => it.kind !== "item" && !chipOwned(it)); if(!it) return null;
+  const short = Math.max(0, it.price - (S.cur.chips || 0));
+  return { name:chipName(it), req:it.price + " Contract Chips" + (short ? " (" + short + " more)" : "") };
+}
+function nextUnlockCardHtml(info){
+  if(!info) return "";
+  return '<div class="card nextunlock"><b>' + IC("unlock") + "NEXT UNLOCK</b><span>" + esc(info.name) + '</span><small>' + esc(info.req) + '</small></div>';
+}
 function talentRespecCost(){ return S.talents.respecs ? Math.min(1000, 200 * S.talents.respecs) : 0; }
 function respecTalents(){
   const cost = talentRespecCost();
@@ -895,24 +925,26 @@ function talentsTabHtml(){
   const selId = session.bitNode;
   return '<div class="talroot"><div class="talbranches">' + TAL.branches.map(b => talentBranchHtml(b, selId)).join("") + '</div>' + talentDetailHtml(selId) + '</div>';
 }
-// TASKS tab: the existing scavenge/expedition/contracts cards, unchanged, just relocated off the old single-column screen.
+// TASKS tab: the existing scavenge/expedition/contracts cards, relocated off the old single-column screen and
+// laid out 2-up (v1.97) so phone-landscape doesn't leave half the panel empty; a "Next unlock" card fills the gap.
 function bitTasksTabHtml(){
-  let html = scavCardHtml();
+  let top = scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
-      html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
+      top += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
         Math.max(0, Math.ceil((S.expedition.returnAt - Date.now()) / 1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
     } else {
       const ec = D.retention.expedition.costScrap;
-      html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
+      top += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
         '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + IC("cur-scrap") + ' ' + ec + '</button></div>' +
         '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
     }
   }
+  let html = '<div class="bitgrid">' + top + nextUnlockCardHtml(tasksNextUnlockInfo()) + '</div>';
   if(contractsUnlocked()){
     const today = dayStr();
     if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
-    html += '<h2>Daily contracts</h2>';
+    html += '<h2>Daily contracts</h2><div class="bitgrid">';
     for(const c of D.retention.contracts.daily){
       const st = S.contracts[c.id];
       const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
@@ -921,6 +953,7 @@ function bitTasksTabHtml(){
           ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
           : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
     }
+    html += '</div>';
   }
   return html;
 }
@@ -947,8 +980,8 @@ function bitScreenHtml(tab){
     '<div class="bitbody">' +
       panel("talents", "talentstab", talentsTabHtml()) +
       panel("tasks", "tasktab", bitTasksTabHtml()) +
-      panel("quests", "questtab", questEntryHtml() || '<div class="card small">No active quests yet.</div>') +
-      panel("trader", "tradertab", traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') +
+      panel("quests", "questtab", '<div class="bitgrid">' + (questEntryHtml() || '<div class="card small">No active quests yet.</div>') + nextUnlockCardHtml(questNextUnlockInfo()) + '</div>') +
+      panel("trader", "tradertab", '<div class="bitgrid">' + (traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') + nextUnlockCardHtml(traderNextUnlockInfo()) + '</div>') +
     '</div></div>';
 }
 // Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
