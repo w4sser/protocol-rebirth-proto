@@ -1799,19 +1799,16 @@ const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
 // v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
 function itemIcon(id){ const it = ITEMS[id]; if(it && it.artImg) return '<img class="pr-icon ic-art" src="assets/weapons/' + it.artImg + '-512.webp" alt="" draggable="false" onerror="this.onerror=null;this.src=this.src.replace(/webp$/,\'png\')">'; if(it && it.art && typeof weaponArtSrc === "function"){ const a = weaponArtImg(id, 512, "pr-icon ic-art"); if(a) return a; } return it && it.icon ? IC(it.icon) : ""; }
-// v1.99: October 25 item art (docs/art-oct25-item-manifest.json) — real renders for base materials, salvage, tools and
-// valuables. Weapons/attachments keep their own art via itemIcon above; this hook defers to it so artImg stays weapon-only.
-// Falls back to the sprite icon when the item has no delivered art, or if the PNG/WebP fails to load (onerror).
-const ITEM_ART_IDS = new Set(["power_cell","cable","fuse","power_relay","tidal_coil","scrap_alloy","servo","polymer_plate",
-  "hydraulic_component","frost_glass","circuit_board","optical_sensor","memory_module","transmitter","med_gel","bio_sample",
-  "purification_filter","medkit","ammo_pack","encrypted_drive","ai_fragment","rebirth_shard","neural_core","core_ash",
-  "archipelago_chart","town_survey","prewar_relic","scavenger_vest","scout_rig","dampener_cloak","tool_grenade","tool_emp",
-  "tool_decoy","salvage_crate","data_core","contract_chip"]);
+// v1.99: item art (docs/art-oct25-item-manifest.json) — real renders for base materials, salvage, tools and valuables,
+// delivered as assets/items/<id>-512.{webp,png}. Weapons/attachments keep their own art via itemIcon above; this hook
+// defers to it so artImg stays weapon-only. No id allowlist here (economy ids stay out of app.js, see test/logic.test.js):
+// every non-weapon item is tried against its own art path, and onerror falls back to the sprite icon when none was
+// delivered for that id, or the PNG/WebP fails to load.
 function itemImg(id, cls){
   const it = ITEMS[id];
-  if(it && (it.artImg || it.art)) return itemIcon(id);
-  const sprite = it && it.icon ? IC(it.icon) : "";
-  if(!ITEM_ART_IDS.has(id)) return sprite;
+  if(!it) return "";
+  if(it.artImg || it.art) return itemIcon(id);
+  const sprite = it.icon ? IC(it.icon) : "";
   const base = "assets/items/" + id + "-512";
   return '<picture class="pr-itemimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
     '<img class="pr-item-art" src="' + base + '.png" alt="" draggable="false" onerror="this.closest(\'.pr-itemimg\').classList.add(\'art-err\')"></picture>' +
