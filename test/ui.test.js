@@ -191,7 +191,7 @@ assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
-/* v1.99.2 */
+/* v2.0.0 */
 assert(!doc.querySelector('#tabs .nav-prep') && !doc.querySelector('#tabs .nav-gap'), "deploy screen has no redundant RAID tab or gap");
 A.pickSlot("armor");
 assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker");
@@ -209,7 +209,7 @@ const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 A.craft("medkit");
 const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert.equal(((afterCraft.stash.medkit || 0) + ((afterCraft.armory || {}).medkit || 0)), (((beforeCraft.stash.medkit || 0) + ((beforeCraft.armory || {}).medkit || 0)) || 0) + 1, "field crafting creates usable supplies from prep");
-/* v1.99.2 */
+/* v2.0.0 */
 {
   // outside-only jsdom does not compile inline handlers; exercise them explicitly.
   const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
@@ -387,7 +387,7 @@ for(const q of window.DATA.progression.survey) A.survey(q.id, q.opts[0]);
 assert(text().includes("END OF PROTOTYPE"), "end screen");
 assert(window.DATA.progression.survey.length === 6, "six survey questions");
 
-/* v1.99.2: outcome reactions are ordered, cached, and use the shipped portraits. */
+/* v2.0.0: outcome reactions are ordered, cached, and use the shipped portraits. */
 {
   const pools = window.DATA.bitSummary.pools;
   for(const pool of Object.values(pools)) assert(pool.lines.length >= 3 && pool.lines.length <= 4, 'small varied BIT pool');
@@ -460,7 +460,7 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   finish();
   assert.deepEqual(events,['stored','cleared','../index.html'],'persist then return directly for the one merged summary');
 }
-/* v1.99.2: real badge handlers open, highlight and scroll the matching tab content. */
+/* v2.0.0: real badge handlers open, highlight and scroll the matching tab content. */
 {
   const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
   const oldScroll = window.HTMLElement.prototype.scrollIntoView;

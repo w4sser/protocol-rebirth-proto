@@ -237,6 +237,27 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .bag-row{display:flex;align-items:flex-start;gap:4px}
 .bag-panel #open-bag{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:44px;min-height:44px;padding:2px 4px;border-radius:6px;background:color-mix(in srgb,var(--ad-loot) 12%,transparent);border:1px solid color-mix(in srgb,var(--ad-loot) 55%,transparent);color:var(--ad-loot)}
 .bag-panel #open-bag .pr-ic{width:18px;height:18px}.bag-panel #open-bag b{font:700 11px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--ad-bone);font-variant-numeric:tabular-nums}
+
+/* v2.0 weapon backpack (docs/design-playtest-oct25.md §c): comes home on extract, lost on death like everything else carried. */
+.backpack-row{display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid color-mix(in srgb,var(--ad-cyan) 30%,transparent)}
+.backpack-row>.eyebrow{font-size:7px;color:var(--ad-cyan)}
+.backpack-tiles{display:flex;flex-wrap:wrap;gap:3px}
+.backpack-tiles button.item-tile{cursor:pointer;background:color-mix(in srgb,var(--ad-cyan) 14%,transparent);border-color:var(--rc,var(--ad-cyan))}
+.backpack-tiles button.item-tile:active{background:color-mix(in srgb,var(--ad-cyan) 28%,transparent)}
+
+/* Weapon pickup prompt: stats compare (damage/rate/mag/range) before the player swaps or stashes it in the backpack. */
+.swap-row[data-kind=weapon]{animation:none}
+.weapon-compare{display:flex;flex-direction:column;gap:2px;margin:0 0 8px 32px;font:11px 'IBM Plex Mono',ui-monospace,monospace}
+.weapon-compare-row{display:flex;align-items:center;gap:6px}
+.weapon-compare-row .wc-label{flex:none;width:34px;color:var(--ad-bone);opacity:.75;font-size:9px}
+.weapon-compare-row .wc-from,.weapon-compare-row .wc-to{flex:none;min-width:22px;text-align:right;color:var(--ad-bone)}
+.weapon-compare-row .wc-arrow .pr-ic{width:13px;height:13px}
+.weapon-compare-row[data-improved=true] .wc-to,.weapon-compare-row[data-improved=true] .wc-arrow{color:var(--ad-good)}
+.weapon-compare-row[data-improved=false] .wc-to,.weapon-compare-row[data-improved=false] .wc-arrow{color:var(--ad-danger)}
+.weapon-offer-actions{display:flex;gap:6px;margin-left:32px}
+.weapon-offer-actions button{min-height:36px;padding:5px 10px;border-radius:6px;border:1px solid var(--ad-cyan);background:color-mix(in srgb,var(--ad-cyan) 16%,transparent);color:var(--ad-bone);font:700 11px 'IBM Plex Sans',sans-serif;cursor:pointer}
+.weapon-offer-actions button:active{background:color-mix(in srgb,var(--ad-cyan) 32%,transparent)}
+.weapon-offer-actions button[data-full=true]{border-color:var(--ad-bone);opacity:.75}
 .bag-panel #open-bag.full{border-color:var(--ad-danger,var(--ad-loot));color:var(--ad-danger,var(--ad-loot))}
 .bag-row .bag-tiles{max-width:76px;flex:1 1 auto;align-content:flex-start}.bag-row .bag-tiles:empty{display:none}
 .level-corner{--lc-r:22px;width:fit-content;max-width:none;flex-wrap:nowrap;gap:8px;padding:4px 6px;background:color-mix(in srgb,var(--ad-ink) 78%,transparent);border-left:0;border-radius:8px}

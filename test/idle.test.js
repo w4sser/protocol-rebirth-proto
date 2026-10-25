@@ -51,7 +51,7 @@ base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true };
   b.A.craft("medkit"); b.A.craft("medkit"); b.A.craft("medkit");
   assert.equal(b.S().idle.fab.length, 2, "Fabricator L1: 2 slots"); assert.equal(b.S().stash.med_gel, 14, "a full queue never takes materials");
   assert.equal((b.S().idle.fab[1].doneAt - T0) / MIN, 6, "jobs run one after another");
-  /* v1.99.2 */
+  /* v2.0.0 */
   const c = boot(JSON.parse(JSON.stringify(b.S())), T0 + 4 * MIN);
   assert.equal(c.S().idle.fab.length, 2, "offline crafts wait for collection");
   c.A.collectFab(0); assert.equal(((c.S().stash.medkit || 0) + ((c.S().armory || {}).medkit || 0)), m0 + 2, "one ready to collect after 4 min");

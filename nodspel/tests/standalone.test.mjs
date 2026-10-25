@@ -15,7 +15,10 @@ test('marked level two crate supplies loot without changing unlimited reserve',(
     const box=r.level.lootBoxes.find(b=>b.marked),w=createWeapon(Infinity);
     assert.ok(Object.keys(RULES.loot.weights[1]).includes(box.item));collectLoot(r,box,1,w);
     assert.equal(w.reserve,Infinity);assert.equal(w.ammo,3);
-    if(gearSlotOf(box.item))assert.equal(r.equip[gearSlotOf(box.item)],box.item,'gear goes to its slot (v1.59)');else assert.equal(r.bag[box.item],1);
+    if(gearSlotOf(box.item)==='weapon'){
+      assert.equal(r.equip.weapon,null,'weapon pickup waits for a choice, even with the starter');
+      assert.equal(r.weaponOffer.item,box.item);assert.equal(box.collected,false);
+    }else if(gearSlotOf(box.item))assert.equal(r.equip[gearSlotOf(box.item)],box.item,'armor goes to its slot');else assert.equal(r.bag[box.item],1);
   }
 });
 test('aim endpoint stops at the nearest solid and ignores targets',()=>{

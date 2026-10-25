@@ -137,7 +137,7 @@ for(const old of ["zone_scout", "shield_burst", "loot_priority", null]){
   b.S().talents.spent.scout_keen_sensors = 3;
   assert.equal(b.T.talentVal("scoutKeenSensors"), 0.15, "Keen Sensors maxed"); }
 
-// 10) regression (v1.99.2): the BIT screen's background refresh() (triggered by any A.* action while session.screen
+// 10) regression (v2.0.0): the BIT screen's background refresh() (triggered by any A.* action while session.screen
 // is "bit") must not destroy a quest-log or hand-in popup opened on top of it — bitRender() only replaces #overlay
 // when it isn't currently one of those two popups (see bitRender's comment in app.js).
 { const b = fresh(s => { s.bondXp = 250; });

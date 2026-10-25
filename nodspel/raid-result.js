@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=1.99.2';
-import {RULES} from './levels.js?v=1.99.2';
-import {bagCap,equippedGear} from './round.js?v=1.99.2';
-import {readGoal} from './progression-goal.js?v=1.99.2';
+import {bagItems} from './raid.js?v=2.0.0';
+import {RULES} from './levels.js?v=2.0.0';
+import {bagCap,equippedGear} from './round.js?v=2.0.0';
+import {readGoal} from './progression-goal.js?v=2.0.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -19,7 +19,7 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null}={}){
     area:round.level?.area??'bunker',...round.hard?{hard:true}:{},outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,killsByType:{...(round.killsByType??{})},nodesLit:round.nodesLit,
     remainingMs:round.remainingMs,kitPicked:round.kitPicked??0,elapsedMs:Math.max(0,(round.durationMs??round.remainingMs)-round.remainingMs),health:round.health,maxHealth:round.maxHealth,shield:round.shield,maxShield:round.maxShield,extracted:bagItems(round.extracted),lost:bagItems(round.lost),endedAt,
     skills:round.telemetry?{distanceM:Math.round(round.telemetry.distanceM),dashes:round.telemetry.dashes,holdNodes:round.telemetry.holdNodes,damageTaken:Math.round(round.telemetry.damageTaken),searches:round.telemetry.searches||0,healed:Math.round(round.telemetry.healed||0)}:undefined,
-    stats:round.stats,gear:launch?.gear??[],gearOut:equippedGear(round),weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
+    stats:round.stats,gear:launch?.gear??[],gearOut:[...equippedGear(round),...(round.backpack??[])],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
 }
 // The tool slot mirrors kitLeft: what is still unused at the end. Meta returns it on extract and drops it on death.
 // Only present when a tool was brought, so tool-less results keep their v1 shape.

@@ -1,9 +1,9 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=1.99.2';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=1.99.2';
-import {extractScrapBonus} from './levels.js?v=1.99.2';
-import {ROUND_DURATION_MS} from './round.js?v=1.99.2';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.99.2';
+import '../data/bit.js?v=2.0.0';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.0.0';
+import {extractScrapBonus} from './levels.js?v=2.0.0';
+import {ROUND_DURATION_MS} from './round.js?v=2.0.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.0.0';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -17,7 +17,8 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const integrated=!!launch.returnUrl,bag={...(checkpoint?round.bag:safe?round.extracted:round.lost)},recovered=[];
   // Show existing meta recovery effects without granting them here. They are applied once at the base.
   const launchGear=(launch.gear??[]).filter(id=>item(id)&&!item(id).free);
-  const equipped=Object.values(round.equip??{}).filter(id=>id&&item(id)&&!item(id).free);
+  // v2.0: backpack weapons travel with the equipped gear through extract/lost/at-risk reporting (docs/design-playtest-oct25.md §c).
+  const equipped=[...Object.values(round.equip??{}),...(round.backpack??[])].filter(id=>id&&item(id)&&!item(id).free);
   let gear=[...new Set(safe||checkpoint?equipped:[...launchGear,...equipped])];
   if(!checkpoint&&!safe&&integrated&&home){
     const rescueLevel=globalThis.DATA.bit.bondLevels.find(l=>l.level===3);

@@ -99,7 +99,7 @@ assert(S().log.filter(e => e.action === "QUEST_CHAIN_STEP" && e.payload.step ===
   // ---- quest RAID button ----
   const rb = log.querySelector(".qact .qraid"); assert(rb && !rb.disabled && rb.textContent.includes("RAID"), "RAID button in the detail");
   assert.equal(rb.getAttribute("onclick"), "A.QUEST_RAID({chain:'bunker'})"); b.w.nav.length = 0; A.QUEST_RAID({ chain:"bunker" });
-  assert.equal(b.w.nav.length, 0, "v1.99.1: quest RAID opens deploy, never launches directly"); assert(d.getElementById("app").className.includes("s-prep"), "deploy screen open"); A.deployNodeRaid();
+  assert.equal(b.w.nav.length, 0, "v2.0.0: quest RAID opens deploy, never launches directly"); assert(d.getElementById("app").className.includes("s-prep"), "deploy screen open"); A.deployNodeRaid();
   assert.equal(b.w.nav.length, 1, "deploys through the normal flow"); const u = new URL(b.w.nav[0], "http://x/"); assert.equal(u.searchParams.get("area"), "bunker");
   assert(u.searchParams.get("raidId") && u.searchParams.get("seed")); assert(S().coreLaunch && S().coreLaunch.area === "bunker", "launch recorded like the base DEPLOY");
   assert(u.searchParams.get("quest"), "quest chip param for the raid HUD");
