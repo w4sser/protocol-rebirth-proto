@@ -692,18 +692,15 @@ function onEquip(){const e=round.lastEquip;if(!e)return;round.lastEquip=null;
 function nearOffer(){const b=round?.gearOffer&&round.level.lootBoxes.find(x=>x.id===round.gearOffer.boxId);return !!b&&!b.collected&&Math.hypot(position.x-b.x,position.z-b.z)<=RULES.loot.pickupRadius*1.6;}
 function offerLabel(){const id=round?.gearOffer?.boxId;return world?.lootBoxes.find(v=>v.loot.id===id)?.label;}
 function notifyGearOffer(){const o=round.gearOffer;const lab=offerLabel();if(lab){lab.el.classList.add('swap-tap');lab.el.onclick=e=>{e.stopPropagation();showGearSwap();};}
-  gearToast(`${o.slot==='armor'?'Armor':'Weapon'} slot taken · tap to swap`,showGearSwap);}
+  gearToast(`${ITEM_NAMES[o.item]??o.item} · ${o.slot==='armor'?'Armor':'Weapon'} slot taken · tap to swap`,showGearSwap);}
 function clearGearOffer(){const lab=offerLabel();if(lab){lab.el.classList.remove('swap-tap');lab.el.onclick=null;}const el=$('#swap-row');if(el?.dataset.kind==='gear')el.hidden=true;if(round)round.gearOffer=null;}
-function showGearSwap(){const o=round?.gearOffer;if(!o||round.over)return;const cur=round.equip[o.slot];{const t=$('#gear-toast');if(t)t.hidden=true;}
-  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');$('#viewport').append(el);}
-  el.dataset.kind='gear';el.setAttribute('aria-label',`${o.slot==='armor'?'Armor':'Weapon'} slot – swap`);el.replaceChildren();
-  const head=document.createElement('div');head.className='swap-head pop-head';head.innerHTML=`<b>Swap ${o.slot==='armor'?'armor':'weapon'}?</b><span>Tap your current gear · it drops here</span>`;
-  const close=document.createElement('button');close.className='pop-x swap-close';close.type='button';close.append(svgIcon('close'));close.setAttribute('aria-label','Keep current gear');close.onclick=()=>{el.hidden=true;};el.append(close,head);
-  const row=document.createElement('div');row.className='swap-items';
-  const chip=(id,isNew)=>{const b=document.createElement(isNew?'div':'button');const r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);setIconText(b,MATERIALS[id]?.icon??'pickup',ITEM_NAMES[id]??id);return b;};
-  const mine=chip(cur,false);mine.type='button';mine.onclick=()=>{const boxId=o.boxId;const d=swapGear(round,boxId,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===boxId)v.loot.collected=true;}el.hidden=true;clearGearOffer();onEquip();};
-  const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.append(svgIcon('swap'));row.append(mine,arrow,chip(o.item,true));el.append(row);el.hidden=false;
-  clearTimeout(showSwap.t);showSwap.t=setTimeout(()=>{el.hidden=true;},5000);}
+function showGearSwap(){const o=round?.gearOffer;if(!o||round.over||!nearOffer())return;
+  // The offer already asks for a swap: one tap equips it and drops the old gear.
+  clearGearOffer();
+  const d=swapGear(round,o.boxId,Date.now());if(!d)return;
+  labelLoot(world.addLoot(d));
+  for(const v of world.lootBoxes)if(v.loot.id===o.boxId)v.loot.collected=true;
+  onEquip();}
 // ---- Visible fallback instead of a white page ----
 let fatal=false;
 function showFatal(title,msg,{retry=null,keep=false}={}){
