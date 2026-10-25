@@ -48,3 +48,7 @@ before merge. The orchestrating assistant (Grok Bot) only plans scoped prompts, 
 screenshots), merges and updates Linear — and must keep its own token usage minimal (scoped context, no reading
 large files unnecessarily). Grok Bot falls back to doing work itself only when Claude or Codex hit limits, and it
 must say so when that happens.
+
+## Model policy (Robert, Oct 25)
+- `claude -p`: use the default model (Sonnet). Use `--model opus` only for hard tasks (complex debugging, large refactors, tricky game logic).
+- `codex exec`: use a lighter model (e.g. `-m gpt-6-luna`) for simple tasks (small CSS fixes, docs, quick reviews); default model (gpt-6.1-sol) for non-trivial reviews and implementation.
