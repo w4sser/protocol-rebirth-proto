@@ -4383,7 +4383,14 @@ window.A = {
     const I = idleState(); if(!bitOnline() || I.scav || I.scavPending || S.expedition) return;   // one BIT assignment at a time; confirm the last haul first
     const miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, k = bitSkillDef("loot_priority");
     const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge(null, miss && scavPools().includes(miss.itemId) ? { itemId:miss.itemId, p:k.bias } : null) };
-    act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN)); refresh();
+    act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN));
+    // The BIT Bay building popup (A.openBuilding) isn't tied to the SCREENS render loop like the
+    // fullscreen BIT screen is, so a bare refresh() leaves its SEND button stuck showing the pre-send
+    // state: tap once (works, invisibly), tap again and the busy-guard above silently no-ops it.
+    // (Exclude .bitov: the fullscreen BIT screen's own tasks tab reuses the same .bpop[data-module] markup
+    // and already redraws via bitRender, so reopening the room popup there would blow it away instead.)
+    const inRoom = !!document.querySelector('#overlay:not(.bitov) .bpop[data-module="bit_bay"]');
+    refresh(); if(inRoom) A.openBuilding("bit_bay");
   },
   openHaul(){
     const pend = scavPending(); if(!pend) return;

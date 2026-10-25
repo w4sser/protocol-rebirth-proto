@@ -56,4 +56,44 @@ base.cur.scrap = 500; base.stash.med_gel = 20;
   assert(!row.disabled && row.getAttribute("onclick") === "A.craft('medkit')", "frees up once a slot opens");
 }
 
+{ // 4) the bug: BIT Bay room popup (A.openBuilding("bit_bay")) SEND button. Tapping it did start the
+  // scavenge run (A.sendScavenge sets idle.scav), but the popup itself never redrew — it isn't tied to
+  // the SCREENS render loop the way the fullscreen BIT screen is, so a bare refresh() left the stale
+  // SEND button sitting there. From the player's seat: tap SEND, nothing visibly happens (and the
+  // "BIT heads out" toast is deferred anyway while this very popup is open, same as the Fabricator case).
+  const b = boot(JSON.parse(JSON.stringify(base)));
+  b.A.go("base"); b.A.openBuilding("bit_bay");
+  const btn = () => [...b.d.querySelectorAll('#overlay button')].find(x => x.textContent.trim() === "SEND");
+  assert(btn() && !btn().disabled, "SEND starts live in the BIT Bay room popup");
+  const before = JSON.stringify(b.S().idle);
+  b.w.eval(btn().getAttribute("onclick"));
+  assert.notEqual(JSON.stringify(b.S().idle), before, "tapping SEND actually sends BIT out");
+  assert(b.S().idle.scav, "a scavenge run is now in progress");
+  assert(!btn(), "the popup redraws in place: no more SEND button sitting there once BIT is already out");
+  assert(/BIT is scavenging/.test(b.d.getElementById("overlay").textContent), "popup now shows the in-progress state instead of the stale SEND row");
+}
+
+{ // 5) fullscreen BIT screen TASKS tab (A.go("bit","tasks")) must keep working: it already redraws itself
+  // via bitRender/refresh, so the room-popup reopen added for bug #4 must not fire for it (its wrapper
+  // reuses the same .bpop[data-module="bit_bay"] markup as the room popup — only #overlay.bitov marks it).
+  const b = boot(JSON.parse(JSON.stringify(base)));
+  b.A.go("bit", "tasks");
+  const btn = () => [...b.d.querySelectorAll('#overlay button')].find(x => x.textContent.trim() === "SEND");
+  assert(btn(), "SEND is present on the fullscreen TASKS tab");
+  b.w.eval(btn().getAttribute("onclick"));
+  assert(b.S().idle.scav, "sending BIT from the fullscreen screen still works");
+  assert(b.d.querySelector("#overlay .tasktab"), "the fullscreen BIT screen is still intact (not replaced by the room popup)");
+  assert(/BIT is scavenging/.test(b.d.querySelector("#overlay .tasktab").textContent), "TASKS tab shows the in-progress state");
+}
+
+{ // 6) reopening the BIT Bay room popup while a run is already away shows the progress card, not a SEND
+  // button that would just no-op against sendScavenge's busy guard.
+  const b = boot(JSON.parse(JSON.stringify(base)));
+  b.A.go("base"); b.A.openBuilding("bit_bay");
+  b.w.eval([...b.d.querySelectorAll('#overlay button')].find(x => x.textContent.trim() === "SEND").getAttribute("onclick"));
+  b.A.openBuilding("bit_bay"); // simulate leaving and coming back
+  assert(!/>SEND</.test(b.d.getElementById("overlay").innerHTML), "no SEND button while BIT is already away");
+  assert(/BIT is scavenging/.test(b.d.getElementById("overlay").textContent), "shows why: BIT is already out");
+}
+
 console.log("V1.98 BUGS TEST PASSED");
