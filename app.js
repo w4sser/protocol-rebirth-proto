@@ -4728,7 +4728,7 @@ window.A = {
   devFinishTimers(){
     if(S.expedition) S.expedition.returnAt = 0;
     if(S.decrypt) S.decrypt.returnAt = 0;
-    { const I = idleState(); for(const k in I.builds) I.builds[k].doneAt = 0; for(const j of I.fab) j.doneAt = 0; if(I.scav) I.scav.returnAt = 0; tickIdle(); I.away = null; }
+    { const I = idleState(); for(const k in I.builds) I.builds[k].doneAt = 0; for(const j of I.fab) j.doneAt = 0; if(I.scav) I.scav.returnAt = 0; tickIdle(); I.away = null; for(let n = I.fab.length; n > 0; n--) A.collectFab(0); }
     tickRetention();
     const rows = morningRows();
     if(rows.length) A.showMorning(rows); else refresh();
