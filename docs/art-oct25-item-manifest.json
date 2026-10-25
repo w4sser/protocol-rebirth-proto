@@ -1,0 +1,331 @@
+[
+  {
+    "id": "power_cell",
+    "title": "Power Cell",
+    "png": "assets/items/power_cell-512.png",
+    "webp": "assets/items/power_cell-512.webp",
+    "master": "assets/reference/items/power_cell-1024.png"
+  },
+  {
+    "id": "cable",
+    "title": "Cable",
+    "png": "assets/items/cable-512.png",
+    "webp": "assets/items/cable-512.webp",
+    "master": "assets/reference/items/cable-1024.png"
+  },
+  {
+    "id": "fuse",
+    "title": "Fuse",
+    "png": "assets/items/fuse-512.png",
+    "webp": "assets/items/fuse-512.webp",
+    "master": "assets/reference/items/fuse-1024.png"
+  },
+  {
+    "id": "power_relay",
+    "title": "Power Relay",
+    "png": "assets/items/power_relay-512.png",
+    "webp": "assets/items/power_relay-512.webp",
+    "master": "assets/reference/items/power_relay-1024.png"
+  },
+  {
+    "id": "tidal_coil",
+    "title": "Tidal Coil",
+    "png": "assets/items/tidal_coil-512.png",
+    "webp": "assets/items/tidal_coil-512.webp",
+    "master": "assets/reference/items/tidal_coil-1024.png"
+  },
+  {
+    "id": "scrap_alloy",
+    "title": "Scrap Alloy",
+    "png": "assets/items/scrap_alloy-512.png",
+    "webp": "assets/items/scrap_alloy-512.webp",
+    "master": "assets/reference/items/scrap_alloy-1024.png"
+  },
+  {
+    "id": "servo",
+    "title": "Servo",
+    "png": "assets/items/servo-512.png",
+    "webp": "assets/items/servo-512.webp",
+    "master": "assets/reference/items/servo-1024.png"
+  },
+  {
+    "id": "polymer_plate",
+    "title": "Polymer Plate",
+    "png": "assets/items/polymer_plate-512.png",
+    "webp": "assets/items/polymer_plate-512.webp",
+    "master": "assets/reference/items/polymer_plate-1024.png"
+  },
+  {
+    "id": "hydraulic_component",
+    "title": "Hydraulic Component",
+    "png": "assets/items/hydraulic_component-512.png",
+    "webp": "assets/items/hydraulic_component-512.webp",
+    "master": "assets/reference/items/hydraulic_component-1024.png"
+  },
+  {
+    "id": "frost_glass",
+    "title": "Frost Glass",
+    "png": "assets/items/frost_glass-512.png",
+    "webp": "assets/items/frost_glass-512.webp",
+    "master": "assets/reference/items/frost_glass-1024.png"
+  },
+  {
+    "id": "circuit_board",
+    "title": "Circuit Board",
+    "png": "assets/items/circuit_board-512.png",
+    "webp": "assets/items/circuit_board-512.webp",
+    "master": "assets/reference/items/circuit_board-1024.png"
+  },
+  {
+    "id": "optical_sensor",
+    "title": "Optical Sensor",
+    "png": "assets/items/optical_sensor-512.png",
+    "webp": "assets/items/optical_sensor-512.webp",
+    "master": "assets/reference/items/optical_sensor-1024.png"
+  },
+  {
+    "id": "memory_module",
+    "title": "Memory Module",
+    "png": "assets/items/memory_module-512.png",
+    "webp": "assets/items/memory_module-512.webp",
+    "master": "assets/reference/items/memory_module-1024.png"
+  },
+  {
+    "id": "transmitter",
+    "title": "Transmitter",
+    "png": "assets/items/transmitter-512.png",
+    "webp": "assets/items/transmitter-512.webp",
+    "master": "assets/reference/items/transmitter-1024.png"
+  },
+  {
+    "id": "med_gel",
+    "title": "Med Gel",
+    "png": "assets/items/med_gel-512.png",
+    "webp": "assets/items/med_gel-512.webp",
+    "master": "assets/reference/items/med_gel-1024.png"
+  },
+  {
+    "id": "bio_sample",
+    "title": "Bio Sample",
+    "png": "assets/items/bio_sample-512.png",
+    "webp": "assets/items/bio_sample-512.webp",
+    "master": "assets/reference/items/bio_sample-1024.png"
+  },
+  {
+    "id": "purification_filter",
+    "title": "Purification Filter",
+    "png": "assets/items/purification_filter-512.png",
+    "webp": "assets/items/purification_filter-512.webp",
+    "master": "assets/reference/items/purification_filter-1024.png"
+  },
+  {
+    "id": "medkit",
+    "title": "Medkit",
+    "png": "assets/items/medkit-512.png",
+    "webp": "assets/items/medkit-512.webp",
+    "master": "assets/reference/items/medkit-1024.png"
+  },
+  {
+    "id": "ammo_pack",
+    "title": "Ammo Pack",
+    "png": "assets/items/ammo_pack-512.png",
+    "webp": "assets/items/ammo_pack-512.webp",
+    "master": "assets/reference/items/ammo_pack-1024.png"
+  },
+  {
+    "id": "encrypted_drive",
+    "title": "Encrypted Drive",
+    "png": "assets/items/encrypted_drive-512.png",
+    "webp": "assets/items/encrypted_drive-512.webp",
+    "master": "assets/reference/items/encrypted_drive-1024.png"
+  },
+  {
+    "id": "ai_fragment",
+    "title": "AI Fragment",
+    "png": "assets/items/ai_fragment-512.png",
+    "webp": "assets/items/ai_fragment-512.webp",
+    "master": "assets/reference/items/ai_fragment-1024.png"
+  },
+  {
+    "id": "rebirth_shard",
+    "title": "Rebirth Shard",
+    "png": "assets/items/rebirth_shard-512.png",
+    "webp": "assets/items/rebirth_shard-512.webp",
+    "master": "assets/reference/items/rebirth_shard-1024.png"
+  },
+  {
+    "id": "neural_core",
+    "title": "Neural Core",
+    "png": "assets/items/neural_core-512.png",
+    "webp": "assets/items/neural_core-512.webp",
+    "master": "assets/reference/items/neural_core-1024.png"
+  },
+  {
+    "id": "core_ash",
+    "title": "Core Ash",
+    "png": "assets/items/core_ash-512.png",
+    "webp": "assets/items/core_ash-512.webp",
+    "master": "assets/reference/items/core_ash-1024.png"
+  },
+  {
+    "id": "archipelago_chart",
+    "title": "Archipelago Chart",
+    "png": "assets/items/archipelago_chart-512.png",
+    "webp": "assets/items/archipelago_chart-512.webp",
+    "master": "assets/reference/items/archipelago_chart-1024.png"
+  },
+  {
+    "id": "town_survey",
+    "title": "Town Survey",
+    "png": "assets/items/town_survey-512.png",
+    "webp": "assets/items/town_survey-512.webp",
+    "master": "assets/reference/items/town_survey-1024.png"
+  },
+  {
+    "id": "prewar_relic",
+    "title": "Prewar Relic",
+    "png": "assets/items/prewar_relic-512.png",
+    "webp": "assets/items/prewar_relic-512.webp",
+    "master": "assets/reference/items/prewar_relic-1024.png"
+  },
+  {
+    "id": "scavenger_vest",
+    "title": "Scavenger Vest",
+    "png": "assets/items/scavenger_vest-512.png",
+    "webp": "assets/items/scavenger_vest-512.webp",
+    "master": "assets/reference/items/scavenger_vest-1024.png"
+  },
+  {
+    "id": "scout_rig",
+    "title": "Scout Rig",
+    "png": "assets/items/scout_rig-512.png",
+    "webp": "assets/items/scout_rig-512.webp",
+    "master": "assets/reference/items/scout_rig-1024.png"
+  },
+  {
+    "id": "dampener_cloak",
+    "title": "Dampener Cloak",
+    "png": "assets/items/dampener_cloak-512.png",
+    "webp": "assets/items/dampener_cloak-512.webp",
+    "master": "assets/reference/items/dampener_cloak-1024.png"
+  },
+  {
+    "id": "tool_grenade",
+    "title": "Grenade",
+    "png": "assets/items/tool_grenade-512.png",
+    "webp": "assets/items/tool_grenade-512.webp",
+    "master": "assets/reference/items/tool_grenade-1024.png"
+  },
+  {
+    "id": "tool_emp",
+    "title": "EMP",
+    "png": "assets/items/tool_emp-512.png",
+    "webp": "assets/items/tool_emp-512.webp",
+    "master": "assets/reference/items/tool_emp-1024.png"
+  },
+  {
+    "id": "tool_decoy",
+    "title": "Decoy",
+    "png": "assets/items/tool_decoy-512.png",
+    "webp": "assets/items/tool_decoy-512.webp",
+    "master": "assets/reference/items/tool_decoy-1024.png"
+  },
+  {
+    "id": "salvage_crate",
+    "title": "Salvage Crate",
+    "png": "assets/items/salvage_crate-512.png",
+    "webp": "assets/items/salvage_crate-512.webp",
+    "master": "assets/reference/items/salvage_crate-1024.png"
+  },
+  {
+    "id": "data_core",
+    "title": "Data Core",
+    "png": "assets/items/data_core-512.png",
+    "webp": "assets/items/data_core-512.webp",
+    "master": "assets/reference/items/data_core-1024.png"
+  },
+  {
+    "id": "contract_chip",
+    "title": "Contract Chip",
+    "png": "assets/items/contract_chip-512.png",
+    "webp": "assets/items/contract_chip-512.webp",
+    "master": "assets/reference/items/contract_chip-1024.png"
+  },
+  {
+    "id": "scrap",
+    "title": "Scrap",
+    "png": "assets/items/scrap-512.png",
+    "webp": "assets/items/scrap-512.webp",
+    "master": "assets/reference/items/scrap-1024.png"
+  },
+  {
+    "id": "dataCores",
+    "title": "Data Cores",
+    "png": "assets/items/dataCores-512.png",
+    "webp": "assets/items/dataCores-512.webp",
+    "master": "assets/reference/items/dataCores-1024.png"
+  },
+  {
+    "id": "chips",
+    "title": "Contract Chips",
+    "png": "assets/items/chips-512.png",
+    "webp": "assets/items/chips-512.webp",
+    "master": "assets/reference/items/chips-1024.png"
+  },
+  {
+    "id": "signals",
+    "title": "Signals",
+    "png": "assets/items/signals-512.png",
+    "webp": "assets/items/signals-512.webp",
+    "master": "assets/reference/items/signals-1024.png"
+  },
+  {
+    "id": "fuel",
+    "title": "Fuel",
+    "png": "assets/items/fuel-512.png",
+    "webp": "assets/items/fuel-512.webp",
+    "master": "assets/reference/items/fuel-1024.png"
+  },
+  {
+    "id": "bp_gull_drone",
+    "title": "Gull Drone blueprint",
+    "png": "assets/items/bp_gull_drone-512.png",
+    "webp": "assets/items/bp_gull_drone-512.webp",
+    "master": "assets/reference/items/bp_gull_drone-1024.png"
+  },
+  {
+    "id": "hard_bunker",
+    "title": "Hard pass: Bunker",
+    "png": "assets/items/hard_bunker-512.png",
+    "webp": "assets/items/hard_bunker-512.webp",
+    "master": "assets/reference/items/hard_bunker-1024.png"
+  },
+  {
+    "id": "hard_archipelago",
+    "title": "Hard pass: Archipelago",
+    "png": "assets/items/hard_archipelago-512.png",
+    "webp": "assets/items/hard_archipelago-512.webp",
+    "master": "assets/reference/items/hard_archipelago-1024.png"
+  },
+  {
+    "id": "hard_town",
+    "title": "Hard pass: Town",
+    "png": "assets/items/hard_town-512.png",
+    "webp": "assets/items/hard_town-512.webp",
+    "master": "assets/reference/items/hard_town-1024.png"
+  },
+  {
+    "id": "bit_bunker",
+    "title": "BIT look: Arctic",
+    "png": "assets/items/bit_bunker-512.png",
+    "webp": "assets/items/bit_bunker-512.webp",
+    "master": "assets/reference/items/bit_bunker-1024.png"
+  },
+  {
+    "id": "bit_neon",
+    "title": "BIT look: Rust",
+    "png": "assets/items/bit_neon-512.png",
+    "webp": "assets/items/bit_neon-512.webp",
+    "master": "assets/reference/items/bit_neon-1024.png"
+  }
+]
