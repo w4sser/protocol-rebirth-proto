@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "1.98.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.99.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -711,8 +711,8 @@ function powerMeterHtml(){
 function powerPopupHtml(){
   tickPower();
   const v = powerValue(), tier = powerTier(), R = BP.reinforce || {}, c = canReinforce(), d = maintainDef();
-  const warn = tier === "warn" ? '<p class="pwr-warn">' + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
-    tier === "crit" ? '<p class="pwr-warn crit">' + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
+  const warn = tier === "warn" ? '<p class="pwr-warn">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
+    tier === "crit" ? '<p class="pwr-warn crit">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
   const rein = '<button type="button" class="primary' + (c.ok ? '' : ' off') + '" ' + (c.ok ? 'onclick="A.reinforce()"' : 'disabled') + '>' + IC("stat-shield") + ' REINFORCE · ' + IC("cur-scrap") + ' ' + (R.scrap || 18) + ' · +' + (R.gain || 25) + '</button>' +
     (!c.ok && c.reason === "scrap" ? '<small class="sub">Need more Scrap</small>' : !c.ok && c.reason === "cooldown" ? '<small class="sub">Reinforce cooling down</small>' : !c.ok && c.reason === "full" ? '<small class="sub">Power is full</small>' : '');
   const mReady = d && d.prog >= d.n;
@@ -759,7 +759,7 @@ function fabCraftHtml(){
     const can = !gated && !full && S.cur.scrap >= cost && inOk;
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + IC(ico) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
         : !gated && full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
@@ -861,18 +861,18 @@ function bitShieldBurst(){ const k = bitSkillDef("shield_burst"); return k && bi
 function scavCardHtml(){
   if(!bitOnline()) return "";
   const I = idleState(), now = idleNow(), pend = scavPending();
-  if(pend) return '<div class="idlecard scav pending"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is back with a haul</b><small>' + esc(scavLootText(pend)) + '. Waiting for your Confirm.</small></span>' +
+  if(pend) return '<div class="idlecard scav pending">' + bitImg("bit-haul-return", "bit-haul-return") + '<i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is back with a haul</b><small>' + esc(scavLootText(pend)) + '. Waiting for your Confirm.</small></span>' +
     '<button type="button" class="primary inline" onclick="A.openHaul()">CONFIRM</button></div>';
-  if(I.scav) return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
+  if(I.scav) return '<div class="idlecard scav">' + bitImg("bit-scavenging-away", "bit-scavenging-away") + '<i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
   const busy = !!S.expedition, miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, aim = miss && scavPools().includes(miss.itemId) ? miss : null;
   return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.' + (aim ? ' Priority: ' + esc(ITEMS[aim.itemId].name) + '.' : '') + '</small></span>' +
     '<button type="button" class="ghost inline" ' + (busy ? 'disabled' : 'onclick="A.sendScavenge()"') + '>SEND</button></div>';
 }
 function haulPopupHtml(pend){
-  return '<div class="bpop haulpop" data-module="bit_bay"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("scavenge") + '</span><h1>BIT is back</h1></div>' +
+  return '<div class="bpop haulpop" data-module="bit_bay"><div class="bpop-head">' + bitImg("bit-haul-return", "bit-haul-return") + '<span class="bicon" aria-hidden="true">' + IC("scavenge") + '</span><h1>BIT is back</h1></div>' +
     '<p class="eff">BIT brought this back from the scavenging run. It stays here until you confirm.</p><div class="costs">' +
     '<div class="cost ok"><i aria-hidden="true">' + IC("cur-scrap") + '</i><b>+' + pend.scrap + '</b><span class="cname">Scrap</span></div>' +
-    Object.entries(pend.items).map(([id, q]) => '<div class="cost ok"><i aria-hidden="true">' + IC(ITEMS[id].icon) + '</i><b>+' + q + '</b><span class="cname">' + esc(ITEMS[id].name) + '</span></div>').join("") + '</div>' +
+    Object.entries(pend.items).map(([id, q]) => '<div class="cost ok"><i aria-hidden="true">' + itemImg(id) + '</i><b>+' + q + '</b><span class="cname">' + esc(ITEMS[id].name) + '</span></div>').join("") + '</div>' +
     '<button class="primary big" onclick="A.confirmHaul()">CONFIRM</button></div>';
 }
 /* ---------- v1.95 PART 2: BIT fullscreen screen (reuses the #overlay.wpnov / .fabov fullscreen pattern) ----------
@@ -970,7 +970,7 @@ function bitHeaderHtml(){
   const pct = nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100;
   const avail = talentPointsAvailable(), spent = talentSpentTotal(), cost = talentRespecCost();
   const canReset = spent > 0 && S.cur.scrap >= cost;
-  return '<div class="bithead">' +
+  return '<div class="bithead">' + bitImg("bit-screen-portrait", "bit-screen-portrait") +
     '<div class="bitbond"><b>' + IC("nav-bit") + ' Bond LV ' + bl + '</b>' +
     '<span class="bitxpbar"><span style="width:' + pct + '%"></span></span>' +
     '<span class="bitxp">' + S.bondXp + (nxt ? '/' + nxt.xp : "") + ' xp</span></div>' +
@@ -1163,7 +1163,7 @@ function rollMystery(rng){
 }
 function rewardCardHtml(c, i, qid){
   const body = c.kind === "scrap" ? IC("cur-scrap") + '<b>+' + c.n + '</b><small>Scrap</small>' : c.kind === "xp" ? IC("star") + '<b>+' + c.n + '</b><small>Operator XP</small>' :
-    c.kind === "item" ? IC(qItemIc(c.item)) + '<b>' + c.n + '×</b><small>' + esc(ITEMS[c.item].name) + '</small>' : IC("mystery") + '<b>?</b><small>Mystery box · could be better, could be worse</small>';
+    c.kind === "item" ? itemImg(c.item) + '<b>' + c.n + '×</b><small>' + esc(ITEMS[c.item].name) + '</small>' : IC("mystery") + '<b>?</b><small>Mystery box · could be better, could be worse</small>';
   return '<button type="button" class="qcard ' + c.kind + '" onclick="A.questPick(\'' + qid + '\',' + i + ')">' + body + '</button>';
 }
 function questsHtml(){
@@ -1182,6 +1182,8 @@ function qObjIcon(o){ return o.type === "extract" ? ITEMS[o.item].icon : o.type 
 // FIR = found in raid: small marker on tiles whose items must come out of a raid (stash, hand-in requirements).
 function firMark(){ return '<i class="firmk" title="Found in raid" aria-hidden="true">' + IC("fir") + '</i>'; }
 function qTile(ic, txt, cls, label){ return '<span class="qt ' + (cls || "") + '"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + IC(ic) + (txt !== "" && txt != null ? '<b>' + esc(txt) + '</b>' : '') + (/\bfir\b/.test(cls || "") ? firMark() : '') + '</span>'; }
+// v1.99: reward/loot tile for an item id (real art via itemImg) rather than a bare sprite icon id.
+function qTileImg(id, txt, cls, label){ return '<span class="qt ' + (cls || "") + '"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + itemImg(id) + (txt !== "" && txt != null ? '<b>' + esc(txt) + '</b>' : '') + (/\bfir\b/.test(cls || "") ? firMark() : '') + '</span>'; }
 function chainPips(prog, n){
   if(n > 8) return '<span class="ibar"><span style="width:' + Math.round(prog / n * 100) + '%"></span></span>';
   let h = ""; for(let i = 0; i < n; i++) h += '<i' + (i < prog ? ' class="f"' : '') + '></i>';
@@ -1193,7 +1195,7 @@ function chainRewardTiles(R, hero){
   if(R.xp) t.push(qTile("star", R.xp, "", "Operator XP"));
   if(R.chips) t.push(qTile("cur-chip", R.chips, "", "Contract Chips"));
   if(R.dataCores) t.push(qTile("cur-datacore", R.dataCores, "", "Data Cores"));
-  for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(hero && ITEMS[id].hero ? handInItemTile(id, R[k][id], "") : qTile(ITEMS[id].icon, R[k][id], "", ITEMS[id].name));
+  for(const k of ["items", "tools"]) for(const id in R[k] || {}) t.push(hero && ITEMS[id].hero ? handInItemTile(id, R[k][id], "") : qTileImg(id, R[k][id], "", ITEMS[id].name));
   if(R.unlock) t.push(qTile("unlock", "", "", "Unlock"));
   return t.join("");
 }
@@ -1261,7 +1263,7 @@ function questUnlocksText(chain, def){
 const HANDIN_MS = 700;
 // Hand-in tile for an item: its hero art (large) when it has one, else the usual icon tile.
 function handInItemTile(id, txt, cls){
-  const it = ITEMS[id]; if(!it.hero) return qTile(it.icon, txt, cls, it.name);
+  const it = ITEMS[id]; if(!it.hero) return qTileImg(id, txt, cls, it.name);
   return '<span class="qt hero ' + (cls || "") + '" title="' + esc(it.name) + '">' + heroImg(it.hero, "hi-hero") + '<b>' + esc(txt) + '</b>' + (/\bfir\b/.test(cls || "") ? firMark() : '') + '</span>';
 }
 function handInHtml(id){
@@ -1387,7 +1389,7 @@ function chipExchangeHtml(kind){
     '<span class="cs-ic">' + IC(ITEMS[r.item].icon) + '<em>' + n + '</em></span><span class="qt">' + IC("arrow-right") + '</span>' + qTile("cur-chip", "+" + r.chips, "") + '</button>';
 }
 function chipShopHtml(){
-  return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
+  return '<div class="bpop cshop"><div class="bpop-head">' + bitImg("bit-quartermaster", "bit-quartermaster") + '<span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
     '<div class="cs-body"><div class="cs-list"><div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
     '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>' + chipPreviewHtml(chipItem(chipSelId())) + '</div></div>';
 }
@@ -1763,7 +1765,7 @@ function upgradeRewardHtml(modId, level, bitJustOnline){
     '<div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
     (nextLine ? '<p class="reward-goal"><b>NEXT</b> ' + esc(nextLine) + '</p>' : '') +
     '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
-    (bitOff ? '<p class="reward-bit">' + IC("bit-face") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
+    (bitOff ? '<p class="reward-bit">' + bitImg("bit-offline", "bit-offline") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
 }
 function fakeAd(label, onDone){
   let sec = 3;
@@ -1797,6 +1799,29 @@ const CUR_ICONS = { scrap:IC("cur-scrap"), dataCores:IC("cur-datacore"), salvage
 const ROOM_ICONS = { rebirth_core:IC("room-core"), fabricator:IC("room-fabricator"), storage:IC("room-storage"), bit_bay:IC("room-bitbay"), living_quarters:IC("room-quarters") };
 // v1.51: every item names its own bespoke icon in data/items.js (icon:"item-..."); no generic fallback.
 function itemIcon(id){ const it = ITEMS[id]; if(it && it.artImg) return '<img class="pr-icon ic-art" src="assets/weapons/' + it.artImg + '-512.webp" alt="" draggable="false" onerror="this.onerror=null;this.src=this.src.replace(/webp$/,\'png\')">'; if(it && it.art && typeof weaponArtSrc === "function"){ const a = weaponArtImg(id, 512, "pr-icon ic-art"); if(a) return a; } return it && it.icon ? IC(it.icon) : ""; }
+// v1.99: item art (docs/art-oct25-item-manifest.json) — real renders for base materials, salvage, tools and valuables,
+// delivered as assets/items/<id>-512.{webp,png}. Weapons/attachments keep their own art via itemIcon above; this hook
+// defers to it so artImg stays weapon-only. No id allowlist here (economy ids stay out of app.js, see test/logic.test.js):
+// every non-weapon item is tried against its own art path: onerror first drops the <source> to retry the plain PNG
+// (picture doesn't do this on its own), then falls back to the sprite icon if the PNG also fails or no art exists.
+function itemImg(id, cls){
+  const it = ITEMS[id];
+  if(!it) return "";
+  if(it.artImg || it.art) return itemIcon(id);
+  const sprite = it.icon ? IC(it.icon) : "";
+  const base = "assets/items/" + id + "-512";
+  return '<picture class="pr-itemimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
+    '<img class="pr-item-art" src="' + base + '.png" alt="" draggable="false" onerror="var s=this.previousElementSibling;if(s){s.remove()}else{this.closest(\'.pr-itemimg\').classList.add(\'art-err\')}"></picture>' +
+    '<i class="pr-itemimg-fb" aria-hidden="true">' + sprite + '</i>';
+}
+// v1.99: BIT mood portraits (docs/art-oct25-handoff.md) — square transparent cutouts at assets/bit/<name>.{webp,png}
+// for a handful of existing BIT touchpoints. onerror falls back to the sprite BIT face, same pattern as itemImg above.
+function bitImg(name, cls){
+  const base = "assets/bit/" + name;
+  return '<picture class="pr-bitimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
+    '<img class="pr-bit-art" src="' + base + '.png" alt="" draggable="false" onerror="var s=this.previousElementSibling;if(s){s.remove()}else{this.closest(\'.pr-bitimg\').classList.add(\'art-err\')}"></picture>' +
+    '<i class="pr-bitimg-fb" aria-hidden="true">' + IC("bit-face") + '</i>';
+}
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
 // v1.88 contextual top bar (docs/design-armory.md d): Level, Scrap and Power everywhere; other currencies only on the screen that
@@ -2355,7 +2380,7 @@ function invSlotHtml(id){
   const it = ITEMS[id], cls = ["slot","r-"+(gearKind(id) ? tierRarity(id) : it.rarity)];
   if(S.reserved[id]) cls.push("reserved");
   if(S.secureItem === id) cls.push("secure");
-  return '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(it.name) +
+  return '<div class="' + cls.join(" ") + '" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')"><span class="sicon" aria-hidden="true">' + itemImg(id) + '</span>' + esc(it.name) +
     (firHave(id) ? firMark() : '') + upMark(id) + (gearKind(id) && gearTier(id) > 1 ? '<span class="mkbadge">MK ' + TIER_NAMES[gearTier(id) - 1] + '</span>' : '') + usageIconsHtml(id) + '<span class="qty">×' + qty(id) + '</span></div>';
 }
 // v1.89: one screen, two stores. ARMORY (gear: weapons, armor/rigs, consumables, tools; own capacity) on top, STASH (materials) below.
@@ -2366,7 +2391,7 @@ SCREENS.stash = function(){
   html += '<section class="inv-sec armory" id="inv-armory"><div class="sub"><b>ARMORY</b> · ' + armorySlotsUsed() + ' / ' + armoryCapacity() + ' slots · gear you can equip' +
     (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div>' + capBarHtml(armorySlotsUsed(), armoryCapacity()) + '<div class="grid">';
   for(const id of D.items.filter(i => i.free).map(i => i.id))
-    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
+    html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemImg(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
   html += gear.map(invSlotHtml).join("") + '</div></section>';
   html += '<section class="inv-sec mats" id="inv-stash"><div class="sub"><b>STASH</b> · ' + stashSlotsUsed() + ' / ' + stashCapacity() + ' slots · materials' +
@@ -2404,7 +2429,7 @@ function stashWarnings(id, qty){
 function stashPopHtml(){
   const p = session.stashPop, id = p.id, it = ITEMS[id], info = D.itemInfo(id);
   if(gearKind(id) && !p.sellView && !p.confirm && (isFree(id) || have(id) > 0)) return gearPopHtml(id);
-  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
+  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemImg(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
   const meta = '<div class="sp-meta">' + esc(it.family) + ' · <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div><div class="eff">' + esc(it.desc) + '</div>';
   if(isFree(id)) return '<div class="bpop stashpop">' + head + meta + '<div class="card small ok">Always available. Never takes a stash slot, can’t be lost on death, sold or recycled.</div></div>';
   p.qty = Math.max(1, Math.min(p.qty, have(id)));
@@ -2468,7 +2493,7 @@ function quickCleanHtml(){
     '<div class="sp-act"><button class="primary big" onclick="A.quickCleanConfirm()">SELL FOR +' + gain + ' SCRAP</button><button class="ghost" onclick="A.quickCleanBack()">CANCEL</button></div></div>';
   if(!list.length) return '<div class="bpop stashpop">' + head + '<div class="card small">Nothing safe to suggest. Everything left is reserved, secure or needed. Sell items from the stash one by one.</div></div>';
   return '<div class="bpop stashpop">' + head + '<div class="sp-sub">' + (over > 0 ? 'Over by ' + over + ' slot' + (over === 1 ? '' : 's') + '. ' : '') + 'Low-value items nothing needs.</div><div class="qclist">' +
-    list.map(r => '<button type="button" class="qcrow' + (qc.sel[r.id] ? ' on' : '') + '" aria-pressed="' + !!qc.sel[r.id] + '" onclick="A.quickCleanToggle(\'' + r.id + '\')"><span class="sicon" aria-hidden="true">' + itemIcon(r.id) + '</span><span class="qn">' + esc(ITEMS[r.id].name) + ' ×' + r.qty + '</span><span class="qg">+' + r.gain + '</span>' + (qc.sel[r.id] ? IC("check") : '') + '</button>').join("") +
+    list.map(r => '<button type="button" class="qcrow' + (qc.sel[r.id] ? ' on' : '') + '" aria-pressed="' + !!qc.sel[r.id] + '" onclick="A.quickCleanToggle(\'' + r.id + '\')"><span class="sicon" aria-hidden="true">' + itemImg(r.id) + '</span><span class="qn">' + esc(ITEMS[r.id].name) + ' ×' + r.qty + '</span><span class="qg">+' + r.gain + '</span>' + (qc.sel[r.id] ? IC("check") : '') + '</button>').join("") +
     '</div><button class="primary big" onclick="A.quickCleanAsk()"' + (pick.length ? '' : ' disabled') + '>SELL SELECTED +' + gain + ' · FREES ' + freed + '</button></div>';
 }
 function quickCleanRender(){
@@ -2675,7 +2700,7 @@ function slotTileHtml(def, locked, mini){
   return '<button type="button" class="lslot' + (mini ? ' mini' : '') + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
     (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
     (risk ? '<span class="rdot" aria-hidden="true"></span>' : '') +
-    '<i aria-hidden="true">' + (it ? itemIcon(id) : (mini ? IC("plus") : icon)) + '</i>' +
+    '<i aria-hidden="true">' + (it ? itemImg(id) : (mini ? IC("plus") : icon)) + '</i>' +
     (mini ? '' : '<b>' + (it ? esc(it.name) : (!locked && ownedForSlot(slot) ? empty : (slot === "tool" ? 'Add tool' : empty))) + '</b><small>' + label + '</small>') +
     (qty > 0 ? '<span class="qty">x' + qty + '</span>' : '') +
     (key === "weapon" && it && !mini && gearKind(id) === "weapon" ? '<span class="lslot-up" role="button" tabindex="0" aria-label="Open ' + esc(it.name) + ' bench" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')">' + IC("chevron-up") + '</span>' : '') + '</button>';
@@ -3068,7 +3093,7 @@ SCREENS.checkpoint = function(){
   const riskPct = Math.round(pushDeath * 100), riskBars = Math.max(1, Math.min(5, Math.ceil(pushDeath * 10)));
   html += '<div class="cp-wrap"><div class="cp-haul card"><div class="cp-haulhead"><span class="small">IN YOUR BAG · NOT SECURED</span><b class="cp-value">' + haulVal + '<small> + ' + rd.scrap + ' ' + IC("cur-scrap") + '</small></b></div><div class="cp-chips">' +
     (rd.haul.length ? rd.haul.map(id => { const fl = R.cfg.trackedItemId === id;
-      return '<span class="cp-chip r-' + ITEMS[id].rarity + (fl ? ' tracked' : '') + '" title="' + esc(ITEMS[id].name) + '"><i aria-hidden="true">' + itemIcon(id) + '</i>' + esc(ITEMS[id].name) + (fl ? ' ' + IC("track-on") : '') + '</span>'; }).join('') : '<span class="small">Empty so far</span>') +
+      return '<span class="cp-chip r-' + ITEMS[id].rarity + (fl ? ' tracked' : '') + '" title="' + esc(ITEMS[id].name) + '"><i aria-hidden="true">' + itemImg(id) + '</i>' + esc(ITEMS[id].name) + (fl ? ' ' + IC("track-on") : '') + '</span>'; }).join('') : '<span class="small">Empty so far</span>') +
     '</div></div>';
   html += '<div class="decision-actions cp-choices">' +
     '<button class="primary cp-extract" onclick="A.extractNow()"><b>EXTRACT</b><span>' + IC("lock") + ' Keep ' + haulVal + '</span></button>' +
@@ -3092,24 +3117,24 @@ SCREENS.result = function(){
         const nx = moduleVisible(m.id) && nextLevelDef(m.id);
         return nx && nx.level <= moduleCap(m.id) && nx.cost.items && nx.cost.items[id];
       });
-      html += '<div class="card row' + '"' + '><span' + (flagged?' class="trackc"':'') + '>' + (flagged?IC("track-on") + " ":"") + esc(ITEMS[id].name) + '</span>' +
+      html += '<div class="card row' + '"' + '><span' + (flagged?' class="trackc"':'') + '>' + itemImg(id) + ' ' + (flagged?IC("track-on") + " ":"") + esc(ITEMS[id].name) + '</span>' +
         (flagged ? '<span class="trackc small">tracked</span>' : isPart ? '<span class="ok small">upgrade part</span>' : '') + '</div>';
     }
     html += '<div class="progressmoved"><b>PROGRESS MOVED</b><br>' + R.progress.map(esc).join("<br>") + '</div>';
     if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">' + IC("play") + ' WATCH AD — 2× HAUL</button>';
   } else {
     const saved = R.saved;
-    html = '<h1 class="bad">KIA</h1><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
+    html = '<div class="result-head">' + bitImg("bit-death", "bit-death") + '<h1 class="bad">KIA</h1></div><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
     const savedIds = [...saved.insured, saved.secure].filter(Boolean);
     for(const id of R.cfg.loadout){
       if(savedIds.includes(id)){ savedIds.splice(savedIds.indexOf(id),1); continue; }
-      html += '<div class="card row"><span class="bad">' + esc(ITEMS[id].name) + '</span><span class="small">lost</span></div>';
+      html += '<div class="card row"><span class="bad">' + itemImg(id) + ' ' + esc(ITEMS[id].name) + '</span><span class="small">lost</span></div>';
     }
     if(saved.insured.length || saved.secure || saved.bitRescue){
       html += '<h2>Recovered</h2>';
-      saved.insured.forEach(id => html += '<div class="card row"><span class="ok">' + esc(ITEMS[id].name) + '</span><span class="small ok">insurance · 0:30</span></div>');
-      if(saved.secure) html += '<div class="card row"><span class="ok">' + esc(ITEMS[saved.secure].name) + '</span><span class="small warn">secure slot</span></div>';
-      if(saved.bitRescue) html += '<div class="card row"><span class="ok">' + esc(ITEMS[saved.bitRescue].name) + '</span><span class="small ok">BIT carried it home</span></div>';
+      saved.insured.forEach(id => html += '<div class="card row"><span class="ok">' + itemImg(id) + ' ' + esc(ITEMS[id].name) + '</span><span class="small ok">insurance · 0:30</span></div>');
+      if(saved.secure) html += '<div class="card row"><span class="ok">' + itemImg(saved.secure) + ' ' + esc(ITEMS[saved.secure].name) + '</span><span class="small warn">secure slot</span></div>';
+      if(saved.bitRescue) html += '<div class="card row"><span class="ok">' + itemImg(saved.bitRescue) + ' ' + esc(ITEMS[saved.bitRescue].name) + '</span><span class="small ok">BIT carried it home</span></div>';
     } else if(R.cfg.insuranceId === "none"){
       html += '<div class="card small warn">No insurance. Everything stayed on the surface.</div>';
     }
@@ -3161,7 +3186,7 @@ SCREENS.vendor = function(){
   for(const s of v.stock){
     if(!stockUnlocked(s)) continue;
     const price = vendorPrice(s), afford = S.cur.scrap >= price;
-    html += '<div class="card row"><span>' + esc(ITEMS[s.itemId].name) + '</span>' +
+    html += '<div class="card row"><span>' + itemImg(s.itemId, "vrow-ic") + ' ' + esc(ITEMS[s.itemId].name) + '</span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (afford?'':'opacity:.4') + '" ' +
       (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + price + ' Scrap</button></div>';
   }
@@ -3173,8 +3198,8 @@ SCREENS.vendor = function(){
   html += '<h2>Barter</h2>';
   v.barter.forEach((b,ix) => {
     const can = Object.keys(b.give).every(id => have(id) >= b.give[id]);
-    const giveTxt = Object.keys(b.give).map(id => b.give[id] + "× " + ITEMS[id].name).join(" + ");
-    html += '<div class="card row"><span class="small">' + esc(giveTxt) + ' ' + IC("arrow-right") + '<br><b>' + b.receive.qty + '× ' + esc(ITEMS[b.receive.itemId].name) + '</b></span>' +
+    const giveTxt = Object.keys(b.give).map(id => itemImg(id, "vrow-ic") + ' ' + b.give[id] + "× " + esc(ITEMS[id].name)).join(" + ");
+    html += '<div class="card row"><span class="small">' + giveTxt + ' ' + IC("arrow-right") + '<br><b>' + itemImg(b.receive.itemId, "vrow-ic") + ' ' + b.receive.qty + '× ' + esc(ITEMS[b.receive.itemId].name) + '</b></span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can?'':'opacity:.4') + '" ' +
       (can?'onclick="A.barter(' + ix + ')"':'disabled') + '>Trade</button></div>';
   });
@@ -3182,12 +3207,12 @@ SCREENS.vendor = function(){
     html += '<h2>Crafting — Fabricator L' + S.modules.fabricator + '</h2>';
     for(const r of D.recipes){
       const gated = r.fabricatorLevel > (S.modules.fabricator||0);
-      const parts = Object.keys(r.inputs).map(id => Math.min(have(id),r.inputs[id]) + "/" + r.inputs[id] + " " + ITEMS[id].name).join(" · ");
+      const parts = Object.keys(r.inputs).map(id => itemImg(id, "vrow-ic") + ' ' + Math.min(have(id),r.inputs[id]) + "/" + r.inputs[id] + " " + esc(ITEMS[id].name)).join(" · ");
       const can = !gated && S.cur.scrap >= craftCost(r) && Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
-      html += '<div class="card ' + (gated?'locked':'') + '"><div class="row"><b>' + esc(r.name) + '</b>' +
+      html += '<div class="card ' + (gated?'locked':'') + '"><div class="row"><b>' + (r.output.itemId ? itemImg(r.output.itemId, "vrow-ic") + ' ' : '') + esc(r.name) + '</b>' +
         (gated ? '<span class="small warn">Fab L' + r.fabricatorLevel + '</span>'
                : '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (can?'':'opacity:.4') + '" ' + (can?'onclick="A.craft(\'' + r.id + '\')"':'disabled') + '>Craft (' + craftCost(r) + ' Scrap)</button>') +
-        '</div><div class="small">' + esc(parts) + '</div></div>';
+        '</div><div class="small">' + parts + '</div></div>';
     }
   } else {
     html += '<div class="card small">Crafting requires the Fabricator.</div>';
@@ -3319,7 +3344,7 @@ function maybeShowItemInfo(){
   if(!ids.length) return;
   save();
   overlay('<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + ids.map(id => { const info = D.itemInfo(id), it = info.item;
-    return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
+    return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemImg(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
       usedForHtml(id).replace('card small usedfor', 'usedfor') +
       '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
     '<button class="primary" data-close>GOT IT</button>', () => setTimeout(() => { maybeShowItemInfo(); maybeShowHandIn(); }, 0));
@@ -3632,7 +3657,7 @@ function gearTilesHtml(id){
 function gearPopHtml(id){
   if(gearKind(id) === "weapon") return weaponScreenHtml(id);
   const it = ITEMS[id], lvl = gearLevel(id), max = gearMax(id), why = gearBlock(id), nxt = lvl < max ? lvl + 1 : null;
-  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemIcon(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
+  const head = '<div class="bpop-head"><span class="bicon" aria-hidden="true">' + itemImg(id) + '</span><h1>' + esc(it.name) + '</h1><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>';
   const cost = nxt ? costParts(gearCost(id, nxt)).map(p => '<span class="gu-c' + (p.have < p.need ? ' bad' : '') + '">' + partIcon(p) + p.need + (p.kind === "item" ? ' ' + esc(ITEMS[p.id].name) : '') + '</span>').join("") : "";
   let mastery = "";
   if(isFree(id)){
@@ -3754,7 +3779,7 @@ function coreResultSummary(r, res){
 function coreResultStripHtml(r, res){
   if(!res || !res.ok) return null;
   const counts = {}; (res.added || []).forEach(id => counts[id] = (counts[id] || 0) + 1);
-  const t = Object.keys(counts).map(id => qTile(ITEMS[id].icon, counts[id], "", ITEMS[id].name));
+  const t = Object.keys(counts).map(id => qTileImg(id, counts[id], "", ITEMS[id].name));
   for(const c in res.currency || {}) t.push(qTile(CUR_ICON_IDS[c] || "cur-scrap", res.currency[c], "", CUR_LABELS[c] || (D.currencies[c] || {}).name || c));
   if(res.scrapBonus) t.push(qTile("cur-scrap", "+" + res.scrapBonus, "bonus", "Extract bonus"));
   if(res.xp) t.push(qTile("star", res.xp, "", "BIT XP"));
@@ -4086,7 +4111,7 @@ window.A = {
     if(def[1] === "weapon") ids.unshift(FREE_WEAPON);
     const cur = session.prep.loadout[key];
     overlay('<div class="bpop picker"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + def[3] + '</span><h1>' + def[2] + '</h1></div><div class="pick-grid">' +
-      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemIcon(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + (gearKind(id) === "weapon" ? '<span class="pick-up" role="button" tabindex="0" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();event.stopPropagation();A.openWeapon(\'' + id + '\')}">UPGRADE</span>' : '') + '</button>').join('') +
+      ids.map(id => '<button type="button" class="pick' + (cur === id ? ' selected' : '') + '" onclick="A.chooseSlot(\'' + key + '\',\'' + id + '\')"><i aria-hidden="true">' + itemImg(id) + '</i><b>' + esc(ITEMS[id].name) + '</b><small>' + (ITEMS[id].free ? IC("infinity") + ' FREE' : '×' + qty(id) + (ITEMS[id].tool ? ' charge' + (qty(id) === 1 ? '' : 's') : '')) + '</small>' + (ITEMS[id].weapon ? '<small class="wstats">' + weaponStatsLine(id) + '</small>' : '') + (gearKind(id) === "weapon" ? '<span class="pick-up" role="button" tabindex="0" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();event.stopPropagation();A.openWeapon(\'' + id + '\')}">UPGRADE</span>' : '') + '</button>').join('') +
       '<button type="button" class="pick" onclick="A.chooseSlot(\'' + key + '\',\'\')"><i aria-hidden="true">∅</i><b>Empty</b></button></div></div>', null, "sheet");
   },
   chooseSlot(key, id){ closeBuildingPopup(); A.prepLoadout(key, id); },
@@ -4412,7 +4437,7 @@ window.A = {
     const o = document.getElementById("overlay"); if(o) o.remove();
     if(reveal){
       overlay('<div class="bpop mreveal" style="--rc:' + RARITY_HEX[reveal.tier] + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("mystery") + '</span><h1>' + reveal.tier.toUpperCase() + '</h1></div>' +
-        '<div class="mrow"><span>' + IC("cur-scrap") + ' +' + reveal.scrap + ' Scrap</span>' + Object.entries(reveal.items).map(([id, n]) => '<span>' + IC(qItemIc(id)) + ' ' + n + '× ' + esc(ITEMS[id].name) + '</span>').join("") + (reveal.dataCores ? '<span>' + IC("cur-datacore") + ' +' + reveal.dataCores + ' Data Cores</span>' : '') + '</div>' +
+        '<div class="mrow"><span>' + IC("cur-scrap") + ' +' + reveal.scrap + ' Scrap</span>' + Object.entries(reveal.items).map(([id, n]) => '<span>' + itemImg(id) + ' ' + n + '× ' + esc(ITEMS[id].name) + '</span>').join("") + (reveal.dataCores ? '<span>' + IC("cur-datacore") + ' +' + reveal.dataCores + ' Data Cores</span>' : '') + '</div>' +
         '<button class="primary big" data-close>NICE</button></div>', () => refresh(), "sheet");
     } else { toast("Reward claimed · +" + QD.bondXp + " Bond XP"); refresh(); }
   },
