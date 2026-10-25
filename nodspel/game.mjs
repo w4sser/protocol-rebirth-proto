@@ -654,6 +654,9 @@ let previous=performance.now();
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
+  // v2.0 screenshot hooks: weapon-found compare (ground box moved next to the player) and backpack compare.
+  weaponOfferDemo(item='shotgun_breach'){const b=round.level.lootBoxes.find(x=>!x.collected);if(!b)return false;b.item=item;b.gearNotified=true;b.x=position.x;b.z=position.z;round.weaponOffer={boxId:b.id,item,at:0};showWeaponOffer();return true;},
+  backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,Date.now()))finishRound('extract');},
   async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.0.0');round.level=generateLevel(n,round.seed);loadLevel();}};
@@ -739,7 +742,7 @@ function weaponCompareRow(stat){
   const to=document.createElement('span');to.className='wc-to';to.textContent=stat.to;
   row.append(label,from,arrow,to);return row;
 }
-function showBackpackWeapon(index){
+function showBackpackWeapon(index){{const gt=$('#gear-toast');if(gt)gt.hidden=true;}
   if(!round||round.over||resultPending)return;
   const item=round.backpack?.[index];if(!item)return;
   const current=round.equip.weapon;
@@ -758,7 +761,7 @@ function showBackpackWeapon(index){
   };
   actions.append(confirm);el.append(close,head,compare,actions);el.hidden=false;
 }
-function showWeaponOffer(){
+function showWeaponOffer(){{const gt=$('#gear-toast');if(gt)gt.hidden=true;} // v2.0: the slot-taken toast must not cover the compare title
   const o=round?.weaponOffer;if(!o||round.over||!nearWeaponOffer())return;
   let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');el.setAttribute('aria-label','Weapon found');$('#viewport').append(el);}
   el.dataset.kind='weapon';el.setAttribute('aria-label','Weapon found');el.replaceChildren();
