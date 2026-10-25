@@ -17,7 +17,8 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const integrated=!!launch.returnUrl,bag={...(checkpoint?round.bag:safe?round.extracted:round.lost)},recovered=[];
   // Show existing meta recovery effects without granting them here. They are applied once at the base.
   const launchGear=(launch.gear??[]).filter(id=>item(id)&&!item(id).free);
-  const equipped=Object.values(round.equip??{}).filter(id=>id&&item(id)&&!item(id).free);
+  // v2.0: backpack weapons travel with the equipped gear through extract/lost/at-risk reporting (docs/design-playtest-oct25.md §c).
+  const equipped=[...Object.values(round.equip??{}),...(round.backpack??[])].filter(id=>id&&item(id)&&!item(id).free);
   let gear=[...new Set(safe||checkpoint?equipped:[...launchGear,...equipped])];
   if(!checkpoint&&!safe&&integrated&&home){
     const rescueLevel=globalThis.DATA.bit.bondLevels.find(l=>l.level===3);

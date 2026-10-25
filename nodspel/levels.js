@@ -125,6 +125,9 @@ export const RULES=Object.freeze({
   weaponIds:['basic_carbine','smg_vector','rifle_marksman','shotgun_breach'],
   weaponClamp:{damage:[1,4],capacity:[1,12],reloadMs:[250,1600],shotIntervalMs:[80,1000],range:[3,12],coneHalfAngleDegrees:[3,25],assistAngleDegrees:[4,30],spreadDegrees:[0,12],knockback:[0,2],pellets:[1,9],homingDegreesPerSecond:[0,240]},
   kitMax:{medkit:2},
+  // v2.0 weapon backpack (docs/design-playtest-oct25.md §c): small fixed capacity, separate from the bag's
+  // material slots and not affected by armor's bagSlots stat. Full capacity -> explicit swap-or-leave choice.
+  backpack:{capacity:2},
   // Toolkit (?tool=id:n). ids/charges must match data/items.js (tool_*); a test cross-checks them.
   // throwRange: auto-aim radius and max arc distance; forward: where a tap lands with no target in range.
   tools:{throwRange:6,forward:4,lureStopDistance:.8,dragPx:90,
