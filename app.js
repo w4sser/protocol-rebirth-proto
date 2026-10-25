@@ -950,12 +950,13 @@ function bitScreenHtml(tab){
     '</div></div>';
 }
 // Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
-// A quest/hand-in popup opened from the QUESTS tab stacks a second #overlay on top without removing the BIT one
-// first (so its own close handler can return to the right place); while that's up, leave the BIT overlay alone —
-// recreating it here would bury the child popup instead of letting it survive a background refresh().
+// A quest/hand-in popup opened from the QUESTS tab (questLog/handInShow) replaces the BIT #overlay with its own
+// (qlogov/handinov) rather than stacking a second one — so while one of those is up, leave it alone: recreating
+// the BIT overlay here would destroy it (and its reward animation) out from under a background refresh().
 function bitRender(tab){
-  if(document.querySelectorAll("#overlay").length > 1) return;
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay");
+  if(old && (old.classList.contains("qlogov") || old.classList.contains("handinov"))) return;
+  if(old) old.remove();
   session.screenParam = tab || session.screenParam || "talents";
   overlay(bitScreenHtml(session.screenParam), () => A.go("base"), "sheet bitov");
 }
