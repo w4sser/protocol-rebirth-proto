@@ -1,3 +1,4 @@
 /* AD palette tokens (shared by base + Node Raid). Meaning: cyan = BIT / system / extract, amber = loot, coral = danger,
-   orange = THE primary action (RAID tab, DEPLOY, PLAY/Start). Use var(--ad-*) in UI CSS; test/guardrails.test.js ratchets raw colours. */
-:root{--ad-cyan:#3FE0D0;--ad-bit:#75CFCC;--ad-loot:#E8C547;--ad-danger:#E4705F;--ad-primary:#FF9D4D;--ad-primary-edge:#94501E;--ad-ink:#0D1A20;--ad-bone:#F2E9D6;--ad-night:#07151C}
+   orange = THE primary action (RAID tab, DEPLOY, PLAY/Start), good = stat-compare improvement (paired with danger for
+   the matching downgrade). Use var(--ad-*) in UI CSS; test/guardrails.test.js ratchets raw colours. */
+:root{--ad-cyan:#3FE0D0;--ad-bit:#75CFCC;--ad-loot:#E8C547;--ad-danger:#E4705F;--ad-good:#7FD858;--ad-primary:#FF9D4D;--ad-primary-edge:#94501E;--ad-ink:#0D1A20;--ad-bone:#F2E9D6;--ad-night:#07151C}

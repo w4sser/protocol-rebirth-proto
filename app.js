@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "1.99.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.0.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -529,7 +529,7 @@ function tickIdle(){
   if(genRate() && !I.genAt) I.genAt = now;           // generator starts once the Core is online
   for(const modId of Object.keys(I.builds)){ const b = I.builds[modId];
     if(now >= b.doneAt){ delete I.builds[modId]; finishModuleLevel(modId, b.level); rows.push({ kind:"build", icon:"build", txt:MODS[modId].name + " L" + b.level + " finished" }); } }
-  /* v1.99.2 */
+  /* v2.0.0 */
   // Finished crafts stay in their slots until collected; timestamps still advance offline.
   if(I.scav && now >= I.scav.returnAt){ const loot = I.scav.loot; I.scav = null; I.scavPending = loot;   // v1.86: waits for the player's Confirm (persisted in S.idle)
     act("SCAVENGE_RETURNED", loot);
@@ -736,7 +736,7 @@ function buildCardHtml(modId){
   const now = idleNow(), pct = Math.min(100, Math.round((now - b.startAt) / (b.doneAt - b.startAt) * 100));
   return '<div class="idlecard building"><i aria-hidden="true">' + IC("scaffold") + '</i><span><b>Building L' + b.level + '</b><small>' + fmtLeft(b.doneAt - now) + ' left · finishes even while you are away</small><span class="ibar"><span style="width:' + pct + '%"></span></span></span></div>';
 }
-/* v1.99.2 */
+/* v2.0.0 */
 let fabCountdownTimer = null;
 function startFabCountdowns(){
   if(fabCountdownTimer === null) fabCountdownTimer = setInterval(updateFabCountdowns, 1000);
@@ -1893,7 +1893,7 @@ function navAllowed(id){ return id === "bit" ? bitOnline() : id === "arms" ? bas
 // v1.94: WEAPONS nav opens the upgrade bench for the weapon you last equipped (free carbine otherwise).
 function armsWeapon(){ const w = S.loadout && S.loadout.weapon; return w && ITEMS[w] && (isFree(w) || have(w) > 0) ? w : PROG.freeWeapon; }
 function ownedWeapons(){ return Object.keys(ITEMS).filter(id => gearKind(id) === "weapon" && (isFree(id) || have(id) > 0)); }
-/* v1.99.2: use the same destination for the nav badge, tab badge and focus. */
+/* v2.0.0: use the same destination for the nav badge, tab badge and focus. */
 function bitBadgeTargets(){
   const out = {};
   const contracts = contractsUnlocked() ? D.retention.contracts.daily.filter(c => S.contractsDay === dayStr() && (S.contracts || {})[c.id] === "done") : [];
@@ -1936,7 +1936,7 @@ function navBadge(id){
 function renderTabs(){
   const items = [["base",IC("nav-base"),"BASE"],["stash",IC("nav-stash"),"STASH"],["vendor",IC("nav-shop"),"SHOP"],["bit",IC("nav-bit"),"BIT"],["arms",IC("item-carbine"),"WEAPONS"],["prep",IC("nav-raid"),"RAID"]];
   document.getElementById("tabs").innerHTML = items.map(([id, icon, label]) => {
-    /* v1.99.2 */
+    /* v2.0.0 */
     if(id === "prep" && session.screen === "prep") return "";
     const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
     const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
@@ -3419,7 +3419,8 @@ function ingestRaidResult(r){
   const gear = launch ? launch.gear.filter(id => ITEMS[id]) : [];
   // v1.59: the core reports what is equipped at the end (gearOut). Gear found in the raid goes straight to the
   // character slots there; on extract everything equipped comes home, gear swapped out in the raid stays behind.
-  const gearOut = Array.isArray(r.gearOut) ? r.gearOut.filter(id => typeof id === "string" && ITEMS[id] && ["weapon","armor"].includes(ITEMS[id].slot) && !ITEMS[id].free).slice(0, 2) : null;
+  // v2.0: gearOut also carries the raid's weapon backpack (up to 2 slots) home, so the cap covers weapon + armor + backpack.
+  const gearOut = Array.isArray(r.gearOut) ? r.gearOut.filter(id => typeof id === "string" && ITEMS[id] && ["weapon","armor"].includes(ITEMS[id].slot) && !ITEMS[id].free).slice(0, 4) : null;
   const gearFound = [], swappedOut = [];
   if(extracted && gearOut){
     swappedOut.push(...gear);
@@ -3792,7 +3793,7 @@ function metaReturnPath(pathname){
   const last = String(pathname || "").split("/").pop();
   return "../" + (/^[\w.-]+\.html$/.test(last) ? last : "");
 }
-/* v1.99.2: a single ledger and one cached BIT reaction per completed raid. */
+/* v2.0.0: a single ledger and one cached BIT reaction per completed raid. */
 function raidQuestSnapshot(){
   if(questsOpen()) questState();
   const rows = {};
@@ -4423,7 +4424,7 @@ window.A = {
     toast("Traded for " + ITEMS[b.receive.itemId].name);
     refresh();
   },
-  /* v1.99.2 */
+  /* v2.0.0 */
   toggleFabQueue(event){
     event.preventDefault();
     session.fabQueueOpen = !event.currentTarget.parentElement.open;
@@ -4533,7 +4534,7 @@ window.A = {
     const def = p && chainActive(p.chain); if(!def || guidedRaid() || !areaUnlocked(def.area)) return;
     S.area = def.area; S.trackedQuest = p.chain; ensurePrep();
     act("QUEST_RAID", { chain:p.chain, step:def.id, area:def.area, level:def.objective.level || 1 });
-    /* v1.99.2 */
+    /* v2.0.0 */
     A.go("prep");
   },
   // Debug hooks for screenshots: A.handInDemo("handin"|"extract"|"hero") opens the popup with a ready step; A.questLogDemo() opens the log with FIR stock.

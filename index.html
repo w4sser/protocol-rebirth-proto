@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="nodspel/icons/happy-node.svg?v=1.99.2" type="image/svg+xml">
-<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=1.99.2">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=1.99.2">
+<link rel="icon" href="nodspel/icons/happy-node.svg?v=2.0.0" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="nodspel/icons/happy-node-large-180.png?v=2.0.0">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.0.0">
 <title>Protocol Rebirth</title>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
@@ -609,7 +609,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=1.99.2") center/contain no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=2.0.0") center/contain no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -763,9 +763,9 @@
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=1.99.2">
-<link rel="stylesheet" href="ui/popup.css?v=1.99.2">
-<link rel="stylesheet" href="ui/loader.css?v=1.99.2">
+<link rel="stylesheet" href="ui/tokens.css?v=2.0.0">
+<link rel="stylesheet" href="ui/popup.css?v=2.0.0">
+<link rel="stylesheet" href="ui/loader.css?v=2.0.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -1047,7 +1047,7 @@
   @keyframes wm-drift{from{transform:translate(0,0)}to{transform:translate(9px,3px)}}
   @media (prefers-reduced-motion:reduce){.wm-fogmap .fog-noise{animation:none}}
   .worldmap .wm-label,.worldmap .wm-beacon{backface-visibility:hidden}
-/* v1.99.2: title clears the shared close X */
+/* v2.0.0: title clears the shared close X */
 .raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style>
@@ -1067,7 +1067,7 @@
   #app.s-prep .lobby-side .lslot-row{display:flex;gap:6px;flex:1 1 0;min-height:0}#app.s-prep .lobby-side .lslot-row .lslot{flex:1 1 0;min-width:0}
   /* v1.64 item info: Used for + first-find card (shared popup) */
   .usedfor b{color:var(--ad-loot)} .infocard{text-align:left;margin:6px 0} .infocard .ic-head{display:flex;align-items:center;gap:6px;margin-bottom:4px} .infocard .ic-head .sicon{width:22px;height:22px}
-/* v1.99.2: title clears the shared close X */
+/* v2.0.0: title clears the shared close X */
 .raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style id="lobby3">/* v1.66 Raid Prep: 2x2 big slots | operator + stat strip | area + goal + DEPLOY. Amber dot = lost if you die. */
@@ -1124,7 +1124,7 @@
 .reward-card>button.primary.big{background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);width:260px;max-width:100%;margin:12px auto 0;display:block;min-height:44px}
 .reward-goal{margin:8px 0 0;font-size:11px;color:var(--dim)} .reward-goal b{color:var(--ad-loot);letter-spacing:.08em;margin-right:4px}
 .reward-bit{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 0;font-size:11px;color:var(--dim)} .reward-bit .pr-ic{width:24px;height:24px;color:var(--ad-bit)}
-/* v1.99.2: title clears the shared close X */
+/* v2.0.0: title clears the shared close X */
 .raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style id="v187-fit">/* v1.87 playtest fixes (landscape phone ~1024x471): popups never run under the top bar / back button or off-screen. */
@@ -1419,7 +1419,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .bit-death{width:40px;height:40px;max-height:15vh}
 .result-head{display:flex;align-items:center;gap:8px}
 
-/* v1.99.2 */
+/* v2.0.0 */
 /* #1: Bunkerstrom (pop-core) power popup can run taller than the viewport in phone landscape (warning line +
    REINFORCE + the Wall Charge HAND IN card); let it scroll internally instead of spilling past the screen edge.
    The close badge (.pop-x) is positioned off a non-scrolling ancestor, so it is unaffected by this. */
@@ -1428,7 +1428,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 /* #5: reserve enough space for the fullscreen weapon-switch thumbnails so the close X (offset by the safe-area
    inset on notched phones) never overlaps them. */
 .wpn-switch{margin-right:calc(66px + env(safe-area-inset-right,0px))}
-  /* v1.99.2 */
+  /* v2.0.0 */
   details.fabq{display:block;padding:0;min-width:0}
   .fabq summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;box-sizing:border-box;cursor:pointer;list-style:none}
   .fabq summary::-webkit-details-marker{display:none}
@@ -1447,7 +1447,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   .fab-job .fab-collect[hidden]{display:none}
   .fabl .fab-job .fab-time{display:block}
   .fabl .fab-job b{white-space:normal;font-size:11px}
-/* v1.99.2 */
+/* v2.0.0 */
 .raid-summary{text-align:left;min-width:0}
 .raid-summary header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:0 4px 6px}
 .raid-summary header h1{margin:0;font-size:22px}
@@ -1477,7 +1477,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 @media(prefers-reduced-motion:reduce){.badge-pulse{animation:none}}
 @media(max-height:390px){.summary-bit p{font-size:11px}.summary-main{gap:8px}.raid-summary header h1{font-size:19px}}
 
-/* v1.99.2: title clears the shared close X */
+/* v2.0.0: title clears the shared close X */
 .raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 </head>
@@ -1487,13 +1487,13 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v1.99.2</div>
+    <div id="app-version">v2.0.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v1.99.2</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.0.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -1508,18 +1508,18 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=1.99.2"></script>
-<script src="data/modules.js?v=1.99.2"></script>
-<script src="data/bit-lines.js?v=1.99.2"></script>
-<script src="data/bit.js?v=1.99.2"></script>
-<script src="data/bit-talents.js?v=1.99.2"></script>
-<script src="data/raid_zones.js?v=1.99.2"></script>
-<script src="data/recipes.js?v=1.99.2"></script>
-<script src="data/vendors.js?v=1.99.2"></script>
-<script src="data/retention.js?v=1.99.2"></script>
-<script src="data/quests.js?v=1.99.2"></script>
-<script src="data/progression.js?v=1.99.2"></script>
-<script src="data/combat.js?v=1.99.2"></script>
-<script src="app.js?v=1.99.2"></script>
+<script src="data/items.js?v=2.0.0"></script>
+<script src="data/modules.js?v=2.0.0"></script>
+<script src="data/bit-lines.js?v=2.0.0"></script>
+<script src="data/bit.js?v=2.0.0"></script>
+<script src="data/bit-talents.js?v=2.0.0"></script>
+<script src="data/raid_zones.js?v=2.0.0"></script>
+<script src="data/recipes.js?v=2.0.0"></script>
+<script src="data/vendors.js?v=2.0.0"></script>
+<script src="data/retention.js?v=2.0.0"></script>
+<script src="data/quests.js?v=2.0.0"></script>
+<script src="data/progression.js?v=2.0.0"></script>
+<script src="data/combat.js?v=2.0.0"></script>
+<script src="app.js?v=2.0.0"></script>
 </body>
 </html>
