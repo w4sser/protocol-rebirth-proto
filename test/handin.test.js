@@ -99,13 +99,14 @@ assert(S().log.filter(e => e.action === "QUEST_CHAIN_STEP" && e.payload.step ===
   // ---- quest RAID button ----
   const rb = log.querySelector(".qact .qraid"); assert(rb && !rb.disabled && rb.textContent.includes("RAID"), "RAID button in the detail");
   assert.equal(rb.getAttribute("onclick"), "A.QUEST_RAID({chain:'bunker'})"); b.w.nav.length = 0; A.QUEST_RAID({ chain:"bunker" });
+  assert.equal(b.w.nav.length, 0, "v1.99.1: quest RAID opens deploy, never launches directly"); assert(d.getElementById("app").className.includes("s-prep"), "deploy screen open"); A.deployNodeRaid();
   assert.equal(b.w.nav.length, 1, "deploys through the normal flow"); const u = new URL(b.w.nav[0], "http://x/"); assert.equal(u.searchParams.get("area"), "bunker");
   assert(u.searchParams.get("raidId") && u.searchParams.get("seed")); assert(S().coreLaunch && S().coreLaunch.area === "bunker", "launch recorded like the base DEPLOY");
   assert(u.searchParams.get("quest"), "quest chip param for the raid HUD");
   b.w.nav.length = 0; S().debugAreas = false; S().coreLaunch = null; A.QUEST_RAID({ chain:"archipelago" }); assert.equal(b.w.nav.length, 0, "locked area: no deploy");
   { const lk = boot(open); lk.A.go("base"); assert(!lk.w.eval("areaUnlocked('archipelago')")); lk.A.QUEST_RAID({ chain:"archipelago" }); assert.equal(lk.w.nav.length, 0); }
   { const o2 = JSON.parse(JSON.stringify(open)); o2.debugAreas = true; const un = boot(o2); un.A.go("base"); un.A.questLog("archipelago");
-    assert(un.d.querySelector("#overlay .qraid") && !un.d.querySelector("#overlay .qraid").disabled); un.A.QUEST_RAID({ chain:"archipelago" }); assert.equal(new URL(un.w.nav[0], "http://x/").searchParams.get("area"), "archipelago"); }
+    assert(un.d.querySelector("#overlay .qraid") && !un.d.querySelector("#overlay .qraid").disabled); un.A.QUEST_RAID({ chain:"archipelago" }); assert.equal(un.w.nav.length, 0); un.A.deployNodeRaid(); assert.equal(new URL(un.w.nav[0], "http://x/").searchParams.get("area"), "archipelago"); }
 
   // ---- debug hooks ----
   { const dm = boot(open); dm.A.handInDemo(); assert(dm.d.querySelector("#overlay .handin .hi-req .qt.fir")); dm.d.querySelector("#overlay .pop-x").click();

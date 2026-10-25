@@ -10,7 +10,7 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
-for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
+for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
 const text = () => doc.getElementById("app").textContent;
@@ -191,6 +191,8 @@ assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
+/* v1.99.1 */
+assert(!doc.querySelector('#tabs .nav-prep') && !doc.querySelector('#tabs .nav-gap'), "deploy screen has no redundant RAID tab or gap");
 A.pickSlot("armor");
 assert(doc.querySelector("#overlay .picker .pick"), "slot opens an item picker");
 A.chooseSlot("armor", "");
@@ -207,6 +209,73 @@ const beforeCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 A.craft("medkit");
 const afterCraft = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert.equal(((afterCraft.stash.medkit || 0) + ((afterCraft.armory || {}).medkit || 0)), (((beforeCraft.stash.medkit || 0) + ((beforeCraft.armory || {}).medkit || 0)) || 0) + 1, "field crafting creates usable supplies from prep");
+/* v1.99.1 */
+{
+  // outside-only jsdom does not compile inline handlers; exercise them explicitly.
+  const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
+  const st = window.__TEST_STATE(), realNow = window.Date.now;
+  const savedIdle = JSON.parse(JSON.stringify(st.idle));
+  const savedModules = {...st.modules}, savedArmory = {...st.armory}, savedStash = {...st.stash};
+  const now = realNow();
+  st.modules.fabricator = 2; st.idle.clock = now;
+  st.idle.fab = [
+    {rid:'medkit', startAt:now - 1000, doneAt:now + 2500},
+    {rid:'armor_patch', startAt:now + 2500, doneAt:now + 6500},
+    {rid:'shard_synth', startAt:now + 6500, doneAt:now + 10500}
+  ];
+  A.go('base');
+  assert(doc.querySelector('#tabs .nav-prep'), 'RAID tab returns outside deploy');
+  A.openBuilding('fabricator');
+  let queue = doc.querySelector('#overlay .fabq');
+  assert(queue && !queue.open && queue.querySelector('summary').textContent.includes('3/3'), 'tappable queue starts collapsed with its capacity');
+  press(queue.querySelector('summary'));
+  assert(queue.open && queue.querySelectorAll('.fab-job').length === 3, 'queue expands to all three jobs');
+  assert([...queue.querySelectorAll('.fab-job')].every(row => row.querySelector('i svg, i img') && row.querySelector('b').textContent), 'every job has an icon and name, including currency outputs');
+  assert([...queue.querySelectorAll('.fab-collect')].every(btn => btn.hidden && btn.disabled), 'unfinished crafts cannot be collected');
+  const before = (st.armory.medkit || 0) + (st.stash.medkit || 0);
+  A.collectFab(0);
+  assert.equal(st.idle.fab.length, 3, 'collect handler rejects unfinished jobs');
+  window.Date.now = () => now + 1000;
+  await sleep(1100);
+  assert(queue.querySelector('.fab-time').textContent.includes('0:02'), 'countdown updates while the Fabricator popup is open');
+  window.Date.now = () => now + 3000;
+  await sleep(1100);
+  assert.equal(queue.querySelector('.fab-time').textContent, 'Ready', 'timer reaches Ready without navigating');
+  assert(!queue.querySelector('.fab-collect').hidden && !queue.querySelector('.fab-collect').disabled, 'ready job exposes COLLECT');
+  A.go('prep');
+  assert.equal(st.idle.fab.length, 3, 'refresh keeps completed jobs available to collect');
+  assert(doc.querySelector('.fabq').open, 'expanded queue survives navigation');
+  press(doc.querySelector('.fab-collect'));
+  assert.equal(st.idle.fab.length, 2, 'collect removes only the chosen job');
+  assert.equal((st.armory.medkit || 0) + (st.stash.medkit || 0), before + 1, 'collect grants the output exactly once');
+  A.collectFab(0);
+  assert.equal(st.idle.fab.length, 2, 'second tap cannot collect the next unfinished job');
+  window.Date.now = () => now + 7000;
+  A.openBuilding('fabricator');
+  press(doc.querySelector('#overlay .fab-collect'));
+  assert.equal(doc.querySelectorAll('#overlay .fab-job').length, 1, 'collect also refreshes the Fabricator popup');
+  assert(!doc.querySelector('#overlay .fabcraft').textContent.includes('QUEUE FULL'), 'collect frees a crafting slot in the open popup');
+  window.Date.now = realNow;
+  st.idle = savedIdle; st.modules = savedModules; st.armory = savedArmory; st.stash = savedStash;
+  A.go('base');
+  const questState = {beat:st.beat, tracked:st.trackedQuest, chains:JSON.parse(JSON.stringify(st.chains)), area:st.area};
+  st.beat = window.DATA.progression.beats.findIndex(b => b.id === 'choice_upgrade');
+  st.trackedQuest = 'bunker'; st.chains.bunker = {step:0, prog:0};
+  let launches = 0; window.PR_NAVIGATE = () => launches++;
+  const gearBefore = JSON.stringify(st.armory);
+  press(doc.querySelector('#tabs .nav-prep'));
+  assert.equal(doc.getElementById('app').className, 's-prep', 'bottom RAID with a tracked quest opens loadout');
+  A.go('base'); A.questLog('bunker', 0);
+  assert(doc.querySelector('#overlay .qraid'), 'tracked quest offers RAID');
+  press(doc.querySelector('#overlay .qraid'));
+  assert.equal(doc.getElementById('app').className, 's-prep', 'quest RAID opens deploy/loadout');
+  assert(!doc.querySelector('#overlay') && !doc.querySelector('#tabs .nav-prep'), 'quest log closes and redundant RAID stays absent');
+  assert.equal(doc.querySelectorAll('.node-raid-launch').length, 1, 'one DEPLOY CTA remains after quest RAID');
+  assert.equal(launches, 0, 'RAID entry points never launch directly');
+  assert.equal(JSON.stringify(st.armory), gearBefore, 'opening deploy does not consume gear');
+  delete window.PR_NAVIGATE;
+  st.beat = questState.beat; st.trackedQuest = questState.tracked; st.chains = questState.chains; st.area = questState.area;
+}
 A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
 A.deploy(); A.raidStep(); A.backToBase();
 
