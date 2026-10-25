@@ -767,7 +767,7 @@ function confirmScav(){
   I.scavPending = null; S.cur.scrap += loot.scrap; for(const id in loot.items) addItem(id, loot.items[id]);
   act("SCAVENGE_CONFIRMED", loot); save(); return true;
 }
-/* ---------- v1.95 BIT Talents (data/bit-talents.js): data-driven branches, WoW-classic row gates ---------- */
+/* ---------- v1.95 BIT Talents (data/bit-talents.js): data-driven branches and row-gate step ---------- */
 // Node ids and effect keys all come from TAL; app.js never hardcodes a branch/node beyond the shared "core" ids
 // (zone_scout/shield_burst/loot_priority) that also name the pre-existing BIT skills they replace.
 function talentNodeDef(id){ if(!TAL) return null; for(const b of TAL.branches){ const n = b.nodes.find(n => n.id === id); if(n) return { node:n, branch:b }; } return null; }
@@ -777,7 +777,8 @@ function branchSpent(branchId){ if(!TAL) return 0; const b = TAL.branches.find(b
 function talentSpentTotal(){ return TAL ? TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0) : 0; }
 function talentPoints(){ return Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
 function talentPointsAvailable(){ return talentPoints() - talentSpentTotal(); }
-function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= 3 * (row - 1); }
+function talentRowReq(row){ return ((TAL && TAL.rowGateStep) || 0) * (row - 1); }
+function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= talentRowReq(row); }
 function talentChoiceTaken(branch, group){ return branch.nodes.find(n => n.choiceGroup === group && talentLearned(n.id)) || null; }
 function talentCanLearn(id){
   const t = talentNodeDef(id); if(!t || talentPointsAvailable() < 1) return false;
@@ -839,7 +840,6 @@ function haulPopupHtml(pend){
    The TALENTS tab is rendered generically from TAL.branches: app.js never hardcodes a branch or node id here. */
 const TAL_BRANCH_ICON = { scout:"aim", guardian:"stat-shield", scavenger:"scavenge" };
 const TAL_BRANCH_COLOR = { cyan:"var(--ad-cyan)", coral:"var(--ad-danger)", amber:"var(--ad-loot)" };
-function talentRowReq(row){ return 3 * (row - 1); }
 function talentFmtVal(v){ return (v > 0 && v < 1) ? Math.round(v * 100) + "%" : Math.round(v * 100) / 100; }
 function talentNodeHtml(node, branch, selId){
   const rank = talentRank(node.id), learned = rank > 0;
@@ -950,7 +950,11 @@ function bitScreenHtml(tab){
     '</div></div>';
 }
 // Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
+// A quest/hand-in popup opened from the QUESTS tab stacks a second #overlay on top without removing the BIT one
+// first (so its own close handler can return to the right place); while that's up, leave the BIT overlay alone —
+// recreating it here would bury the child popup instead of letting it survive a background refresh().
 function bitRender(tab){
+  if(document.querySelectorAll("#overlay").length > 1) return;
   const old = document.getElementById("overlay"); if(old) old.remove();
   session.screenParam = tab || session.screenParam || "talents";
   overlay(bitScreenHtml(session.screenParam), () => A.go("base"), "sheet bitov");
@@ -3099,16 +3103,19 @@ SCREENS.operator = function(){
   $app().innerHTML = html;
 };
 
+// Scavenger: Haggler (v1.95) discounts Trader prices — shared by the vendor screen and the actual purchase so the
+// price shown and the price charged (and the afford check gating the button) can never drift apart.
+function vendorPrice(s){ return Math.round(s.price * (1 - talentVal("scavHaggler"))); }
 SCREENS.vendor = function(){
   const v = D.vendors[0];
   let html = '<h1>' + esc(v.name) + '</h1><div class="sub">' + esc(v.blurb) + '</div>';
   html += '<h2>Buy</h2>';
   for(const s of v.stock){
     if(!stockUnlocked(s)) continue;
-    const afford = S.cur.scrap >= s.price;
+    const price = vendorPrice(s), afford = S.cur.scrap >= price;
     html += '<div class="card row"><span>' + esc(ITEMS[s.itemId].name) + '</span>' +
       '<button class="ghost" style="width:auto;margin:0;padding:6px 12px;' + (afford?'':'opacity:.4') + '" ' +
-      (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + s.price + ' Scrap</button></div>';
+      (afford?'onclick="A.buy(\'' + s.itemId + '\')"':'disabled') + '>' + price + ' Scrap</button></div>';
   }
   html += '<h2>Data Cores</h2>';
   for(const x of (v.exchange || [])){
@@ -4213,7 +4220,7 @@ window.A = {
   buy(id){
     const s = D.vendors[0].stock.find(x=>x.itemId===id);
     if(!s) return;
-    const price = Math.round(s.price * (1 - talentVal("scavHaggler"))); // Scavenger: Haggler (v1.95)
+    const price = vendorPrice(s);
     if(!stockUnlocked(s) || S.cur.scrap < price) return;
     S.cur.scrap -= price; addItem(id,1);
     act("VENDOR_BUY", { id, price });
@@ -4828,8 +4835,12 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
-  // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup)
-  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(() => { if(document.hidden || document.getElementById("overlay") || document.querySelector(".dragging")) return;
+  // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup).
+  // The BIT screen overlay is exempt: it's the TASKS tab's own home, so a scavenge/expedition completing while
+  // it's open should still update it (any other popup still blocks, same as before).
+  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(() => {
+    const ov = document.getElementById("overlay");
+    if(document.hidden || (ov && !ov.classList.contains("bitov")) || document.querySelector(".dragging")) return;
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.strip) toast("", coreIngest.strip);

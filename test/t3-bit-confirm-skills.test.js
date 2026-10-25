@@ -48,9 +48,9 @@ const finishRun = b => { b.A.sendScavenge(); const I = b.S().idle; I.scav.return
 { const b = fresh(s => { s.bondXp = 0; }); b.A.go("bit");
   assert.equal(b.d.querySelectorAll(".talnode.core").length, 3, "three core nodes, one per branch");
   assert.equal(b.d.querySelectorAll(".talnode.core.locked").length, 3, "no points spent in any branch: all core nodes locked"); }
-{ const b = fresh(s => { s.bondXp = 250; }); // bond 5 -> 4 points: enough to open exactly one branch's row 2
+{ const b = fresh(s => { s.bondXp = 250; }); // bond 5 -> 4 points: enough to open exactly one branch's row 2 (gate: 2 spent)
   for(let i = 0; i < 3; i++) b.T.learnTalent("guardian_plating"); b.A.go("bit");
-  assert(!b.d.querySelector('.talnode.core[onclick*="shield_burst"]').classList.contains("locked"), "row 2 opens once 3 points are spent in that branch");
+  assert(!b.d.querySelector('.talnode.core[onclick*="shield_burst"]').classList.contains("locked"), "row 2 opens once enough points are spent in that branch");
   assert(b.d.querySelector('.talnode.core[onclick*="zone_scout"]').classList.contains("locked"), "a different branch's core stays locked");
   assert(!b.T.bitSkillOn("shield_burst"), "row open is not the same as learned: it must still be learned to turn on"); }
 // Core nodes sit at row 2 (3 points in the branch's row-1 node, then 1 more): learning one no longer locks out the others.

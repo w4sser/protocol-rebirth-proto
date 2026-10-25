@@ -4,12 +4,29 @@ BIT_DATA_ROOT.DATA = BIT_DATA_ROOT.DATA || {};
 BIT_DATA_ROOT.DATA.bit = {
   // Bond levels per META_v0.1 §4.2. xp thresholds are cumulative.
   // Bond = relation & intelligence. Hardware (loot scan, cargo) lives in BIT Bay levels.
+  // Bond cap 20 (docs/design-bit-skill-tree.md "Points"): 1 talent point per level from Bond 2, so Bond 20
+  // gives 19 points. xp deltas after level 5 keep rising (+30 per level) so the climb to 20 stays slow.
   bondLevels:[
-    { level:1, xp:0,   capability:"BIT follows you and comments on your runs." },
-    { level:2, xp:30,  capability:"BIT estimates extraction odds before you deploy." },
-    { level:3, xp:80,  capability:"BIT chooses one non-secure item to rescue when you die." },
-    { level:4, xp:150, capability:"BIT reveals each zone's most likely drops." },
-    { level:5, xp:250, capability:"BIT remembers zones — tracked items found twice as fast." }
+    { level:1,  xp:0,    capability:"BIT follows you and comments on your runs." },
+    { level:2,  xp:30,   capability:"BIT estimates extraction odds before you deploy." },
+    { level:3,  xp:80,   capability:"BIT chooses one non-secure item to rescue when you die." },
+    { level:4,  xp:150,  capability:"BIT reveals each zone's most likely drops." },
+    { level:5,  xp:250,  capability:"BIT remembers zones — tracked items found twice as fast." },
+    { level:6,  xp:380,  capability:"+1 talent point to spend in the BIT screen." },
+    { level:7,  xp:540,  capability:"+1 talent point to spend in the BIT screen." },
+    { level:8,  xp:730,  capability:"+1 talent point to spend in the BIT screen." },
+    { level:9,  xp:950,  capability:"+1 talent point to spend in the BIT screen." },
+    { level:10, xp:1200, capability:"+1 talent point to spend in the BIT screen." },
+    { level:11, xp:1480, capability:"+1 talent point to spend in the BIT screen." },
+    { level:12, xp:1790, capability:"+1 talent point to spend in the BIT screen." },
+    { level:13, xp:2130, capability:"+1 talent point to spend in the BIT screen." },
+    { level:14, xp:2500, capability:"+1 talent point to spend in the BIT screen." },
+    { level:15, xp:2900, capability:"+1 talent point to spend in the BIT screen." },
+    { level:16, xp:3330, capability:"+1 talent point to spend in the BIT screen." },
+    { level:17, xp:3790, capability:"+1 talent point to spend in the BIT screen." },
+    { level:18, xp:4280, capability:"+1 talent point to spend in the BIT screen." },
+    { level:19, xp:4800, capability:"+1 talent point to spend in the BIT screen." },
+    { level:20, xp:5350, capability:"+1 talent point to spend in the BIT screen." }
   ],
   // v1.86 T3 (PRB-94): three BIT skills, unlocked by bond level, ONE active at a time (S.bitSkill). Mild by design.
   skills:[

@@ -13,7 +13,8 @@ World of Warcraft talent tree where you commit to a real branch, and BIT deserve
 ## Points
 - 1 point per Bond level from Bond 2 (Bond 1 = BIT online, 0 points). Bond cap 20 gives 19 points.
 - A full branch is 15 points, so you can finish one branch and dip into a second, never max everything.
-- Row gates: row N needs 3·(N−1) points spent **in that branch** (WoW classic rule).
+- Row gates: row N needs 2·(N−1) points spent **in that branch** (`rowGateStep` in `data/bit-talents.js`; rows
+  1-3 cap at 7 points in-branch, so a step of 3 would make rows 4-5 unreachable — 2 keeps every row reachable).
 - Respec: free once, then 200 Scrap × number of respecs (cap 1000). Done at the BIT Bay.
 
 ## Branches
@@ -77,7 +78,7 @@ Nav: BIT button opens the BIT screen; top tabs: **TALENTS · TASKS · QUESTS · 
 └───────────────┴───────────────┴───────────────┴────────────────────────────┘
  (o) learned  ( ) available/locked  [XX] core node  <A>/<B> choice row  ★ capstone
 ```
-- Columns light up by branch colour; locked rows are dim with "Spend 6 in Scout" text.
+- Columns light up by branch colour; locked rows are dim with "Spend 4 in Scout" text.
 - Tap a node → right panel details + LEARN. Portrait at 844 px: same three columns, detail panel becomes a
   bottom sheet.
 - BIT nav badge shows **POINTS** only when unspent points exist (actionable, with a tap-explain).
@@ -102,16 +103,19 @@ BIT fires at enemies, marks targets, and buffs the player's damage in raids.
   respec engine in `app.js`, which is already branch-agnostic (see Implementation status below).
 
 ## Open questions
-- Bond cap (20?) and xp curve after Bond 10.
 - Whether Safe Return is too strong vs. the death rule; fallback: saves one *material*, not gear.
 - Art: node icons reuse ui-icons.svg; branch headers need three small BIT poses.
 
+Resolved: Bond cap is 20 (`data/bit.js` `bondLevels`, 19 points total); xp deltas past level 5 keep rising by 30
+per level so the climb to 20 stays slow.
+
 ## Implementation status (v1.95 PART 1 — logic + data only, no screen yet)
-Branches/nodes live in `data/bit-talents.js`; points/row-gates/respec and `talentVal(key)` live in `app.js`
-(`talentPoints`, `talentCanLearn`, `learnTalent`, `respecTalents`, `talentVal`, exposed as `A.learnTalent(id)` /
-`A.respecTalents()`). Guardian capstone is the doc fallback: `A.setGuardianMaterial(id)` pre-chooses one
-**material** (never gear — enforced by `isMaterialItem`); on death, if `guardian_safe_return` is learned and that
-material was found this raid, BIT saves it (`R.saved.talentMaterial` / `saved.talentMaterial`).
+Branches/nodes and the row-gate step live in `data/bit-talents.js`; points/row-gates/respec and `talentVal(key)`
+live in `app.js` (`talentPoints`, `talentRowReq`, `talentCanLearn`, `learnTalent`, `respecTalents`, `talentVal`,
+exposed as `A.learnTalent(id)` / `A.respecTalents()`). Guardian capstone is the doc fallback:
+`A.setGuardianMaterial(id)` pre-chooses one **material** (never gear — enforced by `isMaterialItem`); on death, if
+`guardian_safe_return` is learned and that material was found this raid, BIT saves it (`R.saved.talentMaterial` /
+`saved.talentMaterial`).
 
 Wired to an existing hook (effect key -> where it's applied):
 - `scoutKeenSensors` -> `resolveRaid`, tracked-item roll chance, only in BIT's marked zone (`scoutLead`).

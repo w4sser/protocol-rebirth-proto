@@ -22,24 +22,26 @@ const scoutRow1 = "scout_keen_sensors", guardianRow1 = "guardian_plating", scavR
 { const b = fresh(s => { s.bondXp = 30; }); assert.equal(b.T.talentPoints(), 1, "bond 2: 1 point"); }
 { const b = fresh(s => { s.bondXp = 250; }); assert.equal(b.T.talentPoints(), 4, "bond 5: 4 points"); }
 
-// 2) row gate: row 2 needs 3 points already spent in that branch; can't skip to the core node or over-learn a maxed node.
+// 2) row gate: row 2 needs 2 points already spent in that branch (rows 4-5 would be unreachable at 3, since rows
+// 1-3 cap at 7 points in-branch — see data/bit-talents.js rowGateStep); can't skip to the core node or over-learn
+// a maxed node.
 { const b = fresh(s => { s.bondXp = 250; });
   assert(!b.T.talentCanLearn("zone_scout"), "row 2 locked before row 1 is spent");
   assert.equal(b.A.learnTalent("zone_scout"), false); assert.equal(b.T.talentRank("zone_scout"), 0, "learnTalent refuses a locked node");
-  assert(b.T.talentCanLearn(scoutRow1)); b.A.learnTalent(scoutRow1); b.A.learnTalent(scoutRow1);
-  assert(!b.T.talentCanLearn("zone_scout"), "still short (2/3 spent in branch)");
+  assert(b.T.talentCanLearn(scoutRow1)); b.A.learnTalent(scoutRow1);
+  assert(!b.T.talentCanLearn("zone_scout"), "still short (1/2 spent in branch)");
+  b.A.learnTalent(scoutRow1); assert.equal(b.T.branchSpent("scout"), 2);
+  assert(b.T.talentCanLearn("zone_scout"), "row 2 opens once 2 points are spent in the branch");
   b.A.learnTalent(scoutRow1); assert.equal(b.T.talentRank(scoutRow1), 3, "Keen Sensors maxed at rank 3");
   assert(!b.T.talentCanLearn(scoutRow1), "can't over-learn past max ranks");
-  assert.equal(b.T.branchSpent("scout"), 3);
-  assert(b.T.talentCanLearn("zone_scout"), "row 2 opens once 3 points are spent in the branch");
   b.A.learnTalent("zone_scout"); assert.equal(b.T.talentRank("zone_scout"), 1);
   assert.equal(b.T.talentPointsAvailable(), 0, "all 4 bond-5 points spent"); }
 
-// 3) choice row: pick 1 of 2; the other is blocked until a respec. (Row 3 needs 6 points in-branch, more than Bond 5's
-// 4-point cap can reach today — data/bit.js only defines bond levels up to 5 — so this overrides bondLevel() to
-// isolate the choice-group rule itself; the bond-cap ceiling is a known, documented limit, not a bug under test here.)
+// 3) choice row: pick 1 of 2; the other is blocked until a respec. (Row 3 needs 4 points in-branch, more than Bond 5's
+// 4-point cap can reach today without starving every other row — so this overrides bondLevel() to isolate the
+// choice-group rule itself; the bond-cap ceiling is a known, documented limit, not a bug under test here.)
 { const b = fresh(s => { s.bondXp = 250; });
-  b.w.eval("bondLevel = function(){ return 8; };"); // 7 points: enough to reach row 3 (needs 6 spent) with 1 to spare
+  b.w.eval("bondLevel = function(){ return 8; };"); // 7 points: enough to reach row 3 (needs 4 spent) with plenty to spare
   b.S().talents.spent[guardianRow1] = 3; b.S().talents.spent.shield_burst = 1; b.S().talents.spent.guardian_warning_chirp = 2;
   assert(b.T.talentCanLearn("guardian_second_wind") && b.T.talentCanLearn("guardian_overcharge"), "both choices open before either is taken");
   b.A.learnTalent("guardian_second_wind");

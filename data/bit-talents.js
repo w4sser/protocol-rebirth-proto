@@ -1,12 +1,15 @@
 // Protocol Rebirth prototype — BIT talent tree (docs/design-bit-skill-tree.md, v1.95).
 // Data-driven: new branches/nodes are added here only, app.js never hardcodes a node id outside this file's ids.
-// Row gate (WoW classic rule): row N needs 3*(N-1) points already spent in that branch.
+// Row gate: row N needs rowGateStep*(N-1) points already spent in that branch (app.js: talentRowReq/talentRowUnlocked).
 // Node: { id, row, ranks, choiceGroup?, effect:{ key, perRank } }. perRank[i] is the CUMULATIVE value at rank i+1.
 // Row-2 "core" nodes (id === existing S.bit skill id) replace the old single-active-skill toggle: once learned,
 // the skill is simply on (bitSkillOn checks talentLearned(id)), same as every other passive in the tree.
 var BIT_TALENTS_ROOT = typeof window !== 'undefined' ? window : globalThis;
 BIT_TALENTS_ROOT.DATA = BIT_TALENTS_ROOT.DATA || {};
 BIT_TALENTS_ROOT.DATA.bitTalents = {
+  // Rows 1-3 of a branch cap at 7 points (3+3+1), so a step of 3 (old rule) made rows 4-5 unreachable; 2 keeps
+  // every row reachable while still forcing a real commitment per row.
+  rowGateStep:2,
   branches:[
     {
       id:"scout", name:"Scout", color:"cyan",
