@@ -801,7 +801,11 @@ function learnTalent(id){
 function bitNextTalentUnlock(branchId){
   if(!TAL) return null;
   const branch = TAL.branches.find(b => b.id === branchId); if(!branch) return null;
-  const node = branch.nodes.find(n => talentRank(n.id) < n.ranks);
+  const node = branch.nodes.find(n => {
+    if(talentRank(n.id) >= n.ranks) return false;
+    if(n.choiceGroup){ const taken = talentChoiceTaken(branch, n.choiceGroup); if(taken && taken.id !== n.id) return false; }
+    return true;
+  });
   if(!node) return null;
   const req = !talentRowUnlocked(branch, node.row) ? "Spend " + talentRowReq(node.row) + " in " + branch.name
     : talentPointsAvailable() > 0 ? "1 point ready to spend"
