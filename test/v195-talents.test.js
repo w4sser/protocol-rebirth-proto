@@ -137,7 +137,31 @@ for(const old of ["zone_scout", "shield_burst", "loot_priority", null]){
   b.S().talents.spent.scout_keen_sensors = 3;
   assert.equal(b.T.talentVal("scoutKeenSensors"), 0.15, "Keen Sensors maxed"); }
 
-// 10) no hardcoded item-id strings in app.js: every item reference is data-driven (PROG.*, ITEMS[var], etc).
+// 10) regression (v1.95.1): the BIT screen's background refresh() (triggered by any A.* action while session.screen
+// is "bit") must not destroy a quest-log or hand-in popup opened on top of it — bitRender() only replaces #overlay
+// when it isn't currently one of those two popups (see bitRender's comment in app.js).
+{ const b = fresh(s => { s.bondXp = 250; });
+  b.A.go("bit");
+  assert(b.d.querySelector("#overlay.bitov"), "BIT screen open");
+  b.A.questLog("bunker");
+  assert(b.d.querySelector("#overlay .qlog"), "quest log opens on top of BIT");
+  assert.equal(b.d.querySelectorAll("#overlay").length, 1, "replaces the BIT overlay rather than stacking");
+  b.A.QUEST_TRACK({ chain:"bunker" }); // refresh() runs while session.screen is still "bit"
+  assert(b.d.querySelector("#overlay .qlog"), "quest log survives a background BIT refresh() after tracking");
+  b.d.querySelector("#overlay .pop-x").click();
+  assert(b.d.querySelector("#overlay.bitov"), "closing the quest log returns to the BIT screen");
+
+  // hand-in: B3 ready (mirrors handin.test.js's bunker step-2 setup)
+  b.S().chains.bunker = { step:2, prog:0 }; b.S().stash = { scrap_alloy:5, polymer_plate:1 }; b.S().fir = { scrap_alloy:2, polymer_plate:1 };
+  b.A.questLog("bunker");
+  const pop = b.d.querySelector("#overlay .handin");
+  assert(pop, "hand-in popup opens on top of BIT instead of the quest log");
+  assert.equal(b.d.querySelectorAll("#overlay").length, 1, "hand-in also replaces the BIT overlay, not stacked");
+  b.A.QUEST_HANDIN({ chain:"bunker" }); // pays the step and calls refresh() while session.screen is still "bit"
+  assert.equal(b.d.querySelector("#overlay .handin"), pop, "hand-in popup survives the background BIT refresh()");
+  assert(pop.classList.contains("consuming"), "reward animation keeps running on the surviving popup"); }
+
+// 11) no hardcoded item-id strings in app.js: every item reference is data-driven (PROG.*, ITEMS[var], etc).
 {
   const w = {}; new Function("window", fs.readFileSync(path + "/data/items.js", "utf8"))(w);
   const ids = w.DATA.items.map(i => i.id);

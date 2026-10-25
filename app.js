@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "1.95.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.95.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -950,12 +950,13 @@ function bitScreenHtml(tab){
     '</div></div>';
 }
 // Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
-// A quest/hand-in popup opened from the QUESTS tab stacks a second #overlay on top without removing the BIT one
-// first (so its own close handler can return to the right place); while that's up, leave the BIT overlay alone —
-// recreating it here would bury the child popup instead of letting it survive a background refresh().
+// A quest/hand-in popup opened from the QUESTS tab (questLog/handInShow) replaces the BIT #overlay with its own
+// (qlogov/handinov) rather than stacking a second one — so while one of those is up, leave it alone: recreating
+// the BIT overlay here would destroy it (and its reward animation) out from under a background refresh().
 function bitRender(tab){
-  if(document.querySelectorAll("#overlay").length > 1) return;
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay");
+  if(old && (old.classList.contains("qlogov") || old.classList.contains("handinov"))) return;
+  if(old) old.remove();
   session.screenParam = tab || session.screenParam || "talents";
   overlay(bitScreenHtml(session.screenParam), () => A.go("base"), "sheet bitov");
 }
