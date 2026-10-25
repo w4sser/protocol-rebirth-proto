@@ -239,10 +239,10 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .bag-panel #open-bag .pr-ic{width:18px;height:18px}.bag-panel #open-bag b{font:700 11px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--ad-bone);font-variant-numeric:tabular-nums}
 
 /* v2.0 weapon backpack (docs/design-playtest-oct25.md §c): comes home on extract, lost on death like everything else carried. */
-.backpack-row{display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid color-mix(in srgb,var(--ad-cyan) 30%,transparent)}
+.backpack-row{display:flex;align-items:center;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid color-mix(in srgb,var(--ad-cyan) 30%,transparent);pointer-events:auto}
 .backpack-row>.eyebrow{font-size:7px;color:var(--ad-cyan)}
 .backpack-tiles{display:flex;flex-wrap:wrap;gap:3px}
-.backpack-tiles button.item-tile{cursor:pointer;background:color-mix(in srgb,var(--ad-cyan) 14%,transparent);border-color:var(--rc,var(--ad-cyan))}
+.backpack-tiles button.item-tile{cursor:pointer;background:color-mix(in srgb,var(--ad-cyan) 14%,transparent);border-color:var(--rc,var(--ad-cyan));pointer-events:auto}
 .backpack-tiles button.item-tile:active{background:color-mix(in srgb,var(--ad-cyan) 28%,transparent)}
 
 /* Weapon pickup prompt: stats compare (damage/rate/mag/range) before the player swaps or stashes it in the backpack. */

@@ -752,7 +752,7 @@ function showBackpackWeapon(index){{const gt=$('#gear-toast');if(gt)gt.hidden=tr
   const title=document.createElement('b');title.textContent=ITEM_NAMES[item]??item;head.append(title);
   const close=document.createElement('button');close.type='button';close.className='pop-x swap-close';close.append(svgIcon('close'));close.setAttribute('aria-label','Keep current weapon');close.onclick=hideSwap;
   const compare=document.createElement('div');compare.className='weapon-compare';
-  for(const stat of compareWeapons(current,item))compare.append(weaponCompareRow(stat));
+  for(const stat of compareWeapons(current,item,round.weaponState,round.backpackWeaponStates?.[index]))compare.append(weaponCompareRow(stat));
   const actions=document.createElement('div');actions.className='weapon-offer-actions';
   const confirm=document.createElement('button');confirm.type='button';confirm.textContent='EQUIP';
   confirm.onclick=()=>{
@@ -768,7 +768,8 @@ function showWeaponOffer(){{const gt=$('#gear-toast');if(gt)gt.hidden=true;} // 
   const head=document.createElement('div');head.className='swap-head pop-head';
   const title=document.createElement('b');title.textContent=ITEM_NAMES[o.item]??o.item;const sub=document.createElement('span');sub.textContent='Swap now, or stash it in the backpack';head.append(title,sub);
   const close=document.createElement('button');close.className='pop-x swap-close';close.type='button';close.append(svgIcon('close'));close.setAttribute('aria-label','Leave it');close.onclick=()=>{el.hidden=true;};el.append(close,head);
-  const compare=document.createElement('div');compare.className='weapon-compare';for(const stat of compareWeapons(round.equip.weapon,o.item))compare.append(weaponCompareRow(stat));el.append(compare);
+  const ground=round.level.lootBoxes.find(b=>b.id===o.boxId);
+  const compare=document.createElement('div');compare.className='weapon-compare';for(const stat of compareWeapons(round.equip.weapon,o.item,round.weaponState,ground?.weaponState))compare.append(weaponCompareRow(stat));el.append(compare);
   const actions=document.createElement('div');actions.className='weapon-offer-actions';
   const swapBtn=document.createElement('button');swapBtn.type='button';swapBtn.textContent='SWAP';
   swapBtn.onclick=()=>{clearWeaponOffer();const d=swapGear(round,o.boxId,Date.now());if(d)labelLoot(world.addLoot(d));onEquip();};

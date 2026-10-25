@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bagItems} from '../raid.js';
 import {createRound,collectLoot,initEquip,swapGear,bagCapacityOf,lootAction,compareWeapons,stashWeapon,equipFromBackpack,backpackCapacityOf,extractRound,takeDamage} from '../round.js';
-import {buildRaidResult} from '../raid-result.js';
+import {buildRaidResult,readWeapon} from '../raid-result.js';
 
 const place=(r,item,id='g1')=>{const b={id,x:0,z:0,item,collected:false,revealed:true};r.level.lootBoxes=[b];return b;};
 const at={x:0,z:0};
@@ -101,6 +101,7 @@ test('death does not special-case the backpack at the round level — loss is en
 
 // Runtime state belongs to a weapon instance, not its item id.
 import {createWeapon,fireWeapon,tickWeapon} from '../weapon.js';
+import {gearItem} from '../round.js';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
@@ -190,4 +191,65 @@ test('starter ground popup compares and offers backpack or equip, then initializ
   assert.deepEqual(actions.children.map(e=>e.textContent),['SWAP','BACKPACK']);
   assert.equal(box.collected,false);actions.children[0].onclick();
   assert.equal(r.equip.weapon,'rifle_marksman');assert.equal(r.weaponState.id,'rifle_marksman');assert.equal(box.collected,true);
+});
+
+const compareKeys={dmg:'damage',int:'shotIntervalMs',mag:'capacity',rng:'range'};
+const stockWeapon=id=>createWeapon(30,readWeapon(`id:${id},`+Object.entries(gearItem(id).weapon).map(([k,v])=>`${k}:${v}`).join(',')));
+test('comparison uses each runtime instance, including duplicate ids, without changing weapon state',()=>{
+  const equipped=createWeapon(30,readWeapon('id:smg_vector,dmg:3,int:90,mag:12,rng:10'));
+  const carried=createWeapon(20,readWeapon('id:smg_vector,dmg:2,int:100,mag:10,rng:9'));
+  fireWeapon(equipped,at,{x:0,z:-1},100);
+  const before=JSON.stringify([equipped,carried]);
+  const rows=compareWeapons('smg_vector','smg_vector',equipped,carried);
+  for(const row of rows){
+    assert.equal(row.from,equipped.rule[compareKeys[row.key]]);
+    assert.equal(row.to,carried.rule[compareKeys[row.key]]);
+    assert.equal(row.improved,false,'carried gun is weaker despite identical stock ids');
+  }
+  assert.equal(JSON.stringify([equipped,carried]),before,'compare must not affect ammo, reload or upgrades');
+  for(const id of ['smg_vector','rifle_marksman','shotgun_breach']){
+    const actual=stockWeapon(id);
+    for(const row of compareWeapons('smg_vector',id,equipped)){
+      assert.equal(row.from,equipped.rule[compareKeys[row.key]]);
+      assert.equal(row.to,actual.rule[compareKeys[row.key]],'fresh candidate matches its equip-time stats');
+    }
+  }
+  const basic=createWeapon(30,{damage:4,capacity:7,range:12,shotIntervalMs:100});
+  assert.equal(compareWeapons(null,'smg_vector',basic)[0].from,4,'starter runtime also overrides stock');
+});
+
+test('backpack and ground popups compare the selected instance against the upgraded equipped gun',()=>{
+  for(const kind of ['backpack','ground'])for(const modified of [false,true]){
+    const r=createRound('runtime-compare-ui',0);initEquip(r,{weapon:'smg_vector'});
+    r.weaponState=createWeapon(30,{id:'smg_vector',damage:4,shotIntervalMs:90,capacity:12,range:12});
+    const candidate=modified?createWeapon(20,{id:'smg_vector',damage:3,shotIntervalMs:100,capacity:10,range:10}):null;
+    // Duplicate ids must resolve the requested slot/box, not another instance of that item.
+    r.backpack=['smg_vector','smg_vector'];r.backpackWeaponStates=[r.weaponState,candidate];
+    r.level.lootBoxes=[{id:'other',item:'smg_vector',weaponState:r.weaponState},{id:'chosen',item:'smg_vector',weaponState:candidate}];
+    r.weaponOffer={boxId:'chosen',item:'smg_vector'};
+    const viewport=new Element('div');
+    const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
+      $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
+      ITEM_NAMES:{smg_vector:'Vector'},compareWeapons,svgIcon:id=>({icon:id}),hideSwap(){},nearWeaponOffer:()=>true,backpackCapacityOf});
+    vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction(kind==='backpack'?'showBackpackWeapon':'showWeaponOffer'),context);
+    vm.runInContext(kind==='backpack'?'showBackpackWeapon(1)':'showWeaponOffer()',context);
+    const rows=viewport.children[0].children.find(e=>e.className==='weapon-compare').children;
+    const expected=candidate??stockWeapon('smg_vector');
+    for(const [i,key] of Object.values(compareKeys).entries()){
+      assert.equal(rows[i].children[1].textContent,r.weaponState.rule[key],`${kind} current ${key}`);
+      assert.equal(rows[i].children[3].textContent,expected.rule[key],`${kind} candidate ${key}`);
+      assert.equal(rows[i].dataset.improved,'false');
+    }
+  }
+});
+
+test('backpack row and weapon buttons accept pointer input while the bag panel stays passthrough',()=>{
+  const css=readFileSync(new URL('../style.css',import.meta.url),'utf8').replace(/\/\*[\s\S]*?\*\//g,'');
+  const declarations=selector=>[...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([,selectors])=>selectors.trim()===selector).map(([, ,body])=>body).join(';');
+  for(const selector of ['.backpack-row','.backpack-tiles button.item-tile']){
+    assert.match(declarations(selector),/pointer-events\s*:\s*auto\b/,selector);
+  }
+  assert.match(declarations('.bag-panel'),/pointer-events\s*:\s*none\b/);
+  assert.doesNotMatch(declarations('.bag-panel'),/pointer-events\s*:\s*auto\b/);
 });

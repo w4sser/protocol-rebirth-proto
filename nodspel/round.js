@@ -120,12 +120,14 @@ export function swapGear(round,boxId,now){
 export const backpackCapacityOf=round=>round?.backpackCapacity??RULES.backpack.capacity;
 // Stats compare for the pickup prompt (damage/rate/mag/range), so a player doesn't blind-swap into a worse gun.
 // `better` marks the direction that counts as an improvement (rate = lower interval is faster).
-const WEAPON_COMPARE_STATS=[{key:'dmg',label:'DMG',better:'high'},{key:'int',label:'RATE',better:'low'},{key:'mag',label:'MAG',better:'high'},{key:'rng',label:'RNG',better:'high'}];
-export function compareWeapons(oldId,newId){
+const WEAPON_COMPARE_STATS=[{key:'dmg',runtimeKey:'damage',label:'DMG',better:'high'},{key:'int',runtimeKey:'shotIntervalMs',label:'RATE',better:'low'},{key:'mag',runtimeKey:'capacity',label:'MAG',better:'high'},{key:'rng',runtimeKey:'range',label:'RNG',better:'high'}];
+// Runtime rules already include launch upgrades, attachments and mastery. Keep each instance's
+// rules when comparing carried weapons; fresh ground/backpack items use their stock stats.
+export function compareWeapons(oldId,newId,oldWeapon=null,newWeapon=null){
   const o=GEAR[oldId||'basic_carbine']?.weapon,n=GEAR[newId]?.weapon;
   if(!o||!n)return [];
-  return WEAPON_COMPARE_STATS.map(({key,label,better})=>{
-    const from=o[key]??0,to=n[key]??0,delta=to-from;
+  return WEAPON_COMPARE_STATS.map(({key,runtimeKey,label,better})=>{
+    const from=oldWeapon?.rule?.[runtimeKey]??o[key]??0,to=newWeapon?.rule?.[runtimeKey]??n[key]??0,delta=to-from;
     return {key,label,from,to,improved:delta===0?null:(better==='high'?delta>0:delta<0)};
   });
 }
