@@ -1299,6 +1299,17 @@
   #tabs button:has(.badge.word){padding-top:16px}
   #app.s-operator{padding-bottom:calc(var(--nav-h,0px) + 16px)!important}
   .wm-info{bottom:calc(var(--nav-h,0px) + 8px)}
+  @media (orientation:landscape) and (max-height:480px){
+    /* Skills/Weapon Mastery columns scroll within their own card, below the nav line, instead of the
+       whole page scrolling content out from under the floating nav. */
+    #app.s-operator{display:flex;flex-direction:column;overflow:hidden}
+    #app.s-operator>h1{flex:none}
+    #app.s-operator .opgrid{flex:1;min-height:0}
+    #app.s-operator .opgrid>.card{overflow-y:auto;min-height:0}
+    /* Archipelago's locked label sits low on the map (y:76%); grow it upward like the narrow-width
+       case below so its CTA button clears the nav instead of growing down behind it. */
+    .worldmap .wm-label.locked.next:not(.at-left){transform:translate(-50%,-100%)}
+  }
   @media (max-width:720px){
     #currencies{min-width:0;gap:2px;font-size:12px}
     #currencies .cur{flex:none;min-height:30px;padding:2px 4px 2px 2px;gap:2px}
