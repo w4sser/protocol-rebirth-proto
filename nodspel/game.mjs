@@ -511,7 +511,8 @@ function finishRound(outcome=round.reason){
   // Checkpoints still stay here; failed persistence retains the existing result and return action.
   if(round.over){
     const stored=writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
-    if(stored&&launch.returnUrl){clearInput();location.assign(launch.returnUrl);return;}
+    // Only base-issued raids (raidId) skip the in-raid card; tutorial/debug raids keep it so a first-run intro never hides the result.
+    if(stored&&launch.returnUrl&&launch.raidId&&launch.seed===round.seed){clearInput();location.assign(launch.returnUrl);return;}
   }
   $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;hideSwap();
