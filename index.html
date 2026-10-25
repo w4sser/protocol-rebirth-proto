@@ -1338,6 +1338,14 @@
     .taldetail:has(.talempty){display:none}
     .talnode b{word-break:normal;overflow-wrap:normal;hyphens:none;font-size:8px}
   }
+  /* v1.98 */
+  .handin .hi-body{width:100%;min-height:0;flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .bithead{border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:2px}
+  button.ghost.inline.bitreset{border:0;background:none;padding:2px 0;min-height:0;width:auto;color:var(--dim);font:700 11px "IBM Plex Sans",sans-serif;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--dim) 55%,transparent)}
+  button.ghost.inline.bitreset:disabled{opacity:.35;text-decoration:none}
+  .bittabs{gap:0;border-bottom:1px solid var(--line)}
+  .bittabs button{padding:7px 2px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:0;background:none;color:var(--dim)}
+  .bittabs button.active{color:var(--ad-cyan);border-bottom-color:var(--ad-cyan)}
 </style>
 </head>
 <body class="base-dark">
