@@ -1,43 +1,43 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.97.0';
-import {loadBunkerAssets} from './bunker.js?v=1.97.0';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=1.97.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=1.97.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=1.98.0';
+import {loadBunkerAssets} from './bunker.js?v=1.98.0';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=1.98.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=1.98.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=1.97.0';import '../data/recipes.js?v=1.97.0';import '../data/vendors.js?v=1.97.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=1.97.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.97.0';
-import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.97.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.97.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors} from './round.js?v=1.97.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=1.97.0';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.97.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=1.97.0';
-import {buildWorld,setNodeHold} from './world.js?v=1.97.0';
-import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=1.97.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.97.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.97.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.97.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.97.0';
-// import {stepScavenging} from './scavenging.js?v=1.97.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.97.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.97.0';
-import {routeComplete} from './objectives.js?v=1.97.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.97.0';
-import {createBIT,stepBIT} from './bit.js?v=1.97.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=1.97.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=1.97.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.97.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.97.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=1.97.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=1.97.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=1.97.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=1.97.0';
+import '../data/modules.js?v=1.98.0';import '../data/recipes.js?v=1.98.0';import '../data/vendors.js?v=1.98.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=1.98.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=1.98.0';
+import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=1.98.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=1.98.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors} from './round.js?v=1.98.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=1.98.0';
+import {createCombat,stepCombat,stepHazards} from './combat.js?v=1.98.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=1.98.0';
+import {buildWorld,setNodeHold} from './world.js?v=1.98.0';
+import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=1.98.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=1.98.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=1.98.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=1.98.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=1.98.0';
+// import {stepScavenging} from './scavenging.js?v=1.98.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=1.98.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=1.98.0';
+import {routeComplete} from './objectives.js?v=1.98.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=1.98.0';
+import {createBIT,stepBIT} from './bit.js?v=1.98.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=1.98.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=1.98.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=1.98.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=1.98.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=1.98.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=1.98.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=1.98.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=1.98.0';
 const keys=new Set(),sticks=[];let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=1.97.0');
+const orderResponse=await fetch('./order.json?v=1.98.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -76,12 +76,12 @@ const DEBUG=new URLSearchParams(location.search).has('debug');
 const SEED_LABEL=DEBUG&&new URLSearchParams(location.search).get('seed-label')==='1';
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.97.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.97.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.98.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'1.98.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.97.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=1.98.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -635,7 +635,7 @@ if(new URLSearchParams(location.search).has('debug'))window.__NR={
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,Date.now()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.97.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=1.98.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -692,18 +692,15 @@ function onEquip(){const e=round.lastEquip;if(!e)return;round.lastEquip=null;
 function nearOffer(){const b=round?.gearOffer&&round.level.lootBoxes.find(x=>x.id===round.gearOffer.boxId);return !!b&&!b.collected&&Math.hypot(position.x-b.x,position.z-b.z)<=RULES.loot.pickupRadius*1.6;}
 function offerLabel(){const id=round?.gearOffer?.boxId;return world?.lootBoxes.find(v=>v.loot.id===id)?.label;}
 function notifyGearOffer(){const o=round.gearOffer;const lab=offerLabel();if(lab){lab.el.classList.add('swap-tap');lab.el.onclick=e=>{e.stopPropagation();showGearSwap();};}
-  gearToast(`${o.slot==='armor'?'Armor':'Weapon'} slot taken · tap to swap`,showGearSwap);}
+  gearToast(`${ITEM_NAMES[o.item]??o.item} · ${o.slot==='armor'?'Armor':'Weapon'} slot taken · tap to swap`,showGearSwap);}
 function clearGearOffer(){const lab=offerLabel();if(lab){lab.el.classList.remove('swap-tap');lab.el.onclick=null;}const el=$('#swap-row');if(el?.dataset.kind==='gear')el.hidden=true;if(round)round.gearOffer=null;}
-function showGearSwap(){const o=round?.gearOffer;if(!o||round.over)return;const cur=round.equip[o.slot];{const t=$('#gear-toast');if(t)t.hidden=true;}
-  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');$('#viewport').append(el);}
-  el.dataset.kind='gear';el.setAttribute('aria-label',`${o.slot==='armor'?'Armor':'Weapon'} slot – swap`);el.replaceChildren();
-  const head=document.createElement('div');head.className='swap-head pop-head';head.innerHTML=`<b>Swap ${o.slot==='armor'?'armor':'weapon'}?</b><span>Tap your current gear · it drops here</span>`;
-  const close=document.createElement('button');close.className='pop-x swap-close';close.type='button';close.append(svgIcon('close'));close.setAttribute('aria-label','Keep current gear');close.onclick=()=>{el.hidden=true;};el.append(close,head);
-  const row=document.createElement('div');row.className='swap-items';
-  const chip=(id,isNew)=>{const b=document.createElement(isNew?'div':'button');const r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);setIconText(b,MATERIALS[id]?.icon??'pickup',ITEM_NAMES[id]??id);return b;};
-  const mine=chip(cur,false);mine.type='button';mine.onclick=()=>{const boxId=o.boxId;const d=swapGear(round,boxId,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===boxId)v.loot.collected=true;}el.hidden=true;clearGearOffer();onEquip();};
-  const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.append(svgIcon('swap'));row.append(mine,arrow,chip(o.item,true));el.append(row);el.hidden=false;
-  clearTimeout(showSwap.t);showSwap.t=setTimeout(()=>{el.hidden=true;},5000);}
+function showGearSwap(){const o=round?.gearOffer;if(!o||round.over||!nearOffer())return;
+  // The offer already asks for a swap: one tap equips it and drops the old gear.
+  clearGearOffer();
+  const d=swapGear(round,o.boxId,Date.now());if(!d)return;
+  labelLoot(world.addLoot(d));
+  for(const v of world.lootBoxes)if(v.loot.id===o.boxId)v.loot.collected=true;
+  onEquip();}
 // ---- Visible fallback instead of a white page ----
 let fatal=false;
 function showFatal(title,msg,{retry=null,keep=false}={}){

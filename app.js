@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "1.97.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.98.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -748,16 +748,20 @@ function roomExplainHtml(id){
 }
 // Fabricator room craft list: every unlocked recipe is craftable here (A.craft); higher-level tool recipes show their Fab gate.
 function fabCraftHtml(){
-  const lvl = S.modules.fabricator || 0, first = !idleState().crafted;
+  const lvl = S.modules.fabricator || 0, I = idleState(), first = !I.crafted;
+  // Queue is full: craft() silently blocks and queues a toast that this very overlay defers, so the
+  // button must say so itself instead of looking tappable while doing nothing.
+  const full = I.crafted > 0 && I.fab.length >= fabSlots();
   const rows = D.recipes.filter(r => r.fabricatorLevel <= lvl || (ITEMS[r.output.itemId] && ITEMS[r.output.itemId].tool))
     .sort((a, b) => (a.fabricatorLevel > lvl) - (b.fabricatorLevel > lvl) || (!!(ITEMS[b.output.itemId] && ITEMS[b.output.itemId].tool)) - (!!(ITEMS[a.output.itemId] && ITEMS[a.output.itemId].tool)));
   return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
     const gated = r.fabricatorLevel > lvl, cost = craftCost(r), inOk = Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
-    const can = !gated && S.cur.scrap >= cost && inOk;
+    const can = !gated && !full && S.cur.scrap >= cost && inOk;
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
     return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + IC(ico) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
+        : !gated && full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
   }).join("") + '</div>';
 }
@@ -1266,8 +1270,8 @@ function handInHtml(id){
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
-    '<p class="hi-unlock"><b>UNLOCKAR:</b> ' + esc(questUnlocksText(id, def)) + '</p>' +
-    '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward, true) + '</div></div>' +
+    '<div class="hi-body"><p class="hi-unlock"><b>UNLOCKAR:</b> ' + esc(questUnlocksText(id, def)) + '</p>' +
+    '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward, true) + '</div></div></div>' +
     '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
 }
 // Opens the popup for a ready step (back = "log" returns to the quest log on close). Returns the overlay or null.
@@ -4422,7 +4426,14 @@ window.A = {
     const I = idleState(); if(!bitOnline() || I.scav || I.scavPending || S.expedition) return;   // one BIT assignment at a time; confirm the last haul first
     const miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, k = bitSkillDef("loot_priority");
     const now = idleNow(); I.scav = { startAt:now, returnAt:now + scavMinutes() * MIN, loot: rollScavenge(null, miss && scavPools().includes(miss.itemId) ? { itemId:miss.itemId, p:k.bias } : null) };
-    act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN)); refresh();
+    act("SCAVENGE_SENT", { minutes: scavMinutes() }); toast("BIT heads out · back in " + fmtLeft(scavMinutes() * MIN));
+    // The BIT Bay building popup (A.openBuilding) isn't tied to the SCREENS render loop like the
+    // fullscreen BIT screen is, so a bare refresh() leaves its SEND button stuck showing the pre-send
+    // state: tap once (works, invisibly), tap again and the busy-guard above silently no-ops it.
+    // (Exclude .bitov: the fullscreen BIT screen's own tasks tab reuses the same .bpop[data-module] markup
+    // and already redraws via bitRender, so reopening the room popup there would blow it away instead.)
+    const inRoom = !!document.querySelector('#overlay:not(.bitov) .bpop[data-module="bit_bay"]');
+    refresh(); if(inRoom) A.openBuilding("bit_bay");
   },
   openHaul(){
     const pend = scavPending(); if(!pend) return;

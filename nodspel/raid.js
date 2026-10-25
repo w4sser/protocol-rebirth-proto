@@ -2,8 +2,8 @@
 /*
 export const DEFAULT_ORDER=Object.freeze({zone:'industrial',route:'maintenance_tunnels',risk:'standard',objective:['cable','fuse'],loadout:{weapon:'basic_carbine',ammo:12},health:100});
 */
-import '../data/items.js?v=1.97.0';
-import {RULES} from './levels.js?v=1.97.0';
+import '../data/items.js?v=1.98.0';
+import {RULES} from './levels.js?v=1.98.0';
 export const ITEM_NAMES=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,i.name]));
 export const emptyBag=()=>Object.fromEntries(RULES.loot.types.map(id=>[id,0]));
 /*
@@ -12,7 +12,10 @@ export function readOrder(value){
   return JSON.parse(JSON.stringify(value));
 }
 */
-export const bagItems=bag=>Object.entries(bag).flatMap(([id,count])=>Array(count).fill(id));
+// Ignore depleted entries, including quantities serialized as strings.
+export const bagItems=bag=>Object.entries(bag).flatMap(([id,count])=>{
+  const n=Number(count);return Number.isFinite(n)&&n>0?Array(Math.floor(n)).fill(id):[];
+});
 export const bagText=bag=>Object.entries(bag).filter(([,count])=>count>0).map(([id,count])=>`${count} ${ITEM_NAMES[id]}`).join(' · ')||'Empty';
 // Result serialization is paused.
 /*
