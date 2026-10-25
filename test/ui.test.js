@@ -448,14 +448,14 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     rd.window.close();
   }
 }
-/* Completed meta raids route directly to the base summary, without a second result tap. */
+/* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {
   const source = fs.readFileSync(path + '/nodspel/game.mjs','utf8');
   const start = source.indexOf('function finishRound('), end = source.indexOf("\n$('#result-details-toggle')", start);
   const events = [];
   const finish = new Function('$','round','launch','writeRaidResult','buildRaidResult','clearInput','location',
     'let resultPending=false; return (' + source.slice(start,end) + ');')(
-      () => ({hidden:true}), {over:true,reason:'extract'}, {returnUrl:'../index.html'},
+      () => ({hidden:true}), {over:true,reason:'extract',seed:'s1'}, {returnUrl:'../index.html',raidId:'r1',seed:'s1'},
       () => {events.push('stored');return true;}, () => ({}), () => events.push('cleared'), {assign:url=>events.push(url)});
   finish();
   assert.deepEqual(events,['stored','cleared','../index.html'],'persist then return directly for the one merged summary');
