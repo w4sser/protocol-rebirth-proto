@@ -204,7 +204,9 @@ function stashCapacity(){
 function isFree(id){ return !!(ITEMS[id] && ITEMS[id].free); }
 function invIds(){ return [...new Set([...Object.keys(S.stash || {}), ...Object.keys(S.armory || {})])].filter(id => ITEMS[id] && qty(id) > 0 && !isFree(id)); }
 function qty(id){ return ((S.stash && S.stash[id]) || 0) + ((S.armory && S.armory[id]) || 0); }
-function slotsFor(armory){ let n = 0; for(const id of invIds()) if(isArmoryItem(id) === armory) n += Math.ceil(qty(id) / (ITEMS[id].stackSize || 1)); return n; }
+// v1.97: Armory slots are per item id, not per copy — a weapon or any gear/consumable/tool stacks all its owned
+// copies (dupes you're holding for a merge, spare medkits, ...) into the 1 slot its id already occupies.
+function slotsFor(armory){ let n = 0; for(const id of invIds()) if(isArmoryItem(id) === armory) n += armory ? 1 : Math.ceil(qty(id) / (ITEMS[id].stackSize || 1)); return n; }
 function stashSlotsUsed(){ return slotsFor(false); }
 function armorySlotsUsed(){ return slotsFor(true); }
 function armoryCapacity(){ return D.armoryCapacityFor(S.modules.storage || 0); }
@@ -2304,6 +2306,10 @@ function stashOrder(a, b){ return stashGroup(a) - stashGroup(b) || (RARITY_RANK[
 function upMark(id){ return gearKind(id) && (!gearBlock(id) || !mergeBlock(id)) ? '<span class="upmark" title="Upgrade available" aria-label="Upgrade available">' + IC("chevron-up") + '</span>' : ''; }
 function stashOverflowing(){ return stashSlotsUsed() > stashCapacity(); }
 function armoryOverflowing(){ return armorySlotsUsed() > armoryCapacity(); }
+function capBarHtml(used, cap){
+  const pct = cap > 0 ? Math.min(100, Math.round(used / cap * 100)) : 0;
+  return '<div class="cap-bar' + (used >= cap ? ' full' : '') + '" role="progressbar" aria-valuenow="' + used + '" aria-valuemin="0" aria-valuemax="' + cap + '" aria-label="Armory capacity ' + used + ' of ' + cap + '"><span style="width:' + pct + '%"></span></div>';
+}
 function invSlotHtml(id){
   const it = ITEMS[id], cls = ["slot","r-"+(gearKind(id) ? tierRarity(id) : it.rarity)];
   if(S.reserved[id]) cls.push("reserved");
@@ -2317,7 +2323,7 @@ SCREENS.stash = function(){
   const ids = invIds().sort(stashOrder), gear = ids.filter(isArmoryItem), mats = ids.filter(id => !isArmoryItem(id));
   let html = '<h1>Stash</h1><nav class="inv-jump" aria-label="Sections"><button type="button" onclick="A.invJump(\'inv-armory\')">' + IC("item-carbine") + ' Armory <b>' + armorySlotsUsed() + '/' + armoryCapacity() + '</b></button><button type="button" onclick="A.invJump(\'inv-stash\')">' + IC("item-crate") + ' Materials <b>' + stashSlotsUsed() + '/' + stashCapacity() + '</b></button></nav>';
   html += '<section class="inv-sec armory" id="inv-armory"><div class="sub"><b>ARMORY</b> · ' + armorySlotsUsed() + ' / ' + armoryCapacity() + ' slots · gear you can equip' +
-    (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div><div class="grid">';
+    (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div>' + capBarHtml(armorySlotsUsed(), armoryCapacity()) + '<div class="grid">';
   for(const id of D.items.filter(i => i.free).map(i => i.id))
     html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';

@@ -1144,6 +1144,10 @@
   /* v1.89 armory / stash sections */
   .inv-jump{display:flex;gap:8px;margin:2px 0 6px}.inv-jump button{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--txt);background:rgba(0,0,0,.35);cursor:pointer;font:700 12px "Archivo",sans-serif}.inv-jump button svg{width:16px;height:16px}.inv-jump b{color:var(--ad-cyan,#3fe0d0)}
   .inv-sec{margin-bottom:10px;scroll-margin-top:calc(var(--tb-h,0px) + 8px)}.inv-sec .sub b{color:var(--ad-bone,#e8e0cf);letter-spacing:.06em}.inv-sec .ovf-note{color:var(--ad-danger,#ff6b5a);font-weight:700}
+  /* v1.97 armory capacity bar */
+  .cap-bar{height:6px;border-radius:4px;background:color-mix(in srgb,var(--ad-cyan) 16%,transparent);overflow:hidden;margin:2px 0 8px;border:1px solid color-mix(in srgb,var(--ad-cyan) 40%,transparent)}
+  .cap-bar>span{display:block;height:100%;background:var(--ad-cyan);transition:width .2s}
+  .cap-bar.full>span{background:var(--ad-danger)}
   /* v1.90 fullscreen weapon screen */
   #overlay.wpnov{position:fixed;inset:0;z-index:60;padding:0}#overlay.wpnov .pop-x{display:none}
   .wpn-close{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.5);color:var(--txt);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}.wpn-close svg{width:20px;height:20px}.wpn-r{position:relative}
