@@ -1338,6 +1338,29 @@
     .taldetail:has(.talempty){display:none}
     .talnode b{word-break:normal;overflow-wrap:normal;hyphens:none;font-size:8px}
   }
+
+  /* v1.97 phone-landscape QA: pinned weapon UPGRADE, popup close X moved inside + dim backdrop, armory scroll cue, bigger talent text */
+  @media (orientation:landscape) and (max-height:480px){
+    .wpnscreen .wpn-r>button.upg{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 14px rgba(5,10,12,.9)}
+    .wpnscreen .wpn-r>button.ghost.upg{background:rgba(5,10,12,.95)}
+    #overlay.sheet:not(.wpnov):not(.fabov):not(.bitov){background:rgba(0,0,0,.55)}
+    #overlay .bpop.pop-card{margin-top:6px;margin-left:6px}
+    #overlay .bpop.pop-card>.pop-x{top:6px;left:6px}
+    #overlay .bpop.pop-card>.pop-x+.bpop-head{padding-left:54px}
+    #app.s-stash{background:
+      linear-gradient(rgba(0,0,0,0),rgba(5,10,12,.9)) center bottom/100% 34px no-repeat local,
+      radial-gradient(farthest-side at 50% 100%,rgba(0,0,0,.55),rgba(0,0,0,0)) center bottom/100% 18px no-repeat scroll,
+      linear-gradient(90deg,rgba(7,21,28,.96) 0%,rgba(7,21,28,.84) 45%,rgba(7,21,28,.45) 100%),
+      url("assets/production/env_stash.webp") right center/cover no-repeat;
+    background-origin:content-box,content-box,padding-box,padding-box;
+    }
+    .talnode b{font-size:11px;overflow-wrap:break-word;word-break:normal}
+    .talnode{padding:3px 2px;gap:1px}
+    .talrow{padding:2px 0}
+    .talrow-nodes{gap:3px}
+    .talbranch{padding:4px}
+    .talbranches{gap:4px}
+  }
 </style>
 </head>
 <body class="base-dark">
