@@ -746,16 +746,20 @@ function roomExplainHtml(id){
 }
 // Fabricator room craft list: every unlocked recipe is craftable here (A.craft); higher-level tool recipes show their Fab gate.
 function fabCraftHtml(){
-  const lvl = S.modules.fabricator || 0, first = !idleState().crafted;
+  const lvl = S.modules.fabricator || 0, I = idleState(), first = !I.crafted;
+  // Queue is full: craft() silently blocks and queues a toast that this very overlay defers, so the
+  // button must say so itself instead of looking tappable while doing nothing.
+  const full = I.crafted > 0 && I.fab.length >= fabSlots();
   const rows = D.recipes.filter(r => r.fabricatorLevel <= lvl || (ITEMS[r.output.itemId] && ITEMS[r.output.itemId].tool))
     .sort((a, b) => (a.fabricatorLevel > lvl) - (b.fabricatorLevel > lvl) || (!!(ITEMS[b.output.itemId] && ITEMS[b.output.itemId].tool)) - (!!(ITEMS[a.output.itemId] && ITEMS[a.output.itemId].tool)));
   return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
     const gated = r.fabricatorLevel > lvl, cost = craftCost(r), inOk = Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
-    const can = !gated && S.cur.scrap >= cost && inOk;
+    const can = !gated && !full && S.cur.scrap >= cost && inOk;
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
     return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + IC(ico) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
+        : !gated && full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
   }).join("") + '</div>';
 }
