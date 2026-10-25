@@ -403,3 +403,60 @@ Use the attached approved Protocol Rebirth bunker store artwork unchanged in com
 For the proposed raid summary, preserve the design's single-reaction priority: rare/legendary haul → **impressed**; quest complete → **smug**; weapon-survived milestone → **smug**; close call → **relieved**; near-empty haul → **disappointed**; duplicate glut → **sarcastic**; short/low-activity raid → **bored**; generic extraction fallback → **relieved** or neutral portrait. The design also illustrates no-loss and rare-item commentary: use relieved and impressed respectively. These are art mappings, not a change to trigger logic. Bored/relieved are useful optional variants; prioritize the master, neutral portrait, four core moods, tutorial, shop, death and away cutouts first.
 
 Existing dialogue `raid_prep`, `route_reco`, `decision_found` and missing-part hints can reuse pointing, scout, power-warning or neutral assets as appropriate; `tracked_found` uses impressed, `extracted` uses relieved, `quest_handin` uses smug, `module_built`/`bond_up` use build-bond. Combat companion and Guardian/Scavenger/Tactician talents reuse neutral, shield or scout art; talent nodes are not new inventory objects. No art here implies that BIT equips a new item or that proposed monetization has shipped.
+
+## 3) MARKSMAN RIFLE WEAPON ART (4 tiers)
+
+`data/progression.js` currently marks Marksman with `placeholder:true`; `assets/weapons/marksman-1-*` is a placeholder silhouette shared across grades. Replace it with four distinct tier illustrations matching the established carbine, SMG and shotgun weapon art: isolated horizontal side-view weapon renders, semi-realistic painted 3D, worn salvaged Cold-War gear, transparent background. Match the carbine's long rectangular presentation: target 1600 x 480–560 px for each master and proportionally 512 x 154–179 px for each derivative. Preserve the full weapon silhouette and alpha; do not square-crop or add a floor shadow.
+
+### Exact filenames and export steps
+
+For each tier `N` from 1 to 4, deliver all four files under `assets/weapons/`:
+
+| Tier | 1600-wide master | 512-wide derivative |
+|---|---|---|
+| 1 | `marksman-1-1600.png`, `marksman-1-1600.webp` | `marksman-1-512.png`, `marksman-1-512.webp` |
+| 2 | `marksman-2-1600.png`, `marksman-2-1600.webp` | `marksman-2-512.png`, `marksman-2-512.webp` |
+| 3 | `marksman-3-1600.png`, `marksman-3-1600.webp` | `marksman-3-512.png`, `marksman-3-512.webp` |
+| 4 | `marksman-4-1600.png`, `marksman-4-1600.webp` | `marksman-4-512.png`, `marksman-4-512.webp` |
+
+Generate each tier as a separate transparent PNG master, 1600 px wide and 480–560 px high, with the complete side-view rifle filling the same kind of horizontal crop as the carbine references. Keep enough transparent margin to avoid clipping muzzle, stock, optic or suppressor. Check the alpha over both dark and light backgrounds; checkerboard pixels baked into the image do not count as transparency. Save the approved original PNG as `assets/weapons/marksman-N-1600.png`, then create the 512 px PNG by proportional Lanczos resize to exactly 512 px wide (height rounded proportionally, expected 154–179 px). Save lossless RGBA WebP counterparts at both sizes, retaining the same dimensions and alpha. Inspect all eight exports as a tier lineup at both resolutions. Do not overwrite originals or alter the existing placeholder files until replacement art has been approved and integrated.
+
+### Shared style header
+
+Paste this complete header, then append exactly one tier description below it. Attach `assets/weapons/carbine-1-1600.png` through `carbine-4-1600.png` as the visual progression references and `assets/weapons/marksman-1-1600.png` only as a rough silhouette reference if useful; the existing Marksman art is a placeholder and must not inform the finished detail.
+
+```text
+Create one Protocol Rebirth Marksman rifle weapon illustration. Match the attached carbine tier references in framing, material treatment and progression scale: long horizontal side-view weapon, semi-realistic painted 3D rendering of worn salvaged Cold-War military equipment, believable matte steel, blued metal, polymer, wood or fabric, restrained hand-painted surface detail, chipped paint, rubbed edges and modest field wear. Dark teal, muted olive, charcoal, worn wood and neutral steel; small cyan detail only for powered systems, no glowing fantasy parts. Neutral soft studio lighting with gentle edge highlights and readable material separation. Show the complete weapon in a clean left-facing side profile, centered and spanning most of a 1600 x 480–560 px transparent canvas; keep muzzle, stock and all attachments inside the canvas with a modest clear margin. Match the carbine artwork's compact horizontal crop and visual scale. Genuinely transparent alpha background; no checkerboard, opaque backdrop, floor, cast shadow, environment, vignette, hands or character. No UI, frame, labels, readable text, logos, national flags or emblems. One weapon only; no duplicate parts or exploded view. Output a transparent PNG master.
+
+TIER DESCRIPTION: [paste exactly one tier prompt below]
+```
+
+### Tier prompts
+
+Use the same shared header for each separate image generation. The rifle silhouette and side-view crop stay consistent while components, finish and refinement progress clearly from tier to tier.
+
+#### Tier 1 — Salvaged marksman rifle
+
+```text
+TIER DESCRIPTION: A crude but serviceable salvaged bolt-action marksman rifle assembled from mismatched parts. Long narrow barrel, scratched receiver, rough dark olive stock with a taped repair around the fore-end, exposed fasteners and a simple rusty low-power scope with cloudy glass. A few rubbed bare-metal edges and small rust blooms; visibly improvised and lowest grade, but mechanically complete and aimable. Keep the silhouette plain and readable, with no suppressor, no modern rail system and no pristine components.
+```
+
+#### Tier 2 — Rebuilt field DMR
+
+```text
+TIER DESCRIPTION: A field-rebuilt semi-automatic DMR based on the same long marksman-rifle silhouette. Replace the rough bolt-action receiver with a sturdier, better-fitted receiver and a modest box magazine; add a repaired dark polymer buttstock, a small practical rail section and a clearer but still scratched mid-power optic. Retain olive salvage paint, a few taped or patched areas and visible service wear. It should look reliably rebuilt, one clear step above tier 1, not factory new; no suppressor.
+```
+
+#### Tier 3 — Tuned precision rifle
+
+```text
+TIER DESCRIPTION: A carefully tuned precision DMR, visibly more capable and refined than the tier 2 field rebuild while remaining used battlefield gear. Use a straight, well-aligned barrel, reinforced receiver, adjustable cheek rest, stable precision stock and a properly mounted higher-quality variable optic with clean readable glass. Add a restrained free-float handguard and a few purposeful fittings; use coordinated charcoal and dark olive finishes with controlled wear at contact points. No taped repairs or prominent rust. No suppressor yet; keep the silhouette recognizably the same family.
+```
+
+#### Tier 4 — Refined suppressed marksman rifle
+
+```text
+TIER DESCRIPTION: The top-tier refined marksman rifle, an expertly rebuilt precision DMR in the same family silhouette. Fit a clean, match-grade long barrel with a compact suppressor, rigid precision chassis and refined adjustable stock, and a high-end large-aperture optic with crisp glass and robust turrets. Show precise machining, tight fittings and a coherent dark charcoal/olive finish with only subtle field wear; a tiny restrained cyan sensor detail may sit on the optic mount, not glow. This should read as clearly premium and dependable rather than new or ornate. Keep the suppressor and optic fully inside the horizontal crop.
+```
+
+When these four files are integrated, remove `placeholder:true` from the Marksman entry in `data/progression.js` and map its four grades to `marksman-1` through `marksman-4`. The placeholder flag must not remain once the art lands.
