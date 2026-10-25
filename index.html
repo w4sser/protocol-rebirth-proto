@@ -1306,6 +1306,13 @@
     #app.s-operator>h1{flex:none}
     #app.s-operator .opgrid{flex:1;min-height:0}
     #app.s-operator .opgrid>.card{overflow-y:auto;min-height:0}
+    #overlay.fabov .fabrow small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;text-overflow:clip;overflow:hidden}
+    .rtiles .rtile small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:100%;white-space:normal;overflow-wrap:anywhere;overflow:hidden;font-size:8px;line-height:1.15}
+    #app.s-operator .opgrid>.card:last-child{min-width:0}
+    #app.s-operator .opgrid>.card:last-child .kv{gap:6px}
+    #app.s-operator .opgrid>.card:last-child .kv>span:first-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #app.s-operator .opgrid>.card:last-child .kv>span:last-child{flex:none;white-space:nowrap}
+    .bpop.stashpop .eff{-webkit-line-clamp:3}
     /* Archipelago's locked label sits low on the map (y:76%); grow it upward like the narrow-width
        case below so its CTA button clears the nav instead of growing down behind it. */
     .worldmap .wm-label.locked.next:not(.at-left){transform:translate(-50%,-100%)}
