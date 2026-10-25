@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "1.96.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "1.97.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -204,7 +204,9 @@ function stashCapacity(){
 function isFree(id){ return !!(ITEMS[id] && ITEMS[id].free); }
 function invIds(){ return [...new Set([...Object.keys(S.stash || {}), ...Object.keys(S.armory || {})])].filter(id => ITEMS[id] && qty(id) > 0 && !isFree(id)); }
 function qty(id){ return ((S.stash && S.stash[id]) || 0) + ((S.armory && S.armory[id]) || 0); }
-function slotsFor(armory){ let n = 0; for(const id of invIds()) if(isArmoryItem(id) === armory) n += Math.ceil(qty(id) / (ITEMS[id].stackSize || 1)); return n; }
+// v1.97: Armory slots are per item id, not per copy — a weapon or any gear/consumable/tool stacks all its owned
+// copies (dupes you're holding for a merge, spare medkits, ...) into the 1 slot its id already occupies.
+function slotsFor(armory){ let n = 0; for(const id of invIds()) if(isArmoryItem(id) === armory) n += armory ? 1 : Math.ceil(qty(id) / (ITEMS[id].stackSize || 1)); return n; }
 function stashSlotsUsed(){ return slotsFor(false); }
 function armorySlotsUsed(){ return slotsFor(true); }
 function armoryCapacity(){ return D.armoryCapacityFor(S.modules.storage || 0); }
@@ -793,6 +795,40 @@ function learnTalent(id){
   act("TALENT_LEARNED", { id, rank:S.talents.spent[id] });
   return true;
 }
+// v1.97 BIT tab "Next unlock" cards: the next not-yet-maxed node in a talent branch (tasks tab -> Scavenger,
+// since that branch powers scavenge/expedition), the next quest-chain payoff, and the next trader one-off item.
+// No new rules: reuses talentRowUnlocked/talentPointsAvailable, questUnlocksText and the chip shop catalog.
+function bitNextTalentUnlock(branchId){
+  if(!TAL) return null;
+  const branch = TAL.branches.find(b => b.id === branchId); if(!branch) return null;
+  const node = branch.nodes.find(n => {
+    if(talentRank(n.id) >= n.ranks) return false;
+    if(n.choiceGroup){ const taken = talentChoiceTaken(branch, n.choiceGroup); if(taken && taken.id !== n.id) return false; }
+    return true;
+  });
+  if(!node) return null;
+  const req = !talentRowUnlocked(branch, node.row) ? "Spend " + talentRowReq(node.row) + " in " + branch.name
+    : talentPointsAvailable() > 0 ? "1 point ready to spend"
+    : "1 point at Bond LV " + (bondLevel() + 1);
+  return { name:node.name, req };
+}
+function tasksNextUnlockInfo(){ return bitNextTalentUnlock("scavenger"); }
+function questNextUnlockInfo(){
+  const t = trackedQuest();
+  if(t && !t.maintain) return { name:questUnlocksText(t.chain, t.step), req:'Finish "' + t.step.title + '"' };
+  const locked = Object.keys(QC).find(id => !chainAvailable(id));
+  if(locked) return { name:QC[locked].name, req:"Unlocks in " + areaName((QC[locked].steps[0] || {}).area) };
+  return null;
+}
+function traderNextUnlockInfo(){
+  const it = CS.items.find(it => it.kind !== "item" && !chipOwned(it)); if(!it) return null;
+  const short = Math.max(0, it.price - (S.cur.chips || 0));
+  return { name:chipName(it), req:it.price + " Contract Chips" + (short ? " (" + short + " more)" : "") };
+}
+function nextUnlockCardHtml(info){
+  if(!info) return "";
+  return '<div class="card nextunlock"><b>' + IC("unlock") + "NEXT UNLOCK</b><span>" + esc(info.name) + '</span><small>' + esc(info.req) + '</small></div>';
+}
 function talentRespecCost(){ return S.talents.respecs ? Math.min(1000, 200 * S.talents.respecs) : 0; }
 function respecTalents(){
   const cost = talentRespecCost();
@@ -893,24 +929,26 @@ function talentsTabHtml(){
   const selId = session.bitNode;
   return '<div class="talroot"><div class="talbranches">' + TAL.branches.map(b => talentBranchHtml(b, selId)).join("") + '</div>' + talentDetailHtml(selId) + '</div>';
 }
-// TASKS tab: the existing scavenge/expedition/contracts cards, unchanged, just relocated off the old single-column screen.
+// TASKS tab: the existing scavenge/expedition/contracts cards, relocated off the old single-column screen and
+// laid out 2-up (v1.97) so phone-landscape doesn't leave half the panel empty; a "Next unlock" card fills the gap.
 function bitTasksTabHtml(){
-  let html = scavCardHtml();
+  let top = scavCardHtml();
   if(retMode() !== "core"){
     if(bitAway()){
-      html += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
+      top += '<div class="card"><b>BIT is in the field</b><div class="small">Back in ~' +
         Math.max(0, Math.ceil((S.expedition.returnAt - Date.now()) / 1000)) + 's. No loot scan, no odds — you are on your own out there.</div></div>';
     } else {
       const ec = D.retention.expedition.costScrap;
-      html += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
+      top += '<div class="card"><div class="row"><b>Send BIT on expedition</b>' +
         '<button class="ghost inline" ' + (S.cur.scrap >= ec ? 'onclick="A.sendExpedition()"' : 'disabled') + '>' + IC("cur-scrap") + ' ' + ec + '</button></div>' +
         '<div class="small">He hunts alone for a while — biased toward your tracked item, can fail, and you lose his raid support meanwhile.</div></div>';
     }
   }
+  let html = '<div class="bitgrid">' + top + nextUnlockCardHtml(tasksNextUnlockInfo()) + '</div>';
   if(contractsUnlocked()){
     const today = dayStr();
     if(S.contractsDay !== today){ S.contractsDay = today; S.contracts = {}; }
-    html += '<h2>Daily contracts</h2>';
+    html += '<h2>Daily contracts</h2><div class="bitgrid">';
     for(const c of D.retention.contracts.daily){
       const st = S.contracts[c.id];
       const rewardTxt = Object.keys(c.reward).map(k => "+" + c.reward[k] + " " + k).join(", ");
@@ -919,6 +957,7 @@ function bitTasksTabHtml(){
           ? '<button class="ghost inline" onclick="A.claimContract(\'' + c.id + '\')">' + rewardTxt + '</button>'
           : '<span class="small">' + (st === "claimed" ? "claimed" : rewardTxt) + '</span>') + '</div>';
     }
+    html += '</div>';
   }
   return html;
 }
@@ -945,8 +984,8 @@ function bitScreenHtml(tab){
     '<div class="bitbody">' +
       panel("talents", "talentstab", talentsTabHtml()) +
       panel("tasks", "tasktab", bitTasksTabHtml()) +
-      panel("quests", "questtab", questEntryHtml() || '<div class="card small">No active quests yet.</div>') +
-      panel("trader", "tradertab", traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') +
+      panel("quests", "questtab", '<div class="bitgrid">' + (questEntryHtml() || '<div class="card small">No active quests yet.</div>') + nextUnlockCardHtml(questNextUnlockInfo()) + '</div>') +
+      panel("trader", "tradertab", '<div class="bitgrid">' + (traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') + nextUnlockCardHtml(traderNextUnlockInfo()) + '</div>') +
     '</div></div>';
 }
 // Always remove + recreate (same pattern as stashPopRender/quickCleanRender): safe to call from any BIT action's refresh().
@@ -2304,6 +2343,10 @@ function stashOrder(a, b){ return stashGroup(a) - stashGroup(b) || (RARITY_RANK[
 function upMark(id){ return gearKind(id) && (!gearBlock(id) || !mergeBlock(id)) ? '<span class="upmark" title="Upgrade available" aria-label="Upgrade available">' + IC("chevron-up") + '</span>' : ''; }
 function stashOverflowing(){ return stashSlotsUsed() > stashCapacity(); }
 function armoryOverflowing(){ return armorySlotsUsed() > armoryCapacity(); }
+function capBarHtml(used, cap){
+  const pct = cap > 0 ? Math.min(100, Math.round(used / cap * 100)) : 0;
+  return '<div class="cap-bar' + (used >= cap ? ' full' : '') + '" role="progressbar" aria-valuenow="' + used + '" aria-valuemin="0" aria-valuemax="' + cap + '" aria-label="Armory capacity ' + used + ' of ' + cap + '"><span style="width:' + pct + '%"></span></div>';
+}
 function invSlotHtml(id){
   const it = ITEMS[id], cls = ["slot","r-"+(gearKind(id) ? tierRarity(id) : it.rarity)];
   if(S.reserved[id]) cls.push("reserved");
@@ -2317,7 +2360,7 @@ SCREENS.stash = function(){
   const ids = invIds().sort(stashOrder), gear = ids.filter(isArmoryItem), mats = ids.filter(id => !isArmoryItem(id));
   let html = '<h1>Stash</h1><nav class="inv-jump" aria-label="Sections"><button type="button" onclick="A.invJump(\'inv-armory\')">' + IC("item-carbine") + ' Armory <b>' + armorySlotsUsed() + '/' + armoryCapacity() + '</b></button><button type="button" onclick="A.invJump(\'inv-stash\')">' + IC("item-crate") + ' Materials <b>' + stashSlotsUsed() + '/' + stashCapacity() + '</b></button></nav>';
   html += '<section class="inv-sec armory" id="inv-armory"><div class="sub"><b>ARMORY</b> · ' + armorySlotsUsed() + ' / ' + armoryCapacity() + ' slots · gear you can equip' +
-    (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div><div class="grid">';
+    (armoryOverflowing() ? ' <span class="ovf-note">FULL · sell, recycle or upgrade extras</span>' : '') + '</div>' + capBarHtml(armorySlotsUsed(), armoryCapacity()) + '<div class="grid">';
   for(const id of D.items.filter(i => i.free).map(i => i.id))
     html += '<div class="slot r-common free" role="button" tabindex="0" onclick="A.openStashItem(\'' + id + '\')" title="Always available — never lost"><span class="sicon" aria-hidden="true">' + itemIcon(id) + '</span>' + esc(ITEMS[id].name) + upMark(id) +
       '<span class="qty" aria-label="infinite">' + IC("infinity") + '</span></div>';
