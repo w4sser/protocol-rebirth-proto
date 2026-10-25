@@ -711,8 +711,8 @@ function powerMeterHtml(){
 function powerPopupHtml(){
   tickPower();
   const v = powerValue(), tier = powerTier(), R = BP.reinforce || {}, c = canReinforce(), d = maintainDef();
-  const warn = tier === "warn" ? '<p class="pwr-warn">' + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
-    tier === "crit" ? '<p class="pwr-warn crit">' + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
+  const warn = tier === "warn" ? '<p class="pwr-warn">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
+    tier === "crit" ? '<p class="pwr-warn crit">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
   const rein = '<button type="button" class="primary' + (c.ok ? '' : ' off') + '" ' + (c.ok ? 'onclick="A.reinforce()"' : 'disabled') + '>' + IC("stat-shield") + ' REINFORCE · ' + IC("cur-scrap") + ' ' + (R.scrap || 18) + ' · +' + (R.gain || 25) + '</button>' +
     (!c.ok && c.reason === "scrap" ? '<small class="sub">Need more Scrap</small>' : !c.ok && c.reason === "cooldown" ? '<small class="sub">Reinforce cooling down</small>' : !c.ok && c.reason === "full" ? '<small class="sub">Power is full</small>' : '');
   const mReady = d && d.prog >= d.n;
@@ -759,7 +759,7 @@ function fabCraftHtml(){
     const can = !gated && !full && S.cur.scrap >= cost && inOk;
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + IC(ico) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
         : !gated && full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
@@ -861,15 +861,15 @@ function bitShieldBurst(){ const k = bitSkillDef("shield_burst"); return k && bi
 function scavCardHtml(){
   if(!bitOnline()) return "";
   const I = idleState(), now = idleNow(), pend = scavPending();
-  if(pend) return '<div class="idlecard scav pending"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is back with a haul</b><small>' + esc(scavLootText(pend)) + '. Waiting for your Confirm.</small></span>' +
+  if(pend) return '<div class="idlecard scav pending">' + bitImg("bit-haul-return", "bit-haul-return") + '<i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is back with a haul</b><small>' + esc(scavLootText(pend)) + '. Waiting for your Confirm.</small></span>' +
     '<button type="button" class="primary inline" onclick="A.openHaul()">CONFIRM</button></div>';
-  if(I.scav) return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
+  if(I.scav) return '<div class="idlecard scav">' + bitImg("bit-scavenging-away", "bit-scavenging-away") + '<i aria-hidden="true">' + IC("scavenge") + '</i><span><b>BIT is scavenging</b><small>Back in ' + fmtLeft(I.scav.returnAt - now) + ' with a small haul. Never fails.</small><span class="ibar"><span style="width:' + Math.min(100, Math.round((now - I.scav.startAt) / (I.scav.returnAt - I.scav.startAt) * 100)) + '%"></span></span></span></div>';
   const busy = !!S.expedition, miss = bitSkillOn("loot_priority") ? trackedMissingItem() : null, aim = miss && scavPools().includes(miss.itemId) ? miss : null;
   return '<div class="idlecard scav"><i aria-hidden="true">' + IC("scavenge") + '</i><span><b>Scavenging run · ' + scavMinutes() + ' min</b><small>Free. ' + IDLE.scavenge.scrap[0] + "-" + IDLE.scavenge.scrap[1] + ' Scrap + 1-2 basic parts, sometimes a rare one.' + (aim ? ' Priority: ' + esc(ITEMS[aim.itemId].name) + '.' : '') + '</small></span>' +
     '<button type="button" class="ghost inline" ' + (busy ? 'disabled' : 'onclick="A.sendScavenge()"') + '>SEND</button></div>';
 }
 function haulPopupHtml(pend){
-  return '<div class="bpop haulpop" data-module="bit_bay"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("scavenge") + '</span><h1>BIT is back</h1></div>' +
+  return '<div class="bpop haulpop" data-module="bit_bay"><div class="bpop-head">' + bitImg("bit-haul-return", "bit-haul-return") + '<span class="bicon" aria-hidden="true">' + IC("scavenge") + '</span><h1>BIT is back</h1></div>' +
     '<p class="eff">BIT brought this back from the scavenging run. It stays here until you confirm.</p><div class="costs">' +
     '<div class="cost ok"><i aria-hidden="true">' + IC("cur-scrap") + '</i><b>+' + pend.scrap + '</b><span class="cname">Scrap</span></div>' +
     Object.entries(pend.items).map(([id, q]) => '<div class="cost ok"><i aria-hidden="true">' + itemImg(id) + '</i><b>+' + q + '</b><span class="cname">' + esc(ITEMS[id].name) + '</span></div>').join("") + '</div>' +
@@ -970,7 +970,7 @@ function bitHeaderHtml(){
   const pct = nxt ? Math.min(100, Math.round(S.bondXp / nxt.xp * 100)) : 100;
   const avail = talentPointsAvailable(), spent = talentSpentTotal(), cost = talentRespecCost();
   const canReset = spent > 0 && S.cur.scrap >= cost;
-  return '<div class="bithead">' +
+  return '<div class="bithead">' + bitImg("bit-screen-portrait", "bit-screen-portrait") +
     '<div class="bitbond"><b>' + IC("nav-bit") + ' Bond LV ' + bl + '</b>' +
     '<span class="bitxpbar"><span style="width:' + pct + '%"></span></span>' +
     '<span class="bitxp">' + S.bondXp + (nxt ? '/' + nxt.xp : "") + ' xp</span></div>' +
@@ -1389,7 +1389,7 @@ function chipExchangeHtml(kind){
     '<span class="cs-ic">' + IC(ITEMS[r.item].icon) + '<em>' + n + '</em></span><span class="qt">' + IC("arrow-right") + '</span>' + qTile("cur-chip", "+" + r.chips, "") + '</button>';
 }
 function chipShopHtml(){
-  return '<div class="bpop cshop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
+  return '<div class="bpop cshop"><div class="bpop-head">' + bitImg("bit-quartermaster", "bit-quartermaster") + '<span class="bicon" aria-hidden="true">' + IC("nav-bit") + '</span><h1>BIT Trader</h1><em class="qchips">' + IC("cur-chip") + (S.cur.chips || 0) + '</em></div>' +
     '<div class="cs-body"><div class="cs-list"><div class="cs-grid">' + CS.items.map(chipTileHtml).join("") + '</div>' +
     '<div class="cs-grid cs-ex">' + Object.keys(CS.recycle).map(chipExchangeHtml).join("") + '</div></div>' + chipPreviewHtml(chipItem(chipSelId())) + '</div></div>';
 }
@@ -1765,7 +1765,7 @@ function upgradeRewardHtml(modId, level, bitJustOnline){
     '<div class="rtiles" data-count="' + list.length + '">' + tiles + '</div>' +
     (nextLine ? '<p class="reward-goal"><b>NEXT</b> ' + esc(nextLine) + '</p>' : '') +
     '<button type="button" class="primary big" data-close>CONTINUE</button></div>' +
-    (bitOff ? '<p class="reward-bit">' + IC("bit-face") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
+    (bitOff ? '<p class="reward-bit">' + bitImg("bit-offline", "bit-offline") + ' BIT is still offline. Build BIT Bay to wake it.</p>' : '');
 }
 function fakeAd(label, onDone){
   let sec = 3;
@@ -1813,6 +1813,14 @@ function itemImg(id, cls){
   return '<picture class="pr-itemimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
     '<img class="pr-item-art" src="' + base + '.png" alt="" draggable="false" onerror="this.closest(\'.pr-itemimg\').classList.add(\'art-err\')"></picture>' +
     '<i class="pr-itemimg-fb" aria-hidden="true">' + sprite + '</i>';
+}
+// v1.99: BIT mood portraits (docs/art-oct25-handoff.md) — square transparent cutouts at assets/bit/<name>.{webp,png}
+// for a handful of existing BIT touchpoints. onerror falls back to the sprite BIT face, same pattern as itemImg above.
+function bitImg(name, cls){
+  const base = "assets/bit/" + name;
+  return '<picture class="pr-bitimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
+    '<img class="pr-bit-art" src="' + base + '.png" alt="" draggable="false" onerror="this.closest(\'.pr-bitimg\').classList.add(\'art-err\')"></picture>' +
+    '<i class="pr-bitimg-fb" aria-hidden="true">' + IC("bit-face") + '</i>';
 }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
 function partIcon(p){ return p.kind === "item" ? itemIcon(p.id) : CUR_ICONS[p.id]; }
@@ -3116,7 +3124,7 @@ SCREENS.result = function(){
     if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">' + IC("play") + ' WATCH AD — 2× HAUL</button>';
   } else {
     const saved = R.saved;
-    html = '<h1 class="bad">KIA</h1><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
+    html = '<div class="result-head">' + bitImg("bit-death", "bit-death") + '<h1 class="bad">KIA</h1></div><div class="sub">' + esc(ZONES[R.zone].name) + '</div><h2>Lost</h2>';
     const savedIds = [...saved.insured, saved.secure].filter(Boolean);
     for(const id of R.cfg.loadout){
       if(savedIds.includes(id)){ savedIds.splice(savedIds.indexOf(id),1); continue; }
