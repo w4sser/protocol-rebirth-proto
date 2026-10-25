@@ -1,4 +1,4 @@
-// jsdom: meta boot ingests a pending Node Raid result, shows a toast, and prep offers Node Raid deploy.
+// jsdom: meta boot ingests a pending Node Raid result, shows its summary popup, and prep offers Node Raid deploy.
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const assert = require("assert");
@@ -11,9 +11,12 @@ for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talent
   window.eval(fs.readFileSync(path + "/" + s, "utf8"));
 const doc = window.document, A = window.A;
 assert.equal(window.localStorage.getItem("pr_raid_result_v1"), null, "pending result consumed on boot");
-{ const st = doc.querySelector("#toast .qdone.secured"); assert(st, "secured loot strip toast shown");
-  console.log(st.innerHTML);
-  assert(!/Node Raid:/.test(doc.getElementById("toast").textContent), "no plain-text raid summary"); }
+{ const summary = doc.querySelector("#overlay .raid-summary-pop.pop-card");
+  assert(summary, "merged raid summary popup shown");
+  assert(summary.querySelector("h1").textContent === "EXTRACTED", "summary shows the raid outcome");
+  const gains = [...summary.querySelectorAll(".summary-row.gain")];
+  assert(gains.some(row => row.textContent.includes("Cable")) && gains.some(row => row.textContent.includes("Power Cell")), "summary lists secured loot");
+  assert(summary.textContent.includes("LOST / CONSUMED") && summary.querySelector("[data-close]"), "summary includes losses and return action"); }
 const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert(saved.coreRaidsIngested.includes("meta-test-1") && saved.stash.cable >= 1, "ingest persisted");
 A.dismissIntro(); A.playCombatDemo(); A.endCombatDemo();
