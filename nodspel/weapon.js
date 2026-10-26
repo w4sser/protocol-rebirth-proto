@@ -1,8 +1,26 @@
-import {RULES} from './levels.js?v=2.1.2';
-import {traceTargets,movePlayer} from './physics.mjs?v=2.1.2';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=2.1.2';
+import {RULES} from './levels.js?v=2.2.0';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.2.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=2.2.0';
 
-export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon){
+export function playerDisplaced(before,after){
+  return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
+}
+export function assistWindow(rule=RULES.weapon,moving=false){
+  return {angleDegrees:moving?Math.min(rule.assistAngleDegrees,RULES.shooting.movingAssistAngleDegrees):rule.assistAngleDegrees,
+    width:moving?Math.min(rule.assistWidth,RULES.shooting.movingAssistWidth):rule.assistWidth};
+}
+// The preview depicts both eligibility limits: angle near the muzzle, width farther away.
+export function assistPreview(position,direction,obstacles,rule=RULES.weapon,moving=false){
+  const window=assistWindow(rule,moving),length=Math.hypot(direction.x,direction.z)||1;
+  const raw={x:direction.x/length,z:direction.z/length};
+  return aimConePoints(position,raw,rule.range,window.angleDegrees*Math.PI/180,obstacles).map(p=>{
+    const dx=p.x-position.x,dz=p.z-position.z,side=Math.abs(dx*raw.z-dz*raw.x);
+    const scale=side>window.width?window.width/side:1;
+    return {x:position.x+dx*scale,z:position.z+dz*scale};
+  });
+}
+export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon,moving=false){
+  const window=assistWindow(rule,moving);
   const length=Math.hypot(direction.x,direction.z);
   if(length<1e-9)return {target:null,direction:{x:0,z:-1}};
   const raw={x:direction.x/length,z:direction.z/length};let target=null,nearest=Infinity;
@@ -11,7 +29,7 @@ export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon
     const dx=enemy.x-position.x,dz=enemy.z-position.z,distance=Math.hypot(dx,dz);
     if(distance<.01||distance>rule.range||distance>=nearest)continue;
     const dot=(dx*raw.x+dz*raw.z)/distance,side=Math.abs(dx*raw.z-dz*raw.x);
-    if(dot<Math.cos(rule.assistAngleDegrees*Math.PI/180)||side>rule.assistWidth)continue;
+    if(dot<Math.cos(window.angleDegrees*Math.PI/180)||side>window.width)continue;
     const hit=weaponHit(position,{x:position.x+dx/distance*rule.range,z:position.z+dz/distance*rule.range},obstacles,enemies,rule);
     if((hit?.target??hit?.node)?.id!==enemy.id)continue;
     target=enemy;nearest=distance;
@@ -47,7 +65,8 @@ export function knockEnemy(round,enemy,dir,rule,obstacles,now){
 }
 // Light homing: a free-flying tracer bends toward the nearest living enemy inside a narrow forward cone (never past cover).
 export function steerShot(b,enemies,obstacles,rule,dt){
-  if(!(rule.homingDegreesPerSecond>0))return;
+  const homing=b.movingAtFire?Math.min(rule.homingDegreesPerSecond,RULES.shooting.movingHomingDegreesPerSecond):rule.homingDegreesPerSecond;
+  if(!(homing>0))return;
   let best=null,bestD=Infinity;const limit=Math.cos(rule.homingAngleDegrees*Math.PI/180);
   for(const e of enemies){
     if(e.health<=0||e.active===false)continue;
@@ -58,16 +77,17 @@ export function steerShot(b,enemies,obstacles,rule,dt){
   }
   if(!best)return;
   const cur=Math.atan2(b.dz,b.dx),want=Math.atan2(best.z-b.z,best.x-b.x);
-  let diff=Math.atan2(Math.sin(want-cur),Math.cos(want-cur));const max=rule.homingDegreesPerSecond*Math.PI/180*dt;
+  let diff=Math.atan2(Math.sin(want-cur),Math.cos(want-cur));const max=homing*Math.PI/180*dt;
   diff=Math.max(-max,Math.min(max,diff));b.dx=Math.cos(cur+diff);b.dz=Math.sin(cur+diff);
 }
-export function fireAimedWeapon(weapon,round,position,direction,now,obstacles){
+export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false){
   tickRound(round,now);if(round.over)return null;
-  const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=assistAim(position,direction,targets,obstacles,rule);
+  const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=assistAim(position,direction,targets,obstacles,rule,moving);
   // Spread only scatters free-aimed shots; a lock (aim assist) always lands.
   let dir=assisted.direction;
   if(!assisted.target&&rule.spreadDegrees>0){const a=(weapon.rand??Math.random)()*2-1,t=a*rule.spreadDegrees*Math.PI/180,c=Math.cos(t),s=Math.sin(t);dir={x:dir.x*c-dir.z*s,z:dir.x*s+dir.z*c};}
   const shot=fireWeapon(weapon,position,dir,now);if(!shot)return null;
+  shot.movingAtFire=!!moving;
   if(assisted.target){
     const end={x:position.x+shot.dx*rule.range,z:position.z+shot.dz*rule.range};
     const hit=weaponHit(position,end,obstacles,targets,rule);

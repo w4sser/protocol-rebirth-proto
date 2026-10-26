@@ -1,8 +1,8 @@
-import {RULES,hazardState} from './levels.js?v=2.1.2';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.1.2';
-import {takeDamage,tickRound} from './round.js?v=2.1.2';
-import {houseWaypoint} from './house.js?v=2.1.2';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.1.2';
+import {RULES,hazardState} from './levels.js?v=2.2.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.2.0';
+import {takeDamage,tickRound} from './round.js?v=2.2.0';
+import {houseWaypoint} from './house.js?v=2.2.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.2.0';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
@@ -131,6 +131,12 @@ function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
 // Stationary shooter: intro guard (RULES.intro), Core guard and turret (RULES.encounters.*). A visible warning line,
 // then a committed salvo, then a recovery window. Encounter guards also turn slowly towards the player and only
 // start a warning when the player is inside their fire arc, so walking round behind them is safe.
+export function guardShotDirections(enemy){
+  if(enemy.encounter==='turret'&&!enemy.introGuard)return enemy.attackDirections??[];
+  if(!enemy.attackTarget)return [];
+  const dx=enemy.attackTarget.x-enemy.x,dz=enemy.attackTarget.z-enemy.z,d=Math.hypot(dx,dz)||1;
+  return [{x:dx/d,z:dz/d}];
+}
 function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
   if(enemy.health<=0){enemy.attackPhase=null;enemy.windupAt=null;return;}
   const intro=!!enemy.introGuard,cfg=intro?RULES.intro:RULES.encounters[enemy.encounter];
@@ -142,16 +148,25 @@ function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
     if(!intro&&angleDiff(enemy.facing,angleTo(enemy,player))>cfg.fireHalfAngleDeg*Math.PI/180)return;
     if(traceTargets(enemy,player,obstacles,[target])?.kind!=='player')return;
     enemy.attackTarget={x:player.x,z:player.z};enemy.attackPhase='warning';enemy.windupAt=now+cfg.warningMs;
+    if(enemy.encounter==='turret'&&!intro){
+      const heading=Math.atan2(player.z-enemy.z,player.x-enemy.x);
+      enemy.attackDirections=RULES.shooting.turretFanDegrees.map(degrees=>{
+        const angle=heading+degrees*Math.PI/180;return {x:Math.cos(angle),z:Math.sin(angle)};
+      });
+    }
   }
   const hit=enemy.lastHitAt!=null&&enemy.hitSerial!==(enemy.reactedHitSerial??0);
   enemy.reactedHitSerial=enemy.hitSerial??0;
   if(enemy.attackPhase==='warning'&&(now>=enemy.windupAt||cfg.counterOnHit&&hit)){
     enemy.attackPhase='burst';enemy.burstEndsAt=now+(cfg.burstShots-1)*cfg.burstIntervalMs;enemy.windupAt=null;
-    const d=Math.hypot(enemy.attackTarget.x-enemy.x,enemy.attackTarget.z-enemy.z)||1,dx=(enemy.attackTarget.x-enemy.x)/d,dz=(enemy.attackTarget.z-enemy.z)/d;
+    const directions=guardShotDirections(enemy);
     // The committed salvo is independent of the shooter. Cover traces its whole
     // path; rapid stationary fire cannot erase already committed bullets.
     const info=intro?{}:shotInfo(round,enemy);
-    for(let i=0;i<cfg.burstShots;i++)combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range*(enemy.rangeMul??1)/RULES.combat.bulletSpeed,...info});
+    for(let i=0;i<cfg.burstShots;i++){
+      const dir=directions[i%directions.length];
+      combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx:dir.x,dz:dir.z,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range*(enemy.rangeMul??1)/RULES.combat.bulletSpeed,...info});
+    }
   }
   if(enemy.attackPhase==='burst'&&now>=enemy.burstEndsAt){enemy.attackPhase='recovery';enemy.recoverUntil=now+cfg.recoveryMs;combat.nextFire.set(enemy.id,enemy.recoverUntil);}
 }

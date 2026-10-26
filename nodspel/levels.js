@@ -1,8 +1,10 @@
-import {clearPassageProps} from './archipelago-passages.js?v=2.1.2';
-import {townizeLevel} from './town-layout.js?v=2.1.2';
-import {applyEncounters} from './encounters.js?v=2.1.2';
+import {clearPassageProps} from './archipelago-passages.js?v=2.2.0';
+import {townizeLevel} from './town-layout.js?v=2.2.0';
+import {applyEncounters} from './encounters.js?v=2.2.0';
+import '../data/raid-combat.js?v=2.2.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
+  shooting:globalThis.DATA.raidCombat,
   intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   // v1.67 first-upgrade payoff (meta sends ?payoff=kind once). loot_cluster: >= bag capacity pickups on free floor near spawn
   // (centred offsetZ from start toward the room, `spacing` apart, `margin` from walls, `clear` from solids/objectives, pickupRadius+`startClear` from the spawn so nothing is auto-collected at t=0).
