@@ -4628,8 +4628,8 @@ window.A = {
     else { reveal = rollMystery(); S.cur.scrap += reveal.scrap; for(const id in reveal.items) addItem(id, reveal.items[id]); if(reveal.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + reveal.dataCores; revealCurrency("dataCores"); } }
     act("QUEST_CLAIMED", { kind:c.kind, tier: reveal ? reveal.tier : null });
     const o = document.getElementById("overlay"); if(o) o.remove();
-    const reopen = () => (back === "log" ? A.questLog("daily") : bitRender("quests"));
-    refresh();
+    // Refreshing the BIT screen recreates its sheet; defer it until the reveal closes.
+    const reopen = () => { refresh(); return back === "log" ? A.questLog("daily") : bitRender("quests"); };
     if(reveal){
       overlay('<div class="bpop mreveal" style="--rc:' + RARITY_HEX[reveal.tier] + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("mystery") + '</span><h1>' + reveal.tier.toUpperCase() + '</h1></div>' +
         '<div class="mrow"><span>' + IC("cur-scrap") + ' +' + reveal.scrap + ' Scrap</span>' + Object.entries(reveal.items).map(([id, n]) => '<span>' + itemImg(id) + ' ' + n + '× ' + esc(ITEMS[id].name) + '</span>').join("") + (reveal.dataCores ? '<span>' + IC("cur-datacore") + ' +' + reveal.dataCores + ' Data Cores</span>' : '') + '</div>' +

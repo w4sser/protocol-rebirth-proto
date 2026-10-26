@@ -616,6 +616,36 @@ for(const source of ['bit', 'log']) {
   A.go('base');
 }
 
+/* Mystery rewards replace the picker, then restore the originating quests tab. */
+for(const source of ['bit', 'log']) {
+  for(const dismissal of ['nice', 'close']) {
+    const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
+    const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
+    st.modules.bit_bay = 1; st.beat = 999; st.bondXp = 900; st.retentionMode = 'core'; st.quests = null;
+    const quests = window.questState(), q = quests.list[0];
+    q.done = true; q.prog = q.n || 1; q.rewards = [{kind:'mystery'}];
+    quests.list[1].done = true;
+    if(source === 'bit') { A.go('bit'); A.bitTab('quests'); } else A.questLog('daily');
+    const label = source + '/' + dismissal;
+    assert.equal(window.dailyReadyCount(), 2, label + ': two quests ready before claiming');
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': one reward picker');
+    press(doc.querySelector('#overlay .qcard.mystery'));
+    assert(q.claimed, label + ': mystery reward claimed');
+    assert.equal(st.bondXp, 900 + window.DATA.quests.bondXp, label + ': bond XP paid once');
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': exactly one overlay during reveal');
+    assert(doc.querySelector('#overlay .mreveal'), label + ': mystery reveal visible');
+    doc.querySelector(dismissal === 'nice' ? '#overlay .mreveal .primary[data-close]' : '#overlay .pop-x').click();
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': exactly one overlay after dismissal');
+    assert(doc.querySelector(source === 'bit' ? '#overlay.bitov .questtab.active' : '#overlay .qlog'), label + ': source quests tab restored');
+    assert(doc.querySelector('#overlay .quests .quest.claimed'), label + ': claimed quest visible');
+    assert.equal(window.dailyReadyCount(), 1, label + ': ready count updated');
+    if(source === 'bit') assert.equal(doc.querySelector('#overlay .bittabs button[aria-selected="true"] .bit-tab-badge').textContent, '1 READY', label + ': BIT badge updated');
+    Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
+    A.go('base');
+  }
+}
+
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 for(const a of ["SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
   "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","CHECKPOINT_REACHED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","RAID_FAILED_AFTER_PUSHING_DEEPER"])
