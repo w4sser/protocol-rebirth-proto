@@ -417,7 +417,30 @@ async function extractPopupRun([w,h]){
   await page.close();
 }
 
+async function perkPopupRun([w,h]){
+  const tag=`raid perks ${w}x${h}`,page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=perk-layout&debug=1&q=high&area=bunker`,{waitUntil:'load'});
+  await loaderGone(page);await page.waitForSelector('#tutorial-start',{visible:true});await page.click('#tutorial-start');
+  await page.waitForFunction('window.__NR');await page.evaluate(()=>window.__NR.perkPickDemo());await settle(400);
+  await report(page,tag,'.perk-choice,.perk-panel .pop-x');
+  const before=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,names:[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent)}));
+  await settle(1000);
+  const paused=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,targets:[...document.querySelectorAll('.perk-choice,.perk-panel .pop-x')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})}));
+  if(paused.time!==before.time||paused.health!==before.health)fail(tag,'raid timer or combat changed during perk pick');
+  if(!paused.targets)fail(tag,'perk touch target smaller than 44px');
+  await shot(page,`perk-pick-${w}x${h}`);
+  await page.click('.perk-panel .pop-x');await settle(100);await page.click('.perk-resume');
+  const names=await page.evaluate(()=>[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent));
+  if(JSON.stringify(names)!==JSON.stringify(before.names))fail(tag,'minimizing rerolled the perk offer');
+  await page.click('.perk-choice');await settle(80);await shot(page,`perk-confirm-${w}x${h}`);await settle(450);
+  const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
+  await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);
+  const death=await page.$eval('#result-description',e=>e.textContent);if(!/Last hit: Sentry.*Moving/.test(death))fail(tag,'death explanation missing');
+  await shot(page,`perk-death-${w}x${h}`);await page.close();
+}
+
 try{
+  for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
   await encShotRun([844,390]);
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);

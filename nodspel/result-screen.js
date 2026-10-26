@@ -1,9 +1,10 @@
+import {deathLine} from './perks.js?v=2.3.0';
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.2.0';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.2.0';
-import {extractScrapBonus} from './levels.js?v=2.2.0';
-import {ROUND_DURATION_MS} from './round.js?v=2.2.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.2.0';
+import '../data/bit.js?v=2.3.0';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.3.0';
+import {extractScrapBonus} from './levels.js?v=2.3.0';
+import {ROUND_DURATION_MS} from './round.js?v=2.3.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.3.0';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -41,7 +42,7 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const [eyebrow,title,baseDescription,icon]=headings[kind];
   const description=kind==='death'?(recovered.length?'Recovery is listed below. Your base is safe.':rows.length||gear.length?baseDescription:'No carried items were lost.'):baseDescription;
   const level=checkpoint?(round.exitLevel??round.level):round.level;
-  return {kind,checkpoint,safe,integrated,eyebrow,title,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
+  return {kind,checkpoint,safe,integrated,eyebrow,title,description:kind==='death'?`${description} ${deathLine(round)}`:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
     lootTitle:checkpoint?'CARRIED · NOT SECURED':safe?'SECURED LOOT':'LOST FROM BAG',empty:checkpoint?'Your bag is empty.':safe?'No loot carried out.':'No items lost from your bag.',
     retained:!checkpoint&&integrated?'XP and supplies kept':'',
     meta:`${String(level.area??'bunker').toUpperCase()} · ${round.levelsCleared} SECTOR${round.levelsCleared===1?'':'S'} CLEARED`,

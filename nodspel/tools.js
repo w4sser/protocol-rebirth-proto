@@ -1,8 +1,8 @@
 // Toolkit (grenade / EMP / decoy): pure logic on round + level state, no DOM. Config lives in RULES.tools (levels.js).
 // One tool per raid (?tool=id:n). Throws land instantly (no bounce); the grenade then waits out its fuse.
-import {RULES} from './levels.js?v=2.2.0';
-import {aimEndpoint} from './physics.mjs?v=2.2.0';
-import {hitEnemy} from './round.js?v=2.2.0';
+import {RULES} from './levels.js?v=2.3.0';
+import {aimEndpoint} from './physics.mjs?v=2.3.0';
+import {hitEnemy} from './round.js?v=2.3.0';
 
 const PULSE_SHOW_MS=600;
 const alive=e=>e.health>0&&e.active!==false;
@@ -17,7 +17,7 @@ export function initTool(round,launchTool){
   return round.tool;
 }
 export const toolCharges=round=>round?.tool?.charges??0;
-export const canUseTool=round=>!!round&&!round.over&&toolCharges(round)>0;
+export const canUseTool=round=>!!round&&!round.over&&round.pauseAt==null&&toolCharges(round)>0;
 
 // Nearest living enemy within throwRange (auto-aim). Null when nothing is close.
 export function nearestTarget(origin,enemies,range=RULES.tools.throwRange){
@@ -91,7 +91,7 @@ function applyLures(round,now){
 }
 // Per-frame upkeep: detonate due grenades, keep lures current, drop expired effects. Returns blasts this frame.
 export function stepTools(round,now){
-  const fx=round.toolFx;if(!fx||round.over)return [];
+  const fx=round.toolFx;if(!fx||round.over||round.pauseAt!=null)return [];
   if(fx.level!==round.level){clearFx(round);return [];}
   const blasts=[];
   for(let i=fx.fuses.length-1;i>=0;i--){

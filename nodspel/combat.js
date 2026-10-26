@@ -1,22 +1,26 @@
-import {RULES,hazardState} from './levels.js?v=2.2.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.2.0';
-import {takeDamage,tickRound} from './round.js?v=2.2.0';
-import {houseWaypoint} from './house.js?v=2.2.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.2.0';
+import {ownRooms} from './perks.js?v=2.3.0';
+import {RULES,hazardState} from './levels.js?v=2.3.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.3.0';
+import {takeDamage,tickRound} from './round.js?v=2.3.0';
+import {houseWaypoint} from './house.js?v=2.3.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.3.0';
 
 export function createCombat(level,now){
+  ownRooms(level);
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
   const grace=level.firstGraceMs??RULES.combat.graceMs;
   return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],blasts:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
 }
 export function stepCombat(round,combat,player,now,dt,obstacles){
-  tickRound(round,now);if(round.over)return;
+  tickRound(round,now);if(round.pauseAt!=null||round.over)return;
   const room=round.level.rooms.findIndex(r=>Math.abs(player.x-r.x)<=r.w/2&&Math.abs(player.z-r.z)<=r.d/2);
   if(room>=0&&!combat.visited.has(room)){
     combat.visited.add(room);combat.graceUntil=now+RULES.combat.graceMs;combat.projectiles.length=0;combat.moveAt=combat.graceUntil;
     for(const enemy of round.level.enemies)combat.nextFire.set(enemy.id,Math.max(combat.nextFire.get(enemy.id)??0,combat.graceUntil));
   }
+  const playerBefore={x:player.x,z:player.z};
   Object.assign(player,moveWithActors(player,{x:0,z:0},round.level.enemies,obstacles,round.level.floors,RULES.playerRadius));
+  round.playerMoving=!!round.playerMoving||Math.hypot(player.x-playerBefore.x,player.z-playerBefore.z)>RULES.shooting.movementEpsilon;
   // Encounters that run on their own clock: patrols keep walking and spawn points keep counting through the arrival grace.
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
@@ -73,7 +77,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
-    if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??null,at:now};takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
+    if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??'Enemy',enemyId:b.enemyId,attack:b.attack??'projectile',at:now};takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
 }
@@ -82,21 +86,21 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
 // A thrower killed during the warning never lobs; a blast already in the air still lands (leave the ring).
 function lobGrenade(round,combat,enemy,now){
   const G=RULES.encounters.grenadier,at=enemy.attackTarget;enemy.attackTarget=null;
-  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:'grenadier',enemyId:enemy.id});
+  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
   combat.nextFire.set(enemy.id,now+G.cooldownMs);
 }
 function stepBlasts(round,combat,player,now){
   for(let i=combat.blasts.length-1;i>=0;i--){
     const b=combat.blasts[i];if(now<b.detonateAt)continue;
     combat.blasts.splice(i,1);
-    if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,at:now};takeDamage(round,encounterDamage(round,'grenadier'),now);}
+    if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};takeDamage(round,encounterDamage(round,'grenadier'),now);}
     (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
   }
   if(combat.booms)combat.booms=combat.booms.filter(b=>now-b.at<600);
 }
 
 // Encounter shots carry their source (for the result-screen tip) and a damage capped at maxHitFraction of max HP.
-function shotInfo(round,enemy){return enemy.encounter&&RULES.encounters[enemy.encounter]?.damagePct?{source:enemy.encounter,damage:encounterDamage(round,enemy.encounter)}:{};}
+function shotInfo(round,enemy){return {source:enemy.introGuard?'Cache guard':enemy.encounter??enemy.type??'grunt',enemyId:enemy.id,attack:enemy.encounter==='turret'?'fan':'projectile',...(enemy.encounter&&RULES.encounters[enemy.encounter]?.damagePct?{damage:encounterDamage(round,enemy.encounter)}:{})};}
 
 // Swarm rushers chase in a straight line, which wedges them on a doorway's corner. When the player is in another
 // room or in a corridor they first head for the doorway that is closest to the player, then through it; in a
@@ -162,7 +166,7 @@ function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
     const directions=guardShotDirections(enemy);
     // The committed salvo is independent of the shooter. Cover traces its whole
     // path; rapid stationary fire cannot erase already committed bullets.
-    const info=intro?{}:shotInfo(round,enemy);
+    const info=shotInfo(round,enemy);
     for(let i=0;i<cfg.burstShots;i++){
       const dir=directions[i%directions.length];
       combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx:dir.x,dz:dir.z,releaseAt:now+i*cfg.burstIntervalMs,life:RULES.combat.range*(enemy.rangeMul??1)/RULES.combat.bulletSpeed,...info});
@@ -209,12 +213,12 @@ function stepSpawners(round,combat,player,now){
 
 // Shock pads damage the player while 'on'. Returns true when damage was dealt.
 export function stepHazards(round,player,now,dt){
-  tickRound(round,now);if(round.over||!round.level.hazards?.length)return false;
+  tickRound(round,now);if(round.pauseAt!=null||round.over||!round.level.hazards?.length)return false;
   for(const h of round.level.hazards){
     if(hazardState(h,now)!=='on')continue;
     if(Math.abs(player.x-h.x)<=h.w/2&&Math.abs(player.z-h.z)<=h.d/2){
       h.carry=(h.carry??0)+(h.dps??RULES.hazard.damagePerSecond)*dt;
-      if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;return takeDamage(round,dmg,now);}
+      if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;round.lastHit={source:'Shock pad',sourceId:h.id,attack:'electric hazard',at:now};return takeDamage(round,dmg,now);}
     }
   }
   return false;

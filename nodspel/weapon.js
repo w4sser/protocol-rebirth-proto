@@ -1,6 +1,7 @@
-import {RULES} from './levels.js?v=2.2.0';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.2.0';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=2.2.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.3.0';
+import {RULES} from './levels.js?v=2.3.0';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.3.0';
+import {activateNode,hitEnemy,tickRound} from './round.js?v=2.3.0';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -22,20 +23,20 @@ export function assistPreview(position,direction,obstacles,rule=RULES.weapon,mov
 export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon,moving=false){
   const window=assistWindow(rule,moving);
   const length=Math.hypot(direction.x,direction.z);
-  if(length<1e-9)return {target:null,direction:{x:0,z:-1}};
-  const raw={x:direction.x/length,z:direction.z/length};let target=null,nearest=Infinity;
+  if(length<1e-9)return {target:null,direction:{x:0,z:-1},rejections:['no direction']};
+  const raw={x:direction.x/length,z:direction.z/length};let target=null,nearest=Infinity;const rejections=[];
   for(const enemy of enemies){
     if(enemy.kind==='enemy'?(enemy.health<=0||enemy.active===false):enemy.active)continue;
     const dx=enemy.x-position.x,dz=enemy.z-position.z,distance=Math.hypot(dx,dz);
-    if(distance<.01||distance>rule.range||distance>=nearest)continue;
+    if(distance<.01||distance>rule.range){rejections.push({id:enemy.id,reason:'range'});continue;}if(distance>=nearest)continue;
     const dot=(dx*raw.x+dz*raw.z)/distance,side=Math.abs(dx*raw.z-dz*raw.x);
-    if(dot<Math.cos(window.angleDegrees*Math.PI/180)||side>window.width)continue;
+    if(dot<Math.cos(window.angleDegrees*Math.PI/180)){rejections.push({id:enemy.id,reason:'angle'});continue;}if(side>window.width){rejections.push({id:enemy.id,reason:'width'});continue;}
     const hit=weaponHit(position,{x:position.x+dx/distance*rule.range,z:position.z+dz/distance*rule.range},obstacles,enemies,rule);
-    if((hit?.target??hit?.node)?.id!==enemy.id)continue;
+    if((hit?.target??hit?.node)?.id!==enemy.id){rejections.push({id:enemy.id,reason:'occluded'});continue;}
     target=enemy;nearest=distance;
   }
-  if(!target)return {target:null,direction:raw};
-  return {target,direction:{x:(target.x-position.x)/nearest,z:(target.z-position.z)/nearest}};
+  if(!target)return {target:null,direction:raw,rejections:rejections.length?rejections:[{reason:'no target'}]};
+  return {target,direction:{x:(target.x-position.x)/nearest,z:(target.z-position.z)/nearest},rejections};
 }
 
 // The lock preview and projectile share the same target widths and cover test.
@@ -45,13 +46,15 @@ function weaponHit(start,end,obstacles,targets,rule=RULES.weapon){
   const eligible=targets.filter(t=>t.kind==='enemy'?(t.health>0&&t.active!==false):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r+rule.shotRadius:t.r}));
   return traceTargets(start,end,obstacles,eligible);
 }
-function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[]){
+function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   const rule=weaponRule(weapon);
   // Shielded nodes (level 3) absorb shots and must be charged by standing close.
-  if(hit?.kind==='node')return hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now); // EMP drops the shield for a few seconds
-  if(hit?.kind!=='enemy')return false;
-  const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage);
-  if(round.enemiesDefeated>kills){const refill=Math.min(rule.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===rule.capacity||weapon.reserve===0)weapon.reloadAt=null;}
+  if(hit?.kind==='node'){const changed=hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.node.id);return changed;} // EMP drops the shield for a few seconds
+  if(hit?.kind!=='enemy'){if(shot)recordShot(round,shot,now,hit?'block':'miss');return false;}
+  const enemy=round.level.enemies.find(e=>e.id===hit.target.id),before=enemy?.health??0;
+  const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage*(shot?.bonus?1+PERKS.chainBonus:1));
+  if(shot){recordShot(round,shot,now,changed?'hit':'block',hit.target.id);if(shot.bonus)logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:`Chain Reaction: ${changed?Number(Math.max(0,before-(enemy?.health??before)-Math.min(before,rule.damage)).toFixed(2)):0} extra damage, ${changed?'hit':'blocked'} (${hit.target.id}).`});}
+  if(round.enemiesDefeated>kills){if(hasPerk(round,'chain'))perkState(round).chain=true;const refill=Math.min(rule.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===rule.capacity||weapon.reserve===0)weapon.reloadAt=null;}
   if(changed&&dir)knockEnemy(round,round.level.enemies.find(e=>e.id===hit.target.id),dir,rule,obstacles,now);
   return changed;
 }
@@ -81,17 +84,18 @@ export function steerShot(b,enemies,obstacles,rule,dt){
   diff=Math.max(-max,Math.min(max,diff));b.dx=Math.cos(cur+diff);b.dz=Math.sin(cur+diff);
 }
 export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false){
-  tickRound(round,now);if(round.over)return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=assistAim(position,direction,targets,obstacles,rule,moving);
   // Spread only scatters free-aimed shots; a lock (aim assist) always lands.
   let dir=assisted.direction;
   if(!assisted.target&&rule.spreadDegrees>0){const a=(weapon.rand??Math.random)()*2-1,t=a*rule.spreadDegrees*Math.PI/180,c=Math.cos(t),s=Math.sin(t);dir={x:dir.x*c-dir.z*s,z:dir.x*s+dir.z*c};}
-  const shot=fireWeapon(weapon,position,dir,now);if(!shot)return null;
-  shot.movingAtFire=!!moving;
+  const shot=fireWeapon(weapon,position,dir,now,round);if(!shot)return null;
+  shot.logId=round.nextCombatShotId=(round.nextCombatShotId??0)+1;shot.movingAtFire=!!moving;shot.bonus=hasPerk(round,'chain')&&perkState(round).chain;if(shot.bonus)perkState(round).chain=false;
+  logCombat(round,{kind:'shot',at:now,shotId:shot.logId??shot.id,moving:!!moving,rejections:assisted.rejections,target:assisted.target?.id??null});
   if(assisted.target){
     const end={x:position.x+shot.dx*rule.range,z:position.z+shot.dz*rule.range};
     const hit=weaponHit(position,end,obstacles,targets,rule);
-    shot.resolved=applyWeaponHit(weapon,round,hit,now,{x:shot.dx,z:shot.dz},obstacles);
+    shot.hitApplied=applyWeaponHit(weapon,round,hit,now,{x:shot.dx,z:shot.dz},obstacles,shot);shot.resolved=true;
     // A locked hit is resolved at release, so a runner cannot outrun a promised
     // hit. The travelling tracer is visual only and cannot damage twice.
     if(shot.resolved)shot.remaining=Math.hypot(assisted.target.x-position.x,assisted.target.z-position.z);
@@ -114,27 +118,30 @@ export function createWeapon(totalAmmo=Infinity,stats=null){
   const rule={...RULES.weapon,...(stats||{})},ammo=Math.min(rule.capacity,totalAmmo);
   return {rule,id:stats?.id??'basic_carbine',ammo,reserve:totalAmmo-ammo,reloadAt:null,nextShotAt:0,nextId:0,projectiles:[]};
 }
-export function tickWeapon(weapon,now){
+export function tickWeapon(weapon,now,round){
+  if(round?.pauseAt!=null)return;
   const rule=weaponRule(weapon);
   while(weapon.reloadAt!==null && now>=weapon.reloadAt){
     if(weapon.reserve<=0){weapon.reloadAt=null;break;}
-    weapon.ammo++;weapon.reserve--;
-    weapon.reloadAt=weapon.ammo<rule.capacity&&weapon.reserve>0?weapon.reloadAt+rule.reloadMs:null;
+    weapon.ammo++;weapon.reserve--;if(hasPerk(round,'reload'))logCombat(round,{kind:'perk',at:now,perk:'reload',text:`Calm Reload: saved ${rule.reloadMs-reloadInterval(round,rule.reloadMs)} ms this reload.`});
+    weapon.reloadAt=weapon.ammo<rule.capacity&&weapon.reserve>0?weapon.reloadAt+reloadInterval(round,rule.reloadMs):null;
   }
 }
-export function fireWeapon(weapon,position,direction,now){
-  tickWeapon(weapon,now);
+export function fireWeapon(weapon,position,direction,now,round){
+  if(round?.pauseAt!=null)return null;
+  tickWeapon(weapon,now,round);
   const rule=weaponRule(weapon),length=Math.hypot(direction.x,direction.z);
   if(!weapon.ammo || now<weapon.nextShotAt || length<.01)return null;
   weapon.scavenging=null;weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
-  if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+rule.reloadMs;
+  if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+reloadInterval(round,rule.reloadMs);
   const shot={id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
   weapon.projectiles.push(shot);return shot;
 }
 export function stepWeapon(weapon,round,now,dt,obstacles){
   tickRound(round,now);
   if(round.over){weapon.projectiles.length=0;return false;}
-  tickWeapon(weapon,now);let changed=false;
+  if(round.pauseAt!=null)return false;
+  tickWeapon(weapon,now,round);let changed=false;
   for(let i=weapon.projectiles.length-1;i>=0;i--){
     const b=weapon.projectiles[i];
     if(!b.resolved)steerShot(b,round.level.enemies,obstacles,weaponRule(weapon),dt);
@@ -143,9 +150,11 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
     const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies]);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
-      changed=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles)||changed;
+      changed=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b)||changed;
       weapon.projectiles.splice(i,1);
     }else{b.x=end.x;b.z=end.z;}
   }
   return changed;
 }
+
+function recordShot(round,shot,now,outcome,target=null){if(shot.outcomeRecorded)return;shot.outcomeRecorded=true;logCombat(round,{kind:'outcome',at:now,shotId:shot.logId??shot.id,moving:!!shot.movingAtFire,outcome,target});if(shot.bonus&&outcome==='miss')logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:'Chain Reaction: charged shot missed; 0 extra damage.'});}

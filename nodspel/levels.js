@@ -1,7 +1,7 @@
-import {clearPassageProps} from './archipelago-passages.js?v=2.2.0';
-import {townizeLevel} from './town-layout.js?v=2.2.0';
-import {applyEncounters} from './encounters.js?v=2.2.0';
-import '../data/raid-combat.js?v=2.2.0';
+import {clearPassageProps} from './archipelago-passages.js?v=2.3.0';
+import {townizeLevel} from './town-layout.js?v=2.3.0';
+import {applyEncounters} from './encounters.js?v=2.3.0';
+import '../data/raid-combat.js?v=2.3.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
