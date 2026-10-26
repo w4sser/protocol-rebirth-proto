@@ -12,6 +12,7 @@ import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.2.0';
 import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf} from './round.js?v=2.2.0';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.2.0';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.2.0';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.2.0';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.2.0';
 import {buildWorld,setNodeHold} from './world.js?v=2.2.0';
 import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=2.2.0';
@@ -420,7 +421,14 @@ function renderEnemyFeedback(clock){
         const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
         v.intent=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:.85}));v.intent.renderOrder=4;v.intent.frustumCulled=false;v.group.add(v.intent);
       }
-      const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&['warning','burst'].includes(v.enemy.attackPhase);
+      const turretWarning=v.enemy.encounter==='turret'&&!v.enemy.introGuard&&v.enemy.attackPhase==='warning';
+      const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&(turretWarning||['warning','burst'].includes(v.enemy.attackPhase));
+      if(turretWarning&&!v.turretWarning){v.turretWarning=createTurretWarning(TOOL_CORAL);v.group.add(v.turretWarning);}
+      if(v.turretWarning){
+        v.turretWarning.visible=turretWarning&&v.intent.visible;
+        if(v.turretWarning.visible)updateTurretWarning(v.turretWarning,directions,RULES.combat.range*(v.enemy.rangeMul??1),v.group.rotation.y,clock,v.enemy.windupAt,RULES.encounters.turret.warningMs);
+      }
+      if(turretWarning)v.intent.visible=false;
       if(v.intent.visible){
         const pos=v.intent.geometry.attributes.position;
         directions.forEach((dir,i)=>{const end=aimEndpoint(v.enemy,dir,RULES.combat.range*(v.enemy.rangeMul??1),solids);pos.setXYZ(i*2,0,.12,0);pos.setXYZ(i*2+1,end.x-v.enemy.x,.12,end.z-v.enemy.z);});
