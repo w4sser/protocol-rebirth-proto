@@ -1,43 +1,43 @@
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.1.2';
-import {loadBunkerAssets} from './bunker.js?v=2.1.2';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.1.2';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.1.2';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.2.0';
+import {loadBunkerAssets} from './bunker.js?v=2.2.0';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.2.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.2.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.1.2';import '../data/recipes.js?v=2.1.2';import '../data/vendors.js?v=2.1.2';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.1.2';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.1.2';
-import {moveWithActors,traceTargets,aimConePoints,aimEndpoint} from './physics.mjs?v=2.1.2';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.1.2';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf} from './round.js?v=2.1.2';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.1.2';
-import {createCombat,stepCombat,stepHazards} from './combat.js?v=2.1.2';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.1.2';
-import {buildWorld,setNodeHold} from './world.js?v=2.1.2';
-import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=2.1.2';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim} from './weapon.js?v=2.1.2';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.1.2';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.1.2';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.1.2';
-// import {stepScavenging} from './scavenging.js?v=2.1.2';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.1.2';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.1.2';
-import {routeComplete} from './objectives.js?v=2.1.2';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.1.2';
-import {createBIT,stepBIT} from './bit.js?v=2.1.2';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.1.2';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.1.2';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.1.2';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.1.2';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.1.2';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=2.1.2';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.1.2';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.1.2';
+import '../data/modules.js?v=2.2.0';import '../data/recipes.js?v=2.2.0';import '../data/vendors.js?v=2.2.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.2.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.2.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.2.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.2.0';
+import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf} from './round.js?v=2.2.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.2.0';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.2.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.2.0';
+import {buildWorld,setNodeHold} from './world.js?v=2.2.0';
+import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=2.2.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.2.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.2.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.2.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.2.0';
+// import {stepScavenging} from './scavenging.js?v=2.2.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.2.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.2.0';
+import {routeComplete} from './objectives.js?v=2.2.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.2.0';
+import {createBIT,stepBIT} from './bit.js?v=2.2.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.2.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.2.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.2.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.2.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.2.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=2.2.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.2.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.2.0';
 const keys=new Set(),sticks=[];let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.1.2');
+const orderResponse=await fetch('./order.json?v=2.2.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -81,7 +81,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.1.2',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.2.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -136,6 +136,7 @@ const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#E4705F'}),enemyMe
 const launch=readLaunch(location.search);
 if(launch.quest?.type==='extract'&&launch.quest.prog<launch.quest.n)setQuestLoot({item:launch.quest.target,level:launch.quest.level||1});
 let hazardLabels=[];
+let playerMoving=false;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
@@ -415,9 +416,16 @@ function renderEnemyFeedback(clock){
     if(v.cone){const e=v.enemy,s=e.sight||RULES.encounters.patrol.coneRange;v.cone.visible=alive&&!e.aggro;v.cone.scale.set(s,1,s);v.coneFill.material.opacity=e.alertAt!=null?.5:.2;}
     v.label.point.set(v.enemy.x,1.7,v.enemy.z);const winding=alive&&(v.enemy.windupAt!=null||v.enemy.alertAt!=null);v.label.el.classList.toggle('winding',winding);v.label.caption.textContent=enemyStateText(v.enemy);v.label.defeated=!alive;v.label.el.hidden=!alive;
     if(v.enemy.introGuard||v.enemy.encounter==='guard'||v.enemy.encounter==='turret'){
-      if(!v.intent){v.intent=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#E4705F',transparent:true,opacity:.85}));v.intent.renderOrder=4;v.intent.frustumCulled=false;v.group.add(v.intent);}
-      const t=v.enemy.attackTarget;v.intent.visible=alive&&!!t&&['warning','burst'].includes(v.enemy.attackPhase);
-      if(t){const end=aimEndpoint(v.enemy,{x:t.x-v.enemy.x,z:t.z-v.enemy.z},RULES.combat.range,solids);const pos=v.intent.geometry.attributes.position;pos.setXYZ(0,0,.12,0);pos.setXYZ(1,end.x-v.enemy.x,.12,end.z-v.enemy.z);pos.needsUpdate=true;v.intent.rotation.y=-v.group.rotation.y;}
+      if(!v.intent){
+        const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
+        v.intent=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:.85}));v.intent.renderOrder=4;v.intent.frustumCulled=false;v.group.add(v.intent);
+      }
+      const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&['warning','burst'].includes(v.enemy.attackPhase);
+      if(v.intent.visible){
+        const pos=v.intent.geometry.attributes.position;
+        directions.forEach((dir,i)=>{const end=aimEndpoint(v.enemy,dir,RULES.combat.range*(v.enemy.rangeMul??1),solids);pos.setXYZ(i*2,0,.12,0);pos.setXYZ(i*2+1,end.x-v.enemy.x,.12,end.z-v.enemy.z);});
+        pos.needsUpdate=true;v.intent.geometry.setDrawRange(0,directions.length*2);v.intent.rotation.y=-v.group.rotation.y;
+      }
     }
     v.healthBar.setAttribute('aria-valuenow',v.enemy.health);renderHealthSegments(v.healthSegments,v.enemy.health,v.maxHealth);
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
@@ -467,7 +475,7 @@ function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
-  position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
+  playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
   player.position.set(position.x,0,position.z);
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});$('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
@@ -552,7 +560,7 @@ $('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if
 function fire(){
   if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const clock=Date.now();round.shooter=position;const shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids);round.shooter=null;
+  const clock=Date.now();round.shooter=position;const shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids,playerMoving);round.shooter=null;
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
@@ -659,7 +667,7 @@ if(new URLSearchParams(location.search).has('debug'))window.__NR={
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,Date.now()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.1.2');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.2.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -837,7 +845,10 @@ function frameInner(now){
     const magnitude=Math.hypot(sx,sy);
     if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0)position=moveWithActors(position,{x:delta.x*round.stats.speed*dt,z:delta.z*round.stats.speed*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
+    playerMoving=playerDisplaced(positionBefore,position);
+    const beforeDash={...position};
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
+    playerMoving=playerMoving||playerDisplaced(beforeDash,position);
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
@@ -854,7 +865,9 @@ function frameInner(now){
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     {const hs=stepHouse(round.level,position,clock,round.stats.searchMult);if(hs.loot.length)round.telemetry.searches=(round.telemetry.searches||0)+hs.loot.length;if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const healthBefore=round.health;
+    const beforeCombat={...position};
     stepCombat(round,combat,position,clock,dt,playerSolids);
+    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);
     if(stepTools(round,clock).length)updateHUD();
     stepHazards(round,position,clock,dt);world.animateHazards?.(clock);
     for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
@@ -904,7 +917,7 @@ function frameInner(now){
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
   aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.35:.12;
-  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids,weapon.rule):{target:null,direction:aim},displayAim=assisted.direction;
+  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids,weapon.rule,playerMoving):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
   for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)setIconText(v.label.caption,'aim',enemyStateText(v.enemy));}
@@ -913,7 +926,7 @@ function frameInner(now){
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);rangeRing.scale.setScalar(weapon.rule.range/RULES.weapon.range);aimCone.visible=aiming;
   if(aiming){
-    const footprint=aimConePoints(position,displayAim,weapon.rule.range,weapon.rule.coneHalfAngleDegrees*Math.PI/180,solids);
+    const footprint=assistPreview(position,aim,playerSolids,weapon.rule,playerMoving);
     let count=0;for(let i=1;i<footprint.length-1;i++)for(const p of [footprint[0],footprint[i],footprint[i+1]]){
       coneVertices[count++]=p.x;coneVertices[count++]=.065;coneVertices[count++]=p.z;
     }
