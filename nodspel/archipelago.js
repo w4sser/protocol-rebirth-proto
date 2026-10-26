@@ -2,10 +2,10 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.3.0';
+import {rngFrom} from './art.js?v=2.3.1';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3f5a3a',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.3.0';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.3.0';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.3.1';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.3.1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -19,8 +19,15 @@ function rockSource(level){
   if(!source||source.runtimeWalls!==level.walls){
     const reserve=(p,r)=>({x:p.x,z:p.z,w:r*2,d:r*2});
     source={runtimeWalls:level.walls,walls:level.walls.map(w=>Object.freeze({...w})),
+      // A rotated chunky boulder's own half-extent can reach ~1.7m past its wall's nominal line
+      // (DodecahedronGeometry(1,0), scale up to .8, worst-case rotation), regardless of how this
+      // reservation is sized: clearRock always pushes a boulder fully outside it by the boulder's
+      // own size. Loot boxes (unlike nodes/enemies/start/exit) can land only ~.6-1m off an authored
+      // wall's thin line (levels.js's seeded fallback search only keeps them .6 clear of the thin,
+      // pre-boulder wall footprint), so a reservation that size still lets a boulder get pushed to
+      // hug the loot from the open side and re-pinch it. 1.8 keeps the loot clear of that reach.
       placements:[...(level.enemies??[]).map(e=>reserve(e,(e.r??.48)+.1)),
-        ...(level.lootBoxes??[]).map(p=>reserve(p,.6)),
+        ...(level.lootBoxes??[]).map(p=>reserve(p,1.8)),
         ...(level.nodes??[]).map(p=>reserve(p,.95)),
         ...[level.start,level.exit].filter(Boolean).map(p=>reserve(p,.6))]};
     rockSources.set(level,source);
@@ -96,7 +103,20 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     const path=box(p.x,.012,p.z,p.w,.024,p.d,P.sand);path.name='archipelago-passage';path.userData.clearance=p;
   }
   // Clearance includes the AI radius, so rock edges cannot catch an actor at either approach.
-  const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...source.placements];
+  // Piers/docks/bridges (corridor, dead-end and closet floors tagged with `dir`) need the same
+  // margin along their whole walkway, not only at the room doorway they lead to: a boulder
+  // cluster built on the thin rail wall flanking a pier can otherwise bulge into the plank path
+  // anywhere along its length, not just at the ends.
+  const piers=level.floors.filter(f=>f.dir).map(f=>({x:f.x,z:f.z,w:f.w+.96,d:f.d+.96}));
+  // A partition's own gap is already a passage, but the long solid run either side of it is a
+  // thin wall too: left alone it can bulge a boulder cluster across the full room width, a room
+  // row over from the gap, sealing the node behind the partition off from the rest of the floor.
+  // Widen the gap's passage into a strip across the whole row so nothing on that wall can do that.
+  const partitions=(level.rooms??[]).filter(r=>r.partition).map(r=>{
+    const gap=out.passages.find(p=>Math.abs(p.z-r.partition.z)<.05&&Math.abs(p.x-r.partition.x)<r.w);
+    return gap&&{x:r.x,z:gap.z,w:r.w+.96,d:gap.d+.96};
+  }).filter(Boolean);
+  const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...piers,...partitions,...source.placements];
   for(const w of source.walls)out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
