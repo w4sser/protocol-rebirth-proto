@@ -25,7 +25,8 @@ test('exit picker minimize resumes movement, combat and timer; resume preserves 
   globalThis.document=dom.window.document;
   try{
     const r=createRound('exit-minimize',0),position={x:0,z:0};
-    Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10}],enemies:[],nodes:[],hazards:[],walls:[],boxes:[],floors:[{x:0,z:0,w:30,d:30}],exit:{x:0,z:0,r:1},start:position});
+    // A pre-killed enemy gives the room something to have cleared: an empty room (never assigned an enemy) must not offer a perk.
+    Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10}],enemies:[{id:'e0',kind:'enemy',type:'grunt',x:0,z:0,r:.48,health:0,active:true}],nodes:[],hazards:[],walls:[],boxes:[],floors:[{x:0,z:0,w:30,d:30}],exit:{x:0,z:0,r:1},start:position});
     const combat=createCombat(r.level,0);combat.graceUntil=0;combat.moveAt=0;
     const corner=document.createElement('div');corner.id='level-corner';document.querySelector('main').append(corner);
     const resume=document.createElement('button');resume.className='perk-resume';resume.type='button';corner.append(resume);let wall=1000;
