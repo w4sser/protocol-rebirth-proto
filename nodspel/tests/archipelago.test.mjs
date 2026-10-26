@@ -47,17 +47,18 @@ test('every archipelago doorway and L2 partition has a rock-free ground strip ac
       }
       if(room.partition){assert.ok(passages.some(p=>contains(p,room.partition)),`L2 seed ${seed}: partition`);partitions++;}
     }
-    for(const p of passages){
+    const rendered=renderArchipelago(level);
+    try{for(const p of passages){
       assert.ok(Math.min(p.w,p.d)>=.8,'player-width clearance');
       assert.ok(!level.walls.some(w=>intersects(w,p)),'no rock collider inside passage clearance');
       const delta=p.axis==='x'?{x:0,z:p.d*.8}:{x:p.w*.8,z:0};
       const start={x:p.x-delta.x/2,z:p.z-delta.z/2};
-      for(const sign of [-1,1]){
+      for(const radius of [.36,.48])for(const sign of [-1,1]){
         const from=sign===1?start:{x:start.x+delta.x,z:start.z+delta.z};
-        const end=movePlayer(from,{x:sign*delta.x,z:sign*delta.z},level.walls,level.floors,.36);
-        assert.ok(Math.hypot(end.x-from.x-sign*delta.x,end.z-from.z-sign*delta.z)<1e-5,'actual player collision allows crossing both ways');
+        const end=movePlayer(from,{x:sign*delta.x,z:sign*delta.z},level.walls,level.floors,radius);
+        assert.ok(Math.hypot(end.x-from.x-sign*delta.x,end.z-from.z-sign*delta.z)<1e-5,`L${n} passage-${seed}, radius ${radius}: rendered collision allows crossing both ways at ${p.x},${p.z}`);
       }
-    }
+    }}finally{rendered.dispose();}
   }
   assert.ok(openings>300);assert.equal(partitions,80);
 });
@@ -72,7 +73,7 @@ test('passages include either orientation, short wall ends and encounter-style o
 });
 // v2.1.0 boulder formula: s=.55+rng()*.25 (radius-ish scale), h=clamp(wall.h,.5,1.15)*(.8+rng()*.35).
 const BOULDER_S=[.55,.8],BOULDER_H=[.5*.8,1.15*1.15];
-test('each archipelago wall is a cluster of chunky faceted boulders at v2.1.0 size and height, with no gaps in the collider',()=>{
+test('each chunky boulder has exactly one matching gameplay footprint collider',()=>{
   let maxHeightSeen=0;
   for(const n of [1,2,3])for(let seed=0;seed<8;seed++){
     const level=generateLevel(n,`passage-${seed}`,'archipelago');
@@ -81,7 +82,7 @@ test('each archipelago wall is a cluster of chunky faceted boulders at v2.1.0 si
       const rocks=group.children.filter(m=>m.name==='archipelago-rock'),paths=group.children.filter(m=>m.name==='archipelago-passage');
       assert.equal(info.rocks,rocks.length);assert.equal(info.rockColliders,level.walls,'uses gameplay wall colliders');
       assert.equal(paths.length,info.passages.length);
-      assert.ok(rocks.length>level.walls.length,'more than one boulder per wall');
+      assert.equal(rocks.length,level.walls.length,'one collider per visible rock');
       const byWall=new Map();
       for(const rock of rocks){
         assert.ok(rock.scale.x>=BOULDER_S[0]-1e-6&&rock.scale.x<=BOULDER_S[1]+1e-6,'boulder radius in the v2.1.0 range');
@@ -94,17 +95,10 @@ test('each archipelago wall is a cluster of chunky faceted boulders at v2.1.0 si
         for(const p of info.passages)assert.ok(!intersects({x:(bounds.min.x+bounds.max.x)/2,z:(bounds.min.z+bounds.max.z)/2,w:bounds.max.x-bounds.min.x,d:bounds.max.z-bounds.min.z},p),'rendered boulder stays outside clearance');
       }
       for(const collider of level.walls){
-        const boxes=byWall.get(collider)??[];assert.ok(boxes.length>0,'every wall grew at least one boulder');
-        // the collider is re-fit to the exact union of its own boulders: each box sits inside it (trivial by
-        // construction) and, going the other way, no point along the collider strays more than ~.15 from the
-        // nearest boulder (no invisible sliver the player would bounce off without seeing rock).
-        for(const b of boxes)for(const [lo,hi,cLo,cHi] of [[b.min.x,b.max.x,collider.x-collider.w/2,collider.x+collider.w/2],[b.min.z,b.max.z,collider.z-collider.d/2,collider.z+collider.d/2]])assert.ok(lo>=cLo-1e-5&&hi<=cHi+1e-5,'boulder footprint covered by the collider');
-        const alongX=collider.w>=collider.d,steps=60;
-        for(let i=0;i<=steps;i++){
-          const t=i/steps,x=alongX?collider.x-collider.w/2+t*collider.w:collider.x,z=alongX?collider.z:collider.z-collider.d/2+t*collider.d;
-          const nearest=Math.min(...boxes.map(b=>Math.hypot(Math.max(b.min.x-x,0,x-b.max.x),Math.max(b.min.z-z,0,z-b.max.z))));
-          assert.ok(nearest<=.15+1e-6,'collider covered by boulder footprint (no gap wider than ~.15)');
-        }
+        const boxes=byWall.get(collider)??[];assert.equal(boxes.length,1,'one rock per collider');
+        const b=boxes[0];
+        // Compare every edge, not only centerlines: the whole collider equals the footprint.
+        for(const [actual,expected] of [[collider.x-collider.w/2,b.min.x],[collider.x+collider.w/2,b.max.x],[collider.z-collider.d/2,b.min.z],[collider.z+collider.d/2,b.max.z]])assert.ok(Math.abs(actual-expected)<1e-6);
       }
       for(const path of paths){
         const bounds=new THREE.Box3().setFromObject(path),p=path.userData.clearance;
@@ -182,7 +176,7 @@ test('archipelagoPassages keeps finding openings after buildArchipelago replaces
     const wallsBefore=level.walls.map(w=>({x:w.x,z:w.z,w:w.w,d:w.d}));
     const rendered=renderArchipelago(level);
     try{
-      assert.ok(level.walls.some((w,i)=>Math.abs(w.x-wallsBefore[i].x)>1e-6||Math.abs(w.z-wallsBefore[i].z)>1e-6||Math.abs(w.w-wallsBefore[i].w)>1e-6||Math.abs(w.d-wallsBefore[i].d)>1e-6),'sanity: wall colliders were refit to boulder footprints');
+      assert.ok(level.walls.length>wallsBefore.length,'wall clusters replaced with individual footprints');
       const after=archipelagoPassages(level);
       assert.equal(after,before,'live level reuses the cached pre-build passages');
       assert.ok(after.length>0,`L${n}: passages still found after boulder colliders are built`);
@@ -209,4 +203,45 @@ test('rotated offshore boats are skipped when their hull overlaps a passage marg
     }finally{rendered.dispose();}
   }
   assert.ok(checked,'exercised a boat inside grounded passage clearance');
+});
+
+const circleOverlaps=(p,r,b)=>Math.hypot(Math.max(Math.abs(p.x-b.x)-b.w/2,0),Math.max(Math.abs(p.z-b.z)-b.d/2,0))<r-1e-6;
+test('rendered rocks preserve placement clearance across 90 levels and enemy escape in passage-11',()=>{
+  for(const n of [1,2,3])for(let seed=0;seed<30;seed++){
+    const level=generateLevel(n,`passage-${seed}`,'archipelago');
+    const placements=[...level.enemies.map(p=>[p,(p.r??.48)+.1]),...level.lootBoxes.map(p=>[p,.6]),...level.nodes.map(p=>[p,.95]),[level.start,.6],[level.exit,.6]];
+    const before=JSON.stringify(placements);
+    const rendered=renderArchipelago(level);
+    try{
+      assert.equal(JSON.stringify(placements),before,'rendering does not relocate gameplay objects');
+      for(const [p,r] of placements)assert.ok(!level.walls.some(w=>circleOverlaps(p,r,w)),`L${n} passage-${seed}: ${p.id??'placement'} clearance`);
+      if(n===1&&seed===11){
+        const e=level.enemies.find(e=>e.id==='enemy-1');
+        for(const delta of [{x:.1,z:0},{x:-.1,z:0},{x:0,z:.1},{x:0,z:-.1}]){
+          const moved=movePlayer(e,delta,[...level.walls,...level.boxes],level.floors,e.r??.48);
+          assert.ok(Math.hypot(moved.x-e.x,moved.z-e.z)>.099,'enemy-1 can move in every cardinal direction');
+        }
+      }
+    }finally{rendered.dispose();}
+  }
+});
+test('repeated builds preserve source walls, rock transforms, colliders and passage discovery',()=>{
+  for(const n of [1,2,3])for(const seed of ['passage-0','passage-11']){
+    const level=generateLevel(n,seed,'archipelago'),sourceWalls=[...level.walls],sourceJSON=JSON.stringify(sourceWalls),walls=level.walls;
+    const first=renderArchipelago(level);
+    const transforms=g=>g.children.filter(m=>m.name==='archipelago-rock').map(m=>[m.position.toArray(),m.rotation.toArray(),m.scale.toArray()]);
+    try{
+      const collision=JSON.stringify(level.walls),geometry=transforms(first.group),passages=archipelagoPassages(level);
+      // A live rebuild must also ignore runtime actor movement and collected loot.
+      level.enemies[0].x+=3;level.lootBoxes.length=0;
+      const second=renderArchipelago(level);
+      try{
+        assert.equal(level.walls,walls,'collision array reference remains stable');
+        assert.equal(JSON.stringify(sourceWalls),sourceJSON,'authoring geometry remains untouched');
+        assert.equal(JSON.stringify(level.walls),collision,'runtime collision does not drift');
+        assert.deepEqual(transforms(second.group),geometry,'rock geometry does not drift');
+        assert.equal(archipelagoPassages(level),passages);
+      }finally{second.dispose();}
+    }finally{first.dispose();}
+  }
 });

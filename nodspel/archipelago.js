@@ -11,25 +11,47 @@ export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
   return inPassageClearance({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z},passages);
 }
-// Chunky boulders are placed freely (same size/height/rotation range as the original look),
-// so an outer one can occasionally lean into a passage approach; nudge it back along
-// whichever axis needs the smaller correction (minimum translation, not the passage's
-// nominal axis, so a boulder deep inside a wide opening escapes sideways through the
-// short dimension rather than getting dragged the long way across it).
-function pushClearOfPassages(mesh,passages){
-  for(let i=0;i<8;i++){
-    const b=new THREE.Box3().setFromObject(mesh),cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2,hw=(b.max.x-b.min.x)/2,hd=(b.max.z-b.min.z)/2;
-    const hit=passages.find(p=>Math.abs(cx-p.x)<p.w/2+hw&&Math.abs(cz-p.z)<p.d/2+hd);
-    if(!hit)return;
-    const ox=hit.w/2+hw-Math.abs(cx-hit.x),oz=hit.d/2+hd-Math.abs(cz-hit.z);
-    if(ox<oz)mesh.position.x+=(Math.sign(cx-hit.x)||1)*(ox+.03);
-    else mesh.position.z+=(Math.sign(cz-hit.z)||1)*(oz+.03);
+// Keep authoring walls and the initial placement clearances separate from runtime
+// footprint colliders. Rebuilding a live level must not use moved actors or rocks as input.
+const rockSources=new WeakMap();
+function rockSource(level){
+  let source=rockSources.get(level);
+  if(!source||source.runtimeWalls!==level.walls){
+    const reserve=(p,r)=>({x:p.x,z:p.z,w:r*2,d:r*2});
+    source={runtimeWalls:level.walls,walls:level.walls.map(w=>Object.freeze({...w})),
+      placements:[...(level.enemies??[]).map(e=>reserve(e,(e.r??.48)+.1)),
+        ...(level.lootBoxes??[]).map(p=>reserve(p,.6)),
+        ...(level.nodes??[]).map(p=>reserve(p,.95)),
+        ...[level.start,level.exit].filter(Boolean).map(p=>reserve(p,.6))]};
+    rockSources.set(level,source);
   }
+  return source;
 }
-// One boulder cluster per wall: same chunky, randomized faceted dodecahedrons as the
-// original archipelago look (size, height, silhouette). The wall's own collision box is
-// re-fit to the union of the rendered footprints, so collision always matches what is visible.
-function buildRockWall(w,rng,passages,rockGeo,rockMat,group){
+// Find the closest translation whose entire footprint clears all reserved rectangles.
+// The nearest free point lies on an expanded rectangle edge (or at the original
+// coordinate), so this finite search also handles intersecting reservations without
+// the oscillation of repeated minimum-translation pushes.
+function clearRock(mesh,reservations){
+  const b=new THREE.Box3().setFromObject(mesh),x=(b.min.x+b.max.x)/2,z=(b.min.z+b.max.z)/2;
+  const hw=(b.max.x-b.min.x)/2,hd=(b.max.z-b.min.z)/2;
+  const blocked=(cx,cz)=>reservations.some(p=>Math.abs(cx-p.x)<p.w/2+hw&&Math.abs(cz-p.z)<p.d/2+hd);
+  if(!blocked(x,z))return;
+  const xs=[x],zs=[z];
+  for(const p of reservations){xs.push(p.x-p.w/2-hw-.001,p.x+p.w/2+hw+.001);zs.push(p.z-p.d/2-hd-.001,p.z+p.d/2+hd+.001);}
+  xs.sort((a,b)=>Math.abs(a-x)-Math.abs(b-x));zs.sort((a,b)=>Math.abs(a-z)-Math.abs(b-z));
+  let best=Infinity,bx=x,bz=z;
+  for(const cx of xs){
+    if((cx-x)**2>=best)break;
+    for(const cz of zs){
+      const distance=(cx-x)**2+(cz-z)**2;if(distance>=best)break;
+      if(!blocked(cx,cz)){best=distance;bx=cx;bz=cz;}
+    }
+  }
+  mesh.position.x+=bx-x;mesh.position.z+=bz-z;
+}
+// Each visible rock owns its own exact AABB; empty space between displaced rocks
+// is never filled by an enclosing cluster rectangle.
+function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   const alongX=w.w>w.d,len=Math.max(w.w,w.d),n=Math.max(1,Math.round(len/1.1)),boulders=[];
   for(let i=0;i<n;i++){
     const t=(i+.5)/n-.5,cx=w.x+(alongX?t*w.w:0),cz=w.z+(alongX?0:t*w.d);
@@ -38,16 +60,18 @@ function buildRockWall(w,rng,passages,rockGeo,rockMat,group){
     m.position.set(cx+(rng()-.5)*.15,h*.45,cz+(rng()-.5)*.15);
     m.scale.set(s,h,s*(.8+rng()*.4));m.rotation.set(rng()*.5,rng()*6.3,rng()*.5);
     m.castShadow=m.receiveShadow=true;m.name='archipelago-rock';
-    pushClearOfPassages(m,passages);
+    clearRock(m,reservations);
     group.add(m);boulders.push(m);
   }
-  let x0=Infinity,x1=-Infinity,z0=Infinity,z1=-Infinity;
-  for(const m of boulders){const bb=new THREE.Box3().setFromObject(m);x0=Math.min(x0,bb.min.x);x1=Math.max(x1,bb.max.x);z0=Math.min(z0,bb.min.z);z1=Math.max(z1,bb.max.z);}
-  w.x=(x0+x1)/2;w.z=(z0+z1)/2;w.w=x1-x0;w.d=z1-z0;
-  for(const m of boulders)m.userData.collider=w;
+  for(const m of boulders){
+    const b=new THREE.Box3().setFromObject(m);
+    const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y};
+    colliders.push(collider);m.userData.collider=collider;
+  }
   return boulders.length;
 }
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
+  const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
   clearPassageProps(level,out.passages);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
@@ -71,7 +95,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   for(const p of out.passages){
     const path=box(p.x,.012,p.z,p.w,.024,p.d,P.sand);path.name='archipelago-passage';path.userData.clearance=p;
   }
-  for(const w of level.walls)out.rocks+=buildRockWall(w,rng,out.passages,rockGeo,rockMat,group);
+  // Clearance includes the AI radius, so rock edges cannot catch an actor at either approach.
+  const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...source.placements];
+  for(const w of source.walls)out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+  // Preserve the array used by passage caching and callers, without mutating authoring walls.
+  level.walls.splice(0,level.walls.length,...colliders);
   for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
   // boats offshore (visual only, never collidable)
   for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
