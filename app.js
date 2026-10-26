@@ -4605,6 +4605,9 @@ window.A = {
   },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
+    // Completed quests from older saves/debug state may lack the cards normally assigned by
+    // quest progress. Generate them once before replacing the sheet; cancelling keeps the choices.
+    if(!q.rewards || !q.rewards.length) q.rewards = questRewards();
     // CLAIM lives both in the quest log's Daily tab (.qlog) and the BIT bay QUESTS tab (.bitov) —
     // remove whichever is open (else a second #overlay stacks and later lookups grab the wrong one)
     // and remember where to reopen once a reward is picked.

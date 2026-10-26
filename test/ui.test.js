@@ -573,31 +573,45 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   window.HTMLElement.prototype.scrollIntoView = oldScroll;
   A.go('base');
 }
-/* v2.1.1: CLAIM on a finished quest in the BIT bay QUESTS tab must actually pay the reward, not silently
-   no-op (it used to stack a second #overlay instead of replacing the BIT sheet, so the reward picker was
-   unreachable through document.getElementById("overlay")). */
-{
+/* CLAIM must tolerate completed quests without reward cards (the browser repro), and return
+   to the source tab after paying exactly once. Do not pre-populate rewards in this fixture. */
+for(const source of ['bit', 'log']) {
   const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
   const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
-  st.modules.bit_bay = 1; st.bondXp = 0; st.talents = {spent:{},respecs:0}; st.retentionMode = 'core';
-  const scrapBefore = st.cur.scrap;
-  st.quests = {day:window.dayStr(),swaps:0,list:[
-    {id:'claim-q',type:'extract',item:'cable',n:1,prog:1,done:true,claimed:false,rewards:[{kind:'scrap',n:5},{kind:'xp',n:5},{kind:'mystery'}]}
-  ]};
-  A.bitTab('quests');
-  assert.equal(doc.querySelector('#overlay .bit-tab-badge').textContent, '1 READY', 'QUESTS tab badge shows the ready count before claiming');
-  const claimBtn = doc.querySelector('#overlay .quest.done .claim');
-  assert(claimBtn, 'finished quest shows a CLAIM button');
-  press(claimBtn);
-  assert.equal(doc.querySelectorAll('#overlay').length, 1, 'claiming does not stack a second #overlay on top of the BIT sheet');
-  const rewardCard = doc.querySelector('#overlay .qcards button.qcard.scrap');
-  assert(rewardCard, 'reward picker opens with a scrap card');
-  press(rewardCard);
-  assert.equal(doc.querySelectorAll('#overlay').length, 1, 'picking a reward leaves exactly one overlay open');
-  assert.equal(st.cur.scrap, scrapBefore + 5, 'CLAIM pays the picked reward');
-  assert(st.quests.list[0].claimed, 'quest is marked claimed after CLAIM');
-  assert(doc.querySelector('#overlay .questtab.active'), 'BIT bay reopens on the QUESTS tab, list re-rendered, after claiming');
-  assert(!doc.querySelector('#overlay .bit-tab-badge'), 'N READY badge clears once nothing is left to claim');
+  st.modules.bit_bay = 1; st.beat = 999; st.bondXp = 900; st.retentionMode = 'core'; st.quests = null;
+  const quests = window.questState();
+  quests.list[0].done = true; quests.list[0].prog = quests.list[0].n || 1;
+  quests.list[1].done = true;
+  assert(!quests.list[0].rewards, 'repro starts with a completed quest missing rewards');
+  if(source === 'bit') A.bitTab('quests'); else A.questLog('daily');
+  assert.equal(window.dailyReadyCount(), 2, source + ': two quests ready before claiming');
+  for(const remaining of [1, 0]) {
+    const q = quests.list.find(q => q.done && !q.claimed);
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, source + ': one overlay after CLAIM');
+    assert(doc.querySelector('#overlay .qpick'), source + ': CLAIM opens reward picker');
+    assert.equal(st.bondXp, 900 + (1 - remaining) * window.DATA.quests.bondXp, 'opening picker does not pay bond XP');
+    const rewards = JSON.stringify(q.rewards);
+    press(doc.querySelector('#overlay .pop-x'));
+    assert.equal(window.dailyReadyCount(), remaining + 1, 'cancel does not claim');
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(JSON.stringify(q.rewards), rewards, 'reopening picker preserves reward choices');
+    const idx = q.rewards.findIndex(c => c.kind !== 'mystery'), reward = q.rewards[idx];
+    const balance = () => reward.kind === 'scrap' ? st.cur.scrap : reward.kind === 'xp' ? st.opXp || 0 : st.stash[reward.item] || 0;
+    const before = balance();
+    const card = doc.querySelectorAll('#overlay .qcards button.qcard')[idx];
+    press(card);
+    assert.equal(balance(), before + reward.n, source + ': selected reward is paid');
+    assert.equal(st.bondXp, 900 + (2 - remaining) * window.DATA.quests.bondXp, source + ': bond XP is paid');
+    assert(q.claimed, source + ': quest marked claimed');
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, source + ': one overlay after picking');
+    assert(doc.querySelector(source === 'bit' ? '#overlay .questtab.active' : '#overlay .qlog'), source + ': returns to source tab');
+    assert(doc.querySelector('#overlay .quests .quest'), source + ': quest list remains visible');
+    assert.equal(window.dailyReadyCount(), remaining, source + ': ready count updates');
+    if(source === 'bit') assert.equal(doc.querySelector('#overlay .bittabs button[aria-selected="true"] .bit-tab-badge')?.textContent || '', remaining ? remaining + ' READY' : '', 'BIT ready badge updates');
+    press(card);
+    assert.equal(balance(), before + reward.n, 'repeated selection cannot pay twice');
+  }
   Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
   A.go('base');
 }
