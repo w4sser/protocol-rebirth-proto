@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.1.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.1.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -3840,7 +3840,7 @@ function pickRaidReaction(r, res){
   const trigger = ext ? B.priority.find(key => tests[key]) : "death", pool = B.pools[trigger];
   return { trigger, mood:pool.mood, line:pick(pool.lines) };
 }
-// v2.1.0: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
+// v2.1.1: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
 function raidClock(ms){
   const sec = Math.max(0, Math.round(ms / 1000));
   return String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0');

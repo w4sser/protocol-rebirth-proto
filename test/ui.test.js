@@ -446,7 +446,7 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     rd.window.close();
   }
 }
-/* v2.1.0 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
+/* v2.1.1 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
 {
   const reaction = { trigger:'generic', mood:'smug', line:'test line' };
   const manyIds = ['power_relay','cable','fuse','scrap_alloy','servo','polymer_plate','circuit_board','optical_sensor'];

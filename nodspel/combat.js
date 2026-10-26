@@ -1,8 +1,8 @@
-import {RULES,hazardState} from './levels.js?v=2.1.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.1.0';
-import {takeDamage,tickRound} from './round.js?v=2.1.0';
-import {houseWaypoint} from './house.js?v=2.1.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.1.0';
+import {RULES,hazardState} from './levels.js?v=2.1.1';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.1.1';
+import {takeDamage,tickRound} from './round.js?v=2.1.1';
+import {houseWaypoint} from './house.js?v=2.1.1';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.1.1';
 
 export function createCombat(level,now){
   const initial=level.rooms.findIndex(r=>Math.abs(level.start.x-r.x)<=r.w/2&&Math.abs(level.start.z-r.z)<=r.d/2);
