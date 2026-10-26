@@ -457,9 +457,9 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert.equal(div.querySelector('h1').textContent, 'EXTRACTED', 'extract title word');
   assert(div.querySelector('.rs-sub').textContent.includes('04:32'), 'raid time formatted as mm:ss from elapsedMs');
   assert(div.querySelector('.loot-card.rare .rare-tag'), 'rare item gets the RARE FIND tag');
-  assert.equal(div.querySelectorAll('.loot-grid>.loot-card').length, 6, 'loot grid renders at most the large-tier cap of cards');
+  assert.equal(div.querySelectorAll('.loot-grid>.loot-card').length, 7, 'loot grid renders at most the large-tier cap of cards');
   assert.equal(div.querySelector('.loot-extra.tier-sm').textContent, '+3', 'small-tier overflow tile counts the rest beyond the 5-card cap');
-  assert.equal(div.querySelector('.loot-extra.tier-lg').textContent, '+2', 'large-tier overflow tile counts the rest beyond the 6-card cap');
+  assert.equal(div.querySelector('.loot-extra.tier-lg').textContent, '+1', 'large-tier overflow tile counts the rest beyond the 7-card cap');
 
   const rTimeout = { outcome:'timeout', elapsedMs:5000, lost:[] };
   const divTimeout = window.document.createElement('div');

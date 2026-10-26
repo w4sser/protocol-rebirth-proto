@@ -3845,8 +3845,10 @@ function raidClock(ms){
 }
 const RARE_RARITIES = new Set(["rare","epic","legendary"]);
 // Loot card grid: up to LOOT_CAP_LG real cards render; CSS hides the tail at narrow heights (LOOT_CAP_SM)
-// and shows a "+N" tile for whichever cap is active, so the panel never scrolls.
-const LOOT_CAP_SM = 5, LOOT_CAP_LG = 6;
+// and shows a "+N" tile for whichever cap is active, so the panel never scrolls. Each cap plus its "+N" tile
+// must fill at most 2 grid rows: LOOT_CAP_SM (5) + 1 fits 2 rows of the default 3-col grid; LOOT_CAP_LG (7) + 1
+// fits 2 rows of the taller tier's 4-col grid (see .loot-grid media query in index.html).
+const LOOT_CAP_SM = 5, LOOT_CAP_LG = 7;
 function raidLootGridHtml(entries, emptyLabel){
   if(!entries.length) return '<p class="small loot-empty">' + emptyLabel + '</p>';
   const shown = entries.slice(0, LOOT_CAP_LG);
