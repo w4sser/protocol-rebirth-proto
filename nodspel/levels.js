@@ -1,5 +1,6 @@
-import {townizeLevel} from './town-layout.js?v=2.1.0';
-import {applyEncounters} from './encounters.js?v=2.1.0';
+import {clearPassageProps} from './archipelago-passages.js?v=2.1.1';
+import {townizeLevel} from './town-layout.js?v=2.1.1';
+import {applyEncounters} from './encounters.js?v=2.1.1';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -327,7 +328,7 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
     if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr(),area);}}
-  if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;}
+  if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;clearPassageProps(level);}
   applyAreaRules(level,AR);
   return level;
 }

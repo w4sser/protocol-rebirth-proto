@@ -446,7 +446,7 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     rd.window.close();
   }
 }
-/* v2.1.0 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
+/* v2.1.1 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
 {
   const reaction = { trigger:'generic', mood:'smug', line:'test line' };
   const manyIds = ['power_relay','cable','fuse','scrap_alloy','servo','polymer_plate','circuit_board','optical_sensor'];
@@ -509,6 +509,23 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert(rareSavedCard, 'rare recovered item renders as a saved card');
   assert(rareSavedCard.querySelector('.saved-tag') && rareSavedCard.querySelector('.saved-tag').textContent === 'SAVED', 'rare recovered item carries the SAVED tag, not RARE FIND');
   assert(!rareSavedCard.querySelector('.rare-tag'), 'rare recovered item does not carry a RARE FIND tag');
+
+  // v2.1.1: weapon loot cards (hero/art icons) must use the identical card structure as plain item
+  // cards — icon wrapped in .pr-itemimg (centered, sized to fit via CSS), name/qty row unchanged —
+  // instead of a bare <img> that breaks the card's flex layout (image pinned to the top, uncentred).
+  const rWeapons = { outcome:'extract', elapsedMs:5000, lost:[] };
+  const resWeapons = { added:['smg_vector','shotgun_breach','cable'], currency:{} };
+  const divWeapons = window.document.createElement('div');
+  divWeapons.innerHTML = window.raidSummaryHtml(rWeapons, resWeapons, { trigger:'generic', mood:'smug', line:'...' }, 'Node Raid');
+  const weaponCards = [...divWeapons.querySelectorAll('.loot-card')].filter(c => /SMG|Shotgun/.test(c.textContent));
+  const itemCard = [...divWeapons.querySelectorAll('.loot-card')].find(c => c.textContent.includes('Cable'));
+  assert.equal(weaponCards.length, 2, 'both weapons render their own loot card');
+  assert.equal(itemCard.firstElementChild.className, 'pr-itemimg', 'plain item card icon is wrapped in .pr-itemimg');
+  for(const card of weaponCards){
+    assert.equal(card.firstElementChild.className, 'pr-itemimg', 'weapon card icon is wrapped in .pr-itemimg, same as a plain item card');
+    assert.equal(card.lastElementChild.className, itemCard.lastElementChild.className, 'weapon card and item card end with the same name/qty row');
+    assert(card.querySelector(':scope>.loot-card-row'), 'name/qty row still renders for weapon cards');
+  }
 }
 /* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {
@@ -555,6 +572,78 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
   window.HTMLElement.prototype.scrollIntoView = oldScroll;
   A.go('base');
+}
+/* CLAIM must tolerate completed quests without reward cards (the browser repro), and return
+   to the source tab after paying exactly once. Do not pre-populate rewards in this fixture. */
+for(const source of ['bit', 'log']) {
+  const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
+  const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
+  st.modules.bit_bay = 1; st.beat = 999; st.bondXp = 900; st.retentionMode = 'core'; st.quests = null;
+  const quests = window.questState();
+  quests.list[0].done = true; quests.list[0].prog = quests.list[0].n || 1;
+  quests.list[1].done = true;
+  assert(!quests.list[0].rewards, 'repro starts with a completed quest missing rewards');
+  if(source === 'bit') A.bitTab('quests'); else A.questLog('daily');
+  assert.equal(window.dailyReadyCount(), 2, source + ': two quests ready before claiming');
+  for(const remaining of [1, 0]) {
+    const q = quests.list.find(q => q.done && !q.claimed);
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, source + ': one overlay after CLAIM');
+    assert(doc.querySelector('#overlay .qpick'), source + ': CLAIM opens reward picker');
+    assert.equal(st.bondXp, 900 + (1 - remaining) * window.DATA.quests.bondXp, 'opening picker does not pay bond XP');
+    const rewards = JSON.stringify(q.rewards);
+    press(doc.querySelector('#overlay .pop-x'));
+    assert.equal(window.dailyReadyCount(), remaining + 1, 'cancel does not claim');
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(JSON.stringify(q.rewards), rewards, 'reopening picker preserves reward choices');
+    const idx = q.rewards.findIndex(c => c.kind !== 'mystery'), reward = q.rewards[idx];
+    const balance = () => reward.kind === 'scrap' ? st.cur.scrap : reward.kind === 'xp' ? st.opXp || 0 : st.stash[reward.item] || 0;
+    const before = balance();
+    const card = doc.querySelectorAll('#overlay .qcards button.qcard')[idx];
+    press(card);
+    assert.equal(balance(), before + reward.n, source + ': selected reward is paid');
+    assert.equal(st.bondXp, 900 + (2 - remaining) * window.DATA.quests.bondXp, source + ': bond XP is paid');
+    assert(q.claimed, source + ': quest marked claimed');
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, source + ': one overlay after picking');
+    assert(doc.querySelector(source === 'bit' ? '#overlay .questtab.active' : '#overlay .qlog'), source + ': returns to source tab');
+    assert(doc.querySelector('#overlay .quests .quest'), source + ': quest list remains visible');
+    assert.equal(window.dailyReadyCount(), remaining, source + ': ready count updates');
+    if(source === 'bit') assert.equal(doc.querySelector('#overlay .bittabs button[aria-selected="true"] .bit-tab-badge')?.textContent || '', remaining ? remaining + ' READY' : '', 'BIT ready badge updates');
+    press(card);
+    assert.equal(balance(), before + reward.n, 'repeated selection cannot pay twice');
+  }
+  Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
+  A.go('base');
+}
+
+/* Mystery rewards replace the picker, then restore the originating quests tab. */
+for(const source of ['bit', 'log']) {
+  for(const dismissal of ['nice', 'close']) {
+    const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
+    const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
+    st.modules.bit_bay = 1; st.beat = 999; st.bondXp = 900; st.retentionMode = 'core'; st.quests = null;
+    const quests = window.questState(), q = quests.list[0];
+    q.done = true; q.prog = q.n || 1; q.rewards = [{kind:'mystery'}];
+    quests.list[1].done = true;
+    if(source === 'bit') { A.go('bit'); A.bitTab('quests'); } else A.questLog('daily');
+    const label = source + '/' + dismissal;
+    assert.equal(window.dailyReadyCount(), 2, label + ': two quests ready before claiming');
+    press(doc.querySelector('#overlay .quest.done:not(.claimed) .claim'));
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': one reward picker');
+    press(doc.querySelector('#overlay .qcard.mystery'));
+    assert(q.claimed, label + ': mystery reward claimed');
+    assert.equal(st.bondXp, 900 + window.DATA.quests.bondXp, label + ': bond XP paid once');
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': exactly one overlay during reveal');
+    assert(doc.querySelector('#overlay .mreveal'), label + ': mystery reveal visible');
+    doc.querySelector(dismissal === 'nice' ? '#overlay .mreveal .primary[data-close]' : '#overlay .pop-x').click();
+    assert.equal(doc.querySelectorAll('#overlay').length, 1, label + ': exactly one overlay after dismissal');
+    assert(doc.querySelector(source === 'bit' ? '#overlay.bitov .questtab.active' : '#overlay .qlog'), label + ': source quests tab restored');
+    assert(doc.querySelector('#overlay .quests .quest.claimed'), label + ': claimed quest visible');
+    assert.equal(window.dailyReadyCount(), 1, label + ': ready count updated');
+    if(source === 'bit') assert.equal(doc.querySelector('#overlay .bittabs button[aria-selected="true"] .bit-tab-badge').textContent, '1 READY', label + ': BIT badge updated');
+    Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
+    A.go('base');
+  }
 }
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));

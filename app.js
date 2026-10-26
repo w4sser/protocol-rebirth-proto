@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.1.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.1.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -1014,7 +1014,7 @@ function bitScreenHtml(tab){
     '<div class="bitbody">' +
       panel("talents", "talentstab", talentsTabHtml()) +
       panel("tasks", "tasktab", bitTasksTabHtml()) +
-      panel("quests", "questtab", '<div class="bitgrid">' + (questEntryHtml() || '<div class="card small">No active quests yet.</div>') + questsHtml() + nextUnlockCardHtml(questNextUnlockInfo()) + '</div>') +
+      panel("quests", "questtab", '<div class="bitgrid"><div class="qside">' + (questEntryHtml() || '<div class="card small">No active quests yet.</div>') + nextUnlockCardHtml(questNextUnlockInfo()) + '</div>' + questsHtml() + '</div>') +
       panel("trader", "tradertab", '<div class="bitgrid">' + (traderEntryHtml() || '<div class="card small">Trader unavailable.</div>') + nextUnlockCardHtml(traderNextUnlockInfo()) + '</div>') +
     '</div></div>';
 }
@@ -1187,10 +1187,10 @@ function rollMystery(rng){
   for(let i = 0; i < (m.items || 0); i++){ const id = pool[Math.floor((rng || Math.random)() * pool.length)]; items[id] = (items[id] || 0) + 1; }
   return { tier:m.tier, scrap:m.scrap || 0, items, dataCores:m.dataCores || 0 };
 }
-function rewardCardHtml(c, i, qid){
+function rewardCardHtml(c, i, qid, back){
   const body = c.kind === "scrap" ? IC("cur-scrap") + '<b>+' + c.n + '</b><small>Scrap</small>' : c.kind === "xp" ? IC("star") + '<b>+' + c.n + '</b><small>Operator XP</small>' :
     c.kind === "item" ? itemImg(c.item) + '<b>' + c.n + '×</b><small>' + esc(ITEMS[c.item].name) + '</small>' : IC("mystery") + '<b>?</b><small>Mystery box · could be better, could be worse</small>';
-  return '<button type="button" class="qcard ' + c.kind + '" onclick="A.questPick(\'' + qid + '\',' + i + ')">' + body + '</button>';
+  return '<button type="button" class="qcard ' + c.kind + '" onclick="A.questPick(\'' + qid + '\',' + i + ',\'' + back + '\')">' + body + '</button>';
 }
 function questsHtml(){
   if(!questsOpen()) return "";
@@ -1834,7 +1834,9 @@ function itemIcon(id){ const it = ITEMS[id]; if(it && it.artImg) return '<img cl
 function itemImg(id, cls){
   const it = ITEMS[id];
   if(!it) return "";
-  if(it.artImg || it.art) return itemIcon(id);
+  // Hero/weapon art still needs the same .pr-itemimg wrapper as sprite icons get below — callers like the
+  // raid summary's loot cards size+center via ".pr-itemimg" and otherwise this bare <img> sits unscaled.
+  if(it.artImg || it.art) return '<span class="pr-itemimg' + (cls ? ' ' + cls : '') + '">' + itemIcon(id) + '</span>';
   const sprite = it.icon ? IC(it.icon) : "";
   const base = "assets/items/" + id + "-512";
   return '<picture class="pr-itemimg' + (cls ? ' ' + cls : '') + '"><source srcset="' + base + '.webp" type="image/webp">' +
@@ -2803,7 +2805,7 @@ function areaPickerHtml(){
   const a = AREA_DEFS[raidArea()];
   const tq = trackedQuest(), pip = tq && tq.step && tq.step.area === a.id;
   const lv = tq && tq.step && tq.step.objective && tq.step.objective.level;
-  return '<button type="button" class="area-pick map-open' + (pip ? ' quest-target' : '') + '" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + (pip ? ', tracked quest here' : '') + '"><i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + (pip ? ' <em class="qpip" title="Tracked quest" aria-label="Tracked quest"></em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + (pip && lv ? ' L' + lv : '') + '</b></span></button>';
+  return '<button type="button" class="area-pick map-open' + (pip ? ' quest-target' : '') + '" onclick="A.go(\'worldmap\')" aria-label="World map — selected area ' + esc(a.name) + (wmNewUnlockTarget() ? ' — new area unlocked' : '') + (pip ? ', tracked quest here' : '') + '">' + (pip ? '<em class="qpip" aria-hidden="true"></em>' : '') + '<i aria-hidden="true">' + IC('map') + '</i><span><small>AREA' + (wmNewUnlockTarget() ? ' <em class="new-tag" aria-hidden="true">NEW</em>' : '') + '</small><b>' + IC(a.iconId) + ' ' + esc(a.name.toUpperCase()) + (pip && lv ? ' L' + lv : '') + '</b></span></button>';
 }
 SCREENS.worldmap = function(){
   $app().setAttribute("class", "s-worldmap");
@@ -3838,7 +3840,7 @@ function pickRaidReaction(r, res){
   const trigger = ext ? B.priority.find(key => tests[key]) : "death", pool = B.pools[trigger];
   return { trigger, mood:pool.mood, line:pick(pool.lines) };
 }
-// v2.1.0: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
+// v2.1.1: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
 function raidClock(ms){
   const sec = Math.max(0, Math.round(ms / 1000));
   return String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0');
@@ -4603,12 +4605,19 @@ window.A = {
   },
   questClaim(qid){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
-    const ready=document.querySelector('#overlay .qlog');if(ready)ready.closest('#overlay').remove();
+    // Completed quests from older saves/debug state may lack the cards normally assigned by
+    // quest progress. Generate them once before replacing the sheet; cancelling keeps the choices.
+    if(!q.rewards || !q.rewards.length) q.rewards = questRewards();
+    // CLAIM lives both in the quest log's Daily tab (.qlog) and the BIT bay QUESTS tab (.bitov) —
+    // remove whichever is open (else a second #overlay stacks and later lookups grab the wrong one)
+    // and remember where to reopen once a reward is picked.
+    const back = document.querySelector("#overlay .qlog") ? "log" : "bit";
+    const ov = document.getElementById("overlay"); if(ov) ov.remove();
     overlay('<div class="bpop qpick"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>Pick a reward</h1></div>' +
-      '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p><div class="qcards">' + q.rewards.map((c, i) => rewardCardHtml(c, i, qid)).join("") + '</div>' +
-      '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', () => refresh(), "sheet");
+      '<p class="bitbubble">' + IC("bit-face") + '<span>' + esc(QD.lines.done) + '</span></p><div class="qcards">' + q.rewards.map((c, i) => rewardCardHtml(c, i, qid, back)).join("") + '</div>' +
+      '<p class="reward">+' + QD.bondXp + ' BIT Bond XP</p></div>', () => (back === "log" ? A.questLog("daily") : bitRender("quests")), "sheet");
   },
-  questPick(qid, idx){
+  questPick(qid, idx, back){
     const q = questState().list.find(x => x.id === qid); if(!q || !q.done || q.claimed) return;
     const c = q.rewards[idx]; if(!c) return;
     q.claimed = true; S.bondXp += QD.bondXp;
@@ -4619,11 +4628,13 @@ window.A = {
     else { reveal = rollMystery(); S.cur.scrap += reveal.scrap; for(const id in reveal.items) addItem(id, reveal.items[id]); if(reveal.dataCores){ S.cur.dataCores = (S.cur.dataCores || 0) + reveal.dataCores; revealCurrency("dataCores"); } }
     act("QUEST_CLAIMED", { kind:c.kind, tier: reveal ? reveal.tier : null });
     const o = document.getElementById("overlay"); if(o) o.remove();
+    // Refreshing the BIT screen recreates its sheet; defer it until the reveal closes.
+    const reopen = () => { refresh(); return back === "log" ? A.questLog("daily") : bitRender("quests"); };
     if(reveal){
       overlay('<div class="bpop mreveal" style="--rc:' + RARITY_HEX[reveal.tier] + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("mystery") + '</span><h1>' + reveal.tier.toUpperCase() + '</h1></div>' +
         '<div class="mrow"><span>' + IC("cur-scrap") + ' +' + reveal.scrap + ' Scrap</span>' + Object.entries(reveal.items).map(([id, n]) => '<span>' + itemImg(id) + ' ' + n + '× ' + esc(ITEMS[id].name) + '</span>').join("") + (reveal.dataCores ? '<span>' + IC("cur-datacore") + ' +' + reveal.dataCores + ' Data Cores</span>' : '') + '</div>' +
-        '<button class="primary big" data-close>NICE</button></div>', () => refresh(), "sheet");
-    } else { toast("Reward claimed · +" + QD.bondXp + " Bond XP"); refresh(); }
+        '<button class="primary big" data-close>NICE</button></div>', reopen, "sheet");
+    } else { toast("Reward claimed · +" + QD.bondXp + " Bond XP"); reopen(); }
   },
   collectScrap(){
     const now = idleNow(), st = genStored(now); if(st < IDLE.generator.minCollect) return;
