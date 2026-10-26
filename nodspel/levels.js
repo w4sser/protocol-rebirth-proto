@@ -1,3 +1,4 @@
+import {clearPassageProps} from './archipelago-passages.js?v=2.1.0';
 import {townizeLevel} from './town-layout.js?v=2.1.0';
 import {applyEncounters} from './encounters.js?v=2.1.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
@@ -327,7 +328,7 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
   if(area==='town'){townizeLevel(level);level.title=`Town · ${level.title}`;
     // house containers roll from this level's loot table (seeded); the medicine cabinet holds a medkit
     if(level.house){const hr=randomFromSeed(`${seed}:house`);for(const c of level.house.containers)c.item=houseItem(c.kind,number,hr(),area);}}
-  if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;}
+  if(area==='archipelago'){level.archipelago=true;level.title=`Archipelago · ${level.title}`;clearPassageProps(level);}
   applyAreaRules(level,AR);
   return level;
 }

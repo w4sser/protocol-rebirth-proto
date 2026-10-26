@@ -4,43 +4,12 @@
 import * as THREE from './vendor/three.module.js';
 import {rngFrom} from './art.js?v=2.1.0';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3f5a3a',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-6&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-6;
-// Discover openings from the final wall layout, including partitions and encounter-cut side routes.
-// A strip spans the wall and both approaches; narrow it to the actual clear corridor footprint.
-export function archipelagoPassages(level){
-  const passages=[];
-  for(const axis of ['x','z']){
-    const across=axis==='x'?'z':'x',size=axis==='x'?'w':'d',thick=axis==='x'?'d':'w';
-    // A cut can leave a stub shorter than the wall thickness. Its collinear neighbour
-    // still establishes which way that wall runs.
-    const walls=level.walls.filter(w=>w[size]>=w[thick]||level.walls.some(b=>b[size]>b[thick]&&Math.abs(w[across]-b[across])<.025&&Math.abs(w[thick]-b[thick])<.025));
-    for(const a of walls){
-      const end=a[axis]+a[size]/2;
-      const next=walls.filter(b=>b!==a&&Math.abs(a[across]-b[across])<.025&&b[axis]-b[size]/2>end+.025)
-        .sort((b,c)=>(b[axis]-b[size]/2)-(c[axis]-c[size]/2))[0];
-      if(!next)continue;
-      const start=next[axis]-next[size]/2,mid=(end+start)/2;
-      let lo=end+.04,hi=start-.04;
-      const center=(a[across]+next[across])/2,depth=Math.max(a[thick],next[thick])+1.6;
-      for(const w of level.walls){
-        if(Math.abs(w[across]-center)>=(w[thick]+depth)/2-.001)continue;
-        const left=w[axis]-w[size]/2,right=w[axis]+w[size]/2;
-        if(right<=mid)lo=Math.max(lo,right+.04);
-        else if(left>=mid)hi=Math.min(hi,left-.04);
-        else{lo=hi;break;}
-      }
-      if(hi-lo<.8)continue;
-      const p=axis==='x'?{x:(lo+hi)/2,z:center,w:hi-lo,d:depth}:{x:center,z:(lo+hi)/2,w:depth,d:hi-lo};
-      // Require continuous ground on both sides, not an unrelated gap between islands.
-      let grounded=true;
-      for(const s of [-1,0,1])for(const t of [-1,0,1]){
-        const x=p.x+s*p.w*.49,z=p.z+t*p.d*.49;
-        if(!level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.001&&Math.abs(z-f.z)<=f.d/2+.001))grounded=false;
-      }
-      if(grounded&&!level.walls.some(w=>overlaps(w,p)))passages.push({...p,axis});
-    }
-  }
-  return passages;
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.1.0';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.1.0';
+// Check the transformed geometry, including rotated boats and supplied pine models.
+export function propInPassage(object,passages){
+  const b=new THREE.Box3().setFromObject(object);
+  return inPassageClearance({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z},passages);
 }
 // Rectangular ground footprint EXACTLY equals the existing wall collider. Faceted crowns
 // stay inside it, so randomized silhouettes cannot overhang a walkable opening.
@@ -61,6 +30,7 @@ function rockWallGeometry(w,rng,passages){
 }
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
+  clearPassageProps(level,out.passages);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   const water=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({color:P.water,roughness:.25,metalness:.35,transparent:true,opacity:.92}));
@@ -87,11 +57,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     m.position.set(w.x,0,w.z);m.name='archipelago-rock';m.userData.collider=w;
     m.castShadow=m.receiveShadow=true;group.add(m);out.rocks++;
   }
-  for(const c of level.boxes){box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50');}
+  for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
   // boats offshore (visual only, never collidable)
   for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
     g.position.set(cx+Math.cos(a)*r,-.3,cz+Math.sin(a)*r);g.rotation.y=rng()*6.3;
-    box(0,.2,0,1.4,.45,3.4,P.hull,g);box(0,.47,0,1.2,.08,3.1,P.hullTop,g);box(0,.75,-.4,.8,.5,.9,'#c8c2b0',g);g.name='boat';group.add(g);out.boats++;}
+    box(0,.2,0,1.4,.45,3.4,P.hull,g);box(0,.47,0,1.2,.08,3.1,P.hullTop,g);box(0,.75,-.4,.8,.5,.9,'#c8c2b0',g);g.name='boat';if(!propInPassage(g,out.passages)){group.add(g);out.boats++;}}
   return out;
 }
 // Pine tree: instanced town-kit parts when available, else a stylised cone (same footprint).

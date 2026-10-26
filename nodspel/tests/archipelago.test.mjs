@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {generateLevel,AREAS,AREA_RULES,setArea,RULES} from '../levels.js';
 import * as THREE from '../vendor/three.module.js';
 import {archipelagoPassages,buildArchipelago} from '../archipelago.js';
+import {buildWorld} from '../world.js';
 import {movePlayer} from '../physics.mjs';
 test('area order is bunker → archipelago → town',()=>assert.deepEqual(AREAS,['bunker','archipelago','town']));
 test('archipelago is larger, harder and carries the Town Survey on level 3',()=>{
@@ -93,4 +94,66 @@ test('rendered archipelago rock footprints equal actual wall colliders, with cle
       assert.equal(JSON.stringify(level.walls),before,'rendering never changes collision');
     }finally{rendered.dispose();}
   }
+});
+
+// Independent bounds assertion: reserve the approaches returned by passage discovery,
+// plus the same 0.9 margin used to lower nearby rocks, on every side.
+function assertDecorClear(object,passages){
+  const b=new THREE.Box3().setFromObject(object);
+  for(const p of passages)assert.ok(b.max.x<=p.x-p.w/2-.9||b.min.x>=p.x+p.w/2+.9||b.max.z<=p.z-p.d/2-.9||b.min.z>=p.z+p.d/2+.9,`${object.name} overlaps passage approach`);
+}
+test('all rendered pines, crates and boats clear expanded passage approaches at both quality settings',()=>{
+  const geometry=new THREE.BoxGeometry(4,5,3),material=new THREE.MeshBasicMaterial();
+  const pine=[{geometry,material,matrix:new THREE.Matrix4().makeTranslation(.8,2.5,.4)}];
+  try{
+    for(const quality of ['low','high'])for(const model of [null,pine])for(const n of [1,2,3])for(let seed=0;seed<8;seed++){
+      const level=generateLevel(n,`passage-${seed}`,'archipelago');
+      const before=JSON.stringify(level.boxes),world=buildWorld(level,new THREE.Scene(),{quality,pine:model});
+      try{
+        assert.equal(JSON.stringify(level.boxes),before,'generated collision is already clear before rendering');
+        const passages=archipelagoPassages(level),decor=world.group.children.filter(o=>['pine','boat','archipelago-crate'].includes(o.name));
+        for(const object of decor)assertDecorClear(object,passages);
+        assert.equal(world.props.length,world.propSpots.length,'only rendered pine spots remain');
+        const crates=decor.filter(o=>o.name==='archipelago-crate');
+        assert.equal(crates.length,level.boxes.length,'every remaining collider has its visible crate');
+        for(const c of crates)assert.ok(level.boxes.includes(c.userData.collider));
+        for(const c of level.boxes)for(const p of passages)assert.ok(!intersects(c,{...p,w:p.w+1.8,d:p.d+1.8}),'collidable dressing clears approaches');
+      }finally{world.dispose();}
+    }
+  }finally{geometry.dispose();material.dispose();}
+});
+test('collidable crates at either approach or overlapping by their edge are skipped together with visuals',()=>{
+  for(const rotate of [false,true]){
+    const turn=r=>rotate?{...r,x:r.z,z:r.x,w:r.d,d:r.w}:r;
+    const bad=[{x:0,z:0,w:1,d:1,h:1},{x:0,z:1.9,w:1,d:1,h:1},{x:0,z:-1.9,w:1,d:1,h:1},{x:2,z:0,w:1,d:1,h:1}].map(turn);
+    const safe=turn({x:5,z:5,w:1,d:1,h:1}),boxes=[...bad,safe];
+    const level={seed:'crafted',walls:[{x:-3,z:0,w:4,d:.4,h:1},{x:3,z:0,w:4,d:.4,h:1}].map(turn),floors:[{x:0,z:0,w:20,d:20}],boxes};
+    const rendered=renderArchipelago(level);
+    try{
+      assert.equal(level.boxes,boxes,'preserves references to collision array');
+      assert.deepEqual(level.boxes,[safe],'removes approach colliders as well as center and edge overlaps');
+      const crates=rendered.group.children.filter(o=>o.name==='archipelago-crate');
+      assert.equal(crates.length,1);assert.equal(crates[0].userData.collider,safe);
+      for(const c of crates)assertDecorClear(c,rendered.info.passages);
+    }finally{rendered.dispose();}
+  }
+});
+test('rotated offshore boats are skipped when their hull overlaps a passage margin',()=>{
+  let checked=false;
+  for(let seed=0;seed<30&&!checked;seed++){
+    const level={seed:`boat-${seed}`,walls:[],floors:[{x:0,z:0,w:100,d:100}],boxes:[]};
+    const first=renderArchipelago(level);
+    const boat=first.group.children.find(o=>o.name==='boat'&&Math.abs(o.position.x)<46&&Math.abs(o.position.z)<46);
+    const position=boat?.position.clone();first.dispose();if(!position)continue;
+    // Same floor bounds and seed preserve boat positions; put an opening under a hull.
+    level.walls=[{x:position.x-3,z:position.z,w:4,d:.4,h:1},{x:position.x+3,z:position.z,w:4,d:.4,h:1}];
+    const rendered=renderArchipelago(level);
+    try{
+      assert.ok(rendered.info.passages.length>0);
+      assert.ok(rendered.info.boats<3,'overlapping boat was omitted');
+      for(const b of rendered.group.children.filter(o=>o.name==='boat'))assertDecorClear(b,rendered.info.passages);
+      checked=true;
+    }finally{rendered.dispose();}
+  }
+  assert.ok(checked,'exercised a boat inside grounded passage clearance');
 });
