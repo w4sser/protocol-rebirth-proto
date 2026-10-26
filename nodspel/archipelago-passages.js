@@ -1,7 +1,14 @@
 const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-6&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-6;
 // Discover openings from the final wall layout, including partitions and encounter-cut side routes.
 // A strip spans the wall and both approaches; narrow it to the actual clear corridor footprint.
+// Boulder colliders later resize/jitter each wall entry in place to match rendered footprints,
+// which breaks the collinearity this scan relies on. Compute once against the pristine wall
+// layout and cache on the level (keyed on the walls array itself) so later calls — in-game,
+// after buildArchipelago runs — keep returning the original openings instead of recomputing
+// from the boulder-fitted boxes. A genuinely new walls array (e.g. a rebuilt level) still
+// invalidates the cache and recomputes.
 export function archipelagoPassages(level){
+  if(level.archPassages&&level._archPassagesWalls===level.walls)return level.archPassages;
   const passages=[];
   for(const axis of ['x','z']){
     const across=axis==='x'?'z':'x',size=axis==='x'?'w':'d',thick=axis==='x'?'d':'w';
@@ -34,6 +41,8 @@ export function archipelagoPassages(level){
       if(grounded&&!level.walls.some(w=>overlaps(w,p)))passages.push({...p,axis});
     }
   }
+  level.archPassages=passages;
+  level._archPassagesWalls=level.walls;
   return passages;
 }
 // Passage rectangles already include both approaches; reserve another rock-sized margin.

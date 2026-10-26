@@ -174,6 +174,21 @@ test('collidable crates at either approach or overlapping by their edge are skip
     }finally{rendered.dispose();}
   }
 });
+test('archipelagoPassages keeps finding openings after buildArchipelago replaces walls with boulder colliders',()=>{
+  for(const n of [2,3]){
+    const level=generateLevel(n,'arch-shot','archipelago');
+    const before=archipelagoPassages(level);
+    assert.ok(before.length>0,`L${n}: passages found pre-build`);
+    const wallsBefore=level.walls.map(w=>({x:w.x,z:w.z,w:w.w,d:w.d}));
+    const rendered=renderArchipelago(level);
+    try{
+      assert.ok(level.walls.some((w,i)=>Math.abs(w.x-wallsBefore[i].x)>1e-6||Math.abs(w.z-wallsBefore[i].z)>1e-6||Math.abs(w.w-wallsBefore[i].w)>1e-6||Math.abs(w.d-wallsBefore[i].d)>1e-6),'sanity: wall colliders were refit to boulder footprints');
+      const after=archipelagoPassages(level);
+      assert.equal(after,before,'live level reuses the cached pre-build passages');
+      assert.ok(after.length>0,`L${n}: passages still found after boulder colliders are built`);
+    }finally{rendered.dispose();}
+  }
+});
 test('rotated offshore boats are skipped when their hull overlaps a passage margin',()=>{
   let checked=false;
   for(let seed=0;seed<250&&!checked;seed++){
