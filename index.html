@@ -1047,8 +1047,6 @@
   @keyframes wm-drift{from{transform:translate(0,0)}to{transform:translate(9px,3px)}}
   @media (prefers-reduced-motion:reduce){.wm-fogmap .fog-noise{animation:none}}
   .worldmap .wm-label,.worldmap .wm-beacon{backface-visibility:hidden}
-/* v2.0.0: title clears the shared close X */
-.raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style>
   :root{--raid-action:var(--ad-primary);}
@@ -1067,8 +1065,6 @@
   #app.s-prep .lobby-side .lslot-row{display:flex;gap:6px;flex:1 1 0;min-height:0}#app.s-prep .lobby-side .lslot-row .lslot{flex:1 1 0;min-width:0}
   /* v1.64 item info: Used for + first-find card (shared popup) */
   .usedfor b{color:var(--ad-loot)} .infocard{text-align:left;margin:6px 0} .infocard .ic-head{display:flex;align-items:center;gap:6px;margin-bottom:4px} .infocard .ic-head .sicon{width:22px;height:22px}
-/* v2.0.0: title clears the shared close X */
-.raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style id="lobby3">/* v1.66 Raid Prep: 2x2 big slots | operator + stat strip | area + goal + DEPLOY. Amber dot = lost if you die. */
 #app.s-prep .lobby{display:grid;gap:8px;height:100%;min-height:0;box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px);
@@ -1124,8 +1120,6 @@
 .reward-card>button.primary.big{background:var(--raid-action);color:var(--ad-ink);box-shadow:0 4px 0 var(--ad-primary-edge);width:260px;max-width:100%;margin:12px auto 0;display:block;min-height:44px}
 .reward-goal{margin:8px 0 0;font-size:11px;color:var(--dim)} .reward-goal b{color:var(--ad-loot);letter-spacing:.08em;margin-right:4px}
 .reward-bit{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 0;font-size:11px;color:var(--dim)} .reward-bit .pr-ic{width:24px;height:24px;color:var(--ad-bit)}
-/* v2.0.0: title clears the shared close X */
-.raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 <style id="v187-fit">/* v1.87 playtest fixes (landscape phone ~1024x471): popups never run under the top bar / back button or off-screen. */
   #overlay.qlogov{background:rgba(4,7,10,.96)}
@@ -1447,38 +1441,96 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   .fab-job .fab-collect[hidden]{display:none}
   .fabl .fab-job .fab-time{display:block}
   .fabl .fab-job b{white-space:normal;font-size:11px}
-/* v2.0.0 */
-.raid-summary{text-align:left;min-width:0}
-.raid-summary header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:0 4px 6px}
-.raid-summary header h1{margin:0;font-size:22px}
-.summary-main{display:grid;grid-template-columns:minmax(110px,30%) minmax(0,1fr);gap:12px;min-height:0}
-.summary-bit{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;padding:4px;background:none;border:0;box-shadow:none}
-.summary-bit::before,.summary-bit::after{display:none}
-.summary-bit .summary-portrait{width:clamp(78px,17vh,124px);height:clamp(78px,17vh,124px);border:0;background:none;box-shadow:none}
-.summary-bit p{font-size:12px;line-height:1.35;margin:6px 0;color:var(--ad-bone);text-align:center;overflow-wrap:anywhere}
-.summary-ledger{max-height:clamp(130px,43dvh,340px);overflow-y:auto;overscroll-behavior:contain;padding:0 6px;min-width:0}
-.summary-ledger h2{font-size:12px;text-align:left;margin:8px 0;color:var(--ad-loot)}
-.summary-ledger h2:nth-of-type(2){color:var(--ad-danger)}
-.summary-row{display:flex;align-items:center;gap:6px;min-height:30px;border-bottom:1px solid var(--line);font-size:12px}
-.summary-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
-.summary-row>b{flex:none;color:var(--ad-loot)}
-.summary-row.loss>b{color:var(--ad-danger)}
-.summary-row>.pr-itemimg,.summary-row>.pr-ic,.summary-row>.pr-itemimg-fb{width:26px;height:26px;flex:none}
-.summary-row img{width:26px;height:26px;object-fit:contain}
-.summary-ledger .progressmoved{font-size:11px;margin:8px 0;padding:6px}
-#overlay.sheet .raid-summary-pop{display:flex;flex-direction:column;width:min(600px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 64px));max-width:100%;box-sizing:border-box;max-height:calc(100dvh - var(--tb-h,0px) - 48px);min-height:0;padding:12px}
-.raid-summary-pop>.raid-summary{min-height:0;flex:1;display:flex;flex-direction:column}
-.raid-summary-pop .summary-main{flex:1;overflow:hidden}
-.raid-summary-pop .summary-ledger{max-height:none}
-.raid-summary-pop>button.primary{flex:none;min-height:44px;margin:8px 0 0}
+/* v2.1.0: full-screen extract/KIA summary (reference: docs art hand-off). BIT art + loot left/right over the raid bg. */
+.raid-summary{position:relative;overflow:hidden;display:flex;min-height:230px;text-align:left;min-width:0;color:var(--ad-bone);
+  border-radius:14px;background:var(--ad-night) center/cover no-repeat url("assets/ui/extract-bg-1024.webp")}
+@media(min-width:900px){.raid-summary{background-image:url("assets/ui/extract-bg.webp")}}
+.raid-summary::after{content:"";position:absolute;z-index:0;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(7,21,28,.3) 0%,rgba(7,21,28,.6) 42%,rgba(7,21,28,.93) 66%,rgba(7,21,28,.97) 100%)}
+.raid-summary>*{position:relative;z-index:1}
+.raid-summary-pop{position:relative}
+.raid-summary-pop .raid-summary{flex:1;min-height:0}
+
+.rs-left{display:flex;flex-direction:column;flex:0 0 44%;min-width:0;padding:14px 8px 34px 16px;box-sizing:border-box}
+.raid-summary-pop .rs-left{padding-top:34px;padding-left:44px}
+.rs-title h1{margin:0;font:900 clamp(20px,7vh,38px)/1 system-ui,sans-serif;letter-spacing:.01em}
+.rs-title .rs-sub{margin:3px 0 0;font:700 10px "Archivo",sans-serif;letter-spacing:.08em;color:var(--ad-bone);opacity:.8;text-transform:uppercase}
+.rs-bit{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0;min-width:0}
+.rs-bit .summary-portrait{width:clamp(64px,20vh,150px);height:clamp(64px,20vh,150px);border:0;background:none;box-shadow:none;animation:rsBitBob 3.2s ease-in-out infinite}
+@keyframes rsBitBob{50%{transform:translateY(-8px)}}
+.rs-bubble{max-width:min(260px,92%);padding:7px 12px;border:1.5px solid var(--ad-cyan);border-radius:14px;background:rgba(7,21,28,.8)}
+.rs-bubble p{margin:0;font-size:10px;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+.rs-right{flex:1 1 56%;min-width:0;display:flex;flex-direction:column;gap:5px;padding:12px 14px 52px 8px;overflow:hidden;box-sizing:border-box}
+.rs-right-head{display:flex;align-items:center;gap:10px;margin:0 0 1px;font:900 12px "Archivo",sans-serif;letter-spacing:.06em;color:var(--ad-cyan)}
+.rs-right-head::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--ad-cyan),transparent)}
+.raid-summary[data-outcome="death"] .rs-right-head,.raid-summary[data-outcome="timeout"] .rs-right-head{color:var(--ad-danger)}
+.raid-summary[data-outcome="death"] .rs-right-head::after,.raid-summary[data-outcome="timeout"] .rs-right-head::after{background:linear-gradient(90deg,var(--ad-danger),transparent)}
+
+.loot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.loot-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 3px;min-width:0;
+  border:1.5px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.78);animation:rsCardIn .3s ease-out both}
+.loot-card .pr-itemimg,.loot-card .pr-itemimg-fb,.loot-card .pr-ic{width:22px;height:22px}
+.loot-card img{width:22px;height:22px;object-fit:contain}
+.loot-card-row{display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:4px;font-size:10px}
+.loot-card-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loot-card-row>b{flex:none;color:var(--ad-loot)}
+.loot-card.loss{border-color:var(--ad-danger);opacity:.62;filter:grayscale(.35)}
+.loot-card.loss .loot-card-row>b{color:var(--ad-danger)}
+.loot-card.rare{border-color:var(--ad-loot);box-shadow:0 0 12px color-mix(in srgb,var(--ad-loot) 40%,transparent)}
+.rare-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--ad-loot);color:var(--ad-ink);
+  font:800 8px/1.5 "Archivo",sans-serif;padding:1px 6px;border-radius:6px;letter-spacing:.03em}
+.loot-extra{display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--ad-cyan);border-radius:8px;color:var(--ad-cyan);font:800 13px "Archivo",sans-serif;min-height:28px}
+.loot-empty{margin:0;color:var(--dim)}
+@keyframes rsCardIn{from{opacity:0;transform:translateY(6px)}}
+.loot-grid .loot-card:nth-child(n+6){display:none}
+.loot-extra.tier-lg{display:none}
+@media(min-height:385px){
+  .loot-grid .loot-card:nth-child(n+6){display:flex}
+  .loot-grid .loot-card:nth-child(n+7){display:none}
+  .loot-extra.tier-sm{display:none}
+  .loot-extra.tier-lg{display:flex}
+}
+
+.rs-xp{display:flex;flex-direction:column;gap:3px}
+.rs-xp-head{display:flex;align-items:baseline;gap:10px;font-size:11px}
+.rs-xp-head .lvl{color:var(--ad-cyan);font-size:15px}
+.rs-xp-head .xp-gain{color:var(--ad-cyan);font-weight:800}
+.xpbar-row{display:flex;align-items:center;gap:8px}
+.xpbar{flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,.14);overflow:hidden}
+.xpbar>i{display:block;height:100%;background:var(--ad-cyan);transform-origin:left;animation:rsXpFill .8s ease-out .2s both}
+@keyframes rsXpFill{from{transform:scaleX(0)}}
+.xpbar-row small{flex:none;color:var(--dim);font-size:10px}
+
+.rs-quest{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.65)}
+.rs-quest>svg{width:18px;height:18px;flex:none;color:var(--ad-cyan)}
+.rs-quest-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rs-quest-body b{font-size:11px}
+.rs-quest-body span{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbar{display:block;height:5px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:2px}
+.qbar>i{display:block;height:100%;background:var(--ad-cyan)}
+.rs-quest-n{flex:none;font-size:12px;color:var(--ad-cyan)}
+
+.rs-hint{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ad-loot)}
+.rs-hint svg{width:15px;height:15px}
+
+.rs-note{position:absolute;z-index:1;left:16px;bottom:10px;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ad-bone);opacity:.85}
+.rs-note svg{width:16px;height:16px;color:var(--ad-cyan)}
+.raid-summary[data-outcome="death"] .rs-note svg,.raid-summary[data-outcome="timeout"] .rs-note svg{color:var(--ad-danger)}
+
+#overlay.raid-summary-ov .inner{max-width:none}
+#overlay.sheet .raid-summary-pop{display:flex;flex-direction:column;width:min(920px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 32px));max-width:100%;box-sizing:border-box;
+  height:calc(100dvh - var(--tb-h,0px) - 20px);max-height:580px;min-height:0;padding:0}
+.raid-summary-pop>button.primary{position:absolute;z-index:2;right:14px;bottom:12px;width:auto;min-width:176px;min-height:40px;padding:0 14px;margin:0}
+
+@media(prefers-reduced-motion:reduce){.rs-bit .summary-portrait,.loot-card,.xpbar>i{animation:none}}
+@media(max-width:700px){.rs-title h1{font-size:clamp(18px,6.4vh,28px)}.rs-bubble p{font-size:9px}}
+@media(max-height:400px){.rs-bit .summary-portrait{width:clamp(54px,15vh,88px);height:clamp(54px,15vh,88px)}.rs-bubble{padding:5px 9px}}
+
 .bit-tab-badge{display:inline-block;margin-left:4px;padding:2px 4px;font-size:9px;color:var(--ad-cyan);border:1px solid var(--ad-cyan);border-radius:4px;white-space:nowrap}
 .badge-pulse{animation:bitBadgePulse 1s ease-in-out 3;outline:2px solid var(--ad-cyan);outline-offset:-2px;scroll-margin:12px}
 @keyframes bitBadgePulse{50%{box-shadow:inset 0 0 14px var(--ad-cyan)}}
 @media(prefers-reduced-motion:reduce){.badge-pulse{animation:none}}
-@media(max-height:390px){.summary-bit p{font-size:11px}.summary-main{gap:8px}.raid-summary header h1{font-size:19px}}
-
-/* v2.0.0: title clears the shared close X */
-.raid-summary-pop .raid-summary>h1:first-of-type,.raid-summary-pop h1{padding-left:52px}
 </style>
 </head>
 <body class="base-dark">
