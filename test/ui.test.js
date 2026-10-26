@@ -167,7 +167,7 @@ const firstDeploy = JSON.parse(window.localStorage.getItem("pr_meta_save")).log.
 assert.equal(firstDeploy.routeId, window.DATA.progression.starterRaid.routeId, "first route cannot be changed through actions");
 assert.equal(firstDeploy.riskId, "standard", "first risk stays standard");
 assert(firstDeploy.loadout.includes(window.DATA.progression.starterRaid.loadout.weapon), "first loadout retains its weapon");
-assert(text().includes("EXTRACTED") && text().includes("PROGRESS MOVED"), "result");
+assert(text().includes("EXTRACTED") && text().includes("RAID SECURED"), "result");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card");
 A.backToBase();
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "extract funds but does not auto-activate the room");
@@ -300,7 +300,7 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_refined"), 
 A.devForce("death");
 A.go("prep"); A.prepSet("insuranceId","premium");
 A.deploy(); A.raidStep();
-assert(text().includes("KIA") && text().includes("PROGRESS MOVED"), "death keeps progress");
+assert(text().includes("KIA") && text().includes("RAID LOST"), "death keeps progress");
 assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card on death");
 A.backToBase();
 
@@ -421,32 +421,94 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     for(const src of scripts) w.eval(fs.readFileSync(path + '/' + src,'utf8'));
     const popup = w.document.querySelector('#overlay .raid-summary-pop.pop-card');
     assert(popup && w.document.querySelectorAll('#overlay').length === 1, 'one merged shared result popup on return');
-    assert(popup.textContent.includes('GAINED') && popup.textContent.includes('LOST / CONSUMED'), 'both ledger sections');
-    assert(popup.textContent.includes('Operator XP'), 'operator progression shown on every outcome');
-    assert.equal(popup.querySelectorAll('.summary-bit p').length,1,'exactly one BIT line');
+    assert(popup.textContent.includes(outcome==='extract' ? 'RAID SECURED' : 'RAID LOST'), 'outcome header shown');
+    assert.equal(popup.querySelectorAll('.rs-bubble p').length,1,'exactly one BIT line');
     assert(popup.querySelector('source').srcset.includes('bit-summary-'), 'existing summary art through bitImg');
-    assert(popup.querySelector('.summary-ledger[tabindex]'), 'long ledger can be scrolled by keyboard');
-    const gainRows = [...popup.querySelectorAll('.summary-row.gain')];
-    const lossRows = [...popup.querySelectorAll('.summary-row.loss')];
+    const gainRows = [...popup.querySelectorAll('.loot-card.gain')];
+    const lossRows = [...popup.querySelectorAll('.loot-card.loss')];
     if(outcome==='extract'){
+      assert(popup.querySelector('.rs-xp-head .xp-gain'), 'operator XP gain shown on every outcome');
       assert(gainRows.some(el=>el.textContent.includes('SMG')), 'equipped weapon brought home');
-      assert(gainRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='2'), 'duplicate materials aggregate');
+      assert(gainRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='x2'), 'duplicate materials aggregate');
       assert(gainRows.some(el=>el.textContent.includes('Scrap')), 'converted currency and extract bonus shown');
-      assert(lossRows.some(el=>el.textContent.includes('Medkit') && el.querySelector('b').textContent==='1'), 'consumed medkit shown on survival');
-      assert(!lossRows.some(el=>el.textContent.includes('SMG')), 'returned gear is not lost');
-      assert(gainRows.some(el=>el.textContent.includes('complete') && el.textContent.includes('2/2')), 'quest completion progress is itemised');
+      assert.equal(lossRows.length, 0, 'extract shows the secured grid, not a loss grid');
     } else {
-      assert(lossRows.some(el=>el.textContent.includes('SMG') && el.querySelector('b').textContent==='1'), 'launch gear lost exactly once on death, even if still equipped');
-      assert(lossRows.some(el=>el.textContent.includes('Scavenger Vest') && el.querySelector('b').textContent==='1'), 'armor found and equipped during the raid is lost on death');
-      if(gearOut.includes('rifle_marksman')) assert(lossRows.some(el=>el.textContent.includes('Marksman Rifle') && el.querySelector('b').textContent==='1'), 'found replacement weapon is lost alongside launch gear');
-      assert(!gainRows.some(el=>/Scavenger Vest|Marksman Rifle|SMG/.test(el.textContent)), 'lost equipment is not shown as gained');
-      assert(lossRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='2'), 'bag loss counted');
+      assert(popup.querySelector('.rs-xp-head .xp-gain'), 'operator XP gain shown on every outcome');
+      assert.equal(gainRows.length, 0, 'death shows the lost grid, not a gain grid');
+      assert(lossRows.some(el=>el.textContent.includes('SMG') && el.querySelector('b').textContent==='x1'), 'launch gear lost exactly once on death, even if still equipped');
+      assert(lossRows.some(el=>el.textContent.includes('Scavenger Vest') && el.querySelector('b').textContent==='x1'), 'armor found and equipped during the raid is lost on death');
+      if(gearOut.includes('rifle_marksman')) assert(lossRows.some(el=>el.textContent.includes('Marksman Rifle') && el.querySelector('b').textContent==='x1'), 'found replacement weapon is lost alongside launch gear');
+      assert(lossRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='x2'), 'bag loss counted');
       assert(popup.querySelector('source').srcset.includes('disappointed'), 'death mood');
     }
     assert.equal(w.localStorage.getItem('pr_raid_result_v1'), null,'return consumed exactly once');
     assert.equal(w.ingestRaidResult(result).reason,'duplicate','summary does not grant rewards twice');
     rd.window.close();
   }
+}
+/* v2.1.0 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
+{
+  const reaction = { trigger:'generic', mood:'smug', line:'test line' };
+  const manyIds = ['power_relay','cable','fuse','scrap_alloy','servo','polymer_plate','circuit_board','optical_sensor'];
+  const res = { added:manyIds, currency:{}, operatorXp:50, xp:10 };
+  const r = { outcome:'extract', elapsedMs:272000, lost:[] };
+  const div = window.document.createElement('div');
+  div.innerHTML = window.raidSummaryHtml(r, res, reaction, 'Node Raid');
+  assert.equal(div.querySelector('h1').textContent, 'EXTRACTED', 'extract title word');
+  assert(div.querySelector('.rs-sub').textContent.includes('04:32'), 'raid time formatted as mm:ss from elapsedMs');
+  assert(div.querySelector('.loot-card.rare .rare-tag'), 'rare item gets the RARE FIND tag');
+  assert.equal(div.querySelectorAll('.loot-grid>.loot-card').length, 7, 'loot grid renders at most the large-tier cap of cards');
+  assert.equal(div.querySelector('.loot-extra.tier-sm').textContent, '+3', 'small-tier overflow tile counts the rest beyond the 5-card cap');
+  assert.equal(div.querySelector('.loot-extra.tier-lg').textContent, '+1', 'large-tier overflow tile counts the rest beyond the 7-card cap');
+
+  const rTimeout = { outcome:'timeout', elapsedMs:5000, lost:[] };
+  const divTimeout = window.document.createElement('div');
+  divTimeout.innerHTML = window.raidSummaryHtml(rTimeout, { added:[], currency:{} }, { trigger:'death', mood:'bored', line:'...' }, 'Node Raid');
+  assert.equal(divTimeout.querySelector('h1').textContent, 'LOST', 'timeout title word');
+
+  const rDeath = { outcome:'death', elapsedMs:5000, lost:['cable'] };
+  const resDeath = { added:[], lost:['cable'], currency:{} };
+  const divDeath = window.document.createElement('div');
+  divDeath.innerHTML = window.raidSummaryHtml(rDeath, resDeath, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  assert.equal(divDeath.querySelector('h1').textContent, 'KIA', 'death title word');
+  assert(divDeath.querySelector('.rs-right-head').textContent.includes('RAID LOST'), 'death header reads RAID LOST');
+  assert(divDeath.querySelector('.loot-card.loss'), 'lost item rendered as a dimmed/red loss card');
+
+  // Recovered items (BIT rescue / secure slot / Guardian talent) must still render on death/timeout, not vanish:
+  // non-dimmed, tagged SAVED, alongside the dimmed/red loss cards for whatever was actually lost.
+  const rSaved = { outcome:'death', elapsedMs:5000, lost:['cable', 'fuse'] };
+  const resSaved = { added:[], currency:{}, saved:{ secure:'medkit' }, gearLost:['scavenger_vest'] };
+  const divSaved = window.document.createElement('div');
+  divSaved.innerHTML = window.raidSummaryHtml(rSaved, resSaved, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const savedCard = divSaved.querySelector('.loot-card.saved');
+  assert(savedCard, 'secure-slot recovery renders its own SAVED card on death');
+  assert(savedCard.querySelector('.saved-tag') && savedCard.querySelector('.saved-tag').textContent === 'SAVED', 'recovered card carries the SAVED tag');
+  assert(savedCard.textContent.includes('Medkit'), 'recovered card names the saved item');
+  assert(!savedCard.classList.contains('loss'), 'recovered item is not dimmed/red like a loss card');
+  const savedLossCards = [...divSaved.querySelectorAll('.loot-card.loss')];
+  assert(savedLossCards.some(el => el.textContent.includes('Cable')), 'bag losses still render alongside the recovered item');
+  assert(savedLossCards.some(el => el.textContent.includes('Scavenger Vest')), 'gearLost still renders alongside the recovered item');
+
+  // Saved items must sort ahead of losses so they survive the small-tier cap (nth-child(n+6) hidden in CSS)
+  // even when there are enough distinct losses to otherwise push them past the "+N" overflow tile.
+  const manyLosses = ['cable','fuse','servo','scrap_alloy','circuit_board','optical_sensor','polymer_plate'];
+  const rSavedCap = { outcome:'death', elapsedMs:5000, lost:manyLosses };
+  const resSavedCap = { added:[], currency:{}, saved:{ secure:'medkit' } };
+  const divSavedCap = window.document.createElement('div');
+  divSavedCap.innerHTML = window.raidSummaryHtml(rSavedCap, resSavedCap, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const capCards = [...divSavedCap.querySelectorAll('.loot-grid>.loot-card')];
+  const savedCapIdx = capCards.findIndex(el => el.classList.contains('saved'));
+  assert(savedCapIdx >= 0 && savedCapIdx < 5, 'saved item stays within the small-tier cap (LOOT_CAP_SM) despite many distinct losses');
+
+  // A recovered item that happens to be rare must still read SAVED, not RARE FIND, on death/timeout.
+  const rRareSaved = { outcome:'death', elapsedMs:5000, lost:['cable'] };
+  const resRareSaved = { added:[], currency:{}, saved:{ secure:'power_relay' } };
+  const divRareSaved = window.document.createElement('div');
+  divRareSaved.innerHTML = window.raidSummaryHtml(rRareSaved, resRareSaved, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const rareSavedCard = divRareSaved.querySelector('.loot-card.saved');
+  assert(rareSavedCard, 'rare recovered item renders as a saved card');
+  assert(rareSavedCard.querySelector('.saved-tag') && rareSavedCard.querySelector('.saved-tag').textContent === 'SAVED', 'rare recovered item carries the SAVED tag, not RARE FIND');
+  assert(!rareSavedCard.querySelector('.rare-tag'), 'rare recovered item does not carry a RARE FIND tag');
 }
 /* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {

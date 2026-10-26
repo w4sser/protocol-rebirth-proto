@@ -14,9 +14,9 @@ assert.equal(window.localStorage.getItem("pr_raid_result_v1"), null, "pending re
 { const summary = doc.querySelector("#overlay .raid-summary-pop.pop-card");
   assert(summary, "merged raid summary popup shown");
   assert(summary.querySelector("h1").textContent === "EXTRACTED", "summary shows the raid outcome");
-  const gains = [...summary.querySelectorAll(".summary-row.gain")];
+  const gains = [...summary.querySelectorAll(".loot-card.gain")];
   assert(gains.some(row => row.textContent.includes("Cable")) && gains.some(row => row.textContent.includes("Power Cell")), "summary lists secured loot");
-  assert(summary.textContent.includes("LOST / CONSUMED") && summary.querySelector("[data-close]"), "summary includes losses and return action"); }
+  assert(summary.textContent.includes("RAID SECURED") && summary.querySelector("[data-close]"), "summary includes the secured header and return action"); }
 const saved = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 assert(saved.coreRaidsIngested.includes("meta-test-1") && saved.stash.cable >= 1, "ingest persisted");
 A.dismissIntro(); A.playCombatDemo(); A.endCombatDemo();

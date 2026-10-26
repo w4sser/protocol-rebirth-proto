@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.0.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.1.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -3838,6 +3838,28 @@ function pickRaidReaction(r, res){
   const trigger = ext ? B.priority.find(key => tests[key]) : "death", pool = B.pools[trigger];
   return { trigger, mood:pool.mood, line:pick(pool.lines) };
 }
+// v2.1.0: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
+function raidClock(ms){
+  const sec = Math.max(0, Math.round(ms / 1000));
+  return String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0');
+}
+const RARE_RARITIES = new Set(["rare","epic","legendary"]);
+// Loot card grid: up to LOOT_CAP_LG real cards render; CSS hides the tail at narrow heights (LOOT_CAP_SM)
+// and shows a "+N" tile for whichever cap is active, so the panel never scrolls. Each cap plus its "+N" tile
+// must fill at most 2 grid rows: LOOT_CAP_SM (5) + 1 fits 2 rows of the default 3-col grid; LOOT_CAP_LG (7) + 1
+// fits 2 rows of the taller tier's 4-col grid (see .loot-grid media query in index.html).
+const LOOT_CAP_SM = 5, LOOT_CAP_LG = 7;
+function raidLootGridHtml(entries, emptyLabel){
+  if(!entries.length) return '<p class="small loot-empty">' + emptyLabel + '</p>';
+  const shown = entries.slice(0, LOOT_CAP_LG);
+  const cards = shown.map((e,i) => '<div class="loot-card ' + e.cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (i * 45) + 'ms">' +
+    (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : (e.rare ? '<span class="rare-tag">RARE FIND</span>' : '')) + e.icon +
+    '<div class="loot-card-row"><span>' + esc(e.name) + '</span><b>x' + e.qty + '</b></div></div>').join('');
+  const extraSm = Math.max(0, entries.length - LOOT_CAP_SM), extraLg = Math.max(0, entries.length - LOOT_CAP_LG);
+  return cards +
+    '<div class="loot-extra tier-sm"' + (extraSm > 0 ? '' : ' style="display:none"') + '>+' + extraSm + '</div>' +
+    '<div class="loot-extra tier-lg"' + (extraLg > 0 ? '' : ' style="display:none"') + '>+' + extraLg + '</div>';
+}
 function raidSummaryHtml(r, res, reaction, label){
   const ext = r.outcome === "extract", gained = {}, lost = {};
   const count = (map, id, n) => { if(ITEMS[id] && n > 0 && !isFree(id)) map[id] = (map[id] || 0) + n; };
@@ -3862,18 +3884,45 @@ function raidSummaryHtml(r, res, reaction, label){
     }
   }
   count(lost,PROG.kitItem,res.kitSummaryLost === undefined ? (res.kitLost || 0) : res.kitSummaryLost); if(res.toolId) count(lost,res.toolId,res.toolLost || 0);
-  const rows = (map, cls) => Object.keys(map).map(id => '<div class="summary-row ' + cls + '">' + itemImg(id) + '<span>' + esc(ITEMS[id].name) + '</span><b>' + map[id] + '</b></div>').join('');
   (res.added || []).filter(id => ITEMS[id] && ITEMS[id].scouts).forEach(id => count(lost,id,1));
-  let gain = rows(gained,"gain");
+  const gainedEntries = Object.keys(gained).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:gained[id], rare:RARE_RARITIES.has(ITEMS[id].rarity) }));
   const cur = Object.assign({},res.currency); cur.scrap = (cur.scrap || 0) + (res.scrapBonus || 0);
-  for(const id of Object.keys(cur)) if(cur[id]) gain += '<div class="summary-row gain">' + (CUR_ICONS[id] || IC("cur-scrap")) + '<span>' + esc(CUR_LABELS[id] || id) + '</span><b>+' + cur[id] + '</b></div>';
-  if(res.operatorXp) gain += '<div class="summary-row gain">' + IC("star") + '<span>Operator XP</span><b>+' + res.operatorXp + '</b></div>';
-  if(res.xp) gain += '<div class="summary-row gain">' + IC("star") + '<span>BIT XP</span><b>+' + res.xp + '</b></div>';
-  gain += (res.questChanges || []).map(q => '<div class="summary-row gain">' + IC("quest") + '<span>' + esc(q.title) + (q.complete ? ' - complete' : '') + '</span><b>' + q.prog + '/' + q.n + '</b></div>').join('');
-  return '<section class="raid-summary pop-card" data-trigger="' + reaction.trigger + '"><header><h1 class="' + (ext ? 'ok' : 'bad') + '">' + (ext ? 'EXTRACTED' : 'KIA') + '</h1><small>' + esc(label) + '</small></header>' +
-    '<div class="summary-main"><aside class="summary-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<p>' + esc(reaction.line) + '</p></aside>' +
-    '<div class="summary-ledger" tabindex="0"><h2>GAINED</h2>' + (gain || '<p class="small">No items secured</p>') + '<h2>LOST / CONSUMED</h2>' + (rows(lost,"loss") || '<p class="small">None</p>') +
-    '<div class="progressmoved"><b>PROGRESS MOVED' + (ext ? '' : ' - EVEN NOW') + '</b><br>' + (res.areaNotes || []).map(esc).join('<br>') + '</div></div></div></section>';
+  for(const id of Object.keys(cur)) if(cur[id]) gainedEntries.push({ icon:IC(CUR_ICON_IDS[id] || "cur-scrap"), name:CUR_LABELS[id] || id, qty:cur[id], rare:false });
+  const lostEntries = Object.keys(lost).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:lost[id] }));
+  // On extract everything gained is shown as secured loot; on death/timeout, items BIT/secure-slot/Guardian
+  // recovered still render (tagged SAVED, not dimmed) alongside what was actually lost, instead of vanishing.
+  const lootEntries = ext ? gainedEntries.map(e => Object.assign({ cls:"gain" }, e)) :
+    gainedEntries.map(e => Object.assign({ cls:"saved" }, e)).concat(lostEntries.map(e => Object.assign({ cls:"loss" }, e)));
+
+  const titleWord = ext ? "EXTRACTED" : (r.outcome === "timeout" ? "LOST" : "KIA");
+  const elapsed = Number.isFinite(r.elapsedMs) ? r.elapsedMs : null;
+  const sub = esc(label) + (elapsed !== null ? ' · ' + raidClock(elapsed) : '');
+
+  const op = operatorLevel();
+  const opPct = op.need ? Math.min(100, Math.round(op.into / op.need * 100)) : 100;
+  const xpHtml = '<div class="rs-xp"><div class="rs-xp-head"><b>LEVEL <span class="lvl">' + op.level + '</span></b>' +
+    (res.operatorXp ? '<span class="xp-gain">+' + res.operatorXp + ' XP</span>' : '') + '</div>' +
+    '<div class="xpbar-row"><span class="xpbar"><i style="width:' + opPct + '%"></i></span>' +
+    '<small>' + (op.need ? op.into + ' / ' + op.need + ' XP' : 'MAX') + '</small></div></div>';
+
+  const tq = ftueOver() ? trackedQuest() : null;
+  const questHtml = tq ? '<div class="rs-quest">' + IC(tq.maintain ? "power" : "quest") +
+    '<div class="rs-quest-body"><b>' + esc(tq.step.title) + '</b>' + (tq.step.brief ? '<span>' + esc(tq.step.brief) + '</span>' : '') +
+    '<span class="qbar"><i style="width:' + Math.min(100, Math.round(tq.prog / tq.n * 100)) + '%"></i></span></div>' +
+    '<b class="rs-quest-n">' + tq.prog + '/' + tq.n + '</b></div>' : '';
+
+  const fabNext = roomUnlocked("fabricator") ? nextLevelDef("fabricator") : null;
+  const hintHtml = fabNext && canAfford(fabNext.cost) ? '<div class="rs-hint">' + IC("build") + ' Fabricator upgrade available</div>' : '';
+
+  const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
+
+  return '<section class="raid-summary" data-trigger="' + reaction.trigger + '" data-outcome="' + esc(r.outcome) + '">' +
+    '<div class="rs-left"><header class="rs-title"><h1 class="' + (ext ? 'ok' : 'bad') + '">' + titleWord + '</h1><p class="rs-sub">' + sub + '</p></header>' +
+      '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div></div>' +
+    '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
+      '<div class="loot-grid">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
+      xpHtml + questHtml + hintHtml + '</div>' +
+    noteHtml + '</section>';
 }
 
 function coreResultSummary(r, res){
