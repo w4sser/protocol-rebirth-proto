@@ -1,4 +1,4 @@
-import '../data/raid-perks.js?v=2.3.1';
+import '../data/raid-perks.js?v=2.3.2';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -45,7 +45,10 @@ export function updateClears(round,position){
   for(let i=0;i<round.level.rooms.length;i++){
     const key=roomKey(round,i),r=s.rooms[key]??={state:'unresolved',entered:false,level:round.level.number,index:i};
     if(index===i)r.entered=true;
-    if(r.state==='unresolved'&&r.entered&&!round.level.enemies.some(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false&&e.health>0)){
+    // Defeated enemies stay in the level: require an actual encounter before rewarding a clear.
+    // Dormant reserves count only after activation, just as they do when blocking a clear.
+    const roomEnemies=round.level.enemies.filter(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false);
+    if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){
       r.state='clearPending';
       // A presented/minimized offer keeps its place: later clears must not invalidate its three cards.
       const presented=s.rooms[s.queue[0]]?.state==='rewardPending'?s.queue.shift():null;

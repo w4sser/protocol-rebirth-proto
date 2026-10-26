@@ -24,10 +24,10 @@ test('activated living reserves block clear until defeated, including after owne
   assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
   reserve.health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'clearPending');assert.deepEqual(perkState(r).queue,['1:0']);
 });
-test('inactive swarm bodies do not block clear and branches never grant rewards',()=>{
-  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).queue.length,1);
+test('a dormant swarm body cannot grant a clear; branches never grant rewards',()=>{
+  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.equal(perkState(r).queue.length,0);
   updateClears(r,{x:100,z:100});assert.equal(Object.keys(perkState(r).rooms).length,2);
-  r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).queue.length,1);
+  r.level.enemies[0].active=true;r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).queue.length,1);
 });
 test('safe queue waits for foreign bodies, projectiles, bombs, warnings and active hazard',()=>{
   const r=arena(),c=createCombat(r.level,0);r.level.enemies[0].health=0;updateClears(r,point);
