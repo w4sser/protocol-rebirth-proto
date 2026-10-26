@@ -1,7 +1,9 @@
-import {RULES} from './levels.js?v=2.2.0';
-import {movePlayer} from './physics.mjs?v=2.2.0';
+import {hasPerk,PERKS,logCombat} from './perks.js?v=2.3.0';
+import {RULES} from './levels.js?v=2.3.0';
+import {movePlayer} from './physics.mjs?v=2.3.0';
 export function createBIT(position){return {...position,lastPlayer:{...position},trail:[],healing:false,healCarry:0};}
 export function stepBIT(bit,round,position,dt,moving,solids,floors){
+  if(round.pauseAt!=null){bit.healing=false;return false;}
   const moved=Math.hypot(position.x-bit.lastPlayer.x,position.z-bit.lastPlayer.z)>.001;
   if(moved){bit.trail.push({...position});bit.lastPlayer={...position};}
   let pathLength=0,previous=bit;
@@ -17,8 +19,8 @@ export function stepBIT(bit,round,position,dt,moving,solids,floors){
   }
   bit.healing=!round.over&&round.health>0&&round.health<(round.maxHealth??100)&&!moving&&!moved;
   if(!bit.healing){bit.healCarry=0;return false;}
-  bit.healCarry+=RULES.bit.healPerSecond*Math.max(0,dt);
+  bit.healCarry+=(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond)*Math.max(0,dt);
   const amount=Math.floor(bit.healCarry+1e-8);bit.healCarry-=amount;
   if(amount===0)return false;
-  round.health=Math.min(round.maxHealth??100,round.health+amount);return true;
+  const before=round.health;round.health=Math.min(round.maxHealth??100,round.health+amount);if(hasPerk(round,'medic'))logCombat(round,{kind:'perk',perk:'medic',text:`Field Medic: healed ${round.health-before} HP while stationary.`,seconds:dt});return true;
 }

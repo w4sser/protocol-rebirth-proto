@@ -1,3 +1,4 @@
+import {updateClears,perkState,offer,choosePerk} from '../perks.js';
 import {stepNodeInteraction} from '../round.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -67,6 +68,7 @@ test('a player can shoot every node and walk through all three exits within one 
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);
       if(number===3)enterExit(round,{x:p.x+50,z:p.z},clock);// walk in from outside
+      updateClears(round,p);for(const key of [...perkState(round).queue])choosePerk(round,key,offer(round,key)[0],clock);
       assert.equal(enterExit(round,p,clock),number===3?'complete':'next');
     }
     assert.equal(round.nodesLit,6);assert.equal(round.levelsCleared,3);assert.equal(round.cleared,true);

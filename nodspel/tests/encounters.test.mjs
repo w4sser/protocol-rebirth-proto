@@ -1,3 +1,4 @@
+import {updateClears,perkState,offer,choosePerk} from '../perks.js';
 // PR C encounters (docs/design-encounters-toolkit.md §1). Every encounter is proven solvable BOTH with and without
 // a tool by simulating a player with the real movement / physics / combat / weapon / tool functions (no teleporting
 // except to set up a scenario's starting position).
@@ -346,6 +347,7 @@ test('door: the keycard goes to the raid (never the bag), opens the door on cont
   const T=sim(3,'town','door-key',{only:()=>false});T.P={x:door.x,z:door.z-1.2};tick(T);assert.equal(T.level.doors[0].locked,true,'no card, no unlock');
   T.round.keys=['key-1'];T.round.level.nodes.forEach(n=>{n.active=true;});T.round.levelsCleared=2;
   assert.equal(enterExit(T.round,{x:T.level.exit.x+9,z:T.level.exit.z},T.now),null);// walking in from outside arms the final exit
+  updateClears(T.round,T.level.exit);for(const key of [...perkState(T.round).queue])choosePerk(T.round,key,offer(T.round,key)[0],T.now);
   assert.equal(enterExit(T.round,T.level.exit,T.now),'complete');
 });
 test('keycards do not carry over to the next level',()=>{

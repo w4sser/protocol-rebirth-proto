@@ -1,9 +1,9 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.2.0';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.2.0';
-import {extractScrapBonus} from './levels.js?v=2.2.0';
-import {ROUND_DURATION_MS} from './round.js?v=2.2.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.2.0';
+import '../data/bit.js?v=2.3.0';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.3.0';
+import {extractScrapBonus} from './levels.js?v=2.3.0';
+import {ROUND_DURATION_MS} from './round.js?v=2.3.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.3.0';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -39,9 +39,11 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   }else if(!checkpoint&&!safe){goalTitle=integrated?'YOUR BASE IS SAFE':'BASIC CARBINE AVAILABLE';goalText=integrated?'Home supplies and earned XP are kept. Your Basic Carbine is always available.':'Start a fresh raid with your Basic Carbine.';}
   const headings={checkpoint:['RAID STILL ACTIVE','SECTOR CLEARED','You have not extracted. Your bag is still at risk.','route'],extract:['YOU MADE IT BACK','EXTRACTED','Your loot is secured.','check'],death:['RAID ENDED','YOU DIED','Carried loot and equipment were lost.','close'],timeout:['RAID ENDED','TIME RAN OUT','Time expired before you extracted.','timer'],abandon:['RAID ENDED','RAID ABANDONED','You left before securing your bag.','close']};
   const [eyebrow,title,baseDescription,icon]=headings[kind];
+  const hit=round.lastDamageEvent;
+  const deathCause=kind==='death'?(hit?`Last hit: ${hit.source} ${hit.attack} - you were ${hit.moving?'moving':'stationary'}.`:'No damage event recorded.') : '';
   const description=kind==='death'?(recovered.length?'Recovery is listed below. Your base is safe.':rows.length||gear.length?baseDescription:'No carried items were lost.'):baseDescription;
   const level=checkpoint?(round.exitLevel??round.level):round.level;
-  return {kind,checkpoint,safe,integrated,eyebrow,title,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
+  return {kind,checkpoint,safe,integrated,eyebrow,title,deathCause,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
     lootTitle:checkpoint?'CARRIED · NOT SECURED':safe?'SECURED LOOT':'LOST FROM BAG',empty:checkpoint?'Your bag is empty.':safe?'No loot carried out.':'No items lost from your bag.',
     retained:!checkpoint&&integrated?'XP and supplies kept':'',
     meta:`${String(level.area??'bunker').toUpperCase()} · ${round.levelsCleared} SECTOR${round.levelsCleared===1?'':'S'} CLEARED`,
@@ -54,6 +56,7 @@ export function renderResult(root,view){
   const doc=root.ownerDocument,$=s=>root.querySelector(s),text=(s,t)=>{$(s).textContent=t;};
   root.dataset.outcome=view.kind;root.classList.remove('show-details');text('#result-details h3',`${view.title} · RAID DETAILS`);
   text('#round-over-eyebrow',view.eyebrow);text('#round-over-title',view.title);text('#result-description',view.description);
+  text('#result-death-cause',view.deathCause??'');$('#result-death-cause').hidden=!view.deathCause;
   $('#result-symbol').replaceChildren(svgIcon(view.icon));text('#result-meta',view.meta);
   text('#result-clock-label',view.checkpoint?'TIME LEFT':'TIME IN RAID');text('#result-clock',view.checkpoint?view.time:view.elapsed);
   text('#result-loot-title',`${view.lootTitle} · ${view.totals.items}`);

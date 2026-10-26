@@ -1,8 +1,9 @@
-import {generateLevel,RULES,isHard} from './levels.js?v=2.2.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.2.0';
-import {emptyBag,bagItems} from './raid.js?v=2.2.0';
-import {traceTargets} from './physics.mjs?v=2.2.0';
-import {shieldBlocks} from './encounters.js?v=2.2.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.3.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.3.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.3.0';
+import {emptyBag,bagItems} from './raid.js?v=2.3.0';
+import {traceTargets} from './physics.mjs?v=2.3.0';
+import {shieldBlocks} from './encounters.js?v=2.3.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -22,7 +23,7 @@ export const bagCapacityOf=round=>round?.bagCapacity??RULES.loot.capacity;
 function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
-  tickRound(round,now);if(round.over)return false;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
     if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;box.kitFullNotified=false;box.gearNotified=false;}
@@ -67,14 +68,14 @@ export function collectLoot(round,position,now,weapon){
 export function kitSlotFull(round){return (round?.kit?.medkit??0)>=RULES.kitMax.medkit;}
 export function lootAction(round,item){const slot=gearSlotOf(item);if(slot)return {text:slot==='weapon'?'CHOOSE':round?.equip?.[slot]?'SWAP':'EQUIP',full:false};return item==='medkit'&&kitSlotFull(round)?{text:'SLOT FULL',full:true}:{text:'COLLECT',full:false};}
 export function dropItem(round,item,position,now){
-  tickRound(round,now);if(round.over||!round.bag[item])return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null||!round.bag[item])return null;
   round.bag[item]--;
   const box={id:`drop-${round.level.lootBoxes.length}-${now}`,x:position.x,z:position.z,item,collected:false,blockedUntilLeft:true};
   round.level.lootBoxes.push(box);return box;
 }
 // Swap: drop one bag item on the ground (revealed) and take the blocked box's item.
 export function swapLoot(round,boxId,dropId,now){
-  tickRound(round,now);if(round.over)return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId);
   if(!box||box.collected||!round.bag[dropId]||box.item==='ammo_pack')return null;
   round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;
@@ -105,7 +106,7 @@ export function equipGear(round,id,now,weaponState=null){
 }
 // Occupied slot: take the offered piece; the swapped-out one is dropped on the ground (revealed).
 export function swapGear(round,boxId,now){
-  tickRound(round,now);if(round.over)return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId),slot=box&&gearSlotOf(box.item);
   if(!box||box.collected||!slot||(slot!=='weapon'&&!round.equip?.[slot]))return null;
   const oldState=round.weaponState;
@@ -134,7 +135,7 @@ export function compareWeapons(oldId,newId,oldWeapon=null,newWeapon=null){
 // Stash the ground weapon in the backpack instead of equipping it. `dropIndex` picks which backpack
 // weapon to leave on the ground (revealed) when the backpack is already full; omitted/invalid -> fails closed.
 export function stashWeapon(round,boxId,now,dropIndex=null){
-  tickRound(round,now);if(round.over)return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId);
   if(!box||box.collected||gearSlotOf(box.item)!=='weapon')return null;
   round.backpack=round.backpack||[];
@@ -155,7 +156,7 @@ export function stashWeapon(round,boxId,now,dropIndex=null){
 // Player-initiated, any time mid-raid: bring a backpack weapon into the active slot. The weapon it
 // replaces goes into the backpack slot it vacated (still home-bound) rather than being dropped.
 export function equipFromBackpack(round,index,now){
-  tickRound(round,now);if(round.over)return null;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   round.backpack=round.backpack||[];
   if(!Number.isInteger(index)||index<0||index>=round.backpack.length)return null;
   const incoming=round.backpack[index],old=round.equip?.weapon??null;
@@ -168,7 +169,7 @@ export function equipFromBackpack(round,index,now){
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
 export function useHealthKit(round,now){
-  const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||(!kit&&!round.bag.medkit)||round.health>=max)return false;
+  const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max)return false;
   if(kit)round.kit.medkit--;else round.bag.medkit--;const before=round.health;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.healed=(round.telemetry.healed||0)+round.health-before;return true;
 }
 // Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
@@ -177,7 +178,7 @@ export const nodeShielded=(round,node,now)=>!!node.shielded&&!!node.generatorId&
 // Encounter 3: a locked door is a solid until the player carrying its keycard walks up to it.
 export const doorSolids=level=>(level.doors??[]).filter(d=>d.locked).map(d=>({x:d.x,z:d.z,w:d.w,d:d.d,h:d.h,door:true}));
 export function stepDoors(round,position,now){
-  tickRound(round,now);if(round.over)return false;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
   let opened=false;
   for(const door of round.level.doors??[]){
     if(!door.locked)continue;const k=round.keys?.indexOf(door.key)??-1;if(k<0)continue;
@@ -189,6 +190,7 @@ export function stepDoors(round,position,now){
 }
 export function stepNodeInteraction(round,weapon,position,now,obstacles){
   tickRound(round,now);
+  if(round.pauseAt!=null)return false;
   if(round.over){round.nodeInteraction=null;return false;}
   const node=round.level.nodes.filter(n=>!n.active&&Math.hypot(position.x-n.x,position.z-n.z)<=RULES.resources.nodeReach&&traceTargets(position,n,obstacles,[])?.kind!=='wall').sort((a,b)=>Math.hypot(a.x-position.x,a.z-position.z)-Math.hypot(b.x-position.x,b.z-position.z))[0];
   if(!node){round.nodeInteraction=null;return false;}
@@ -200,18 +202,23 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
   round.nodeInteraction=null;const lit=activateNode(round,node.id,now);if(lit&&round.telemetry)round.telemetry.holdNodes++;return lit;
 }
 export function tickRound(round,now) {
-  if(round.over)return;
-  round.remainingMs=Math.max(0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
-  if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';}
+  if(round.over||round.pauseAt!=null)return;
+  round.gameNow=now;round.remainingMs=Math.max(0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
+  if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
 }
 export function takeDamage(round,amount,now){
   tickRound(round,now);
-  if(round.over || !Number.isFinite(amount) || amount<=0)return false;
+  if(round.over || round.pauseAt!=null || !Number.isFinite(amount) || amount<=0)return false;
+  const ps=perkState(round),key=roomKey(round);
+  if(hasPerk(round,'shield')&&now<ps.shieldUntil){const saved=amount*PERKS.shieldReduction;amount-=saved;logCombat(round,{kind:'perk',at:now,perk:'shield',text:`Emergency Shield: prevented ${Number(saved.toFixed(1))} damage.`});}
+  const before=round.health,beforeShield=round.shield||0;
   // Vest shield (v1.43) absorbs damage first; it does not regenerate.
   const absorbed=Math.min(round.shield||0,amount);if(absorbed){round.shield-=absorbed;amount-=absorbed;}
   if(round.telemetry)round.telemetry.damageTaken+=absorbed+Math.min(amount,round.health);
   round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
-  if(round.health===0){loseBag(round);round.over=true;round.reason='death';}
+  const meta=round.lastHit??{};logCombat(round,{kind:'damage',at:now,source:meta.source??'Unknown',sourceId:meta.enemyId??meta.sourceId??null,attack:meta.attack??'projectile',amount:before-round.health+beforeShield-(round.shield||0),moving:!!round.playerMoving});
+  if(hasPerk(round,'shield')&&round.health>0&&round.health<=round.maxHealth*PERKS.shieldThreshold&&!ps.shieldRooms.includes(key)){ps.shieldRooms.push(key);ps.shieldUntil=now+PERKS.shieldMs;logCombat(round,{kind:'perk',at:now,perk:'shield',text:'Emergency Shield: activated for 2 s; room charge spent.'});}
+  if(round.health===0){loseBag(round);round.over=true;round.reason='death';resetPerks(round);}
   return true;
 }
 // `from` = where the hit comes from. Player weapon hits default to round.shooter (set by the game around weapon
@@ -219,7 +226,7 @@ export function takeDamage(round,amount,now){
 export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
-  if(round.over || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
+  if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
   // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
   if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
   if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
@@ -236,13 +243,13 @@ export function roundSummary(round){
 }
 // Player choice after a level exit: end the raid now; only this secures the carried bag.
 export function extractRound(round,now){
-  tickRound(round,now);if(round.over||round.levelsCleared<1)return false;
-  secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';return true;
+  tickRound(round,now);if(round.pauseAt!=null||round.perks?.queue.length||round.over||round.levelsCleared<1)return false;
+  secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';resetPerks(round);return true;
 }
 // Leaving a launched raid early counts as a loss: the bag is lost like on death.
 export function abandonRound(round,now){
-  tickRound(round,now);if(round.over)return false;
-  loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';return true;
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
+  loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';resetPerks(round);return true;
 }
 export function exitIsOpen(round) {
   return !round.over && round.level.nodes.every(n=>n.active);
@@ -250,7 +257,7 @@ export function exitIsOpen(round) {
 export function activateNode(round,id,now) {
   tickRound(round,now);
   const node=round.level.nodes.find(n=>n.id===id);
-  if(round.over || !node || node.active)return false;
+  if(round.over || round.pauseAt!=null || !node || node.active)return false;
   node.active=true;round.nodesLit++;
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
   // Swarm rushers wait for their own spawn point, not for a node.
@@ -259,18 +266,26 @@ export function activateNode(round,id,now) {
 }
 export function enterExit(round,position,now) {
   tickRound(round,now);
-  if(round.cleared || !exitIsOpen(round))return null;
+  if(round.pauseAt!=null||round.cleared || !exitIsOpen(round))return null;
   const inZone=Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)<=round.level.exit.r;
   // Final level: once the nodes are done the extract stays open and the raid goes on (timer + risk) until the
   // player deliberately walks INTO the zone; being inside when it opens does not count.
   if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
   else if(!inZone)return null;
+  updateClears(round,position);
+  const perks=perkState(round);
+  if(perks.queue.length){
+    // A minimized offer keeps the exit blocked without reopening every frame.
+    if(perks.minimized===perks.queue[0])return null;
+    round.perkExitPending=true;return 'perk';
+  }
+  round.perkExitPending=false;
   // Owner rule: a level exit does NOT secure loot. The bag (same 4 slots) carries on, at risk,
   // until the player chooses Extract or clears the final level.
   round.exitLoot=bagItems(round.bag);
   round.nodeInteraction=null;
   round.levelsCleared++;
-  if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';return 'complete';}
+  if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';resetPerks(round);return 'complete';}
   round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
   return 'next';

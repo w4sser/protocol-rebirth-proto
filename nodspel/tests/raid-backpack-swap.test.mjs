@@ -162,7 +162,7 @@ test('backpack first tap shows shared stat arrows; confirm alone equips, close c
   const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),
-    hideSwap:()=>{viewport.children[0].hidden=true;},equipFromBackpack,onEquip:()=>equips++,Date:{now:()=>10}});
+    hideSwap:()=>{viewport.children[0].hidden=true;},equipFromBackpack,onEquip:()=>equips++,gameClock:()=>10,Date:{now:()=>10}});
   vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('showBackpackWeapon'),context);
   vm.runInContext('showBackpackWeapon(0)',context);
   const popup=viewport.children[0],compare=popup.children.find(e=>e.className==='weapon-compare');
@@ -183,7 +183,7 @@ test('starter ground popup compares and offers backpack or equip, then initializ
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),nearWeaponOffer:()=>true,
     clearWeaponOffer:()=>{r.weaponOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip,backpackCapacityOf,
-    world:{addLoot:()=>assert.fail('free starter must never be dropped')},labelLoot(){},Date:{now:()=>10}});
+    world:{addLoot:()=>assert.fail('free starter must never be dropped')},labelLoot(){},gameClock:()=>10,Date:{now:()=>10}});
   vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('showWeaponOffer'),context);
   vm.runInContext('showWeaponOffer()',context);
   const popup=viewport.children[0],actions=popup.children.find(e=>e.className==='weapon-offer-actions');

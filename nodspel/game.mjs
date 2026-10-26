@@ -1,44 +1,46 @@
+import {createPerkUI} from './perk-ui.js?v=2.3.0';
+import {perkState,updateClears,safePick,pausePick,resumePick,gameTime,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.3.0';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.2.0';
-import {loadBunkerAssets} from './bunker.js?v=2.2.0';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.2.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.2.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.3.0';
+import {loadBunkerAssets} from './bunker.js?v=2.3.0';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.3.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.3.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.2.0';import '../data/recipes.js?v=2.2.0';import '../data/vendors.js?v=2.2.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.2.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.2.0';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.2.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.2.0';
-import {extractRound,abandonRound,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf} from './round.js?v=2.2.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.2.0';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.2.0';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.2.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.2.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.2.0';
-import {RULES,totalNodes,hazardTiming,extractScrapBonus} from './levels.js?v=2.2.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.2.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.2.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.2.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.2.0';
-// import {stepScavenging} from './scavenging.js?v=2.2.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.2.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.2.0';
-import {routeComplete} from './objectives.js?v=2.2.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.2.0';
-import {createBIT,stepBIT} from './bit.js?v=2.2.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.2.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.2.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.2.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.2.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.2.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=2.2.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.2.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.2.0';
+import '../data/modules.js?v=2.3.0';import '../data/recipes.js?v=2.3.0';import '../data/vendors.js?v=2.3.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.3.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.3.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.3.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.3.0';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf} from './round.js?v=2.3.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.3.0';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.3.0';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.3.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.3.0';
+import {buildWorld,setNodeHold} from './world.js?v=2.3.0';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.3.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.3.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.3.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.3.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.3.0';
+// import {stepScavenging} from './scavenging.js?v=2.3.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.3.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.3.0';
+import {routeComplete} from './objectives.js?v=2.3.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.3.0';
+import {createBIT,stepBIT} from './bit.js?v=2.3.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.3.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.3.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.3.0';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.3.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.3.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority} from './labels.js?v=2.3.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.3.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.3.0';
 const keys=new Set(),sticks=[];let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.2.0');
+const orderResponse=await fetch('./order.json?v=2.3.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -77,12 +79,12 @@ const DEBUG=new URLSearchParams(location.search).has('debug');
 const SEED_LABEL=DEBUG&&new URLSearchParams(location.search).get('seed-label')==='1';
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className='area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
-    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'2.0.0',at:Date.now(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
-  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'2.0.0',at:Date.now(),fatal:String(e?.message??e),...townLoad}));}catch{}
+    if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'2.0.0',at:gameClock(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
+  catch(e){console.warn('[town] assets failed, falling back to bunker',e);AREA_SEL='bunker';try{localStorage.setItem('nr_town_load',JSON.stringify({v:'2.0.0',at:gameClock(),fatal:String(e?.message??e),...townLoad}));}catch{}
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.2.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.3.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -141,12 +143,13 @@ let playerMoving=false;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
 let bit,bitLabel;
+function gameClock(){return gameTime(round,Date.now());}
 function requestDash(){
-  if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
+  if(!round||round.over||round.pauseAt!=null||resultPending||tutorialOpen||!$('#inventory').hidden)return;
   let sx=movement.x+Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
   let sy=movement.y+Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
   const direction=Math.hypot(sx,sy)>.12?screenToWorld(sx,sy):walkDirection;
-  if(startDash(dash,direction,Date.now(),round.stats.dashCooldownMs))round.telemetry.dashes++;
+  if(startDash(dash,direction,gameClock(),dashInterval(round,round.stats.dashCooldownMs))){round.telemetry.dashes++;if(hasPerk(round,'roll'))logCombat(round,{kind:'perk',perk:'roll',at:gameClock(),text:`Rolling: dash used, ${dashInterval(round,round.stats.dashCooldownMs)/1000} s cooldown.`});}
 }
 $('#dash').addEventListener('pointerdown',e=>{e.preventDefault();requestDash();});
 $('#dash').addEventListener('click',e=>{if(e.detail===0)requestDash();});
@@ -179,11 +182,11 @@ function toolFxRing(x,z,radius,color,opacity){
   toolFxUsed++;m.visible=true;m.position.set(x,.07,z);m.scale.setScalar(Math.max(.01,radius));m.material.color.set(color);m.material.opacity=opacity;
 }
 function clearToolFx(){for(const m of toolFxPool)m.visible=false;toolArc.visible=false;}
-function toolBlocked(){return !round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden||!canUseTool(round);}
+function toolBlocked(){return !round||round.over||round.pauseAt!=null||resultPending||tutorialOpen||!$('#inventory').hidden||!canUseTool(round);}
 // One-time explanations (persisted): shown through the shared notice, never as a popup.
 const FIRST_HINT_KEY='nodspel.firstHints.v1';
 function firstHint(id,text){let seen=[];try{seen=JSON.parse(localStorage.getItem(FIRST_HINT_KEY)||'[]');}catch{}if(seen.includes(id))return;try{localStorage.setItem(FIRST_HINT_KEY,JSON.stringify([...seen,id]));}catch{}notice(text,6000);}
-function throwToolAt(point){const t=round.tool;if(throwTool(round,position,point,Date.now(),playerSolids)){renderToolHUD();if(t&&t.kind==='decoy')firstHint('decoy',`Decoy: enemies near it walk to the beacon and stop shooting for ${Math.round(toolDef(t.id).lureMs/1000)} s. Slip past or flank them.`);}}
+function throwToolAt(point){const t=round.tool;if(throwTool(round,position,point,gameClock(),playerSolids)){renderToolHUD();if(t&&t.kind==='decoy')firstHint('decoy',`Decoy: enemies near it walk to the beacon and stop shooting for ${Math.round(toolDef(t.id).lureMs/1000)} s. Slip past or flank them.`);}}
 function toolTap(){
   if(toolBlocked())return;
   throwToolAt(autoThrowPoint(round,position,mouseKnown?aim:walkDirection,playerSolids));
@@ -254,23 +257,23 @@ function updateMouse(e){const r=stage.getBoundingClientRect();mouse.set((e.clien
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
-window.addEventListener('keyup',e=>{if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
+window.addEventListener('keydown',e=>{if(round?.pauseAt!=null)return;if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
+window.addEventListener('keyup',e=>{if(round?.pauseAt!=null)return;if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
 function clearInput(){keys.clear();mouseDown=false;for(const {el,state,value,thumb} of sticks){if(state.pointer!==null&&el.hasPointerCapture(state.pointer))el.releasePointerCapture(state.pointer);state.pointer=null;state.gesture=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,Date.now());if(round.over)finishRound();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,gameClock());if(round.over)finishRound();}});
 
 function clearBullets(){for(const b of bullets)scene.remove(b.mesh);bullets.length=0;if(weapon)weapon.projectiles.length=0;for(const m of enemyMeshes.values())scene.remove(m);enemyMeshes.clear();}
 let labels=[],routeLabels=[],encounterLabels=[];
 const enemyName=e=>(e.type==='generator'?RULES.encounters.names.generator:!e.introGuard&&RULES.encounters.names[e.encounter])||(!e.type||e.type==='grunt'?'ENEMY':e.type.toUpperCase());
 // Encounter state (guard / turret / patrol): the label says what is about to happen, in the same words as the hint.
-const encounterState=e=>{const t=Date.now();
+const encounterState=e=>{const t=gameClock();
   if(e.alertAt!=null)return '! SPOTTED';
   if(e.type==='thrower')return e.windupAt!=null?'! LOB INCOMING · LEAVE THE RING':null;
   if(e.encounter==='guard'||e.encounter==='turret')return e.attackPhase==='warning'?'AIMING · MOVE':e.attackPhase==='burst'?'FIRING · KEEP MOVING':e.attackPhase==='recovery'?'RECOVERING · GO':(e.blockedAt!=null&&t-e.blockedAt<700?'SHIELD BLOCKED':null);
   return null;};
-const enemyStateText=e=>Date.now()<(e.stunnedUntil??0)?`STUNNED · ${e.health}`:e.lureTarget&&Date.now()<(e.lureUntil??0)?`DISTRACTED · ${e.health}`:!e.introGuard&&encounterState(e)?`${enemyName(e)} · ${encounterState(e)} · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'CHARGING · HIT TRIGGERS BURST':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
+const enemyStateText=e=>gameClock()<(e.stunnedUntil??0)?`STUNNED · ${e.health}`:e.lureTarget&&gameClock()<(e.lureUntil??0)?`DISTRACTED · ${e.health}`:!e.introGuard&&encounterState(e)?`${enemyName(e)} · ${encounterState(e)} · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'CHARGING · HIT TRIGGERS BURST':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
 function makeLabel(text,point,kind,range=null,short=''){
   const el=document.createElement('div');el.className=`node-label ${kind}`;el.hidden=true; // unpositioned until renderLabels places it; visible ones would pile up at the origin
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
@@ -307,7 +310,7 @@ let pickupToasts=[];
 function placePickupToasts(){const bp=$('.bag-panel'),c=$('#pickup-toasts');if(bp&&c&&bp.offsetHeight){c.style.top=`${bp.offsetTop+bp.offsetHeight+6}px`;c.style.left=`${bp.offsetLeft}px`;}}
 function renderPickupToasts(){
   let c=$('#pickup-toasts');if(!c){c=document.createElement('div');c.id='pickup-toasts';c.setAttribute('role','status');c.setAttribute('aria-live','polite');viewport.append(c);}
-  const now=Date.now();pickupToasts=liveToasts(pickupToasts,now);
+  const now=gameClock();pickupToasts=liveToasts(pickupToasts,now);
   const keep=new Set(pickupToasts.map(t=>String(t.id)));
   for(const el of [...c.children])if(!keep.has(el.dataset.id))el.remove();
   for(const t of pickupToasts){
@@ -317,10 +320,11 @@ function renderPickupToasts(){
     el.lastChild.textContent=`${ITEM_NAMES[t.item]??t.item}${t.n>1?` x${t.n}`:''}`;
   }
   placePickupToasts();
-  clearTimeout(renderPickupToasts.timer);renderPickupToasts.timer=setTimeout(()=>{if(pickupToasts.some(t=>Date.now()-t.at>=TOAST_MS)||c.children.length)renderPickupToasts();},TOAST_MS+40);
+  clearTimeout(renderPickupToasts.timer);renderPickupToasts.timer=setTimeout(()=>{if(pickupToasts.some(t=>gameClock()-t.at>=TOAST_MS)||c.children.length)renderPickupToasts();},TOAST_MS+40);
 }
-function pickupToast(item){pickupToasts=pushPickup(pickupToasts,item,Date.now());renderPickupToasts();}
+function pickupToast(item){pickupToasts=pushPickup(pickupToasts,item,gameClock());renderPickupToasts();}
 function updateHUD(){
+  if(round)perkUI.hud(round,$('#level-corner'));
   placeKitButton();placePickupToasts();renderQuestChip();
   renderGoalTracker();
   renderBagContents($('#bag-items'),round.bag);
@@ -330,7 +334,7 @@ function updateHUD(){
   const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&level.nodes.every(n=>n.active);
   $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
   renderRoomBox(level);
-  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,Date.now());}
+  for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
   if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   world.setExit(open);if(!resultPending)setCollisions();
@@ -366,13 +370,13 @@ function renderGoalTracker(){
   const p=goalProgress(launch.goal,extracted?round.extracted:round.bag),key=JSON.stringify([p,round.over,extracted]);
   if(el.dataset.state===key)return;el.dataset.state=key;el.replaceChildren();refreshNeededLabels();
   const title=document.createElement('b');title.textContent=`NEED · ${launch.goal.name} L${launch.goal.level}`;el.append(title);
-  
+
   const row=document.createElement('div');row.className='need-tiles';
   for(const part of p.parts){const line=itemTile(part.id,`${Math.min(part.need,part.secured+part.carried)}/${part.need}`,part.remaining===0?'done':'');line.title=`${part.name}: home ${part.secured} + ${extracted?'secured':'bag'} ${part.carried}`;row.append(line);}
   el.append(row);
   const state=document.createElement('small');state.textContent=round.over?(extracted?(p.enoughCarried?'SECURED · ACTIVATE IN BASE':'Secured · keep collecting next raid'):'BAG LOST · HOME SUPPLIES KEPT'):p.secured?'Already secured at home':p.enoughCarried?'ENOUGH CARRIED · EXTRACT TO SECURE':'Collect supplies · bag is at risk';if(round.over||p.enoughCarried||p.secured)el.append(state);el.classList.toggle('enough',p.enoughCarried);
   placeKitButton();
-  if(round.lastPickup&&Date.now()-round.lastPickup.at<3000){
+  if(round.lastPickup&&gameClock()-round.lastPickup.at<3000){
     const part=p.parts.find(p=>p.id===round.lastPickup.item);if(part){let toast=$('#goal-pickup');if(!toast){toast=document.createElement('div');toast.id='goal-pickup';toast.setAttribute('role','status');viewport.append(toast);}setIconText(toast,part.icon,`${part.name} ${Math.min(part.need,part.secured+part.carried)}/${part.need}${p.enoughCarried?' · enough carried — extract':` · for ${launch.goal.name}`}`);toast.hidden=false;clearTimeout(toast.hideTimer);toast.hideTimer=setTimeout(()=>toast.hidden=true,2200);}
   }
 }
@@ -393,14 +397,14 @@ function renderInventory(){
   for(let i=0;i<bagCapacityOf(round);i++){
     const row=document.createElement('div'),name=document.createElement('span'),item=items[i];row.className='inventory-slot';setIconText(name,item?MATERIALS[item]?.icon??'pickup':'',`${i+1} · ${item?ITEM_NAMES[item]:'Empty'}`);row.append(name);
     if(item){const rr=rarityOf(item);row.dataset.rarity=rr;row.style.setProperty('--rc',RARITY_COLORS[rr]);
-      if(item==='medkit'){const use=document.createElement('button');use.textContent=`Use +${RULES.rewards.medkitHealth} HP`;use.disabled=round.health>=100;use.onclick=()=>{useHealthKit(round,Date.now());updateHUD();};row.append(use);}
-      const drop=document.createElement('button');drop.textContent='Drop';drop.onclick=()=>{const box=dropItem(round,item,position,Date.now());if(box){box.revealed=true;labelLoot(world.addLoot(box));};updateHUD();};row.append(drop);
+      if(item==='medkit'){const use=document.createElement('button');use.textContent=`Use +${RULES.rewards.medkitHealth} HP`;use.disabled=round.health>=100;use.onclick=()=>{useHealthKit(round,gameClock());updateHUD();};row.append(use);}
+      const drop=document.createElement('button');drop.textContent='Drop';drop.onclick=()=>{const box=dropItem(round,item,position,gameClock());if(box){box.revealed=true;labelLoot(world.addLoot(box));};updateHUD();};row.append(drop);
     }
     list.append(row);
   }
 }
 $('#use-kit').onclick=()=>useKit();
-$('#open-bag').onclick=()=>{if(round.over||resultPending)return;if(round.bagFull&&nearBlocked()){showSwap();return;}clearInput();renderInventory();$('#inventory').hidden=false;};
+$('#open-bag').onclick=()=>{if(round.over||round.pauseAt!=null||resultPending)return;if(round.bagFull&&nearBlocked()){showSwap();return;}clearInput();renderInventory();$('#inventory').hidden=false;};
 $('#close-bag').onclick=()=>{$('#inventory').hidden=true;clearInput();};
 // shared popup: tap on the backdrop closes the bag too
 $('#inventory').addEventListener('click',e=>{if(e.target===$('#inventory'))$('#close-bag').onclick();});
@@ -411,7 +415,7 @@ function renderEnemyFeedback(clock){
     if(v.beam)v.beam.visible=alive&&v.enemy.health>0&&!!round.level.nodes.find(n=>n.id===v.enemy.node)?.shielded&&clock>=(round.level.nodes.find(n=>n.id===v.enemy.node)?.shieldDownUntil??0);
     if(v.shield)v.shield.visible=alive&&!v.enemy.introGuard;
     // distracted by a decoy: the visor turns cyan (system colour of the decoy) so the state reads without the label
-    if(v.eye){const lured=!!v.enemy.lureTarget&&Date.now()<(v.enemy.lureUntil??0);v.eye.material.color.set(lured?TOOL_CYAN:'#E4705F');}
+    if(v.eye){const lured=!!v.enemy.lureTarget&&gameClock()<(v.enemy.lureUntil??0);v.eye.material.color.set(lured?TOOL_CYAN:'#E4705F');}
     // blocked shot: the plate flashes bright (spark) for a moment; first block explains the counter once
     if(v.shield){const ba=clock-(v.enemy.blockedAt??-Infinity);v.shield.material.opacity=ba<220?.95:.5;if(ba<220)firstHint('shield','Front shield blocks shots from the front. Flank to the side or back.');}
     if(v.cone){const e=v.enemy,s=e.sight||RULES.encounters.patrol.coneRange;v.cone.visible=alive&&!e.aggro;v.cone.scale.set(s,1,s);v.coneFill.material.opacity=e.alertAt!=null?.5:.2;}
@@ -464,7 +468,7 @@ function loadSeenHints(){if(seenHints)return seenHints;seenHints={};try{Object.a
 function markHintSeen(type){const s=loadSeenHints();s[type]=1;try{localStorage.setItem(ENC_HINT_KEY,JSON.stringify(s));}catch{}}
 function notice(text,ms=4200){let el=$('#encounter-hint');if(!el){el=document.createElement('div');el.id='encounter-hint';el.className='encounter-hint';el.setAttribute('role','status');$('#viewport').append(el);}
   // restart the fade (the element is reused; a finished `forwards` animation would leave it invisible)
-  el.textContent=text;el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';el.style.animationDuration=`${ms}ms`;noticeUntil=Date.now()+ms;clearTimeout(notice.t);notice.t=setTimeout(()=>{el.hidden=true;},ms);}
+  el.textContent=text;el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';el.style.animationDuration=`${ms}ms`;noticeUntil=gameClock()+ms;clearTimeout(notice.t);notice.t=setTimeout(()=>{el.hidden=true;},ms);}
 function checkEncounterHints(clock){
   if(clock<noticeUntil)return;const seen=loadSeenHints();
   for(const enc of encountersOf(round.level)){
@@ -477,7 +481,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   const text=door?(done?'DOOR · OPEN':busy?'OPENING…':'DOOR · STAND CLOSE'):(done?`${CONTAINER_NAMES[ref.kind]} · SEARCHED`:busy?`SEARCHING ${Math.round(p*100)}%`:`SEARCH ${CONTAINER_NAMES[ref.kind]} · STAND CLOSE`);
   if(label.caption.textContent!==text)label.caption.textContent=text;if(!door&&done)setIconText(label.shortEl,'check','');else setIconText(label.shortEl,'',door?(done?'':'DOOR'):'SEARCH');
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
-  label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&Date.now()-ref.openedAt>1500;}}
+  label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&gameClock()-ref.openedAt>1500;}}
 function showExtractToast(){const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);setTimeout(()=>t.remove(),6000);}
 function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -517,19 +521,20 @@ function loadLevelInner(){
     for(const c of H.containers)houseLabels.push({ref:c,label:meter(makeLabel('',new THREE.Vector3(c.x,1.3,c.z),'house-label','house','SEARCH'))});
     renderHouseLabels();}
   if(false)for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'LEFT':'RIGHT'} · ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
-  combat=createCombat(round.level,Date.now());
+  combat=createCombat(round.level,gameClock());
   { const sl=$('#seed-label'); sl.textContent=`SEED ${round.seed}`; sl.hidden=!SEED_LABEL; }
   // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
   $('#level-corner').hidden=false;
 }
 function reset(requestedSeed){
+  perkUI.close();perkResume.hidden=true;perkKey=null;perkChoosing=false;
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
   resultPending=false;$('#inventory').hidden=true;
   dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
-  // round=createRound(seed,Date.now(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
+  // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent');loadLevel();
   if(launch.intro)notice(RULES.intro.tip,6000);
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
@@ -543,7 +548,7 @@ function finishRound(outcome=round.reason){
   if(round.over){
     const stored=writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
     // Only base-issued raids (raidId) skip the in-raid card; tutorial/debug raids keep it so a first-run intro never hides the result.
-    if(stored&&launch.returnUrl&&launch.raidId&&launch.seed===round.seed){clearInput();location.assign(launch.returnUrl);return;}
+    if(stored&&round.reason!=='death'&&launch.returnUrl&&launch.raidId&&launch.seed===round.seed){clearInput();location.assign(launch.returnUrl);return;}
   }
   $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;hideSwap();
@@ -551,7 +556,7 @@ function finishRound(outcome=round.reason){
   $('#new-round').hidden=!!launch.returnUrl||resultPending;
   let home=null;try{const saved=JSON.parse(localStorage.getItem('pr_meta_save'));if(saved?.v===7)home=saved;}catch{}
   const view=resultView(round,{launch,home,pending:resultPending});renderResult($('#round-over'),view);
-  const tip=deathTip(round);for(const tipEl of [$('#death-tip'),$('#result-detail-tip')]){tipEl.hidden=!tip;if(tip)setIconText(tipEl,'info',`BIT: ${tip.text}`);}
+  const observed=round.reason==='death'?lastCombatFeedback(round):'',tip=observed?{text:observed}:deathTip(round);for(const tipEl of [$('#death-tip'),$('#result-detail-tip')]){tipEl.hidden=!tip;if(tip)setIconText(tipEl,'info',`BIT: ${tip.text}`);}
   $('#result-close').setAttribute('aria-label',resultPending?(launch.intro?'Extract and secure':'Continue raid'):launch.returnUrl?'Return to base':'New raid');
   weapon.scavenging=null;clearInput();clearBullets();viewport.classList.add('round-ended');$('#round-over').hidden=false;
   updateHUD();
@@ -561,14 +566,14 @@ $('#result-details-toggle').addEventListener('click',()=>toggleResultDetails($('
 $('#result-close').addEventListener('click',()=>{const action=resultPending?(launch.intro?'#extract-raid':'#continue-raid'):launch.returnUrl?'#return-base':'#new-round';$(action).click();});
 $('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnUrl)return;writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));location.assign(launch.returnUrl);});
 $('#reset').hidden=!!launch.returnUrl;$('#abandon').hidden=!launch.returnUrl;
-$('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,Date.now()))finishRound();});
-$('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,Date.now()))$('#round-over').hidden=true;finishRound();});
+$('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,gameClock()))finishRound();});
+$('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,gameClock()))$('#round-over').hidden=true;finishRound();});
 $('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
-$('#continue-raid').addEventListener('click',()=>{tickRound(round,Date.now());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
+$('#continue-raid').addEventListener('click',()=>{tickRound(round,gameClock());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 function fire(){
-  if(!round||round.over||resultPending||tutorialOpen||!$('#inventory').hidden)return;
-  tickRound(round,Date.now());if(round.over){finishRound();return;}
-  const clock=Date.now();round.shooter=position;const shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids,playerMoving);round.shooter=null;
+  if(!round||round.over||round.pauseAt!=null||resultPending||tutorialOpen||!$('#inventory').hidden)return;
+  tickRound(round,gameClock());if(round.over){finishRound();return;}
+  const clock=gameClock();round.shooter=position;const shot=fireAimedWeapon(weapon,round,position,aim,clock,playerSolids,playerMoving);round.shooter=null;
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   const mesh=new THREE.Mesh(bulletGeometry,bulletMaterial);mesh.position.set(shot.x,.65,shot.z);mesh.rotation.y=Math.atan2(shot.dx,shot.dz);scene.add(mesh);bullets.push({shot,mesh});
@@ -582,13 +587,13 @@ function setupWeaponHUD(){
   const bars=document.querySelector('.ammo-bars');if(bars){bars.replaceChildren();for(let i=0;i<weapon.rule.capacity;i++){const s=document.createElement('i');s.className='ammo-slot loaded';bars.append(s);}}
   const name=$('#weapon-name');if(name)name.textContent=ITEM_NAMES[weapon.id]??'Basic Carbine';renderKitHUD();
 }
-function useKit(){if(!round||round.over||resultPending)return;if(useHealthKit(round,Date.now()))updateHUD();}
+function useKit(){if(!round||round.over||round.pauseAt!=null||resultPending)return;if(useHealthKit(round,gameClock()))updateHUD();}
 function renderKitHUD(){refreshKitLabels();const b=$('#use-kit');if(!b)return;const n=(round.kit?.medkit??0)+(round.bag.medkit??0);b.querySelector('b').textContent=n;b.disabled=!n||round.over||round.health>=(round.maxHealth??100);b.setAttribute('aria-label',`Use medkit (Q) · ${n} left`);}
 function renderWeaponHUD(clock){
   renderKitHUD();
   const reloading=weapon.reloadAt!==null&&!round.over;
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
-  const W=weapon.rule,fraction=reloading?1-remaining/W.reloadMs:0;
+  const W=weapon.rule,fraction=reloading?Math.max(0,1-remaining/reloadInterval(round,W.reloadMs)):0;
   $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);
   $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${W.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);
   for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
@@ -664,18 +669,40 @@ function renderLabels(){
     l.wasShown=l.everShown=true;}
 }
 const LABEL_SHOW_HOLD_MS=1200;
+let perkKey=null,perkChoosing=false;
+const perkUI=createPerkUI(viewport,act);
+const perkResume=document.createElement('button');perkResume.type='button';perkResume.className='perk-resume';perkResume.textContent='CHOOSE PERK';perkResume.hidden=true;perkResume.onclick=()=>act('resume');$('#level-corner').append(perkResume);
+function openPerk(key){if(!key||round.over||perkChoosing)return;perkKey=key;clearInput();const hint=$('#encounter-hint');if(hint)hint.hidden=true;cancelToolDrag();$('#inventory').hidden=true;hideSwap();pausePick(round,Date.now());perkUI.open(round,key);perkResume.hidden=true;}
+function act(action,id,selected){
+  if(!round||round.over||perkChoosing)return;
+  if(action==='resume'){perkState(round).minimized=null;openPerk(perkState(round).queue[0]);return;}
+  if(action==='minimize'){perkState(round).minimized=perkKey;round.perkExitPending=false;perkUI.close();resumePick(round,Date.now());clearInput();perkResume.hidden=false;perkResume.focus();return;}
+  if(action==='choose'){
+    const text=choosePerk(round,perkKey,id,gameClock(),dash);if(!text)return;
+    perkChoosing=true;perkUI.confirm(text,selected);updateHUD();perkUI.hud(round,$('#level-corner'));
+    setTimeout(()=>{perkChoosing=false;perkUI.close();resumePick(round,Date.now());clearInput();perkKey=null;
+      if(round.perkExitPending){if(perkState(round).queue.length)openPerk(perkState(round).queue[0]);else{const result=enterExit(round,position,gameClock());if(result)finishRound('extraction');}}
+    },360);
+  }
+}
+for(const type of ['pointerdown','pointerup','click','keydown','keyup'])document.addEventListener(type,e=>{if(round?.pauseAt!=null&&!perkUI.layer.contains(e.target)){e.preventDefault();e.stopImmediatePropagation();}},true);
 const labelState=new Map();
 let previous=performance.now();
+// Debug fixtures can inspect gameplay layouts without manufacturing room-clear rewards.
+let debugRoomClearsEnabled=true;
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
+  setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
+  perkPickDemo(){const key=roomKey(round,0),ps=perkState(round);ps.rooms[key]={state:'clearPending',entered:true,level:round.level.number,index:0};if(!ps.queue.includes(key))ps.queue.push(key);logCombat(round,{kind:'damage',room:key,source:'Turret',sourceId:'demo-turret',attack:'fan',amount:18,moving:false,at:gameClock()});openPerk(key);},
+  deathDemo(){resumePick(round,Date.now());resetPerks(round);perkUI.close();round.lastHit={source:'Sentry',enemyId:'demo-sentry',attack:'projectile'};round.playerMoving=true;takeDamage(round,round.health+(round.shield||0),gameClock());finishRound();},
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
   // v2.0 screenshot hooks: weapon-found compare (ground box moved next to the player) and backpack compare.
   weaponOfferDemo(item='shotgun_breach'){const b=round.level.lootBoxes.find(x=>!x.collected);if(!b)return false;b.item=item;b.gearNotified=true;b.x=position.x;b.z=position.z;round.weaponOffer={boxId:b.id,item,at:0};showWeaponOffer();return true;},
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
-  extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,Date.now()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.2.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.3.0');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -699,11 +726,11 @@ function showSwap(){{const t=document.getElementById('bag-toast');if(t)t.hidden=
   };
   if(launch.goal){const goal=document.createElement('div');goal.className='swap-goal';goal.textContent=`For ${launch.goal.name} LVL ${launch.goal.level} · extract to secure supplies`;el.append(goal);}
   const carried=document.createElement('div');carried.className='swap-carried';
-  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,Date.now());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};carried.append(b);}
+  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,gameClock());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};carried.append(b);}
   const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.append(svgIcon('swap'));row.append(carried,arrow,chip(info.item,true));el.append(row);el.hidden=false;
   const suggestedChip=carried.querySelector('.swap-suggested');if(suggestedChip)carried.scrollLeft=Math.max(0,suggestedChip.offsetLeft-carried.offsetLeft);
   clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,4000);
-  try{const n=+(localStorage.getItem(HINT_KEY)||0);if(n<2){localStorage.setItem(HINT_KEY,String(n+1));bitHintUntil=Date.now()+3500;}}catch{}
+  try{const n=+(localStorage.getItem(HINT_KEY)||0);if(n<2){localStorage.setItem(HINT_KEY,String(n+1));bitHintUntil=gameClock()+3500;}}catch{}
 }
 // Kit slot full: short, non-blocking notice; the kit stays on the ground.
 function notifyKitFull(){let t=$('#kit-toast');if(!t){t=document.createElement('div');t.id='kit-toast';t.className='kit-toast';t.setAttribute('role','status');$('#viewport').append(t);}
@@ -739,7 +766,7 @@ function clearGearOffer(){const lab=offerLabel();if(lab){lab.el.classList.remove
 function showGearSwap(){const o=round?.gearOffer;if(!o||round.over||!nearOffer())return;
   // The offer already asks for a swap: one tap equips it and drops the old gear.
   clearGearOffer();
-  const d=swapGear(round,o.boxId,Date.now());if(!d)return;
+  const d=swapGear(round,o.boxId,gameClock());if(!d)return;
   labelLoot(world.addLoot(d));
   for(const v of world.lootBoxes)if(v.loot.id===o.boxId)v.loot.collected=true;
   onEquip();}
@@ -759,7 +786,7 @@ function weaponCompareRow(stat){
   row.append(label,from,arrow,to);return row;
 }
 function showBackpackWeapon(index){{const gt=$('#gear-toast');if(gt)gt.hidden=true;}
-  if(!round||round.over||resultPending)return;
+  if(!round||round.over||round.pauseAt!=null||resultPending)return;
   const item=round.backpack?.[index];if(!item)return;
   const current=round.equip.weapon;
   let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');$('#viewport').append(el);}
@@ -773,7 +800,7 @@ function showBackpackWeapon(index){{const gt=$('#gear-toast');if(gt)gt.hidden=tr
   const confirm=document.createElement('button');confirm.type='button';confirm.textContent='EQUIP';
   confirm.onclick=()=>{
     if(round.over||resultPending||round.backpack?.[index]!==item||round.equip.weapon!==current){hideSwap();return;}
-    hideSwap();equipFromBackpack(round,index,Date.now());onEquip();
+    hideSwap();equipFromBackpack(round,index,gameClock());onEquip();
   };
   actions.append(confirm);el.append(close,head,compare,actions);el.hidden=false;
 }
@@ -788,12 +815,12 @@ function showWeaponOffer(){{const gt=$('#gear-toast');if(gt)gt.hidden=true;} // 
   const compare=document.createElement('div');compare.className='weapon-compare';for(const stat of compareWeapons(round.equip.weapon,o.item,round.weaponState,ground?.weaponState))compare.append(weaponCompareRow(stat));el.append(compare);
   const actions=document.createElement('div');actions.className='weapon-offer-actions';
   const swapBtn=document.createElement('button');swapBtn.type='button';swapBtn.textContent='SWAP';
-  swapBtn.onclick=()=>{clearWeaponOffer();const d=swapGear(round,o.boxId,Date.now());if(d)labelLoot(world.addLoot(d));onEquip();};
+  swapBtn.onclick=()=>{clearWeaponOffer();const d=swapGear(round,o.boxId,gameClock());if(d)labelLoot(world.addLoot(d));onEquip();};
   const full=(round.backpack?.length??0)>=backpackCapacityOf(round);
   const bpBtn=document.createElement('button');bpBtn.type='button';bpBtn.textContent=full?'BACKPACK FULL':'BACKPACK';bpBtn.dataset.full=String(full);
   bpBtn.onclick=()=>{
     if(full){showBackpackFullChoice(o);return;}
-    if(!stashWeapon(round,o.boxId,Date.now()))return;
+    if(!stashWeapon(round,o.boxId,gameClock()))return;
     clearWeaponOffer();gearToast(`${ITEM_NAMES[o.item]??o.item} stashed in backpack`);updateHUD();
   };
   actions.append(swapBtn,bpBtn);el.append(actions);el.hidden=false;
@@ -809,7 +836,7 @@ function showBackpackFullChoice(o){
     const b=document.createElement('button');b.type='button';b.className='swap-item';b.dataset.rarity=rarityOf(id);b.style.setProperty('--rc',RARITY_COLORS[rarityOf(id)]);
     const name=document.createElement('span');name.textContent=ITEM_NAMES[id]??id;b.append(name);
     b.onclick=()=>{
-      const r=stashWeapon(round,o.boxId,Date.now(),i);if(!r)return;
+      const r=stashWeapon(round,o.boxId,gameClock(),i);if(!r)return;
       clearWeaponOffer();if(r.dropped)labelLoot(world.addLoot(r.dropped));
       gearToast(`${ITEM_NAMES[o.item]??o.item} stashed · ${ITEM_NAMES[id]??id} dropped`);updateHUD();
     };
@@ -827,7 +854,7 @@ function showFatal(title,msg,{retry=null,keep=false}={}){
   const mk=(t,f)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=f;btns.append(b);};
   if(retry)mk('Try again',()=>{el.hidden=true;retry();});
   mk('Reload',()=>location.reload());
-  if(launch?.returnUrl)mk('Back to base',()=>{try{if(round&&!round.over)abandonRound(round,Date.now());writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));}catch{}location.assign(launch.returnUrl);});
+  if(launch?.returnUrl)mk('Back to base',()=>{try{if(round&&!round.over)abandonRound(round,gameClock());writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));}catch{}location.assign(launch.returnUrl);});
   card.append(btns);el.append(card);el.hidden=false;
 }
 function onFatal(e){console.error('[node-raid] fatal',e);if(fatal)return;fatal=true;
@@ -838,14 +865,16 @@ window.addEventListener('error',e=>{if(e.error)onFatal(e.error);});
 window.addEventListener('unhandledrejection',e=>onFatal(e.reason??new Error('unhandled rejection')));
 function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
 function frameInner(now){
-  const dt=Math.min((now-previous)/1000,.04);previous=now;elapsed+=dt;const clock=Date.now();
+  const dt=Math.min((now-previous)/1000,.04);previous=now;const clock=gameClock();
+  if(round.pauseAt!=null){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
   if(tutorialOpen){renderer.render(scene,camera);requestAnimationFrame(frame);return;}
+  elapsed+=dt;
   tickRound(round,clock);
   const seconds=renderRoundClock(round,resultPending,$('#time-left'),$('#summary-time'));
   if(resultPending)$('#result-clock').textContent=$('#summary-time').textContent;
   $('.timer').classList.toggle('urgent',seconds<=60);
-  if(round.over)finishRound();
-  if(!round.over&&!resultPending){
+  if(round.over){perkUI.close();perkResume.hidden=true;finishRound();}
+  if(!round.over&&!resultPending&&!round.perkExitPending){
     const positionBefore={...position},dashing=dash.remaining>0;
     let sx=movement.x,sy=movement.y;
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
@@ -857,6 +886,7 @@ function frameInner(now){
     const beforeDash={...position};
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     playerMoving=playerMoving||playerDisplaced(beforeDash,position);
+    const currentRoom=roomAt(round.level,position);if(currentRoom>=0)round.currentRoom=currentRoom;
     const stickDirection=stepAim(sticks[1].state.gesture,dt);
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
     else if(mouseKnown)updateMouseAim();
@@ -873,6 +903,7 @@ function frameInner(now){
     if(stepNodeInteraction(round,weapon,position,clock,solids))updateHUD();
     {const hs=stepHouse(round.level,position,clock,round.stats.searchMult);if(hs.loot.length)round.telemetry.searches=(round.telemetry.searches||0)+hs.loot.length;if(hs.changed){for(const b of hs.loot)labelLoot(world.addLoot(b));setCollisions();}renderHouseLabels();}
     const healthBefore=round.health;
+    round.playerMoving=playerMoving;
     const beforeCombat={...position};
     stepCombat(round,combat,position,clock,dt,playerSolids);
     playerMoving=playerMoving||playerDisplaced(beforeCombat,position);
@@ -886,17 +917,21 @@ function frameInner(now){
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();
+    if(debugRoomClearsEnabled)updateClears(round,position);
     const result=enterExit(round,position,clock);
-    if(result)finishRound('extraction');
+    if(result==='perk')openPerk(perkState(round).queue[0]);
+    else if(result)finishRound('extraction');
+    else {const key=safePick(round,combat,position,clock,hazardState);if(key)openPerk(key);}
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
+  const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);shieldIcon.title=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';}
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
   bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
   bitScreen.material.color.set(bit.healing?'#3FE0D0':'#75cfcc');
-  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=Date.now()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?'BIT · +5 HP/s':'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
+  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?`BIT · +${hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond} HP/s`:'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
-  const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||resultPending||tutorialOpen||!$('#inventory').hidden;
+  const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||round.pauseAt!=null||resultPending||tutorialOpen||!$('#inventory').hidden;
   const charge=dashCharge(dash,clock);
   $('#dash').disabled=charge<1||dashUnavailable;
   $('#dash-time').textContent=dashRemaining>0?`${(dashRemaining/1000).toFixed(1)} s`:'READY';
@@ -918,9 +953,9 @@ function frameInner(now){
     v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
     v.label.caption.textContent=nodeCaption(v.node,clock);
   }
-  
+
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
-  for(const v of world.lootBoxes){if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
+  for(const v of world.lootBoxes){if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
@@ -928,7 +963,7 @@ function frameInner(now){
   const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids,weapon.rule,playerMoving):{target:null,direction:aim},displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
-  for(const v of world.enemies){v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)setIconText(v.label.caption,'aim',enemyStateText(v.enemy));}
+  for(const v of world.enemies){const warning=hasPerk(round,'recon')&&v.enemy.health>0&&(v.enemy.windupAt!=null||v.enemy.attackPhase==='warning');v.label.el.classList.toggle('perk-recon',warning);if(warning&&v.enemy.reconAt!==v.enemy.windupAt){v.enemy.reconAt=v.enemy.windupAt;logCombat(round,{kind:'perk',perk:'recon',at:clock,sourceId:v.enemy.id,direction:v.enemy.attackTarget??{x:Math.sin(v.enemy.facing??0),z:Math.cos(v.enemy.facing??0)},text:`Recon: ${enemyName(v.enemy)} warning marked (${v.enemy.id}).`});}v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)setIconText(v.label.caption,'aim',enemyStateText(v.enemy));}
   const facing=facingDirection(holding,walkDirection,displayAim);
   if(round.over)playerOutline.visible=false;
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
