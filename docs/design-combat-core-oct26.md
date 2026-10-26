@@ -16,6 +16,19 @@ Lords uppföljningssvar (ordagrant):
 
 Vi bedömer varje förslag mot **(a) konkurrerande planer med olika utfall**, **(b) begriplig återkoppling** och **(c) variation som gör att spelaren behöver ompröva planen mellan möten och försök**. L1 får vara enkel introduktion. Målet i L2/L3 är att gå fram och skjuta inte konsekvent dominerar alternativ som att vänta, flankera, söka skydd eller välja mål. En lyckad sådan runda är inte ensam ett misslyckande.
 
+## Beslut 2026-10-26
+
+Robert har godkänt planen med följande svar på de öppna frågorna i §10:
+
+1. Ja till två-PR-experimentet och rörelseberoende assist, inklusive L1.
+2. Åtta kort räcker; förenkla sista rummets val senare om alla bara tar extra tid.
+3. Direkta HP-/tidseffekter är OK i prototypen; timertrycket behålls.
+4. Perk kräver bara att rummets fiender är besegrade (inte alla reserver, noder eller generator).
+5. Full paus av strid och timer under valet.
+6. Befintliga mötespaket räcker för första testet.
+7. Inga giriga ekonomikort tills vidare.
+8. Passiv Spaning; BIT gör en uppgift åt gången. Regeln om inga cyan sidoremsor gäller bara BIT:s chassi; effekter får vara cyan.
+
 ## 1. Diagnos: kodfakta och speltesthypoteser
 
 Kontrollerat mot nuvarande `nodspel/` (v2.1.1). Funktionsnamn nedan är sökbara ankare; förslag är inte beskrivningar av befintlig funktion.
@@ -66,15 +79,12 @@ Fria projektilers styrning är en separat ratt: testa lägre `homingDegreesPerSe
 
 ### Rensningskontrakt för PR2
 
-Nytt tillstånd per `(raid, nivå, huvudrumsindex)`: `unresolved`, `clearPending`, `rewardPending`, `rewarded`. Separat från `combat.visited`. Skåpsgren, korridor och död ände ger inte egna perks. Utvärdera först efter färdig områdes-/mötesplacering och att rummet faktiskt tagits i spel; ingen belöning under generering. MVP-placering ska ge varje huvudrum minst en ägd stridsgrupp eller obligatorisk nod, så att tomma listor inte blir en gratis inträdesbelöning. Återanvänd befintliga kroppar för detta.
+Nytt tillstånd per `(raid, nivå, huvudrumsindex)`: `unresolved`, `clearPending`, `rewardPending`, `rewarded`. Separat från `combat.visited`. Skåpsgren, korridor och död ände ger inte egna perks. Utvärdera först efter färdig områdes-/mötesplacering och att rummet faktiskt tagits i spel; ingen belöning under generering. Rumsrensning kräver att fienderna i huvudrummet är besegrade. Reserver, noder och generatorer är inte separata krav för perk-clear. Återanvänd befintliga kroppar.
 
-- Vid generering tilldelas varje fiende, reserv, spawner och generator ett stabilt `homeRoomId`. Utgångspunkt är ursprunglig placering; grenar tillhör sitt anslutna huvudrum. Svärmbarn ärver spawnerns ägarskap. Det är ny metadata, inte något som antas finnas idag.
-- Alla ägda stridsfiender måste vara döda, **även `active:false`-reserver**. En fiende som går till grannrummet tillhör fortfarande sitt hemrum; att locka den över en tröskel räknas inte som en kill. Dess aktuella rum får inte presentera sig som säkert medan den lever där.
-- En ägd svärm måste ha triggats, avslutat utsläppet och fått samtliga medlemmar besegrade. En otriggerad svärm är olöst. PR2 placerar dess tillgängliga trigger på rummets nod-/genomgångsväg och visar ”svärmkälla kvar”; ingen perk ges genom att undvika den. Utträde/extract spärras inte för att tvinga denna belöning.
-- Ägda noder måste vara aktiverade. Det väcker dagens reserver. En ägd generator måste vara förstörd för perk-clear, även om tillfällig EMP gjorde det möjligt att aktivera noden. Generatorn är stödobjektiv, inte kill-belöning. En valfri låst lootgren kräver inte öppning för clear; inga clear-kritiska objekt får placeras bakom den.
+- Fiender räknas till rummet där de placerades. En fiende som går till grannrummet tillhör fortfarande sitt hemrum; att locka den över en tröskel räknas inte som en kill. Rumsrensning bedöms mot fienderna i det rummet, inklusive reserver som tillhör det; ingen nodaktivering, svärmtrigger eller generatorförstörelse krävs separat.
 - När dessa villkor uppfyllts är rummet `clearPending`. Vid första säkra presentation blir det `rewardPending`, vilket kvarstår även om pickern minimeras. För popup krävs dessutom att spelaren befinner sig där, inga levande främmande fiender finns i rummet och inga redan avlossade projektiler, pågående varningar eller bomber kan hota spelaren. En aktiv skadeplatta under spelaren skjuter också upp popupen. Hot och timer fortsätter tills ett säkert läge nås; ingen konstgjord projektilrensning används för belöningen.
-- Avlägsna oaggro fiender i andra rum blockerar inte hela nivån. Ett tillkommande hot skjuter upp presentation, men återställer aldrig en redan utbetald belöning. Köade belöningar behåller sitt rums-ID; endast en popup visas åt gången. Vid nivåbyte presenteras en väntande belöning i det säkra nivåresultatet före fortsatt spel; rummet behöver inte återbesökas. **Händelseordning:** uppdatera död/nod/spawner och clear före `enterExit()` samma frame. Fånga en intjänad men väntande belöning före nästa nivå och före L3:s automatiska `secureBag()`/`over`/resultat; håll själva avslutet väntande medan valet är pausat och fullfölj sedan extraction utan ny strid. Detta är en uttrycklig ändring av dagens slutflöde, inte ett antagande att en picker kan öppnas efter att raiden redan avslutats. Vid extraction utan full rumsrensning skapas ingen extra clear-belöning. Död/timeout ger ingen ny perk, och en övergiven olöst rumsbelöning följer inte med som gratis clear.
-- Rummet blir `rewarded` atomiskt med valet. Om ett nytt hot sedan kommer dit ges ingen andra perk. Inga nya respawns behövs för detta system. Placering/aktivering måste valideras så att reserver och trigger alltid går att nå; ett ogiltigt seed är ett placeringsfel, inte skäl att räkna levande reserver som döda.
+- Avlägsna oaggro fiender i andra rum blockerar inte hela nivån. Ett tillkommande hot skjuter upp presentation, men återställer aldrig en redan utbetald belöning. Köade belöningar behåller sitt rums-ID; endast en popup visas åt gången. Vid nivåbyte presenteras en väntande belöning i det säkra nivåresultatet före fortsatt spel; rummet behöver inte återbesökas. **Händelseordning:** uppdatera fiendedöd och clear före `enterExit()` samma frame. Fånga en intjänad men väntande belöning före nästa nivå och före L3:s automatiska `secureBag()`/`over`/resultat; håll själva avslutet väntande medan valet är pausat och fullfölj sedan extraction utan ny strid. Detta är en uttrycklig ändring av dagens slutflöde, inte ett antagande att en picker kan öppnas efter att raiden redan avslutats. Vid extraction utan full rumsrensning skapas ingen extra clear-belöning. Död/timeout ger ingen ny perk, och en övergiven olöst rumsbelöning följer inte med som gratis clear.
+- Rummet blir `rewarded` atomiskt med valet. Om ett nytt hot sedan kommer dit ges ingen andra perk. Inga nya respawns behövs för detta system. Validera att rummets fiender och clear-state räknas konsekvent även när fiender flyttar mellan rum.
 
 **Pausbeslut:** när pickern öppnas pausas **både strid och raidtimer**, inklusive hazard, BIT-läkning, projektiler, spawner, vapencykler och verktyg. Pausen börjar inte vid `clearPending`. Använd en gemensam pausad speltid för samtliga dessa system: dagens `tickRound()` räknar mot absolut deadline, så att enbart stoppa renderloopen räcker inte. Även visibility- och knappvägar måste använda samma tid. Nollställ hållna rörelse-/siktes-/eldinputs vid öppning och återgång. Stängmärket uppe till vänster minimerar valet till en diskret väntande belöning och återupptar tiden; det väljer inget automatiskt. Återöppning pausar igen. Ett väntande val kräver ett uttryckligt val före fortsatt nivå eller avslutad extraction, men får aldrig tvinga in spelaren i nästa nivå.
 
@@ -125,7 +135,7 @@ Detta är åtta taktiska roller, **inte åtta bokstavliga `enemyTypes`**. Kodens
 | Patrull, encounter | Fast slinga, 35° synkon, 1 s alert före aggro; skada väcker den direkt. | Smyg bakom eller slå till från vald position. | L1 i områdesplanerna, med Hard-kombinationer. Ger val mellan undvikande och full clear; missad perk är priset för undvikande. |
 | Svärm, encounter av rushers | 4–5 förplacerade inaktiva medlemmar, trigger 6,5 m, varning och utsläpp innan normal strid. | Granat på klustret eller fall tillbaka så korridoren köar dem. | L3-planer; med sentry eller kastare kan reträttväg kontra målordning bli ett nytt problem. Testa, anta inte att rörelse/skytte upphör fungera. |
 
-**Generatorn är en stödjande objektiventitet**, inte en nionde stridsarketyp eller vanlig kill. Skjut den för permanent nodöppning, EMP för tillfällig nodöppning. Perk-clear ställer det strängare destruktionskravet i §5; extraction behåller befintliga nodregler.
+**Generatorn är en stödjande objektiventitet**, inte en nionde stridsarketyp eller vanlig kill. Skjut den för permanent nodöppning, EMP för tillfällig nodöppning. Perk-clear följer rumsrensningskravet i §5; extraction behåller befintliga nodregler.
 
 Återkoppling måste skilja kastare/torn/sentry och attacktyp. När två hot är aktiva visar recap deras observerade händelser, inte en påhittad slutsats att en viss kombo orsakade döden.
 
@@ -171,7 +181,7 @@ Ingen av backlograderna är ett leveranslöfte. De gamla extra perkidéerna är 
 - `round.lastHit.source` täcker namngivna mötesskott; vanliga skott får idag `null`. `deathTip()` ger inget tips för vanliga fiender/hazards. Ny källmetadata för dessa och hazard-skada måste därför läggas till; det går inte att återanvända dagens fält som komplett dödsanalys. Kombopåståenden behöver flera tidskopplade händelser och är inte scope: visa ”Rusher aktiv; Turret träffade” om båda är observerade, inte ”Rusher tvingade dig in i fanen”.
 - Använd befintlig popup `.pop-card`/`.pop-x`, stängmärke uppe till vänster, säker yta och `--ad-*`-tokens. Orange reserveras för primär handling. Små, korta aktiveringsmarkörer får inte täcka HUD, timer eller världsetiketter. Inga nya symbolglyfer, ad-hoc-modaler eller fastpositionerade informationsrutor.
 
-**Verifiering inför respektive kod-PR:** assist direktträff/fria skott och skymda mål; turret kontra normal sentry/guard/intro; nåbara kombinationsplaceringar; därefter separat clear-test för reserv, otriggerad svärm, generator, rumsvandring och exakt en belöning. Testa paus även via dold flik/knappar, sista rum, full HP, tomma lootlådor och tidigare maxade kort. Kör repots tester och `npm run verify` inklusive popup-fit i de tre mobilformaten. Detta är framtida implementationskrav; dokumentändringen kräver endast dokument-/kodfaktagranskning.
+**Verifiering inför respektive kod-PR:** assist direktträff/fria skott och skymda mål; turret kontra normal sentry/guard/intro; nåbara kombinationsplaceringar; därefter separat clear-test för rummets fiender, rumsvandring och exakt en belöning. Testa paus även via dold flik/knappar, sista rum, full HP, tomma lootlådor och tidigare maxade kort. Kör repots tester och `npm run verify` inklusive popup-fit i de tre mobilformaten. Detta är framtida implementationskrav; dokumentändringen kräver endast dokument-/kodfaktagranskning.
 
 **Nordstjärnebedömning av MVP:** PR1 testar konkurrerande skott-/positionsplaner och kombinationer. PR2 gör valens effekt och attacker begripliga och ger nästa försök något konkret att ändra. Varken slumpade kort eller fler kroppar räcker som bevis på variation. Om en enda strategi fortsatt konsekvent dominerar måste experimentet omprövas före backlogexpansion.
 
@@ -191,10 +201,12 @@ Redovisa resultat och spridning per paket/vapen, inte bara ett totalsnitt. Fem r
 
 ## 10. Öppna frågor till Robert
 
+Besluten nedan är besvarade i [Beslut 2026-10-26](#beslut-2026-10-26).
+
 1. Godkänner du två-PR-experimentet och rörelseberoende **assistbehörighet**, inklusive påverkan på L1:s globala kontroll, före någon kod byggs?
 2. Är åtta engångskort och de tre terminala varianterna rätt liten slice? Ska sista rummets val senare förenklas om tidstillägget konsekvent blir det enda relevanta utfallet?
 3. Är föreslagna direkta HP-/tidseffekter acceptabla för prototypen, eller vill du behålla nuvarande timertryck och ersätta Tidsmarginal/terminala tidsbonusar innan implementation?
-4. Godkänner du att full perk-clear kräver alla reserver, triggad och besegrad svärm, aktiva noder samt förstörd generator, samtidigt som dagens nodbaserade extraction bevaras och undvikande kan ge utebliven perk?
+4. Godkänner du att perk-clear kräver att rummets fiender är besegrade, utan separat krav på reserver, noder eller generator, samtidigt som dagens nodbaserade extraction bevaras och undvikande kan ge utebliven perk?
 5. Är full paus av både strid och raidtimer under val acceptabel, med minimering och återupptagen tid via stängmärket?
 6. Räcker de befintliga mötespaketen för första variationstestet? Vilket specifikt upprepat problem ska i så fall motivera nästa backlogförslag: rum, Marksman, beteendeelit eller guardian i sista rummet?
 7. Vill du alls gå vidare med giriga kort som ändrar kapacitet, befintlig valuta eller lootnivå? De kräver separat ekonomiförslag och godkännande; inget sådant tillstånd antas här.
