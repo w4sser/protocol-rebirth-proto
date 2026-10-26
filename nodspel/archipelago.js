@@ -1,18 +1,72 @@
-// Archipelago renderer (v1.44, first version): procedural islands on dark water. Rooms render as islands,
-// corridors as wooden piers, walls as rock lines (same collision boxes = natural boundaries), crates stay
+// Archipelago renderer: procedural islands on dark water. Rooms render as islands,
+// corridors as wooden piers, walls as faceted rock clusters with matching ground footprints, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
 import {rngFrom} from './art.js?v=2.1.0';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3f5a3a',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
+const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-6&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-6;
+// Discover openings from the final wall layout, including partitions and encounter-cut side routes.
+// A strip spans the wall and both approaches; narrow it to the actual clear corridor footprint.
+export function archipelagoPassages(level){
+  const passages=[];
+  for(const axis of ['x','z']){
+    const across=axis==='x'?'z':'x',size=axis==='x'?'w':'d',thick=axis==='x'?'d':'w';
+    // A cut can leave a stub shorter than the wall thickness. Its collinear neighbour
+    // still establishes which way that wall runs.
+    const walls=level.walls.filter(w=>w[size]>=w[thick]||level.walls.some(b=>b[size]>b[thick]&&Math.abs(w[across]-b[across])<.025&&Math.abs(w[thick]-b[thick])<.025));
+    for(const a of walls){
+      const end=a[axis]+a[size]/2;
+      const next=walls.filter(b=>b!==a&&Math.abs(a[across]-b[across])<.025&&b[axis]-b[size]/2>end+.025)
+        .sort((b,c)=>(b[axis]-b[size]/2)-(c[axis]-c[size]/2))[0];
+      if(!next)continue;
+      const start=next[axis]-next[size]/2,mid=(end+start)/2;
+      let lo=end+.04,hi=start-.04;
+      const center=(a[across]+next[across])/2,depth=Math.max(a[thick],next[thick])+1.6;
+      for(const w of level.walls){
+        if(Math.abs(w[across]-center)>=(w[thick]+depth)/2-.001)continue;
+        const left=w[axis]-w[size]/2,right=w[axis]+w[size]/2;
+        if(right<=mid)lo=Math.max(lo,right+.04);
+        else if(left>=mid)hi=Math.min(hi,left-.04);
+        else{lo=hi;break;}
+      }
+      if(hi-lo<.8)continue;
+      const p=axis==='x'?{x:(lo+hi)/2,z:center,w:hi-lo,d:depth}:{x:center,z:(lo+hi)/2,w:depth,d:hi-lo};
+      // Require continuous ground on both sides, not an unrelated gap between islands.
+      let grounded=true;
+      for(const s of [-1,0,1])for(const t of [-1,0,1]){
+        const x=p.x+s*p.w*.49,z=p.z+t*p.d*.49;
+        if(!level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.001&&Math.abs(z-f.z)<=f.d/2+.001))grounded=false;
+      }
+      if(grounded&&!level.walls.some(w=>overlaps(w,p)))passages.push({...p,axis});
+    }
+  }
+  return passages;
+}
+// Rectangular ground footprint EXACTLY equals the existing wall collider. Faceted crowns
+// stay inside it, so randomized silhouettes cannot overhang a walkable opening.
+function rockWallGeometry(w,rng,passages){
+  const alongX=w.w>w.d,len=alongX?w.w:w.d,n=Math.max(1,Math.ceil(len/.9)),vertices=[];
+  const tri=(a,b,c)=>vertices.push(...a,...b,...c);
+  for(let i=0;i<n;i++){
+    const lo=-len/2+i*len/n,hi=-len/2+(i+1)*len/n;
+    const cx=w.x+(alongX?(lo+hi)/2:0),cz=w.z+(alongX?0:(lo+hi)/2);
+    const near=passages.some(p=>Math.abs(cx-p.x)<p.w/2+.9&&Math.abs(cz-p.z)<p.d/2+.9);
+    const h=Math.min(w.h,near?.48:1.15)*(.85+rng()*.15),shoulder=h*.55;
+    const x0=alongX?lo:-w.w/2,x1=alongX?hi:w.w/2,z0=alongX?-w.d/2:lo,z1=alongX?w.d/2:hi;
+    const base=[[x0,0,z0],[x0,0,z1],[x1,0,z1],[x1,0,z0]],rim=base.map(([x,,z])=>[x,shoulder,z]);
+    const peak=[(x0+x1)/2+(rng()-.5)*(x1-x0)*.3,h,(z0+z1)/2+(rng()-.5)*(z1-z0)*.3];
+    for(let j=0;j<4;j++){const k=(j+1)%4;tri(base[j],base[k],rim[k]);tri(base[j],rim[k],rim[j]);tri(rim[j],rim[k],peak);}
+  }
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();return geometry;
+}
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
-  const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0};
+  const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   const water=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({color:P.water,roughness:.25,metalness:.35,transparent:true,opacity:.92}));
   water.rotation.x=-Math.PI/2;water.position.set(cx,-.35,cz);water.receiveShadow=true;water.name='water';group.add(water);
   const deep=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshBasicMaterial({color:P.waterDeep}));deep.rotation.x=-Math.PI/2;deep.position.set(cx,-1.2,cz);group.add(deep);
-  const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
-  const rock=(x,z,s,h)=>{const m=new THREE.Mesh(rockGeo,rockMat[rng()<.5?0:1]);m.position.set(x,h*.45,z);m.scale.set(s,h,s*(.8+rng()*.4));m.rotation.set(rng()*.5,rng()*6.3,rng()*.5);m.castShadow=m.receiveShadow=true;group.add(m);out.rocks++;return m;};
+  const rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
   for(const f of level.floors){
     if(f.dir){ // pier: planks + posts
       box(f.x,-.08,f.z,f.w,.16,f.d,P.pier);
@@ -25,9 +79,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
       r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
   }
-  for(const w of level.walls){ // rock line along each wall (the collision box stays the boundary)
-    const len=Math.max(w.w,w.d),n=Math.max(1,Math.round(len/1.1));
-    for(let i=0;i<n;i++){const t=(i+.5)/n-.5,x=w.x+(w.w>w.d?t*w.w:0),z=w.z+(w.w>w.d?0:t*w.d);rock(x+(rng()-.5)*.15,z+(rng()-.5)*.15,.55+rng()*.25,Math.min(1.15,Math.max(.5,w.h))*(.8+rng()*.35));}
+  for(const p of out.passages){
+    const path=box(p.x,.012,p.z,p.w,.024,p.d,P.sand);path.name='archipelago-passage';path.userData.clearance=p;
+  }
+  for(const w of level.walls){
+    const m=new THREE.Mesh(rockWallGeometry(w,rng,out.passages),rockMat[rng()<.5?0:1]);
+    m.position.set(w.x,0,w.z);m.name='archipelago-rock';m.userData.collider=w;
+    m.castShadow=m.receiveShadow=true;group.add(m);out.rocks++;
   }
   for(const c of level.boxes){box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50');}
   // boats offshore (visual only, never collidable)
