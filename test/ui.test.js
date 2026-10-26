@@ -509,6 +509,23 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert(rareSavedCard, 'rare recovered item renders as a saved card');
   assert(rareSavedCard.querySelector('.saved-tag') && rareSavedCard.querySelector('.saved-tag').textContent === 'SAVED', 'rare recovered item carries the SAVED tag, not RARE FIND');
   assert(!rareSavedCard.querySelector('.rare-tag'), 'rare recovered item does not carry a RARE FIND tag');
+
+  // v2.1.1: weapon loot cards (hero/art icons) must use the identical card structure as plain item
+  // cards — icon wrapped in .pr-itemimg (centered, sized to fit via CSS), name/qty row unchanged —
+  // instead of a bare <img> that breaks the card's flex layout (image pinned to the top, uncentred).
+  const rWeapons = { outcome:'extract', elapsedMs:5000, lost:[] };
+  const resWeapons = { added:['smg_vector','shotgun_breach','cable'], currency:{} };
+  const divWeapons = window.document.createElement('div');
+  divWeapons.innerHTML = window.raidSummaryHtml(rWeapons, resWeapons, { trigger:'generic', mood:'smug', line:'...' }, 'Node Raid');
+  const weaponCards = [...divWeapons.querySelectorAll('.loot-card')].filter(c => /SMG|Shotgun/.test(c.textContent));
+  const itemCard = [...divWeapons.querySelectorAll('.loot-card')].find(c => c.textContent.includes('Cable'));
+  assert.equal(weaponCards.length, 2, 'both weapons render their own loot card');
+  assert.equal(itemCard.firstElementChild.className, 'pr-itemimg', 'plain item card icon is wrapped in .pr-itemimg');
+  for(const card of weaponCards){
+    assert.equal(card.firstElementChild.className, 'pr-itemimg', 'weapon card icon is wrapped in .pr-itemimg, same as a plain item card');
+    assert.equal(card.lastElementChild.className, itemCard.lastElementChild.className, 'weapon card and item card end with the same name/qty row');
+    assert(card.querySelector(':scope>.loot-card-row'), 'name/qty row still renders for weapon cards');
+  }
 }
 /* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {
@@ -554,6 +571,34 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert(scrolled.matches('[data-contract="' + contract.id + '"].badge-pulse'), 'ready contract pulses and scrolls');
   Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
   window.HTMLElement.prototype.scrollIntoView = oldScroll;
+  A.go('base');
+}
+/* v2.1.1: CLAIM on a finished quest in the BIT bay QUESTS tab must actually pay the reward, not silently
+   no-op (it used to stack a second #overlay instead of replacing the BIT sheet, so the reward picker was
+   unreachable through document.getElementById("overlay")). */
+{
+  const st = window.__TEST_STATE(), saved = JSON.parse(JSON.stringify(st));
+  const press = el => { el.onclick = window.Function('event', el.getAttribute('onclick')); el.click(); };
+  st.modules.bit_bay = 1; st.bondXp = 0; st.talents = {spent:{},respecs:0}; st.retentionMode = 'core';
+  const scrapBefore = st.cur.scrap;
+  st.quests = {day:window.dayStr(),swaps:0,list:[
+    {id:'claim-q',type:'extract',item:'cable',n:1,prog:1,done:true,claimed:false,rewards:[{kind:'scrap',n:5},{kind:'xp',n:5},{kind:'mystery'}]}
+  ]};
+  A.bitTab('quests');
+  assert.equal(doc.querySelector('#overlay .bit-tab-badge').textContent, '1 READY', 'QUESTS tab badge shows the ready count before claiming');
+  const claimBtn = doc.querySelector('#overlay .quest.done .claim');
+  assert(claimBtn, 'finished quest shows a CLAIM button');
+  press(claimBtn);
+  assert.equal(doc.querySelectorAll('#overlay').length, 1, 'claiming does not stack a second #overlay on top of the BIT sheet');
+  const rewardCard = doc.querySelector('#overlay .qcards button.qcard.scrap');
+  assert(rewardCard, 'reward picker opens with a scrap card');
+  press(rewardCard);
+  assert.equal(doc.querySelectorAll('#overlay').length, 1, 'picking a reward leaves exactly one overlay open');
+  assert.equal(st.cur.scrap, scrapBefore + 5, 'CLAIM pays the picked reward');
+  assert(st.quests.list[0].claimed, 'quest is marked claimed after CLAIM');
+  assert(doc.querySelector('#overlay .questtab.active'), 'BIT bay reopens on the QUESTS tab, list re-rendered, after claiming');
+  assert(!doc.querySelector('#overlay .bit-tab-badge'), 'N READY badge clears once nothing is left to claim');
+  Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
   A.go('base');
 }
 

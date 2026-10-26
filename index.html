@@ -928,8 +928,12 @@
   .cur.power-meter.crit{border-color:var(--ad-danger)}
   .progress-goal.qgoal .qphase{display:block;color:var(--ad-bit);font-size:11px;letter-spacing:.04em;margin:0 0 2px}
   .progress-goal.qgoal.maintain{border-color:var(--ad-loot)}
-  .area-pick.quest-target .qpip,.wm-zone.qpip{position:relative}
-  .area-pick.quest-target .qpip::after,.wm-label .wm-zone.qpip::after{content:"";position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--ad-cyan);box-shadow:0 0 6px var(--ad-cyan)}
+  .wm-zone.qpip{position:relative}
+  .wm-label .wm-zone.qpip::after{content:"";position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--ad-cyan);box-shadow:0 0 6px var(--ad-cyan)}
+  .area-pick{position:relative}
+  /* Tracked-quest pip sits in the card's own top-right corner (not inline with the AREA label — the
+     card commonly clips overflow, so keep the dot inside the border rather than offset past it). */
+  .area-pick.quest-target .qpip{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--ad-cyan);box-shadow:0 0 6px var(--ad-cyan)}
   .area-pick.quest-target{outline:1px solid var(--ad-cyan)}
   .wm-region.quest-target:not(.locked)::after{content:"";position:absolute;top:6%;right:6%;width:10px;height:10px;border-radius:50%;background:var(--ad-cyan);box-shadow:0 0 8px var(--ad-cyan);pointer-events:none}
   .mapspot.plate.powered-off{opacity:.42;filter:saturate(.4)}
@@ -1368,6 +1372,10 @@
     .bitgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:stretch}
     .bitgrid:has(>:only-child){grid-template-columns:1fr}
     .bitgrid>.idlecard,.bitgrid>.card{margin:0;height:100%;box-sizing:border-box}
+    /* QUESTS tab: the summary entry + Next unlock cards stack in column 1 and size to their own
+       content, instead of each claiming its own grid row (which pushed Next unlock past the fold). */
+    .bitgrid>.qside{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0}
+    .bitgrid>.qside>.card{margin:0;box-sizing:border-box}
     .tasktab .idlecard,.tasktab .card.row{padding:5px 8px}
     .tasktab h2{margin:6px 0 4px;font-size:12px}
     .nextunlock{display:flex;flex-direction:column;justify-content:center;gap:2px}
