@@ -488,6 +488,27 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   const savedLossCards = [...divSaved.querySelectorAll('.loot-card.loss')];
   assert(savedLossCards.some(el => el.textContent.includes('Cable')), 'bag losses still render alongside the recovered item');
   assert(savedLossCards.some(el => el.textContent.includes('Scavenger Vest')), 'gearLost still renders alongside the recovered item');
+
+  // Saved items must sort ahead of losses so they survive the small-tier cap (nth-child(n+6) hidden in CSS)
+  // even when there are enough distinct losses to otherwise push them past the "+N" overflow tile.
+  const manyLosses = ['cable','fuse','servo','scrap_alloy','circuit_board','optical_sensor','polymer_plate'];
+  const rSavedCap = { outcome:'death', elapsedMs:5000, lost:manyLosses };
+  const resSavedCap = { added:[], currency:{}, saved:{ secure:'medkit' } };
+  const divSavedCap = window.document.createElement('div');
+  divSavedCap.innerHTML = window.raidSummaryHtml(rSavedCap, resSavedCap, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const capCards = [...divSavedCap.querySelectorAll('.loot-grid>.loot-card')];
+  const savedCapIdx = capCards.findIndex(el => el.classList.contains('saved'));
+  assert(savedCapIdx >= 0 && savedCapIdx < 5, 'saved item stays within the small-tier cap (LOOT_CAP_SM) despite many distinct losses');
+
+  // A recovered item that happens to be rare must still read SAVED, not RARE FIND, on death/timeout.
+  const rRareSaved = { outcome:'death', elapsedMs:5000, lost:['cable'] };
+  const resRareSaved = { added:[], currency:{}, saved:{ secure:'power_relay' } };
+  const divRareSaved = window.document.createElement('div');
+  divRareSaved.innerHTML = window.raidSummaryHtml(rRareSaved, resRareSaved, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const rareSavedCard = divRareSaved.querySelector('.loot-card.saved');
+  assert(rareSavedCard, 'rare recovered item renders as a saved card');
+  assert(rareSavedCard.querySelector('.saved-tag') && rareSavedCard.querySelector('.saved-tag').textContent === 'SAVED', 'rare recovered item carries the SAVED tag, not RARE FIND');
+  assert(!rareSavedCard.querySelector('.rare-tag'), 'rare recovered item does not carry a RARE FIND tag');
 }
 /* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {

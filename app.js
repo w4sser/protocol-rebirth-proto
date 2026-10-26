@@ -3853,7 +3853,7 @@ function raidLootGridHtml(entries, emptyLabel){
   if(!entries.length) return '<p class="small loot-empty">' + emptyLabel + '</p>';
   const shown = entries.slice(0, LOOT_CAP_LG);
   const cards = shown.map((e,i) => '<div class="loot-card ' + e.cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (i * 45) + 'ms">' +
-    (e.rare ? '<span class="rare-tag">RARE FIND</span>' : (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : '')) + e.icon +
+    (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : (e.rare ? '<span class="rare-tag">RARE FIND</span>' : '')) + e.icon +
     '<div class="loot-card-row"><span>' + esc(e.name) + '</span><b>x' + e.qty + '</b></div></div>').join('');
   const extraSm = Math.max(0, entries.length - LOOT_CAP_SM), extraLg = Math.max(0, entries.length - LOOT_CAP_LG);
   return cards +
@@ -3892,7 +3892,7 @@ function raidSummaryHtml(r, res, reaction, label){
   // On extract everything gained is shown as secured loot; on death/timeout, items BIT/secure-slot/Guardian
   // recovered still render (tagged SAVED, not dimmed) alongside what was actually lost, instead of vanishing.
   const lootEntries = ext ? gainedEntries.map(e => Object.assign({ cls:"gain" }, e)) :
-    lostEntries.map(e => Object.assign({ cls:"loss" }, e)).concat(gainedEntries.map(e => Object.assign({ cls:"saved" }, e)));
+    gainedEntries.map(e => Object.assign({ cls:"saved" }, e)).concat(lostEntries.map(e => Object.assign({ cls:"loss" }, e)));
 
   const titleWord = ext ? "EXTRACTED" : (r.outcome === "timeout" ? "LOST" : "KIA");
   const elapsed = Number.isFinite(r.elapsedMs) ? r.elapsedMs : null;
