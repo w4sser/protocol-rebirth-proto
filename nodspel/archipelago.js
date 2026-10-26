@@ -22,13 +22,18 @@ function rockSource(level){
       // A rotated chunky boulder's own half-extent can reach ~1.7m past its wall's nominal line
       // (DodecahedronGeometry(1,0), scale up to .8, worst-case rotation), regardless of how this
       // reservation is sized: clearRock always pushes a boulder fully outside it by the boulder's
-      // own size. Loot boxes (unlike nodes/enemies/start/exit) can land only ~.6-1m off an authored
+      // own size. Loot boxes (unlike enemies/start/exit) can land only ~.6-1m off an authored
       // wall's thin line (levels.js's seeded fallback search only keeps them .6 clear of the thin,
       // pre-boulder wall footprint), so a reservation that size still lets a boulder get pushed to
       // hug the loot from the open side and re-pinch it. 1.8 keeps the loot clear of that reach.
+      // Nodes carry their own live 1.4x1.4 collider (half-extent .7) plus a 1.8 interaction reach
+      // (RULES.resources.nodeReach): a reservation of only .95 left ~.25m of clear boulder-free space
+      // beyond the node's own box, far short of the .72m (player diameter) a boulder needs to leave
+      // beside it for the .36-radius player to squeeze through and reach whatever lies past it. 1.8
+      // matches loot's margin and leaves a clean lane on every side of the node and its approach.
       placements:[...(level.enemies??[]).map(e=>reserve(e,(e.r??.48)+.1)),
         ...(level.lootBoxes??[]).map(p=>reserve(p,1.8)),
-        ...(level.nodes??[]).map(p=>reserve(p,.95)),
+        ...(level.nodes??[]).map(p=>reserve(p,1.8)),
         ...[level.start,level.exit].filter(Boolean).map(p=>reserve(p,.6))]};
     rockSources.set(level,source);
   }
