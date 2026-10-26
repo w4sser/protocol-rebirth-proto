@@ -676,7 +676,7 @@ function openPerk(key){if(!key||round.over||perkChoosing)return;perkKey=key;clea
 function act(action,id,selected){
   if(!round||round.over||perkChoosing)return;
   if(action==='resume'){perkState(round).minimized=null;openPerk(perkState(round).queue[0]);return;}
-  if(action==='minimize'){perkState(round).minimized=perkKey;perkUI.close();resumePick(round,Date.now());clearInput();perkResume.hidden=false;perkResume.focus();return;}
+  if(action==='minimize'){perkState(round).minimized=perkKey;round.perkExitPending=false;perkUI.close();resumePick(round,Date.now());clearInput();perkResume.hidden=false;perkResume.focus();return;}
   if(action==='choose'){
     const text=choosePerk(round,perkKey,id,gameClock(),dash);if(!text)return;
     perkChoosing=true;perkUI.confirm(text,selected);updateHUD();perkUI.hud(round,$('#level-corner'));

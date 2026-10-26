@@ -273,7 +273,12 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
   else if(!inZone)return null;
   updateClears(round,position);
-  if(perkState(round).queue.length){round.perkExitPending=true;return 'perk';}
+  const perks=perkState(round);
+  if(perks.queue.length){
+    // A minimized offer keeps the exit blocked without reopening every frame.
+    if(perks.minimized===perks.queue[0])return null;
+    round.perkExitPending=true;return 'perk';
+  }
   round.perkExitPending=false;
   // Owner rule: a level exit does NOT secure loot. The bag (same 4 slots) carries on, at risk,
   // until the player chooses Extract or clears the final level.

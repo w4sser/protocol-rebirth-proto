@@ -7,8 +7,6 @@ export function roomKey(round,index=round.currentRoom??0){return `${round.level.
 export function ownRooms(level){
   for(const e of level.enemies){
     e.homeRoom??=roomAt(level,e);
-    // Node reserves are not a separate clear requirement, even if activated later.
-    e.perkReserve??=e.active===false&&!e.swarm;
   }
 }
 export function logCombat(round,event){
@@ -47,7 +45,7 @@ export function updateClears(round,position){
   for(let i=0;i<round.level.rooms.length;i++){
     const key=roomKey(round,i),r=s.rooms[key]??={state:'unresolved',entered:false,level:round.level.number,index:i};
     if(index===i)r.entered=true;
-    if(r.state==='unresolved'&&r.entered&&!round.level.enemies.some(e=>e.homeRoom===i&&e.type!=='generator'&&!e.perkReserve&&e.health>0)){
+    if(r.state==='unresolved'&&r.entered&&!round.level.enemies.some(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false&&e.health>0)){
       r.state='clearPending';
       // A presented/minimized offer keeps its place: later clears must not invalidate its three cards.
       const presented=s.rooms[s.queue[0]]?.state==='rewardPending'?s.queue.shift():null;

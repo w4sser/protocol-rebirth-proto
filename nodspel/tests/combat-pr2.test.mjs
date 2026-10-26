@@ -10,7 +10,7 @@ const point={x:0,z:0},foe=(id,x=0)=>({id,kind:'enemy',type:'grunt',x,z:0,r:.48,h
 function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});return r;}
 function select(r,id,index=0){const s=perkState(r),key=`${r.level.number}:${index}`;s.rooms[key]={state:'rewardPending',level:r.level.number,index,offer:[id]};s.queue.push(key);return choosePerk(r,key,id,100,createDash());}
 
-test('room clear uses original ownership, excludes node reserves and generator, rewards once',()=>{
+test('room clear uses original ownership, excludes inactive reserves and generator, rewards once',()=>{
   const r=arena();r.level.enemies.push({...foe('reserve'),active:false},{...foe('generator'),type:'generator'});ownRooms(r.level);
   r.level.enemies[0].x=20;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved');
   r.level.enemies[0].health=0;updateClears(r,point);assert.deepEqual(perkState(r).queue,['1:0']);
@@ -18,8 +18,14 @@ test('room clear uses original ownership, excludes node reserves and generator, 
   r.level.enemies.push(foe('late'));updateClears(r,point);r.level.enemies.at(-1).health=0;updateClears(r,point);
   assert.deepEqual(perkState(r).queue,[]);assert.equal(perkState(r).rooms['1:1'].entered,false);
 });
-test('swarm bodies count, branches never grant rewards, generator does not count',()=>{
-  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).queue.length,0);
+test('activated living reserves block clear until defeated, including after ownership was assigned inactive',()=>{
+  const r=arena(),reserve={...foe('reserve'),active:false};r.level.enemies.push(reserve);ownRooms(r.level);
+  updateClears(r,point);reserve.active=true;r.level.enemies[0].health=0;updateClears(r,point);
+  assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
+  reserve.health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'clearPending');assert.deepEqual(perkState(r).queue,['1:0']);
+});
+test('inactive swarm bodies do not block clear and branches never grant rewards',()=>{
+  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).queue.length,1);
   updateClears(r,{x:100,z:100});assert.equal(Object.keys(perkState(r).rooms).length,2);
   r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).queue.length,1);
 });
