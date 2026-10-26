@@ -290,3 +290,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
   #result-description{display:none}
   #round-over .result-card #result-retained{font-size:9px}
 }
+
+/* The fatal hit stays visible below the result title, including compact landscape. */
+#round-over .result-card #result-death-cause{margin:0;color:var(--ad-danger);font:600 12px/1.35 system-ui;overflow-wrap:anywhere}
+#result-death-cause[hidden]{display:none}

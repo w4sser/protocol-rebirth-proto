@@ -1,45 +1,51 @@
-.perk-overlay{position:absolute;inset:0;z-index:30;display:grid;place-items:center;padding:24px;background:color-mix(in srgb,var(--ad-night) 92%,transparent);box-sizing:border-box;color:var(--ad-bone)}
+.perk-overlay{position:absolute;inset:0;z-index:45;display:grid;place-items:center;padding:24px;background:color-mix(in srgb,var(--ad-night) 92%,transparent);box-sizing:border-box;color:var(--ad-bone)}
 .perk-overlay[hidden]{display:none}
+/* Hide the raid UI as well as making it inert; the world canvas stays full-bleed. */
+.perk-modal-open>:not(#game):not(.perk-overlay){visibility:hidden!important;pointer-events:none!important}
 .perk-panel{width:min(880px,100%);box-sizing:border-box;padding:14px 22px 12px;border:1px solid var(--ad-bit);border-radius:12px;background:var(--ad-ink);box-shadow:0 16px 70px var(--ad-night)}
 .perk-panel h2{font:800 22px/1.1 system-ui;margin:0;letter-spacing:.14em;color:var(--ad-cyan)}
 .perk-sub{margin:0 0 10px;text-align:center;font:12px/1.4 system-ui;color:var(--ad-bit)}
-.perk-recap{border-left:2px solid var(--ad-bit);padding-left:10px;margin:0 0 12px;font:12px/1.4 system-ui}
-.perk-recap p{margin:0}
+.perk-recap{display:grid;grid-template-columns:1fr;gap:3px;padding:8px 12px;margin:0 0 12px;border:1px solid color-mix(in srgb,var(--ad-bit) 35%,transparent);border-radius:7px;background:color-mix(in srgb,var(--ad-cyan) 5%,var(--ad-night));font:12px/1.3 system-ui}
+.perk-recap-label{font:800 9px/1.3 system-ui;letter-spacing:.15em;color:var(--ad-bit)}
+.perk-recap p{display:flex;align-items:center;gap:7px;margin:0;min-width:0}
+.perk-recap p svg{width:14px;height:14px;flex:none;color:var(--ad-bit)}
 .perk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.perk-choice{--perk-accent:var(--ad-cyan);position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:194px;min-width:44px;padding:14px;text-align:left;border:1px solid var(--perk-accent);border-top:3px solid var(--perk-accent);border-radius:8px;background:color-mix(in srgb,var(--perk-accent) 6%,var(--ad-night));color:var(--ad-bone);cursor:pointer;transition:transform .13s,background .13s,box-shadow .13s;animation:perk-arrive .24s ease-out both;touch-action:manipulation}
-.perk-choice:nth-child(2){animation-delay:45ms}.perk-choice:nth-child(3){animation-delay:90ms}
+.perk-choice{--perk-accent:var(--ad-cyan);position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:222px;min-width:44px;padding:14px;text-align:left;border:1px solid color-mix(in srgb,var(--perk-accent) 65%,var(--ad-ink));border-top:4px solid var(--perk-accent);border-radius:8px;background:linear-gradient(155deg,color-mix(in srgb,var(--perk-accent) 18%,var(--ad-night)),var(--ad-night) 65%);color:var(--ad-bone);cursor:pointer;transition:transform .13s,background .13s,box-shadow .13s;animation:perk-arrive .24s ease-out both;touch-action:manipulation}
+.perk-choice:nth-child(2){animation-delay:60ms}.perk-choice:nth-child(3){animation-delay:120ms}
 .perk-choice[data-accent=loot]{--perk-accent:var(--ad-loot)}.perk-choice[data-accent=danger]{--perk-accent:var(--ad-danger)}
 .perk-category{font:800 9px/1.2 system-ui;letter-spacing:.16em;color:var(--perk-accent)}
-.perk-choice svg{width:34px;height:34px;color:var(--perk-accent)}
+.perk-badge{display:grid;place-items:center;flex:none;width:44px;height:44px;box-sizing:border-box;border:1px solid var(--perk-accent);border-radius:50%;color:var(--perk-accent);background:color-mix(in srgb,var(--perk-accent) 13%,var(--ad-ink));box-shadow:0 0 16px color-mix(in srgb,var(--perk-accent) 28%,transparent),inset 0 0 10px color-mix(in srgb,var(--perk-accent) 12%,transparent)}
+.perk-badge svg{width:28px;height:28px}
 .perk-overlay svg,.perk-hud svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.perk-choice strong{font:800 19px/1.15 system-ui}.perk-effect{font:13px/1.35 system-ui;flex:1}
-.perk-select{font:800 10px/1.2 system-ui;letter-spacing:.08em;border-top:1px solid var(--perk-accent);padding-top:8px;width:100%;color:var(--ad-primary)}
-.perk-choice:hover,.perk-choice:focus-visible{transform:translateY(-3px);background:color-mix(in srgb,var(--perk-accent) 15%,var(--ad-night));box-shadow:0 0 0 2px var(--perk-accent);outline:0}
-.perk-choice:active{transform:scale(.97)}.perk-choice.picked{border-color:var(--ad-primary);box-shadow:0 0 0 3px var(--ad-primary);background:color-mix(in srgb,var(--ad-primary) 18%,var(--ad-night))}
+.perk-choice strong{font:800 19px/1.15 system-ui}.perk-effect{font:13px/1.35 system-ui;flex:1}.perk-effect b{color:var(--perk-accent);font-weight:900;font-size:1.12em}
+.perk-select{font:800 10px/1.2 system-ui;letter-spacing:.08em;border-top:1px solid color-mix(in srgb,var(--perk-accent) 45%,transparent);padding-top:8px;width:100%;color:var(--perk-accent)}
+.perk-choice:hover,.perk-choice:focus-visible{transform:translateY(-3px);background:color-mix(in srgb,var(--perk-accent) 18%,var(--ad-night));box-shadow:0 0 0 2px var(--perk-accent),0 5px 20px color-mix(in srgb,var(--perk-accent) 20%,transparent);outline:0}
+.perk-choice:active{transform:scale(.97)}
+.perk-choice.picked{border-color:var(--ad-primary);box-shadow:0 0 0 3px var(--ad-primary);background:color-mix(in srgb,var(--ad-primary) 18%,var(--ad-night));animation:perk-picked .32s ease-out both}
 .perk-confirm{min-height:17px;margin:10px 0 0;text-align:center;font:700 12px/1.4 system-ui;color:var(--ad-primary)}
 .perk-hud{display:flex;gap:5px;flex:0 0 100%;color:var(--ad-cyan)}.perk-hud:empty{display:none}.perk-hud svg{width:18px;height:18px}.perk-hud span{display:flex}
 .perk-resume{pointer-events:auto;min-height:44px;border:1px solid var(--ad-cyan);border-radius:5px;padding:6px 10px;background:var(--ad-ink);color:var(--ad-cyan);font:700 12px system-ui;cursor:pointer}
 .perk-recon{outline:2px solid var(--ad-cyan);outline-offset:3px}
 @keyframes perk-arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@media(max-height:500px){.perk-overlay{padding:22px 26px}.perk-panel{padding:8px 16px}.perk-panel h2{font-size:18px;min-height:32px}.perk-sub{font-size:11px;margin-bottom:6px}.perk-recap{font-size:11px;line-height:1.3;margin-bottom:8px}.perk-choice{min-height:174px;padding:10px;gap:5px}.perk-choice svg{width:28px;height:28px}.perk-choice strong{font-size:17px}.perk-effect{font-size:12px}.perk-confirm{margin-top:7px}}
-@media(prefers-reduced-motion:reduce){.perk-choice{animation:none;transition:none}}
-
+@keyframes perk-picked{0%{filter:brightness(1.7);transform:scale(.97)}55%{filter:brightness(1.25);transform:scale(1.015)}100%{filter:brightness(1);transform:none}}
 @media(max-height:500px){
-  .perk-panel.pop-card>.pop-x+h2{min-height:28px}
-  .perk-choice{display:grid;grid-template-columns:28px minmax(0,1fr);grid-template-rows:auto auto 1fr auto;align-items:start}
-  .perk-choice .perk-category{grid-column:2;grid-row:1}
-  .perk-choice svg{grid-column:1;grid-row:1/3;align-self:center}
-  .perk-choice strong{grid-column:2;grid-row:2}
-  .perk-choice .perk-effect{grid-column:1/-1;grid-row:3}
-  .perk-choice .perk-select{grid-column:1/-1;grid-row:4;box-sizing:border-box}
+  .perk-overlay{padding:22px 26px}.perk-panel{padding:8px 16px}
+  .perk-panel.pop-card>.pop-x+h2{font-size:18px;min-height:28px}
+  .perk-sub{font-size:11px;line-height:1.3;margin-bottom:6px}
+  .perk-recap{font-size:10px;line-height:1.2;padding:6px 10px;gap:2px;margin-bottom:8px}
+  .perk-recap p svg{width:12px;height:12px}
+  .perk-choice{display:grid;grid-template-columns:44px minmax(0,1fr);grid-template-rows:auto auto 1fr auto;align-items:start;min-height:164px;padding:9px;gap:4px 8px}
+  .perk-choice .perk-category{grid-column:2;grid-row:1;align-self:end}
+  .perk-badge{grid-column:1;grid-row:1/3;align-self:center}
+  .perk-choice strong{grid-column:2;grid-row:2;font-size:17px}
+  .perk-effect{grid-column:1/-1;grid-row:3;font-size:12px}
+  .perk-select{grid-column:1/-1;grid-row:4;box-sizing:border-box;padding-top:6px}
+  .perk-confirm{margin-top:6px;font-size:11px;line-height:1.3;min-height:15px}
 }
 @media(max-width:740px) and (max-height:420px){
-  .perk-overlay{padding:20px 18px}.perk-panel{padding:8px 12px}
-  .perk-sub{font-size:10px;line-height:1.3}.perk-recap{font-size:10px;line-height:1.3;margin-bottom:6px}
-  .perk-confirm{font-size:11px;line-height:1.3;min-height:15px;margin-top:6px}
-  .perk-choice strong{font-size:16px}
+  .perk-overlay{padding:20px 18px}.perk-panel{padding:8px 12px}.perk-grid{gap:9px}
+  .perk-sub{font-size:10px}.perk-choice strong{font-size:15px}.perk-choice{gap:4px 6px}.perk-effect{font-size:11px}
 }
-
+@media(prefers-reduced-motion:reduce){.perk-choice,.perk-choice.picked{animation:none;transition:none}}
 .perk-shield-active{color:var(--ad-danger);outline:2px solid var(--ad-danger);outline-offset:2px;filter:drop-shadow(0 0 4px var(--ad-danger))}
-
 .perk-panel .pop-x svg{width:20px;height:20px}

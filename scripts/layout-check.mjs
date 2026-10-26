@@ -54,7 +54,7 @@ function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
   const name=el=>(el.id?'#'+el.id:el.tagName.toLowerCase())+(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/).slice(0,2).join('.'):'')+((el.getAttribute('aria-label')||el.textContent||'').trim().slice(0,18)?` "${(el.getAttribute('aria-label')||el.textContent).trim().replace(/\s+/g,' ').slice(0,18)}"`:'');
   // an open modal layer (splash, popup, mission panel, settings menu) is the only thing that can be tapped
   const shown=e=>!e.hidden&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden';
-  const layers=[...document.querySelectorAll('#splash,#overlay,#mission-panel,#settings-menu,.pop-x.mission-x,#tutorial,#round-over,#inventory,#swap-row,#fatal')].filter(shown);
+  const layers=[...document.querySelectorAll('#splash,#overlay,#mission-panel,#settings-menu,.pop-x.mission-x,#tutorial,#round-over,#inventory,#swap-row,#fatal,.perk-overlay,.perk-overlay .pop-card')].filter(shown);
   for(const el of document.querySelectorAll(sel)){
     if(el.matches('#overlay,#splash,.pop-backdrop,#tutorial,#round-over,#inventory,#fatal'))continue;
     if(layers.length&&!layers.some(l=>l.contains(el)))continue;
@@ -269,7 +269,7 @@ async function introGoalRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=77d97187-meta&area=bunker&debug=1&q=high&intro=1&kit=medkit%3A1&goal=${encodeURIComponent(JSON.stringify(goal))}`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1500);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
   await shot(page,`raid-intro-goal-${w}x${h}`);
@@ -281,7 +281,7 @@ async function payoffRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=77d97187-payoff&area=bunker&debug=1&q=high&bag=5&kit=medkit%3A1&payoff=loot_cluster`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1200);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1200);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
   const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
@@ -297,12 +297,13 @@ async function raidRun([w,h],area){
   await page.goto(`${BASE}/nodspel/?seed=layout&debug=1&q=high&area=${area}&quest=extract%3Acable%3A1%3A3`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
   await report(page,`${tag} tutorial`);await shot(page,`raid-${area}-${w}x${h}-tutorial`);
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(1500);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1500);
   const fb=await page.evaluate(()=>{const c=document.querySelector('#game').getBoundingClientRect();return [c.left,c.top,c.width,c.height,innerWidth,innerHeight];});
   if(Math.abs(fb[0])>1||Math.abs(fb[1])>1||Math.abs(fb[2]-fb[4])>1||Math.abs(fb[3]-fb[5])>1)fail(tag,`canvas is not full-bleed (${fb.slice(0,4).map(Math.round)} vs ${fb[4]}x${fb[5]})`);
   for(const level of [1,2,3]){
     const ctx=`${tag} L${level}`;
     await page.evaluate(n=>window.__NR.goLevel(n),level);await settle(1800);
+    if(await page.$eval('.perk-overlay',e=>!e.hidden))fail(ctx,'unexpected perk modal during gameplay layout');
     await report(page,ctx,'.stick,#reset,#open-bag');
     const labels=await page.evaluate(()=>{
       const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
@@ -337,7 +338,7 @@ async function encShotRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/nodspel/?seed=enc-shot&area=bunker&debug=1&q=high`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
   for(const wait of [3000,1500]){
     await settle(wait);
     for(const m of await page.evaluate(worldOverlaps))fail(`${tag} L1`,`world label ${m}`);
@@ -395,7 +396,7 @@ async function extractPopupRun([w,h]){
   const page=await newPage(w,h);
   await page.goto(`${BASE}/${EXTRACT_URL}`,{waitUntil:'load'});
   await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
-  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await settle(800);
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(800);
   await page.evaluate(()=>{const ids=globalThis.DATA.items.map(i=>i.id).filter(id=>!['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box'].includes(id));window.__NR.extractDemo(['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box',ids[0]]);});await settle(500);
   const r=await page.evaluate(()=>{
     const card=document.querySelector('#round-over .result-card'),btn=document.querySelector('#return-base'),x=card.querySelector(':scope>.pop-x');
@@ -423,19 +424,29 @@ async function perkPopupRun([w,h]){
   await loaderGone(page);await page.waitForSelector('#tutorial-start',{visible:true});await page.click('#tutorial-start');
   await page.waitForFunction('window.__NR');await page.evaluate(()=>window.__NR.perkPickDemo());await settle(400);
   await report(page,tag,'.perk-choice,.perk-panel .pop-x');
+  const modalProblems=await page.evaluate(()=>{
+    const layer=document.querySelector('.perk-overlay'),panel=layer.querySelector('.perk-panel'),r=panel.getBoundingClientRect(),issues=[];
+    if(r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight||panel.scrollHeight>panel.clientHeight+1)issues.push('perk panel overflows viewport or needs scrolling');
+    for(const el of document.querySelectorAll('.hud,.controls,.bag-panel,#level-corner'))if(!el.inert||getComputedStyle(el).visibility!=='hidden')issues.push('HUD is visible or interactive while perk modal is open');
+    for(const el of panel.querySelectorAll('.perk-choice,.perk-recap'))if(el.scrollHeight>el.clientHeight+1)issues.push('perk content is clipped');
+    return issues;
+  });
+  for(const problem of modalProblems)fail(tag,problem);
   const before=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,names:[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent)}));
   await settle(1000);
   const paused=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,targets:[...document.querySelectorAll('.perk-choice,.perk-panel .pop-x')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})}));
   if(paused.time!==before.time||paused.health!==before.health)fail(tag,'raid timer or combat changed during perk pick');
   if(!paused.targets)fail(tag,'perk touch target smaller than 44px');
   await shot(page,`perk-pick-${w}x${h}`);
-  await page.click('.perk-panel .pop-x');await settle(100);await page.click('.perk-resume');
+  await page.click('.perk-panel .pop-x');await settle(100);
+  if(!await page.$eval('.controls',e=>!e.inert&&getComputedStyle(e).visibility!=='hidden'))fail(tag,'HUD not restored after minimizing');
+  await page.click('.perk-resume');
   const names=await page.evaluate(()=>[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent));
   if(JSON.stringify(names)!==JSON.stringify(before.names))fail(tag,'minimizing rerolled the perk offer');
   await page.click('.perk-choice');await settle(80);await shot(page,`perk-confirm-${w}x${h}`);await settle(450);
   const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
   await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);
-  const death=await page.$eval('#result-description',e=>e.textContent);if(!/Last hit: Sentry.*Moving/.test(death))fail(tag,'death explanation missing');
+  const death=await page.$eval('#result-death-cause',e=>{const r=e.getBoundingClientRect();return !e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&r.height>0&&r.top>=0&&r.bottom<=innerHeight?e.textContent:'';});if(!/Last hit: Sentry.*moving/.test(death))fail(tag,'death explanation missing');
   await shot(page,`perk-death-${w}x${h}`);await page.close();
 }
 

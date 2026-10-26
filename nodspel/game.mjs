@@ -688,8 +688,11 @@ function act(action,id,selected){
 for(const type of ['pointerdown','pointerup','click','keydown','keyup'])document.addEventListener(type,e=>{if(round?.pauseAt!=null&&!perkUI.layer.contains(e.target)){e.preventDefault();e.stopImmediatePropagation();}},true);
 const labelState=new Map();
 let previous=performance.now();
+// Debug fixtures can inspect gameplay layouts without manufacturing room-clear rewards.
+let debugRoomClearsEnabled=true;
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))window.__NR={
+  setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
   perkPickDemo(){const key=roomKey(round,0),ps=perkState(round);ps.rooms[key]={state:'clearPending',entered:true,level:round.level.number,index:0};if(!ps.queue.includes(key))ps.queue.push(key);logCombat(round,{kind:'damage',room:key,source:'Turret',sourceId:'demo-turret',attack:'fan',amount:18,moving:false,at:gameClock()});openPerk(key);},
   deathDemo(){resumePick(round,Date.now());resetPerks(round);perkUI.close();round.lastHit={source:'Sentry',enemyId:'demo-sentry',attack:'projectile'};round.playerMoving=true;takeDamage(round,round.health+(round.shield||0),gameClock());finishRound();},
   teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
@@ -914,7 +917,7 @@ function frameInner(now){
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();
-    updateClears(round,position);
+    if(debugRoomClearsEnabled)updateClears(round,position);
     const result=enterExit(round,position,clock);
     if(result==='perk')openPerk(perkState(round).queue[0]);
     else if(result)finishRound('extraction');

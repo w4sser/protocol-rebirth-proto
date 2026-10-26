@@ -21,16 +21,25 @@ export function createPerkUI(viewport,action){
   const confirmation=document.createElement('p');confirmation.className='perk-confirm';confirmation.setAttribute('role','status');confirmation.textContent='One choice. This raid only.';
   panel.append(close,title,sub,feedback,grid,confirmation);layer.append(panel);viewport.append(layer);
   layer.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();action('minimize');}if(e.key==='Tab'){const els=[...panel.querySelectorAll('button:not(:disabled)')],first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}}});
+  const background=new Map();
+  function setModal(open){
+    viewport.classList.toggle('perk-modal-open',open);
+    if(open){for(const el of viewport.children){if(el===layer||background.has(el))continue;background.set(el,el.inert);el.inert=true;}}
+    else {for(const [el,inert] of background)el.inert=inert;background.clear();}
+  }
   return {layer,open(round,key){
-    const ids=offer(round,key);feedback.replaceChildren();for(const line of recap(round,key)){const p=document.createElement('p');p.textContent=line;feedback.append(p);}
+    const ids=offer(round,key);feedback.replaceChildren();const label=document.createElement('b');label.className='perk-recap-label';label.textContent='LAST ROOM';feedback.append(label);
+    recap(round,key).forEach((line,i)=>{const p=document.createElement('p'),text=document.createElement('span');text.textContent=line;p.append(perkIcon(['shield','roll','chain'][i]),text);feedback.append(p);});
     grid.replaceChildren();confirmation.textContent='One choice. This raid only.';
     for(const id of ids){const c=cards.find(c=>c.id===id),button=document.createElement('button');button.type='button';button.className='perk-choice';button.dataset.accent=c.accent;
       const category=document.createElement('span');category.className='perk-category';category.textContent=c.category;
-      const name=document.createElement('strong');name.textContent=c.name;const effect=document.createElement('span');effect.className='perk-effect';effect.textContent=cardEffect(round,key,id);
+      const name=document.createElement('strong');name.textContent=c.name;const effect=document.createElement('span');effect.className='perk-effect';const effectText=cardEffect(round,key,id);
+      for(const part of effectText.split(/([+-]?\d+(?:\.\d+)?(?:%| HP\/s| HP| ms| s)?)/g)){const el=document.createElement(/^[+-]?\d/.test(part)?'b':'span');el.textContent=part;effect.append(el);}
       const pick=document.createElement('span');pick.className='perk-select';pick.textContent='SELECT PERK';
-      button.append(category,perkIcon(id),name,effect,pick);button.onclick=()=>action('choose',id,button);grid.append(button);
-    }layer.hidden=false;grid.querySelector('button')?.focus({preventScroll:true});
-  },confirm(text,selected){for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');confirmation.textContent=text;},close(){layer.hidden=true;},
+      const badge=document.createElement('span');badge.className='perk-badge';badge.append(perkIcon(id));
+      button.append(category,badge,name,effect,pick);button.onclick=()=>action('choose',id,button);grid.append(button);
+    }setModal(true);layer.hidden=false;grid.querySelector('button')?.focus({preventScroll:true});
+  },confirm(text,selected){for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');confirmation.textContent=text;},close(){layer.hidden=true;setModal(false);},
   hud(round,container){let el=container.querySelector('.perk-hud');if(!el){el=document.createElement('div');el.className='perk-hud';el.setAttribute('aria-label','Active raid perks');container.append(el);}el.replaceChildren();for(const id of perkState(round).taken){const c=cards.find(c=>c.id===id),span=document.createElement('span');span.dataset.perk=id;span.title=`${c.name}: ${perkState(round).selectedEffects?.[id]??c.effect}`;span.setAttribute('role','img');span.setAttribute('aria-label',span.title);span.append(perkIcon(id));el.append(span);}}
   };
 }
