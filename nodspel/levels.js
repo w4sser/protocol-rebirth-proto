@@ -1,6 +1,6 @@
-import {clearPassageProps} from './archipelago-passages.js?v=2.1.1';
-import {townizeLevel} from './town-layout.js?v=2.1.1';
-import {applyEncounters} from './encounters.js?v=2.1.1';
+import {clearPassageProps} from './archipelago-passages.js?v=2.1.2';
+import {townizeLevel} from './town-layout.js?v=2.1.2';
+import {applyEncounters} from './encounters.js?v=2.1.2';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
@@ -206,7 +206,9 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
   const rooms=[],floors=[],walls=[],boxes=[],nodes=[],enemies=[],corridors=[],deadEnds=[];
   // v1.73: Level 1 of the bunker opens in the fixed control room; every level draws its layout from a seeded pool.
   const lay=layoutFor(roundSeed,number),SR=number===1&&area==='bunker'?RULES.startRoom:null,srRng=randomFromSeed(`${roundSeed}:startroom`);
-  const t=RULES.wallThickness,door=SR?SR.closet.width:rule.passage,closets=[];
+  // v2.1.2: archipelago passage openings read .6 wider than their base rule.passage so the
+  // chunky boulder clusters either side have room to sit clear of the walkable gap.
+  const t=RULES.wallThickness,door=(SR?SR.closet.width:rule.passage)+(area==='archipelago'?.6:0),closets=[];
   for(let i=0;i<rule.rooms;i++){
     const ar=lay.rooms?.[i],room={x:between(...RULES.startRoomOffset),z:between(...RULES.startRoomOffset),w:ar?ar.w*sm:between(...rule.size.w),d:ar?ar.d*sm:between(...rule.size.d),name:RULES.roomNames[i],doors:[]};
     if(SR&&i===0)Object.assign(room,{x:SR.x,z:SR.z,w:SR.w,d:SR.d,name:SR.name});
@@ -255,7 +257,7 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
     const side=rng()<.5?1:-1;
     if(rule.partition){
       // The doorway is on one side; the node is behind the solid opposite side.
-      const gap=side*(w/2-1.5),gapWidth=1.8,left=-w/2,right=w/2;
+      const gap=side*(w/2-1.5),gapWidth=1.8+(area==='archipelago'?.6:0),left=-w/2,right=w/2;
       room.partition={x:x+gap,z:z-.8};
       for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z-.8,w:hi-lo,d:t,h:1.7});
     }
