@@ -3847,11 +3847,11 @@ const RARE_RARITIES = new Set(["rare","epic","legendary"]);
 // Loot card grid: up to LOOT_CAP_LG real cards render; CSS hides the tail at narrow heights (LOOT_CAP_SM)
 // and shows a "+N" tile for whichever cap is active, so the panel never scrolls.
 const LOOT_CAP_SM = 5, LOOT_CAP_LG = 6;
-function raidLootGridHtml(entries, cls){
-  if(!entries.length) return '<p class="small loot-empty">' + (cls === "loss" ? "Nothing lost" : "No loot secured") + '</p>';
+function raidLootGridHtml(entries, emptyLabel){
+  if(!entries.length) return '<p class="small loot-empty">' + emptyLabel + '</p>';
   const shown = entries.slice(0, LOOT_CAP_LG);
-  const cards = shown.map((e,i) => '<div class="loot-card ' + cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (i * 45) + 'ms">' +
-    (e.rare ? '<span class="rare-tag">RARE FIND</span>' : '') + e.icon +
+  const cards = shown.map((e,i) => '<div class="loot-card ' + e.cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (i * 45) + 'ms">' +
+    (e.rare ? '<span class="rare-tag">RARE FIND</span>' : (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : '')) + e.icon +
     '<div class="loot-card-row"><span>' + esc(e.name) + '</span><b>x' + e.qty + '</b></div></div>').join('');
   const extraSm = Math.max(0, entries.length - LOOT_CAP_SM), extraLg = Math.max(0, entries.length - LOOT_CAP_LG);
   return cards +
@@ -3887,6 +3887,10 @@ function raidSummaryHtml(r, res, reaction, label){
   const cur = Object.assign({},res.currency); cur.scrap = (cur.scrap || 0) + (res.scrapBonus || 0);
   for(const id of Object.keys(cur)) if(cur[id]) gainedEntries.push({ icon:IC(CUR_ICON_IDS[id] || "cur-scrap"), name:CUR_LABELS[id] || id, qty:cur[id], rare:false });
   const lostEntries = Object.keys(lost).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:lost[id] }));
+  // On extract everything gained is shown as secured loot; on death/timeout, items BIT/secure-slot/Guardian
+  // recovered still render (tagged SAVED, not dimmed) alongside what was actually lost, instead of vanishing.
+  const lootEntries = ext ? gainedEntries.map(e => Object.assign({ cls:"gain" }, e)) :
+    lostEntries.map(e => Object.assign({ cls:"loss" }, e)).concat(gainedEntries.map(e => Object.assign({ cls:"saved" }, e)));
 
   const titleWord = ext ? "EXTRACTED" : (r.outcome === "timeout" ? "LOST" : "KIA");
   const elapsed = Number.isFinite(r.elapsedMs) ? r.elapsedMs : null;
@@ -3914,7 +3918,7 @@ function raidSummaryHtml(r, res, reaction, label){
     '<div class="rs-left"><header class="rs-title"><h1 class="' + (ext ? 'ok' : 'bad') + '">' + titleWord + '</h1><p class="rs-sub">' + sub + '</p></header>' +
       '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div></div>' +
     '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
-      '<div class="loot-grid">' + raidLootGridHtml(ext ? gainedEntries : lostEntries, ext ? 'gain' : 'loss') + '</div>' +
+      '<div class="loot-grid">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
       xpHtml + questHtml + hintHtml + '</div>' +
     noteHtml + '</section>';
 }

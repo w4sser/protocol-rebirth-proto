@@ -1441,46 +1441,57 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   .fab-job .fab-collect[hidden]{display:none}
   .fabl .fab-job .fab-time{display:block}
   .fabl .fab-job b{white-space:normal;font-size:11px}
-/* v2.1.0: full-screen extract/KIA summary (reference: docs art hand-off). BIT art + loot left/right over the raid bg. */
+/* v2.1.0: full-screen extract/KIA summary (reference: docs art hand-off). BIT art + loot left/right over the raid bg.
+   Same fullscreen-overlay pattern as wpnov/fabov/bitov above: fixed, inset:0, z-index:60, no shared pop-x (RETURN TO
+   BASE is the only close action), background art edge to edge including under the top bar. */
+#overlay.raid-summary-ov{position:fixed;inset:0;z-index:60;padding:0;background:#05090b}
+#overlay.sheet.raid-summary-ov{position:fixed!important;inset:0!important;padding:0!important;z-index:60!important;align-items:stretch;justify-content:stretch;background:#05090b}
+#overlay.raid-summary-ov .pop-x{display:none}
+#overlay.raid-summary-ov .inner,#overlay.raid-summary-ov .inner.pop-host{max-width:none!important;width:100%;height:100%;max-height:none!important;margin:0;padding:0}
+#overlay.raid-summary-ov .raid-summary-pop{margin:0!important;max-width:none!important;max-height:none!important;width:100%!important;height:100%!important;border:0;border-radius:0}
+
 .raid-summary{position:relative;overflow:hidden;display:flex;min-height:230px;text-align:left;min-width:0;color:var(--ad-bone);
-  border-radius:14px;background:var(--ad-night) center/cover no-repeat url("assets/ui/extract-bg-1024.webp")}
+  background:var(--ad-night) center/cover no-repeat url("assets/ui/extract-bg-1024.webp")}
 @media(min-width:900px){.raid-summary{background-image:url("assets/ui/extract-bg.webp")}}
 .raid-summary::after{content:"";position:absolute;z-index:0;inset:0;pointer-events:none;
   background:linear-gradient(90deg,rgba(7,21,28,.3) 0%,rgba(7,21,28,.6) 42%,rgba(7,21,28,.93) 66%,rgba(7,21,28,.97) 100%)}
 .raid-summary>*{position:relative;z-index:1}
-.raid-summary-pop{position:relative}
+.raid-summary-pop{position:relative;display:flex;flex-direction:column}
 .raid-summary-pop .raid-summary{flex:1;min-height:0}
 
-.rs-left{display:flex;flex-direction:column;flex:0 0 44%;min-width:0;padding:14px 8px 34px 16px;box-sizing:border-box}
-.raid-summary-pop .rs-left{padding-top:34px;padding-left:44px}
+.rs-left{display:flex;flex-direction:column;flex:0 0 42%;min-width:0;box-sizing:border-box;
+  padding:calc(14px + var(--st,0px)) 10px calc(34px + var(--sb,0px)) calc(16px + var(--sl,0px))}
 .rs-title h1{margin:0;font:900 clamp(20px,7vh,38px)/1 system-ui,sans-serif;letter-spacing:.01em}
 .rs-title .rs-sub{margin:3px 0 0;font:700 10px "Archivo",sans-serif;letter-spacing:.08em;color:var(--ad-bone);opacity:.8;text-transform:uppercase}
-.rs-bit{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0;min-width:0}
-.rs-bit .summary-portrait{width:clamp(64px,20vh,150px);height:clamp(64px,20vh,150px);border:0;background:none;box-shadow:none;animation:rsBitBob 3.2s ease-in-out infinite}
+.rs-bit{flex:1;position:relative;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0}
+.rs-bit .summary-portrait{width:clamp(130px,46vh,220px);height:clamp(130px,46vh,220px);border:0;background:none;box-shadow:none;animation:rsBitBob 3.2s ease-in-out infinite}
 @keyframes rsBitBob{50%{transform:translateY(-8px)}}
-.rs-bubble{max-width:min(260px,92%);padding:7px 12px;border:1.5px solid var(--ad-cyan);border-radius:14px;background:rgba(7,21,28,.8)}
+.rs-bubble{position:absolute;right:0;bottom:8%;max-width:min(78%,230px);padding:7px 11px;border:1.5px solid var(--ad-cyan);border-radius:14px;background:rgba(7,21,28,.88);box-shadow:0 4px 10px rgba(0,0,0,.4)}
 .rs-bubble p{margin:0;font-size:10px;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-.rs-right{flex:1 1 56%;min-width:0;display:flex;flex-direction:column;gap:5px;padding:12px 14px 52px 8px;overflow:hidden;box-sizing:border-box}
+.rs-right{flex:1 1 58%;min-width:0;display:flex;flex-direction:column;gap:5px;overflow:hidden;box-sizing:border-box;
+  padding:calc(12px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(52px + var(--sb,0px)) 8px}
 .rs-right-head{display:flex;align-items:center;gap:10px;margin:0 0 1px;font:900 12px "Archivo",sans-serif;letter-spacing:.06em;color:var(--ad-cyan)}
 .rs-right-head::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--ad-cyan),transparent)}
 .raid-summary[data-outcome="death"] .rs-right-head,.raid-summary[data-outcome="timeout"] .rs-right-head{color:var(--ad-danger)}
 .raid-summary[data-outcome="death"] .rs-right-head::after,.raid-summary[data-outcome="timeout"] .rs-right-head::after{background:linear-gradient(90deg,var(--ad-danger),transparent)}
 
-.loot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-.loot-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 3px;min-width:0;
+.loot-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:4px;flex:1 1 auto;min-height:0}
+.loot-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px;min-width:0;min-height:0;
   border:1.5px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.78);animation:rsCardIn .3s ease-out both}
-.loot-card .pr-itemimg,.loot-card .pr-itemimg-fb,.loot-card .pr-ic{width:22px;height:22px}
-.loot-card img{width:22px;height:22px;object-fit:contain}
-.loot-card-row{display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:4px;font-size:10px}
+.loot-card .pr-itemimg,.loot-card .pr-itemimg-fb,.loot-card .pr-ic{flex:1 1 auto;width:100%;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.loot-card img,.loot-card svg{width:auto;height:auto;max-width:82%;max-height:82%;object-fit:contain}
+.loot-card-row{display:flex;flex:none;justify-content:space-between;align-items:baseline;width:100%;gap:4px;font-size:10px}
 .loot-card-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .loot-card-row>b{flex:none;color:var(--ad-loot)}
 .loot-card.loss{border-color:var(--ad-danger);opacity:.62;filter:grayscale(.35)}
 .loot-card.loss .loot-card-row>b{color:var(--ad-danger)}
 .loot-card.rare{border-color:var(--ad-loot);box-shadow:0 0 12px color-mix(in srgb,var(--ad-loot) 40%,transparent)}
-.rare-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--ad-loot);color:var(--ad-ink);
+.rare-tag,.saved-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--ad-ink);z-index:1;
   font:800 8px/1.5 "Archivo",sans-serif;padding:1px 6px;border-radius:6px;letter-spacing:.03em}
-.loot-extra{display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--ad-cyan);border-radius:8px;color:var(--ad-cyan);font:800 13px "Archivo",sans-serif;min-height:28px}
+.rare-tag{background:var(--ad-loot)}
+.saved-tag{background:var(--ad-cyan)}
+.loot-extra{display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--ad-cyan);border-radius:8px;color:var(--ad-cyan);font:800 13px "Archivo",sans-serif}
 .loot-empty{margin:0;color:var(--dim)}
 @keyframes rsCardIn{from{opacity:0;transform:translateY(6px)}}
 .loot-grid .loot-card:nth-child(n+6){display:none}
@@ -1492,7 +1503,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   .loot-extra.tier-lg{display:flex}
 }
 
-.rs-xp{display:flex;flex-direction:column;gap:3px}
+.rs-xp{display:flex;flex-direction:column;gap:3px;flex:none}
 .rs-xp-head{display:flex;align-items:baseline;gap:10px;font-size:11px}
 .rs-xp-head .lvl{color:var(--ad-cyan);font-size:15px}
 .rs-xp-head .xp-gain{color:var(--ad-cyan);font-weight:800}
@@ -1502,7 +1513,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 @keyframes rsXpFill{from{transform:scaleX(0)}}
 .xpbar-row small{flex:none;color:var(--dim);font-size:10px}
 
-.rs-quest{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.65)}
+.rs-quest{display:flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.65);flex:none}
 .rs-quest>svg{width:18px;height:18px;flex:none;color:var(--ad-cyan)}
 .rs-quest-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .rs-quest-body b{font-size:11px}
@@ -1511,21 +1522,18 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .qbar>i{display:block;height:100%;background:var(--ad-cyan)}
 .rs-quest-n{flex:none;font-size:12px;color:var(--ad-cyan)}
 
-.rs-hint{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ad-loot)}
+.rs-hint{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ad-loot);flex:none}
 .rs-hint svg{width:15px;height:15px}
 
-.rs-note{position:absolute;z-index:1;left:16px;bottom:10px;margin:0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ad-bone);opacity:.85}
+.rs-note{position:absolute;z-index:1;left:calc(16px + var(--sl,0px));bottom:calc(10px + var(--sb,0px));margin:0;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ad-bone);opacity:.85}
 .rs-note svg{width:16px;height:16px;color:var(--ad-cyan)}
 .raid-summary[data-outcome="death"] .rs-note svg,.raid-summary[data-outcome="timeout"] .rs-note svg{color:var(--ad-danger)}
 
-#overlay.raid-summary-ov .inner{max-width:none}
-#overlay.sheet .raid-summary-pop{display:flex;flex-direction:column;width:min(920px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 32px));max-width:100%;box-sizing:border-box;
-  height:calc(100dvh - var(--tb-h,0px) - 20px);max-height:580px;min-height:0;padding:0}
-.raid-summary-pop>button.primary{position:absolute;z-index:2;right:14px;bottom:12px;width:auto;min-width:176px;min-height:40px;padding:0 14px;margin:0}
+.raid-summary-pop>button.primary{position:absolute;z-index:2;right:calc(14px + var(--sr,0px));bottom:calc(12px + var(--sb,0px));width:auto;min-width:176px;min-height:40px;padding:0 14px;margin:0}
 
 @media(prefers-reduced-motion:reduce){.rs-bit .summary-portrait,.loot-card,.xpbar>i{animation:none}}
 @media(max-width:700px){.rs-title h1{font-size:clamp(18px,6.4vh,28px)}.rs-bubble p{font-size:9px}}
-@media(max-height:400px){.rs-bit .summary-portrait{width:clamp(54px,15vh,88px);height:clamp(54px,15vh,88px)}.rs-bubble{padding:5px 9px}}
+@media(max-height:400px){.rs-bubble{padding:5px 9px}}
 
 .bit-tab-badge{display:inline-block;margin-left:4px;padding:2px 4px;font-size:9px;color:var(--ad-cyan);border:1px solid var(--ad-cyan);border-radius:4px;white-space:nowrap}
 .badge-pulse{animation:bitBadgePulse 1s ease-in-out 3;outline:2px solid var(--ad-cyan);outline-offset:-2px;scroll-margin:12px}

@@ -473,6 +473,21 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert.equal(divDeath.querySelector('h1').textContent, 'KIA', 'death title word');
   assert(divDeath.querySelector('.rs-right-head').textContent.includes('RAID LOST'), 'death header reads RAID LOST');
   assert(divDeath.querySelector('.loot-card.loss'), 'lost item rendered as a dimmed/red loss card');
+
+  // Recovered items (BIT rescue / secure slot / Guardian talent) must still render on death/timeout, not vanish:
+  // non-dimmed, tagged SAVED, alongside the dimmed/red loss cards for whatever was actually lost.
+  const rSaved = { outcome:'death', elapsedMs:5000, lost:['cable', 'fuse'] };
+  const resSaved = { added:[], currency:{}, saved:{ secure:'medkit' }, gearLost:['scavenger_vest'] };
+  const divSaved = window.document.createElement('div');
+  divSaved.innerHTML = window.raidSummaryHtml(rSaved, resSaved, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
+  const savedCard = divSaved.querySelector('.loot-card.saved');
+  assert(savedCard, 'secure-slot recovery renders its own SAVED card on death');
+  assert(savedCard.querySelector('.saved-tag') && savedCard.querySelector('.saved-tag').textContent === 'SAVED', 'recovered card carries the SAVED tag');
+  assert(savedCard.textContent.includes('Medkit'), 'recovered card names the saved item');
+  assert(!savedCard.classList.contains('loss'), 'recovered item is not dimmed/red like a loss card');
+  const savedLossCards = [...divSaved.querySelectorAll('.loot-card.loss')];
+  assert(savedLossCards.some(el => el.textContent.includes('Cable')), 'bag losses still render alongside the recovered item');
+  assert(savedLossCards.some(el => el.textContent.includes('Scavenger Vest')), 'gearLost still renders alongside the recovered item');
 }
 /* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
 {
