@@ -1,6 +1,6 @@
-# Designförslag: kärnstriden (PRB, v2.1.1 → nästa)
+# Designförslag: kärnstriden (PRB, v2.1.1 till nästa)
 
-*Status: förslag, inget bygget ännu. Låst riktning som INTE får brytas: PvE only; död förlorar allt man bär på; ingen ny valuta; BIT kör en aktiv uppgift i taget. Konstregel: BIT har inga cyan sidoremsor. Bygger vidare på `docs/design-encounters-toolkit.md` (möten/verktyg) och `docs/design-playtest-oct25.md` (backpack, raid-summary) utan att motsäga dem.*
+*Status: dokumentförslag för Roberts beslut, ingen implementation beställd. PvE; död förlorar allt man bär; ingen ny valuta; BIT kör en aktiv uppgift i taget. Live Fire förblir isolerat. BIT har inga cyan sidoremsor. Utgår från `docs/design-encounters-toolkit.md` och `docs/design-playtest-oct25.md`; ekonomiförändringar kräver separat ägarbeslut.*
 
 Bakgrund – Lords speltest-feedback (ordagrant):
 
@@ -8,338 +8,194 @@ Bakgrund – Lords speltest-feedback (ordagrant):
 
 ## Nordstjärna: plan → feedback → bättre plan
 
-Lords uppföljningssvar på samma speltest (ordagrant):
+Lords uppföljningssvar (ordagrant):
 
 > "Fun = problem solving that is challenging and interesting enough: different options that give different results, you can make a plan, get feedback on what worked and what didn't, and improve the plan next time. If a working plan is just walk forward and shoot, it is 100% not fun."
 
 > "The first level is ok, I get bored when I play 2-3 levels in a row that are quite similar and not challenging."
 
-Det här är nu dokumentets facit, inte bara ytterligare feedback. Varje förslag längre ner mäts mot tre frågor, och sektionerna avslutas med en uttrycklig bedömning mot dem:
+Vi bedömer varje förslag mot **(a) konkurrerande planer med olika utfall**, **(b) begriplig återkoppling** och **(c) variation som gör att spelaren behöver ompröva planen mellan möten och försök**. L1 får vara enkel introduktion. Målet i L2/L3 är att gå fram och skjuta inte konsekvent dominerar alternativ som att vänta, flankera, söka skydd eller välja mål. En lyckad sådan runda är inte ensam ett misslyckande.
 
-- **(a) Val:** Skapar förslaget ett riktigt val med olika utfall – eller finns det en dominant plan som alltid vinner, oavsett situation?
-- **(b) Feedback:** Får spelaren tydligt veta vad som funkade och inte – dödsorsak, rumsrecap, BIT-kommentar, en resultatskärm i stil med "du blev träffad av X medan du gjorde Y"?
-- **(c) Variation + stigande svårighet:** Skiljer sig raid 2–3 och framåt tydligt från varandra och blir svårare, så att "gå fram och skjut" aldrig är en hållbar plan i L2/L3? (L1 får förbli en enkel, oförändrad introduktion.)
+## 1. Diagnos: kodfakta och speltesthypoteser
 
-Förslag som misslyckas mot en eller flera av dessa skärs eller skrivs om nedan – det räcker inte att vara en bra idé i sig, den måste stödja plan → feedback → bättre plan.
+Kontrollerat mot nuvarande `nodspel/` (v2.1.1). Funktionsnamn nedan är sökbara ankare; förslag är inte beskrivningar av befintlig funktion.
 
-**Kärnpelarna (§3) i nordstjärnans ljus:**
-1. Rörelse som färdighet → ger **(a)**: positionering/dodge är ett beslut med olika utfall, inte ett homing-skyddsnät som gör sikte irrelevant.
-2. Läsbart men inte en gång för alla → ger **(c)**: samma fiende kräver en ny plan i nya kombinationer, inte ett permanent inlärt reflexminne efter första mötet.
-3. Ett beslut per rum (perks) → ger **(a)** rum för rum, och **(b)** om nästa rums utfall faktiskt visar att valet spelade roll.
-4. Risk skalar med belöning → ger **(b)**: resultatskärmen måste visa om risken lönade sig, annars är kopplingen till plan/feedback osynlig för spelaren.
-5. Eskalerande tempo mot extract → ger **(c)**, men nordstjärnan skärper kravet: eskaleringen måste synas raid för raid redan från raid 2–3, inte bara i sista rummet av en enskild raid.
+**Sikte och träffar.** `RULES.weapon` i `levels.js` har `assistAngleDegrees:12`, `assistWidth:1.1`, `homingDegreesPerSecond:90`, `homingAngleDegrees:20`. `assistStrength:.65` är definierad men används inte av `assistAim()` i `weapon.js`. Mål måste klara vinkel, sidledsbredd, räckvidd och fri målspårning genom `weaponHit()`; levande aktiva fiender och ännu inaktiva noder kan vara mål. I `fireAimedWeapon()` avgörs en lyckad assisterad träff direkt genom `applyWeaponHit()`. Dess efterföljande tracer är visuell och kan inte skada igen. Fria, ännu oavgjorda projektiler styrs av `steerShot()` i `stepWeapon()`. Att enbart sänka homing påverkar alltså inte de omedelbara assisterade träffarna. Hypotes: assistens generösa behörighetsfönster bidrar till att ungefärligt sikte under rörelse räcker för ofta.
 
-## 1. Diagnos: varför striden känns trist idag
+**Eldrytm och återhämtning.** Nivåernas baskylder är **2400 / 1400 / 1350 ms**, före typmultiplikatorer (sentry ×1,3, rusher ×0,8) och egna mötescykler. `stepGuard()` används av intro-vakt, guard-möte och turret-möte: varning, tre tidsförskjutna skott i samma riktning, återhämtning. Vanliga sentries går genom den vanliga skottloopen och skjuter en projektil åt gången. `RULES.combat.bulletSpeed` är 9 m/s. Mötesberäknad skada i `encounterDamage()` begränsas till 30 % av max HP; det är inte ett generellt tak för alla skadekällor.
 
-Siffrorna nedan är verifierade mot koden (`nodspel/levels.js`, `nodspel/combat.js`, `nodspel/encounters.js`, v2.1.1).
+En kvalificerande fiendedöd i `hitEnemy()` ger **upp till 12 HP**, klampat mot max HP; generatorn räknas inte som en kill. Vapenkills flyttar dessutom **upp till en patron från reserv till magasin**, begränsat av plats och reserv (`applyWeaponHit()`). BIT läker **5 HP/s endast när spelaren står still**: `stepBIT()` kräver både `!moving` och ingen uppmätt förflyttning. Påståendet att HP-flödet ofta blir positivt är en hypotes som kräver faktisk mätning av inkommande skada, kill-läkning och stillastående BIT-läkning.
 
-**1. Du siktar aldrig riktigt själv.**
-- `RULES.weapon` (levels.js:145): `assistAngleDegrees:12`, `assistWidth:1.1`, `assistStrength:.65`, `homingDegreesPerSecond:90`.
-- Ett löst sikte inom 12° korrigeras automatiskt mot närmaste mål, och kulan svänger sedan 90°/s mot det.
-- Kontrollen är "twin-stick, släpp siktespinnen för att skjuta" – men med den korrigeringen räcker det att flicka siktet ungefär åt fiendens håll medan rörelsespinnen fortfarande går framåt. Det är exakt det Lord beskriver.
+**En känd kontring räcker länge.** Guard har en frontsköld med halvvinkel 70° (`shieldBlocks()`), torn har återhämtningsfönster och generatorn håller nodskölden aktiv. Kontringarna är läsbara, men Lord upplever att samma flankering sedan löser mötet varje gång. Koden bevisar inte en universell dominant strategi; kombinationer och placering måste prövas i speltest.
 
-**2. Fiendens skott är sällan ett hot.**
-- `RULES.combat.bulletSpeed:9` (m/s) – enstaka, långsamma skott.
-- `cooldownMs:1400–2400` beroende på nivå (`RULES.levels[].enemyCooldownMs`) – max ett skott var 1,4–2,4 s per fiende.
-- `maxHitFraction:.3` (encounters.js:35) – ett enskilt möte-skott kan aldrig ta mer än 30 % av max HP.
-- En kill ger `+1 ammo +12 hp` (`killReward`, levels.js:143), och BIT läker `5 hp/s` (`bit.healPerSecond`). Nettot är ofta positivt HP-flöde även om man tar en träff per fiende.
+**Upplevd variation och faktisk geometri.** Det finns **fem layoutvarianter per nivå, femton totalt**, med **1/2/3 huvudrum**. L2 varierar dimensioner, avstånd och objektplacering; L3 dessutom ruttriktningar och döda ändens riktning/längd. Bunker L1 har ett fast **13×12 kontrollrum plus skåpsgren**; Archipelago skalar rumsdimensioner ×1,25. Områdena delar generatorgrund med områdesanpassningar. Lords ”2 variants” beskriver upplevd variation, inte antalet kodlayouter. L3:s befintliga döda ände grenar från **rum 0**, medan extract placeras i **sista huvudrummet** (`generateLevel()`). En guardian vid extract måste därför placeras i sista rummet, inte i den befintliga grenen.
 
-**3. Varje "problem" har exakt en statisk lösning, och den är permanent inlärd efter första mötet.**
-- Vaktens frontsköld (`RULES.encounters.guard`, encounters.js:26–31): `frontHalfAngleDeg:70`. `shieldBlocks()` (encounters.js:28) blockerar bara träffar inom 70° framför fienden.
-- Flankera en gång, och lösningen är identisk varje efterföljande gång, i varje raid, resten av spelet – "you get that immediately and then you just do that".
-- Samma statiska mönster för torn (EMP eller rör dig under `recoveryMs:2600`) och skyddad nod (skjut generatorn, `RULES.encounters.shield`). Ingen av dem varierar sig själv över tid.
+**Progression och Hard.** Observation: inget nuvarande in-raid perksystem; inget påstått kodcitat behövs. Hard har redan HP ×1,4, skada ×1,2, extra kroppar och möteskombinationer, bland annat Guard+Turret. Beteendemässiga elitmodifierare och en boss är nya förslag ovanpå detta. Noder, loot, vapenswap och meta-utrustning ger redan beslut; hypotesen är att de inte räcker för att bära själva striden över flera liknande nivåer.
 
-**4. Bara tre rumsformer existerar.**
-- `RULES.levels` (levels.js:12–14): L1 `rooms:1` ("Control Room"), L2 `rooms:2` + `passage:1.8` + `partition:true` ("Narrow Passage"), L3 `rooms:3` + `deadEnd:true` ("Dead End").
-- Layoutpoolerna har 5 varianter per nivå (a–e, levels.js:69–89), men de skiljer bara rumsstorlek (10–15 m) och objektoffset – topologin är identisk inom varje nivå.
-- Bunker/archipelago/town återanvänder samma generator, bara återskinnad (`townizeLevel`, `clearPassageProps`).
-- Lords "bara 2 varianter" stämmer i praktiken: en korridor-form (L2/L3, i grunden samma form med ett rum till) och en enrumsform (L1).
+**Rumsinträde är inte rensning.** `createCombat()` lägger startrummet i `visited` direkt. `stepCombat()` använder första inträde för ankomstgrace, inte för att avgöra om fiender är besegrade. Inaktiva L2-reserver väcks av `activateNode()`; svärmens medlemmar väntar på `stepSpawners()` och närhetstrigger. Ett nytt klartillstånd behövs enligt §5.
 
-**5. Ingen progression inom raiden.**
-- Kommentar i koden själv (levels.js:14): *"No in-raid progression: no perks/abilities, no level-up during the raid; power comes only from meta (gear/skills) before the raid. Loot/extract is the goal, combat is a fee."*
-- Striden är en avgift man betalar för loot, inte spelet man spelar – inget bygger sig upp eller känns annorlunda mellan raid #1 och raid #50 förutom meta-gearet.
+## 2. Referenser som designinspiration
 
-**6. Fast målkedja.**
-- Nod → nod → exit i samma mönster varje raid (`RULES.start`, `RULES.exit`, `nodeHoldMs:2000`).
-- Inget spatialt val utöver att gå rätt väg (L2 har ett litet undantag, `routeChoices`, men det är det enda i hela systemet).
+Archero inspirerar växlingen mellan förflyttning och ett skottläge samt små återkommande uppgraderingsval. Survivor.io inspirerar en tillfällig byggidentitet under körningen. Soul Knight inspirerar läsbara rumsmöten och Brawl Stars tydliga roller och synliga projektiler. Detta är designreferenser, inte verifierade produktjämförelser eller ett förslag att kopiera deras kontroll eller ekonomi.
 
-**7. Ingen koordinering, inga kulmönster, inga eliter/bossar.**
-- AI:n är ett enkelt tillstånd per fiende (`stepEnemy`/`stepGuard`, combat.js): närma dig till standoff, ladda, skjut en rak salva, återhämta.
-- Inga formationer mellan fiender, inga fan-/spread-mönster, ingen final-strid någonstans i raiden.
+Översättning till vårt spel: behåll sikte som släpps för skott, pröva korta skottfönster mellan förflyttningar och få befintliga fiender att skapa olika prioriteringsproblem tillsammans.
 
-## 2. Vad gör Archero / Survivor.io / Soul Knight / Brawl Stars kul
+## 3. Fem kärnpelare
 
-**Archero** (gamedeveloper.com "Finding the Fun: Archero"; deconstructoroffun "How Archero Shot to the Top"; Macmillan "Difference and repetition in Archero"):
-- Man rör sig ELLER skjuter – står man still autofyras närmaste fiende. Rörelse är själva färdigheten, inte transport.
-- Fiender har tydliga, konsekventa mönster per typ – man lär sig en fiende en gång men möter den i nya kombinationer.
-- Vissa fiendeprojektiler flyger över hinder som ens egna pilar inte gör → ett positioneringspussel, inte bara ett siktepussel.
-- Skärmstora rum (man ser alla fiender direkt vid ingång), korta utbrott följt av en paus-rytm.
-- Vid level-up väljer man 1 av 3 slumpade förmågor (pool ~50, tak ~11/kapitel) med stapelbara synergier (multishot, studs, frontpil).
-- Ängel-/djävulsrum som bonusbeslut, boss var 10:e rum.
+1. **Rörelse och skottfönster är beslut.** Stanna för större assistfönster eller skjut i rörelse för lägre exponering; inget av alternativen ska vinna i alla möten.
+2. **Läsbar fiende, varierande sammanhang.** Behåll tydliga varningar och befintliga skyddsregler. Variera kombination och skyddsvinkel före nya fiendetyper.
+3. **Ett val efter varje rensat huvudrum.** Pick-1-av-3 ger en tillfällig in-raid plan, följd av synlig återkoppling om vad valet faktiskt gjorde.
+4. **Risken tillhör extraction.** Loot förblir osäkrat tills extract. Ett perk får inte rädda buren loot vid död; ekonomi och lootnivå ändras endast efter separat ägarbeslut.
+5. **Nästa möte ska motivera en bättre plan.** L2/L3 ska skilja sig genom befintliga hot och placering. Eskalering bedöms med spelarens planbyten, inte bara högre HP eller fler projektiler.
 
-**Survivor.io** (Vampire Survivors-släkt):
-- Auto-attack, växande horder, XP-kristaller.
-- 1-av-3-val vid level-up, vapen- och passiv-evolution.
-- Maktfantasi byggs upp gradvis över en 10–15 minuter lång körning.
+Pelarna är riktning, inte fem redan godkända resultat. (a) prövas med strategijämförelser, (b) levereras uttryckligen i §8 och (c) börjar med den begränsade mötesrotationen i §7.
 
-**Soul Knight**:
-- Twin-stick roguelite, rumsbaserad dungeon.
-- Stridsrum låses tills de är rensade, sedan öppnas en kista.
-- Många vapen + en karaktärsförmåga, buffar mellan våningar.
-- Fiender med kulmönster, boss per våning.
+## 4. Kärnexperiment: assist, fan och befintliga kombinationer
 
-**Brawl Stars**:
-- Korta matcher, tydliga roller/arketyper per karaktär.
-- En super-förmåga laddas av träffar.
-- Läsbara projektiler man aktivt dodgear.
-- Buskar/väggar som taktisk terräng, inte bara skydd.
+**Rörelseberoende assist.** PR1 berör uttryckligen `weapon.js`: `assistAim()`, dess förhandsvisning och anropet från `fireAimedWeapon()`. Första tuninghypotesen är att minska vinkel/bredd från 12°/1,1 m till 4°/0,4 m under rörelse; stillastående behåller dagens fönster. Detta är experimentvärden, inte utlovad balans. Rörelseläget utgår från faktisk förflyttning inklusive dash och knuff, med samma tillstånd vid siktesförhandsvisning och skott. En spak som hålls mot en vägg ska inte ensam räknas som förflyttning. BIT:s nuvarande striktare stillaståendevillkor ändras inte av experimentet.
 
-**Gemensamt mönster:** rörelse som färdighet, läsbara men varierade/kombinerbara mönster, ett återkommande litet beslut (perk/evolution) som gör varje körning olika, och eskalerande tempo mot en final.
+Fria projektilers styrning är en separat ratt: testa lägre `homingDegreesPerSecond` under rörelse, utan att påstå att det ändrar redan assisterade träffar. Tillståndet vid avfyrning följer projektilen; att släppa spaken efter skott ska inte återställa stark homing. Behåll samma inputmetod och samma vapenroller. Global kontrolltuning påverkar även L1, vilket måste godkännas och förståelighetstestas; L1:s mötesinnehåll byggs inte om.
 
-## 3. Kärnpelare
+**Fan bara för turret-mötet i MVP.** I `stepGuard()` får `encounter==='turret'` tre låsta skottriktningar −15°/0°/+15° kring riktningen vid varningen, fortfarande med befintliga skottintervall och återhämtning. Fanens ytterkanter visas under hela befintliga varningen. Guard, intro-vakt och normal sentry behåller sina egna mönster. Separat sentry-fan eller patrullsvep ligger i obunden backlog. Hypotes: fan plus en flankerande fiende gör val mellan skydd, målordning och flytt under återhämtning mer intressanta. En bred fan kan också skapa luckor; den garanterar inte att gå-och-skjuta slutar fungera.
 
-*(Se Nordstjärna ovan – pelarna nedan är den omsatt i systemregler.)*
+**Lobbning.** Typen `thrower` går genom kastgrenen (`lobGrenade()`/`stepBlasts()`), snarare än vanlig projektilspårning mot skydd. Men målringen skapas bara när `windup>0`: vanliga L2/L3-throwers saknar idag både egen `windupMs` och nivåns `enemyWindupMs`, så typen ensam garanterar inte ett fungerande ring/kast. Den namngivna mötesvarianten `grenadier` sätter uttryckligen sin varning och egna stats; PR1 återanvänder just den fungerande mötesvarianten och förutsätter ingen fix av vanlig thrower. Ingen generell `lobber:true` byggs. Att lämna en ring kan gå utmärkt under gång och skytte. Hypotesen gäller hur ringens läge samspelar med andra hot, inte att lobbning i sig bevisar ett planbyte.
 
-1. **Rörelse är färdigheten, inte transportmedlet.** Positionering/dodge ska vara huvuduttrycket för skicklighet – inte homing/assist som kompenserar för att man inte siktade.
-2. **Läsbart men inte en gång för alla.** Telegraf kvarstår (coral-varning ≥ 1 s, ingen träff > 30 % HP), men lösningen ska inte bli ett permanent reflexminne efter första mötet – elitvarianter och nya mönster håller spänningen uppe.
-3. **Ett beslut per rum.** Pick-1-av-3-perk efter varje rensat rum ger byggidentitet inom en körning, utan att röra meta-progressionen.
-4. **Risk skalar med belöning, i samma logik som extraction.** "Giriga" perks och ruttval kopplar stridsrisk direkt till lootrisk – matchar regeln att död redan kostar allt man bär på sig.
-5. **Eskalerande tempo mot extract.** Eliter och en liten guardian före sista extract-fönstret gör slutet till en topp, inte mer av samma.
+**Nordstjärnebedömning:** assist jämför säkert skottläge med rörelse; turret-fan jämför väntan i skydd med flytt/flank; kombinationer jämför målordning. Synliga varningar ger omedelbar feedback, men förklarar inte ensamma missar eller dödsorsak. PR2:s recap krävs innan vi påstår att hela feedbackloopen fungerar. Värden justeras efter jämförda utfall, inte automatiskt mot hårdare straff om spelaren fortsätter röra sig.
 
-## 4. Moment-to-moment-förslag
+## 5. Pick-1-av-3 och verklig rumsrensning
 
-**a) Testa en stanna-för-att-skjuta-variant, inte en fullständig Archero-konvertering.**
-- Behåll dagens kontroll (sikte-spinn släpps för att skjuta) – ingen ny inputmetod.
-- Gör homing/assist rörelseberoende: `homingDegreesPerSecond` sänks från 90 till ~20–30 medan rörelsespinnen är aktiv, återgår till fullt (eller högre, t.ex. 110) när den är neutral.
-- Samma princip för `assistAngleDegrees` (12° → 4° i rörelse).
-- Resultat: att gå och skjuta funkar fortfarande mot stillastående/svaga mål på nära håll, men "bara gå framåt och skjuta" mot torn/vakt på distans slutar träffa pålitligt – man måste stanna för rena skott mot de farligare fienderna.
+### Rensningskontrakt för PR2
 
-**b) Svagare homing generellt + fiendemönster som kräver sidledsrörelse.**
-- Torn/sentry-salvan (`RULES.encounters.turret`, idag en rak 3-skotts salva) byggs om till en **fan** (±15° spridning över `burstShots`) så ett enda steg i sidled inte räcker för att stå still och tanka.
-- Kombinerat med (a): att stanna ger bättre sikte men exponerar dig för en bredare spridning – en riktig avvägning i stunden, inte bara ett lönsamt val.
-- Patrullens sikte-kon (`RULES.encounters.patrol`, 35°) kan på samma sätt få en bredare men långsammare svep-variant på senare nivåer, så "sno bakom den" fortfarande funkar men kräver bättre timing.
+Nytt tillstånd per `(raid, nivå, huvudrumsindex)`: `unresolved`, `clearPending`, `rewardPending`, `rewarded`. Separat från `combat.visited`. Skåpsgren, korridor och död ände ger inte egna perks. Utvärdera först efter färdig områdes-/mötesplacering och att rummet faktiskt tagits i spel; ingen belöning under generering. MVP-placering ska ge varje huvudrum minst en ägd stridsgrupp eller obligatorisk nod, så att tomma listor inte blir en gratis inträdesbelöning. Återanvänd befintliga kroppar för detta.
 
-**c) Hinder som blockerar spelarens skott men inte alla fiendeprojektiler.**
-- `traceTargets` blockerar redan linje för båda sidor mot lådor/väggar (symmetriskt) – idag är skydd alltid 100 % pålitligt.
-- Förslag: gör granatkastarens ring-på-marken-mekanik (encounters.js, `placeGrenadier`) till en generell egenskap (`lobber:true`) som fler arketyper kan bära.
-- En lobbers skott flyger i en båge över 1,1 m-lådor och kan inte blockeras av vanligt skydd – bara dodgeas genom att lämna ringen innan den smäller.
-- Resultat: skydd blir pålitligt mot grunt/sentry/torn men inte mot lobber-typer, vilket tvingar ett aktivt beslut ("är det säkert att stå still här just nu?") istället för "hitta ett skydd en gång, stå där resten av rummet".
+- Vid generering tilldelas varje fiende, reserv, spawner och generator ett stabilt `homeRoomId`. Utgångspunkt är ursprunglig placering; grenar tillhör sitt anslutna huvudrum. Svärmbarn ärver spawnerns ägarskap. Det är ny metadata, inte något som antas finnas idag.
+- Alla ägda stridsfiender måste vara döda, **även `active:false`-reserver**. En fiende som går till grannrummet tillhör fortfarande sitt hemrum; att locka den över en tröskel räknas inte som en kill. Dess aktuella rum får inte presentera sig som säkert medan den lever där.
+- En ägd svärm måste ha triggats, avslutat utsläppet och fått samtliga medlemmar besegrade. En otriggerad svärm är olöst. PR2 placerar dess tillgängliga trigger på rummets nod-/genomgångsväg och visar ”svärmkälla kvar”; ingen perk ges genom att undvika den. Utträde/extract spärras inte för att tvinga denna belöning.
+- Ägda noder måste vara aktiverade. Det väcker dagens reserver. En ägd generator måste vara förstörd för perk-clear, även om tillfällig EMP gjorde det möjligt att aktivera noden. Generatorn är stödobjektiv, inte kill-belöning. En valfri låst lootgren kräver inte öppning för clear; inga clear-kritiska objekt får placeras bakom den.
+- När dessa villkor uppfyllts är rummet `clearPending`. Vid första säkra presentation blir det `rewardPending`, vilket kvarstår även om pickern minimeras. För popup krävs dessutom att spelaren befinner sig där, inga levande främmande fiender finns i rummet och inga redan avlossade projektiler, pågående varningar eller bomber kan hota spelaren. En aktiv skadeplatta under spelaren skjuter också upp popupen. Hot och timer fortsätter tills ett säkert läge nås; ingen konstgjord projektilrensning används för belöningen.
+- Avlägsna oaggro fiender i andra rum blockerar inte hela nivån. Ett tillkommande hot skjuter upp presentation, men återställer aldrig en redan utbetald belöning. Köade belöningar behåller sitt rums-ID; endast en popup visas åt gången. Vid nivåbyte presenteras en väntande belöning i det säkra nivåresultatet före fortsatt spel; rummet behöver inte återbesökas. **Händelseordning:** uppdatera död/nod/spawner och clear före `enterExit()` samma frame. Fånga en intjänad men väntande belöning före nästa nivå och före L3:s automatiska `secureBag()`/`over`/resultat; håll själva avslutet väntande medan valet är pausat och fullfölj sedan extraction utan ny strid. Detta är en uttrycklig ändring av dagens slutflöde, inte ett antagande att en picker kan öppnas efter att raiden redan avslutats. Vid extraction utan full rumsrensning skapas ingen extra clear-belöning. Död/timeout ger ingen ny perk, och en övergiven olöst rumsbelöning följer inte med som gratis clear.
+- Rummet blir `rewarded` atomiskt med valet. Om ett nytt hot sedan kommer dit ges ingen andra perk. Inga nya respawns behövs för detta system. Placering/aktivering måste valideras så att reserver och trigger alltid går att nå; ett ogiltigt seed är ett placeringsfel, inte skäl att räkna levande reserver som döda.
 
-**d) Varför "gå fram och skjut" slutar vara en fungerande plan i L2/L3.**
-Namngivna mekanismer, inte en förhoppning:
-- **Rörelseberoende homing (§4a):** gå och skjut samtidigt tappar träffsäkerhet mot allt bortom närhet – rätt plan mot torn/marksman blir "stanna, skjut, flytta", inte "gå och skjut".
-- **Fan-salva (§4b):** ett enda sidosteg räcker inte längre mot sentry/torn; kräver faktisk sidledsrörelse, dvs. ett dodge-krävande mönster.
-- **Lobber-egenskap (§4c):** går runt skydd och kräver att man lämnar en ring innan den smäller – ett positioneringspussel som inte går att lösa genom att bara gå och skjuta från valfri ruta.
-- **Fiendekombinationer (§6/§7):** Guard+Marksman straffar flankvägen (marksman har fri sikt dit du flankerar); Svärm+Sentry straffar att stå och tanka fan-salvan medan rushers kommer in i flanken. Ingen enskild arketyp löser kombon – planen måste ändras mitt i rummet.
-- **Perk-avvägningar (§5):** giriga perks sänker buffert (lägre maxHP, inga medkits) så att tanka-skador inte längre är gratis; "Stillståndsskott" gör det aktivt sämre att bara gå och skjuta eftersom den belönar att stanna.
-- **Core Guardian (§6):** tvåfas-fiende tvingar ett planbyte mitt i striden (flankera skölden → dodga bredare fan + ryckframryckning), rakt motsatsen till en enda gå-fram-plan.
+**Pausbeslut:** när pickern öppnas pausas **både strid och raidtimer**, inklusive hazard, BIT-läkning, projektiler, spawner, vapencykler och verktyg. Pausen börjar inte vid `clearPending`. Använd en gemensam pausad speltid för samtliga dessa system: dagens `tickRound()` räknar mot absolut deadline, så att enbart stoppa renderloopen räcker inte. Även visibility- och knappvägar måste använda samma tid. Nollställ hållna rörelse-/siktes-/eldinputs vid öppning och återgång. Stängmärket uppe till vänster minimerar valet till en diskret väntande belöning och återupptar tiden; det väljer inget automatiskt. Återöppning pausar igen. Ett väntande val kräver ett uttryckligt val före fortsatt nivå eller avslutad extraction, men får aldrig tvinga in spelaren i nästa nivå.
 
-**Bedömning mot nordstjärnan:**
+### Exakt åtta MVP-perks
 
-| Förslag | (a) Olika utfall? | (b) Tydlig feedback? | (c) Variation/eskalering raid 2–3+? | Dom |
-|---|---|---|---|---|
-| a) Rörelseberoende homing | Ja – stå still vs. gå ger olika träffsäkerhet, ett verkligt läges-val | Delvis – spelaren känner det i träffprocent, men inget explicit visar "du missade för att du rörde dig" | Ja, men bara om fler arketyper (marksman, PR2) utnyttjar det – utan dem märks skillnaden mest mot torn | **Behåll**, men koppla till en explicit feedback-rad (se §9) |
-| b) Svagare homing + fan-/sveep-mönster | Ja – stå still (bättre sikte) mot bredare exponering är en riktig avvägning | Ja – en bredare salva som träffar ger ett tydligt "du stod still för länge"-utfall | Ja – kan trappas upp (bredare fan, snabbare svep) nivå för nivå utan ny konst | **Behåll** |
-| c) Lobber som generell egenskap | Ja – "är det säkert att stå still här" är ett äkta beslut per sekund | Delvis – dödsorsak måste peka ut lobbern specifikt (redan möjligt via `round.lastHit.source`, men bara om lobber-typer får ett eget tydligt namn i UI) | Ja – fler arketyper kan bära den i PR2, naturlig eskalering | **Behåll**, men PR1 bör inte lova mer än granatkastaren (redan i §8) |
+Poolen nedan ersätter den tidigare 19-kortskatalogen som implementationsunderlag. Ingen multiskottsmotor, lootomrullning, extra fiendespawn, ny aktiv knapp eller valuta ingår. Alla kort har **max en stack per raid**. Välj tre distinkta ännu ovalda kort, seedat på raid och rums-ID; inga omrullningar genom stäng/öppna. Högst sex huvudrum ger sex val, så minst tre ovalda kort finns inför det sjätte valet. Fördröjda val behandlas i rumsordning. Effekterna nollställs vid död, extract eller avslutad raid, aldrig vid vanligt nivåbyte.
 
-## 5. In-raid perk-system
-
-Efter varje rensat rum (möte löst / alla fiender i rummet nere) väljer spelaren **1 av 3 slumpade perks**. Perks är **enbart in-raid**: de nollställs helt vid extract eller död, påverkar inte meta-progressionen och skapar ingen ny valuta – de är ett tillfälligt lager ovanpå den redan existerande meta-utrustningen (`RULES.playerStats`, `RULES.weaponIds`). 19 perks nedan, fördelade på fyra kategorier.
-
-### Offense (5)
-
-| Perk | Effekt | Synergi | Nordstjärna |
+| Perk | Exakt föreslagen effekt, inklusive gräns | Konkurrerande planer | Synligt utfall och spelarens justering nästa försök |
 |---|---|---|---|
-| Multiskott | +1 projektil per salva, −10 % spridningsnoggrannhet | Breach Shotgun (fler pellets totalt) | (a) opportunitetskostnad mot de andra 2 valen räcker; (b) syns i träffstatistik. **Behåll** |
-| Studs | Ett skott per salva studsar en gång mot närmaste fiende inom 4 m | Vector SMG (hög eldhastighet ⇒ fler studsar) | Samma som ovan. **Behåll** |
-| Avrättare | +25 % skada mot fiender under 30 % HP | Marksman Rifle (hög skada per skott når tröskeln snabbt) | (a) stark mot segslitna möten, svag mot snabba kills – reellt val. **Behåll** |
-| Kedjereaktion | En kill laddar nästa skott med +50 % skada (1 laddning) | Alla vapen, starkast vid hög eldhastighet | (a/b) belönar sekvensering (kill-ordning), syns direkt i nästa skottskada. **Behåll** |
-| Stillståndsskott | Skott avlossade med neutral rörelsespinn (§4a) får full homing + 20 % extra skada | Marksman Rifle, kontrar §4b:s fan-mönster | (a) rak motvikt till §4a – att stanna blir ett eget val, inte bara ett straff. **Behåll** |
+| Kedjereaktion | En kvalificerande vapenkill laddar nästa verkliga skott med +50 % skada. Max en laddning; den förbrukas även vid miss/block. Ingen laddning från generator; max en stack. | Börja med svagt mål och använd laddningen mot guard, eller fokusera farligast direkt. | Recap visar laddat skott, mål och faktisk extra skada eller miss/block. Nästa försök: byt första mål eller vänta tills flanken är öppen. |
+| Lugn omladdning | Vapnets ordinarie omladdningsintervall −20 %, aldrig under 250 ms; ingen gratis ammunition, ingen ändrad magasinsstorlek; max en stack. | Håll skydd och återladda, eller riskera korta skottfönster med patroner kvar. | Vapencykel och recap visar sparad omladdningstid och reservbrist. Nästa försök: sök skydd tidigare eller välj ett annat kort om reserven är begränsningen. |
+| Rullning | Dash-cooldown ×0,75 med golv 2000 ms; ingen ändrad dashsträcka eller osårbarhet; max en stack. **Vid L3:s sista clear i stället:** återställ dash omedelbart och ge 3 s raidtid, utan ny stack. | Spara dash till varningen eller använd den för flankering. | Recap visar dashar och om cooldown var klar vid senaste skada. Nästa försök: spara till senare skott eller flankera tidigare. |
+| Nödsköld | Första skada som lämnar spelaren vid högst 20 % HP och över 0 HP aktiverar 50 % reduktion av efterföljande skada i 2 s. Den utlösande träffen reduceras inte; ingen återupplivning. En laddning per huvudrums-ID, användbar där och i dess anslutna gren; varje rum får sin budget en gång, aldrig via återinträde. Vid val i ett just rensat rum finns en första laddning där; nästa laddning hör till nästa tidigare obudgeterade rum; max en stack. | Retirera före låg HP eller använd korta räddningsfönstret för att nå skydd. | Tydlig aktiveringsmarkör; recap visar sparad skada och att laddningen är spenderad. Nästa försök: backa tidigare, inte förlita sig på samma sköld vid återinträde. |
+| Fältmedik | BIT:s normala stillastående läkning 5 → 8 HP/s; samma rörelse-, HP- och uppgiftsvillkor som normalt, ingen parallell läkning; max en stack. | Stå säkert och läka eller fortsätt mot extract innan tiden tar slut. | Recap visar faktiskt läkt HP och stillastående läkningstid. Nästa försök: byt läkningsplats eller avstå kortet om stillastående kostar för mycket tid. |
+| Spaning | Passiv markering av redan telegraferande fiendes identitet/riktning under dess befintliga varning samt av kvarvarande lootlådor i det rensade huvudrummet. Ingen tidigare skadestart, förlängd varning, lootroll eller aktiv BIT-uppgift; max en stack. **Vid L3:s sista clear i stället:** visa alla befintliga oinsamlade lådor i nivån och ge 5 s raidtid, utan ny stack. | Använd informationen för säker prioritering/lootväg eller välj rå stridsstyrka. | Markeringen och recap visar vilken källa som varnade och vilka befintliga lådor som återstod. Nästa försök: välj annan väg/mål; välj bort Spaning om egen läsning redan räcker. |
+| Fältförband | Läk omedelbart upp till 20 HP vid valet, utan ändrad max HP, medkitförbrukning eller räddad loot; max en stack. **Vid L3:s sista clear i stället:** samma omedelbara läkning och dessutom 8 s raidtid, utan ny stack. | Säker HP nu eller framtida värde från Fältmedik. | Val och recap visar verklig HP-vinst, inklusive klampning. Nästa försök: välj tidigare återhämtning eller ett annat kort när HP redan är fullt. |
+| Tidsmarginal | Lägg omedelbart 8 s till återstående raidtid, aktuell deadline och `durationMs`-taket som `tickRound()` använder, en gång; ingen effekt på cooldowns eller belöningstabeller; max en stack. | Lägg tiden på loot/säkert skottläge eller extrahera utan ytterligare risk. | Timer och recap visar tillägget och tid vid extract. Nästa försök: planera kortare lootväg om tillägget ändå inte räcker. |
 
-### Defense (5)
+Siffrorna är exakta för den föreslagna prototypen, inte slutbalans. Varje terminal tidsbonus uppdaterar också återstående tid, deadline och `durationMs`-tak tillsammans, så att dagens klampning i `tickRound()` inte äter upp bonusen. Nödsköldens rumsbudget lagras separat från clear-state; tröskelpassage och återinträde får inte ladda om den. I korridor används senast besökta huvudrums budget, inte en ny laddning. Alla procentsatser, tider och gränser placeras i `data/*.js` vid en senare implementation, inte som ny hårdkodad ekonomi/tuning i UI eller stridsfunktioner.
 
-| Perk | Effekt | Synergi | Nordstjärna |
+**Sista rummets värde:** Efter L3:s sista clear finns inte ett nytt stridsrum att bygga för. Valet för just detta rum använder därför de tre terminala varianterna **Rullning, Spaning och Fältförband**, med ersättningseffekter direkt i tabellens effektkolumn. Det gäller oberoende av antal tidigare rensade rum och tidigare val, utan ny stack; äldre köade rumsbelöningar behandlas alltid först enligt rumsordningen ovan. Valet gäller transport/lootväg kontra återhämtning/tidmarginal före extract; inget ändrar lootinnehåll. Tidstillägget är användbart för återstående väg till extract även om HP är fullt eller lådorna tomma. Om belöningen måste fångas först när spelaren redan nått exit återstår däremot inget taktiskt terminalvärde; visa då valet tillsammans med avslutsrecapen och mät det som ett innehållslöst slutval, inte som lyckad planvariation. Om allt redan är hämtat och ingen transportåtgärd behövs kommer tidskortet rimligen dominera; vi påstår inte att slutvalet då är tre likvärdiga taktiska val. Mät detta separat och fråga Robert om sista belöningen hellre ska vara ett förenklat avslutsval efter MVP-testet. Ingen utgång låses för att spelaren ska tvingas ta ytterligare risk.
+
+**Loot-timing:** `generateLevel()` bestämmer lådornas föremål innan striden; vissa kan redan vara insamlade vid clear. MVP lägger endast information över befintliga lådor. Inget insamlat eller genererat föremål omrullas retroaktivt. Framtida ”nästa rums loot”-kort får först påverka ett ännu inte genererat nästa nivåinnehåll eller uttryckligen nya, ännu inte rullade belöningar; inte tyst skriva om nuvarande rum. De måste uteslutas om inget framtida mål finns. Girig ficka (kapacitet), Högriskhandel/Plundrarens tur (lootnivå/chans), Djupdykare (extra låda/fiende) och Allt eller intet (`extractScrapBonus`) ingår inte i MVP och kräver Roberts ekonomibeslut innan specifikation/implementation.
+
+### BIT:s enda aktiva uppgift
+
+Spaning ovan är ett passivt UI-lager. Det upptar inte BIT:s uppgiftsplats och ändrar inte anfallsförvarningens tid. Fältmedik förstärker endast den befintliga uppgiften läkning. Ingen heal sker under en annan aktiv perk-uppgift.
+
+Två tidigare idéer är uttryckligen obunden backlog, med följande kontrakt om Robert vill gå vidare:
+
+- **Lockfågel:** en aktiv uppgift som lockar en rörlig fiende i 3 s, 20 s cooldown från start. Prioritet: raid slut avbryter allt; Lockfågel avbryter följ/läkning; Nödreparation får avbryta Lockfågel en gång vid sin tröskel. Avbrutet lock förbrukar hela cooldownen och återupptas inte automatiskt. Annars återgår BIT efter 3 s till normal läkning om spelaren står still och behöver HP, annars följ. Val: locka nu för flank eller spara till nästa hot; synligt utfall: locktid och utebliven BIT-läkning; nästa försök: lägg locket före flankeringen i stället för under reträtt.
+- **Nödreparation:** en gång per raid vid övergång under 30 % HP, reservera en läkuppgift på högst 3 s och högst 10 extra HP utöver normal läkning; kräver fortfarande stillastående och levande spelare. Den avbryter Lockfågel enligt ovan. Rörelse avbryter läkning och förbrukar återstoden; ingen dold kö och ingen återupptagen gratis läkpuls. Efter fullföljd eller avbruten puls återgår BIT till normal prioritet läka/följ. Val: stanna i skydd för pulsen eller flytta undan hotet och förlora resten; synlig pulsbudget/recap visar utfall; nästa försök: retirera till skydd före tröskeln. Inte en ny beskrivning av dagens automatiska BIT-läkning.
+
+**Bedömning:** varje behållet kort har ovan en konkurrerande plan, observerbar effekt och spelarjustering. Det gör dem prövbara, inte godkända mot alla tre kriterier. Variationen kommer från olika val ihop med olika möten; ett kort som alltid vinner eller bara ger obegriplig statistik skrivs om eller tas bort. Slutvalets begränsade variationsvärde är en uttrycklig öppen fråga.
+
+## 6. Åtta taktiska fiendearketyper och kontringar
+
+Detta är åtta taktiska roller, **inte åtta bokstavliga `enemyTypes`**. Kodens vanliga typer är grunt, rusher, sentry och thrower; encounter-varianter har ytterligare beteende. Tabellen separerar sentry och turret, samt ordinarie rusher och svärmmöte. Ingen ny fiendetyp behövs i MVP.
+
+| Arketyp och kodstatus | Beteende/mönster idag | Kontring och konkurrerande planer | Placering och prövbar kombination |
 |---|---|---|---|
-| Rullning | Dash-cooldown −25 % | Alla vapen; synergi med giriga perks nedan | **Behåll** |
-| Fantomrull | Osårbarhet under hela dashen (idag ingen i-frame) | Räddar giriga byggen från en felläst fan-salva | (a) FAILAR – hel dash-osårbarhet gör dash till en universallösning mot alla mönster (fan, lobber, svärm), ingen kvarvarande plan behövs. **Omarbeta:** kort i-frame (t.ex. 150–200 ms kring dashstarten), inte hela dashens längd |
-| Taggpansar | Fiender som träffar dig på <1,5 m tar 2 skada tillbaka | Rusher/svärm-tunga rum | (a) nischval mot specifika arketyper. **Behåll** |
-| Nödsköld | Under 20 % HP: automatisk 2 s skadereduktion, en gång per rum | Kompenserar för giriga HP-perks | (b) engångs-karaktären gör att spelaren märker exakt när den tog slut. **Behåll** |
-| Barriärkliv | Dash flyttar dig förbi en redan avlossad salva utan att träffas | Kontrar torn/guard-salvor direkt | (a) begränsat till en redan avfyrad salva, kräver fortfarande timing – inte en blankocheck. **Behåll** |
+| Grunt, vanlig typ | Närmar sig till standoff 3,5 m, ett rakt skott per cykel. | Bryt siktlinjen eller döda före nästa skott. | Alla nivåer; svag ensam men kan täcka reträtten från en guard. Mät om målordning ändras. |
+| Rusher, vanlig typ | Snabbare rörelse, standoff 1,2 m, kortare skotträckvidd; inte en ren kontaktfiende. | Ta tidigt eller använd dash/korridor och fokusera annat hot. | L2/L3-blandningar, men även Archipelago L1 har rusher i mixen. Mät avstånd/skada vid vald prioritet. |
+| Sentry, vanlig typ | Stillastående, räckvidd ×1,35, cooldown ×1,3; **enskilda skott**, inte `stepGuard()`-salva. | Skydd, sidledsrörelse eller EMP. | L2/L3-mix. Behåller enkelprojektil i PR1; separat sentry-fan är backlog. Guard+Sentry kan täcka en flank utan nytt mönster. |
+| Turret, encounter på sentry-chassi | `stepGuard()`: varning, tre skott, `recoveryMs:2600`. PR1 föreslår fan endast här. | EMP eller vänta i skydd och flytta under recovery. | Town L2 normalt, även Hard-planer. Turret+Rusher jämför tidig rusher-kill med snabb turret-neutralisering. |
+| Kastare, vanlig thrower / grenadier-variant | Vanlig thrower använder kastgrenen men saknar normalt varning/målring på L2/L3 (se §4). Grenadier anger uttrycklig varning och egna värden: **2 bas-HP**, varning 1200 ms, fuse 1000 ms; HP skalas av område/Hard. | Lämna ringen eller döda före kast; en redan kastad bomb landar även om kastaren dör. | Vanlig mix L2/L3, grenadier Archipelago L2 och Hard även L1. Med svärm: välj fri golvyta eller tidig kastar-kill. Det är en hypotes om planbyte. |
+| Guard, encounter | 70° frontsköld, långsam vändning, varning/salva/recovery. Intro-vakten saknar denna frontsköld och är separat. | Flankera, locka med verktyg eller vänta in fönster. | Bunker L2 och Hard-planer. Para med befintlig sentry/turret så flanken behöver planeras; ensam lösning får vara enkel i inlärningen. |
+| Patrull, encounter | Fast slinga, 35° synkon, 1 s alert före aggro; skada väcker den direkt. | Smyg bakom eller slå till från vald position. | L1 i områdesplanerna, med Hard-kombinationer. Ger val mellan undvikande och full clear; missad perk är priset för undvikande. |
+| Svärm, encounter av rushers | 4–5 förplacerade inaktiva medlemmar, trigger 6,5 m, varning och utsläpp innan normal strid. | Granat på klustret eller fall tillbaka så korridoren köar dem. | L3-planer; med sentry eller kastare kan reträttväg kontra målordning bli ett nytt problem. Testa, anta inte att rörelse/skytte upphör fungera. |
 
-### BIT (4)
+**Generatorn är en stödjande objektiventitet**, inte en nionde stridsarketyp eller vanlig kill. Skjut den för permanent nodöppning, EMP för tillfällig nodöppning. Perk-clear ställer det strängare destruktionskravet i §5; extraction behåller befintliga nodregler.
 
-BIT gör fortfarande bara en aktiv uppgift åt gången (följ, läka, eller en perk-uppgift) – perks byter *vilken* uppgift eller stärker den, de lägger inte till en parallell andra uppgift.
+Återkoppling måste skilja kastare/torn/sentry och attacktyp. När två hot är aktiva visar recap deras observerade händelser, inte en påhittad slutsats att en viss kombo orsakade döden.
 
-| Perk | Effekt | Synergi | Nordstjärna |
+## 7. Rums- och nivåplan
+
+**MVP återanvänder befintlig geometri och seedning.** Inga dörrlås, inga 12–16 nya mallar, inget raidräknarsystem. L1:s mötesinnehåll är introduktion enligt dagens områdes-/Hard-regler. L2 behåller två rum och passage, L3 tre huvudrum och den befintliga grenen från rum 0. Perk-clear är frivilligt djup i striden; exit kräver fortsatt aktiva noder, inte clear av varje fiende.
+
+PR1:s begränsade placeringsändring provar två mötespaket per nivå, valda från seed och anpassade till faktiskt tillgängliga skyddsvinklar:
+
+| Nivå | Paket A | Paket B | Vad spelaren kan ompröva |
 |---|---|---|---|
-| Fältmedik | BIT:s läkning 5 → 8 hp/s | Alla byggen | **Behåll** |
-| Lockfågel | BIT kan dra en fiende till sig i 3 s (cooldown 20 s) – byter BIT:s enda aktiva uppgift från följ/läka till lock | Löser patrull/vakt-mötet utan Decoy-verktyget | (a) cooldown tvingar ett timing-val (lock nu eller spara till värre rum). **Behåll** |
-| Spaning | BIT flaggar fiender i synkonen 1 s tidigare ("!" kommer tidigare) | Kontrar §4b:s snabbare mönster | (c) blir viktigare ju mer §4b-mönster eskalerar – skalar naturligt med svårighet. **Behåll** |
-| Nödreparation | BIT byter automatiskt till läkning om du går under 30 % HP, oavsett vad den gjorde innan | Säkerhetsnät för aggressiva byggen | (a) FAILAR som skriven – helt automatisk och obegränsad tar bort beslutet "retirera eller fortsätt pusha" som pelare 4 bygger på. **Omarbeta:** samma engångs-per-rum-begränsning som Nödsköld |
+| L2 | Guard + vanlig Sentry i nodrummet | Turret + vanlig Rusher i nodrummet | Flankera under enskilda skott eller ta rusher först och vänta på tornets recovery. |
+| L3 | Svärm + vanlig Sentry i svärmrummet | Svärm + befintlig Grenadier i svärmrummet | Backa till korridoren eller lämna ringens yta och prioritera kastaren. |
 
-### Loot-risk / "giriga" perks (5)
+Återanvänd/omplacera befintliga kroppar där det går; lägg inte ett helt nytt paket ovanpå Hard-planen. Paketet ersätter motsvarande offensiva mötesval, medan befintliga stödobjektiv som generator behålls. Placeringen måste kontrolleras efter områdesanpassningen; om båda hotens verkningsytor inte kan mötas utan blockerad nod/exit används ett validerat befintligt paket och avvikelsen loggas för testet. Garantera inte taktisk kombination enbart för att två typer finns någonstans på samma nivå.
 
-| Perk | Effekt | Synergi | Nordstjärna |
-|---|---|---|---|
-| Girig ficka | +2 väskkapacitet, men −15 % max HP så länge perken är aktiv | Risk ökar ju senare man extraherar | (a/b) HP-sänkningen gör efterföljande träffar synligt farligare. **Behåll** |
-| Högriskhandel | Loot i rummet räknas som nästa materialnivå, men fiendeskada +15 % resten av raiden | Starkt tidigt, farligt sent | (a) tidsberoende avvägning (tidig vs sen i raiden) är ett äkta val. **Behåll** |
-| Plundrarens tur | +20 % chans på sällsynt material i rummet, men inga medkits kan användas förrän extract | Tvingar perfekt spel, inte bara bra tur | (a) hög risk, kräver att man faktiskt undviker träffar – inte bara tur. **Behåll** |
-| Allt eller intet | Extraherar man nivån utan att ta skada dubblas `extractScrapBonus` för den nivån, annars halveras den | Belönar att faktiskt lösa mötena, inte tanka dem | (b) kräver att resultatskärmen visar vilket utfall som triggades (se §9 – ny rad). **Behåll**, men beroende av synlig feedback |
-| Djupdykare | En extra lootlåda i rummet, men nästa rums fiendeantal +1 | Direkt risk/reward-koppling, rum för rum | (a/c) fiendeantal+1 eskalerar naturligt rum för rum. **Behåll** |
+Raid 2–3 får möjlighet till andra paket och layouter via seed; vi lovar inte att varje slumpad raid är svårare än den förra. För jämförbart test körs först ett paket, sedan det andra, sedan återbesök av det första med en ny plan. Ingen ny sparad raidprogression ingår. Om upplevelsen fortfarande är likformig är det ett underkänt variationsförsök, inte argument för att automatiskt lägga på mörker.
 
-**Interaktion med extraction-risken:** de giriga perkseffekterna (ficka, handel, tur, allt-eller-intet, djupdykare) gör exakt samma avvägning som redan finns i loot/extract-loopen – mer värde nu mot mer risk att dö och förlora allt man bär (den låsta regeln). De nollställs helt vid extract eller död; nästa raid börjar om från tre nya slumpade val, utan spår av föregående raids perks.
+**Obunden innehållsbacklog, inte del av PR2:**
 
-**Sammanfattande dom §5:** 17 av 19 perks klarar alla tre nordstjärnekriterier. Två (Fantomrull, Nödreparation) skrivs om enligt ovan innan PR2 – båda i sin nuvarande form tar bort ett beslut istället för att skapa ett.
+| Idé | Krävt taktiskt val, feedback och nästa plan innan den får byggas |
+|---|---|
+| Fler rumsmallar och ruttval | Kort säker väg med mindre loot kontra synlig extra risk. Visa vad som offras; spelaren ska kunna välja kortare nästa gång. Områdes-/lootbalans kräver beslut. |
+| Mörker | Endast som val mellan kort mörk rutt och längre belyst rutt, med lika läsbara varningar och förhandsvisad risk. Visa rutt/tid/skador; byt väg nästa försök. Generellt sänkt synradie över hela rummet är skuret eftersom det mest höjer svårighet. |
+| Översvämning | Lokal långsam genväg kontra torr omväg med exponerad siktlinje; varningar får inte göra den långsamma vägen omöjlig att lämna. Visa väg/tid/träffar; nästa försök väntar man in salvan eller tar omvägen. Global rörelsedebuff och stapling med mörker är skuret. |
+| Marksman, generell lobbning, beteendeeliter | Ange nytt prioriterings-/positionsval per typ och egen telegraf/attackkälla. Visa det extra mönstrets effekt; spelaren ska kunna byta kontring. Mer HP i sig klarar inte detta. Ingen extra elit-HP ovanpå Hard av misstag. |
+| Core Guardian | Endast i **L3:s sista huvudrum nära extract**, aldrig i rum-0-grenen. Möjlig sköldfas följd av fanfas, med tydlig fasvarning. Flank kontra vänta, sedan flytt under fan; recap visar fas och attack så nästa försök kan ändra timing. Två faser bevisar inte automatiskt två meningsfulla planer. |
+| Rumslås | Kräver separat ritning för vägar och klartillstånd. Backtracking till redan tillgänglig extraction och valet Extract efter färdig nivå ska bevaras; inget krav att gå in i nästa nivå eller slå boss där för att säkra redan möjlig extraction. |
 
-## 6. Fiendearketyper
+Ingen av backlograderna är ett leveranslöfte. De gamla extra perkidéerna är inte godkända som implementationskatalog; BIT-idéernas förslag till arbitration finns i §5. Ekonomikorten behöver ett separat beslutsunderlag.
 
-Bygger på befintliga typer (`RULES.enemyTypes`, `RULES.encounters`) plus en ny föreslagen arketyp.
+## 8. MVP: två avgränsade PR:er efter ägarbeslut
 
-| Arketyp | Beteende | Mönster | Kontring | Område/nivå | Nordstjärna: ensam / i kombo |
-|---|---|---|---|---|---|
-| Grunt | Närmar sig till standoff 3,5 m, skjuter enstaka skott | Rak salva, cooldown 1,4–2,4 s | Bryt linjen, flytta mellan skott | Alla nivåer | Ensam: svag, gå-fram-skjut funkar. I kombo: tvingar andra arketyper att dela uppmärksamhet |
-| Rusher | Snabb, kort räckvidd (standoff 1,2 m) | Rusar rakt på | Dasha undan, dra in i korridor | L2–L3, `swarm` | Ensam: kräver ett dash-/sidstegsbeslut. I kombo (Svärm): se nedan |
-| Sentry/Torn | Stillastående, lång räckvidd, salva + återhämtning | Idag rak salva → föreslagen fan (§4b) | EMP, eller flytta under `recoveryMs:2600` | L2+, Town L2 | Ensam: bryter gå-fram-skjut själv efter §4b. I kombo (+Svärm): tankar fan samtidigt som flank hotas |
-| Thrower/Granatkastare | Stannar ~5 m ut, varnar 1,2 s, kastar på ringad ruta | Ring-på-marken, bågskott (lobber, §4c) | Kliv ur ringen, eller döda (2 HP) innan kastet | Archipelago L2, mix L2–L3 | Ensam: bryter gå-fram-skjut själv (skydd hjälper inte) |
-| Guard (sköld) | Står vid noden, 70° frontsköld, salva | Vänder sakta mot spelaren | Flankera eller lockbete | L2+ (aldrig L1) | Ensam: FAILAR (c) – statisk lösning lärs en gång (diagnos §1.3). I kombo (+Marksman): flankvägen straffas, tvingar ny plan |
-| Patrull | Fast slinga, 35°-synkon, 1 s "!" | Rak gångslinga | Smyg bakom/stealth, lockbete | L1, alla områden | L1-arketyp, avsiktligt enkel – gå-fram-skjut får funka här |
-| Svärm | 4–5 rushers ur en spawnpunkt | Samtidigt utbrott vid trigger-radie 6,5 m | Granat på klustret, backa in i korridor | L3 | Ensam: tvingar dodge-mönster, inte gå-fram-skjut |
-| **Marksman (ny)** | Håller 8–10 m avstånd, skjuter ett långsamt telegraferat linjeskott som straffar att stå still | Siktlinje syns 1,5 s innan avfyring | Håll dig i rörelse; vanligt skydd funkar (ej lobber) | Föreslagen: L3, Town, kontrar "Stillståndsskott"-perken | Ensam: straffar stillastående, rak motvikt till §4a. I kombo (+Guard): se ovan |
+**PR1: skottfönster och befintliga hot.** Endast rörelseberoende assistbehörighet och separat fri-projektiltuning i `weapon.js`, samma förhandsvisning/inputkoppling i `game.mjs`, turret-fan med synlig varningsbredd i `combat.js`/rendering samt §7:s två befintliga mötespaket per nivå i placeringslogiken. Tuning går via `data/*.js`; dagens `RULES` är källan för diagnosen, inte tillstånd att bryta dataguardrailen. Ingen perk-infrastruktur, mörker, raidräknare, ny arketyp, generell lobber, boss eller gate. PR1 testas mot dagens kontroll på samma seeds. Vi kan bedöma val/variation och direkta varningar här, men lovar inte full dödsförklaring före PR2.
 
-**Dom:** Guard ensam klarar inte (c) – det är precis Lords "you get that immediately and then you just do that"-klagomål (§1). Den behålls som arketyp (bra mot (a) och (b) isolerat: tydligt flankeringsval, tydlig feedback) men **måste** paras med minst en annan arketyp (Marksman eller Sentry) i varje L2+-rum den förekommer i – se kombolistan i §7. Guard utan partner-arketyp ska inte längre förekomma i L2/L3 efter raid 1.
+**PR2: clear/perk/feedback-slice.** Endast §5:s rumsägarskap, clear-state och säker kö; åtta specificerade engångskort och tre uttryckliga terminala varianter; pausad pick-1-av-3; samt den lilla lokala recap nedan. Ingen full tidigare 19-perkpool, inga loot-/valutaförändringar, nya fiender, rumsgeneratorer eller gates. Ingen beständig perkprogression eller SAVE_VERSION-ändring för tillfälligt raidstate. Alla spelhandlingar kopplas genom projektets `act()`-väg. Versionskravet tillämpas om dessa kod-PR:er senare byggs; denna dokumentrevision ändrar ingen version.
 
-**Elitmodifierare:**
-- En elitversion (coral kontur som visuell telegraf) får samma `hpMul:1.4` som Hard redan ger (`RULES.hard.hpMul`).
-- Plus ett extra lager på sitt mönster – t.ex. en elit-guard som även lobbar en granat med jämna mellanrum, eller en elit-sentry vars fan-salva (§4b) får en fjärde linje.
-- Detta är en förlängning av det redan planerade "vakten som elit på Hard L2–L3" (`docs/design-encounters-toolkit.md` §5), inte en ny mekanik från grunden.
-- **Nordstjärna:** elitlagret är (c) per definition (höjer svårighet), men ger bara (a)/(b) om det extra lagret kräver en *annan* kontring än basversionen (elit-guard+lobb tvingar att inte bara stå kvar efter flankering) – annars är det bara mer HP, vilket inte är en ny plan.
+**Spelarsynlig feedback är ett leveranskrav i PR2:**
 
-**Mini-boss/guardian före extract:**
-- En "Core Guardian" i L3:s sista rum/döda-ände: en hybrid av guard (sköld man måste flankera) och sentry (fan-salva efter att skölden brutits).
-- Fas 1: skölden tvingar flankering som en vanlig guard. Fas 2 (efter sköldträff): fan-salvan (§4b) men bredare, plus en kort ryckframryckning mot spelaren.
-- Placeras precis före extract-fönstret, så sista biten läser som en tydlig höjdpunkt, inte bara "fler kroppar att gå igenom".
-- **Nordstjärna:** klarar (a) och (c) tydligt – tvåfas-fienden tvingar ett planbyte mitt i striden. (b) kräver att fas-övergången har en egen telegraf (t.ex. BIT-kommentar "skölden är nere, nu kommer salvan bredare") så spelaren förstår *varför* planen måste ändras, inte bara att den gör det. **Behåll**, men lägg till den telegrafen i scope.
+- Vid clear visar pickerns befintliga `.pop-card`-yta en högst tre rader lång rumsrecap före valen: relevant attackkälla/attacktyp och skada; spelarens rörelseläge vid händelsen; en faktisk perk-effekt eller ”ingen aktivering”. Exempel: ”Turret, fan: 18 HP. Stillastående vid träffen. Nödsköld: 6 HP skada undveks.” Visa verkliga värden, inte utlovade exempelvärden.
+- Vid död visar samma struktur sista skadehändelsen och senaste relevanta skott/perk-händelsen i befintlig resultatyta. För ett missat skott: ”I rörelse vid skottet; utanför assistvinkel; projektilen missade.” Skriv inte ”du missade för att du rörde dig” utan jämförelseunderlag. Tips kan föreslå att testa ett stillastående skottfönster, inte påstå orsak.
+- Ny **begränsad lokal instrumentering**, högst 32 senaste stridshändelser plus summeringar per rum: stabil käll-/fiendeidentitet, attacktyp, tid/rums-ID, rörelse vid avfyrning respektive mottagen träff, assistkandidaters prövade avslag (vinkel/bredd/räckvidd/skymd, eller inget mål), skottets faktiska träff/miss/block och perk-aktivering/uppmätt effekt. Ingen extern telemetritjänst. Behåll skott-ID för att koppla fri projektil till avfyrningsläget; en tracer är inte en andra attack.
+- `round.lastHit.source` täcker namngivna mötesskott; vanliga skott får idag `null`. `deathTip()` ger inget tips för vanliga fiender/hazards. Ny källmetadata för dessa och hazard-skada måste därför läggas till; det går inte att återanvända dagens fält som komplett dödsanalys. Kombopåståenden behöver flera tidskopplade händelser och är inte scope: visa ”Rusher aktiv; Turret träffade” om båda är observerade, inte ”Rusher tvingade dig in i fanen”.
+- Använd befintlig popup `.pop-card`/`.pop-x`, stängmärke uppe till vänster, säker yta och `--ad-*`-tokens. Orange reserveras för primär handling. Små, korta aktiveringsmarkörer får inte täcka HUD, timer eller världsetiketter. Inga nya symbolglyfer, ad-hoc-modaler eller fastpositionerade informationsrutor.
 
-## 7. Level- och rumsplan
+**Verifiering inför respektive kod-PR:** assist direktträff/fria skott och skymda mål; turret kontra normal sentry/guard/intro; nåbara kombinationsplaceringar; därefter separat clear-test för reserv, otriggerad svärm, generator, rumsvandring och exakt en belöning. Testa paus även via dold flik/knappar, sista rum, full HP, tomma lootlådor och tidigare maxade kort. Kör repots tester och `npm run verify` inklusive popup-fit i de tre mobilformaten. Detta är framtida implementationskrav; dokumentändringen kräver endast dokument-/kodfaktagranskning.
 
-**Rumsbaserat, inte bara nodkedja.** Behåll befintlig rums-/korridorgenerering (`generateLevel`, levels.js), men lägg en dörr/spärr som låser nästa rum tills det aktuella rummets möte/fiender är lösta. Samma `combat.visited`-spårning som redan finns för grace-timern (combat.js:15–18) kan återanvändas för att trigga dörrlås/upplåsning – ingen ny generator behövs, bara ett nytt tillstånd ovanpå.
+**Nordstjärnebedömning av MVP:** PR1 testar konkurrerande skott-/positionsplaner och kombinationer. PR2 gör valens effekt och attacker begripliga och ger nästa försök något konkret att ändra. Varken slumpade kort eller fler kroppar räcker som bevis på variation. Om en enda strategi fortsatt konsekvent dominerar måste experimentet omprövas före backlogexpansion.
 
-**Rumsmallar – delad pool, men L1/L2/L3 får inte dra från samma delmängd:**
-- 12–16 små skärmstora arenor (10–14 m, samma storleksintervall som idag), men indelade i tre taggade delmängder så att L2 och L3 *ser* annorlunda ut mot L1 och mot varandra, inte bara möter andra fiender i samma rum:
-  - **L1-delmängd (2 mallar):** dagens enkla "Control Room"-form, oförändrad.
-  - **L2-delmängd (5–6 mallar):** pelarkluster (motvikt mot marksman), lobber-fria skyddsnischer – mellanstora arenor med brytande siktlinjer.
-  - **L3-delmängd (5–6 mallar):** större öppna ytor för svärm-utbrott + en trång döda-ände-form för Core Guardian.
-- Varje mall taggas med vilka arketyper den stödjer (t.ex. en mall med pelarkluster passar marksman + grunt, en öppen mall passar svärm), så placeringslogiken i `encounters.js` kan välja mall efter planerat möte istället för tvärtom.
+## 9. Playtest och mått
 
-**Fiendekombinationer per nivå (inte bara enskilda arketyper):**
-- **L2:** Guard+Marksman (flankvägen straffas) är målbilden, men kräver Marksman-arketypen (PR2). Till dess används **Guard+Sentry** (flankvägen går rätt in i sentryns fan-salva) som en PR1-vänlig stand-in med samma funktion, bara befintliga arketyper. Sentry+Rusher (fan-salva + inträngande flank) är också PR1-vänlig.
-- **L3:** Svärm+Sentry (tanka fan medan rushers kommer in), Svärm+Thrower (lobber-ring mitt i ett rörligt utbrott) – båda PR1-vänliga. Avslutas med Core Guardian (PR2).
-- Guard förekommer aldrig ensam i L2/L3 efter raid 1 (se §6-dom) – alltid parad med minst en av ovanstående.
+Kör cirka fem raider med samma öppna fråga till Lord: ”Är kärnan kul, oavsett loot?” Separera PR1:s kontrolltest från PR2:s perk-/recaptest. Jämför samma vapen/område/Hard och seed med baslinjen; låt testordningen variera mellan spelare så inlärning inte förväxlas med förbättring.
 
-**Modifierare per rum** (slumpade, seedade som idag; L2 och L3 får olika styrka, inte samma pool):
-- Mörker – kortare synradie, men telegraf syns ändå via coral (bryter inte regeln om ≥ 1 s varning). Introduceras i L2 från och med raid 3.
-- Översvämning – rörelse-debuff, ingen direkt skada (skiljer sig från stötplattorna). Introduceras i L3 från och med raid 4, kan staplas med Mörker i döda-änden.
-- Befintliga stötplattor (`RULES.hazard`) återanvänds som bas, bara nya placeringsregler för fler rumstyper.
+- **Planer:** jämför gå-och-skjuta, stopp/skott/flytt och skydd/flank i avsedda L2/L3-möten. Logga clear/extract, skada, tid och resurskostnad. Fråga vilken plan spelaren avsåg och vad de ändrar vid återbesöket. Kriteriet är om gå-och-skjuta konsekvent dominerar alternativen över relevanta paket, inte om den någonsin lyckas.
+- **Träffar och HP:** skada och träffar per rum, inkommande källa, HP före/efter, kill-läkning och stationär BIT-läkning separat. Positiv HP-trend och lägre skada efter inlärning är hypoteser; skada måste inte sjunka direkt när hoten blir bättre.
+- **Sikte:** andel skott stilla/i rörelse, assistbehörighet och avslag, träff/miss/block per läge och vapen. Läget är observation, inte bevis på rörelsens kausala inverkan. Jämför kontrollerade seeds innan tuning skärps.
+- **Tempo:** aktiv rumstid, faktisk clear-tid, tid för säkert vänteläge och separat paustid för perkval. Dashanvändning, cooldown vid skada och om dash kom efter varning; inga påståenden om spelarens avsikt utan fråga.
+- **Perks:** valandel per erbjudande, verkliga aktiveringar, effektstorlek och planändring nästa rum/försök. Följ terminala kort separat: finns loot/transport/läkningsbehov kvar eller är tidskortet självklart? Jämför även total tidstillägg mot timertryck; inga giriga ekonomiperks finns i detta MVP.
+- **Återkoppling:** fråga före recap vad som träffade/dödade och vad spelaren gjorde. Visa sedan recap och fråga vilken annan plan de vill testa. Jämför med loggen även för vanliga fiender och hazards; en korrekt intern logg utan begriplig spelaråterkoppling klarar inte (b).
+- **Variation och lust:** känns nivå 2 respektive 3 olika, och skiljer sig raid 3 från raid 1? Kan spelaren beskriva ett nytt problem och ett ändrat val? Vill de fortsätta efter cirka fem raider? Fler raidstarter ensamt bevisar inte att striden är rolig.
 
-**Ruttval:**
-- Bygg vidare på L2:s befintliga `routeChoices` (nod-väg vs loot-döda-ände) till ett riktigt risk/reward-val i varje nivå, inte bara L2.
-- Kort väg: hoppar över ett möte, mindre loot. Lång väg: extra fiende, extra lootlåda. Valet görs synligt innan man går in (en skylt, som idag).
-
-**Mappning L1–L3 + extract:**
-- **L1** = ett rum, tutorial: lär ut §4a (stanna-för-att-skjuta) och patrull-mötet, första perk-valet kommer direkt efter rummet. Oförändrad raid efter raid – Lord har inget problem med L1.
-- **L2** = två rum + passage, L2-mallpool: Guard+Marksman (Guard+Sentry till dess Marksman finns, se §8) i ena rummet, Sentry+Rusher i det andra, perk-val efter varje rum.
-- **L3** = tre rum i kedja + döda ände, L3-mallpool: Svärm+Sentry och Svärm+Thrower i de två första rummen, Core Guardian i döda änden. Det högsta-insats-perkvalet kommer direkt innan den striden.
-- Samma struktur återskinnas per område (bunker/archipelago/town) som idag – ingen ny generator, bara nya hinder-/modifierarset och de nya mötena ovanpå den befintliga.
-
-**Progressionskurva, raid 1–5** (visar målbilden med både PR1 och PR2 landade – §8 preciserar vilken delmängd som finns redan efter PR1; L2/L3 ska kännas olika redan från start, inte "samma 2–3 varianter" som idag):
-
-| Raid | L2 | L3 |
-|---|---|---|
-| 1 | Guard+Marksman, ingen modifierare | Svärm+Sentry, Core Guardian fas 1+2 |
-| 2 | Sentry+Rusher (ny kombo), fortfarande ingen modifierare | Svärm+Thrower (ny kombo) |
-| 3 | Mörker-modifierare introduceras i ett av rummen | Elitmodifierare (§6) på en arketyp i kombon |
-| 4 | Lång rutt får en extra fiende från den andra kombon (blandad) | Översvämning introduceras i döda-änden, staplas med Mörker |
-| 5 | Mallrotation (seedad) byter vilket rum som får Mörker | Core Guardian fas 2 får den fjärde fan-linjen (elit-lagret, §6) |
-
-Målet är att raid 3 redan känns tydligt annorlunda än raid 1 i både L2 och L3 – direkt svar på "bored when I play 2-3 levels in a row that are quite similar".
-
-**Bedömning mot nordstjärnan:**
-
-| Förslag | (a) Olika utfall? | (b) Tydlig feedback? | (c) Variation/eskalering raid 2–3+? | Dom |
-|---|---|---|---|---|
-| Rumslåsning | Nej i sig (bara struktur) – men möjliggör (a) genom att tvinga möten att lösas i ordning | Ja – en låst dörr är tydlig feedback på "det här rummet är inte klart" | Neutral | **Behåll** som infrastruktur |
-| Delad mallpool per nivå (L1/L2/L3) | Ja – olika hinder/layout kräver olika taktik per nivå | Indirekt (syns i spelet, inte i UI) | Ja – kärnan i att L2/L3 ska skilja sig åt visuellt och taktiskt | **Behåll**, prioritera över en enda delad 12–16-pool |
-| Fiendekombinationer per nivå | Ja – kombinationerna är designade just för att bryta enskilda statiska lösningar | Ja, om dödsorsak/recap pekar ut kombon ("du dog för Sentry-fan medan Rusher flankerade") | Ja – nya kombon kan rullas in raid för raid utan ny konst | **Behåll**, högst prioritet av §7-förslagen |
-| Modifierare (Mörker/Översvämning) | Svag ensam (påverkar svårighet, inte val) | Ja för Mörker (syns i synradie) | Ja – trappas upp raid 3/4 enligt kurvan ovan | **Behåll**, men inför gradvis (se kurva), inte från raid 1 |
-| Ruttval (risk/reward per nivå) | Ja – kort/lång väg är ett väganvändarval med olika pris | Delvis – belöningen syns, men inte alltid varför vägen var farligare | Neutral/upprepat mönster | **Behåll** |
-
-## 8. MVP-slice (1–2 PR:er)
-
-**PR 1 – kärnkänsla** (bygger direkt på `combat.js`/`encounters.js`/`levels.js`, ingen ny rumsgenerator; se nordstjärne-bedömning och rekommendation nedan för varför kombon/Mörker är med trots "ingen ny rumsgenerator"):
-- §4a: rörelseberoende homing/assist (`RULES.weapon`, villkorlig på rörelsespinnens läge – liten ändring i spelarens skott-kod).
-- §4b: en ny fan-salva för torn/sentry (liten ändring i `stepGuard`, combat.js).
-- Perk-systemet, kapat till ~8 perks till start (2 per kategori) för att hålla scope litet: ny state för "aktiva perks denna raid", en pick-1-av-3-UI efter rumsclear, reset vid extract/död.
-- Ingen rumslåsning än – perk-valet triggas på samma `combat.visited`-händelse som redan finns.
-- L2/L3-fiendekombinationer med befintliga arketyper (Guard+Sentry och Sentry+Rusher i L2, Svärm+Sentry och Svärm+Thrower i L3) och Mörker-modifieraren enligt §7:s raid 1–5-kurva – ny placeringslogik i `encounters.js`, inga nya mallar eller ny konst. Guard+Marksman (målbilden i §7) väntar till Marksman-arketypen i PR2.
-
-**Medvetet skippat i PR1:**
-- Rumslåsande dörrar.
-- Core Guardian/miniboss.
-- Elitmodifierare.
-- Nya rumsmallar/hinderset (12–16-poolen).
-- Översvämning-modifieraren (Mörker är med, se ovan).
-- Marksman-arketypen.
-- Lobber som generell egenskap (behåll granatkastaren som den enda lobbern tills vidare).
-
-**PR 2** (om PR1 känns bra i speltest):
-- Rumslåsning, Core Guardian före extract.
-- Resten av perkpoolen (19 st totalt).
-- Elitmodifierare för Hard.
-- Marksman-arketyp, lobber-egenskapen generaliserad till fler typer.
-- Nya rumsmallar och modifierare (§7).
-
-**Bedömning mot nordstjärnan:**
-
-| Del | (a) Olika utfall? | (b) Tydlig feedback? | (c) Variation/eskalering raid 2–3+? | Dom |
-|---|---|---|---|---|
-| §4a/§4b (homing + fan) | Ja | Delvis – behöver feedback-raden från §9 | Ja, men bara märkbart mot torn/sentry utan nya kombon | **Behåll** |
-| Perks (8 st) | Ja, pick-1-av-3 | Ja om döds-/rumsrecap nämner aktiv perk | Perk-slumpen ger variation, men ersätter inte rum/fiende-variation | **Behåll** |
-| Kombon + Mörker (flyttade in i PR1 ovan) | Ja – olika kombo kräver olika plan | Ja om recap pekar ut kombon | Ja – ger ett första, litet (c)-slice redan i PR1 | **Behåll** |
-
-**Varför kombon flyttades in i PR1:** i den ursprungliga uppdelningen låg allt som ger (c) – nya kombon, delad mallpool, modifierare – i PR2. Lords "bored after 2-3 levels" är specifikt ett (c)-klagomål. Ett fullt 5-raid-speltest direkt efter en PR1 utan någon (c) hade riskerat samma dom som idag ("samma 2-3 varianter"), trots att kärnkänslan blivit bättre. Kombona och Mörker är billiga att dra in tidigt (återanvänder befintliga arketyper, ingen ny konst) och ger PR1 täckning på alla tre kriterier, så Lords 5-raidstest (§9) blir ett verkligt test av nordstjärnan – inte bara av kontrollkänslan. Nya rumsmallar, Core Guardian, elitmodifierare, Marksman och generell lobber kräver mer konst/arbete och väntar till PR2 utan att döda (c)-testet.
-
-## 9. Playtest-mätningar
-
-**Metrics att logga per raid/rum:**
-- Träffar tagna per rum (snitt + spridning) – mål: synlig minskning jämfört med dagens baslinje när §4a/§4b är på.
-- Tid per rum (clear time) – ska inte bara bli "långsammare", utan visa fler rörelse-beslut (stopp-och-skjut-ögonblick).
-- Andel skott avlossade med neutral rörelsespinn vs. i rörelse – avgör om §4a faktiskt ändrar beteende eller bara straffar utan att styra spelaren mot det nya valet.
-- Perk-valsfördelning: vilka perks väljs, vilka ignoreras konsekvent ("döda" perks att stärka eller ta bort).
-- Dödsorsak per arketyp – redan spårat via `round.lastHit.source` / `deathTip()` (encounters.js:46–50), återanvänds direkt utan ny infrastruktur.
-- Dash-användning per rum, och andel dashar som sker reaktivt (efter en varning) vs. proaktivt.
-- Andel som extraherar med en girig perk aktiv, och andel av dem som dör med den aktiv (mäter om risk/reward-avvägningen känns verklig).
-- **Bytte spelaren plan mellan försök på samma möte/rum?** (t.ex. flankerade annorlunda, väntade in en salva, valde en annan perk) – direkt mätning av nordstjärnans (a)+(c): om planen aldrig ändras är det ett tecken på en dominant lösning, oavsett vad metrics ovan visar.
-- **Kan spelaren säga varför de dog**, utan att titta i loggar – jämför spelarens egen förklaring mot `round.lastHit.source`/`deathTip()`. Stämmer de inte överens är feedback-loopen (b) trasig, oavsett hur korrekt dödsorsaken loggas internt.
-
-**Frågor till speltestare:**
-- Kändes det som ett beslut att stanna och skjuta, eller ett irritationsmoment?
-- Vilket möte/arketyp kändes bäst/sämst att läsa och kontra?
-- Valde du perks för bygget du höll på att skapa, eller bara det som såg starkast ut i stunden?
-- Märkte du någon fiende/mönster du var rädd för, till skillnad från idag?
-- Vad dödade dig – kan du beskriva det själv, innan vi visar loggen?
-- Kändes raid 3 annorlunda än raid 1, eller samma rum/fiender igen?
-- Skulle du spela fler raider i rad än idag (~5 innan Lord gav upp)?
-
-**Lords dom efter 5 raider:** samma test som gav citaten ovan – låt honom spela ~5 raider igen efter PR1 och ställ samma öppna fråga ("är kärnan kul, oavsett loot?"), inte en ledande följdfråga om specifika features. Facit är nordstjärnan, konkret: (1) kunde han någon gång köra "gå fram och skjut" rakt igenom ett L2/L3-rum och vinna, (2) bytte han plan mellan försök, (3) kunde han förklara sin egen död, (4) kändes raid 3 annorlunda än raid 1. Om svaret på (1) är ja, eller (2)–(4) är nej, är vi inte i mål – oavsett hur bra övriga metrics ser ut.
+Redovisa resultat och spridning per paket/vapen, inte bara ett totalsnitt. Fem raider ger kvalitativ riktning, inte statistisk säkerhet. Om Lord fortfarande upplever likformighet eller inte kan förklara utfallet är briefens mål inte uppnått, även om balanseringen ser rimlig ut i loggen.
 
 ## 10. Öppna frågor till Robert
 
-1. Är §4a (rörelseberoende homing) en acceptabel ändring av kärnkontrollen så här sent, eller för stort ingrepp inför nästa speltest?
-2. Ska rumslåsning (dörr tills rummet är rensat) in i PR1, eller är uppdelningen i §8 rätt prioritering?
-3. Hur mycket ny konst tål vi för en Core Guardian/marksman – återanvänt chassi (sentry+guard) eller en helt ny modell?
-4. Får "Allt eller intet"-perken (dubblar/halverar `extractScrapBonus`) röra ekonomin direkt, eller är det för känsligt utanför `economy-design.md`?
-5. Ska perk-urvalet vara helt slumpat (1 av 3 ur hela poolen) eller viktat mot spelarens utrustade vapen/BIT-nivå, och är den vikten värd komplexiteten i PR1 eller PR2?
-6. Konstregeln "BIT har inga cyan sidoremsor" – gäller det bara BIT:s chassi, eller även BIT-perkens visuella effekter (t.ex. Lockfågel-pulsen)?
-7. Hur stor del av L1 (tutorial-rummet) får ändras för §4a-introduktionen innan det krockar med den redan byggda introtexten (`RULES.intro.tip`)?
-8. Ska giriga perks kunna kombineras fritt (t.ex. Girig ficka + Plundrarens tur samtidigt), eller ska vi begränsa hur många "risk"-perks man kan bära samtidigt så ingen bygger ett omöjligt-att-klara-men-enormt-lönsamt läge?
-9. Är marksman-arketypen värd att bygga i PR2, eller räcker fan-salvan (§4b) på befintliga sentry/torn för att nå samma känsla med mindre arbete?
+1. Godkänner du två-PR-experimentet och rörelseberoende **assistbehörighet**, inklusive påverkan på L1:s globala kontroll, före någon kod byggs?
+2. Är åtta engångskort och de tre terminala varianterna rätt liten slice? Ska sista rummets val senare förenklas om tidstillägget konsekvent blir det enda relevanta utfallet?
+3. Är föreslagna direkta HP-/tidseffekter acceptabla för prototypen, eller vill du behålla nuvarande timertryck och ersätta Tidsmarginal/terminala tidsbonusar innan implementation?
+4. Godkänner du att full perk-clear kräver alla reserver, triggad och besegrad svärm, aktiva noder samt förstörd generator, samtidigt som dagens nodbaserade extraction bevaras och undvikande kan ge utebliven perk?
+5. Är full paus av både strid och raidtimer under val acceptabel, med minimering och återupptagen tid via stängmärket?
+6. Räcker de befintliga mötespaketen för första variationstestet? Vilket specifikt upprepat problem ska i så fall motivera nästa backlogförslag: rum, Marksman, beteendeelit eller guardian i sista rummet?
+7. Vill du alls gå vidare med giriga kort som ändrar kapacitet, befintlig valuta eller lootnivå? De kräver separat ekonomiförslag och godkännande; inget sådant tillstånd antas här.
+8. Godkänner du passiv Spaning samt föreslagen exklusiv BIT-arbitration för de obundna idéerna Lockfågel/Nödreparation? Gäller regeln om inga cyan sidoremsor bara chassit eller också nya effekter?
