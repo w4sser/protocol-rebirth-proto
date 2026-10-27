@@ -6,8 +6,11 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,extname,join} from 'node:path';
+import {spawnSync} from 'node:child_process';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
+const viewportCheck=spawnSync(process.execPath,[join(root,'scripts/viewport-check.mjs')],{cwd:root,stdio:'inherit'});
+if(viewportCheck.status!==0)process.exit(viewportCheck.status??1);
 const OUT=resolve(process.env.LAYOUT_OUT||join(root,'verify-out'));
 const VIEWPORTS=[[844,390],[932,430],[667,375]];
 // Short landscape heights for the post-raid result popup (widths 667/844/932/1024).
