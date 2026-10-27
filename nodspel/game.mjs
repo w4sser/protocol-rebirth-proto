@@ -1,46 +1,46 @@
-import {createPerkUI} from './perk-ui.js?v=2.4.0';
-import {perkState,updateClears,safePick,pausePick,resumePick,gameTime,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.4.0';
+import {createPerkUI} from './perk-ui.js?v=2.4.1';
+import {perkState,updateClears,safePick,pausePick,resumePick,gameTime,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.4.1';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.4.0';
-import {loadBunkerAssets} from './bunker.js?v=2.4.0';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.4.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.4.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.4.1';
+import {loadBunkerAssets} from './bunker.js?v=2.4.1';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.4.1';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.4.1';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.4.0';import '../data/recipes.js?v=2.4.0';import '../data/vendors.js?v=2.4.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.4.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.4.0';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.4.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.4.0';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.4.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.4.0';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.4.0';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.4.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.4.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.4.0';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.4.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.4.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.4.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.4.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.4.0';
-// import {stepScavenging} from './scavenging.js?v=2.4.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.4.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.4.0';
-import {routeComplete} from './objectives.js?v=2.4.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.4.0';
-import {createBIT,stepBIT} from './bit.js?v=2.4.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.4.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.4.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.4.0';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.4.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.4.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.4.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.4.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.4.0';
+import '../data/modules.js?v=2.4.1';import '../data/recipes.js?v=2.4.1';import '../data/vendors.js?v=2.4.1';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.4.1';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.4.1';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.4.1';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.4.1';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.4.1';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.4.1';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.4.1';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.4.1';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.4.1';
+import {buildWorld,setNodeHold} from './world.js?v=2.4.1';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.4.1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.4.1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.4.1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.4.1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.4.1';
+// import {stepScavenging} from './scavenging.js?v=2.4.1';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.4.1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.4.1';
+import {routeComplete} from './objectives.js?v=2.4.1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.4.1';
+import {createBIT,stepBIT} from './bit.js?v=2.4.1';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.4.1';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.4.1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.4.1';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.4.1';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.4.1';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.4.1';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.4.1';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.4.1';
 const keys=new Set(),sticks=[];let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.4.0');
+const orderResponse=await fetch('./order.json?v=2.4.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -84,7 +84,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.4.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.4.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -537,7 +537,7 @@ function reset(requestedSeed){
   perkUI.close();perkResume.hidden=true;perkKey=null;perkChoosing=false;
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  resultPending=false;$('#inventory').hidden=true;
+  resultPending=false;resultReturning=false;$('#inventory').hidden=true;
   dash=createDash();walkDirection={x:0,z:-1};
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
@@ -546,15 +546,15 @@ function reset(requestedSeed){
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
+let resultReturning=false;
 function finishRound(outcome=round.reason){
+  if(resultReturning)return;
   if(!$('#round-over').hidden&&!resultPending)return;
   resultPending=outcome==='extraction'&&!round.over;
-  // v2.0.0: completed meta raids have one summary, rendered by the base with its full ledger.
-  // Checkpoints still stay here; failed persistence retains the existing result and return action.
-  if(round.over){
-    const stored=writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
-    // Only base-issued raids (raidId) skip the in-raid card; tutorial/debug raids keep it so a first-run intro never hides the result.
-    if(stored&&round.reason!=='death'&&launch.returnUrl&&launch.raidId&&launch.seed===round.seed){clearInput();location.assign(launch.returnUrl);return;}
+  // Terminal base raids return before invoking the standalone presenter. Checkpoints
+  // still offer Continue / Extract here; the base owns the completed raid's ledger.
+  if(round.over&&handoffRaidResult(round,{launch,beforeReturn:clearInput})){
+    resultReturning=true;return;
   }
   $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;hideSwap();
@@ -737,7 +737,7 @@ if(new URLSearchParams(location.search).has('debug'))window.__NR={
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.4.0');round.level=generateLevel(n,round.seed);loadLevel();}};
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.4.1');round.level=generateLevel(n,round.seed);loadLevel();}};
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';

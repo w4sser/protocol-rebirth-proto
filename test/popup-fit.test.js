@@ -3,6 +3,8 @@ const fs = require("fs"), assert = require("assert"), path = require("path"), ro
 const html = fs.readFileSync(root + "/index.html", "utf8");
 assert(/\.bpop \.costs\{flex-wrap:nowrap/.test(html), "costs stay in one row");
 assert(/@media \(orientation:landscape\) and \(max-height:480px\)\{[^@]*\.bpop>button\.primary\.big\{min-height:46px/.test(html), "compact landscape popup + CTA");
+// Allow the full base suite to run in environments where browsers are prohibited.
+if(process.env.SKIP_BROWSER_TESTS === "1") { console.log("popup-fit: static ok (SKIP_BROWSER_TESTS=1, browser layout check skipped)"); process.exit(0); }
 // Real layout check when a local Chrome + playwright-core are available (box tooling); otherwise static checks only.
 let pw = null; for(const p of [process.env.PLAYWRIGHT_CORE, "playwright-core", "/workspace/mobile-audit/tool/node_modules/playwright-core"]) { try { if(p) { pw = require(p); break; } } catch(e) {} }
 const chrome = "/usr/bin/google-chrome";
