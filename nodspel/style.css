@@ -294,3 +294,22 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 /* The fatal hit stays visible below the result title, including compact landscape. */
 #round-over .result-card #result-death-cause{margin:0;color:var(--ad-danger);font:600 12px/1.35 system-ui;overflow-wrap:anywhere}
 #result-death-cause[hidden]{display:none}
+
+/* Extraction keeps the report and return action in place; the loot grid owns scrolling. */
+#round-over[data-outcome=extract] .result-card{height:calc(100dvh - 40px - var(--sb,0px))}
+#round-over[data-outcome=extract]:not(.show-details) .result-body{overflow:hidden}
+#round-over[data-outcome=extract]:not(.show-details) .result-content{min-height:0;display:flex;flex-direction:column}
+#round-over[data-outcome=extract] .result-outcome{min-height:0;gap:6px}
+#round-over[data-outcome=extract] .result-symbol{display:none}
+#round-over[data-outcome=extract] #result-report{flex:1;min-height:0;gap:4px}
+#round-over[data-outcome=extract] #result-report[hidden]{display:none}
+#round-over[data-outcome=extract] #result-report>*{flex-shrink:0}
+#round-over[data-outcome=extract] #result-loot{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));align-content:start;flex:1 1 36px;min-height:36px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:var(--ad-loot) var(--ad-ink);padding:2px}
+#round-over[data-outcome=extract] #result-loot:focus-visible{outline:1px solid var(--ad-bit);outline-offset:-1px}
+#round-over[data-outcome=extract] .result-tile{justify-content:space-between}
+#round-over[data-outcome=extract] .result-gear{flex-wrap:wrap;gap:4px;padding:5px 7px;background:color-mix(in srgb,var(--ad-bit) 12%,var(--ad-night));border-left:3px solid var(--ad-bit);letter-spacing:0}
+#round-over[data-outcome=extract] .result-gear>span:first-child{font-weight:700;margin-right:3px}
+#round-over[data-outcome=extract] .result-gear-returned{display:inline-flex;gap:4px;width:auto;height:auto;min-height:22px;padding:2px 5px;box-sizing:border-box;font:600 10px 'IBM Plex Sans',sans-serif;color:var(--ad-bone)}
+#round-over[data-outcome=extract] .result-gear-returned .pr-ic{color:var(--ad-bit)}
+#round-over[data-outcome=extract] #death-tip{display:none}
+#round-over .result-card .result-bit-line{font-size:11px;line-height:1.4;color:var(--ad-bit);overflow-wrap:anywhere}

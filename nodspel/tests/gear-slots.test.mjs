@@ -5,10 +5,11 @@ import {buildRaidResult} from '../raid-result.js';
 import {bagItems} from '../raid.js';
 const place=(r,item,id='g1')=>{const b={id,x:50,z:50,item,collected:false,revealed:true};r.level.lootBoxes=[b];return b;};
 const at={x:50,z:50};
-test('empty armor slot auto-equips; stats + bag slot apply; never in the bag',()=>{
+test('empty armor slot offers carry or equip; confirming applies stats and pockets',()=>{
   const r=createRound('gear-a',0,{bagCapacity:4});initEquip(r,{});const spd=r.stats.speed;
   place(r,'scout_rig');assert.equal(lootAction(r,'scout_rig').text,'EQUIP');
-  assert.ok(collectLoot(r,at,10));assert.equal(r.equip.armor,'scout_rig');assert.equal(bagItems(r.bag).length,0,'not in the bag');
+  assert.ok(collectLoot(r,at,10));assert.equal(r.equip.armor,null);assert.equal(r.gearOffer.item,'scout_rig');
+  swapGear(r,'g1',10);assert.equal(r.equip.armor,'scout_rig');assert.equal(bagItems(r.bag).length,0,'not in the bag');
   assert.ok(Math.abs(r.stats.speed-(spd+.45))<1e-9);assert.equal(r.maxShield,10);assert.equal(r.shield,10);assert.equal(bagCapacityOf(r),5);
   assert.deepEqual(r.lastEquip,{slot:'armor',item:'scout_rig',old:null,at:10});});
 test('Basic Carbine gets a weapon choice and is never dropped',()=>{
@@ -23,7 +24,7 @@ test('occupied slot: one swap offer, tap swaps, swapped-out piece dropped on the
   r.gearOffer={boxId:'g1',item:'scout_rig',slot:'armor',at:20};
   const d=swapGear(r,'g1',30);assert.equal(r.equip.armor,'scout_rig');assert.equal(box.collected,true);
   assert.equal(d.item,'scavenger_vest');assert.equal(d.revealed,true);assert.equal(d.blockedUntilLeft,true);
-  assert.equal(r.maxShield,10);assert.equal(r.shield,5,'shield never refills above the new max on a downgrade');assert.equal(bagCapacityOf(r),5);
+  assert.equal(r.maxShield,10);assert.equal(r.shield,10,'new ground rig has its own fresh shield');assert.equal(bagCapacityOf(r),5);
   assert.equal(bagItems(r.bag).length,0);});
 test('raid result reports equipped gear (raid-found gear comes home on extract)',()=>{
   const r=createRound('gear-d',0);initEquip(r,{gear:['scavenger_vest']});place(r,'rifle_marksman');collectLoot(r,at,10);swapGear(r,'g1',11);

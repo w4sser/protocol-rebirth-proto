@@ -404,6 +404,16 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert.equal(react({}, {added:common}).trigger, 'generic', 'generic fallback');
   assert.equal(react({outcome:'death'}, {added:['power_relay']}).mood, 'disappointed', 'death overrides rare');
   assert.equal(react({outcome:'timeout'}, {}).trigger, 'death', 'timeout uses death voice');
+  assert(Object.values(pools).reduce((n,p)=>n+p.lines.length,0)>=30,'at least thirty lines');
+  for(const [r,res,trigger] of [
+    [{firstExtract:true},{},'first'],[{remainingMs:1},{added:common},'timer'],
+    [{},{added:Array(8).fill('cable')},'loaded'],[{perksTaken:['reload']},{added:common},'perks'],
+    [{enemiesDefeated:4},{added:common},'kills'],[{gearConsumed:['scout_rig']},{added:common},'gearLost']
+  ])assert.equal(react(r,res).trigger,trigger);
+  const before=react({},{}),after=react({},{});
+  assert.notEqual(before.id,after.id,'no consecutive repeated line');
+  assert.equal(window.localStorage.getItem('pr_bit_last_raid_line'),after.id,'last id persisted');
+
 
   // Boot real return flows: ingest once, one shared popup, itemised ledger and one BIT line.
   for(const [outcome, gearOut] of [['extract',['smg_vector']], ['death',['smg_vector','scavenger_vest']], ['death',['rifle_marksman','scavenger_vest']]]){
@@ -457,9 +467,19 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert.equal(div.querySelector('h1').textContent, 'EXTRACTED', 'extract title word');
   assert(div.querySelector('.rs-sub').textContent.includes('04:32'), 'raid time formatted as mm:ss from elapsedMs');
   assert(div.querySelector('.loot-card.rare .rare-tag'), 'rare item gets the RARE FIND tag');
-  assert.equal(div.querySelectorAll('.loot-grid>.loot-card').length, 7, 'loot grid renders at most the large-tier cap of cards');
-  assert.equal(div.querySelector('.loot-extra.tier-sm').textContent, '+3', 'small-tier overflow tile counts the rest beyond the 5-card cap');
-  assert.equal(div.querySelector('.loot-extra.tier-lg').textContent, '+1', 'large-tier overflow tile counts the rest beyond the 7-card cap');
+  assert.equal(div.querySelectorAll('.loot-grid>.loot-card').length, manyIds.length, 'all extracted items render');
+  assert.equal(div.querySelector('.loot-extra'), null, 'no overflow placeholder');
+  const names=[...div.querySelectorAll('.loot-card-row>span')].map(e=>e.textContent);
+  const items=Object.values(window.DATA.items);
+  const values=names.map(name=>items.find(it=>it.name===name).sellValue||0);
+  assert(values.every((value,i)=>i===0||value<=values[i-1]), 'highest unit value first');
+  const gearDiv=doc.createElement('div');
+  gearDiv.innerHTML=window.raidSummaryHtml(r,{added:['scout_rig'],gearFound:['scout_rig'],returnedGear:['scout_rig'],currency:{}},reaction,'Node Raid');
+  assert.equal(gearDiv.querySelector('.gear-tag').textContent,'GEAR RETURNED');
+  assert.equal(gearDiv.querySelectorAll('.loot-card').length,1,'returned found gear not duplicated');
+  const css=fs.readFileSync(path+'/index.html','utf8');
+  assert(/\.loot-grid\{[^}]*overflow-y:auto/.test(css),'loot grid scrolls inside result');
+  assert(!/loot-card:nth-child/.test(css),'no hidden tail of loot cards');
 
   const rTimeout = { outcome:'timeout', elapsedMs:5000, lost:[] };
   const divTimeout = window.document.createElement('div');
@@ -522,7 +542,7 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   assert.equal(weaponCards.length, 2, 'both weapons render their own loot card');
   assert.equal(itemCard.firstElementChild.className, 'pr-itemimg', 'plain item card icon is wrapped in .pr-itemimg');
   for(const card of weaponCards){
-    assert.equal(card.firstElementChild.className, 'pr-itemimg', 'weapon card icon is wrapped in .pr-itemimg, same as a plain item card');
+    assert.equal(card.querySelector(':scope>.pr-itemimg').className, 'pr-itemimg', 'weapon card icon is wrapped in .pr-itemimg, same as a plain item card');
     assert.equal(card.lastElementChild.className, itemCard.lastElementChild.className, 'weapon card and item card end with the same name/qty row');
     assert(card.querySelector(':scope>.loot-card-row'), 'name/qty row still renders for weapon cards');
   }
@@ -644,6 +664,35 @@ for(const source of ['bit', 'log']) {
     Object.keys(st).forEach(k=>delete st[k]); Object.assign(st,saved);
     A.go('base');
   }
+}
+
+// Consumed rigs cannot be revived by the secure-slot fallback in the base ledger.
+{
+  const st=window.__TEST_STATE(),snapshot=JSON.parse(JSON.stringify(st));
+  for(const outcome of ['extract','death']){
+    st.secureItem='scout_rig';st.coreLaunch={raidId:'spent-'+outcome,gear:['scout_rig'],kit:{medkit:0},area:'bunker'};
+    const before=window.qty('scout_rig');
+    const result=window.ingestRaidResult({schema:'protocol-rebirth/raid-result',version:1,raidId:'spent-'+outcome,outcome,
+      extracted:[],lost:[],gearOut:[],gearConsumed:['scout_rig'],levelsCleared:1,nodesLit:1,enemiesDefeated:0});
+    assert.equal(result.ok,true);assert.equal(window.qty('scout_rig'),before,'spent rig stays consumed on '+outcome);
+    assert.equal(result.saved.secure,null);
+  }
+  Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,snapshot);
+}
+
+// The mission queue must reserve its own height outside the crafting disclosure.
+{
+  const st=window.__TEST_STATE(),snapshot=JSON.parse(JSON.stringify(st));
+  st.modules.fabricator=Math.max(1,st.modules.fabricator||0);
+  A.go('prep');A.planToggle(true);
+  const panel=doc.querySelector('#mission-panel'),queue=panel.querySelector('.fabq');
+  assert(queue,'mission includes the fabricator queue');
+  assert.equal(queue.parentElement,panel,'queue is in normal mission flow, outside closed details');
+  assert(!queue.closest('.prep-crafting'),'queue never inherits the crafting disclosure geometry');
+  assert(queue.compareDocumentPosition(panel.querySelector('.mappanel')) & window.Node.DOCUMENT_POSITION_FOLLOWING,
+    'map follows the queue in document flow');
+  A.planToggle(false);
+  Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,snapshot);A.go('base');
 }
 
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));

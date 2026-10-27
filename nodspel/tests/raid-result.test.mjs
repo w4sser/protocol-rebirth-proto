@@ -61,3 +61,9 @@ test('launched raids hide Restart in favour of Abandon, and checkpoints offer ex
   assert.match(html,/<button id="abandon"[^>]*hidden>/);assert.match(html,/<button id="extract-raid"[^>]*hidden>Extract &amp; secure<\/button><button id="continue-raid"[^>]*hidden>Continue raid<\/button>/);
   assert.match(js,/\$\('#reset'\)\.hidden=!!launch\.returnUrl/);assert.match(js,/\$\('#new-round'\)\.hidden=!!launch\.returnUrl/);
 });
+
+test('armor launch durability is clamped separately from other shield sources',()=>{
+  assert.equal(readLaunch('?armorShield=50').armorShield,50);
+  assert.equal(readLaunch('?armorShield=Infinity').armorShield,null);
+  assert.equal(readLaunch('?armorShield=999').armorShield,100);
+});

@@ -1,7 +1,7 @@
-import {clearPassageProps} from './archipelago-passages.js?v=2.3.3';
-import {townizeLevel} from './town-layout.js?v=2.3.3';
-import {applyEncounters} from './encounters.js?v=2.3.3';
-import '../data/raid-combat.js?v=2.3.3';
+import {clearPassageProps} from './archipelago-passages.js?v=2.4.0';
+import {townizeLevel} from './town-layout.js?v=2.4.0';
+import {applyEncounters} from './encounters.js?v=2.4.0';
+import '../data/raid-combat.js?v=2.4.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -144,7 +144,7 @@ export const RULES=Object.freeze({
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
-  weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
+  weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
 });
 // Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.
 export function layoutFor(seed,number){const pool=RULES.layouts[number-1];return pool[Math.floor(randomFromSeed(`${seed}:layout:${number}`)()*pool.length)];}

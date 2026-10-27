@@ -43,3 +43,17 @@ test('player shots can hit an enemy and cover stops the shot',()=>{
   assert.equal(physics.traceTargets({x:0,z:4},{x:0,z:-1},[],[enemy]).kind,'enemy');
   assert.equal(physics.traceTargets({x:0,z:4},{x:0,z:-1},[{x:0,z:2,w:2,d:.5}],[enemy]).kind,'wall');
 });
+// Swept collision: traceTargets solves the segment/circle intersection exactly (not sampled points), so a single
+// huge step (one big dt at high bullet speed, or a dropped frame) cannot skip past a target in its path.
+test('a single very long step cannot tunnel through a circle in its path',()=>{
+  const enemy={id:'foe',kind:'enemy',x:50,z:0,r:.48};
+  assert.equal(physics.traceTargets({x:0,z:0},{x:1000,z:0},[],[enemy])?.kind,'enemy');
+  // Same step, offset just past the circle: no false positive from an overly generous sweep.
+  const miss={id:'foe',kind:'enemy',x:50,z:.5,r:.48};
+  assert.equal(physics.traceTargets({x:0,z:0},{x:1000,z:0},[],[miss]),null);
+});
+
+test('a swept step cannot tunnel through a thin AABB at high speed',()=>{
+  const wall={x:3,z:0,w:.02,d:1};
+  assert.equal(physics.traceTargets({x:0,z:0},{x:1000,z:0},[wall],[])?.kind,'wall');
+});

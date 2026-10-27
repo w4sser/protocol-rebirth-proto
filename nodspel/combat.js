@@ -1,9 +1,9 @@
-import {ownRooms} from './perks.js?v=2.3.3';
-import {RULES,hazardState} from './levels.js?v=2.3.3';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.3.3';
-import {takeDamage,tickRound} from './round.js?v=2.3.3';
-import {houseWaypoint} from './house.js?v=2.3.3';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.3.3';
+import {ownRooms} from './perks.js?v=2.4.0';
+import {RULES,hazardState} from './levels.js?v=2.4.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.4.0';
+import {takeDamage,tickRound} from './round.js?v=2.4.0';
+import {houseWaypoint} from './house.js?v=2.4.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.4.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -25,10 +25,12 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
   stepBlasts(round,combat,player,now);
-  if(now<combat.graceUntil)return;
+  if(now<combat.graceUntil&&!round.level.enemies.some(e=>e.aggro&&e.nearMissAt!=null))return;
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
-    if(enemy.active===false||enemy.type==='generator'||now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??rule.graceMs))continue;
+    if(now<combat.graceUntil&&enemy.nearMissAt==null)continue;
+    if(enemy.active===false||enemy.type==='generator'||(enemy.nearMissAt==null&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??rule.graceMs)))continue;
+    if(enemy.attackWakeAt!=null){combat.nextFire.set(enemy.id,Math.min(combat.nextFire.get(enemy.id)??now,now));enemy.attackWakeAt=null;}
     // EMP: a stunned enemy neither moves nor fires; its wind-up and salvo are cancelled (a fresh telegraph follows).
     if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;continue;}
     // Decoy: a lured mover heads for the lure instead of the player and holds fire until it ends.
@@ -45,11 +47,11 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     if(enemy.patrol&&!enemy.introGuard&&!enemy.aggro&&enemy.health>0)patrolSight(round,enemy,player,now,obstacles,target);
     // Detection: stealth shrinks the range at which an enemy notices you. Once noticed (or shot) it stays aggro.
     const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
-    if(seen||enemy.lastHitAt!=null)enemy.aggro=true;
+    if(seen||enemy.lastHitAt!=null||enemy.nearMissAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}
     if(enemy.patrol&&enemy.health>0)enemy.facing=angleTo(enemy,player);
-    if(enemy.health>0 && enemy.speed && now>=combat.moveAt){
+    if(enemy.health>0 && enemy.speed && (now>=combat.moveAt||enemy.nearMissAt!=null)){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
       const way=houseWaypoint(round.level.house,enemy,player)??(enemy.swarm?doorwayWaypoint(round.level,enemy,player):null),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);

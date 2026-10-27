@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.3.3';
+import {setArea} from '../levels.js?v=2.4.0';
 import {perkState,updateClears,ownRooms,safePick,offer,choosePerk} from '../perks.js';
 
 const point={x:0,z:0};
@@ -45,7 +45,8 @@ test('a room whose only enemy is a dormant reserve clears only once it activates
   assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
   assert.equal(pickAt(r,point),null);
   const reserve=r.level.enemies[0];
-  assert.equal(hitEnemy(r,reserve.id,100,reserve.health),false,'dormant reserves cannot be defeated');
+  assert.equal(hitEnemy(r,reserve.id,100,1),true,'attacking wakes dormant defenders');
+  assert.equal(reserve.active,true);assert.equal(reserve.aggro,true);
   r.level.nodes.push({id:'wake',active:false});activateNode(r,'wake',100);
   updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved','woken but still alive');
   hitEnemy(r,reserve.id,200,reserve.health);assert.equal(reserve.health,0);

@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=2.3.3';
-import {RULES} from './levels.js?v=2.3.3';
-import {bagCap,equippedGear} from './round.js?v=2.3.3';
-import {readGoal} from './progression-goal.js?v=2.3.3';
+import {bagItems} from './raid.js?v=2.4.0';
+import {RULES} from './levels.js?v=2.4.0';
+import {bagCap,equippedGear} from './round.js?v=2.4.0';
+import {readGoal} from './progression-goal.js?v=2.4.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -19,7 +19,12 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null}={}){
     area:round.level?.area??'bunker',...round.hard?{hard:true}:{},outcome:OUTCOMES[round.reason]??'timeout',reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,killsByType:{...(round.killsByType??{})},nodesLit:round.nodesLit,
     remainingMs:round.remainingMs,kitPicked:round.kitPicked??0,elapsedMs:Math.max(0,(round.durationMs??round.remainingMs)-round.remainingMs),health:round.health,maxHealth:round.maxHealth,shield:round.shield,maxShield:round.maxShield,extracted:bagItems(round.extracted),lost:bagItems(round.lost),endedAt,
     skills:round.telemetry?{distanceM:Math.round(round.telemetry.distanceM),dashes:round.telemetry.dashes,holdNodes:round.telemetry.holdNodes,damageTaken:Math.round(round.telemetry.damageTaken),searches:round.telemetry.searches||0,healed:Math.round(round.telemetry.healed||0)}:undefined,
-    stats:round.stats,gear:launch?.gear??[],gearOut:[...equippedGear(round),...(round.backpack??[])],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
+    // Equipped gear and backpack items (carried but not equipped) are both at risk: only a win (extract/complete)
+    // brings them home, same rule as bag loot (the base app already gates on `extracted`; this is belt and braces).
+    ...((round.raidPerksTaken?.length||round.perks?.taken?.length)?{perksTaken:[...new Set([...(round.raidPerksTaken??[]),...(round.perks?.taken??[])])]}:{}),
+    ...(round.gearConsumed?.length?{gearConsumed:[...round.gearConsumed]}:{}),
+    ...(OUTCOMES[round.reason]!=='extract'&&(equippedGear(round).length||round.backpack?.length)?{equipmentLost:[...equippedGear(round),...(round.backpack??[])]}:{}),
+    stats:round.stats,gear:launch?.gear??[],gearOut:OUTCOMES[round.reason]==='extract'?[...equippedGear(round),...(round.backpack??[])]:[],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};
 }
 // The tool slot mirrors kitLeft: what is still unused at the end. Meta returns it on extract and drops it on death.
 // Only present when a tool was brought, so tool-less results keep their v1 shape.
@@ -41,6 +46,7 @@ export function readLaunch(search){
   const seed=p.get('seed')||null,rawId=p.get('raidId');
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
+    armorShield:p.has('armorShield')&&p.get('armorShield')!==''&&Number.isFinite(Number(p.get('armorShield')))?Math.min(RULES.playerStats.clamp.shield[1],Math.max(0,Number(p.get('armorShield')))):null,
     weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
 }
 // ?quest=extract:cable:1:3 | kill:sentry:0:3 | clear:2:0:1 (type:target:progress:n[:level]) -> the tracked chain quest for the HUD chip (anything else -> null).
