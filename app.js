@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.5.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.5.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -1095,9 +1095,9 @@ function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.ch
 function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
 function chainStepN(def){ return def.objective.n; }
 // Hand-ins of items that can drop in a raid (any questFacts loot list) only take found-in-raid copies (S.fir), never bought,
-// crafted or reward ones. Items no raid drops (e.g. the Transmitter) take plain stash copies, otherwise the chain would block.
+// crafted or reward ones. Guaranteed quest supplies also count as raid-findable; other items take plain stash copies.
 const RAID_FINDABLE = new Set(Object.values(QF).flatMap(a => Object.values(a).flatMap(l => l.items || [])));
-function raidFindable(id){ return RAID_FINDABLE.has(id); }
+function raidFindable(id){ if(ITEMS[id]&&ITEMS[id].raidSource)return true; return RAID_FINDABLE.has(id); }
 function handinHave(id){ return raidFindable(id) ? firHave(id) : have(id); }
 function handinFir(def){ return def.objective.type === "handin" && Object.keys(def.objective.items).some(raidFindable); }
 function chainHandinProg(def){ const o = def.objective; return Math.min(o.n, Object.keys(o.items).reduce((a, k) => a + Math.min(o.items[k], handinHave(k)), 0)); }
@@ -1338,8 +1338,17 @@ function trackedGoalHtml(){
   return '<button type="button" class="progress-goal qgoal' + (ready ? ' rdy' : '') + (t.maintain ? ' maintain' : '') + '" onclick="' + click + '" aria-label="Tracked quest: ' + esc(t.step.title) + '"><b>' + IC(t.maintain ? "power" : "quest") + ' ' + esc(t.step.title) + '</b>' + ctx + '<div class="qgrow">' +
     qTile(qObjIcon(o), t.prog + "/" + t.n, "") + '</div></button>';
 }
-// Launch param for the raid HUD chip: only when the tracked quest is in the area being raided (hand-ins have no raid objective).
+// Raid HUD objective: active guaranteed hand-in supplies take priority, then the tracked quest in this area.
 function questLaunchParam(){
+  // Hand-in supply guarantees follow the active chain even when another quest is tracked.
+  if(ftueOver())for(const id of Object.keys(QC)){
+    const def=chainActive(id);if(!def||def.area!==raidArea()||def.objective.type!=="handin")continue;
+    for(const item of Object.keys(def.objective.items)){
+      const source=ITEMS[item].raidSource;
+      if(source&&source.area===raidArea()&&handinHave(item)<def.objective.items[item])
+        return "extract:"+item+":0:"+def.objective.items[item]+":"+source.level;
+    }
+  }
   const t = ftueOver() && trackedQuest(); if(!t || t.step.area !== raidArea()) return null;
   const o = t.step.objective; if(o.type === "handin") return null;
   return o.type + ":" + (o.type === "extract" ? o.item : o.type === "kill" ? o.enemy : (o.level || 1)) + ":" + t.prog + ":" + t.n + (o.type === "extract" ? ":" + (o.level || 1) : "");
@@ -3654,7 +3663,7 @@ const ATT_ITEM = PROG.gearMerge.attachItem;
 function attachBlock(id, slot){
   if(gearKind(id) !== "weapon") return "Guns only";
   const need = WPN_SLOTS.find(x => x[0] === slot)[3];
-  if(gearTier(id) < need) return "Unlocks at Mk " + TIER_NAMES[need - 1];
+  if(gearTier(id) < need) return "Locked: merge to Mk " + TIER_NAMES[need - 1] + " first";
   if(attachOf(id)[slot]) return "Fitted";
   return have(ATT_ITEM[slot]) > 0 ? "" : "Craft a " + ITEMS[ATT_ITEM[slot]].name + " at the Fabricator";
 }
@@ -3744,7 +3753,7 @@ function wpnSlotsHtml(id){
   const tier = weaponTier(id);
   return '<div class="wslots" aria-label="Attachment slots">' + WPN_SLOTS.map(([key, name, eff, need]) => {
     const open = tier >= need, fitted = !!attachOf(id)[key], can = open && !fitted && !attachBlock(id, key);
-    const sub = fitted ? eff + ' · fitted' : !open ? 'Mk ' + TIER_NAMES[need - 1] : can ? 'TAP TO FIT ' + eff : (eff + ' · craft at Fabricator');
+    const sub = fitted ? eff + ' · fitted' : !open ? attachBlock(id, key) : can ? 'TAP TO FIT ' + eff : attachBlock(id, key);
     return '<button type="button" class="wslot' + (fitted ? ' fitted open' : open ? ' open' : ' locked') + (can ? ' can' : '') + '" data-slot="' + key + '"' + (can ? ' onclick="A.fitAttachment(\'' + id + '\',\'' + key + '\')"' : ' disabled') + '>' +
       '<b>' + (fitted ? IC(ITEMS[ATT_ITEM[key]].icon) + ' ' : '') + name + '</b><small>' + sub + '</small></button>';
   }).join("") + (ITEMS[id].art ? '<div class="wslot stock open" data-slot="stock"><b>Stock</b><small>' + gradeName(id) + (weaponGrade(id) < 4 && gearTier(id) >= 3 ? ' · fit all 3 for Svartverk' : '') + '</small></div>' : '') + '</div>';

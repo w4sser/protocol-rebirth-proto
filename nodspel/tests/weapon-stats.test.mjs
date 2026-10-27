@@ -53,7 +53,7 @@ test('shotgun fires a pellet fan (one ammo) and a hit shoves the target',()=>{
   const w=createWeapon(Infinity,{id:'shotgun_breach',damage:1,capacity:2,range:4.5,assistAngleDegrees:22,coneHalfAngleDegrees:18,spreadDegrees:9,knockback:1.1,pellets:5,homingDegreesPerSecond:0});
   const shot=fireAimedWeapon(w,round,{x:0,z:0},{x:0,z:-1},1000,[]);
   assert.ok(shot);assert.equal(w.ammo,1,'one shell');assert.equal(w.projectiles.length,5,'real shot + 4 extra pellets');
-  assert.ok(e.z<-3.9,'locked shot shoves immediately');assert.equal(e.health,8);
+  assert.equal(e.z,-3,'release does not shove');stepWeapon(w,round,1200,.2,[]);assert.ok(e.z<-3.9,'impact shoves');assert.equal(e.health,8);
 });
 test('carbine tracer bends toward a target in a narrow cone, never aimbot',()=>{
   const rule=RULES.weapon,e={id:'e',kind:'enemy',x:1,z:-6,health:2};

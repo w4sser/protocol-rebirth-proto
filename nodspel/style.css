@@ -314,7 +314,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 #round-over[data-outcome=extract] #death-tip{display:none}
 #round-over .result-card .result-bit-line{font-size:11px;line-height:1.4;color:var(--ad-bit);overflow-wrap:anywhere}
 
-/* v2.5.0 stakes PR1: heal budget meter, carried-value line, bag-weight gauge, alarm/wave banner + edge arrow. */
+/* v2.5.1 stakes PR1: heal budget meter, carried-value line, bag-weight gauge, alarm/wave banner + edge arrow. */
 .heal-meter{width:40px;height:3px;margin-top:3px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--ad-cyan) 18%,var(--night))}
 .heal-meter i{display:block;height:100%;width:100%;background:var(--ad-cyan);transition:width .15s linear}
 .heal-meter.empty i{background:var(--ad-danger)}
@@ -329,3 +329,6 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .hunter-arrow{position:fixed;width:26px;height:26px;z-index:8;pointer-events:none;color:var(--ad-danger);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--ad-danger) 60%,transparent))}
 .hunter-arrow .pr-ic{width:100%;height:100%}
 @media(max-height:500px){.alarm-banner{top:max(104px,0px);padding:6px 14px}.alarm-banner b{font-size:14px}.alarm-banner span{font-size:10px}}
+
+/* Own the touch gesture so Safari does not turn a HUD tap into pan/zoom. */
+#use-kit{touch-action:none;pointer-events:auto}

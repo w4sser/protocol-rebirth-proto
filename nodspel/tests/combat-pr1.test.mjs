@@ -29,8 +29,10 @@ test('standing and moving windows enforce angle and width separately, also in L1
     const shot=fireAimedWeapon(weapon,round,origin,aim,100,[],true);
     assert.equal(shot.movingAtFire,true);assert.equal(target.health,3);
     const standing=fireAimedWeapon(weapon,round,origin,aim,400,[],false);
-    assert.equal(standing.resolved,true);assert.equal(target.health,2);
-    stepWeapon(weapon,round,450,.01,[]);assert.equal(target.health,2,'resolved tracer cannot damage twice');
+    assert.equal(standing.resolved,undefined);assert.equal(target.health,3,'release does not damage');
+    // Isolate the assisted shot from the earlier free shot.
+    weapon.projectiles=[standing];stepWeapon(weapon,round,800,.5,[]);assert.equal(target.health,2);
+    stepWeapon(weapon,round,900,.1,[]);assert.equal(target.health,2,'impact cannot damage twice');
   }
   const inside=foe(4,.2);
   assert.equal(assistAim(origin,aim,[inside],[],RULES.weapon,true).target,inside);

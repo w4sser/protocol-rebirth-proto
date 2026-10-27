@@ -51,7 +51,7 @@ window.DATA.questChains = {
     { id:"A1", title:"Landfall", brief:"Clear Archipelago level 1 and extract", area:"archipelago", objective:{ type:"clear", level:1, n:1 }, reward:{ scrap:50 } },
     { id:"A2", title:"Patrol Route", brief:"Clear Archipelago level 1 twice", area:"archipelago", objective:{ type:"clear", level:1, n:2 }, reward:{ items:{ optical_sensor:1 } } },
     { id:"A3", title:"Salt Damage", brief:"Bring 2 Servo home from Archipelago L2", area:"archipelago", objective:{ type:"extract", item:"servo", level:2, n:2 }, reward:{ chips:1, xp:30 } },
-    { id:"A4", title:"Buoy Network", brief:"Hand in 1 Transmitter from your stash", area:"archipelago", objective:{ type:"handin", items:{ transmitter:1 }, n:1 }, reward:{ chips:2 } },
+    { id:"A4", title:"Buoy Network", brief:"Found in: Archipelago - radio crates", area:"archipelago", objective:{ type:"handin", items:{ transmitter:1 }, n:1 }, reward:{ chips:2 } },
     { id:"A5", title:"Ghost Signal", brief:"Bring 1 AI Fragment home from the Archipelago", area:"archipelago", objective:{ type:"extract", item:"ai_fragment", n:1 }, reward:{ items:{ tidal_coil:1 } } },
     { id:"A6", title:"Rush Hour", brief:"Take down 4 Rushers in the Archipelago", area:"archipelago", objective:{ type:"kill", enemy:"rusher", n:4 }, reward:{ tools:{ tool_grenade:2 } } },
     { id:"A7", title:"Lighthouse", brief:"Bring 1 Power Relay home from Archipelago L3", area:"archipelago", objective:{ type:"extract", level:3, n:1, item:"power_relay" }, reward:{ items:{ tidal_coil:2 }, dataCores:1 } },
