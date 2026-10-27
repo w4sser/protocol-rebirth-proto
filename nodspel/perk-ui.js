@@ -1,4 +1,4 @@
-import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.5.0';
+import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.5.1';
 const paths={
   chain:'M5 17l7-10 1 6h6l-7 10-1-6H5z M4 4h4 M18 4h2',
   reload:'M5 9a8 8 0 1 1-1 7 M5 4v5h5 M12 8v5l3 2',

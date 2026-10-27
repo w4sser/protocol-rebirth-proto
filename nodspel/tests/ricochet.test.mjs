@@ -10,7 +10,7 @@ function arena(perk=true){
   if(perk)perkState(r).taken=['ricochet'];
   return r;
 }
-function fire(r,walls=[]){const w=createWeapon(Infinity,{damage:2});fireAimedWeapon(w,r,{x:0,z:0},{x:0,z:-1},100,walls);return w;}
+function fire(r,walls=[]){const w=createWeapon(Infinity,{damage:2});fireAimedWeapon(w,r,{x:0,z:0},{x:0,z:-1},100,walls);stepWeapon(w,r,200,.2,walls);stepWeapon(w,r,200,.2,walls);return w;}
 test('Ricochet bounces once to the nearest enemy for half damage, without a second ammo cost or repeat tracer damage',()=>{
   const r=arena(),w=fire(r);assert.deepEqual(r.level.enemies.map(e=>e.health),[8,9,10]);assert.equal(w.ammo,w.rule.capacity-1);
   stepWeapon(w,r,200,.1,[]);assert.deepEqual(r.level.enemies.map(e=>e.health),[8,9,10]);assert.ok(perkState(r).events.some(e=>e.perk==='ricochet'&&/1 damage/.test(e.text)));
@@ -38,7 +38,7 @@ test('Ricochet wakes dormant defenders and records hit feedback through hitEnemy
   Object.assign(target,{active:false,aggro:false,spawnedAt:100});
   fire(r);
   assert.equal(target.health,9);assert.equal(target.active,true);assert.equal(target.aggro,true);
-  assert.equal(target.attackWakeAt,100);assert.equal(target.lastHitAt,100);
+  assert.equal(target.attackWakeAt,200);assert.equal(target.lastHitAt,200);
   assert.equal(target.hitSerial,1);assert.equal(target.lastDamage,1);
 });
 test('a shield-blocked Ricochet still alerts the defender without damage feedback',()=>{
@@ -46,7 +46,7 @@ test('a shield-blocked Ricochet still alerts the defender without damage feedbac
   Object.assign(target,{active:false,aggro:false,frontShield:30,facing:-Math.PI/2});
   fire(r);
   assert.equal(target.health,10);assert.equal(target.aggro,true);assert.equal(target.active,true);
-  assert.equal(target.blockedAt,100);assert.equal(target.blockedSerial,1);
+  assert.equal(target.blockedAt,200);assert.equal(target.blockedSerial,1);
   assert.equal(target.hitSerial,undefined);
 });
 test('a swept projectile hit bounces once and records aggro and damage on both enemies',()=>{
@@ -54,10 +54,29 @@ test('a swept projectile hit bounces once and records aggro and damage on both e
   const shot={id:1,x:0,z:0,dx:0,dz:-1,remaining:10};
   w.projectiles.push(shot);
   assert.equal(stepWeapon(w,r,200,1,[]),true);
+  assert.deepEqual(r.level.enemies.map(e=>e.health),[8,10,10]);
+  stepWeapon(w,r,200,.2,[]);
   assert.deepEqual(r.level.enemies.map(e=>e.health),[8,9,10]);
   for(const target of r.level.enemies.slice(0,2)){
     assert.equal(target.aggro,true);assert.equal(target.lastHitAt,200);assert.equal(target.hitSerial,1);
   }
   stepWeapon(w,r,300,1,[]);
   assert.deepEqual(r.level.enemies.map(e=>e.health),[8,9,10]);
+});
+
+test('secondary projectile travels and can miss a moving or dead target',()=>{
+  for(const outcome of ['impact','moved','dead']){
+    const r=arena(),w=createWeapon(Infinity,{damage:2});
+    fireAimedWeapon(w,r,{x:0,z:0},{x:0,z:-1},100,[]);
+    stepWeapon(w,r,200,.2,[]);
+    assert.deepEqual(r.level.enemies.map(e=>e.health),[8,10,10],'launch does no secondary damage');
+    const bounce=w.projectiles.find(b=>b.ricochet);assert.ok(bounce);
+    stepWeapon(w,r,201,.001,[]);assert.ok(bounce.x>0);assert.equal(r.level.enemies[1].health,10);
+    if(outcome==='moved')r.level.enemies[1].z=-8;
+    if(outcome==='dead')r.level.enemies[1].health=0;
+    stepWeapon(w,r,400,.2,[]);
+    assert.equal(r.level.enemies[1].health,outcome==='impact'?9:outcome==='dead'?0:10);
+    assert.equal(r.level.enemies[0].health,8,'bounce ignores its source');
+    assert.ok(!w.projectiles.some(b=>b.ricochet),'no recursive bounce');
+  }
 });

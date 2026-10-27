@@ -28,7 +28,7 @@ ITEM_DATA_ROOT.DATA.items = [
     desc:"Military-grade optics. BIT has opinions about getting one.", uses:["upgrade:bit_bay","recipe"] },
   { id:"memory_module", icon:"item-memory", name:"Memory Module", family:"electronics", rarity:"uncommon", sellValue:100, stackSize:5,
     desc:"Someone's data. Now BIT's data.", uses:["upgrade:rebirth_core","upgrade:bit_bay","barter"] },
-  { id:"transmitter", icon:"item-transmitter", name:"Transmitter", family:"electronics", rarity:"uncommon", sellValue:130, stackSize:5,
+  { id:"transmitter", raidSource:{area:"archipelago",level:1,label:"Radio crate"}, icon:"item-transmitter", name:"Transmitter", family:"electronics", rarity:"uncommon", sellValue:130, stackSize:5,
     desc:"Long-range comms hardware.", uses:["recipe","barter"] },
   // BIO / MEDICAL
   { id:"med_gel", icon:"item-medgel", name:"Med Gel", family:"bio", rarity:"common", sellValue:30, stackSize:10,

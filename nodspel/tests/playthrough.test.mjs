@@ -1,3 +1,4 @@
+import {shieldBlocks} from '../encounters.js';
 import {updateClears,perkState,offer,choosePerk} from '../perks.js';
 import {stepNodeInteraction} from '../round.js';
 import test from 'node:test';
@@ -50,7 +51,7 @@ test('a player can shoot every node and walk through all three exits within one 
         clock+=travel*1000;stepWeapon(w,round,clock,travel,solidBoxes());
       }
       for(const enemy of level.enemies){if(enemy.active===false)continue;
-        routeTo(p=>Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
+        routeTo(p=>!shieldBlocks(enemy,p)&&Math.hypot(p.x-enemy.x,p.z-enemy.z)<1.6 && traceTargets(p,enemy,solidBoxes(),[...level.nodes,...level.enemies.filter(e=>e.health>0)])?.target?.id===enemy.id);
         for(let hit=0;hit<(level.number<=2?2:RULES.enemyHealth)/RULES.weapon.damage;hit++)shoot(enemy);
         assert.equal(enemy.health,0);if(enemy.type!=='generator')expectedKills++;// breaking a generator is not a kill
       }

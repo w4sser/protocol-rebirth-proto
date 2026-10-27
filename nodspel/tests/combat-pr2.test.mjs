@@ -57,8 +57,8 @@ test('full paused clock freezes deadline, enemies, hazards, weapon and BIT inclu
 });
 test('chain consumes charge on real shot, adds measured damage, never from generators',()=>{
   const r=arena();r.level.enemies=[foe('weak',2),{...foe('strong',5),health:10}];select(r,'chain');const w=createWeapon(Infinity,{damage:2});
-  const a=fireAimedWeapon(w,r,point,{x:1,z:0},1000,[]);assert.ok(a);assert.equal(perkState(r).chain,true);
-  const b=fireAimedWeapon(w,r,point,{x:1,z:0},2000,[]);assert.equal(b.bonus,true);assert.equal(r.level.enemies[1].health,7);assert.equal(perkState(r).chain,false);
+  const a=fireAimedWeapon(w,r,point,{x:1,z:0},1000,[]);assert.ok(a);assert.equal(perkState(r).chain,false);stepWeapon(w,r,1200,.2,[]);assert.equal(perkState(r).chain,true);
+  const b=fireAimedWeapon(w,r,point,{x:1,z:0},2000,[]);assert.equal(b.bonus,true);assert.equal(r.level.enemies[1].health,10);stepWeapon(w,r,2400,.4,[]);assert.equal(r.level.enemies[1].health,7);assert.equal(perkState(r).chain,false);
   assert.match(perkState(r).events.find(e=>e.perk==='chain'&&e.text.includes('extra'))?.text,/1 extra damage/);
   perkState(r).chain=true;fireAimedWeapon(w,r,point,{x:-1,z:0},3000,[]);assert.equal(perkState(r).chain,false);stepWeapon(w,r,3100,5,[]);assert.ok(perkState(r).events.some(e=>e.outcome==='miss'));
   r.level.enemies=[{...foe('gen',2),type:'generator'}];fireAimedWeapon(w,r,point,{x:1,z:0},4000,[]);assert.equal(perkState(r).chain,false);

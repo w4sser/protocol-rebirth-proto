@@ -1,10 +1,10 @@
-import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.5.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.0';
-import {emptyBag,bagItems} from './raid.js?v=2.5.0';
-import {traceTargets} from './physics.mjs?v=2.5.0';
-import {shieldBlocks} from './encounters.js?v=2.5.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.5.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.1';
+import {emptyBag,bagItems} from './raid.js?v=2.5.1';
+import {traceTargets} from './physics.mjs?v=2.5.1';
+import {shieldBlocks} from './encounters.js?v=2.5.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -192,6 +192,12 @@ export function equipFromBackpack(round,index,now){
   return old;
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
+export function healthKitBlock(round){
+  if(healRemaining(round)<=0)return 'Healing budget spent for this raid';
+  if(!(round.kit?.medkit>0)&&!(round.bag?.medkit>0))return 'No medkits carried';
+  if(round.health>=(round.maxHealth??100))return 'Health full';
+  return '';
+}
 export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;
   if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max||healRemaining(round)<=0)return false;

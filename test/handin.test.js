@@ -36,13 +36,15 @@ A.go("stash"); assert(d.querySelector("#app .slot .firmk use[href$='#fir']"), "F
 b.w.eval("addItem('cable', 2)"); assert.equal(T.firHave("cable"), 0, "granted copies are not FIR");
 b.w.eval("removeItem('scrap_alloy', 1)"); assert.equal(T.firHave("scrap_alloy"), 1, "FIR clamps with the stack");
 
-// ---- FIR only applies to items a raid can drop: A4 (Transmitter) takes plain stash copies ----
-{ const a = boot(open), at = a.T, as = a.S; assert(!at.raidFindable("transmitter") && at.raidFindable("scrap_alloy"));
+// ---- Transmitter now has a guaranteed raid source and follows the same FIR rules ----
+{ const a = boot(open), at = a.T, as = a.S; assert(at.raidFindable("transmitter") && at.raidFindable("scrap_alloy"));
   as().debugAreas = true; as().chains.archipelago = { step:3, prog:0 }; as().stash = { transmitter: 1 }; as().fir = {};
-  assert.equal(at.chainActive("archipelago").id, "A4"); assert(!at.handinFir(at.chainActive("archipelago")), "no FIR tag on A4");
-  assert(at.chainReady("archipelago"), "a bartered Transmitter completes A4"); a.A.go("base"); a.A.questLog("archipelago");
-  assert(!a.d.querySelector("#overlay .qfir, #overlay .qt.fir"), "no FIR tag or marker on A4"); a.d.querySelector("#overlay .pop-x").click();
-  a.A.QUEST_HANDIN({ chain:"archipelago" }); assert(!as().stash.transmitter, "transmitter consumed"); }
+  assert.equal(at.chainActive("archipelago").id, "A4"); assert(at.handinFir(at.chainActive("archipelago")), "FIR tag on A4");
+  assert(!at.chainReady("archipelago"), "a bartered Transmitter is not FIR");
+  at.ingestRaidResult(raid({area:"archipelago",extracted:["transmitter"]}));assert(at.chainReady("archipelago"), "radio crate Transmitter completes A4");
+  a.A.go("base"); a.A.questLog("archipelago");
+  assert(a.d.querySelector("#overlay .qfir, #overlay .qt.fir"), "FIR tag or marker on A4"); a.d.querySelector("#overlay .pop-x").click();
+  a.A.QUEST_HANDIN({ chain:"archipelago" }); assert.equal(as().stash.transmitter,1,"only the FIR transmitter consumed"); assert.equal(at.firHave("transmitter"),0); }
 
 // ---- FIR credit for newly found gear and medkits, not for gear brought in ----
 { const e = boot(open), et = e.T, es = e.S; es().stash = {}; es().fir = {};

@@ -1,7 +1,7 @@
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.5.0';
-import {RULES} from './levels.js?v=2.5.0';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.5.0';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.5.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.5.1';
+import {RULES} from './levels.js?v=2.5.1';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.5.1';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.5.1';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -55,27 +55,27 @@ function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   if(hit?.kind==='node'){const changed=hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.node.id);return changed;} // EMP drops the shield for a few seconds
   if(hit?.kind!=='enemy'){if(shot)recordShot(round,shot,now,hit?'block':'miss');return false;}
   const enemy=round.level.enemies.find(e=>e.id===hit.target.id),before=enemy?.health??0;
-  const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage*(shot?.bonus?1+PERKS.chainBonus:1));
-  if(shot){recordShot(round,shot,now,changed?'hit':'block',hit.target.id);if(shot.bonus)logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:`Chain Reaction: ${changed?Number(Math.max(0,before-(enemy?.health??before)-Math.min(before,rule.damage)).toFixed(2)):0} extra damage, ${changed?'hit':'blocked'} (${hit.target.id}).`});}
-  if(changed&&hasPerk(round,'ricochet'))bounceRicochet(round,enemy,rule,now,shot,obstacles);
+  const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage*(shot?.damageScale??(shot?.bonus?1+PERKS.chainBonus:1)),shot?.origin);
+  if(shot&&!shot.ricochet){recordShot(round,shot,now,changed?'hit':'block',hit.target.id);if(shot.bonus)logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:`Chain Reaction: ${changed?Number(Math.max(0,before-(enemy?.health??before)-Math.min(before,rule.damage)).toFixed(2)):0} extra damage, ${changed?'hit':'blocked'} (${hit.target.id}).`});}
+  if(changed&&shot?.ricochet)logCombat(round,{kind:'perk',perk:'ricochet',at:now,shotId:shot.logId,text:`Ricochet: ${Math.max(0,before-enemy.health)} damage (${enemy.id}).`});
+  if(changed&&!shot?.ricochet&&hasPerk(round,'ricochet'))bounceRicochet(weapon,round,enemy,rule,now,shot,obstacles);
   if(round.enemiesDefeated>kills){if(hasPerk(round,'chain'))perkState(round).chain=true;const refill=Math.min(rule.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===rule.capacity||weapon.reserve===0)weapon.reloadAt=null;}
   if(changed&&dir)knockEnemy(round,round.level.enemies.find(e=>e.id===hit.target.id),dir,rule,obstacles,now);
   return changed;
 }
-// Resolve a single secondary hit directly; it cannot recursively bounce or cross cover.
-function bounceRicochet(round,source,rule,now,shot,obstacles){
+// Launch once from the struck enemy. Collision uses current positions on later frames.
+function bounceRicochet(weapon,round,source,rule,now,shot,obstacles){
   if(!source)return;
   const target=round.level.enemies.filter(e=>e!==source&&e.health>0&&(e.active!==false||!e.swarm))
     .map(e=>({enemy:e,distance:Math.hypot(e.x-source.x,e.z-source.z)}))
-    .filter(({enemy,distance})=>distance<=PERKS.ricochetRange&&traceTargets(source,enemy,obstacles,[])?.kind!=='wall')
-    .sort((a,b)=>a.distance-b.distance)[0]?.enemy;
+    .filter(({enemy,distance})=>distance>.01&&distance<=PERKS.ricochetRange&&traceTargets(source,enemy,obstacles,[])?.kind!=='wall')
+    .sort((a,b)=>a.distance-b.distance)[0];
   if(!target)return;
-  const damage=rule.damage*(shot?.bonus?1+PERKS.chainBonus:1)*PERKS.ricochetDamage;
-  const before=target.health;
-  if(hitEnemy(round,target.id,now,damage,source)){
-    logCombat(round,{kind:'perk',perk:'ricochet',at:now,shotId:shot?.logId??shot?.id,
-      text:`Ricochet: ${Math.min(before,damage)} damage (${target.id}).`});
-  }
+  weapon.projectiles.push({id:++weapon.nextId,logId:shot?.logId??shot?.id,
+    x:source.x,z:source.z,origin:{x:source.x,z:source.z},
+    dx:(target.enemy.x-source.x)/target.distance,dz:(target.enemy.z-source.z)/target.distance,
+    remaining:PERKS.ricochetRange,ricochet:true,sourceId:source.id,aimAssisted:true,
+    damageScale:(shot?.bonus?1+PERKS.chainBonus:1)*PERKS.ricochetDamage});
 }
 // Shotgun shove: a surviving enemy slides back along the shot, stopping at walls. Generators are fixed.
 export function knockEnemy(round,enemy,dir,rule,obstacles,now){
@@ -105,20 +105,15 @@ export function steerShot(b,enemies,obstacles,rule,dt){
 export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=assistAim(position,direction,targets,obstacles,rule,moving);
-  // Spread only scatters free-aimed shots; a lock (aim assist) always lands.
+  // Spread scatters free-aimed shots; assist sets the initial direction.
   let dir=assisted.direction;
   if(!assisted.target&&rule.spreadDegrees>0){const a=(weapon.rand??Math.random)()*2-1,t=a*rule.spreadDegrees*Math.PI/180,c=Math.cos(t),s=Math.sin(t);dir={x:dir.x*c-dir.z*s,z:dir.x*s+dir.z*c};}
   const shot=fireWeapon(weapon,position,dir,now,round);if(!shot)return null;
   shot.logId=round.nextCombatShotId=(round.nextCombatShotId??0)+1;shot.movingAtFire=!!moving;shot.bonus=hasPerk(round,'chain')&&perkState(round).chain;if(shot.bonus)perkState(round).chain=false;
   logCombat(round,{kind:'shot',at:now,shotId:shot.logId??shot.id,moving:!!moving,rejections:assisted.rejections,target:assisted.target?.id??null});
-  if(assisted.target){
-    const end={x:position.x+shot.dx*rule.range,z:position.z+shot.dz*rule.range};
-    const hit=weaponHit(position,end,obstacles,targets,rule);
-    shot.hitApplied=applyWeaponHit(weapon,round,hit,now,{x:shot.dx,z:shot.dz},obstacles,shot);shot.resolved=true;
-    // A locked hit is resolved at release, so a runner cannot outrun a promised
-    // hit. The travelling tracer is visual only and cannot damage twice.
-    if(shot.resolved)shot.remaining=Math.hypot(assisted.target.x-position.x,assisted.target.z-position.z);
-  }
+  // Aim assist chooses the launch direction, never a promised hit. Collision is
+  // swept only over each frame's travelled segment against current positions.
+  shot.aimAssisted=!!assisted.target;
   if(rule.pellets>1)fanPellets(weapon,shot,rule,assisted.target?Math.hypot(assisted.target.x-position.x,assisted.target.z-position.z):rule.range);
   return shot;
 }
@@ -153,7 +148,7 @@ export function fireWeapon(weapon,position,direction,now,round){
   if(!weapon.ammo || now<weapon.nextShotAt || length<.01)return null;
   weapon.scavenging=null;weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
   if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+reloadInterval(round,rule.reloadMs);
-  const shot={id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
+  const shot={origin:{x:position.x,z:position.z},id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
   weapon.projectiles.push(shot);return shot;
 }
 // Closest distance from point p to the segment a-b (clamped to the segment, not the infinite line).
@@ -169,10 +164,10 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
   tickWeapon(weapon,now,round);let changed=false;
   for(let i=weapon.projectiles.length-1;i>=0;i--){
     const b=weapon.projectiles[i];
-    if(!b.resolved)steerShot(b,round.level.enemies,obstacles,weaponRule(weapon),dt);
+    if(!b.resolved&&!b.aimAssisted)steerShot(b,round.level.enemies,obstacles,weaponRule(weapon),dt);
     const distance=Math.min(b.remaining,weaponRule(weapon).bulletSpeed*dt);
     const end={x:b.x+b.dx*distance,z:b.z+b.dz*distance};
-    const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies],weaponRule(weapon));
+    const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies].filter(t=>t.id!==b.sourceId),weaponRule(weapon));
     // A shot that whizzes close by but does not connect still gives away the shooter: an idle/patrolling
     // enemy that was not yet aggro reacts to the near miss, same as being hit (combat.js reads nearMissAt).
     if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
@@ -185,4 +180,4 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
   return changed;
 }
 
-function recordShot(round,shot,now,outcome,target=null){if(shot.outcomeRecorded)return;shot.outcomeRecorded=true;logCombat(round,{kind:'outcome',at:now,shotId:shot.logId??shot.id,moving:!!shot.movingAtFire,outcome,target});if(shot.bonus&&outcome==='miss')logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:'Chain Reaction: charged shot missed; 0 extra damage.'});}
+function recordShot(round,shot,now,outcome,target=null){if(shot.ricochet||shot.outcomeRecorded)return;shot.outcomeRecorded=true;logCombat(round,{kind:'outcome',at:now,shotId:shot.logId??shot.id,moving:!!shot.movingAtFire,outcome,target});if(shot.bonus&&outcome==='miss')logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:'Chain Reaction: charged shot missed; 0 extra damage.'});}

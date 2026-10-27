@@ -1,7 +1,8 @@
-import {clearPassageProps} from './archipelago-passages.js?v=2.5.0';
-import {townizeLevel} from './town-layout.js?v=2.5.0';
-import {applyEncounters} from './encounters.js?v=2.5.0';
-import '../data/raid-combat.js?v=2.5.0';
+import '../data/items.js?v=2.5.1';
+import {clearPassageProps} from './archipelago-passages.js?v=2.5.1';
+import {townizeLevel} from './town-layout.js?v=2.5.1';
+import {applyEncounters} from './encounters.js?v=2.5.1';
+import '../data/raid-combat.js?v=2.5.1';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -103,7 +104,7 @@ export const RULES=Object.freeze({
   // v1.64: fixed Scrap per cleared level (L1, L2, L3), paid on extract only; mirrors DATA.progression.extractScrapBonus.
   extractScrapBonus:[5,10,15],
   loot:{capacity:4,maxCapacity:10,counts:[2,6,3],
-    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip','tidal_coil','frost_glass','core_ash'],
+    types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','transmitter','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip','tidal_coil','frost_glass','core_ash'],
     weights:[
       {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:4},
       {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
@@ -175,7 +176,7 @@ export function houseItem(kind,number,roll,area='town'){if(kind==='medicine_cabi
 export const AREA_LOOT={archipelago:{world:[{},{tidal_coil:5},{tidal_coil:10}]},town:{house:[{},{frost_glass:8},{frost_glass:10}]}};
 export function areaTable(area,number,where){return{...RULES.loot.weights[number-1],...AREA_LOOT[area]?.[where]?.[number-1]};}
 let QUEST_LOOT=null;
-export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level}:null;}
+export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level,source:globalThis.DATA.items.find(i=>i.id===q.item)?.raidSource}:null;}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
 // v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
@@ -358,7 +359,10 @@ export function applyAreaRules(level,AR){
   if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
   // v1.87 tracked extract quest (e.g. Fuse Box: 2 Fuse from Bunker L2): its level always holds at least one of the item, so the step
   // takes ~1-2 raids instead of a ~10 % roll. Never replaces the scout item. Off unless the meta launch tracks such a quest.
-  if(QUEST_LOOT&&QUEST_LOOT.level===n&&!level.lootBoxes.some(b=>b.item===QUEST_LOOT.item)){const b=level.lootBoxes.find(x=>!x.scout&&!x.key);if(b){b.item=QUEST_LOOT.item;b.quest=true;}}
+  if(QUEST_LOOT&&QUEST_LOOT.level===n&&(!QUEST_LOOT.source||QUEST_LOOT.source.area===level.area)){
+    const b=level.lootBoxes.find(x=>x.item===QUEST_LOOT.item)||level.lootBoxes.find(x=>!x.scout&&!x.key);
+    if(b){b.item=QUEST_LOOT.item;b.quest=true;if(QUEST_LOOT.source){b.source=QUEST_LOOT.source.label;b.revealed=true;b.marked=true;}}
+  }
 }
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.
 function decorateLevel(level){

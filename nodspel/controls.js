@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=2.5.0';
+import {RULES} from './levels.js?v=2.5.1';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
 export function facingDirection(aiming,walking,aim){return aiming?aim:walking;}
 export function dragAim(gesture,x,y){
@@ -17,3 +17,40 @@ export function stepAim(gesture,dt){
   gesture.direction={x:Math.cos(from+turn),y:Math.sin(from+turn)};return gesture.direction;
 }
 export function releaseAim(gesture,cancelled=false){return cancelled?null:gesture.direction;}
+
+// Remember modal-owned pointers until their release, even if the modal closes first.
+export function createFireInputGate(){
+  const suppressed=new Set();
+  return {handle(event,modalOpen){
+    const pointer=event.pointerId;
+    if(event.type==='pointerdown'){
+      if(modalOpen)suppressed.add(pointer);else suppressed.delete(pointer);
+      return modalOpen;
+    }
+    if(event.type==='pointerup'||event.type==='pointercancel'){
+      const blocked=modalOpen||suppressed.has(pointer);suppressed.delete(pointer);return blocked;
+    }
+    return modalOpen;
+  }};
+}
+
+// Activate on release without depending on a browser-synthesized touch click.
+export function bindHUDTap(button,activate){
+  let pointer=null,suppressClick=false;
+  button.addEventListener('pointerdown',e=>{
+    if(e.button!=null&&e.button!==0||pointer!==null)return;
+    e.preventDefault();pointer=e.pointerId;suppressClick=false;
+    try{button.setPointerCapture(e.pointerId);}catch{}
+  });
+  button.addEventListener('pointerup',e=>{
+    if(e.pointerId!==pointer)return;
+    pointer=null;suppressClick=true;e.preventDefault();activate();
+  });
+  const cancel=()=>{pointer=null;};
+  button.addEventListener('pointercancel',cancel);
+  button.addEventListener('lostpointercapture',cancel);
+  button.addEventListener('click',e=>{
+    if(suppressClick&&e.detail!==0){suppressClick=false;e.preventDefault();return;}
+    suppressClick=false;activate();
+  });
+}

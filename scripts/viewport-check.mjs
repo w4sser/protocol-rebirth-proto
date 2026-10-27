@@ -69,7 +69,9 @@ try{
   await held.continue();await loading;await page.setRequestInterception(false);
   await page.waitForFunction(()=>window.__NR&& !document.getElementById('boot-loader'),{timeout:30000});
   await rotateThrough(page,['#viewport','#game','#game canvas'],'raid HUD');
-  await page.evaluate(()=>{document.querySelectorAll('#tutorial,#round-over').forEach(e=>e.hidden=true);});
+  await page.evaluate(()=>{const tutorial=document.querySelector('#tutorial');if(tutorial&&!tutorial.hidden)document.querySelector('#tutorial-start').click();window.__NR.setRoomClearsEnabled(false);window.__NR.round().level.enemies=[];document.querySelector('#round-over').hidden=true;});
+  // Confirm the fixture can fire before checking that modal dismissal cannot fire.
+  await page.keyboard.press('Space');await page.waitForFunction(()=>window.__NR.round().weaponState.nextId>0);
   for(const [w,h] of sizes){
     await resize(page,w,h);
     const lock=await page.evaluate(async()=>{
@@ -98,11 +100,22 @@ try{
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x,y:box.y}]});await pause(700);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();
     assert.equal(await page.evaluate(()=>window.__NR.round().perks.taken.length),0,'touch held through lock ignored');
+    const shotsBefore=await page.evaluate(()=>window.__NR.round().weaponState.nextId);
     await page.tap('.perk-choice');await page.waitForFunction(()=>window.__NR.round().perks.taken.length===1);
     await pause(450);
+    assert.equal(await page.evaluate(()=>window.__NR.round().weaponState.nextId),shotsBefore,'closing perk pick does not fire');
     // Reset only the debug fixture between independent viewport cases.
     await page.evaluate(()=>{const r=window.__NR.round();r.perks.taken=[];});
   }
+  // A real HUD tap must spend a kit, and an exhausted budget remains tappable for feedback.
+  await page.evaluate(()=>{window.__NR.setRoomClearsEnabled(false);const r=window.__NR.round();r.level.enemies=[];r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget-5;});
+  await page.waitForFunction(()=>document.querySelector('#use-kit b').textContent==='2');
+  await page.tap('#use-kit');
+  await page.waitForFunction(()=>window.__NR.round().kit.medkit===1);
+  assert.ok(await page.evaluate(()=>{const r=window.__NR.round();return r.health>40&&r.health<=45&&r.stakes.healed<=r.stakes.budget;}),'tap heals within budget');
+  await page.evaluate(()=>{const r=window.__NR.round();r.health=40;r.stakes.healed=r.stakes.budget;});
+  await page.tap('#use-kit');await page.waitForFunction(()=>document.querySelector('#encounter-hint').textContent.includes('budget spent'));
+  assert.equal(await page.evaluate(()=>window.__NR.round().kit.medkit),1,'blocked tap preserves kit');
   await page.evaluateOnNewDocument(()=>{sessionStorage.removeItem('pr_splash_seen');});
   await page.setRequestInterception(true);const art=[];
   page.removeAllListeners('request');page.on('request',req=>{if(req.url().includes('splash_archipelago_radar_lighthouse'))art.push(req);else req.continue().catch(()=>{});});
@@ -115,5 +128,18 @@ try{
   await rotateThrough(page,['#phone','#app'],'base prep');
   await page.evaluate(()=>A.openWeapon('basic_carbine'));await pause(250);
   await rotateThrough(page,['#overlay.wpnov','#overlay.wpnov .inner','.wpnscreen'],'weapon detail');
+  // Reported playtest state: Mk I Marksman, level 3/3, two of three merge copies.
+  await page.evaluate(()=>{closeAllPopups();S.armory.rifle_marksman=2;S.gearUp.rifle_marksman=3;S.gearTier.rifle_marksman=1;A.openWeapon('rifle_marksman');});
+  for(const [w,h] of [[1024,471],[844,390]]){
+    await resize(page,w,h);await pause(100);
+    const result=await page.evaluate(()=>{
+      const panel=document.querySelector('.wpn-r'),merge=panel.querySelector('.wmerge'),button=panel.querySelector('button.upg');
+      const overlaps=()=>{const a=merge.getBoundingClientRect(),b=button.getBoundingClientRect();return a.bottom>b.top&&a.top<b.bottom;};
+      const initial=overlaps();panel.scrollTop=panel.scrollHeight;const scrolled=overlaps();
+      return {initial,scrolled,mag:document.querySelector('[data-slot=mag]').textContent,optic:document.querySelector('[data-slot=optic]').textContent};
+    });
+    assert.ok(!result.initial&&!result.scrolled,`${w}x${h}: merge and max level never overlap`);
+    assert.match(result.mag,/merge to Mk II first/);assert.match(result.optic,/merge to Mk III first/);
+  }
   assert.deepEqual(errors,[],'no page errors');await page.close();console.log('viewport-check: all resize, full-bleed and perk lock regressions passed');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

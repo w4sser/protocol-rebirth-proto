@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.5.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.5.0';
-import {buildTown} from './town.js?v=2.5.0';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.5.0';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.5.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.5.0';
-import {controlCablePath} from './control-cables.js?v=2.5.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.5.1';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.5.1';
+import {buildTown} from './town.js?v=2.5.1';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.5.1';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.5.1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.5.1';
+import {controlCablePath} from './control-cables.js?v=2.5.1';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -164,7 +164,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     return out;
   }
   const enemies=level.enemies.map(enemyVisual);
-  // v2.5.0 hunter waves (nodspel/stakes.js): new enemies can appear mid-raid, out of sight, well after the
+  // v2.5.1 hunter waves (nodspel/stakes.js): new enemies can appear mid-raid, out of sight, well after the
   // level's own list was built above - give them the same mesh/visual the initial roster gets.
   function addEnemy(enemy){const v=enemyVisual(enemy);enemies.push(v);return v;}
   // Encounter 3: locked doors are dark panels with a coral light; once opened only a cyan floor strip stays.

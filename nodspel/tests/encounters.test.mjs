@@ -177,11 +177,11 @@ test('guard: the front shield blocks shots from inside its arc, behind and the s
   assert.equal(g.blockedSerial,4);
   for(const deg of [72,-90,135,180]){const hp=g.health;assert.equal(hitEnemy(round,g.id,10,1,from(deg)),true,`${deg} deg lands`);g.health=hp;}
   assert.equal(hitEnemy(round,g.id,10,1,null),true,'no origin (grenade blast) ignores the shield');g.health=2;
-  // the real weapon: aim assist locks the guard, the shot resolves at fire time
+  // the real weapon: aim assist locks the guard, the shot resolves at impact
   const w=createWeapon(Infinity),at=from(0);round.shooter=at;
-  fireAimedWeapon(w,round,at,{x:g.x-at.x,z:g.z-at.z},50,[]);round.shooter=null;assert.equal(g.health,2,'frontal weapon shot blocked');
+  fireAimedWeapon(w,round,at,{x:g.x-at.x,z:g.z-at.z},50,[]);round.shooter=null;stepWeapon(w,round,250,.2,[]);assert.equal(g.health,2,'frontal weapon shot blocked');
   const back=from(180),w2=createWeapon(Infinity);round.shooter=back;
-  fireAimedWeapon(w2,round,back,{x:g.x-back.x,z:g.z-back.z},60,[]);round.shooter=null;assert.equal(g.health,1,'shot from behind lands');
+  fireAimedWeapon(w2,round,back,{x:g.x-back.x,z:g.z-back.z},260,[]);round.shooter=null;stepWeapon(w2,round,460,.2,[]);assert.equal(g.health,1,'shot from behind lands');
 });
 
 test('guard turns slowly towards you and only aims inside its fire arc: behind it is safe, in front it telegraphs 1 s',()=>{
@@ -434,7 +434,7 @@ test('patrol: it sees you only inside the cone (range shrinks with stealth), giv
 test('patrol: a shot patrol reacts at once but still winds up >= 1 s before its first shot',()=>{
   const {S,e}=patrolSim('town',1,'p-shot');e.patrol.speed=0;e.patrol.points=[{x:0,z:3},{x:0,z:3}];e.patrol.i=0;e.facing=0;e.x=0;e.z=0;S.level.walls=[];S.level.boxes=[];S.P={x:0,z:-3};
   S.round.shooter=S.P;fireAimedWeapon(S.weapon,S.round,S.P,{x:0,z:1},S.now,[]);S.round.shooter=null;
-  const hitAt=S.now;assert.equal(e.health,e.health);assert.ok(e.lastHitAt!=null,'hit from behind');
+  assert.equal(e.lastHitAt,undefined,'projectile still travelling');const impactDeadline=S.now+1000;while(e.lastHitAt==null&&S.now<impactDeadline)tick(S);const hitAt=e.lastHitAt;assert.ok(hitAt!=null,'hit from behind');
   let shotAt=null;for(let ms=0;ms<3000&&shotAt===null;ms+=DT*1000){tick(S);if(S.combat.projectiles.length)shotAt=S.now;}
   assert.equal(e.aggro,true);assert.ok(shotAt-hitAt>=E.patrol.windupMs-DT*1000,`first shot ${shotAt-hitAt} ms after being shot`);
 });
@@ -448,11 +448,11 @@ function fleeDir(S,from){
   return best;
 }
 function sneakKill(S,e){
-  const R=E.patrol;let seen=false;
+  const R=E.patrol;let seen=false,fired=false;
   for(let ms=0;ms<45000&&e.health>0&&!S.round.over;ms+=DT*1000){
-    if((e.alertAt!=null||e.aggro)&&e.lastHitAt==null)seen=true; // being shot is not being noticed
+    if(!fired&&(e.alertAt!=null||e.aggro)&&e.lastHitAt==null)seen=true; // being shot is not being noticed
     const f=e.facing,range=sightRange(S.round)+.8,P=S.P,rel=angleDiff(f,angleTo(e,P)),d=dist(P,e);
-    if(d<=3.8&&(rel>100*Math.PI/180||e.lastHitAt!=null)){S.round.shooter=P;fireAimedWeapon(S.weapon,S.round,P,{x:e.x-P.x,z:e.z-P.z},S.now,S.playerSolids());S.round.shooter=null;tick(S);continue;}
+    if(d<=3.8&&(rel>100*Math.PI/180||e.lastHitAt!=null)){S.round.shooter=P;const shot=fireAimedWeapon(S.weapon,S.round,P,{x:e.x-P.x,z:e.z-P.z},S.now,S.playerSolids());if(shot)fired=true;S.round.shooter=null;tick(S);continue;}
     const goal={x:e.x-Math.sin(f)*2.6,z:e.z-Math.cos(f)*2.6},L=dist(P,goal)||1,dir={x:goal.x-P.x,z:goal.z-P.z},ahead={x:P.x+dir.x/L*.6,z:P.z+dir.z/L*.6};
     // while it pauses or swings round to its next leg, its cone sweeps everywhere: keep the whole circle out of reach
     const goalPt=e.patrol.points[e.patrol.i%e.patrol.points.length],swinging=S.now<(e.pauseUntil??0)||angleDiff(f,angleTo(e,goalPt))>.25;
@@ -461,11 +461,11 @@ function sneakKill(S,e){
   }
   return {killed:e.health<=0,seen};
 }
-test('patrol WITHOUT a tool: stay out of the cone, come up behind it and shoot it before it ever notices you',()=>{
+test('patrol WITHOUT a tool: stay out of the cone, come up behind it and approach unseen and shoot it',()=>{
   for(const [area,n] of PATROL_SCENARIOS)for(const seed of SEEDS){
     const {S,e}=patrolSim(area,n,seed),r=sneakKill(S,e);
     assert.ok(r.killed,`${area} ${seed}: patrol down (hp ${e.health}, at ${e.x.toFixed(1)},${e.z.toFixed(1)}, me ${S.P.x.toFixed(1)},${S.P.z.toFixed(1)})`);
-    assert.equal(r.seen,false,`${area} ${seed}: never noticed`);assert.equal(S.round.health,maxHealth(S),'never hit');
+    assert.equal(r.seen,false,`${area} ${seed}: approach unseen before first shot`);assert.equal(S.round.health,maxHealth(S),'never hit');
   }
 });
 
