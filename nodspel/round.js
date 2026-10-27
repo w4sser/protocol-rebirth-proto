@@ -1,10 +1,10 @@
-import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.4.1';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.4.1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.4.1';
-import {emptyBag,bagItems} from './raid.js?v=2.4.1';
-import {traceTargets} from './physics.mjs?v=2.4.1';
-import {shieldBlocks} from './encounters.js?v=2.4.1';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.4.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.5.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.0';
+import {emptyBag,bagItems} from './raid.js?v=2.5.0';
+import {traceTargets} from './physics.mjs?v=2.5.0';
+import {shieldBlocks} from './encounters.js?v=2.5.0';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

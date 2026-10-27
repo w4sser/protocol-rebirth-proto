@@ -1,8 +1,8 @@
-// v2.4.1 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
+// v2.5.0 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
 // weight. No heat mechanic - waves run on a fixed clock. All tuning lives in data/raid-stakes.js.
-import {RULES,randomFromSeed} from './levels.js?v=2.4.1';
-import {bagItems} from './raid.js?v=2.4.1';
-import '../data/raid-stakes.js?v=2.4.1';
+import {RULES,randomFromSeed} from './levels.js?v=2.5.0';
+import {bagItems} from './raid.js?v=2.5.0';
+import '../data/raid-stakes.js?v=2.5.0';
 export const STAKES = globalThis.DATA.raidStakes;
 
 // `maxHealth` is the round's STARTING max HP: the budget is fixed once here, so a later maxHealth change
