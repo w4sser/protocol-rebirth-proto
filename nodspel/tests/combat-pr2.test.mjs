@@ -77,12 +77,12 @@ test('field medic shares normal stationary healing constraints and clamps HP',()
   const r=arena();select(r,'medic');r.health=80;const bit=createBIT(point);stepBIT(bit,r,point,1,false,[],r.level.floors);assert.equal(r.health,88);
   stepBIT(bit,r,point,1,true,[],r.level.floors);assert.equal(r.health,88);r.health=98;stepBIT(bit,r,point,1,false,[],r.level.floors);assert.equal(r.health,100);assert.match(recap(r,'1:0')[2],/healed 2 HP/);
 });
-test('direct health and time effects clamp and survive next level but reset on extraction',()=>{
-  const r=arena();r.health=95;select(r,'dressing');assert.equal(r.health,100);assert.match(recap(r,'1:0')[2],/5 HP/);const deadline=r.deadline,duration=r.durationMs;select(r,'time');assert.equal(r.deadline,deadline+8000);assert.equal(r.durationMs,duration+8000);tickRound(r,100);assert.equal(r.remainingMs,duration+7900);
+test('health clamps and combat perks preserve the raid clock and reset on extraction',()=>{
+  const r=arena();r.health=95;select(r,'dressing');assert.equal(r.health,100);assert.match(recap(r,'1:0')[2],/5 HP/);const deadline=r.deadline,duration=r.durationMs;select(r,'ricochet');assert.equal(r.deadline,deadline);assert.equal(r.durationMs,duration);tickRound(r,100);assert.equal(r.remainingMs,duration-100);
   r.levelsCleared=1;assert.ok(extractRound(r,100));assert.equal(perkState(r).taken.length,0);
 });
-test('terminal rolling, recon and dressing apply exact time additions',()=>{
-  for(const [id,ms] of [['roll',3000],['recon',5000],['dressing',8000]]){const r=arena();r.level.number=3;r.health=50;const key='3:1',s=perkState(r);s.rooms[key]={state:'rewardPending',level:3,index:1,offer:[id]};s.queue=[key];const dash=createDash();dash.readyAt=9000;const deadline=r.deadline;assert.ok(choosePerk(r,key,id,100,dash));assert.equal(r.deadline,deadline+ms);if(id==='roll')assert.equal(dash.readyAt,100);if(id==='recon')assert.equal(s.revealAll,true);if(id==='dressing')assert.equal(r.health,70);}
+test('terminal rolling, recon and dressing apply immediate effects without timer bonuses',()=>{
+  for(const id of ['roll','recon','dressing']){const r=arena();r.level.number=3;r.health=50;const key='3:1',s=perkState(r);s.rooms[key]={state:'rewardPending',level:3,index:1,offer:[id]};s.queue=[key];const dash=createDash();dash.readyAt=9000;const deadline=r.deadline;assert.ok(choosePerk(r,key,id,100,dash));assert.equal(r.deadline,deadline);if(id==='roll')assert.equal(dash.readyAt,100);if(id==='recon')assert.equal(s.revealAll,true);if(id==='dressing')assert.equal(r.health,70);}
 });
 test('recap aggregates most damaging source, preserves movement, real effect and 32-event bound',()=>{
   const r=arena();logCombat(r,{kind:'damage',source:'Sentry',sourceId:'e1',attack:'projectile',amount:9,moving:true});

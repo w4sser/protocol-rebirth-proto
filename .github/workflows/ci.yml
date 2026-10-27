@@ -22,6 +22,7 @@ jobs:
         with:
           node-version: 20
       - run: npm i --no-save puppeteer
+      - run: node scripts/viewport-check.mjs
       - run: node scripts/layout-check.mjs
         env:
           LAYOUT_OUT: verify-out

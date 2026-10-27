@@ -443,6 +443,7 @@ async function perkPopupRun([w,h]){
   await page.click('.perk-resume');
   const names=await page.evaluate(()=>[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent));
   if(JSON.stringify(names)!==JSON.stringify(before.names))fail(tag,'minimizing rerolled the perk offer');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.perk-choice')].every(b=>!b.disabled));
   await page.click('.perk-choice');await settle(80);await shot(page,`perk-confirm-${w}x${h}`);await settle(450);
   const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
   await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);
