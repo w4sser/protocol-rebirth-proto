@@ -237,7 +237,7 @@
   .mapspot.ready small{color:#a6ffc9}.access-next{border:1px solid #67e59c}.access-next .nu-head{color:#a6ffc9}
   @media (orientation:landscape) and (max-height:480px){#app.s-base .nextup.access-next{display:block;padding:8px}.access-next p{margin:4px 0}.access-next button{width:auto;margin:4px 0;padding:5px 10px}}
   .starter-prep h2{margin-top:8px}.prep-locked{opacity:.45;cursor:default}.prep-benefit{border-color:#67e59c}
-  .prep-crafting summary{cursor:pointer;color:#a6ffc9}.prep-crafting small{color:var(--dim)}
+  .prep-crafting>summary{cursor:pointer;color:#a6ffc9}.prep-crafting small{color:var(--dim)}
   .mapspot.unlocked{animation:roomLight 1.2s ease both}.mapspot.preview{border-style:dashed;opacity:.82}.style-status{color:var(--accent2)!important}@keyframes roomLight{50%{box-shadow:0 0 24px 6px rgba(255,157,77,.5)}}
   .mapspot.gate{color:var(--accent);}.hubstate,.panhelp{position:absolute;z-index:5;background:rgba(7,21,28,.82);border:1px solid var(--line);
     border-radius:6px;padding:3px 8px;font:9px "IBM Plex Mono",monospace;letter-spacing:.12em;color:var(--dim);pointer-events:none;}
@@ -1436,6 +1436,8 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   .fabq summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;box-sizing:border-box;cursor:pointer;list-style:none}
   .fabq summary::-webkit-details-marker{display:none}
   .fabq summary>b{flex:1;min-width:0;font-size:12px}
+  .fabq>summary{height:auto;overflow-wrap:anywhere}
+  .fabq>summary::after{flex:none}
   .fabq summary::after{content:"EXPAND";font-size:9px;color:var(--ad-cyan)}
   .fabq[open] summary::after{content:"HIDE"}
   .fabq summary>svg{width:20px;height:20px;flex:none}

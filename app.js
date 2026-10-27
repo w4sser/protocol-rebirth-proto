@@ -2668,7 +2668,10 @@ SCREENS.prep = function(){
   }
 
   html += '<div class="card prep-benefit"><span class="ok">' + IC("check") + ' FABRICATOR ONLINE — RAID PLANNING UNLOCKED</span><p class="small">Choose your loadout, search route and risk. Craft extra supplies before deploying.</p></div>';
-  html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>' + fabQueueHtml();
+  // Keep the queue in normal flow, outside the crafting disclosure. Nested details
+  // summaries can retain geometry while their outer disclosure is closed.
+  html += fabQueueHtml();
+  html += '<details class="card prep-crafting"><summary>FIELD CRAFTING · Fabricator L' + S.modules.fabricator + '</summary>';
   for(const recipe of D.recipes.filter(r => r.fabricatorLevel <= S.modules.fabricator)){
     const can = S.cur.scrap >= craftCost(recipe) && Object.entries(recipe.inputs).every(([id,qty]) => have(id) >= qty);
     html += '<div class="kv"><span>' + esc(recipe.name) + '<br><small>' + Object.entries(recipe.inputs).map(([id,qty]) => qty + '× ' + esc(ITEMS[id].name)).join(' · ') + ' · ' + craftCost(recipe) + ' Scrap</small></span>' +

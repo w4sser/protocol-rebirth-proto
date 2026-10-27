@@ -81,8 +81,7 @@ export function placeEnemyLabel(state,{x,y,mode,sizes,rects=[],hud=rects,bounds,
   let placed=previous;
   if(!clear(previous,size)){
     const target=pushClear(previous.x,previous.y,size.w,size.h,rects,8,bounds)??
-      pushClear(previous.x,previous.y,size.w,size.h,rects,0,bounds)??
-      pushClear(previous.x,previous.y,size.w,size.h,hud,0,bounds);
+      pushClear(previous.x,previous.y,size.w,size.h,rects,0,bounds);
     if(target){
       const dx=target.x-previous.x,dy=target.y-previous.y,d=Math.hypot(dx,dy),t=Math.min(.35,maxStep/(d||1));
       const step={x:previous.x+dx*t,y:previous.y+dy*t};

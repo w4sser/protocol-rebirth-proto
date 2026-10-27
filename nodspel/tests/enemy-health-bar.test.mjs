@@ -30,11 +30,12 @@ class ClassList{
 }
 class El{
   constructor(){this.classList=new ClassList();this.dataset={};this.style={};this.hidden=true;}
-  get offsetWidth(){return 0;}
+  get offsetWidth(){return this.measured?(parseFloat(this.style.width)||(this.dataset.mode==='bar'?44:100)):0;}
   get offsetHeight(){return 0;}
   getBoundingClientRect(){
     if(!this.measured)return {width:0,height:0,left:0,right:0,top:0,bottom:0};
-    const width=this.dataset.mode==='bar'?44:100,height=this.dataset.mode==='bar'?5:30;
+    const scale=this.classList.contains('winding')?1.12:1;
+    const width=this.offsetWidth*scale,height=(this.dataset.mode==='bar'?5:30)*scale;
     const left=parseFloat(this.style.left)-width/2+(this.origin?.left??0),bottom=parseFloat(this.style.top)+(this.origin?.top??0)+(this.dy??0);
     return {width,height,left,right:left+width,top:bottom-height,bottom};
   }
@@ -91,6 +92,32 @@ test('an enemy with room to spare (no overlap, no hazard) keeps its normal mode 
 });
 
 const hits=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
+test('winding bars retain unscaled CSS widths while reserving scaled bounds at viewport edges',()=>{
+  for(const [width,height] of [[844,390],[932,430],[667,375]]){
+    for(const x of [-9.9,9.9]){
+      const enemies=Array.from({length:4},(_,i)=>enemyLabel(`winding-${i}`,x,0));
+      for(const e of enemies){e.el.measured=true;e.el.classList.toggle('winding',true);}
+      // Nearby hazards force compact bars even though winding requests captions.
+      const hazards=[hazardEntry(x,0)];
+      const origin={left:59,top:7};
+      for(let frame=0;frame<3;frame++){
+        run(enemies,hazards,{width,height,origin,now:frame*16});
+        const reserved=[];
+        for(const e of enemies){
+          assert.equal(e.el.hidden,false);
+          assert.equal(e.el.dataset.mode,'bar');
+          assert.equal(parseFloat(e.el.style.width),44,'CSS width excludes the windup transform');
+          const r=e.el.getBoundingClientRect();
+          assert.equal(r.width,44*1.12,'windup scaling is applied exactly once');
+          const local={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
+          assert(local.left>=2&&local.right<=width-2&&local.top>=2&&local.bottom<=height-2,'scaled bounds fit the viewport');
+          assert(!reserved.some(other=>hits(local,other)),'placement reserves the scaled bar width');
+          reserved.push(local);
+        }
+      }
+    }
+  }
+});
 test('HUD collisions keep every measured enemy bar clear, including at viewport edges and nonzero origins',()=>{
   for(const [width,height] of [[844,390],[932,430],[667,375]]){
     const hud=[{left:width/2-150,right:width/2+150,top:0,bottom:85}];
@@ -206,5 +233,43 @@ test('renderLabels does not restore a relocated label to its anchor between fram
     run([e],[],{hud:frame<5?hud:[],now:frame*16});
     assert.deepEqual({dx:e.placement.dx,dy:e.placement.dy},offset);
     assert.equal(e.el.hidden,false);
+  }
+});
+
+// Exercise the actual rendering pass with the gate caption, overlapping models,
+// changing font metrics, and retained offsets over successive frames.
+test('clustered enemies around STAND CLOSE all retain clear visible bars across frames',()=>{
+  for(const [width,height] of [[844,390],[932,430],[667,375]]){
+    const objective=lootLabel('gate',0,0);objective.range='node';
+    objective.el.measured=true;objective.el.dy=-12;
+    const measure=objective.el.getBoundingClientRect.bind(objective.el);
+    let captionWidth=180;
+    objective.el.getBoundingClientRect=()=>{
+      const r=measure(),centre=(r.left+r.right)/2;
+      return {...r,left:centre-captionWidth/2,right:centre+captionWidth/2,width:captionWidth};
+    };
+    const enemies=Array.from({length:8},(_,i)=>enemyLabel(`cluster-${i}`,0,0));
+    for(const e of enemies){e.el.measured=true;e.el.dy=-12;e.obscured=true;}
+    const hud=[{left:width/2-140,right:width/2+140,top:0,bottom:90},
+      {left:0,right:110,top:height-100,bottom:height}];
+    let previous;
+    for(let frame=0;frame<60;frame++){
+      // A font loading after the initial frame must invalidate existing clearance.
+      captionWidth=frame<10?180:240;
+      run([objective,...enemies],[],{width,height,hud,now:frame*16});
+      assert.equal(objective.el.hidden,false,'gate interaction label remains visible');
+      const reserved=[objective.el.getBoundingClientRect(),...hud];
+      for(const e of enemies){
+        assert.equal(e.el.hidden,false,'even a centre-ray-obscured on-screen model gets a bar');
+        assert.equal(e.el.dataset.mode,'bar');
+        const r=e.el.getBoundingClientRect();
+        assert(r.left>=2&&r.right<=width-2&&r.top>=2&&r.bottom<=height-2);
+        assert(!reserved.some(other=>hits(r,other)),'bar clears gate caption, HUD and every other bar');
+        reserved.push(r);
+      }
+      const offsets=enemies.map(e=>[e.placement.dx,e.placement.dy]);
+      if(frame>11)assert.deepEqual(offsets,previous,'clear placements remain stable');
+      previous=offsets;
+    }
   }
 });

@@ -680,6 +680,21 @@ for(const source of ['bit', 'log']) {
   Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,snapshot);
 }
 
+// The mission queue must reserve its own height outside the crafting disclosure.
+{
+  const st=window.__TEST_STATE(),snapshot=JSON.parse(JSON.stringify(st));
+  st.modules.fabricator=Math.max(1,st.modules.fabricator||0);
+  A.go('prep');A.planToggle(true);
+  const panel=doc.querySelector('#mission-panel'),queue=panel.querySelector('.fabq');
+  assert(queue,'mission includes the fabricator queue');
+  assert.equal(queue.parentElement,panel,'queue is in normal mission flow, outside closed details');
+  assert(!queue.closest('.prep-crafting'),'queue never inherits the crafting disclosure geometry');
+  assert(queue.compareDocumentPosition(panel.querySelector('.mappanel')) & window.Node.DOCUMENT_POSITION_FOLLOWING,
+    'map follows the queue in document flow');
+  A.planToggle(false);
+  Object.keys(st).forEach(k=>delete st[k]);Object.assign(st,snapshot);A.go('base');
+}
+
 const S = JSON.parse(window.localStorage.getItem("pr_meta_save"));
 for(const a of ["SCREEN_TIME","STYLE_SELECTED","NEXT_UPGRADE_SHOWN","RESULT_TO_DEPLOY","EXPEDITION_SENT","EXPEDITION_RETURNED","MORNING_REPORT","RETENTION_MODE_SET",
   "RAID_ROUTE_SHOWN","TRACKED_ROUTE_RECOMMENDED","RAID_ROUTE_SELECTED","CHECKPOINT_REACHED","EXTRACT_NOW_SELECTED","PUSH_DEEPER_SELECTED","RAID_FAILED_AFTER_PUSHING_DEEPER"])

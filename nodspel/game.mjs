@@ -621,7 +621,7 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.area-notice,#encounter-hint,.stick,.pickup-toast';
+const HUD_SELECTORS='.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -647,7 +647,7 @@ function renderLabels(){
     if(l.el.dataset.mode!==mode){l.el.dataset.mode=mode;l.size=null;}
     if(l.range!=='enemy'&&!l.size&&!l.el.hidden&&l.el.offsetWidth){l.size=[l.el.offsetWidth,l.el.offsetHeight];const m=new DOMMatrixReadOnly(getComputedStyle(l.el).transform);l.anchorDy=l.el.offsetHeight+(m.f||0);}
     const [lw,lh]=l.size??[mode==='dot'?10:80,mode==='dot'?10:24];
-    l.el.hidden=l.defeated||l.obscured||mode==='hidden'||offscreen||(!l.range&&overHUD(sx,sy,hudRects,8,lw,lh)); // range labels: resolveLabels handles the HUD (with hold)
+    l.el.hidden=l.defeated||(l.obscured&&l.range!=='enemy')||mode==='hidden'||offscreen||(!l.range&&overHUD(sx,sy,hudRects,8,lw,lh)); // enemy visibility follows the on-screen model, not a centre-point ray
     l.sx=sx;l.sy=sy;
     if(!l.el.hidden){l.el.style.left=`${sx}px`;l.el.style.top=`${sy}px`;
       if(l.range)l.el.style.opacity=labelOpacity(l.range,Math.hypot(l.point.x-position.x,l.point.z-position.z)).toFixed(2);}
@@ -677,15 +677,19 @@ function renderLabels(){
     const sizes={};
     // Measure each mode at the projected anchor; transforms differ between label
     // variants. Persist only the final mode/offset, never these temporary probes.
+    l.el.style.width='';
     for(const mode of new Set(['bar',desired,l.placement?.mode??desired])){
       l.el.dataset.mode=mode;
       const r=l.el.getBoundingClientRect();
-      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0};
+      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth:l.el.offsetWidth||(mode==='bar'?44:80)};
     }
     const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,hud:hudRects,bounds,now:nowPlacement});
     l.placement=placed.state;
     if(placed.mode==='bar')barOnly(l);else l.el.dataset.mode=placed.mode;
     l.size=null;
+    // Fixed-position auto widths depend on the available space to the right.
+    // Keep the layout width untransformed; placement reserves the scaled bounds.
+    l.el.style.width=`${sizes[placed.mode].cssWidth}px`;
     l.el.style.left=`${placed.x}px`;l.el.style.top=`${placed.y}px`;
     obstacles.push(placed.box);
   }
