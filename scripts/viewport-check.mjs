@@ -60,7 +60,9 @@ try{
   await resize(page,844,390);
   // Pause the game module while inspecting the genuine boot loader.
   await page.setRequestInterception(true);let held=null;
-  page.on('request',req=>{if(req.url().includes('/game.mjs'))held=req;else req.continue();});
+  // Late module/asset fetches can still land after interception is disabled below;
+  // continue() on those rejects, so swallow it (the browser auto-continues them anyway).
+  page.on('request',req=>{if(req.url().includes('/game.mjs'))held=req;else req.continue().catch(()=>{});});
   const loading=page.goto(base+'/nodspel/?debug=1&area=bunker',{waitUntil:'load'});
   await page.waitForSelector('#boot-loader');
   await rotateThrough(page,['#viewport','#boot-loader'],'raid loader');
@@ -94,7 +96,7 @@ try{
   }
   await page.evaluateOnNewDocument(()=>{sessionStorage.removeItem('pr_splash_seen');});
   await page.setRequestInterception(true);const art=[];
-  page.removeAllListeners('request');page.on('request',req=>{if(req.url().includes('splash_archipelago_radar_lighthouse'))art.push(req);else req.continue();});
+  page.removeAllListeners('request');page.on('request',req=>{if(req.url().includes('splash_archipelago_radar_lighthouse'))art.push(req);else req.continue().catch(()=>{});});
   const baseLoading=page.goto(base+'/index.html',{waitUntil:'load'});
   await page.waitForSelector('#splash');
   await rotateThrough(page,['#phone','#splash'],'base splash');
