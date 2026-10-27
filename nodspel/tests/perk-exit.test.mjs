@@ -20,7 +20,7 @@ const handlers=source.slice(source.indexOf('function openPerk('),source.indexOf(
 const keyboard=source.slice(source.indexOf("window.addEventListener('keydown'"),source.indexOf("document.addEventListener('click'"));
 const frame=source.slice(source.indexOf('function frameInner('),source.indexOf('    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);'))+'\n  }\n}';
 
-test('exit picker minimize resumes movement, combat and timer; resume preserves the offer and exit requires a pick',()=>{
+test('exit picker minimize resumes movement, combat and timer; resume preserves the offer and exit requires a pick',async()=>{
   const dom=new JSDOM('<main id="viewport"><div id="encounter-hint"></div><div id="inventory" hidden></div><span id="time-left"></span><span id="summary-time"></span><div class="timer"></div></main>');
   globalThis.document=dom.window.document;
   try{
@@ -79,6 +79,8 @@ test('exit picker minimize resumes movement, combat and timer; resume preserves 
     assert.equal(context.keys.size,0,'the open picker blocks gameplay keyboard input');assert.equal(shots,1);assert.equal(dashes,1);
     const frozenX=context.position.x,frozenEnemyX=enemy.x;wall=18000;context.frameInner(80);
     assert.equal(context.position.x,frozenX);assert.equal(enemy.x,frozenEnemyX);assert.equal(gameTime(r,wall),3000);
+    // The resumed picker re-arms its ~0.6s input lock (real wall-clock time, independent of the frozen `wall` fake).
+    await new Promise(res=>setTimeout(res,650));
     document.querySelector('.perk-choice').click();
     assert.equal(r.pauseAt,null);assert.equal(perkState(r).queue.length,0);assert.equal(perkState(r).taken[0],ids[0]);
     assert.equal(enterExit(r,{x:10,z:0},gameTime(r,wall)),null,'choosing away from exit does not transition');

@@ -6,8 +6,11 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,extname,join} from 'node:path';
+import {spawnSync} from 'node:child_process';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
+const viewportCheck=spawnSync(process.execPath,[join(root,'scripts/viewport-check.mjs')],{cwd:root,stdio:'inherit'});
+if(viewportCheck.status!==0)process.exit(viewportCheck.status??1);
 const OUT=resolve(process.env.LAYOUT_OUT||join(root,'verify-out'));
 const VIEWPORTS=[[844,390],[932,430],[667,375]];
 // Short landscape heights for the post-raid result popup (widths 667/844/932/1024).
@@ -443,6 +446,7 @@ async function perkPopupRun([w,h]){
   await page.click('.perk-resume');
   const names=await page.evaluate(()=>[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent));
   if(JSON.stringify(names)!==JSON.stringify(before.names))fail(tag,'minimizing rerolled the perk offer');
+  await page.waitForFunction(()=>[...document.querySelectorAll('.perk-choice')].every(b=>!b.disabled));
   await page.click('.perk-choice');await settle(80);await shot(page,`perk-confirm-${w}x${h}`);await settle(450);
   const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
   await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);

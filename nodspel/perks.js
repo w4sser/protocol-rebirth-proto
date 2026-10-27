@@ -1,4 +1,4 @@
-import '../data/raid-perks.js?v=2.3.2';
+import '../data/raid-perks.js?v=2.3.3';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -77,11 +77,10 @@ export function offer(round,key){
 export function gameTime(round,wall){return round?.pauseAt??wall-(round?.pausedMs??0);}
 export function pausePick(round,wall){if(round.pauseAt!=null)return;round.pauseAt=gameTime(round,wall);}
 export function resumePick(round,wall){if(round.pauseAt==null)return;round.pausedMs=wall-round.pauseAt;round.pauseAt=null;}
-export function addRaidTime(round,ms){round.durationMs+=ms;round.deadline+=ms;round.remainingMs+=ms;}
 export function hasPerk(round,id){return !!round?.perks?.taken.includes(id)&&!round.perks.terminalCards?.includes(id);}
 export function terminalPick(round,key){const r=perkState(round).rooms[key];return r?.level===3&&r.index===round.level.rooms.length-1;}
 export function cardEffect(round,key,id){
-  if(terminalPick(round,key))return {roll:'Reset dash now and add 3 s raid time.',recon:'Reveal all remaining loot boxes and add 5 s.',dressing:'Restore up to 20 HP and add 8 s raid time.'}[id]??cards.find(c=>c.id===id).effect;
+  if(terminalPick(round,key))return {roll:'Reset dash now.',recon:'Reveal all remaining loot boxes.',dressing:'Restore up to 20 HP immediately.'}[id]??cards.find(c=>c.id===id).effect;
   return cards.find(c=>c.id===id).effect;
 }
 export function choosePerk(round,key,id,now,dash){
@@ -90,13 +89,9 @@ export function choosePerk(round,key,id,now,dash){
   s.taken.push(id);r.state='rewarded';s.queue.shift();s.minimized=null;
   const terminal=terminalPick(round,key);(s.selectedEffects??={})[id]=cardEffect(round,key,id);if(terminal&&['roll','recon'].includes(id))(s.terminalCards??=[]).push(id);let text=`${cards.find(c=>c.id===id).name}: equipped.`;
   if(id==='dressing'){const hp=Math.min(PERKS.dressingHP,round.maxHealth-round.health);round.health+=hp;text=`Field Dressing: restored ${hp} HP.`;}
-  if(id==='time'||terminal&&['roll','recon','dressing'].includes(id)){
-    const ms=id==='time'?PERKS.timeMs:id==='roll'?PERKS.terminalDashMs:id==='recon'?PERKS.terminalReconMs:PERKS.terminalDressingMs;
-    addRaidTime(round,ms);text=id==='time'?`Time Margin: added ${ms/1000} s.`:text+` Added ${ms/1000} s.`;
-  }
-  if(id==='roll'&&terminal){if(dash)dash.readyAt=now;text='Rolling: dash reset; added 3 s.';}
-  if(id==='recon'&&terminal){s.revealAll=true;text=`Recon: ${round.level.lootBoxes.filter(b=>!b.collected).length} remaining loot boxes marked; added 5 s.`;}
-  logCombat(round,{kind:['time','dressing'].includes(id)||terminal&&['roll','recon'].includes(id)?'perk':'choice',perk:id,at:now,room:key,text});return text;
+  if(id==='roll'&&terminal){if(dash)dash.readyAt=now;text='Rolling: dash reset.';}
+  if(id==='recon'&&terminal){s.revealAll=true;text=`Recon: ${round.level.lootBoxes.filter(b=>!b.collected).length} remaining loot boxes marked.`;}
+  logCombat(round,{kind:id==='dressing'||terminal&&['roll','recon'].includes(id)?'perk':'choice',perk:id,at:now,room:key,text});return text;
 }
 export function reloadInterval(round,ms){return hasPerk(round,'reload')?Math.max(PERKS.reloadFloorMs,ms*PERKS.reloadMultiplier):ms;}
 export function dashInterval(round,ms){return hasPerk(round,'roll')?Math.max(PERKS.dashFloorMs,ms*PERKS.dashMultiplier):ms;}
