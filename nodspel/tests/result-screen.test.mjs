@@ -57,6 +57,9 @@ test('renderer replaces checkpoint content on final loss, caps preview but prese
     takeDamage(r,1000,10000);renderResult(root,resultView(r,{launch,pending:true}));
     assert.equal(root.dataset.outcome,'death');assert.equal(root.querySelector('#round-over-title').textContent,'YOU DIED');
     assert(root.querySelector('#result-details').hidden);assert(!root.querySelector('#result-report').hidden);assert(root.querySelector('#result-bonus').hidden);
+    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,8,'losses keep the capped preview');
+    assert(root.querySelector('#result-loot .result-tile-more'));
+    assert.equal(root.querySelectorAll('#result-all-loot .result-item').length,Object.values(r.lost).filter(n=>n>0).length);
   }finally{globalThis.document=previous;dom.window.close();}
 });
 
@@ -64,4 +67,55 @@ test('empty and standalone outcomes do not invent lost items or persistent XP re
   const r=createRound('empty-result',0);takeDamage(r,1000,1000);
   const view=resultView(r);assert.equal(view.totals.items,0);assert.equal(view.retained,'');assert.match(view.description,/No carried items/);
   assert.equal(view.gear.length,0);assert.equal(view.recovered.length,0);
+});
+
+test('extraction shows every item by value, names returned gear and retains its BIT reaction',()=>{
+  const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));
+  const previous=globalThis.document;globalThis.document=dom.window.document;
+  try{
+    const root=document.querySelector('#round-over'),r=raid();
+    for(const it of globalThis.DATA.items)r.bag[it.id]=1;
+    r.equip.armor='scout_rig';extractRound(r,10000);
+    // Stress the presentation receipt independently of today's nine material loot types.
+    r.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
+    const before=structuredClone(r),view=resultView(r,{launch});renderResult(root,view);
+    const tiles=[...root.querySelectorAll('#result-loot .result-tile')];
+    assert.equal(tiles.length,Object.keys(r.extracted).length);
+    assert(!root.querySelector('#result-loot .result-tile-more'));
+    const values=tiles.map(t=>globalThis.DATA.items.find(i=>i.id===t.dataset.item).sellValue??0);
+    assert.deepEqual(values,[...values].sort((a,b)=>b-a));
+    assert(tiles.findIndex(t=>t.dataset.item==='dampener_cloak')<tiles.findIndex(t=>t.dataset.item==='hydraulic_component'),'rarer items win value ties');
+    assert.match(root.querySelector('#result-gear').textContent,/GEAR RETURNED.*Scout Rig/);
+    assert(root.querySelector('#result-gear use[href="ui-icons.svg#item-rig"]'));
+    assert.equal(root.querySelector('#result-loot').tabIndex,0);
+    assert(!root.querySelector('#result-bit-line').hidden);
+    assert.equal(root.querySelector('#result-bit-line').textContent,`BIT: ${view.reaction.line}`);
+    assert.strictEqual(resultView(r,{launch}).reaction,view.reaction);
+    assert.deepEqual(r,before,'presentation does not mutate rewards or round state');
+    r.reason='complete';renderResult(root,resultView(r,{launch}));
+    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,tiles.length,'full clears also show every item');
+    toggleResultDetails(root);toggleResultDetails(root);
+    assert.equal(root.querySelector('#result-bit-line').textContent,`BIT: ${view.reaction.line}`);
+    const dead=raid();takeDamage(dead,1000,10000);renderResult(root,resultView(dead,{launch}));
+    assert(root.querySelector('#result-bit-line').hidden);assert(!root.querySelector('.result-gear-returned'));
+  }finally{globalThis.document=previous;dom.window.close();}
+});
+
+test('BIT follows context priorities and avoids repeating the previous line across raids',()=>{
+  const previous=Object.getOwnPropertyDescriptor(globalThis,'localStorage'),map=new Map([['pr_bit_first_extract','1']]);
+  Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v)}});
+  try{
+    const rare=globalThis.DATA.items.find(i=>i.rarity==='rare');let last;
+    for(let i=0;i<5;i++){
+      const r=raid();r.bag={[rare.id]:1};extractRound(r,10000);
+      const reaction=resultView(r,{launch}).reaction;
+      assert.equal(reaction.trigger,'rare');assert.notEqual(reaction.id,last);last=reaction.id;
+      assert.equal(map.get('pr_bit_last_raid_line'),reaction.id);
+    }
+    map.delete('pr_bit_first_extract');
+    const first=raid();extractRound(first,10000);assert.equal(resultView(first,{launch}).reaction.trigger,'first');
+    assert.equal(map.get('pr_bit_first_extract'),'1');
+    const empty=raid();empty.bag={};extractRound(empty,10000);assert.equal(resultView(empty).reaction.trigger,'empty');
+    const close=raid();close.bag={cable:2};close.health=1;extractRound(close,10000);assert.equal(resultView(close).reaction.trigger,'close');
+  }finally{if(previous)Object.defineProperty(globalThis,'localStorage',previous);else delete globalThis.localStorage;}
 });
