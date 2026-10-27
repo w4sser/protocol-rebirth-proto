@@ -71,10 +71,19 @@ try{
   await rotateThrough(page,['#viewport','#game','#game canvas'],'raid HUD');
   await page.evaluate(()=>{document.querySelectorAll('#tutorial,#round-over').forEach(e=>e.hidden=true);});
   for(const [w,h] of sizes){
-    await resize(page,w,h);await page.evaluate(()=>window.__NR.perkPickDemo());
-    assert.ok(await page.$$eval('.perk-choice',bs=>bs.length===3&&bs.every(b=>b.disabled)),'cards disabled on open');
-    await page.evaluate(()=>document.querySelector('.perk-choice').click());await page.keyboard.press('Enter');
-    assert.equal(await page.evaluate(()=>window.__NR.round().perks.taken.length),0,'lock ignores click and keyboard');
+    await resize(page,w,h);
+    const lock=await page.evaluate(async()=>{
+      const start=performance.now();
+      window.__NR.perkPickDemo();
+      let cards=[...document.querySelectorAll('.perk-choice')];
+      if(cards.length<3){await new Promise(requestAnimationFrame);cards=[...document.querySelectorAll('.perk-choice')];}
+      const disabled=cards.length===3&&cards.every(b=>b.disabled);
+      cards[0]?.click();
+      cards[0]?.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true,cancelable:true}));
+      return {disabled,taken:window.__NR.round().perks.taken.length,elapsed:performance.now()-start};
+    });
+    assert.ok(lock.disabled,`cards disabled on open (elapsed ${lock.elapsed.toFixed(1)} ms)`);
+    assert.equal(lock.taken,0,`lock ignores click and keyboard (elapsed ${lock.elapsed.toFixed(1)} ms)`);
     await modalFits(page,`${w}x${h}`);
     await page.waitForFunction(()=>[...document.querySelectorAll('.perk-choice')].every(b=>!b.disabled));
     // A press already down when the modal reopens must not choose even after 600 ms.
