@@ -1,4 +1,4 @@
-// v2.5.0 stakes PR1 (docs/design-stakes-perks-oct27.md section 4 and 6). No heat mechanic: waves run on a
+// v2.4.1 stakes PR1 (docs/design-stakes-perks-oct27.md section 4 and 6). No heat mechanic: waves run on a
 // fixed clock only. Every number a raid's stakes systems use lives here, never hardcoded in nodspel/*.js.
 var RAID_STAKES_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_STAKES_ROOT.DATA = RAID_STAKES_ROOT.DATA || {};
