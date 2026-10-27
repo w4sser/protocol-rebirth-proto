@@ -1,4 +1,4 @@
-// v2.3.3 regression: real browser resize/rotation, full-bleed views and perk gesture isolation.
+// v2.4.0 regression: real browser resize/rotation, full-bleed views and perk gesture isolation.
 // Runs in CI's layout job; needs puppeteer (or puppeteer-core and CHROME_PATH).
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
