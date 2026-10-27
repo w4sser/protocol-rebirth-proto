@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.4.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.4.0';
-import {buildTown} from './town.js?v=2.4.0';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.4.0';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.4.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.4.0';
-import {controlCablePath} from './control-cables.js?v=2.4.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.5.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.5.0';
+import {buildTown} from './town.js?v=2.5.0';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.5.0';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.5.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.5.0';
+import {controlCablePath} from './control-cables.js?v=2.5.0';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -127,7 +127,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const color=choice.kind==='loot'?'#75cfcc':'#75cfcc';
     const markers=[];for(let i=0;i<5;i++)markers.push(box(choice.sign.x+choice.dir.x*i*.5,.03,choice.sign.z-i*.3,.28,.035,.28,color));routes.push({choice,markers,level});
   }
-  const enemies=level.enemies.map(enemy=>{
+  function enemyVisual(enemy){
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
     if(enemy.type==='generator'){
       // Encounter 6: a cyan (system) generator; a beam to its node shows the shield is still up.
@@ -162,7 +162,11 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       cone.position.y=.045;cone.scale.set(RULES.encounters.patrol.coneRange,1,RULES.encounters.patrol.coneRange);g.add(cone);out.cone=cone;out.coneFill=fm;
     }
     return out;
-  });
+  }
+  const enemies=level.enemies.map(enemyVisual);
+  // v2.5.0 hunter waves (nodspel/stakes.js): new enemies can appear mid-raid, out of sight, well after the
+  // level's own list was built above - give them the same mesh/visual the initial roster gets.
+  function addEnemy(enemy){const v=enemyVisual(enemy);enemies.push(v);return v;}
   // Encounter 3: locked doors are dark panels with a coral light; once opened only a cyan floor strip stays.
   const doors=(level.doors??[]).map(door=>{
     const g=new THREE.Group();g.position.set(door.x,0,door.z);group.add(g);
@@ -252,5 +256,5 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   if(isArch)spots.splice(0,spots.length,...props.map(p=>({x:p.position.x,z:p.position.z})));
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

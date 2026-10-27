@@ -1,9 +1,10 @@
-import {ownRooms} from './perks.js?v=2.4.0';
-import {RULES,hazardState} from './levels.js?v=2.4.0';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.4.0';
-import {takeDamage,tickRound} from './round.js?v=2.4.0';
-import {houseWaypoint} from './house.js?v=2.4.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.4.0';
+import {ownRooms} from './perks.js?v=2.5.0';
+import {RULES,hazardState} from './levels.js?v=2.5.0';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.5.0';
+import {takeDamage,tickRound} from './round.js?v=2.5.0';
+import {houseWaypoint} from './house.js?v=2.5.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.5.0';
+import {detectionMultiplier} from './stakes.js?v=2.5.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -45,8 +46,8 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
     }
     // Patrol: unaware until the sight cone catches the player (a 1 s "!" first) or it is shot.
     if(enemy.patrol&&!enemy.introGuard&&!enemy.aggro&&enemy.health>0)patrolSight(round,enemy,player,now,obstacles,target);
-    // Detection: stealth shrinks the range at which an enemy notices you. Once noticed (or shot) it stays aggro.
-    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0));
+    // Detection: stealth shrinks the range at which an enemy notices you, a full bag grows it (bag weight, data/raid-stakes.js). Once noticed (or shot) it stays aggro.
+    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0))*detectionMultiplier(round);
     if(seen||enemy.lastHitAt!=null||enemy.nearMissAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}

@@ -1,9 +1,10 @@
-import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.4.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.4.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.4.0';
-import {emptyBag,bagItems} from './raid.js?v=2.4.0';
-import {traceTargets} from './physics.mjs?v=2.4.0';
-import {shieldBlocks} from './encounters.js?v=2.4.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.5.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.0';
+import {emptyBag,bagItems} from './raid.js?v=2.5.0';
+import {traceTargets} from './physics.mjs?v=2.5.0';
+import {shieldBlocks} from './encounters.js?v=2.5.0';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -15,7 +16,7 @@ export function createRound(seed,now,stats=RULES.playerStats.base) {
   const durationMs=Math.round(ROUND_DURATION_MS*(isHard()?RULES.hard.timerMul:1));
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState(stats.maxHealth)};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -191,8 +192,9 @@ export function equipFromBackpack(round,index,now){
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
 export function useHealthKit(round,now){
-  const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max)return false;
-  if(kit)round.kit.medkit--;else round.bag.medkit--;const before=round.health;round.health=Math.min(max,round.health+RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.healed=(round.telemetry.healed||0)+round.health-before;return true;
+  const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;
+  if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max||healRemaining(round)<=0)return false;
+  if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth);return true;
 }
 // Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
 // then drops for good) or an EMP holds the shield down for a few seconds. Shielded nodes without a generator charge as before.
@@ -273,7 +275,7 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
     if(enemy.health===0){const node=round.level.nodes.find(n=>n.id===enemy.node);if(node){node.shielded=false;node.shieldBroken=true;}round.generatorsDown=(round.generatorsDown??0)+1;}
     return true;
   }
-  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};round.health=Math.min(round.maxHealth??100,round.health+RULES.killReward.health);}return true;
+  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);}return true;
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};
@@ -325,5 +327,8 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';resetPerks(round);return 'complete';}
   round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
+  // A hunter wave's pending spawn room (nodspel/stakes.js) belonged to the level just left; drop it so the
+  // next stepStakes() picks a room in the new level instead of spawning hunters at stale coordinates.
+  if(round.stakes)round.stakes.pendingRoom=null;
   return 'next';
 }

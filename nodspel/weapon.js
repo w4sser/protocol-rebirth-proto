@@ -1,7 +1,7 @@
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.4.0';
-import {RULES} from './levels.js?v=2.4.0';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.4.0';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.4.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.5.0';
+import {RULES} from './levels.js?v=2.5.0';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.5.0';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.5.0';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;

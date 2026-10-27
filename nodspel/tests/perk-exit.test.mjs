@@ -12,6 +12,7 @@ import {RULES} from '../levels.js';
 import {createPerkUI} from '../perk-ui.js';
 import {perkState,pausePick,resumePick,gameTime,choosePerk,roomAt} from '../perks.js';
 import {isGameKey,isTypingTarget} from '../input.js';
+import {speedMultiplier} from '../stakes.js';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -48,7 +49,7 @@ test('exit picker minimize resumes movement, combat and timer; resume preserves 
     const noop=()=>{},context=vm.createContext({
       round:r,position:{...position},combat,weapon:createWeapon(Infinity),dash:createDash(),
       window:dom.window,isGameKey,isTypingTarget,fire:()=>shots++,requestDash:()=>dashes++,
-      perkState,pausePick,resumePick,choosePerk,enterExit,tickRound,roomAt,stepCombat,stepWeapon,stepDash,moveWithActors,playerDisplaced,RULES,
+      perkState,pausePick,resumePick,choosePerk,enterExit,tickRound,roomAt,stepCombat,stepWeapon,stepDash,moveWithActors,playerDisplaced,RULES,speedMultiplier,
       Date:{now:()=>wall},perkKey:null,perkChoosing:false,perkResume:resume,
       $:s=>document.querySelector(s),clearInput:noop,cancelToolDrag:noop,hideSwap:noop,updateHUD:noop,
       setTimeout:fn=>fn(),finishRound:()=>assert.fail('unexpected extraction'),

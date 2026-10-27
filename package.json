@@ -1,6 +1,6 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "private": true,
   "scripts": {
     "test": "npm run test:logic && npm run test:ui && npm run test:ftue && npm run test:core-loop && npm run test:reset && npm run test:loot && npm run test:overlays && npm run test:weapons && npm run test:economy && npm run test:area && npm run test:export && npm run test:operator && npm run test:popup && npm run test:idle && npm run test:icons && npm run test:quests && npm run test:polish && npm run test:chains && npm run test:questlog && npm run test:chips && npm run test:mapzoom && npm run test:reward && npm run test:payoff && npm run test:guardrails && npm run test:splash && npm run test:oscar && npm run test:area-materials && npm run test:handin && npm run test:t1-unlock && npm run test:wm-checklist && npm run test:t1-goal-energy && npm run test:t2-living-base && npm run test:t4-gear-upgrade && npm run test:t5-hard-entry && npm run test:stash && npm run test:t3-bit && npm run test:v187 && npm run test:v188 && npm run test:v189 && npm run test:v190 && npm run test:v191 && npm run test:v192 && npm run test:v193 && npm run test:v195 && npm run test:v197 && npm run test:v198 && npm run test:viewport",
