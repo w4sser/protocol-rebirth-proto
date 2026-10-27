@@ -20,6 +20,9 @@ export function createRound(seed,now,stats=RULES.playerStats.base) {
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
 export const bagCapacityOf=round=>round?.bagCapacity??RULES.loot.capacity;
+// Carried-but-not-equipped gear/weapons share the bag's slots with materials (lost on death, kept on
+// extract, same as any other bag loot) — the backpack's own smaller cap (see backpackCapacityOf) still applies on top.
+export const carriedCount=round=>bagItems(round.bag).length+(round?.backpack?.length??0);
 function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
 function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
@@ -43,7 +46,7 @@ export function collectLoot(round,position,now,weapon){
         // Encounter key: carried by the raid itself (never in the bag), spent on contact with its door.
         round.keys=round.keys||[];round.keys.push(box.key);
       }else if(gearSlotOf(box.item)){
-        // Equipment never goes in the material bag. Empty armor slots auto-equip; weapons always
+        // Equipment never goes in the material bag. Armor and weapons always
         // offer a choice, including when the free Basic Carbine is active.
         // v2.0: an occupied weapon slot instead offers a choice (swap now, or stash in the backpack to
         // bring home) — see docs/design-playtest-oct25.md §c.
@@ -52,11 +55,10 @@ export function collectLoot(round,position,now,weapon){
           if(!box.gearNotified){box.gearNotified=true;round.weaponOffer={boxId:box.id,item:box.item,at:now};changed=true;}
           continue;
         }
-        if(slot!=='weapon'&&round.equip[slot]){if(!box.gearNotified){box.gearNotified=true;round.gearOffer={boxId:box.id,item:box.item,slot,at:now};changed=true;}continue;}
-        equipGear(round,box.item,now);
+        if(!box.gearNotified){box.gearNotified=true;round.gearOffer={boxId:box.id,item:box.item,slot,at:now};changed=true;}continue;
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
-        if(bagItems(round.bag).length>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
+        if(carriedCount(round)>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;round.lastBagPickup={item:box.item,at:now};
       }
       box.collected=true;round.lastPickup={item:box.item,at:now};changed=true;
@@ -88,33 +90,47 @@ export function swapLoot(round,boxId,dropId,now){
 const GEAR=Object.fromEntries((globalThis.DATA?.items??[]).filter(i=>i.slot==='weapon'||i.slot==='armor').map(i=>[i.id,i]));
 export const gearItem=id=>GEAR[id]??null;
 export const gearSlotOf=id=>GEAR[id]&&!GEAR[id].free?GEAR[id].slot:null;
-export function initEquip(round,{weapon=null,gear=[]}={}){
-  round.equip={weapon:gearSlotOf(weapon)==='weapon'?weapon:null,armor:(gear||[]).find(id=>gearSlotOf(id)==='armor')??null};return round.equip;}
+export function initEquip(round,{weapon=null,gear=[],armorShield=null}={}){
+  round.equip={weapon:gearSlotOf(weapon)==='weapon'?weapon:null,armor:(gear||[]).find(id=>gearSlotOf(id)==='armor')??null};
+  const nominal=GEAR[round.equip.armor]?.stats?.shield||0;
+  // Upgrades can grant shield to a piece with zero base shield (e.g. Dampener Cloak): gate on the
+  // supplied armorShield being a real number, not on the gear's own nominal shield being non-zero.
+  const capacity=Number.isFinite(armorShield)?Math.min(round.maxShield,Math.max(nominal,armorShield)):nominal;
+  round.armorState=capacity?{shield:Math.min(round.shield,capacity),maxShield:Math.min(round.maxShield,capacity)}:null;
+  return round.equip;}
+
 export const equippedGear=round=>Object.values(round?.equip??{}).filter(Boolean);
 // Armor stats are deltas on top of the launch stats (which already include the armor worn from base).
-function applyArmor(round,oldId,newId){
+function applyArmor(round,oldId,newId,incomingState=null){
   const o=GEAR[oldId]?.stats??{},n=GEAR[newId]?.stats??{},C=RULES.playerStats.clamp;
   for(const s of new Set([...Object.keys(o),...Object.keys(n)])){if(s==='shield')continue;const v=(round.stats[s]??0)-(o[s]||0)+(n[s]||0);round.stats[s]=C[s]?Math.min(C[s][1],Math.max(C[s][0],v)):v;}
   round.maxHealth=round.stats.maxHealth;round.health=Math.min(round.health,round.maxHealth);
-  const ds=(n.shield||0)-(o.shield||0),[lo,hi]=C.shield;round.maxShield=Math.min(hi,Math.max(lo,(round.maxShield||0)+ds));round.shield=Math.max(0,Math.min(round.maxShield,(round.shield||0)+Math.max(0,ds)));
+  const oldState=round.armorState??{shield:Math.min(round.shield||0,o.shield||0),maxShield:o.shield||0};
+  oldState.shield=Math.min(oldState.shield,round.shield||0);
+  const next=incomingState??{shield:n.shield||0,maxShield:n.shield||0},[lo,hi]=C.shield;
+  round.maxShield=Math.min(hi,Math.max(lo,(round.maxShield||0)-oldState.maxShield+next.maxShield));
+  round.shield=Math.max(0,Math.min(round.maxShield,(round.shield||0)-oldState.shield+next.shield));
+  // Gate on the carried instance's own maxShield, not the gear's nominal shield: a zero-base-shield
+  // piece (e.g. Dampener Cloak) can still carry a durable, upgrade-granted shield instance.
+  round.armorState=next.maxShield?{...next}:null;round.stats.shield=round.maxShield;
   round.bagCapacity=bagCap(bagCapacityOf(round)-(GEAR[oldId]?.bagSlots||0)+(GEAR[newId]?.bagSlots||0));
 }
-export function equipGear(round,id,now,weaponState=null){
+export function equipGear(round,id,now,weaponState=null,armorState=null){
   const slot=gearSlotOf(id);if(!slot)return null;round.equip=round.equip||{weapon:null,armor:null};
-  const old=round.equip[slot];round.equip[slot]=id;if(slot==='weapon')round.weaponState=weaponState;if(slot==='armor')applyArmor(round,old,id);
+  const old=round.equip[slot];round.equip[slot]=id;if(slot==='weapon')round.weaponState=weaponState;if(slot==='armor')applyArmor(round,old,id,armorState);
   round.lastEquip={slot,item:id,old,at:now};return old;
 }
 // Occupied slot: take the offered piece; the swapped-out one is dropped on the ground (revealed).
 export function swapGear(round,boxId,now){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId),slot=box&&gearSlotOf(box.item);
-  if(!box||box.collected||!slot||(slot!=='weapon'&&!round.equip?.[slot]))return null;
-  const oldState=round.weaponState;
-  const old=equipGear(round,box.item,now,box.weaponState??null);box.collected=true;round.lastPickup={item:box.item,at:now};
+  if(!box||box.collected||!slot)return null;
+  const oldState=round.weaponState,oldArmor=round.armorState;
+  const old=equipGear(round,box.item,now,box.weaponState??null,box.armorState??null);box.collected=true;round.lastPickup={item:box.item,at:now};
   if(slot==='weapon')round.weaponOffer=null;else round.gearOffer=null;
   if(!old)return null; // The free starter is never dropped. lastEquip still records success.
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:old,collected:false,blockedUntilLeft:true,revealed:true};
-  if(slot==='weapon')dropped.weaponState=oldState;
+  if(slot==='weapon')dropped.weaponState=oldState;else dropped.armorState=oldArmor;
   round.level.lootBoxes.push(dropped);return dropped;
 }
 // ---- v2.0 weapon backpack: bring a found weapon home instead of swapping it in now ----
@@ -132,39 +148,45 @@ export function compareWeapons(oldId,newId,oldWeapon=null,newWeapon=null){
     return {key,label,from,to,improved:delta===0?null:(better==='high'?delta>0:delta<0)};
   });
 }
-// Stash the ground weapon in the backpack instead of equipping it. `dropIndex` picks which backpack
-// weapon to leave on the ground (revealed) when the backpack is already full; omitted/invalid -> fails closed.
+// Stash a found weapon OR armor piece in the backpack instead of equipping it now (v2.4: PICK UP alongside
+// SWAP for gear too, not just weapons). `dropIndex` picks which backpack item to leave on the ground
+// (revealed) when the backpack is already full; omitted/invalid -> fails closed.
 export function stashWeapon(round,boxId,now,dropIndex=null){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId);
-  if(!box||box.collected||gearSlotOf(box.item)!=='weapon')return null;
+  if(!box||box.collected||!gearSlotOf(box.item)||carriedCount(round)>=bagCapacityOf(round))return null;
   round.backpack=round.backpack||[];
-  // Parallel slots retain runtime instances without changing backpack item ids used by extraction/UI.
-  const states=round.backpackWeaponStates??=[];
+  // Parallel slots retain weapon instances and armor durability alongside the item IDs.
+  const states=round.backpackWeaponStates??=[],armorStates=round.backpackArmorStates??=[];
   let dropped=null;
   if(round.backpack.length>=backpackCapacityOf(round)){
     if(!Number.isInteger(dropIndex)||dropIndex<0||dropIndex>=round.backpack.length)return null;
-    const old=round.backpack.splice(dropIndex,1)[0],state=states.splice(dropIndex,1)[0];
+    const old=round.backpack.splice(dropIndex,1)[0],state=states.splice(dropIndex,1)[0],armorState=armorStates.splice(dropIndex,1)[0];
     dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:old,collected:false,blockedUntilLeft:true,revealed:true};
-    dropped.weaponState=state??null;round.level.lootBoxes.push(dropped);
+    dropped.weaponState=state??null;dropped.armorState=armorState??null;round.level.lootBoxes.push(dropped);
   }
-  states[round.backpack.length]=box.weaponState??null;
+  states[round.backpack.length]=box.weaponState??null;armorStates[round.backpack.length]=box.armorState??null;
   round.backpack.push(box.item);box.collected=true;round.lastPickup={item:box.item,at:now};
   if(round.weaponOffer?.boxId===boxId)round.weaponOffer=null;
+  if(round.gearOffer?.boxId===boxId)round.gearOffer=null;
   return {dropped};
 }
-// Player-initiated, any time mid-raid: bring a backpack weapon into the active slot. The weapon it
-// replaces goes into the backpack slot it vacated (still home-bound) rather than being dropped.
+// Player-initiated, any time mid-raid: bring a backpack weapon or armor piece into its active slot. The
+// gear it replaces goes into the backpack slot it vacated (still home-bound) rather than being dropped.
 export function equipFromBackpack(round,index,now){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   round.backpack=round.backpack||[];
   if(!Number.isInteger(index)||index<0||index>=round.backpack.length)return null;
-  const incoming=round.backpack[index],old=round.equip?.weapon??null;
-  const states=round.backpackWeaponStates??=[],oldState=round.weaponState;
-  round.weaponState=states[index]??null;
-  round.equip=round.equip||{weapon:null,armor:null};round.equip.weapon=incoming;
-  if(old){round.backpack[index]=old;states[index]=oldState??null;}else{round.backpack.splice(index,1);states.splice(index,1);}
-  round.lastEquip={slot:'weapon',item:incoming,old,toBackpack:true,at:now};
+  const incoming=round.backpack[index],slot=gearSlotOf(incoming);if(!slot)return null;
+  round.equip=round.equip||{weapon:null,armor:null};const old=round.equip[slot]??null;
+  const states=round.backpackWeaponStates??=[],armorStates=round.backpackArmorStates??=[];
+  if(slot==='weapon'){const oldState=round.weaponState;round.weaponState=states[index]??null;round.equip.weapon=incoming;
+    if(old){round.backpack[index]=old;states[index]=oldState??null;}else{round.backpack.splice(index,1);states.splice(index,1);armorStates.splice(index,1);}
+  }else{
+    const oldArmor=round.armorState;applyArmor(round,old,incoming,armorStates[index]);round.equip[slot]=incoming;
+    if(old){round.backpack[index]=old;states[index]=null;armorStates[index]=oldArmor;}else{round.backpack.splice(index,1);states.splice(index,1);armorStates.splice(index,1);}
+  }
+  round.lastEquip={slot,item:incoming,old,toBackpack:true,at:now};
   return old;
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
@@ -214,6 +236,13 @@ export function takeDamage(round,amount,now){
   const before=round.health,beforeShield=round.shield||0;
   // Vest shield (v1.43) absorbs damage first; it does not regenerate.
   const absorbed=Math.min(round.shield||0,amount);if(absorbed){round.shield-=absorbed;amount-=absorbed;}
+  if(absorbed&&round.armorState){
+    round.armorState.shield=Math.max(0,round.armorState.shield-absorbed);
+    if(round.armorState.shield===0&&round.equip?.armor){
+      const spent=round.equip.armor;applyArmor(round,spent,null);round.equip.armor=null;
+      (round.gearConsumed??=[]).push(spent);
+    }
+  }
   if(round.telemetry)round.telemetry.damageTaken+=absorbed+Math.min(amount,round.health);
   round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
   const meta=round.lastHit??{};logCombat(round,{kind:'damage',at:now,source:meta.source??'Unknown',sourceId:meta.enemyId??meta.sourceId??null,attack:meta.attack??'projectile',amount:before-round.health+beforeShield-(round.shield||0),moving:!!round.playerMoving});
@@ -221,14 +250,22 @@ export function takeDamage(round,amount,now){
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';resetPerks(round);}
   return true;
 }
+// Dormant defenders wake when attacked; swarm spawn queues remain locked.
+export function alertEnemy(enemy,now){
+  if(enemy.health<=0||enemy.type==='generator'||(enemy.active===false&&enemy.swarm))return;
+  if(!enemy.aggro)enemy.attackWakeAt=now;
+  enemy.active=true;enemy.aggro=true;enemy.nearMissAt=now;enemy.alertAt=null;
+  enemy.spawnedAt=-Infinity; // attacks bypass arrival grace, never encounter warnings
+}
 // `from` = where the hit comes from. Player weapon hits default to round.shooter (set by the game around weapon
 // calls); blasts and anything without an origin skip the guard's front shield.
 export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
-  if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || enemy.active===false || !Number.isFinite(damage) || damage<=0)return false;
+  if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || (enemy.active===false&&enemy.swarm) || !Number.isFinite(damage) || damage<=0)return false;
   // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
   if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
+  alertEnemy(enemy,now);
   if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
   if(enemy.type==='generator'){
     // Not a kill: breaking the generator drops its node's shield for good.

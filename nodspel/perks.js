@@ -100,4 +100,4 @@ export function choosePerk(round,key,id,now,dash){
 }
 export function reloadInterval(round,ms){return hasPerk(round,'reload')?Math.max(PERKS.reloadFloorMs,ms*PERKS.reloadMultiplier):ms;}
 export function dashInterval(round,ms){return hasPerk(round,'roll')?Math.max(PERKS.dashFloorMs,ms*PERKS.dashMultiplier):ms;}
-export function resetPerks(round){if(round.perks){round.perks.taken=[];round.perks.queue=[];round.perks.chain=false;round.perks.shieldUntil=0;round.perks.revealAll=false;round.perks.terminalCards=[];round.perks.selectedEffects={};}}
+export function resetPerks(round){if(round.perks){round.raidPerksTaken=[...new Set([...(round.raidPerksTaken??[]),...round.perks.taken])];round.perks.taken=[];round.perks.queue=[];round.perks.chain=false;round.perks.shieldUntil=0;round.perks.revealAll=false;round.perks.terminalCards=[];round.perks.selectedEffects={};}}

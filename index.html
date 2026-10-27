@@ -1484,7 +1484,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .raid-summary[data-outcome="death"] .rs-right-head,.raid-summary[data-outcome="timeout"] .rs-right-head{color:var(--ad-danger)}
 .raid-summary[data-outcome="death"] .rs-right-head::after,.raid-summary[data-outcome="timeout"] .rs-right-head::after{background:linear-gradient(90deg,var(--ad-danger),transparent)}
 
-.loot-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:4px;flex:1 1 auto;min-height:0}
+.loot-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:76px;align-content:start;gap:10px 4px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:9px 2px 3px;touch-action:pan-y}
 .loot-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px;min-width:0;min-height:0;
   border:1.5px solid var(--ad-cyan);border-radius:8px;background:rgba(7,21,28,.78);animation:rsCardIn .3s ease-out both}
 .loot-card .pr-itemimg,.loot-card .pr-ic{flex:1 1 auto;width:100%;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
@@ -1496,21 +1496,15 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .loot-card.loss{border-color:var(--ad-danger);opacity:.62;filter:grayscale(.35)}
 .loot-card.loss .loot-card-row>b{color:var(--ad-danger)}
 .loot-card.rare{border-color:var(--ad-loot);box-shadow:0 0 12px color-mix(in srgb,var(--ad-loot) 40%,transparent)}
-.rare-tag,.saved-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--ad-ink);z-index:1;
+.rare-tag,.saved-tag,.gear-tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--ad-ink);z-index:1;
   font:800 8px/1.5 "Archivo",sans-serif;padding:1px 6px;border-radius:6px;letter-spacing:.03em}
 .rare-tag{background:var(--ad-loot)}
-.saved-tag{background:var(--ad-cyan)}
+.saved-tag,.gear-tag{background:var(--ad-cyan)}
 .loot-extra{display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--ad-cyan);border-radius:8px;color:var(--ad-cyan);font:800 13px "Archivo",sans-serif}
 .loot-empty{margin:0;color:var(--dim)}
 @keyframes rsCardIn{from{opacity:0;transform:translateY(6px)}}
-.loot-grid .loot-card:nth-child(n+6){display:none}
-.loot-extra.tier-lg{display:none}
 @media(min-height:385px){
   .loot-grid{grid-template-columns:repeat(4,1fr)}
-  .loot-grid .loot-card:nth-child(n+6){display:flex}
-  .loot-grid .loot-card:nth-child(n+8){display:none}
-  .loot-extra.tier-sm{display:none}
-  .loot-extra.tier-lg{display:flex}
 }
 
 .rs-xp{display:flex;flex-direction:column;gap:3px;flex:none}

@@ -14,11 +14,24 @@ import {perkState,pausePick,resumePick,gameTime,choosePerk,roomAt} from '../perk
 import {isGameKey,isTypingTarget} from '../input.js';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
+function extractFn(name){
+  const start=source.indexOf(`function ${name}(`);
+  if(start<0)throw new Error(`function ${name} not found in game.mjs`);
+  let i=source.indexOf('{',start),depth=0;
+  for(;i<source.length;i++){
+    if(source[i]==='{')depth++;
+    else if(source[i]==='}'){depth--;if(depth===0)return source.slice(start,i+1);}
+  }
+  throw new Error(`unbalanced braces extracting ${name}`);
+}
 // Run production action handlers and the simulation portion of the production frame,
 // stopping after combat to avoid a WebGL renderer in this DOM integration test.
 const handlers=source.slice(source.indexOf('function openPerk('),source.indexOf("for(const type of ['pointerdown'"));
 const keyboard=source.slice(source.indexOf("window.addEventListener('keydown'"),source.indexOf("document.addEventListener('click'"));
-const frame=source.slice(source.indexOf('function frameInner('),source.indexOf('    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);'))+'\n  }\n}';
+// frameInner calls combatSnapshot() (defined earlier in the module, near updateHUD) to decide whether a
+// shield/equip/capacity change needs a HUD refresh — pull it in too or the slice below leaves it undefined.
+const snapshotHelpers=extractFn('combatSnapshot')+'\n'+extractFn('combatSnapshotChanged');
+const frame=snapshotHelpers+'\n'+source.slice(source.indexOf('function frameInner('),source.indexOf('    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);'))+'\n  }\n}';
 
 test('exit picker minimize resumes movement, combat and timer; resume preserves the offer and exit requires a pick',()=>{
   const dom=new JSDOM('<main id="viewport"><div id="encounter-hint"></div><div id="inventory" hidden></div><span id="time-left"></span><span id="summary-time"></span><div class="timer"></div></main>');

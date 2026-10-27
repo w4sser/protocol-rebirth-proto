@@ -1,9 +1,10 @@
 // v2.0 weapon backpack (docs/design-playtest-oct25.md §c): a found weapon offers a choice — swap it in now or
-// stash it in the backpack to bring home — instead of forcing a swap. Armor pickups are unaffected.
+// stash it in the backpack to bring home — instead of forcing a swap.
+// v2.4 (Robert's playtest): armor pickups (e.g. Scout Rig) get the same PICK UP-or-SWAP choice.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bagItems} from '../raid.js';
-import {createRound,collectLoot,initEquip,swapGear,bagCapacityOf,lootAction,compareWeapons,stashWeapon,equipFromBackpack,backpackCapacityOf,extractRound,takeDamage} from '../round.js';
+import {createRound,collectLoot,initEquip,swapGear,bagCapacityOf,lootAction,compareWeapons,stashWeapon,equipFromBackpack,backpackCapacityOf,extractRound,takeDamage,gearSlotOf,hitEnemy,carriedCount} from '../round.js';
 import {buildRaidResult,readWeapon} from '../raid-result.js';
 
 const place=(r,item,id='g1')=>{const b={id,x:0,z:0,item,collected:false,revealed:true};r.level.lootBoxes=[b];return b;};
@@ -33,6 +34,53 @@ test('an occupied weapon slot raises a choice (weaponOffer), not the forced gear
   assert.ok(!r.gearOffer,'weapon pickups no longer use the armor-style forced offer');
   assert.deepEqual(r.weaponOffer,{boxId:'g1',item:'rifle_marksman',at:10});
   assert.equal(collectLoot(r,at,20),false,'no repeat offer while standing on it');
+});
+
+test('an occupied armor slot (Scout Rig) offers PICK UP alongside SWAP, not only a forced swap',()=>{
+  const r=createRound('armor-a',0);initEquip(r,{gear:['scavenger_vest']});
+  const box=place(r,'scout_rig');
+  assert.ok(collectLoot(r,at,10));
+  assert.equal(box.collected,false,'not picked up yet — the player still has to choose');
+  assert.deepEqual(r.gearOffer,{boxId:'g1',item:'scout_rig',slot:'armor',at:10});
+  const res=stashWeapon(r,'g1',20);
+  assert.deepEqual(res,{dropped:null});
+  assert.equal(r.equip.armor,'scavenger_vest','picked up, not equipped: armor slot unchanged');
+  assert.deepEqual(r.backpack,['scout_rig']);
+  assert.equal(box.collected,true);assert.equal(r.gearOffer,null,'stashing also clears the gear offer');
+});
+test('SWAP still works for armor exactly as before',()=>{
+  const r=createRound('armor-swap',0);initEquip(r,{gear:['scavenger_vest']});
+  place(r,'scout_rig');collectLoot(r,at,10);
+  const d=swapGear(r,'g1',20);
+  assert.equal(r.equip.armor,'scout_rig');assert.equal(d.item,'scavenger_vest');assert.equal(d.revealed,true);
+});
+test('a full backpack blocks picking up armor the same as it blocks weapons (shared carry slots)',()=>{
+  const r=createRound('armor-full',0);initEquip(r,{gear:['scavenger_vest']});
+  r.backpack=['shotgun_breach','rifle_marksman'];
+  const box=place(r,'scout_rig');
+  assert.equal(stashWeapon(r,'g1',20),null,'full backpack with no drop choice fails closed');
+  assert.equal(box.collected,false);
+});
+test('equipping armor from the backpack mid-raid swaps the active slot and applies its stats',()=>{
+  const r=createRound('armor-equip',0);initEquip(r,{gear:['scavenger_vest']});r.backpack=['scout_rig'];
+  const beforeSpeed=r.stats.speed;
+  const old=equipFromBackpack(r,0,10);
+  assert.equal(old,'scavenger_vest');assert.equal(r.equip.armor,'scout_rig');
+  assert.deepEqual(r.backpack,['scavenger_vest'],'the gear it replaces goes back into the backpack, not dropped');
+  assert.equal(r.stats.speed,beforeSpeed+.45,'Scout Rig stats applied, same as a direct swap');
+  assert.deepEqual(r.lastEquip,{slot:'armor',item:'scout_rig',old:'scavenger_vest',toBackpack:true,at:10});
+});
+test('death loses equipped gear and backpack items alike; only a win reports them as gearOut',()=>{
+  const r=createRound('loss-gear',0);initEquip(r,{weapon:'smg_vector',gear:['scavenger_vest']});r.backpack=['rifle_marksman'];
+  takeDamage(r,1000,10);
+  const res=buildRaidResult(r,{launch:{raidId:'x',seed:'loss-gear'}});
+  assert.equal(res.outcome,'death');assert.deepEqual(res.gearOut,[],'equipped gear and the backpack are both lost on death');
+});
+test('extraction still reports equipped gear and the backpack as gearOut on a win',()=>{
+  const r=createRound('win-gear',0);initEquip(r,{weapon:'smg_vector',gear:['scavenger_vest']});r.backpack=['rifle_marksman'];
+  r.levelsCleared=1;extractRound(r,10);
+  const res=buildRaidResult(r,{launch:{raidId:'x',seed:'win-gear'}});
+  assert.equal(res.outcome,'extract');assert.deepEqual(res.gearOut.sort(),['rifle_marksman','scavenger_vest','smg_vector']);
 });
 
 test('compareWeapons flags each stat as an improvement or a downgrade (rate: lower interval is faster)',()=>{
@@ -161,7 +209,7 @@ test('backpack first tap shows shared stat arrows; confirm alone equips, close c
   const viewport=new Element('div');let equips=0;
   const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
-    ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),
+    ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),gearSlotOf,
     hideSwap:()=>{viewport.children[0].hidden=true;},equipFromBackpack,onEquip:()=>equips++,gameClock:()=>10,Date:{now:()=>10}});
   vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('showBackpackWeapon'),context);
   vm.runInContext('showBackpackWeapon(0)',context);
@@ -175,6 +223,41 @@ test('backpack first tap shows shared stat arrows; confirm alone equips, close c
   assert.match(source,/b\.onclick=\(\)=>showBackpackWeapon\(i\)/,'backpack tile opens comparison');
 });
 
+test('gear-found popup offers SWAP and PICK UP; PICK UP picks it up without equipping',()=>{
+  const r=createRound('gear-ui',0);initEquip(r,{gear:['scavenger_vest']});
+  const box=place(r,'scout_rig');r.gearOffer={boxId:'g1',item:'scout_rig',slot:'armor',at:1};
+  const viewport=new Element('div');
+  const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
+    $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
+    ITEM_NAMES:{scout_rig:'Scout Rig'},svgIcon:id=>({icon:id}),nearOffer:()=>true,
+    clearGearOffer:()=>{r.gearOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip(){},
+    stashWeapon,gearToast(){},updateHUD(){},bagItems,bagCapacityOf,backpackCapacityOf,carriedCount,
+    showBackpackFullChoice(){assert.fail('backpack has room: the full-choice flow must not open');},
+    gameClock:()=>5,Date:{now:()=>5}});
+  vm.runInContext(gameFunction('appendPickupButton')+'\n'+gameFunction('showGearOffer'),context);
+  vm.runInContext('showGearOffer()',context);
+  const popup=viewport.children[0],actions=popup.children.find(e=>e.className==='weapon-offer-actions');
+  assert.deepEqual(actions.children.map(e=>e.textContent),['SWAP','PICK UP']);
+  assert.equal(box.collected,false);
+  actions.children[1].onclick(); // PICK UP
+  assert.equal(r.equip.armor,'scavenger_vest','picked up, not equipped');
+  assert.deepEqual(r.backpack,['scout_rig']);assert.equal(box.collected,true);assert.equal(popup.hidden,true);
+});
+test('gear-found popup hides PICK UP entirely once the material bag is full',()=>{
+  const r=createRound('gear-ui-full',0);initEquip(r,{gear:['scavenger_vest']});r.bag.cable=bagCapacityOf(r);
+  place(r,'scout_rig');r.gearOffer={boxId:'g1',item:'scout_rig',slot:'armor',at:1};
+  const viewport=new Element('div');
+  const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
+    $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
+    ITEM_NAMES:{scout_rig:'Scout Rig'},svgIcon:id=>({icon:id}),nearOffer:()=>true,
+    clearGearOffer(){},swapGear,onEquip(){},stashWeapon,gearToast(){},updateHUD(){},bagItems,bagCapacityOf,backpackCapacityOf,carriedCount,
+    gameClock:()=>5,Date:{now:()=>5}});
+  vm.runInContext(gameFunction('appendPickupButton')+'\n'+gameFunction('showGearOffer'),context);
+  vm.runInContext('showGearOffer()',context);
+  const popup=viewport.children[0],actions=popup.children.find(e=>e.className==='weapon-offer-actions');
+  assert.deepEqual(actions.children.map(e=>e.textContent),['SWAP'],'bag full -> only swap/leave');
+});
+
 test('starter ground popup compares and offers backpack or equip, then initializes the chosen weapon',()=>{
   const r=createRound('starter-ui',0);initEquip(r,{weapon:'basic_carbine'});r.weaponState=createWeapon();
   const box=place(r,'rifle_marksman');collectLoot(r,at,1,r.weaponState);
@@ -182,13 +265,13 @@ test('starter ground popup compares and offers backpack or equip, then initializ
   const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),nearWeaponOffer:()=>true,
-    clearWeaponOffer:()=>{r.weaponOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip,backpackCapacityOf,
+    clearWeaponOffer:()=>{r.weaponOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip,backpackCapacityOf,bagItems,bagCapacityOf,carriedCount,
     world:{addLoot:()=>assert.fail('free starter must never be dropped')},labelLoot(){},gameClock:()=>10,Date:{now:()=>10}});
-  vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('showWeaponOffer'),context);
+  vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('appendPickupButton')+'\n'+gameFunction('showWeaponOffer'),context);
   vm.runInContext('showWeaponOffer()',context);
   const popup=viewport.children[0],actions=popup.children.find(e=>e.className==='weapon-offer-actions');
   assert.equal(popup.children.find(e=>e.className==='weapon-compare').children.length,4);
-  assert.deepEqual(actions.children.map(e=>e.textContent),['SWAP','BACKPACK']);
+  assert.deepEqual(actions.children.map(e=>e.textContent),['SWAP','PICK UP']);
   assert.equal(box.collected,false);actions.children[0].onclick();
   assert.equal(r.equip.weapon,'rifle_marksman');assert.equal(r.weaponState.id,'rifle_marksman');assert.equal(box.collected,true);
 });
@@ -230,8 +313,8 @@ test('backpack and ground popups compare the selected instance against the upgra
     const viewport=new Element('div');
     const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
       $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
-      ITEM_NAMES:{smg_vector:'Vector'},compareWeapons,svgIcon:id=>({icon:id}),hideSwap(){},nearWeaponOffer:()=>true,backpackCapacityOf});
-    vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction(kind==='backpack'?'showBackpackWeapon':'showWeaponOffer'),context);
+      ITEM_NAMES:{smg_vector:'Vector'},compareWeapons,svgIcon:id=>({icon:id}),hideSwap(){},nearWeaponOffer:()=>true,backpackCapacityOf,gearSlotOf,bagItems,bagCapacityOf,carriedCount,clearWeaponOffer(){}});
+    vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('appendPickupButton')+'\n'+gameFunction(kind==='backpack'?'showBackpackWeapon':'showWeaponOffer'),context);
     vm.runInContext(kind==='backpack'?'showBackpackWeapon(1)':'showWeaponOffer()',context);
     const rows=viewport.children[0].children.find(e=>e.className==='weapon-compare').children;
     const expected=candidate??stockWeapon('smg_vector');
@@ -252,4 +335,79 @@ test('backpack row and weapon buttons accept pointer input while the bag panel s
   }
   assert.match(declarations('.bag-panel'),/pointer-events\s*:\s*none\b/);
   assert.doesNotMatch(declarations('.bag-panel'),/pointer-events\s*:\s*auto\b/);
+});
+
+// v2.4: each physical rig retains its remaining shield across every carry path.
+test('spent Scout Rig is consumed immediately and never returned on extraction',()=>{
+  const r=createRound('spent-rig',0,{shield:10,bagCapacity:5,speed:4.05});
+  initEquip(r,{gear:['scout_rig']});
+  takeDamage(r,10,10);
+  assert.equal(r.health,100);assert.equal(r.shield,0);assert.equal(r.equip.armor,null);
+  assert.equal(r.maxShield,0);assert.deepEqual(r.gearConsumed,['scout_rig']);
+  r.levelsCleared=1;extractRound(r,20);
+  assert(!buildRaidResult(r).gearOut.includes('scout_rig'));
+});
+test('partly spent armor keeps durability across backpack equips and ground swaps',()=>{
+  const r=createRound('rig-instance',0,{shield:25});initEquip(r,{gear:['scavenger_vest']});
+  takeDamage(r,20,1);assert.equal(r.shield,5);
+  r.backpack=['scout_rig'];equipFromBackpack(r,0,2);assert.equal(r.shield,10);
+  equipFromBackpack(r,0,3);assert.equal(r.shield,5,'same vest does not renew');
+  place(r,'scout_rig');const dropped=swapGear(r,'g1',4);assert.equal(dropped.armorState.shield,5);
+  assert.equal(stashWeapon(r,dropped.id,5).dropped,null);equipFromBackpack(r,1,6);
+  assert.equal(r.shield,5,'picking the old vest back up does not renew it');
+  takeDamage(r,5,7);assert.equal(r.equip.armor,null,'last durability consumes that instance');
+  assert(!r.backpack.includes('scavenger_vest'));
+});
+test('material bag full blocks direct gear pickup as well as the UI choice',()=>{
+  const r=createRound('bag-full-api',0);r.bag.cable=bagCapacityOf(r);const b=place(r,'scout_rig');
+  assert.equal(stashWeapon(r,b.id,1),null);assert.equal(b.collected,false);
+});
+test('attacking an inactive defender wakes it, while queued swarm bodies remain locked',()=>{
+  const r=createRound('wake-defender',0);const defender={id:'d',kind:'enemy',health:3,x:2,z:0,r:.48,active:false};
+  r.level.enemies=[defender];assert.equal(hitEnemy(r,'d',1),true);
+  assert.equal(defender.active,true);assert.equal(defender.aggro,true);
+  const swarm={...defender,id:'s',active:false,swarm:'nest'};r.level.enemies=[swarm];
+  assert.equal(hitEnemy(r,'s',2),false);assert.equal(swarm.active,false);
+});
+
+test('upgraded rig durability is distinct from bonus shield and survives until fully spent',()=>{
+  const r=createRound('upgraded-rig',0,{shield:60});initEquip(r,{gear:['scavenger_vest'],armorShield:50});
+  takeDamage(r,25,1);assert.equal(r.equip.armor,'scavenger_vest');assert.equal(r.armorState.shield,25);
+  takeDamage(r,25,2);assert.equal(r.equip.armor,null);
+  assert.equal(r.shield,10,'non-armor shield is preserved');assert.equal(r.maxShield,10);
+});
+// v2.4 fix: a zero-base-shield piece (Dampener Cloak has no `stats.shield` of its own) can still carry a
+// durable, upgrade-granted shield instance — it must consume and get discarded exactly like any other rig.
+test('a zero-base-shield armor piece (Dampener Cloak) still tracks and spends its upgrade-granted shield',()=>{
+  const r=createRound('cloak-upgrade',0,{shield:16});
+  initEquip(r,{gear:['dampener_cloak'],armorShield:16});
+  assert.ok(r.armorState,'the supplied armorShield must be tracked even though the gear has no nominal shield');
+  assert.equal(r.armorState.maxShield,16);
+  takeDamage(r,16,10);
+  assert.equal(r.equip.armor,null,'the spent cloak is consumed, not left equipped with a phantom shield');
+  assert.deepEqual(r.gearConsumed,['dampener_cloak']);
+  r.levelsCleared=1;extractRound(r,20);
+  assert(!buildRaidResult(r).gearOut.includes('dampener_cloak'),'a spent zero-base-shield rig must not come home for a fresh shield next raid');
+});
+test('re-equipping a zero-base-shield piece from the backpack keeps its carried shield instance (not the gate on nominal shield)',()=>{
+  const r=createRound('cloak-backpack',0,{shield:16});initEquip(r,{gear:['scavenger_vest']});
+  takeDamage(r,20,1);assert.equal(r.equip.armor,null,'scavenger vest (25 shield) spent down to 0 and consumed');
+  r.backpack=['dampener_cloak'];r.backpackArmorStates=[{shield:9,maxShield:16}];
+  equipFromBackpack(r,0,2);
+  assert.ok(r.armorState,'incoming carried shield must survive even though Dampener Cloak has zero nominal shield');
+  assert.equal(r.armorState.shield,9);assert.equal(r.armorState.maxShield,16);
+});
+// v2.4 fix: unequipped gear/weapons carried in the backpack share the bag's capacity with materials —
+// a 4-slot bag holding 3 materials plus a stashed Scout Rig is full, not 3/4 with room for a 5th item.
+test('carried-but-unequipped gear counts toward the shared bag capacity',()=>{
+  const r=createRound('shared-cap',0,{bagCapacity:4});r.bag.cable=3;
+  const box=place(r,'scout_rig');
+  assert.equal(carriedCount(r),3);
+  assert.ok(stashWeapon(r,box.id,1),'bag has room: 3 materials + 1 backpack slot fits in a 4-slot bag');
+  assert.deepEqual(r.backpack,['scout_rig']);assert.equal(carriedCount(r),4);
+  r.level.lootBoxes=[{id:'fuse-box',item:'fuse',x:0,z:0,collected:false}];
+  collectLoot(r,at,2);
+  assert.equal(r.bag.fuse,0,'bag is already full once the backpack item is counted — the pickup is rejected');
+  assert.ok(r.bagFull,'a full-bag notice fires instead of silently accepting a 5th item');
+  assert.equal(r.level.lootBoxes[0].collected,false);
 });

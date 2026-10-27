@@ -1,7 +1,7 @@
 import {gearSlotOf} from '../round.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,collectLoot,stepNodeInteraction,enterExit,exitIsOpen} from '../round.js';
+import {createRound,collectLoot,swapGear,stepNodeInteraction,enterExit,exitIsOpen} from '../round.js';
 import {generateLevel,RULES} from '../levels.js';
 import {createWeapon} from '../weapon.js';
 const physics=await import('../physics.mjs');
@@ -18,7 +18,7 @@ test('marked level two crate supplies loot without changing unlimited reserve',(
     if(gearSlotOf(box.item)==='weapon'){
       assert.equal(r.equip.weapon,null,'weapon pickup waits for a choice, even with the starter');
       assert.equal(r.weaponOffer.item,box.item);assert.equal(box.collected,false);
-    }else if(gearSlotOf(box.item))assert.equal(r.equip[gearSlotOf(box.item)],box.item,'armor goes to its slot');else assert.equal(r.bag[box.item],1);
+    }else if(gearSlotOf(box.item)){assert.equal(r.gearOffer.item,box.item,'armor pickup waits for a choice');swapGear(r,box.id,2);assert.equal(r.equip.armor,box.item,'confirmed armor goes to its slot');}else assert.equal(r.bag[box.item],1);
   }
 });
 test('aim endpoint stops at the nearest solid and ignores targets',()=>{

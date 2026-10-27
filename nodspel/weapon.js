@@ -1,7 +1,7 @@
 import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.3.2';
 import {RULES} from './levels.js?v=2.3.2';
 import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.3.2';
-import {activateNode,hitEnemy,tickRound} from './round.js?v=2.3.2';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.3.2';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -40,10 +40,13 @@ export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon
 }
 
 // The lock preview and projectile share the same target widths and cover test.
+// Enemy hit radius matches the rendered body (the .72-wide body reaches .51 at its corners) plus a small
+// margin (enemyHitboxMargin) so a shot that visually overlaps the model never reads as a miss, then the
+// projectile's own width (shotRadius) on top for aim forgiveness.
 function weaponHit(start,end,obstacles,targets,rule=RULES.weapon){
   // Active nodes are not targets; their pedestal is ordinary cover shared with
   // enemy shots. Only enemies get the extra shot width.
-  const eligible=targets.filter(t=>t.kind==='enemy'?(t.health>0&&t.active!==false):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r+rule.shotRadius:t.r}));
+  const eligible=targets.filter(t=>t.kind==='enemy'?(t.health>0&&(t.active!==false||!t.swarm)):!t.active).filter(t=>traceTargets(start,t,obstacles,[t])?.kind!=='wall').map(t=>({...t,r:t.kind==='enemy'?t.r*(rule.enemyHitboxMargin??1)+rule.shotRadius:t.r}));
   return traceTargets(start,end,obstacles,eligible);
 }
 function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
@@ -137,6 +140,12 @@ export function fireWeapon(weapon,position,direction,now,round){
   const shot={id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
   weapon.projectiles.push(shot);return shot;
 }
+// Closest distance from point p to the segment a-b (clamped to the segment, not the infinite line).
+function segmentPointDistance(a,b,p){
+  const dx=b.x-a.x,dz=b.z-a.z,len2=dx*dx+dz*dz;
+  const t=len2>1e-12?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/len2)):0;
+  return Math.hypot(p.x-(a.x+dx*t),p.z-(a.z+dz*t));
+}
 export function stepWeapon(weapon,round,now,dt,obstacles){
   tickRound(round,now);
   if(round.over){weapon.projectiles.length=0;return false;}
@@ -147,7 +156,10 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
     if(!b.resolved)steerShot(b,round.level.enemies,obstacles,weaponRule(weapon),dt);
     const distance=Math.min(b.remaining,weaponRule(weapon).bulletSpeed*dt);
     const end={x:b.x+b.dx*distance,z:b.z+b.dz*distance};
-    const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies]);
+    const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies],weaponRule(weapon));
+    // A shot that whizzes close by but does not connect still gives away the shooter: an idle/patrolling
+    // enemy that was not yet aggro reacts to the near miss, same as being hit (combat.js reads nearMissAt).
+    if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
       changed=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b)||changed;

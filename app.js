@@ -3442,7 +3442,7 @@ function ingestRaidResult(r){
   if(kitBack){ addItem(PROG.kitItem, kitBack, false);
     // Only kits beyond the ones taken in were found in the raid.
     if(kitBack > kitOut){ S.fir = S.fir || {}; S.fir[PROG.kitItem] = Math.min((S.fir[PROG.kitItem] || 0) + kitBack - kitOut, qty(PROG.kitItem)); } }
-  else if(S.secureItem && gear.includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
+  else if(!extracted && S.secureItem && gear.includes(S.secureItem) && !(r.gearConsumed || []).includes(S.secureItem)){ saved.secure = S.secureItem; addItem(S.secureItem, 1); }
   if(launch) S.coreLaunch = null;
   const gearLost = extracted ? swappedOut : gear.filter(id => id !== saved.secure);
   gearLost.forEach(loseBuilt);
@@ -3473,6 +3473,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     "&return=" + encodeURIComponent(returnPath) +
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +
+    (Number.isFinite(opts.armorShield) ? "&armorShield=" + encodeURIComponent(opts.armorShield) : "") +
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
@@ -3828,6 +3829,12 @@ function pickRaidReaction(r, res){
   const ids = res.added || [], ext = r.outcome === "extract";
   const elapsed = Number.isFinite(r.elapsedMs) ? r.elapsedMs : null;
   const tests = {
+    first:ext && r.firstExtract === true,
+    timer:Number.isFinite(r.remainingMs) && r.remainingMs <= B.closeTimerMs,
+    loaded:ids.length >= B.loadedItems,
+    gearLost:(res.gearLost || []).length > 0 || (r.gearConsumed || []).length > 0,
+    perks:(r.perksTaken || []).length > 0,
+    kills:r.enemiesDefeated >= B.manyKills,
     rare:ids.some(id => ITEMS[id] && (["rare","epic","legendary"].includes(ITEMS[id].rarity) || ITEMS[id].tier >= B.rareTier)),
     quest:(res.questChanges || []).some(q => q.complete) || (res.questsDone || []).length > 0 || (res.chainsDone || []).length > 0,
     weapon:(res.returnedGear || []).concat(ids).some(id => ITEMS[id] && ITEMS[id].slot === "weapon"),
@@ -3837,8 +3844,15 @@ function pickRaidReaction(r, res){
     glut:ids.some(id => ITEMS[id] && ITEMS[id].rarity === "common" && ((res.stashBefore || {})[id] || 0) >= B.glutCount),
     short:elapsed !== null && elapsed < B.shortRaidMs && !(r.enemiesDefeated > 0), generic:true
   };
-  const trigger = ext ? B.priority.find(key => tests[key]) : "death", pool = B.pools[trigger];
-  return { trigger, mood:pool.mood, line:pick(pool.lines) };
+  let firstSeen=false,lastId=null;
+  try{firstSeen=localStorage.getItem('pr_bit_first_extract')==='1';lastId=localStorage.getItem('pr_bit_last_raid_line');}catch(e){}
+  // Only completed raid flows record the first-extraction milestone.
+  if(ext && (r.raidId || r.cfg) && !firstSeen) tests.first=true;
+  const trigger = ext ? B.priority.find(key => tests[key]) : (tests.gearLost ? 'gearLost' : 'death'), pool = B.pools[trigger];
+  const choices=pool.lines.map((line,i)=>({id:trigger+':'+i,line})).filter(e=>e.id!==lastId);
+  const selected=pick(choices.length?choices:pool.lines.map((line,i)=>({id:trigger+':'+i,line})));
+  try{localStorage.setItem('pr_bit_last_raid_line',selected.id);if(ext&&(r.raidId||r.cfg))localStorage.setItem('pr_bit_first_extract','1');}catch(e){}
+  return { trigger, mood:pool.mood, id:selected.id, line:selected.line };
 }
 // v2.1.1: raid clock for the summary subtitle ("NODE RAID · mm:ss"), mm padded like the HUD timer.
 function raidClock(ms){
@@ -3846,21 +3860,12 @@ function raidClock(ms){
   return String(Math.floor(sec / 60)).padStart(2,'0') + ':' + String(sec % 60).padStart(2,'0');
 }
 const RARE_RARITIES = new Set(["rare","epic","legendary"]);
-// Loot card grid: up to LOOT_CAP_LG real cards render; CSS hides the tail at narrow heights (LOOT_CAP_SM)
-// and shows a "+N" tile for whichever cap is active, so the panel never scrolls. Each cap plus its "+N" tile
-// must fill at most 2 grid rows: LOOT_CAP_SM (5) + 1 fits 2 rows of the default 3-col grid; LOOT_CAP_LG (7) + 1
-// fits 2 rows of the taller tier's 4-col grid (see .loot-grid media query in index.html).
-const LOOT_CAP_SM = 5, LOOT_CAP_LG = 7;
+// Render every item. The grid owns scrolling inside the fixed-height result panel.
 function raidLootGridHtml(entries, emptyLabel){
   if(!entries.length) return '<p class="small loot-empty">' + emptyLabel + '</p>';
-  const shown = entries.slice(0, LOOT_CAP_LG);
-  const cards = shown.map((e,i) => '<div class="loot-card ' + e.cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (i * 45) + 'ms">' +
-    (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : (e.rare ? '<span class="rare-tag">RARE FIND</span>' : '')) + e.icon +
+  return entries.map((e,i) => '<div class="loot-card ' + e.cls + (e.rare ? ' rare' : '') + '" style="animation-delay:' + (Math.min(i,7) * 45) + 'ms">' +
+    (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : e.gear ? '<span class="gear-tag">GEAR RETURNED</span>' : (e.rare ? '<span class="rare-tag">RARE FIND</span>' : '')) + e.icon +
     '<div class="loot-card-row"><span>' + esc(e.name) + '</span><b>x' + e.qty + '</b></div></div>').join('');
-  const extraSm = Math.max(0, entries.length - LOOT_CAP_SM), extraLg = Math.max(0, entries.length - LOOT_CAP_LG);
-  return cards +
-    '<div class="loot-extra tier-sm"' + (extraSm > 0 ? '' : ' style="display:none"') + '>+' + extraSm + '</div>' +
-    '<div class="loot-extra tier-lg"' + (extraLg > 0 ? '' : ' style="display:none"') + '>+' + extraLg + '</div>';
 }
 function raidSummaryHtml(r, res, reaction, label){
   const ext = r.outcome === "extract", gained = {}, lost = {};
@@ -3879,7 +3884,7 @@ function raidSummaryHtml(r, res, reaction, label){
     if(!ext){
       // Launch losses are already counted; match equipped occurrences before adding found gear.
       const accounted = (res.gearLost || []).concat((res.saved && res.saved.secure) || []);
-      (Array.isArray(r.gearOut) ? r.gearOut : []).filter(id => ITEMS[id] && ["weapon","armor"].includes(ITEMS[id].slot) && !isFree(id)).slice(0,2).forEach(id => {
+      (Array.isArray(r.equipmentLost) ? r.equipmentLost : Array.isArray(r.gearOut) ? r.gearOut : []).filter(id => ITEMS[id] && ["weapon","armor"].includes(ITEMS[id].slot) && !isFree(id)).slice(0,4).forEach(id => {
         const i = accounted.indexOf(id);
         if(i >= 0) accounted.splice(i,1); else count(lost,id,1);
       });
@@ -3887,14 +3892,16 @@ function raidSummaryHtml(r, res, reaction, label){
   }
   count(lost,PROG.kitItem,res.kitSummaryLost === undefined ? (res.kitLost || 0) : res.kitSummaryLost); if(res.toolId) count(lost,res.toolId,res.toolLost || 0);
   (res.added || []).filter(id => ITEMS[id] && ITEMS[id].scouts).forEach(id => count(lost,id,1));
-  const gainedEntries = Object.keys(gained).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:gained[id], rare:RARE_RARITIES.has(ITEMS[id].rarity) }));
+  const gainedEntries = Object.keys(gained).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:gained[id], value:ITEMS[id].sellValue || 0, gear:["weapon","armor"].includes(ITEMS[id].slot), rare:RARE_RARITIES.has(ITEMS[id].rarity) }));
   const cur = Object.assign({},res.currency); cur.scrap = (cur.scrap || 0) + (res.scrapBonus || 0);
-  for(const id of Object.keys(cur)) if(cur[id]) gainedEntries.push({ icon:IC(CUR_ICON_IDS[id] || "cur-scrap"), name:CUR_LABELS[id] || id, qty:cur[id], rare:false });
+  for(const id of Object.keys(cur)) if(cur[id]) gainedEntries.push({ icon:IC(CUR_ICON_IDS[id] || "cur-scrap"), name:CUR_LABELS[id] || id, qty:cur[id], value:0, rare:false });
   const lostEntries = Object.keys(lost).map(id => ({ icon:itemImg(id), name:ITEMS[id].name, qty:lost[id] }));
   // On extract everything gained is shown as secured loot; on death/timeout, items BIT/secure-slot/Guardian
   // recovered still render (tagged SAVED, not dimmed) alongside what was actually lost, instead of vanishing.
   const lootEntries = ext ? gainedEntries.map(e => Object.assign({ cls:"gain" }, e)) :
     gainedEntries.map(e => Object.assign({ cls:"saved" }, e)).concat(lostEntries.map(e => Object.assign({ cls:"loss" }, e)));
+
+  if(ext)lootEntries.sort((a,b)=>(b.value||0)-(a.value||0)||a.name.localeCompare(b.name));
 
   const titleWord = ext ? "EXTRACTED" : (r.outcome === "timeout" ? "LOST" : "KIA");
   const elapsed = Number.isFinite(r.elapsedMs) ? r.elapsedMs : null;
@@ -3922,7 +3929,7 @@ function raidSummaryHtml(r, res, reaction, label){
     '<div class="rs-left"><header class="rs-title"><h1 class="' + (ext ? 'ok' : 'bad') + '">' + titleWord + '</h1><p class="rs-sub">' + sub + '</p></header>' +
       '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div></div>' +
     '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
-      '<div class="loot-grid">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
+      '<div class="loot-grid" tabindex="0" role="region" aria-label="Raid loot, scroll for all items">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
       xpHtml + questHtml + hintHtml + '</div>' +
     noteHtml + '</section>';
 }
@@ -4319,7 +4326,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
   },
   deploy(){
     if(!session.prep) return;
