@@ -16,7 +16,7 @@ export function createRound(seed,now,stats=RULES.playerStats.base) {
   const durationMs=Math.round(ROUND_DURATION_MS*(isHard()?RULES.hard.timerMul:1));
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState(stats.maxHealth)};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -328,8 +328,8 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';resetPerks(round);return 'complete';}
   round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
-  // A hunter wave's pending spawn room (nodspel/stakes.js) belonged to the level just left; drop it so the
-  // next stepStakes() picks a room in the new level instead of spawning hunters at stale coordinates.
-  if(round.stakes)round.stakes.pendingRoom=null;
+  // A hunter wave's pending spawn point (nodspel/stakes.js) belonged to the level just left; drop it so the
+  // next stepStakes() picks a zone in the new level instead of spawning hunters at stale coordinates.
+  if(round.stakes)round.stakes.pendingSpawn=null;
   return 'next';
 }

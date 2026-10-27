@@ -21,8 +21,8 @@ import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './lev
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced} from './weapon.js?v=2.5.0';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js?v=2.5.0';
 // import {readOrder,raidResult,resultJSON} from './raid.js?v=2.5.0';
-import {bagText,bagItems,ITEM_NAMES,bagValue} from './raid.js?v=2.5.0';
-import {STAKES,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed} from './stakes.js?v=2.5.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.5.0';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.5.0';
 // import {stepScavenging} from './scavenging.js?v=2.5.0';
 import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.5.0';
 import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.5.0';
@@ -65,8 +65,8 @@ const renderer=new THREE.WebGLRenderer({antialias:QS.antialias,powerPreference:'
 renderer.setPixelRatio(Math.min(devicePixelRatio,QS.pixelRatio));renderer.shadowMap.enabled=QS.shadows;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
 $('#game').appendChild(renderer.domElement);
-const camera=new THREE.OrthographicCamera(-20,20,6,-6,.1,100);
-const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(17,23,17);
+const camera=new THREE.OrthographicCamera(-RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,-RAID_CAMERA.halfHeight,RAID_CAMERA.near,RAID_CAMERA.far);
+const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(RAID_CAMERA.offset.x,RAID_CAMERA.offset.y,RAID_CAMERA.offset.z);
 const hemi=new THREE.HemisphereLight('#a9d4e6','#0d1a20',1.7);scene.add(hemi);
 const sun=new THREE.DirectionalLight('#dff3ff',2.3);sun.castShadow=QS.shadows;sun.shadow.mapSize.set(QS.shadowMap,QS.shadowMap);
 Object.assign(sun.shadow.camera,{left:-18,right:18,top:18,bottom:-18,near:1,far:50});sun.shadow.normalBias=.045;scene.add(sun,sun.target);
@@ -508,7 +508,7 @@ function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
-  playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z-1);
+  playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
   player.position.set(position.x,0,position.z);
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});$('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
@@ -632,9 +632,9 @@ function renderHealBudgetHUD(){
 }
 function renderCarryValueHUD(clock){
   const el=$('#carry-value');if(!el)return;
-  const value=Math.round(bagValue(round.bag));
+  const value=Math.round(carriedValue(round));
   if(value!==lastCarryValue){
-    if(carryValuePulsed(lastCarryValue,value)){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');}
+    if(carryValuePulsed(lastCarryValue,value)){el.classList.remove('pulse');void el.offsetWidth;el.style.animationDuration=`${STAKES.carryPulseMs}ms`;el.classList.add('pulse');}
     lastCarryValue=value;el.textContent=`Carrying ~${value} Scrap`;
   }
 }
@@ -654,18 +654,20 @@ function renderHunterArrow(){
   const el=$('#hunter-arrow');if(!el)return;
   const dir=round.stakes?.hunterDirection,countdown=waveCountdownMs(round);
   if(round.over||!dir||countdown==null){el.hidden=true;return;}
-  const sx=(dir.x-dir.z)*invRoot2,sy=(dir.x+dir.z)*invRoot2,len=Math.hypot(sx,sy)||1,nx=sx/len,ny=sy/len;
-  const cx=viewWidth/2,cy=viewHeight/2,r=Math.min(viewWidth,viewHeight)*.42,margin=20;
-  const x=Math.min(viewWidth-margin,Math.max(margin,cx+nx*r)),y=Math.min(viewHeight-margin,Math.max(margin,cy+ny*r));
-  el.style.left=`${x}px`;el.style.top=`${y}px`;el.style.transform=`translate(-50%,-50%) rotate(${(Math.atan2(ny,nx)*180/Math.PI).toFixed(1)}deg)`;el.hidden=false;
+  const {x,y,angleDeg}=hunterArrowScreenPoint(dir,viewWidth,viewHeight);
+  el.style.left=`${x}px`;el.style.top=`${y}px`;el.style.transform=`translate(-50%,-50%) rotate(${angleDeg.toFixed(1)}deg)`;el.hidden=false;
 }
 function renderStakesHUD(clock){
   if(!round)return;
-  if(round.healBudgetLow&&round.healBudgetLow.at===clock)notice('BIT: healing budget is running low this raid.');
-  if(round.healBudgetEmpty&&round.healBudgetEmpty.at===clock)notice('BIT: healing budget spent for this raid.');
+  // Both notices are already one-shot at the source (stakes.js sets budgetLowNotified/budgetEmptyNotified
+  // before ever assigning these), so showing them on presence - not on an exact clock match - is still
+  // exactly once per raid. A clock match would miss medkit heals (useKit runs off a render frame) and perk
+  // heals (applied while rendering is paused), whose timestamp almost never equals the next rendered frame.
+  if(round.healBudgetLow&&!round.healBudgetLow.shown){round.healBudgetLow.shown=true;notice('BIT: healing budget is running low this raid.');}
+  if(round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();
 }
-function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;renderer.setSize(viewWidth,viewHeight);const h=6,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
+function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;renderer.setSize(viewWidth,viewHeight);const h=RAID_CAMERA.halfHeight,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
@@ -1022,7 +1024,7 @@ function frameInner(now){
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)updateClears(round,position);
-    {const {spawned}=stepStakes(round,clock,position,round.currentRoom);if(spawned.length)spawnEnemyVisuals(spawned);}
+    {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
     const result=enterExit(round,position,clock);
     if(result==='perk')openPerk(perkState(round).queue[0]);
     else if(result)finishRound('extraction');
@@ -1080,7 +1082,7 @@ function frameInner(now){
     }
     coneGeometry.attributes.position.needsUpdate=true;coneGeometry.setDrawRange(0,count/3);
   }
-  target.lerp(new THREE.Vector3(position.x,0,position.z-1),1-Math.exp(-dt*6));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
+  target.lerp(new THREE.Vector3(position.x,0,position.z+RAID_CAMERA.targetOffsetZ),1-Math.exp(-dt*RAID_CAMERA.followRate));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
   if(!round.over&&clock>=visibilityCheckAt){
     visibilityCheckAt=clock+100;visibilityPoint.set(position.x,.65,position.z).sub(camera.position);
     visibilityRay.set(camera.position,visibilityPoint.clone().normalize());visibilityRay.far=visibilityPoint.length()-.08;
