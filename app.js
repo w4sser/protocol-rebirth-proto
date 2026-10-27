@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.3.2"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.3.3"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -1745,6 +1745,12 @@ function updateNav(){
 }
 if(typeof MutationObserver !== "undefined" && typeof document !== "undefined")
   document.addEventListener("DOMContentLoaded", () => { const ph = document.getElementById("phone"); if(ph) new MutationObserver(() => { updateNav(); toastPump(); }).observe(ph, { childList:true }); if(typeof ResizeObserver !== "undefined") for(const id of ["topbar", "tabs"]){ const el = document.getElementById(id); if(el) new ResizeObserver(updateNav).observe(el); } });
+// viewport.js maintains --vh before paint; refresh measured HUD insets on viewport changes.
+if(typeof window !== "undefined" && window.addEventListener){
+  window.addEventListener("resize", updateNav);
+  window.addEventListener("orientationchange", updateNav);
+  if(window.visualViewport) window.visualViewport.addEventListener("resize", updateNav);
+}
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
   const lines = ["> emergency power detected",

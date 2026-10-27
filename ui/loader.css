@@ -1,5 +1,5 @@
 /* Shared loading overlay (base + Node Raid): covers everything, including the HUD, until the first frame is ready, then fades out. */
-.pr-loader{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--ad-night);color:var(--ad-bit);transition:opacity .25s ease}
+.pr-loader{position:fixed;inset:0;bottom:auto;height:100vh;height:100svh;height:100dvh;height:calc(var(--vh,1vh) * 100);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--ad-night);color:var(--ad-bit);transition:opacity .25s ease}
 .pr-loader.out{opacity:0;pointer-events:none}
 .pr-loader svg{width:64px;height:64px}
 .pr-loader-bar{width:min(180px,40vw);height:4px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--ad-bone) 14%,transparent)}

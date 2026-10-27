@@ -1,7 +1,7 @@
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.3.2';
-import {RULES} from './levels.js?v=2.3.2';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.3.2';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.3.2';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.3.3';
+import {RULES} from './levels.js?v=2.3.3';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.3.3';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.3.3';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -57,9 +57,25 @@ function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   const enemy=round.level.enemies.find(e=>e.id===hit.target.id),before=enemy?.health??0;
   const kills=round.enemiesDefeated,changed=hitEnemy(round,hit.target.id,now,rule.damage*(shot?.bonus?1+PERKS.chainBonus:1));
   if(shot){recordShot(round,shot,now,changed?'hit':'block',hit.target.id);if(shot.bonus)logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:`Chain Reaction: ${changed?Number(Math.max(0,before-(enemy?.health??before)-Math.min(before,rule.damage)).toFixed(2)):0} extra damage, ${changed?'hit':'blocked'} (${hit.target.id}).`});}
+  if(changed&&hasPerk(round,'ricochet'))bounceRicochet(round,enemy,rule,now,shot,obstacles);
   if(round.enemiesDefeated>kills){if(hasPerk(round,'chain'))perkState(round).chain=true;const refill=Math.min(rule.capacity-weapon.ammo,weapon.reserve,RULES.killReward.ammo);weapon.ammo+=refill;weapon.reserve-=refill;if(weapon.ammo===rule.capacity||weapon.reserve===0)weapon.reloadAt=null;}
   if(changed&&dir)knockEnemy(round,round.level.enemies.find(e=>e.id===hit.target.id),dir,rule,obstacles,now);
   return changed;
+}
+// Resolve a single secondary hit directly; it cannot recursively bounce or cross cover.
+function bounceRicochet(round,source,rule,now,shot,obstacles){
+  if(!source)return;
+  const target=round.level.enemies.filter(e=>e!==source&&e.health>0&&(e.active!==false||!e.swarm))
+    .map(e=>({enemy:e,distance:Math.hypot(e.x-source.x,e.z-source.z)}))
+    .filter(({enemy,distance})=>distance<=PERKS.ricochetRange&&traceTargets(source,enemy,obstacles,[])?.kind!=='wall')
+    .sort((a,b)=>a.distance-b.distance)[0]?.enemy;
+  if(!target)return;
+  const damage=rule.damage*(shot?.bonus?1+PERKS.chainBonus:1)*PERKS.ricochetDamage;
+  const before=target.health;
+  if(hitEnemy(round,target.id,now,damage,source)){
+    logCombat(round,{kind:'perk',perk:'ricochet',at:now,shotId:shot?.logId??shot?.id,
+      text:`Ricochet: ${Math.min(before,damage)} damage (${target.id}).`});
+  }
 }
 // Shotgun shove: a surviving enemy slides back along the shot, stopping at walls. Generators are fixed.
 export function knockEnemy(round,enemy,dir,rule,obstacles,now){

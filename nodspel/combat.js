@@ -1,9 +1,9 @@
-import {ownRooms} from './perks.js?v=2.3.2';
-import {RULES,hazardState} from './levels.js?v=2.3.2';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.3.2';
-import {takeDamage,tickRound} from './round.js?v=2.3.2';
-import {houseWaypoint} from './house.js?v=2.3.2';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.3.2';
+import {ownRooms} from './perks.js?v=2.3.3';
+import {RULES,hazardState} from './levels.js?v=2.3.3';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.3.3';
+import {takeDamage,tickRound} from './round.js?v=2.3.3';
+import {houseWaypoint} from './house.js?v=2.3.3';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.3.3';
 
 export function createCombat(level,now){
   ownRooms(level);
