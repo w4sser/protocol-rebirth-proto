@@ -1,6 +1,7 @@
-import {hasPerk,PERKS,logCombat} from './perks.js?v=2.4.1';
-import {RULES} from './levels.js?v=2.4.1';
-import {movePlayer} from './physics.mjs?v=2.4.1';
+import {hasPerk,PERKS,logCombat} from './perks.js?v=2.5.0';
+import {RULES} from './levels.js?v=2.5.0';
+import {movePlayer} from './physics.mjs?v=2.5.0';
+import {heal} from './stakes.js?v=2.5.0';
 export function createBIT(position){return {...position,lastPlayer:{...position},trail:[],healing:false,healCarry:0};}
 export function stepBIT(bit,round,position,dt,moving,solids,floors){
   if(round.pauseAt!=null){bit.healing=false;return false;}
@@ -22,5 +23,9 @@ export function stepBIT(bit,round,position,dt,moving,solids,floors){
   bit.healCarry+=(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond)*Math.max(0,dt);
   const amount=Math.floor(bit.healCarry+1e-8);bit.healCarry-=amount;
   if(amount===0)return false;
-  const before=round.health;round.health=Math.min(round.maxHealth??100,round.health+amount);if(hasPerk(round,'medic'))logCombat(round,{kind:'perk',perk:'medic',text:`Field Medic: healed ${round.health-before} HP while stationary.`,seconds:dt});return true;
+  // The heal budget can run out mid-raid: BIT keeps the stationary animation going (no silent cutoff),
+  // but stepStakes/heal() clamps the actual HP to 0 once the shared cap (data/raid-stakes.js) is spent.
+  const healed=heal(round,round.gameNow??0,amount);
+  if(healed>0&&hasPerk(round,'medic'))logCombat(round,{kind:'perk',perk:'medic',text:`Field Medic: healed ${healed} HP while stationary.`,seconds:dt});
+  return healed>0;
 }

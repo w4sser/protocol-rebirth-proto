@@ -2,8 +2,8 @@
 /*
 export const DEFAULT_ORDER=Object.freeze({zone:'industrial',route:'maintenance_tunnels',risk:'standard',objective:['cable','fuse'],loadout:{weapon:'basic_carbine',ammo:12},health:100});
 */
-import '../data/items.js?v=2.4.1';
-import {RULES} from './levels.js?v=2.4.1';
+import '../data/items.js?v=2.5.0';
+import {RULES} from './levels.js?v=2.5.0';
 export const ITEM_NAMES=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,i.name]));
 export const emptyBag=()=>Object.fromEntries(RULES.loot.types.map(id=>[id,0]));
 /*
@@ -17,6 +17,9 @@ export const bagItems=bag=>Object.entries(bag).flatMap(([id,count])=>{
   const n=Number(count);return Number.isFinite(n)&&n>0?Array(Math.floor(n)).fill(id):[];
 });
 export const bagText=bag=>Object.entries(bag).filter(([,count])=>count>0).map(([id,count])=>`${count} ${ITEM_NAMES[id]}`).join(' · ')||'Empty';
+// v2.5.0 carried-value HUD line: estimated Scrap value of the material bag (sellValue, data/items.js).
+export const ITEM_SELL=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,i.sellValue??0]));
+export const bagValue=bag=>Object.entries(bag??{}).reduce((sum,[id,n])=>sum+(ITEM_SELL[id]??0)*Math.max(0,Number(n)||0),0);
 // Result serialization is paused.
 /*
 export function raidResult(round,weapon,outcome){

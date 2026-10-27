@@ -4,7 +4,7 @@
 // Dimensions mirror assets/env/town/manifest.json (approx_dimensions_m: w × h × d, metres).
 export const TOWN_DIMS={house_red:[6, 4.1, 5.7],house_yellow:[6, 4.1, 5.7],fence_segment:[2, 1.2, 0.6],car_boxy:[4.5, 1.65, 1.95],pine_tree:[2.3, 3.7, 2.3],tile_asphalt:[2, 0.08, 2],tile_sidewalk:[2, 0.08, 2],tile_grass:[2, 0.08, 2],streetlamp:[0.8, 4.2, 0.3],bus_shelter:[3.5, 2.3, 1.8],bush_small:[0.9, 0.9, 0.8],bush_cluster:[1.7, 1.3, 1.4],hedge_segment:[2, 1.25, 1],grass_tuft_small:[0.5, 0.6, 0.55],grass_tuft_large:[0.9, 1, 0.85],weed_tuft:[0.75, 0.9, 0.7],container:[6, 2.6, 2.5],electrical_cabinet:[0.8, 1.3, 0.65],mailbox:[0.5, 1.1, 0.4],manhole:[1, 0.18, 1],fence_gate:[1.4, 1.2, 0.6],fence_corner:[2, 1.2, 2],fence_short:[1, 1.2, 0.6],house_red_dark:[6, 4.1, 5.7],house_yellow_dark:[6, 4.1, 5.7],tile_asphalt_sidewalk:[2, 0.09, 2],tile_asphalt_grass:[2, 0.09, 2],tile_sidewalk_grass:[2, 0.09, 2]};
 export const TILE=2;
-import {makeHouse,splitWall,houseSolids,HOUSE} from './house.js?v=2.4.1';
+import {makeHouse,splitWall,houseSolids,HOUSE} from './house.js?v=2.5.0';
 function rngFrom(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
   return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
 const inRect=(p,r,m=0)=>Math.abs(p.x-r.x)<=r.w/2+m&&Math.abs(p.z-r.z)<=r.d/2+m;

@@ -12,8 +12,9 @@
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.4.1';
-import {traceTargets} from './physics.mjs?v=2.4.1';
+import {RULES} from './levels.js?v=2.5.0';
+import {traceTargets} from './physics.mjs?v=2.5.0';
+import {detectionMultiplier} from './stakes.js?v=2.5.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door','grenadier'];
@@ -39,7 +40,8 @@ export function inSightCone(enemy,point,range,halfAngleDeg){
   const d=dist(enemy,point);
   return d<=range&&(d<1e-6||angleDiff(enemy.facing??0,angleTo(enemy,point))<=halfAngleDeg*PI/180);
 }
-export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0));
+// Stealth shrinks the cone, a full bag grows it (bag weight, data/raid-stakes.js).
+export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round);
 export const encountersOf=level=>level?.intro?[]:(level?.encounters??[]);
 export const hintFor=type=>RULES.encounters.hints[type]??null;
 // Result-screen tip for the problem that dealt the last hit of a lost raid (null for ordinary enemies / hazards).

@@ -313,3 +313,19 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 #round-over[data-outcome=extract] .result-gear-returned .pr-ic{color:var(--ad-bit)}
 #round-over[data-outcome=extract] #death-tip{display:none}
 #round-over .result-card .result-bit-line{font-size:11px;line-height:1.4;color:var(--ad-bit);overflow-wrap:anywhere}
+
+/* v2.5.0 stakes PR1: heal budget meter, carried-value line, bag-weight gauge, alarm/wave banner + edge arrow. */
+.heal-meter{width:40px;height:3px;margin-top:3px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--ad-cyan) 18%,var(--night))}
+.heal-meter i{display:block;height:100%;width:100%;background:var(--ad-cyan);transition:width .15s linear}
+.heal-meter.empty i{background:var(--ad-danger)}
+.carry-value{font-size:9px;letter-spacing:.4px;color:var(--ad-loot);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.carry-value.pulse{animation:carrypulse .9s ease-out}
+@keyframes carrypulse{0%,100%{transform:none;opacity:1}25%{transform:scale(1.14);opacity:1;text-shadow:0 0 8px var(--ad-loot)}}
+.bag-weight{width:100%;height:3px;border-radius:2px;overflow:hidden;background:color-mix(in srgb,var(--ad-danger) 16%,var(--night))}
+.bag-weight i{display:block;height:100%;width:0;background:var(--ad-danger);transition:width .15s linear}
+.alarm-banner{position:fixed;top:max(130px,0px);left:50%;transform:translateX(-50%);z-index:8;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 18px;background:color-mix(in srgb,var(--ad-danger) 22%,var(--night));border:1px solid var(--ad-danger);border-radius:6px;pointer-events:none;text-align:center}
+.alarm-banner b{font-family:'Archivo',sans-serif;font-stretch:82%;font-size:17px;font-weight:700;letter-spacing:2px;color:var(--ad-bone)}
+.alarm-banner span{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ad-danger)}
+.hunter-arrow{position:fixed;width:26px;height:26px;z-index:8;pointer-events:none;color:var(--ad-danger);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--ad-danger) 60%,transparent))}
+.hunter-arrow .pr-ic{width:100%;height:100%}
+@media(max-height:500px){.alarm-banner{top:max(104px,0px);padding:6px 14px}.alarm-banner b{font-size:14px}.alarm-banner span{font-size:10px}}

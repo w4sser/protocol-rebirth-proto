@@ -1,4 +1,5 @@
-import '../data/raid-perks.js?v=2.4.1';
+import '../data/raid-perks.js?v=2.5.0';
+import {heal} from './stakes.js?v=2.5.0';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -88,7 +89,7 @@ export function choosePerk(round,key,id,now,dash){
   if(round.over||s.queue[0]!==key||!r||r.state!=='rewardPending'||!r.offer?.includes(id)||s.taken.includes(id))return false;
   s.taken.push(id);r.state='rewarded';s.queue.shift();s.minimized=null;
   const terminal=terminalPick(round,key);(s.selectedEffects??={})[id]=cardEffect(round,key,id);if(terminal&&['roll','recon'].includes(id))(s.terminalCards??=[]).push(id);let text=`${cards.find(c=>c.id===id).name}: equipped.`;
-  if(id==='dressing'){const hp=Math.min(PERKS.dressingHP,round.maxHealth-round.health);round.health+=hp;text=`Field Dressing: restored ${hp} HP.`;}
+  if(id==='dressing'){const hp=heal(round,now,Math.min(PERKS.dressingHP,round.maxHealth-round.health));text=`Field Dressing: restored ${hp} HP.`;}
   if(id==='roll'&&terminal){if(dash)dash.readyAt=now;text='Rolling: dash reset.';}
   if(id==='recon'&&terminal){s.revealAll=true;text=`Recon: ${round.level.lootBoxes.filter(b=>!b.collected).length} remaining loot boxes marked.`;}
   logCombat(round,{kind:id==='dressing'||terminal&&['roll','recon'].includes(id)?'perk':'choice',perk:id,at:now,room:key,text});return text;
