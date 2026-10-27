@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=2.4.0';
-import {RULES} from './levels.js?v=2.4.0';
-import {bagCap,equippedGear} from './round.js?v=2.4.0';
-import {readGoal} from './progression-goal.js?v=2.4.0';
+import {bagItems} from './raid.js?v=2.4.1';
+import {RULES} from './levels.js?v=2.4.1';
+import {bagCap,equippedGear} from './round.js?v=2.4.1';
+import {readGoal} from './progression-goal.js?v=2.4.1';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -32,6 +32,17 @@ function toolLeft(round,launch){const id=round.tool?.id??launch?.tool?.id??null;
 export function writeRaidResult(storage,result){
   if(!storage||!result)return false;
   try{storage.setItem(RAID_RESULT_KEY,JSON.stringify(result));return true;}catch{return false;}
+}
+// Persist before leaving, for every terminal outcome. A standalone/restarted raid
+// keeps its own result panel, as does a failed storage or navigation attempt.
+export function handoffRaidResult(round,{launch={},storage,navigate=url=>globalThis.location.assign(url),beforeReturn=()=>{}}={}){
+  if(!round?.over)return false;
+  try{
+    if(!writeRaidResult(storage??globalThis.localStorage,buildRaidResult(round,{launch})))return false;
+    const target=safeReturnUrl(launch.returnUrl);
+    if(!target||!launch.raidId||launch.seed!==round.seed)return false;
+    beforeReturn();navigate(target);return true;
+  }catch{return false;}
 }
 const RAID_ID=/^[A-Za-z0-9_.:-]{1,64}$/;
 // Return target must be a same-origin relative path: no scheme, no host, no backslashes.

@@ -393,6 +393,67 @@ async function baseAfterRaidRun([w,h]){
   await page.close();
 }
 
+// Exercise the actual deploy URL, raid result writer, navigation and base boot
+// ingestion. Screenshots must show the v2.1.0 summary, not the standalone card.
+async function raidSummaryRun([w,h],outcome='extract'){
+  const tag=`raid-summary ${w}x${h} ${outcome}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html',{waitUntil:'load'});await loaderGone(page);
+  await page.evaluate(PROGRESSED);
+  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(()=>{
+    S.retentionMode='core';S.bondXp=0;S.secureItem=null;
+    addItem('scout_rig',1);addItem('smg_vector',1);A.go('prep');
+    session.prep.loadout={weapon:'smg_vector',armor:'scout_rig'};
+    // Debug only enables deterministic fixture hooks; launch identity/return URL
+    // and all reward accounting are produced by the normal deploy action.
+    window.PR_NAVIGATE=u=>{const url=new URL(u,location.href);url.searchParams.set('debug','1');location.assign(url);};
+    A.deployNodeRaid();
+  })]);
+  await loaderGone(page);await page.waitForFunction(()=>window.__NR&&document.querySelector('#loading').hidden,{timeout:30000});
+  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(outcome=>{
+    document.querySelector('#tutorial-start').click();window.__NR.setRoomClearsEnabled(false);
+    const ids=DATA.items.filter(it=>!it.slot&&!it.free&&!it.scouts&&!it.grantsCurrency).map(it=>it.id);
+    sessionStorage.setItem('layout-summary-items',JSON.stringify(ids));
+    if(outcome==='extract')window.__NR.extractDemo(ids);
+    else {const r=window.__NR.round();r.bag=Object.fromEntries(ids.map(id=>[id,1]));window.__NR.deathDemo();}
+  },outcome)]);
+  await loaderGone(page);
+  await page.evaluate(()=>document.getElementById('splash')?.click());
+  await page.waitForSelector('#overlay.raid-summary-ov .raid-summary',{visible:true});await settle(800);
+  const issues=await page.evaluate(({insets,outcome})=>{
+    const issues=[],summary=document.querySelector('.raid-summary'),grid=summary.querySelector('.loot-grid'),cards=[...grid.querySelectorAll('.loot-card')];
+    const expected=JSON.parse(sessionStorage.getItem('layout-summary-items'));
+    const missing=expected.filter(id=>!cards.some(el=>el.dataset.item===id));
+    if(missing.length)issues.push('carried items missing from the real summary: '+missing.join(', '));
+    if(document.querySelector('.loot-extra'))issues.push('summary has a +N overflow');
+    const values=cards.map(el=>DATA.items.find(it=>it.id===el.dataset.item)?.sellValue||0);
+    if(!values.every((v,i)=>!i||values[i-1]>=v))issues.push('cards are not sorted by descending value');
+    grid.scrollTop=grid.scrollHeight;if(grid.scrollTop<=0)issues.push('loot grid cannot scroll');
+    const last=cards.at(-1).getBoundingClientRect(),gr=grid.getBoundingClientRect();
+    if(last.bottom>gr.bottom+1)issues.push('last loot card cannot be scrolled into view');
+    grid.scrollTop=0;
+    const visible=el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&r.left>=insets.left-1&&r.right<=innerWidth-insets.right+1&&r.top>=insets.top-1&&r.bottom<=innerHeight-insets.bottom+1;};
+    for(const selector of ['.rs-title','.summary-portrait','.rs-bubble','.rs-right-head','.rs-xp','.raid-summary-pop>button.primary']){
+      const el=document.querySelector(selector);if(!el||!visible(el))issues.push(selector+' is clipped or outside the safe area');
+    }
+    const button=document.querySelector('.raid-summary-pop>button.primary'),br=button.getBoundingClientRect(),hit=document.elementFromPoint(br.left+br.width/2,br.top+br.height/2);
+    if(!button.contains(hit))issues.push('RETURN TO BASE is covered');
+    const xp=summary.querySelector('.rs-xp').getBoundingClientRect();if(gr.bottom>xp.top+1)issues.push('grid overlaps XP');
+    for(const selector of ['.rs-right','.raid-summary-pop']){const el=document.querySelector(selector);if(el.scrollHeight>el.clientHeight+1)issues.push(selector+' scrolls instead of the loot grid');}
+    const lineId=localStorage.getItem('pr_bit_last_raid_line'),[trigger,index]=lineId.split(':');
+    if(summary.querySelector('.rs-bubble p').textContent!==DATA.bitSummary.pools[trigger].lines[Number(index)])issues.push('context BIT line missing from bubble');
+    if(outcome==='extract'){
+      const gear=summary.querySelector('.rs-gear');if(!gear||!gear.textContent.includes('Scout Rig')||!gear.textContent.includes('GEAR RETURNED'))issues.push('returned Scout Rig row missing');
+    }else if(!grid.querySelector('.loot-card.loss')||summary.querySelector('.rs-gear'))issues.push('death does not show lost items correctly');
+    if(localStorage.getItem('pr_raid_result_v1')!==null)issues.push('base did not consume the result');
+    if(!document.querySelector('#overlay.raid-summary-ov')||document.querySelectorAll('#overlay').length!==1)issues.push('summary is not the single shared overlay');
+    return issues;
+  },{insets:INSETS,outcome});
+  for(const issue of issues)fail(tag,issue);
+  await shot(page,`${outcome==='extract'?'raid-summary':'raid-summary-death'}-${w}x${h}`);
+  await page.close();
+}
+
 // Post-raid EXTRACTED popup: the panel fits the viewport and the primary button is fully visible, even with a long loot list.
 async function extractPopupRun([w,h]){
   const tag=`extract-popup ${w}x${h}`;console.log(tag);
@@ -403,8 +464,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.4.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.4.0');
+    const {createRound}=await import('./round.js?v=2.4.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.4.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -476,6 +537,7 @@ async function perkPopupRun([w,h]){
 
 try{
   for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
+  for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
   await encShotRun([844,390]);
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
