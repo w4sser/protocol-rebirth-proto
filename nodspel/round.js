@@ -24,8 +24,9 @@ export const bagCapacityOf=round=>round?.bagCapacity??RULES.loot.capacity;
 // Carried-but-not-equipped gear/weapons share the bag's slots with materials (lost on death, kept on
 // extract, same as any other bag loot) — the backpack's own smaller cap (see backpackCapacityOf) still applies on top.
 export const carriedCount=round=>bagItems(round.bag).length+(round?.backpack?.length??0);
-function secureBag(round){for(const item of RULES.loot.types){round.extracted[item]+=round.bag[item];round.bag[item]=0;}}
-function loseBag(round){for(const item of RULES.loot.types){round.lost[item]+=round.bag[item];round.bag[item]=0;}}
+// Transfer the carried ledger, including valid items outside today's loot pools.
+function secureBag(round){for(const [item,n] of Object.entries(round.bag)){round.extracted[item]=(round.extracted[item]??0)+n;round.bag[item]=0;}}
+function loseBag(round){for(const [item,n] of Object.entries(round.bag)){round.lost[item]=(round.lost[item]??0)+n;round.bag[item]=0;}}
 export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
   let changed=false;

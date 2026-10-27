@@ -266,6 +266,11 @@ console.log("ALL LOGIC TESTS PASSED");
   st.coreLaunch = { raidId:"g-ok", gear:["scout_rig"] };
   const e = app.ingestRaidResult({ ...base, raidId:"g-ok", outcome:"extract", skills:{} });
   assert.deepEqual(e.gearLost, []); assert.equal(((st.stash.scout_rig || 0) + ((st.armory || {}).scout_rig || 0)), 1, "extract brings the gear home");
+  st.coreLaunch = {raidId:"g-spent",gear:["scout_rig"]};
+  const rigBefore = app.have("scout_rig");
+  const spent = app.ingestRaidResult({...base,raidId:"g-spent",outcome:"extract",skills:{},gearConsumed:["scout_rig"]});
+  assert.deepEqual(spent.returnedGear,[],"a consumed rig does not return even with an older result missing gearOut");
+  assert.equal(app.have("scout_rig"),rigBefore,"consumed rig is not restored to inventory");
   // v1.59: core reports equipped gear (gearOut): raid-found gear comes home, gear swapped out in the raid stays behind
   (st.armory && (st.armory.scout_rig = 0), st.stash).scout_rig = 0; (st.armory && (st.armory.smg_vector = 0), st.stash).smg_vector = 0; (st.armory && (st.armory.scavenger_vest = 0), st.stash).scavenger_vest = 0;
   st.coreLaunch = { raidId:"g-swap", gear:["scout_rig"] };

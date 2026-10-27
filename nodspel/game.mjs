@@ -24,7 +24,7 @@ import {beginAim,dragAim,stepAim,releaseAim,facingDirection} from './controls.js
 import {bagText,bagItems,ITEM_NAMES,bagValue} from './raid.js?v=2.4.1';
 import {STAKES,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed} from './stakes.js?v=2.4.1';
 // import {stepScavenging} from './scavenging.js?v=2.4.1';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon} from './raid-result.js?v=2.4.1';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.4.1';
 import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.4.1';
 import {routeComplete} from './objectives.js?v=2.4.1';
 import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.4.1';
@@ -543,7 +543,7 @@ function reset(requestedSeed){
   perkUI.close();perkResume.hidden=true;perkKey=null;perkChoosing=false;
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
-  resultPending=false;$('#inventory').hidden=true;
+  resultPending=false;resultReturning=false;$('#inventory').hidden=true;
   dash=createDash();walkDirection={x:0,z:-1};lastCarryValue=0;alarmBannerUntil=0;
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
@@ -552,15 +552,15 @@ function reset(requestedSeed){
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
+let resultReturning=false;
 function finishRound(outcome=round.reason){
+  if(resultReturning)return;
   if(!$('#round-over').hidden&&!resultPending)return;
   resultPending=outcome==='extraction'&&!round.over;
-  // v2.0.0: completed meta raids have one summary, rendered by the base with its full ledger.
-  // Checkpoints still stay here; failed persistence retains the existing result and return action.
-  if(round.over){
-    const stored=writeRaidResult(globalThis.localStorage,buildRaidResult(round,{launch}));
-    // Only base-issued raids (raidId) skip the in-raid card; tutorial/debug raids keep it so a first-run intro never hides the result.
-    if(stored&&round.reason!=='death'&&launch.returnUrl&&launch.raidId&&launch.seed===round.seed){clearInput();location.assign(launch.returnUrl);return;}
+  // Terminal base raids return before invoking the standalone presenter. Checkpoints
+  // still offer Continue / Extract here; the base owns the completed raid's ledger.
+  if(round.over&&handoffRaidResult(round,{launch,beforeReturn:clearInput})){
+    resultReturning=true;return;
   }
   $('#return-base').hidden=!(launch.returnUrl&&round.over);
   $('#inventory').hidden=true;hideSwap();

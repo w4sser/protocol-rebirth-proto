@@ -1503,12 +1503,18 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   font:800 8px/1.5 "Archivo",sans-serif;padding:1px 6px;border-radius:6px;letter-spacing:.03em}
 .rare-tag{background:var(--ad-loot)}
 .saved-tag,.gear-tag{background:var(--ad-cyan)}
-.loot-extra{display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--ad-cyan);border-radius:8px;color:var(--ad-cyan);font:800 13px "Archivo",sans-serif}
 .loot-empty{margin:0;color:var(--dim)}
 @keyframes rsCardIn{from{opacity:0;transform:translateY(6px)}}
 @media(min-height:385px){
   .loot-grid{grid-template-columns:repeat(4,1fr)}
 }
+
+.rs-gear{display:flex;align-items:center;gap:6px;flex:none;min-width:0;color:var(--ad-cyan)}
+.rs-gear>b{flex:none;font:800 9px "Archivo",sans-serif}
+.rs-gear-list{display:flex;gap:4px;min-width:0;overflow-x:auto;overscroll-behavior:contain;touch-action:pan-x;padding:2px}
+.rs-gear-chip{display:flex;align-items:center;gap:4px;flex:none;padding:3px 5px;border:1px solid var(--ad-cyan);border-radius:6px;background:var(--ad-night);font-size:10px;color:var(--ad-bone)}
+.rs-gear-chip svg{width:18px;height:18px;flex:none;color:var(--ad-cyan)}
+.rs-gear-chip>b{color:var(--ad-loot)}
 
 .rs-xp{display:flex;flex-direction:column;gap:3px;flex:none}
 .rs-xp-head{display:flex;align-items:baseline;gap:10px;font-size:11px}

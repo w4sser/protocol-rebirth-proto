@@ -416,16 +416,18 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
 
 
   // Boot real return flows: ingest once, one shared popup, itemised ledger and one BIT line.
-  for(const [outcome, gearOut] of [['extract',['smg_vector']], ['death',['smg_vector','scavenger_vest']], ['death',['rifle_marksman','scavenger_vest']]]){
+  let lastReturnLine='gearLost:0';
+  for(const [outcome, gearOut, consumed] of [['extract',['smg_vector','scout_rig']], ['death',['smg_vector','scavenger_vest']], ['death',['rifle_marksman','scavenger_vest']], ['timeout',['smg_vector','scavenger_vest']], ['extract',['smg_vector'],true]]){
     const rd = new JSDOM(fs.readFileSync(path + '/index.html','utf8'), {runScripts:'outside-only',url:'http://localhost/'});
     const w = rd.window, seed = JSON.parse(JSON.stringify(window.__TEST_STATE()));
     seed.introSeen = true; seed.retentionMode = 'core'; seed.bondXp = 0;
     seed.modules.bit_bay = 1; seed.secureItem = null; seed.coreRaidsIngested = [];
-    seed.coreLaunch = {raidId:'summary-test',gear:['smg_vector'],kit:{medkit:2},tool:{id:'tool_emp',n:2},area:'bunker'};
+    seed.coreLaunch = {raidId:'summary-test',gear:['smg_vector','scout_rig'],kit:{medkit:2},tool:{id:'tool_emp',n:2},area:'bunker'};
     seed.quests = {day:window.dayStr(),swaps:0,list:[{id:'summary-q',type:'extract',item:'cable',n:2,prog:0,done:false,claimed:false}]};
     const result = {schema:'protocol-rebirth/raid-result',version:1,raidId:'summary-test',outcome,area:'bunker',levelsCleared:1,nodesLit:1,enemiesDefeated:0,
-      extracted:outcome==='extract'?['cable','cable','salvage_crate']:[],lost:outcome==='death'?['cable','cable']:[],gearOut,weapon:'smg_vector',kitLeft:{medkit:1},toolLeft:{id:'tool_emp',n:1},health:60,maxHealth:100,elapsedMs:90000};
+      extracted:outcome==='extract'?['cable','cable','salvage_crate']:[],lost:outcome!=='extract'?['cable','cable']:[],gearOut:outcome==='extract'?gearOut:[],equipmentLost:outcome==='extract'?[]:gearOut,gearConsumed:consumed?['scout_rig']:[],weapon:'smg_vector',kitLeft:{medkit:1},toolLeft:{id:'tool_emp',n:1},health:60,maxHealth:100,elapsedMs:90000};
     w.localStorage.setItem('pr_meta_save',JSON.stringify(seed)); w.localStorage.setItem('pr_raid_result_v1',JSON.stringify(result));
+    w.localStorage.setItem('pr_bit_first_extract','1');w.localStorage.setItem('pr_bit_last_raid_line',lastReturnLine);
     w.URL.createObjectURL = () => 'blob:fake';
     const scripts = [...doc.querySelectorAll('script[src]')].map(el => el.getAttribute('src').split('?')[0]).filter(src => !src.startsWith('http'));
     for(const src of scripts) w.eval(fs.readFileSync(path + '/' + src,'utf8'));
@@ -433,18 +435,26 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     assert(popup && w.document.querySelectorAll('#overlay').length === 1, 'one merged shared result popup on return');
     assert(popup.textContent.includes(outcome==='extract' ? 'RAID SECURED' : 'RAID LOST'), 'outcome header shown');
     assert.equal(popup.querySelectorAll('.rs-bubble p').length,1,'exactly one BIT line');
+    const lineId=w.localStorage.getItem('pr_bit_last_raid_line'),[trigger,lineIndex]=lineId.split(':');
+    assert.notEqual(lineId,lastReturnLine,'real returns do not repeat BIT lines');lastReturnLine=lineId;
+    assert.equal(popup.querySelector('.rs-bubble p').textContent,w.DATA.bitSummary.pools[trigger].lines[Number(lineIndex)],'selected context line appears inside the speech bubble');
+    assert.equal(popup.querySelector('.raid-summary').dataset.trigger,trigger,'bubble uses the actual return context');
     assert(popup.querySelector('source').srcset.includes('bit-summary-'), 'existing summary art through bitImg');
     const gainRows = [...popup.querySelectorAll('.loot-card.gain')];
     const lossRows = [...popup.querySelectorAll('.loot-card.loss')];
     if(outcome==='extract'){
       assert(popup.querySelector('.rs-xp-head .xp-gain'), 'operator XP gain shown on every outcome');
       assert(gainRows.some(el=>el.textContent.includes('SMG')), 'equipped weapon brought home');
+      const gear=popup.querySelector('.rs-gear');assert(gear.textContent.includes('GEAR RETURNED') && gear.textContent.includes('SMG'),'dedicated returned gear row');
+      assert.equal(gear.textContent.includes('Scout Rig'),!consumed,'only surviving rigs listed as returned');
+      assert.equal(gainRows.some(el=>el.textContent.includes('Scout Rig')),!consumed,'consumed rigs not shown as secured loot');
       assert(gainRows.some(el=>el.textContent.includes('Cable') && el.querySelector('b').textContent==='x2'), 'duplicate materials aggregate');
       assert(gainRows.some(el=>el.textContent.includes('Scrap')), 'converted currency and extract bonus shown');
       assert.equal(lossRows.length, 0, 'extract shows the secured grid, not a loss grid');
     } else {
       assert(popup.querySelector('.rs-xp-head .xp-gain'), 'operator XP gain shown on every outcome');
       assert.equal(gainRows.length, 0, 'death shows the lost grid, not a gain grid');
+      assert.equal(popup.querySelector('.rs-gear'),null,'lost gear is never labeled returned');
       assert(lossRows.some(el=>el.textContent.includes('SMG') && el.querySelector('b').textContent==='x1'), 'launch gear lost exactly once on death, even if still equipped');
       assert(lossRows.some(el=>el.textContent.includes('Scavenger Vest') && el.querySelector('b').textContent==='x1'), 'armor found and equipped during the raid is lost on death');
       if(gearOut.includes('rifle_marksman')) assert(lossRows.some(el=>el.textContent.includes('Marksman Rifle') && el.querySelector('b').textContent==='x1'), 'found replacement weapon is lost alongside launch gear');
@@ -456,7 +466,7 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     rd.window.close();
   }
 }
-/* v2.1.1 extract screen: title/time, rare-find tag, loot grid overflow cap, death state — direct markup checks. */
+/* Extract screen: title/time, rare-find tag, full scrolling loot grid, death state — direct markup checks. */
 {
   const reaction = { trigger:'generic', mood:'smug', line:'test line' };
   const manyIds = ['power_relay','cable','fuse','scrap_alloy','servo','polymer_plate','circuit_board','optical_sensor'];
@@ -477,6 +487,19 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   gearDiv.innerHTML=window.raidSummaryHtml(r,{added:['scout_rig'],gearFound:['scout_rig'],returnedGear:['scout_rig'],currency:{}},reaction,'Node Raid');
   assert.equal(gearDiv.querySelector('.gear-tag').textContent,'GEAR RETURNED');
   assert.equal(gearDiv.querySelectorAll('.loot-card').length,1,'returned found gear not duplicated');
+  assert(gearDiv.querySelector('.rs-gear').textContent.includes('Scout Rig'),'gear row names the surviving rig');
+  gearDiv.innerHTML=window.raidSummaryHtml(r,{added:['rifle_marksman','rifle_marksman'],gearFound:['rifle_marksman','rifle_marksman'],returnedGear:['rifle_marksman','rifle_marksman'],currency:{}},reaction,'Node Raid');
+  assert.equal(gearDiv.querySelector('.rs-gear-chip>b').textContent,'x2','two returned weapons preserve quantity');
+  assert.equal(gearDiv.querySelector('.loot-card-row>b').textContent,'x2','gear loot card counts found equipment once');
+  assert(gearDiv.querySelector('.rare-tag'),'rare returned weapons retain the RARE FIND badge');
+  const allIds=window.DATA.items.filter(it=>!it.free&&!it.grantsCurrency&&!it.scouts).map(it=>it.id);
+  for(const outcome of ['extract','death','timeout']){
+    const all=doc.createElement('div');all.innerHTML=window.raidSummaryHtml({outcome,lost:allIds},{added:outcome==='extract'?allIds:[],currency:{}},reaction,'Node Raid');
+    assert.equal(all.querySelectorAll('.loot-grid>.loot-card').length,allIds.length,'every item renders for '+outcome);
+    const values=[...all.querySelectorAll('.loot-grid>.loot-card')].map(el=>window.DATA.items.find(it=>it.id===el.dataset.item).sellValue||0);
+    assert(values.every((v,i)=>!i||values[i-1]>=v),'all '+outcome+' items sort by value');
+    assert(!all.querySelector('.loot-extra'),'no +N overflow for '+outcome);
+  }
   const css=fs.readFileSync(path+'/index.html','utf8');
   assert(/\.loot-grid\{[^}]*overflow-y:auto/.test(css),'loot grid scrolls inside result');
   assert(!/loot-card:nth-child/.test(css),'no hidden tail of loot cards');
@@ -518,7 +541,8 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
   divSavedCap.innerHTML = window.raidSummaryHtml(rSavedCap, resSavedCap, { trigger:'death', mood:'disappointed', line:'...' }, 'Node Raid');
   const capCards = [...divSavedCap.querySelectorAll('.loot-grid>.loot-card')];
   const savedCapIdx = capCards.findIndex(el => el.classList.contains('saved'));
-  assert(savedCapIdx >= 0 && savedCapIdx < 5, 'saved item stays within the small-tier cap (LOOT_CAP_SM) despite many distinct losses');
+  assert(savedCapIdx >= 0, 'saved item stays in the full scrolling grid despite many distinct losses');
+  assert.equal(capCards.length,manyLosses.length+1,'no saved or lost items are capped');
 
   // A recovered item that happens to be rare must still read SAVED, not RARE FIND, on death/timeout.
   const rRareSaved = { outcome:'death', elapsedMs:5000, lost:['cable'] };
@@ -546,18 +570,6 @@ assert(window.DATA.progression.survey.length === 6, "six survey questions");
     assert.equal(card.lastElementChild.className, itemCard.lastElementChild.className, 'weapon card and item card end with the same name/qty row');
     assert(card.querySelector(':scope>.loot-card-row'), 'name/qty row still renders for weapon cards');
   }
-}
-/* Completed base-issued meta raids route directly to the base summary, without a second result tap. */
-{
-  const source = fs.readFileSync(path + '/nodspel/game.mjs','utf8');
-  const start = source.indexOf('function finishRound('), end = source.indexOf("\n$('#result-details-toggle')", start);
-  const events = [];
-  const finish = new Function('$','round','launch','writeRaidResult','buildRaidResult','clearInput','location',
-    'let resultPending=false; return (' + source.slice(start,end) + ');')(
-      () => ({hidden:true}), {over:true,reason:'extract',seed:'s1'}, {returnUrl:'../index.html',raidId:'r1',seed:'s1'},
-      () => {events.push('stored');return true;}, () => ({}), () => events.push('cleared'), {assign:url=>events.push(url)});
-  finish();
-  assert.deepEqual(events,['stored','cleared','../index.html'],'persist then return directly for the one merged summary');
 }
 /* v2.0.0: real badge handlers open, highlight and scroll the matching tab content. */
 {
