@@ -85,7 +85,8 @@ test('stunned enemies neither move nor fire; they resume when the stun ends',()=
   throwTool(r,p,{x:0,z:0},3000);
   stepCombat(r,c,p,3500,.04,[]);stepCombat(r,c,p,5000,.5,[]);stepCombat(r,c,p,6900,.5,[]);
   assert.equal(c.projectiles.length,0,'no shots while stunned');assert.equal(r.health,100);
-  stepCombat(r,c,p,7100,.04,[]);assert.equal(c.projectiles.length,1,'fires again after 4 s');
+  stepCombat(r,c,p,7100,.04,[]);assert.equal(c.projectiles.length,0,'fresh warning after stun');
+  stepCombat(r,c,p,8300,.04,[]);assert.equal(c.projectiles.length,1,'fires after fresh sentry warning');
 });
 
 test('decoy: enemies within 6 m walk to the lure for 5 s instead of the player and hold fire',()=>{

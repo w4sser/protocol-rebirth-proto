@@ -23,7 +23,7 @@ test('weapon stats drive magazine, fire rate, reload and range',()=>{
   assert.ok(fireWeapon(smg,{x:0,z:0},{x:0,z:-1},0));assert.equal(fireWeapon(smg,{x:0,z:0},{x:0,z:-1},100),null,'fire interval respected');
   assert.ok(fireWeapon(smg,{x:0,z:0},{x:0,z:-1},110));assert.equal(smg.reloadAt,450,'reload uses the weapon reload time');
   tickWeapon(smg,450);assert.equal(smg.ammo,7);
-  const enemy={id:'e',kind:'enemy',x:0,z:-10,r:.5,health:3};
+  const enemy={id:'e',kind:'enemy',aggro:true,facing:0,x:0,z:-10,r:.5,health:3};
   assert.equal(assistAim({x:0,z:0},{x:0,z:-1},[enemy],[],{...RULES.weapon,range:11}).target?.id,'e','rifle range locks at 10 m');
   assert.equal(assistAim({x:0,z:0},{x:0,z:-1},[enemy],[]).target,null,'basic range does not');
 });
@@ -42,21 +42,21 @@ test('shotgun stats: spread, short range, knock, pellets are clamped and carried
   const items=globalThis.DATA?.items;if(items){const s=items.find(i=>i.id==='shotgun_breach').weapon;assert.ok(s.spr>0&&s.kb>0&&s.pel>1&&s.rng<=5);}
 });
 test('knockEnemy shoves a survivor along the shot and stops at walls',()=>{
-  const e={id:'e',kind:'enemy',x:0,z:-3,r:.5,health:2};const round=mkRound(e);
+  const e={id:'e',kind:'enemy',aggro:true,facing:0,x:0,z:-3,r:.5,health:2};const round=mkRound(e);
   assert.ok(knockEnemy(round,e,{x:0,z:-1},{knockback:1.1},[],10));assert.ok(Math.abs(e.z+4.1)<.01);assert.equal(e.knockSerial,1);
   const f={id:'f',x:0,z:-3,health:2};knockEnemy(round,f,{x:0,z:-1},{knockback:1.1},[{x:0,z:-4.2,w:4,d:.4}],10);assert.ok(f.z>-3.6,'wall stops the shove');
   assert.equal(knockEnemy(round,{x:0,z:0,health:0},{x:0,z:-1},{knockback:1},[],0),false,'dead enemies are not shoved');
   assert.equal(knockEnemy(round,{x:0,z:0,health:1},{x:0,z:-1},{knockback:0},[],0),false);
 });
 test('shotgun fires a pellet fan (one ammo) and a hit shoves the target',()=>{
-  const round=createRound('pel',0),e=round.level.enemies[0];Object.assign(e,{x:0,z:-3,r:.5,health:9,active:true});round.level.enemies=[e];round.level.boxes=[];round.level.walls=[];round.level.floors=[{x:0,z:0,w:60,d:60}];
+  const round=createRound('pel',0),e=round.level.enemies[0];Object.assign(e,{aggro:true,facing:0,x:0,z:-3,r:.5,health:9,active:true});round.level.enemies=[e];round.level.boxes=[];round.level.walls=[];round.level.floors=[{x:0,z:0,w:60,d:60}];
   const w=createWeapon(Infinity,{id:'shotgun_breach',damage:1,capacity:2,range:4.5,assistAngleDegrees:22,coneHalfAngleDegrees:18,spreadDegrees:9,knockback:1.1,pellets:5,homingDegreesPerSecond:0});
   const shot=fireAimedWeapon(w,round,{x:0,z:0},{x:0,z:-1},1000,[]);
   assert.ok(shot);assert.equal(w.ammo,1,'one shell');assert.equal(w.projectiles.length,5,'real shot + 4 extra pellets');
   assert.equal(e.z,-3,'release does not shove');stepWeapon(w,round,1200,.2,[]);assert.ok(e.z<-3.9,'impact shoves');assert.equal(e.health,8);
 });
 test('carbine tracer bends toward a target in a narrow cone, never aimbot',()=>{
-  const rule=RULES.weapon,e={id:'e',kind:'enemy',x:1,z:-6,health:2};
+  const rule=RULES.weapon,e={id:'e',kind:'enemy',aggro:true,facing:0,x:1,z:-6,health:2};
   const b={x:0,z:0,dx:0,dz:-1,remaining:7};steerShot(b,[e],[],rule,.1);
   assert.ok(b.dx>0&&b.dx<.2,'turns toward target, capped by turn rate');
   const far={x:0,z:0,dx:0,dz:-1,remaining:7};steerShot(far,[{...e,x:4,z:-3}],[],rule,.1);assert.equal(far.dx,0,'target outside the cone is ignored');

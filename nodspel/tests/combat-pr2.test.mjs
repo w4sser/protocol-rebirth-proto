@@ -6,7 +6,7 @@ import {createWeapon,fireAimedWeapon,stepWeapon,tickWeapon} from '../weapon.js';
 import {createBIT,stepBIT} from '../bit.js';
 import {createDash} from '../dash.js';
 import {cards,perkState,ownRooms,updateClears,offer,choosePerk,safePick,recap,logCombat,deathLine,pausePick,resumePick,gameTime,dashInterval,reloadInterval} from '../perks.js';
-const point={x:0,z:0},foe=(id,x=0)=>({id,kind:'enemy',type:'grunt',x,z:0,r:.48,health:2,active:true});
+const point={x:0,z:0},foe=(id,x=0)=>({id,kind:'enemy',aggro:true,facing:0,type:'grunt',x,z:0,r:.48,health:2,active:true});
 function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});return r;}
 function select(r,id,index=0){const s=perkState(r),key=`${r.level.number}:${index}`;s.rooms[key]={state:'rewardPending',level:r.level.number,index,offer:[id]};s.queue.push(key);return choosePerk(r,key,id,100,createDash());}
 
