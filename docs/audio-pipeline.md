@@ -107,9 +107,10 @@ its own runtime/model installation, and is never a production fallback.
 
 `tools/audio/gen-sfx.py` reads the SFX registry from `data/audio.js` and
 synthesizes every cue using numpy (tones, filtered noise and envelopes),
-plus 24-second ambience loops and an optional music pulse. Archipelago has
-wind/sea/gulls/buoys; bunker has hum/drips/ventilation; base has a low drone.
-A two-second raised-cosine wrap crossfade makes the loops seamless.
+plus a quiet 24-second music pulse. Footsteps and ambience were removed
+per owner feedback. A two-second raised-cosine wrap crossfade makes the
+music loop seamless. Only registered SFX are generated; unused aliases
+do not ship.
 
 Per-cue SHA256-derived seeds extend master seed `20261028`, so adding a cue
 never changes another cue's synthesized PCM. Decoded PCM is reproducible;
@@ -125,9 +126,9 @@ python3 tools/audio/mix-demo.py
 The generator writes a per-file `assets/audio/LICENSES.md` inventory and
 fails if the complete OGG plus M4A shipping payload reaches 2,000,000 bytes.
 The 20-second demo is written outside the shipping assets, by default to
-`/workspace/rostprov/mix-demo.ogg`. It combines archipelago ambience,
+`/workspace/rostprov/mix-demo.ogg`. It combines quiet music,
 shots/impacts/pickup, alarm/hunter sting and F1 hunters-inbound, applying
-exactly -6 dB to the rest of the mix for the duration of the voice.
+exactly -6 dB to music only for the duration of the voice.
 
 ## Budget and licenses
 
@@ -146,6 +147,7 @@ and the mix demo do not count as shipping assets.
   and [RyanSpeech dataset](https://www.kaggle.com/datasets/roholazandie/ryanspeech).
   Piper runtime licensing is separate from each voice's dataset license.
 - **Generated BIT lines**: synthesized locally from the Kokoro model and
-  texts above. Consult upstream model documentation for training provenance.
-- **SFX, ambience and music**: original procedural synthesis in
+  texts above. All rights reserved © Robert Wasser. Consult upstream model
+  documentation for training provenance.
+- **SFX and music**: original procedural synthesis in
   `tools/audio/gen-sfx.py`, dedicated to CC0-1.0; no third-party samples.

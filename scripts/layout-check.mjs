@@ -222,7 +222,7 @@ async function baseRun([w,h]){
             if(phone.scrollTop!==0||phone.scrollLeft!==0)errors.push('shell scrolled the HUD away');
             const hud=document.getElementById('topbar').getBoundingClientRect();
             if(hud.top<0||hud.bottom>innerHeight)errors.push('top HUD moved outside viewport');
-            if(menu.querySelectorAll('.audio-settings input').length!==9)errors.push('missing master, volume or mute controls');
+            if(menu.querySelectorAll('.audio-settings input').length!==7)errors.push('missing master, volume or mute controls');
             return errors;
           };
           for(const error of await page.evaluate(checkSettings))fail(`${tag} settings`,error);
@@ -501,8 +501,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.7.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.7.0');
+    const {createRound}=await import('./round.js?v=2.7.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.7.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
