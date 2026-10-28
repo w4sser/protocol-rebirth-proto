@@ -1,3 +1,8 @@
+// v2.7.2 (measured at 844x390): placeEnemyLabel used to keep a sticky dx/dy offset pushed by HUD/label
+// obstacles, so a bar could drift 45px+ sideways and never return once the obstacle that pushed it was
+// gone. The bar is now recomputed from the projected head anchor every frame: always centred horizontally
+// on it, never pushed sideways or shoved around by obstacles. Only the richer caption/full box may stack a
+// few px higher to clear a neighbour, and it collapses to the bar when that is not enough.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {placeEnemyLabel} from '../labels.js';
@@ -7,20 +12,25 @@ const overlaps=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b
 const bounds={left:2,right:842,top:2,bottom:388};
 const place=(state,opts={})=>placeEnemyLabel(state,{x:422,y:70,mode:'full',sizes,bounds,now:0,...opts});
 
-test('a clear retained offset follows the anchor even when a different obstacle edge becomes nearer',()=>{
+test('the bar sits exactly above the anchor and never follows an obstacle sideways',()=>{
   const hud=[{left:280,right:564,top:0,bottom:100}];
-  let p=place(undefined,{rects:hud});
+  let p=place(undefined,{mode:'bar',rects:hud});
   assert.equal(p.mode,'bar');
-  const offset={dx:p.state.dx,dy:p.state.dy};
+  assert.equal(p.x,422,'bar stays centred on the anchor even though the HUD overlaps it');
+  assert(overlaps(p.box,hud[0]),'the bar is allowed to overlap the HUD now — it is never pushed clear');
   for(let i=1;i<=180;i++){
     const x=422+Math.sin(i/8)*3;
-    p=place(p.state,{x,rects:hud,now:i*16});
-    assert.equal(p.state.dx,offset.dx);
-    assert.equal(p.state.dy,offset.dy);
-    assert(!hud.some(r=>overlaps(p.box,r)));
+    p=place(p.state,{x,mode:'bar',rects:hud,now:i*16});
+    assert.equal(p.x,x,'bar tracks the anchor exactly every frame, no sticky memory');
   }
-  p=place(p.state,{rects:[],now:3200});
-  assert.equal(p.state.dy,offset.dy,'removing the obstacle does not snap the label back to its anchor');
+});
+
+test('removing the obstacle does not matter to the bar: its position never depended on it',()=>{
+  const hud=[{left:280,right:564,top:0,bottom:100}];
+  let p=place(undefined,{mode:'bar',rects:hud});
+  const withHud={x:p.x,y:p.y};
+  p=place(p.state,{mode:'bar',rects:[],now:16});
+  assert.deepEqual({x:p.x,y:p.y},withHud,'bar position is identical with or without the obstacle');
 });
 
 test('caption changes require a continuous 400ms request and clearance',()=>{
@@ -42,45 +52,32 @@ test('caption changes require a continuous 400ms request and clearance',()=>{
   assert.equal(p.mode,'bar','safety downgrade still gets a minimum dwell');
 });
 
-test('walking along HUD and quest edges keeps offset changes below 8px and every bar clear',()=>{
-  for(const [width,height] of [[844,390],[932,430],[667,375]]){
-    const hud=[{left:width/2-140,right:width/2+140,top:0,bottom:45},
-      {left:width/2-130,right:width/2+130,top:50,bottom:100}];
-    const b={left:2,right:width-2,top:2,bottom:height-2};
-    let p=place(undefined,{x:width/2,y:70,rects:hud,bounds:b});
-    for(let i=1;i<=240;i++){
-      const prior={dx:p.state.dx,dy:p.state.dy};
-      p=place(p.state,{x:width/2+Math.sin(i/20)*4,y:70-i*.35,rects:hud,bounds:b,now:i*16});
-      assert(Math.hypot(p.state.dx-prior.dx,p.state.dy-prior.dy)<=8.001);
-      assert(!hud.some(r=>overlaps(p.box,r)),'no interpolation through either HUD rectangle');
-      assert(p.box.left>=b.left&&p.box.right<=b.right&&p.box.top>=b.top&&p.box.bottom<=b.bottom);
-    }
-  }
+test('a caption stacks a few px higher to clear a neighbour, without ever moving sideways',()=>{
+  // The caption's natural box would overlap this obstacle by only 6px — a small upward stack clears it.
+  let p=place(undefined,{mode:'full',y:70});
+  const natural={left:p.box.left,right:p.box.right,top:p.box.top,bottom:p.box.bottom};
+  const obstacle={left:natural.left,right:natural.right,top:natural.bottom-6,bottom:natural.bottom+20};
+  p=place(p.state,{mode:'full',y:70,rects:[obstacle],now:16});
+  assert.equal(p.mode,'full','small overlap is resolved by stacking, not by collapsing');
+  assert.equal(p.x,422,'stacking never moves the box sideways');
+  assert(!overlaps(p.box,obstacle));
+  assert(p.box.bottom<natural.bottom,'box stacked upward');
+  assert(natural.bottom-p.box.bottom<=24,'stack stays within the small max shift');
 });
 
-test('a newly appearing HUD panel requires a safe escape, then keeps that placement stable',()=>{
-  let p=place(undefined,{mode:'bar',y:230});
-  const hud=[{left:250,right:600,top:140,bottom:260}];
-  p=place(p.state,{mode:'bar',y:230,rects:hud,now:16});
-  assert(!overlaps(p.box,hud[0]));
-  const offset={dx:p.state.dx,dy:p.state.dy};
-  for(let i=2;i<60;i++){
-    p=place(p.state,{mode:'bar',y:230,rects:hud,now:i*16});
-    assert.deepEqual({dx:p.state.dx,dy:p.state.dy},offset);
-  }
+test('a caption collapses to the bar (never sideways) when no vertical stack within reach clears it',()=>{
+  // A tall obstacle spanning well past the max stack shift leaves no clear spot for the caption.
+  let p=place(undefined,{mode:'bar',y:70});
+  const obstacle={left:300,right:544,top:0,bottom:200};
+  p=place(p.state,{mode:'full',y:70,rects:[obstacle],now:1616});
+  assert.equal(p.mode,'bar','collapses to the compact bar instead of dodging sideways');
+  assert.equal(p.x,422,'the bar still sits exactly on the anchor, not pushed around the obstacle');
 });
 
-test('relocation lerps where safe and uses a capped step when the lerp would cross the HUD',()=>{
-  const hud=[{left:280,right:564,top:0,bottom:100}];
-  let p=place(undefined,{mode:'bar',y:126,rects:hud});
-  assert.equal(p.state.dy,0);
-  // Moving the projected anchor upward puts the old placement 6px inside
-  // the panel. A fractional lerp is unsafe, but an 8px escape is sufficient.
-  p=place(p.state,{mode:'bar',y:111,rects:hud,now:16});
-  assert.equal(p.state.dy,8);
-  assert(!overlaps(p.box,hud[0]));
-  const before=p.state.dy;
-  p=place(p.state,{mode:'bar',y:111,rects:hud,now:32});
-  assert(p.state.dy>before&&p.state.dy-before<8,'clearance settles with a fractional lerp');
-  assert(!overlaps(p.box,hud[0]));
+test('the bar always stays inside the viewport, clamped at the screen edge (not pushed by obstacles)',()=>{
+  const b={left:2,right:842,top:2,bottom:388};
+  let p=placeEnemyLabel(undefined,{x:5,y:3,mode:'bar',sizes,bounds:b,now:0,rects:[{left:0,right:400,top:0,bottom:300}]});
+  assert.equal(p.mode,'bar');
+  assert(p.box.left>=b.left&&p.box.top>=b.top,'clamped to the viewport edge');
+  assert(overlaps(p.box,{left:0,right:400,top:0,bottom:300}),'still overlaps the obstacle — edge clamping is not obstacle avoidance');
 });

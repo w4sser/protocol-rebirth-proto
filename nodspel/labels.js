@@ -38,66 +38,33 @@ export function labelOpacity(kind,dist){
 // (x,y) = label anchor; w/h = label box size (centered horizontally, box sits above/around the anchor).
 export function overHUD(x,y,rects,pad=8,w=0,h=0){const l=x-w/2,rt=x+w/2,t=y-h,b=y+h*.25;
   return rects.some(r=>rt>=r.left-pad&&l<=r.right+pad&&b>=r.top-pad&&t<=r.bottom+pad);}
-// Push a label's anchor just clear of any rect it overlaps (HUD panel or a higher-priority label box) —
-// nearest free position — instead of hiding it. Used for enemy health bars: a visible enemy must always keep
-// at least its compact bar. Coordinates are measured box bottom-centres, spanning x±w/2 and [y-h,y].
-export function pushClear(x,y,w,h,rects,pad=8,bounds={left:-Infinity,right:Infinity,top:-Infinity,bottom:Infinity}){
-  // Exact DOM box convention: x is its centre, y its bottom. Search obstacle edges within the
-  // viewport, rather than escaping iteratively and then clamping back into an obstacle.
-  const lo=bounds.left+w/2,hi=bounds.right-w/2,top=bounds.top+h,bottom=bounds.bottom;
-  if(lo>hi||top>bottom)return null;
-  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),eps=1;
-  const xs=[clamp(x,lo,hi)],ys=[clamp(y,top,bottom)];
-  for(const r of rects){
-    xs.push(clamp(r.left-pad-w/2-eps,lo,hi),clamp(r.right+pad+w/2+eps,lo,hi));
-    ys.push(clamp(r.top-pad-eps,top,bottom),clamp(r.bottom+pad+h+eps,top,bottom));
-  }
-  let best=null,distance=Infinity;
-  for(const cy of new Set(ys))for(const cx of new Set(xs)){
-    const d=(cx-x)**2+(cy-y)**2;if(d>=distance)continue;
-    if(rects.some(r=>cx+w/2>=r.left-pad&&cx-w/2<=r.right+pad&&cy>=r.top-pad&&cy-h<=r.bottom+pad))continue;
-    best={x:cx,y:cy};distance=d;
-  }
-  return best;
-}
-
-// Per-enemy screen placement. Offsets follow the projected anchor, rather than a
-// fixed screen point. A clear offset is sticky, even when another edge is nearer.
-// sizes describe measured DOM boxes: dy is bottom minus the CSS top coordinate.
-export function placeEnemyLabel(state,{x,y,mode,sizes,rects=[],hud=rects,bounds,now=0,dwellMs=400,maxStep=8}){
-  const st=state??{dx:0,dy:0,mode,modeSince:now};
-  const clear=(p,s,obstacles=rects,pad=8)=>p.x-s.w/2>=bounds.left&&p.x+s.w/2<=bounds.right&&p.y-s.h>=bounds.top&&p.y<=bounds.bottom&&
-    !obstacles.some(r=>p.x+s.w/2>=r.left-pad&&p.x-s.w/2<=r.right+pad&&p.y>=r.top-pad&&p.y-s.h<=r.bottom+pad);
-  const at=m=>({x:x+st.dx,y:y+st.dy+sizes[m].dy});
+// Per-enemy screen placement. The bar is always centred on the projected head anchor (x,y) with a small
+// fixed gap above it — never a sideways offset, and never pushed around by HUD/other labels (it may
+// overlap them; the caller hides it only when the enemy itself is offscreen). Clamping stays within the
+// viewport so a bar near the screen edge stays rendered, which is not obstacle-avoidance. The richer
+// caption/full box may stack a few px higher to clear a neighbour, but collapses to the bar once that's
+// not enough. sizes describe measured DOM boxes: dy is bottom minus the CSS top coordinate.
+const BAR_GAP=6;
+export function placeEnemyLabel(state,{x,y,mode,sizes,rects=[],bounds,now=0,dwellMs=400,maxShift=24}){
+  const st=state??{mode,modeSince:now};
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const clampY=(yy,s)=>clamp(yy,bounds.top+s.h,bounds.bottom);
+  const clearAt=(yy,s)=>!rects.some(r=>x+s.w/2>=r.left-8&&x-s.w/2<=r.right+8&&yy>=r.top-8&&yy-s.h<=r.bottom+8);
+  const baseY=m=>clampY(y-BAR_GAP+sizes[m].dy,sizes[m]);
+  // Best vertical stack for a mode, starting from its natural (viewport-clamped) anchor;
+  // null if nothing within maxShift is clear of rects.
+  const fit=m=>{const s=sizes[m],top=baseY(m);for(let shift=0;shift<=maxShift;shift+=4){const yy=clampY(top-shift,s);if(clearAt(yy,s))return yy;}return null;};
   if(st.request!==mode){st.request=mode;st.requestSince=now;}
-  let next=st.mode;
-  if(mode!==next&&now-st.modeSince>=dwellMs&&now-st.requestSince>=dwellMs&&clear(at(mode),sizes[mode]))next=mode;
+  let next=st.mode??mode;
   // Collision is the only reason to interrupt a caption's dwell. Once compact,
   // require a continuous clear interval before restoring the caption.
-  if(next!=='bar'&&!clear(at(next),sizes[next]))next='bar';
-  if(next==='bar'&&mode!=='bar'&&!clear(at(mode),sizes[mode]))st.requestSince=now;
+  if(mode!==next&&now-st.modeSince>=dwellMs&&now-st.requestSince>=dwellMs&&fit(mode)!=null)next=mode;
+  let yy=next==='bar'?baseY('bar'):fit(next);
+  if(next!=='bar'&&yy==null){next='bar';yy=baseY('bar');}
+  if(next==='bar'&&mode!=='bar'&&fit(mode)==null)st.requestSince=now;
   if(next!==st.mode){st.mode=next;st.modeSince=now;}
-  const size=sizes[next],previous=at(next);
-  let placed=previous;
-  if(!clear(previous,size)){
-    const target=pushClear(previous.x,previous.y,size.w,size.h,rects,8,bounds)??
-      pushClear(previous.x,previous.y,size.w,size.h,rects,0,bounds);
-    if(target){
-      const dx=target.x-previous.x,dy=target.y-previous.y,d=Math.hypot(dx,dy),t=Math.min(.35,maxStep/(d||1));
-      const step={x:previous.x+dx*t,y:previous.y+dy*t};
-      const capped={x:previous.x+dx*Math.min(1,maxStep/(d||1)),y:previous.y+dy*Math.min(1,maxStep/(d||1))};
-      // Never interpolate through HUD/quest-chip geometry. Normal moving-edge
-      // escapes are a few pixels; a newly appearing panel may require a snap.
-      if(clear(step,size,rects,0))placed=step;
-      else if(clear(capped,size,rects,0))placed=capped;
-      else{
-        const nearest=pushClear(previous.x,previous.y,size.w,size.h,rects,0,bounds);
-        placed=nearest&&Math.hypot(nearest.x-previous.x,nearest.y-previous.y)<=maxStep?nearest:target;
-      }
-    }
-  }
-  st.dx=placed.x-x;st.dy=placed.y-y-size.dy;
-  return {state:st,mode:next,x:x+st.dx,y:y+st.dy,box:{left:placed.x-size.w/2,right:placed.x+size.w/2,top:placed.y-size.h,bottom:placed.y}};
+  const size=sizes[next],xx=clamp(x,bounds.left+size.w/2,bounds.right-size.w/2);
+  return {state:st,mode:next,x:xx,y:yy,box:{left:xx-size.w/2,right:xx+size.w/2,top:yy-size.h,bottom:yy}};
 }
 
 // Screen-space declutter for world labels: objective/info labels (node, exit, room, house) and shock-pad icons keep their

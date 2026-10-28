@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as THREE from '../vendor/three.module.js';
-import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,pushClear,placeEnemyLabel} from '../labels.js';
+import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel} from '../labels.js';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 // Brace-matched extraction (unlike a "stop at the next `function `" slice) so trailing top-level
@@ -54,7 +54,7 @@ function run(labels,hazardLabels,{hud=[],width=800,height=600,origin={left:0,top
     bitLabel:null,bit:null,world:{exitLabel:null},exitIsOpen:()=>true,round:{},
     labelPoint:camera?new THREE.Vector3():{x:0,y:0,z:0,copy(v){this.x=v.x;this.y=v.y;this.z=v.z;return this;},project(){this.x=this.x/10;this.y=this.z/10;return this;}},
     camera:camera??{},hudRects:hud,performance:{now:()=>now},labelState:new Map(),
-    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,pushClear,placeEnemyLabel,
+    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,
     refreshHudRects(){},LABEL_SHOW_HOLD_MS:1200,
   });
   if(hudElements)vm.runInContext(extractFn('refreshHudRects'),context);
@@ -92,7 +92,17 @@ test('an enemy with room to spare (no overlap, no hazard) keeps its normal mode 
 });
 
 const hits=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
-test('winding bars retain unscaled CSS widths while reserving scaled bounds at viewport edges',()=>{
+// Centred-on-anchor check shared by the tests below: the bar's screen box must be centred horizontally on
+// the enemy's projected head point (e.sx) and sit with its bottom a few px above it (e.sy) — never pushed
+// sideways or away by HUD/other labels, which the old sticky-offset placement used to do (PRB drift fix).
+function assertBarOnAnchor(e,origin={left:0,top:0}){
+  const r=e.el.getBoundingClientRect();
+  const local={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
+  const centerX=(local.left+local.right)/2;
+  assert(Math.abs(centerX-e.sx)<=2,`bar centred on the projected head x (got ${centerX}, anchor ${e.sx})`);
+  assert(local.bottom<e.sy,'bar bottom sits above the projected head y');
+}
+test('winding bars retain unscaled CSS widths and stay inside the viewport at its edges',()=>{
   for(const [width,height] of [[844,390],[932,430],[667,375]]){
     for(const x of [-9.9,9.9]){
       const enemies=Array.from({length:4},(_,i)=>enemyLabel(`winding-${i}`,x,0));
@@ -102,49 +112,42 @@ test('winding bars retain unscaled CSS widths while reserving scaled bounds at v
       const origin={left:59,top:7};
       for(let frame=0;frame<3;frame++){
         run(enemies,hazards,{width,height,origin,now:frame*16});
-        const reserved=[];
         for(const e of enemies){
           assert.equal(e.el.hidden,false);
           assert.equal(e.el.dataset.mode,'bar');
           assert.equal(parseFloat(e.el.style.width),44,'CSS width excludes the windup transform');
           const r=e.el.getBoundingClientRect();
           assert.equal(r.width,44*1.12,'windup scaling is applied exactly once');
+          // All four enemies share one world point right at the screen edge on purpose: their bars now
+          // coincide too (a bar never dodges another label) and clamp to stay fully on-screen there.
           const local={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
           assert(local.left>=2&&local.right<=width-2&&local.top>=2&&local.bottom<=height-2,'scaled bounds fit the viewport');
-          assert(!reserved.some(other=>hits(local,other)),'placement reserves the scaled bar width');
-          reserved.push(local);
         }
       }
     }
   }
 });
-test('HUD collisions keep every measured enemy bar clear, including at viewport edges and nonzero origins',()=>{
+test('enemy bars stay centred on their own anchor even where they overlap the HUD',()=>{
   for(const [width,height] of [[844,390],[932,430],[667,375]]){
     const hud=[{left:width/2-150,right:width/2+150,top:0,bottom:85}];
     const enemies=Array.from({length:5},(_,i)=>enemyLabel(`e${i}`,0,8));
     for(const e of enemies){e.el.measured=true;e.el.dy=-12;}
     const origin={left:59,top:7};
     run(enemies,[],{hud,width,height,origin});
-    const placed=[];
     for(const e of enemies){
       assert.equal(e.el.hidden,false);assert.equal(e.el.dataset.mode,'bar');
-      const r=e.el.getBoundingClientRect();
-      const local={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
-      assert(local.left>=2&&local.right<=width-2&&local.top>=2&&local.bottom<=height-2);
-      assert(!hud.some(h=>hits(local,h)),'bar clears HUD');
-      assert(!placed.some(p=>hits(local,p)),'moved bars reserve their final positions');
-      placed.push(local);
+      assertBarOnAnchor(e,origin);
     }
   }
 });
 
-test('an attacking enemy caption yields to an objective and its measured bar clears the objective',()=>{
+test('an attacking enemy caption collapses to its bar near an objective, staying put on its own anchor',()=>{
   const enemy=enemyLabel('enemy',0,0),objective=lootLabel('objective',0,0);objective.range='room';
   enemy.el.measured=objective.el.measured=true;enemy.el.classList.toggle('winding',true);
   run([enemy,objective],[]);
   assert.equal(objective.el.hidden,false,'objective keeps its label');
   assert.equal(enemy.el.hidden,false);assert.equal(enemy.el.dataset.mode,'bar');
-  assert(!hits(enemy.el.getBoundingClientRect(),objective.el.getBoundingClientRect()));
+  assertBarOnAnchor(enemy);
 });
 
 test('on-screen enemies near the screen edge keep a bar fully inside the viewport',()=>{
@@ -181,64 +184,58 @@ test('an offscreen model stays hidden even if its raised anchor is visible',()=>
   run([e],[],{width:844,height:390,camera});
   assert.equal(e.el.hidden,true);
 });
-test('the separately measured quest chip blocks both original and relocated enemy bars',()=>{
+test('the separately measured quest chip no longer pushes enemy bars — they stay on their own anchor',()=>{
   const origin={left:59,top:7};
   const rects=[{selector:'.round-hud',left:300,right:500,top:0,bottom:45},
     {selector:'#quest-chip',left:270,right:530,top:50,bottom:100}];
   const hudElements=rects.map(r=>({...r,hidden:false,getClientRects:()=>[r],getBoundingClientRect:()=>({
     left:r.left+origin.left,right:r.right+origin.left,top:r.top+origin.top,bottom:r.bottom+origin.top})}));
-  // First starts on the chip; second starts on the HUD and must avoid the chip when moved.
   const enemies=[enemyLabel('chip',0,7.5),enemyLabel('hud',0,9)];
   for(const e of enemies)e.el.measured=true;
   run(enemies,[],{origin,hudElements});
   for(const e of enemies){
     assert.equal(e.el.hidden,false);assert.equal(e.el.dataset.mode,'bar');
-    const r=e.el.getBoundingClientRect(),local={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
-    assert(!rects.some(h=>hits(local,h)),'bar clears both parent HUD and separate quest chip');
+    assertBarOnAnchor(e,origin);
   }
 });
 
-test('renderLabels retains enemy offsets and modes over a multi-frame walk past the HUD and quest chip',()=>{
+test('renderLabels keeps every enemy bar pinned to its own moving anchor past the HUD and quest chip',()=>{
   for(const [width,height] of [[844,390],[932,430],[667,375]]){
     const hud=[{left:width/2-140,right:width/2+140,top:0,bottom:45},
       {left:width/2-130,right:width/2+130,top:50,bottom:100}];
     const enemies=[enemyLabel('one',-.5,7.5),enemyLabel('two',.5,7.5)];
     for(const e of enemies){e.el.measured=true;e.el.dy=-12;}
-    let previous=[];
     for(let frame=0;frame<65;frame++){
       for(const [i,e] of enemies.entries()){e.point.x=(i-.5)+Math.sin(frame/10)*.05;e.point.z=7.5+frame*.005;}
       run(enemies,[],{hud,width,height,now:frame*16});
-      const rects=[];
-      for(const [i,e] of enemies.entries()){
+      for(const e of enemies){
         assert.equal(e.el.hidden,false,'on-screen enemy keeps a visible bar every frame');
         assert.equal(e.el.dataset.mode,'bar','caption remains compact while HUD blocks it');
-        const r=e.el.getBoundingClientRect();
-        assert(!hud.some(h=>hits(r,h)),'no bar overlaps HUD or quest chip');
-        assert(!rects.some(o=>hits(r,o)),'enemies reserve their actual final positions');
-        rects.push(r);
-        if(previous[i])assert(Math.hypot(e.placement.dx-previous[i].dx,e.placement.dy-previous[i].dy)<=8.001,'relative offset changes stay bounded');
+        assertBarOnAnchor(e);
       }
-      previous=enemies.map(e=>({...e.placement}));
     }
   }
 });
 
-test('renderLabels does not restore a relocated label to its anchor between frames',()=>{
+test('renderLabels pins the bar to its anchor every frame regardless of a HUD panel appearing or vanishing',()=>{
   const e=enemyLabel('sticky',0,8);e.el.measured=true;e.el.dy=-12;
   const hud=[{left:250,right:550,top:0,bottom:100}];
   run([e],[],{hud,now:0});
-  const offset={dx:e.placement.dx,dy:e.placement.dy};
-  assert.notEqual(offset.dy,0);
+  assertBarOnAnchor(e);
+  const anchor={sx:e.sx,sy:e.sy};
   for(let frame=1;frame<40;frame++){
     run([e],[],{hud:frame<5?hud:[],now:frame*16});
-    assert.deepEqual({dx:e.placement.dx,dy:e.placement.dy},offset);
     assert.equal(e.el.hidden,false);
+    assert.equal(e.sx,anchor.sx,'static enemy projects to the same screen x every frame');
+    assert.equal(e.sy,anchor.sy,'static enemy projects to the same screen y every frame');
+    assertBarOnAnchor(e);
   }
 });
 
-// Exercise the actual rendering pass with the gate caption, overlapping models,
-// changing font metrics, and retained offsets over successive frames.
-test('clustered enemies around STAND CLOSE all retain clear visible bars across frames',()=>{
+// Exercise the actual rendering pass with the gate caption, overlapping models, and changing font metrics.
+// All 8 enemies share one world point on purpose: since a bar never dodges obstacles or other bars
+// anymore, they are expected to coincide too — what matters is each one stays pinned to its own anchor.
+test('clustered enemies around STAND CLOSE all stay visible and pinned to their shared anchor across frames',()=>{
   for(const [width,height] of [[844,390],[932,430],[667,375]]){
     const objective=lootLabel('gate',0,0);objective.range='node';
     objective.el.measured=true;objective.el.dy=-12;
@@ -252,24 +249,18 @@ test('clustered enemies around STAND CLOSE all retain clear visible bars across 
     for(const e of enemies){e.el.measured=true;e.el.dy=-12;e.obscured=true;}
     const hud=[{left:width/2-140,right:width/2+140,top:0,bottom:90},
       {left:0,right:110,top:height-100,bottom:height}];
-    let previous;
     for(let frame=0;frame<60;frame++){
       // A font loading after the initial frame must invalidate existing clearance.
       captionWidth=frame<10?180:240;
       run([objective,...enemies],[],{width,height,hud,now:frame*16});
       assert.equal(objective.el.hidden,false,'gate interaction label remains visible');
-      const reserved=[objective.el.getBoundingClientRect(),...hud];
       for(const e of enemies){
         assert.equal(e.el.hidden,false,'even a centre-ray-obscured on-screen model gets a bar');
         assert.equal(e.el.dataset.mode,'bar');
         const r=e.el.getBoundingClientRect();
         assert(r.left>=2&&r.right<=width-2&&r.top>=2&&r.bottom<=height-2);
-        assert(!reserved.some(other=>hits(r,other)),'bar clears gate caption, HUD and every other bar');
-        reserved.push(r);
+        assertBarOnAnchor(e);
       }
-      const offsets=enemies.map(e=>[e.placement.dx,e.placement.dy]);
-      if(frame>11)assert.deepEqual(offsets,previous,'clear placements remain stable');
-      previous=offsets;
     }
   }
 });

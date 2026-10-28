@@ -19,13 +19,16 @@ Object.assign(base.modules, { rebirth_core:1, fabricator:1, bit_bay:1, storage:1
 base.roomUnlocks = { fabricator:true, storage:true, bit_bay:true }; base.beat = g.D.progression.beats.length - 1;
 base.cur.scrap = 500; base.stash.med_gel = 20;
 
-{ // 1) healthy recipe: button is live and actually starts the craft (baseline, must keep working)
+{ // 1) healthy recipe: row opens the build confirm, whose BUILD button actually starts the craft (baseline, must keep working)
   const b = boot(JSON.parse(JSON.stringify(base)));
   b.A.go("base"); b.A.openBuilding("fabricator");
   const row = () => b.d.querySelector('#overlay .fabrow[data-recipe="medkit"] button');
-  assert(!row().disabled && row().getAttribute("onclick") === "A.craft('medkit')", "medkit starts live with scrap+materials in hand");
+  assert(!row().disabled && row().getAttribute("onclick") === "A.craftConfirm('medkit')", "medkit row starts live with scrap+materials in hand");
+  b.w.eval(row().getAttribute("onclick"));
+  const confirmBtn = b.d.querySelector('#overlay .craftconfirm .sp-act button.primary');
+  assert(confirmBtn && !confirmBtn.disabled && confirmBtn.getAttribute("onclick") === "A.craft('medkit')", "confirm popup's BUILD is live");
   const before = JSON.stringify(b.S().idle);
-  b.w.eval(row().getAttribute("onclick")); // first-ever craft: instant
+  b.w.eval(confirmBtn.getAttribute("onclick")); // first-ever craft: instant
   assert.notEqual(JSON.stringify(b.S().idle), before, "tapping the live button actually crafts");
   assert.equal(b.S().idle.crafted, 1, "first craft recorded");
 }
@@ -45,6 +48,8 @@ base.cur.scrap = 500; base.stash.med_gel = 20;
   b.A.craft("medkit"); // simulate a stray tap reaching A.craft anyway (defense in depth)
   assert.equal(b.S().cur.scrap, scrapBefore, "no scrap spent while busy");
   assert.equal(JSON.stringify(b.S().idle.fab), fabBefore, "queue untouched while busy");
+  b.A.craftConfirm("medkit"); // a stray tap reaching the row handler while busy must not open the popup
+  assert(!b.d.querySelector("#overlay .craftconfirm"), "no confirm popup opens once the queue is full");
 }
 
 { // 3) once a slot frees up, the same recipe goes back to being live
@@ -53,7 +58,7 @@ base.cur.scrap = 500; base.stash.med_gel = 20;
   b.S().idle.fab.shift(); // one job finishes
   b.A.openBuilding("fabricator");
   const row = b.d.querySelector('#overlay .fabrow[data-recipe="medkit"] button');
-  assert(!row.disabled && row.getAttribute("onclick") === "A.craft('medkit')", "frees up once a slot opens");
+  assert(!row.disabled && row.getAttribute("onclick") === "A.craftConfirm('medkit')", "frees up once a slot opens");
 }
 
 { // 4) the bug: BIT Bay room popup (A.openBuilding("bit_bay")) SEND button. Tapping it did start the

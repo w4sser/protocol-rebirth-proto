@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.7.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.7.2"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -771,7 +771,9 @@ function roomExplainHtml(id){
   const x = (D.roomExplain || {})[id]; if(!x) return "";
   return '<div class="rx"><p>' + esc(x.blurb) + '</p><div class="rxt">' + x.tiles.map(t => '<span><i aria-hidden="true">' + IC(t.icon) + '</i>' + esc(t.label) + '</span>').join("") + '</div></div>';
 }
-// Fabricator room craft list: every unlocked recipe is craftable here (A.craft); higher-level tool recipes show their Fab gate.
+// Fabricator room craft list: every unlocked recipe opens a build confirm (A.craftConfirm); higher-level
+// tool recipes show their Fab gate. The row stays tappable even when short on materials/Scrap — the
+// confirm popup is where the player sees what is missing — only a gate or a full queue disables it.
 function fabCraftHtml(){
   const lvl = S.modules.fabricator || 0, I = idleState(), first = !I.crafted;
   // Queue is full: craft() silently blocks and queues a toast that this very overlay defers, so the
@@ -780,15 +782,31 @@ function fabCraftHtml(){
   const rows = D.recipes.filter(r => r.fabricatorLevel <= lvl || (ITEMS[r.output.itemId] && ITEMS[r.output.itemId].tool))
     .sort((a, b) => (a.fabricatorLevel > lvl) - (b.fabricatorLevel > lvl) || (!!(ITEMS[b.output.itemId] && ITEMS[b.output.itemId].tool)) - (!!(ITEMS[a.output.itemId] && ITEMS[a.output.itemId].tool)));
   return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
-    const gated = r.fabricatorLevel > lvl, cost = craftCost(r), inOk = Object.keys(r.inputs).every(id => have(id) >= r.inputs[id]);
-    const can = !gated && !full && S.cur.scrap >= cost && inOk;
+    const gated = r.fabricatorLevel > lvl, cost = craftCost(r), buildTime = first ? "Instant" : fabMinutes(r.id) + " min";
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em></small></span>' +
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
-        : !gated && full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
-        : '<button type="button" class="ghost inline" ' + (can ? 'onclick="A.craft(\'' + r.id + '\')"' : 'disabled') + '>' + (first ? 'CRAFT' : IC("timer") + ' ' + fabMinutes(r.id) + 'm') + '</button>') + '</div>';
+        : full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
+        : '<button type="button" class="ghost inline" onclick="A.craftConfirm(\'' + r.id + '\')">BUILD</button>') + '</div>';
   }).join("") + '</div>';
+}
+// Build confirm popup (tap BUILD on a Fabricator row): shows the output, every material and Scrap at
+// have/need, and the build time, before the real craft (A.craft) runs. Reuses the .bpop/.cost pattern
+// from the module-upgrade popup so missing requirements get the same red .miss marker everywhere.
+function craftConfirmHtml(rid){
+  const r = D.recipes.find(x => x.id === rid), I = idleState(), first = !I.crafted;
+  const full = I.crafted > 0 && I.fab.length >= fabSlots();
+  const cost = { scrap: craftCost(r), items: r.inputs }, parts = costParts(cost), can = !full && canAfford(cost);
+  const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
+  const buildTime = first ? "Instant" : fabMinutes(rid) + " min";
+  return '<div class="bpop craftconfirm" data-module="fabricator"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</span><h1>Build ' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '?</h1></div>' +
+    '<div class="costs">' + parts.map(p => {
+      const ok = p.have >= p.need;
+      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
+    }).join("") + '</div>' +
+    '<div class="cfmeta"><i aria-hidden="true">' + IC("timer") + '</i>' + esc(buildTime) + '</div>' +
+    '<div class="sp-act"><button type="button" class="primary big" ' + (can ? 'onclick="A.craft(\'' + rid + '\')"' : 'disabled') + '>BUILD</button><button type="button" class="ghost" onclick="A.back()">CANCEL</button></div></div>';
 }
 function scavLootText(loot){ return "+" + loot.scrap + " Scrap" + Object.entries(loot.items).map(([id, q]) => ", " + q + "× " + ITEMS[id].name).join(""); }
 function scavPending(){ return (S.idle && S.idle.scavPending) || null; }
@@ -4528,6 +4546,14 @@ window.A = {
     act("CRAFT_COLLECTED", { recipe:job.rid });
     toast("Crafted " + result); refresh();
     if(inRoom) A.openBuilding("fabricator");
+  },
+  craftConfirm(rid){
+    const r = D.recipes.find(x => x.id === rid); if(!r) return;
+    if(r.fabricatorLevel > (S.modules.fabricator || 0)) return;
+    const I = idleState();
+    if(I.crafted > 0 && I.fab.length >= fabSlots()) return;
+    const old = document.getElementById("overlay"); if(old) old.remove();
+    overlay(craftConfirmHtml(rid), () => A.openBuilding("fabricator"), "sheet");
   },
   craft(rid){
     const r = D.recipes.find(x=>x.id===rid);

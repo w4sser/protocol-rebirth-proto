@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {labelTier,planLabels,labelOpacity,overHUD,LABEL_RANGES,MAX_FULL,pushClear} from '../labels.js';
+import {labelTier,planLabels,labelOpacity,overHUD,LABEL_RANGES,MAX_FULL} from '../labels.js';
 test('tiers by distance: far hidden/dot, mid short, near full',()=>{
   assert.equal(labelTier('loot',1),'full');assert.equal(labelTier('loot',5),'short');assert.equal(labelTier('loot',20),'hidden');
   assert.equal(labelTier('node',20),'dot','objectives keep a minimal far marker');assert.equal(labelTier('exit',20),'dot');
@@ -66,34 +66,6 @@ test('resolveLabels: a shown label keeps its spot against a slightly higher newc
   const state=new Map(),a={id:'a',x:100,y:100,w:80,h:20,priority:50},b={id:'b',x:300,y:100,w:80,h:20,priority:53};
   resolveLabels([a],{now:0,state});
   const out=resolveLabels([a,{...b,x:110}],{now:50,state});assert.equal(out.get('a'),true);assert.equal(out.get('b'),false);
-});
-// v2.4 (layout-check regression): a caption-less enemy bar demoted by resolveLabels still rendered at its
-// original (now too-big-to-matter) anchor, which can sit squarely on the HUD or the label that beat it.
-const boxHits=(x,y,w,h,rects,pad=8)=>rects.some(r=>x+w/2>=r.left-pad&&x-w/2<=r.right+pad&&y>=r.top-pad&&y-h<=r.bottom+pad);
-test('pushClear: moves a box clear of a single overlapping rect',()=>{
-  const hud=[{left:300,right:500,top:0,bottom:60}];
-  const {x,y}=pushClear(400,30,44,10,hud,8);
-  assert(!boxHits(x,y,44,10,hud),'the measured box no longer overlaps the rect');
-});
-test('pushClear: a point already clear of every rect is left untouched',()=>{
-  const rects=[{left:300,right:500,top:0,bottom:60}];
-  assert.deepEqual(pushClear(50,500,44,10,rects,8),{x:50,y:500});
-});
-// Regression: two obstacles close enough together that the box (44px wide) can't fit in the horizontal gap
-// between them. The naive "escape the nearest edge of whichever rect is hit" walks straight from one
-// obstacle into the other and back (ping-pong) instead of escaping both (e.g. vertically).
-test('pushClear: escapes a corridor narrower than the box by moving around both obstacles, not bouncing between them',()=>{
-  const a={left:506,right:615,top:158,bottom:196},b={left:340,right:460,top:144,bottom:172};
-  const {x,y}=pushClear(493,166,44,10,[a,b],8);
-  assert(!boxHits(x,y,44,10,[a]),'clear of the first obstacle');
-  assert(!boxHits(x,y,44,10,[b]),'clear of the second obstacle too');
-});
-test('pushClear: viewport bounds participate in placement, so edge escapes cannot clamp back into HUD',()=>{
-  const rects=[{left:200,right:467,top:0,bottom:80},{left:200,right:467,top:90,bottom:125}];
-  const bounds={left:2,right:665,top:2,bottom:373};
-  const p=pushClear(333,30,44,5,rects,8,bounds);
-  assert(p);assert(p.x-22>=bounds.left&&p.x+22<=bounds.right&&p.y-5>=bounds.top&&p.y<=bounds.bottom);
-  assert(!boxHits(p.x,p.y,44,5,rects));
 });
 test('labelPriority: objective > needed loot > attacking enemy > enemy > loot',()=>{
   const p=k=>labelPriority(k);
