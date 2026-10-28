@@ -34,7 +34,8 @@ test('a newly entered room grants three seconds without enemy fire',()=>{
   const c=createCombat(r.level,0),room=r.level.rooms[1],p={x:room.x,z:room.z+2};
   stepCombat(r,c,p,10000,.04,[]);assert.equal(c.projectiles.length,0);
   stepCombat(r,c,p,12999,.04,[]);assert.equal(c.projectiles.length,0);
-  stepCombat(r,c,p,13000,.04,[]);assert.ok(c.projectiles.length>0);
+  stepCombat(r,c,p,13000,.04,[]);assert.equal(c.projectiles.length,0);
+  stepCombat(r,c,p,14200,.04,[]);assert.ok(c.projectiles.length>0);
 });
 test('aim can lock an unlit node, while inactive enemies cannot be targeted',()=>{
   const n={id:'node',x:3,z:.3,r:.8,active:false};

@@ -12,8 +12,9 @@ test('an enemy fires after spawn grace and its projectile can damage the player'
   const r=createRound('fight',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
   const c=combat.createCombat(r.level,0);
   combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);assert.equal(c.projectiles.length,0);
-  combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
-  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[]);assert.equal(r.health,100-RULES.combat.damage);
+  combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,0);
+  combat.stepCombat(r,c,{x:0,z:4},4000,.04,[]);assert.equal(c.projectiles.length,1);
+  combat.stepCombat(r,c,{x:0,z:4},4500,.5,[]);assert.equal(r.health,100-RULES.combat.damage);
 });
 test('walls block enemy sight and a defeated enemy stops firing',()=>{
   assert.equal(typeof combat.createCombat,'function');
@@ -28,8 +29,8 @@ test('five enemy hits cause death and record time remaining',()=>{
   assert.equal(typeof combat.createCombat,'function');
   const r=createRound('lethal',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
   const c=combat.createCombat(r.level,0);
-  for(let i=0;i<5;i++)combat.stepCombat(r,c,{x:0,z:4},3000+i*2000,.5,[]);
-  assert.equal(r.over,true);assert.equal(r.reason,'death');assert.equal(r.remainingMs,469000);
+  for(let i=0;i<5;i++){combat.stepCombat(r,c,{x:0,z:4},3000+i*3000,0,[]);combat.stepCombat(r,c,{x:0,z:4},4000+i*3000,.5,[]);}
+  assert.equal(r.over,true);assert.equal(r.reason,'death');assert.equal(r.remainingMs,464000);
 });
 test('a dormant/idle enemy aggroes the instant it is hit, even far outside detection range, and then fights back',()=>{
   const r=createRound('idle-hit',0);baseline(r);
@@ -45,7 +46,7 @@ test('a dormant/idle enemy aggroes the instant it is hit, even far outside detec
   // Bring the player into range: the now-aggro enemy fights back without needing a fresh detection window
   // (a small dt so the resulting shot is still in flight when we check, instead of resolving within the tick).
   combat.stepCombat(r,c,{x:0,z:4},5300,.016,[]);
-  assert.equal(c.projectiles.length,1,'it fights back immediately once in range');
+  assert.ok(r.level.enemies[0].windupAt>0,'it warns immediately once in range');
 });
 test('a turret hit before it notices the player aggroes at once, but still only starts its normal warning',()=>{
   const T=RULES.encounters.turret;
@@ -97,16 +98,13 @@ test('moving enemies respect cover and level three covers more distance per seco
 
 test('dash i-frames give 0 damage from a projectile impact, blast and hazard tick',()=>{
   const r=createRound('iframes',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
-  const c=combat.createCombat(r.level,0);
-  combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);
-  combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
-  const dash=createDash();startDash(dash,{x:1,z:0},3400); // i-frames cover [3400, 3550)
-  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[],dash);
+  const c=combat.createCombat(r.level,0);c.graceUntil=0;c.nextFire.set('foe',Infinity);
+  const dash=createDash();startDash(dash,{x:1,z:0},3400);
+  const shot=()=>({id:1,x:0,z:0,dx:0,dz:1,life:2});
+  c.projectiles.push(shot());combat.stepCombat(r,c,{x:0,z:4},3500,.5,[],dash);
   assert.equal(r.health,100,'projectile impact inside the i-frame window deals 0 damage');
-  combat.stepCombat(r,c,{x:0,z:4},3600,.04,[]); // re-arm a shot now that i-frames have ended
-  combat.stepCombat(r,c,{x:0,z:4},4600,.04,[]);
-  combat.stepCombat(r,c,{x:0,z:4},4700,.5,[],dash);
-  assert.equal(r.health,100-RULES.combat.damage,'the same dash state no longer blocks damage once i-frames expire');
+  c.projectiles.push(shot());combat.stepCombat(r,c,{x:0,z:4},3700,.5,[],dash);
+  assert.equal(r.health,100-RULES.combat.damage,'impact after i-frames deals damage');
 });
 test('dash i-frames also absorb a hazard tick, but not once the dash has ended',()=>{
   const hr=createRound('iframes-hazard',0);
@@ -122,6 +120,6 @@ test('an attack cancels arrival grace for its defender without waking unrelated 
   const attacked={id:'hit',kind:'enemy',x:0,z:0,r:.48,health:5},quiet={id:'quiet',kind:'enemy',x:20,z:0,r:.48,health:5};
   r.level.enemies=[attacked,quiet];const c=combat.createCombat(r.level,0);
   hitEnemy(r,'hit',100);combat.stepCombat(r,c,{x:0,z:4},200,.016,[]);
-  assert.equal(attacked.aggro,true);assert.equal(c.projectiles.length,1,'attacked enemy fights during grace');
+  assert.equal(attacked.aggro,true);assert.equal(c.projectiles.length,0);assert.ok(attacked.windupAt>=200+RULES.encounters.telegraphMs,'attack during grace still warns');
   assert.equal(quiet.aggro,undefined,'other enemies retain arrival grace');
 });

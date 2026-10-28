@@ -5,7 +5,7 @@ import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js';
 const weapon=await import('../weapon.js');
 test('aim locks the nearest visible enemy close to the direction, but leaves free aim otherwise',()=>{
   assert.equal(typeof weapon.assistAim,'function');
-  const near={id:'near',kind:'enemy',x:3,z:.4,r:.48,health:2},far={...near,id:'far',x:5};
+  const near={id:'near',kind:'enemy',aggro:true,facing:0,x:3,z:.4,r:.48,health:2},far={...near,id:'far',x:5};
   const result=weapon.assistAim({x:0,z:0},{x:1,z:0},[far,near],[]);
   assert.equal(result.target.id,'near');assert.ok(Math.abs(result.direction.z-.4/Math.hypot(3,.4))<1e-8);
   for(const enemy of [{...near,x:9},{...near,x:0,z:3},{...near,health:0}])assert.equal(weapon.assistAim({x:0,z:0},{x:1,z:0},[enemy],[]).target,null);
@@ -15,7 +15,7 @@ test('aim locks the nearest visible enemy close to the direction, but leaves fre
 test('a near miss counts as a wide shot hit, but cover still blocks it',()=>{
   for(const covered of [false,true]){
     const r=createRound('wide',0),w=createWeapon();r.level.nodes=[];
-    const foe={id:'foe',kind:'enemy',x:3,z:.7,r:.48,health:2};r.level.enemies=[foe];
+    const foe={id:'foe',kind:'enemy',aggro:true,facing:0,x:3,z:.7,r:.48,health:2};r.level.enemies=[foe];
     fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
     stepWeapon(w,r,100,.3,covered?[{x:1.5,z:0,w:.2,d:3}]:[]);
     assert.equal(foe.health,covered?2:1);
@@ -23,7 +23,7 @@ test('a near miss counts as a wide shot hit, but cover still blocks it',()=>{
 });
 test('wide shots cannot graze a target hidden around a wall corner',()=>{
   const r=createRound('corner',0),w=createWeapon();r.level.nodes=[];
-  const foe={id:'foe',kind:'enemy',x:3,z:.7,r:.48,health:2};r.level.enemies=[foe];
+  const foe={id:'foe',kind:'enemy',aggro:true,facing:0,x:3,z:.7,r:.48,health:2};r.level.enemies=[foe];
   fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
   stepWeapon(w,r,100,.3,[{x:2,z:.7,w:.2,d:.5}]);assert.equal(foe.health,2);
 });

@@ -9,7 +9,7 @@ import {moveWithActors} from '../physics.mjs';
 import {createDash,startDash,stepDash} from '../dash.js';
 
 const origin={x:0,z:0},aim={x:1,z:0},floors=[{x:0,z:0,w:30,d:30}];
-const foe=(x,z)=>({id:'foe',kind:'enemy',type:'runner',x,z,r:.48,health:3,active:true});
+const foe=(x,z)=>({id:'foe',kind:'enemy',aggro:true,facing:0,type:'runner',x,z,r:.48,health:3,active:true});
 const near=(actual,expected)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} vs ${expected}`);
 function arena(enemy){
   const round=createRound('pr1',0);
@@ -125,12 +125,14 @@ test('guard and intro retain parallel bursts; ordinary sentry retains a single s
   }
   const {enemy,round,combat}=encounter(undefined);round.level.enemyWindupMs=0;
   stepCombat(round,combat,{x:5,z:0},100,.001,[]);
+  assert.equal(combat.projectiles.length,0);
+  stepCombat(round,combat,{x:5,z:0},100+RULES.shooting.telegraphs.sentryMs,.001,[]);
   assert.equal(combat.projectiles.length,1);assert.equal(enemy.attackPhase,undefined);
 });
 
 test('game wiring shares movement for preview and release, draws all warning lanes and preserves BIT condition',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
-  assert.match(source,/fireAimedWeapon\(weapon,round,position,aim,clock,playerSolids,playerMoving\)/);
+  assert.match(source,/fireAimedWeapon\(weapon,round,position,direction,clock,playerSolids,playerMoving,tap\)/);
   assert.match(source,/assistAim\(position,aim,\[\.\.\.round.level.enemies,\.\.\.round.level.nodes\],playerSolids,weapon.rule,playerMoving\)/);
   assert.match(source,/assistPreview\(position,aim,playerSolids,weapon.rule,playerMoving\)/);
   assert.match(source,/new THREE.LineSegments\(/);

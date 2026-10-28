@@ -308,6 +308,13 @@ async function raidRun([w,h],area){
     await page.evaluate(n=>window.__NR.goLevel(n),level);await settle(1800);
     if(await page.$eval('.perk-overlay',e=>!e.hidden))fail(ctx,'unexpected perk modal during gameplay layout');
     await report(page,ctx,'.stick,#reset,#open-bag');
+    const dashPlacement=await page.evaluate(()=>{
+      const d=document.querySelector('#dash').getBoundingClientRect(),v=document.querySelector('#viewport').getBoundingClientRect(),m=document.querySelector('#move-stick').getBoundingClientRect();
+      return {left:d.left,right:d.right,top:d.top,bottom:d.bottom,mid:v.left+v.width/2,moveRight:m.right,moveVisible:m.width>0};
+    });
+    if(dashPlacement.right>dashPlacement.mid)fail(ctx,'DASH must stay on the left, outside the aim zone');
+    if(dashPlacement.moveVisible&&dashPlacement.left<dashPlacement.moveRight+12)fail(ctx,'DASH clearance overlaps the move stick');
+
     const labels=await page.evaluate(()=>{
       const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
       const box=(e,k)=>{const r=e.getBoundingClientRect();return {k,t:e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
@@ -464,8 +471,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.6.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.6.0');
+    const {createRound}=await import('./round.js?v=2.7.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.7.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

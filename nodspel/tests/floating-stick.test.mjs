@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.6.0';
-import {RULES} from '../levels.js?v=2.6.0';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.7.0';
+import {RULES} from '../levels.js?v=2.7.0';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -23,34 +23,33 @@ function extractFn(name){
 }
 const setupStickSrc=extractFn('setupStick');
 
-function buildStick(){
+function buildStick(mode='aim'){
   const dom=new JSDOM('<canvas id=world></canvas><button id=dash>DASH</button><div id="aim-stick"><div class="stick-base"><div class="thumb"></div></div></div>');
-  const el=dom.window.document.getElementById('aim-stick');
+  const el=dom.window.document.getElementById('aim-stick');el.id=`${mode}-stick`;
   el.getBoundingClientRect=()=>({left:0,top:0,right:100,bottom:60,width:100,height:60});
   el.setPointerCapture=()=>{};el.hasPointerCapture=()=>false;el.releasePointerCapture=()=>{};
-  let wall=0,shots=0,lastAim=null;
+  let wall=0,shots=0,lastAim=null,lastTap=null;
   const value={x:0,y:0},context=vm.createContext({
     $:sel=>sel==='#inventory'?{hidden:true}:sel==='.hud'?{getBoundingClientRect:()=>({bottom:40})}:el,RULES,
     beginAim,dragAim,releaseAim,stickOffset,finishGesture,inputPaused:()=>false,document:dom.window.document,viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:844})},
     screenToWorld:(x,y)=>({x,z:y}),
-    tapAimDirection:()=>({x:0,z:-1}),
     round:{over:false,pauseAt:null},tutorialOpen:false,sticks:[],value,aim:null,
-    fire:()=>{shots++;lastAim={...context.aim};},
+    fire:tap=>{shots++;lastAim={...context.aim};lastTap=tap;},
     performance:{now:()=>wall},
     setTimeout:fn=>fn(),
   });
-  vm.runInContext(setupStickSrc+"\nsetupStick('#aim-stick',value,fire);",context);
+  vm.runInContext(setupStickSrc+`\nsetupStick('#${mode}-stick',value${mode==='aim'?',fire':''});`,context);
   const fireEvent=(type,props)=>{const e=new dom.window.Event(type,{bubbles:true});Object.assign(e,{pointerId:1,clientX:0,clientY:0},props);el.dispatchEvent(e);return e;};
-  return {el,context,value,dom,shots:()=>shots,lastAim:()=>lastAim,setWall:w=>wall=w,fireEvent,
+  return {el,context,value,dom,shots:()=>shots,lastAim:()=>lastAim,lastTap:()=>lastTap,setWall:w=>wall=w,fireEvent,
     base:el.querySelector('.stick-base'),thumb:el.querySelector('.thumb')};
 }
 
-test('tap (release inside the deadzone, under 200 ms) fires the auto-aim direction',()=>{
+test('tap (release inside the deadzone, under 200 ms) requests a tap shot',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
   s.setWall(120); // well under the 200 ms tap window
   s.fireEvent('pointerup',{clientX:104,clientY:98}); // inside the 20 px deadzone
-  assert.equal(s.shots(),1);assert.deepEqual(s.lastAim(),{x:0,z:-1},'tap fires the auto-aim/facing direction, not a drag direction');
+  assert.equal(s.lastTap(),true);assert.equal(s.shots(),1);assert.equal(s.context.aim,null,'target direction is chosen at fire time, not gesture release');
 });
 test('a long press that never leaves the deadzone is not a tap and does not fire',()=>{
   const s=buildStick();s.setWall(0);
@@ -65,7 +64,7 @@ test('drag past the deadzone and release fires the dragged direction (screen -> 
   s.fireEvent('pointermove',{clientX:160,clientY:100}); // 60 px right, past the deadzone
   s.setWall(50);
   s.fireEvent('pointerup',{clientX:160,clientY:100});
-  assert.equal(s.shots(),1);assert.deepEqual(s.lastAim(),{x:1,z:0});
+  assert.equal(s.lastTap(),false);assert.equal(s.shots(),1);assert.deepEqual(s.lastAim(),{x:1,z:0});
 });
 test('dragging back into the deadzone and releasing cancels (Brawl Stars behaviour)',()=>{
   const s=buildStick();s.setWall(0);
@@ -138,4 +137,19 @@ for(const origin of [{x:1,y:2},{x:843,y:389},{x:50,y:55}])test(`floating base st
   assert.ok(Math.abs(s.value.x-.6)<1e-12);assert.ok(Math.abs(s.value.y-.8)<1e-12);
   assert.equal(s.thumb.style.transform,`translate(calc(-50% + ${30*(48/50)}px),calc(-50% + ${40*(48/50)}px))`);
   assert.equal(parseFloat(s.base.style.left),x);assert.equal(parseFloat(s.base.style.top),y);
+});
+
+// DASH uses safe-viewport coordinates: left 148, bottom (controls 35 + button 110), size 62.
+for(const [width,height] of [[844,390],[932,430],[667,375]])for(const mode of ['move','aim'])test(`${mode} zone excludes DASH and its clearance at ${width}x${height}`,()=>{
+  const s=buildStick(mode),doc=s.dom.window.document;
+  const safe={left:47,top:0,right:width-47,bottom:height-21,width:width-94};
+  s.context.viewport.getBoundingClientRect=()=>safe;
+  const dash=doc.getElementById('dash'),left=safe.left+148,top=safe.bottom-35-110-62;
+  dash.getBoundingClientRect=()=>({left,right:left+62,top,bottom:top+62});
+  const canvas=doc.getElementById('world');
+  const down=(x,y)=>{const e=new s.dom.window.Event('pointerdown',{bubbles:true,cancelable:true});Object.assign(e,{pointerId:2,pointerType:'touch',clientX:x,clientY:y});canvas.dispatchEvent(e);return e.defaultPrevented;};
+  assert.equal(down(left+31,top+31),false,'DASH rectangle is never a floating-stick origin');
+  assert.equal(down(left-6,top+31),false,'gap beside DASH is excluded too');
+  assert.equal(s.context.sticks[0].state.pointer,null);
+  assert.equal(down(mode==='move'?safe.left+50:safe.right-50,safe.bottom-60),true,'open playfield still activates its stick');
 });
