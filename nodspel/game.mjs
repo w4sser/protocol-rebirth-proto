@@ -1,50 +1,50 @@
-import {createAudioSettings} from './audio-settings.js?v=2.6.1';
-import {audio,audioEvent} from './audio.js?v=2.6.1';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.6.1';
-import {createPerkUI} from './perk-ui.js?v=2.6.1';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.6.1';
+import {createAudioSettings} from './audio-settings.js?v=2.6.2';
+import {audio,audioEvent} from './audio.js?v=2.6.2';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.6.2';
+import {createPerkUI} from './perk-ui.js?v=2.6.2';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.6.2';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.6.1';
-import {loadBunkerAssets} from './bunker.js?v=2.6.1';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.6.1';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.6.1';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.6.2';
+import {loadBunkerAssets} from './bunker.js?v=2.6.2';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.6.2';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.6.2';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.6.1';import '../data/recipes.js?v=2.6.1';import '../data/vendors.js?v=2.6.1';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.6.1';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.6.1';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.6.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.6.1';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.6.1';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.6.1';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.6.1';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.6.1';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.6.1';
-import {buildWorld,setNodeHold} from './world.js?v=2.6.1';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.6.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,tapDirection} from './weapon.js?v=2.6.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.6.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.6.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.6.1';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.6.1';
-// import {stepScavenging} from './scavenging.js?v=2.6.1';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.6.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.6.1';
-import {routeComplete} from './objectives.js?v=2.6.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.6.1';
-import {createBIT,stepBIT} from './bit.js?v=2.6.1';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.6.1';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.6.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.6.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.6.1';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.6.1';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.6.1';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.6.1';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.6.1';
+import '../data/modules.js?v=2.6.2';import '../data/recipes.js?v=2.6.2';import '../data/vendors.js?v=2.6.2';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.6.2';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.6.2';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.6.2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.6.2';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.6.2';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.6.2';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.6.2';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.6.2';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.6.2';
+import {buildWorld,setNodeHold} from './world.js?v=2.6.2';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.6.2';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,tapDirection} from './weapon.js?v=2.6.2';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.6.2';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.6.2';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.6.2';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.6.2';
+// import {stepScavenging} from './scavenging.js?v=2.6.2';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.6.2';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.6.2';
+import {routeComplete} from './objectives.js?v=2.6.2';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.6.2';
+import {createBIT,stepBIT} from './bit.js?v=2.6.2';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.6.2';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.6.2';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.6.2';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.6.2';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.6.2';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.6.2';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.6.2';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.6.2';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.6.1');
+const orderResponse=await fetch('./order.json?v=2.6.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -104,7 +104,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.6.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.6.2',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -590,7 +590,6 @@ function labelEnemyVisual(v){
 function spawnEnemyVisuals(enemies){for(const enemy of enemies)labelEnemyVisual(world.addEnemy(enemy));}
 function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
-  audioEvent('area',{area:AREA_SEL});
   hideSwap();
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
@@ -899,7 +898,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.6.1');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.6.2');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1153,7 +1152,6 @@ function frameInner(now){
     }
     round.hitFeels=[];
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
-    audioEvent('step',{moving:playerMoving&&!dashing,now:clock,area:AREA_SEL,level:round.level,position});
     audioEvent('countdown',{remainingMs:round.remainingMs});
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();

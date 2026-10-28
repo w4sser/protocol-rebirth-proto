@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.6.1';
+import {inputPaused} from '../perks.js?v=2.6.2';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
