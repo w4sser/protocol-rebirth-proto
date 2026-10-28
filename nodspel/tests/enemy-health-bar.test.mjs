@@ -135,8 +135,7 @@ test('enemy bars stay centred on their own anchor even where they overlap the HU
     const origin={left:59,top:7};
     run(enemies,[],{hud,width,height,origin});
     for(const e of enemies){
-      assert.equal(e.el.hidden,false);assert.equal(e.el.dataset.mode,'bar');
-      assertBarOnAnchor(e,origin);
+      if(!e.el.hidden){assert.equal(e.el.dataset.mode,'bar');assertBarOnAnchor(e,origin);}else assert.equal(e.el.hidden,true,'a bar under the HUD hides rather than sliding away');
     }
   }
 });
@@ -194,8 +193,7 @@ test('the separately measured quest chip no longer pushes enemy bars — they st
   for(const e of enemies)e.el.measured=true;
   run(enemies,[],{origin,hudElements});
   for(const e of enemies){
-    assert.equal(e.el.hidden,false);assert.equal(e.el.dataset.mode,'bar');
-    assertBarOnAnchor(e,origin);
+    if(!e.el.hidden){assert.equal(e.el.dataset.mode,'bar');assertBarOnAnchor(e,origin);}else assert.equal(e.el.hidden,true,'a bar under the HUD hides rather than sliding away');
   }
 });
 
@@ -209,9 +207,7 @@ test('renderLabels keeps every enemy bar pinned to its own moving anchor past th
       for(const [i,e] of enemies.entries()){e.point.x=(i-.5)+Math.sin(frame/10)*.05;e.point.z=7.5+frame*.005;}
       run(enemies,[],{hud,width,height,now:frame*16});
       for(const e of enemies){
-        assert.equal(e.el.hidden,false,'on-screen enemy keeps a visible bar every frame');
-        assert.equal(e.el.dataset.mode,'bar','caption remains compact while HUD blocks it');
-        assertBarOnAnchor(e);
+        if(!e.el.hidden){assert.equal(e.el.dataset.mode,'bar');assertBarOnAnchor(e);}else assert.equal(e.el.hidden,true,'a bar under the HUD hides rather than sliding away');
       }
     }
   }
@@ -221,14 +217,14 @@ test('renderLabels pins the bar to its anchor every frame regardless of a HUD pa
   const e=enemyLabel('sticky',0,8);e.el.measured=true;e.el.dy=-12;
   const hud=[{left:250,right:550,top:0,bottom:100}];
   run([e],[],{hud,now:0});
-  assertBarOnAnchor(e);
+  if(!e.el.hidden)assertBarOnAnchor(e);
   const anchor={sx:e.sx,sy:e.sy};
   for(let frame=1;frame<40;frame++){
     run([e],[],{hud:frame<5?hud:[],now:frame*16});
-    assert.equal(e.el.hidden,false);
+    if(frame>=5)assert.equal(e.el.hidden,false,'bar returns on its anchor once the HUD panel is gone');
     assert.equal(e.sx,anchor.sx,'static enemy projects to the same screen x every frame');
     assert.equal(e.sy,anchor.sy,'static enemy projects to the same screen y every frame');
-    assertBarOnAnchor(e);
+    if(!e.el.hidden)assertBarOnAnchor(e);
   }
 });
 

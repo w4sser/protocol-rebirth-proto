@@ -856,6 +856,13 @@ function renderLabels(){
     // Keep the layout width untransformed; placement reserves the scaled bounds.
     l.el.style.width=`${sizes[placed.mode].cssWidth}px`;
     l.el.style.left=`${placed.x}px`;l.el.style.top=`${placed.y}px`;
+    // v2.7.2: the bar never slides away from its enemy. If the measured box still lands on HUD or a
+    // fixed label, drop the caption; if even the bare bar collides, hide it (the enemy is under the HUD).
+    const fixedRects=[...hudRects,...boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}))];
+    const hits=rs=>{const r=l.el.getBoundingClientRect(),b={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
+      return r.width>0&&rs.some(o=>b.right>o.left&&b.left<o.right&&b.bottom>o.top&&b.top<o.bottom);};
+    if(placed.mode!=='bar'&&hits(fixedRects)){barOnly(l);l.el.style.width=`${sizes.bar.cssWidth}px`;}
+    if(hits(hudRects)){l.el.hidden=true;continue;}
     obstacles.push(placed.box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
