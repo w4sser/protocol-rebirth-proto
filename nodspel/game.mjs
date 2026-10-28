@@ -835,6 +835,7 @@ function renderLabels(){
   for(const {label} of hazardLabels)if(!label.el.hidden&&shown.get(label.id)===false)label.el.hidden=true;
   const shownBoxRects=boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
   const obstacles=[...hudRects,...shownBoxRects];
+  const labelRects=boxes.filter(b=>b.kind&&shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
   // v2.7.3: fixedRects/objectiveRects are the live declutter result for this frame (invariant across
   // the loop below) — objective-kind boxes (node/exit/room/house) get a small bar lift, everything
   // else (HUD + every other label) only ever causes a hide, never a push.
@@ -888,8 +889,10 @@ function renderLabels(){
     // though the bottom never moves off the anchor. Follow genuine anchor movement exactly (never stale),
     // but cap any EXTRA vertical shift the mode/lift change itself adds to at most 20px per frame; the
     // remainder bleeds off over the next frame or two, keeping the visual centre from jumping all at once.
+    // Time-based (not per-frame) so a slow device or headless CI frame rate cannot turn it into a jump: <=120 px/s.
+    const capY=Math.max(2,Math.min(12,(nowPlacement-(l._prevT??nowPlacement-16))*.12));l._prevT=nowPlacement;
     const drift=l._prevSy!=null?l.sy-l._prevSy:0,predicted=l._prevY!=null?l._prevY+drift:y;
-    y=Math.min(bounds.bottom,Math.max(bounds.top+sizes[mode].h,predicted+Math.max(-8,Math.min(8,y-predicted))));
+    y=Math.min(bounds.bottom,Math.max(bounds.top+sizes[mode].h,predicted+Math.max(-capY,Math.min(capY,y-predicted))));
     l._prevY=y;l._prevSy=l.sy;
     const size=sizes[mode],box={left:x-size.w/2,right:x+size.w/2,top:y-size.h,bottom:y};
     if(mode==='bar')barOnly(l);else l.el.dataset.mode=mode;
@@ -904,7 +907,7 @@ function renderLabels(){
     // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
     // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects)){l.el.hidden=true;continue;} // never over an objective label, not even one frame
+    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
     if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);
   }
