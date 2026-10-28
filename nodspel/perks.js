@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.6.2';
-import {heal} from './stakes.js?v=2.6.2';
-import {RULES} from './levels.js?v=2.6.2';
+import '../data/raid-perks.js?v=2.7.1';
+import {heal} from './stakes.js?v=2.7.1';
+import {RULES} from './levels.js?v=2.7.1';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -20,15 +20,20 @@ export function logCombat(round,event){
     d.amount+=e.amount;d.event=e;sum.lastHit=e;round.lastDamageEvent=e;
   }
   if(e.kind==='perk')sum.lastPerk=e;
+  if(e.kind==='weakSide'){
+    sum.weakSides??={};sum.weakSides[e.bonus]=(sum.weakSides[e.bonus]??0)+1;
+    round.weakSides??={};round.weakSides[e.bonus]=(round.weakSides[e.bonus]??0)+1;
+  }
   return e;
 }
+function weakSideSummary(counts){return Object.entries(counts??{}).map(([kind,count])=>`${kind==='flank'?'Flank':'Unaware'}: ${count} ${count===1?'hit':'hits'}.`).join(' ');}
 export function recap(round,key){
   const sum=perkState(round).summaries[key],top=Object.entries(sum?.damage??{}).sort((a,b)=>b[1].amount-a[1].amount)[0];
   return [top?`${top[0]}: ${Number(top[1].amount.toFixed(1))} damage.`:'No damage taken in this room.',
     top?`${top[1].event.moving?'Moving':'Stationary'} when hit.`:'No incoming hits recorded.',
-    sum?.lastPerk?.text??'No perk activation.'];
+    sum?.lastPerk?.text??'No perk activation.',...(sum?.weakSides?[weakSideSummary(sum.weakSides)]:[])];
 }
-export function deathLine(round){const e=round.lastDamageEvent;return e?`Last hit: ${e.source} / ${e.attack}, ${Number(e.amount.toFixed(1))} damage. ${e.moving?'Moving':'Stationary'} when hit.`:'No damage event recorded.';}
+export function deathLine(round){const e=round.lastDamageEvent;const weak=round.weakSides?` ${weakSideSummary(round.weakSides)}`:'';return (e?`Last hit: ${e.source} / ${e.attack}, ${Number(e.amount.toFixed(1))} damage. ${e.moving?'Moving':'Stationary'} when hit.`:'No damage event recorded.')+weak;}
 export function lastCombatFeedback(round){
   const events=round.perks?.events??[],e=[...events].reverse().find(e=>e.kind==='perk'||e.kind==='outcome');
   if(!e)return '';

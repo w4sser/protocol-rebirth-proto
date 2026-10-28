@@ -1,12 +1,12 @@
-import '../data/items.js?v=2.6.2';
-import {clearPassageProps} from './archipelago-passages.js?v=2.6.2';
-import {townizeLevel} from './town-layout.js?v=2.6.2';
-import {applyEncounters} from './encounters.js?v=2.6.2';
-import '../data/raid-combat.js?v=2.6.2';
+import '../data/items.js?v=2.7.1';
+import {clearPassageProps} from './archipelago-passages.js?v=2.7.1';
+import {townizeLevel} from './town-layout.js?v=2.7.1';
+import {applyEncounters} from './encounters.js?v=2.7.1';
+import '../data/raid-combat.js?v=2.7.1';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
-  intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:true,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
+  intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:false,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   // v1.67 first-upgrade payoff (meta sends ?payoff=kind once). loot_cluster: >= bag capacity pickups on free floor near spawn
   // (centred offsetZ from start toward the room, `spacing` apart, `margin` from walls, `clear` from solids/objectives, pickupRadius+`startClear` from the spawn so nothing is auto-collected at t=0).
   payoff:{loot_cluster:{count:6,offsetZ:-2.4,spacing:1.4,margin:1.3,clear:1.4,startClear:0.3,items:['cable','scrap_alloy','polymer_plate','cable','scrap_alloy','salvage_crate','polymer_plate','cable','scrap_alloy','salvage_crate'],source:'BIT · BAG CACHE',notice:'Bigger bag. Grab it all.'},
@@ -45,7 +45,12 @@ export const RULES=Object.freeze({
     hints:{guard:'GUARD · FLANK IT',grenadier:'THROWER · LEAVE THE RING',turret:'TURRET · MOVE WHILE IT RECOVERS',patrol:'PATROL · STAY OUT OF ITS CONE',swarm:'SWARM · FALL BACK TO A CORRIDOR',shield:'SHIELD · BREAK THE GENERATOR',door:'LOCKED · FIND THE KEYCARD'},
     names:{guard:'GUARD',grenadier:'THROWER',turret:'TURRET',patrol:'PATROL',swarm:'RUSHER',generator:'GENERATOR'},
     // Result-screen tip: the tool that solves the problem that killed the player.
-    tips:{guard:{tool:'tool_decoy',text:'a Decoy pulls the guard off the node. Or circle behind it: the shield only covers its front.'},
+    tips:{grunt:{tool:null,text:'step sideways out of the coral aim line before the shot. Circle behind for Flank damage.'},
+      rusher:{tool:null,text:'sidestep the charge line. Lure the charger into a wall, then attack while it is stunned.'},
+      sentry:{tool:null,text:'the laser locks before firing. Move out of its line or use low cover.'},
+      thrower:{tool:null,text:'leave the coral ring before the grenade lands.'},
+      'Cache guard':{tool:null,text:'move out of the coral line before the burst, then fire during recovery.'},
+      guard:{tool:'tool_decoy',text:'a Decoy pulls the guard off the node. Or circle behind it: the shield only covers its front.'},
       grenadier:{tool:null,text:'the coral ring shows where the blast lands. Step out of it, or take the thrower down before it lobs.'},
       turret:{tool:'tool_emp',text:'an EMP shuts the turret down for 4 s. Or run between cover while it recovers.'},
       patrol:{tool:'tool_decoy',text:'a Decoy draws the patrol away. Or sneak up behind it, outside its cone.'},

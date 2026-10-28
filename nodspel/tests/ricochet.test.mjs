@@ -5,7 +5,7 @@ import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js';
 import {perkState,cards} from '../perks.js';
 function arena(perk=true){
   const r=createRound('ricochet',0);
-  const enemy=(id,x,z)=>({id,kind:'enemy',type:'grunt',x,z,r:.48,health:10,active:true});
+  const enemy=(id,x,z)=>({id,kind:'enemy',aggro:true,facing:0,type:'grunt',x,z,r:.48,health:10,active:true});
   Object.assign(r.level,{enemies:[enemy('first',0,-3),enemy('near',2,-3),enemy('third',3,-3)],nodes:[],walls:[],boxes:[]});
   if(perk)perkState(r).taken=['ricochet'];
   return r;
@@ -37,9 +37,9 @@ test('Ricochet wakes dormant defenders and records hit feedback through hitEnemy
   const r=arena(),target=r.level.enemies[1];
   Object.assign(target,{active:false,aggro:false,spawnedAt:100});
   fire(r);
-  assert.equal(target.health,9);assert.equal(target.active,true);assert.equal(target.aggro,true);
+  assert.equal(target.health,7);assert.equal(target.active,true);assert.equal(target.aggro,true);
   assert.equal(target.attackWakeAt,200);assert.equal(target.lastHitAt,200);
-  assert.equal(target.hitSerial,1);assert.equal(target.lastDamage,1);
+  assert.equal(target.hitSerial,1);assert.equal(target.lastDamage,3);
 });
 test('a shield-blocked Ricochet still alerts the defender without damage feedback',()=>{
   const r=arena(),target=r.level.enemies[1];

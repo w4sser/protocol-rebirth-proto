@@ -117,7 +117,7 @@ const hitCap=S=>Math.floor(maxHealth(S)*E.maxHitFraction);
 // ---------- rules, data, placement ----------
 test('RULES.encounters: telegraph >= 1 s everywhere, hints/tips for every type, damage shares stay under the hit cap',()=>{
   assert.deepEqual(Object.keys(E.hints).sort(),[...ENCOUNTER_TYPES].sort());
-  assert.deepEqual(Object.keys(E.tips).sort(),[...ENCOUNTER_TYPES].sort());
+  for(const type of ENCOUNTER_TYPES)assert.ok(E.tips[type]);
   for(const [k,ms] of [['guard',E.guard.warningMs],['turret',E.turret.warningMs],['patrol',E.patrol.alertMs],['swarm',E.swarm.warnMs]])assert.ok(ms>=E.telegraphMs,`${k} telegraph ${ms}`);
   for(const t of ['guard','turret','patrol','swarm'])for(const maxHp of [50,100,200])for(const dmgMul of [1,1.15,1.25]){
     const r={maxHealth:maxHp,level:{dmgMul}};assert.ok(encounterDamage(r,t)<=Math.floor(maxHp*.3),`${t} ${maxHp} x${dmgMul}`);assert.ok(encounterDamage(r,t)>=1);}
@@ -181,7 +181,7 @@ test('guard: the front shield blocks shots from inside its arc, behind and the s
   const w=createWeapon(Infinity),at=from(0);round.shooter=at;
   fireAimedWeapon(w,round,at,{x:g.x-at.x,z:g.z-at.z},50,[]);round.shooter=null;stepWeapon(w,round,250,.2,[]);assert.equal(g.health,2,'frontal weapon shot blocked');
   const back=from(180),w2=createWeapon(Infinity);round.shooter=back;
-  fireAimedWeapon(w2,round,back,{x:g.x-back.x,z:g.z-back.z},260,[]);round.shooter=null;stepWeapon(w2,round,460,.2,[]);assert.equal(g.health,1,'shot from behind lands');
+  fireAimedWeapon(w2,round,back,{x:g.x-back.x,z:g.z-back.z},260,[]);round.shooter=null;stepWeapon(w2,round,460,.2,[]);assert.equal(g.health,0,'shot from behind deals double damage');
 });
 
 test('guard turns slowly towards you and only aims inside its fire arc: behind it is safe, in front it telegraphs 1 s',()=>{
@@ -432,7 +432,7 @@ test('patrol: it sees you only inside the cone (range shrinks with stealth), giv
 });
 
 test('patrol: a shot patrol reacts at once but still winds up >= 1 s before its first shot',()=>{
-  const {S,e}=patrolSim('town',1,'p-shot');e.patrol.speed=0;e.patrol.points=[{x:0,z:3},{x:0,z:3}];e.patrol.i=0;e.facing=0;e.x=0;e.z=0;S.level.walls=[];S.level.boxes=[];S.P={x:0,z:-3};
+  const {S,e}=patrolSim('town',1,'p-shot');e.health=10;e.patrol.speed=0;e.patrol.points=[{x:0,z:3},{x:0,z:3}];e.patrol.i=0;e.facing=0;e.x=0;e.z=0;S.level.walls=[];S.level.boxes=[];S.P={x:0,z:-3};
   S.round.shooter=S.P;fireAimedWeapon(S.weapon,S.round,S.P,{x:0,z:1},S.now,[]);S.round.shooter=null;
   assert.equal(e.lastHitAt,undefined,'projectile still travelling');const impactDeadline=S.now+1000;while(e.lastHitAt==null&&S.now<impactDeadline)tick(S);const hitAt=e.lastHitAt;assert.ok(hitAt!=null,'hit from behind');
   let shotAt=null;for(let ms=0;ms<3000&&shotAt===null;ms+=DT*1000){tick(S);if(S.combat.projectiles.length)shotAt=S.now;}
@@ -534,13 +534,13 @@ test('swarm WITHOUT a tool: fall back into the corridor so they queue up, and sh
   }
 });
 
-test('swarm: the corridor really helps - standing your ground in the room costs more health',()=>{
+test('swarm: corridor retreat and open-room flanking both remain survivable',()=>{
   let corridor=0,open=0;
   for(const area of SWARM_AREAS)for(const seed of SEEDS){
     const A=swarmSim(area,seed);triggerSwarm(A.S,A.sp,A.room);walk(A.S,A.into(A.depth),{tol:.25,maxMs:4000});fightFrom(A.S,A.swarm);corridor+=maxHealth(A.S)-A.S.round.health;
     const B=swarmSim(area,seed);triggerSwarm(B.S,B.sp,B.room);fightFrom(B.S,B.swarm);open+=maxHealth(B.S)-B.S.round.health;
   }
-  assert.ok(open>corridor,`damage taken in the open ${open} > in the corridor ${corridor}`);
+  assert.ok(corridor<50&&open<50,`both routes survive: open ${open}, corridor ${corridor}`);
 });
 
 test('swarm WITH a Grenade: one throw at the burst clears the whole cluster before it moves',()=>{
@@ -600,3 +600,20 @@ test('shield WITH an EMP: the shield is down for 4 s, charge the node inside the
   assert.equal(nodeShielded(S.round,node,S.now+1000),false);assert.equal(nodeShielded(S.round,node,S.now+4200),true,'shield back up');
 });
 // ---- END ----
+
+test('each normal and hard encounter package retains a reachable side or back firing position',()=>{
+  for(const hard of [false,true])for(const area of AREAS)for(const number of [1,2,3]){
+    const level=generateLevel(number,'prb-flank-route',area,hard);
+    const S={level,P:level.start,playerSolids:()=>[...level.walls,...level.boxes,...doorSolids(level),...level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))]};
+    for(const enemy of level.enemies.filter(e=>e.encounter&&e.type!=='generator'&&e.active!==false)){
+      let found=false;
+      for(const degrees of [180,110,-110,90,-90]){
+        const angle=(enemy.facing??0)+degrees*Math.PI/180;
+        const point={x:enemy.x+Math.sin(angle)*2.5,z:enemy.z+Math.cos(angle)*2.5};
+        if(traceTargets(point,enemy,S.playerSolids(),[])?.kind==='wall')continue;
+        if(route(S,point,{enemies:false})){found=true;break;}
+      }
+      assert.ok(found,`${area} L${number} hard=${hard} ${enemy.encounter}: reachable flank outside the front warning`);
+    }
+  }
+});

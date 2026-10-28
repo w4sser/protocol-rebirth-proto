@@ -1,5 +1,5 @@
-import {audioEvent} from './audio.js?v=2.6.2';
-import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.6.2';
+import {audioEvent} from './audio.js?v=2.7.1';
+import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.7.1';
 const paths={
   chain:'M5 17l7-10 1 6h6l-7 10-1-6H5z M4 4h4 M18 4h2',
   reload:'M5 9a8 8 0 1 1-1 7 M5 4v5h5 M12 8v5l3 2',
@@ -47,7 +47,7 @@ export function createPerkUI(viewport,action){
   return {layer,open(round,key){
     audioEvent('perk-open');
     const ids=offer(round,key);feedback.replaceChildren();const label=document.createElement('b');label.className='perk-recap-label';label.textContent='LAST ROOM';feedback.append(label);
-    recap(round,key).forEach((line,i)=>{const p=document.createElement('p'),text=document.createElement('span');text.textContent=line;p.append(perkIcon(['shield','roll','chain'][i]),text);feedback.append(p);});
+    recap(round,key).forEach((line,i)=>{const p=document.createElement('p'),text=document.createElement('span');text.textContent=line;p.append(perkIcon(['shield','roll','chain','recon'][i]),text);feedback.append(p);});
     grid.replaceChildren();confirmation.textContent='One choice. This raid only.';
     for(const id of ids){const c=cards.find(c=>c.id===id),button=document.createElement('button');button.type='button';button.className='perk-choice';button.dataset.accent=c.accent;
       const category=document.createElement('span');category.className='perk-category';category.textContent=c.category;

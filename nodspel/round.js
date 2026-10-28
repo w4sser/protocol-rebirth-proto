@@ -1,12 +1,12 @@
-import {rarityOf} from './rarity.js?v=2.6.2';
-import {audioEvent} from './audio.js?v=2.6.2';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,resetPerks} from './perks.js?v=2.6.2';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.6.2';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.6.2';
-import {emptyBag,bagItems} from './raid.js?v=2.6.2';
-import {traceTargets} from './physics.mjs?v=2.6.2';
-import {shieldBlocks} from './encounters.js?v=2.6.2';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.6.2';
+import {rarityOf} from './rarity.js?v=2.7.1';
+import {audioEvent} from './audio.js?v=2.7.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,resetPerks} from './perks.js?v=2.7.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.7.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.7.1';
+import {emptyBag,bagItems} from './raid.js?v=2.7.1';
+import {traceTargets} from './physics.mjs?v=2.7.1';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.7.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.7.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -277,9 +277,14 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || (enemy.active===false&&enemy.swarm) || !Number.isFinite(damage) || damage<=0)return false;
   // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
   if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
+  const bonus=weakSide(enemy,from);
   alertEnemy(enemy,now);
   if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
   audioEvent('hit',{type:enemy.type});
+  if(bonus){
+    damage*=bonus.multiplier;enemy.weakMarker=bonus.kind.toUpperCase();enemy.weakMarkerAt=now;
+    logCombat(round,{kind:'weakSide',at:now,sourceId:enemy.id,bonus:bonus.kind,multiplier:bonus.multiplier,text:`${bonus.kind==='flank'?'Flank':'Unaware'}: x${bonus.multiplier} weapon damage (${enemy.id}).`});
+  }
   if(enemy.type==='generator'){
     // Not a kill: breaking the generator drops its node's shield for good.
     enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);

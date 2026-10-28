@@ -29,7 +29,7 @@ test('reload restores one shot per interval and firing does not restart an exist
 test('a large frame cannot hit a target beyond the range circle',()=>{
   assert.equal(typeof weapon.createWeapon,'function');
   const r=createRound('range',0),w=weapon.createWeapon();
-  const foe={id:'far',kind:'enemy',x:RULES.weapon.range+1,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
+  const foe={id:'far',kind:'enemy',aggro:true,facing:0,x:RULES.weapon.range+1,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
   weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
   weapon.stepWeapon(w,r,100,1,[]);
   assert.equal(foe.health,2);assert.equal(w.projectiles.length,0);
@@ -39,7 +39,7 @@ test('shots damage within range but walls stop them before enemies or nodes',()=
   assert.equal(typeof weapon.createWeapon,'function');
   for(const covered of [false,true]){
     const r=createRound('cover',0),w=weapon.createWeapon();
-    const foe={id:'near',kind:'enemy',x:3,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
+    const foe={id:'near',kind:'enemy',aggro:true,facing:0,x:3,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
     weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
     weapon.stepWeapon(w,r,100,1,covered?[{x:1,z:0,w:.4,d:3}]:[]);
     assert.equal(foe.health,covered?2:2-RULES.weapon.damage);
@@ -68,7 +68,7 @@ test('level three runners approach faster without outranging the player',()=>{
 test('a fast projectile crosses an enemy within a single big-dt step and still hits',()=>{
   // One huge step (dropped frames / high bullet speed) must not skip past a target that lies on its path.
   const r=createRound('fast-cross',0),w=weapon.createWeapon();
-  const foe={id:'mid',kind:'enemy',x:2,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
+  const foe={id:'mid',kind:'enemy',aggro:true,facing:0,x:2,z:0,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
   weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
   weapon.stepWeapon(w,r,5000,5,[]); // dt=5s: the step distance is capped by weapon range, covering it in one tick
   assert.equal(foe.health,2-RULES.weapon.damage);assert.equal(w.projectiles.length,0);
@@ -79,14 +79,14 @@ test('an edge-grazing shot that visually overlaps the enemy model still hits',()
   // isolated here from the separate aim-forgiveness shotRadius (set to 0) and homing (set to 0).
   const r=createRound('graze',0);
   const w=weapon.createWeapon(Infinity,{...RULES.weapon,shotRadius:0,homingDegreesPerSecond:0});
-  const foe={id:'corner',kind:'enemy',x:3,z:.5,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
+  const foe={id:'corner',kind:'enemy',aggro:true,facing:0,x:3,z:.5,r:.48,health:2};r.level.enemies=[foe];r.level.nodes=[];
   weapon.fireWeapon(w,{x:0,z:0},{x:1,z:0},0);
   weapon.stepWeapon(w,r,100,.3,[]);
   assert.equal(foe.health,1,'margin covers the model corner even with no shotRadius or homing to help');
 });
-test('level one enemy takes two shots and refills take 0.7 seconds',()=>{
+test('aware level one enemy takes two front shots and refills take 0.7 seconds',()=>{
   const r=createRound('balance',0),w=weapon.createWeapon();
-  const foe=r.level.enemies[0];foe.x=3;foe.z=0;r.level.nodes=[];
+  const foe=r.level.enemies[0];foe.x=3;foe.z=0;foe.aggro=true;foe.facing=-Math.PI/2;r.level.nodes=[];
   assert.equal(RULES.weapon.reloadMs,700);
   assert.equal(RULES.combat.damage,22,'v1.44: +10% enemy damage');
   assert.equal(foe.health,RULES.weapon.damage*2);

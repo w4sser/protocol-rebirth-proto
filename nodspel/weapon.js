@@ -1,9 +1,13 @@
-import {audioEvent} from './audio.js?v=2.6.2';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.6.2';
-import {RULES} from './levels.js?v=2.6.2';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.6.2';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.6.2';
+import {audioEvent} from './audio.js?v=2.7.1';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.7.1';
+import {RULES} from './levels.js?v=2.7.1';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.7.1';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.7.1';
 
+// Lean over only the low cover beside the original shooter, never cover near a flying bullet.
+export function playerShotObstacles(origin,obstacles){
+  return obstacles.filter(o=>!o.encounterCover||Math.hypot(Math.max(0,Math.abs(origin.x-o.x)-o.w/2),Math.max(0,Math.abs(origin.z-o.z)-o.d/2))>RULES.shooting.coverLeanReach);
+}
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
 }
@@ -13,6 +17,7 @@ export function assistWindow(rule=RULES.weapon,moving=false){
 }
 // The preview depicts both eligibility limits: angle near the muzzle, width farther away.
 export function assistPreview(position,direction,obstacles,rule=RULES.weapon,moving=false){
+  obstacles=playerShotObstacles(position,obstacles);
   const window=assistWindow(rule,moving),length=Math.hypot(direction.x,direction.z)||1;
   const raw={x:direction.x/length,z:direction.z/length};
   return aimConePoints(position,raw,rule.range,window.angleDegrees*Math.PI/180,obstacles).map(p=>{
@@ -22,6 +27,7 @@ export function assistPreview(position,direction,obstacles,rule=RULES.weapon,mov
   });
 }
 export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon,moving=false){
+  obstacles=playerShotObstacles(position,obstacles);
   const window=assistWindow(rule,moving);
   const length=Math.hypot(direction.x,direction.z);
   if(length<1e-9)return {target:null,direction:{x:0,z:-1},rejections:['no direction']};
@@ -89,6 +95,7 @@ export function knockEnemy(round,enemy,dir,rule,obstacles,now){
 }
 // Light homing: a free-flying tracer bends toward the nearest living enemy inside a narrow forward cone (never past cover).
 export function steerShot(b,enemies,obstacles,rule,dt){
+  if(b.tap)return;
   const homing=b.movingAtFire?Math.min(rule.homingDegreesPerSecond,RULES.shooting.movingHomingDegreesPerSecond):rule.homingDegreesPerSecond;
   if(!(homing>0))return;
   let best=null,bestD=Infinity;const limit=Math.cos(rule.homingAngleDegrees*Math.PI/180);
@@ -104,19 +111,24 @@ export function steerShot(b,enemies,obstacles,rule,dt){
   let diff=Math.atan2(Math.sin(want-cur),Math.cos(want-cur));const max=homing*Math.PI/180*dt;
   diff=Math.max(-max,Math.min(max,diff));b.dx=Math.cos(cur+diff);b.dz=Math.sin(cur+diff);
 }
-export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false){
+export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false,tap=false){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
-  const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=assistAim(position,direction,targets,obstacles,rule,moving);
-  // Spread scatters free-aimed shots; assist sets the initial direction.
+  const rule=weaponRule(weapon),targets=[...round.level.enemies,...round.level.nodes],assisted=tap
+    ?{direction:tapDirection(position,direction,round.level.enemies,obstacles,rule),target:null,rejections:[]}
+    :assistAim(position,direction,targets,obstacles,rule,moving);
+  // Tap chooses only a launch direction; spread always applies, even with a target.
   let dir=assisted.direction;
-  if(!assisted.target&&rule.spreadDegrees>0){const a=(weapon.rand??Math.random)()*2-1,t=a*rule.spreadDegrees*Math.PI/180,c=Math.cos(t),s=Math.sin(t);dir={x:dir.x*c-dir.z*s,z:dir.x*s+dir.z*c};}
+  const spread=tap?Math.max(rule.spreadDegrees??0,RULES.shooting.tapMinSpreadDegrees)*RULES.shooting.tapSpreadMul:rule.spreadDegrees;
+  if(!assisted.target&&spread>0){const a=(weapon.rand??Math.random)()*2-1,t=a*spread*Math.PI/180,c=Math.cos(t),s=Math.sin(t);dir={x:dir.x*c-dir.z*s,z:dir.x*s+dir.z*c};}
   const shot=fireWeapon(weapon,position,dir,now,round);if(!shot)return null;
   shot.logId=round.nextCombatShotId=(round.nextCombatShotId??0)+1;shot.movingAtFire=!!moving;shot.bonus=hasPerk(round,'chain')&&perkState(round).chain;if(shot.bonus)perkState(round).chain=false;
   logCombat(round,{kind:'shot',at:now,shotId:shot.logId??shot.id,moving:!!moving,rejections:assisted.rejections,target:assisted.target?.id??null});
   // Aim assist chooses the launch direction, never a promised hit. Collision is
   // swept only over each frame's travelled segment against current positions.
+  shot.tap=!!tap;
+  if(tap)shot.remaining*=RULES.shooting.tapRangeMul;
   shot.aimAssisted=!!assisted.target;
-  if(rule.pellets>1)fanPellets(weapon,shot,rule,assisted.target?Math.hypot(assisted.target.x-position.x,assisted.target.z-position.z):rule.range);
+  if(rule.pellets>1)fanPellets(weapon,shot,rule,assisted.target?Math.hypot(assisted.target.x-position.x,assisted.target.z-position.z):shot.remaining);
   return shot;
 }
 // Visual-only pellets around the real shot; they never damage (resolved) so a shell still counts as one hit.
@@ -169,13 +181,15 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
   tickWeapon(weapon,now,round);let changed=false;
   for(let i=weapon.projectiles.length-1;i>=0;i--){
     const b=weapon.projectiles[i];
-    if(!b.resolved&&!b.aimAssisted)steerShot(b,round.level.enemies,obstacles,weaponRule(weapon),dt);
+    const shotObstacles=playerShotObstacles(b.origin??b,obstacles);
+    if(!b.resolved&&!b.aimAssisted&&!b.tap)steerShot(b,round.level.enemies,shotObstacles,weaponRule(weapon),dt);
     const distance=Math.min(b.remaining,weaponRule(weapon).bulletSpeed*dt);
     const end={x:b.x+b.dx*distance,z:b.z+b.dz*distance};
-    const hit=b.resolved?null:weaponHit(b,end,obstacles,[...round.level.nodes,...round.level.enemies].filter(t=>t.id!==b.sourceId),weaponRule(weapon));
+    const hit=b.resolved?null:weaponHit(b,end,shotObstacles,[...round.level.nodes,...round.level.enemies].filter(t=>t.id!==b.sourceId),weaponRule(weapon));
     // A shot that whizzes close by but does not connect still gives away the shooter: an idle/patrolling
     // enemy that was not yet aggro reacts to the near miss, same as being hit (combat.js reads nearMissAt).
-    if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
+    // Wait until it passes the enemy; an approaching hit must keep its unaware bonus.
+    if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&(e.x-end.x)*b.dx+(e.z-end.z)*b.dz<=0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
       changed=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b)||changed;
