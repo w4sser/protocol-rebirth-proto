@@ -5,6 +5,13 @@ Mobile **landscape**, mass-market game: a Tarkov-lite extraction raid (Node Raid
 (meta layer: `index.html`, `app.js`, `style`/inline CSS, `data/*.js`). Static site, no build step, published via GitHub Pages.
 All economy/tuning values live in `data/*.js` (a test enforces it); every player action goes through `act()`.
 
+## Stack
+- Base/meta layer: `index.html` + `app.js` (shell, UI, save/load). No economy numbers live here.
+- Raid game: `nodspel/` (Three.js extraction raid — movement, combat, loot, extract).
+- Tuning data: `data/*.js` — items, modules, zones, recipes, vendors, BIT, progression, and raid
+  balance (e.g. `data/raid-stakes.js`, `data/raid-perks.js`, `data/raid_zones.js`).
+- Tests: Puppeteer/jsdom for the base layer, `node --test` for `nodspel/`.
+
 ## Hard rules
 - Work only in this repo. Never force-push. Do not commit/push unless asked.
 - **No emoji or symbol glyphs** anywhere in UI sources. Icons are bespoke SVG in `assets/icons/sprite.svg`,
@@ -20,17 +27,31 @@ All economy/tuning values live in `data/*.js` (a test enforces it); every player
 - Meta raids are simulated; Live Fire stays an isolated sandbox. Monetization only in retention `full` mode.
   Every raid moves at least one progression bar. See the invariants in `README.md` / `docs/`.
 - Design proposals (new systems, screens, economy changes) go to the owner **before** building.
+- **Clarity over cleverness.** The player must always understand what just happened to them — what
+  they gained, lost, or triggered — before doing the next thing.
+- **Quests name their source.** A quest that asks for an item must say where to find it, and that
+  item must spawn reliably wherever the quest claims — no quest should depend on RNG the player
+  can't act on.
+- **Locks explain themselves.** Anything gated (recipe, zone, gear slot) must say why it's locked
+  and what unlocks it. Never a bare "locked" with no path forward.
+- **No paid services.** Everything (audio, art, tooling) must run free/local. Audio generation
+  follows `docs/audio-pipeline.md` (local CPU TTS + procedural SFX, nothing commercial; lands with
+  PR #133 `feat/bit-audio-pipeline`, not yet on `main`).
+- **Locked design decisions** (do not revisit without the owner): PvE only, no PvP. Dying in a raid
+  loses everything currently carried. No new currencies beyond what already exists. BIT (the
+  companion) runs exactly one active task at a time — never stack scavenge/expedition/raid-buff.
 
 ## Run the checks
 ```
-npm test                 # base logic + jsdom UI + guardrails (needs `npm ci`)
-cd nodspel && npm test   # raid unit tests (node:test)
-npm run verify           # both of the above + headless-Chrome layout check, screenshots in verify-out/
-node scripts/layout-check.mjs   # layout only (needs puppeteer, or puppeteer-core + CHROME_PATH)
+npm test                        # base logic + jsdom UI + guardrails (needs `npm ci`)
+cd nodspel && npm test           # raid unit tests (node:test)
+npm run verify                   # both of the above + headless-Chrome layout check, screenshots in verify-out/
+node scripts/layout-check.mjs    # overlap/off-screen/popup-fit check at 844x390, 932x430, 667x375
+node scripts/viewport-check.mjs  # viewport-only browser check
 ```
 `test/guardrails.test.js` covers: no emoji, shared popup, palette tokens/ratchet, primary-button token, sprite sync
 and icon coverage, version agreement. `scripts/layout-check.mjs` checks overlap/covered/off-screen controls, popup fit,
-world-label and notice overlap, and canvas full-bleed at 844x390, 932x430 and 667x375.
+world-label and notice overlap, and canvas full-bleed at all three viewport sizes.
 
 ## Versioning
 Each PR bumps the version once and everywhere with the same number: every `?v=X.Y.Z` tag (`index.html`,
@@ -42,12 +63,22 @@ Originals live in `assets/reference/` (never overwrite); `tools/add-art.py` deri
 Image pipeline details: `docs/art-pipeline-and-legacy-guide.md`. Art direction: `docs/art-direction.md` (enclosed Cold-War bunker hub, dark teal/navy, cyan UI accents, warm orange light,
 BIT = square CRT smiley, no national flags). Wire new art through `data/*.js` hooks, then bump the version.
 
-## Work split (mandatory)
-Claude Code (`claude -p`) does ALL implementation, debugging and small fixes. Codex (`codex exec`) reviews diffs
-before merge. The orchestrating assistant (Grok Bot) only plans scoped prompts, verifies (`npm run verify`, CI,
-screenshots), merges and updates Linear — and must keep its own token usage minimal (scoped context, no reading
-large files unnecessarily). Grok Bot falls back to doing work itself only when Claude or Codex hit limits, and it
-must say so when that happens.
+## Workflow
+- Claude Code (`claude -p`) does ALL implementation, debugging and small fixes. Codex (`codex exec`) reviews diffs
+  read-only before merge — it does not edit code. The orchestrating assistant (Grok Bot) only plans scoped prompts,
+  verifies (`npm run verify`, CI, screenshots), merges and updates Linear — and must keep its own token usage minimal
+  (scoped context, no reading large files unnecessarily). Grok Bot falls back to doing work itself only when Claude
+  or Codex hit limits, and it must say so when that happens.
+- Before anything ships, run the QA gate: `/workspace/qa.sh` (runs `npm test`, `nodspel` tests, `layout-check`, and a
+  smoke playthrough end to end). Don't merge on a QA gate that hasn't gone green.
+- Use `/workspace/progress-shot.sh "<short desc>"` to capture a screenshot of the current state into
+  `/workspace/prp-progress` whenever a change is worth showing, not just at the end.
+- One PR per change. Merge only when CI is green. Never force-push. Never commit `node_modules`.
+
+## Future backend (not built yet)
+Cloudflare Workers + D1 (DB) + R2 (asset storage), with Better Auth and an anonymous-start flow
+(play before creating an account). Nothing in the current codebase assumes a backend exists yet —
+don't build against it speculatively.
 
 ## Model policy (Robert, Oct 25)
 - `claude -p`: use the default model (Sonnet). Use `--model opus` only for hard tasks (complex debugging, large refactors, tricky game logic).
