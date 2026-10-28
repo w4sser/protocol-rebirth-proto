@@ -5,7 +5,7 @@ import {createRound,activateNode} from '../round.js';
 import {createCombat,stepCombat} from '../combat.js';
 import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js';
 import {generateLevel} from '../levels.js';
-const enemy=(x=0,z=0)=>({id:'foe',kind:'enemy',x,z,r:.48,health:2,active:true,speed:1});
+const enemy=(x=0,z=0)=>({id:'foe',kind:'enemy',aggro:true,facing:0,x,z,r:.48,health:2,active:true,speed:1});
 const floor=[{x:0,z:0,w:12,d:12}];
 test('overlapping circular actors can escape instead of freezing movement',()=>{
  const p=physics.movePlayer({x:.1,z:0},{x:0,z:1},[{x:0,z:0,r:.48}],floor,.36);
@@ -58,7 +58,7 @@ test('near a clean corner, different clear angles hit but crossing angles remain
  const wall={x:0,z:-1,w:2,d:2},p={x:1.26,z:.26};
  for(const direction of [{x:1,z:0},{x:1,z:1},{x:0,z:1},{x:-1,z:1}]){
    const r=createRound('angles',0),w=createWeapon(),length=Math.hypot(direction.x,direction.z);
-   r.level.nodes=[];r.level.enemies=[enemy(p.x+direction.x/length*3,p.z+direction.z/length*3)];
+   r.level.nodes=[];r.level.enemies=[{...enemy(p.x+direction.x/length*3,p.z+direction.z/length*3),facing:Math.atan2(-direction.x,-direction.z)}];
    fireWeapon(w,p,direction,0);stepWeapon(w,r,100,.3,[wall]);assert.equal(r.level.enemies[0].health,1);
  }
 });

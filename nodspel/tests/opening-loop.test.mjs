@@ -32,11 +32,11 @@ test('bait from cover, then attack during recovery with the starting carbine',()
  const flank={x:e.x+2,z:e.z+1};for(const now of [2100,2350]){assert(fireAimedWeapon(w,r,flank,{x:e.x-flank.x,z:e.z-flank.z},now,solids));stepWeapon(w,r,now+200,.2,solids);}
  assert.equal(r.enemiesDefeated,1,'recovery permits two useful shots');
 });
-test('stationary rapid fire triggers the committed burst; recovery attack avoids this cost',()=>{
+test('killing the intro guard before its minimum warning prevents its burst',()=>{
  const r=createRound('counter-2',0);applyIntroEncounter(r.level,goal);const e=r.level.enemies[0],c=createCombat(r.level,0),w=createWeapon(Infinity),p={x:e.x+3,z:e.z};c.graceUntil=0;c.moveAt=0;c.nextFire.set(e.id,0);
  stepCombat(r,c,p,1,.01,[]);
  for(let now=20;now<1500;now+=20){if(now===20||now===220)fireAimedWeapon(w,r,p,{x:-1,z:0},now,[]);stepWeapon(w,r,now,.02,[]);stepCombat(r,c,p,now,.02,[]);}
- assert.equal(r.enemiesDefeated,1);assert(r.health<100,'a committed burst survives its shooter; stationary fire has a visible cost');assert(r.health>0,'opening remains forgiving');
+ assert.equal(r.enemiesDefeated,1);assert.equal(r.health,100,'hitting the guard cannot shorten its telegraph');assert(r.health>0,'opening remains forgiving');
 });
 test('intro guarantees available requirements, optional choice and usable cover for many seeds',()=>{
  for(let i=0;i<40;i++){const l=generateLevel(1,'intro-'+i);applyIntroEncounter(l,goal);assert.equal(l.enemies.length,1);assert(l.boxes.some(b=>b.introCover));assert(l.lootBoxes.some(b=>b.optional));

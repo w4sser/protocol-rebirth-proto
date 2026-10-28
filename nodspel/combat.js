@@ -1,12 +1,12 @@
-import {audioEvent} from './audio.js?v=2.6.1';
-import {ownRooms} from './perks.js?v=2.6.1';
-import {RULES,hazardState} from './levels.js?v=2.6.1';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.6.1';
-import {takeDamage,tickRound} from './round.js?v=2.6.1';
-import {houseWaypoint} from './house.js?v=2.6.1';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.6.1';
-import {detectionMultiplier} from './stakes.js?v=2.6.1';
-import {dashInvulnerable} from './dash.js?v=2.6.1';
+import {audioEvent} from './audio.js?v=2.7.0';
+import {ownRooms} from './perks.js?v=2.7.0';
+import {RULES,hazardState} from './levels.js?v=2.7.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.7.0';
+import {takeDamage,tickRound} from './round.js?v=2.7.0';
+import {houseWaypoint} from './house.js?v=2.7.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.7.0';
+import {detectionMultiplier} from './stakes.js?v=2.7.0';
+import {dashInvulnerable} from './dash.js?v=2.7.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -32,10 +32,11 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
     if(now<combat.graceUntil&&enemy.nearMissAt==null)continue;
+    if(enemy.health<=0){enemy.windupAt=null;enemy.attackPhase=null;continue;}
     if(enemy.active===false||enemy.type==='generator'||(enemy.nearMissAt==null&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??rule.graceMs)))continue;
     if(enemy.attackWakeAt!=null){combat.nextFire.set(enemy.id,Math.min(combat.nextFire.get(enemy.id)??now,now));enemy.attackWakeAt=null;}
     // EMP: a stunned enemy neither moves nor fires; its wind-up and salvo are cancelled (a fresh telegraph follows).
-    if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;continue;}
+    if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;enemy.attackPhase=null;enemy.attackTarget=null;enemy.alertAt=null;continue;}
     // Decoy: a lured mover heads for the lure instead of the player and holds fire until it ends.
     if(enemy.lureTarget&&enemy.speed>0&&now<(enemy.lureUntil??Infinity)){
       enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;
@@ -53,8 +54,9 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     if(seen||enemy.lastHitAt!=null||enemy.nearMissAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}
-    if(enemy.patrol&&enemy.health>0)enemy.facing=angleTo(enemy,player);
-    if(enemy.health>0 && enemy.speed && (now>=combat.moveAt||enemy.nearMissAt!=null)){
+    if(enemy.type==='rusher'&&!enemy.swarm){stepCharger(round,enemy,combat,player,now,dt,obstacles,dash);continue;}
+    if(enemy.windupAt==null)enemy.facing=turnToward(enemy.facing??angleTo(enemy,player),angleTo(enemy,player),RULES.shooting.telegraphs.turnRadPerSec*dt);
+    if(enemy.windupAt==null && enemy.health>0 && enemy.speed && (now>=combat.moveAt||enemy.nearMissAt!=null)){
       const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
       // through the house doorway when the player is on the other side of the shell
       const way=houseWaypoint(round.level.house,enemy,player)??(enemy.swarm?doorwayWaypoint(round.level,enemy,player):null),goal=way??player,gd=Math.hypot(goal.x-enemy.x,goal.z-enemy.z);
@@ -64,19 +66,22 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     }
     if(enemy.health<=0 || now<combat.nextFire.get(enemy.id))continue;
     const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
-    if(distance<.1 || distance>rule.range*(enemy.rangeMul??1)){enemy.windupAt=null;continue;}
-    const cover=[...obstacles,...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
-    if(traceTargets(enemy,player,cover,[target])?.kind!=='player'){enemy.windupAt=null;continue;}
-    // Telegraph: a visible wind-up precedes each shot when the level (or the encounter) asks for one.
-    const windup=enemy.windupMs??round.level.enemyWindupMs??0;
-    if(windup>0){
-      // Thrower: the landing spot is fixed when the warning starts (a coral ring is drawn there), so walking out of it is the dodge.
-      if(enemy.windupAt==null&&enemy.type==='thrower')enemy.attackTarget={x:player.x,z:player.z};
-      enemy.windupAt??=now+windup;if(now<enemy.windupAt)continue;enemy.windupAt=null;}
+    if(enemy.windupAt==null){
+      if(distance<.1 || distance>rule.range*(enemy.rangeMul??1))continue;
+      const cover=[...obstacles,...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
+      if(traceTargets(enemy,player,cover,[target])?.kind!=='player')continue;
+      enemy.attackTarget={x:player.x,z:player.z};enemy.windupAt=now+telegraphDuration(enemy,round.level);
+      enemy.aimLockAt=enemy.windupAt-(enemy.type==='sentry'?RULES.shooting.telegraphs.sentryLockMs:0);
+    }
+    if(enemy.type==='sentry'&&now<enemy.aimLockAt)enemy.attackTarget={x:player.x,z:player.z};
+    if(now<enemy.windupAt)continue;
+    enemy.windupAt=null;
     if(enemy.type==='thrower'){lobGrenade(round,combat,enemy,now);continue;}
-    const dx=(player.x-enemy.x)/distance,dz=(player.z-enemy.z)/distance;
-    combat.projectiles.push({id:++combat.nextId,x:enemy.x+dx*.65,z:enemy.z+dz*.65,dx,dz,life:2,...shotInfo(round,enemy)});
-    combat.nextFire.set(enemy.id,now+(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1));
+    const aim=enemy.attackTarget,lockedDistance=Math.hypot(aim.x-enemy.x,aim.z-enemy.z)||1;
+    const dx=(aim.x-enemy.x)/lockedDistance,dz=(aim.z-enemy.z)/lockedDistance;
+    combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,life:rule.range*(enemy.rangeMul??1)/rule.bulletSpeed,...shotInfo(round,enemy)});
+    const cooldown=(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1);
+    combat.nextFire.set(enemy.id,now+Math.max(cooldown,enemy.type==='sentry'?RULES.shooting.telegraphs.sentryRecoveryMs:0));
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
     const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
@@ -87,6 +92,36 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??'Enemy',enemyId:b.enemyId,attack:b.attack??'projectile',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
+}
+
+// Shared minimum applies even to short per-type or level windups.
+export function telegraphDuration(enemy,level={}){
+  const T=RULES.shooting.telegraphs;
+  const requested=enemy.type==='rusher'&&!enemy.swarm?T.chargerMs:enemy.type==='sentry'?T.sentryMs:T.gruntMs;
+  return Math.max(RULES.encounters.telegraphMs,requested,enemy.windupMs??level.enemyWindupMs??0);
+}
+function stepCharger(round,e,combat,player,now,dt,obstacles,dash){
+  const T=RULES.shooting.telegraphs;
+  if(e.attackPhase==='charge'){
+    const step=Math.min(e.chargeRemaining,T.chargerSpeed*dt),dir=e.chargeDirection;
+    const endpoint=aimEndpoint(e,dir,step,obstacles.map(o=>({...o,w:o.w+T.enemyRadius*2,d:o.d+T.enemyRadius*2})));
+    const travelled=Math.hypot(endpoint.x-e.x,endpoint.z-e.z);
+    const hit=traceTargets(e,endpoint,[],[{...player,r:RULES.playerRadius+T.enemyRadius,kind:'player'}]);
+    if(hit&&!e.chargeHit){e.chargeHit=true;round.lastHit={source:'rusher',enemyId:e.id,attack:'charge',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,round.level.enemyDamage??RULES.combat.damage,now);}
+    e.x=endpoint.x;e.z=endpoint.z;e.chargeRemaining-=travelled;
+    if(travelled<step-T.collisionEpsilon){e.stunnedUntil=now+T.chargerStunMs;e.attackPhase=null;e.windupAt=null;combat.nextFire.set(e.id,e.stunnedUntil);}
+    else if(e.chargeRemaining<=T.collisionEpsilon){e.attackPhase=null;combat.nextFire.set(e.id,now+T.chargerCooldownMs);}
+    return;
+  }
+  if(now<(combat.nextFire.get(e.id)??0))return;
+  if(e.windupAt==null){
+    const distance=Math.hypot(player.x-e.x,player.z-e.z);
+    if(distance>T.chargerRange){if(now>=combat.moveAt&&e.speed>0){const goal=houseWaypoint(round.level.house,e,player)??player;stepEnemy(round,e,goal,Math.hypot(goal.x-e.x,goal.z-e.z),obstacles,player,dt);e.facing=angleTo(e,goal);}return;}
+    e.facing=angleTo(e,player);e.chargeDirection={x:Math.sin(e.facing),z:Math.cos(e.facing)};
+    e.attackTarget={x:e.x+e.chargeDirection.x*T.chargerRange,z:e.z+e.chargeDirection.z*T.chargerRange};
+    e.windupAt=now+telegraphDuration(e,round.level);e.attackPhase='warning';return;
+  }
+  if(now>=e.windupAt){e.windupAt=null;e.attackPhase='charge';e.chargeRemaining=T.chargerRange;e.chargeHit=false;}
 }
 
 // Grenade thrower: after its warning it lobs a blast onto the ringed spot; it detonates fuseMs later (stepBlasts).
@@ -158,7 +193,7 @@ function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
     if(now<(combat.nextFire.get(enemy.id)??0)||Math.hypot(player.x-enemy.x,player.z-enemy.z)>RULES.combat.range*(enemy.rangeMul??1))return;
     if(!intro&&angleDiff(enemy.facing,angleTo(enemy,player))>cfg.fireHalfAngleDeg*Math.PI/180)return;
     if(traceTargets(enemy,player,obstacles,[target])?.kind!=='player')return;
-    enemy.attackTarget={x:player.x,z:player.z};enemy.attackPhase='warning';enemy.windupAt=now+cfg.warningMs;
+    enemy.attackTarget={x:player.x,z:player.z};enemy.attackPhase='warning';enemy.windupAt=now+Math.max(RULES.encounters.telegraphMs,cfg.warningMs);
     if(enemy.encounter==='turret'&&!intro){
       const heading=Math.atan2(player.z-enemy.z,player.x-enemy.x);
       enemy.attackDirections=RULES.shooting.turretFanDegrees.map(degrees=>{
@@ -166,9 +201,7 @@ function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
       });
     }
   }
-  const hit=enemy.lastHitAt!=null&&enemy.hitSerial!==(enemy.reactedHitSerial??0);
-  enemy.reactedHitSerial=enemy.hitSerial??0;
-  if(enemy.attackPhase==='warning'&&(now>=enemy.windupAt||cfg.counterOnHit&&hit)){
+  if(enemy.attackPhase==='warning'&&now>=enemy.windupAt){
     enemy.attackPhase='burst';enemy.burstEndsAt=now+(cfg.burstShots-1)*cfg.burstIntervalMs;enemy.windupAt=null;
     const directions=guardShotDirections(enemy);
     // The committed salvo is independent of the shooter. Cover traces its whole

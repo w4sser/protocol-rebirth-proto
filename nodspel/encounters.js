@@ -12,9 +12,9 @@
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.6.1';
-import {traceTargets} from './physics.mjs?v=2.6.1';
-import {detectionMultiplier} from './stakes.js?v=2.6.1';
+import {RULES} from './levels.js?v=2.7.0';
+import {traceTargets} from './physics.mjs?v=2.7.0';
+import {detectionMultiplier} from './stakes.js?v=2.7.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door','grenadier'];
@@ -44,6 +44,14 @@ export function inSightCone(enemy,point,range,halfAngleDeg){
 export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round);
 export const encountersOf=level=>level?.intro?[]:(level?.encounters??[]);
 export const hintFor=type=>RULES.encounters.hints[type]??null;
+// Weapon-only positional bonus, evaluated before the hit wakes the target.
+export function weakSide(enemy,from){
+  if(!from||enemy.type==='generator')return null;
+  const W=RULES.shooting.weakSides;
+  if(!enemy.aggro&&enemy.alertAt==null&&enemy.lastHitAt==null&&enemy.nearMissAt==null)return {kind:'unaware',multiplier:W.unawareMultiplier};
+  if(angleDiff((enemy.facing??0)+Math.PI,angleTo(enemy,from))<=W.backHalfAngleDeg*Math.PI/180)return {kind:'flank',multiplier:W.flankMultiplier};
+  return null;
+}
 // Result-screen tip for the problem that dealt the last hit of a lost raid (null for ordinary enemies / hazards).
 export function deathTip(round){
   if(!round?.over||round.reason!=='death')return null;
