@@ -1,10 +1,11 @@
-// v2.5.2 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
+import {audioEvent} from './audio.js?v=2.6.1';
+// v2.6.1 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
 // weight. No heat mechanic - waves run on a fixed clock. All tuning lives in data/raid-stakes.js.
-import {traceTargets} from './physics.mjs?v=2.5.2';
-import {RULES,randomFromSeed} from './levels.js?v=2.5.2';
-import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.5.2';
-import '../data/raid-stakes.js?v=2.5.2';
-import '../data/raid-camera.js?v=2.5.2';
+import {traceTargets} from './physics.mjs?v=2.6.1';
+import {RULES,randomFromSeed} from './levels.js?v=2.6.1';
+import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.6.1';
+import '../data/raid-stakes.js?v=2.6.1';
+import '../data/raid-camera.js?v=2.6.1';
 export const RAID_CAMERA = globalThis.DATA.raidCamera;
 export const STAKES = globalThis.DATA.raidStakes;
 
@@ -30,8 +31,8 @@ export function heal(round, now, amount) {
     if (round.telemetry) round.telemetry.healed = (round.telemetry.healed || 0) + applied;
   }
   const left = Math.max(0, healBudget(round) - s.healed);
-  if (left <= 0 && !s.budgetEmptyNotified) { s.budgetEmptyNotified = true; round.healBudgetEmpty = { at: now }; }
-  else if (left <= STAKES.healLowThreshold && !s.budgetLowNotified) { s.budgetLowNotified = true; round.healBudgetLow = { at: now }; }
+  if (left <= 0 && !s.budgetEmptyNotified) { s.budgetEmptyNotified = true; audioEvent('heal-low'); round.healBudgetEmpty = { at: now }; }
+  else if (left <= STAKES.healLowThreshold && !s.budgetLowNotified) { s.budgetLowNotified = true; audioEvent('heal-low'); round.healBudgetLow = { at: now }; }
   return applied;
 }
 
@@ -158,6 +159,7 @@ export function stepStakes(round, now, playerPosition, currentRoomIndex, cameraT
   const elapsed = elapsedMs(round);
   if (!s.alarmTriggered) {
     if (elapsed < STAKES.alarmDelayMs) return { spawned: [] };
+    audioEvent('alarm');
     s.alarmTriggered = true; s.nextWaveAt = elapsed + STAKES.waveIntervalMs; round.alarmTriggered = { at: now };
     return { spawned: [] };
   }
@@ -184,6 +186,7 @@ export function stepStakes(round, now, playerPosition, currentRoomIndex, cameraT
     return { spawned: [] };
   }
   s.waveNumber = waveNumber; s.nextWaveAt = elapsed + STAKES.waveIntervalMs; s.pendingSpawn = null;
+  audioEvent('hunter-wave');
   round.waveSpawned = { at: now, waveNumber, count: spawned.length };
   return { spawned };
 }

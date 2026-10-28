@@ -1,10 +1,11 @@
-import {ownRooms} from './perks.js?v=2.5.2';
-import {RULES,hazardState} from './levels.js?v=2.5.2';
-import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.5.2';
-import {takeDamage,tickRound} from './round.js?v=2.5.2';
-import {houseWaypoint} from './house.js?v=2.5.2';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.5.2';
-import {detectionMultiplier} from './stakes.js?v=2.5.2';
+import {audioEvent} from './audio.js?v=2.6.1';
+import {ownRooms} from './perks.js?v=2.6.1';
+import {RULES,hazardState} from './levels.js?v=2.6.1';
+import {traceTargets,movePlayer,moveWithActors} from './physics.mjs?v=2.6.1';
+import {takeDamage,tickRound} from './round.js?v=2.6.1';
+import {houseWaypoint} from './house.js?v=2.6.1';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.6.1';
+import {detectionMultiplier} from './stakes.js?v=2.6.1';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -78,8 +79,10 @@ export function stepCombat(round,combat,player,now,dt,obstacles){
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
     const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
+    if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot');}
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
+    if(hit?.kind==='wall')audioEvent('impact');
     if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??'Enemy',enemyId:b.enemyId,attack:b.attack??'projectile',at:now};takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }

@@ -1,6 +1,8 @@
 # Audio pipeline (BIT voice + SFX)
 
-Local, CPU-only tools/assets pipeline. Audio is not wired into the game.
+Local, CPU-only tools/assets pipeline. Audio is wired through `ui/audio.js`,
+`nodspel/audio.js`, and minimal event calls. Tuning lives in `data/audio.js`.
+See `docs/design-audio-oct28.md` for layers, VO policy, settings and mixing.
 
 ## Default BIT voice: F1
 
@@ -103,36 +105,35 @@ its own runtime/model installation, and is never a production fallback.
 
 ## SFX: procedural synthesis
 
-`tools/audio/gen-sfx.py` implements a small subset of the classic
-[sfxr](https://www.drpetter.se/project_sfxr.html) model directly in
-numpy — waveform generator (square/saw/triangle/sine/noise) + ADSR-style
-envelope + optional vibrato/noise-mix — no samples, no external synth
-library. Every cue uses a fixed seed (`20261028`) so regenerating produces
-byte-identical synthesized samples (and intermediate `.wav` files) every
-time. The final `.ogg` files are *not* guaranteed byte-identical across
-runs — ffmpeg's Ogg muxer assigns a random stream serial number per encode
-(confirmed: two encodes of the same `.wav` produced different `.ogg`
-bytes but identical decoded PCM), and `ffmpeg`'s `-serial_offset` option
-only offsets that random value rather than pinning it. If byte-identical
-`.ogg` output is ever required, this needs a different encoder/muxer with
-a fixed-serial mode, or a post-processing step that rewrites the serial
-field deterministically — not currently configured.
+`tools/audio/gen-sfx.py` reads the SFX registry from `data/audio.js` and
+synthesizes every cue using numpy (tones, filtered noise and envelopes),
+plus 24-second ambience loops and an optional music pulse. Archipelago has
+wind/sea/gulls/buoys; bunker has hum/drips/ventilation; base has a low drone.
+A two-second raised-cosine wrap crossfade makes the loops seamless.
 
-| file | shape |
-|---|---|
-| `shoot.ogg` | short square-wave blip, sweeping down, slight noise mix |
-| `hit.ogg` | pure noise burst, fast decay |
-| `pickup.ogg` | triangle wave, sweeping up (reward "blip") |
-| `alarm.ogg` | two-tone square wave siren with vibrato |
-| `extract.ogg` | slow sine sweep up, airy noise mix |
+Per-cue SHA256-derived seeds extend master seed `20261028`, so adding a cue
+never changes another cue's synthesized PCM. Decoded PCM is reproducible;
+Ogg container serial numbers are encoder-generated and may differ.
+Both formats are mono at 22.05 kHz: 24 kbps Vorbis and 24 kbps AAC M4A.
+Existing F1 OGG files are preserved, with 32 kbps AAC fallback copies.
 
-Output: mono, Vorbis `.ogg` @ 48 kbps, 22.05 kHz. 5 cues, ~4-11 KB each,
-~31 KB total.
+```bash
+/workspace/tts-venv/bin/python tools/audio/gen-sfx.py
+python3 tools/audio/mix-demo.py
+```
+
+The generator writes a per-file `assets/audio/LICENSES.md` inventory and
+fails if the complete OGG plus M4A shipping payload reaches 2,000,000 bytes.
+The 20-second demo is written outside the shipping assets, by default to
+`/workspace/rostprov/mix-demo.ogg`. It combines archipelago ambience,
+shots/impacts/pickup, alarm/hunter sting and F1 hunters-inbound, applying
+exactly -6 dB to the rest of the mix for the duration of the voice.
 
 ## Budget and licenses
 
-The eight BIT clips and five procedural SFX remain under the approximately
-1 MB audio budget. Local auditions do not count as shipping assets.
+All shipping audio, including both formats, remains below 2 MB. Exact sizes
+and every file's provenance are in `assets/audio/LICENSES.md`. Local auditions
+and the mix demo do not count as shipping assets.
 
 - **Kokoro model weights and `am_fenrir` voice**: Apache-2.0. See the
   [Kokoro-82M model card](https://huggingface.co/hexgrad/Kokoro-82M) and
@@ -146,5 +147,5 @@ The eight BIT clips and five procedural SFX remain under the approximately
   Piper runtime licensing is separate from each voice's dataset license.
 - **Generated BIT lines**: synthesized locally from the Kokoro model and
   texts above. Consult upstream model documentation for training provenance.
-- **SFX**: original procedural synthesis in `tools/audio/gen-sfx.py`, no
-  third-party samples.
+- **SFX, ambience and music**: original procedural synthesis in
+  `tools/audio/gen-sfx.py`, dedicated to CC0-1.0; no third-party samples.

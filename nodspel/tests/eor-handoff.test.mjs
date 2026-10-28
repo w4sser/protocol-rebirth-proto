@@ -40,15 +40,16 @@ test('checkpoint, standalone, restarted and failed persistence retain the raid U
 const source=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
 const finish=source.slice(source.indexOf('let resultReturning=false;'),source.indexOf("$('#result-details-toggle').addEventListener"));
 for(const reason of ['extract','complete','death','timeout','abandon','checkpoint','storage-failure'])test(`game finishRound routes ${reason} through the correct presenter`,()=>{
-  const events=[],elements=new Map();
+  const events=[],elements=new Map(),audio=[];
   const element=selector=>{if(!elements.has(selector))elements.set(selector,{hidden:true,setAttribute(){},focus(){}});return elements.get(selector);};
   const round=reason==='checkpoint'?createRound('eor',0):ended(reason==='storage-failure'?'death':reason);
   const storage={setItem:()=>{if(reason==='storage-failure')throw Error('quota');events.push('saved');},getItem:()=>null};
-  const context={round,launch,resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},localStorage:storage,
+  const context={round,launch,resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},localStorage:storage,audioEvent:(name,detail)=>audio.push({name,success:detail.success}),
     handoffRaidResult:(r,opts)=>handoffRaidResult(r,{...opts,storage,navigate:()=>events.push('navigate')}),
     clearInput:()=>events.push('clear'),hideSwap(){},clearBullets(){},updateHUD(){},lastCombatFeedback:()=>'',deathTip:()=>null,setIconText(){},
     resultView:()=>({}),renderResult:()=>events.push('render')};
   runInNewContext(finish+`;finishRound(${reason==='checkpoint'?"'extraction'":''});`,context);
+  assert.deepEqual(audio,reason==='checkpoint'?[]:[{name:'result',success:['extract','complete'].includes(reason)}]);
   if(['checkpoint','storage-failure'].includes(reason))assert.deepEqual(events,reason==='checkpoint'?['render','clear']:['render','clear']);
   else {assert.deepEqual(events,['saved','clear','navigate']);assert.equal(element('#round-over').hidden,true);runInNewContext('finishRound();',context);assert.equal(events.length,3,'no repeated navigation while leaving');}
 });

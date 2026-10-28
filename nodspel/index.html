@@ -4,23 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07151c">
-  <link rel="manifest" href="manifest.webmanifest?v=2.5.2">
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/app/icon-180.png?v=2.5.2">
+  <link rel="manifest" href="manifest.webmanifest?v=2.6.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icons/app/icon-180.png?v=2.6.1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Node Raid">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Three seeded levels. Activate nodes, unlock exits and extract within eight minutes.">
   <title>Node Raid · Protocol Rebirth</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/app/icon-32.png?v=2.5.2">
-  <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/app/icon-16.png?v=2.5.2">
-  <link rel="shortcut icon" href="../assets/icons/app/favicon.ico?v=2.5.2">
-  <link rel="stylesheet" href="style.css?v=2.5.2">
-<link rel="stylesheet" href="../ui/tokens.css?v=2.5.2">
-<link rel="stylesheet" href="../ui/popup.css?v=2.5.2">
-<link rel="stylesheet" href="../ui/loader.css?v=2.5.2">
-  <link rel="stylesheet" href="perks.css?v=2.5.2">
-  <script src="../ui/viewport.js?v=2.5.2"></script>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/app/icon-32.png?v=2.6.1">
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/icons/app/icon-16.png?v=2.6.1">
+  <link rel="shortcut icon" href="../assets/icons/app/favicon.ico?v=2.6.1">
+  <link rel="stylesheet" href="style.css?v=2.6.1">
+<link rel="stylesheet" href="../ui/tokens.css?v=2.6.1">
+<link rel="stylesheet" href="../ui/popup.css?v=2.6.1">
+<link rel="stylesheet" href="../ui/loader.css?v=2.6.1">
+  <link rel="stylesheet" href="perks.css?v=2.6.1">
+  <script src="../ui/viewport.js?v=2.6.1"></script>
+<link rel="stylesheet" href="../ui/audio.css?v=2.6.1">
 </head>
 <body>
   <div id="boot-loader" class="pr-loader" role="status" aria-label="Loading"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#bit-face"/></svg><div class="pr-loader-bar"><i></i></div></div>
@@ -28,12 +29,13 @@
   <main id="game" aria-label="Game world"></main>
   <header class="hud">
     <div class="round-hud"><div class="shield-hud" id="shield-hud" aria-label="Shield" hidden><span class="eyebrow">SHIELD</span><span id="shield-value">0</span></div><div class="health" aria-label="Player health"><span class="eyebrow">HEALTH</span><span id="health-value">100</span><div class="heal-meter" id="heal-budget-meter" role="progressbar" aria-label="Healing left this raid" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="heal-budget-fill"></i></div></div><div class="timer" aria-label="Time left"><span class="eyebrow">TIME LEFT</span><span id="time-left" role="timer">8:00</span></div><div class="quest-chip" id="quest-chip" aria-label="Tracked quest" hidden></div></div>
-    <button id="abandon" aria-label="Abandon raid" title="Abandon raid" hidden><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#close"/></svg> <span>Abandon</span></button><button id="reset" aria-label="Restart the game" title="Restart"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#restart"/></svg> <span>Restart</span></button>
+    <button id="raid-settings-open" type="button" aria-label="Pause and settings" aria-expanded="false" aria-controls="raid-settings"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#settings"/></svg></button><button id="abandon" aria-label="Abandon raid" title="Abandon raid" hidden><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#close"/></svg> <span>Abandon</span></button><button id="reset" aria-label="Restart the game" title="Restart"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#restart"/></svg> <span>Restart</span></button>
   </header>
   <div id="alarm-banner" class="alarm-banner" role="status" hidden><b id="alarm-banner-title"></b><span id="alarm-banner-sub"></span></div>
   <div id="hunter-arrow" class="hunter-arrow" aria-hidden="true" hidden><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#arrow-right"/></svg></div>
   <div id="world-labels"></div>
   <button id="use-kit" class="kit-btn" type="button" aria-label="Use medkit (Q)"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#item-medkit"/></svg> <b>0</b><small>Q</small></button><aside class="bag-panel" aria-label="Bag (at risk until extract)"><div class="bag-row"><button id="open-bag" type="button" aria-label="Open bag, 0 of 4, at risk until extract" title="Bag (at risk until extract)"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#stat-bag"/></svg><b id="bag-count">0/4</b></button><div id="bag-items" class="bag-tiles" aria-label="Bag contents"></div></div><div id="backpack-row" class="backpack-row" aria-label="Weapon backpack, comes home on extract" hidden><span class="eyebrow">BACKPACK</span><div id="backpack-tiles" class="backpack-tiles" aria-label="Backpack weapons, tap to equip"></div></div><div id="carry-value" class="carry-value" aria-label="Estimated value of carried loot">Carrying ~0 Scrap</div><div class="bag-weight" id="bag-weight" aria-label="Bag weight: up to 20% slower, 50% louder when full"><i id="bag-weight-fill"></i></div></aside>
+  <section id="raid-settings" class="raid-settings" role="dialog" aria-modal="true" aria-labelledby="raid-settings-title" hidden><div class="raid-settings-card pop-card"><button id="raid-settings-close" class="pop-x" type="button" aria-label="Resume raid"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#close"/></svg></button><h2 id="raid-settings-title" class="pop-head">Paused / Settings</h2><div class="audio-menu-body"></div></div></section>
   <section id="inventory" class="inventory" role="dialog" aria-labelledby="inventory-title" hidden><div class="inventory-card pop-card"><button id="close-bag" class="pop-x" type="button" aria-label="Close bag"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#close"/></svg></button><header class="pop-head"><h2 id="inventory-title">Bag · at risk</h2></header><p id="inventory-count">0 / 4 slots</p><div id="inventory-slots"></div><small>Drop items to make room. Only Extract secures your bag; it carries across levels at risk. Death, timeout or abandon loses it.</small></div></section>
   <div id="player-shield" role="progressbar" aria-label="Shield bar" hidden><span id="player-shield-fill"></span></div>
   <div id="player-health" role="progressbar" aria-label="Player health bar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span id="player-health-fill"></span></div>
@@ -82,12 +84,12 @@
     <div class="stick-wrap"><div class="stick" id="move-stick" role="region" aria-label="Left stick: move"><span class="stick-guides"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#plus"/></svg></span><div class="thumb"></div></div><span class="stick-label">MOVE</span></div>
     <div class="stick-wrap aim-wrap"><span id="weapon-name" class="weapon-name">Basic Carbine</span><div id="ammo-hud" aria-label="Magazine: 3 of 3 · Reserve: Unlimited"><div class="ammo-bars"><i class="ammo-slot loaded"></i><i class="ammo-slot loaded"></i><i class="ammo-slot loaded"></i></div><span id="reload-time">3 / 3</span></div><div class="stick fire-stick" id="aim-stick" role="region" aria-label="Right stick: hold to aim, release to fire"><span class="stick-guides"><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#aim"/></svg></span><div class="thumb"></div></div><span class="stick-label">AIM · RELEASE TO FIRE</span></div>
   </div>
-  <footer><span class="desktop-help"><kbd>W A S D</kbd> / arrows · move <span class="divider">/</span> hold mouse / space · aim, release · fire · Shift: dash <span class="divider">/</span> Q · medkit <span class="divider">/</span> E · tool <span class="divider">/</span> stand by gate control · hack</span><span class="version" id="core-version">v2.5.2</span></footer>
+  <footer><span class="desktop-help"><kbd>W A S D</kbd> / arrows · move <span class="divider">/</span> hold mouse / space · aim, release · fire · Shift: dash <span class="divider">/</span> Q · medkit <span class="divider">/</span> E · tool <span class="divider">/</span> stand by gate control · hack</span><span class="version" id="core-version">v2.6.1</span></footer>
   </div>
   <aside class="rotate" role="status"><span><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#phone-rotate"/></svg></span><h2>Rotate your phone</h2><p>Hold your phone in landscape to play.</p></aside>
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
-    import('./game.mjs?v=2.5.2').catch(error => {
+    import('./game.mjs?v=2.6.1').catch(error => {
       document.querySelector('#boot-loader')?.remove();
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';

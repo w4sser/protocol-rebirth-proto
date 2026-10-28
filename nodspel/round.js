@@ -1,10 +1,12 @@
-import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.2';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.5.2';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.2';
-import {emptyBag,bagItems} from './raid.js?v=2.5.2';
-import {traceTargets} from './physics.mjs?v=2.5.2';
-import {shieldBlocks} from './encounters.js?v=2.5.2';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.2';
+import {rarityOf} from './rarity.js?v=2.6.1';
+import {audioEvent} from './audio.js?v=2.6.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.6.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.6.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.6.1';
+import {emptyBag,bagItems} from './raid.js?v=2.6.1';
+import {traceTargets} from './physics.mjs?v=2.6.1';
+import {shieldBlocks} from './encounters.js?v=2.6.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.6.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -60,10 +62,10 @@ export function collectLoot(round,position,now,weapon){
         if(!box.gearNotified){box.gearNotified=true;round.gearOffer={boxId:box.id,item:box.item,slot,at:now};changed=true;}continue;
       }else{
         // Full bag: signal once per approach (re-arms after the player steps away).
-        if(carriedCount(round)>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
+        if(carriedCount(round)>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;audioEvent('bag-full');round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;round.lastBagPickup={item:box.item,at:now};
       }
-      box.collected=true;round.lastPickup={item:box.item,at:now};changed=true;
+      box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};changed=true;
     }
   }
   return changed;
@@ -82,7 +84,7 @@ export function swapLoot(round,boxId,dropId,now){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId);
   if(!box||box.collected||!round.bag[dropId]||box.item==='ammo_pack')return null;
-  round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;
+  round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:dropId,collected:false,blockedUntilLeft:true,revealed:true};
   round.level.lootBoxes.push(dropped);round.bagFull=null;return dropped;
 }
@@ -128,7 +130,7 @@ export function swapGear(round,boxId,now){
   const box=round.level.lootBoxes.find(b=>b.id===boxId),slot=box&&gearSlotOf(box.item);
   if(!box||box.collected||!slot)return null;
   const oldState=round.weaponState,oldArmor=round.armorState;
-  const old=equipGear(round,box.item,now,box.weaponState??null,box.armorState??null);box.collected=true;round.lastPickup={item:box.item,at:now};
+  const old=equipGear(round,box.item,now,box.weaponState??null,box.armorState??null);box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};
   if(slot==='weapon')round.weaponOffer=null;else round.gearOffer=null;
   if(!old)return null; // The free starter is never dropped. lastEquip still records success.
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:old,collected:false,blockedUntilLeft:true,revealed:true};
@@ -168,7 +170,7 @@ export function stashWeapon(round,boxId,now,dropIndex=null){
     dropped.weaponState=state??null;dropped.armorState=armorState??null;round.level.lootBoxes.push(dropped);
   }
   states[round.backpack.length]=box.weaponState??null;armorStates[round.backpack.length]=box.armorState??null;
-  round.backpack.push(box.item);box.collected=true;round.lastPickup={item:box.item,at:now};
+  round.backpack.push(box.item);box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};
   if(round.weaponOffer?.boxId===boxId)round.weaponOffer=null;
   if(round.gearOffer?.boxId===boxId)round.gearOffer=null;
   return {dropped};
@@ -201,6 +203,7 @@ export function healthKitBlock(round){
 export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;
   if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max||healRemaining(round)<=0)return false;
+  audioEvent('medkit');
   if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth);return true;
 }
 // Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
@@ -276,13 +279,14 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
   alertEnemy(enemy,now);
   if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
+  audioEvent('hit',{type:enemy.type});
   if(enemy.type==='generator'){
     // Not a kill: breaking the generator drops its node's shield for good.
     enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);
-    if(enemy.health===0){const node=round.level.nodes.find(n=>n.id===enemy.node);if(node){node.shielded=false;node.shieldBroken=true;}round.generatorsDown=(round.generatorsDown??0)+1;}
+    if(enemy.health===0){audioEvent('death-generator');const node=round.level.nodes.find(n=>n.id===enemy.node);if(node){node.shielded=false;node.shieldBroken=true;}round.generatorsDown=(round.generatorsDown??0)+1;}
     return true;
   }
-  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);}return true;
+  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){audioEvent('kill',{type:enemy.type});round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);}return true;
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};

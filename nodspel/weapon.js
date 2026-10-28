@@ -1,7 +1,8 @@
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.5.2';
-import {RULES} from './levels.js?v=2.5.2';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.5.2';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.5.2';
+import {audioEvent} from './audio.js?v=2.6.1';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.6.1';
+import {RULES} from './levels.js?v=2.6.1';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.6.1';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.6.1';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -51,6 +52,7 @@ function weaponHit(start,end,obstacles,targets,rule=RULES.weapon){
 }
 function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   const rule=weaponRule(weapon);
+  if(hit&&!shot?.pellet)audioEvent('impact',{enemy:hit.kind==='enemy'});
   // Shielded nodes (level 3) absorb shots and must be charged by standing close.
   if(hit?.kind==='node'){const changed=hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.node.id);return changed;} // EMP drops the shield for a few seconds
   if(hit?.kind!=='enemy'){if(shot)recordShot(round,shot,now,hit?'block':'miss');return false;}
@@ -137,6 +139,7 @@ export function tickWeapon(weapon,now,round){
   const rule=weaponRule(weapon);
   while(weapon.reloadAt!==null && now>=weapon.reloadAt){
     if(weapon.reserve<=0){weapon.reloadAt=null;break;}
+    audioEvent('reload',{weapon:weapon.id});
     weapon.ammo++;weapon.reserve--;if(hasPerk(round,'reload'))logCombat(round,{kind:'perk',at:now,perk:'reload',text:`Calm Reload: saved ${rule.reloadMs-reloadInterval(round,rule.reloadMs)} ms this reload.`});
     weapon.reloadAt=weapon.ammo<rule.capacity&&weapon.reserve>0?weapon.reloadAt+reloadInterval(round,rule.reloadMs):null;
   }
@@ -145,7 +148,9 @@ export function fireWeapon(weapon,position,direction,now,round){
   if(round?.pauseAt!=null)return null;
   tickWeapon(weapon,now,round);
   const rule=weaponRule(weapon),length=Math.hypot(direction.x,direction.z);
+  if(!weapon.ammo&&now>=weapon.nextShotAt&&length>=.01)audioEvent('empty',{weapon:weapon.id});
   if(!weapon.ammo || now<weapon.nextShotAt || length<.01)return null;
+  audioEvent('shoot',{weapon:weapon.id});
   weapon.scavenging=null;weapon.ammo--;weapon.nextShotAt=now+rule.shotIntervalMs;
   if(weapon.reloadAt===null&&weapon.reserve>0)weapon.reloadAt=now+reloadInterval(round,rule.reloadMs);
   const shot={origin:{x:position.x,z:position.z},id:++weapon.nextId,x:position.x,z:position.z,dx:direction.x/length,dz:direction.z/length,remaining:rule.range};
