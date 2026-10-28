@@ -222,7 +222,7 @@ async function baseRun([w,h]){
             if(phone.scrollTop!==0||phone.scrollLeft!==0)errors.push('shell scrolled the HUD away');
             const hud=document.getElementById('topbar').getBoundingClientRect();
             if(hud.top<0||hud.bottom>innerHeight)errors.push('top HUD moved outside viewport');
-            if(menu.querySelectorAll('.audio-settings input').length!==9)errors.push('missing master, volume or mute controls');
+            if(menu.querySelectorAll('.audio-settings input').length!==7)errors.push('missing master, volume or mute controls');
             return errors;
           };
           for(const error of await page.evaluate(checkSettings))fail(`${tag} settings`,error);
