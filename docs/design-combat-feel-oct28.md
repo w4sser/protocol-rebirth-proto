@@ -78,8 +78,7 @@ via plats), medkit. Ingen flankbonus, ingen miljöinteraktion utöver dörr/nyck
 
 ### 2.2 Sikte och rörelse (QUICK WIN, delvis)
 
-- **Tap-to-fire på höger stick**: kort tap (< **150 ms**, < dead zone) skjuter mot närmaste mål i assistkon runt *nuvarande*
-  facing, eller mot närmaste mål inom 4 m om inget finns där. Behåller dra-släpp för precisionsskott. Mål: tid från input till
+- **Tap-to-fire på höger stick**: se §2.2a (Brawl Stars-modell). Behåller dra-släpp för precisionsskott. Mål: tid från input till
   skott på mål bakom spelaren under **0,25 s** (idag ~0,6-0,8 s uppskattat; mät i PR).
 - **Snabbare vridning**: `maxTurnRadiansPerSecond` 6 → **12**, `responseSeconds` 0,12 → **0,06**. Kvar som tuningvärden.
 - **Hold-to-fire**: håller man höger stick utanför dead zone > 250 ms skjuter vapnet automatiskt i sin `shotIntervalMs`.
@@ -88,6 +87,43 @@ via plats), medkit. Ingen flankbonus, ingen miljöinteraktion utöver dörr/nyck
   kvar; vi minskar bara straffet så att skjuta i rörelse är ett verkligt alternativ, inte en fälla.
 - **Magasin**: överväg Basic 3 → **4** skott så att ett 3-HP-mål inte alltid kräver omladdning. Liten ändring, men separat
   tuningbeslut (se fråga 3).
+
+### 2.2a Höger siktstick, Brawl Stars-stil (QUICK WIN, del av PR-A)
+
+Robert: siktsticken är mycket känslig för var man håller och känns inte taktil som Brawl Stars (samma mekanik).
+
+**Mätt nuvarande implementation** (`setupStick()` i `game.mjs`, `controls.js`, `style.css`):
+- **Fast stick**: `#aim-stick` är en fast cirkel, **116 px** (112 / 98 px i mindre viewport-mediaqueries). Aktiveringsytan är
+  exakt den cirkeln; touch utanför den gör ingenting.
+- **Två olika origo**: siktriktningen räknas från **där tummen landade** (`beginAim()`), men tummen ritas relativt
+  **stickens centrum**, klampad till radie **32 % av bredden ≈ 37 px**. Landar tummen 30 px från centrum syns den redan
+  "utdragen" fast siktet är neutralt, och samma rörelse ger olika visuell utslag beroende på var man satte ned tummen. Det är
+  den troliga orsaken till "känslig för var man håller".
+- **Deadzone 12 px** (`aimControls.deadZonePx`), ca 10 % av sticken, mindre än tumjitter på telefon (typiskt 8-15 px).
+  Riktningen låses vid första rörelse förbi 12 px och följer sedan med utjämning 0,12 s och max 6 rad/s, så siktet släpar efter tummen.
+- **Släpp avfyrar**: skott sker på `pointerup` (`releaseAim()`); `pointercancel` avbryter.
+- **Tap gör ingenting**: en tap under 12 px ger `direction=null` och inget skott. Det finns ingen tap-to-autofire (Tool-knappen har
+  det, siktsticken inte).
+- **Ingen haptik** (`navigator.vibrate` används inte), ingen siktlinje i världen från sticken utöver assist-konen, ingen ring-feedback på sticken.
+
+**Förslag (Brawl Stars-modell):**
+1. **Flytande stick i stor zon**: aktiveringszon = hela högra ~45 % av skärmen under HUD-raden (exklusive DASH/Tool/medkit-knappar).
+   Stickens origo = där tummen landar; basring och tumme ritas där. Visuell radie **48 px**, full utslag vid 48 px.
+2. **Generös deadzone**: **20 px** (≈ 40 % av radien). Inom deadzone vid släpp = tap.
+3. **Tap = auto-aim-skott** mot närmaste synliga fiende inom vapnets räckvidd (befintlig `assistAim()` med 360° och räckvidd 7 m,
+   ocklusion respekteras); ingen fiende = skott i facing-riktning. Tap = touch < **200 ms** och inom deadzone.
+4. **Drag = manuellt sikte** med **siktlinje** på golvet (vapnets räckvidd, kortas av vägg), riktning direkt från tummens vinkel
+   (ingen utjämning/vridningsgräns för siktlinjen; spelarmodellen får fortsatt vrida mjukt). Assist-konen visas bara i stillastående.
+5. **Släpp avfyrar** (som idag). **Avbryt**: dra tillbaka in i deadzone och släpp = inget skott (Brawl Stars-beteende), plus pointercancel.
+6. **Haptik**: `navigator.vibrate(12)` vid skott, `vibrate(25)` vid kill, `[0]` om användaren stängt av; feature-detektera (iOS Safari saknar
+   API, ingen fallback krävs). Av-knapp tillsammans med kameraskak.
+7. **Ringfeedback**: basringen lyser cyan när tummen passerar deadzone (manuellt läge), pulsar 120 ms vid skott, visar grått + omladdningsbåge
+   när magasinet är tomt (släpp gör då ingenting, med tydlig visuell orsak).
+8. Samma modell för vänster rörelsestick (flytande i vänster zon), så båda tummarna känns lika.
+
+Acceptans (i PR-A): tap utan fiende/med fiende skjuter (test på gestlogiken i `controls.js`); samma drag från olika landningspunkter
+ger identisk riktning och identisk visuell tumposition (test); deadzone 20 px; layout-check grön (zonen överlappar inga knappar).
+Mått: andel tap-skott vs drag-skott, felavfyrningar (skott inom 300 ms efter tap utan avsikt, fråga Lord), Robert/Lord: "känns det som Brawl Stars?".
 
 ### 2.3 "Läsbar telegraf" som fiendespråk (KÄRNAN)
 
@@ -131,7 +167,7 @@ L1 = en arketyp i taget (lär språket). L2 = par. L3 = trio + elit. Detta byggs
 ## 3. PR-uppdelning, acceptanskriterier och mått
 
 ### PR-A: Feel + perk-timing (QUICK WIN, först, ~1 dag)
-Omfång: §2.1 punkt 1-3 och 5, §2.2 vridning/tap-to-fire/hold-to-fire/rörelseassist, §2.4.1 dodge-i-frames. Ljud bara om #133 är mergad.
+Omfång: §2.1 punkt 1-3 och 5, §2.2a flytande siktstick (tap/drag/släpp, haptik, ring), §2.2 vridning/tap-to-fire/hold-to-fire/rörelseassist, §2.4.1 dodge-i-frames. Ljud bara om #133 är mergad.
 Acceptans:
 - Perkpickern öppnas aldrig tidigare än `killDelayMs` efter sista kill och aldrig innan 600 ms combat calm (node-test i `nodspel/tests`).
 - Hitstop påverkar spelklockan men inte UI/input; ingen drift i raidtimern (test: summan av pauser = loggad paustid).
@@ -159,7 +195,7 @@ Mått: ≥ 1 miljökill per raid i snitt; verktygsanvändning före skada (inte 
 ## 4. Öppna frågor till Robert
 
 1. OK att perkpickern väntar ~1 s + 0,6 s lugn efter sista kill (timern går under väntan)?
-2. Tap-to-fire + hold-to-fire på höger stick, och snabbare vridning (12 rad/s)? Påverkar L1 också.
+2. Flytande Brawl Stars-stick (§2.2a) med tap = auto-aim; ska hold-to-fire också med, eller bara tap/drag/släpp? på höger stick, och snabbare vridning (12 rad/s)? Påverkar L1 också.
 3. Basic-magasin 3 → 4 och rörelseassist 4° → 7°: tuning OK eller vill du hålla PR-A rent "feel"?
 4. Dodge med i-frames + dash-cooldown 2500 ms (ändrar playerStats-basen och Rullning-perken)?
 5. Flank ×2 / smygöppning ×3 som global regel?
