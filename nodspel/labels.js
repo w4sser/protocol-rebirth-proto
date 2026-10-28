@@ -49,7 +49,11 @@ export function placeEnemyLabel(state,{x,y,mode,sizes,rects=[],bounds,now=0,dwel
   const st=state??{mode,modeSince:now};
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
   const clampY=(yy,s)=>clamp(yy,bounds.top+s.h,bounds.bottom);
-  const clearAt=(yy,s)=>!rects.some(r=>x+s.w/2>=r.left-8&&x-s.w/2<=r.right+8&&yy>=r.top-8&&yy-s.h<=r.bottom+8);
+  // Test clearance at the same (clamped) x the box will actually render at — using the raw anchor x
+  // here let a near-edge label pass clearAt against a spot it never occupies once clamped onto screen,
+  // which disagreed with a real DOM collision check the caller makes after rendering (PRB-141).
+  const xxFor=s=>clamp(x,bounds.left+s.w/2,bounds.right-s.w/2);
+  const clearAt=(yy,s)=>{const xx=xxFor(s);return !rects.some(r=>xx+s.w/2>=r.left-8&&xx-s.w/2<=r.right+8&&yy>=r.top-8&&yy-s.h<=r.bottom+8);};
   const baseY=m=>clampY(y-BAR_GAP+sizes[m].dy,sizes[m]);
   // Best vertical stack for a mode, starting from its natural (viewport-clamped) anchor;
   // null if nothing within maxShift is clear of rects.

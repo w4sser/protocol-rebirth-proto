@@ -37,7 +37,7 @@ import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.7.2';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.7.2';
 import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.7.2';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.7.2';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.7.2';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS} from './labels.js?v=2.7.2';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.7.2';
 import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.7.2';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
@@ -828,17 +828,37 @@ function renderLabels(){
     const r=l.el.getBoundingClientRect();
     const w=r.width||(l.size?l.size[0]:60),h=r.height||(l.size?l.size[1]:14);
     const priority=labelPriority({kind:l.range,needed:l.el.classList.contains('needed-loot'),attacking:l.el.classList.contains('winding')||l.el.classList.contains('locked'),dist:Math.hypot(l.point.x-position.x,l.point.z-position.z)});
-    boxes.push({id:l.id,x:r.width?r.left-origin.left+r.width/2:l.sx,y:r.height?r.bottom-origin.top:l.sy+(l.anchorDy??0),w,h,priority});
+    boxes.push({id:l.id,kind:l.range,x:r.width?r.left-origin.left+r.width/2:l.sx,y:r.height?r.bottom-origin.top:l.sy+(l.anchorDy??0),w,h,priority});
   }
   const shown=resolveLabels(boxes,{hud:hudRects,now:performance.now(),state:labelState});
   const bounds={left:2,right:viewWidth-2,top:2,bottom:viewHeight-2};
   for(const {label} of hazardLabels)if(!label.el.hidden&&shown.get(label.id)===false)label.el.hidden=true;
-  const obstacles=[...hudRects,...boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}))];
+  const shownBoxRects=boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
+  const obstacles=[...hudRects,...shownBoxRects];
+  // v2.7.3: fixedRects/objectiveRects are the live declutter result for this frame (invariant across
+  // the loop below) — objective-kind boxes (node/exit/room/house) get a small bar lift, everything
+  // else (HUD + every other label) only ever causes a hide, never a push.
+  const fixedRects=obstacles;
+  const objectiveRects=boxes.filter(b=>shown.get(b.id)!==false&&FIXED_LABEL_KINDS.has(b.kind)).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
   const nowPlacement=performance.now();
+  // Sticky hysteresis: `bad` must hold continuously for onMs before the gate flips true, and `!bad`
+  // continuously for offMs before it flips back — so a per-frame geometry wobble (labels/HUD rects
+  // that themselves move) can't flip a decision 3x inside a second. Shared by the collapse-to-bar
+  // request below and the final hide decision, per the layout-check regressions (PRB-141).
+  const gate=(l,key,bad,now,onMs,offMs)=>{
+    l[key+'Bad']=bad?(l[key+'Bad']??now):undefined;
+    l[key+'Ok']=!bad?(l[key+'Ok']??now):undefined;
+    if(!l[key]&&bad&&now-l[key+'Bad']>=onMs)l[key]=true;
+    if(l[key]&&!bad&&now-l[key+'Ok']>=offMs)l[key]=false;
+    return !!l[key];
+  };
   for(const l of labels){
     if(!l.range||l.el.hidden)continue;
     if(l.range!=='enemy'){if(shown.get(l.id)===false)l.el.hidden=true;continue;}
-    const desired=hazardLabels.some(({hazard})=>Math.hypot(l.point.x-hazard.x,l.point.z-hazard.z)<1.4)?'bar':plan.get(l.id)??'bar';
+    // A sustained real collision from last frame (set at the bottom of this loop) requests the bar
+    // for this frame too — fed through placeEnemyLabel's own request/dwell below, instead of forcing
+    // the DOM into bar mode after the fact at a stale, unrelated position.
+    const desired=hazardLabels.some(({hazard})=>Math.hypot(l.point.x-hazard.x,l.point.z-hazard.z)<1.4)||l.forceBar?'bar':plan.get(l.id)??'bar';
     const sizes={};
     // Measure each mode at the projected anchor; transforms differ between label
     // variants. Persist only the final mode/offset, never these temporary probes.
@@ -850,20 +870,43 @@ function renderLabels(){
     }
     const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,bounds,now:nowPlacement});
     l.placement=placed.state;
-    if(placed.mode==='bar')barOnly(l);else l.el.dataset.mode=placed.mode;
+    let mode=placed.mode;const x=placed.x;let y=placed.y;
+    const overlapsAt=(yy,s,rects)=>rects.some(r=>x+s.w/2>r.left&&x-s.w/2<r.right&&yy>r.top&&yy-s.h<r.bottom);
+    // A caption never draws over a fixed label or HUD, not even for one frame: drop to the bar at once.
+    if(mode!=='bar'&&overlapsAt(y,sizes[mode],fixedRects)){l.forceBar=true;l.forceBarOk=undefined;l.el.hidden=true;continue;}
+    // v2.7.3: vs an objective label specifically, the bar may lift up to 24px to clear it (a caption
+    // may already have stacked to dodge the same box; the bar itself never got the chance). HUD and
+    // every other label never get this — they only ever fall through to the hide gate below. Engaging
+    // (and releasing) the lift is itself gated: right at the overlap boundary the raw test can flip
+    // every frame, which would otherwise yank the bar up/down by up to 24px each time.
+    const wantsLift=mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects);
+    if(gate(l,'lift',wantsLift,nowPlacement,0,250))
+      for(let shift=4;shift<=24&&overlapsAt(y,sizes.bar,objectiveRects);shift+=4)
+        y=Math.max(bounds.top+sizes.bar.h,placed.y-shift);
+    // v2.7.3: a caption<->bar mode flip (or the lift engaging/releasing) changes the box height, and the
+    // box is bottom-pinned to the anchor — so its *centre* can still jump tens of px in one step even
+    // though the bottom never moves off the anchor. Follow genuine anchor movement exactly (never stale),
+    // but cap any EXTRA vertical shift the mode/lift change itself adds to at most 20px per frame; the
+    // remainder bleeds off over the next frame or two, keeping the visual centre from jumping all at once.
+    const drift=l._prevSy!=null?l.sy-l._prevSy:0,predicted=l._prevY!=null?l._prevY+drift:y;
+    y=Math.min(bounds.bottom,Math.max(bounds.top+sizes[mode].h,predicted+Math.max(-8,Math.min(8,y-predicted))));
+    l._prevY=y;l._prevSy=l.sy;
+    const size=sizes[mode],box={left:x-size.w/2,right:x+size.w/2,top:y-size.h,bottom:y};
+    if(mode==='bar')barOnly(l);else l.el.dataset.mode=mode;
     l.size=null;
     // Fixed-position auto widths depend on the available space to the right.
     // Keep the layout width untransformed; placement reserves the scaled bounds.
-    l.el.style.width=`${sizes[placed.mode].cssWidth}px`;
-    l.el.style.left=`${placed.x}px`;l.el.style.top=`${placed.y}px`;
-    // v2.7.2: the bar never slides away from its enemy. If the measured box still lands on HUD or a
-    // fixed label, drop the caption; if even the bare bar collides, hide it (the enemy is under the HUD).
-    const fixedRects=[...hudRects,...boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}))];
-    const hits=rs=>{const r=l.el.getBoundingClientRect(),b={left:r.left-origin.left,right:r.right-origin.left,top:r.top-origin.top,bottom:r.bottom-origin.top};
-      return r.width>0&&rs.some(o=>b.right>o.left&&b.left<o.right&&b.bottom>o.top&&b.top<o.bottom);};
-    if(placed.mode!=='bar'&&hits(fixedRects)){barOnly(l);l.el.style.width=`${sizes.bar.cssWidth}px`;}
-    if(hits(hudRects)){l.el.hidden=true;continue;}
-    obstacles.push(placed.box);
+    l.el.style.width=`${size.cssWidth}px`;
+    l.el.style.left=`${x}px`;l.el.style.top=`${y}px`;
+    // Collapse request for NEXT frame: a caption that still lands on a fixed label/HUD after
+    // placement asks for the bar, but only once that has been true for a sustained stretch.
+    l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
+    // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
+    // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
+    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
+    if(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects)){l.el.hidden=true;continue;} // never over an objective label, not even one frame
+    if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
+    obstacles.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
   const now=performance.now();

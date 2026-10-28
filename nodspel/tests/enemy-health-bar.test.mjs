@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as THREE from '../vendor/three.module.js';
-import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel} from '../labels.js';
+import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS} from '../labels.js';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 // Brace-matched extraction (unlike a "stop at the next `function `" slice) so trailing top-level
@@ -54,7 +54,7 @@ function run(labels,hazardLabels,{hud=[],width=800,height=600,origin={left:0,top
     bitLabel:null,bit:null,world:{exitLabel:null},exitIsOpen:()=>true,round:{},
     labelPoint:camera?new THREE.Vector3():{x:0,y:0,z:0,copy(v){this.x=v.x;this.y=v.y;this.z=v.z;return this;},project(){this.x=this.x/10;this.y=this.z/10;return this;}},
     camera:camera??{},hudRects:hud,performance:{now:()=>now},labelState:new Map(),
-    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,
+    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,
     refreshHudRects(){},LABEL_SHOW_HOLD_MS:1200,
   });
   if(hudElements)vm.runInContext(extractFn('refreshHudRects'),context);
