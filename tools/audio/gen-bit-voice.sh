@@ -10,8 +10,7 @@ if [ ! -x "$TTS_VENV/bin/python3" ]; then
   exit 1
 fi
 
-# Put the venv's bin/ first on PATH so a venv-installed `piper` executable
-# (Piper fallback) is found by gen-bit-voice.py's subprocess call.
+# Make the selected environment available to Kokoro and ffmpeg.
 export PATH="$TTS_VENV/bin:$PATH"
 
 "$TTS_VENV/bin/python3" "$HERE/gen-bit-voice.py"

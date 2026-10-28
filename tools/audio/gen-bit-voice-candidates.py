@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audition harness: renders 3 DISTINCT candidate BIT-voice treatments for
-comparison, NOT the production generator (that's gen-bit-voice.py).
+LOCAL NON-SHIPPING comparison only. Piper Ryan is CC BY-NC-SA 4.0.
+Never copy these auditions into shipping assets. NOT the production generator (that's gen-bit-voice.py).
 
 Writes: /workspace/prp-audio/candidates/<variant>/<slug>.ogg + README.txt
 (candidates/ is excluded via .git/info/exclude -- never committed).
