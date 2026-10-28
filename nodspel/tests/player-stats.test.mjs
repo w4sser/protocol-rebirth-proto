@@ -7,7 +7,7 @@ import {createDash,startDash,dashCharge} from '../dash.js';
 import * as combat from '../combat.js';
 test('stats param is parsed and clamped; junk falls back to the base',()=>{
   assert.deepEqual(readStats('spd:3.9,stl:0.12,hp:115,dcd:3700'),{speed:3.9,stealth:.12,maxHealth:115,dashCooldownMs:3700,searchMult:1,shield:0});
-  assert.deepEqual(readStats('spd:99,stl:-1,hp:5,dcd:1'),{speed:6,stealth:0,maxHealth:50,dashCooldownMs:2000,searchMult:1,shield:0});
+  assert.deepEqual(readStats('spd:99,stl:-1,hp:5,dcd:1'),{speed:6,stealth:0,maxHealth:50,dashCooldownMs:1500,searchMult:1,shield:0});
   assert.deepEqual(readStats('spd:abc,zzz:4,hp:'),RULES.playerStats.base);
   assert.deepEqual(readStats(null),RULES.playerStats.base);
   assert.equal(RULES.playerStats.base.speed<4.5,true,'new players start slower than the old fixed 4.5 m/s');

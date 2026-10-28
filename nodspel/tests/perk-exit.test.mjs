@@ -1,3 +1,4 @@
+import {inputPaused} from '../perks.js?v=2.6.1';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -32,7 +33,7 @@ const keyboard=source.slice(source.indexOf("window.addEventListener('keydown'"),
 // frameInner calls combatSnapshot() (defined earlier in the module, near updateHUD) to decide whether a
 // shield/equip/capacity change needs a HUD refresh — pull it in too or the slice below leaves it undefined.
 const snapshotHelpers=extractFn('combatSnapshot')+'\n'+extractFn('combatSnapshotChanged');
-const frame=snapshotHelpers+'\n'+source.slice(source.indexOf('function frameInner('),source.indexOf('    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);'))+'\n  }\n}';
+const frame=extractFn('flushHitstopActions')+'\n'+snapshotHelpers+'\n'+source.slice(source.indexOf('function frameInner('),source.indexOf('    playerMoving=playerMoving||playerDisplaced(beforeCombat,position);'))+'\n  }\n}';
 
 test('exit picker minimize resumes movement, combat and timer; resume preserves the offer and exit requires a pick',async()=>{
   const dom=new JSDOM('<main id="viewport"><div id="encounter-hint"></div><div id="inventory" hidden></div><span id="time-left"></span><span id="summary-time"></span><div class="timer"></div></main>');
@@ -46,14 +47,14 @@ test('exit picker minimize resumes movement, combat and timer; resume preserves 
     const resume=document.createElement('button');resume.className='perk-resume';resume.type='button';corner.append(resume);let wall=1000;
     let shots=0,dashes=0;
     const key=(type,code)=>{const event=new dom.window.KeyboardEvent(type,{code,bubbles:true,cancelable:true});document.activeElement.dispatchEvent(event);return event;};
-    const noop=()=>{},context=vm.createContext({
+    const noop=()=>{},context=vm.createContext({inputPaused,
       round:r,position:{...position},combat,weapon:createWeapon(Infinity),dash:createDash(),
       window:dom.window,isGameKey,isTypingTarget,fire:()=>shots++,requestDash:()=>dashes++,
       perkState,pausePick,resumePick,choosePerk,enterExit,tickRound,roomAt,stepCombat,stepWeapon,stepDash,moveWithActors,playerDisplaced,RULES,speedMultiplier,
       Date:{now:()=>wall},perkKey:null,perkChoosing:false,perkResume:resume,
       $:s=>document.querySelector(s),clearInput:noop,cancelToolDrag:noop,hideSwap:noop,updateHUD:noop,
       setTimeout:fn=>fn(),finishRound:()=>assert.fail('unexpected extraction'),
-      gameClock:()=>gameTime(r,wall),previous:0,elapsed:0,tutorialOpen:false,resultPending:false,
+      gameClock:()=>gameTime(r,wall),pendingShot:null,pendingTool:null,pendingKit:false,previousGameClock:0,previous:0,elapsed:0,tutorialOpen:false,resultPending:false,
       movement:{x:0,y:0},keys:new Set(),playerMoving:false,playerSolids:[],solids:[],sticks:[{}, {state:{gesture:{}}}],
       stepAim:()=>null,mouseKnown:false,screenToWorld:(x,y)=>({x,z:y}),doorAssist:(_house,_pos,delta)=>delta,
       bullets:[],collectLoot:()=>false,stepDoors:()=>false,checkEncounterHints:noop,

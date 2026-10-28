@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createRound,hitEnemy} from '../round.js';
 import {generateLevel,RULES} from '../levels.js';
 import * as weaponMod from '../weapon.js';
+import {createDash,startDash} from '../dash.js';
 const combat=await import('../combat.js').catch(()=>({}));
 // Baseline combat rules, without the gentler level-one tuning.
 const baseline=r=>Object.assign(r.level,{enemyDamage:undefined,enemyWindupMs:0,firstGraceMs:undefined,enemyCooldownMs:undefined});
@@ -94,6 +95,28 @@ test('moving enemies respect cover and level three covers more distance per seco
   assert.ok(travelled[1]>travelled[0]);
 });
 
+test('dash i-frames give 0 damage from a projectile impact, blast and hazard tick',()=>{
+  const r=createRound('iframes',0);baseline(r);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];
+  const c=combat.createCombat(r.level,0);
+  combat.stepCombat(r,c,{x:0,z:4},2000,.04,[]);
+  combat.stepCombat(r,c,{x:0,z:4},3000,.04,[]);assert.equal(c.projectiles.length,1);
+  const dash=createDash();startDash(dash,{x:1,z:0},3400); // i-frames cover [3400, 3550)
+  combat.stepCombat(r,c,{x:0,z:4},3500,.5,[],dash);
+  assert.equal(r.health,100,'projectile impact inside the i-frame window deals 0 damage');
+  combat.stepCombat(r,c,{x:0,z:4},3600,.04,[]); // re-arm a shot now that i-frames have ended
+  combat.stepCombat(r,c,{x:0,z:4},4600,.04,[]);
+  combat.stepCombat(r,c,{x:0,z:4},4700,.5,[],dash);
+  assert.equal(r.health,100-RULES.combat.damage,'the same dash state no longer blocks damage once i-frames expire');
+});
+test('dash i-frames also absorb a hazard tick, but not once the dash has ended',()=>{
+  const hr=createRound('iframes-hazard',0);
+  hr.level.hazards=[{id:'pad',x:0,z:0,w:2,d:2,phaseMs:2500,dps:60}]; // 'on' from t=0, dps 60 -> >=1 damage per tick
+  const hazardDash=createDash();startDash(hazardDash,{x:1,z:0},0);
+  combat.stepHazards(hr,{x:0,z:0},0,1,hazardDash);
+  assert.equal(hr.health,100,'hazard tick inside the i-frame window deals 0 damage');
+  combat.stepHazards(hr,{x:0,z:0},300,1); // well past the 220 ms dash, no dash state passed
+  assert.ok(hr.health<100,'the same hazard damages normally once i-frames are over');
+});
 test('an attack cancels arrival grace for its defender without waking unrelated enemies',()=>{
   const r=createRound('hit-during-grace',0);baseline(r);
   const attacked={id:'hit',kind:'enemy',x:0,z:0,r:.48,health:5},quiet={id:'quiet',kind:'enemy',x:20,z:0,r:.48,health:5};

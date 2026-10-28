@@ -122,8 +122,8 @@ export const RULES=Object.freeze({
     {mix:{grunt:.35,rusher:.3,sentry:.2,thrower:.15},hazards:2,hazardDps:12,shieldedNodes:1,theme:{floor:'#3f3f52',trim:'#7c6fa8'}}],
   // Player stats. Meta computes them (skills + gear, data/progression.js) and passes ?stats=; core clamps again.
   // Without launch params (standalone) the new-player base applies: slower than before (3.6 vs 4.5 m/s).
-  playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:4000,searchMult:1,shield:0},
-    clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[2000,6000],searchMult:[.6,1],shield:[0,100]},
+  playerStats:{base:{speed:3.6,stealth:0,maxHealth:100,dashCooldownMs:2500,searchMult:1,shield:0},
+    clamp:{speed:[2.5,6],stealth:[0,.6],maxHealth:[50,200],dashCooldownMs:[1500,6000],searchMult:[.6,1],shield:[0,100]},
     gear:['scavenger_vest','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach']},
   // Weapon launch params (?w=) are clamped to these ranges; missing keys fall back to RULES.weapon (Basic).
   weaponIds:['basic_carbine','smg_vector','rifle_marksman','shotgun_breach'],
@@ -140,11 +140,18 @@ export const RULES=Object.freeze({
       tool_emp:{kind:'emp',label:'EMP',charges:1,radius:3,stunMs:4000,stunTypes:['sentry','turret']},
       tool_decoy:{kind:'decoy',label:'Decoy',charges:2,radius:6,lureMs:5000}}},
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
-  feedback:{hitFlashMs:240,damageNumberMs:700},
-  dash:{distance:4.8,durationSeconds:.22,cooldownMs:4000},
+  // v2.6.0 combat feel (docs/design-combat-feel-oct28.md §2.1/2.2/2.4.1): kill confirmation, hitstop and dodge i-frames.
+  feedback:{hitFlashMs:240,damageNumberMs:700,meshFlashMs:80,deathAnimMs:350,killMarkerMs:300,muzzleFlashMs:50,muzzleOffset:.88,recoilMs:60,recoilDistance:.08,firePulseMs:120,hapticShotMs:12,hapticKillMs:25,roomClearMs:1000,
+    burst:{particles:12,size:.08,speed:2.5,lifeSeconds:.5,lift:1.8,gravity:6},cameraShake:{hit:{distance:.05,ms:80},kill:{distance:.12,ms:150},playerDamage:{distance:.15,ms:200}}},
+  // Perk picker waits killDelayMs after the last kill in the room, and safePick() must stay true for calmMs straight
+  // before the picker opens (the raid timer keeps running during this wait; see perks.js pickReady()).
+  perkPick:{killDelayMs:1000,calmMs:600},
+  // Hitstop: a brief freeze of the paused game clock (perks.js hitstop()), not a second clock. Kill confirmation.
+  hitstop:{hitMs:40,killMs:90,lastKillMs:140},
+  dash:{distance:4.8,durationSeconds:.22,cooldownMs:2500,iframeMs:150},
   bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
-  aimControls:{deadZonePx:12,responseSeconds:.12,maxTurnRadiansPerSecond:6},
+  aimControls:{deadZonePx:20,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
 });
 // Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.

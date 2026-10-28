@@ -6,11 +6,12 @@ test('an aim press released without a drag never shoots',()=>{
   const gesture=controls.beginAim(20,30);
   assert.equal(controls.releaseAim(gesture),null);
 });
-test('a dragged aim keeps its direction when the thumb returns to center',()=>{
+test('dragging back into the deadzone and releasing cancels the shot (Brawl Stars behaviour)',()=>{
   assert.equal(typeof controls.beginAim,'function');
   const gesture=controls.beginAim(20,30);
-  controls.dragAim(gesture,40,30);controls.dragAim(gesture,20,30);
-  assert.deepEqual(controls.releaseAim(gesture),{x:1,y:0});
+  controls.dragAim(gesture,40,30);assert.deepEqual(controls.releaseAim(gesture),{x:1,y:0},'release while still dragged out fires');
+  controls.dragAim(gesture,20,30); // back to the origin, inside the deadzone
+  assert.equal(controls.releaseAim(gesture),null,'release back at the origin cancels, even though a direction was once latched');
 });
 test('small finger jitter does not count as a drag and cancellation cannot fire',()=>{
   assert.equal(typeof controls.beginAim,'function');
