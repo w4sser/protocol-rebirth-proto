@@ -112,7 +112,7 @@ test('all registered assets have both formats, licensing entries and fit the shi
   assert.match(licenses,/dedicated to the public domain under CC0-1\.0 by the project owner/);
   const bitRows=licenses.split('\n').filter(line=>line.startsWith('| `bit/'));
   assert.equal(bitRows.length,16);
-  for(const row of bitRows)assert.match(row,/CC0-1\.0 \(dedicated by the project owner\)/);
+  for(const row of bitRows)assert.match(row,/All rights reserved \(© Robert Wasser\)/);
 });
 
 test('base settings UI changes persisted volumes and unlocks the base bed',async()=>{

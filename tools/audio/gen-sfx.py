@@ -111,14 +111,14 @@ def main():
            'Original procedural SFX, ambience and music are dedicated to CC0-1.0 by this project.',
            'Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds.',
            'The eight existing F1 BIT recordings are preserved; AAC copies use ffmpeg locally.',
-           'BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 16 BIT voice files (eight recordings in Ogg and AAC formats) are our own generated outputs, dedicated to the public domain under CC0-1.0 by the project owner. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.',
+           'BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 16 BIT voice files (eight recordings in Ogg and AAC formats) are our own generated outputs. Copyright © 2026 Robert Wasser. All rights reserved; not licensed for reuse. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.',
            'Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.',
            'CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper audition clips ship.','',
            '| File | Source | License/provenance |','|---|---|---|']
     paths=sorted(p for p in OUT.rglob('*') if p.suffix in ('.ogg','.m4a'))
     for path in paths:
         bit=path.parent.name=='bit'
-        lines.append(f'| `{path.relative_to(OUT)}` | '+('Local F1 Kokoro am_fenrir TTS; original project dialogue' if bit else 'Original seeded numpy procedural synthesis')+' | '+('CC0-1.0 (dedicated by the project owner); Apache-2.0 model, MIT runtime provenance' if bit else 'CC0-1.0')+' |')
+        lines.append(f'| `{path.relative_to(OUT)}` | '+('Local F1 Kokoro am_fenrir TTS; original project dialogue' if bit else 'Original seeded numpy procedural synthesis')+' | '+('All rights reserved (© Robert Wasser); Apache-2.0 model, MIT runtime provenance' if bit else 'CC0-1.0')+' |')
     total=sum(p.stat().st_size for p in paths)
     lines.extend(['',f'Total shipping audio: {total:,} bytes, {len(paths)} files (both formats included).'])
     (OUT/'LICENSES.md').write_text('\n'.join(lines)+'\n')
