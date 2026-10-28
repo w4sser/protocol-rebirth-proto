@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=2.5.2';
+import {RULES} from './levels.js?v=2.6.0';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
 export function facingDirection(aiming,walking,aim){return aiming?aim:walking;}
 export function dragAim(gesture,x,y){
@@ -16,7 +16,10 @@ export function stepAim(gesture,dt){
   const turn=Math.max(-limit,Math.min(limit,difference*(1-Math.exp(-Math.max(0,dt)/rule.responseSeconds))));
   gesture.direction={x:Math.cos(from+turn),y:Math.sin(from+turn)};return gesture.direction;
 }
-export function releaseAim(gesture,cancelled=false){return cancelled?null:gesture.direction;}
+// Brawl Stars cancel (docs/design-combat-feel-oct28.md §2.2a point 5): once the thumb is dragged back into
+// the deadzone, gesture.target goes null (see dragAim) even though gesture.direction stays latched — release
+// at that point is a cancel, not a shot in the stale direction.
+export function releaseAim(gesture,cancelled=false){return cancelled||!gesture?.target?null:gesture.direction;}
 
 // Remember modal-owned pointers until their release, even if the modal closes first.
 export function createFireInputGate(){
@@ -53,4 +56,17 @@ export function bindHUDTap(button,activate){
     if(suppressClick&&e.detail!==0){suppressClick=false;e.preventDefault();return;}
     suppressClick=false;activate();
   });
+}
+
+// All floating-stick geometry shares the touchdown origin, including the visible thumb.
+export function stickOffset(origin,x,y){
+  const dx=x-origin.x,dy=y-origin.y,length=Math.hypot(dx,dy),radius=RULES.aimControls.stickRadiusPx;
+  const scale=length>radius?radius/length:1;
+  return {x:dx*scale,y:dy*scale,manual:length>=RULES.aimControls.deadZonePx};
+}
+export function finishGesture(gesture,x,y,elapsed,dragged,cancelled=false){
+  if(cancelled)return null;
+  dragAim(gesture,x,y);
+  if(!gesture.target)return !dragged&&elapsed<RULES.aimControls.tapMs?'tap':null;
+  return gesture.target;
 }

@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.5.2';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.5.2';
-import {buildTown} from './town.js?v=2.5.2';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.5.2';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.5.2';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.5.2';
-import {controlCablePath} from './control-cables.js?v=2.5.2';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.6.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.6.0';
+import {buildTown} from './town.js?v=2.6.0';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.6.0';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.6.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.6.0';
+import {controlCablePath} from './control-cables.js?v=2.6.0';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -141,7 +141,11 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
     const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
     const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
-    const out={enemy,group:g,eye};
+    // Kill readability (docs/design-combat-feel-oct28.md §2.1.3): a white flash on the mesh itself, not just the
+    // DOM hit label. Its own material (not the shared body material cache) so one enemy flashing never affects others.
+    const meshFlash=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,depthWrite:false,toneMapped:false}));
+    meshFlash.position.y=.52;meshFlash.scale.set(.76,.76,.76);g.add(meshFlash);
+    const out={enemy,group:g,eye,meshFlash};
     // Encounter 1: the front shield is a cyan plate that turns with the guard; shots from inside its arc are blocked.
     if(enemy.frontShield&&!enemy.introGuard){
       const arc=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,.9,20,1,true,-enemy.frontShield*Math.PI/180,2*enemy.frontShield*Math.PI/180),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
@@ -202,7 +206,15 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   function setExit(open){exitOpen=open;gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}exitMaterial.color.set(open?EXTRACT_COLOR:PALETTE.base);exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?EXTRACT_COLOR:PALETTE.neonSoft);exitPad.material.opacity=open?.4:.18;exitBeam.visible=open;}
   // pickup burst: expanding ring + short flash (pooled per call; cheap)
   const bursts=[];
-  function burst(x,z,color='#ffd04a'){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);bursts.push({m,t:0});}
+  function burst(x,z,color='#ffd04a',withParticles=false){
+    const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+    const m=new THREE.Mesh(ringGeo,material);m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);
+    const particles=[];
+    if(withParticles){const B=RULES.feedback.burst;for(let i=0;i<B.particles;i++){
+      const p=new THREE.Mesh(cube,material),angle=i/B.particles*Math.PI*2;p.scale.setScalar(B.size);p.position.set(x,.5,z);group.add(p);particles.push({mesh:p,dx:Math.cos(angle),dz:Math.sin(angle)});
+    }}
+    bursts.push({m,t:0,x,z,particles});
+  }
   let lastTime=null;
   function animate(time){const dt=lastTime==null?0:Math.min(.1,time-lastTime);lastTime=time;
     for(const c of controlCables){
@@ -222,7 +234,12 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       if(v.beam)v.beam.material.opacity=(v.loot.revealed?.16+RARITY_ORDER.indexOf(v.tier)*.04:.1)+Math.sin(p)*.05;}
     if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
       exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
-    for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);if(b.t>.5){group.remove(b.m);b.m.material.dispose();bursts.splice(i,1);}}
+    for(let i=bursts.length-1;i>=0;i--){
+      const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);
+      const B=RULES.feedback.burst;
+      for(const p of b.particles)p.mesh.position.set(b.x+p.dx*b.t*B.speed,Math.max(.03,.5+B.lift*b.t-B.gravity*b.t*b.t),b.z+p.dz*b.t*B.speed);
+      if(b.t>B.lifeSeconds){group.remove(b.m,...b.particles.map(p=>p.mesh));b.m.material.dispose();bursts.splice(i,1);}
+    }
 for(const d of doors){const open=!d.door.locked;d.panel.visible=!open;d.strip.visible=!open;d.mark.material.opacity=open?.35+Math.sin(time*3)*.08:0;}
     for(const s of spawners){const st=s.sp.state;s.group.visible=st!=='spawned';
       s.ring.material.opacity=st==='warning'?.55+.45*Math.sin(time*18):.28+.12*Math.sin(time*2.4);s.ring.scale.setScalar(st==='warning'?1+.08*Math.sin(time*18):1);}

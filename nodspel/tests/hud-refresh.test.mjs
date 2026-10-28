@@ -59,10 +59,12 @@ test('the frame combat path actually refreshes the HUD after shield-only rig con
   initEquip(round,{gear:['scout_rig']});
   let refreshes=0;
   const context=vm.createContext({
-    round,position:{x:0,z:0},playerMoving:false,combat:{},clock:10,dt:0,playerSolids:[],
+    round,position:{x:0,z:0},playerMoving:false,combat:{},clock:10,dt:0,playerSolids:[],now:10,dash:null,
     stepCombat:()=>takeDamage(round,10,10),playerDisplaced:()=>false,stepTools:()=>[],
-    stepHazards(){},world:{},hazardLabels:[],setCollisions(){},hitUntil:0,
+    stepHazards(){},world:{burst(){}},hazardLabels:[],setCollisions(){},hitUntil:0,
     updateHUD:()=>{refreshes++;},
+    RULES:{feedback:{cameraShake:{playerDamage:{distance:.15,ms:200},hit:{distance:.05,ms:80},kill:{distance:.12,ms:150}}},hitstop:{hitMs:40,killMs:90,lastKillMs:140},enemyTypes:{}},
+    addShake(){},hitstop(){},hapticPulse(){},spawnKillMarker(){},lastHitFeelSerial:0,
   });
   const start=source.indexOf('const combatBefore=combatSnapshot(round);');
   const end=source.indexOf('const moving=magnitude',start);

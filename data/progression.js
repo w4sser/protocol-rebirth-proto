@@ -95,8 +95,8 @@ window.DATA.progression.survey = [
 // Player stats passed to Node Raid (core). See docs/meta-core-integration.md §10.
 // final = base + skill bonuses (level × perLevel) + gear modifiers, then clamped to `clamp` (core clamps again).
 window.DATA.progression.playerStats = {
-  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:4000, searchMult:1, shield:0 },
-  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[2000,6000], searchMult:[0.6,1], shield:[0,100] },
+  base:{ speed:3.6, stealth:0, maxHealth:100, dashCooldownMs:2500, searchMult:1, shield:0 },
+  clamp:{ speed:[2.5,6], stealth:[0,0.6], maxHealth:[50,200], dashCooldownMs:[1500,6000], searchMult:[0.6,1], shield:[0,100] },
   // Skills rise by use in raids (any outcome). xp needed for level n = xpPerLevel × n (cumulative), max level 10.
   // Three automatic skills (v1.41): they rise by playing, never need menus. Accessible: small, always-positive bonuses.
   skills:{

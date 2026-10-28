@@ -1,7 +1,7 @@
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.5.2';
-import {RULES} from './levels.js?v=2.5.2';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.5.2';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.5.2';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.6.0';
+import {RULES} from './levels.js?v=2.6.0';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.6.0';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.6.0';
 
 export function playerDisplaced(before,after){
   return Math.hypot(after.x-before.x,after.z-before.z)>RULES.shooting.movementEpsilon;
@@ -181,3 +181,14 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
 }
 
 function recordShot(round,shot,now,outcome,target=null){if(shot.ricochet||shot.outcomeRecorded)return;shot.outcomeRecorded=true;logCombat(round,{kind:'outcome',at:now,shotId:shot.logId??shot.id,moving:!!shot.movingAtFire,outcome,target});if(shot.bonus&&outcome==='miss')logCombat(round,{kind:'perk',perk:'chain',at:now,shotId:shot.logId??shot.id,text:'Chain Reaction: charged shot missed; 0 extra damage.'});}
+
+// Tap shots search the entire circle rather than the moving/manual assist window.
+export function tapTarget(position,enemies,obstacles,rule=RULES.weapon){
+  return assistAim(position,{x:1,z:0},enemies,obstacles,{...rule,assistAngleDegrees:180,assistWidth:Infinity},false).target;
+}
+
+export function tapDirection(position,facing,enemies,obstacles,rule=RULES.weapon){
+  const target=tapTarget(position,enemies,obstacles,rule);
+  const dx=target?target.x-position.x:facing.x,dz=target?target.z-position.z:facing.z,length=Math.hypot(dx,dz)||1;
+  return {x:dx/length,z:dz/length};
+}

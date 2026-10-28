@@ -241,9 +241,9 @@ console.log("ALL LOGIC TESTS PASSED");
   assert.deepEqual(app.playerStats([]), P.base, "new player = base stats");
   const vest = app.playerStats(["scavenger_vest"]);
   assert.equal(vest.maxHealth, P.base.maxHealth); assert.equal(vest.shield, 25, "vest gives shield, not HP");
-  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:100,dcd:4000,srch:1,shd:10");
+  assert.equal(app.statsParam(app.playerStats(["scout_rig"])), "spd:4.05,stl:0,hp:100,dcd:2500,srch:1,shd:10");
   const url = app.coreLaunchUrl("meta-x", "s", "../", { stats:app.playerStats([]), gear:["scout_rig"] });
-  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A4000%2Csrch%3A1%2Cshd%3A0&gear=scout_rig"), url);
+  assert(url.endsWith("&stats=spd%3A3.6%2Cstl%3A0%2Chp%3A100%2Cdcd%3A2500%2Csrch%3A1%2Cshd%3A0&gear=scout_rig"), url);
   // skills from usage
   const xp = app.skillXpFrom({ skills:{ distanceM:400, dashes:10, holdNodes:2, damageTaken:200 } });
   assert.deepEqual(xp, { mobility:50, stealth:10, search:0, vitality:20, crafting:0 });

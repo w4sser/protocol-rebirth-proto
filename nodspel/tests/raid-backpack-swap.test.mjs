@@ -1,3 +1,4 @@
+import {inputPaused} from '../perks.js?v=2.6.0';
 // v2.0 weapon backpack (docs/design-playtest-oct25.md §c): a found weapon offers a choice — swap it in now or
 // stash it in the backpack to bring home — instead of forcing a swap.
 // v2.4 (Robert's playtest): armor pickups (e.g. Scout Rig) get the same PICK UP-or-SWAP choice.
@@ -155,7 +156,7 @@ import vm from 'node:vm';
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 const gameFunction=name=>{const start=source.indexOf(`function ${name}(`);return source.slice(start,source.indexOf('\nfunction ',start+1));};
 function runtimeHarness(r){
-  const context=vm.createContext({round:r,weapon:r.weaponState,createWeapon,RULES:{loadout:{ammo:30}},weaponStatsOf:id=>({id}),setupWeaponHUD(){},updateHUD(){},refreshGearLabels(){},gearToast(){},ITEM_NAMES:{}});
+  const context=vm.createContext({inputPaused,round:r,weapon:r.weaponState,createWeapon,RULES:{loadout:{ammo:30}},weaponStatsOf:id=>({id}),setupWeaponHUD(){},updateHUD(){},refreshGearLabels(){},gearToast(){},ITEM_NAMES:{}});
   vm.runInContext(gameFunction('onEquip'),context);
   return ()=>{vm.runInContext('onEquip()',context);return context.weapon;};
 }
@@ -207,7 +208,7 @@ class Element {
 test('backpack first tap shows shared stat arrows; confirm alone equips, close cancels',()=>{
   const r=createRound('compare-ui',0);initEquip(r,{weapon:'smg_vector'});r.backpack=['rifle_marksman'];
   const viewport=new Element('div');let equips=0;
-  const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
+  const context=vm.createContext({inputPaused,round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),gearSlotOf,
     hideSwap:()=>{viewport.children[0].hidden=true;},equipFromBackpack,onEquip:()=>equips++,gameClock:()=>10,Date:{now:()=>10}});
@@ -227,7 +228,7 @@ test('gear-found popup offers SWAP and PICK UP; PICK UP picks it up without equi
   const r=createRound('gear-ui',0);initEquip(r,{gear:['scavenger_vest']});
   const box=place(r,'scout_rig');r.gearOffer={boxId:'g1',item:'scout_rig',slot:'armor',at:1};
   const viewport=new Element('div');
-  const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
+  const context=vm.createContext({inputPaused,round:r,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{scout_rig:'Scout Rig'},svgIcon:id=>({icon:id}),nearOffer:()=>true,
     clearGearOffer:()=>{r.gearOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip(){},
@@ -247,7 +248,7 @@ test('gear-found popup hides PICK UP entirely once the material bag is full',()=
   const r=createRound('gear-ui-full',0);initEquip(r,{gear:['scavenger_vest']});r.bag.cable=bagCapacityOf(r);
   place(r,'scout_rig');r.gearOffer={boxId:'g1',item:'scout_rig',slot:'armor',at:1};
   const viewport=new Element('div');
-  const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
+  const context=vm.createContext({inputPaused,round:r,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{scout_rig:'Scout Rig'},svgIcon:id=>({icon:id}),nearOffer:()=>true,
     clearGearOffer(){},swapGear,onEquip(){},stashWeapon,gearToast(){},updateHUD(){},bagItems,bagCapacityOf,backpackCapacityOf,carriedCount,
@@ -262,7 +263,7 @@ test('starter ground popup compares and offers backpack or equip, then initializ
   const r=createRound('starter-ui',0);initEquip(r,{weapon:'basic_carbine'});r.weaponState=createWeapon();
   const box=place(r,'rifle_marksman');collectLoot(r,at,1,r.weaponState);
   const viewport=new Element('div');const onEquip=runtimeHarness(r);
-  const context=vm.createContext({round:r,document:{createElement:tag=>new Element(tag)},
+  const context=vm.createContext({inputPaused,round:r,document:{createElement:tag=>new Element(tag)},
     $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
     ITEM_NAMES:{rifle_marksman:'Marksman'},compareWeapons,svgIcon:id=>({icon:id}),nearWeaponOffer:()=>true,
     clearWeaponOffer:()=>{r.weaponOffer=null;viewport.children[0].hidden=true;},swapGear,onEquip,backpackCapacityOf,bagItems,bagCapacityOf,carriedCount,
@@ -311,7 +312,7 @@ test('backpack and ground popups compare the selected instance against the upgra
     r.level.lootBoxes=[{id:'other',item:'smg_vector',weaponState:r.weaponState},{id:'chosen',item:'smg_vector',weaponState:candidate}];
     r.weaponOffer={boxId:'chosen',item:'smg_vector'};
     const viewport=new Element('div');
-    const context=vm.createContext({round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
+    const context=vm.createContext({inputPaused,round:r,resultPending:false,document:{createElement:tag=>new Element(tag)},
       $:selector=>selector==='#viewport'?viewport:viewport.children.find(e=>e.id===selector.slice(1)),
       ITEM_NAMES:{smg_vector:'Vector'},compareWeapons,svgIcon:id=>({icon:id}),hideSwap(){},nearWeaponOffer:()=>true,backpackCapacityOf,gearSlotOf,bagItems,bagCapacityOf,carriedCount,clearWeaponOffer(){}});
     vm.runInContext(gameFunction('weaponCompareRow')+'\n'+gameFunction('appendPickupButton')+'\n'+gameFunction(kind==='backpack'?'showBackpackWeapon':'showWeaponOffer'),context);
