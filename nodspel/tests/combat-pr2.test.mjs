@@ -64,7 +64,7 @@ test('chain consumes charge on real shot, adds measured damage, never from gener
   r.level.enemies=[{...foe('gen',2),type:'generator'}];fireAimedWeapon(w,r,point,{x:1,z:0},4000,[]);assert.equal(perkState(r).chain,false);
 });
 test('reload interval and dash floors apply without changing ammunition budgets',()=>{
-  const r=arena();select(r,'reload');select(r,'roll');assert.equal(reloadInterval(r,1000),800);assert.equal(reloadInterval(r,100),250);assert.equal(dashInterval(r,6000),4500);assert.equal(dashInterval(r,1000),2000);
+  const r=arena();select(r,'reload');select(r,'roll');assert.equal(reloadInterval(r,1000),800);assert.equal(reloadInterval(r,100),250);assert.equal(dashInterval(r,6000),4500);assert.equal(dashInterval(r,1000),1500);
   const w=createWeapon(10,{capacity:2,reloadMs:1000});fireAimedWeapon(w,r,point,{x:-1,z:0},1000,[]);assert.equal(w.reloadAt,1800);const total=w.ammo+w.reserve;tickWeapon(w,1800,r);assert.equal(w.ammo+w.reserve,total);assert.equal(w.ammo,2);
 });
 test('emergency shield does not reduce trigger or revive, budgets each room once',()=>{

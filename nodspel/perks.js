@@ -1,5 +1,6 @@
-import '../data/raid-perks.js?v=2.5.2';
-import {heal} from './stakes.js?v=2.5.2';
+import '../data/raid-perks.js?v=2.6.0';
+import {heal} from './stakes.js?v=2.6.0';
+import {RULES} from './levels.js?v=2.6.0';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -41,8 +42,9 @@ export function reconLootVisible(round,box){
   const index=roomAt(round.level,box);return hasPerk(round,'recon')&&index>=0&&!!s.rooms[roomKey(round,index)]&&s.rooms[roomKey(round,index)].state!=='unresolved';
 }
 export function updateClears(round,position){
-  const s=perkState(round);if(round.over)return;
+  const s=perkState(round);if(round.over)return [];
   ownRooms(round.level);const index=roomAt(round.level,position);if(index>=0)round.currentRoom=index;
+  const cleared=[];
   for(let i=0;i<round.level.rooms.length;i++){
     const key=roomKey(round,i),r=s.rooms[key]??={state:'unresolved',entered:false,level:round.level.number,index:i};
     if(index===i)r.entered=true;
@@ -50,13 +52,14 @@ export function updateClears(round,position){
     // Dormant reserves count only after activation, just as they do when blocking a clear.
     const roomEnemies=round.level.enemies.filter(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false);
     if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){
-      r.state='clearPending';
+      r.state='clearPending';r.clearedAt=Math.max(...roomEnemies.map(e=>e.diedAt??round.gameNow??0));cleared.push(key);
       // A presented/minimized offer keeps its place: later clears must not invalidate its three cards.
       const presented=s.rooms[s.queue[0]]?.state==='rewardPending'?s.queue.shift():null;
       s.queue.push(key);s.queue.sort((a,b)=>{const x=s.rooms[a],y=s.rooms[b];return x.level-y.level||x.index-y.index;});
       if(presented)s.queue.unshift(presented);
     }
   }
+  return cleared;
 }
 export function safePick(round,combat,position,now,hazardState){
   const s=perkState(round),key=s.queue[0];if(!key||s.minimized===key||round.over)return null;
@@ -67,6 +70,33 @@ export function safePick(round,combat,position,now,hazardState){
   if((round.level.hazards??[]).some(h=>Math.abs(position.x-h.x)<=h.w/2&&Math.abs(position.z-h.z)<=h.d/2&&hazardState(h,now)==='on'))return null;
   return key;
 }
+// Perk picker timing (docs/design-combat-feel-oct28.md §2.1.1): the room must be safePick()-safe continuously
+// for calmMs before opening, and killDelayMs must have elapsed since the room's last kill. The raid
+// timer keeps running throughout this wait; only openPerk() -> pausePick() actually freezes the game clock.
+export function pickReady(round,combat,position,now,hazardState){
+  const s=perkState(round),key=safePick(round,combat,position,now,hazardState);
+  if(!key){s.calmSince=null;s.calmKey=null;return null;}
+  const room=s.rooms[key],lastKillAt=Math.max(room.clearedAt??now,room.lastKillAt??0);
+  if(s.calmKey!==key||s.calmKillAt!==lastKillAt){s.calmKey=key;s.calmKillAt=lastKillAt;s.calmSince=now;}
+  if(now-lastKillAt<RULES.perkPick.killDelayMs)return null;
+  if(now-s.calmSince<RULES.perkPick.calmMs)return null;
+  return key;
+}
+// Hitstop: a brief freeze of the paused game clock (gameTime/pausePick/resumePick), not a second clock. The
+// real frame loop keeps rendering and reading input while paused; only the game simulation step is skipped
+// (game.mjs resumes automatically once Date.now() reaches round.hitstopUntil). ms is extended, never shortened,
+// if a new hitstop lands while one is already running (e.g. a kill right after a hit).
+export function hitstop(round,ms,wall=Date.now()){
+  advanceHitstop(round,wall);
+  if(round.pauseAt!=null&&round.hitstopUntil==null)return;
+  if(round.pauseAt==null)round.pauseAt=gameTime(round,wall);
+  round.hitstopUntil=Math.max(round.hitstopUntil??wall,wall+ms);
+}
+export function advanceHitstop(round,wall){
+  if(round?.hitstopUntil==null||wall<round.hitstopUntil)return;
+  const until=round.hitstopUntil;round.hitstopUntil=null;resumePick(round,until);
+}
+export function inputPaused(round){return round?.pauseAt!=null&&round.hitstopUntil==null;}
 export function offer(round,key){
   const s=perkState(round),r=s.rooms[key];if(!r)return [];
   if(!r.offer){let seed=2166136261;for(const c of `${round.seed}:${key}`)seed=Math.imul(seed^c.charCodeAt(0),16777619)>>>0;
@@ -76,7 +106,7 @@ export function offer(round,key){
   }r.state='rewardPending';return r.offer;
 }
 export function gameTime(round,wall){return round?.pauseAt??wall-(round?.pausedMs??0);}
-export function pausePick(round,wall){if(round.pauseAt!=null)return;round.pauseAt=gameTime(round,wall);}
+export function pausePick(round,wall){if(round.hitstopUntil!=null){advanceHitstop(round,wall);round.hitstopUntil=null;}if(round.pauseAt!=null)return;round.pauseAt=gameTime(round,wall);}
 export function resumePick(round,wall){if(round.pauseAt==null)return;round.pausedMs=wall-round.pauseAt;round.pauseAt=null;}
 export function hasPerk(round,id){return !!round?.perks?.taken.includes(id)&&!round.perks.terminalCards?.includes(id);}
 export function terminalPick(round,key){const r=perkState(round).rooms[key];return r?.level===3&&r.index===round.level.rooms.length-1;}

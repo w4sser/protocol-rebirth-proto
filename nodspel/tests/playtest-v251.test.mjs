@@ -1,3 +1,4 @@
+import {inputPaused} from '../perks.js?v=2.6.0';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -6,7 +7,7 @@ import {createRound,useHealthKit,healthKitBlock} from '../round.js';
 import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js';
 import {RULES,generateLevel,setQuestLoot} from '../levels.js';
 import {JSDOM} from 'jsdom';
-import {createFireInputGate,bindHUDTap} from '../controls.js';
+import {createFireInputGate,bindHUDTap,stickOffset,finishGesture} from '../controls.js';
 
 function arena(){const r=createRound('impact',0);Object.assign(r.level,{enemies:[{id:'target',kind:'enemy',type:'grunt',x:5,z:0,r:.48,health:1,active:true}],nodes:[]});return r;}
 test('assisted lethal shot travels before damage, death and removal at impact',()=>{
@@ -34,7 +35,7 @@ test('HUD tap heals within the remaining budget and exhausted taps give feedback
   r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget-5;
   let feedback='',updates=0;
   const button={querySelector:()=>({}),setAttribute(){}};
-  const ctx={round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,notice:s=>feedback=s,updateHUD:()=>updates++,refreshKitLabels(){},$:()=>button};
+  const ctx={inputPaused,round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,notice:s=>feedback=s,updateHUD:()=>updates++,refreshKitLabels(){},$:()=>button};
   vm.createContext(ctx);
   vm.runInContext(source.match(/function useKit\(\)\{[^\n]+/)[0]+'\n'+source.match(/function renderKitHUD\(\)\{[^\n]+/)[0],ctx);
   vm.runInContext('renderKitHUD();useKit()',ctx);assert.equal(button.disabled,false);assert.equal(r.health,45);assert.equal(r.kit.medkit,1);assert.equal(updates,1);
@@ -52,9 +53,10 @@ test('active Transmitter supply has a visible guaranteed Archipelago radio crate
 });
 
 test('held aim gesture is cleared on modal entry and its release cannot fire after close',()=>{
-  const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),handlers={},state={shots:0},thumb={style:{}};
-  const el={querySelector:()=>thumb,classList:{add(){},remove(){},toggle(){}},getBoundingClientRect:()=>({left:0,top:0,width:100}),addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture(){},hasPointerCapture:()=>true,releasePointerCapture(id){handlers.lostpointercapture({pointerId:id,type:'lostpointercapture'});}};
-  const ctx={sticks:[],round:{pauseAt:null,over:false},tutorialOpen:false,$:selector=>selector==='#inventory'?{hidden:true}:el,keys:new Set(['Space']),mouseDown:true,screenToWorld:(x,y)=>({x,z:y}),beginAim:(x,y)=>({origin:{x,y},direction:null}),dragAim:(g,x,y)=>g.direction={x:x-g.origin.x,y:y-g.origin.y},releaseAim:(g,cancelled)=>cancelled?null:g.direction,aim:null,shot:()=>state.shots++};
+  const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),handlers={},state={shots:0},thumb={style:{},getBoundingClientRect:()=>({width:36})};
+  const el={style:{setProperty(){}},querySelector:()=>thumb,classList:{add(){},remove(){},toggle(){}},getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390,width:100}),addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture(){},hasPointerCapture:()=>true,releasePointerCapture(id){handlers.lostpointercapture({pointerId:id,type:'lostpointercapture'});}};
+  const ctx={viewport:{getBoundingClientRect:()=>({left:0,top:0,right:844,bottom:390})},inputPaused,stickOffset,finishGesture,document:{addEventListener(){}},sticks:[],round:{pauseAt:null,over:false},tutorialOpen:false,$:selector=>selector==='#inventory'?{hidden:true}:el,keys:new Set(['Space']),mouseDown:true,screenToWorld:(x,y)=>({x,z:y}),beginAim:(x,y)=>({origin:{x,y},direction:null,target:{x:1,y:0}}),dragAim:(g,x,y)=>g.direction={x:x-g.origin.x,y:y-g.origin.y},releaseAim:(g,cancelled)=>cancelled?null:g.direction,aim:null,shot:()=>state.shots++,
+    RULES:{aimControls:{deadZonePx:20,stickRadiusPx:48}},TAP_MS:200,performance:{now:()=>0},setTimeout:fn=>fn(),tapAimDirection:()=>({x:0,z:-1})};
   vm.createContext(ctx);vm.runInContext(source.slice(source.indexOf('function setupStick('),source.indexOf("setupStick('#move-stick'"))+'\n'+source.match(/function clearInput\(\)\{[^\n]+/)[0]+"\nsetupStick('#aim-stick',{},shot)",ctx);
   const event=type=>({type,pointerId:9,clientX:70,clientY:50,preventDefault(){}});
   handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});
@@ -62,7 +64,7 @@ test('held aim gesture is cleared on modal entry and its release cannot fire aft
   assert.equal(ctx.sticks[0].state.pointer,null);assert.equal(ctx.sticks[0].state.gesture,null);assert.equal(ctx.mouseDown,false);assert.equal(ctx.keys.size,0);
   handlers.pointerdown(event('pointerdown'));assert.equal(ctx.sticks[0].state.pointer,null,'aim press blocked while modal open');
   ctx.round.pauseAt=null;vm.runInContext('clearInput()',ctx);handlers.pointerup(event('pointerup'));assert.equal(state.shots,0);
-  handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});handlers.pointerup(event('pointerup'));assert.equal(state.shots,1,'fresh aim gesture still fires');
+  handlers.pointerdown(event('pointerdown'));handlers.pointermove({...event('pointermove'),clientX:90});handlers.pointerup({...event('pointerup'),clientX:90});assert.equal(state.shots,1,'fresh aim gesture still fires');
 });
 
 test('full-budget touch HUD pointer tap heals at 40 HP, spends one kit and reports success',()=>{
@@ -71,7 +73,7 @@ test('full-budget touch HUD pointer tap heals at 40 HP, spends one kit and repor
   const button=dom.window.document.querySelector('button'),r=createRound('touch-kit',0);
   r.health=40;r.kit={medkit:2};r.stakes.healed=0;
   let feedback='',updates=0;
-  const ctx={round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,
+  const ctx={inputPaused,round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,
     notice:s=>feedback=s,updateHUD:()=>updates++,bindHUDTap,$:()=>button};
   vm.createContext(ctx);
   vm.runInContext(source.match(/function useKit\(\)\{[^\n]+/)[0]+'\n'+source.match(/bindHUDTap\(\$\('#use-kit'\),\(\)=>useKit\(\)\);/)[0],ctx);

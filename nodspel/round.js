@@ -1,10 +1,10 @@
-import {PERKS,perkState,hasPerk,logCombat,roomKey,updateClears,resetPerks} from './perks.js?v=2.5.2';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.5.2';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.5.2';
-import {emptyBag,bagItems} from './raid.js?v=2.5.2';
-import {traceTargets} from './physics.mjs?v=2.5.2';
-import {shieldBlocks} from './encounters.js?v=2.5.2';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.5.2';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,resetPerks} from './perks.js?v=2.6.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.6.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.6.0';
+import {emptyBag,bagItems} from './raid.js?v=2.6.0';
+import {traceTargets} from './physics.mjs?v=2.6.0';
+import {shieldBlocks} from './encounters.js?v=2.6.0';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.6.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -280,9 +280,32 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
     // Not a kill: breaking the generator drops its node's shield for good.
     enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);
     if(enemy.health===0){const node=round.level.nodes.find(n=>n.id===enemy.node);if(node){node.shielded=false;node.shieldBroken=true;}round.generatorsDown=(round.generatorsDown??0)+1;}
+    registerHitFeel(round,enemy,now,'hit');
     return true;
   }
-  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);if(enemy.health===0){round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);}return true;
+  enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);
+  if(enemy.health===0){
+    round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);
+    // Combat feel (docs/design-combat-feel-oct28.md §2.1.2/2.1.3): hitstop/camera shake/haptics/particles are real-time
+    // presentation effects, driven from game.mjs's frame loop off this event — never from here (hitEnemy runs the same
+    // way in dozens of synchronous unit tests with synthetic clocks, which must stay unaffected by real wall-clock pausing).
+    ownRooms(round.level);enemy.diedAt=now;
+    const state=perkState(round),key=roomKey(round,enemy.homeRoom);
+    const room=state.rooms[key]??={state:'unresolved',entered:false,level:round.level.number,index:enemy.homeRoom};room.lastKillAt=now;
+    const roomEnemies=round.level.enemies.filter(e=>e.homeRoom===enemy.homeRoom&&e.type!=='generator'&&e.active!==false);
+    const lastInRoom=roomEnemies.length>0&&!roomEnemies.some(e=>e.health>0);
+    registerHitFeel(round,enemy,now,lastInRoom?'lastKill':'kill');
+  }else{
+    registerHitFeel(round,enemy,now,'hit');
+  }
+  return true;
+}
+// One-shot event for the render loop (game.mjs) to pick up: mesh flash + hitstop on every hit, death
+// anim/particles/camera shake/kill marker/haptics on a kill too. Queue every event so
+// pellet, grenade and ricochet hits in the same simulation step all receive feedback.
+function registerHitFeel(round,enemy,now,kind){
+  round.hitFeel={serial:(round.hitFeel?.serial??0)+1,enemyId:enemy.id,type:enemy.type,x:enemy.x,z:enemy.z,kind,at:now};
+  (round.hitFeels??=[]).push(round.hitFeel);
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};

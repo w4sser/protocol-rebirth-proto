@@ -19,9 +19,9 @@ function arena(enemy){
 
 test('standing and moving windows enforce angle and width separately, also in L1',()=>{
   assert.deepEqual(assistWindow(),{angleDegrees:12,width:1.1});
-  assert.deepEqual(assistWindow(RULES.weapon,true),{angleDegrees:4,width:.4});
+  assert.deepEqual(assistWindow(RULES.weapon,true),{angleDegrees:7,width:.7});
   // First target fails only the moving angle; second fails only its width.
-  for(const target of [foe(2,.25),foe(6,.41)]){
+  for(const target of [foe(4,.6),foe(6.6,.78)]){
     assert.equal(assistAim(origin,aim,[target],[]).target,target);
     assert.equal(assistAim(origin,aim,[target],[],RULES.weapon,true).target,null);
     const round=arena(target),weapon=createWeapon();
