@@ -17,4 +17,4 @@ assert.match(chain[1].steps[3].brief,/Found in: Archipelago - radio crates/);
 S.stash.transmitter=1;S.fir.transmitter=1;assert.equal(w.T.questLaunchParam(),null,'supply stops once required FIR item is secured');
 S.fir.transmitter=0;assert.equal(w.T.questLaunchParam(),'extract:transmitter:0:1:1','vendor item does not suppress guarantee');
 w.eval('chainState('+JSON.stringify(chain[0])+').step=4;');assert.equal(w.T.questLaunchParam(),null,'turned-in step no longer guarantees transmitter');
-console.log('V2.5.2 playtest regression tests passed');dom.window.close();
+console.log('V2.6.1 playtest regression tests passed');dom.window.close();

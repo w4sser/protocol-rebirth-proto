@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.6.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.6.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -5161,6 +5161,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.ok){
+    window.PR_AUDIO_BASE_RETURN?.(coreIngest.raid.outcome);
     overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(coreIngest.raid, coreIngest, coreIngest.reaction, "Node Raid") +
       '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
   }

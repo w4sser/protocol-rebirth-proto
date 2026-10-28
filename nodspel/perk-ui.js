@@ -1,4 +1,5 @@
-import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.6.0';
+import {audioEvent} from './audio.js?v=2.6.1';
+import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.6.1';
 const paths={
   chain:'M5 17l7-10 1 6h6l-7 10-1-6H5z M4 4h4 M18 4h2',
   reload:'M5 9a8 8 0 1 1-1 7 M5 4v5h5 M12 8v5l3 2',
@@ -44,6 +45,7 @@ export function createPerkUI(viewport,action){
     else {for(const [el,inert] of background)el.inert=inert;background.clear();}
   }
   return {layer,open(round,key){
+    audioEvent('perk-open');
     const ids=offer(round,key);feedback.replaceChildren();const label=document.createElement('b');label.className='perk-recap-label';label.textContent='LAST ROOM';feedback.append(label);
     recap(round,key).forEach((line,i)=>{const p=document.createElement('p'),text=document.createElement('span');text.textContent=line;p.append(perkIcon(['shield','roll','chain'][i]),text);feedback.append(p);});
     grid.replaceChildren();confirmation.textContent='One choice. This raid only.';
@@ -62,7 +64,7 @@ export function createPerkUI(viewport,action){
     panel.classList.add('locked');setModal(true);layer.hidden=false;close.focus({preventScroll:true});
     clearTimeout(lockTimer);
     lockTimer=setTimeout(()=>{panel.classList.remove('locked');for(const b of grid.children)b.disabled=false;grid.querySelector('button')?.focus({preventScroll:true});},LOCK_MS);
-  },confirm(text,selected){clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');confirmation.textContent=text;},close(){clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
+  },confirm(text,selected){audioEvent('perk-select');clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');confirmation.textContent=text;},close(){clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
   hud(round,container){let el=container.querySelector('.perk-hud');if(!el){el=document.createElement('div');el.className='perk-hud';el.setAttribute('aria-label','Active raid perks');container.append(el);}el.replaceChildren();for(const id of perkState(round).taken){const c=cards.find(c=>c.id===id),span=document.createElement('span');span.dataset.perk=id;span.title=`${c.name}: ${perkState(round).selectedEffects?.[id]??c.effect}`;span.setAttribute('role','img');span.setAttribute('aria-label',span.title);span.append(perkIcon(id));el.append(span);}}
   };
 }

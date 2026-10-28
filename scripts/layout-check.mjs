@@ -206,6 +206,36 @@ async function baseRun([w,h]){
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(name==='worldmap-new'?1300:350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
+        if(name==='settings'){
+          const checkSettings=()=>{
+            const errors=[],menu=document.getElementById('settings-menu'),phone=document.getElementById('phone');
+            const visible=el=>{
+              if(!el||el.hidden)return false;
+              for(let p=el;p;p=p.parentElement){const s=getComputedStyle(p);if(s.display==='none'||s.visibility==='hidden'||+s.opacity===0)return false;}
+              const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+              if(!r.width||!r.height||r.top<0||r.left<0||r.bottom>innerHeight||r.right>innerWidth||s.visibility==='hidden'||+s.opacity===0)return false;
+              const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+              return !!hit&&(el.contains(hit)||hit.contains(el));
+            };
+            if(!visible(menu))errors.push('settings menu is invisible or outside viewport');
+            if(!visible(document.getElementById('menubtn')))errors.push('settings gear/HUD disappeared');
+            if(phone.scrollTop!==0||phone.scrollLeft!==0)errors.push('shell scrolled the HUD away');
+            const hud=document.getElementById('topbar').getBoundingClientRect();
+            if(hud.top<0||hud.bottom>innerHeight)errors.push('top HUD moved outside viewport');
+            if(menu.querySelectorAll('.audio-settings input').length!==9)errors.push('missing master, volume or mute controls');
+            return errors;
+          };
+          for(const error of await page.evaluate(checkSettings))fail(`${tag} settings`,error);
+          const hiddenAudio=await page.evaluate(()=>[...document.querySelectorAll('.audio-settings input')].filter(el=>{
+            const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return !hit||!(el.contains(hit)||hit.contains(el));
+          }).map(el=>el.getAttribute('aria-label')));
+          for(const label of hiddenAudio)fail(`${tag} settings`,`audio control is not visible: ${label}`);
+          await page.evaluate(()=>{const body=document.querySelector('#settings-menu .audio-menu-body');body.scrollTop=body.scrollHeight;});
+          await settle(100);
+          for(const error of await page.evaluate(checkSettings))fail(`${tag} settings scrolled`,error);
+          await shot(page,`base-${w}x${h}-settings-scrolled`);
+        }
         if(name==='base'){ // v1.67: room plates never sit under the goal card
           const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs'),tbar=document.getElementById('topbar');if(!c||!vw)return [];
             const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,tbr=tbar&&tbar.offsetHeight?tbar.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
@@ -464,8 +494,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.6.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.6.0');
+    const {createRound}=await import('./round.js?v=2.6.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.6.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

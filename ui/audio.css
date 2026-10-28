@@ -1,0 +1,21 @@
+.audio-settings{border:0;padding:4px 0;margin:0;min-width:0;color:var(--ad-bone)}
+.audio-settings legend{font-size:12px;color:var(--ad-cyan)}
+.audio-settings label{display:flex;align-items:center;gap:8px;font-size:12px;min-height:32px}
+.audio-settings .audio-row{display:flex;align-items:center;gap:12px}
+.audio-settings .audio-row>label:first-child{flex:1;min-width:0}
+.audio-settings label span{width:64px;flex-shrink:0}
+.audio-settings input[type=range]{min-width:0;width:100%;accent-color:var(--ad-cyan)}
+.audio-settings input[type=checkbox]{accent-color:var(--ad-cyan);width:20px;height:20px;flex-shrink:0}
+/* The full-screen shell must not scroll when a taller settings menu opens.
+   overflow:hidden still permits scroll anchoring to move the entire HUD.
+   Only the menu body below is a scroll container. */
+#phone{overflow:clip}
+#settings-menu{overflow-anchor:none;width:min(340px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 48px));max-height:calc(100dvh - var(--st,0px) - var(--sb,0px) - 72px)}
+.audio-menu-body{display:flex;flex-direction:column;gap:4px;overflow-y:auto;min-height:0;touch-action:pan-y}
+.audio-menu-body>*{flex-shrink:0}
+.raid-settings{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:color-mix(in srgb,var(--ad-night) 85%,transparent);padding:24px}
+.raid-settings[hidden]{display:none}
+.raid-settings-card{width:min(380px,100%);max-height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;border:1px solid var(--ad-cyan);border-radius:8px;background:var(--ad-ink);color:var(--ad-bone)}
+.raid-settings-card .pop-head{margin-bottom:4px;font-size:16px}
+.raid-settings-card .audio-menu-body{flex-shrink:1}
+#raid-settings-open{pointer-events:auto;display:grid;place-items:center;width:44px;height:44px;margin-right:8px;border:1px solid var(--ad-cyan);border-radius:6px;background:var(--ad-ink);color:var(--ad-cyan)}
