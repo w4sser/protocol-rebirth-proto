@@ -2,8 +2,8 @@
 /*
 export const DEFAULT_ORDER=Object.freeze({zone:'industrial',route:'maintenance_tunnels',risk:'standard',objective:['cable','fuse'],loadout:{weapon:'basic_carbine',ammo:12},health:100});
 */
-import '../data/items.js?v=2.7.2';
-import {RULES} from './levels.js?v=2.7.2';
+import '../data/items.js?v=2.7.3';
+import {RULES} from './levels.js?v=2.7.3';
 export const ITEM_NAMES=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,i.name]));
 export const emptyBag=()=>Object.fromEntries(RULES.loot.types.map(id=>[id,0]));
 /*
