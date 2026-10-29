@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.7.2';
+import {inputPaused} from '../perks.js?v=2.7.3';
 // v2.0 weapon backpack (docs/design-playtest-oct25.md §c): a found weapon offers a choice — swap it in now or
 // stash it in the backpack to bring home — instead of forcing a swap.
 // v2.4 (Robert's playtest): armor pickups (e.g. Scout Rig) get the same PICK UP-or-SWAP choice.
