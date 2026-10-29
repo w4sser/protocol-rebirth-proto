@@ -1,50 +1,50 @@
-import {createAudioSettings} from './audio-settings.js?v=2.7.1';
-import {audio,audioEvent} from './audio.js?v=2.7.1';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.7.1';
-import {createPerkUI} from './perk-ui.js?v=2.7.1';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.7.1';
+import {createAudioSettings} from './audio-settings.js?v=2.7.2';
+import {audio,audioEvent} from './audio.js?v=2.7.2';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.7.2';
+import {createPerkUI} from './perk-ui.js?v=2.7.2';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.7.2';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.7.1';
-import {loadBunkerAssets} from './bunker.js?v=2.7.1';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.7.1';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.7.1';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.7.2';
+import {loadBunkerAssets} from './bunker.js?v=2.7.2';
+import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.7.2';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.7.2';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.7.1';import '../data/recipes.js?v=2.7.1';import '../data/vendors.js?v=2.7.1';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.7.1';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.7.1';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.7.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.7.1';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.7.1';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.7.1';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.7.1';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.7.1';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.7.1';
-import {buildWorld,setNodeHold} from './world.js?v=2.7.1';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.7.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.7.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.7.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.7.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.7.1';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.7.1';
-// import {stepScavenging} from './scavenging.js?v=2.7.1';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.7.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.7.1';
-import {routeComplete} from './objectives.js?v=2.7.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.7.1';
-import {createBIT,stepBIT} from './bit.js?v=2.7.1';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.7.1';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.7.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.7.1';
-import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.7.1';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.7.1';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel} from './labels.js?v=2.7.1';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.7.1';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.7.1';
+import '../data/modules.js?v=2.7.2';import '../data/recipes.js?v=2.7.2';import '../data/vendors.js?v=2.7.2';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.7.2';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.7.2';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.7.2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.7.2';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.7.2';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.7.2';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.7.2';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.7.2';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.7.2';
+import {buildWorld,setNodeHold} from './world.js?v=2.7.2';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.7.2';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.7.2';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.7.2';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.7.2';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.7.2';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.7.2';
+// import {stepScavenging} from './scavenging.js?v=2.7.2';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.7.2';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.7.2';
+import {routeComplete} from './objectives.js?v=2.7.2';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.7.2';
+import {createBIT,stepBIT} from './bit.js?v=2.7.2';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.7.2';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.7.2';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.7.2';
+import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.7.2';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.7.2';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.7.2';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.7.2';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.7.2';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.7.1');
+const orderResponse=await fetch('./order.json?v=2.7.2');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -104,7 +104,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.7.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.7.2',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#1b3039');scene.fog.color.set('#1b3039');scene.fog.near=36;scene.fog.far=72;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -828,35 +828,99 @@ function renderLabels(){
     const r=l.el.getBoundingClientRect();
     const w=r.width||(l.size?l.size[0]:60),h=r.height||(l.size?l.size[1]:14);
     const priority=labelPriority({kind:l.range,needed:l.el.classList.contains('needed-loot'),attacking:l.el.classList.contains('winding')||l.el.classList.contains('locked'),dist:Math.hypot(l.point.x-position.x,l.point.z-position.z)});
-    boxes.push({id:l.id,x:r.width?r.left-origin.left+r.width/2:l.sx,y:r.height?r.bottom-origin.top:l.sy+(l.anchorDy??0),w,h,priority});
+    boxes.push({id:l.id,kind:l.range,x:r.width?r.left-origin.left+r.width/2:l.sx,y:r.height?r.bottom-origin.top:l.sy+(l.anchorDy??0),w,h,priority});
   }
   const shown=resolveLabels(boxes,{hud:hudRects,now:performance.now(),state:labelState});
   const bounds={left:2,right:viewWidth-2,top:2,bottom:viewHeight-2};
   for(const {label} of hazardLabels)if(!label.el.hidden&&shown.get(label.id)===false)label.el.hidden=true;
-  const obstacles=[...hudRects,...boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}))];
+  const shownBoxRects=boxes.filter(b=>shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
+  const obstacles=[...hudRects,...shownBoxRects];
+  const labelRects=boxes.filter(b=>b.kind&&shown.get(b.id)!==false).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
+  // v2.7.3: fixedRects/objectiveRects are the live declutter result for this frame (invariant across
+  // the loop below) — objective-kind boxes (node/exit/room/house) get a small bar lift, everything
+  // else (HUD + every other label) only ever causes a hide, never a push.
+  const fixedRects=obstacles;
+  const objectiveRects=boxes.filter(b=>shown.get(b.id)!==false&&FIXED_LABEL_KINDS.has(b.kind)).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
   const nowPlacement=performance.now();
+  // Sticky hysteresis: `bad` must hold continuously for onMs before the gate flips true, and `!bad`
+  // continuously for offMs before it flips back — so a per-frame geometry wobble (labels/HUD rects
+  // that themselves move) can't flip a decision 3x inside a second. Shared by the collapse-to-bar
+  // request below and the final hide decision, per the layout-check regressions (PRB-141).
+  const gate=(l,key,bad,now,onMs,offMs)=>{
+    l[key+'Bad']=bad?(l[key+'Bad']??now):undefined;
+    l[key+'Ok']=!bad?(l[key+'Ok']??now):undefined;
+    if(!l[key]&&bad&&now-l[key+'Bad']>=onMs)l[key]=true;
+    if(l[key]&&!bad&&now-l[key+'Ok']>=offMs)l[key]=false;
+    return !!l[key];
+  };
   for(const l of labels){
     if(!l.range||l.el.hidden)continue;
     if(l.range!=='enemy'){if(shown.get(l.id)===false)l.el.hidden=true;continue;}
-    const desired=hazardLabels.some(({hazard})=>Math.hypot(l.point.x-hazard.x,l.point.z-hazard.z)<1.4)?'bar':plan.get(l.id)??'bar';
+    // A sustained real collision from last frame (set at the bottom of this loop) requests the bar
+    // for this frame too — fed through placeEnemyLabel's own request/dwell below, instead of forcing
+    // the DOM into bar mode after the fact at a stale, unrelated position.
+    const desired=hazardLabels.some(({hazard})=>Math.hypot(l.point.x-hazard.x,l.point.z-hazard.z)<1.4)||l.forceBar?'bar':plan.get(l.id)??'bar';
     const sizes={};
     // Measure each mode at the projected anchor; transforms differ between label
     // variants. Persist only the final mode/offset, never these temporary probes.
-    l.el.style.width='';
     for(const mode of new Set(['bar',desired,l.placement?.mode??desired])){
       l.el.dataset.mode=mode;
+      l.el.style.width='';
+      // Pin to the ceiling of the auto (fractional) LAYOUT width, not the rounded offsetWidth or a
+      // getBoundingClientRect read: a floored/rounded-down width can be narrower than the content
+      // actually needs, wrapping it onto an extra line once that width is applied for real — which
+      // changes the height out from under this measurement. getComputedStyle's width is untransformed
+      // (a winding label's scale(1.12) must not inflate the width we pin to); box-sizing is border-box
+      // everywhere (global reset), so the ceiled value is exactly what style.width needs. Re-measure
+      // AFTER pinning so h/dy reflect the box that actually renders.
+      const auto=parseFloat(getComputedStyle(l.el).width)||l.el.getBoundingClientRect().width;
+      const cssWidth=Math.ceil(auto)||(mode==='bar'?44:80);
+      l.el.style.width=`${cssWidth}px`;
       const r=l.el.getBoundingClientRect();
-      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth:l.el.offsetWidth||(mode==='bar'?44:80)};
+      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
     }
-    const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,hud:hudRects,bounds,now:nowPlacement});
+    const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,bounds,now:nowPlacement});
     l.placement=placed.state;
-    if(placed.mode==='bar')barOnly(l);else l.el.dataset.mode=placed.mode;
+    let mode=placed.mode;const x=placed.x;let y=placed.y;
+    const overlapsAt=(yy,s,rects)=>rects.some(r=>x+s.w/2>r.left&&x-s.w/2<r.right&&yy>r.top&&yy-s.h<r.bottom);
+    // A caption never draws over a fixed label or HUD, not even for one frame: drop to the bar at once.
+    if(mode!=='bar'&&overlapsAt(y,sizes[mode],fixedRects)){l.forceBar=true;l.forceBarOk=undefined;l.el.hidden=true;continue;}
+    // v2.7.3: vs an objective label specifically, the bar may lift up to 24px to clear it (a caption
+    // may already have stacked to dodge the same box; the bar itself never got the chance). HUD and
+    // every other label never get this — they only ever fall through to the hide gate below. Engaging
+    // (and releasing) the lift is itself gated: right at the overlap boundary the raw test can flip
+    // every frame, which would otherwise yank the bar up/down by up to 24px each time.
+    const wantsLift=mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects);
+    if(gate(l,'lift',wantsLift,nowPlacement,0,250))
+      for(let shift=4;shift<=24&&overlapsAt(y,sizes.bar,objectiveRects);shift+=4)
+        y=Math.max(bounds.top+sizes.bar.h,placed.y-shift);
+    // v2.7.3: a caption<->bar mode flip (or the lift engaging/releasing) changes the box height, and the
+    // box is bottom-pinned to the anchor — so its *centre* can still jump tens of px in one step even
+    // though the bottom never moves off the anchor. settleLabelY follows genuine anchor movement exactly
+    // (never stale) and caps only the EXTRA centre shift the mode/lift change itself adds, at <=8px per
+    // frame (time-based, so a slow device/CI frame rate can't turn the cap into a jump).
+    const settled=settleLabelY(l.ySettle,{y,h:sizes[mode].h,sy:l.sy,bounds,now:nowPlacement});
+    y=settled.y;l.ySettle=settled.state;
+    const size=sizes[mode],box={left:x-size.w/2,right:x+size.w/2,top:y-size.h,bottom:y};
+    if(mode==='bar')barOnly(l);else l.el.dataset.mode=mode;
     l.size=null;
     // Fixed-position auto widths depend on the available space to the right.
     // Keep the layout width untransformed; placement reserves the scaled bounds.
-    l.el.style.width=`${sizes[placed.mode].cssWidth}px`;
-    l.el.style.left=`${placed.x}px`;l.el.style.top=`${placed.y}px`;
-    obstacles.push(placed.box);
+    l.el.style.width=`${size.cssWidth}px`;
+    // placeEnemyLabel's y (and the box above) is the rendered BOTTOM; the CSS top that actually produces
+    // that rendered bottom is offset by this mode's dy (bottom minus CSS top, measured above) — a plain
+    // caption/bar has dy 0, but a scaled state (e.g. the winding pulse) does not, and writing y straight
+    // to style.top would double-apply that offset once the transform renders.
+    l.el.style.left=`${x}px`;l.el.style.top=`${y-size.dy}px`;
+    // Collapse request for NEXT frame: a caption that still lands on a fixed label/HUD after
+    // placement asks for the bar, but only once that has been true for a sustained stretch.
+    l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
+    // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
+    // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
+    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
+    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
+    obstacles.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
   const now=performance.now();
@@ -913,7 +977,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.7.1');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.7.2');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';

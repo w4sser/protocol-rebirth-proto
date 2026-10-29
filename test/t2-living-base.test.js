@@ -51,7 +51,7 @@ for(const id of ["rebirth_core","fabricator","storage","bit_bay","living_quarter
   for(const id of ["decoy_build","grenade_build","emp_build"]){ assert(rows(id), id + " listed"); assert(!rows(id).querySelector("button").disabled, id + " craftable"); }
   assert(b.doc.querySelector("#overlay .fabq"), "queue shown");
   const before = b.S().cur.scrap;
-  assert(/A\.craft\('decoy_build'\)/.test(rows("decoy_build").querySelector("button").getAttribute("onclick"))); b.A.craft("decoy_build");
+  assert(/A\.craftConfirm\('decoy_build'\)/.test(rows("decoy_build").querySelector("button").getAttribute("onclick"))); b.A.craft("decoy_build");
   assert.equal(((b.S().stash.tool_decoy || 0) + ((b.S().armory || {}).tool_decoy || 0)), 2, "first craft is instant");
   assert(b.S().cur.scrap < before);
   assert(b.doc.querySelector('#overlay .bpop[data-module="fabricator"]'), "popup stays open after craft");
@@ -60,6 +60,45 @@ for(const id of ["rebirth_core","fabricator","storage","bit_bay","living_quarter
   assert(!((b.S().stash.tool_grenade || 0) + ((b.S().armory || {}).tool_grenade || 0)), "queued, not instant");
   b.A.craft("emp_build"); assert.equal(b.S().idle.fab.length, 2);
   b.A.craft("emp_build"); assert.equal(b.S().idle.fab.length, 3, "L2 has 3 slots"); b.A.craft("decoy_build"); assert.equal(b.S().idle.fab.length, 3, "queue cap respected");
+}
+// 2b) Build confirm popup (PRB v2.7.2): output icon+name, every material and Scrap at have/need, build
+// time, a red .miss marker on anything short, and BUILD disabled only when something is missing.
+{ const b = boot(base); b.A.go("base"); b.A.openRoom("fabricator");
+  b.A.craftConfirm("decoy_build"); // fully stocked: cable 3/1, polymer_plate 3/1, scrap 200/10
+  let pop = b.doc.querySelector("#overlay .craftconfirm");
+  assert(pop, "confirm popup opens over the Fabricator room");
+  assert.equal(pop.querySelector(".bpop-head h1").textContent, "Build Decoy ×2?", "titled with the recipe name");
+  assert(pop.querySelector(".bpop-head .bicon img, .bpop-head .bicon svg"), "output icon shown");
+  const costRows = [...pop.querySelectorAll(".costs .cost")];
+  assert.equal(costRows.length, 3, "one row per material plus Scrap");
+  assert(!costRows.some(c => c.classList.contains("miss")), "nothing missing: no red markers");
+  assert(costRows.some(c => /Cable/.test(c.textContent) && /1\s*\/\s*1/.test(c.textContent)), "material shows have/need");
+  assert(costRows.some(c => /Scrap/.test(c.textContent) && /10\s*\/\s*10/.test(c.textContent)), "Scrap shows have/need");
+  assert.equal(pop.querySelector(".cfmeta").textContent.trim(), "Instant", "first-ever craft shows Instant build time");
+  const build = pop.querySelector(".sp-act button.primary"), cancel = pop.querySelector(".sp-act button.ghost");
+  assert(!build.disabled && build.getAttribute("onclick") === "A.craft('decoy_build')", "BUILD calls the real craft");
+  assert.equal(cancel.textContent, "CANCEL");
+  b.w.eval(cancel.getAttribute("onclick"));
+  assert(!b.doc.querySelector("#overlay .craftconfirm"), "CANCEL closes the confirm");
+  assert(b.doc.querySelector('#overlay .bpop[data-module="fabricator"] .fabcraft'), "CANCEL returns to the Fabricator room");
+}
+{ // missing a material (no med_gel in this fixture's stash): red marker, BUILD disabled
+  const b = boot(base); b.A.go("base"); b.A.openRoom("fabricator");
+  b.A.craftConfirm("medkit");
+  const pop = b.doc.querySelector("#overlay .craftconfirm");
+  const medGel = [...pop.querySelectorAll(".costs .cost")].find(c => /Med/.test(c.textContent));
+  assert(medGel && medGel.classList.contains("miss"), "missing material gets the red .miss marker");
+  const scrap = [...pop.querySelectorAll(".costs .cost")].find(c => /Scrap/.test(c.textContent));
+  assert(scrap && !scrap.classList.contains("miss"), "Scrap in hand stays unmarked");
+  const build = pop.querySelector(".sp-act button.primary");
+  assert(build.disabled && !build.getAttribute("onclick"), "BUILD is disabled while a material is missing");
+}
+{ // a stray craftConfirm tap while the queue is full must not open the popup at all
+  const b = boot(base); b.A.go("base");
+  b.A.craft("decoy_build"); b.A.craft("grenade_build"); b.A.craft("emp_build"); b.A.craft("emp_build");
+  assert.equal(b.S().idle.fab.length, 3, "L2 queue is full");
+  b.A.openRoom("fabricator"); b.A.craftConfirm("decoy_build");
+  assert(!b.doc.querySelector("#overlay .craftconfirm"), "no confirm popup while the queue is full");
 }
 { // Fab L1: grenade/EMP shown gated, not craftable
   const s = JSON.parse(JSON.stringify(base)); s.modules.fabricator = 1;
