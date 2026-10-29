@@ -37,7 +37,7 @@ import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.7.2';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.7.2';
 import {PALETTE,pickQuality,qualitySettings} from './art.js?v=2.7.2';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.7.2';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS} from './labels.js?v=2.7.2';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.7.2';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.7.2';
 import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.7.2';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
@@ -863,11 +863,21 @@ function renderLabels(){
     const sizes={};
     // Measure each mode at the projected anchor; transforms differ between label
     // variants. Persist only the final mode/offset, never these temporary probes.
-    l.el.style.width='';
     for(const mode of new Set(['bar',desired,l.placement?.mode??desired])){
       l.el.dataset.mode=mode;
+      l.el.style.width='';
+      // Pin to the ceiling of the auto (fractional) LAYOUT width, not the rounded offsetWidth or a
+      // getBoundingClientRect read: a floored/rounded-down width can be narrower than the content
+      // actually needs, wrapping it onto an extra line once that width is applied for real — which
+      // changes the height out from under this measurement. getComputedStyle's width is untransformed
+      // (a winding label's scale(1.12) must not inflate the width we pin to); box-sizing is border-box
+      // everywhere (global reset), so the ceiled value is exactly what style.width needs. Re-measure
+      // AFTER pinning so h/dy reflect the box that actually renders.
+      const auto=parseFloat(getComputedStyle(l.el).width)||l.el.getBoundingClientRect().width;
+      const cssWidth=Math.ceil(auto)||(mode==='bar'?44:80);
+      l.el.style.width=`${cssWidth}px`;
       const r=l.el.getBoundingClientRect();
-      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth:l.el.offsetWidth||(mode==='bar'?44:80)};
+      sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
     }
     const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,bounds,now:nowPlacement});
     l.placement=placed.state;
@@ -886,21 +896,22 @@ function renderLabels(){
         y=Math.max(bounds.top+sizes.bar.h,placed.y-shift);
     // v2.7.3: a caption<->bar mode flip (or the lift engaging/releasing) changes the box height, and the
     // box is bottom-pinned to the anchor — so its *centre* can still jump tens of px in one step even
-    // though the bottom never moves off the anchor. Follow genuine anchor movement exactly (never stale),
-    // but cap any EXTRA vertical shift the mode/lift change itself adds to at most 20px per frame; the
-    // remainder bleeds off over the next frame or two, keeping the visual centre from jumping all at once.
-    // Time-based (not per-frame) so a slow device or headless CI frame rate cannot turn it into a jump: <=120 px/s.
-    const capY=Math.max(2,Math.min(12,(nowPlacement-(l._prevT??nowPlacement-16))*.12));l._prevT=nowPlacement;
-    const drift=l._prevSy!=null?l.sy-l._prevSy:0,predicted=l._prevY!=null?l._prevY+drift:y;
-    y=Math.min(bounds.bottom,Math.max(bounds.top+sizes[mode].h,predicted+Math.max(-capY,Math.min(capY,y-predicted))));
-    l._prevY=y;l._prevSy=l.sy;
+    // though the bottom never moves off the anchor. settleLabelY follows genuine anchor movement exactly
+    // (never stale) and caps only the EXTRA centre shift the mode/lift change itself adds, at <=8px per
+    // frame (time-based, so a slow device/CI frame rate can't turn the cap into a jump).
+    const settled=settleLabelY(l.ySettle,{y,h:sizes[mode].h,sy:l.sy,bounds,now:nowPlacement});
+    y=settled.y;l.ySettle=settled.state;
     const size=sizes[mode],box={left:x-size.w/2,right:x+size.w/2,top:y-size.h,bottom:y};
     if(mode==='bar')barOnly(l);else l.el.dataset.mode=mode;
     l.size=null;
     // Fixed-position auto widths depend on the available space to the right.
     // Keep the layout width untransformed; placement reserves the scaled bounds.
     l.el.style.width=`${size.cssWidth}px`;
-    l.el.style.left=`${x}px`;l.el.style.top=`${y}px`;
+    // placeEnemyLabel's y (and the box above) is the rendered BOTTOM; the CSS top that actually produces
+    // that rendered bottom is offset by this mode's dy (bottom minus CSS top, measured above) — a plain
+    // caption/bar has dy 0, but a scaled state (e.g. the winding pulse) does not, and writing y straight
+    // to style.top would double-apply that offset once the transform renders.
+    l.el.style.left=`${x}px`;l.el.style.top=`${y-size.dy}px`;
     // Collapse request for NEXT frame: a caption that still lands on a fixed label/HUD after
     // placement asks for the bar, but only once that has been true for a sustained stretch.
     l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);

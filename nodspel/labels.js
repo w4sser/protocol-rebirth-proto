@@ -113,6 +113,22 @@ export function resolveLabels(boxes,{hud=[],hudPad=8,gap=3,now=0,holdMs=1200,sta
   for(const id of [...state.keys()])if(!out.has(id))state.delete(id);
   return out;
 }
+// Smooth an enemy label's bottom-pinned Y across a caption<->bar mode switch (or an objective-lift
+// engage/release): the box height can change by tens of px within one frame, and the box is bottom-pinned
+// to the head anchor, so simply re-pinning the bottom unchanged would let the box's *visual centre* jump.
+// Genuine anchor movement (sy drift) always passes through in full, immediately; only the EXTRA centre
+// shift a mode/lift change itself adds is capped, at a fixed px-per-ms rate (not px-per-frame) so a slow
+// device or CI frame rate can't turn the cap into a jump. state persists {prevT,prevC,prevSy} across
+// frames, the same pattern placeEnemyLabel uses for its own state.
+export function settleLabelY(state,{y,h,sy,bounds,now,capPxPerMs=.24,maxCapPx=8}){
+  const st=state??{};
+  const elapsed=Math.max(0,now-(st.prevT??now));
+  const capY=Math.min(maxCapPx,elapsed*capPxPerMs);
+  const hh=h/2,drift=st.prevSy!=null?sy-st.prevSy:0,want=y-hh,predicted=st.prevC!=null?st.prevC+drift:want;
+  const centre=predicted+Math.max(-capY,Math.min(capY,want-predicted));
+  const yy=Math.min(bounds.bottom,Math.max(bounds.top+h,centre+hh));
+  return {y:yy,state:{prevT:now,prevC:yy-hh,prevSy:sy}};
+}
 // Priority for resolveLabels: objectives first, then what the player is hunting, then threats, then the rest.
 export function labelPriority({kind,needed=false,attacking=false,dist=0}){
   const base=kind==='node'||kind==='exit'?100:kind==='hazard'?95:needed?80:kind==='enemy'&&attacking?75:kind==='room'||kind==='house'?60:kind==='enemy'?50:kind==='loot'?40:30;

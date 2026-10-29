@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import * as THREE from '../vendor/three.module.js';
-import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS} from '../labels.js';
+import {planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from '../labels.js';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 // Brace-matched extraction (unlike a "stop at the next `function `" slice) so trailing top-level
@@ -32,11 +32,17 @@ class El{
   constructor(){this.classList=new ClassList();this.dataset={};this.style={};this.hidden=true;}
   get offsetWidth(){return this.measured?(parseFloat(this.style.width)||(this.dataset.mode==='bar'?44:100)):0;}
   get offsetHeight(){return 0;}
+  // Fractional, untransformed content width per mode (set as {full:104.4,bar:44,...}); falls back to the
+  // default integer offsetWidth guess for elements that don't care about sub-pixel wrap behaviour.
+  get naturalWidth(){const w=this.layoutWidth;return w&&w[this.dataset.mode]!=null?w[this.dataset.mode]:this.offsetWidth;}
+  dyFor(mode){const d=this.dy;return d&&typeof d==='object'?(d[mode]??0):(d??0);}
   getBoundingClientRect(){
     if(!this.measured)return {width:0,height:0,left:0,right:0,top:0,bottom:0};
     const scale=this.classList.contains('winding')?1.12:1;
-    const width=this.offsetWidth*scale,height=(this.dataset.mode==='bar'?5:30)*scale;
-    const left=parseFloat(this.style.left)-width/2+(this.origin?.left??0),bottom=parseFloat(this.style.top)+(this.origin?.top??0)+(this.dy??0);
+    const natural=this.naturalWidth,pinned=this.style.width?parseFloat(this.style.width):natural;
+    const wrapped=pinned<natural-1e-6; // a pinned width narrower than the content needs wraps an extra line
+    const width=pinned*scale,height=(this.dataset.mode==='bar'?5:wrapped?67:30)*scale;
+    const left=parseFloat(this.style.left)-width/2+(this.origin?.left??0),bottom=parseFloat(this.style.top)+(this.origin?.top??0)+this.dyFor(this.dataset.mode);
     return {width,height,left,right:left+width,top:bottom-height,bottom};
   }
 }
@@ -54,7 +60,10 @@ function run(labels,hazardLabels,{hud=[],width=800,height=600,origin={left:0,top
     bitLabel:null,bit:null,world:{exitLabel:null},exitIsOpen:()=>true,round:{},
     labelPoint:camera?new THREE.Vector3():{x:0,y:0,z:0,copy(v){this.x=v.x;this.y=v.y;this.z=v.z;return this;},project(){this.x=this.x/10;this.y=this.z/10;return this;}},
     camera:camera??{},hudRects:hud,performance:{now:()=>now},labelState:new Map(),
-    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,
+    planLabels,resolveLabels,overHUD,labelOpacity,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY,
+    // getComputedStyle: a real browser's width is the untransformed, fractional layout size (unlike
+    // getBoundingClientRect, which includes any CSS transform scale) — mirrors the mock's naturalWidth.
+    getComputedStyle:el=>({width:`${el.naturalWidth}px`,transform:'none'}),
     refreshHudRects(){},LABEL_SHOW_HOLD_MS:1200,
   });
   if(hudElements)vm.runInContext(extractFn('refreshHudRects'),context);
@@ -259,4 +268,55 @@ test('clustered enemies around STAND CLOSE all stay visible and pinned to their 
       }
     }
   }
+});
+
+// PRB: measuring the caption's auto width, then pinning the rounded/transformed offsetWidth AFTER
+// measuring, let the final box wrap onto an extra line with a different height than what was cached —
+// and placeEnemyLabel's returned y (a rendered BOTTOM) was written straight to CSS top without
+// subtracting the mode's dy. layoutWidth models a caption whose real content needs 104.4px (bar fits its
+// 44px minimum exactly); dy differs per mode like a real caption/bar transform offset would. The 'winding'
+// class scales the rendered box (1.12x) to prove the width pinned to CSS is read untransformed.
+test('renderLabels: width is measured at its final pinned (ceiled) size and placement lands at the correct CSS top across a full<->bar switch',()=>{
+  const SCALE=1.12;
+  const e=enemyLabel('wrap',5,0);
+  e.el.measured=true;
+  e.el.layoutWidth={full:104.4,bar:44};
+  e.el.dy={full:-12,bar:0};
+  run([e],[],{now:0});
+  assert.equal(e.el.dataset.mode,'bar');
+  assert.equal(parseFloat(e.el.style.width),44);
+  assert.equal(e.el.getBoundingClientRect().height,5);
+  const anchor={sx:e.sx,sy:e.sy};
+  // winding forces the caption every frame; placeEnemyLabel still needs its usual sustained dwell.
+  e.el.classList.toggle('winding',true);
+  run([e],[],{now:16});
+  run([e],[],{now:500}); // past the 400ms dwell+clearance window
+  assert.equal(e.el.dataset.mode,'full','caption mode engaged after its dwell');
+  let prev=e.el.getBoundingClientRect(),prevCentre=prev.bottom-prev.height/2;
+  for(let now=516;now<=1200;now+=16){
+    run([e],[],{now});
+    assert.equal(e.sx,anchor.sx,'static anchor: x never moves');
+    assert.equal(e.sy,anchor.sy,'static anchor: y never moves');
+    const r=e.el.getBoundingClientRect(),centre=r.bottom-r.height/2;
+    assert(Math.abs(centre-prevCentre)<=8*SCALE+1e-6,'visual centre never jumps more than the capped (scaled) shift in one frame');
+    prev=r;prevCentre=centre;
+  }
+  // Settled geometry: the caption pins to ceil(104.4)=105, not a floored/rounded guess of 100 — so the
+  // height measured ahead of time (unwrapped, 30) still matches what actually rendered once pinned. The
+  // old order (measure first at auto width, pin the rounded offsetWidth afterwards) would instead wrap
+  // the caption onto an extra line and render at 67.
+  assert.equal(parseFloat(e.el.style.width),105,'full width pinned to ceil(104.4), not a floored guess');
+  assert(Math.abs(prev.height-30*SCALE)<1e-6,'no wrap: pinned width matches what was measured (scaled by the winding transform)');
+  assert(Math.abs((prev.left+prev.right)/2-e.sx)<=0.5,'caption stays centred exactly on the anchor');
+  run([e],[],{now:1216}); // one more settled frame must land on the exact same bottom, not merely close
+  const settled=e.el.getBoundingClientRect();
+  assert.equal(settled.bottom,prev.bottom,'rendered bottom has converged to its placement target');
+  // Switch back to the bar: the same contract (pinned width, dy-correct CSS top, anchor-exact x) holds.
+  e.el.classList.toggle('winding',false);
+  for(let now=1232;now<=2000;now+=16)run([e],[],{now});
+  assert.equal(e.el.dataset.mode,'bar');
+  assert.equal(parseFloat(e.el.style.width),44);
+  const bar=e.el.getBoundingClientRect();
+  assert.equal(bar.height,5);
+  assert(Math.abs((bar.left+bar.right)/2-e.sx)<=0.5,'bar re-centres exactly on the anchor');
 });

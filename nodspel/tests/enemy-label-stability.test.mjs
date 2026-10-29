@@ -5,7 +5,7 @@
 // few px higher to clear a neighbour, and it collapses to the bar when that is not enough.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {placeEnemyLabel} from '../labels.js';
+import {placeEnemyLabel,settleLabelY} from '../labels.js';
 
 const sizes={full:{w:100,h:30,dy:-12},bar:{w:44,h:5,dy:-12}};
 const overlaps=(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;
@@ -80,4 +80,54 @@ test('the bar always stays inside the viewport, clamped at the screen edge (not 
   assert.equal(p.mode,'bar');
   assert(p.box.left>=b.left&&p.box.top>=b.top,'clamped to the viewport edge');
   assert(overlaps(p.box,{left:0,right:400,top:0,bottom:300}),'still overlaps the obstacle — edge clamping is not obstacle avoidance');
+});
+
+// Coordinate contract (PRB): placeEnemyLabel's y (and box.bottom) is the rendered BOTTOM, not the CSS top
+// to write — the caller must convert with `cssTop = y - sizes[mode].dy`. A plain caption/bar has dy 0, but
+// a scaled state (the winding pulse) does not, so this must hold even when dy differs between modes.
+test('coordinate contract: css top (y - dy) lands at the same spot above the anchor regardless of mode/dy',()=>{
+  const dySizes={bar:{w:44,h:5,dy:0},full:{w:100,h:30,dy:-40}};
+  const pBar=placeEnemyLabel(undefined,{x:400,y:200,mode:'bar',sizes:dySizes,bounds,now:0});
+  const pFull=placeEnemyLabel(undefined,{x:400,y:200,mode:'full',sizes:dySizes,bounds,now:0});
+  const cssTopBar=pBar.y-dySizes.bar.dy,cssTopFull=pFull.y-dySizes.full.dy;
+  assert.equal(cssTopBar,cssTopFull,'css top is independent of the mode/dy once converted');
+  assert(cssTopBar<200,'the converted css top sits above the anchor');
+});
+
+// settleLabelY: time-based cap on the EXTRA centre shift a mode/height change adds (not on genuine
+// anchor movement), used to smooth a caption<->bar switch without letting the box's visual centre jump.
+test('settleLabelY: a mode-change jump settles over several 16ms frames, never more than 8px/frame',()=>{
+  const bnd={left:2,right:842,top:2,bottom:388};
+  let state,prevY;
+  // First frame: box bottom at y=100 with h=30 (centre=85). Then the anchor is unchanged but a mode
+  // switch wants the bottom at y=115 (15px lower) — only the resulting centre jump should be capped.
+  let s=settleLabelY(undefined,{y:100,h:30,sy:70,bounds:bnd,now:0});
+  state=s.state;prevY=s.y;
+  assert.equal(s.y,100,'first call has no prior centre to jump from');
+  const steps=[];
+  for(let now=16;now<=200;now+=16){
+    s=settleLabelY(state,{y:115,h:30,sy:70,bounds:bnd,now});
+    assert(Math.abs(s.y-prevY)<=8+1e-9,'extra centre shift never exceeds 8px in one frame');
+    steps.push(s.y);state=s.state;prevY=s.y;
+  }
+  assert(steps.some((y,i)=>i>0&&y!==steps[i-1]),'the shift is spread across more than one frame');
+  assert.equal(steps.at(-1),115,'eventually settles exactly on the new target');
+});
+test('settleLabelY: zero elapsed time adds no extra motion',()=>{
+  const bnd={left:2,right:842,top:2,bottom:388};
+  const s1=settleLabelY(undefined,{y:100,h:30,sy:70,bounds:bnd,now:0});
+  const s2=settleLabelY(s1.state,{y:140,h:30,sy:70,bounds:bnd,now:0});
+  assert.equal(s2.y,100,'no time has passed, so no extra shift toward the new target is allowed');
+});
+test('settleLabelY: a long frame gap still caps the extra shift at 8px, not a single jump',()=>{
+  const bnd={left:2,right:842,top:2,bottom:388};
+  const s1=settleLabelY(undefined,{y:100,h:30,sy:70,bounds:bnd,now:0});
+  const s2=settleLabelY(s1.state,{y:160,h:30,sy:70,bounds:bnd,now:1000});
+  assert.equal(s2.y-s1.y,8,'even after a huge gap, one frame only ever moves the extra shift by the cap');
+});
+test('settleLabelY: genuine anchor drift (sy change) always passes through immediately, uncapped',()=>{
+  const bnd={left:2,right:842,top:2,bottom:388};
+  const s1=settleLabelY(undefined,{y:100,h:30,sy:70,bounds:bnd,now:0});
+  const s2=settleLabelY(s1.state,{y:140,h:30,sy:110,bounds:bnd,now:16}); // anchor moved 40px, target follows it exactly
+  assert.equal(s2.y,140,'a 40px anchor move is not treated as the capped "extra" shift');
 });
