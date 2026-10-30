@@ -354,5 +354,5 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .node-label.aim-magazine{transform:translate(12px,-50%);padding:3px;gap:3px;border:0;background:var(--ad-ink)}
 .aim-magazine i{width:5px;height:5px;border:1px solid var(--ad-bit);border-radius:50%}
 .aim-magazine i.loaded{background:var(--ad-cyan)}
-/* v2.7.3: DASH sits above-right of the move stick, right of the loot panel/pickup-toast column (same #viewport safe-area box), never over the stick's touch zone, below loot panel / heal. */
-@media(max-height:500px){#viewport #dash{left:150px;bottom:180px;width:62px;height:62px}}
+/* v2.8.1: DASH sits by the AIM stick (directly left of it, vertically centred, 16px+ gap); tool button moves one slot further left (same #viewport safe-area box), never over the stick's touch zone, below loot panel / heal. */
+@media(max-height:500px){#viewport #dash{left:auto;right:146px;bottom:33px;width:62px;height:62px}#viewport #tool-btn{right:222px}}

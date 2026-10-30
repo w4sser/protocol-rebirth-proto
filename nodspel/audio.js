@@ -1,5 +1,5 @@
-import '../data/audio.js?v=2.8.0';
-import '../ui/audio.js?v=2.8.0';
+import '../data/audio.js?v=2.8.1';
+import '../ui/audio.js?v=2.8.1';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
