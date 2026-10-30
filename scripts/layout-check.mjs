@@ -343,11 +343,14 @@ async function raidRun([w,h],area){
     const dashPlacement=await page.evaluate(()=>{
       const d=document.querySelector('#dash').getBoundingClientRect(),v=document.querySelector('#viewport').getBoundingClientRect(),m=document.querySelector('#move-stick').getBoundingClientRect();
       const R=q=>{const e=document.querySelector(q);if(!e||!e.getClientRects().length)return null;const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
-      return {left:d.left,right:d.right,top:d.top,bottom:d.bottom,mid:v.left+v.width/2,moveRight:m.right,moveVisible:m.width>0,move:R('#move-stick'),bag:R('.bag-panel'),kit:R('#use-kit')};
+      return {left:d.left,right:d.right,top:d.top,bottom:d.bottom,mid:v.left+v.width/2,moveRight:m.right,moveVisible:m.width>0,move:R('#move-stick'),bag:R('.bag-panel'),kit:R('#use-kit'),aim:R('#aim-stick'),ammo:R('#ammo-hud'),wname:R('#weapon-name'),tool:R('#tool-btn'),reset:R('#reset'),vl:v.left,vr:v.right,vb:v.bottom};
     });
-    if(dashPlacement.right>dashPlacement.mid)fail(ctx,'DASH must stay on the left, outside the aim zone');
-    // v2.8.0: DASH must not intersect the move-stick zone (8px clearance), nor the loot panel / heal button.
     const near=(a,o,m)=>a&&o&&Math.min(a.right,o.right+m)-Math.max(a.left,o.left-m)>0&&Math.min(a.bottom,o.bottom+m)-Math.max(a.top,o.top-m)>0;
+    if(dashPlacement.left<dashPlacement.mid)fail(ctx,'DASH must sit on the right, by the aim stick');
+    if(near(dashPlacement,dashPlacement.aim,16))fail(ctx,'DASH within 16px of the aim stick');
+    for(const [k,r] of [['weapon panel',dashPlacement.ammo],['weapon name',dashPlacement.wname],['tool button',dashPlacement.tool],['restart',dashPlacement.reset]])if(near(dashPlacement,r,6))fail(ctx,`DASH overlaps the ${k}`);
+    if(dashPlacement.left<dashPlacement.vl||dashPlacement.right>dashPlacement.vr||dashPlacement.bottom>dashPlacement.vb)fail(ctx,'DASH outside the safe-area viewport');
+    // v2.8.0: DASH must not intersect the move-stick zone (8px clearance), nor the loot panel / heal button.
     if(dashPlacement.moveVisible&&near(dashPlacement,dashPlacement.move,8))fail(ctx,'DASH intersects the move-stick zone');
     if(near(dashPlacement,dashPlacement.bag,4))fail(ctx,'DASH overlaps the loot panel');
     if(near(dashPlacement,dashPlacement.kit,4))fail(ctx,'DASH overlaps the heal button');
@@ -508,8 +511,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.8.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.8.0');
+    const {createRound}=await import('./round.js?v=2.8.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.8.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
