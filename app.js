@@ -12,8 +12,10 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.7.3"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.8.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
+// v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
+const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
 //   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
@@ -22,7 +24,11 @@ const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/desi
 
 /* ---------- state ---------- */
 let S = null;          // persistent state
-let session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null };
+let session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null,
+  profilesMeta:null, profilesRenaming:null, profilesImport:false, profilesImportTarget:0 };
+// Simulated meta raid in progress (Node Raid itself is a separate page): profile switch/delete/new-game
+// would yank the save out from under it, so those actions stay base-only.
+function inRaid(){ return session.screen === "prep" || session.screen === "raidsim" || session.screen === "checkpoint" || session.screen === "result"; }
 
 function freshState(){
   const st = {
@@ -1759,6 +1765,59 @@ function overlay(html, onClose, cls, opts){
   document.getElementById("phone").appendChild(o);
   updateNav();
   return o;
+}
+/* ---------- PROFILES (v2.8.0 save slots) ---------- */
+// Stats for a slot row: the active slot reads the live S (always current); other slots are
+// read from their own snapshot, which only moves on switch/save-here/import — never autosaved.
+function profileSlotStats(meta, i){
+  if(i === meta.active) return { scrap: S.cur.scrap, level: operatorLevel(S.opXp || 0).level };
+  const raw = SaveSlots.readSlotRaw(localStorage, i);
+  if(!raw) return { scrap:0, level:1 };
+  try{ const d = JSON.parse(raw); return { scrap: (d.cur && d.cur.scrap) || 0, level: operatorLevel(d.opXp || 0).level }; }
+  catch(e){ return { scrap:0, level:1 }; }
+}
+function profilesHtml(){
+  const meta = session.profilesMeta, raiding = inRaid(), now = Date.now();
+  const rows = meta.slots.map((slot, i) => {
+    const active = i === meta.active, renaming = session.profilesRenaming === i;
+    const nameHtml = renaming
+      ? '<input type="text" class="profname-input" maxlength="24" value="' + esc(slot.name) + '" ' +
+        'onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')A.profileRenameCancel()" ' +
+        'onblur="A.profileRenameCommit(' + i + ', this.value)" autofocus>'
+      : '<b class="profname">' + esc(slot ? slot.name : "Empty slot") + '</b>' + (active ? ' <span class="profbadge">ACTIVE</span>' : '');
+    const stats = slot ? profileSlotStats(meta, i) : null;
+    const statLine = slot
+      ? "Lvl " + stats.level + " &middot; " + stats.scrap + " " + IC("cur-scrap") + " &middot; " + esc(SaveSlots.relativeTime(slot.lastPlayed, now))
+      : "No save yet";
+    const dis = s => s ? "disabled" : "";
+    const actions = [];
+    if(slot && !renaming) actions.push('<button type="button" class="ghost" onclick="A.profileRenameStart(' + i + ')">RENAME</button>');
+    actions.push('<button type="button" class="ghost" onclick="A.profileSaveHere(' + i + ')">SAVE HERE</button>');
+    if(slot && !active) actions.push('<button type="button" class="primary" ' + dis(raiding) + ' onclick="A.profileLoad(' + i + ')">LOAD</button>');
+    if(!slot) actions.push('<button type="button" class="primary" ' + dis(raiding) + ' onclick="A.profileNewGame(' + i + ')">NEW GAME</button>');
+    if(slot) actions.push('<button type="button" class="ghost danger" ' + dis(active && raiding) + ' onclick="A.profileDelete(' + i + ')">DELETE</button>');
+    return '<div class="profrow' + (active ? " active" : "") + '"><div class="profname-wrap">' + nameHtml + '</div>' +
+      '<div class="profstat small">' + statLine + '</div><div class="profacts">' + actions.join("") + '</div></div>';
+  }).join("");
+  const importHtml = session.profilesImport
+    ? '<div class="profimport"><p class="small">Paste JSON from Export, pick a slot, then Import.</p>' +
+      '<textarea id="prof-import-ta" placeholder="{...}"></textarea>' +
+      '<div class="profimport-row"><select id="prof-import-target">' +
+      meta.slots.map((s,i) => '<option value="' + i + '"' + (i === session.profilesImportTarget ? " selected" : "") + '>' + esc(s ? s.name : "Slot " + (i+1) + " (empty)") + '</option>').join("") +
+      '</select><button type="button" class="primary" onclick="A.profileImport(document.getElementById(\'prof-import-ta\').value, +document.getElementById(\'prof-import-target\').value)">IMPORT</button></div></div>'
+    : "";
+  return '<h1>PROFILES</h1><p class="small">3 local save slots on this device.</p>' +
+    '<div class="profrows">' + rows + '</div>' +
+    '<div class="profbottom"><button type="button" class="ghost" onclick="A.profileExport()">EXPORT</button>' +
+    '<button type="button" class="ghost" onclick="A.profilesToggleImport()">' + (session.profilesImport ? "CANCEL IMPORT" : "IMPORT") + '</button></div>' + importHtml;
+}
+function reopenProfiles(){
+  const old = document.getElementById("overlay"); if(old) old.remove();
+  overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
+}
+function profilesReload(){
+  const url = new URL(window.location.href);
+  (window.PR_NAVIGATE || (u => window.location.replace(u)))(url.pathname + url.search + url.hash);
 }
 // Shared BACK (top-left in the top bar): closes the open popup, else goes up one screen.
 const BACK_TARGET = { itemDetail:"stash", module:"base", worldmap:"prep" };
@@ -5000,8 +5059,81 @@ window.A = {
   devReset(){
     localStorage.removeItem(SAVE_KEY);
     S = freshState();
-    session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null };
+    session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null,
+      profilesMeta:null, profilesRenaming:null, profilesImport:false, profilesImportTarget:0 };
     refresh();
+  },
+  openProfiles(){
+    const now = Date.now();
+    const meta = SaveSlots.ensureMigrated(localStorage, SAVE_KEY, now);
+    SaveSlots.touchSlot(meta, meta.active, now, undefined, localStorage);
+    session.profilesMeta = meta; session.profilesRenaming = null; session.profilesImport = false; session.profilesImportTarget = meta.active;
+    const old = document.getElementById("overlay"); if(old) old.remove();
+    overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
+  },
+  profileRenameStart(i){ session.profilesRenaming = i; reopenProfiles(); },
+  profileRenameCancel(){ session.profilesRenaming = null; reopenProfiles(); },
+  profileRenameCommit(i, name){
+    const meta = session.profilesMeta; if(!meta || !meta.slots[i]) { session.profilesRenaming = null; reopenProfiles(); return; }
+    SaveSlots.renameSlot(meta, localStorage, i, name);
+    session.profilesRenaming = null; reopenProfiles();
+  },
+  profileSaveHere(i){
+    const meta = session.profilesMeta; if(!meta) return;
+    if(i !== meta.active && meta.slots[i] && !window.confirm('Overwrite "' + meta.slots[i].name + '" with your current progress? This cannot be undone.')) return;
+    SaveSlots.touchSlot(meta, i, Date.now(), JSON.stringify(S), localStorage);
+    toast("Saved to " + (meta.slots[i] ? meta.slots[i].name : "Slot " + (i+1)));
+    reopenProfiles();
+  },
+  profileLoad(i){
+    if(inRaid()) return;
+    const meta = session.profilesMeta; if(!meta || i === meta.active || !meta.slots[i]) return;
+    const raw = SaveSlots.switchTo(meta, localStorage, i, JSON.stringify(S), Date.now());
+    localStorage.setItem(SAVE_KEY, raw);
+    profilesReload();
+  },
+  profileNewGame(i){
+    if(inRaid()) return;
+    const meta = session.profilesMeta; if(!meta || meta.slots[i]) return;
+    const raw = SaveSlots.switchTo(meta, localStorage, i, JSON.stringify(S), Date.now(), JSON.stringify(freshState()));
+    localStorage.setItem(SAVE_KEY, raw);
+    profilesReload();
+  },
+  profileDelete(i){
+    const meta = session.profilesMeta; if(!meta || !meta.slots[i]) return;
+    if(i === meta.active && inRaid()) return;
+    if(!window.confirm('Delete "' + meta.slots[i].name + '"? This cannot be undone.')) return;
+    SaveSlots.deleteSlot(meta, localStorage, i);
+    if(i === meta.active){ localStorage.removeItem(SAVE_KEY); profilesReload(); return; }
+    reopenProfiles();
+  },
+  profileExport(){
+    const json = JSON.stringify(S, null, 2);
+    const box = overlay('<div id="profexport"><h1>Export save</h1>' +
+      '<p class="small">Current slot — copy this JSON to back it up or move it to another device.</p>' +
+      '<textarea readonly style="width:100%;height:30vh;font:11px monospace"></textarea>' +
+      '<button type="button" class="primary" id="profexp-copy">Copy to clipboard</button></div>', () => reopenProfiles());
+    const ta = box.querySelector("textarea"), copy = box.querySelector("#profexp-copy");
+    ta.value = json;
+    copy.onclick = async () => {
+      try{ await navigator.clipboard.writeText(json); copy.textContent = "Copied"; }
+      catch(e){ ta.focus(); ta.select(); try{ document.execCommand("copy"); copy.textContent = "Copied"; } catch(_){ copy.textContent = "Select & copy manually"; } }
+    };
+    return box;
+  },
+  profilesToggleImport(){ session.profilesImport = !session.profilesImport; reopenProfiles(); },
+  profileImport(raw, target){
+    let obj;
+    try{ obj = JSON.parse(raw); }catch(e){ toast("Import failed: not valid JSON"); return; }
+    if(!SaveSlots.isValidSave(obj)){ toast("Import failed: not a Protocol Rebirth save"); return; }
+    const meta = session.profilesMeta; if(!meta) return;
+    if(target === meta.active && inRaid()){ toast("Finish or abandon the raid first"); return; }
+    const json = JSON.stringify(obj);
+    SaveSlots.touchSlot(meta, target, Date.now(), json, localStorage);
+    if(target === meta.active){ localStorage.setItem(SAVE_KEY, json); profilesReload(); return; }
+    toast("Imported into " + meta.slots[target].name);
+    session.profilesImport = false;
+    reopenProfiles();
   }
 };
 
@@ -5175,6 +5307,8 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   document.addEventListener("click", e => { if(menu && !menu.hidden && !menu.contains(e.target) && e.target !== menuBtn) setMenu(false); });
   const devBtn = document.getElementById("devbtn");
   if(devBtn) devBtn.addEventListener("click", () => { setMenu(false); A.go("dev"); });
+  const profilesBtn = document.getElementById("profiles-btn");
+  if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();

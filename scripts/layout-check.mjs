@@ -202,7 +202,9 @@ async function baseRun([w,h]){
         ['reward-fab','A.go("base");{const b=S.modules.bit_bay;S.modules.bit_bay=0;overlay(upgradeRewardHtml("fabricator",1,false),null,"reward");S.modules.bit_bay=b;}'],['reward-storage','A.go("base");overlay(upgradeRewardHtml("storage",2,false),null,"reward")'],
         ['pop-quests','A.go("base");A.questLog("bunker",0)'],['pop-quests-daily','A.go("base");A.questLog("daily")'],['pop-handin','A.go("base");A.handInDemo()'],['pop-handin-extract','A.go("base");A.handInDemo("extract")'],['pop-quests-fir','A.questLogDemo()'],['pop-quests-late','A.go("base");S.debugAreas=true;S.chains.archipelago={step:4,prog:1};A.questLog("archipelago",4)'],
         ['stash-stuffed',STUFF+'A.go("stash")'],['pop-stash-sell',STUFF+'A.go("stash");A.openStashItem("cable");A.stashQty(1)'],['pop-stash-warn',STUFF+'A.go("stash");A.openStashItem("polymer_plate");A.stashQty(0);A.stashAct("sell")'],['pop-stash-free',STUFF+'A.go("stash");A.openStashItem("basic_carbine")'],['pop-stash-clean',STUFF+'A.go("stash");A.openQuickClean()'],
-        ['settings','A.go("base");document.getElementById("menubtn").click()']];
+        ['settings','A.go("base");document.getElementById("menubtn").click()'],
+        ['profiles','A.go("base");document.getElementById("menubtn").click();document.getElementById("profiles-btn").click()'],
+        ['profiles-import','A.go("base");A.openProfiles();A.profilesToggleImport()']];
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(name==='worldmap-new'?1300:350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
@@ -344,7 +346,7 @@ async function raidRun([w,h],area){
       return {left:d.left,right:d.right,top:d.top,bottom:d.bottom,mid:v.left+v.width/2,moveRight:m.right,moveVisible:m.width>0,move:R('#move-stick'),bag:R('.bag-panel'),kit:R('#use-kit')};
     });
     if(dashPlacement.right>dashPlacement.mid)fail(ctx,'DASH must stay on the left, outside the aim zone');
-    // v2.7.3: DASH must not intersect the move-stick zone (8px clearance), nor the loot panel / heal button.
+    // v2.8.0: DASH must not intersect the move-stick zone (8px clearance), nor the loot panel / heal button.
     const near=(a,o,m)=>a&&o&&Math.min(a.right,o.right+m)-Math.max(a.left,o.left-m)>0&&Math.min(a.bottom,o.bottom+m)-Math.max(a.top,o.top-m)>0;
     if(dashPlacement.moveVisible&&near(dashPlacement,dashPlacement.move,8))fail(ctx,'DASH intersects the move-stick zone');
     if(near(dashPlacement,dashPlacement.bag,4))fail(ctx,'DASH overlaps the loot panel');
@@ -506,8 +508,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.7.3');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.7.3');
+    const {createRound}=await import('./round.js?v=2.8.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.8.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

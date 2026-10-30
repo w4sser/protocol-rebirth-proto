@@ -10,13 +10,13 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.7.3">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.7.3">
-<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.7.3">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.7.3">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.7.3">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.8.0">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.8.0">
+<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.8.0">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.8.0">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.8.0">
 <title>Protocol Rebirth</title>
-<script src="ui/viewport.js?v=2.7.3"></script>
+<script src="ui/viewport.js?v=2.8.0"></script>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 @media (pointer:coarse){:root{--sl:max(env(safe-area-inset-left,0px),12px);--sr:max(env(safe-area-inset-right,0px),12px)}}
@@ -372,6 +372,28 @@
   .menu button{min-height:var(--tap); border-radius:12px; border:2px solid var(--line); background:#102b33; color:var(--txt); font-size:15px; text-align:left; padding:0 14px; cursor:pointer;}
   .menu button.reset-progress{color:#ffb4ab; border-color:#6a2d2d; margin:0; width:auto; text-transform:none; letter-spacing:0;}
   .menu-ver{font:12px "IBM Plex Mono",monospace; color:var(--dim);}
+  /* v2.8.0 PROFILES (save slots): plain overlay (no .bpop), so it gets the default .pop-frame.pop-card
+     with its .inner flex child doing the scrolling — the card itself never needs to scroll. */
+  .profrows{display:flex; flex-direction:column; gap:8px; margin:8px 0;}
+  .profrow{border:2px solid var(--line); border-radius:12px; padding:8px 10px; background:var(--solid); text-align:left;}
+  .profrow.active{border-color:var(--accent);}
+  .profname-wrap{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .profname{font:800 14px "Archivo",sans-serif;}
+  .profbadge{font:800 10px "Archivo",sans-serif; letter-spacing:.06em; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:1px 6px;}
+  .profname-input{font:800 14px "Archivo",sans-serif; background:var(--bg); color:var(--txt); border:1px solid var(--accent); border-radius:6px; padding:2px 6px; width:160px;}
+  .profstat{margin:3px 0 6px;}
+  .profstat svg{width:13px; height:13px; vertical-align:-2px;}
+  .profacts{display:flex; flex-wrap:wrap; gap:6px;}
+  .profacts button{width:auto; flex:1 1 auto; min-width:64px; min-height:34px; padding:4px 10px; font-size:11px; letter-spacing:.04em;}
+  .profacts button.danger{color:var(--danger); border-color:var(--danger);}
+  .profbottom{display:flex; gap:8px; margin-top:4px;}
+  .profbottom button{width:auto; flex:1;}
+  .profimport{margin-top:8px; border-top:1px solid var(--line); padding-top:8px;}
+  .profimport textarea{width:100%; height:56px; font:11px monospace; margin:4px 0;}
+  .profimport-row{display:flex; gap:6px;}
+  .profimport-row select{flex:1; min-height:34px;}
+  .profimport-row button{width:auto;}
+  @media (max-height:440px){.profrows{gap:5px; margin:5px 0;}.profrow{padding:5px 8px;}.profstat{margin:2px 0 4px;font-size:10px}.profacts button{min-height:30px;padding:3px 8px}}
   /* bottom bar: big icon buttons with badges, RAID is the hero */
   #tabs{display:flex; flex-direction:row; gap:8px; align-items:flex-end; width:auto; padding:8px calc(10px + var(--sr)) calc(8px + env(safe-area-inset-bottom,0px)) calc(10px + var(--sl)); background:var(--panel); border-top:1px solid var(--line); border-right:0; flex-shrink:0; z-index:22;}
   #tabs button{position:relative; flex:1; max-width:110px; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:16px; border:2px solid var(--line); background:var(--solid); color:var(--txt); font:800 12px "Archivo",sans-serif; letter-spacing:.06em; padding:4px 2px; box-shadow:0 4px 0 #031015;}
@@ -612,7 +634,7 @@
   @media (orientation:portrait){ #rotate{display:flex;} }
   #splash{position:fixed; inset:0; bottom:auto; height:100vh; height:100svh; height:100dvh; height:calc(var(--vh,1vh) * 100); z-index:90; background:var(--ad-night); display:flex; align-items:flex-end; justify-content:flex-end; padding:0 calc(14px + var(--sr)) calc(14px + env(safe-area-inset-bottom,0px)) 0; cursor:pointer; overflow:clip;}
   .splash-track{position:absolute;inset:0;will-change:transform;}
-  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=2.7.3") center/cover no-repeat;}
+  .splash-surface{position:absolute;inset:0;background:var(--ad-night) url("assets/production/splash_archipelago_radar_lighthouse.webp?v=2.8.0") center/cover no-repeat;}
   .splash-rock{position:absolute;left:0;right:0;top:100%;height:32vh;background:var(--ad-night);overflow:hidden;}
   .splash-rock::before,.splash-rock::after{content:"";position:absolute;inset:0;background:var(--ad-ink);}
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
@@ -766,9 +788,9 @@
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=2.7.3">
-<link rel="stylesheet" href="ui/popup.css?v=2.7.3">
-<link rel="stylesheet" href="ui/loader.css?v=2.7.3">
+<link rel="stylesheet" href="ui/tokens.css?v=2.8.0">
+<link rel="stylesheet" href="ui/popup.css?v=2.8.0">
+<link rel="stylesheet" href="ui/loader.css?v=2.8.0">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -1561,7 +1583,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 @keyframes bitBadgePulse{50%{box-shadow:inset 0 0 14px var(--ad-cyan)}}
 @media(prefers-reduced-motion:reduce){.badge-pulse{animation:none}}
 </style>
-<link rel="stylesheet" href="ui/audio.css?v=2.7.3">
+<link rel="stylesheet" href="ui/audio.css?v=2.8.0">
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -1569,13 +1591,14 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v2.7.3</div>
+    <div id="app-version">v2.8.0</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
+      <button id="profiles-btn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg> Profiles</button>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.7.3</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.8.0</span></div>
     </div>
   </div>
   <div id="main">
@@ -1590,21 +1613,22 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div></div><small>TAP TO START</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=2.7.3"></script>
-<script src="data/modules.js?v=2.7.3"></script>
-<script src="data/bit-lines.js?v=2.7.3"></script>
-<script src="data/bit.js?v=2.7.3"></script>
-<script src="data/bit-talents.js?v=2.7.3"></script>
-<script src="data/raid_zones.js?v=2.7.3"></script>
-<script src="data/recipes.js?v=2.7.3"></script>
-<script src="data/vendors.js?v=2.7.3"></script>
-<script src="data/retention.js?v=2.7.3"></script>
-<script src="data/quests.js?v=2.7.3"></script>
-<script src="data/progression.js?v=2.7.3"></script>
-<script src="data/combat.js?v=2.7.3"></script>
-<script src="data/audio.js?v=2.7.3"></script>
-<script src="ui/audio.js?v=2.7.3"></script>
-<script src="ui/base-audio.js?v=2.7.3"></script>
-<script src="app.js?v=2.7.3"></script>
+<script src="data/items.js?v=2.8.0"></script>
+<script src="data/modules.js?v=2.8.0"></script>
+<script src="data/bit-lines.js?v=2.8.0"></script>
+<script src="data/bit.js?v=2.8.0"></script>
+<script src="data/bit-talents.js?v=2.8.0"></script>
+<script src="data/raid_zones.js?v=2.8.0"></script>
+<script src="data/recipes.js?v=2.8.0"></script>
+<script src="data/vendors.js?v=2.8.0"></script>
+<script src="data/retention.js?v=2.8.0"></script>
+<script src="data/quests.js?v=2.8.0"></script>
+<script src="data/progression.js?v=2.8.0"></script>
+<script src="data/combat.js?v=2.8.0"></script>
+<script src="data/audio.js?v=2.8.0"></script>
+<script src="ui/audio.js?v=2.8.0"></script>
+<script src="ui/base-audio.js?v=2.8.0"></script>
+<script src="save-slots.js?v=2.8.0"></script>
+<script src="app.js?v=2.8.0"></script>
 </body>
 </html>
