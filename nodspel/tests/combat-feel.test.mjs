@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy,tickRound} from '../round.js?v=2.11.1';
-import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.11.1';
-import {tapTarget,tapDirection} from '../weapon.js?v=2.11.1';
-import {RULES} from '../levels.js?v=2.11.1';
-import {createDash,startDash} from '../dash.js?v=2.11.1';
-import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.11.1';
+import {createRound,hitEnemy,tickRound} from '../round.js?v=2.11.2';
+import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.11.2';
+import {tapTarget,tapDirection} from '../weapon.js?v=2.11.2';
+import {RULES} from '../levels.js?v=2.11.2';
+import {createDash,startDash} from '../dash.js?v=2.11.2';
+import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.11.2';
 const pos={x:0,z:0};
 const enemy=(id,x=2,z=0)=>({id,kind:'enemy',type:'grunt',x,z,r:.48,health:1,active:true});
 function arena(){
@@ -90,7 +90,7 @@ test('a later kill in a pending room restarts the delay and calm window',()=>{
 
 test('production enemy visuals flash independently, collapse, and remove their kill particles',async()=>{
   const THREE=await import('../vendor/three.module.js');
-  const {buildWorld}=await import('../world.js?v=2.11.1');
+  const {buildWorld}=await import('../world.js?v=2.11.2');
   const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
   const r=createRound('feel-visuals',0),[first,second]=r.level.enemies;
   first.health=2;first.active=second.active=true;

@@ -18,7 +18,7 @@ const GRADE_VIGNETTE_SHADER={
   // v2.10.0: desaturate/gradeStrength were nearly halved from the v2.9.0 pass (.16/.32), which combined with
   // the fog band to flatten colour everywhere instead of just reading as "cold".
   uniforms:{tDiffuse:{value:null},desaturate:{value:.08},tint:{value:new THREE.Vector3(.94,.97,1.05)},
-    gradeStrength:{value:.18},vignetteStrength:{value:.32},vignetteRadius:{value:.68}},
+    gradeStrength:{value:.08},vignetteStrength:{value:.16},vignetteRadius:{value:.78}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
   fragmentShader:`uniform sampler2D tDiffuse;uniform float desaturate;uniform vec3 tint;uniform float gradeStrength;
     uniform float vignetteStrength;uniform float vignetteRadius;varying vec2 vUv;
@@ -28,7 +28,7 @@ const GRADE_VIGNETTE_SHADER={
       vec3 cool=mix(c.rgb,vec3(luma),desaturate)*tint;
       vec3 graded=mix(c.rgb,cool,gradeStrength);
       vec2 d=(vUv-0.5)*vec2(1.0,0.82);
-      float v=smoothstep(vignetteRadius,vignetteRadius-0.5,length(d));
+      float v=1.0-smoothstep(vignetteRadius-0.5,vignetteRadius,length(d));
       graded*=mix(1.0-vignetteStrength,1.0,v);
       gl_FragColor=vec4(graded,c.a);
     }`
@@ -37,7 +37,7 @@ const GRADE_VIGNETTE_SHADER={
 export function createPostFX({renderer,scene,camera,width,height}){
   const composer=new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene,camera));
-  const bloom=new UnrealBloomPass(new THREE.Vector2(width,height),.7,.5,.65);
+  const bloom=new UnrealBloomPass(new THREE.Vector2(width,height),.28,.35,1.1);
   composer.addPass(bloom);
   const grade=new ShaderPass(GRADE_VIGNETTE_SHADER);
   composer.addPass(grade);

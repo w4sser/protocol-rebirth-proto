@@ -1,0 +1,126 @@
+[
+  {
+    "area": "bunker",
+    "variant": "before",
+    "errors": [],
+    "assets": {
+      "bunker": {
+        "failed": [],
+        "retried": 0,
+        "ms": 270
+      },
+      "town": null
+    }
+  },
+  {
+    "area": "bunker",
+    "variant": "after",
+    "errors": [],
+    "assets": {
+      "bunker": {
+        "failed": [],
+        "retried": 0,
+        "ms": 228
+      },
+      "town": null
+    }
+  },
+  {
+    "area": "town",
+    "variant": "before",
+    "errors": [],
+    "assets": {
+      "bunker": null,
+      "town": {
+        "failed": [],
+        "retried": 0,
+        "ms": 87
+      }
+    }
+  },
+  {
+    "area": "town",
+    "variant": "after",
+    "errors": [],
+    "assets": {
+      "bunker": null,
+      "town": {
+        "failed": [],
+        "retried": 0,
+        "ms": 88
+      }
+    }
+  },
+  {
+    "area": "archipelago",
+    "variant": "before",
+    "errors": [],
+    "assets": {
+      "bunker": null,
+      "town": null
+    }
+  },
+  {
+    "area": "archipelago",
+    "variant": "after",
+    "errors": [],
+    "assets": {
+      "bunker": null,
+      "town": null
+    }
+  },
+  {
+    "scenario": "first-room software-rendered smoke capture, not a phone benchmark",
+    "area": "bunker",
+    "quality": "high",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+    "viewport": {
+      "width": 844,
+      "height": 390,
+      "pixelRatio": 1
+    },
+    "renderMode": "whole frame including postprocessing",
+    "deviceLabel": "Headless Chromium / SwiftShader software renderer",
+    "physicalPhoneVerified": false,
+    "durationMs": 2000,
+    "warmupMs": 100,
+    "frames": 34,
+    "fps": 45.69278322805503,
+    "frameMs": {
+      "median": 16.5999999998603,
+      "p95": 69.80000000004657
+    },
+    "drawCalls": {
+      "median": 196,
+      "p95": 196,
+      "max": 196
+    }
+  },
+  {
+    "scenario": "first-room software-rendered smoke capture, not a phone benchmark",
+    "area": "bunker",
+    "quality": "low",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.0 Safari/537.36",
+    "viewport": {
+      "width": 844,
+      "height": 390,
+      "pixelRatio": 1
+    },
+    "renderMode": "whole frame including postprocessing",
+    "deviceLabel": "Headless Chromium / SwiftShader software renderer",
+    "physicalPhoneVerified": false,
+    "durationMs": 2000,
+    "warmupMs": 100,
+    "frames": 85,
+    "fps": 42.4342269482332,
+    "frameMs": {
+      "median": 16.600000000093132,
+      "p95": 19.899999999906868
+    },
+    "drawCalls": {
+      "median": 107,
+      "p95": 107,
+      "max": 107
+    }
+  }
+]

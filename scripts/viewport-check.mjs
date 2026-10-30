@@ -40,8 +40,8 @@ async function rotateThrough(page,selectors,label){
     if(label==='base prep'){const gap=await page.evaluate(()=>{const a=document.getElementById('app'),l=a.querySelector('.lobby');return a.getBoundingClientRect().bottom-parseFloat(getComputedStyle(a).paddingBottom)-l.getBoundingClientRect().bottom;});assert.ok(Math.abs(gap)<=1,`prep ${w}x${h}: unused content height ${gap}`);}}
   // Simulate a late toolbar settlement with *only* visualViewport.resize.
   await page.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,value:innerHeight-36});visualViewport.dispatchEvent(new Event('resize'));});
-  await pause(80);await fills(page,selectors,label+' toolbar settle');
-  await page.evaluate(()=>{delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});await pause(80);
+  await settledHeight(page,selectors);await fills(page,selectors,label+' toolbar settle');
+  await page.evaluate(()=>{delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});await settledHeight(page,selectors);
 }
 async function modalFits(page,label){
   const result=await page.evaluate(ins=>{
@@ -143,3 +143,5 @@ try{
   }
   assert.deepEqual(errors,[],'no page errors');await page.close();console.log('viewport-check: all resize, full-bleed and perk lock regressions passed');
 }finally{await browser?.close();await new Promise(r=>server.close(r));}
+
+async function settledHeight(page,selectors){await page.waitForFunction(({selectors,ins})=>selectors.every(selector=>{const el=document.querySelector(selector);if(!el)return false;const r=el.getBoundingClientRect();return Math.abs(r.bottom+(selector==='#viewport'?ins.bottom:0)-(visualViewport?.height||innerHeight))<=1;}),{timeout:5000},{selectors,ins:insets});}

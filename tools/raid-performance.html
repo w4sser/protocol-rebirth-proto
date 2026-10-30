@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raid performance capture</title><link rel="stylesheet" href="../ui/tokens.css">
+<style>body{margin:12px;background:var(--ad-night);color:var(--ad-bone);font:14px sans-serif}button,select,input{font:inherit;margin:4px;padding:8px}iframe{width:100%;height:65vh;border:0}iframe.capturing{position:fixed;inset:0;width:100vw;height:100dvh;z-index:10;background:var(--ad-night)}pre{white-space:pre-wrap}</style>
+<h1>Raid performance capture</h1><p>Run on a physical phone in landscape. Play during the 15-second capture and cool the phone between runs.</p>
+<p>The raid has High and Low only. Medium belongs to the start screen; it is not silently substituted here.</p>
+<select id="area"><option>bunker</option><option>town</option><option>archipelago</option></select><select id="quality"><option>low</option><option>high</option></select>
+<input id="device" placeholder="Exact phone model"><label><input type="checkbox" id="physical">Physical phone confirmed</label>
+<button id="load">Load raid</button><button id="capture" disabled>Capture 15 seconds</button><button id="download" disabled>Download JSON</button>
+<iframe id="raid" title="Playable raid" allow="fullscreen"></iframe><pre id="result">Load a raid first.</pre>
+<script type="module">
+const $=id=>document.getElementById(id),results=[];
+$('load').onclick=()=>{$('capture').disabled=true;$('raid').src=`../nodspel/?area=${$('area').value}&q=${$('quality').value}&debug=1&seed=visual-review`;};
+$('raid').onload=()=>{const wait=setInterval(()=>{const w=$('raid').contentWindow;if(!w.__NR?.capturePerformance)return;clearInterval(wait);w.__NR.setMoodAutoDowngradeEnabled(false);w.document.querySelector('#tutorial-start')?.click();$('capture').disabled=false;$('result').textContent='Ready. Warm up, then capture while playing.';},200);setTimeout(()=>clearInterval(wait),60000);};
+$('capture').onclick=async()=>{
+  $('capture').disabled=$('load').disabled=true;$('result').textContent='2-second warm-up, then 15-second capture. Play normally.';
+  // Match the full phone viewport during measurement, rather than the smaller preview frame.
+  $('raid').classList.add('capturing');
+  try{const w=$('raid').contentWindow;await new Promise(resolve=>w.requestAnimationFrame(()=>w.requestAnimationFrame(resolve)));const r=await w.__NR.capturePerformance({deviceLabel:$('device').value,physicalPhoneVerified:$('physical').checked});results.push(r);$('result').textContent=JSON.stringify(results,null,2);$('download').disabled=false;}
+  catch(error){$('result').textContent=String(error);}
+  finally{$('raid').classList.remove('capturing');$('capture').disabled=$('load').disabled=false;}
+};
+$('download').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(results,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='raid-performance.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+</script></html>

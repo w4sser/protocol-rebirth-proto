@@ -2,8 +2,9 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {loadKit,instance} from './town.js?v=2.11.1';
-import {rngFrom} from './art.js?v=2.11.1';
+import {loadKit,instance} from './town.js?v=2.11.2';
+import {rngFrom} from './art.js?v=2.11.2';
+import {groundPatchParts} from './environment-look.js?v=2.11.2';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -97,17 +98,30 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.11.1`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.11.2`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
     // objectives (active node, open extract, lamps on) keep a stronger glow so the brightest region = next goal
     const HOT=/^(node_terminal_active|extract_hatch_open|lamp_wall_amber_on|alarm_lamp_coral_on|shock_pad_on|loot_crate_)/;
-    for(const k in a)for(const p of a[k]){if(p.standIn||!p.material.emissiveMap)continue;const m=p.material.userData.tuned?p.material:(p.material=p.material.clone());m.userData.shared=m.userData.tuned=true;m.emissiveIntensity=HOT.test(k)?1:.35;}
+    let atlas=null,emissiveAtlas=null;
+    const retired=new Set();
+    for(const k in a)for(const p of a[k]){if(p.standIn||!p.material.emissiveMap)continue;
+      const m=p.material.userData.tuned?p.material:(p.material=p.material.clone());m.userData.shared=m.userData.tuned=true;
+      m.emissiveIntensity=k==='lamp_wall_amber_on'?.425:HOT.test(k)?.85:.18;
+      m.metalness=k.startsWith('floor_')||k.startsWith('wall_')?0:.12;
+      m.roughness=k.startsWith('floor_')?.96:k.startsWith('wall_')?.92:.74;
+      // Every module uses the same two atlas images. Keep just two GPU textures
+      // instead of uploading another pair for each individual GLB loader result.
+      atlas??=m.map;emissiveAtlas??=m.emissiveMap;
+      if(m.map!==atlas){retired.add(m.map);m.map=atlas;}
+      if(m.emissiveMap!==emissiveAtlas){retired.add(m.emissiveMap);m.emissiveMap=emissiveAtlas;}
+    }
+    for(const texture of retired)texture?.dispose();
     return a;});
   return cache;
 }
-export const COVER_KINDS=['cover_sandbag_straight','cover_low_barrier_a','cover_low_barrier_broken','pillar_square_cracked','barrel_steel_upright'];
+export const COVER_KINDS=['cover_sandbag_straight','cover_low_barrier_a','cover_low_barrier_broken','pillar_square_cracked'];
 export const PROP_KINDS_BUNKER=['locker_row_closed','locker_row_open','desk_metal_a','desk_metal_with_radio','shelf_supply_full','shelf_supply_empty','generator_on','radar_console','barrel_steel_upright','barrel_steel_tipped','debris_pile_a','debris_pile_b','map_table','bunk_bed'];
 const FLOOR_DECALS=['decal_crack_a','decal_crack_b','decal_oil_stain','decal_cable_scorch','decal_floor_marking_lane','moss_patch','water_puddle'];
 // one Group of plain meshes for stateful objects (nodes, pads, exit, loot): few per level, so no instancing
@@ -164,12 +178,19 @@ export function buildBunker(level,group,assets,Q){
   // cover: kit piece fitted to the collision footprint so what you see is what blocks
   level.boxes.forEach(b=>{const k=COVER_KINDS[Math.floor(rng()*COVER_KINDS.length)];add(k,{x:b.x,z:b.z,ry:0,...fit(k,b.w,b.h,b.d)});});
   // wall dressing: amber lamps / CRTs / pipes on the room-facing side of long walls (thinned on low)
-  const cx=level.floors.reduce((a,f)=>a+f.x,0)/level.floors.length,cz=level.floors.reduce((a,f)=>a+f.z,0)/level.floors.length;
-  const dressing=['lamp_wall_amber_on','crt_monitor_wall_on','pipe_run_2m_straight','vent_wall','lamp_wall_amber_on','cable_tray_wall','fan_wall','sign_stencil_'+(level.number%9+1),'lamp_wall_amber_broken','crt_monitor_wall_off'],anchors=[];
-  level.walls.forEach((b,i)=>{const along=b.w>=b.d,L=along?b.w:b.d;if(L<4||b.h<1.5||(low&&i%2))return;
-    const k=dressing[Math.floor(rng()*dressing.length)],off=(along?b.d:b.w)/2+.02,s=along?Math.sign(cz-b.z)||1:Math.sign(cx-b.x)||1;
-    const t={x:b.x+(along?(rng()-.5)*(L-2):s*off),z:b.z+(along?s*off:(rng()-.5)*(L-2)),y:Math.min(k.startsWith('pipe')||k.startsWith('cable')?1.9:1.45,b.h-.55),ry:along?(s>0?Math.PI:0):(s>0?-Math.PI/2:Math.PI/2)};
-    add(k,t);if(k.endsWith('_on'))anchors.push({...t,color:k.startsWith('lamp')?'#FF9D4D':'#3FE0D0'});});
+  const dressing=['vent_wall','pipe_run_2m_straight','cable_tray_wall'],anchors=[];
+  // Wall lamps require at least 1.5 m of wall height. Lower cutaway walls
+  // may carry non-luminous service dressing, never lamps or their light pools.
+  level.walls.forEach((b,i)=>{const along=b.w>=b.d,L=along?b.w:b.d;if(L<4||b.h<.8)return;
+    const k=b.h>=1.5?'lamp_wall_amber_on':dressing[i%dressing.length],off=(along?b.d:b.w)/2+.03;
+    const inside=sign=>level.floors.some(f=>Math.abs(b.x+(along?0:sign*(off+.5))-f.x)<f.w/2&&Math.abs(b.z+(along?sign*(off+.5):0)-f.z)<f.d/2);
+    const s=inside(1)?1:inside(-1)?-1:0;if(!s)return;
+    const t={x:b.x+(along?0:s*off),z:b.z+(along?s*off:0),y:Math.max(.18,b.h-.48),ry:along?(s>0?Math.PI:0):(s>0?-Math.PI/2:Math.PI/2)};
+    add(k,t);if(k==='lamp_wall_amber_on')anchors.push({...t,lightX:t.x+(along?0:s*.65),lightZ:t.z+(along?s*.65:0),color:'#FF9D4D'});});
+  const contacts=level.boxes.map(b=>({x:b.x,z:b.z,y:.003,sx:b.w+.45,sz:b.d+.45}));
+  if(contacts.length)instance(group,groundPatchParts({opacity:low?.32:.22}),contacts);
+  const pools=anchors.map(a=>({x:a.lightX,z:a.lightZ,y:.004,sx:4.8,sz:4.8}));
+  if(pools.length)instance(group,groundPatchParts({color:'#ff9d4d',opacity:low?.13:.09,additive:true}),pools);
   // floor decals (no collision); hazard stripes framing shock pads, a subtle cyan arrow at the exit
   const nDec=Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/(low?60:30));
   for(let i=0;i<nDec;i++){const f=level.floors[Math.floor(rng()*level.floors.length)];add(FLOOR_DECALS[Math.floor(rng()*FLOOR_DECALS.length)],{x:f.x+(rng()-.5)*(f.w-1.5),z:f.z+(rng()-.5)*(f.d-1.5),y:LAYER.decal+(i%4)*.001,ry:rng()*Math.PI*2});}
@@ -180,6 +201,6 @@ export function buildBunker(level,group,assets,Q){
       // decals: pulled toward the camera in depth instead of relying on a few mm of height
       const m=im.material.clone();m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-4;m.depthWrite=false;m.userData.shared=true;im.material=m;im.renderOrder=1;}}
   // warm/cyan practical lights at the lamp anchors (q=low: none, like the prop lights)
-  for(const a of anchors.slice(0,Q.lights)){const l=new THREE.PointLight(a.color,a.color==='#FF9D4D'?5:3.5,6,1.8);l.position.set(a.x,a.y+.1,a.z);group.add(l);}
+  for(const a of [...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights)){const l=new THREE.PointLight(a.color,5,7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
   return {instancedKinds:[...by.keys()],anchors};
 }
