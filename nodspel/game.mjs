@@ -1,16 +1,16 @@
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.11.0';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.11.0';
-import {createOperatorFX} from './operator-fx.js?v=2.11.0';
-import {createAudioSettings} from './audio-settings.js?v=2.11.0';
-import {audio,audioEvent} from './audio.js?v=2.11.0';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.11.0';
-import {createPerkUI} from './perk-ui.js?v=2.11.0';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.11.0';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.11.1';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.11.1';
+import {createOperatorFX} from './operator-fx.js?v=2.11.1';
+import {createAudioSettings} from './audio-settings.js?v=2.11.1';
+import {audio,audioEvent} from './audio.js?v=2.11.1';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.11.1';
+import {createPerkUI} from './perk-ui.js?v=2.11.1';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.11.1';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.11.0';
-import {loadBunkerAssets} from './bunker.js?v=2.11.0';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.11.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.11.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.11.1';
+import {loadBunkerAssets} from './bunker.js?v=2.11.1';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.11.1';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.11.1';
 import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.11.1';
 import {createRobotSocket} from './operator-gear.js?v=2.11.1';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
@@ -130,7 +130,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.11.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.11.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
