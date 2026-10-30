@@ -26,3 +26,19 @@ unchanged, including its own third-party notices.
 - `THIRD_PARTY_NOTICES.md` (kept alongside, carries its own MIT sub-notices for
   code adapted from three.js, Dave Hoskins' "Hash without Sine" and
   UnrealEngineSkyAtmosphere).
+
+# Coast operator (v2.11.1)
+
+`coast-operator.glb`: **Hoodie Character**, by **Quaternius**. Rigged human
+with 24 animation clips, downloaded unchanged. Runtime primitive raised hood,
+backpack, jacket/trouser shells and carbine are original geometry dedicated to **CC0 1.0**.
+
+- Model and license listing: https://poly.pizza/m/gKLBoRsyKe
+- Direct GLB: https://static.poly.pizza/bcd66ec5-5e81-4901-a222-47abc875fe2a.glb
+- License: **CC0 1.0 Universal (Public Domain)**, https://creativecommons.org/publicdomain/zero/1.0/
+- Download size: 1,456,760 bytes (below 1.5 MB; no compression/decoder needed).
+- Raised hood attaches to Head; backpack to Chest; carbine to WristR.
+  The support wrist follows the handguard with a two-bone solve. The named
+  `muzzle` node at the barrel tip supplies the flash position.
+- Punk (`human-operator.glb`) remains unchanged and selectable with `skin=punk`
+  (legacy alias `skin=human`). The procedural robot remains `skin=robot`.

@@ -11,46 +11,48 @@ import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.11.0';
 import {loadBunkerAssets} from './bunker.js?v=2.11.0';
 import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.11.0';
 import {nextPickupHint,hintText} from './item-hints.js?v=2.11.0';
+import {CHARACTERS} from './characters.js?v=2.11.1';
+import {createRobotSocket} from './operator-gear.js?v=2.11.1';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.11.0';import '../data/recipes.js?v=2.11.0';import '../data/vendors.js?v=2.11.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.11.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.11.0';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.11.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.11.0';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.11.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.11.0';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.11.0';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.11.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.11.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.11.0';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.11.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.11.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.11.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.11.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.11.0';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.11.0';
-// import {stepScavenging} from './scavenging.js?v=2.11.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.11.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.11.0';
-import {routeComplete} from './objectives.js?v=2.11.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.11.0';
-import {createBIT,stepBIT} from './bit.js?v=2.11.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.11.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.11.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.11.0';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.11.0';
-import {createPostFX} from './postfx.js?v=2.11.0';
-import {createDustField} from './dust.js?v=2.11.0';
-import {createQualityUI} from './quality-ui.js?v=2.11.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.11.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.11.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.11.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.11.0';
+import '../data/modules.js?v=2.11.1';import '../data/recipes.js?v=2.11.1';import '../data/vendors.js?v=2.11.1';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.11.1';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.11.1';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.11.1';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.11.1';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.11.1';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.11.1';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.11.1';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.11.1';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.11.1';
+import {buildWorld,setNodeHold} from './world.js?v=2.11.1';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.11.1';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.11.1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.11.1';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.11.1';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.11.1';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.11.1';
+// import {stepScavenging} from './scavenging.js?v=2.11.1';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.11.1';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.11.1';
+import {routeComplete} from './objectives.js?v=2.11.1';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.11.1';
+import {createBIT,stepBIT} from './bit.js?v=2.11.1';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.11.1';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.11.1';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.11.1';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.11.1';
+import {createPostFX} from './postfx.js?v=2.11.1';
+import {createDustField} from './dust.js?v=2.11.1';
+import {createQualityUI} from './quality-ui.js?v=2.11.1';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.11.1';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.11.1';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.11.1';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.11.1';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.11.0');
+const orderResponse=await fetch('./order.json?v=2.11.1');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -157,15 +159,13 @@ box(0,.5,0,.62,.7,.62,'#bac4c7',robot);box(0,.98,0,.48,.29,.46,'#e0e7e5',robot);
 box(0,.97,.24,.32,.075,.025,'#2c4a54',robot);const robotGun=box(0,.65,.58,.16,.16,.67,'#242d34',robot);
 box(0,.67,.88,.18,.18,.12,'#75cfcc',robot);box(-.23,.14,0,.19,.26,.42,'#27343d',robot);box(.23,.14,0,.19,.26,.42,'#27343d',robot);
 let human=null;const requestedSkin=selectSkin(location.search);
-if(requestedSkin==='human'){try{human=await loadHumanOperator({dashDuration:RULES.dash.durationSeconds});player.add(human.root);robot.visible=false;}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
-const activeSkin=human?'human':'robot';document.documentElement.dataset.skin=activeSkin;
-const gunMount=new THREE.Group();player.add(gunMount);gunMount.visible=!!human;
-const humanGun=box(0,.65,.58,.12,.12,.58,getComputedStyle(document.documentElement).getPropertyValue('--ad-ink').trim(),gunMount);
-const gun=human?humanGun:robotGun;
-// Mood pass: the player is always near the fog's near plane (camera sits ~33 units from its target - see
-// art.js), so leaving it fogged like the environment reads as the player being washed out, not the world.
-for(const part of [robot,gunMount])part.traverse(n=>{if(n.isMesh)for(const mat of Array.isArray(n.material)?n.material:[n.material])mat.fog=false;});
-const gripPoint=new THREE.Vector3(),gripRotation=new THREE.Quaternion(),gripParentRotation=new THREE.Quaternion(),barrelDirection=new THREE.Vector3();
+if(requestedSkin!=='robot'){try{human=await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});player.add(human.root);robot.visible=false;}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
+const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
+const gun=human?human.weapon:robotGun;
+const robotMuzzle=createRobotSocket(robotGun,CHARACTERS.robot);
+const muzzle=human?human.muzzle:robotMuzzle;
+// Player-only fog exemption; environment materials stay unchanged.
+robot.traverse(n=>{if(n.isMesh)for(const mat of Array.isArray(n.material)?n.material:[n.material])mat.fog=false;});
 const cssTokens=getComputedStyle(document.documentElement);
 const operatorFX=createOperatorFX(scene,{sparkColor:cssTokens.getPropertyValue('--ad-loot').trim(),dustColor:cssTokens.getPropertyValue('--ad-bone').trim(),tracerColor:cssTokens.getPropertyValue('--ad-cyan').trim()});
 // A faint silhouette remains readable through foreground cover. Geometry and collisions stay unchanged.
@@ -754,8 +754,7 @@ function fire(tap=false){
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   addBulletVisual(shot);human?.shoot();operatorFX.shot(position.x,position.z,shot.dx,shot.dz,QUALITY==='low');
-  if(human){gun.getWorldPosition(muzzleFlash.position);gun.getWorldQuaternion(gripRotation);barrelDirection.set(0,0,.29).applyQuaternion(gripRotation);muzzleFlash.position.add(barrelDirection);}
-  else muzzleFlash.position.set(position.x+shot.dx*RULES.feedback.muzzleOffset,.66,position.z+shot.dz*RULES.feedback.muzzleOffset);
+  muzzle.getWorldPosition(muzzleFlash.position);
   muzzleFlashAt=clock;muzzleFlash.visible=true;
   hapticPulse(RULES.feedback.hapticShotMs);
   const stick=$('#aim-stick');stick.classList.add('fired');setTimeout(()=>stick.classList.remove('fired'),RULES.feedback.firePulseMs);
@@ -1028,6 +1027,8 @@ let previousGameClock=null;
 let debugRoomClearsEnabled=true;
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
+  getCamera:()=>camera,
+  operator:()=>human,
   setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
   // Headless/software-rendered test runs can sustain <40 fps for reasons that have nothing to do with the
   // mood pass itself; let fixtures opt out of the auto-downgrade watchdog so screenshots stay deterministic.
@@ -1043,7 +1044,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.11.0');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.11.1');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1342,7 +1343,7 @@ function frameInner(now){
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   for(const b of visibleProjectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
   {const age=clock-muzzleFlashAt;muzzleFlash.visible=age<RULES.feedback.muzzleFlashMs;if(muzzleFlash.visible)muzzleFlash.material.opacity=1-age/RULES.feedback.muzzleFlashMs;}
-  gun.position.z=.58-Math.max(0,1-(clock-muzzleFlashAt)/RULES.feedback.recoilMs)*RULES.feedback.recoilDistance;
+  if(!human)gun.position.z=.58-Math.max(0,1-(clock-muzzleFlashAt)/RULES.feedback.recoilMs)*RULES.feedback.recoilDistance;
   renderEnemyFeedback(clock);renderKillMarker(clock);
   for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
     const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
@@ -1377,11 +1378,7 @@ function frameInner(now){
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
   human?.update(dt,{moving:playerMoving&&!round.over,dashing:dash.remaining>0&&!round.over,dead:round.health<=0,aiming:holding,walkYaw:Math.atan2(walkDirection.x,walkDirection.z),aimYaw});
-  if(human){
-    human.weaponPose(gripPoint,gripRotation);player.worldToLocal(gripPoint);gunMount.position.copy(gripPoint);
-    player.getWorldQuaternion(gripParentRotation);gunMount.quaternion.copy(gripParentRotation.invert().multiply(gripRotation));
-    humanGun.position.set(0,0,.25-Math.max(0,1-(clock-muzzleFlashAt)/RULES.feedback.recoilMs)*RULES.feedback.recoilDistance);
-  }
+  if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);
   operatorFX.update(dt,{dashing:dash.remaining>0&&!round.over,x:position.x,z:position.z,low:QUALITY==='low'});
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);rangeRing.scale.setScalar(weapon.rule.range/RULES.weapon.range);aimCone.visible=aiming&&!playerMoving;
   if(aiming){
