@@ -115,11 +115,12 @@ function popupFit(){
   return out;
 }
 
+// Compact enemy health bars may coincide by design (enemy-health-bar.test.mjs); text/HUD collisions remain errors.
 // World-space overlays: every label in #world-labels (loot, node, exit, enemy badge + health bar ...), their nested bars/meters, the
 // player bars and transient notices must not overlap each other, nor the HUD (timer, bag, dash, sticks ...). Real client rects.
 function worldOverlaps(){
   const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
-  const box=(e,k,t)=>{const r=e.getBoundingClientRect();return {k,e,t:t||e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
+  const box=(e,k,t)=>{const r=e.getBoundingClientRect();return {k,e,compact:!!e.closest('.enemy-label[data-mode=bar]'),t:t||e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
   const sel=s=>[...document.querySelectorAll(s)].filter(vis);
   const L=sel('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)').map(e=>box(e,'label'))
     .concat(sel('#world-labels .enemy-health-bar,#world-labels .node-meter').map(e=>box(e,'bar',`${e.closest('.node-label')?.textContent.trim().slice(0,16)||e.id} ${e.className}`)))
@@ -128,7 +129,7 @@ function worldOverlaps(){
   const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
   const out=[];
   for(let i=0;i<L.length;i++){
-    for(let j=i+1;j<L.length;j++)if(!L[i].e.contains(L[j].e)&&!L[j].e.contains(L[i].e)&&hit(L[i],L[j]))out.push(`${L[i].k} "${L[i].t}" overlaps ${L[j].k} "${L[j].t}"`);
+    for(let j=i+1;j<L.length;j++)if(!L[i].e.contains(L[j].e)&&!L[j].e.contains(L[i].e)&&!(L[i].compact&&L[j].compact)&&hit(L[i],L[j]))out.push(`${L[i].k} "${L[i].t}" overlaps ${L[j].k} "${L[j].t}"`);
     for(const h of H)if(hit(L[i],h))out.push(`${L[i].k} "${L[i].t}" overlaps HUD ${h.t}`);
   }
   return out;
@@ -267,10 +268,10 @@ function sampleLabels(){
     const v=!!vis(e),r=e.getBoundingClientRect(),t=e.textContent.trim().replace(/\s+/g,' ').slice(0,24);
     // timed hazards (shock pads) switch on and off by design: they count for overlaps, not for flicker
     out.labels[e.dataset.lc]={v,x:r.left+r.width/2,y:r.top+r.height/2,t:t||'.'+String(e.className).split(' ').slice(0,2).join('.'),timed:e.matches('.hazard-label')};
-    if(v&&r.width>2&&r.height>2)L.push({t,l:r.left,tp:r.top,r:r.right,b:r.bottom});
+    if(v&&r.width>2&&r.height>2)L.push({t,compact:e.matches('.enemy-label[data-mode=bar]'),l:r.left,tp:r.top,r:r.right,b:r.bottom});
   }
   for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],o=L[j];
-    if(Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2)out.overlaps.push(`"${a.t}" overlaps "${o.t}"`);}
+    if(!(a.compact&&o.compact)&&Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2)out.overlaps.push(`"${a.t}" overlaps "${o.t}"`);}
   return out;
 }
 async function sweepLabels(page,ctx){
@@ -363,13 +364,13 @@ async function raidRun([w,h],area){
 
     const labels=await page.evaluate(()=>{
       const vis=e=>!e.hidden&&!e.closest('[hidden]')&&getComputedStyle(e).visibility!=='hidden'&&+getComputedStyle(e).opacity>.05&&e.getClientRects().length;
-      const box=(e,k)=>{const r=e.getBoundingClientRect();return {k,t:e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
+      const box=(e,k)=>{const r=e.getBoundingClientRect();return {k,compact:e.matches('.enemy-label[data-mode=bar]'),t:e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
       // world labels + transient notices must not overlap each other, nor the HUD (timer, bag, dash, sticks ...)
       const L=[...document.querySelectorAll('#world-labels>*:not(.enemy-damage)')].filter(vis).map(e=>box(e,'label')).concat([...document.querySelectorAll('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,.pickup-toast,#level-toast,#extract-toast')].filter(vis).map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2);
       const H=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(vis).map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
       const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
       const out=[];
-      for(let i=0;i<L.length;i++){for(let j=i+1;j<L.length;j++)if(hit(L[i],L[j]))out.push(`${L[i].k} "${L[i].t}" overlaps ${L[j].k} "${L[j].t}"`);
+      for(let i=0;i<L.length;i++){for(let j=i+1;j<L.length;j++)if(!(L[i].compact&&L[j].compact)&&hit(L[i],L[j]))out.push(`${L[i].k} "${L[i].t}" overlaps ${L[j].k} "${L[j].t}"`);
         for(const h of H)if(hit(L[i],h))out.push(`${L[i].k} "${L[i].t}" overlaps HUD ${h.t}`);}
       return out;});
     for(const m of labels)fail(ctx,`world label ${m}`);

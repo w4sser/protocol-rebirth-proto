@@ -898,7 +898,7 @@ function renderLabels(){
   // else (HUD + every other label) only ever causes a hide, never a push.
   const fixedRects=obstacles;
   const objectiveRects=boxes.filter(b=>shown.get(b.id)!==false&&FIXED_LABEL_KINDS.has(b.kind)).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
-  const nowPlacement=performance.now(),enemyRects=[];
+  const nowPlacement=performance.now();
   // Sticky hysteresis: `bad` must hold continuously for onMs before the gate flips true, and `!bad`
   // continuously for offMs before it flips back — so a per-frame geometry wobble (labels/HUD rects
   // that themselves move) can't flip a decision 3x inside a second. Shared by the collapse-to-bar
@@ -975,9 +975,9 @@ function renderLabels(){
     // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
     // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(overlapsAt(y,size,labelRects)||(mode!=='bar'&&overlapsAt(y,size,enemyRects))){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
     if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
-    obstacles.push(box);enemyRects.push(box);
+    obstacles.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
   const now=performance.now();
