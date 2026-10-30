@@ -1,3 +1,4 @@
+import {generateBigLevel} from './big-level.js?v=2.11.0';
 import '../data/items.js?v=2.11.0';
 import {clearPassageProps} from './archipelago-passages.js?v=2.11.0';
 import {townizeLevel} from './town-layout.js?v=2.11.0';
@@ -208,7 +209,10 @@ export const isHard=()=>HARD;
 // Area rules with the Hard multipliers on top (hp / damage multiply, extra enemies add).
 export function ruleSet(area,hard){const AR=AREA_RULES[area]??AREA_RULES.bunker;if(!hard)return AR;const H=RULES.hard;
   return {...AR,hpMul:AR.hpMul*H.hpMul,dmgMul:AR.dmgMul*H.dmgMul,extraEnemies:(AR.extraEnemies??[0,0,0]).map((v,i)=>v+H.extraEnemies[i])};}
-export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
+let BIG_LEVELS=false;
+export function setLevelMode(mode){BIG_LEVELS=mode==='big';}
+export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVELS,layoutOverride=null){
+  if(big)return generateBigLevel(roundSeed);
   const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');
   const AR=ruleSet(area,hard),sm=AR.sizeMul??1;
   if(hard)roundSeed=`hard^${roundSeed}`;
@@ -220,7 +224,7 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD){
   const pick=items=>items[Math.floor(rng()*items.length)];
   const rooms=[],floors=[],walls=[],boxes=[],nodes=[],enemies=[],corridors=[],deadEnds=[];
   // v1.73: Level 1 of the bunker opens in the fixed control room; every level draws its layout from a seeded pool.
-  const lay=layoutFor(roundSeed,number),SR=number===1&&area==='bunker'?RULES.startRoom:null,srRng=randomFromSeed(`${roundSeed}:startroom`);
+  const lay=layoutOverride??layoutFor(roundSeed,number),SR=number===1&&area==='bunker'?RULES.startRoom:null,srRng=randomFromSeed(`${roundSeed}:startroom`);
   // v2.1.2: archipelago passage openings read .6 wider than their base rule.passage so the
   // chunky boulder clusters either side have room to sit clear of the walkable gap.
   const t=RULES.wallThickness,door=(SR?SR.closet.width:rule.passage)+(area==='archipelago'?.6:0),closets=[];
