@@ -12,10 +12,12 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.10.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.11.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
+// v2.11.0: start screen quality->water profile (start-quality.js), same dual-mode convention.
+const StartQuality = (typeof require === "function") ? require("./start-quality.js") : window.StartQuality;
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
 //   // v13 (v1.91) adds S.gearTier (Mk tiers from merging 3 copies) + S.attach (fitted attachments).
@@ -5215,17 +5217,25 @@ function showBaseLoader(){
   if(img.complete) hide();
   setTimeout(hide, 4000);
 }
-function setupSplash(){
+// flightPending: v2.11.0 start screen -- true when the caller intends to mount the archipelago
+// flight (Medium/High quality + WebGL2; see start-quality.js). While true, the old auto-advance
+// timer is suppressed and the idle flight keeps looping until the player taps; on tap, the
+// flight eases the camera down onto the bunker island (flightCtl.land) before the existing
+// descending/finish flow continues. Returns null if there's no #splash or it's already been
+// shown this session; otherwise an object the caller uses to report the flight's async outcome
+// (flightMounted once start-scene.js loads, flightFailed if it never does or later errors out).
+function setupSplash(flightPending){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
-  if(!sp) return;
+  if(!sp) return null;
   let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
-  if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return; }
+  if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return null; }
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");
   let phase = "loading", requested = false, autoTimer, endTimer, loadTimer;
+  let flightActive = !!flightPending, flightCtl = null;
   const pendingImages = [];
   const reduced = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const finish = () => {
@@ -5236,6 +5246,7 @@ function setupSplash(){
     body.classList.remove("splash-active", "startup-descending");
     document.removeEventListener("visibilitychange", onVisibility);
     sp.remove();
+    flightCtl?.dispose();
   };
   const begin = () => {
     if(phase !== "ready") return;
@@ -5249,15 +5260,21 @@ function setupSplash(){
       endTimer = setTimeout(finish, 1450);
     }
   };
+  // Lands the flight camera on the bunker first (if it's mounted and active) before begin()'s
+  // existing dissolve -- otherwise behaves exactly like the old direct begin().
+  const proceed = () => { if(flightActive && flightCtl) flightCtl.land(begin); else begin(); };
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
-    if(requested) begin(); else autoTimer = setTimeout(begin, 1400);
+    if(requested) proceed();
+    else if(!flightActive) autoTimer = setTimeout(begin, 1400);
+    // else: the flight is active -- stay on the looping start screen until the player taps.
   };
   const activate = () => {
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
-    requested = true; begin();
+    requested = true;
+    if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
   document.addEventListener("visibilitychange", onVisibility);
@@ -5282,6 +5299,17 @@ function setupSplash(){
     if(img.complete) img.onload();
   }
   if(phase === "loading") loadTimer = setTimeout(ready, 2500);
+  return {
+    flightMounted(ctl){
+      if(phase === "descending" || phase === "done"){ ctl.dispose(); return; }
+      flightCtl = ctl;
+    },
+    flightFailed(){
+      if(!flightActive) return;
+      flightActive = false; flightCtl = null;
+      if(phase === "ready"){ if(requested) begin(); else autoTimer = setTimeout(begin, 1400); }
+    },
+  };
 }
 /* ---------- init ---------- */
 // ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
@@ -5290,7 +5318,19 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   tryBitImage();
-  setupSplash();
+  // v2.11.0 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
+  // *before* setupSplash() whether the archipelago flight will be attempted -- setupSplash needs
+  // that up front to suppress its old auto-advance timer, which can otherwise fire (both splash
+  // images are tiny/cached) before the async import() below ever resolves.
+  let flightProfile = null;
+  try{
+    if(StartQuality && !/jsdom/i.test(navigator.userAgent || "")){
+      let storage = null; try{ storage = window.localStorage; }catch(e){}
+      const q = StartQuality.pickStartQuality({ search: location.search, storage, nav: navigator, screen: window.screen || {} });
+      flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
+    }
+  }catch(e){ console.warn("start screen flight disabled:", e); }
+  const splashCtl = setupSplash(!!(flightProfile && flightProfile.water));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
@@ -5310,6 +5350,24 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const profilesBtn = document.getElementById("profiles-btn");
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
+  // v2.11.0 start screen: settings/slot access from the splash itself, without triggering the
+  // tap-anywhere-to-enter flow (stopPropagation keeps #splash's own click listener from firing).
+  { const sb = document.getElementById("splash-settings-btn"); if(sb) sb.addEventListener("click", e => { e.stopPropagation(); setMenu(true); }); }
+  { const pb = document.getElementById("splash-profiles-btn"); if(pb) pb.addEventListener("click", e => { e.stopPropagation(); A.openProfiles(); }); }
+  // Lazy-load the archipelago flight (vendored Ultra Water + three.js) only on Medium/High
+  // quality with a working WebGL2 -- never fetched on Low or when it's unavailable, so load
+  // time for the common low-end-mobile path never regresses. flightProfile/splashCtl above
+  // already decided *whether* to attempt this; here we just report the async outcome back to
+  // the splash so it can stay on the looping flight (success) or fall back to its old
+  // auto-advance (failure/error), rather than waiting forever for a tap-driven land().
+  if(flightProfile && flightProfile.water && splashCtl){
+    const host = document.getElementById("splash-flight");
+    if(host){
+      import("./start-scene.js?v=" + APP_VERSION)
+        .then(m => splashCtl.flightMounted(m.mountStartFlight(host, flightProfile, { onFail: () => splashCtl.flightFailed() })))
+        .catch(e => { console.warn("start screen flight disabled:", e); splashCtl.flightFailed(); });
+    } else splashCtl.flightFailed();
+  }
   session.screen = S.introSeen ? "base" : "intro";
   refresh();
   // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup).

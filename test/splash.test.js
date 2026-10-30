@@ -4,7 +4,7 @@ const path = require("node:path");
 const { JSDOM } = require("jsdom");
 const root = path.join(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
-const setup = app.slice(app.indexOf("function setupSplash(){"), app.indexOf("/* ---------- init ---------- */"));
+const setup = app.slice(app.indexOf("function setupSplash("), app.indexOf("/* ---------- init ---------- */"));
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}={}){

@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import '../data/raid-operator.js?v=2.10.0';
+import '../data/raid-operator.js?v=2.11.0';
 
 const ART=globalThis.DATA.raidOperator;
 export const OPERATOR_CLIPS=ART.clips;
