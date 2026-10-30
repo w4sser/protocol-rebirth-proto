@@ -14,6 +14,9 @@ assert.equal(Q.pickStartQuality({search:"?q=high", nav:{maxTouchPoints:5, hardwa
 
 // 3) auto-detect: touch + weak -> low; touch or small or weak alone -> medium; none -> high
 assert.equal(Q.pickStartQuality({nav:{maxTouchPoints:5, hardwareConcurrency:4}}), "low", "touch + weak -> low");
+const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+assert.equal(Q.pickStartQuality({nav:{maxTouchPoints:5, hardwareConcurrency:4, userAgent:IPHONE_UA}, screen:{width:390,height:844}}), "medium", "iPhone's clamped cores (4) must not force low");
+assert.equal(Q.pickStartQuality({nav:{maxTouchPoints:5, hardwareConcurrency:4, userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"}}), "medium", "iPadOS desktop UA");
 assert.equal(Q.pickStartQuality({nav:{maxTouchPoints:5, hardwareConcurrency:8}}), "medium", "touch alone -> medium");
 assert.equal(Q.pickStartQuality({nav:{hardwareConcurrency:4}, screen:{width:1920,height:1080}}), "medium", "weak alone -> medium");
 assert.equal(Q.pickStartQuality({nav:{hardwareConcurrency:16, maxTouchPoints:0}, screen:{width:1920,height:1080}}), "high", "neither -> high");
@@ -34,9 +37,9 @@ assert.equal(Q.detectWebGL2(() => ({ getContext: () => ({ getExtension: () => nu
 assert.equal(Q.detectWebGL2(() => ({ getContext: () => ({ getExtension: name => name === "EXT_color_buffer_float" ? {} : null }) })), true);
 
 // 6) waterProfile: low quality or no WebGL2 always turns water off, regardless of the other
-assert.deepEqual(Q.waterProfile("low", true), {name:"low", water:false, foam:false, pixelRatioCap:1});
-assert.deepEqual(Q.waterProfile("high", false), {name:"low", water:false, foam:false, pixelRatioCap:1});
-assert.deepEqual(Q.waterProfile("medium", false), {name:"low", water:false, foam:false, pixelRatioCap:1});
+assert.deepEqual(Q.waterProfile("low", true), {name:"low", water:false, lite:true, foam:false, pixelRatioCap:1});
+assert.deepEqual(Q.waterProfile("high", false), {name:"low", water:false, lite:true, foam:false, pixelRatioCap:1});
+assert.deepEqual(Q.waterProfile("medium", false), {name:"low", water:false, lite:true, foam:false, pixelRatioCap:1});
 
 // 7) medium: FFT water on, but a tighter pixel-ratio cap than high and no foam bake
 {
