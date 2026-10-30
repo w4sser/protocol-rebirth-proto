@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.8.1';
+import {inputPaused} from '../perks.js?v=2.9.0';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -55,12 +55,15 @@ test('exit picker minimize resumes movement, combat and timer; resume preserves 
       $:s=>document.querySelector(s),clearInput:noop,cancelToolDrag:noop,hideSwap:noop,updateHUD:noop,
       setTimeout:fn=>fn(),finishRound:()=>assert.fail('unexpected extraction'),
       gameClock:()=>gameTime(r,wall),pendingShot:null,pendingTool:null,pendingKit:false,previousGameClock:0,previous:0,elapsed:0,tutorialOpen:false,resultPending:false,
+      // v2.9.0 mood pass: frameInner's auto-downgrade watchdog reads/writes these module-scope bindings;
+      // this harness has no renderer so the pass stays off and the watchdog is pre-latched (never runs).
+      lastFrameAt:null,moodOn:false,qualityPinned:true,autoDowngraded:true,fpsState:{badSince:null,triggered:true},fpsMonitorStep:()=>({badSince:null,triggered:true}),notice:noop,
       movement:{x:0,y:0},keys:new Set(),playerMoving:false,playerSolids:[],solids:[],sticks:[{}, {state:{gesture:{}}}],
       stepAim:()=>null,mouseKnown:false,screenToWorld:(x,y)=>({x,z:y}),doorAssist:(_house,_pos,delta)=>delta,
       bullets:[],collectLoot:()=>false,stepDoors:()=>false,checkEncounterHints:noop,
       stepNodeInteraction:()=>false,stepHouse:()=>({loot:[],changed:false}),renderHouseLabels:noop,
       renderRoundClock:()=>Math.ceil(r.remainingMs/1000),
-      renderer:{render:noop},scene:{},camera:{},requestAnimationFrame:noop,frame:noop
+      renderer:{render:noop},scene:{},camera:{},requestAnimationFrame:noop,frame:noop,renderFrame:noop
     });
     context.perkUI=createPerkUI(document.querySelector('main'),(...args)=>context.act(...args));
     vm.runInContext(keyboard+'\n'+handlers+'\n'+frame,context);

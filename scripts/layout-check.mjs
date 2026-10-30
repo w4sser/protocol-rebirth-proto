@@ -274,6 +274,9 @@ function sampleLabels(){
   return out;
 }
 async function sweepLabels(page,ctx){
+  // v2.9.0: the label sweep checks DOM label placement, not post FX; software-GL CI runners drop to a few fps with bloom on,
+  // which starves the time-based label settle between 70 ms samples. Sweep on Low and restore the previous quality after.
+  const prevQ=await page.evaluate(()=>window.__NR.quality?.()??null);if(prevQ)await page.evaluate(()=>window.__NR.setQuality('low'));
   const pts=await page.evaluate(()=>{const s=window.__NR.state();return {start:s.position,targets:s.level.nodes.map(n=>({x:n.x+1.2,z:n.z+1.2}))};});
   const path=[];let cur=pts.start;
   for(const t of pts.targets){const d=Math.hypot(t.x-cur.x,t.z-cur.z),n=Math.max(1,Math.ceil(d/.18));for(let i=1;i<=n;i++)path.push({x:cur.x+(t.x-cur.x)*i/n,z:cur.z+(t.z-cur.z)*i/n});cur=t;}
@@ -284,6 +287,7 @@ async function sweepLabels(page,ctx){
     s.overlaps.forEach(m=>overl.add(m));
     for(const [id,l] of Object.entries(s.labels))(hist[id]=hist[id]||[]).push({...l,at:s.at});
   }
+  if(prevQ)await page.evaluate(q=>window.__NR.setQuality(q),prevQ);
   for(const m of overl)fail(ctx,`world label ${m} during gameplay`);
   for(const h of Object.values(hist)){
     if(h.some(x=>x.timed))continue;
@@ -511,8 +515,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.8.1');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.8.1');
+    const {createRound}=await import('./round.js?v=2.9.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.9.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

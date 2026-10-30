@@ -1,12 +1,12 @@
-import {audioEvent} from './audio.js?v=2.8.1';
-import {ownRooms} from './perks.js?v=2.8.1';
-import {RULES,hazardState} from './levels.js?v=2.8.1';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.8.1';
-import {takeDamage,tickRound} from './round.js?v=2.8.1';
-import {houseWaypoint} from './house.js?v=2.8.1';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.8.1';
-import {detectionMultiplier} from './stakes.js?v=2.8.1';
-import {dashInvulnerable} from './dash.js?v=2.8.1';
+import {audioEvent} from './audio.js?v=2.9.0';
+import {ownRooms} from './perks.js?v=2.9.0';
+import {RULES,hazardState} from './levels.js?v=2.9.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.9.0';
+import {takeDamage,tickRound} from './round.js?v=2.9.0';
+import {houseWaypoint} from './house.js?v=2.9.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.9.0';
+import {detectionMultiplier} from './stakes.js?v=2.9.0';
+import {dashInvulnerable} from './dash.js?v=2.9.0';
 
 export function createCombat(level,now){
   ownRooms(level);

@@ -1,11 +1,11 @@
-import {audioEvent} from './audio.js?v=2.8.1';
+import {audioEvent} from './audio.js?v=2.9.0';
 // v2.7.0 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
 // weight. No heat mechanic - waves run on a fixed clock. All tuning lives in data/raid-stakes.js.
-import {traceTargets} from './physics.mjs?v=2.8.1';
-import {RULES,randomFromSeed} from './levels.js?v=2.8.1';
-import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.8.1';
-import '../data/raid-stakes.js?v=2.8.1';
-import '../data/raid-camera.js?v=2.8.1';
+import {traceTargets} from './physics.mjs?v=2.9.0';
+import {RULES,randomFromSeed} from './levels.js?v=2.9.0';
+import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.9.0';
+import '../data/raid-stakes.js?v=2.9.0';
+import '../data/raid-camera.js?v=2.9.0';
 export const RAID_CAMERA = globalThis.DATA.raidCamera;
 export const STAKES = globalThis.DATA.raidStakes;
 

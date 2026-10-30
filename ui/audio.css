@@ -19,3 +19,10 @@
 .raid-settings-card .pop-head{margin-bottom:4px;font-size:16px}
 .raid-settings-card .audio-menu-body{flex-shrink:1}
 #raid-settings-open{pointer-events:auto;display:grid;place-items:center;width:44px;height:44px;margin-right:8px;border:1px solid var(--ad-cyan);border-radius:6px;background:var(--ad-ink);color:var(--ad-cyan)}
+/* v2.9.0 mood pass: Graphics quality toggle, same fieldset pattern as .audio-settings above. */
+.quality-settings{border:0;padding:4px 0;margin:0;min-width:0;color:var(--ad-bone)}
+.quality-settings legend{font-size:12px;color:var(--ad-cyan)}
+.quality-settings .quality-row{display:flex;gap:8px}
+.quality-settings button{flex:1;min-height:32px;border:1px solid var(--ad-cyan);border-radius:6px;background:var(--ad-ink);color:var(--ad-bone);font-size:12px}
+.quality-settings button[aria-pressed=true]{background:var(--ad-cyan);color:var(--ad-ink)}
+.quality-settings .quality-note{display:block;margin-top:4px;font-size:10px;color:var(--ad-bone);opacity:.7}
