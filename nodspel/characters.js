@@ -17,3 +17,6 @@ export function characterFor(search=''){
   const key=id==='human'?'punk':id;
   return Object.hasOwn(CHARACTERS,key)?CHARACTERS[key]:CHARACTERS[DEFAULT_CHARACTER];
 }
+// World Y for the overhead health/shield pips: just above the scaled head, never below the legacy 1.65.
+export const OVERHEAD_GAP=.2;
+export function overheadAnchorY(c){return Math.max(1.65,(c?.height??1.65)*(c?.scale??1)+OVERHEAD_GAP);}

@@ -11,7 +11,7 @@ import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.11.0';
 import {loadBunkerAssets} from './bunker.js?v=2.11.0';
 import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.11.0';
 import {nextPickupHint,hintText} from './item-hints.js?v=2.11.0';
-import {CHARACTERS} from './characters.js?v=2.11.1';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.11.1';
 import {createRobotSocket} from './operator-gear.js?v=2.11.1';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
 import '../data/modules.js?v=2.11.1';import '../data/recipes.js?v=2.11.1';import '../data/vendors.js?v=2.11.1';
@@ -161,6 +161,7 @@ box(0,.67,.88,.18,.18,.12,'#75cfcc',robot);box(-.23,.14,0,.19,.26,.42,'#27343d',
 let human=null;const requestedSkin=selectSkin(location.search);
 if(requestedSkin!=='robot'){try{human=await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});player.add(human.root);robot.visible=false;}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
+const playerOverheadY=overheadAnchorY(human?.character??CHARACTERS.robot);
 const gun=human?human.weapon:robotGun;
 const robotMuzzle=createRobotSocket(robotGun,CHARACTERS.robot);
 const muzzle=human?human.muzzle:robotMuzzle;
@@ -790,7 +791,7 @@ function renderWeaponHUD(clock){
   $('#player-health').setAttribute('aria-valuenow',round.health);
   renderHealthSegments(playerHealthSegments,round.health,round.maxHealth,10);$('#player-health').hidden=round.health<=0;
   $('#player-health').classList.toggle('urgent',round.health<=25);
-  labelPoint.set(position.x,1.65,position.z).project(camera);
+  labelPoint.set(position.x,playerOverheadY,position.z).project(camera);
   $('#player-health').style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;
   $('#player-health').style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;
   {const sh=$('#player-shield'),max=round.maxShield||0;if(sh){sh.hidden=!max||round.health<=0;if(max){sh.style.left=$('#player-health').style.left;sh.style.top=`${(-labelPoint.y*.5+.5)*viewHeight-12}px`;$('#player-shield-fill').style.width=`${Math.round(100*round.shield/max)}%`;sh.classList.toggle('broken',round.shield<=0);sh.setAttribute('aria-valuenow',round.shield);}}}
@@ -936,11 +937,16 @@ function renderLabels(){
       const r=l.el.getBoundingClientRect();
       sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
     }
-    const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles,bounds,now:nowPlacement});
+    // v2.11.1: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
+    const otherBars=labels.filter(o=>o!==l&&o.range==='enemy'&&!o.el.hidden&&Number.isFinite(o.sx)).map(o=>({left:o.sx-22,right:o.sx+22,top:o.sy-11,bottom:o.sy-6}));
+    const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles.concat(otherBars),bounds,now:nowPlacement});
     l.placement=placed.state;
     let mode=placed.mode;const x=placed.x;let y=placed.y;
     const overlapsAt=(yy,s,rects)=>rects.some(r=>x+s.w/2>r.left&&x-s.w/2<r.right&&yy>r.top&&yy-s.h<r.bottom);
     // A caption never draws over a fixed label or HUD, not even for one frame: drop to the bar at once.
+    // v2.11.1 (PR #152 layout RUSHER overlap): bars are never moved or hidden for each other, so a caption
+    // (e.g. a winding hunter-wave rusher) must not draw over ANY other visible enemy's bar either — it yields.
+    if(mode!=='bar'&&overlapsAt(y,sizes[mode],otherBars)){mode='bar';y=Math.min(bounds.bottom,Math.max(bounds.top+sizes.bar.h,l.sy-6+sizes.bar.dy));l.forceBar=true;l.forceBarOk=undefined;if(l.placement){l.placement.mode='bar';l.placement.modeSince=nowPlacement;}}
     if(mode!=='bar'&&overlapsAt(y,sizes[mode],fixedRects)){l.forceBar=true;l.forceBarOk=undefined;l.el.hidden=true;continue;}
     // v2.8.0: vs an objective label specifically, the bar may lift up to 24px to clear it (a caption
     // may already have stacked to dodge the same box; the bar itself never got the chance). HUD and

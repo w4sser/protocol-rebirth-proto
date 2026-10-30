@@ -267,9 +267,11 @@ function sampleLabels(){
     const v=!!vis(e),r=e.getBoundingClientRect(),t=e.textContent.trim().replace(/\s+/g,' ').slice(0,24);
     // timed hazards (shock pads) switch on and off by design: they count for overlaps, not for flicker
     out.labels[e.dataset.lc]={v,x:r.left+r.width/2,y:r.top+r.height/2,t:t||'.'+String(e.className).split(' ').slice(0,2).join('.'),timed:e.matches('.hazard-label')};
-    if(v&&r.width>2&&r.height>2)L.push({t,l:r.left,tp:r.top,r:r.right,b:r.bottom});
+    if(v&&r.width>2&&r.height>2)L.push({t,l:r.left,tp:r.top,r:r.right,b:r.bottom,bar:e.matches('.enemy-label')&&e.dataset.mode==='bar'});
   }
-  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],o=L[j];
+  // Two compact enemy health bars may coincide when enemies cluster: bars are pinned to their own anchor by
+  // design (tests/enemy-health-bar.test.mjs 'clustered enemies ... stay visible and pinned'). Captions still count.
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],o=L[j];if(a.bar&&o.bar)continue;
     if(Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2)out.overlaps.push(`"${a.t}" overlaps "${o.t}"`);}
   return out;
 }
