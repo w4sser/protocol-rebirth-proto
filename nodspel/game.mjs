@@ -975,7 +975,7 @@ function renderLabels(){
     // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
     // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(overlapsAt(y,size,labelRects)||overlapsAt(y,size,enemyRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    if(overlapsAt(y,size,labelRects)||(mode!=='bar'&&overlapsAt(y,size,enemyRects))){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
     if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);enemyRects.push(box);
   }
