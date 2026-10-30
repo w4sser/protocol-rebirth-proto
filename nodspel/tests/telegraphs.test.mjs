@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy} from '../round.js?v=2.9.1';
-import {RULES} from '../levels.js?v=2.9.1';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.9.1';
-import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.9.1';
-import {deathTip} from '../encounters.js?v=2.9.1';
-import {recap,deathLine} from '../perks.js?v=2.9.1';
+import {createRound,hitEnemy} from '../round.js?v=2.10.0';
+import {RULES} from '../levels.js?v=2.10.0';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.10.0';
+import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.10.0';
+import {deathTip} from '../encounters.js?v=2.10.0';
+import {recap,deathLine} from '../perks.js?v=2.10.0';
 const player=()=>({x:0,z:4});
 function arena(type='grunt',extra={}){
  const r=createRound('telegraphs',0),e={id:'foe',kind:'enemy',type,x:0,z:0,r:.48,health:20,speed:0,facing:0,aggro:true,spawnedAt:-Infinity,rangeMul:1,cooldownMul:1,...extra};
@@ -78,7 +78,7 @@ test('production rendering draws coral aim lines and the permanent shield arc',a
  const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
  const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
  const start=source.indexOf('    // Floor geometry is local'),end=source.indexOf("    if(v.enemy.introGuard||v.enemy.encounter==='guard'",start);
- const {aimEndpoint}=await import('../physics.mjs?v=2.9.1');
+ const {aimEndpoint}=await import('../physics.mjs?v=2.10.0');
  const render=vm.runInNewContext(`(v,alive)=>{${source.slice(start,end)}}`,{THREE,RULES,TOOL_CORAL:'coral',aimEndpoint,solids:[]});
  const guard={enemy:{frontShield:70,encounter:'guard'},group:new THREE.Group()};render(guard,true);
  assert.equal(guard.shieldFloor.visible,true);assert.equal(guard.shieldFloor.material.opacity,RULES.shooting.telegraphs.shieldDimOpacity);

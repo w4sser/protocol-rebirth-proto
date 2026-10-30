@@ -15,8 +15,10 @@ import {OutputPass} from './vendor/postprocessing/OutputPass.js';
 const GRADE_VIGNETTE_SHADER={
   // Fog + ambient-light cooling (game.mjs, both quality tiers) already do most of the "cold" work; this pass
   // is a light top-up on High, not a second coat - stacking two strong cools reads as washed out, not moody.
-  uniforms:{tDiffuse:{value:null},desaturate:{value:.16},tint:{value:new THREE.Vector3(.91,.96,1.08)},
-    gradeStrength:{value:.32},vignetteStrength:{value:.32},vignetteRadius:{value:.68}},
+  // v2.10.0: desaturate/gradeStrength were nearly halved from the v2.9.0 pass (.16/.32), which combined with
+  // the fog band to flatten colour everywhere instead of just reading as "cold".
+  uniforms:{tDiffuse:{value:null},desaturate:{value:.08},tint:{value:new THREE.Vector3(.94,.97,1.05)},
+    gradeStrength:{value:.18},vignetteStrength:{value:.32},vignetteRadius:{value:.68}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
   fragmentShader:`uniform sampler2D tDiffuse;uniform float desaturate;uniform vec3 tint;uniform float gradeStrength;
     uniform float vignetteStrength;uniform float vignetteRadius;varying vec2 vUv;
