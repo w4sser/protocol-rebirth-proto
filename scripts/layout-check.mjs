@@ -280,11 +280,13 @@ async function sweepLabels(page,ctx){
   const pts=await page.evaluate(()=>{const s=window.__NR.state();return {start:s.position,targets:s.level.nodes.map(n=>({x:n.x+1.2,z:n.z+1.2}))};});
   const path=[];let cur=pts.start;
   for(const t of pts.targets){const d=Math.hypot(t.x-cur.x,t.z-cur.z),n=Math.max(1,Math.ceil(d/.18));for(let i=1;i<=n;i++)path.push({x:cur.x+(t.x-cur.x)*i/n,z:cur.z+(t.z-cur.z)*i/n});cur=t;}
-  const hist={},overl=new Set();
+  // v2.11.1: an overlap must persist across 2 consecutive samples (~140 ms); a one-sample overlap is the declutter's
+  // own one-frame settle on slow software-GL CI, invisible in play.
+  const hist={},overl=new Set();let prevOv=new Set();
   for(const p of path.slice(0,90)){
     await page.evaluate(q=>window.__NR.teleport(q.x,q.z),p);await settle(70);
     const s=await page.evaluate(sampleLabels);
-    s.overlaps.forEach(m=>overl.add(m));
+    const curOv=new Set(s.overlaps);for(const m of curOv)if(prevOv.has(m))overl.add(m);prevOv=curOv;
     for(const [id,l] of Object.entries(s.labels))(hist[id]=hist[id]||[]).push({...l,at:s.at});
   }
   if(prevQ)await page.evaluate(q=>window.__NR.setQuality(q),prevQ);
