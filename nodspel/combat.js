@@ -31,7 +31,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   if(now<combat.graceUntil&&!round.level.enemies.some(e=>e.aggro&&e.nearMissAt!=null))return;
   const rule=RULES.combat,target={...player,r:.36,kind:'player'};
   for(const enemy of round.level.enemies){
-    if(now<combat.graceUntil&&enemy.nearMissAt==null)continue;
+    if(enemy.sleeping||now<combat.graceUntil&&enemy.nearMissAt==null)continue;
     if(enemy.health<=0){enemy.windupAt=null;enemy.attackPhase=null;continue;}
     if(enemy.active===false||enemy.type==='generator'||(enemy.nearMissAt==null&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??rule.graceMs)))continue;
     if(enemy.attackWakeAt!=null){combat.nextFire.set(enemy.id,Math.min(combat.nextFire.get(enemy.id)??now,now));enemy.attackWakeAt=null;}
@@ -84,7 +84,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     combat.nextFire.set(enemy.id,now+Math.max(cooldown,enemy.type==='sentry'?RULES.shooting.telegraphs.sentryRecoveryMs:0));
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
-    const b=combat.projectiles[i];if(now<(b.releaseAt??0))continue;
+    const b=combat.projectiles[i];if(b.sleeping)continue;if(now<(b.releaseAt??0))continue;
     if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot');}
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
@@ -133,7 +133,7 @@ function lobGrenade(round,combat,enemy,now){
 }
 function stepBlasts(round,combat,player,now,dash=null){
   for(let i=combat.blasts.length-1;i>=0;i--){
-    const b=combat.blasts[i];if(now<b.detonateAt)continue;
+    const b=combat.blasts[i];if(b.sleeping)continue;if(now<b.detonateAt)continue;
     combat.blasts.splice(i,1);
     if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,encounterDamage(round,'grenadier'),now);}
     (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
@@ -218,7 +218,7 @@ function stepGuard(round,enemy,combat,player,now,dt,obstacles,target){
 // ---- patrol: fixed loop, visible sight cone ----
 function stepPatrolWalk(round,player,now,dt,obstacles){
   for(const e of round.level.enemies){
-    const P=e.patrol;if(!P||e.introGuard||e.active===false||e.health<=0||e.aggro||e.alertAt!=null)continue;
+    const P=e.patrol;if(e.sleeping||!P||e.introGuard||e.active===false||e.health<=0||e.aggro||e.alertAt!=null)continue;
     e.sight=sightRange(round);
     if(now<(e.stunnedUntil??0)||(e.lureTarget&&e.speed>0&&now<(e.lureUntil??Infinity)))continue;
     const R=RULES.encounters.patrol,goal=P.points[P.i%P.points.length],gd=Math.hypot(goal.x-e.x,goal.z-e.z);
@@ -244,6 +244,7 @@ function patrolSight(round,enemy,player,now,obstacles,target){
 // ---- swarm: a spawn point arms, warns for 1 s, then releases its rushers together ----
 function stepSpawners(round,combat,player,now){
   for(const sp of round.level.spawners??[]){
+    if(sp.sleeping)continue;
     if(sp.state==='armed'){if(Math.hypot(player.x-sp.x,player.z-sp.z)<=sp.trigger){sp.state='warning';sp.spawnAt=now+sp.warnMs;}continue;}
     if(sp.state!=='warning'||now<sp.spawnAt)continue;
     sp.state='spawned';
