@@ -12,3 +12,17 @@ Clip mapping: idle = Idle_Gun, run = Run (Run_Back when aiming behind the
 movement direction), shoot = Gun_Shoot, dash = Roll, hit = HitRecieve,
 death = Death. Idle_Gun_Pointing supplies the upper-body aiming pose.
 The runtime partitions animations at Abdomen and crossfades each layer separately.
+
+# Ultra Water
+
+`nodspel/vendor/ultra-water/`: **Ultra Water**, by **Humpalumps**. A Tessendorf
+FFT ocean simulation (`src/water/OceanSim.js`, `OceanSurface.js`) used for the
+v2.11.0 start screen's archipelago flight-over (High/Medium quality only; Low
+and no-WebGL2 fall back to a static image, see `start-scene.js`). Vendored
+unchanged, including its own third-party notices.
+
+- Source: https://github.com/Humpalumps/Ultra-Water
+- License: **MIT**, see `nodspel/vendor/ultra-water/LICENSE`
+- `THIRD_PARTY_NOTICES.md` (kept alongside, carries its own MIT sub-notices for
+  code adapted from three.js, Dave Hoskins' "Hash without Sine" and
+  UnrealEngineSkyAtmosphere).
