@@ -32,3 +32,16 @@ export function groundPatchParts({color='#141a30',opacity=.25,additive=false}={}
     blending:additive?THREE.AdditiveBlending:THREE.NormalBlending});
   return [{geometry,material,matrix:new THREE.Matrix4()}];
 }
+
+// Fit modular structure to measured geometry, not approximate manifest dimensions.
+// GLBs include trim outside their nominal 2 m span; repeated trim caused overlaps.
+export function fitStructure(parts,dimensions){
+  if(!parts?.length||parts.some(p=>p.standIn))return parts;
+  const bounds=new THREE.Box3();
+  for(const p of parts){p.geometry.computeBoundingBox();bounds.union(p.geometry.boundingBox.clone().applyMatrix4(p.matrix));}
+  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  if(Math.min(size.x,size.y,size.z)<=0)return parts;
+  const correction=new THREE.Matrix4().makeScale(dimensions[0]/size.x,dimensions[1]/size.y,dimensions[2]/size.z)
+    .multiply(new THREE.Matrix4().makeTranslation(-center.x,-bounds.min.y,-center.z));
+  return parts.map(p=>({...p,matrix:correction.clone().multiply(p.matrix)}));
+}
