@@ -96,7 +96,8 @@ test('ordinary enemies and hazards record stable source metadata and truthful de
   const r=arena();r.bag.cable=2;r.playerMoving=true;r.health=1;r.lastHit={source:'grunt',enemyId:'enemy-7',attack:'projectile'};takeDamage(r,10,100);assert.match(deathLine(r),/grunt.*projectile.*Moving/);assert.equal(r.bag.cable,0);assert.equal(r.lost.cable,2);assert.equal(r.extracted.cable,0);assert.equal(r.lastDamageEvent.sourceId,'enemy-7');
   const h=arena();h.level.hazards=[{...point,id:'pad-1',w:2,d:2,dps:20,phaseMs:0}];stepHazards(h,point,2500,1);assert.equal(h.lastDamageEvent.sourceId,'pad-1');assert.match(deathLine(h),/Shock pad.*electric hazard.*Stationary/);
 });
-test('last clear before exit defers terminal bag security until explicit pick',()=>{
+test('last clear before exit auto-picks and secures the terminal bag',()=>{
   const r=arena();r.level.number=3;r.level.exitArmed=true;r.bag.cable=1;r.level.enemies[0].health=0;
-  assert.equal(enterExit(r,point,100),'perk');assert.equal(r.over,false);assert.equal(r.bag.cable,1);const key=perkState(r).queue[0];assert.ok(choosePerk(r,key,offer(r,key)[0],100));assert.equal(enterExit(r,point,100),'complete');assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);
+  assert.equal(enterExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
+
 });

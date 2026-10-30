@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createRound,useHealthKit,healthKitBlock} from '../round.js?v=2.9.0';
-import {hitstop,advanceHitstop,gameTime,inputPaused,pausePick} from '../perks.js?v=2.9.0';
-import {initTool,canUseTool,toolCharges,throwTool,autoThrowPoint} from '../tools.js?v=2.9.0';
+import {createRound,useHealthKit,healthKitBlock} from '../round.js?v=2.9.1';
+import {hitstop,advanceHitstop,gameTime,inputPaused,pausePick} from '../perks.js?v=2.9.1';
+import {initTool,canUseTool,toolCharges,throwTool,autoThrowPoint} from '../tools.js?v=2.9.1';
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function fn(name){
   const start=source.indexOf(`function ${name}(`);let i=source.indexOf('{',start),depth=0;

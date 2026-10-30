@@ -1,5 +1,5 @@
-import {audioEvent} from './audio.js?v=2.9.0';
-import {cards,cardEffect,recap,offer,perkState} from './perks.js?v=2.9.0';
+import {audioEvent} from './audio.js?v=2.9.1';
+import {cards,cardEffect,offer,perkState,PERKS} from './perks.js?v=2.9.1';
 const paths={
   chain:'M5 17l7-10 1 6h6l-7 10-1-6H5z M4 4h4 M18 4h2',
   reload:'M5 9a8 8 0 1 1-1 7 M5 4v5h5 M12 8v5l3 2',
@@ -14,20 +14,15 @@ export function perkIcon(id){const svg=document.createElementNS('http://www.w3.o
 const LOCK_MS=600;
 export function createPerkUI(viewport,action){
   const layer=document.createElement('div');layer.className='perk-overlay';layer.hidden=true;
-  const panel=document.createElement('section');panel.className='perk-panel pop-card';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','perk-title');
-  const close=document.createElement('button');close.className='pop-x';close.type='button';close.setAttribute('aria-label','Minimize perk choice');close.append(perkIcon('close'));close.onclick=()=>action('minimize');
-  const title=document.createElement('h2');title.id='perk-title';title.textContent='ROOM CLEAR';
-  const sub=document.createElement('p');sub.className='perk-sub';sub.textContent='Choose your next advantage. Combat and raid timer paused.';
-  const feedback=document.createElement('div');feedback.className='perk-recap';
+  const panel=document.createElement('section');panel.className='perk-panel pop-card';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-label','Choose a raid perk');panel.tabIndex=-1;
   const grid=document.createElement('div');grid.className='perk-grid';
-  const confirmation=document.createElement('p');confirmation.className='perk-confirm';confirmation.setAttribute('role','status');confirmation.textContent='One choice. This raid only.';
-  // The close badge must stay outside the scroll container: it straddles the panel's top-left corner via a
-  // negative offset, which an `overflow-y:auto` ancestor would clip. Only the body below the title scrolls.
-  const scroll=document.createElement('div');scroll.className='perk-scroll';scroll.append(sub,feedback,grid,confirmation);
-  panel.append(close,title,scroll);layer.append(panel);viewport.append(layer);
-  layer.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();action('minimize');}if(e.key==='Tab'){const els=[...panel.querySelectorAll('button:not(:disabled)')],first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}}});
+  const countdown=document.createElement('div');countdown.className='perk-countdown';countdown.setAttribute('aria-hidden','true');
+  const bar=document.createElement('div');bar.className='perk-countdown-bar';countdown.append(bar);
+  const scroll=document.createElement('div');scroll.className='perk-scroll';scroll.append(grid);
+  panel.append(scroll,countdown);layer.append(panel);viewport.append(layer);
+  layer.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();action('dismiss');}if(e.key==='Tab'){const els=[...panel.querySelectorAll('button:not(:disabled)')],first=els[0],last=els.at(-1);if(e.shiftKey&&document.activeElement===first){last.focus();e.preventDefault();}else if(!e.shiftKey&&document.activeElement===last){first.focus();e.preventDefault();}}});
   const background=new Map();
-  let lockTimer=0,readyAt=Infinity,armedPointer=null;
+  let autoTimer=0,lockTimer=0,readyAt=Infinity,armedPointer=null;
   const blockedKeys=new Set();
   const locked=()=>layer.hidden||performance.now()<readyAt||panel.classList.contains('locked');
   layer.addEventListener('pointerdown',e=>{armedPointer=locked()?null:{button:e.target.closest('.perk-choice'),id:e.pointerId};},true);
@@ -46,9 +41,11 @@ export function createPerkUI(viewport,action){
   }
   return {layer,open(round,key){
     audioEvent('perk-open');
-    const ids=offer(round,key);feedback.replaceChildren();const label=document.createElement('b');label.className='perk-recap-label';label.textContent='LAST ROOM';feedback.append(label);
-    recap(round,key).forEach((line,i)=>{const p=document.createElement('p'),text=document.createElement('span');text.textContent=line;p.append(perkIcon(['shield','roll','chain','recon'][i]),text);feedback.append(p);});
-    grid.replaceChildren();confirmation.textContent='One choice. This raid only.';
+    clearTimeout(autoTimer);clearTimeout(lockTimer);
+    const ids=offer(round,key);grid.replaceChildren();
+    bar.style.animation='none';void bar.offsetWidth;
+    bar.style.animation=`perk-countdown ${PERKS.pickTimeoutMs}ms linear forwards`;
+    autoTimer=setTimeout(()=>{if(!layer.hidden)action('timeout');},PERKS.pickTimeoutMs);
     for(const id of ids){const c=cards.find(c=>c.id===id),button=document.createElement('button');button.type='button';button.className='perk-choice';button.dataset.accent=c.accent;
       const category=document.createElement('span');category.className='perk-category';category.textContent=c.category;
       const name=document.createElement('strong');name.textContent=c.name;const effect=document.createElement('span');effect.className='perk-effect';const effectText=cardEffect(round,key,id);
@@ -61,10 +58,10 @@ export function createPerkUI(viewport,action){
     }
     // A selection needs a new press after the fade, even if an old gesture ends after unlock.
     readyAt=performance.now()+LOCK_MS;armedPointer=null;
-    panel.classList.add('locked');setModal(true);layer.hidden=false;close.focus({preventScroll:true});
+    panel.classList.add('locked');setModal(true);layer.hidden=false;panel.focus({preventScroll:true});
     clearTimeout(lockTimer);
     lockTimer=setTimeout(()=>{panel.classList.remove('locked');for(const b of grid.children)b.disabled=false;grid.querySelector('button')?.focus({preventScroll:true});},LOCK_MS);
-  },confirm(text,selected){audioEvent('perk-select');clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');confirmation.textContent=text;},close(){clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
+  },confirm(text,selected){audioEvent('perk-select');clearTimeout(autoTimer);clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');},close(){clearTimeout(autoTimer);clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
   hud(round,container){let el=container.querySelector('.perk-hud');if(!el){el=document.createElement('div');el.className='perk-hud';el.setAttribute('aria-label','Active raid perks');container.append(el);}el.replaceChildren();for(const id of perkState(round).taken){const c=cards.find(c=>c.id===id),span=document.createElement('span');span.dataset.perk=id;span.title=`${c.name}: ${perkState(round).selectedEffects?.[id]??c.effect}`;span.setAttribute('role','img');span.setAttribute('aria-label',span.title);span.append(perkIcon(id));el.append(span);}}
   };
 }

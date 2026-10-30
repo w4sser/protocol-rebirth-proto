@@ -515,8 +515,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.9.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.9.0');
+    const {createRound}=await import('./round.js?v=2.9.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.9.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -558,28 +558,26 @@ async function perkPopupRun([w,h]){
   await page.goto(`${BASE}/nodspel/?seed=perk-layout&debug=1&q=high&area=bunker`,{waitUntil:'load'});
   await loaderGone(page);await page.waitForSelector('#tutorial-start',{visible:true});await page.click('#tutorial-start');
   await page.waitForFunction('window.__NR');await page.evaluate(()=>window.__NR.perkPickDemo());await settle(400);
-  await report(page,tag,'.perk-choice,.perk-panel .pop-x');
+  await report(page,tag,'.perk-choice');
   const modalProblems=await page.evaluate(()=>{
     const layer=document.querySelector('.perk-overlay'),panel=layer.querySelector('.perk-panel'),r=panel.getBoundingClientRect(),issues=[];
     if(r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight||panel.scrollHeight>panel.clientHeight+1)issues.push('perk panel overflows viewport or needs scrolling');
     for(const el of document.querySelectorAll('.hud,.controls,.bag-panel,#level-corner'))if(!el.inert||getComputedStyle(el).visibility!=='hidden')issues.push('HUD is visible or interactive while perk modal is open');
-    for(const el of panel.querySelectorAll('.perk-choice,.perk-recap'))if(el.scrollHeight>el.clientHeight+1)issues.push('perk content is clipped');
+    for(const el of panel.querySelectorAll('.perk-choice'))if(el.scrollHeight>el.clientHeight+1)issues.push('perk content is clipped');
     return issues;
   });
   for(const problem of modalProblems)fail(tag,problem);
-  const before=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,names:[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent)}));
+  const before=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,first:window.__NR.round().perks.rooms[window.__NR.round().perks.queue[0]].offer[0]}));
   await settle(1000);
-  const paused=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,targets:[...document.querySelectorAll('.perk-choice,.perk-panel .pop-x')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})}));
+  const paused=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,targets:[...document.querySelectorAll('.perk-choice')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})}));
   if(paused.time!==before.time||paused.health!==before.health)fail(tag,'raid timer or combat changed during perk pick');
   if(!paused.targets)fail(tag,'perk touch target smaller than 44px');
   await shot(page,`perk-pick-${w}x${h}`);
-  await page.click('.perk-panel .pop-x');await settle(100);
-  if(!await page.$eval('.controls',e=>!e.inert&&getComputedStyle(e).visibility!=='hidden'))fail(tag,'HUD not restored after minimizing');
-  await page.click('.perk-resume');
-  const names=await page.evaluate(()=>[...document.querySelectorAll('.perk-choice strong')].map(e=>e.textContent));
-  if(JSON.stringify(names)!==JSON.stringify(before.names))fail(tag,'minimizing rerolled the perk offer');
-  await page.waitForFunction(()=>[...document.querySelectorAll('.perk-choice')].every(b=>!b.disabled));
-  await page.click('.perk-choice');await settle(80);await shot(page,`perk-confirm-${w}x${h}`);await settle(450);
+  if(await page.$eval('.perk-panel',e=>!!e.querySelector('h2,.pop-x,.perk-recap,.perk-sub,.perk-confirm')||!e.querySelector('.perk-countdown-bar')))fail(tag,'picker must contain only cards and countdown');
+  const first=before.first;
+  await page.waitForFunction(()=>document.querySelector('.perk-overlay').hidden,{timeout:6000});
+  if(!await page.$eval('.controls',e=>!e.inert&&getComputedStyle(e).visibility!=='hidden'))fail(tag,'HUD not restored after timeout');
+  if(!await page.evaluate(id=>window.__NR.round().perks.taken.includes(id),first))fail(tag,'timeout did not pick the first offered card');
   const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
   await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);
   const death=await page.$eval('#result-death-cause',e=>{const r=e.getBoundingClientRect();return !e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&r.height>0&&r.top>=0&&r.bottom<=innerHeight?e.textContent:'';});if(!/Last hit: Sentry.*moving/.test(death))fail(tag,'death explanation missing');

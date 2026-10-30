@@ -45,14 +45,14 @@ async function rotateThrough(page,selectors,label){
 }
 async function modalFits(page,label){
   const result=await page.evaluate(ins=>{
-    const p=document.querySelector('.perk-panel'),r=p.getBoundingClientRect(),x=p.querySelector('.pop-x').getBoundingClientRect();
+    const p=document.querySelector('.perk-panel'),r=p.getBoundingClientRect();
     const safe=r.left>=ins.left-1&&r.right<=innerWidth-ins.right+1&&r.top>=ins.top-1&&r.bottom<=innerHeight-ins.bottom+1;
-    const close=x.left>=ins.left-1&&x.top>=ins.top-1&&x.bottom<=innerHeight-ins.bottom+1;
-    // Scroll is allowed, but the confirmation and each card must be reachable in the panel.
-    const reachable=[...p.querySelectorAll('.perk-choice,.perk-confirm')].every(e=>{e.scrollIntoView({block:'nearest'});const b=e.getBoundingClientRect();return b.top>=r.top-1&&b.bottom<=r.bottom+1;});p.scrollTop=0;
-    return {safe,close,reachable,rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
+    const countdown=!!p.querySelector('.perk-countdown-bar');
+    // Scroll is allowed, but each card must be reachable in the panel.
+    const reachable=[...p.querySelectorAll('.perk-choice')].every(e=>{e.scrollIntoView({block:'nearest'});const b=e.getBoundingClientRect();return b.top>=r.top-1&&b.bottom<=r.bottom+1;});p.scrollTop=0;
+    return {safe,countdown,reachable,rect:{top:r.top,bottom:r.bottom,left:r.left,right:r.right}};
   },insets);
-  assert.ok(result.safe&&result.close&&result.reachable,`${label}: modal fit ${JSON.stringify(result)}`);
+  assert.ok(result.safe&&result.countdown&&result.reachable,`${label}: modal fit ${JSON.stringify(result)}`);
 }
 try{
   browser=await puppeteer.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
@@ -91,11 +91,11 @@ try{
     // A press already down when the modal reopens must not choose even after 600 ms.
     const box=await page.$eval('.perk-choice',e=>{const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
     await page.mouse.move(box.x,box.y);await page.mouse.down();
-    await page.evaluate(()=>{document.querySelector('.perk-panel .pop-x').click();window.__NR.perkPickDemo();});
+    await page.evaluate(()=>{window.__NR.perkPickDemo();});
     await pause(700);await page.mouse.up();
     assert.equal(await page.evaluate(()=>window.__NR.round().perks.taken.length),0,'held pre-open pointer ignored after unlock');
     // Touch starting during lock and held through unlock is rejected too.
-    await page.evaluate(()=>{document.querySelector('.perk-panel .pop-x').click();window.__NR.perkPickDemo();});
+    await page.evaluate(()=>{window.__NR.perkPickDemo();});
     const cdp=await page.createCDPSession();
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x,y:box.y}]});await pause(700);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();
