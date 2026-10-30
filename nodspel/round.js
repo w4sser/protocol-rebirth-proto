@@ -1,12 +1,12 @@
-import {rarityOf} from './rarity.js?v=2.9.0';
-import {audioEvent} from './audio.js?v=2.9.0';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,resetPerks} from './perks.js?v=2.9.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.9.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.9.0';
-import {emptyBag,bagItems} from './raid.js?v=2.9.0';
-import {traceTargets} from './physics.mjs?v=2.9.0';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.9.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.9.0';
+import {rarityOf} from './rarity.js?v=2.9.1';
+import {audioEvent} from './audio.js?v=2.9.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.9.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.9.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.9.1';
+import {emptyBag,bagItems} from './raid.js?v=2.9.1';
+import {traceTargets} from './physics.mjs?v=2.9.1';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.9.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.9.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -321,7 +321,8 @@ export function roundSummary(round){
 }
 // Player choice after a level exit: end the raid now; only this secures the carried bag.
 export function extractRound(round,now){
-  tickRound(round,now);if(round.pauseAt!=null||round.perks?.queue.length||round.over||round.levelsCleared<1)return false;
+  tickRound(round,now);if(round.pauseAt!=null||round.over||round.levelsCleared<1)return false;
+  autoPickPerks(round,now,undefined,{all:true});
   secureBag(round);round.nodeInteraction=null;round.over=true;round.reason='extract';resetPerks(round);return true;
 }
 // Leaving a launched raid early counts as a loss: the bag is lost like on death.
@@ -351,12 +352,7 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
   else if(!inZone)return null;
   updateClears(round,position);
-  const perks=perkState(round);
-  if(perks.queue.length){
-    // A minimized offer keeps the exit blocked without reopening every frame.
-    if(perks.minimized===perks.queue[0])return null;
-    round.perkExitPending=true;return 'perk';
-  }
+  autoPickPerks(round,now,undefined,{all:true});
   round.perkExitPending=false;
   // Owner rule: a level exit does NOT secure loot. The bag (same 4 slots) carries on, at risk,
   // until the player chooses Extract or clears the final level.

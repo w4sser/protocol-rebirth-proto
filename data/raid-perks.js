@@ -2,7 +2,7 @@
 var RAID_PERKS_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_PERKS_ROOT.DATA = RAID_PERKS_ROOT.DATA || {};
 RAID_PERKS_ROOT.DATA.raidPerks = Object.freeze({
-  logLimit:32, chainBonus:.5, reloadMultiplier:.8, reloadFloorMs:250,
+  pickTimeoutMs:4000, logLimit:32, chainBonus:.5, reloadMultiplier:.8, reloadFloorMs:250,
   dashMultiplier:.75, dashFloorMs:1500, shieldThreshold:.2, shieldReduction:.5,
   shieldMs:2000, medicRate:8, dressingHP:20, ricochetDamage:.5, ricochetRange:6,
   cards:[

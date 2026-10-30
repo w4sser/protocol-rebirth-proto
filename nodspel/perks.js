@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.9.0';
-import {heal} from './stakes.js?v=2.9.0';
-import {RULES} from './levels.js?v=2.9.0';
+import '../data/raid-perks.js?v=2.9.1';
+import {heal} from './stakes.js?v=2.9.1';
+import {RULES} from './levels.js?v=2.9.1';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -128,6 +128,23 @@ export function choosePerk(round,key,id,now,dash){
   if(id==='roll'&&terminal){if(dash)dash.readyAt=now;text='Rolling: dash reset.';}
   if(id==='recon'&&terminal){s.revealAll=true;text=`Recon: ${round.level.lootBoxes.filter(b=>!b.collected).length} remaining loot boxes marked.`;}
   logCombat(round,{kind:id==='dressing'||terminal&&['roll','recon'].includes(id)?'perk':'choice',perk:id,at:now,room:key,text});return text;
+}
+// Resolve through choosePerk so automatic choices have exactly the same effects as manual ones.
+export function autoPickPerks(round,now,dash,{all=false}={}){
+  const s=perkState(round),picked=[];
+  while(!round.over&&s.queue.length){
+    const key=s.queue[0],id=offer(round,key)[0];
+    if(id&&choosePerk(round,key,id,now,dash)){
+      const text=`Auto-picked: ${cards.find(c=>c.id===id).name}`;
+      logCombat(round,{kind:'perk',perk:id,room:key,at:now,text});picked.push(text);
+    }else{
+      // Exhausted offers cannot strand a room (all unique perks may already be owned).
+      if(s.rooms[key])s.rooms[key].state='rewarded';
+      s.queue.shift();s.minimized=null;
+    }
+    if(!all)break;
+  }
+  return picked;
 }
 export function reloadInterval(round,ms){return hasPerk(round,'reload')?Math.max(PERKS.reloadFloorMs,ms*PERKS.reloadMultiplier):ms;}
 export function dashInterval(round,ms){return hasPerk(round,'roll')?Math.max(PERKS.dashFloorMs,ms*PERKS.dashMultiplier):ms;}
