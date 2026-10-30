@@ -9,18 +9,18 @@ test('quality: explicit, saved, auto-low on mobile',()=>{
   assert.equal(pickQuality({nav:{maxTouchPoints:0,hardwareConcurrency:8},screen:{width:1920,height:1080}}),'high');
   assert(qualitySettings('low').props<qualitySettings('high').props&&!qualitySettings('low').shadows);
 });
-// v2.9.0 mood pass: cold Nordic fog tuned per area, tightening a little on deeper levels.
+// v2.10.0 mood pass: cold Nordic fog tuned per area, tightening a little on deeper levels.
 test('fogTuning: per-area baseline, tightens (never below a floor) on deeper levels',()=>{
   const bunker1=fogTuning('bunker',1),town1=fogTuning('town',1),arch1=fogTuning('archipelago',1);
-  assert.deepEqual(bunker1,{color:'#44596a',near:19,far:40});
-  assert.deepEqual(town1,{color:'#4b6176',near:21,far:44});
-  assert.deepEqual(arch1,{color:'#3d5a6c',near:19,far:46});
+  assert.deepEqual(bunker1,{color:'#44596a',near:30,far:60});
+  assert.deepEqual(town1,{color:'#4b6176',near:32,far:64});
+  assert.deepEqual(arch1,{color:'#3d5a6c',near:34,far:72});
   const bunker3=fogTuning('bunker',3);
   assert(bunker3.near<bunker1.near&&bunker3.far<bunker1.far,'deeper levels pull fog in');
   assert.equal(bunker3.color,bunker1.color,'area colour stays the same across levels');
   // near never crosses far, and both stay sane even at an absurd level number
   const extreme=fogTuning('bunker',999);
-  assert(extreme.near<extreme.far&&extreme.near>=12);
+  assert(extreme.near<extreme.far&&extreme.near>=22);
   assert.deepEqual(fogTuning('unknown-area',1),bunker1,'unknown area falls back to the bunker baseline');
 });
 // Auto-downgrade watchdog: a pure step function fed {fps,now} each frame. Latches `triggered` once fps has

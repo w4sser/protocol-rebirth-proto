@@ -2,10 +2,11 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.9.1';
-export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3f5a3a',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.9.1';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.9.1';
+import {rngFrom} from './art.js?v=2.10.0';
+// v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
+export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3d7a44',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.10.0';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.10.0';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -136,6 +137,6 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
 export function pineTree(spot,box,rng,pine){
   const g=new THREE.Group();g.position.set(spot.x,0,spot.z);const s=.55+rng()*.3;
   if(pine)for(const p of pine){const m=new THREE.Mesh(p.geometry,p.material);m.applyMatrix4(p.matrix);g.add(m);m.castShadow=true;}
-  else{box(0,.4,0,.18,.8,.18,'#4a3424',g);const c=new THREE.Mesh(new THREE.ConeGeometry(.7,1.8,7),new THREE.MeshStandardMaterial({color:'#2f4d36',roughness:.9,flatShading:true}));c.position.y=1.5;c.castShadow=true;g.add(c);}
+  else{box(0,.4,0,.18,.8,.18,'#4a3424',g);const c=new THREE.Mesh(new THREE.ConeGeometry(.7,1.8,7),new THREE.MeshStandardMaterial({color:'#2f6b40',roughness:.9,flatShading:true}));c.position.y=1.5;c.castShadow=true;g.add(c);}
   g.scale.setScalar(s);g.rotation.y=rng()*6.3;g.name='pine';return g;
 }

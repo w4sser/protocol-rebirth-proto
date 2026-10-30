@@ -14,15 +14,16 @@ export function qualitySettings(q){
   return q==='low'?{pixelRatio:1,shadows:false,shadowMap:512,props:.55,lights:0,antialias:false,beams:false}
                   :{pixelRatio:1.6,shadows:true,shadowMap:1024,props:1,lights:2,antialias:true,beams:true};
 }
-// v2.9.0 mood pass: cold Nordic distance fog, tuned per area and tightened on deeper levels (claustrophobia
+// v2.10.0 mood pass: cold Nordic distance fog, tuned per area and tightened on deeper levels (claustrophobia
 // increases as the raid goes on). The camera sits ~33 units from its target at a 44 deg elevation (RAID_CAMERA
-// in data/raid-camera.js), so visible ground falls roughly in the 20-45 unit band from the eye - near/far are
-// picked to actually land inside that band (not past the far clip, where fog would never be seen) and the
-// colour is a lit blue-grey (not near-black) so the haze itself reads as cold rather than just "darker".
-const FOG_BASE={bunker:{color:'#44596a',near:19,far:40},town:{color:'#4b6176',near:21,far:44},archipelago:{color:'#3d5a6c',near:19,far:46}};
+// in data/raid-camera.js), so the player and most nearby action sit right around that 33-unit depth - near is
+// kept above it so the foreground reads clean, and far is pushed out so fog is a gradient across the back half
+// of the visible ground (20-45 unit band) rather than already-heavy haze on the player. The colour is a lit
+// blue-grey (not near-black) so the haze itself reads as cold rather than just "darker".
+const FOG_BASE={bunker:{color:'#44596a',near:30,far:60},town:{color:'#4b6176',near:32,far:64},archipelago:{color:'#3d5a6c',near:34,far:72}};
 export function fogTuning(area,levelNumber=1){
   const base=FOG_BASE[area]||FOG_BASE.bunker,tighten=Math.max(0,levelNumber-1);
-  const near=Math.max(12,base.near-tighten*3);
+  const near=Math.max(22,base.near-tighten*3);
   return {color:base.color,near,far:Math.max(near+16,base.far-tighten*5)};
 }
 // Auto-downgrade: a pure step function (no timers/DOM) so it's trivial to unit test. Feed it the
@@ -36,9 +37,10 @@ export function fpsMonitorStep(state,{fps,now,thresholdFps=40,sustainMs=3000}){
 }
 export function rngFrom(seed){let s=2166136261;for(const c of String(seed))s=Math.imul(s^c.charCodeAt(0),16777619);
   return()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
-// Glow materials: unlit + not tone-mapped so they read as neon without a bloom pass.
+// Glow materials: unlit, not tone-mapped and immune to scene fog, so they read as neon accents
+// (trim, loot bands, danger rings) even where the mood pass fogs out the environment around them.
 const glowCache={};
-export function glow(color,opacity=1){const k=color+opacity;if(!glowCache[k]){glowCache[k]=new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,toneMapped:false,depthWrite:opacity>=1});glowCache[k].userData.shared=true;}return glowCache[k];}
+export function glow(color,opacity=1){const k=color+opacity;if(!glowCache[k]){glowCache[k]=new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,toneMapped:false,depthWrite:opacity>=1,fog:false});glowCache[k].userData.shared=true;}return glowCache[k];}
 // Free spots for props: inside floors, hugging walls/edges, clear of gameplay objects.
 export function propSpots(level,rng,count){
   const blockers=[...level.nodes.map(n=>[n.x,n.z,2.6]),...level.lootBoxes.map(l=>[l.x,l.z,1.6]),...level.enemies.map(e=>[e.x,e.z,1.8]),

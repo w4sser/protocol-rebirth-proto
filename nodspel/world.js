@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.9.1';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.9.1';
-import {buildTown} from './town.js?v=2.9.1';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.9.1';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.9.1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.9.1';
-import {controlCablePath} from './control-cables.js?v=2.9.1';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.10.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.10.0';
+import {buildTown} from './town.js?v=2.10.0';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.10.0';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.10.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.10.0';
+import {controlCablePath} from './control-cables.js?v=2.10.0';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -21,6 +21,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   function box(x,y,z,w,h,d,color='#616973',parent=group){
     const m=new THREE.Mesh(cube,material(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
   }
+  // Mood pass: enemies, loot and supply nodes are gameplay-critical and must stay readable even where the
+  // environment fades into fog. `color`'s material is cached per-call-site above, so this only ever flips
+  // fog off for the mesh's own (gameplay-only) colour, never for shared environment materials like PALETTE.base.
+  function noFog(obj){obj.traverse(n=>{if(n.isMesh)for(const m of Array.isArray(n.material)?n.material:[n.material])m.fog=false;});return obj;}
   const isTown=!!(level.town&&town);
   const townInfo=isTown?buildTown(level,group,town,Q):null;
   const isArch=!!level.archipelago&&!isTown;
@@ -53,23 +57,24 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   }
   const nodes=level.nodes.map(node=>{
     const g=new THREE.Group();g.position.set(node.x,0,node.z);group.add(g);
-    const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4});
+    // Mood pass: a supply node is a primary gameplay target, so its body/glow stay readable through fog.
+    const coreMaterial=new THREE.MeshStandardMaterial({color:'#8a9b9b',emissive:'#75cfcc',emissiveIntensity:0,roughness:.4,fog:false});
     let kit=null;
-    if(K){const s=level.nodeSize??1.4;kit={};for(const st of ['idle','shielded','active']){kit[st]=kitGroup(K['node_terminal_'+st],{sx:s/1.2,sy:1,sz:s/1.2});g.add(kit[st]);}
+    if(K){const s=level.nodeSize??1.4;kit={};for(const st of ['idle','shielded','active']){kit[st]=kitGroup(K['node_terminal_'+st],{sx:s/1.2,sy:1,sz:s/1.2});noFog(kit[st]);g.add(kit[st]);}
       const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(.5,.02,.5);top.position.y=1.42;g.add(top);}
     else{
-    box(0,.1,0,1.9,.2,1.9,'#1c262d',g);
-    box(0,.65,0,1.4,1,1.4,'#34444c',g);
-    box(0,1.23,0,1.6,.16,1.6,'#56666d',g);
+    noFog(box(0,.1,0,1.9,.2,1.9,'#1c262d',g));
+    noFog(box(0,.65,0,1.4,1,1.4,'#34444c',g));
+    noFog(box(0,1.23,0,1.6,.16,1.6,'#56666d',g));
     const front=new THREE.Mesh(cube,coreMaterial);front.scale.set(.95,.7,.03);front.position.set(0,.69,.711);g.add(front);
     const top=new THREE.Mesh(cube,coreMaterial);top.scale.set(1,.025,1);top.position.y=1.323;g.add(top);}
     const panel=box(0,1.46,.1,.72,.09,.48,PALETTE.base,g);panel.rotation.x=.24;
     const display=new THREE.Mesh(cube,coreMaterial);display.scale.set(.48,.025,.25);display.position.set(0,1.52,.1);display.rotation.x=.24;g.add(display);
     for(const x of [-.48,.48])box(x,.3,.55,.14,.2,.14,PALETTE.base,g);
     const light=new THREE.PointLight('#3FE0D0',0,8,1.6);light.position.y=1.9;g.add(light);
-    const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));
+    const halo=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.1,RULES.resources.nodeReach,64),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,fog:false}));
     halo.rotation.x=-Math.PI/2;halo.position.y=.018;g.add(halo);
-    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false}));
+    const holdRing=new THREE.Mesh(new THREE.RingGeometry(RULES.resources.nodeReach-.16,RULES.resources.nodeReach+.03,64,1,-Math.PI/2),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,depthWrite:false,fog:false}));
     holdRing.rotation.x=-Math.PI/2;holdRing.position.y=.026;holdRing.visible=false;holdRing.geometry.setDrawRange(0,0);g.add(holdRing);
     const v={node,group:g,coreMaterial,light,halo,holdRing,kit};nodeKit(v);return v;
   });
@@ -98,18 +103,19 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const tier=rarityOf(loot.item),color=loot.item==='keycard'?KEY_AMBER:lootColor(loot);
     const crate=new THREE.Group();g.add(crate);
     let kitCrates=null;
-    if(K){kitCrates={};for(const t of RARITY_ORDER){const k=K['loot_crate_'+t];if(!k)continue;kitCrates[t]=kitGroup(k,{sx:1.15,sy:1.15,sz:1.15});kitCrates[t].visible=t==='common';crate.add(kitCrates[t]);}}
+    // Mood pass: loot crates are a primary objective, so they (and their marker/beam/halo) stay crisp in fog.
+    if(K){kitCrates={};for(const t of RARITY_ORDER){const k=K['loot_crate_'+t];if(!k)continue;kitCrates[t]=kitGroup(k,{sx:1.15,sy:1.15,sz:1.15});kitCrates[t].visible=t==='common';noFog(kitCrates[t]);crate.add(kitCrates[t]);}}
     else{
-      box(0,.3,0,1.02,.6,.78,'#1B2740',crate);box(0,.67,0,1.1,.2,.86,KEY_AMBER,crate);
-      for(const x of [-.31,.31]){box(x,.79,0,.095,.04,.8,'#E7BF7A',crate);box(x,.39,.4,.095,.72,.045,'#E7BF7A',crate);}
-      box(0,.4,.42,.19,.2,.05,'#E7BF7A',crate);
+      noFog(box(0,.3,0,1.02,.6,.78,'#1B2740',crate));noFog(box(0,.67,0,1.1,.2,.86,KEY_AMBER,crate));
+      for(const x of [-.31,.31]){noFog(box(x,.79,0,.095,.04,.8,'#E7BF7A',crate));noFog(box(x,.39,.4,.095,.72,.045,'#E7BF7A',crate));}
+      noFog(box(0,.4,.42,.19,.2,.05,'#E7BF7A',crate));
     }
     const band=new THREE.Mesh(cube,glow(color));band.scale.set(.46,.035,.025);band.position.set(0,K?.52:.71,K?.35:.437);crate.add(band);
-    const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
-    let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));beam.scale.y=2;beam.position.y=1;g.add(beam);}
+    const pulse=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false}));pulse.rotation.x=-Math.PI/2;pulse.position.y=.03;g.add(pulse);
+    let beam=null;if(Q.beams){beam=new THREE.Mesh(beamGeo,new THREE.MeshBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false,fog:false}));beam.scale.y=2;beam.position.y=1;g.add(beam);}
     if(loot.marked){
-      const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:KEY_AMBER,side:THREE.DoubleSide,depthWrite:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
-      const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:KEY_AMBER,toneMapped:false}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
+      const halo=new THREE.Mesh(new THREE.RingGeometry(.7,.82,40),new THREE.MeshBasicMaterial({color:KEY_AMBER,side:THREE.DoubleSide,depthWrite:false,fog:false}));halo.rotation.x=-Math.PI/2;halo.position.y=.04;g.add(halo);
+      const beacon=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:KEY_AMBER,toneMapped:false,fog:false}));beacon.scale.set(.18,.18,.18);beacon.position.y=1.15;beacon.rotation.z=Math.PI/4;g.add(beacon);
     }
     const v={loot,group:g,crate,band,pulse,beam,color,tier,kitCrates,phase:(loot.x*7+loot.z*3)%6.28};
     if(loot.revealed)applyReveal(v,false);
@@ -129,18 +135,19 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   }
   function enemyVisual(enemy){
     const g=new THREE.Group();g.position.set(enemy.x,0,enemy.z);group.add(g);
+    // Mood pass: enemies are threats the player must read at a glance, so their bodies stay fog-free.
     if(enemy.type==='generator'){
       // Encounter 6: a cyan (system) generator; a beam to its node shows the shield is still up.
-      box(0,.12,0,1,.24,1,'#243238',g);box(0,.62,0,.7,.8,.7,'#34505a',g);
-      const core=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#3FE0D0',toneMapped:false}));core.scale.set(.32,.5,.32);core.position.y=.66;g.add(core);
+      noFog(box(0,.12,0,1,.24,1,'#243238',g));noFog(box(0,.62,0,.7,.8,.7,'#34505a',g));
+      const core=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#3FE0D0',toneMapped:false,fog:false}));core.scale.set(.32,.5,.32);core.position.y=.66;g.add(core);
       const node=level.nodes.find(n=>n.id===enemy.node),line=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,.9,0),new THREE.Vector3((node?.x??enemy.x)-enemy.x,1.1,(node?.z??enemy.z)-enemy.z)]);
-      const beam=new THREE.Line(line,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,toneMapped:false}));beam.frustumCulled=false;g.add(beam);
+      const beam=new THREE.Line(line,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,toneMapped:false,fog:false}));beam.frustumCulled=false;g.add(beam);
       return {enemy,group:g,beam};
     }
-    box(0,.1,0,1,.2,1,'#30353c',g);box(0,.52,0,.72,.72,.72,'#6e6266',g);
-    box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g);box(0,.64,.5,.18,.18,.65,'#4d2a30',g);
+    noFog(box(0,.1,0,1,.2,1,'#30353c',g));noFog(box(0,.52,0,.72,.72,.72,'#6e6266',g));
+    noFog(box(0,.96,0,.55,.18,.55,RULES.enemyTypes[enemy.type]?.color??'#a67072',g));noFog(box(0,.64,.5,.18,.18,.65,'#4d2a30',g));
     const danger=new THREE.Mesh(new THREE.RingGeometry(.62,.72,32),glow('#E4705F',.55));danger.rotation.x=-Math.PI/2;danger.position.y=.02;g.add(danger);
-    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
+    const eye=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#E4705F',toneMapped:false,fog:false}));eye.scale.set(.37,.09,.03);eye.position.set(0,.77,.365);g.add(eye);
     // Kill readability (docs/design-combat-feel-oct28.md §2.1.3): a white flash on the mesh itself, not just the
     // DOM hit label. Its own material (not the shared body material cache) so one enemy flashing never affects others.
     const meshFlash=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,depthWrite:false,toneMapped:false}));
