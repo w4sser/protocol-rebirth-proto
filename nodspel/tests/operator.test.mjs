@@ -4,11 +4,13 @@ import {readFile} from 'node:fs/promises';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import * as THREE from '../vendor/three.module.js';
 import {selectSkin,animationState,clipForState,createHumanOperator} from '../operator.js';
+import {CHARACTERS} from '../characters.js';
 import {createOperatorFX} from '../operator-fx.js';
 
-test('human is default; only explicit robot selects the legacy skin',()=>{
-  for(const search of ['', '?skin=human','?skin=unknown','?q=low'])assert.equal(selectSkin(search),'human');
+test('operator is default; legacy skins remain explicit',()=>{
+  for(const search of ['', '?skin=unknown','?q=low'])assert.equal(selectSkin(search),'operator');
   assert.equal(selectSkin('?q=low&skin=robot'),'robot');
+  assert.equal(selectSkin('?skin=human'),'punk');assert.equal(selectSkin('?skin=punk'),'punk');
 });
 test('animation priority and exact source clip names',()=>{
   assert.equal(animationState(), 'idle');assert.equal(animationState({moving:true}),'run');
@@ -20,7 +22,7 @@ test('animation priority and exact source clip names',()=>{
 });
 async function operator(){
   const bytes=await readFile(new URL('../assets/human-operator.glb',import.meta.url));
-  return createHumanOperator(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),''));
+  return createHumanOperator(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),''),{character:CHARACTERS.punk});
 }
 test('shipped rig animates legs while firing and resets after clamped death',async()=>{
   const human=await operator(),step={moving:true,aiming:true,walkYaw:0,aimYaw:1};
