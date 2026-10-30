@@ -1,3 +1,4 @@
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.11.1';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.11.1';
 import {CHARACTERS} from './characters.js?v=2.11.1';
 import {createRobotSocket} from './operator-gear.js?v=2.11.1';
@@ -10,7 +11,7 @@ import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,a
 import * as THREE from './vendor/three.module.js';
 import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.11.1';
 import {loadBunkerAssets} from './bunker.js?v=2.11.1';
-import {setArea,setHard,isHard,setQuestLoot} from './levels.js?v=2.11.1';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.11.1';
 import {nextPickupHint,hintText} from './item-hints.js?v=2.11.1';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
 import '../data/modules.js?v=2.11.1';import '../data/recipes.js?v=2.11.1';import '../data/vendors.js?v=2.11.1';
@@ -130,6 +131,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
 if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.11.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
@@ -341,7 +343,7 @@ function renderToolFx(clock){
   // Grenade thrower: a faint ring at the aimed spot while it winds up, then the fuse ring closing in until the blast (coral = danger).
   if(combat&&!round.over){
     for(const e of round.level.enemies)if(e.type==='thrower'&&e.health>0&&e.active!==false&&e.windupAt!=null&&e.attackTarget){const R=RULES.encounters.grenadier;toolFxRing(e.attackTarget.x,e.attackTarget.z,R.radius,TOOL_CORAL,.22+.2*Math.sin(clock/70));}
-    for(const b of combat.blasts){const p=Math.min(1,(clock-b.at)/(b.detonateAt-b.at));toolFxRing(b.x,b.z,b.radius,TOOL_CORAL,.35+.2*Math.sin(clock/60));toolFxRing(b.x,b.z,b.radius*p,TOOL_CORAL,.75);}
+    for(const b of combat.blasts){if(b.sleeping)continue;const p=Math.min(1,(clock-b.at)/(b.detonateAt-b.at));toolFxRing(b.x,b.z,b.radius,TOOL_CORAL,.35+.2*Math.sin(clock/60));toolFxRing(b.x,b.z,b.radius*p,TOOL_CORAL,.75);}
     for(const b of combat.booms??[]){const k=Math.min(1,(clock-b.at)/600);toolFxRing(b.x,b.z,b.radius*(.3+.7*k),TOOL_CORAL,.8*(1-k));}
   }
   for(let i=toolFxUsed;i<toolFxPool.length;i++)toolFxPool[i].visible=false;
@@ -456,7 +458,7 @@ function updateHUD(){
   renderBackpackHUD();
   {const n=carriedCount(round),cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
-  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&level.nodes.every(n=>n.active);
+  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(level.big||level.nodes.every(n=>n.active));
   $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
   renderRoomBox(level);
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
@@ -650,7 +652,9 @@ function labelEnemyVisual(v){
 }
 // New enemies appearing after the level finished loading (hunter waves): give them a mesh + full label rig.
 function spawnEnemyVisuals(enemies){for(const enemy of enemies)labelEnemyVisual(world.addEnemy(enemy));}
-function loadLevel(){try{loadLevelInner();}catch(e){onFatal(e);}}
+let bigRuntime=null;
+function loadLevel(){
+  bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
@@ -681,6 +685,9 @@ function loadLevelInner(){
     renderHouseLabels();}
   if(false)for(const choice of round.level.routeChoices){const label=makeLabel(`${choice.dir.x<0?'LEFT':'RIGHT'} · ${choice.kind==='loot'?'LOOT · SHORT ROUTE':'NODES · LONG ROUTE'}`,new THREE.Vector3(choice.sign.x,.6,choice.sign.z),choice.kind==='loot'?'choice-label loot-route':'choice-label node-route');routeLabels.push({choice,label,level:round.level});}
   combat=createCombat(round.level,gameClock());
+  bigRuntime=createBigLevelRuntime(round.level,world,makeLabel);
+  bigRuntime?.step(position,gameClock(),combat);
+  if(bigRuntime&&new URLSearchParams(location.search).get('minimap')==='dump')bigRuntime.exportPNG().catch(console.error);
   { const sl=$('#seed-label'); sl.textContent=`SEED ${round.seed}`; sl.hidden=!SEED_LABEL; }
   // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
@@ -696,7 +703,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;shakes=[];pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;shakes=[];pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent');loadLevel();
   if(launch.intro)notice(RULES.intro.tip,6000);
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
@@ -836,7 +843,7 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
+const HUD_SELECTORS='#big-level-minimap,#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -891,7 +898,7 @@ function renderLabels(){
   // else (HUD + every other label) only ever causes a hide, never a push.
   const fixedRects=obstacles;
   const objectiveRects=boxes.filter(b=>shown.get(b.id)!==false&&FIXED_LABEL_KINDS.has(b.kind)).map(b=>({left:b.x-b.w/2,right:b.x+b.w/2,top:b.y-b.h,bottom:b.y}));
-  const nowPlacement=performance.now();
+  const nowPlacement=performance.now(),enemyRects=[];
   // Sticky hysteresis: `bad` must hold continuously for onMs before the gate flips true, and `!bad`
   // continuously for offMs before it flips back — so a per-frame geometry wobble (labels/HUD rects
   // that themselves move) can't flip a decision 3x inside a second. Shared by the collapse-to-bar
@@ -968,9 +975,9 @@ function renderLabels(){
     // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
     // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    if(overlapsAt(y,size,labelRects)||overlapsAt(y,size,enemyRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
     if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
-    obstacles.push(box);
+    obstacles.push(box);enemyRects.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
   const now=performance.now();
@@ -1256,6 +1263,7 @@ function frameInner(now){
     const beforeDash={...position};
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     playerMoving=playerMoving||playerDisplaced(beforeDash,position);
+    bigRuntime?.step(position,clock,combat);
     const currentRoom=roomAt(round.level,position);if(currentRoom>=0)round.currentRoom=currentRoom;
     const stickDirection=sticks[1].state.gesture?.target;
     if(stickDirection)aim=screenToWorld(stickDirection.x,stickDirection.y);
@@ -1330,7 +1338,7 @@ function frameInner(now){
   renderToolHUD();renderToolFx(clock);
   playerRing.material.color.set(dash.remaining>0?'#3FE0D0':'#b4d8d0');
   playerRing.scale.setScalar(dash.remaining>0?1.35:1);
-  const visibleProjectiles=round.over?[]:combat.projectiles.filter(b=>clock>=(b.releaseAt??0));
+  const visibleProjectiles=round.over?[]:combat.projectiles.filter(b=>!b.sleeping&&clock>=(b.releaseAt??0));
   const aliveProjectiles=new Set(visibleProjectiles.map(b=>b.id));
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
   for(const b of visibleProjectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
@@ -1394,7 +1402,7 @@ function frameInner(now){
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
   }
   sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
-  world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);renderFrame(dt);requestAnimationFrame(frame);
+  world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
 // Boot loader stays up until the first frame has been rendered and painted, then fades out.

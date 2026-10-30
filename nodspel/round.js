@@ -1,3 +1,4 @@
+import {extractAvailable} from './big-level.js?v=2.11.1';
 import {rarityOf} from './rarity.js?v=2.11.1';
 import {audioEvent} from './audio.js?v=2.11.1';
 import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.11.1';
@@ -33,6 +34,7 @@ export function collectLoot(round,position,now,weapon){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
   let changed=false;
   for(const box of round.level.lootBoxes){
+    if(box.requiresNode&&!round.level.nodes.find(n=>n.id===box.requiresNode)?.active)continue;
     if(Math.hypot(position.x-box.x,position.z-box.z)>RULES.loot.pickupRadius){box.blockedUntilLeft=false;box.fullNotified=false;box.kitFullNotified=false;box.gearNotified=false;}
     if(!box.collected&&Math.hypot(position.x-box.x,position.z-box.z)<=RULES.loot.pickupRadius){
       if(box.blockedUntilLeft)continue;
@@ -331,7 +333,7 @@ export function abandonRound(round,now){
   loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';resetPerks(round);return true;
 }
 export function exitIsOpen(round) {
-  return !round.over && round.level.nodes.every(n=>n.active);
+  return !round.over && (round.level.big || round.level.nodes.every(n=>n.active));
 }
 export function activateNode(round,id,now) {
   tickRound(round,now);
@@ -346,6 +348,13 @@ export function activateNode(round,id,now) {
 export function enterExit(round,position,now) {
   tickRound(round,now);
   if(round.pauseAt!=null||round.cleared || !exitIsOpen(round))return null;
+  if(round.level.big){
+    const extract=round.level.extracts.find(e=>Math.hypot(position.x-e.x,position.z-e.z)<=e.r&&extractAvailable(e,round));
+    if(!extract)return null;
+    updateClears(round,position);autoPickPerks(round,now,undefined,{all:true});
+    round.levelsCleared=Math.max(1,round.levelsCleared);round.exitLoot=bagItems(round.bag);round.nodeInteraction=null;
+    secureBag(round);round.cleared=true;round.over=true;round.reason='extract';round.extractionId=extract.id;resetPerks(round);return 'complete';
+  }
   const inZone=Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)<=round.level.exit.r;
   // Final level: once the nodes are done the extract stays open and the raid goes on (timer + risk) until the
   // player deliberately walks INTO the zone; being inside when it opens does not count.

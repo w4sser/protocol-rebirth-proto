@@ -71,7 +71,7 @@ export function safePick(round,combat,position,now,hazardState){
   const room=s.rooms[key];if(roomAt(round.level,position)!==room.index||room.level!==round.level.number)return null;
   if(round.level.enemies.some(e=>e.health>0&&e.active!==false&&e.type!=='generator'&&roomAt(round.level,e)===room.index))return null;
   // Conservative: already released shots, blasts and telegraphs must finish naturally.
-  if(combat.projectiles.length||combat.blasts.length||round.level.enemies.some(e=>e.health>0&&(e.windupAt!=null||e.attackPhase==='warning'||e.attackPhase==='burst')))return null;
+  if(combat.projectiles.some(b=>!b.sleeping)||combat.blasts.some(b=>!b.sleeping)||round.level.enemies.some(e=>!e.sleeping&&e.health>0&&(e.windupAt!=null||e.attackPhase==='warning'||e.attackPhase==='burst')))return null;
   if((round.level.hazards??[]).some(h=>Math.abs(position.x-h.x)<=h.w/2&&Math.abs(position.z-h.z)<=h.d/2&&hazardState(h,now)==='on'))return null;
   return key;
 }
