@@ -1,5 +1,5 @@
-import {ENEMIES,ENEMY_TUNING} from './enemies.js?v=2.16.1';
-import {traceTargets} from './physics.mjs?v=2.16.1';
+import {ENEMIES,ENEMY_TUNING} from './enemies.js?v=2.17.0';
+import {traceTargets} from './physics.mjs?v=2.17.0';
 // Explicitly gated: no extra enemies, randomness or tuning changes in a normal raid.
 export function applyEnemyDemo(level,search,area='bunker'){
   const q=new URLSearchParams(search);

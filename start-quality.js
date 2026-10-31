@@ -37,8 +37,10 @@ function detectWebGL2(canvasFactory){
 function waterProfile(quality, webgl2Available){
   // v2.12.1: low/no-WebGL2 still gets a start screen -- a lightweight canvas-2D water layer (lite) instead of skipping.
   if(!webgl2Available || quality === "low") return {name:"low", water:false, lite:true, foam:false, pixelRatioCap:1};
-  if(quality === "medium") return {name:"medium", water:true, foam:false, pixelRatioCap:1.5};
-  return {name:"high", water:true, foam:true, pixelRatioCap:2};
+  // v2.15.0: reflections adds a half-res planar reflection pass (the bunker + nearby skerries,
+  // for the water's own reflection) -- kept on both water tiers, just a smaller target on medium.
+  if(quality === "medium") return {name:"medium", water:true, foam:false, pixelRatioCap:1.5, reflections:true};
+  return {name:"high", water:true, foam:true, pixelRatioCap:2, reflections:true};
 }
 
 // Named startQualityApi, not api: save-slots.js (another plain <script>, same top-level scope

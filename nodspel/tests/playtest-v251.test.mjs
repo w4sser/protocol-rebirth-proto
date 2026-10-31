@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.16.1';
+import {inputPaused} from '../perks.js?v=2.17.0';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

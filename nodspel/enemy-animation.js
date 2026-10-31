@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.16.1';
-import {loadEnemyModel} from './enemy-models.js?v=2.16.1';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.17.0';
+import {loadEnemyModel} from './enemy-models.js?v=2.17.0';
 
 // Keep today's procedural mesh visible until an individual GLB clone is ready.
 export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
