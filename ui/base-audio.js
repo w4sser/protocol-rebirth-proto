@@ -13,7 +13,8 @@
   if(window.requestAnimationFrame)window.requestAnimationFrame(()=>window.requestAnimationFrame(()=>{paintReady=true;homeMusic();}));
   else if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',homeMusic,{once:true});else homeMusic();
   window.addEventListener('pr:splash-finished',homeMusic);
-  window.PR_AUDIO_PLAY=()=>audio.fadeMusic(.8);
+  // PLAY keeps the start theme running when it is the bunker theme (seamless into the home).
+  window.PR_AUDIO_PLAY=()=>audio.config.startTheme==='bunker-theme'?Promise.resolve():audio.fadeMusic(.8);
   window.PR_AUDIO_RAID_ENTRY=()=>audio.fadeMusic(.8);
   document.addEventListener('click',e=>{const button=e.target.closest('button');if(!button||button.disabled)return;void audio.play(button.matches('.pop-x,[data-close]')?'ui-back':button.matches('.primary,.playbtn')?'ui-confirm':'ui-tap');});
   window.addEventListener('pagehide',()=>{clearTimeout(welcomeTimer);audio.stop();});

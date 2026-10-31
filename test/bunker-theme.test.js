@@ -20,7 +20,7 @@ class Context{
 function fixture(fetcher){let requests=0;const audio=new AudioManager(config,{AudioContext:Context,storage:null,baseUrl:'http://game/assets/audio/',fetch:fetcher||(async()=>{requests++;return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)};})});return {audio,get requests(){return requests;}};}
 test('theme config and optional start hook',()=>{
   assert.deepEqual(config.loops['bunker-theme'],{file:'music/bunker-theme',bus:'music',gain:.5});
-  assert.ok(config.loops.pulse);assert.equal(config.startTheme,null);
+  assert.ok(config.loops.pulse);assert.equal(config.startTheme,'bunker-theme');
 });
 test('Web Audio only across base, engine and splash',()=>{
   for(const file of ['ui/audio.js','ui/base-audio.js','app.js','index.html']){
@@ -46,15 +46,16 @@ test('a theme decode completing after raid fade cannot restart music',async()=>{
   await a.fadeMusic(.8);release({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
   await new Promise(setImmediate);assert.equal(a.context.sources.length,0);assert.equal(a.loops.size,0);
 });
-test('base hook stays silent on splash, fades on PLAY and resumes theme on return',()=>{
+test('start screen plays the bunker theme, PLAY keeps it running, base re-request is a no-op',()=>{
   const calls=[],listeners={},audio={config,music:(...a)=>calls.push(['music',...a]),fadeMusic:s=>{calls.push(['fade',s]);return Promise.resolve();}};
   let splash=true;
   const window={PR_AUDIO:audio,addEventListener:(type,fn)=>listeners[type]=fn};
   const document={body:{classList:{contains:()=>splash}},querySelector:()=>null,addEventListener(){}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../ui/base-audio.js'),'utf8'),{window,document});
-  assert.deepEqual(calls,[]);window.PR_AUDIO_PLAY();assert.deepEqual(calls,[['fade',.8]]);
+  assert.deepEqual(calls,[['music','bunker-theme',1.5]]);window.PR_AUDIO_PLAY();assert.deepEqual(calls,[['music','bunker-theme',1.5]]);
   splash=false;listeners['pr:splash-finished']();listeners.pageshow();
   assert.deepEqual(calls.slice(1),[['music','bunker-theme',1.5],['music','bunker-theme',1.5]]);
+  window.PR_AUDIO_RAID_ENTRY();assert.deepEqual(calls.at(-1),['fade',.8]);
 });
 test('raid entry invokes fade and waits before navigating',async()=>{
   const app=fs.readFileSync(require.resolve('../app.js'),'utf8');
@@ -81,9 +82,9 @@ test('optional start theme uses the same loop API when explicitly enabled',()=>{
   vm.runInNewContext(fs.readFileSync(require.resolve('../ui/base-audio.js'),'utf8'),{window,document});
   assert.deepEqual(calls,[['bunker-theme',1.5]]);
 });
-test('default-off hook also stays silent before app marks the splash active',()=>{
+test('startTheme:null keeps the splash silent before app marks it active',()=>{
   const calls=[];
-  const window={PR_AUDIO:{config,music:(...args)=>calls.push(args)},addEventListener(){}};
+  const window={PR_AUDIO:{config:{...config,startTheme:null},music:(...args)=>calls.push(args)},addEventListener(){}};
   const document={body:{classList:{contains:()=>false}},getElementById:id=>id==='splash'?{}:null,querySelector:()=>null,addEventListener(){}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../ui/base-audio.js'),'utf8'),{window,document});
   assert.deepEqual(calls,[]);
@@ -148,4 +149,11 @@ test('start music, immediate PLAY completion and repeated taps never overlap fad
   const lastFade=a.fadeMusic(.001);second.onended();assert.equal(a.fadingMusic,newest);
   await Promise.all([firstFade,secondFade,thirdFade,lastFade]);
   assert.equal(live.has(newest),true);a.stop();assert.equal(live.size,0);
+});
+
+test('start theme continues seamlessly into the base (same source, one decode)',async()=>{
+  const f=fixture(),a=f.audio;a.music('bunker-theme',1.5);await a.unlock();
+  const source=a.loops.get('music').source;
+  a.music('bunker-theme',1.5);await new Promise(setImmediate);
+  assert.equal(a.loops.get('music').source,source);assert.equal(f.requests,1);assert.equal(a.context.sources.length,1);
 });
