@@ -74,3 +74,22 @@ test('the frame combat path actually refreshes the HUD after shield-only rig con
   assert.equal(round.health,100);assert.equal(round.equip.armor,null);assert.equal(round.bagCapacity,4);
   assert.equal(refreshes,1,'production frame calls updateHUD without a health change');
 });
+
+// Codex review: placeKitButton() used to fall back to document.body when #use-kit was hidden
+// (offsetParent null), double-counting the iPhone left safe-area inset baked into #viewport's own
+// fixed position, and reading offsetHeight:0 off the hidden button put the heal meter inside it.
+test('placeKitButton positions #use-kit relative to #viewport (not document.body) and sizes the heal meter off its revealed height while initially hidden',()=>{
+  const bagPanel={offsetHeight:40,getBoundingClientRect:()=>({top:215,right:150})};
+  let hidden=true;
+  const useKit={style:{},get hidden(){return hidden;},set hidden(v){hidden=v;},get offsetHeight(){return hidden?0:48;}};
+  const healMeter={style:{}};
+  const viewport={getBoundingClientRect:()=>({top:50,left:44})};
+  const els={'.bag-panel':bagPanel,'#use-kit':useKit,'#heal-budget-meter':healMeter};
+  const ctx=vm.createContext({$:s=>els[s]??null,viewport,document:{body:{getBoundingClientRect:()=>({top:0,left:0})}}});
+  vm.runInContext(extractFn('placeKitButton'),ctx);
+  vm.runInContext('placeKitButton();',ctx);
+  assert.equal(useKit.style.top,'165px','top is bag-panel top minus viewport top, not minus body (0)');
+  assert.equal(useKit.style.left,'114px','left is bag-panel right minus viewport left, not minus body (0)');
+  assert.equal(healMeter.style.top,'217px','heal meter sits below the button at its real (revealed) height, 48px, not the hidden 0px');
+  assert.equal(useKit.hidden,true,'measuring does not leave the button permanently revealed');
+});

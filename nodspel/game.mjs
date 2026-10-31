@@ -426,7 +426,7 @@ function setCollisions(){
 // A node with a live generator cannot be charged: the label says what breaks the shield.
 const nodeCaption=(node,clock)=>node.active?'ACTIVE':node.shielded?(clock<(node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':node.generatorId?'SHIELDED · BREAK THE GENERATOR':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
 // medkit button sits right of the bag panel, top-aligned: the panel grows with the NEED list, and below it the move stick needs the room
-function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit'),m=$('#heal-budget-meter');if(bp&&k&&bp.offsetHeight){const r=bp.getBoundingClientRect(),v=(k.offsetParent||document.body).getBoundingClientRect();const top=Math.round(r.top-v.top),left=Math.round(r.right-v.left+8);k.style.top=`${top}px`;k.style.left=`${left}px`;if(m){m.style.top=`${top+k.offsetHeight+4}px`;m.style.left=`${left}px`;}}}
+function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit'),m=$('#heal-budget-meter');if(!(bp&&k&&bp.offsetHeight))return;const wasHidden=k.hidden;if(wasHidden)k.hidden=false;const r=bp.getBoundingClientRect(),v=viewport.getBoundingClientRect();const top=Math.round(r.top-v.top),left=Math.round(r.right-v.left+8);k.style.top=`${top}px`;k.style.left=`${left}px`;if(m){m.style.top=`${top+k.offsetHeight+4}px`;m.style.left=`${left}px`;}if(wasHidden)k.hidden=true;}
 function renderQuestChip(){
   const el=$('#quest-chip'),c=questChip(launch.quest,round);if(!el)return;
   el.hidden=!c;if(!c)return;
@@ -750,7 +750,7 @@ $('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnU
 $('#reset').hidden=!!launch.returnUrl;$('#abandon').hidden=!launch.returnUrl;
 $('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,gameClock()))finishRound();});
 $('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,gameClock()))$('#round-over').hidden=true;finishRound();});
-$('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
+$('#reset').addEventListener('click',()=>{audioSettings.close();reset();});$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,gameClock());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 let pendingShot=null,pendingTool=null,pendingKit=false;
 function flushHitstopActions(){

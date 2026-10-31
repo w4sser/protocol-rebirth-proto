@@ -62,6 +62,19 @@ test('launched raids hide Restart in favour of Abandon, and checkpoints offer ex
   assert.match(js,/\$\('#reset'\)\.hidden=!!launch\.returnUrl/);assert.match(js,/\$\('#new-round'\)\.hidden=!!launch\.returnUrl/);
 });
 
+test('standalone Restart closes the pause/settings overlay before starting the new round',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const vm=await import('node:vm');
+  const js=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
+  const line=js.match(/\$\('#reset'\)\.addEventListener\('click',\(\)=>\{audioSettings\.close\(\);reset\(\);\}\);/);
+  assert.ok(line,'Restart click handler closes the settings overlay before resetting');
+  const calls=[],button={addEventListener(type,fn){this.onclick=fn;}};
+  const ctx={$:()=>button,audioSettings:{close:()=>calls.push('close')},reset:()=>calls.push('reset')};
+  vm.createContext(ctx);
+  vm.runInContext(line[0],ctx);
+  button.onclick();
+  assert.deepEqual(calls,['close','reset'],'the overlay closes before the new round is created, so the round never runs behind it');
+});
 test('armor launch durability is clamped separately from other shield sources',()=>{
   assert.equal(readLaunch('?armorShield=50').armorShield,50);
   assert.equal(readLaunch('?armorShield=Infinity').armorShield,null);
