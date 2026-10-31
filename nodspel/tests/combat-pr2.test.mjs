@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,takeDamage,tickRound,enterExit,hitEnemy,extractRound} from '../round.js';
@@ -99,6 +98,6 @@ test('ordinary enemies and hazards record stable source metadata and truthful de
 });
 test('last clear before exit auto-picks and secures the terminal bag',()=>{
   const r=arena();r.level.number=3;r.level.exitArmed=true;r.bag.cable=1;r.level.enemies[0].health=0;
-  assert.equal(holdExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
+  assert.equal(enterExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
 
 });

@@ -1,9 +1,12 @@
-import '../data/raid-enemies.js?v=2.19.0';
+import '../data/raid-enemies.js?v=2.20.0';
 function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 export const ENEMY_TUNING=freeze(globalThis.DATA.raidEnemies);
 export const ENEMY_COLORS=ENEMY_TUNING.colors; // Approved: coral damage, blue shield, green heal, yellow AoE.
+// Ground offsets correct each GLB's authored origin to its own lowest vertex (measured per-model; most sit
+// within a few cm of 0 already). shield_turret and scout are the two that visibly clip/float without it.
+const GROUND_OFFSET={shield_turret:.45,scout:.37};
 function archetype(id,parts,hint,tier,phase,scale=1){
-  return {id,groundOffset:id==='shield_turret'?.45:0,model:`../assets/enemies/${id}.glb?v=2.19.0`,scale,
+  return {id,groundOffset:GROUND_OFFSET[id]??0,model:`../assets/enemies/${id}.glb?v=2.20.0`,scale,
     // Apply X rotation first, then Y: local +Z -> world +Y, local +X -> game +Z.
     forwardUpFix:{rotateX:-Math.PI/2,rotateY:-Math.PI/2},parts,stats:ENEMY_TUNING.stats[id],telegraphColors:ENEMY_COLORS,hint,tier,phase};
 }
@@ -21,6 +24,31 @@ export const ENEMIES=freeze({
   repair:archetype('repair',['chassis','armor_panel','wheel_left','wheel_right','cable_spool','arm_base','repair_arm_pivot','tool_emitter'],'REPAIR · STOP THE HEALING',3,3),
   sniper:archetype('sniper',['core','armor_panel','optic','weakpoint','barrel_pivot','tripod_leg_01','tripod_leg_02','tripod_leg_03'],'SNIPER · BREAK SIGHT',3,3),
 });
+// Maps every gameplay type/encounter (nodspel/levels.js RULES.enemyTypes, nodspel/encounters.js,
+// nodspel/stakes.js hunter waves) to the archetype model that best reads its behaviour. Keys are checked by
+// encounter first (the more specific label), then by type, in visualFor() below. Stand-ins are temporary;
+// see docs/enemy-model-mapping.md for the full table and specs for the types with no fitting model yet.
+export const ENEMY_VISUALS=freeze({
+  shield_turret:{archetype:'shield_turret'}, // stationary, shield up until EMP'd: the authored shield_arc stays visible
+  turret:{archetype:'shield_turret',hideParts:['shield_arc']}, // same cabinet, no EMP-shield mechanic: hide the arc
+  guard:{archetype:'tank',scale:.82}, // front_armor on the turret head reads as the guard's front shield
+  patrol:{archetype:'scout',scale:.9}, // sight-cone walker; the scout's rotors read as a patrolling scanner drone
+  grenadier:{archetype:'artillery',scale:.92},
+  thrower:{archetype:'artillery',scale:.92}, // bare thrower (no encounter): identical silhouette to grenadier
+  swarm:{archetype:'swarm_bot',scale:.85},
+  sentry:{archetype:'sniper',scale:.88}, // bare sentry (no encounter): a stationary long-range shooter
+  rusher:{archetype:'rusher'}, // bare/charging rusher (isCharger)
+  // Temporary stand-in: no infantry/trooper archetype exists yet (docs/enemy-model-mapping.md "Missing models").
+  // Reuses the rusher chassis (closest generic mobile-robot silhouette) at a smaller scale and a neutral steel
+  // tint so it never reads as an actual charger by colour; it never gets the charge lunge/stun animation.
+  grunt:{archetype:'rusher',scale:.85,tint:'#8a9096'},
+});
+export function visualFor(e){
+  if(!e||e.type==='generator')return null;
+  if(e.encounter&&Object.hasOwn(ENEMY_VISUALS,e.encounter))return ENEMY_VISUALS[e.encounter];
+  if(e.type==='rusher'&&e.swarm)return ENEMY_VISUALS.swarm; // hunter waves (nodspel/stakes.js): swarm:true, no encounter
+  return e.type&&Object.hasOwn(ENEMY_VISUALS,e.type)?ENEMY_VISUALS[e.type]:null;
+}
 export const isShieldTurret=e=>e?.encounter==='shield_turret';
 export const isCharger=e=>e?.type==='rusher'&&!e.swarm;
 export function rusherLungeSpeed(e){return Math.max(0,e.speed??0)*ENEMY_TUNING.rusher.speedMul;}

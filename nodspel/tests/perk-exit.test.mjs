@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -16,8 +15,8 @@ for(const minimized of [false,true])test(`pending ${minimized?'minimized':'unope
     for(const [index,key] of keys.entries())s.rooms[key]={state:'clearPending',level,index};
     s.queue=[...keys];const expected=offer(r,keys[0])[0];
     if(minimized)s.minimized=keys[0];
-    if(level===3)holdExit(r,{x:-999,z:-999},level*100);
-    assert.equal(holdExit(r,r.level.exit,level*100),level===3?'complete':'next');
+    if(level===3)enterExit(r,{x:-999,z:-999},level*100);
+    assert.equal(enterExit(r,r.level.exit,level*100),level===3?'complete':'next');
     assert.ok(s.events.some(e=>e.room===keys[0]&&e.text===`Auto-picked: ${cards.find(c=>c.id===expected).name}`));
     assert.ok(keys.every(key=>s.rooms[key].state==='rewarded'));
     assert.equal(s.queue.length,0);
@@ -30,7 +29,7 @@ test('exhausted perk pool cannot block an exit',()=>{
   const r=createRound('exhausted',0),s=perkState(r);s.taken=cards.map(c=>c.id);
   s.queue=['1:0'];s.rooms['1:0']={state:'clearPending',level:1,index:0};
   for(const n of r.level.nodes)activateNode(r,n.id,100);
-  assert.equal(holdExit(r,r.level.exit,100),'next');assert.equal(s.queue.length,0);
+  assert.equal(enterExit(r,r.level.exit,100),'next');assert.equal(s.queue.length,0);
 });
 
 test('explicit extraction also resolves pending choices and secures loot',()=>{

@@ -353,9 +353,11 @@ async function raidRun([w,h],area){
     if(await page.$eval('.perk-overlay',e=>!e.hidden))fail(ctx,'unexpected perk modal during gameplay layout');
     await report(page,ctx,'.stick,#reset,#open-bag');
     if(await page.$eval('#pause-map',el=>el.offsetHeight>0))fail(ctx,'pause map visible in raid HUD');
-    await page.evaluate(()=>{window.__NR.openExit();const e=window.__NR.state().level.exit;window.__NR.teleport(e.x,e.z);});
-    await page.waitForSelector('#hold-extract',{visible:true});
-    await report(page,`${ctx} hold extract`,'#hold-extract,.stick,#dash,#tool-btn,#ammo-hud,#use-kit');
+    await page.evaluate(()=>{window.__NR.openExit();const e=window.__NR.state().level.exit;window.__NR.teleport(e.x,e.z-1.4);});
+    await settle(300);
+    const exitLit=await page.$eval('.exit-label',el=>el.classList.contains('done'));
+    if(!exitLit)fail(ctx,'exit label is not marked done once every node is active');
+    await report(page,`${ctx} exit lit`,'.exit-label,.stick,#dash,#tool-btn,#ammo-hud,#use-kit');
     await page.evaluate(()=>{const p=window.__NR.state().level.start;window.__NR.teleport(p.x,p.z);});
 
     const dashPlacement=await page.evaluate(()=>{
@@ -571,8 +573,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.19.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.19.0');
+    const {createRound}=await import('./round.js?v=2.20.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.20.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import {shieldBlocks} from '../encounters.js';
 import {updateClears,perkState,offer,choosePerk} from '../perks.js';
 import {stepNodeInteraction} from '../round.js';
@@ -69,9 +68,9 @@ test('a player can shoot every node and walk through all three exits within one 
         if(number===2)assert.equal(crossedPassage,true,'the player walks through the narrow passage before lighting nodes');
       }
       routeTo(p=>Math.hypot(p.x-level.exit.x,p.z-level.exit.z)<.7);
-      if(number===3)holdExit(round,{x:p.x+50,z:p.z},clock);// walk in from outside
+      if(number===3)enterExit(round,{x:p.x+50,z:p.z},clock);// walk in from outside
       updateClears(round,p);for(const key of [...perkState(round).queue])choosePerk(round,key,offer(round,key)[0],clock);
-      assert.equal(holdExit(round,p,clock),number===3?'complete':'next');
+      assert.equal(enterExit(round,p,clock),number===3?'complete':'next');
     }
     assert.equal(round.nodesLit,6);assert.equal(round.levelsCleared,3);assert.equal(round.cleared,true);
     assert.equal(round.enemiesDefeated,expectedKills);assert.ok(expectedKills>=5,'the active enemies of all three levels were beaten');assert.equal(round.reason,'complete');assert.equal(round.over,true);

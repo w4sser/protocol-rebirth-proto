@@ -1,6 +1,6 @@
 // Pure graph construction. BIG MAP expands the existing authored room pool.
-import {RULES,randomFromSeed} from './levels.js?v=2.19.0';
-import '../data/raid-big-layout.js?v=2.19.0';
+import {RULES,randomFromSeed} from './levels.js?v=2.20.0';
+import '../data/raid-big-layout.js?v=2.20.0';
 const BIG=globalThis.DATA.raidBigLayout;
 
 export function graphDistances(graph,from=graph.spawn.roomId){

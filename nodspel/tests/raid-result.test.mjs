@@ -1,9 +1,8 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,collectLoot,activateNode,enterExit,takeDamage} from '../round.js';
 import {buildRaidResult,writeRaidResult,RAID_RESULT_KEY} from '../raid-result.js';
-const extractLevel=(r,item,t)=>{const box=r.level.lootBoxes[0];box.item=item;collectLoot(r,box,t);for(const n of r.level.nodes)activateNode(r,n.id,t+1);return holdExit(r,r.level.exit,t+2);};
+const extractLevel=(r,item,t)=>{const box=r.level.lootBoxes[0];box.item=item;collectLoot(r,box,t);for(const n of r.level.nodes)activateNode(r,n.id,t+1);return enterExit(r,r.level.exit,t+2);};
 test('no result while the round is still running',()=>{assert.equal(buildRaidResult(createRound('rr',0)),null);});
 test('death after a level exit loses everything carried in the raid',()=>{
   const r=createRound('rr-death',0);
