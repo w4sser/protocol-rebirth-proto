@@ -411,7 +411,7 @@ async function encShotRun([w,h]){
 
 // iPhone landscape, real safe-area insets via CDP (not the server-side env() rewrite): catches HUD elements that
 // hardcode 0px or otherwise ignore --sl/--sr/--sb, which desktop puppeteer at the default 47px inset can miss
-// (regression: DASH once sat outside the notch safe area on an actual iPhone). Covers the declutter v2.13.0
+// (regression: DASH once sat outside the notch safe area on an actual iPhone). Covers the declutter v2.12.1
 // additions explicitly: ability slot, pause button, chips (bag/level-corner/round-hud) and the ammo display.
 async function iphoneSafeAreaRun(){
   const tag='raid iphone-safe-area 852x393';console.log(tag);
@@ -565,8 +565,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.13.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.13.0');
+    const {createRound}=await import('./round.js?v=2.12.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.12.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
