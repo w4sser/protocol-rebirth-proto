@@ -2,9 +2,10 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {loadKit,instance} from './town.js?v=2.12.0';
-import {rngFrom} from './art.js?v=2.12.0';
-import {fitStructure,groundPatchParts} from './environment-look.js?v=2.12.0';
+import {shellMesh,wallSolids} from './structure-shell.js?v=2.12.1';
+import {loadKit,instance} from './town.js?v=2.12.1';
+import {rngFrom} from './art.js?v=2.12.1';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.12.1';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -98,7 +99,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.12.0`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.12.1`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
@@ -158,9 +159,9 @@ export function planKitProps(level,spots,rng){
       if(solids.some(b=>overlap(f,b,.03))||placed.some(p=>overlap(f,p.f,.12))||keep.some(k=>near(f,k)))continue;
       placed.push({kind,x,z,ry,f});break;}}
   return placed;}
-// Visual wall segments, 1:1 with collision rects (cross walls stop 1 cm short: no shared end faces at corners).
+// Exact wall spans; the render shell removes shared faces at junctions.
 export function planWalls(level,rng=()=>0){const out=[];
-  level.walls.forEach((b,wi)=>{const along=b.w>=b.d,L=(along?b.w:b.d)-(along?0:.02),n=Math.max(1,Math.round(L/2)),seg=L/n;
+  level.walls.forEach((b,wi)=>{const along=b.w>=b.d,L=along?b.w:b.d,n=Math.max(1,Math.round(L/2)),seg=L/n;
     for(let i=0;i<n;i++){const r=rng(),o=-L/2+seg*(i+.5),x=b.x+(along?o:0),z=b.z+(along?0:o);
       out.push({kind:r<.7?'wall_straight_2m_a':r<.9?'wall_straight_2m_b':'wall_straight_2m_damaged',wall:wi,x,z,y:b.y??0,ry:along?0:Math.PI/2,sx:seg/2,sy:b.h/2.6,sz:(along?b.d:b.w)/.3,
         rect:{x,z,w:along?seg:b.w,d:along?b.d:seg,h:b.h}});}});
@@ -200,7 +201,10 @@ export function buildBunker(level,group,assets,Q){
   for(const f of floorTiles){const r=rng(),k=f.corridor?'floor_grate_2m':r<.7?'floor_concrete_2m_a':r<.9?'floor_concrete_2m_b':'floor_concrete_2m_c';
     add(k,{x:f.x,z:f.z,y:f.y-.05,sx:f.w/2,sz:f.d/2});}
   // walls: 2 m segments along the long axis, scaled to level height/thickness
-  for(const w of planWalls(level,rng)){const {kind,rect,wall,...t}=w;add(kind,t);}
+  // Preserve the seeded cover/decal choices when replacing the wall renderer.
+  planWalls(level,rng);
+  const wallShell=shellMesh(wallSolids(level.walls),['#303c50','#354858','#69718a','#39545d']);
+  wallShell.name='bunker-wall-shell';wallShell.castShadow=!low;group.add(wallShell);
   // cover: kit piece fitted to the collision footprint so what you see is what blocks
   level.boxes.forEach(b=>{const k=COVER_KINDS[Math.floor(rng()*COVER_KINDS.length)];add(k,{x:b.x,z:b.z,ry:0,...fit(k,b.w,b.h,b.d)});});
   // wall dressing: amber lamps / CRTs / pipes on the room-facing side of long walls (thinned on low)
@@ -213,22 +217,9 @@ export function buildBunker(level,group,assets,Q){
     const s=inside(1)?1:inside(-1)?-1:0;if(!s)return;
     const t={x:b.x+(along?0:s*off),z:b.z+(along?s*off:0),y:Math.max(.18,b.h-.48),ry:along?(s>0?Math.PI:0):(s>0?-Math.PI/2:Math.PI/2)};
     add(k,t);if(k==='lamp_wall_amber_on')anchors.push({...t,lightX:t.x+(along?0:s*.65),lightZ:t.z+(along?s*.65:0),color:'#FF9D4D'});});
-  // Continuous foundation and capped walls give the cutaway bunker one structure.
-  // These stay below the floor / inside wall footprints, never creating blockers.
-  const block=new THREE.BoxGeometry(1,1,1),identity=new THREE.Matrix4();
-  const blocks=(color,list)=>instance(group,[{geometry:block,material:new THREE.MeshStandardMaterial({color,roughness:.94}),matrix:identity}],list,{receive:true});
-  blocks('#20283f',planFloorTiles(level.floors.map(f=>({...f,w:f.w+1.2,d:f.d+1.2}))).map(f=>({x:f.x,z:f.z,y:(f.y??0)-.75,sx:f.w,sy:.8,sz:f.d})));
-  blocks('#777e96',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+b.h-.045,sx:b.w,sy:.09,sz:b.d})));
-  blocks('#303c50',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+.09,sx:b.w,sy:.18,sz:b.d})));
-  // A coherent service band and regularly spaced buttresses give the perimeter
-  // the language of a built Cold-War installation, with no new prop clutter.
-  blocks('#39545d',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+b.h*.52,sx:b.w,sy:.075,sz:b.d})));
-  const ribs=[];
-  for(const b of level.walls){const along=b.w>=b.d,len=along?b.w:b.d;
-    for(let d=1.8;d<len-.7;d+=4){const offset=d-len/2;
-      ribs.push({x:b.x+(along?offset:0),z:b.z+(along?0:offset),y:(b.y??0)+b.h/2,
-        sx:along?.22:b.w,sy:b.h,sz:along?b.d:.22});}}
-  blocks('#626e87',ribs);
+  // A single exposed foundation boundary replaces overlapping per-room slabs.
+  const foundation=shellMesh(level.floors.map(f=>({x:f.x,z:f.z,y:(f.y??0)-.4005,w:f.w+1.2,d:f.d+1.2,h:.699})),['#20283f']);
+  foundation.name='bunker-foundation-shell';group.add(foundation);
   const contacts=level.boxes.map(b=>({x:b.x,z:b.z,y:.003,sx:b.w+.45,sz:b.d+.45}));
   if(contacts.length)instance(group,groundPatchParts({opacity:low?.32:.22}),contacts);
   const pools=anchors.map(a=>({x:a.lightX,z:a.lightZ,y:.004,sx:4.8,sz:4.8}));

@@ -1,11 +1,11 @@
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.12.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.12.0';
-import {buildTown} from './town.js?v=2.12.0';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.12.0';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.12.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.12.0';
-import {controlCablePath} from './control-cables.js?v=2.12.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.12.1';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.12.1';
+import {buildTown} from './town.js?v=2.12.1';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.12.1';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.12.1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.12.1';
+import {controlCablePath} from './control-cables.js?v=2.12.1';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -32,7 +32,6 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   // Bunker kit (v1.54): GLB floors/walls/cover/dressing; procedural boxes stay as the fallback
   const K=!isTown&&!isArch&&bunker?bunker:null;
   const bunkerInfo=K?buildBunker(level,group,K,Q):null;
-  if(K)for(const f of level.floors)box(f.x,-.3,f.z,f.w+.1,.4,f.d+.1,PALETTE.base);
   if(!isTown&&!isArch&&!K)for(const f of level.floors){
     box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);
