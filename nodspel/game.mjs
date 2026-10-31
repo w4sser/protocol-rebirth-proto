@@ -232,7 +232,7 @@ function requestDash(){
   const direction=Math.hypot(sx,sy)>.12?screenToWorld(sx,sy):walkDirection;
   if(startDash(dash,direction,gameClock(),dashInterval(round,round.stats.dashCooldownMs))){round.telemetry.dashes++;if(hasPerk(round,'roll'))logCombat(round,{kind:'perk',perk:'roll',at:gameClock(),text:`Rolling: dash used, ${dashInterval(round,round.stats.dashCooldownMs)/1000} s cooldown.`});}
 }
-const ability=createDashAbility(requestDash);
+const ability=createDashAbility(requestDash,()=>dash.cooldownMs??dashInterval(round,round.stats.dashCooldownMs));
 mountAbility($('#dash'),ability);
 $('#dash').addEventListener('pointerdown',e=>{e.preventDefault();ability.activate(round);});
 $('#dash').addEventListener('click',e=>{if(e.detail===0)ability.activate(round);});
@@ -1359,7 +1359,7 @@ function frameInner(now){
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden;
   const charge=dashCharge(dash,clock);
-  renderAbilitySlot($('#dash'),ability,charge,dashRemaining,dashUnavailable);
+  renderAbilitySlot($('#dash'),ability,charge,dashRemaining,dashUnavailable,round);
   renderToolHUD();renderToolFx(clock);
   playerRing.material.color.set(dash.remaining>0?'#3FE0D0':'#b4d8d0');
   playerRing.scale.setScalar(dash.remaining>0?1.35:1);
