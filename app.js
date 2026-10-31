@@ -16,7 +16,7 @@ const APP_VERSION = "2.12.0"; // keep in sync with ?v= in index.html and nodspel
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
-// v2.11.0: start screen quality->water profile (start-quality.js), same dual-mode convention.
+// v2.12.0: start screen quality->water profile (start-quality.js), same dual-mode convention.
 const StartQuality = (typeof require === "function") ? require("./start-quality.js") : window.StartQuality;
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -5222,7 +5222,7 @@ function showBaseLoader(){
   if(img.complete) hide();
   setTimeout(hide, 4000);
 }
-// flightPending: v2.11.0 start screen -- true when the caller intends to mount the archipelago
+// flightPending: v2.12.0 start screen -- true when the caller intends to mount the archipelago
 // flight (Medium/High quality + WebGL2; see start-quality.js). While true, the old auto-advance
 // timer is suppressed and the idle flight keeps looping until the player taps; on tap, the
 // flight eases the camera down onto the bunker island (flightCtl.land) before the existing
@@ -5363,7 +5363,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   tryBitImage();
-  // v2.11.0 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
+  // v2.12.0 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
   // *before* setupSplash() whether the archipelago flight will be attempted -- setupSplash needs
   // that up front to suppress its old auto-advance timer, which can otherwise fire (both splash
   // images are tiny/cached) before the async import() below ever resolves.
@@ -5396,7 +5396,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
   { const rp = document.getElementById("replay-start-btn"); if(rp) rp.addEventListener("click", () => { setMenu(false); try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){} location.reload(); }); }
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
-  // v2.11.0 start screen: settings/slot access from the splash itself, without triggering the
+  // v2.12.0 start screen: settings/slot access from the splash itself, without triggering the
   // tap-anywhere-to-enter flow (stopPropagation keeps #splash's own click listener from firing).
   { const sb = document.getElementById("splash-settings-btn"); if(sb) sb.addEventListener("click", e => { e.stopPropagation(); setMenu(true); }); }
   { const pb = document.getElementById("splash-profiles-btn"); if(pb) pb.addEventListener("click", e => { e.stopPropagation(); A.openProfiles(); }); }

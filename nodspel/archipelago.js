@@ -4,7 +4,7 @@
 import * as THREE from './vendor/three.module.js';
 import {rngFrom} from './art.js?v=2.12.0';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
-export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#3d7a44',pier:'#6b4c32',post:'#3d2a1c',rock:'#7d838a',rockDark:'#646a71',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
+export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.12.0';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.12.0';
 // Check the transformed geometry, including rotated boats and supplied pine models.

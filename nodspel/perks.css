@@ -1,5 +1,7 @@
 .perk-overlay{position:absolute;inset:0;z-index:45;display:grid;place-items:center;grid-template-rows:minmax(0,1fr);padding:24px;min-height:0;background:color-mix(in srgb,var(--ad-night) 92%,transparent);box-sizing:border-box;color:var(--ad-bone)}
 .perk-overlay[hidden]{display:none}
+/* All picker actions retain their hit area in desktop and short landscape layouts. */
+:where(.perk-overlay) button{box-sizing:border-box;min-width:44px;min-height:44px;flex-shrink:0}
 /* Hide the raid UI as well as making it inert; the world canvas stays full-bleed. */
 .perk-modal-open>:not(#game):not(.perk-overlay){visibility:hidden!important;pointer-events:none!important}
 /* .pop-card sets `overflow:visible!important` (ui/popup.css) so the close badge can straddle the panel's
@@ -18,12 +20,12 @@
 .perk-badge svg{width:28px;height:28px}
 .perk-overlay svg,.perk-hud svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .perk-choice strong{font:800 19px/1.15 system-ui}.perk-effect{font:13px/1.35 system-ui;flex:1}.perk-effect b{color:var(--perk-accent);font-weight:900;font-size:1.12em}
-.perk-select{font:800 10px/1.2 system-ui;letter-spacing:.08em;border-top:1px solid color-mix(in srgb,var(--perk-accent) 45%,transparent);padding-top:8px;width:100%;color:var(--perk-accent)}
+.perk-select{display:flex;align-items:center;box-sizing:border-box;min-height:44px;flex-shrink:0;font:800 10px/1.2 system-ui;letter-spacing:.08em;border-top:1px solid color-mix(in srgb,var(--perk-accent) 45%,transparent);padding-top:8px;width:100%;color:var(--perk-accent)}
 .perk-choice:enabled:hover,.perk-choice:enabled:focus-visible{transform:translateY(-3px);background:color-mix(in srgb,var(--perk-accent) 18%,var(--ad-night));box-shadow:0 0 0 2px var(--perk-accent),0 5px 20px color-mix(in srgb,var(--perk-accent) 20%,transparent);outline:0}
 .perk-choice:active{transform:scale(.97)}
 .perk-choice.picked{border-color:var(--ad-primary);box-shadow:0 0 0 3px var(--ad-primary);background:color-mix(in srgb,var(--ad-primary) 18%,var(--ad-night));animation:perk-picked .32s ease-out both}
 .perk-hud{display:flex;gap:5px;flex:0 0 100%;color:var(--ad-cyan)}.perk-hud:empty{display:none}.perk-hud svg{width:18px;height:18px}.perk-hud span{display:flex}
-.perk-resume{pointer-events:auto;min-height:44px;border:1px solid var(--ad-cyan);border-radius:5px;padding:6px 10px;background:var(--ad-ink);color:var(--ad-cyan);font:700 12px system-ui;cursor:pointer}
+.perk-resume{pointer-events:auto;min-width:44px;min-height:44px;border:1px solid var(--ad-cyan);border-radius:5px;padding:6px 10px;background:var(--ad-ink);color:var(--ad-cyan);font:700 12px system-ui;cursor:pointer}
 .perk-recon{outline:2px solid var(--ad-cyan);outline-offset:3px}
 @keyframes perk-arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes perk-picked{0%{filter:brightness(1.7);transform:scale(.97)}55%{filter:brightness(1.25);transform:scale(1.015)}100%{filter:brightness(1);transform:none}}

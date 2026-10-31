@@ -1,0 +1,8 @@
+{
+  "rooms": 9,
+  "errors": [],
+  "result": {
+    "reason": "extract",
+    "extractionId": "extract-open"
+  }
+}

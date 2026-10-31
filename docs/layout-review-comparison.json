@@ -1,0 +1,11 @@
+{
+  "base": "3124ce16fb9685ed012cf8296a0f762c8fdb8f17",
+  "status": "running",
+  "main": {
+    "completed": false
+  },
+  "pr": {
+    "completed": false
+  },
+  "note": "Post-rebase sequential layout verification is running. Historical comparison is preserved separately in layout-review-comparison-pre3124.json."
+}

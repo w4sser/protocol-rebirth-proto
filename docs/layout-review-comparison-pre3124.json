@@ -1,0 +1,42 @@
+{
+  "main": {
+    "failures": [
+      "extract-popup 667x375: extraction body scrolls instead of only the grid  []",
+      "base worldmap-new: div.wm-label.on \"Bunker 123SELECTED\" overlaps div.wm-label.at-below \"NEW Archipelago 12\"  [844x390]",
+      "raid bunker L2: world label \"\" overlaps \"ENEMY \u00b7 2\" during gameplay  [844x390, 667x375]",
+      "raid town L2: world label \"\" overlaps \"ENEMY \u00b7 3\" during gameplay  [844x390, 932x430, 667x375]"
+    ],
+    "keys": [
+      "extract-popup 667x375: extraction body scrolls instead of only the grid",
+      "base worldmap-new: div.wm-label.on \"Bunker 123SELECTED\" overlaps div.wm-label.at-below \"NEW Archipelago 12\"",
+      "raid bunker L2: world label \"\" overlaps \"ENEMY \u00b7 2\" during gameplay",
+      "raid town L2: world label \"\" overlaps \"ENEMY \u00b7 3\" during gameplay"
+    ],
+    "completed": true,
+    "viewportPassed": true
+  },
+  "pr": {
+    "failures": [
+      "extract-popup 667x375: extraction body scrolls instead of only the grid  []",
+      "base worldmap-new: div.wm-label.on \"Bunker 123SELECTED\" overlaps div.wm-label.at-below \"NEW Archipelago 12\"  [844x390]",
+      "raid bunker L2: world label \"\" overlaps \"ENEMY \u00b7 2\" during gameplay  [844x390, 667x375]",
+      "raid town L2: world label \"\" overlaps \"ENEMY \u00b7 3\" during gameplay  [844x390, 667x375]"
+    ],
+    "keys": [
+      "extract-popup 667x375: extraction body scrolls instead of only the grid",
+      "base worldmap-new: div.wm-label.on \"Bunker 123SELECTED\" overlaps div.wm-label.at-below \"NEW Archipelago 12\"",
+      "raid bunker L2: world label \"\" overlaps \"ENEMY \u00b7 2\" during gameplay",
+      "raid town L2: world label \"\" overlaps \"ENEMY \u00b7 3\" during gameplay"
+    ],
+    "completed": true,
+    "viewportPassed": true
+  },
+  "prOnly": [],
+  "shared": [
+    "base worldmap-new: div.wm-label.on \"Bunker 123SELECTED\" overlaps div.wm-label.at-below \"NEW Archipelago 12\"",
+    "extract-popup 667x375: extraction body scrolls instead of only the grid",
+    "raid bunker L2: world label \"\" overlaps \"ENEMY \u00b7 2\" during gameplay",
+    "raid town L2: world label \"\" overlaps \"ENEMY \u00b7 3\" during gameplay"
+  ],
+  "note": "Sequential runs; identical resize-settlement fixture; static/Low start screen on both. Software renderer, not phone performance. Pixel distance in enemy-label jitter normalized; viewport/context retained."
+}

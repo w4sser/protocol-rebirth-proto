@@ -1,0 +1,40 @@
+viewport-check: all resize, full-bleed and perk lock regressions passed
+raid-summary 844x390 extract
+raid-summary 844x390 death
+raid-summary 932x430 extract
+raid-summary 932x430 death
+raid-summary 667x375 extract
+raid-summary 667x375 death
+extract-popup 667x375
+extract-popup 844x390
+extract-popup 932x430
+extract-popup 1024x471
+raid enc-shot 844x390
+raid-loading 844x390
+raid-loading 932x430
+raid-loading 667x375
+base-after-raid 844x390
+base-after-raid 932x430
+base-after-raid 667x375
+raid intro-goal 844x390
+raid intro-goal 932x430
+raid intro-goal 667x375
+raid payoff 844x390
+raid payoff 932x430
+raid payoff 667x375
+base 844x390
+base 932x430
+base 667x375
+raid bunker 844x390
+raid town 844x390
+raid bunker 932x430
+raid town 932x430
+raid bunker 667x375
+raid town 667x375
+
+layout-check: 4 failure(s)
+ - extract-popup 667x375: extraction body scrolls instead of only the grid  []
+ - base worldmap-new: div.wm-label.on "Bunker 123SELECTED" overlaps div.wm-label.at-below "NEW Archipelago 12"  [844x390]
+ - raid bunker L2: world label "" overlaps "ENEMY · 2" during gameplay  [844x390, 667x375]
+ - raid town L2: world label "" overlaps "ENEMY · 3" during gameplay  [844x390, 932x430, 667x375]
+screenshots: /workspace/scratch/35496dfe134c/protocol-rebirth-proto/verify-out/main-layout

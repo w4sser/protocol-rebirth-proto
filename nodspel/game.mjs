@@ -41,6 +41,8 @@ import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.12.0';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.12.0';
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.12.0';
+import {applyEnvironmentLight} from './environment-look.js?v=2.12.0';
+import {createRaidProfiler} from './raid-profiler.js?v=2.12.0';
 import {createPostFX} from './postfx.js?v=2.12.0';
 import {createDustField} from './dust.js?v=2.12.0';
 import {createQualityUI} from './quality-ui.js?v=2.12.0';
@@ -105,6 +107,7 @@ let AREA_SEL=AREA_PARAM||(()=>{try{return localStorage.getItem('nr_area');}catch
 if(AREA_PARAM){try{localStorage.setItem('nr_area',AREA_PARAM);}catch{}}
 let TOWN=null,PINE=null;
 const DEBUG=new URLSearchParams(location.search).has('debug');
+const raidProfiler=createRaidProfiler();
 // Seed label is a dev-only overlay: needs ?debug=1&seed-label=1, never plain ?debug=1.
 const SEED_LABEL=DEBUG&&new URLSearchParams(location.search).get('seed-label')==='1';
 function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement('div');n.className=text==='ROOM CLEAR'?'area-notice room-clear':'area-notice';n.setAttribute('role','status');n.textContent=text;document.body.append(n);setTimeout(()=>n.remove(),ms);},0);}
@@ -147,6 +150,8 @@ if(AREA_SEL==='archipelago'){scene.background.set('#3d5a6c');scene.fog.color.set
   hemi.color.lerp(cool,amount);hemi.groundColor.lerp(cool,amount*.7);
   scene.background.lerp(cool,amount*.5);scene.fog.color.lerp(cool,amount*.5);
 }
+
+if(AREA_SEL==='bunker')applyEnvironmentLight(AREA_SEL,{hemi,sun,renderer});
 
 const cube=new THREE.BoxGeometry(1,1,1),materials={};
 function box(x,y,z,w,h,d,color,parent){
@@ -937,14 +942,14 @@ function renderLabels(){
       const r=l.el.getBoundingClientRect();
       sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
     }
-    // v2.11.1: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
+    // v2.12.0: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
     const otherBars=labels.filter(o=>o!==l&&o.range==='enemy'&&!o.el.hidden&&Number.isFinite(o.sx)).map(o=>({left:o.sx-22,right:o.sx+22,top:o.sy-11,bottom:o.sy-6}));
     const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles.concat(otherBars),bounds,now:nowPlacement});
     l.placement=placed.state;
     let mode=placed.mode;const x=placed.x;let y=placed.y;
     const overlapsAt=(yy,s,rects)=>rects.some(r=>x+s.w/2>r.left&&x-s.w/2<r.right&&yy>r.top&&yy-s.h<r.bottom);
     // A caption never draws over a fixed label or HUD, not even for one frame: drop to the bar at once.
-    // v2.11.1 (PR #152 layout RUSHER overlap): bars are never moved or hidden for each other, so a caption
+    // v2.12.0 (PR #152 layout RUSHER overlap): bars are never moved or hidden for each other, so a caption
     // (e.g. a winding hunter-wave rusher) must not draw over ANY other visible enemy's bar either — it yields.
     if(mode!=='bar'&&overlapsAt(y,sizes[mode],otherBars)){mode='bar';y=Math.min(bounds.bottom,Math.max(bounds.top+sizes.bar.h,l.sy-6+sizes.bar.dy));l.forceBar=true;l.forceBarOk=undefined;if(l.placement){l.placement.mode='bar';l.placement.modeSince=nowPlacement;}}
     if(mode!=='bar'&&overlapsAt(y,sizes[mode],fixedRects)){l.forceBar=true;l.forceBarOk=undefined;l.el.hidden=true;continue;}
@@ -1035,6 +1040,7 @@ let debugRoomClearsEnabled=true;
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   getCamera:()=>camera,
   operator:()=>human,
+  capturePerformance(options={}){return raidProfiler.start({...options,metadata:{area:AREA_SEL,quality:QUALITY,userAgent:navigator.userAgent,viewport:{width:viewWidth,height:viewHeight,pixelRatio:renderer.getPixelRatio()},renderMode:'whole frame including postprocessing',deviceLabel:options.deviceLabel||'unspecified',physicalPhoneVerified:options.physicalPhoneVerified===true}});},
   setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
   // Headless/software-rendered test runs can sustain <40 fps for reasons that have nothing to do with the
   // mood pass itself; let fixtures opt out of the auto-downgrade watchdog so screenshots stay deterministic.
@@ -1236,7 +1242,10 @@ function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
 // Mood FX (bloom/vignette) replace the plain render call; dust drifts with the player whenever it's on.
 function renderFrame(dtForDust){
   if(dust){dust.points.position.set(position.x,0,position.z);dust.update(dtForDust,elapsed);}
-  if(postFX)postFX.render();else renderer.render(scene,camera);
+  const measuring=DEBUG&&raidProfiler.active,autoReset=renderer.info.autoReset;
+  if(measuring){renderer.info.autoReset=false;renderer.info.reset();}
+  try{if(postFX)postFX.render();else renderer.render(scene,camera);}
+  finally{if(measuring){raidProfiler.frame(performance.now(),renderer.info.render.calls);renderer.info.autoReset=autoReset;}}
 }
 function frameInner(now){
   // Real render cadence (not game time, which can be paused/hitstopped): feeds the auto-downgrade watchdog.

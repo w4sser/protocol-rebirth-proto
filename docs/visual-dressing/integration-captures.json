@@ -1,0 +1,138 @@
+{
+  "baseMain": "3124ce16fb9685ed012cf8296a0f762c8fdb8f17",
+  "environmentSource": "e6cadb5",
+  "assemblySource": "c2f399e",
+  "captures": [
+    {
+      "variant": "before",
+      "area": "bunker",
+      "level": 1,
+      "path": "docs/visual-dressing/bunker-before.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "before",
+      "area": "bunker",
+      "level": 2,
+      "path": "docs/visual-dressing/bunker-before-L2.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "before",
+      "area": "bunker",
+      "level": 3,
+      "path": "docs/visual-dressing/bunker-before-L3.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "before",
+      "area": "town",
+      "level": 1,
+      "path": "docs/visual-dressing/town-before.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "before",
+      "area": "archipelago",
+      "level": 1,
+      "path": "docs/visual-dressing/archipelago-before.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "after",
+      "area": "bunker",
+      "level": 1,
+      "path": "docs/visual-dressing/bunker-after.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "after",
+      "area": "bunker",
+      "level": 2,
+      "path": "docs/visual-dressing/bunker-after-L2.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "after",
+      "area": "bunker",
+      "level": 3,
+      "path": "docs/visual-dressing/bunker-after-L3.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "after",
+      "area": "town",
+      "level": 1,
+      "path": "docs/visual-dressing/town-after.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "after",
+      "area": "archipelago",
+      "level": 1,
+      "path": "docs/visual-dressing/archipelago-after.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "assembly",
+      "area": "bunker",
+      "level": 1,
+      "path": "../protocol-rebirth-assembly/docs/bunker-assembly-L1.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "e"
+    },
+    {
+      "variant": "assembly",
+      "area": "bunker",
+      "level": 2,
+      "path": "../protocol-rebirth-assembly/docs/bunker-assembly-L2.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "assembly",
+      "area": "bunker",
+      "level": 3,
+      "path": "../protocol-rebirth-assembly/docs/bunker-assembly-L3.png",
+      "errors": [],
+      "seed": "post151-review",
+      "layout": "a"
+    },
+    {
+      "variant": "dressing",
+      "path": "docs/visual-dressing/bunker-big-overview.png",
+      "rooms": 11,
+      "seed": "post151-review",
+      "mode": "Overview renderer: same models, full level visible; gameplay culling disabled, overview camera only"
+    },
+    {
+      "variant": "assembly",
+      "path": "../protocol-rebirth-assembly/docs/bunker-big-overview.png",
+      "rooms": 11,
+      "seed": "post151-review",
+      "mode": "Overview renderer: same models, full level visible; gameplay culling disabled, overview camera only"
+    }
+  ]
+}

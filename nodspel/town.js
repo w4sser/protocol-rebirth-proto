@@ -1,6 +1,7 @@
 // Abandoned Town renderer: cached GLB assets, instanced per mesh part, plus cheap procedural fill.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
+import {groundPatchParts} from './environment-look.js?v=2.12.0';
 import {TOWN_DIMS} from './town-layout.js?v=2.12.0';
 import {HOUSE_KINDS,HOUSE_DIMS,HOUSE,FURNITURE,toWorld,inHouse} from './house.js?v=2.12.0';
 export const TOWN_KINDS=Object.keys(TOWN_DIMS);
@@ -9,14 +10,14 @@ let cache=null;
 // dropping the whole area. Only if most of the kit fails does the caller fall back to Bunker.
 export const townLoad={failed:[],retried:0,ms:0};
 const withTimeout=(p,ms,what)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(`timeout ${ms} ms: ${what}`)),ms))]);
-function standIn(dims,color='#5d6670'){const [w,h,d]=dims??[1,1,1],geo=new THREE.BoxGeometry(w,h,d),mat=new THREE.MeshStandardMaterial({color,roughness:.9});
+function standIn(dims,color='#5d6670',kind=''){const [w,h,d]=dims??[1,1,1],geo=kind.startsWith('barrel_steel_')?new THREE.CylinderGeometry(.5,.5,1,12).scale(w,h,d):new THREE.BoxGeometry(w,h,d),mat=new THREE.MeshStandardMaterial({color,roughness:.9});
   geo.userData.shared=mat.userData.shared=true;return [{geometry:geo,material:mat,matrix:new THREE.Matrix4().makeTranslation(0,h/2,0),standIn:true}];}
 export async function loadKit(base,items,{loader=new GLTFLoader(),concurrency=6,retries=2,timeoutMs=20000,report=townLoad}={}){
   const t0=Date.now(),out={},queue=[...items];
   const one=async ({key,url,dims})=>{let err;
     for(let i=0;i<=retries;i++){try{if(i)report.retried++;const g=await withTimeout(loader.loadAsync(new URL(url,base).href),timeoutMs,url);return prepare(g);}
       catch(e){err=e;await new Promise(r=>setTimeout(r,250*(i+1)));}}
-    report.failed.push({key,url,error:String(err?.message??err)});console.warn('[town] asset failed, using stand-in',key,err);return standIn(dims);};
+    report.failed.push({key,url,error:String(err?.message??err)});console.warn('[town] asset failed, using stand-in',key,err);return standIn(dims,undefined,key);};
   await Promise.all(Array.from({length:Math.min(concurrency,queue.length)},async()=>{while(queue.length){const it=queue.shift();out[it.key]=await one(it);}}));
   report.ms=Date.now()-t0;return out;}
 function prepare(g){g.scene.updateMatrixWorld(true);const parts=[];
@@ -36,7 +37,7 @@ export function loadTownAssets(base,opts={}){
     if(townLoad.failed.length>items.length/2)throw new Error(`town kit failed: ${townLoad.failed.length}/${items.length} assets (${townLoad.failed[0]?.error})`);
     // wrecks: same car mesh, darker and desaturated materials (never rescaled)
     a.car_wreck=a.car_boxy.map(p=>{const m=p.material.clone();m.userData.shared=true;if(m.color){const h={};m.color.getHSL(h);m.color.setHSL(h.h,h.s*.25,Math.max(.05,h.l*.6));}m.roughness=1;if(m.emissiveIntensity)m.emissiveIntensity=0;return {...p,material:m};});
-    // night ground reads too dark on phones: lift the ground palettes a little
+    // v2.10.0 ground lift, once per shared material.
     for(const k of ['tile_grass','tile_asphalt','tile_sidewalk','tile_asphalt_grass','tile_sidewalk_grass','tile_asphalt_sidewalk'])for(const p of a[k]??[])if(p.material.color&&!p.material.userData.lifted){p.material.color.multiplyScalar(1.45);p.material.userData.lifted=true;}
     return a;}).catch(e=>{cache=null;throw e;});
   return cache;
@@ -50,7 +51,7 @@ export function instance(group,parts,list,{cast=false,receive=true}={}){
 }
 const CAST=new Set(['car_wreck','house_red','house_yellow','house_red_dark','house_yellow_dark','pine_tree','car_boxy','container','bus_shelter','streetlamp','hedge_segment','fence_segment','fence_short','fence_gate','electrical_cabinet']);
 // low quality keeps 1 in N of the purely decorative bits
-const THIN={grass_tuft_small:3,grass_tuft_large:3,weed_tuft:3,bush_small:2,bush_cluster:2,pine_tree:2};
+const THIN={grass_tuft_small:5,grass_tuft_large:4,weed_tuft:5,bush_small:2,bush_cluster:2,pine_tree:2};
 const TILE_Y={tile_grass:-.3,tile_asphalt:-.1,tile_sidewalk:-.1,tile_asphalt_grass:-.09,tile_sidewalk_grass:-.09,tile_asphalt_sidewalk:-.09};
 export function buildTown(level,group,assets,Q){
   const T=level.town,low=!Q.shadows,lights=[],byKind=new Map();
@@ -68,11 +69,16 @@ export function buildTown(level,group,assets,Q){
   // low curb on every wall line: the playable edge is always readable
   const curbMat=new THREE.MeshStandardMaterial({color:'#59646a',roughness:.9});
   instance(group,[{geometry:new THREE.BoxGeometry(1,1,1),material:curbMat,matrix:new THREE.Matrix4()}],level.walls.map(w=>({x:w.x,z:w.z,y:.09,sx:w.w,sy:.18,sz:w.d})),{receive:true});
-  // lamp glow: warm pool under each head; only a couple get a real light (none on low)
-  const pool=new THREE.MeshBasicMaterial({color:'#ffb35c',transparent:true,opacity:low?.2:.11,blending:THREE.AdditiveBlending,depthWrite:false}),poolGeo=new THREE.CircleGeometry(low?3:2.5,28);
+  // Soft pools and contact grounding stay visible without postFX/shadow maps on phones.
+  const contacts=[...level.boxes.map(b=>({x:b.x,z:b.z,y:.003,sx:b.w+.5,sz:b.d+.5})),
+    ...T.cars.map(c=>({x:c.x,z:c.z,y:-.005,sx:c.rot%2?2.1:4.5,sz:c.rot%2?4.5:2.1})),
+    ...T.trees.map(t=>({x:t.x,z:t.z,y:-.205,sx:1.3*t.s,sz:1.3*t.s}))];
+  if(contacts.length)instance(group,groundPatchParts({opacity:low?.3:.24}),contacts);
+  const pools=[];
   T.lamps.forEach((l,i)=>{const ry=l.ry??0,hx=l.x+Math.cos(ry)*.6,hz=l.z-Math.sin(ry)*.6;
-    const p=new THREE.Mesh(poolGeo,pool);p.rotation.x=-Math.PI/2;p.position.set(hx,.03,hz);group.add(p);
-    if(i<Q.lights){const pl=new THREE.PointLight('#ffb760',10,11,1.5);pl.position.set(hx,3.7,hz);group.add(pl);lights.push(pl);}});
+    pools.push({x:hx,z:hz,y:.005,sx:5.4,sz:5.4});
+    if(i<Q.lights){const pl=new THREE.PointLight('#ff9d4d',7,9,1.8);pl.position.set(hx,3.7,hz);group.add(pl);lights.push(pl);}});
+  if(pools.length)instance(group,groundPatchParts({color:'#ff9d4d',opacity:low?.24:.14,additive:true}),pools);
   const house=level.house&&assets.hi_floor_4m?buildHouse(level.house,group,assets,Q):null;
   return {lights,house};
 }
