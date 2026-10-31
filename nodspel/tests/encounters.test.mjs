@@ -132,7 +132,7 @@ test('plan: L1 one problem, L2 one problem + regular enemies, L3 two problems; e
   for(const area of AREAS)for(let n=1;n<=3;n++){
     assert.equal(E.plan[area][n-1].length,n===3?2:1,`${area} L${n} problem count`);
     for(let s=0;s<60;s++){const L=generateLevel(n,`plan-${s}`,area);
-      assert.deepEqual(L.encounters.map(e=>e.type).sort(),[...PLAN[area][n-1]].sort(),`${area} L${n} plan-${s}`);}
+      assert.deepEqual(L.encounters.map(e=>e.type==='shield_turret'?'turret':e.type).sort(),[...PLAN[area][n-1]].sort(),`${area} L${n} plan-${s}`);}
   }
 });
 
@@ -144,7 +144,7 @@ test('combat pass: L1 has no shield guard, bodies rise L1 < L2 < L3 in every are
     assert.ok(L1.enemies.every(e=>!e.frontShield&&e.encounter!=='guard'),`${area}: no front shield on L1`);
     assert.equal(L1.enemies[0].encounter,'patrol',`${area}: L1 teaches a patrol`);
     assert.ok(L1.enemies.length>=2,'L1 is more than one body');
-    for(const n of [2,3])for(const e of generateLevel(n,`count-${s}`,area).enemies)if(e.frontShield)assert.equal(e.encounter,'guard');
+    for(const n of [2,3])for(const e of generateLevel(n,`count-${s}`,area).enemies)if(e.frontShield)assert.ok(['guard','shield_turret'].includes(e.encounter));
   }
   assert.deepEqual(RULES.levels.map(l=>l.enemies),[1,2,3]);
   assert.deepEqual(RULES.levels.map(l=>l.title),['Control Room','Narrow Passage','Dead End']);
@@ -165,7 +165,7 @@ test('placement is seeded, deterministic, on free floor, reachable, and never br
 
 test('different seeds give different placements (it is not a fixed map)',()=>{
   for(const [area,n,type] of [['town',2,'turret'],['archipelago',2,'grenadier'],['bunker',3,'swarm'],['bunker',2,'guard']]){
-    const spots=new Set(Array.from({length:12},(_,s)=>{const e=generateLevel(n,`var-${s}`,area).encounters.find(x=>x.type===type);return `${e.x},${e.z}`;}));
+    const spots=new Set(Array.from({length:12},(_,s)=>{const e=generateLevel(n,`var-${s}`,area).encounters.find(x=>x.type===type||(type==='turret'&&x.type==='shield_turret'));return `${e.x},${e.z}`;}));
     assert.ok(spots.size>=4,`${area} L${n} ${type} spots ${spots.size}`);}
 });
 // ---------- 1 Core guard: front shield ----------
@@ -253,15 +253,22 @@ test('guard WITH a Decoy: it walks off the node and holds fire, the node lights 
   }
 });
 // ---------- 2 Turret behind cover ----------
+function plainTurretSim(number,area,seed,opts){
+  for(let i=0;i<100;i++){
+    const candidate=i===0?seed:`${seed}-plain-${i}`;
+    if(generateLevel(number,candidate,area).encounters.some(e=>e.type==='turret'))return sim(number,area,candidate,opts);
+  }
+  throw new Error('No plain turret seed found');
+}
 const turretOf=S=>{const enc=S.level.encounters.find(e=>e.type==='turret');return {enc,t:S.level.enemies.find(e=>e.id===enc.enemyId)};};
 test('turret: a sentry with long reach, 1.1 s warning, a committed salvo, then a long recovery window; cover blocks its shots',()=>{
   for(const area of ['town']){
-    const S=sim(2,area,'t-rules'),{enc,t}=turretOf(S);
+    const S=plainTurretSim(2,area,'t-rules'),{enc,t}=turretOf(S);
     assert.equal(t.type,'sentry');assert.equal(t.speed,0);assert.ok(t.rangeMul>1,'longer reach than a grunt');assert.ok(enc.covers.length>=1);
     for(const c of enc.covers)assert.ok(S.level.boxes.some(b=>b.x===c.x&&b.z===c.z&&b.encounterCover),'covers are real colliders');
     // stand still in the open in its lane: warning -> burst -> recovery, and the next warning waits out the recovery
     const out={x:t.x+(S.level.start.x-t.x)*.3,z:t.z+(S.level.start.z-t.z)*.3};
-    const R=sim(2,area,'t-rules');R.level.boxes=R.level.boxes.filter(b=>!b.encounterCover);const tt=turretOf(R).t;R.P={x:tt.x+(out.x-t.x)*1,z:tt.z+(out.z-t.z)*1};
+    const R=plainTurretSim(2,area,'t-rules');R.level.boxes=R.level.boxes.filter(b=>!b.encounterCover);const tt=turretOf(R).t;R.P={x:tt.x+(out.x-t.x)*1,z:tt.z+(out.z-t.z)*1};
     R.P={x:tt.x+Math.sin(tt.facing)*4,z:tt.z+Math.cos(tt.facing)*4};
     const phases=[];let last=null;
     for(let ms=0;ms<9000&&!R.round.over;ms+=DT*1000){tick(R);if(tt.attackPhase!==last){phases.push([tt.attackPhase,R.now]);last=tt.attackPhase;}}
@@ -290,7 +297,7 @@ function peekSpots(S,from,target,{reach=2.6,maxRange=5.5}={}){
 function hideSpot(cover,t,gap=.95){const d=dist(cover,t)||1;return {x:cover.x+(cover.x-t.x)/d*gap,z:cover.z+(cover.z-t.z)/d*gap};}
 test('turret WITHOUT a tool: hop from cover to cover (it needs 1.1 s to aim), step out and shoot it',()=>{
   for(const area of ['town'])for(const seed of SEEDS){
-    const S=sim(2,area,seed),{enc,t}=turretOf(S);
+    const S=plainTurretSim(2,area,seed),{enc,t}=turretOf(S);
     const covers=[...enc.covers].sort((a,b)=>dist(a,S.P)-dist(b,S.P));
     for(const c of covers){assert.ok(walk(S,hideSpot(c,t),{tol:.25,maxMs:6000}),`${area} ${seed}: reached cover at ${c.x},${c.z}`);}
     // step out of cover to the nearest spot with a clear line to the turret and shoot
@@ -305,7 +312,7 @@ test('turret WITHOUT a tool: hop from cover to cover (it needs 1.1 s to aim), st
 
 test('turret WITH an EMP: it shuts down for 4 s, walk up and shoot it without being hit',()=>{
   for(const area of ['town'])for(const seed of SEEDS){
-    const S=sim(2,area,seed,{tool:{id:'tool_emp',n:1}}),{t}=turretOf(S);
+    const S=plainTurretSim(2,area,seed,{tool:{id:'tool_emp',n:1}}),{t}=turretOf(S);
     // close to within throw range (a tap auto-aims at the nearest enemy inside 6 m), then tap
     while(dist(S.P,t)>RULES.tools.throwRange-.3)tick(S,{x:t.x-S.P.x,z:t.z-S.P.z});
     const throwAt=autoThrowPoint(S.round,S.P,{x:t.x-S.P.x,z:t.z-S.P.z},S.playerSolids());assert.equal(throwAt.target?.id,t.id,'auto-aim picks the turret');

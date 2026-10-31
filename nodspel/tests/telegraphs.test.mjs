@@ -1,14 +1,15 @@
+import {ENEMY_TUNING} from '../enemies.js?v=2.15.0';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy} from '../round.js?v=2.14.0';
-import {RULES} from '../levels.js?v=2.14.0';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.14.0';
-import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.14.0';
-import {deathTip} from '../encounters.js?v=2.14.0';
-import {recap,deathLine} from '../perks.js?v=2.14.0';
+import {createRound,hitEnemy} from '../round.js?v=2.15.0';
+import {RULES} from '../levels.js?v=2.15.0';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.15.0';
+import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.15.0';
+import {deathTip} from '../encounters.js?v=2.15.0';
+import {recap,deathLine} from '../perks.js?v=2.15.0';
 const player=()=>({x:0,z:4});
 function arena(type='grunt',extra={}){
- const r=createRound('telegraphs',0),e={id:'foe',kind:'enemy',type,x:0,z:0,r:.48,health:20,speed:0,facing:0,aggro:true,spawnedAt:-Infinity,rangeMul:1,cooldownMul:1,...extra};
+ const r=createRound('telegraphs',0),e={id:'foe',kind:'enemy',type,x:0,z:0,r:.48,health:20,speed:type==='rusher'?4:0,stalkUntil:0,facing:0,aggro:true,spawnedAt:-Infinity,rangeMul:1,cooldownMul:1,...extra};
  Object.assign(r.level,{start:{x:0,z:4},rooms:[{x:0,z:0,w:30,d:30}],enemies:[e],nodes:[],walls:[],boxes:[],hazards:[],floors:[{x:0,z:0,w:30,d:30}],firstGraceMs:0,enemyWindupMs:0});
  const c=createCombat(r.level,0);c.graceUntil=0;c.nextFire.set(e.id,0);return {r,e,c};
 }
@@ -16,7 +17,7 @@ for(const type of ['grunt','rusher','sentry','thrower','guard','turret','patrol'
  const extra=type==='guard'?{encounter:'guard',frontShield:RULES.encounters.guard.frontHalfAngleDeg}:type==='turret'?{encounter:'turret'}:type==='patrol'?{patrol:{points:[{x:0,z:0}],i:0},windupMs:RULES.encounters.patrol.windupMs}:type==='swarm'?{swarm:'spawn'}:{};
  const {r,e,c}=arena(type==='swarm'?'rusher':type==='guard'?'grunt':type==='turret'?'sentry':type,extra),p=player();
  stepCombat(r,c,p,100,.01,[]);assert.ok(e.windupAt!=null,'visible warning state');assert.ok(e.attackTarget,'floor target');
- const ready=e.windupAt;assert.ok(ready-100>=RULES.encounters.telegraphMs);
+ const ready=e.windupAt;assert.ok(ready-100>=(type==='rusher'?ENEMY_TUNING.rusher.windupMs:RULES.encounters.telegraphMs));
  for(let now=150;now<ready;now+=50){stepCombat(r,c,p,now,.05,[]);assert.equal(r.health,r.maxHealth);assert.equal(c.projectiles.length,0);}
  let damaged=false;for(let now=ready;now<ready+2500;now+=20){stepCombat(r,c,p,now,.02,[]);if(r.health<r.maxHealth){damaged=true;break;}}
  assert.ok(damaged,'the telegraphed attack eventually damages a stationary player');
@@ -29,12 +30,12 @@ test('sentry locks 300ms before firing and moving sideways dodges the committed 
  for(let now=1400;now<1900;now+=20)stepCombat(r,c,p,now,.02,[]);
  assert.equal(r.health,r.maxHealth);
 });
-test('charger hits a solid, stays still during a 1200ms stun, then warns anew',()=>{
+test('charger hits a solid, stays still during a 1500ms stun, then stalks anew',()=>{
  const {r,e,c}=arena('rusher'),p=player(),wall={x:0,z:2,w:3,d:.4};
  stepCombat(r,c,p,100,0,[wall]);const at=e.windupAt;stepCombat(r,c,p,at,0,[wall]);
- stepCombat(r,c,p,at+200,.2,[wall]);assert.equal(e.stunnedUntil,at+200+RULES.shooting.telegraphs.chargerStunMs);const z=e.z;
+ stepCombat(r,c,p,at+200,.2,[wall]);assert.equal(e.stunnedUntil,at+200+ENEMY_TUNING.rusher.stunMs);const z=e.z;
  stepCombat(r,c,p,e.stunnedUntil-1,.1,[wall]);assert.equal(e.z,z);assert.equal(e.windupAt,null);
- stepCombat(r,c,p,e.stunnedUntil,0,[wall]);assert.ok(e.windupAt>e.stunnedUntil);
+ stepCombat(r,c,p,e.stunnedUntil,0,[wall]);assert.equal(e.attackPhase,'stalk');assert.equal(e.stalkUntil,e.stunnedUntil+ENEMY_TUNING.rusher.stalkMs);
 });
 test('flank x2, first unaware x3 capped without stacking, shields and blasts retain rules',()=>{
  const {r,e}=arena();hitEnemy(r,e.id,100,2,{x:0,z:-2});assert.equal(e.health,16);assert.equal(e.weakMarker,'FLANK');assert.match(recap(r,'1:0').join(' '),/Flank/);
@@ -78,7 +79,7 @@ test('production rendering draws coral aim lines and the permanent shield arc',a
  const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
  const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
  const start=source.indexOf('    // Floor geometry is local'),end=source.indexOf("    if(v.enemy.introGuard||v.enemy.encounter==='guard'",start);
- const {aimEndpoint}=await import('../physics.mjs?v=2.14.0');
+ const {aimEndpoint}=await import('../physics.mjs?v=2.15.0');
  const render=vm.runInNewContext(`(v,alive)=>{${source.slice(start,end)}}`,{THREE,RULES,TOOL_CORAL:'coral',aimEndpoint,solids:[]});
  const guard={enemy:{frontShield:70,encounter:'guard'},group:new THREE.Group()};render(guard,true);
  assert.equal(guard.shieldFloor.visible,true);assert.equal(guard.shieldFloor.material.opacity,RULES.shooting.telegraphs.shieldDimOpacity);

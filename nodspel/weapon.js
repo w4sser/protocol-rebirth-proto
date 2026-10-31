@@ -1,8 +1,8 @@
-import {audioEvent} from './audio.js?v=2.14.0';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.14.0';
-import {RULES} from './levels.js?v=2.14.0';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.14.0';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.14.0';
+import {audioEvent} from './audio.js?v=2.15.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.15.0';
+import {RULES} from './levels.js?v=2.15.0';
+import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.15.0';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.15.0';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
