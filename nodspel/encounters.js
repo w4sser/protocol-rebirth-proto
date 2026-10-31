@@ -12,9 +12,9 @@
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.14.0';
-import {traceTargets} from './physics.mjs?v=2.14.0';
-import {detectionMultiplier} from './stakes.js?v=2.14.0';
+import {RULES} from './levels.js?v=2.14.1';
+import {traceTargets} from './physics.mjs?v=2.14.1';
+import {detectionMultiplier} from './stakes.js?v=2.14.1';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door','grenadier'];
