@@ -1,0 +1,46 @@
+[
+  {
+    "name": "after-L1.png",
+    "rooms": 1,
+    "load": {
+      "failed": [],
+      "retried": 0,
+      "ms": 266
+    },
+    "rendererNote": "Postprocessing final-pass counts are not whole-frame draw-call measurements",
+    "errors": []
+  },
+  {
+    "name": "after-L2.png",
+    "rooms": 2,
+    "load": {
+      "failed": [],
+      "retried": 0,
+      "ms": 266
+    },
+    "rendererNote": "Postprocessing final-pass counts are not whole-frame draw-call measurements",
+    "errors": []
+  },
+  {
+    "name": "after-L3.png",
+    "rooms": 3,
+    "load": {
+      "failed": [],
+      "retried": 0,
+      "ms": 266
+    },
+    "rendererNote": "Postprocessing final-pass counts are not whole-frame draw-call measurements",
+    "errors": []
+  },
+  {
+    "name": "after-big.png",
+    "rooms": 7,
+    "load": {
+      "failed": [],
+      "retried": 0,
+      "ms": 258
+    },
+    "rendererNote": "Postprocessing final-pass counts are not whole-frame draw-call measurements",
+    "errors": []
+  }
+]

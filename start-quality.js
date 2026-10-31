@@ -10,7 +10,7 @@ function pickStartQuality({search="", storage=null, nav={}, screen={}}={}){
   const q = new URLSearchParams(search).get("q");
   if(q === "low" || q === "medium" || q === "high") return q;
   try{ const s = storage?.getItem("pr.startQuality"); if(s === "low" || s === "medium" || s === "high") return s; }catch(e){}
-  // v2.12.0: iOS/iPadOS WebKit clamps hardwareConcurrency to 4 (or 8) for privacy, so every iPhone read as
+  // v2.12.1: iOS/iPadOS WebKit clamps hardwareConcurrency to 4 (or 8) for privacy, so every iPhone read as
   // "touch + weak" -> low -> no water at all. Apple touch devices skip the cores heuristic (-> medium).
   const ua = nav.userAgent || "", apple = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (nav.maxTouchPoints ?? 0) > 1);
   const touch = (nav.maxTouchPoints ?? 0) > 0, small = Math.min(screen.width ?? 9999, screen.height ?? 9999) <= 500, weak = !apple && (nav.hardwareConcurrency ?? 8) <= 4;
@@ -35,7 +35,7 @@ function detectWebGL2(canvasFactory){
 // no WebGL2 = Ultra Water off entirely; caller shows the static fallback image instead of
 // mounting a canvas at all.
 function waterProfile(quality, webgl2Available){
-  // v2.12.0: low/no-WebGL2 still gets a start screen -- a lightweight canvas-2D water layer (lite) instead of skipping.
+  // v2.12.1: low/no-WebGL2 still gets a start screen -- a lightweight canvas-2D water layer (lite) instead of skipping.
   if(!webgl2Available || quality === "low") return {name:"low", water:false, lite:true, foam:false, pixelRatioCap:1};
   if(quality === "medium") return {name:"medium", water:true, foam:false, pixelRatioCap:1.5};
   return {name:"high", water:true, foam:true, pixelRatioCap:2};

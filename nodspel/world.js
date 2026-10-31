@@ -32,7 +32,6 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   // Bunker kit (v1.54): GLB floors/walls/cover/dressing; procedural boxes stay as the fallback
   const K=!isTown&&!isArch&&bunker?bunker:null;
   const bunkerInfo=K?buildBunker(level,group,K,Q):null;
-  if(K)for(const f of level.floors)box(f.x,-.3,f.z,f.w+.1,.4,f.d+.1,PALETTE.base);
   if(!isTown&&!isArch&&!K)for(const f of level.floors){
     box(f.x,-.2,f.z,f.w,.4,f.d,PALETTE.floor);
     box(f.x,-.5,f.z,f.w+.1,.2,f.d+.1,PALETTE.base);

@@ -16,7 +16,7 @@ const APP_VERSION = "2.12.1"; // keep in sync with ?v= in index.html and nodspel
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
-// v2.12.0: start screen quality->water profile (start-quality.js), same dual-mode convention.
+// v2.12.1: start screen quality->water profile (start-quality.js), same dual-mode convention.
 const StartQuality = (typeof require === "function") ? require("./start-quality.js") : window.StartQuality;
 const SAVE_VERSION = 15;   // v15 (v1.95): S.talents (BIT talent tree, docs/design-bit-skill-tree.md); old S.bitSkill becomes 1 point in the matching core node.
 //   // v14 (v1.93): tier/attachments/level belong to the one built copy; orphans (copy lost before v14) are cleared.
@@ -3567,7 +3567,7 @@ function ingestRaidResult(r){
   if(chainsDone.length) areaNotes.push("Quest ready to hand in: " + chainsDone.map(c => c.title).join(", "));
   return { ok:true, stashBefore, added, currency, scrapBonus, xp, operatorXp:Math.max(PROG.operator.coreMinXp, coreRaidXp(r)), questChanges, questsDone, gearFound, returnedGear:extracted ? (gearOut || survivingGear) : [], toolId:toolOut && toolOut.id, saved, gearLost, skillUps, starUp, kitBack, kitSummaryLost:Math.max(0, kitOut + kitPicked - kitBack), kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes, chainsDone };
 }
-// v2.12.0: BIG MAP (beta) -- persisted toggle on the raid prep screen; ?levels=big on the base URL also forces it.
+// v2.12.1: BIG MAP (beta) -- persisted toggle on the raid prep screen; ?levels=big on the base URL also forces it.
 function bigMapOn(){ try{ if(new URLSearchParams(location.search).get("levels") === "big") return true; return localStorage.getItem("pr.bigMap") === "1"; }catch(e){ return false; } }
 function setBigMap(on){ try{ localStorage.setItem("pr.bigMap", on ? "1" : "0"); }catch(e){} }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
@@ -5222,7 +5222,7 @@ function showBaseLoader(){
   if(img.complete) hide();
   setTimeout(hide, 4000);
 }
-// flightPending: v2.12.0 start screen -- true when the caller intends to mount the archipelago
+// flightPending: v2.12.1 start screen -- true when the caller intends to mount the archipelago
 // flight (Medium/High quality + WebGL2; see start-quality.js). While true, the old auto-advance
 // timer is suppressed and the idle flight keeps looping until the player taps; on tap, the
 // flight eases the camera down onto the bunker island (flightCtl.land) before the existing
@@ -5234,7 +5234,7 @@ function setupSplash(flightPending){
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
-  // v2.12.0: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
+  // v2.12.1: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
   // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
   let shown = false; try{
     const force = /[?&]splash=1\b/.test((window.location && window.location.search) || ""), at = +sessionStorage.getItem("pr_splash_seen");
@@ -5321,7 +5321,7 @@ function setupSplash(flightPending){
     },
   };
 }
-// v2.12.0: lightweight start-screen water for Low quality / no WebGL2 (e.g. iPhone on Low): canvas 2D only,
+// v2.12.1: lightweight start-screen water for Low quality / no WebGL2 (e.g. iPhone on Low): canvas 2D only,
 // 1x pixel ratio, ~30 fps, a few dozen moonlit glints and slow swell bands over the lower part of the splash art.
 // Same contract as start-scene.js's mountStartFlight: {dispose, land(cb)}; reduced motion draws one still frame.
 function mountLiteWater(host){
@@ -5363,7 +5363,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   tryBitImage();
-  // v2.12.0 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
+  // v2.12.1 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
   // *before* setupSplash() whether the archipelago flight will be attempted -- setupSplash needs
   // that up front to suppress its old auto-advance timer, which can otherwise fire (both splash
   // images are tiny/cached) before the async import() below ever resolves.
@@ -5396,7 +5396,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
   { const rp = document.getElementById("replay-start-btn"); if(rp) rp.addEventListener("click", () => { setMenu(false); try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){} location.reload(); }); }
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
-  // v2.12.0 start screen: settings/slot access from the splash itself, without triggering the
+  // v2.12.1 start screen: settings/slot access from the splash itself, without triggering the
   // tap-anywhere-to-enter flow (stopPropagation keeps #splash's own click listener from firing).
   { const sb = document.getElementById("splash-settings-btn"); if(sb) sb.addEventListener("click", e => { e.stopPropagation(); setMenu(true); }); }
   { const pb = document.getElementById("splash-profiles-btn"); if(pb) pb.addEventListener("click", e => { e.stopPropagation(); A.openProfiles(); }); }

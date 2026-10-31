@@ -955,14 +955,14 @@ function renderLabels(){
       const r=l.el.getBoundingClientRect();
       sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
     }
-    // v2.12.0: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
+    // v2.12.1: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
     const otherBars=labels.filter(o=>o!==l&&o.range==='enemy'&&!o.el.hidden&&Number.isFinite(o.sx)).map(o=>({left:o.sx-22,right:o.sx+22,top:o.sy-11,bottom:o.sy-6}));
     const placed=placeEnemyLabel(l.placement,{x:l.sx,y:l.sy,mode:desired,sizes,rects:obstacles.concat(otherBars),bounds,now:nowPlacement});
     l.placement=placed.state;
     let mode=placed.mode;const x=placed.x;let y=placed.y;
     const overlapsAt=(yy,s,rects)=>rects.some(r=>x+s.w/2>r.left&&x-s.w/2<r.right&&yy>r.top&&yy-s.h<r.bottom);
     // A caption never draws over a fixed label or HUD, not even for one frame: drop to the bar at once.
-    // v2.12.0 (PR #152 layout RUSHER overlap): bars are never moved or hidden for each other, so a caption
+    // v2.12.1 (PR #152 layout RUSHER overlap): bars are never moved or hidden for each other, so a caption
     // (e.g. a winding hunter-wave rusher) must not draw over ANY other visible enemy's bar either — it yields.
     if(mode!=='bar'&&overlapsAt(y,sizes[mode],otherBars)){mode='bar';y=Math.min(bounds.bottom,Math.max(bounds.top+sizes.bar.h,l.sy-6+sizes.bar.dy));l.forceBar=true;l.forceBarOk=undefined;if(l.placement){l.placement.mode='bar';l.placement.modeSince=nowPlacement;}}
     if(mode!=='bar'&&overlapsAt(y,sizes[mode],fixedRects)){l.forceBar=true;l.forceBarOk=undefined;l.el.hidden=true;continue;}

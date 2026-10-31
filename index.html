@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.12.1">
 <link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.12.1">
 <title>Protocol Rebirth</title>
-<!-- v2.12.0 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
+<!-- v2.12.1 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
      resolve the vendored Ultra Water engine's bare `import ... from 'three'` against our own
      vendored three.js build, with no build step. -->
 <script type="importmap">{"imports":{"three":"./nodspel/vendor/three.module.js"}}</script>
@@ -647,12 +647,12 @@
   .splash-rock::before{clip-path:polygon(0 0,36% 0,29% 26%,45% 51%,18% 100%,0 100%);}
   .splash-rock::after{clip-path:polygon(100% 0,79% 0,66% 31%,83% 59%,72% 100%,100% 100%);}
   #splash small{position:relative;z-index:1;}
-  /* v2.12.0 start screen: the archipelago flight-over (start-scene.js, lazy-loaded, Medium/High
+  /* v2.12.1 start screen: the archipelago flight-over (start-scene.js, lazy-loaded, Medium/High
      quality + WebGL2 only) sits on top of the old static surface/rock layers and is covered by
      the same surfaceDeparture animation; title/PLAY/icons float above both. */
   .splash-flight{position:absolute;inset:0;pointer-events:none;}
   .splash-flight canvas{display:block;}
-  /* v2.12.0 lite water: the static art already carries the logo, so the HTML title stays for screen readers only */
+  /* v2.12.1 lite water: the static art already carries the logo, so the HTML title stays for screen readers only */
   #splash.lite .splash-title{clip-path:inset(50%);width:1px;height:1px;overflow:hidden;}
   .splash-corner{position:absolute;top:calc(14px + var(--st));right:calc(14px + var(--sr));z-index:2;display:flex;gap:8px;}
   .splash-icon{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--txt);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
@@ -1625,7 +1625,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
       <button id="replay-start-btn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg> Replay start screen</button>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.12.0</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.12.1</span></div>
     </div>
   </div>
   <div id="main">
