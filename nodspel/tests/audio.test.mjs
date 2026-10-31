@@ -189,6 +189,23 @@ test('raid settings pause once, preserve time and resume only their own pause',a
   dom.window.close();
 });
 
+test('pause menu Tab focus trap skips the hidden Abandon button in standalone mode',async()=>{
+  const {JSDOM}=require('../../node_modules/jsdom');
+  const {createAudioSettings}=await import('../audio-settings.js');
+  const dom=new JSDOM(await readFile(new URL('../index.html',import.meta.url),'utf8'),{runScripts:'outside-only',url:'http://game/nodspel/index.html'});
+  const w=dom.window;
+  for(const file of ['data/audio.js','ui/audio.js'])w.eval(await readFile(new URL('../../'+file,import.meta.url),'utf8'));
+  const settings=createAudioSettings({document:w.document,audio:w.PR_AUDIO,canOpen:()=>true,onPause:()=>{},onResume:()=>{}});
+  assert.equal(w.document.querySelector('#abandon').hidden,true,'standalone mode (no returnUrl) leaves Abandon hidden');
+  settings.open();
+  assert.equal(w.document.activeElement,w.document.querySelector('#raid-settings-close'));
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown',{code:'Tab',shiftKey:true,cancelable:true}));
+  assert.equal(w.document.activeElement,w.document.querySelector('#reset'),'shift+tab from the first control wraps to the last visible control, skipping the hidden Abandon button');
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown',{code:'Tab',cancelable:true}));
+  assert.equal(w.document.activeElement,w.document.querySelector('#raid-settings-close'),'tab from the last visible control wraps back to the first');
+  dom.window.close();
+});
+
 test('cached raid pageshow restores only music and never revives a finished raid',async()=>{
   await import('../audio.js');
   const {JSDOM}=require('../../node_modules/jsdom');

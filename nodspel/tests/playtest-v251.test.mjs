@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.12.1';
+import {inputPaused} from '../perks.js?v=2.13.0';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -34,7 +34,7 @@ test('HUD tap heals within the remaining budget and exhausted taps give feedback
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),r=createRound('kit-tap',0);
   r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget-5;
   let feedback='',updates=0;
-  const button={querySelector:()=>({}),setAttribute(){}};
+  const button={querySelector:()=>({}),setAttribute(){},classList:{toggle(){}}};
   const ctx={inputPaused,round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,notice:s=>feedback=s,updateHUD:()=>updates++,refreshKitLabels(){},$:()=>button};
   vm.createContext(ctx);
   vm.runInContext(source.match(/function useKit\(\)\{[^\n]+/)[0]+'\n'+source.match(/function renderKitHUD\(\)\{[^\n]+/)[0],ctx);

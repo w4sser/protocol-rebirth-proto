@@ -1,60 +1,61 @@
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.12.1';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.12.1';
-import {createOperatorFX} from './operator-fx.js?v=2.12.1';
-import {createAudioSettings} from './audio-settings.js?v=2.12.1';
-import {audio,audioEvent} from './audio.js?v=2.12.1';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.12.1';
-import {createPerkUI} from './perk-ui.js?v=2.12.1';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.12.1';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.13.0';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.13.0';
+import {createOperatorFX} from './operator-fx.js?v=2.13.0';
+import {createAudioSettings} from './audio-settings.js?v=2.13.0';
+import {audio,audioEvent} from './audio.js?v=2.13.0';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.13.0';
+import {createPerkUI} from './perk-ui.js?v=2.13.0';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.13.0';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.12.1';
-import {loadBunkerAssets} from './bunker.js?v=2.12.1';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.12.1';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.12.1';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.12.1';
-import {createRobotSocket} from './operator-gear.js?v=2.12.1';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.13.0';
+import {loadBunkerAssets} from './bunker.js?v=2.13.0';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.13.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.13.0';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.13.0';
+import {createRobotSocket} from './operator-gear.js?v=2.13.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.12.1';import '../data/recipes.js?v=2.12.1';import '../data/vendors.js?v=2.12.1';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.12.1';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.12.1';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.12.1';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.12.1';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.12.1';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.12.1';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.12.1';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.12.1';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.12.1';
-import {buildWorld,setNodeHold} from './world.js?v=2.12.1';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.12.1';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.12.1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.12.1';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.12.1';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.12.1';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.12.1';
-// import {stepScavenging} from './scavenging.js?v=2.12.1';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.12.1';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.12.1';
-import {routeComplete} from './objectives.js?v=2.12.1';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.12.1';
-import {createBIT,stepBIT} from './bit.js?v=2.12.1';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.12.1';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.12.1';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.12.1';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.12.1';
-import {applyEnvironmentLight} from './environment-look.js?v=2.12.1';
-import {createRaidProfiler} from './raid-profiler.js?v=2.12.1';
-import {createPostFX} from './postfx.js?v=2.12.1';
-import {createDustField} from './dust.js?v=2.12.1';
-import {createQualityUI} from './quality-ui.js?v=2.12.1';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.12.1';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.12.1';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.12.1';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.12.1';
+import '../data/modules.js?v=2.13.0';import '../data/recipes.js?v=2.13.0';import '../data/vendors.js?v=2.13.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.13.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.13.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.13.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.13.0';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.13.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.13.0';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.13.0';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.13.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.13.0';
+import {buildWorld,setNodeHold} from './world.js?v=2.13.0';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.13.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.13.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.13.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.13.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.13.0';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.13.0';
+// import {stepScavenging} from './scavenging.js?v=2.13.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.13.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.13.0';
+import {routeComplete} from './objectives.js?v=2.13.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.13.0';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.13.0';
+import {createBIT,stepBIT} from './bit.js?v=2.13.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.13.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.13.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.13.0';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.13.0';
+import {applyEnvironmentLight} from './environment-look.js?v=2.13.0';
+import {createRaidProfiler} from './raid-profiler.js?v=2.13.0';
+import {createPostFX} from './postfx.js?v=2.13.0';
+import {createDustField} from './dust.js?v=2.13.0';
+import {createQualityUI} from './quality-ui.js?v=2.13.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.13.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.13.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.13.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.13.0';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.12.1');
+const orderResponse=await fetch('./order.json?v=2.13.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -66,6 +67,9 @@ const $=s=>document.querySelector(s),viewport=$('#viewport');
 const playerHealthSegments=createHealthSegments($('#player-health'),100,10);
 let tutorialStorage;try{tutorialStorage=sessionStorage;}catch{tutorialStorage=null;}
 const earlyStart=document.documentElement.dataset.startRequested==='true';
+// The first-ever raid keeps MOVE/AIM stick labels on screen; captured before completeTutorial marks it seen.
+const firstRaid=tutorialNeeded(tutorialStorage);
+document.querySelectorAll('.stick-label').forEach(el=>{el.hidden=!firstRaid;});
 if(earlyStart)completeTutorial(tutorialStorage);
 let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
@@ -133,7 +137,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.12.1',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.13.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -228,8 +232,10 @@ function requestDash(){
   const direction=Math.hypot(sx,sy)>.12?screenToWorld(sx,sy):walkDirection;
   if(startDash(dash,direction,gameClock(),dashInterval(round,round.stats.dashCooldownMs))){round.telemetry.dashes++;if(hasPerk(round,'roll'))logCombat(round,{kind:'perk',perk:'roll',at:gameClock(),text:`Rolling: dash used, ${dashInterval(round,round.stats.dashCooldownMs)/1000} s cooldown.`});}
 }
-$('#dash').addEventListener('pointerdown',e=>{e.preventDefault();requestDash();});
-$('#dash').addEventListener('click',e=>{if(e.detail===0)requestDash();});
+const ability=createDashAbility(requestDash);
+mountAbility($('#dash'),ability);
+$('#dash').addEventListener('pointerdown',e=>{e.preventDefault();ability.activate(round);});
+$('#dash').addEventListener('click',e=>{if(e.detail===0)ability.activate(round);});
 
 // Floating stick (docs/design-combat-feel-oct28.md §2.2a): origin = where the thumb lands (not the zone's
 // center). Only the drawn base is clamped; input keeps the touchdown origin. Independent pointer capture lets
@@ -420,7 +426,7 @@ function setCollisions(){
 // A node with a live generator cannot be charged: the label says what breaks the shield.
 const nodeCaption=(node,clock)=>node.active?'ACTIVE':node.shielded?(clock<(node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':node.generatorId?'SHIELDED · BREAK THE GENERATOR':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
 // medkit button sits right of the bag panel, top-aligned: the panel grows with the NEED list, and below it the move stick needs the room
-function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit');if(bp&&k&&bp.offsetHeight){const r=bp.getBoundingClientRect(),v=(k.offsetParent||document.body).getBoundingClientRect();k.style.top=`${Math.round(r.top-v.top)}px`;k.style.left=`${Math.round(r.right-v.left+8)}px`;}}
+function placeKitButton(){const bp=$('.bag-panel'),k=$('#use-kit'),m=$('#heal-budget-meter');if(!(bp&&k&&bp.offsetHeight))return;const wasHidden=k.hidden;if(wasHidden)k.hidden=false;const r=bp.getBoundingClientRect(),v=viewport.getBoundingClientRect();const top=Math.round(r.top-v.top),left=Math.round(r.right-v.left+8);k.style.top=`${top}px`;k.style.left=`${left}px`;if(m){m.style.top=`${top+k.offsetHeight+4}px`;m.style.left=`${left}px`;}if(wasHidden)k.hidden=true;}
 function renderQuestChip(){
   const el=$('#quest-chip'),c=questChip(launch.quest,round);if(!el)return;
   el.hidden=!c;if(!c)return;
@@ -465,7 +471,8 @@ function updateHUD(){
   {const n=carriedCount(round),cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
   const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(level.big||level.nodes.every(n=>n.active));
-  $('#health-value').textContent=round.health;{const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}$('.health').classList.toggle('urgent',round.health<=25);
+  {const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}
+  viewport.classList.toggle('low-hp',round.health>0&&round.health<=25);
   renderRoomBox(level);
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
   world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
@@ -709,7 +716,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged');hitUntil=0;shakes=[];pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes=[];pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro)notice(RULES.intro.tip,6000);
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
@@ -743,7 +750,7 @@ $('#return-base').addEventListener('click',()=>{if(!round?.over||!launch.returnU
 $('#reset').hidden=!!launch.returnUrl;$('#abandon').hidden=!launch.returnUrl;
 $('#abandon').addEventListener('click',()=>{if(!round||round.over)return;if(!confirm('Abandon the raid? Your bag and equipment count as lost.'))return;if(abandonRound(round,gameClock()))finishRound();});
 $('#extract-raid').addEventListener('click',()=>{if(!resultPending)return;if(extractRound(round,gameClock()))$('#round-over').hidden=true;finishRound();});
-$('#reset').addEventListener('click',reset);$('#new-round').addEventListener('click',reset);
+$('#reset').addEventListener('click',()=>{audioSettings.close();reset();});$('#new-round').addEventListener('click',reset);
 $('#continue-raid').addEventListener('click',()=>{tickRound(round,gameClock());if(round.over){finishRound();return;}resultPending=false;$('#round-over').hidden=true;viewport.classList.remove('round-ended');loadLevel();});
 let pendingShot=null,pendingTool=null,pendingKit=false;
 function flushHitstopActions(){
@@ -775,10 +782,13 @@ function updateMouseAim(){
 // Weapon from base (?w=) sets magazine size; HUD shows its name and the medkits you brought (Q / tap to use).
 function setupWeaponHUD(){
   const bars=document.querySelector('.ammo-bars');if(bars){bars.replaceChildren();for(let i=0;i<weapon.rule.capacity;i++){const s=document.createElement('i');s.className='ammo-slot loaded';bars.append(s);}}
-  const name=$('#weapon-name');if(name)name.textContent=ITEM_NAMES[weapon.id]??'Basic Carbine';renderKitHUD();
+  const name=$('#weapon-name');if(name){name.textContent=ITEM_NAMES[weapon.id]??'Basic Carbine';weaponToast();}
+  renderKitHUD();
 }
+// Weapon name is a brief toast (switch / raid start), not a permanent label.
+function weaponToast(){const name=$('#weapon-name');if(!name)return;name.hidden=false;clearTimeout(weaponToast.t);weaponToast.t=setTimeout(()=>{name.hidden=true;},1500);}
 function useKit(){if(!round||round.over||inputPaused(round)||resultPending)return;if(round.hitstopUntil!=null){pendingKit=true;return;}const reason=healthKitBlock(round);if(reason){notice(reason);return;}const before=round.health;if(useHealthKit(round,gameClock())){updateHUD();notice(`Medkit: +${Math.round(round.health-before)} HP`,1600);}}
-function renderKitHUD(){refreshKitLabels();const b=$('#use-kit');if(!b)return;const n=(round.kit?.medkit??0)+(round.bag.medkit??0);b.querySelector('b').textContent=n;b.disabled=round.over;b.setAttribute('aria-disabled',String(!!healthKitBlock(round)));b.title=healthKitBlock(round)||'Use medkit';b.setAttribute('aria-label',`Use medkit (Q) · ${n} left`);}
+function renderKitHUD(){refreshKitLabels();const b=$('#use-kit');if(!b)return;const n=(round.kit?.medkit??0)+(round.bag.medkit??0);b.querySelector('b').textContent=n;b.disabled=round.over;b.setAttribute('aria-disabled',String(!!healthKitBlock(round)));b.title=healthKitBlock(round)||'Use medkit';b.setAttribute('aria-label',`Use medkit (Q) · ${n} left`);const show=n>0&&round.health<round.maxHealth;b.hidden=!show;b.classList.toggle('pulse',show&&round.health<40);const m=$('#heal-budget-meter');if(m)m.hidden=!show;}
 function renderWeaponHUD(clock){
   renderKitHUD();
   const reloading=weapon.reloadAt!==null&&!round.over;
@@ -808,13 +818,16 @@ function renderHealBudgetHUD(){
   const budget=healBudget(round),remaining=healRemaining(round),pct=budget>0?Math.round(100*remaining/budget):0;
   fill.style.width=`${pct}%`;m.classList.toggle('empty',remaining<=0);m.setAttribute('aria-valuenow',pct);
 }
+// Carried value shows only as a brief toast on increase, not a permanent line in the bag chip.
 function renderCarryValueHUD(clock){
-  const el=$('#carry-value');if(!el)return;
   const value=Math.round(carriedValue(round));
-  if(value!==lastCarryValue){
-    if(carryValuePulsed(lastCarryValue,value)){el.classList.remove('pulse');void el.offsetWidth;el.style.animationDuration=`${STAKES.carryPulseMs}ms`;el.classList.add('pulse');}
-    lastCarryValue=value;el.textContent=`Carrying ~${value} Scrap`;
+  if(value===lastCarryValue)return;
+  if(carryValuePulsed(lastCarryValue,value)){
+    let el=$('#carry-toast');if(!el){el=document.createElement('div');el.id='carry-toast';el.className='bag-toast carry-value';el.setAttribute('role','status');$('#viewport').append(el);}
+    el.textContent=`Carrying ~${value} Scrap`;el.hidden=false;el.style.animation='none';void el.offsetWidth;el.style.animation='';
+    clearTimeout(renderCarryValueHUD.t);renderCarryValueHUD.t=setTimeout(()=>{el.hidden=true;},1800);
   }
+  lastCarryValue=value;
 }
 function renderBagWeightHUD(){
   const fill=$('#bag-weight-fill');if(!fill)return;
@@ -1007,6 +1020,7 @@ const audioSettings=createAudioSettings({document,audio,
   onResume:()=>{resumePick(round,Date.now());clearInput();}
 });
 createQualityUI({document,container:$('#raid-settings .audio-menu-body'),quality:QUALITY,onChange:setGraphicsQuality});
+$('#resume').addEventListener('click',()=>audioSettings.close());
 window.__NR={...window.__NR,openSettings:audioSettings.open,closeSettings:audioSettings.close};
 let perkKey=null,perkChoosing=false;
 const perkUI=createPerkUI(viewport,act);
@@ -1056,7 +1070,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.12.1');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.13.0');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1264,7 +1278,7 @@ function frameInner(now){
   tickRound(round,clock);
   const seconds=renderRoundClock(round,resultPending,$('#time-left'),$('#summary-time'));
   if(resultPending)$('#result-clock').textContent=$('#summary-time').textContent;
-  $('.timer').classList.toggle('urgent',seconds<=60);
+  $('.timer').classList.toggle('warn',seconds<=120&&seconds>60);$('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over){perkUI.close();perkResume.hidden=true;finishRound();}
   if(!frozen&&!round.over&&!resultPending){
     const positionBefore={...position},dashing=dash.remaining>0;
@@ -1345,11 +1359,7 @@ function frameInner(now){
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden;
   const charge=dashCharge(dash,clock);
-  $('#dash').disabled=charge<1||dashUnavailable;
-  $('#dash-time').textContent=dashRemaining>0?`${(dashRemaining/1000).toFixed(1)} s`:'READY';
-  $('#dash').style.setProperty('--cooldown',`${dashRemaining/round.stats.dashCooldownMs*100}%`);
-  $('#dash').setAttribute('aria-label',dashRemaining>0?`Dash cooldown ${(dashRemaining/1000).toFixed(1)} seconds`:'Dash ready');
-  $('#dash-meter').setAttribute('aria-valuenow',Math.round(charge*100));$('#dash-fill').style.width=`${charge*100}%`;
+  renderAbilitySlot($('#dash'),ability,charge,dashRemaining,dashUnavailable);
   renderToolHUD();renderToolFx(clock);
   playerRing.material.color.set(dash.remaining>0?'#3FE0D0':'#b4d8d0');
   playerRing.scale.setScalar(dash.remaining>0?1.35:1);
