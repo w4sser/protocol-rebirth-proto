@@ -10,7 +10,7 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}={}){
   const dom = new JSDOM(html, {url:"https://game.example/"});
   const { window } = dom, { document } = window;
-  if(seen) window.sessionStorage.setItem("pr_splash_seen", "1");
+  if(seen) window.sessionStorage.setItem("pr_splash_seen", seen === "stale" ? "1" : String(Date.now()));
   const storage = blockedStorage ? {getItem(){throw Error("denied");}} : window.sessionStorage;
   window.matchMedia = () => ({matches:reduced});
   let now=0, id=0;
@@ -63,6 +63,10 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
 {
   const t=boot({seen:true});assert(!t.splash());
   assert.equal(t.images.length,0,"returning from raid never replays opening");t.dom.window.close();
+}
+{
+  // v2.12.0: a legacy/stale mark (not a recent timestamp) no longer hides the start screen.
+  const t=boot({seen:"stale"});assert(t.splash(),"stale seen mark still shows the start screen");t.dom.window.close();
 }
 {
   const t=boot({blockedStorage:true});

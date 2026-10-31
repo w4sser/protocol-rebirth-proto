@@ -1,8 +1,8 @@
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.11.2';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.12.0';
 // Layout assembly only: all room footprints, cover and objective offsets come from existing rooms.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.11.2';
-import {applyEncounters} from './encounters.js?v=2.11.2';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.11.2';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.12.0';
+import {applyEncounters} from './encounters.js?v=2.12.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.12.0';
 
 export function generateBigLevel(seed){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));

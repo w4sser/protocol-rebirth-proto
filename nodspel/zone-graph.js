@@ -1,5 +1,5 @@
 // Pure graph construction. Coordinates and footprints use the existing authored room pool.
-import {RULES,randomFromSeed} from './levels.js?v=2.11.2';
+import {RULES,randomFromSeed} from './levels.js?v=2.12.0';
 
 export function graphDistances(graph,from=graph.spawn.roomId){
   const distances={[from]:0},queue=[from];
