@@ -4,7 +4,7 @@
 import * as THREE from './vendor/three.module.js';
 import {loadKit,instance} from './town.js?v=2.12.0';
 import {rngFrom} from './art.js?v=2.12.0';
-import {groundPatchParts} from './environment-look.js?v=2.12.0';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.12.0';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -118,6 +118,9 @@ export function loadBunkerAssets(base,opts={}){
       if(m.emissiveMap!==emissiveAtlas){retired.add(m.emissiveMap);m.emissiveMap=emissiveAtlas;}
     }
     for(const texture of retired)texture?.dispose();
+    // Authoring bounds include projecting trim. Make structural modules share exact
+    // pivots and dimensions before tiling; prop meshes retain their authored form.
+    for(const k in a)if(k.startsWith('floor_')||k.startsWith('wall_'))a[k]=fitStructure(a[k],BUNKER_DIMS[k]);
     return a;});
   return cache;
 }
@@ -159,9 +162,33 @@ export function planKitProps(level,spots,rng){
 export function planWalls(level,rng=()=>0){const out=[];
   level.walls.forEach((b,wi)=>{const along=b.w>=b.d,L=(along?b.w:b.d)-(along?0:.02),n=Math.max(1,Math.round(L/2)),seg=L/n;
     for(let i=0;i<n;i++){const r=rng(),o=-L/2+seg*(i+.5),x=b.x+(along?o:0),z=b.z+(along?0:o);
-      out.push({kind:r<.7?'wall_straight_2m_a':r<.9?'wall_straight_2m_b':'wall_straight_2m_damaged',wall:wi,x,z,ry:along?0:Math.PI/2,sx:seg/2,sy:(b.h+wi*.003)/2.6,sz:(along?b.d:b.w)/.3,
-        rect:{x,z,w:along?seg:b.w,d:along?b.d:seg,h:b.h+wi*.003}});}});
+      out.push({kind:r<.7?'wall_straight_2m_a':r<.9?'wall_straight_2m_b':'wall_straight_2m_damaged',wall:wi,x,z,y:b.y??0,ry:along?0:Math.PI/2,sx:seg/2,sy:b.h/2.6,sz:(along?b.d:b.w)/.3,
+        rect:{x,z,w:along?seg:b.w,d:along?b.d:seg,h:b.h}});}});
   return out;}
+// A shared world grid, clipped to the UNION of all room/corridor rectangles.
+// No per-room tile origins, overlapping floors or 90-degree swaps on edge tiles.
+export function planFloorTiles(floors){
+  if(!floors.length)return [];
+  const heights=[...new Set(floors.map(f=>f.y??0))];
+  if(heights.length>1)return heights.flatMap(y=>planFloorTiles(floors.filter(f=>(f.y??0)===y)));
+  const x0=Math.floor(Math.min(...floors.map(f=>f.x-f.w/2))/2)*2,
+    x1=Math.max(...floors.map(f=>f.x+f.w/2)),
+    z0=Math.floor(Math.min(...floors.map(f=>f.z-f.d/2))/2)*2,
+    z1=Math.max(...floors.map(f=>f.z+f.d/2)),out=[];
+  for(let x=x0;x<x1;x+=2)for(let z=z0;z<z1;z+=2){
+    const hits=floors.filter(f=>f.x+f.w/2>x&&f.x-f.w/2<x+2&&f.z+f.d/2>z&&f.z-f.d/2<z+2);
+    if(!hits.length)continue;
+    const axis=(key,size,lo)=>[...new Set([lo,lo+2,...hits.flatMap(f=>[Math.max(lo,f[key]-f[size]/2),Math.min(lo+2,f[key]+f[size]/2)])])].sort((a,b)=>a-b);
+    const xs=axis('x','w',x),zs=axis('z','d',z);
+    for(let i=1;i<xs.length;i++)for(let j=1;j<zs.length;j++){
+      const w=xs[i]-xs[i-1],d=zs[j]-zs[j-1],cx=(xs[i]+xs[i-1])/2,cz=(zs[j]+zs[j-1])/2;
+      if(w<1e-6||d<1e-6)continue;
+      const owner=hits.find(f=>Math.abs(cx-f.x)<f.w/2&&Math.abs(cz-f.z)<f.d/2);
+      if(owner)out.push({x:cx,z:cz,w,d,y:owner.y??0,corridor:Math.min(owner.w,owner.d)<4.5});
+    }
+  }
+  return out;
+}
 // y layering (metres) so nothing shares a plane: base plane top -0.10 < floor tiles (top 0, +4 mm per overlapping
 // floor) < decals (+8 mm, polygonOffset) < shock-pad plates (top +15 mm) < pad telegraph planes (+30 mm)
 export const LAYER={floorStep:.004,decal:.008,padTop:.015};
@@ -169,10 +196,9 @@ const fit=(kind,w,h,d)=>{const [dw,dh,dd]=BUNKER_DIMS[kind];return {sx:w/dw,sy:h
 export function buildBunker(level,group,assets,Q){
   const low=!Q.shadows,rng=rngFrom(`${level.seed}:bunker`),by=new Map();
   const add=(k,t)=>{if(!assets[k])return;if(!by.has(k))by.set(k,[]);by.get(k).push(t);};
-  // floors: 2 m tiles (edge tiles scaled to fit); narrow strips = corridors -> grating
-  level.floors.forEach((f,fi)=>{const corridor=Math.min(f.w,f.d)<4.5,nx=Math.max(1,Math.round(f.w/2)),nz=Math.max(1,Math.round(f.d/2)),tw=f.w/nx,td=f.d/nz;
-    for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const r=rng(),k=corridor?'floor_grate_2m':r<.6?'floor_concrete_2m_a':r<.85?'floor_concrete_2m_b':'floor_concrete_2m_c';
-      add(k,{x:f.x-f.w/2+tw*(i+.5),z:f.z-f.d/2+td*(j+.5),y:-.05+fi*LAYER.floorStep,sx:tw/2,sz:td/2,ry:Math.floor(rng()*4)*Math.PI/2*(corridor?0:1)});}});
+  const floorTiles=planFloorTiles(level.floors);
+  for(const f of floorTiles){const r=rng(),k=f.corridor?'floor_grate_2m':r<.7?'floor_concrete_2m_a':r<.9?'floor_concrete_2m_b':'floor_concrete_2m_c';
+    add(k,{x:f.x,z:f.z,y:f.y-.05,sx:f.w/2,sz:f.d/2});}
   // walls: 2 m segments along the long axis, scaled to level height/thickness
   for(const w of planWalls(level,rng)){const {kind,rect,wall,...t}=w;add(kind,t);}
   // cover: kit piece fitted to the collision footprint so what you see is what blocks
@@ -187,6 +213,22 @@ export function buildBunker(level,group,assets,Q){
     const s=inside(1)?1:inside(-1)?-1:0;if(!s)return;
     const t={x:b.x+(along?0:s*off),z:b.z+(along?s*off:0),y:Math.max(.18,b.h-.48),ry:along?(s>0?Math.PI:0):(s>0?-Math.PI/2:Math.PI/2)};
     add(k,t);if(k==='lamp_wall_amber_on')anchors.push({...t,lightX:t.x+(along?0:s*.65),lightZ:t.z+(along?s*.65:0),color:'#FF9D4D'});});
+  // Continuous foundation and capped walls give the cutaway bunker one structure.
+  // These stay below the floor / inside wall footprints, never creating blockers.
+  const block=new THREE.BoxGeometry(1,1,1),identity=new THREE.Matrix4();
+  const blocks=(color,list)=>instance(group,[{geometry:block,material:new THREE.MeshStandardMaterial({color,roughness:.94}),matrix:identity}],list,{receive:true});
+  blocks('#20283f',planFloorTiles(level.floors.map(f=>({...f,w:f.w+1.2,d:f.d+1.2}))).map(f=>({x:f.x,z:f.z,y:(f.y??0)-.75,sx:f.w,sy:.8,sz:f.d})));
+  blocks('#777e96',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+b.h-.045,sx:b.w,sy:.09,sz:b.d})));
+  blocks('#303c50',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+.09,sx:b.w,sy:.18,sz:b.d})));
+  // A coherent service band and regularly spaced buttresses give the perimeter
+  // the language of a built Cold-War installation, with no new prop clutter.
+  blocks('#39545d',level.walls.map(b=>({x:b.x,z:b.z,y:(b.y??0)+b.h*.52,sx:b.w,sy:.075,sz:b.d})));
+  const ribs=[];
+  for(const b of level.walls){const along=b.w>=b.d,len=along?b.w:b.d;
+    for(let d=1.8;d<len-.7;d+=4){const offset=d-len/2;
+      ribs.push({x:b.x+(along?offset:0),z:b.z+(along?0:offset),y:(b.y??0)+b.h/2,
+        sx:along?.22:b.w,sy:b.h,sz:along?b.d:.22});}}
+  blocks('#626e87',ribs);
   const contacts=level.boxes.map(b=>({x:b.x,z:b.z,y:.003,sx:b.w+.45,sz:b.d+.45}));
   if(contacts.length)instance(group,groundPatchParts({opacity:low?.32:.22}),contacts);
   const pools=anchors.map(a=>({x:a.lightX,z:a.lightZ,y:.004,sx:4.8,sz:4.8}));
@@ -202,5 +244,5 @@ export function buildBunker(level,group,assets,Q){
       const m=im.material.clone();m.polygonOffset=true;m.polygonOffsetFactor=-2;m.polygonOffsetUnits=-4;m.depthWrite=false;m.userData.shared=true;im.material=m;im.renderOrder=1;}}
   // warm/cyan practical lights at the lamp anchors (q=low: none, like the prop lights)
   for(const a of [...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights)){const l=new THREE.PointLight(a.color,5,7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
-  return {instancedKinds:[...by.keys()],anchors};
+  return {instancedKinds:[...by.keys()],anchors,floorTiles};
 }
