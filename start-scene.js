@@ -80,7 +80,7 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
         gl_FragColor=vec4(col,1.);
         #include <colorspace_fragment>
       }`
-  }));water.rotation.x=-Math.PI/2;scene.add(water);
+  }));water.rotation.x=-Math.PI/2;water.position.y=-.06;scene.add(water);
   scene.add(new THREE.HemisphereLight(0xb9a0c4,0x101320,1.3));
   const light=new THREE.DirectionalLight(0xe4b4c8,.6);light.position.set(-30,35,10);scene.add(light);
   const silhouette=new THREE.MeshBasicMaterial({color:0x484968});
