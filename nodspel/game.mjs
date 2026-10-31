@@ -241,18 +241,19 @@ mountAbility($('#dash'),ability);
 $('#dash').addEventListener('pointerdown',e=>{e.preventDefault();ability.activate(round);});
 $('#dash').addEventListener('click',e=>{if(e.detail===0)ability.activate(round);});
 
-// Fixed thumbsticks share their ring center with input and clamp knob travel.
+// Input starts at touchdown; fixed thumbstick graphics stay relative to the ring center.
 // Independent pointer capture lets both thumbs work at once.
 function setupStick(selector,value,onShot){
   const el=$(selector),base=el.querySelector('.stick-base'),thumb=el.querySelector('.thumb');
-  const state={pointer:null,gesture:null,origin:null,downAt:0,dragged:false};
+  const state={pointer:null,gesture:null,origin:null,touchdown:null,downAt:0,dragged:false};
   sticks.push({el,state,value,thumb,base});el.style.setProperty('--stick-radius',`${RULES.aimControls.stickRadiusPx}px`);
   const RADIUS=RULES.aimControls.stickRadiusPx;
   function update(e){
-    const offset=stickOffset(state.origin,e.clientX,e.clientY);
+    const offset=stickOffset(state.touchdown,e.clientX,e.clientY);
+    const knob=stickOffset(state.origin,e.clientX,e.clientY);
     if(offset.manual)state.dragged=true;
     value.x=offset.manual?offset.x/RADIUS:0;value.y=offset.manual?offset.y/RADIUS:0;
-    thumb.style.transform=`translate(calc(-50% + ${offset.x}px),calc(-50% + ${offset.y}px))`;
+    thumb.style.transform=`translate(calc(-50% + ${knob.x}px),calc(-50% + ${knob.y}px))`;
     if(onShot&&state.gesture){dragAim(state.gesture,e.clientX,e.clientY);el.classList.toggle('aiming',!!state.gesture.target);if(state.gesture.target)aim=screenToWorld(state.gesture.target.x,state.gesture.target.y);}
   }
   function start(e){
@@ -261,7 +262,8 @@ function setupStick(selector,value,onShot){
     e.preventDefault();state.pointer=e.pointerId;state.downAt=performance.now();state.dragged=false;
     const r=el.getBoundingClientRect();
     state.origin={x:r.left+r.width/2,y:r.top+r.height/2};
-    state.gesture=onShot?beginAim(state.origin.x,state.origin.y):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);
+    state.touchdown={x:e.clientX,y:e.clientY};
+    state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);
   }
   el.addEventListener('pointerdown',start);
   // Route touches from open playfield space; action buttons and HUD retain their own events.
@@ -282,7 +284,7 @@ function setupStick(selector,value,onShot){
       const direction=finishGesture(state.gesture,e.clientX,e.clientY,performance.now()-state.downAt,state.dragged,cancelled);
       if(direction){const tap=direction==='tap';if(!tap)aim=screenToWorld(direction.x,direction.y);onShot(tap);}
     }
-    state.pointer=null;state.gesture=null;state.origin=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');
+    state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');
   }
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
 }
@@ -388,7 +390,7 @@ renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType
 window.addEventListener('keydown',e=>{if(inputPaused(round))return;if(isTypingTarget(e.target)||e.target?.closest?.('#hold-extract'))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
 window.addEventListener('keyup',e=>{if(inputPaused(round)||e.target?.closest?.('#hold-extract'))return;if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
-function clearInput(){extractHeld=false;if(round)round.extractHold=null;pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;for(const {el,state,value,thumb,base} of sticks){const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');}}
+function clearInput(){extractHeld=false;if(round)round.extractHold=null;pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;for(const {el,state,value,thumb,base} of sticks){const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,gameClock());if(round.over)finishRound();}});
 

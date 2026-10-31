@@ -58,6 +58,45 @@ test('a long press that never leaves the deadzone is not a tap and does not fire
   s.fireEvent('pointerup',{clientX:100,clientY:100});
   assert.equal(s.shots(),0,'release without ever dragging, after the tap window, cancels');
 });
+test('off-center stationary tap requests auto-aim and keeps the knob relative to the ring',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  assert.equal(s.thumb.style.transform,'translate(calc(-50% + 40px),calc(-50% + 0px))');
+  assert.equal(s.context.aim,null);
+  s.setWall(120);
+  s.fireEvent('pointerup',{clientX:140,clientY:100});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
+});
+test('off-center movement inside the touchdown deadzone remains an auto-aim tap',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  s.fireEvent('pointermove',{clientX:144,clientY:98});
+  s.setWall(120);
+  s.fireEvent('pointerup',{clientX:144,clientY:98});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
+});
+test('off-center drag beyond the threshold fires in the touchdown-relative direction',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  s.fireEvent('pointermove',{clientX:140,clientY:160});
+  s.setWall(50);
+  s.fireEvent('pointerup',{clientX:140,clientY:160});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),false);
+  assert.deepEqual(s.lastAim(),{x:0,z:1});
+});
+test('move stick starts at rest off-center and moves relative to touchdown',()=>{
+  const s=buildStick('move');
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  assert.equal(s.thumb.style.transform,'translate(calc(-50% + 40px),calc(-50% + 0px))');
+  s.fireEvent('pointermove',{clientX:144,clientY:98});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  s.fireEvent('pointermove',{clientX:140,clientY:160});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,1);
+  s.fireEvent('pointerup',{clientX:140,clientY:160});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+});
 test('drag past the deadzone and release fires the dragged direction (screen -> world)',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
