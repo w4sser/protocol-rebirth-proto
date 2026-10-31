@@ -69,3 +69,22 @@ test('minimized offers remain identical and terminal rolling never grants a regu
   const ids=offer(r,key);s.minimized=key;assert.deepEqual(offer(r,key),ids);
   s.rooms[key].offer=['roll'];assert.ok(choosePerk(r,key,'roll',100,{readyAt:9000}));assert.equal(hasPerk(r,'roll'),false);assert.deepEqual(s.taken,['roll']);assert.match(s.selectedEffects.roll,/Reset dash now/);
 });
+
+test('choice countdown waits for unlocked cards and their first paint; stale paint callbacks cannot restart it',async()=>{
+  const dom=new JSDOM('<main></main>');globalThis.document=dom.window.document;
+  const frames=[];dom.window.requestAnimationFrame=fn=>frames.push(fn);
+  try{
+    const r=createRound('paint-budget',0),s=perkState(r),key='1:0';s.rooms[key]={state:'clearPending',level:1,index:0};s.queue=[key];
+    const ui=createPerkUI(document.querySelector('main'),()=>{});ui.open(r,key);
+    const bar=document.querySelector('.perk-countdown-bar');
+    assert.equal(bar.style.animation,'none');
+    await new Promise(resolve=>setTimeout(resolve,650));
+    assert.equal(document.querySelector('.perk-choice').disabled,false);
+    assert.equal(bar.style.animation,'none','layout time must not consume the choice budget');
+    frames.shift()();assert.equal(bar.style.animation,'none');
+    frames.shift()();assert.match(bar.style.animation,/4000ms/);
+    ui.close();ui.open(r,key);await new Promise(resolve=>setTimeout(resolve,650));
+    frames.shift()();ui.close();frames.shift()();
+    assert.equal(bar.style.animation,'none','closed picker must not start a stale countdown');
+  }finally{delete globalThis.document;dom.window.close();}
+});
