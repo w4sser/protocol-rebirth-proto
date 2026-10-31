@@ -1,9 +1,10 @@
-import {generateBigLevel} from './big-level.js?v=2.15.0';
-import '../data/items.js?v=2.15.0';
-import {clearPassageProps} from './archipelago-passages.js?v=2.15.0';
-import {townizeLevel} from './town-layout.js?v=2.15.0';
-import {applyEncounters} from './encounters.js?v=2.15.0';
-import '../data/raid-combat.js?v=2.15.0';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.17.0';
+import {generateBigLevel} from './big-level.js?v=2.17.0';
+import '../data/items.js?v=2.17.0';
+import {clearPassageProps} from './archipelago-passages.js?v=2.17.0';
+import {townizeLevel} from './town-layout.js?v=2.17.0';
+import {applyEncounters} from './encounters.js?v=2.17.0';
+import '../data/raid-combat.js?v=2.17.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -35,6 +36,7 @@ export const RULES=Object.freeze({
     grenadier:{health:2,warningMs:1200,fuseMs:1000,radius:2,damagePct:.22,cooldownMs:3200,distance:6},
     // Turret behind cover: a sentry with long reach; a visible salvo, then a long recovery window to move in.
     turret:{health:2,lane:4.4,side:2.2,fireHalfAngleDeg:180,turnRadPerSec:6,warningMs:1100,burstShots:3,burstIntervalMs:200,recoveryMs:2600,damagePct:.12,counterOnHit:false},
+    shield_turret:ENEMY_TUNING.shieldTurret,
     // Patrol: a fixed back-and-forth loop with a visible sight cone. Seen = a 1 s "!" before it reacts.
     patrol:{health:2,length:5,walkSpeed:1,turnRadPerSec:3,pauseMs:700,coneRange:5.2,coneHalfAngleDeg:35,bumpRadius:.9,alertMs:1000,windupMs:1000,damagePct:.14},
     // Swarm: rushers burst out of a spawn point when the player gets close (telegraph, then a short emergence pause).
@@ -43,10 +45,10 @@ export const RULES=Object.freeze({
     shield:{health:2,distance:2.5},
     // Locked door in a corridor + a keycard in a crate; the longer side passage is always open.
     door:{reach:1.7,height:1.6,thickness:.3,passageWidth:2,passageOffset:3},
-    hints:{guard:'GUARD · FLANK IT',grenadier:'THROWER · LEAVE THE RING',turret:'TURRET · MOVE WHILE IT RECOVERS',patrol:'PATROL · STAY OUT OF ITS CONE',swarm:'SWARM · FALL BACK TO A CORRIDOR',shield:'SHIELD · BREAK THE GENERATOR',door:'LOCKED · FIND THE KEYCARD'},
-    names:{guard:'GUARD',grenadier:'THROWER',turret:'TURRET',patrol:'PATROL',swarm:'RUSHER',generator:'GENERATOR'},
+    hints:{shield_turret:ENEMIES.shield_turret.hint,guard:'GUARD · FLANK IT',grenadier:'THROWER · LEAVE THE RING',turret:'TURRET · MOVE WHILE IT RECOVERS',patrol:'PATROL · STAY OUT OF ITS CONE',swarm:'SWARM · FALL BACK TO A CORRIDOR',shield:'SHIELD · BREAK THE GENERATOR',door:'LOCKED · FIND THE KEYCARD'},
+    names:{shield_turret:'SHIELD TURRET',guard:'GUARD',grenadier:'THROWER',turret:'TURRET',patrol:'PATROL',swarm:'RUSHER',generator:'GENERATOR'},
     // Result-screen tip: the tool that solves the problem that killed the player.
-    tips:{grunt:{tool:null,text:'step sideways out of the coral aim line before the shot. Circle behind for Flank damage.'},
+    tips:{shield_turret:{tool:'tool_emp',text:'flank the back or use an EMP to drop its blue shield.'},grunt:{tool:null,text:'step sideways out of the coral aim line before the shot. Circle behind for Flank damage.'},
       rusher:{tool:null,text:'sidestep the charge line. Lure the charger into a wall, then attack while it is stunned.'},
       sentry:{tool:null,text:'the laser locks before firing. Move out of its line or use low cover.'},
       thrower:{tool:null,text:'leave the coral ring before the grenade lands.'},

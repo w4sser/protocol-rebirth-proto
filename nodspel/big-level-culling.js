@@ -1,6 +1,6 @@
 // Render ownership only. Reuse every source geometry, material and instance transform.
 import * as THREE from './vendor/three.module.js';
-import {graphRoomAt} from './zone-graph.js?v=2.15.0';
+import {graphRoomAt} from './zone-graph.js?v=2.17.0';
 
 export function createRoomVisibility(level,world){
   let initial=true;const temporary=[];

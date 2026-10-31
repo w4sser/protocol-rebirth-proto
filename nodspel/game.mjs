@@ -1,61 +1,64 @@
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.15.0';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.15.0';
-import {createOperatorFX} from './operator-fx.js?v=2.15.0';
-import {createAudioSettings} from './audio-settings.js?v=2.15.0';
-import {audio,audioEvent} from './audio.js?v=2.15.0';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.15.0';
-import {createPerkUI} from './perk-ui.js?v=2.15.0';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.15.0';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.17.0';
+import {animateEnemyModel} from './enemy-animation.js?v=2.17.0';
+import {applyEnemyDemo} from './enemy-demo.js?v=2.17.0';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.17.0';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.17.0';
+import {createOperatorFX} from './operator-fx.js?v=2.17.0';
+import {createAudioSettings} from './audio-settings.js?v=2.17.0';
+import {audio,audioEvent} from './audio.js?v=2.17.0';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.17.0';
+import {createPerkUI} from './perk-ui.js?v=2.17.0';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.17.0';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.15.0';
-import {loadBunkerAssets} from './bunker.js?v=2.15.0';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.15.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.15.0';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.15.0';
-import {createRobotSocket} from './operator-gear.js?v=2.15.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.17.0';
+import {loadBunkerAssets} from './bunker.js?v=2.17.0';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.17.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.17.0';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.17.0';
+import {createRobotSocket} from './operator-gear.js?v=2.17.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.15.0';import '../data/recipes.js?v=2.15.0';import '../data/vendors.js?v=2.15.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.15.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.15.0';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.15.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.15.0';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.15.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.15.0';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.15.0';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.15.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.15.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.15.0';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.15.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.15.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.15.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.15.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.15.0';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.15.0';
-// import {stepScavenging} from './scavenging.js?v=2.15.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.15.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.15.0';
-import {routeComplete} from './objectives.js?v=2.15.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.15.0';
-import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.15.0';
-import {createBIT,stepBIT} from './bit.js?v=2.15.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.15.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.15.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.15.0';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.15.0';
-import {applyEnvironmentLight} from './environment-look.js?v=2.15.0';
-import {createRaidProfiler} from './raid-profiler.js?v=2.15.0';
-import {createPostFX} from './postfx.js?v=2.15.0';
-import {createDustField} from './dust.js?v=2.15.0';
-import {createQualityUI} from './quality-ui.js?v=2.15.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.15.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.15.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.15.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.15.0';
+import '../data/modules.js?v=2.17.0';import '../data/recipes.js?v=2.17.0';import '../data/vendors.js?v=2.17.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.17.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.17.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.17.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.17.0';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.17.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.17.0';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.17.0';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.17.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.17.0';
+import {buildWorld,setNodeHold} from './world.js?v=2.17.0';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.17.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.17.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.17.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.17.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.17.0';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.17.0';
+// import {stepScavenging} from './scavenging.js?v=2.17.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.17.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.17.0';
+import {routeComplete} from './objectives.js?v=2.17.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.17.0';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.17.0';
+import {createBIT,stepBIT} from './bit.js?v=2.17.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.17.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.17.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.17.0';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.17.0';
+import {applyEnvironmentLight} from './environment-look.js?v=2.17.0';
+import {createRaidProfiler} from './raid-profiler.js?v=2.17.0';
+import {createPostFX} from './postfx.js?v=2.17.0';
+import {createDustField} from './dust.js?v=2.17.0';
+import {createQualityUI} from './quality-ui.js?v=2.17.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.17.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.17.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.17.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.17.0';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.15.0');
+const orderResponse=await fetch('./order.json?v=2.17.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -137,7 +140,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.15.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.17.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -391,12 +394,14 @@ const enemyName=e=>(e.type==='generator'?RULES.encounters.names.generator:!e.int
 // Encounter state (guard / turret / patrol): the label says what is about to happen, in the same words as the hint.
 const encounterState=e=>{const t=gameClock();
   if(e.alertAt!=null)return '! SPOTTED';
+  if(isShieldTurret(e))return e.attackPhase==='warning'?'AIMING · FLANK IT':e.attackPhase==='burst'?'FIRING · FLANK IT':e.attackPhase==='recovery'?'RECOVERING · FLANK THE BACK':clockShieldFeedback(e,t);
   if(e.type==='rusher'&&!e.swarm)return e.attackPhase==='charge'?'CHARGING · SIDESTEP':e.windupAt!=null?'CHARGE LINE · SIDESTEP':null;
   if(e.type==='sentry'&&!e.encounter&&e.windupAt!=null)return t>=e.aimLockAt?'AIM LOCKED · DODGE':'AIMING · FIND COVER';
   if(e.type==='thrower')return e.windupAt!=null?'! LOB INCOMING · LEAVE THE RING':null;
   if(e.encounter==='guard'||e.encounter==='turret')return e.attackPhase==='warning'?'AIMING · MOVE':e.attackPhase==='burst'?'FIRING · KEEP MOVING':e.attackPhase==='recovery'?'RECOVERING · GO':(e.blockedAt!=null&&t-e.blockedAt<700?'SHIELD BLOCKED':null);
   return null;};
-const enemyStateText=e=>gameClock()<(e.stunnedUntil??0)?`STUNNED · ${e.health}`:e.lureTarget&&gameClock()<(e.lureUntil??0)?`DISTRACTED · ${e.health}`:!e.introGuard&&encounterState(e)?`${enemyName(e)} · ${encounterState(e)} · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'AIMING · MOVE':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
+const clockShieldFeedback=(e,t)=>t-(e.blockedAt??-Infinity)<700?'SHIELDED · FLANK THE BACK':'FLANK THE BACK';
+const enemyStateText=e=>gameClock()<(e.stunnedUntil??0)?(e.type==='rusher'&&!e.swarm&&gameClock()<(e.wallStunUntil??0)?'STUNNED · HIT ITS BACK':`STUNNED · ${e.health}`):e.lureTarget&&gameClock()<(e.lureUntil??0)?`DISTRACTED · ${e.health}`:!e.introGuard&&encounterState(e)?`${enemyName(e)} · ${encounterState(e)} · ${e.health}`:`${e.introGuard?(e.windupAt!=null?'AIMING · MOVE':e.attackPhase==='burst'?'BURST · MOVE':e.attackPhase==='recovery'?'RECOVERING · MOVE / FIRE':'CACHE GUARD'):enemyName(e)} · ${e.health}`;
 function makeLabel(text,point,kind,range=null,short=''){
   const el=document.createElement('div');el.className=`node-label ${kind}`;el.hidden=true; // unpositioned until renderLabels places it; visible ones would pile up at the origin
   const marker=document.createElement('span');marker.className='node-marker';el.append(marker);
@@ -560,9 +565,10 @@ function renderEnemyFeedback(clock){
     v.group.visible=alive||dying;v.group.position.set(v.enemy.x,0,v.enemy.z);v.group.rotation.y=v.enemy.facing??Math.atan2(position.x-v.enemy.x,position.z-v.enemy.z);
     if(dying){const t=Math.min(1,diedAge/RULES.feedback.deathAnimMs);v.group.scale.setScalar(Math.max(0,1-t));v.group.rotation.x=t*1.2;}
     else{v.group.scale.setScalar(1);v.group.rotation.x=0;}
+    animateEnemyModel(v,clock);
     if(v.meshFlash){const fa=clock-(v.enemy.lastHitAt??-Infinity);v.meshFlash.material.opacity=fa<RULES.feedback.meshFlashMs?Math.max(0,.85*(1-fa/RULES.feedback.meshFlashMs)):0;}
     if(v.beam)v.beam.visible=alive&&v.enemy.health>0&&!!round.level.nodes.find(n=>n.id===v.enemy.node)?.shielded&&clock>=(round.level.nodes.find(n=>n.id===v.enemy.node)?.shieldDownUntil??0);
-    if(v.shield)v.shield.visible=alive&&!v.enemy.introGuard;
+    if(v.shield)v.shield.visible=alive&&!v.enemy.introGuard&&(!isShieldTurret(v.enemy)||!v.enemyModel&&clock>=(v.enemy.shieldDownUntil??0));
     // distracted by a decoy: the visor turns cyan (system colour of the decoy) so the state reads without the label
     if(v.eye){const lured=!!v.enemy.lureTarget&&gameClock()<(v.enemy.lureUntil??0);v.eye.material.color.set(lured?TOOL_CYAN:'#E4705F');}
     // blocked shot: the plate flashes bright (spark) for a moment; first block explains the counter once
@@ -573,13 +579,13 @@ function renderEnemyFeedback(clock){
     const T=RULES.shooting.telegraphs,e=v.enemy;
     if(e.frontShield&&!e.introGuard){
       if(!v.shieldFloor){
-        const points=[],half=RULES.encounters.guard.frontHalfAngleDeg*Math.PI/180;
+        const points=[],half=e.frontShield*Math.PI/180;
         for(let i=0;i<=T.arcSegments;i++){const a=-half+2*half*i/T.arcSegments;points.push(new THREE.Vector3(Math.sin(a)*T.shieldRadius,T.floorHeight,Math.cos(a)*T.shieldRadius));}
-        v.shieldFloor=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true}));v.group.add(v.shieldFloor);
+        v.shieldFloor=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:e.encounter==='shield_turret'?ENEMY_COLORS.shield:TOOL_CORAL,transparent:true}));v.group.add(v.shieldFloor);
       }
-      v.shieldFloor.visible=alive;v.shieldFloor.material.opacity=e.attackPhase==='warning'?T.shieldBrightOpacity:T.shieldDimOpacity;
+      v.shieldFloor.visible=alive&&(e.encounter!=='shield_turret'||clock>=(e.shieldDownUntil??0));v.shieldFloor.material.opacity=e.attackPhase==='warning'?T.shieldBrightOpacity:T.shieldDimOpacity;
     }
-    if(!e.introGuard&&e.encounter!=='guard'&&e.encounter!=='turret'&&e.type!=='generator'&&e.type!=='thrower'){
+    if(!e.introGuard&&e.encounter!=='guard'&&e.encounter!=='turret'&&e.encounter!=='shield_turret'&&e.type!=='generator'&&e.type!=='thrower'){
       if(!v.aimFloor){v.aimFloor=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:T.lineOpacity}));v.aimFloor.frustumCulled=false;v.group.add(v.aimFloor);}
       v.aimFloor.visible=alive&&e.windupAt!=null&&!!e.attackTarget;
       if(v.aimFloor.visible){
@@ -587,12 +593,12 @@ function renderEnemyFeedback(clock){
         pos.setXYZ(0,0,T.floorHeight,0);pos.setXYZ(1,end.x-e.x,T.floorHeight,end.z-e.z);pos.needsUpdate=true;v.aimFloor.rotation.y=-v.group.rotation.y;
       }
     }
-    if(v.enemy.introGuard||v.enemy.encounter==='guard'||v.enemy.encounter==='turret'){
+    if(v.enemy.introGuard||v.enemy.encounter==='guard'||v.enemy.encounter==='turret'||isShieldTurret(v.enemy)){
       if(!v.intent){
         const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
         v.intent=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:.85}));v.intent.renderOrder=4;v.intent.frustumCulled=false;v.group.add(v.intent);
       }
-      const turretWarning=v.enemy.encounter==='turret'&&!v.enemy.introGuard&&v.enemy.attackPhase==='warning';
+      const turretWarning=(v.enemy.encounter==='turret'||isShieldTurret(v.enemy))&&!v.enemy.introGuard&&v.enemy.attackPhase==='warning';
       const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&(turretWarning||['warning','burst'].includes(v.enemy.attackPhase));
       if(turretWarning&&!v.turretWarning){v.turretWarning=createTurretWarning(TOOL_CORAL);v.group.add(v.turretWarning);}
       if(v.turretWarning){
@@ -614,7 +620,8 @@ function renderEnemyFeedback(clock){
     const blocked=(v.enemy.blockedAt??-Infinity)>(v.enemy.lastHitAt??-Infinity),dage=blocked?clock-v.enemy.blockedAt:age;
     v.damage.defeated=dage>=RULES.feedback.damageNumberMs||v.enemy.active===false;
     const weak=clock-(v.enemy.weakMarkerAt??-Infinity)<RULES.shooting.weakSides.markerMs?v.enemy.weakMarker:null;
-    v.damage.caption.textContent=blocked?'BLOCKED':weak??`−${v.enemy.lastDamage??0}`;
+    v.damage.caption.textContent=blocked?(isShieldTurret(v.enemy)?'SHIELDED':'BLOCKED'):weak??`−${v.enemy.lastDamage??0}`;
+    if(isShieldTurret(v.enemy))v.damage.caption.style.color=blocked?ENEMY_COLORS.shield:ENEMY_COLORS.damage;
     v.damage.point.set(v.enemy.x,1+Math.min(1,dage/RULES.feedback.damageNumberMs)*.7,v.enemy.z);
     v.damage.el.style.opacity=`${Math.max(0,1-dage/RULES.feedback.damageNumberMs)}`;
   }
@@ -670,6 +677,7 @@ function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
   hideSwap();
+  applyEnemyDemo(round.level,location.search,AREA_SEL);
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
   playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
   player.position.set(position.x,0,position.z);
@@ -1070,7 +1078,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.15.0');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.17.0');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';

@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RULES,AREAS,AREA_RULES,generateLevel,ruleSet} from '../levels.js';
 // the Hard flag lives in the module instance round.js imports (it carries the ?v= tag), so flip it there
-import {setHard,isHard} from '../levels.js?v=2.15.0';
+import {setHard,isHard} from '../levels.js?v=2.17.0';
 import {createRound,ROUND_DURATION_MS,hitEnemy} from '../round.js';
 import {createCombat,stepCombat} from '../combat.js';
 import {readLaunch,buildRaidResult} from '../raid-result.js';
@@ -117,7 +117,7 @@ test('Hard rules: table, flag, timer, hp / damage multipliers, 2+ encounters per
       const N=generateLevel(n,'hard-x',area,false),Hd=generateLevel(n,'hard-x',area,true);
       assert.equal(Hd.hard,true);assert.equal(N.hard,undefined);
       assert.ok(Hd.encounters.length>=2,`${area} L${n} hard has ${Hd.encounters.length} encounters`);
-      assert.deepEqual(Hd.encounters.map(e=>e.type).sort(),[...H.plan[area][n-1]].sort());
+      assert.deepEqual(Hd.encounters.map(e=>e.type==='shield_turret'?'turret':e.type).sort(),[...H.plan[area][n-1]].sort());
       assert.equal(Hd.seed.startsWith('hard^'),true);assert.ok(Hd.enemyDamage>N.enemyDamage);
       const reg=e=>!e.encounter&&!e.extra;
       const nh=N.enemies.filter(reg).map(e=>e.health),hh=Hd.enemies.filter(reg).map(e=>e.health);

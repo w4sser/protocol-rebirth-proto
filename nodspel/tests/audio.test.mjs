@@ -285,3 +285,67 @@ test('raid shot events select the synthesized weapon and quieter enemy path; sho
     a.stop();assert.equal(a.active.size,0);
   }finally{globalThis.PR_AUDIO=previous;}
 });
+
+test('failed fetch/decode samples leave unlock, shots and later sample retries usable',async()=>{
+  for(const failure of ['fetch','decode']){
+    let fail=true;
+    class Context extends FakeContext{async decodeAudioData(){if(fail&&failure==='decode')throw Error('decode');return super.decodeAudioData();}}
+    const f=fixture({AudioContext:Context,fetch:async()=>{if(fail&&failure==='fetch')throw Error('fetch');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)};}}),a=f.audio;
+    a.music();assert.equal(await a.unlock(),true);assert.equal(a.loops.size,0);
+    assert.equal(await a.play('reload-carbine'),false);assert.equal(a.unlocked,true);
+    assert.equal(await a.play('shoot-carbine'),true);
+    fail=false;f.advance(200);assert.equal(await a.play('reload-carbine'),true);
+    await a.loop('music','pulse');assert.ok(a.loops.get('music').source.started);
+  }
+});
+
+test('Ogg fetch or decode failure retries AAC and uses AAC for future files',async()=>{
+  for(const failure of ['fetch','decode']){
+    const urls=[];
+    class Context extends FakeContext{async decodeAudioData(bytes){if(bytes.byteLength===1)throw Error('bad ogg');return super.decodeAudioData();}}
+    const a=fixture({AudioContext:Context,fetch:async url=>{urls.push(url);if(url.endsWith('.ogg')&&failure==='fetch')throw Error('fetch');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(url.endsWith('.ogg')?1:2)};}}).audio;
+    await a.unlock();assert.equal(await a.play('reload-carbine'),true);assert.equal(a.format,'m4a');
+    assert.equal(await a.play('ui-tap'),true);
+    assert.deepEqual(urls.map(url=>url.split('/').at(-1)),['reload-carbine.ogg','reload-carbine.m4a','ui-tap.m4a']);
+  }
+});
+
+test('AAC is preferred when supported without probable Vorbis support',()=>{
+  for(const vorbis of ['','maybe','probably']){
+    const a=fixture({probe:{canPlayType:type=>type.includes('mp4')?'probably':vorbis}}).audio;
+    assert.equal(a.format,vorbis==='probably'?'ogg':'m4a');
+  }
+});
+
+test('interrupted contexts recover through every gesture, visibility and playback path',async()=>{
+  class Context extends FakeContext{resumes=0;async resume(){this.resumes++;await super.resume();this.onstatechange?.();}}
+  const a=fixture({AudioContext:Context}).audio,listeners=new Map(),target={visibilityState:'visible',addEventListener:(name,fn)=>listeners.set(name,fn)};
+  a.installUnlock(target);await a.unlock();
+  const interrupt=()=>{a.context.state='interrupted';a.context.onstatechange();assert.equal(a.unlocked,false);};
+  for(const name of ['pointerdown','touchend','click','visibilitychange']){
+    interrupt();const count=a.context.resumes;listeners.get(name)();await new Promise(r=>setTimeout(r,0));
+    assert.equal(a.context.resumes,count+1);assert.equal(a.unlocked,true);
+  }
+  interrupt();target.visibilityState='hidden';const count=a.context.resumes;listeners.get('visibilitychange')();assert.equal(a.context.resumes,count);
+  assert.equal(await a.play('shoot-carbine'),true);assert.equal(a.unlocked,true);
+  interrupt();assert.equal(await a.voice('nice-shot'),true);assert.equal(a.unlocked,true);
+  interrupt();await a.loop('music','pulse');assert.equal(a.unlocked,true);assert.ok(a.loops.get('music').source.started);
+  // Recover even before WebKit delivers its statechange notification.
+  a.context.state='interrupted';assert.equal(a.unlocked,true);assert.equal(await a.play('shoot-rifle'),true);
+  interrupt();a.context.resume=async()=>{throw Error('blocked');};assert.equal(await a.unlock(),false);assert.equal(a.unlocked,false);
+  a.context.state='running';a.context.onstatechange();assert.equal(a.unlocked,true);
+});
+
+test('unknown shot uses carbine and synthesis errors return false',async()=>{
+  const f=fixture(),a=f.audio;await a.unlock();assert.equal(await a.play('shoot-unknown'),true);
+  const source=a.context.sources.at(-1);assert.equal(source.buffer,a.shotBuffer('carbine',false));
+  near(source.playbackRate.value,config.shots.weapons.carbine.pitch);
+  a.shotBuffer=()=>{throw Error('synthesis');};f.advance(100);assert.equal(await a.play('shoot-unknown'),false);
+});
+
+test('audioSession playback is set when available and a rejected setter is harmless',async()=>{
+  const audioSession={type:'auto'},a=fixture({navigator:{audioSession}}).audio;
+  assert.equal(a.init(),true);assert.equal(audioSession.type,'playback');assert.equal(await a.unlock(),true);
+  const blocked=fixture({navigator:{audioSession:{set type(value){throw Error('unsupported');}}}}).audio;
+  assert.equal(await blocked.unlock(),true);
+});
