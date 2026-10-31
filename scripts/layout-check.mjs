@@ -193,7 +193,7 @@ async function baseRun([w,h]){
     const page=await newPage(w,h);
     await page.goto(BASE+'/index.html',{waitUntil:'load'});await settle(900);
     if(mode==='progressed')await page.evaluate(PROGRESSED);
-    // v2.12.0: every start screen (full flight or lite water) now waits for PLAY -- tap it like a player would.
+    // v2.12.1: every start screen (full flight or lite water) now waits for PLAY -- tap it like a player would.
     if(mode==='fresh'){await page.waitForSelector('#splash-play',{visible:true,timeout:6000}).catch(()=>{});await new Promise(r=>setTimeout(r,2600));await page.evaluate(()=>document.getElementById('splash')?.click());}
     if(mode==='fresh')await page.waitForFunction(()=>{const s=document.getElementById('splash');return !s||!s.isConnected;},{timeout:8000}).catch(e=>fail(`${tag} fresh landing`,`splash never went away: ${String(e).slice(0,60)}`));
     await settle(300);
@@ -522,8 +522,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.12.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.12.0');
+    const {createRound}=await import('./round.js?v=2.12.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.12.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
