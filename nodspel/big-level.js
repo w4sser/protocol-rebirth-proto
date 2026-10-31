@@ -1,24 +1,25 @@
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.13.0';
-// Layout assembly only: all room footprints, cover and objective offsets come from existing rooms.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.13.0';
-import {applyEncounters} from './encounters.js?v=2.13.0';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.13.0';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.14.0';
+// Layout assembly only: expand authored spacing while reusing existing cover pieces.
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.14.0';
+import {applyEncounters} from './encounters.js?v=2.14.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.14.0';
 
 export function generateBigLevel(seed){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
   const level={number:1,seed:String(seed),big:true,graph,title:'Node Network',choiceSide:1,layoutId:'big',rooms,floors:rooms.map(r=>({...r})),walls:[],boxes:[],nodes:[],enemies:[],lootBoxes:[],hazards:[],encounters:[],spawners:[],doors:[],corridors:graph.edges.map(e=>({...e.corridor,roomIds:[e.a,e.b]})),deadEnds:[],routeChoices:[],start:{x:graph.spawn.x,z:graph.spawn.z},exit:graph.extracts[0],extracts:graph.extracts,theme:RULES.variety[0].theme};
   const t=RULES.wallThickness,width=RULES.levels[1].passage;
   for(const room of rooms){
-    // Reuse the existing generator's authored cover, translated without scaling.
+    // Spread authored cover and objectives across the larger footprint; model sizes stay fixed.
     const template=generateLevel(room.id===0?1:3,`${seed}:room:${room.id}`,'bunker',false,false,RULES.layouts[2].find(l=>l.id===room.layoutId)),source=template.rooms[room.id===0?0:room.templateIndex];
-    const move=p=>({...p,x:room.x+p.x-source.x,z:room.z+p.z-source.z,roomId:room.id});
+    const sx=room.w/source.w,sz=room.d/source.d;
+    const move=p=>({...p,x:room.x+(p.x-source.x)*sx,z:room.z+(p.z-source.z)*sz,roomId:room.id});
     for(const box of template.boxes)if(Math.abs(box.x-source.x)<source.w/2&&Math.abs(box.z-source.z)<source.d/2)level.boxes.push(move(box));
     const authored=RULES.layouts[2].find(l=>l.id===room.layoutId),offset=authored?.nodes[room.templateIndex]??RULES.layouts[0][0].nodes[0];
-    const node={id:`big-node-${room.id}`,x:room.x+offset.x,z:room.z+offset.z,r:.8,active:false,roomId:room.id};level.nodes.push(node);
+    const node={id:`big-node-${room.id}`,x:room.x+offset.x*sx,z:room.z+offset.z*sz,r:.8,active:false,roomId:room.id};level.nodes.push(node);
     const enemyOffset=authored?.enemies[room.templateIndex]??RULES.layouts[0][0].enemies[0];
-    const enemy={id:`big-enemy-${room.id}`,kind:'enemy',x:room.x+enemyOffset.x,z:room.z+enemyOffset.z,r:.48,health:RULES.enemyHealth,speed:RULES.levels[0].enemySpeed,type:'grunt',active:true,roomId:room.id};level.enemies.push(enemy);
+    const enemy={id:`big-enemy-${room.id}`,kind:'enemy',x:room.x+enemyOffset.x*sx,z:room.z+enemyOffset.z*sz,r:.48,health:RULES.enemyHealth,speed:RULES.levels[0].enemySpeed,type:'grunt',active:true,roomId:room.id};level.enemies.push(enemy);
     const loot=template.lootBoxes.find(b=>!b.key&&Math.abs(b.x-source.x)<source.w/2-1&&Math.abs(b.z-source.z)<source.d/2-1);
-    const spot=loot?move(loot):{x:room.x-3.4,z:room.z+1.4,roomId:room.id};
+    const spot=loot?move(loot):{x:room.x-3.4*sx,z:room.z+1.4*sz,roomId:room.id};
     level.lootBoxes.push({...spot,id:`big-loot-${room.id}`,item:loot?.item??'salvage_crate',collected:false});
     for(const dir of RULES.directions){
       const isX=!!dir.x,length=isX?room.d:room.w,edge={x:room.x+dir.x*(room.w/2-t/2),z:room.z+dir.z*(room.d/2-t/2)};
@@ -26,7 +27,7 @@ export function generateBigLevel(seed){
       else for(const sign of [-1,1])level.walls.push({x:edge.x+(isX?0:sign*(length+width)/4),z:edge.z+(isX?sign*(length+width)/4:0),w:isX?t:(length-width)/2,d:isX?(length-width)/2:t,h:.85,roomId:room.id});
     }
   }
-  for(const c of level.corridors){level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});for(const sign of [-1,1])level.walls.push({x:c.x+(c.dir.z?sign*(width/2-t/2):0),z:c.z+(c.dir.x?sign*(width/2-t/2):0),w:c.dir.x?c.w:t,d:c.dir.z?c.d:t,h:.85,roomIds:c.roomIds});}
+  for(const c of level.corridors){level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});for(const sign of [-1,1])level.walls.push({x:c.x+(c.dir.z?sign*(width/2+t/2):0),z:c.z+(c.dir.x?sign*(width/2+t/2):0),w:c.dir.x?c.w:t,d:c.dir.z?c.d:t,h:.85,roomIds:c.roomIds});}
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];
     if(poi.type==='bit-signal'){poi.description='BIT SIGNAL: clear this room to choose a perk';continue;}

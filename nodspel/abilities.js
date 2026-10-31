@@ -1,26 +1,33 @@
-// Generic ability slot (HUD button next to the aim stick): one data-driven definition
-// (id, icon, label, cooldownMs, activate) renders the icon + cooldown ring. DASH ships as the
-// default; a later per-character/equipment system swaps in a different definition for the same slot.
-import {svgIcon} from './svg-icons.js?v=2.13.0';
+// One data-driven ability slot next to the aim stick: icon, label, status and charge bar.
+import {svgIcon} from './svg-icons.js?v=2.14.0';
 
-export function createDashAbility(requestDash){
+export function createDashAbility(requestDash,cooldownMs=round=>round.stats.dashCooldownMs){
   return {
-    id:'dash',icon:'dash',label:'Dash',
-    cooldownMs:round=>round.stats.dashCooldownMs,
+    id:'dash',icon:'dash',label:'DASH',readyText:'READY',
+    cooldownMs,
     activate:round=>requestDash(round),
   };
 }
 
-// Paints the slot's icon once (on registration / swap) so the markup stays empty and data-driven.
 export function mountAbility(button,ability){
-  button.replaceChildren(svgIcon(ability.icon));
-  button.setAttribute('aria-label',`${ability.label} ready`);
+  const doc=button.ownerDocument;
+  const icon=doc.createElement('span'),label=doc.createElement('strong'),time=doc.createElement('small'),meter=doc.createElement('span'),fill=doc.createElement('i');
+  icon.setAttribute('aria-hidden','true');icon.append(svgIcon(ability.icon));
+  label.textContent=ability.label;time.id='dash-time';time.textContent=ability.readyText;
+  meter.id='dash-meter';meter.setAttribute('role','progressbar');meter.setAttribute('aria-label',`${ability.label} charge`);
+  meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');meter.setAttribute('aria-valuenow','100');
+  fill.id='dash-fill';meter.append(fill);
+  button.replaceChildren(icon,label,time,meter);
+  button.setAttribute('aria-label',`${ability.label} ${ability.readyText}`);
 }
 
-// Per-frame render: cooldown ring (--charge, 0..1) + disabled state + aria-label. No permanent text block.
-export function renderAbilitySlot(button,ability,charge,remainingMs,unavailable){
-  const ready=charge>=1&&!unavailable;
-  button.disabled=!ready;
-  button.style.setProperty('--charge',charge);
-  button.setAttribute('aria-label',remainingMs>0?`${ability.label} cooldown ${(remainingMs/1000).toFixed(1)} seconds`:`${ability.label} ready`);
+// Charge retains the gameplay readiness check; the displayed bar uses the definition's cooldown.
+export function renderAbilitySlot(button,ability,charge,remainingMs,unavailable,round){
+  const duration=typeof ability.cooldownMs==='function'?ability.cooldownMs(round):ability.cooldownMs;
+  const fill=remainingMs<=0?1:Math.max(0,Math.min(1,1-remainingMs/duration));
+  button.disabled=charge<1||unavailable;
+  button.querySelector('#dash-time').textContent=remainingMs>0?`${(remainingMs/1000).toFixed(1)} s`:ability.readyText;
+  button.querySelector('#dash-meter').setAttribute('aria-valuenow',Math.round(fill*100));
+  button.querySelector('#dash-fill').style.width=`${fill*100}%`;
+  button.setAttribute('aria-label',remainingMs>0?`${ability.label} cooldown ${(remainingMs/1000).toFixed(1)} seconds`:`${ability.label} ${ability.readyText}`);
 }

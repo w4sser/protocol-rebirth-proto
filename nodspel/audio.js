@@ -1,5 +1,5 @@
-import '../data/audio.js?v=2.13.0';
-import '../ui/audio.js?v=2.13.0';
+import '../data/audio.js?v=2.14.0';
+import '../ui/audio.js?v=2.14.0';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
@@ -10,7 +10,8 @@ export function audioEvent(name,detail={}){
   switch(name){
     case 'start':rarePicked=false;kills=0;lastCountdown=null;audio.stop();audio.music();break;
     case 'stop':audio.stop();break;
-    case 'shoot':case 'reload':case 'empty':void audio.play(name+'-'+weapon);break;
+    case 'shoot':void audio.play(name+'-'+weapon,{enemy:!!detail.enemy});break;
+    case 'reload':case 'empty':void audio.play(name+'-'+weapon);break;
     case 'impact':void audio.play('impact-'+(detail.enemy?'enemy':'wall'));break;
     case 'hit':void audio.play('hit-'+type);break;
     case 'kill':void audio.play('death-'+type);void audio.play('kill');if(++kills%config.killStreak===0)void audio.voice('nice-shot');break;
