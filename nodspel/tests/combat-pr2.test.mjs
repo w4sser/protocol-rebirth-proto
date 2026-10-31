@@ -1,3 +1,4 @@
+import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,takeDamage,tickRound,enterExit,hitEnemy,extractRound} from '../round.js';
@@ -7,7 +8,7 @@ import {createBIT,stepBIT} from '../bit.js';
 import {createDash} from '../dash.js';
 import {cards,perkState,ownRooms,updateClears,offer,choosePerk,safePick,recap,logCombat,deathLine,pausePick,resumePick,gameTime,dashInterval,reloadInterval} from '../perks.js';
 const point={x:0,z:0},foe=(id,x=0)=>({id,kind:'enemy',aggro:true,facing:0,type:'grunt',x,z:0,r:.48,health:2,active:true});
-function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});return r;}
+function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});perkState(r).clearCount=1;return r;}
 function select(r,id,index=0){const s=perkState(r),key=`${r.level.number}:${index}`;s.rooms[key]={state:'rewardPending',level:r.level.number,index,offer:[id]};s.queue.push(key);return choosePerk(r,key,id,100,createDash());}
 
 test('room clear uses original ownership, excludes inactive reserves and generator, rewards once',()=>{
@@ -43,7 +44,7 @@ test('all six offers have three distinct untaken cards, stable across reopening'
 });
 test('a minimized presented offer cannot be invalidated by a later clear in an earlier room',()=>{
   const r=arena();r.level.enemies[1].health=0;updateClears(r,{x:20,z:0});const before=offer(r,'1:1');perkState(r).minimized='1:1';
-  r.level.enemies[0].health=0;updateClears(r,point);assert.deepEqual(perkState(r).queue,['1:1','1:0']);assert.deepEqual(offer(r,'1:1'),before);
+  perkState(r).clearCount++;r.level.enemies[0].health=0;updateClears(r,point);assert.deepEqual(perkState(r).queue,['1:1','1:0']);assert.deepEqual(offer(r,'1:1'),before);
   assert.ok(choosePerk(r,'1:1',before[0],100));assert.ok(offer(r,'1:0').every(id=>id!==before[0]));
 });
 test('full paused clock freezes deadline, enemies, hazards, weapon and BIT including long hidden tab',()=>{
@@ -98,6 +99,6 @@ test('ordinary enemies and hazards record stable source metadata and truthful de
 });
 test('last clear before exit auto-picks and secures the terminal bag',()=>{
   const r=arena();r.level.number=3;r.level.exitArmed=true;r.bag.cable=1;r.level.enemies[0].health=0;
-  assert.equal(enterExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
+  assert.equal(holdExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
 
 });

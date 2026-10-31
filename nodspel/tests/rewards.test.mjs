@@ -1,3 +1,4 @@
+import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,activateNode,enterExit} from '../round.js';
@@ -50,7 +51,7 @@ test('matching low-resource runs reach level two with more health and ammo after
     const foe=r.level.enemies[0];foe.x=3;foe.z=0;foe.health=1;
     fireWeapon(w,{x:0,z:0},{x:fight?1:-1,z:0},0);w.ammo=0;
     stepWeapon(w,r,100,.3,[]);
-    assert.equal(enterExit(r,r.level.exit,101),'next');
+    assert.equal(holdExit(r,r.level.exit,101),'next');
     assert.equal(r.level.number,2);results.push({health:r.health,ammo:w.ammo});
   }
   assert.equal(results[1].health-results[0].health,RULES.killReward.health);

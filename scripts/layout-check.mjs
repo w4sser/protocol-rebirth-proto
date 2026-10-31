@@ -352,6 +352,12 @@ async function raidRun([w,h],area){
     await page.evaluate(n=>window.__NR.goLevel(n),level);await settle(1800);
     if(await page.$eval('.perk-overlay',e=>!e.hidden))fail(ctx,'unexpected perk modal during gameplay layout');
     await report(page,ctx,'.stick,#reset,#open-bag');
+    if(await page.$eval('#pause-map',el=>el.offsetHeight>0))fail(ctx,'pause map visible in raid HUD');
+    await page.evaluate(()=>{window.__NR.openExit();const e=window.__NR.state().level.exit;window.__NR.teleport(e.x,e.z);});
+    await page.waitForSelector('#hold-extract',{visible:true});
+    await report(page,`${ctx} hold extract`,'#hold-extract,.stick,#dash,#tool-btn,#ammo-hud,#use-kit');
+    await page.evaluate(()=>{const p=window.__NR.state().level.start;window.__NR.teleport(p.x,p.z);});
+
     const dashPlacement=await page.evaluate(()=>{
       const d=document.querySelector('#dash').getBoundingClientRect(),v=document.querySelector('#viewport').getBoundingClientRect(),m=document.querySelector('#move-stick').getBoundingClientRect();
       const R=q=>{const e=document.querySelector(q);if(!e||!e.getClientRects().length)return null;const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
@@ -565,8 +571,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.17.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.17.0');
+    const {createRound}=await import('./round.js?v=2.18.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.18.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -634,7 +640,27 @@ async function perkPopupRun([w,h]){
   await shot(page,`perk-death-${w}x${h}`);await page.close();
 }
 
+async function pauseMapRun([w,h]){
+  const tag=`raid pause map ${w}x${h}`,page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=pause-map&debug=1&area=archipelago&levels=big`,{waitUntil:'load'});
+  await loaderGone(page);await page.waitForSelector('#tutorial-start',{visible:true});await page.click('#tutorial-start');
+  await page.waitForFunction('window.__NR');await settle(500);
+  const hud=await page.evaluate(()=>({map:document.querySelector('#big-level-minimap').getClientRects().length,
+    archipelago:window.__NR.state().level.archipelago}));
+  if(hud.map)fail(tag,'minimap is visible in the raid HUD');
+  if(!hud.archipelago)fail(tag,'big Archipelago level fell back to bunker environment');
+  await page.evaluate(()=>window.__NR.openSettings());await settle(100);
+  await report(page,tag);
+  const map=await page.evaluate(()=>{
+    const el=document.querySelector('#big-level-minimap'),r=el.getBoundingClientRect(),card=el.closest('.pop-card').getBoundingClientRect();
+    return {width:r.width,height:r.height,inside:r.left>=card.left&&r.right<=card.right&&r.top>=card.top&&r.bottom<=card.bottom};
+  });
+  if(map.width<160||map.height<150||!map.inside)fail(tag,'pause map is too small or outside the shared popup');
+  await shot(page,`pause-map-${w}x${h}`);await page.close();
+}
+
 try{
+  for(const vp of VIEWPORTS)await pauseMapRun(vp);
   for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
   for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);

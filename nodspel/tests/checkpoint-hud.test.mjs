@@ -1,3 +1,4 @@
+import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as hud from '../hud.js';
@@ -6,7 +7,7 @@ import {createRound,activateNode,enterExit,tickRound} from '../round.js';
 test('checkpoint keeps the completed level and lit nodes until continuing',()=>{
   const r=createRound('c8dbc438-3',0);
   activateNode(r,r.level.nodes[0].id,1000);
-  enterExit(r,r.level.exit,2000);
+  holdExit(r,r.level.exit,2000);
   assert.equal(typeof hud.displayLevel,'function');
   const displayed=hud.displayLevel(r,true);
   assert.equal(displayed.number,1);

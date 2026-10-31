@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.17.0';
-import {heal} from './stakes.js?v=2.17.0';
-import {RULES} from './levels.js?v=2.17.0';
+import '../data/raid-perks.js?v=2.18.0';
+import {heal} from './stakes.js?v=2.18.0';
+import {RULES} from './levels.js?v=2.18.0';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -57,6 +57,8 @@ export function updateClears(round,position){
     // Dormant reserves count only after activation, just as they do when blocking a clear.
     const roomEnemies=round.level.enemies.filter(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false);
     if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){
+      s.clearCount=(s.clearCount??0)+1;
+      if(s.clearCount%PERKS.clearsPerOffer){r.state='cleared';cleared.push(key);continue;}
       r.state='clearPending';r.clearedAt=Math.max(...roomEnemies.map(e=>e.diedAt??round.gameNow??0));cleared.push(key);
       // A presented/minimized offer keeps its place: later clears must not invalidate its three cards.
       const presented=s.rooms[s.queue[0]]?.state==='rewardPending'?s.queue.shift():null;
@@ -78,7 +80,8 @@ export function safePick(round,combat,position,now,hazardState){
 // Perk picker timing (docs/design-combat-feel-oct28.md §2.1.1): the room must be safePick()-safe continuously
 // for calmMs before opening, and killDelayMs must have elapsed since the room's last kill. The raid
 // timer keeps running throughout this wait; only openPerk() -> pausePick() actually freezes the game clock.
-export function pickReady(round,combat,position,now,hazardState){
+export function pickReady(round,combat,position,now,hazardState,readoutVisible=false){
+  if(readoutVisible)return null;
   const s=perkState(round),key=safePick(round,combat,position,now,hazardState);
   if(!key){s.calmSince=null;s.calmKey=null;return null;}
   const room=s.rooms[key],lastKillAt=Math.max(room.clearedAt??now,room.lastKillAt??0);

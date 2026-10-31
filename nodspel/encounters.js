@@ -1,4 +1,4 @@
-import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.17.0';
+import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.18.0';
 // Encounters (docs/design-encounters-toolkit.md §1, PR C): one named problem per level, placed in the
 // existing seeded rooms. This file is the pure part: placement + small geometry helpers. The live behaviour
 // (guard turning, patrol sight, swarm spawn) runs in combat.js, hit rules in round.js, visuals in world.js.
@@ -13,9 +13,9 @@ import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.17.0';
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.17.0';
-import {traceTargets} from './physics.mjs?v=2.17.0';
-import {detectionMultiplier} from './stakes.js?v=2.17.0';
+import {RULES} from './levels.js?v=2.18.0';
+import {traceTargets} from './physics.mjs?v=2.18.0';
+import {detectionMultiplier} from './stakes.js?v=2.18.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','shield_turret','patrol','swarm','shield','door','grenadier'];

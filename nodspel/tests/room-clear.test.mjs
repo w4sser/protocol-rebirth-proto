@@ -1,7 +1,8 @@
+import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.17.0';
+import {setArea} from '../levels.js?v=2.18.0';
 import {perkState,updateClears,ownRooms,safePick,offer,choosePerk} from '../perks.js';
 
 const point={x:0,z:0};
@@ -11,7 +12,7 @@ const pickAt=(r,p)=>safePick(r,idleCombat,p,100,()=> 'off');
 function arena(enemies){
   const r=createRound('room-clear',0);
   Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies,nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});
-  return r;
+  perkState(r).clearCount=1;return r;
 }
 
 test('a room that never had an enemy never triggers room clear or a perk offer',()=>{
@@ -22,7 +23,7 @@ test('a room that never had an enemy never triggers room clear or a perk offer',
   updateClears(r,point);updateClears(r,{x:20,z:0});updateClears(r,point);
   assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
   assert.equal(pickAt(r,point),null);
-  assert.equal(enterExit(r,point,100),'next','the exit opens straight to the next level, never pausing on a perk offer');
+  assert.equal(holdExit(r,point,100),'next','the exit opens straight to the next level, never pausing on a perk offer');
 });
 
 test('a room with enemies triggers room clear exactly once after all of them die',()=>{
@@ -56,7 +57,7 @@ test('a room whose only enemy is a dormant reserve clears only once it activates
 for(const area of ['bunker','archipelago'])test(`${area}: normal round loading and exit progression grant no perk before the L2 start reserve activates and dies`,()=>{
   setArea(area);
   try{
-  const r=createRound('reserves',0);
+  const r=createRound('reserves',0);perkState(r).clearCount=1;
   assert.equal(r.level.area??'bunker',area);
   updateClears(r,r.level.start);
   assert.deepEqual(perkState(r).queue,[],'generated L1 starts with living enemies, not a free clear');
@@ -67,7 +68,7 @@ for(const area of ['bunker','archipelago'])test(`${area}: normal round loading a
   updateClears(r,r.level.start);
   const first=pickAt(r,r.level.start);assert.equal(first,'1:0');
   assert.ok(choosePerk(r,first,offer(r,first)[0],200));
-  assert.equal(enterExit(r,r.level.exit,300),'next');assert.equal(r.level.number,2);
+  assert.equal(holdExit(r,r.level.exit,300),'next');perkState(r).clearCount++;assert.equal(r.level.number,2);
   ownRooms(r.level);
   const room=r.level.rooms[0],p={x:room.x,z:room.z};
   const roomEnemies=r.level.enemies.filter(e=>e.homeRoom===0&&e.type!=='generator');

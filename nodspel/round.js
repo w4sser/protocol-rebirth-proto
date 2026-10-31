@@ -1,14 +1,14 @@
-import {rusherBackBonus} from './enemies.js?v=2.17.0';
-import {extractAvailable} from './big-level.js?v=2.17.0';
-import {rarityOf} from './rarity.js?v=2.17.0';
-import {audioEvent} from './audio.js?v=2.17.0';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.17.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.17.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.17.0';
-import {emptyBag,bagItems} from './raid.js?v=2.17.0';
-import {traceTargets} from './physics.mjs?v=2.17.0';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.17.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.17.0';
+import {rusherBackBonus} from './enemies.js?v=2.18.0';
+import {extractAvailable} from './big-level.js?v=2.18.0';
+import {rarityOf} from './rarity.js?v=2.18.0';
+import {audioEvent} from './audio.js?v=2.18.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.18.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.18.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.18.0';
+import {emptyBag,bagItems} from './raid.js?v=2.18.0';
+import {traceTargets} from './physics.mjs?v=2.18.0';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.18.0';
+import {STAKES,createStakesState,heal,healRemaining} from './stakes.js?v=2.18.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -334,7 +334,7 @@ export function abandonRound(round,now){
   loseBag(round);round.nodeInteraction=null;round.over=true;round.reason='abandon';resetPerks(round);return true;
 }
 export function exitIsOpen(round) {
-  return !round.over && (round.level.big || round.level.nodes.every(n=>n.active));
+  return !round.over && (round.level.big ? round.level.extracts.some(e=>extractAvailable(e,round)) : round.level.nodes.every(n=>n.active));
 }
 export function activateNode(round,id,now) {
   tickRound(round,now);
@@ -346,21 +346,25 @@ export function activateNode(round,id,now) {
   for(const enemy of round.level.enemies)if(enemy.active===false&&!enemy.swarm){enemy.active=true;enemy.spawnedAt=now;}
   return true;
 }
-export function enterExit(round,position,now) {
+export function exitAt(round,position){
+  if(!exitIsOpen(round))return null;
+  return (round.level.big?round.level.extracts:[round.level.exit]).find(e=>Math.hypot(position.x-e.x,position.z-e.z)<=e.r&&(!round.level.big||extractAvailable(e,round)))??null;
+}
+export function enterExit(round,position,now,holding=false) {
   tickRound(round,now);
-  if(round.pauseAt!=null||round.cleared || !exitIsOpen(round))return null;
+  const exit=exitAt(round,position),id=exit?.id??'level-exit';
+  if(round.pauseAt!=null||round.cleared||!exit||!holding){round.extractHold=null;return null;}
+  if(round.extractHold?.id!==id)round.extractHold={id,startedAt:now,progress:0};
+  round.extractHold.progress=Math.min(1,(now-round.extractHold.startedAt)/STAKES.extractHoldMs);
+  if(round.extractHold.progress<1)return null;
+  round.extractHold=null;
   if(round.level.big){
-    const extract=round.level.extracts.find(e=>Math.hypot(position.x-e.x,position.z-e.z)<=e.r&&extractAvailable(e,round));
-    if(!extract)return null;
+    const extract=exit;
     updateClears(round,position);autoPickPerks(round,now,undefined,{all:true});
     round.levelsCleared=Math.max(1,round.levelsCleared);round.exitLoot=bagItems(round.bag);round.nodeInteraction=null;
     secureBag(round);round.cleared=true;round.over=true;round.reason='extract';round.extractionId=extract.id;resetPerks(round);return 'complete';
   }
-  const inZone=Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)<=round.level.exit.r;
-  // Final level: once the nodes are done the extract stays open and the raid goes on (timer + risk) until the
-  // player deliberately walks INTO the zone; being inside when it opens does not count.
-  if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
-  else if(!inZone)return null;
+  // The bag remains at risk until the explicit hold completes.
   updateClears(round,position);
   autoPickPerks(round,now,undefined,{all:true});
   round.perkExitPending=false;

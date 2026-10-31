@@ -137,7 +137,7 @@ test('base settings UI changes persisted volumes and unlocks quiet music',async(
   const range=w.document.querySelector('[aria-label="Music volume"]');range.value='.23';range.dispatchEvent(new w.Event('input',{bubbles:true}));
   assert.equal(w.PR_AUDIO.settings.music,.23);assert.equal(JSON.parse(w.localStorage.getItem(config.storageKey)).music,.23);
   const close=w.document.querySelector('#settings-close');assert.equal(close.parentElement.id,'settings-menu');assert.ok(!close.closest('.audio-menu-body'));
-  w.document.dispatchEvent(new w.Event('pointerdown'));await new Promise(r=>setTimeout(r,0));
+  w.dispatchEvent(new w.Event('touchend'));await new Promise(r=>setTimeout(r,0));
   assert.equal(w.PR_AUDIO.unlocked,true);assert.equal(w.PR_AUDIO.loops.get('music').name,'pulse');
   const mute=w.document.querySelector('.audio-settings input[type=checkbox]');mute.checked=false;mute.dispatchEvent(new w.Event('change'));
   assert.equal(w.PR_AUDIO.settings.muted,true);near(w.PR_AUDIO.buses.master.gain.value,0);
@@ -322,7 +322,7 @@ test('interrupted contexts recover through every gesture, visibility and playbac
   const a=fixture({AudioContext:Context}).audio,listeners=new Map(),target={visibilityState:'visible',addEventListener:(name,fn)=>listeners.set(name,fn)};
   a.installUnlock(target);await a.unlock();
   const interrupt=()=>{a.context.state='interrupted';a.context.onstatechange();assert.equal(a.unlocked,false);};
-  for(const name of ['pointerdown','touchend','click','visibilitychange']){
+  for(const name of ['pointerup','touchend','click','keydown','visibilitychange']){
     interrupt();const count=a.context.resumes;listeners.get(name)();await new Promise(r=>setTimeout(r,0));
     assert.equal(a.context.resumes,count+1);assert.equal(a.unlocked,true);
   }
@@ -343,9 +343,22 @@ test('unknown shot uses carbine and synthesis errors return false',async()=>{
   a.shotBuffer=()=>{throw Error('synthesis');};f.advance(100);assert.equal(await a.play('shoot-unknown'),false);
 });
 
-test('audioSession playback is set when available and a rejected setter is harmless',async()=>{
+test('audioSession is left unchanged and no media playback session is requested',async()=>{
   const audioSession={type:'auto'},a=fixture({navigator:{audioSession}}).audio;
-  assert.equal(a.init(),true);assert.equal(audioSession.type,'playback');assert.equal(await a.unlock(),true);
+  assert.equal(a.init(),true);assert.equal(audioSession.type,'auto');assert.equal(await a.unlock(),true);
   const blocked=fixture({navigator:{audioSession:{set type(value){throw Error('unsupported');}}}}).audio;
   assert.equal(await blocked.unlock(),true);
+});
+
+ test('activation listeners capture on window and resume synchronously before handler returns',()=>{
+  const registrations=new Map();let resumed=false;
+  class Context extends FakeContext{resume(){resumed=true;this.state='running';return Promise.resolve();}}
+  const a=fixture({AudioContext:Context}).audio;
+  const window={addEventListener:(name,fn,options)=>registrations.set(name,{fn,options}),document:{addEventListener(){}}};
+  a.installUnlock(window);
+  for(const name of ['touchend','click','keydown','pointerup']){
+    assert.equal(registrations.get(name).options.capture,true);
+    a.init();a.context.state='suspended';a.unlocked=false;resumed=false;
+    registrations.get(name).fn();assert.equal(resumed,true,name+' resumes in the activation stack');
+  }
 });

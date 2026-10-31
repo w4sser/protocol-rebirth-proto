@@ -3,7 +3,7 @@
   root.DATA=root.DATA||{};
   const sfx={};
   const add=(names,gain=0.5,minGap=0)=>names.split(' ').forEach(name=>sfx[name]={file:'sfx/'+name,gain,minGap});
-  add('shoot-carbine shoot-smg shoot-shotgun shoot-rifle',0.55,40);
+  add('shoot-carbine shoot-smg shoot-shotgun shoot-rifle',0.82,40);
   add('reload-carbine reload-smg reload-shotgun reload-rifle empty-carbine empty-smg empty-shotgun empty-rifle',0.35,180);
   add('impact-enemy impact-wall kill medkit dash perk-open perk-select ui-tap ui-back ui-confirm bag-full extract-countdown extract-success death',0.45,100);
   add('hit-grunt hit-rusher hit-thrower hit-tank hit-turret hit-generator death-grunt death-rusher death-thrower death-tank death-turret death-generator',0.35,160);
@@ -15,9 +15,9 @@
     duckDb:-6,duckAttack:0.04,duckRelease:0.25,
     pitchVariation:0.035,gainVariation:0.08,globalVoiceCooldownMs:12000,
     shots:{
-      duration:.32,attack:.0005,fade:.015,crackDecay:.009,bodyDecay:.045,tailDecay:.075,
-      highpassHz:1400,bodyHz:1800,tailHz:650,thumpStartHz:120,thumpEndHz:45,thumpDrop:.025,thumpDecay:.065,
-      crackGain:1.1,bodyGain:.65,thumpGain:.85,tailGain:.22,drive:1.45,ceiling:.86,
+      duration:.32,attack:.0005,fade:.015,crackDecay:.007,bodyDecay:.055,tailDecay:.075,
+      highpassHz:1400,bodyHz:1800,tailHz:650,thumpStartHz:150,thumpEndHz:40,thumpDrop:.035,thumpDecay:.12,
+      crackGain:1.3,bodyGain:.8,thumpGain:1.4,tailGain:.22,drive:1.65,ceiling:.86,
       echoes:[{delay:.034,gain:.15},{delay:.071,gain:.07}],
       enemyGain:.46,enemyCrack:.5,enemyThump:.55,
       compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08},

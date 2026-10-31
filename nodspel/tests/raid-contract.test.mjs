@@ -1,3 +1,4 @@
+import {holdExit} from './exit-helpers.mjs';
 // File contract is paused with the commented integration.
 /*
 import test from 'node:test';
@@ -21,7 +22,7 @@ test('exit returns carried cable, weapon and remaining finite ammo; death return
   r.level.lootBoxes[0].item='cable';collectLoot(r,r.level.lootBoxes[0],1);
   fireWeapon(w,{x:0,z:0},{x:0,z:-1},2);
   for(const n of r.level.nodes)activateNode(r,n.id,3);
-  enterExit(r,r.level.exit,4);
+  holdExit(r,r.level.exit,4);
   assert.deepEqual(api.raidResult(r,w,'extraction'),{extracted:['cable'],lost:[],died:false,weaponReturned:'basic_carbine',ammoReturned:11,seen:'industrial'});
   r.level.lootBoxes[0].item='cable';collectLoot(r,r.level.lootBoxes[0],5);takeDamage(r,100,6);
   assert.deepEqual(api.raidResult(r,w,'death'),{extracted:[],lost:['cable'],died:true,weaponReturned:null,ammoReturned:0,seen:'industrial'});
