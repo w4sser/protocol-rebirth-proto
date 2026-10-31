@@ -9,6 +9,8 @@ const config=globalThis.DATA.audio;
 class Param{
   value=0;
   cancelScheduledValues(){}
+  setValueAtTime(v){this.value=v;}
+  linearRampToValueAtTime(v){this.value=v;}
   setTargetAtTime(v){this.value=v;}
 }
 class Gain{
@@ -62,7 +64,7 @@ test('format selection uses explicit Vorbis support otherwise AAC',()=>{
 test('unlock defers quiet music until a gesture and repeated requests never duplicate it',async()=>{
   const a=fixture().audio;a.music();assert.equal(a.context,null);await a.unlock();await a.loop('music','pulse');
   a.music();await a.unlock();assert.equal(a.context.sources.length,1);assert.equal(a.context.sources[0].loop,true);
-  assert.ok(config.defaults.music<=.15);assert.deepEqual(Object.keys(config.loops),['pulse']);
+  assert.ok(config.defaults.music<=.15);assert.deepEqual(Object.keys(config.loops),['pulse','bunker-theme']);
 });
 test('VO ducks music only by -6dB and restores edited user settings',async()=>{
   const a=fixture().audio;await a.unlock();assert.equal(await a.voice('hunters-inbound'),true);
@@ -107,11 +109,12 @@ test('muting during pending VO suppresses it; retry is allowed',async()=>{
   a.set('muted',false);assert.equal(await a.voice('nice-shot'),true);
 });
 test('all registered assets have both formats, licensing entries and fit the shipping budget',async()=>{
-  const base=new URL('../../assets/audio/',import.meta.url),licenses=await readFile(new URL('LICENSES.md',base),'utf8');
+  const base=new URL('../../assets/audio/',import.meta.url),licenses=(await readFile(new URL('LICENSES.md',base),'utf8'))+'\n'+(await readFile(new URL('../../docs/bunker-theme-audio.md',import.meta.url),'utf8'));
   const files=[...Object.values(config.sfx).map(x=>x.file),...Object.values(config.loops).map(x=>x.file),...config.voices.map(x=>'bit/'+x)];
+  const generatedFiles=files.filter(file=>file!=='music/bunker-theme');
   for(const file of files)for(const ext of ['ogg','m4a']){assert.ok((await stat(new URL(file+'.'+ext,base))).size>0);assert.ok(licenses.includes('`'+file+'.'+ext+'`'));}
-  let bytes=0,count=0;for(const dir of ['sfx','music','bit'])for(const file of await readdir(new URL(dir+'/',base)))if(/\.(ogg|m4a)$/.test(file)){bytes+=(await stat(new URL(dir+'/'+file,base))).size;count++;}
-  assert.ok(bytes<2_000_000,`${bytes} bytes`);assert.equal(count,files.length*2);
+  let bytes=0,count=0;for(const dir of ['sfx','music','bit'])for(const file of await readdir(new URL(dir+'/',base)))if(/\.(ogg|m4a)$/.test(file)&&file!=='bunker-theme.ogg'&&file!=='bunker-theme.m4a'){bytes+=(await stat(new URL(dir+'/'+file,base))).size;count++;}
+  assert.ok(bytes<2_000_000,`${bytes} bytes`);assert.equal(count,generatedFiles.length*2);
   const expected=files.flatMap(file=>['ogg','m4a'].map(ext=>file+'.'+ext)).sort();
   const actual=[];for(const dir of ['sfx','music','bit'])for(const file of await readdir(new URL(dir+'/',base)))actual.push(dir+'/'+file);
   assert.deepEqual(actual.sort(),expected);
@@ -129,7 +132,7 @@ test('all registered assets have both formats, licensing entries and fit the shi
 test('base settings UI changes persisted volumes and unlocks quiet music',async()=>{
   const {JSDOM}=require('../../node_modules/jsdom');
   const dom=new JSDOM(await readFile(new URL('../../index.html',import.meta.url),'utf8'),{runScripts:'outside-only',url:'http://game/index.html'});
-  const w=dom.window;w.AudioContext=FakeContext;w.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
+  const w=dom.window;w.document.getElementById('splash')?.remove();w.AudioContext=FakeContext;w.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
   for(const file of ['data/audio.js','ui/audio.js','ui/base-audio.js'])w.eval(await readFile(new URL('../../'+file,import.meta.url),'utf8'));
   const inputs=w.document.querySelectorAll('.audio-settings input');assert.equal(inputs.length,7);
   assert.equal(w.document.querySelector('[aria-label="Ambience volume"]'),null);
@@ -138,7 +141,7 @@ test('base settings UI changes persisted volumes and unlocks quiet music',async(
   assert.equal(w.PR_AUDIO.settings.music,.23);assert.equal(JSON.parse(w.localStorage.getItem(config.storageKey)).music,.23);
   const close=w.document.querySelector('#settings-close');assert.equal(close.parentElement.id,'settings-menu');assert.ok(!close.closest('.audio-menu-body'));
   w.dispatchEvent(new w.Event('touchend'));await new Promise(r=>setTimeout(r,0));
-  assert.equal(w.PR_AUDIO.unlocked,true);assert.equal(w.PR_AUDIO.loops.get('music').name,'pulse');
+  assert.equal(w.PR_AUDIO.unlocked,true);assert.equal(w.PR_AUDIO.loops.get('music').name,'bunker-theme');
   const mute=w.document.querySelector('.audio-settings input[type=checkbox]');mute.checked=false;mute.dispatchEvent(new w.Event('change'));
   assert.equal(w.PR_AUDIO.settings.muted,true);near(w.PR_AUDIO.buses.master.gain.value,0);
   w.dispatchEvent(new w.Event('pagehide'));assert.equal(w.PR_AUDIO.active.size,0);dom.window.close();

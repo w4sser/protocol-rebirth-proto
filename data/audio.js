@@ -28,7 +28,8 @@
     rareTiers:['rare','epic','legendary'],
     weaponClasses:{basic_carbine:'carbine',smg_vector:'smg',shotgun_breach:'shotgun',rifle_marksman:'rifle'},
     enemyTypes:{grunt:'grunt',rusher:'rusher',thrower:'thrower',tank:'tank',turret:'turret',generator:'generator',guard:'tank',sentry:'turret'},
-    loops:{pulse:{file:'music/pulse',bus:'music',gain:0.3}},
+    startTheme:'bunker-theme', // Start screen plays the bunker theme and carries it into the base without restart.
+    loops:{pulse:{file:'music/pulse',bus:'music',gain:0.3},'bunker-theme':{file:'music/bunker-theme',bus:'music',gain:0.5}},
     voices:['hunters-inbound','scrap-detected','heal-budget-low','extraction-marked','bag-heavy','nice-shot','signal-lost','welcome-back'],sfx
   };
 })(typeof window!=='undefined'?window:globalThis);

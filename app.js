@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.18.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.19.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
@@ -4424,6 +4424,8 @@ window.A = {
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
+    if(session.raidNavigating)return;
+    session.raidNavigating=true;
     void window.PR_AUDIO?.unlock();
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
     const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
@@ -4439,7 +4441,12 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind });
+    const navigate = () => {
+      try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
+      finally{ session.raidNavigating=false; }
+    };
+    if(window.PR_AUDIO_RAID_ENTRY) void window.PR_AUDIO_RAID_ENTRY().then(navigate); else navigate();
   },
   deploy(){
     if(!session.prep) return;
@@ -5258,10 +5265,12 @@ function setupSplash(flightPending){
     document.removeEventListener("visibilitychange", onVisibility);
     sp.remove();
     flightCtl?.dispose();
+    window.dispatchEvent(new window.Event('pr:splash-finished'));
   };
   const begin = () => {
     if(phase !== "ready") return;
     phase = "descending"; clearTimeout(autoTimer);
+    void window.PR_AUDIO_PLAY?.();
     sp.setAttribute("aria-label", "Skip bunker entrance");
     if(reduced()){
       sp.classList.add("out"); endTimer = setTimeout(finish, 200);
@@ -5323,44 +5332,15 @@ function setupSplash(flightPending){
     },
   };
 }
-// v2.12.1: lightweight start-screen water for Low quality / no WebGL2 (e.g. iPhone on Low): canvas 2D only,
-// 1x pixel ratio, ~30 fps, a few dozen moonlit glints and slow swell bands over the lower part of the splash art.
-// Same contract as start-scene.js's mountStartFlight: {dispose, land(cb)}; reduced motion draws one still frame.
+// Low quality / no WebGL2: the static Nordic dusk CSS gradient needs no canvas.
+// Keep the same disposal/landing contract as the enhanced scene.
 function mountLiteWater(host){
-  const c = document.createElement("canvas"); c.className = "splash-lite-water";
-  c.style.cssText = "position:absolute;left:0;right:0;bottom:0;width:100%;height:46%;display:block;pointer-events:none;";
-  host.appendChild(c);
-  const g = c.getContext("2d"); if(!g){ c.remove(); return null; }
-  const still = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  let raf = 0, last = 0, t0 = performance.now(), dead = false;
-  const glints = Array.from({length:42}, (_, i) => ({x:((i * 0.6180339) % 1), y:Math.pow(((i * 0.7548776) % 1), 1.6), p:i * 1.7, w:6 + (i % 5) * 4}));
-  const size = () => { const w = Math.max(1, Math.round(c.clientWidth || host.clientWidth || 320)), h = Math.max(1, Math.round(c.clientHeight || 160)); if(c.width !== w || c.height !== h){ c.width = w; c.height = h; } };
-  const draw = now => {
-    size(); const w = c.width, h = c.height, t = (now - t0) / 1000;
-    g.clearRect(0, 0, w, h);
-    const fade = g.createLinearGradient(0, 0, 0, h); fade.addColorStop(0, "rgba(7,21,28,0)"); fade.addColorStop(1, "rgba(7,21,28,.35)");
-    g.fillStyle = fade; g.fillRect(0, 0, w, h);
-    for(let b = 0; b < 7; b++){ // slow swell bands
-      const y = h * (0.18 + b * 0.12) + Math.sin(t * 0.6 + b * 1.3) * (2 + b);
-      g.strokeStyle = "rgba(117,207,204," + (0.05 + b * 0.012).toFixed(3) + ")"; g.lineWidth = 1 + b * 0.35; g.beginPath();
-      for(let x = 0; x <= w; x += 16){ const yy = y + Math.sin(x * 0.018 + t * (0.9 + b * 0.1) + b) * (1.5 + b * 0.6); if(x) g.lineTo(x, yy); else g.moveTo(x, yy); }
-      g.stroke();
-    }
-    for(const s of glints){ // moonlit glints
-      const a = Math.max(0, Math.sin(t * 1.4 + s.p)) * (0.25 + 0.5 * s.y), x = ((s.x + t * 0.004 * (1 + s.y)) % 1) * w, y = h * (0.1 + s.y * 0.85);
-      if(a < 0.02) continue; g.fillStyle = "rgba(220,240,235," + a.toFixed(3) + ")"; g.fillRect(x, y, s.w * (0.6 + s.y), 1 + s.y * 1.5);
-    }
-  };
-  const frame = now => { if(dead) return; raf = requestAnimationFrame(frame); if(now - last < 33) return; last = now; draw(now); };
-  if(still) draw(t0); else raf = requestAnimationFrame(frame);
-  return {
-    dispose(){ dead = true; cancelAnimationFrame(raf); c.remove(); },
-    land(cb){ cb(); },
-  };
+  return {dispose(){},land(cb){cb();}};
 }
 /* ---------- init ---------- */
 // ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
+  window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }

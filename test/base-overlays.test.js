@@ -54,7 +54,7 @@ assert.equal(doc.getElementById("menu-version").textContent, doc.getElementById(
   assert(!d.getElementById("overlay") && !d.querySelector(".bpop"), "popups closed on screen change");
   assert(d.getElementById("settings-menu").hidden, "menu closed on screen change");
   assert(/closeAllPopups\(\);\s*session\.screenEnterTs/.test(fs.readFileSync(path + "/app.js", "utf8")), "A.go closes popups");
-  assert(/closeAllPopups\(\);\s*\(window\.PR_NAVIGATE/.test(fs.readFileSync(path + "/app.js", "utf8")), "deploy closes popups");
+  assert(/closeAllPopups\(\);\s*const raidUrl = coreLaunchUrl/.test(fs.readFileSync(path + "/app.js", "utf8")), "deploy closes popups");
   assert(d.getElementById("app-version").closest("#topbar"), "version label sits in the top bar, never over the bottom bar"); }
 // consistent BACK top-left; popups use only the shared top-left X (POP_X, v1.45); bottom bar hidden under a popup
 { const A = w.A, d = w.document, app = fs.readFileSync(path + "/app.js", "utf8");
