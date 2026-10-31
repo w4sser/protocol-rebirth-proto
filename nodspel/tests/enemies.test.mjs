@@ -199,7 +199,7 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   const pa=a.enemyModel.parts,pb=b.enemyModel.parts;
   assert.equal(pa.cannon.geometry,pb.cannon.geometry);assert.equal(pa.cannon.material,pb.cannon.material);
   assert.notEqual(pa.shield_arc.material,pb.shield_arc.material);
-  animateEnemyModel(a,100);assert.equal(pa.turret_head_pivot.rotation.z,.7);
+  animateEnemyModel(a,100);assert.equal(pa.turret_head_pivot.rotation.z,0); // body group carries facing
   a.enemy.shieldDownUntil=400;animateEnemyModel(a,200);assert.equal(pa.shield_arc.visible,false);
   animateEnemyModel(a,400);assert.equal(pa.shield_arc.visible,true);
   a.enemy.attackPhase='burst';a.enemy.burstStartedAt=400;const rest=pa.cannon.position.x;animateEnemyModel(a,401);assert.ok(pa.cannon.position.x<rest);

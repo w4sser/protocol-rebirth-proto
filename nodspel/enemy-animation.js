@@ -117,7 +117,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
 // player and the cannon kicks back on every shot of a burst. v.group already carries the body's facing
 // rotation (nodspel/game.mjs), so only the head needs independent aim here.
 function animateTurretHead(parts,e,clock){
-  if(parts.turret_head_pivot)parts.turret_head_pivot.rotation.z=e.facing??0;
+  if(parts.turret_head_pivot)parts.turret_head_pivot.rotation.z=0; // body already faces e.facing; avoid double rotation
   if(parts.cannon){
     const cannon=parts.cannon;cannon.userData.restX??=cannon.position.x;
     const since=clock-(e.burstStartedAt??-Infinity),recoil=e.attackPhase==='burst'?Math.max(0,1-(since%ENEMY_TUNING.shieldTurret.burstIntervalMs)/150):0;
