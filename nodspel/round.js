@@ -1,14 +1,14 @@
-import {rusherBackBonus} from './enemies.js?v=2.18.1';
-import {extractAvailable} from './big-level.js?v=2.18.1';
-import {rarityOf} from './rarity.js?v=2.18.1';
-import {audioEvent} from './audio.js?v=2.18.1';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.18.1';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.18.1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.18.1';
-import {emptyBag,bagItems} from './raid.js?v=2.18.1';
-import {traceTargets} from './physics.mjs?v=2.18.1';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.18.1';
-import {STAKES,createStakesState,heal,healRemaining} from './stakes.js?v=2.18.1';
+import {rusherBackBonus} from './enemies.js?v=2.19.0';
+import {extractAvailable} from './big-level.js?v=2.19.0';
+import {rarityOf} from './rarity.js?v=2.19.0';
+import {audioEvent} from './audio.js?v=2.19.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.19.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.19.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.19.0';
+import {emptyBag,bagItems} from './raid.js?v=2.19.0';
+import {traceTargets} from './physics.mjs?v=2.19.0';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.19.0';
+import {STAKES,createStakesState,heal,healRemaining} from './stakes.js?v=2.19.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

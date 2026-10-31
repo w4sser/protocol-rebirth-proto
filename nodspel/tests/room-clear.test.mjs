@@ -2,7 +2,7 @@ import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.18.1';
+import {setArea} from '../levels.js?v=2.19.0';
 import {perkState,updateClears,ownRooms,safePick,offer,choosePerk} from '../perks.js';
 
 const point={x:0,z:0};

@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.18.1';
-import {loadEnemyModel} from './enemy-models.js?v=2.18.1';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.19.0';
+import {loadEnemyModel} from './enemy-models.js?v=2.19.0';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
 const Y_AXIS=new THREE.Vector3(0,1,0);
