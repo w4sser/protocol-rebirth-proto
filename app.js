@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.12.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.13.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;

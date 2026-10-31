@@ -21,7 +21,7 @@ const INSETS={left:47,right:47,top:0,bottom:21};
 const INS_ARG=()=>({...INSETS,textSel:SAFE_TEXT});
 const failures=[];
 // Text UI that must stay inside the safe area too (checked like controls).
-const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,#seed-label,.round-hud,#weapon-name,#encounter-hint,.area-notice,.pickup-toast,.room-pips';
+const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,#seed-label,.round-hud,#weapon-name,#encounter-hint,.area-notice,.pickup-toast,.room-pips,#ammo-hud';
 const fail=(ctx,msg)=>{failures.push(`${ctx}: ${msg}`);};
 
 // ---- tiny static server (free port) ----
@@ -32,8 +32,9 @@ const server=createServer(async(req,res)=>{
   if(!target.startsWith(root+sep)){res.writeHead(403);res.end();return;}
   try{let body=await readFile(target);const ext=extname(target);
     // Headless Chrome reports env(safe-area-inset-*) as 0. Rewrite them to a notch-landscape phone so UI that ignores the
-    // insets (or hardcodes 0px) shows up as leaving the safe area.
-    if(ext==='.css'||ext==='.html')body=String(body).replace(/env\(\s*safe-area-inset-(left|right|top|bottom)\s*(?:,[^()]*(?:\([^()]*\))?[^()]*)?\)/g,(_,side)=>INSETS[side]+'px');
+    // insets (or hardcodes 0px) shows up as leaving the safe area. A page that sets the opt-out header (the iPhone CDP
+    // safe-area check) keeps the real env() calls so Emulation.setSafeAreaInsetsOverride can resolve them live instead.
+    if((ext==='.css'||ext==='.html')&&req.headers['x-real-safe-area']!=='1')body=String(body).replace(/env\(\s*safe-area-inset-(left|right|top|bottom)\s*(?:,[^()]*(?:\([^()]*\))?[^()]*)?\)/g,(_,side)=>INSETS[side]+'px');
     res.writeHead(200,{'Content-Type':types[ext]??'application/octet-stream','Cache-Control':'no-store'});res.end(body);}
   catch{res.writeHead(404);res.end('Not found');}
 });
@@ -408,6 +409,48 @@ async function encShotRun([w,h]){
   await page.close();
 }
 
+// iPhone landscape, real safe-area insets via CDP (not the server-side env() rewrite): catches HUD elements that
+// hardcode 0px or otherwise ignore --sl/--sr/--sb, which desktop puppeteer at the default 47px inset can miss
+// (regression: DASH once sat outside the notch safe area on an actual iPhone). Covers the declutter v2.13.0
+// additions explicitly: ability slot, pause button, chips (bag/level-corner/round-hud) and the ammo display.
+async function iphoneSafeAreaRun(){
+  const tag='raid iphone-safe-area 852x393';console.log(tag);
+  const insets={top:0,left:59,right:59,bottom:21};
+  const page=await browser.newPage();
+  await page.setExtraHTTPHeaders({'x-real-safe-area':'1'});
+  await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1');
+  await page.setViewport({width:852,height:393,isMobile:true,hasTouch:true,deviceScaleFactor:3});
+  const cdp=await page.createCDPSession();
+  await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets});
+  page.on('pageerror',e=>fail(tag,`pageerror ${String(e).slice(0,160)}`));
+  await page.goto(`${BASE}/nodspel/?seed=iphone-safe&debug=1&q=high&area=bunker`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});
+  await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1200);
+  // --sl is a custom property (coarse-pointer page -> "max(59px,12px)"): substitution happens, but max() itself
+  // stays unevaluated text until used on a real layout property, so check substring, not an exact px match.
+  const resolved=await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--sl').trim());
+  if(!resolved.includes('59px'))fail(tag,`env(safe-area-inset-left) did not resolve to the CDP override (--sl is "${resolved}")`);
+  const issues=await page.evaluate(ins=>{
+    const vw=innerWidth,safeLeft=ins.left,safeRight=vw-ins.right,safeBottom=innerHeight-ins.bottom;
+    const rect=sel=>{const e=document.querySelector(sel);if(!e||e.hidden||e.closest('[hidden]')||!e.getClientRects().length)return null;const r=e.getBoundingClientRect();return r.width>1&&r.height>1?{left:r.left,right:r.right,top:r.top,bottom:r.bottom}:null;};
+    const overlaps=(a,b)=>!!a&&!!b&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>0&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0;
+    const targets={'ability slot':rect('#dash'),'pause button':rect('#raid-settings-open'),'bag chip':rect('.bag-panel'),'objective chip':rect('#level-corner'),'timer/quest chip':rect('.round-hud'),'ammo display':rect('#ammo-hud')};
+    const move=rect('#move-stick'),aim=rect('#aim-stick'),out=[];
+    for(const [name,r] of Object.entries(targets)){
+      if(!r)continue;
+      if(r.left<safeLeft-1||r.right>safeRight+1)out.push(`${name} outside the horizontal safe area (${Math.round(r.left)}-${Math.round(r.right)}, safe ${Math.round(safeLeft)}-${Math.round(safeRight)})`);
+      if(r.bottom>safeBottom+1)out.push(`${name} sits below the bottom safe inset (${Math.round(r.bottom)} > ${Math.round(safeBottom)})`);
+      if(overlaps(r,move))out.push(`${name} overlaps the move-stick touch zone`);
+      if(overlaps(r,aim))out.push(`${name} overlaps the aim-stick touch zone`);
+    }
+    return out;
+  },insets);
+  for(const issue of issues)fail(tag,issue);
+  await shot(page,'raid-iphone-safe-area-852x393');
+  await page.close();
+}
+
 // Raid boot loader: while the scene loads it must cover the whole viewport (HUD included), then fade out and leave the DOM.
 async function raidLoadingRun([w,h]){
   const tag=`raid-loading ${w}x${h}`;console.log(tag);
@@ -522,8 +565,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.12.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.12.0');
+    const {createRound}=await import('./round.js?v=2.13.0');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.13.0');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -596,6 +639,7 @@ try{
   for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
   await encShotRun([844,390]);
+  await iphoneSafeAreaRun();
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
   for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
