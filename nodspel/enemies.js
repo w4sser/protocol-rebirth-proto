@@ -1,16 +1,16 @@
-import '../data/raid-enemies.js?v=2.18.0';
+import '../data/raid-enemies.js?v=2.18.1';
 function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 export const ENEMY_TUNING=freeze(globalThis.DATA.raidEnemies);
 export const ENEMY_COLORS=ENEMY_TUNING.colors; // Approved: coral damage, blue shield, green heal, yellow AoE.
 function archetype(id,parts,hint,tier,phase,scale=1){
-  return {id,groundOffset:id==='shield_turret'?.45:0,model:`../assets/enemies/${id}.glb?v=2.18.0`,scale,
+  return {id,groundOffset:id==='shield_turret'?.45:0,model:`../assets/enemies/${id}.glb?v=2.18.1`,scale,
     // Apply X rotation first, then Y: local +Z -> world +Y, local +X -> game +Z.
     forwardUpFix:{rotateX:-Math.PI/2,rotateY:-Math.PI/2},parts,stats:ENEMY_TUNING.stats[id],telegraphColors:ENEMY_COLORS,hint,tier,phase};
 }
 export const ENEMIES=freeze({
   // Separate variant; today's unshielded turret remains in encounter pools.
   shield_turret:archetype('shield_turret',['base','turret_head_pivot','turret_head','front_armor','cannon','optic','weakpoint','shield_arc'],'SHIELD TURRET · FLANK THE BACK',2,1),
-  rusher:archetype('rusher',['core','wedge_head','back_battery','optic','leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'],'RUSHER · SIDESTEP THE CHARGE',2,1),
+  rusher:{...archetype('rusher',['core','wedge_head','back_battery','optic','leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'],'RUSHER · SIDESTEP THE CHARGE',2,1),legRest:{outwardDeg:10,foreAftDeg:8}},
   // Tank crushes light cover (Phase 2).
   tank:archetype('tank',['hull','track_left','track_right','turret_head_pivot','turret_head','front_armor','cannon','optic','weakpoint'],'TANK · AVOID ITS FRONT',3,2),
   swarm_bot:archetype('swarm_bot',['shell','optic',...Array.from({length:6},(_,i)=>`leg_0${i+1}_pivot`)],'SWARM · FALL BACK',2,2),
