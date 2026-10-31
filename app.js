@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.11.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.12.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
@@ -3134,6 +3134,7 @@ function lobbyHtml(gear, miss, locked){
   return '<div class="lobby">' +
     '<div class="lobby-top"><h1>Raid Prep</h1>' + gearRiskHtml(gear) +
       (hardAvailable(raidArea()) ? '<button type="button" class="hard-btn' + (hardOn() ? ' on' : '') + '" onclick="A.toggleHard()" aria-pressed="' + hardOn() + '" aria-label="Hard variant ' + (hardOn() ? 'on' : 'off') + '"><span>HARD</span><small>' + (hardOn() ? 'ON' : 'OFF') + '</small></button>' : '') +
+      '<button type="button" class="bigmap-btn' + (bigMapOn() ? ' on' : '') + '" onclick="A.toggleBigMap()" aria-pressed="' + bigMapOn() + '" aria-label="Big map beta ' + (bigMapOn() ? 'on' : 'off') + '"><span>BIG MAP</span><small>' + (bigMapOn() ? 'ON' : 'BETA') + '</small></button>' +
       '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
     '<div class="lobby-side left"><div class="slotgrid">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
       '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' + (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '') + '</div></div>' +
@@ -3566,6 +3567,9 @@ function ingestRaidResult(r){
   if(chainsDone.length) areaNotes.push("Quest ready to hand in: " + chainsDone.map(c => c.title).join(", "));
   return { ok:true, stashBefore, added, currency, scrapBonus, xp, operatorXp:Math.max(PROG.operator.coreMinXp, coreRaidXp(r)), questChanges, questsDone, gearFound, returnedGear:extracted ? (gearOut || survivingGear) : [], toolId:toolOut && toolOut.id, saved, gearLost, skillUps, starUp, kitBack, kitSummaryLost:Math.max(0, kitOut + kitPicked - kitBack), kitLost:Math.max(0, kitOut - kitBack), toolBack, toolLost:Math.max(0, (toolOut ? toolOut.n : 0) - toolBack), areaNotes, chainsDone };
 }
+// v2.12.0: BIG MAP (beta) -- persisted toggle on the raid prep screen; ?levels=big on the base URL also forces it.
+function bigMapOn(){ try{ if(new URLSearchParams(location.search).get("levels") === "big") return true; return localStorage.getItem("pr.bigMap") === "1"; }catch(e){ return false; } }
+function setBigMap(on){ try{ localStorage.setItem("pr.bigMap", on ? "1" : "0"); }catch(e){} }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
@@ -3580,7 +3584,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
     (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
-    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "");
+    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.bigMap ? "&levels=big" : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -4416,6 +4420,7 @@ window.A = {
     A.go("prep");
   },
   toggleHard(){ if(!hardAvailable(raidArea())) return; session.hard = !hardOn(); act("HARD_TOGGLED", { area:raidArea(), on:session.hard }); refresh(); },
+  toggleBigMap(){ const on = !bigMapOn(); setBigMap(on); act("BIGMAP_TOGGLED", { on }); refresh(); },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
@@ -4433,7 +4438,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
+    (window.PR_NAVIGATE || (u => location.assign(u)))(coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind }));
   },
   deploy(){
     if(!session.prep) return;
@@ -5229,7 +5234,12 @@ function setupSplash(flightPending){
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
-  let shown = false; try{ shown = sessionStorage.getItem("pr_splash_seen") === "1"; sessionStorage.setItem("pr_splash_seen", "1"); }catch(e){}
+  // v2.12.0: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
+  // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
+  let shown = false; try{
+    const force = /[?&]splash=1\b/.test((window.location && window.location.search) || ""), at = +sessionStorage.getItem("pr_splash_seen");
+    shown = !force && at > 1e12 && Date.now() - at < 5 * 60 * 1000; sessionStorage.setItem("pr_splash_seen", String(Date.now()));
+  }catch(e){}
   if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return null; }
   const body = document.body;
   body.classList.add("splash-active");
@@ -5311,6 +5321,41 @@ function setupSplash(flightPending){
     },
   };
 }
+// v2.12.0: lightweight start-screen water for Low quality / no WebGL2 (e.g. iPhone on Low): canvas 2D only,
+// 1x pixel ratio, ~30 fps, a few dozen moonlit glints and slow swell bands over the lower part of the splash art.
+// Same contract as start-scene.js's mountStartFlight: {dispose, land(cb)}; reduced motion draws one still frame.
+function mountLiteWater(host){
+  const c = document.createElement("canvas"); c.className = "splash-lite-water";
+  c.style.cssText = "position:absolute;left:0;right:0;bottom:0;width:100%;height:46%;display:block;pointer-events:none;";
+  host.appendChild(c);
+  const g = c.getContext("2d"); if(!g){ c.remove(); return null; }
+  const still = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  let raf = 0, last = 0, t0 = performance.now(), dead = false;
+  const glints = Array.from({length:42}, (_, i) => ({x:((i * 0.6180339) % 1), y:Math.pow(((i * 0.7548776) % 1), 1.6), p:i * 1.7, w:6 + (i % 5) * 4}));
+  const size = () => { const w = Math.max(1, Math.round(c.clientWidth || host.clientWidth || 320)), h = Math.max(1, Math.round(c.clientHeight || 160)); if(c.width !== w || c.height !== h){ c.width = w; c.height = h; } };
+  const draw = now => {
+    size(); const w = c.width, h = c.height, t = (now - t0) / 1000;
+    g.clearRect(0, 0, w, h);
+    const fade = g.createLinearGradient(0, 0, 0, h); fade.addColorStop(0, "rgba(7,21,28,0)"); fade.addColorStop(1, "rgba(7,21,28,.35)");
+    g.fillStyle = fade; g.fillRect(0, 0, w, h);
+    for(let b = 0; b < 7; b++){ // slow swell bands
+      const y = h * (0.18 + b * 0.12) + Math.sin(t * 0.6 + b * 1.3) * (2 + b);
+      g.strokeStyle = "rgba(117,207,204," + (0.05 + b * 0.012).toFixed(3) + ")"; g.lineWidth = 1 + b * 0.35; g.beginPath();
+      for(let x = 0; x <= w; x += 16){ const yy = y + Math.sin(x * 0.018 + t * (0.9 + b * 0.1) + b) * (1.5 + b * 0.6); if(x) g.lineTo(x, yy); else g.moveTo(x, yy); }
+      g.stroke();
+    }
+    for(const s of glints){ // moonlit glints
+      const a = Math.max(0, Math.sin(t * 1.4 + s.p)) * (0.25 + 0.5 * s.y), x = ((s.x + t * 0.004 * (1 + s.y)) % 1) * w, y = h * (0.1 + s.y * 0.85);
+      if(a < 0.02) continue; g.fillStyle = "rgba(220,240,235," + a.toFixed(3) + ")"; g.fillRect(x, y, s.w * (0.6 + s.y), 1 + s.y * 1.5);
+    }
+  };
+  const frame = now => { if(dead) return; raf = requestAnimationFrame(frame); if(now - last < 33) return; last = now; draw(now); };
+  if(still) draw(t0); else raf = requestAnimationFrame(frame);
+  return {
+    dispose(){ dead = true; cancelAnimationFrame(raf); c.remove(); },
+    land(cb){ cb(); },
+  };
+}
 /* ---------- init ---------- */
 // ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
@@ -5330,7 +5375,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
       flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
-  const splashCtl = setupSplash(!!(flightProfile && flightProfile.water));
+  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
@@ -5349,6 +5394,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   if(devBtn) devBtn.addEventListener("click", () => { setMenu(false); A.go("dev"); });
   const profilesBtn = document.getElementById("profiles-btn");
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
+  { const rp = document.getElementById("replay-start-btn"); if(rp) rp.addEventListener("click", () => { setMenu(false); try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){} location.reload(); }); }
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   // v2.11.0 start screen: settings/slot access from the splash itself, without triggering the
   // tap-anywhere-to-enter flow (stopPropagation keeps #splash's own click listener from firing).
@@ -5360,6 +5406,11 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   // already decided *whether* to attempt this; here we just report the async outcome back to
   // the splash so it can stay on the looping flight (success) or fall back to its old
   // auto-advance (failure/error), rather than waiting forever for a tap-driven land().
+  if(flightProfile && !flightProfile.water && flightProfile.lite && splashCtl){
+    const host = document.getElementById("splash-flight");
+    let ctl = null; try{ ctl = host && mountLiteWater(host); }catch(e){ console.warn("lite water disabled:", e); }
+    if(ctl){ document.getElementById("splash")?.classList.add("lite"); splashCtl.flightMounted(ctl); } else splashCtl.flightFailed();
+  }
   if(flightProfile && flightProfile.water && splashCtl){
     const host = document.getElementById("splash-flight");
     if(host){
