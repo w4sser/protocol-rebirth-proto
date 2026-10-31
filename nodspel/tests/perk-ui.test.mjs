@@ -70,21 +70,24 @@ test('minimized offers remain identical and terminal rolling never grants a regu
   s.rooms[key].offer=['roll'];assert.ok(choosePerk(r,key,'roll',100,{readyAt:9000}));assert.equal(hasPerk(r,'roll'),false);assert.deepEqual(s.taken,['roll']);assert.match(s.selectedEffects.roll,/Reset dash now/);
 });
 
-test('choice countdown waits for unlocked cards and their first paint; stale paint callbacks cannot restart it',async()=>{
+test('choice deadline starts after visible layout and does not wait for animation frames',()=>{
   const dom=new JSDOM('<main></main>');globalThis.document=dom.window.document;
   const frames=[];dom.window.requestAnimationFrame=fn=>frames.push(fn);
+  let ui;
   try{
-    const r=createRound('paint-budget',0),s=perkState(r),key='1:0';s.rooms[key]={state:'clearPending',level:1,index:0};s.queue=[key];
-    const ui=createPerkUI(document.querySelector('main'),()=>{});ui.open(r,key);
-    const bar=document.querySelector('.perk-countdown-bar');
-    assert.equal(bar.style.animation,'none');
-    await new Promise(resolve=>setTimeout(resolve,650));
-    assert.equal(document.querySelector('.perk-choice').disabled,false);
-    assert.equal(bar.style.animation,'none','layout time must not consume the choice budget');
-    frames.shift()();assert.equal(bar.style.animation,'none');
-    frames.shift()();assert.match(bar.style.animation,/4000ms/);
-    ui.close();ui.open(r,key);await new Promise(resolve=>setTimeout(resolve,650));
-    frames.shift()();ui.close();frames.shift()();
-    assert.equal(bar.style.animation,'none','closed picker must not start a stale countdown');
-  }finally{delete globalThis.document;dom.window.close();}
+    const r=createRound('deadline-layout',0),s=perkState(r),key='1:0';s.rooms[key]={state:'clearPending',level:1,index:0};s.queue=[key];
+    ui=createPerkUI(document.querySelector('main'),()=>{});
+    const panel=document.querySelector('.perk-panel'),bar=document.querySelector('.perk-countdown-bar');
+    let laidOut=false;
+    panel.getBoundingClientRect=()=>{
+      assert.equal(ui.layer.hidden,false,'measure the visible picker');
+      assert.equal(document.querySelectorAll('.perk-choice').length,3);
+      assert.equal(bar.style.animation,'none','layout precedes the countdown');
+      laidOut=true;return {};
+    };
+    ui.open(r,key);
+    assert.ok(laidOut);assert.match(bar.style.animation,/4000ms/);
+    assert.equal(frames.length,0,'a missing animation frame cannot delay auto-pick');
+    assert.ok(panel.classList.contains('locked'),'input lock remains within the deadline');
+  }finally{ui?.close();delete globalThis.document;dom.window.close();}
 });

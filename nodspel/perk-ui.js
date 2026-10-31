@@ -45,13 +45,6 @@ export function createPerkUI(viewport,action){
     const generation=++countdownGeneration;
     const ids=offer(round,key);grid.replaceChildren();
     bar.style.animation='none';void bar.offsetWidth;
-    // Spend the choice budget only after the cards are rendered and accept input.
-    // Slow first layout must not consume the player's four seconds.
-    const startCountdown=()=>{
-      if(generation!==countdownGeneration||layer.hidden||panel.classList.contains('locked'))return;
-      bar.style.animation=`perk-countdown ${PERKS.pickTimeoutMs}ms linear forwards`;
-      autoTimer=setTimeout(()=>{if(!layer.hidden)action('timeout');},PERKS.pickTimeoutMs);
-    };
     for(const id of ids){const c=cards.find(c=>c.id===id),button=document.createElement('button');button.type='button';button.className='perk-choice';button.dataset.accent=c.accent;
       const category=document.createElement('span');category.className='perk-category';category.textContent=c.category;
       const name=document.createElement('strong');name.textContent=c.name;const effect=document.createElement('span');effect.className='perk-effect';const effectText=cardEffect(round,key,id);
@@ -66,11 +59,12 @@ export function createPerkUI(viewport,action){
     readyAt=performance.now()+LOCK_MS;armedPointer=null;
     panel.classList.add('locked');setModal(true);layer.hidden=false;panel.focus({preventScroll:true});
     clearTimeout(lockTimer);
-    lockTimer=setTimeout(()=>{panel.classList.remove('locked');for(const b of grid.children)b.disabled=false;grid.querySelector('button')?.focus({preventScroll:true});
-      const raf=viewport.ownerDocument.defaultView?.requestAnimationFrame;
-      if(raf)raf.call(viewport.ownerDocument.defaultView,()=>raf.call(viewport.ownerDocument.defaultView,startCountdown));
-      else startCountdown();
-    },LOCK_MS);
+    lockTimer=setTimeout(()=>{panel.classList.remove('locked');for(const b of grid.children)b.disabled=false;grid.querySelector('button')?.focus({preventScroll:true});},LOCK_MS);
+    // Finish the visible layout before starting the four-second deadline. The input lock
+    // runs inside that budget; auto-pick must not depend on animation-frame delivery.
+    panel.getBoundingClientRect();
+    bar.style.animation=`perk-countdown ${PERKS.pickTimeoutMs}ms linear forwards`;
+    autoTimer=setTimeout(()=>{if(generation===countdownGeneration&&!layer.hidden)action('timeout');},PERKS.pickTimeoutMs);
   },confirm(text,selected){countdownGeneration++;audioEvent('perk-select');clearTimeout(autoTimer);clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');},close(){countdownGeneration++;clearTimeout(autoTimer);clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
   hud(round,container){let el=container.querySelector('.perk-hud');if(!el){el=document.createElement('div');el.className='perk-hud';el.setAttribute('aria-label','Active raid perks');container.append(el);}el.replaceChildren();for(const id of perkState(round).taken){const c=cards.find(c=>c.id===id),span=document.createElement('span');span.dataset.perk=id;span.title=`${c.name}: ${perkState(round).selectedEffects?.[id]??c.effect}`;span.setAttribute('role','img');span.setAttribute('aria-label',span.title);span.append(perkIcon(id));el.append(span);}}
   };
