@@ -1,7 +1,7 @@
 // Generic ability slot (HUD button next to the aim stick): one data-driven definition
 // (id, icon, label, cooldownMs, activate) renders the icon + cooldown ring. DASH ships as the
 // default; a later per-character/equipment system swaps in a different definition for the same slot.
-import {svgIcon} from './svg-icons.js?v=2.12.1';
+import {svgIcon} from './svg-icons.js?v=2.13.0';
 
 export function createDashAbility(requestDash){
   return {
