@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import * as THREE from '../vendor/three.module.js';
 import {createRound,tickRound} from '../round.js';
 import {generateLevel} from '../levels.js';
@@ -14,6 +16,21 @@ function cameraAt(target,width,height){
   camera.lookAt(target);camera.updateMatrixWorld();return camera;
 }
 function settled(player){return new THREE.Vector3(player.x,0,player.z+RAID_CAMERA.targetOffsetZ);}
+test('debug teleport moves the camera with the player, without a world-label catch-up sweep',()=>{
+  const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
+  const fn=source.match(/function teleportPlayer\(x,z\)\{[\s\S]*?\n\}/)?.[0];
+  assert(fn,'debug teleport uses the camera-aware helper');
+  for(const [width,height] of viewports){
+    const position={x:0,z:0},target=settled(position),camera=cameraAt(target,width,height);
+    const before=new THREE.Vector3(0,1.7,0).project(camera);
+    const context={position,target,camera,RAID_CAMERA,cameraOffset:new THREE.Vector3(RAID_CAMERA.offset.x,RAID_CAMERA.offset.y,RAID_CAMERA.offset.z)};
+    vm.runInNewContext(fn+';teleportPlayer(90,-40);',context);
+    assert.equal(context.position.x,90);assert.equal(context.position.z,-40);
+    assert(target.distanceTo(settled(context.position))<1e-9,'follow target is already at the destination');
+    const after=new THREE.Vector3(90,1.7,-40).project(camera);
+    assert(before.distanceTo(after)<1e-9,'label projection relative to the player is unchanged immediately');
+  }
+});
 function firstWave(round,player,room,cameraTarget){
   tickRound(round,STAKES.alarmDelayMs);
   stepStakes(round,STAKES.alarmDelayMs,player,room,cameraTarget);

@@ -4,11 +4,11 @@ export function createAudioSettings({document,audio,canOpen,onPause,onResume}){
   audio.settingsUI(layer.querySelector('.audio-menu-body'));
   function open(){
     if(!layer.hidden||!canOpen())return false;
-    onPause();layer.hidden=false;button.setAttribute('aria-expanded','true');closeButton.focus();return true;
+    onPause();layer.hidden=false;document.body.classList.add('raid-paused');button.setAttribute('aria-expanded','true');closeButton.focus();return true;
   }
   function close(){
     if(layer.hidden)return false;
-    layer.hidden=true;button.setAttribute('aria-expanded','false');onResume();button.focus();return true;
+    layer.hidden=true;document.body.classList.remove('raid-paused');button.setAttribute('aria-expanded','false');onResume();button.focus();return true;
   }
   button.addEventListener('click',open);closeButton.addEventListener('click',close);
   layer.addEventListener('click',e=>{if(e.target===layer)close();});

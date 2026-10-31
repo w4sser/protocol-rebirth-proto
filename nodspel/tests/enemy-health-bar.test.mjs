@@ -222,15 +222,15 @@ test('renderLabels keeps every enemy bar pinned to its own moving anchor past th
   }
 });
 
-test('renderLabels pins the bar to its anchor every frame regardless of a HUD panel appearing or vanishing',()=>{
+test('renderLabels hides a HUD collision immediately and restores the bar on its anchor after sustained clearance',()=>{
   const e=enemyLabel('sticky',0,8);e.el.measured=true;e.el.dy=-12;
   const hud=[{left:250,right:550,top:0,bottom:100}];
   run([e],[],{hud,now:0});
-  if(!e.el.hidden)assertBarOnAnchor(e);
+  assert.equal(e.el.hidden,true,'even the first colliding frame must not cover the HUD');
   const anchor={sx:e.sx,sy:e.sy};
-  for(let frame=1;frame<40;frame++){
+  for(let frame=1;frame<100;frame++){
     run([e],[],{hud:frame<5?hud:[],now:frame*16});
-    if(frame>=5)assert.equal(e.el.hidden,false,'bar returns on its anchor once the HUD panel is gone');
+    assert.equal(e.el.hidden,frame*16<80+1300,'bar returns only after 1300ms of continuous clearance');
     assert.equal(e.sx,anchor.sx,'static enemy projects to the same screen x every frame');
     assert.equal(e.sy,anchor.sy,'static enemy projects to the same screen y every frame');
     if(!e.el.hidden)assertBarOnAnchor(e);

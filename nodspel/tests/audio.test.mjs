@@ -179,6 +179,7 @@ test('raid settings pause once, preserve time and resume only their own pause',a
   const round={pausedMs:0,pauseAt:null};let wall=1000;
   const settings=createAudioSettings({document:w.document,audio:w.PR_AUDIO,canOpen:()=>round.pauseAt==null,onPause:()=>pausePick(round,wall),onResume:()=>resumePick(round,wall)});
   w.document.querySelector('#raid-settings-open').click();assert.equal(round.pauseAt,1000);assert.equal(settings.open(),false);
+  assert.equal(w.document.body.classList.contains('raid-paused'),true,'pause hides the in-raid controls while the dialog owns input');
   wall=6000;assert.equal(gameTime(round,wall),1000);
   assert.equal(w.document.querySelectorAll('.audio-settings input').length,7);
   assert.equal(w.document.querySelector('[aria-label="Ambience volume"]'),null);
@@ -187,7 +188,9 @@ test('raid settings pause once, preserve time and resume only their own pause',a
   const mute=w.document.querySelector('[aria-label="Mute Music"]');mute.checked=true;mute.dispatchEvent(new w.Event('change'));
   const saved=JSON.parse(w.localStorage.getItem(config.storageKey));assert.equal(saved.music,.61);assert.equal(saved.musicMuted,true);
   w.document.querySelector('#raid-settings-close').click();assert.equal(round.pauseAt,null);assert.equal(gameTime(round,wall),1000);assert.equal(settings.close(),false);
+  assert.equal(w.document.body.classList.contains('raid-paused'),false,'closing restores the in-raid controls');
   pausePick(round,wall);assert.equal(settings.open(),false);settings.close();assert.equal(round.pauseAt,1000);
+  assert.equal(w.document.body.classList.contains('raid-paused'),false,'a rejected open must not hide controls');
   dom.window.close();
 });
 

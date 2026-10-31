@@ -665,7 +665,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   if(label.caption.textContent!==text)label.caption.textContent=text;if(!door&&done)setIconText(label.shortEl,'check','');else setIconText(label.shortEl,'',door?(done?'':'DOOR'):'SEARCH');
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
   label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&gameClock()-ref.openedAt>1500;}}
-function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · keep looting (bag at risk, timer running) · hold EXTRACT in the exit for 1 second';document.body.append(t);setTimeout(()=>t.remove(),6000);}
+function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · bag at risk until secured. Hold EXTRACT in the exit for 1 second.';document.body.append(t);setTimeout(()=>t.remove(),6000);}
 // Shared by the level-load roster and v2.7.0 hunter waves (nodspel/stakes.js), which add enemies mid-raid.
 function labelEnemyVisual(v){
   v.maxHealth=v.enemy.health;
@@ -1013,11 +1013,11 @@ function renderLabels(){
     // Collapse request for NEXT frame: a caption that still lands on a fixed label/HUD after
     // placement asks for the bar, but only once that has been true for a sustained stretch.
     l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
-    // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
-    // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
+    // Hide collisions immediately; require sustained clearance before showing again.
+    // HUD overlap never moves the bar; an objective overlap the lift couldn't clear hides it too.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
     if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
-    if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
+    if(gate(l,'hudHidden',blocked,nowPlacement,0,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
@@ -1068,6 +1068,12 @@ const labelState=new Map();
 let previousGameClock=null;
 // Debug fixtures can inspect gameplay layouts without manufacturing room-clear rewards.
 let debugRoomClearsEnabled=true;
+// Debug teleports are instantaneous for the camera too; otherwise returning from a distant
+// exit leaves every world label sweeping across the screen while the camera catches up.
+function teleportPlayer(x,z){
+  position={x,z};target.set(x,0,z+RAID_CAMERA.targetOffsetZ);
+  camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
+}
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   getCamera:()=>camera,
@@ -1081,7 +1087,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   quality:()=>QUALITY,
   perkPickDemo(){const key=roomKey(round,0),ps=perkState(round);ps.rooms[key]={state:'clearPending',entered:true,level:round.level.number,index:0};if(!ps.queue.includes(key))ps.queue.push(key);logCombat(round,{kind:'damage',room:key,source:'Turret',sourceId:'demo-turret',attack:'fan',amount:18,moving:false,at:gameClock()});openPerk(key);},
   deathDemo(){resumePick(round,Date.now());resetPerks(round);perkUI.close();round.lastHit={source:'Sentry',enemyId:'demo-sentry',attack:'projectile'};round.playerMoving=true;takeDamage(round,round.health+(round.shield||0),gameClock());finishRound();},
-  teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
+  teleport:teleportPlayer,house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
   // v2.0 screenshot hooks: weapon-found compare (ground box moved next to the player) and backpack compare.
   weaponOfferDemo(item='shotgun_breach'){const b=round.level.lootBoxes.find(x=>!x.collected);if(!b)return false;b.item=item;b.gearNotified=true;b.x=position.x;b.z=position.z;round.weaponOffer={boxId:b.id,item,at:0};showWeaponOffer();return true;},
