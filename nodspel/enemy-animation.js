@@ -1,6 +1,45 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.18.0';
-import {loadEnemyModel} from './enemy-models.js?v=2.18.0';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.18.1';
+import {loadEnemyModel} from './enemy-models.js?v=2.18.1';
+
+const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
+const Y_AXIS=new THREE.Vector3(0,1,0);
+const SWING_Q=new THREE.Quaternion();
+
+// The rusher.glb authors its legs splayed ~40deg fore/aft and outward from the hip (art is
+// off-limits to edit), so derive a rest orientation per pivot from the leg mesh's own geometry
+// that points the foot mostly straight down with a small natural stance.
+function restLegQuaternion(pivot,outwardDeg,foreAftDeg){
+  pivot.updateWorldMatrix(true,true);
+  const inverse=new THREE.Matrix4().copy(pivot.matrixWorld).invert();
+  const bounds=new THREE.Box3(),transform=new THREE.Matrix4();
+  pivot.traverse(child=>{
+    if(!child.isMesh||!child.geometry?.attributes?.position)return;
+    child.geometry.computeBoundingBox();
+    transform.multiplyMatrices(inverse,child.matrixWorld);
+    bounds.union(child.geometry.boundingBox.clone().applyMatrix4(transform));
+  });
+  if(bounds.isEmpty())return null;
+  // These legs extend from the hip origin: the bounds center lies on hip -> foot.
+  // Using a corner instead mixes extremes from different vertices of the thick leg.
+  // Pivot space cancels mesh translations (including -hip in this GLB).
+  const current=bounds.getCenter(new THREE.Vector3());
+  if(current.lengthSq()<1e-10)return null;
+  current.normalize().applyQuaternion(pivot.quaternion);
+  const outward=outwardDeg*Math.PI/180,foreAft=foreAftDeg*Math.PI/180;
+  const down=-Math.sqrt(Math.max(0,1-Math.sin(outward)**2-Math.sin(foreAft)**2));
+  const desired=new THREE.Vector3(Math.sin(foreAft)*Math.sign(pivot.position.x||1),Math.sin(outward)*Math.sign(pivot.position.y||1),down).normalize();
+  return new THREE.Quaternion().setFromUnitVectors(current,desired).multiply(pivot.quaternion);
+}
+function restRusherLegs(parts,legRest){
+  const {outwardDeg=10,foreAftDeg=8}=legRest??{};
+  for(const name of LEG_PIVOTS){
+    const pivot=parts[name];
+    if(!pivot)continue;
+    const rest=restLegQuaternion(pivot,outwardDeg,foreAftDeg);
+    if(rest){pivot.quaternion.copy(rest);pivot.userData.restQuaternion=rest;}
+  }
+}
 
 // Keep today's procedural mesh visible until an individual GLB clone is ready.
 export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
@@ -11,7 +50,15 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
     if(model.fallback||isDisposed())return;
     const mount=new THREE.Group(),yaw=new THREE.Group(),up=new THREE.Group(),spec=ENEMIES[id];
     yaw.rotation.y=spec.forwardUpFix.rotateY;up.rotation.x=spec.forwardUpFix.rotateX;
-    mount.add(yaw);yaw.add(up);up.add(model.root);mount.scale.setScalar(spec.scale);mount.position.y=spec.groundOffset;
+    mount.add(yaw);yaw.add(up);up.add(model.root);mount.scale.setScalar(spec.scale);
+    if(id==='rusher'){
+      restRusherLegs(model.parts,spec.legRest);
+      // Rest-posing the legs moves the lowest point, so re-ground from the actual geometry
+      // instead of trusting the authored groundOffset alone.
+      mount.updateMatrixWorld(true);
+      const bounds=new THREE.Box3().setFromObject(mount);
+      mount.position.y=spec.groundOffset-(bounds.isEmpty()?0:bounds.min.y);
+    }else mount.position.y=spec.groundOffset;
     // Static geometry/materials stay shared between all clones and survive world disposal.
     model.root.traverse(n=>{
       if(n.geometry)n.geometry.userData.shared=true;
@@ -55,8 +102,14 @@ export function animateEnemyModel(v,clock){
   }else{
     const winding=e.windupAt!=null,stunned=clock<(e.wallStunUntil??0),moving=e.attackPhase==='charge'||e.attackPhase==='stalk';
     mount.rotation.x=winding?.24:stunned?-.15:0;
-    const legs=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
-    legs.forEach((name,i)=>{if(parts[name])parts[name].rotation.y=moving?Math.sin(clock/(e.attackPhase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35:0;});
+    LEG_PIVOTS.forEach((name,i)=>{
+      const pivot=parts[name];
+      if(!pivot)return;
+      const swingAngle=moving?Math.sin(clock/(e.attackPhase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35:0;
+      const rest=pivot.userData.restQuaternion;
+      if(rest)pivot.quaternion.copy(rest).multiply(SWING_Q.setFromAxisAngle(Y_AXIS,swingAngle));
+      else pivot.rotation.y=swingAngle;
+    });
     parts.back_battery?.traverse(n=>{if(n.material?.emissive){n.material.emissive.set(ENEMY_COLORS.damage);n.material.emissiveIntensity=winding?1.5+.8*Math.sin(clock/65):.15;}});
   }
 }
