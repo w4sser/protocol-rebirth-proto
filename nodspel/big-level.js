@@ -1,8 +1,8 @@
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.16.0';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.16.1';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.16.0';
-import {applyEncounters} from './encounters.js?v=2.16.0';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.16.0';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.16.1';
+import {applyEncounters} from './encounters.js?v=2.16.1';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.16.1';
 
 export function generateBigLevel(seed){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
