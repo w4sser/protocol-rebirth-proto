@@ -67,9 +67,9 @@ function buildSky(renderer, cubeSize, sunDir, sunColor){
       // wide, soft banding from the indigo zenith down through blue-violet and lavender into a
       // broad warm band hugging the horizon (not a thin line), then into the dark sea below it
       "vec3 col=top;" +
-      "col=mix(col,blue,smoothstep(0.62,0.1,hh));" +
-      "col=mix(col,lavender,smoothstep(0.26,0.05,hh));" +
-      "col=mix(col,horizon,smoothstep(0.1,0.0,hh));" +
+      "col=mix(col,blue,1.0-smoothstep(0.1,0.62,hh));" +
+      "col=mix(col,lavender,1.0-smoothstep(0.05,0.26,hh));" +
+      "col=mix(col,horizon,1.0-smoothstep(0.0,0.1,hh));" +
       "if(h<0.0)col=mix(horizon,sea,smoothstep(0.0,0.07,-h));" +
       "float c=max(dot(dir,sunDir),0.0);" +
       // soft glow only, no hard disc: a tight warm core fading into a wide halo
@@ -78,9 +78,18 @@ function buildSky(renderer, cubeSize, sunDir, sunColor){
       "col += sunColor*pow(c,6.0)*0.05;" +
       "gl_FragColor=vec4(col,1.0); }",
   });
-  scene.add(new THREE.Mesh(new THREE.SphereGeometry(5, 12, 8), mat));
-  cam.update(renderer, scene);
-  return rt.texture;
+  const geometry = new THREE.SphereGeometry(5, 12, 8);
+  scene.add(new THREE.Mesh(geometry, mat));
+  try{
+    cam.update(renderer, scene);
+  }catch(err){
+    rt.dispose();
+    throw err;
+  }finally{
+    geometry.dispose();
+    mat.dispose();
+  }
+  return rt;
 }
 
 // Cheap "spruce forest on the horizon" dressing: a ring of low, flat islands (one larger
@@ -275,7 +284,8 @@ export function mountStartFlight(host, profile, opts={}){
   const waterScene = new THREE.Scene();
 
   const sunDir = new THREE.Vector3(0.62, 0.025, -0.78).normalize();
-  const sky = { cube: buildSky(renderer, 512, sunDir, SUN_COLOR), cubeSize: 512, sunDir, sunColor: SUN_COLOR };
+  const skyTarget = buildSky(renderer, 512, sunDir, SUN_COLOR);
+  const sky = { cube: skyTarget.texture, cubeSize: 512, sunDir, sunColor: SUN_COLOR };
   scene.background = sky.cube;
   scene.environment = sky.cube;
   // Low density + a dark-sea tint: distant shapes dim towards the sea colour instead of
@@ -293,6 +303,7 @@ export function mountStartFlight(host, profile, opts={}){
   const bounce = new THREE.DirectionalLight(0xffb98a, 0.55);
   bounce.position.copy(sky.sunDir).multiplyScalar(-40);
   scene.add(sun, bounce, new THREE.HemisphereLight(0xb5b9d1, SEA_HORIZON, 0.5));
+  scene.traverse(o => { if(o.isLight) o.layers.enable(REFLECT_LAYER); });
 
   // Open water (no coastline data of our own to feed it): an all-deep-water shore bake is a
   // safe, inert "no shore interaction" field -- shore waves/breakers stay off everywhere.
@@ -413,10 +424,53 @@ export function mountStartFlight(host, profile, opts={}){
     disposed = true;
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", resize);
-    hdrRT?.dispose();
-    floatShadow.target.dispose();
-    emptyReflection.dispose();
-    reflection?.target.dispose();
+    const released = new Set();
+    function release(resource){
+      if(!resource || released.has(resource)) return;
+      released.add(resource);
+      resource.dispose();
+    }
+    // Render targets own their attachments; mark those before scanning uniforms.
+    function releaseTarget(target){
+      if(!target || released.has(target)) return;
+      for(const texture of target.textures) released.add(texture);
+      if(target.depthTexture) released.add(target.depthTexture);
+      release(target);
+    }
+    function releaseTextures(value){
+      if(value?.isTexture) release(value);
+      else if(Array.isArray(value)) value.forEach(releaseTextures);
+    }
+    function releaseMaterial(material){
+      if(!material || released.has(material)) return;
+      for(const value of Object.values(material)) releaseTextures(value);
+      for(const uniform of Object.values(material.uniforms || {})) releaseTextures(uniform.value);
+      release(material);
+    }
+    function releaseObject(object){
+      release(object.geometry);
+      if(Array.isArray(object.material)) object.material.forEach(releaseMaterial);
+      else releaseMaterial(object.material);
+      if(object.isInstancedMesh) release(object);
+    }
+    releaseTarget(hdrRT);
+    releaseTarget(skyTarget);
+    releaseTarget(floatShadow.target);
+    releaseTarget(reflection?.target);
+    releaseTarget(ocean.h0RT);
+    releaseTarget(ocean.ping);
+    releaseTarget(ocean.pong);
+    ocean.out.flat().forEach(releaseTarget);
+    scene.traverse(releaseObject);
+    waterScene.traverse(releaseObject);
+    surface.grids.forEach(release);
+    releaseObject(blit.mesh);
+    releaseObject(ocean.quad.mesh);
+    [ocean.initMat, ocean.evolveMat, ocean.fftMat, ocean.assembleMat, floatShadow.material].forEach(releaseMaterial);
+    release(emptyReflection);
+    release(shore.texture);
+    release(shore.travel);
+    if(tex) release(tex.foam);
     renderer.dispose();
     renderer.domElement.remove();
   }
@@ -445,8 +499,11 @@ export function mountStartFlight(host, profile, opts={}){
     return ahead;
   }
   let landing = false, landT = 0, landFromPos = null, landFromLook = null, landCallback = null;
-  const landToPos = bunker.position.clone().add(new THREE.Vector3(0, 2.6, 8.5));
-  const landToLook = bunker.position.clone().add(new THREE.Vector3(0, 0.6, 0));
+  // Preserve origin/main's landing anchor independently of the shore mesh layout.
+  const originalBunkerAt = curve.getPointAt(0.18);
+  const originalBunkerPosition = new THREE.Vector3(originalBunkerAt.x + 14, -0.4, originalBunkerAt.z + 6);
+  const landToPos = originalBunkerPosition.clone().add(new THREE.Vector3(0, 2.6, 8.5));
+  const landToLook = originalBunkerPosition.clone().add(new THREE.Vector3(0, 0.6, 0));
   function land(onDone){
     if(disposed || landing){ onDone(); return; }
     landing = true; landT = 0; landCallback = onDone;
