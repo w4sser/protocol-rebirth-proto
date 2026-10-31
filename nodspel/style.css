@@ -372,13 +372,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .pause-settings{display:flex;flex-direction:column;flex:1;min-width:0;height:100%}
 .pause-settings .audio-menu-body{flex:1;min-height:0;overscroll-behavior:contain}
 .pause-settings .raid-settings-actions{flex-shrink:0;flex-wrap:nowrap;margin-top:8px;padding-top:8px}
-body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#tool-btn,#use-kit,#hold-extract,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
+body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
 #big-level-minimap{color:var(--ad-cyan);width:100%}
-#hold-extract{position:absolute;right:26px;bottom:210px;min-width:112px;min-height:48px;z-index:5;border:2px solid var(--ad-cyan);border-radius:24px;color:var(--ad-cyan);background:var(--ad-night);font-size:11px;font-weight:700;touch-action:none}
-/* Above DASH, clear of the aim stick's ammo/name readouts. Both action buttons below share a row. */
-@media(max-height:500px){#hold-extract{right:166px;bottom:144px}}
 /* The lower centre lane is clear of the timer, queued perk and both sticks. */
 #extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:min(240px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px));white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
-#hold-extract[hidden]{display:none}
-
-#hold-extract:before{content:'';position:absolute;inset:-2px;border-radius:inherit;padding:4px;background:conic-gradient(var(--ad-cyan) var(--hold-turn,0turn),transparent 0);mask:linear-gradient(var(--ad-ink) 0 0) content-box exclude,linear-gradient(var(--ad-ink) 0 0);pointer-events:none}

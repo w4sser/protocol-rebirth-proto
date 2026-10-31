@@ -1,8 +1,7 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.19.0';
+import {setArea} from '../levels.js?v=2.20.0';
 import {perkState,updateClears,ownRooms,safePick,offer,choosePerk} from '../perks.js';
 
 const point={x:0,z:0};
@@ -23,7 +22,7 @@ test('a room that never had an enemy never triggers room clear or a perk offer',
   updateClears(r,point);updateClears(r,{x:20,z:0});updateClears(r,point);
   assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
   assert.equal(pickAt(r,point),null);
-  assert.equal(holdExit(r,point,100),'next','the exit opens straight to the next level, never pausing on a perk offer');
+  assert.equal(enterExit(r,point,100),'next','the exit opens straight to the next level, never pausing on a perk offer');
 });
 
 test('a room with enemies triggers room clear exactly once after all of them die',()=>{
@@ -68,7 +67,7 @@ for(const area of ['bunker','archipelago'])test(`${area}: normal round loading a
   updateClears(r,r.level.start);
   const first=pickAt(r,r.level.start);assert.equal(first,'1:0');
   assert.ok(choosePerk(r,first,offer(r,first)[0],200));
-  assert.equal(holdExit(r,r.level.exit,300),'next');perkState(r).clearCount++;assert.equal(r.level.number,2);
+  assert.equal(enterExit(r,r.level.exit,300),'next');perkState(r).clearCount++;assert.equal(r.level.number,2);
   ownRooms(r.level);
   const room=r.level.rooms[0],p={x:room.x,z:room.z};
   const roomEnemies=r.level.enemies.filter(e=>e.homeRoom===0&&e.type!=='generator');

@@ -1,13 +1,13 @@
-import {attachEnemyModel} from './enemy-animation.js?v=2.19.0';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.19.0';
+import {attachEnemyModel} from './enemy-animation.js?v=2.20.0';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.20.0';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.19.0';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.19.0';
-import {buildTown} from './town.js?v=2.19.0';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.19.0';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.19.0';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.19.0';
-import {controlCablePath} from './control-cables.js?v=2.19.0';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.20.0';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.20.0';
+import {buildTown} from './town.js?v=2.20.0';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.20.0';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.20.0';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.20.0';
+import {controlCablePath} from './control-cables.js?v=2.20.0';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -214,7 +214,18 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   else for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
   const exitPad=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.8),new THREE.MeshBasicMaterial({color:'#b49b64',transparent:true,opacity:.16,side:THREE.DoubleSide}));
   exitPad.rotation.x=-Math.PI/2;exitPad.position.set(exit.x,.022,exit.z);group.add(exitPad);
-  function setExit(open){exitOpen=open;gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}exitMaterial.color.set(open?EXTRACT_COLOR:PALETTE.base);exitMaterial.emissiveIntensity=open?1:0;exitPad.material.color.set(open?EXTRACT_COLOR:PALETTE.neonSoft);exitPad.material.opacity=open?.4:.18;exitBeam.visible=open;}
+  // High quality only: one static light for the active exit, never recreated per frame.
+  const exitLight=Q.lights>0?new THREE.PointLight(EXTRACT_COLOR,0,7,2):null;
+  if(exitLight){exitLight.position.set(exit.x,1.6,exit.z);group.add(exitLight);}
+  function setExit(open){
+    const justOpened=open&&!exitOpen;exitOpen=open;
+    gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}
+    exitMaterial.color.set(open?EXTRACT_COLOR:PALETTE.base);exitMaterial.emissiveIntensity=open?1:0;
+    exitPad.material.color.set(open?EXTRACT_COLOR:PALETTE.neonSoft);exitPad.material.opacity=open?.4:.18;
+    exitBeam.visible=open;if(exitLight)exitLight.intensity=open?14:0;
+    if(justOpened)burst(exit.x,exit.z,EXTRACT_COLOR,true);
+    return justOpened;
+  }
   // pickup burst: expanding ring + short flash (pooled per call; cheap)
   const bursts=[];
   function burst(x,z,color='#ffd04a',withParticles=false){

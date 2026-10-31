@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateZoneGraph,graphDistances,cullingRooms,graphRoomAt} from '../zone-graph.js';
@@ -42,9 +41,9 @@ test('wake restores encounter deadlines and leaves encounter activation intact',
 });
 test('extract windows and vault key gate real extraction without requiring every terminal',()=>{
   for(const type of ['open','timed','key']){const round=createRound(`extract-${type}`,0);round.level=generateBigLevel(round.seed);const e=round.level.extracts.find(e=>e.type===type);round.bag.cable=1;
-    if(type!=='open'){assert.equal(holdExit(round,e,0),null);assert.equal(round.over,false);}
+    if(type!=='open'){assert.equal(enterExit(round,e,0),null);assert.equal(round.over,false);}
     if(type==='key'){const key=round.level.lootBoxes.find(b=>b.key===e.key);assert.equal(collectLoot(round,key,1),false);activateNode(round,key.requiresNode,2);collectLoot(round,key,3);assert.ok(round.keys.includes(e.key));}
-    const now=type==='timed'?61000:4;assert.equal(holdExit(round,e,now),'complete');assert.equal(round.over,true);assert.equal(round.extracted.cable,1);assert.equal(round.extractionId,e.id);
+    const now=type==='timed'?60000:4;assert.equal(enterExit(round,e,now),'complete');assert.equal(round.over,true);assert.equal(round.extracted.cable,1);assert.equal(round.extractionId,e.id);
   }
   const round=createRound('window',0),e=generateBigLevel('window').extracts[1];round.remainingMs=round.durationMs-59999;assert.equal(extractAvailable(e,round),false);round.remainingMs=round.durationMs-60000;assert.equal(extractAvailable(e,round),true);round.remainingMs=round.durationMs-240000;assert.equal(extractAvailable(e,round),false);
 });

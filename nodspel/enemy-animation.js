@@ -1,8 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger} from './enemies.js?v=2.19.0';
-import {loadEnemyModel} from './enemy-models.js?v=2.19.0';
+import {ENEMIES,ENEMY_COLORS,ENEMY_TUNING,isShieldTurret,isCharger,visualFor} from './enemies.js?v=2.20.0';
+import {loadEnemyModel} from './enemy-models.js?v=2.20.0';
 
 const LEG_PIVOTS=['leg_front_left_pivot','leg_front_right_pivot','leg_rear_left_pivot','leg_rear_right_pivot'];
+const SWARM_LEG_PIVOTS=Array.from({length:6},(_,i)=>`leg_0${i+1}_pivot`);
 const Y_AXIS=new THREE.Vector3(0,1,0);
 const SWING_Q=new THREE.Quaternion();
 
@@ -31,6 +32,28 @@ function restLegQuaternion(pivot,outwardDeg,foreAftDeg){
   const desired=new THREE.Vector3(Math.sin(foreAft)*Math.sign(pivot.position.x||1),Math.sin(outward)*Math.sign(pivot.position.y||1),down).normalize();
   return new THREE.Quaternion().setFromUnitVectors(current,desired).multiply(pivot.quaternion);
 }
+const WHEEL_PAIRS=[['wheel_front_left','hub_front_left'],['wheel_front_right','hub_front_right'],['wheel_rear_left','hub_rear_left'],['wheel_rear_right','hub_rear_right']];
+// patrol_grunt.glb bakes each wheel/hub mesh's position straight into its vertex data (the node transform
+// is identity, unlike the other archetypes' hinge "_pivot" nodes), so there is no authored point to spin
+// around. Derive one from the mesh's own local bounding-box center and reparent wheel+hub under it,
+// offsetting their local position by the same amount so nothing visibly moves until the pivot is rotated.
+function wheelRollPivots(parts,worldScale){
+  const pivots={};
+  for(const [wheelName,hubName] of WHEEL_PAIRS){
+    const wheel=parts[wheelName];
+    if(!wheel?.geometry?.attributes?.position||!wheel.parent)continue;
+    wheel.geometry.computeBoundingBox();
+    const box=wheel.geometry.boundingBox,center=box.getCenter(new THREE.Vector3());
+    const pivot=new THREE.Group();
+    pivot.position.copy(center);wheel.parent.add(pivot);
+    for(const mesh of [wheel,parts[hubName]]){
+      if(!mesh)continue;
+      pivot.add(mesh);mesh.position.sub(center);
+    }
+    pivots[wheelName]={pivot,radius:Math.max(box.max.x-box.min.x,box.max.z-box.min.z)/2*worldScale};
+  }
+  return pivots;
+}
 function restRusherLegs(parts,legRest){
   const {outwardDeg=10,foreAftDeg=8}=legRest??{};
   for(const name of LEG_PIVOTS){
@@ -43,14 +66,16 @@ function restRusherLegs(parts,legRest){
 
 // Keep today's procedural mesh visible until an individual GLB clone is ready.
 export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
-  const id=isShieldTurret(v.enemy)?'shield_turret':isCharger(v.enemy)?'rusher':null;
-  if(!id)return;
-  const oldChildren=[...v.group.children].filter(c=>c!==v.shield&&c!==v.meshFlash);
+  const visual=visualFor(v.enemy);
+  if(!visual)return;
+  const id=visual.archetype;
+  const oldChildren=[...v.group.children].filter(c=>c!==v.shield&&c!==v.meshFlash&&c!==v.cone);
   return loader(id,{fallback:()=>null}).then(model=>{
     if(model.fallback||isDisposed())return;
     const mount=new THREE.Group(),yaw=new THREE.Group(),up=new THREE.Group(),spec=ENEMIES[id];
     yaw.rotation.y=spec.forwardUpFix.rotateY;up.rotation.x=spec.forwardUpFix.rotateX;
-    mount.add(yaw);yaw.add(up);up.add(model.root);mount.scale.setScalar(spec.scale);
+    mount.add(yaw);yaw.add(up);up.add(model.root);mount.scale.setScalar(spec.scale*(visual.scale??1));
+    for(const name of visual.hideParts??[])if(model.parts[name])model.parts[name].visible=false;
     if(id==='rusher'){
       restRusherLegs(model.parts,spec.legRest);
       // Rest-posing the legs moves the lowest point, so re-ground from the actual geometry
@@ -59,6 +84,12 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
       const bounds=new THREE.Box3().setFromObject(mount);
       mount.position.y=spec.groundOffset-(bounds.isEmpty()?0:bounds.min.y);
     }else mount.position.y=spec.groundOffset;
+    const wheelPivots=id==='patrol_grunt'?wheelRollPivots(model.parts,mount.scale.x):null;
+    // Health pips/labels sit just above whatever model actually mounted (docs/enemy-model-mapping.md),
+    // not a one-size-fits-all constant: the 8 archetypes range from swarm_bot (~0.5m) to shield_turret (~1.5m).
+    mount.updateMatrixWorld(true);
+    const labelBounds=new THREE.Box3().setFromObject(mount);
+    v.labelY=labelBounds.isEmpty()?1.7:Math.max(.6,labelBounds.max.y+.15);
     // Static geometry/materials stay shared between all clones and survive world disposal.
     model.root.traverse(n=>{
       if(n.geometry)n.geometry.userData.shared=true;
@@ -68,7 +99,7 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
         if(m.isMeshStandardMaterial){m.metalness=.12;m.roughness=.82;}}
     });
     const animatedMaterials=[];
-    for(const name of ['shield_arc','back_battery']){
+    for(const name of ['shield_arc','back_battery','weakpoint_battery']){
       model.parts[name]?.traverse(n=>{
         if(!n.material)return;
         const clone=m=>{const own=m.clone();own.userData={...own.userData,shared:false};animatedMaterials.push(own);return own;};
@@ -76,11 +107,22 @@ export function attachEnemyModel(v,isDisposed=()=>false,loader=loadEnemyModel){
       });
     }
     oldChildren.forEach(c=>{c.visible=false;});
-    v.group.add(mount);v.enemyModel={...model,mount,animatedMaterials};
+    v.group.add(mount);v.enemyModel={...model,mount,animatedMaterials,archetype:id,hiddenParts:new Set(visual.hideParts??[]),wheelPivots,odoX:v.enemy.x,odoZ:v.enemy.z};
     if(v.eye)v.eye.visible=false;
     // Rendering switches from the procedural arc to the authored arc once loaded.
     // Both use the same facing and EMP shield-down deadline.
   }).catch(()=>{}); // Presentation failures never interrupt the raid.
+}
+// Shared by shield_turret/turret (both cabinets) and tank (guard stand-in): the head pivot tracks the
+// player and the cannon kicks back on every shot of a burst. v.group already carries the body's facing
+// rotation (nodspel/game.mjs), so only the head needs independent aim here.
+function animateTurretHead(parts,e,clock){
+  if(parts.turret_head_pivot)parts.turret_head_pivot.rotation.z=0; // body already faces e.facing; avoid double rotation
+  if(parts.cannon){
+    const cannon=parts.cannon;cannon.userData.restX??=cannon.position.x;
+    const since=clock-(e.burstStartedAt??-Infinity),recoil=e.attackPhase==='burst'?Math.max(0,1-(since%ENEMY_TUNING.shieldTurret.burstIntervalMs)/150):0;
+    cannon.position.x=cannon.userData.restX-.12*recoil;
+  }
 }
 export function animateEnemyModel(v,clock){
   const e=v.enemy,m=v.enemyModel;
@@ -88,28 +130,70 @@ export function animateEnemyModel(v,clock){
     if(isCharger(e)&&e.windupAt!=null)v.group.rotation.x=.22;
     return;
   }
-  const {parts,mount}=m;
-  if(isShieldTurret(e)){
-    mount.rotation.y=-(e.facing??0); // Keep the base fixed; only the head tracks the player.
-    if(parts.turret_head_pivot)parts.turret_head_pivot.rotation.z=e.facing??0;
-    if(parts.cannon){
-      const cannon=parts.cannon;cannon.userData.restX??=cannon.position.x;
-      const since=clock-(e.burstStartedAt??-Infinity),recoil=e.attackPhase==='burst'?Math.max(0,1-(since%ENEMY_TUNING.shieldTurret.burstIntervalMs)/150):0;
-      cannon.position.x=cannon.userData.restX-.12*recoil;
+  const {parts,mount,archetype}=m;
+  switch(archetype){
+    case 'shield_turret':{
+      animateTurretHead(parts,e,clock);
+      const up=isShieldTurret(e)&&clock>=(e.shieldDownUntil??0)&&e.health>0&&!m.hiddenParts.has('shield_arc');
+      if(parts.shield_arc){parts.shield_arc.visible=up;if(up)parts.shield_arc.traverse(n=>{if(n.material){n.material.color.set(ENEMY_COLORS.shield);n.material.vertexColors=false;n.material.transparent=true;n.material.depthWrite=false;n.material.side=THREE.DoubleSide;n.material.emissive?.set(ENEMY_COLORS.shield);n.material.emissiveIntensity=.65;n.material.opacity=clock-(e.blockedAt??-Infinity)<220?.95:.35+.12*Math.sin(clock/180);}});}
+      break;
     }
-    const up=clock>=(e.shieldDownUntil??0)&&e.health>0;
-    if(parts.shield_arc){parts.shield_arc.visible=up;parts.shield_arc.traverse(n=>{if(n.material){n.material.color.set(ENEMY_COLORS.shield);n.material.vertexColors=false;n.material.transparent=true;n.material.depthWrite=false;n.material.side=THREE.DoubleSide;n.material.emissive?.set(ENEMY_COLORS.shield);n.material.emissiveIntensity=.65;n.material.opacity=clock-(e.blockedAt??-Infinity)<220?.95:.35+.12*Math.sin(clock/180);}});}
-  }else{
-    const winding=e.windupAt!=null,stunned=clock<(e.wallStunUntil??0),moving=e.attackPhase==='charge'||e.attackPhase==='stalk';
-    mount.rotation.x=winding?.24:stunned?-.15:0;
-    LEG_PIVOTS.forEach((name,i)=>{
-      const pivot=parts[name];
-      if(!pivot)return;
-      const swingAngle=moving?Math.sin(clock/(e.attackPhase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35:0;
-      const rest=pivot.userData.restQuaternion;
-      if(rest)pivot.quaternion.copy(rest).multiply(SWING_Q.setFromAxisAngle(Y_AXIS,swingAngle));
-      else pivot.rotation.y=swingAngle;
-    });
-    parts.back_battery?.traverse(n=>{if(n.material?.emissive){n.material.emissive.set(ENEMY_COLORS.damage);n.material.emissiveIntensity=winding?1.5+.8*Math.sin(clock/65):.15;}});
+    case 'tank': // guard stand-in: front_armor reads as its front shield, same head-track + recoil as a turret
+      animateTurretHead(parts,e,clock);
+      break;
+    case 'rusher':{ // the charger (isCharger is always true for anything resolving to this archetype)
+      const charger=isCharger(e),winding=charger&&e.windupAt!=null,stunned=charger&&clock<(e.wallStunUntil??0);
+      const moving=charger?e.attackPhase==='charge'||e.attackPhase==='stalk':(e.speed??0)>0&&e.active!==false;
+      mount.rotation.x=winding?.24:stunned?-.15:0;
+      LEG_PIVOTS.forEach((name,i)=>{
+        const pivot=parts[name];
+        if(!pivot)return;
+        const swingAngle=moving?Math.sin(clock/(winding||e.attackPhase==='charge'?55:110)+(i===0||i===3?0:Math.PI))*.35:0;
+        const rest=pivot.userData.restQuaternion;
+        if(rest)pivot.quaternion.copy(rest).multiply(SWING_Q.setFromAxisAngle(Y_AXIS,swingAngle));
+        else pivot.rotation.y=swingAngle;
+      });
+      if(charger)parts.back_battery?.traverse(n=>{if(n.material?.emissive){n.material.emissive.set(ENEMY_COLORS.damage);n.material.emissiveIntensity=winding?1.5+.8*Math.sin(clock/65):.15;}});
+      break;
+    }
+    case 'patrol_grunt':{ // grunt/patrol: the sensor head doubles as the gun mount, wheels roll with movement
+      // The body (v.group) already turns to e.facing (nodspel/game.mjs), which combat.js keeps aimed at the
+      // player while aggro — so "tracking" is just holding the head's own local offset at zero; only the
+      // idle/patrolling case needs an independent side-to-side scan.
+      if(parts.sensor_head_pivot)parts.sensor_head_pivot.rotation.z=e.aggro?0:Math.sin(clock/700)*.6;
+      const gun=parts.short_machine_gun;
+      if(gun){
+        gun.userData.restX??=gun.position.x;
+        const sinceShot=clock-(e.lastShotAt??-Infinity);
+        gun.position.x=gun.userData.restX-(sinceShot>=0&&sinceShot<120?.1*(1-sinceShot/120):0);
+      }
+      if(m.wheelPivots){
+        const dx=e.x-(m.odoX??e.x),dz=e.z-(m.odoZ??e.z);
+        const forward=Math.sin(e.facing??0)*dx+Math.cos(e.facing??0)*dz;
+        for(const {pivot,radius} of Object.values(m.wheelPivots))if(radius>1e-6)pivot.rotation.y+=forward/radius;
+        m.odoX=e.x;m.odoZ=e.z;
+      }
+      parts.weakpoint_battery?.traverse(n=>{if(n.material?.emissive){n.material.emissive.set(ENEMY_COLORS.damage);n.material.emissiveIntensity=.35+.3*Math.sin(clock/260);}});
+      break;
+    }
+    case 'swarm_bot':{ // swarm/hunter rushers: six-leg insect gait while actually closing in
+      const moving=(e.speed??0)>0&&e.active!==false&&!(clock<(e.wallStunUntil??0));
+      SWARM_LEG_PIVOTS.forEach((name,i)=>{
+        const pivot=parts[name];if(!pivot)return;
+        pivot.rotation.y=moving?Math.sin(clock/90+(i%2===0?0:Math.PI))*.3:0;
+      });
+      break;
+    }
+    case 'scout': // patrol stand-in: twin rotors spin continuously, counter-rotating like a drone
+      if(parts.rotor_left_pivot)parts.rotor_left_pivot.rotation.z=clock*12;
+      if(parts.rotor_right_pivot)parts.rotor_right_pivot.rotation.z=-clock*12;
+      break;
+    case 'artillery': // thrower/grenadier: the mortar pitches up through the throw's wind-up
+      if(parts.mortar_pivot)parts.mortar_pivot.rotation.y=e.windupAt!=null?-.4:0;
+      break;
+    case 'sniper': // bare sentry stand-in: the tripod legs are static outrigger meshes (no pivots to
+      // walk), so only a small idle scan on the one real pivot keeps it reading as alive, not dead weight.
+      if(parts.barrel_pivot)parts.barrel_pivot.rotation.y=Math.sin(clock/400)*.02;
+      break;
   }
 }

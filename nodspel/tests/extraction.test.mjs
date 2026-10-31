@@ -1,11 +1,22 @@
-import {holdExit} from './exit-helpers.mjs';
 import {emptyBag} from '../raid.js';
 import {RULES as LOOT_RULES} from '../levels.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateLevel} from '../levels.js';
-import {createRound,takeDamage,activateNode,enterExit,roundSummary} from '../round.js';
+import {createRound,takeDamage,activateNode,enterExit,exitIsOpen,roundSummary} from '../round.js';
 const state=await import('../round.js');
+test('entering an unlocked exit extracts immediately, no hold required',()=>{
+  const r=createRound('instant',0);
+  for(const node of r.level.nodes)activateNode(r,node.id,0);
+  assert.equal(exitIsOpen(r),true);
+  assert.equal(enterExit(r,r.level.exit,1),'next');assert.equal(r.level.number,2);
+});
+test('entering a locked exit never extracts, however long the player stands in it',()=>{
+  const r=createRound('still-locked',0);
+  assert.equal(exitIsOpen(r),false);
+  for(const t of [0,1,1000,5000])assert.equal(enterExit(r,r.level.exit,t),null);
+  assert.equal(r.level.number,1);
+});
 test('loot boxes are seeded with a short-route crate and a guarded crate on level two',()=>{
   const first=generateLevel(1,'loot'),second=generateLevel(2,'loot');
   assert.equal(first.lootBoxes?.length,2);assert.equal(second.lootBoxes?.length,6);
@@ -31,9 +42,9 @@ test('death loses the current bag and a new run starts with full health and no c
 test('a level exit carries the bag forward at risk and later death loses all of it',()=>{
   assert.equal(typeof state.collectLoot,'function');
   const r=createRound('extract',0),box=r.level.lootBoxes[0];box.item='scrap_alloy';state.collectLoot(r,box,100);
-  assert.equal(holdExit(r,r.level.exit,101),null);assert.equal(r.bag[box.item],1);
+  assert.equal(enterExit(r,r.level.exit,101),null);assert.equal(r.bag[box.item],1);
   for(const node of r.level.nodes)activateNode(r,node.id,200);
-  assert.equal(holdExit(r,r.level.exit,201),'next');assert.equal(r.bag[box.item],1);assert.equal(r.extracted[box.item],0);
+  assert.equal(enterExit(r,r.level.exit,201),'next');assert.equal(r.bag[box.item],1);assert.equal(r.extracted[box.item],0);
   const second=r.level.lootBoxes[0];second.item='fuse';state.collectLoot(r,second,250);takeDamage(r,100,300);
   assert.equal(r.extracted[box.item],0);assert.equal(r.lost[box.item],1);assert.equal(r.lost[second.item],1);
 });
@@ -41,7 +52,7 @@ test('a level exit carries the bag forward at risk and later death loses all of 
 test('the deadline loses carried loot before extraction can happen',()=>{
   const r=createRound('late-extraction',0),box=r.level.lootBoxes[0];box.item='scrap_alloy';state.collectLoot(r,box,100);
   for(const node of r.level.nodes)activateNode(r,node.id,200);
-  assert.equal(holdExit(r,r.level.exit,480000),null);
+  assert.equal(enterExit(r,r.level.exit,480000),null);
   assert.equal(r.reason,'timeout');assert.equal(r.bag[box.item],0);
   assert.equal(roundSummary(r).lost[box.item],1);assert.equal(r.extracted[box.item],0);
 });

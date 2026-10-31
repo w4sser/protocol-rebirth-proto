@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {readGoal,goalProgress,applyIntroEncounter} from '../progression-goal.js';
 import {generateLevel} from '../levels.js';
@@ -23,7 +22,7 @@ test('alternate angle can collect supplies, hold the node and extract without ki
   const tick=()=>{now+=20;stepCombat(r,c,p,now,.02,solids);stepNodeInteraction(r,w,p,now,[...r.level.walls,...r.level.boxes]);collectLoot(r,p,now,w);};
   const walk=to=>{for(let i=0;i<500&&Math.hypot(to.x-p.x,to.z-p.z)>.08;i++){const d=Math.hypot(to.x-p.x,to.z-p.z);p=moveWithActors(p,{x:(to.x-p.x)/d*.072,z:(to.z-p.z)/d*.072},r.level.enemies,solids,r.level.floors,.36);tick();}assert(Math.hypot(to.x-p.x,to.z-p.z)<.15,'open-looking route is traversable');};
   walk({x:room.x+s*3.3,z:room.z+3.2});walk({x:room.x+s*3.3,z:room.z+.7});for(let i=0;i<110;i++)tick();assert(r.level.nodes[0].active);
-  walk({x:room.x+s*3.3,z:room.z-2.2});walk({x:room.x+s*1.5,z:room.z-2.2});assert(goalProgress(goal,r.bag).enoughCarried);walk(r.level.exit);assert.equal(holdExit(r,p,now),'next');assert(extractRound(r,now));assert(r.extracted.cable>0);assert.equal(r.enemiesDefeated,0);assert(r.health>0);
+  walk({x:room.x+s*3.3,z:room.z-2.2});walk({x:room.x+s*1.5,z:room.z-2.2});assert(goalProgress(goal,r.bag).enoughCarried);walk(r.level.exit);assert.equal(enterExit(r,p,now),'next');assert(extractRound(r,now));assert(r.extracted.cable>0);assert.equal(r.enemiesDefeated,0);assert(r.health>0);
  }
 });
 test('bait from cover, then attack during recovery with the starting carbine',()=>{

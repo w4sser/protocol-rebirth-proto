@@ -1,4 +1,3 @@
-import {holdExit} from './exit-helpers.mjs';
 import {gearSlotOf} from '../round.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,7 +42,7 @@ test('empty reserve can charge both level two nodes and open the exit without sh
       time+=100;stepNodeInteraction(r,w,p,time,obstacles);time+=RULES.resources.nodeHoldMs;
       assert.equal(stepNodeInteraction(r,w,p,time,obstacles),true);
     }
-    assert.equal(exitIsOpen(r),true);assert.equal(holdExit(r,r.level.exit,time+1),'next');
+    assert.equal(exitIsOpen(r),true);assert.equal(enterExit(r,r.level.exit,time+1),'next');
     assert.equal(r.level.number,3);assert.equal(w.ammo,0);assert.equal(w.reserve,0);
   }
 });
@@ -88,7 +87,7 @@ test('level two is survivable on foot with active enemies and zero ammunition',(
     for(let i=0;i<51&&!n.active;i++)frame();assert.equal(n.active,true);
   }
   walk(q=>Math.hypot(q.x-r.level.exit.x,q.z-r.level.exit.z)<.8);
-  assert.equal(holdExit(r,p,time),'next');assert.equal(r.level.number,3);
+  assert.equal(enterExit(r,p,time),'next');assert.equal(r.level.number,3);
   assert.equal(r.enemiesDefeated,0);assert.equal(w.ammo+w.reserve,0);assert.ok(r.health>0);
 });
 

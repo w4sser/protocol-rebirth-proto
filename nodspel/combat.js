@@ -1,13 +1,13 @@
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.19.0';
-import {audioEvent} from './audio.js?v=2.19.0';
-import {ownRooms} from './perks.js?v=2.19.0';
-import {RULES,hazardState} from './levels.js?v=2.19.0';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.19.0';
-import {takeDamage,tickRound} from './round.js?v=2.19.0';
-import {houseWaypoint} from './house.js?v=2.19.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.19.0';
-import {detectionMultiplier} from './stakes.js?v=2.19.0';
-import {dashInvulnerable} from './dash.js?v=2.19.0';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.20.0';
+import {audioEvent} from './audio.js?v=2.20.0';
+import {ownRooms} from './perks.js?v=2.20.0';
+import {RULES,hazardState} from './levels.js?v=2.20.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.20.0';
+import {takeDamage,tickRound} from './round.js?v=2.20.0';
+import {houseWaypoint} from './house.js?v=2.20.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.20.0';
+import {detectionMultiplier} from './stakes.js?v=2.20.0';
+import {dashInvulnerable} from './dash.js?v=2.20.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -81,6 +81,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     const aim=enemy.attackTarget,lockedDistance=Math.hypot(aim.x-enemy.x,aim.z-enemy.z)||1;
     const dx=(aim.x-enemy.x)/lockedDistance,dz=(aim.z-enemy.z)/lockedDistance;
     combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,life:rule.range*(enemy.rangeMul??1)/rule.bulletSpeed,...shotInfo(round,enemy)});
+    enemy.lastShotAt=now; // render-only: drives the patrol_grunt short_machine_gun recoil (nodspel/enemy-animation.js)
     const cooldown=(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1);
     combat.nextFire.set(enemy.id,now+Math.max(cooldown,enemy.type==='sentry'?RULES.shooting.telegraphs.sentryRecoveryMs:0));
   }
