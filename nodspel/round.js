@@ -1,13 +1,14 @@
-import {extractAvailable} from './big-level.js?v=2.14.1';
-import {rarityOf} from './rarity.js?v=2.14.1';
-import {audioEvent} from './audio.js?v=2.14.1';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.14.1';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.14.1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.14.1';
-import {emptyBag,bagItems} from './raid.js?v=2.14.1';
-import {traceTargets} from './physics.mjs?v=2.14.1';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.14.1';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.14.1';
+import {rusherBackBonus} from './enemies.js?v=2.16.1';
+import {extractAvailable} from './big-level.js?v=2.16.1';
+import {rarityOf} from './rarity.js?v=2.16.1';
+import {audioEvent} from './audio.js?v=2.16.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.16.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.16.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.16.1';
+import {emptyBag,bagItems} from './raid.js?v=2.16.1';
+import {traceTargets} from './physics.mjs?v=2.16.1';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.16.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.16.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -279,9 +280,9 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || (enemy.active===false&&enemy.swarm) || !Number.isFinite(damage) || damage<=0)return false;
   // swarm rushers still pouring out of their spawn point are immune to bullets (blasts, which have no origin, still work)
   if(enemy.swarm&&from&&now<(enemy.spawnedAt??-Infinity)+(enemy.graceMs??0))return false;
-  const bonus=weakSide(enemy,from);
+  const bonus=rusherBackBonus(enemy,from,now)??weakSide(enemy,from);
   alertEnemy(enemy,now);
-  if(shieldBlocks(enemy,from)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
+  if(shieldBlocks(enemy,from,now)){enemy.blockedAt=now;enemy.blockedSerial=(enemy.blockedSerial??0)+1;return false;}
   audioEvent('hit',{type:enemy.type});
   if(bonus){
     damage*=bonus.multiplier;enemy.weakMarker=bonus.kind.toUpperCase();enemy.weakMarkerAt=now;

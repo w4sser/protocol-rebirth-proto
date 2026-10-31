@@ -35,7 +35,9 @@ test('culling is exactly active room plus neighbours, including corridors; sleep
 });
 test('wake restores encounter deadlines and leaves encounter activation intact',()=>{
   const l=generateBigLevel('wake'),enemy=l.enemies.find(e=>e.roomId===l.rooms.at(-1).id);enemy.windupAt=2000;enemy.spawnedAt=500;enemy.aimLockAt=1500;enemy.active=false;
+  const phase1Clocks=['wallStunUntil','shieldDownUntil','stalkUntil','burstStartedAt'];for(const key of phase1Clocks)enemy[key]=3000;
   updateBigCulling(l,l.start,1000);assert.equal(enemy.sleeping,true);updateBigCulling(l,l.rooms[enemy.roomId],6000);assert.equal(enemy.windupAt,7000);assert.equal(enemy.spawnedAt,5500);assert.equal(enemy.aimLockAt,6500);assert.equal(enemy.active,false);
+  for(const key of phase1Clocks)assert.equal(enemy[key],8000,key);
 });
 test('extract windows and vault key gate real extraction without requiring every terminal',()=>{
   for(const type of ['open','timed','key']){const round=createRound(`extract-${type}`,0);round.level=generateBigLevel(round.seed);const e=round.level.extracts.find(e=>e.type===type);round.bag.cable=1;

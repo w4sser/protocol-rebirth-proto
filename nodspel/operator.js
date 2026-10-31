@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.14.1';
-import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.14.1';
+import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.16.1';
+import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.16.1';
 
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
 export function selectSkin(search=''){

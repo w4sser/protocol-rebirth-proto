@@ -1,11 +1,13 @@
+import {attachEnemyModel} from './enemy-animation.js?v=2.16.1';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.16.1';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.14.1';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.14.1';
-import {buildTown} from './town.js?v=2.14.1';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.14.1';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.14.1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.14.1';
-import {controlCablePath} from './control-cables.js?v=2.14.1';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.16.1';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.16.1';
+import {buildTown} from './town.js?v=2.16.1';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.16.1';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.16.1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.16.1';
+import {controlCablePath} from './control-cables.js?v=2.16.1';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -14,9 +16,11 @@ export function setNodeHold(visual,progress){
 }
 
 export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunker=null}={}) {
+  let disposed=false;
   const Q=qualitySettings(quality);
   const group=new THREE.Group();scene.add(group);
-  const cube=new THREE.BoxGeometry(1,1,1),materials={};
+  const cube=new THREE.BoxGeometry(1,1,1),materials={},shieldGeometries=new Map();
+  const shieldGeometry=(angle,radius,height)=>{const key=`${angle}:${radius}:${height}`;if(!shieldGeometries.has(key))shieldGeometries.set(key,new THREE.CylinderGeometry(radius,radius,height,20,1,true,-angle*Math.PI/180,2*angle*Math.PI/180));return shieldGeometries.get(key);};
   const material=color=>materials[color] ||= new THREE.MeshStandardMaterial({color,roughness:.82,metalness:.12});
   function box(x,y,z,w,h,d,color='#616973',parent=group){
     const m=new THREE.Mesh(cube,material(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
@@ -154,10 +158,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const out={enemy,group:g,eye,meshFlash};
     // Encounter 1: the front shield is a cyan plate that turns with the guard; shots from inside its arc are blocked.
     if(enemy.frontShield&&!enemy.introGuard){
-      const arc=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,.9,20,1,true,-enemy.frontShield*Math.PI/180,2*enemy.frontShield*Math.PI/180),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
+      const arc=new THREE.Mesh(shieldGeometry(enemy.frontShield,.95,.9),new THREE.MeshBasicMaterial({color:isShieldTurret(enemy)?ENEMY_COLORS.shield:'#3FE0D0',transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
       arc.position.y=.62;g.add(arc);out.shield=arc;
       // v1.65 readability: bright cyan rims top + bottom make the arc read as a solid plate from the iso camera.
-      for(const y of [.18,1.06]){const rim=new THREE.Mesh(new THREE.CylinderGeometry(.97,.97,.07,20,1,true,-enemy.frontShield*Math.PI/180,2*enemy.frontShield*Math.PI/180),new THREE.MeshBasicMaterial({color:'#3FE0D0',side:THREE.DoubleSide,toneMapped:false}));rim.position.y=y;g.add(rim);}
+      for(const y of [.18,1.06]){const rim=new THREE.Mesh(shieldGeometry(enemy.frontShield,.97,.07),new THREE.MeshBasicMaterial({color:isShieldTurret(enemy)?ENEMY_COLORS.shield:'#3FE0D0',side:THREE.DoubleSide,toneMapped:false}));rim.position.y=y;arc.add(rim);rim.position.y-=arc.position.y;}
     }
     // Encounter 4: the patrol's sight cone lies on the floor (coral = danger); game.mjs scales it to the current range.
     if(enemy.patrol){
@@ -171,6 +175,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       const em=new THREE.Line(eg,new THREE.LineBasicMaterial({color:'#E4705F',transparent:true,opacity:.85,toneMapped:false}));em.renderOrder=3;cone.add(em);
       cone.position.y=.045;cone.scale.set(RULES.encounters.patrol.coneRange,1,RULES.encounters.patrol.coneRange);g.add(cone);out.cone=cone;out.coneFill=fm;
     }
+    attachEnemyModel(out,()=>disposed);
     return out;
   }
   const enemies=level.enemies.map(enemyVisual);
@@ -251,6 +256,7 @@ for(const d of doors){const open=!d.door.locked;d.panel.visible=!open;d.strip.vi
       s.ring.material.opacity=st==='warning'?.55+.45*Math.sin(time*18):.28+.12*Math.sin(time*2.4);s.ring.scale.setScalar(st==='warning'?1+.08*Math.sin(time*18):1);}
 for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
   function dispose(){
+    disposed=true;
     const geometries=new Set(),mats=new Set();
     group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)if(!g.userData?.shared)g.dispose();for(const m of mats)if(!m.userData?.shared)m.dispose();group.clear();scene.remove(group);bursts.length=0;

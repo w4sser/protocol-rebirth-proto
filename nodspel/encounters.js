@@ -1,3 +1,4 @@
+import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.16.1';
 // Encounters (docs/design-encounters-toolkit.md §1, PR C): one named problem per level, placed in the
 // existing seeded rooms. This file is the pure part: placement + small geometry helpers. The live behaviour
 // (guard turning, patrol sight, swarm spawn) runs in combat.js, hit rules in round.js, visuals in world.js.
@@ -12,12 +13,12 @@
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.14.1';
-import {traceTargets} from './physics.mjs?v=2.14.1';
-import {detectionMultiplier} from './stakes.js?v=2.14.1';
+import {RULES} from './levels.js?v=2.16.1';
+import {traceTargets} from './physics.mjs?v=2.16.1';
+import {detectionMultiplier} from './stakes.js?v=2.16.1';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
-export const ENCOUNTER_TYPES=['guard','turret','patrol','swarm','shield','door','grenadier'];
+export const ENCOUNTER_TYPES=['guard','turret','shield_turret','patrol','swarm','shield','door','grenadier'];
 // Facing is an angle a with forward = (sin a, cos a): the same convention as three.js rotation.y on +z.
 export const facingVec=a=>({x:Math.sin(a),z:Math.cos(a)});
 export const angleTo=(from,to)=>Math.atan2(to.x-from.x,to.z-from.z);
@@ -26,7 +27,8 @@ export function turnToward(current,wanted,maxStep){const d=Math.atan2(Math.sin(w
 
 // Front shield: a hit from inside the guard's front arc is blocked; behind and the sides always count.
 // The intro guard never carries a shield, and a hit with an unknown origin (no `from`) is not blocked.
-export function shieldBlocks(enemy,from){
+export function shieldBlocks(enemy,from,now=0){
+  if(isShieldTurret(enemy)&&now<(enemy.shieldDownUntil??0))return false;
   if(!enemy.frontShield||enemy.introGuard||!from)return false;
   return angleDiff(enemy.facing??0,angleTo(enemy,from))<enemy.frontShield*PI/180;
 }
@@ -94,6 +96,12 @@ export function applyEncounters(level,area,rng,hard=false){
   const plan=(hard?RULES.hard.plan:RULES.encounters.plan)[area]?.[level.number-1]??[];
   level.encounters=[];townBand=area==='town';bandWidth=2.7;
   for(const type of plan)PLACERS[type]?.(level,rng);
+  // Choose after placement so the variant does not perturb the existing cover/layout RNG.
+  if(level.number===2)for(const enc of level.encounters){
+    if(enc.type!=='turret'||rng()>=ENEMY_TUNING.shieldTurret.variantChance)continue;
+    const e=level.enemies.find(e=>e.id===enc.enemyId),C=RULES.encounters.shield_turret;
+    if(e){enc.type='shield_turret';Object.assign(e,{encounter:'shield_turret',archetype:'shield_turret',frontShield:C.frontHalfAngleDeg,health:C.health});}
+  }
   return level.encounters;
 }
 
@@ -117,8 +125,8 @@ function placeGuard(level,rng){
 }
 
 // 2 Turret behind cover: a sentry across the start room with two crates in the lane between you and it.
-function placeTurret(level,rng){
-  const C=RULES.encounters.turret,room=level.rooms[0],S=level.start,solids=solidsOf(level),keep=keepList(level);
+function placeTurret(level,rng,variant='turret'){
+  const C=RULES.encounters[variant],room=level.rooms[0],S=level.start,solids=solidsOf(level),keep=keepList(level);
   const mouths=room.doors.map(d=>({x:room.x+d.x*room.w/2,z:room.z+d.z*room.d/2}));
   // scan the room on a grid (seeded order); tier 0 is the comfortable layout, tier 1 accepts a shorter lane and tighter margins
   const grid=[];for(let x=room.x-room.w/2+1.5;x<=room.x+room.w/2-1.5;x+=.5)for(let z=room.z-room.d/2+1.5;z<=room.z+room.d/2-1.5;z+=.5)grid.push({x:round2(x),z:round2(z)});
@@ -141,8 +149,8 @@ function placeTurret(level,rng){
       }
       if(!ok)continue;
       level.boxes.push(...covers);
-      const e=makeEnemy(level,'sentry',{x:T.x,z:T.z,health:C.health,encounter:'turret',facing:angleTo(T,S),active:true});
-      note(level,{type:'turret',enemyId:e.id,x:T.x,z:T.z,covers:covers.map(b=>({x:b.x,z:b.z})),from:{x:S.x,z:S.z}});
+      const e=makeEnemy(level,'sentry',{x:T.x,z:T.z,health:C.health,encounter:variant,...(variant==='shield_turret'?{archetype:variant,frontShield:C.frontHalfAngleDeg}:{}),facing:angleTo(T,S),active:true});
+      note(level,{type:variant,enemyId:e.id,x:T.x,z:T.z,covers:covers.map(b=>({x:b.x,z:b.z})),from:{x:S.x,z:S.z}});
       return;
     }
   }
@@ -264,4 +272,4 @@ function placeGrenadier(level,rng){
   }
 }
 
-const PLACERS={grenadier:placeGrenadier,guard:placeGuard,turret:placeTurret,patrol:placePatrol,swarm:placeSwarm,shield:placeShield,door:placeDoor};
+const PLACERS={grenadier:placeGrenadier,guard:placeGuard,turret:placeTurret,shield_turret:(level,rng)=>placeTurret(level,rng,'shield_turret'),patrol:placePatrol,swarm:placeSwarm,shield:placeShield,door:placeDoor};
