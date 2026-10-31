@@ -1,12 +1,13 @@
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.17.0';
+import '../data/raid-perks.js?v=2.18.0';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.18.0';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.17.0';
-import {applyEncounters} from './encounters.js?v=2.17.0';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.17.0';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.18.0';
+import {applyEncounters} from './encounters.js?v=2.18.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.18.0';
 
-export function generateBigLevel(seed){
+export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
-  const level={number:1,seed:String(seed),big:true,graph,title:'Node Network',choiceSide:1,layoutId:'big',rooms,floors:rooms.map(r=>({...r})),walls:[],boxes:[],nodes:[],enemies:[],lootBoxes:[],hazards:[],encounters:[],spawners:[],doors:[],corridors:graph.edges.map(e=>({...e.corridor,roomIds:[e.a,e.b]})),deadEnds:[],routeChoices:[],start:{x:graph.spawn.x,z:graph.spawn.z},exit:graph.extracts[0],extracts:graph.extracts,theme:RULES.variety[0].theme};
+  const level={number:1,seed:String(seed),big:true,area,archipelago:area==='archipelago',graph,title:'Node Network',choiceSide:1,layoutId:'big',rooms,floors:rooms.map(r=>({...r})),walls:[],boxes:[],nodes:[],enemies:[],lootBoxes:[],hazards:[],encounters:[],spawners:[],doors:[],corridors:graph.edges.map(e=>({...e.corridor,roomIds:[e.a,e.b]})),deadEnds:[],routeChoices:[],start:{x:graph.spawn.x,z:graph.spawn.z},exit:graph.extracts[0],extracts:graph.extracts,theme:RULES.variety[0].theme};
   const t=RULES.wallThickness,width=RULES.levels[1].passage;
   for(const room of rooms){
     // Spread authored cover and objectives across the larger footprint; model sizes stay fixed.
@@ -30,7 +31,7 @@ export function generateBigLevel(seed){
   for(const c of level.corridors){level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});for(const sign of [-1,1])level.walls.push({x:c.x+(c.dir.z?sign*(width/2+t/2):0),z:c.z+(c.dir.x?sign*(width/2+t/2):0),w:c.dir.x?c.w:t,d:c.dir.z?c.d:t,h:.85,roomIds:c.roomIds});}
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];
-    if(poi.type==='bit-signal'){poi.description='BIT SIGNAL: clear this room to choose a perk';continue;}
+    if(poi.type==='bit-signal'){poi.description=`BIT SIGNAL: field upgrade every ${globalThis.DATA.raidPerks.clearsPerOffer} cleared rooms`;continue;}
     const sub={...level,number:poi.type==='vault'?2:3,rooms:[room],floors:[room],walls:level.walls.filter(w=>w.roomId===room.id),boxes:level.boxes.filter(b=>b.roomId===room.id),nodes:[node],enemies:[level.enemies[room.id]],lootBoxes:[],hazards:[],spawners:[],encounters:[],start:{x:room.x,z:room.z+room.d/2-1},exit:{x:room.x,z:room.z+2.9}};
     applyEncounters(sub,'bunker',randomFromSeed(`${seed}:${poi.type}`));
     // Prefix encounter references, retaining existing shield / guard / swarm behavior.
@@ -48,6 +49,7 @@ export function generateBigLevel(seed){
 }
 export function extractAvailable(extract,round){
   const elapsed=round.durationMs-round.remainingMs;
+  if(extract.opensAtMs!=null&&elapsed<extract.opensAtMs||extract.closesAtMs!=null&&elapsed>=extract.closesAtMs)return false;
   return extract.type==='open'||extract.type==='timed'&&elapsed>=extract.opensAtMs&&elapsed<extract.closesAtMs||extract.type==='key'&&!!round.keys?.includes(extract.key);
 }
 export function updateBigCulling(level,position,now=0,combat=null){

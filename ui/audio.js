@@ -16,7 +16,6 @@
     init(){
       if(this.context)return true;
       const Factory=this.env.AudioContext||root.AudioContext||root.webkitAudioContext;if(!Factory)return false;
-      try{const navigator=this.env.navigator||root.navigator;if(navigator?.audioSession)navigator.audioSession.type='playback';}catch(_){}
       try{this.context=new Factory();this.context.onstatechange=()=>{this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;};this.context.onstatechange();for(const key of ['master','music','sfx','voice'])this.buses[key]=this.context.createGain();this.buses.master.connect(this.context.destination);for(const key of ['music','sfx','voice'])this.buses[key].connect(this.buses.master);this.applyVolumes();return true;}catch(_){this.context=null;this.unlocked=false;return false;}
     }
     async unlock(){
@@ -31,8 +30,11 @@
     }
     installUnlock(target){
       const unlock=()=>{if(this.unlocked&&this.context?.state==='running')return;void this.unlock();};
-      target.addEventListener('pointerdown',unlock,{passive:true});target.addEventListener('touchend',unlock,{passive:true});target.addEventListener('click',unlock,{passive:true});
-      target.addEventListener('visibilitychange',()=>{if(target.visibilityState==='visible')unlock();});
+      // WebKit needs resume() in the original trusted activation stack.
+      const gestures=target.defaultView||target;
+      for(const type of ['touchend','click','keydown','pointerup'])gestures.addEventListener(type,unlock,{capture:true,passive:true});
+      const visibility=gestures.document||target;
+      visibility.addEventListener('visibilitychange',()=>{if(visibility.visibilityState==='visible')unlock();});
     }
     set(key,value){
       if(!(key in this.settings))return;
@@ -143,6 +145,6 @@
     }
   }
   root.PRAudioManager=AudioManager;
-  if(root.DATA?.audio){root.PR_AUDIO=new AudioManager(root.DATA.audio);if(typeof document!=='undefined')root.PR_AUDIO.installUnlock(document);}
+  if(root.DATA?.audio){root.PR_AUDIO=new AudioManager(root.DATA.audio);if(typeof document!=='undefined')root.PR_AUDIO.installUnlock(window);}
   if(typeof module!=='undefined'&&module.exports)module.exports={AudioManager};
 })(typeof window!=='undefined'?window:globalThis);

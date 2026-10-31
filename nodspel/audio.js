@@ -1,5 +1,5 @@
-import '../data/audio.js?v=2.17.0';
-import '../ui/audio.js?v=2.17.0';
+import '../data/audio.js?v=2.18.0';
+import '../ui/audio.js?v=2.18.0';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
@@ -8,7 +8,7 @@ let rarePicked=false,kills=0,lastCountdown=null;
 export function audioEvent(name,detail={}){
   const weapon=config.weaponClasses[detail.weapon]||'carbine',type=config.enemyTypes[detail.type]||'grunt';
   switch(name){
-    case 'start':rarePicked=false;kills=0;lastCountdown=null;audio.stop();audio.music();break;
+    case 'start':void audio.unlock();rarePicked=false;kills=0;lastCountdown=null;audio.stop();audio.music();break;
     case 'stop':audio.stop();break;
     case 'shoot':void audio.play(name+'-'+weapon,{enemy:!!detail.enemy});break;
     case 'reload':case 'empty':void audio.play(name+'-'+weapon);break;

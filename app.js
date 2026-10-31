@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.17.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.18.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
@@ -4424,6 +4424,7 @@ window.A = {
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
   deployNodeRaid(){
+    void window.PR_AUDIO?.unlock();
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
     const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
     if(rb) for(const k in rb) stats[k] = clampStat(k, stats[k] + rb[k]);
@@ -5281,6 +5282,7 @@ function setupSplash(flightPending){
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
   const activate = () => {
+    void window.PR_AUDIO?.unlock();
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;

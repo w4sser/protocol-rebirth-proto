@@ -1,17 +1,15 @@
-import {createRoomVisibility} from './big-level-culling.js?v=2.17.0';
+import {createRoomVisibility} from './big-level-culling.js?v=2.18.0';
 import * as THREE from './vendor/three.module.js';
-import {levelMapSVG,mapIconSymbols} from './level-map.js?v=2.17.0';
-import {graphRoomAt} from './zone-graph.js?v=2.17.0';
-import {updateBigCulling,extractAvailable} from './big-level.js?v=2.17.0';
+import {levelMapSVG,mapIconSymbols} from './level-map.js?v=2.18.0';
+import {graphRoomAt} from './zone-graph.js?v=2.18.0';
+import {updateBigCulling,extractAvailable} from './big-level.js?v=2.18.0';
 
 export function createBigLevelRuntime(level,world,makeLabel){
   if(!level.big)return null;
   const overlay=document.createElement('aside');overlay.id='big-level-minimap';overlay.setAttribute('aria-label','Level minimap');
-  // A HUD overlay, kept within the viewport's safe area, clear of the timer and controls.
-  Object.assign(overlay.style,{position:'absolute',left:'calc(max(14px, env(safe-area-inset-left)) + 0px)',top:'96px',width:'clamp(84px, 11vw, 110px)',height:'clamp(76px, 22vh, 96px)',opacity:'.85',pointerEvents:'none',zIndex:'2',color:'var(--ad-cyan)'});
-  document.querySelector('#game').append(overlay);
-  const caption=document.createElement('div');caption.style.cssText='font-size:7px;line-height:10px;white-space:nowrap;text-align:center;background:var(--ad-night);color:var(--ad-bone);padding:2px 4px';caption.append('V Vault / G Gen / B BIT',document.createElement('br'),'O Open / T Time / K Key');
-  const map=document.createElement('div');map.style.cssText='height:calc(100% - 24px)';overlay.append(map,caption);
+  document.querySelector('#pause-map').append(overlay);
+  const caption=document.createElement('div');caption.style.cssText='font-size:11px;line-height:15px;white-space:nowrap;text-align:center;background:var(--ad-night);color:var(--ad-bone);padding:2px 4px';caption.append('V Vault / G Gen / B BIT',document.createElement('br'),'O Open / T Time / K Key');
+  const map=document.createElement('div');map.style.cssText='height:160px';overlay.append(map,caption);
   const extractLabels=level.extracts.slice(1).map(e=>({extract:e,label:makeLabel('',new THREE.Vector3(e.x,1.8,e.z),'exit-label','exit','EXTRACT')}));
   const poiLabels=level.graph.pois.map(p=>({poi:p,label:makeLabel(p.description,new THREE.Vector3(p.x,1.8,p.z),'room-label','room',p.type.toUpperCase())}));
   const applyVisibility=createRoomVisibility(level,world);

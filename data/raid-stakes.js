@@ -3,6 +3,7 @@
 var RAID_STAKES_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_STAKES_ROOT.DATA = RAID_STAKES_ROOT.DATA || {};
 RAID_STAKES_ROOT.DATA.raidStakes = Object.freeze({
+  extractHoldMs:1000,
   // Heal budget: a fixed lifetime cap on healing per raid (BIT regen, medkits, kill reward, perk heals).
   // Fixed HP, not a fraction of max HP, so Vitality progression never raises or lowers this allowance.
   healBudgetHP: 60,

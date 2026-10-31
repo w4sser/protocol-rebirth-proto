@@ -1,64 +1,65 @@
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.17.0';
-import {animateEnemyModel} from './enemy-animation.js?v=2.17.0';
-import {applyEnemyDemo} from './enemy-demo.js?v=2.17.0';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.17.0';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.17.0';
-import {createOperatorFX} from './operator-fx.js?v=2.17.0';
-import {createAudioSettings} from './audio-settings.js?v=2.17.0';
-import {audio,audioEvent} from './audio.js?v=2.17.0';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.17.0';
-import {createPerkUI} from './perk-ui.js?v=2.17.0';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.17.0';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.18.0';
+import {animateEnemyModel} from './enemy-animation.js?v=2.18.0';
+import {applyEnemyDemo} from './enemy-demo.js?v=2.18.0';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.18.0';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.18.0';
+import {createOperatorFX} from './operator-fx.js?v=2.18.0';
+import {createAudioSettings} from './audio-settings.js?v=2.18.0';
+import {audio,audioEvent} from './audio.js?v=2.18.0';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.18.0';
+import {createPerkUI} from './perk-ui.js?v=2.18.0';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.18.0';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.17.0';
-import {loadBunkerAssets} from './bunker.js?v=2.17.0';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.17.0';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.17.0';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.17.0';
-import {createRobotSocket} from './operator-gear.js?v=2.17.0';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.18.0';
+import {loadBunkerAssets} from './bunker.js?v=2.18.0';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.18.0';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.18.0';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.18.0';
+import {createRobotSocket} from './operator-gear.js?v=2.18.0';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.17.0';import '../data/recipes.js?v=2.17.0';import '../data/vendors.js?v=2.17.0';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.17.0';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.17.0';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.17.0';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.17.0';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.17.0';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.17.0';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.17.0';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.17.0';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.17.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.17.0';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.17.0';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.17.0';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.17.0';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.17.0';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.17.0';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.17.0';
-// import {stepScavenging} from './scavenging.js?v=2.17.0';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.17.0';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.17.0';
-import {routeComplete} from './objectives.js?v=2.17.0';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.17.0';
-import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.17.0';
-import {createBIT,stepBIT} from './bit.js?v=2.17.0';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.17.0';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.17.0';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.17.0';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.17.0';
-import {applyEnvironmentLight} from './environment-look.js?v=2.17.0';
-import {createRaidProfiler} from './raid-profiler.js?v=2.17.0';
-import {createPostFX} from './postfx.js?v=2.17.0';
-import {createDustField} from './dust.js?v=2.17.0';
-import {createQualityUI} from './quality-ui.js?v=2.17.0';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.17.0';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.17.0';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.17.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.17.0';
+import '../data/modules.js?v=2.18.0';import '../data/recipes.js?v=2.18.0';import '../data/vendors.js?v=2.18.0';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.18.0';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.18.0';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.18.0';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.18.0';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitAt,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount} from './round.js?v=2.18.0';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.18.0';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.18.0';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.18.0';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.18.0';
+import {buildWorld,setNodeHold} from './world.js?v=2.18.0';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.18.0';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.18.0';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.18.0';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.18.0';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.18.0';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.18.0';
+// import {stepScavenging} from './scavenging.js?v=2.18.0';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.18.0';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.18.0';
+import {routeComplete} from './objectives.js?v=2.18.0';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.18.0';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.18.0';
+import {createBIT,stepBIT} from './bit.js?v=2.18.0';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.18.0';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.18.0';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.18.0';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.18.0';
+import {applyEnvironmentLight} from './environment-look.js?v=2.18.0';
+import {createRaidProfiler} from './raid-profiler.js?v=2.18.0';
+import {createPostFX} from './postfx.js?v=2.18.0';
+import {createDustField} from './dust.js?v=2.18.0';
+import {createQualityUI} from './quality-ui.js?v=2.18.0';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.18.0';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.18.0';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.18.0';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.18.0';
+let extractHeld=false;
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.17.0');
+const orderResponse=await fetch('./order.json?v=2.18.0');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -77,7 +78,7 @@ if(earlyStart)completeTutorial(tutorialStorage);
 let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
 let gameReady=false,queuedStart=null;
-$('#tutorial-start').onclick=()=>{const go=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};if(gameReady)go();else queuedStart=go;};
+$('#tutorial-start').onclick=()=>{void audio.unlock();const go=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};if(gameReady)go();else queuedStart=go;};
 const stage=$('#game');let viewWidth=stage.clientWidth,viewHeight=stage.clientHeight;
 let QUALITY=pickQuality({search:location.search,storage:localStorage,nav:navigator,screen});const QS=qualitySettings(QUALITY);document.documentElement.dataset.quality=QUALITY;
 // ?q= is a developer/QA override for this session only: the auto-downgrade watchdog defers to it instead
@@ -140,7 +141,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.17.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.18.0',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -240,31 +241,28 @@ mountAbility($('#dash'),ability);
 $('#dash').addEventListener('pointerdown',e=>{e.preventDefault();ability.activate(round);});
 $('#dash').addEventListener('click',e=>{if(e.detail===0)ability.activate(round);});
 
-// Floating stick (docs/design-combat-feel-oct28.md §2.2a): origin = where the thumb lands (not the zone's
-// center). Only the drawn base is clamped; input keeps the touchdown origin. Independent pointer capture lets
-// both thumbs work at once. deadZonePx/stickRadiusPx are tuning values (RULES.aimControls).
+// Input starts at touchdown; fixed thumbstick graphics stay relative to the ring center.
+// Independent pointer capture lets both thumbs work at once.
 function setupStick(selector,value,onShot){
   const el=$(selector),base=el.querySelector('.stick-base'),thumb=el.querySelector('.thumb');
-  const state={pointer:null,gesture:null,origin:null,downAt:0,dragged:false};
+  const state={pointer:null,gesture:null,origin:null,touchdown:null,downAt:0,dragged:false};
   sticks.push({el,state,value,thumb,base});el.style.setProperty('--stick-radius',`${RULES.aimControls.stickRadiusPx}px`);
   const RADIUS=RULES.aimControls.stickRadiusPx;
   function update(e){
-    const offset=stickOffset(state.origin,e.clientX,e.clientY);
+    const offset=stickOffset(state.touchdown,e.clientX,e.clientY);
+    const knob=stickOffset(state.origin,e.clientX,e.clientY);
     if(offset.manual)state.dragged=true;
     value.x=offset.manual?offset.x/RADIUS:0;value.y=offset.manual?offset.y/RADIUS:0;
-    thumb.style.transform=`translate(calc(-50% + ${offset.x}px),calc(-50% + ${offset.y}px))`;
+    thumb.style.transform=`translate(calc(-50% + ${knob.x}px),calc(-50% + ${knob.y}px))`;
     if(onShot&&state.gesture){dragAim(state.gesture,e.clientX,e.clientY);el.classList.toggle('aiming',!!state.gesture.target);if(state.gesture.target)aim=screenToWorld(state.gesture.target.x,state.gesture.target.y);}
   }
   function start(e){
     if(state.pointer!==null||round?.over||inputPaused(round)||tutorialOpen||!$('#inventory').hidden)return;
     if(e.button!=null&&e.button!==0)return;
-    e.preventDefault();state.pointer=e.pointerId;state.origin={x:e.clientX,y:e.clientY};state.downAt=performance.now();state.dragged=false;
-    const r=el.getBoundingClientRect(),safe=viewport.getBoundingClientRect(),hud=$('.hud').getBoundingClientRect();
-    // Include the thumb at full travel and the ring border in the safe margin.
-    const margin=RADIUS+Math.max(2,thumb.getBoundingClientRect().width/2);
-    const x=Math.max(safe.left+margin,Math.min(safe.right-margin,e.clientX));
-    const y=Math.max(Math.max(safe.top,hud.bottom)+margin,Math.min(safe.bottom-margin,e.clientY));
-    base.style.left=`${x-r.left-(el.clientLeft||0)}px`;base.style.top=`${y-r.top-(el.clientTop||0)}px`;
+    e.preventDefault();state.pointer=e.pointerId;state.downAt=performance.now();state.dragged=false;
+    const r=el.getBoundingClientRect();
+    state.origin={x:r.left+r.width/2,y:r.top+r.height/2};
+    state.touchdown={x:e.clientX,y:e.clientY};
     state.gesture=onShot?beginAim(e.clientX,e.clientY):null;el.setPointerCapture(e.pointerId);el.classList.add('active');update(e);
   }
   el.addEventListener('pointerdown',start);
@@ -286,11 +284,21 @@ function setupStick(selector,value,onShot){
       const direction=finishGesture(state.gesture,e.clientX,e.clientY,performance.now()-state.downAt,state.dragged,cancelled);
       if(direction){const tap=direction==='tap';if(!tap)aim=screenToWorld(direction.x,direction.y);onShot(tap);}
     }
-    state.pointer=null;state.gesture=null;state.origin=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');
+    state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');
   }
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
 }
 setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
+const extractButton=$('#hold-extract');
+extractButton.addEventListener('pointerdown',e=>{if(extractButton.disabled||inputPaused(round))return;e.preventDefault();extractHeld=true;extractButton.setPointerCapture(e.pointerId);});
+function endExtractHold(e){
+  if(extractHeld&&['pointerup','keyup'].includes(e.type)){const result=enterExit(round,position,gameClock(),true);if(result)finishRound('extraction');}
+  extractHeld=false;if(round)round.extractHold=null;
+}
+for(const type of ['pointerup','pointercancel','lostpointercapture','blur'])extractButton.addEventListener(type,endExtractHold);
+extractButton.addEventListener('keydown',e=>{if(!extractButton.disabled&&!inputPaused(round)&&['Space','Enter'].includes(e.code)&&!e.repeat){e.preventDefault();extractHeld=true;}});
+extractButton.addEventListener('keyup',endExtractHold);
+
 // ---- Toolkit (nodspel/tools.js): round button beside the aim stick. Tap = auto-throw at the nearest enemy in range (else forward);
 // hold + drag = arc preview with landing ring, release throws; cancel = pointercancel. Desktop: E. Cyan = system, coral = danger.
 const toolBtn=$('#tool-btn'),TOOL_CORAL='#E4705F',TOOL_CYAN='#3FE0D0',toolDrag={pointer:null,x:0,y:0,active:false,dir:null,dist:0};
@@ -379,10 +387,10 @@ function updateMouse(e){const r=stage.getBoundingClientRect();mouse.set((e.clien
 renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')updateMouse(e);});
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button===0){updateMouse(e);mouseDown=true;renderer.domElement.setPointerCapture(e.pointerId);}});
 renderer.domElement.addEventListener('pointerup',e=>{if(mouseDown&&e.pointerType==='mouse'){updateMouse(e);updateMouseAim();fire();}mouseDown=false;});renderer.domElement.addEventListener('pointercancel',()=>{mouseDown=false;});
-window.addEventListener('keydown',e=>{if(inputPaused(round))return;if(isTypingTarget(e.target))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
-window.addEventListener('keyup',e=>{if(inputPaused(round))return;if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
+window.addEventListener('keydown',e=>{if(inputPaused(round))return;if(isTypingTarget(e.target)||e.target?.closest?.('#hold-extract'))return;if(isGameKey(e.code)&&e.target?.closest?.('button')&&!e.target.closest('#inventory,#round-over,#tutorial'))e.preventDefault();if(tutorialOpen||!$('#inventory').hidden)return;if(e.code==='KeyQ'&&!e.repeat){e.preventDefault();useKit();}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toolTap();}if(e.code==='ShiftLeft'||e.code==='ShiftRight'){e.preventDefault();if(!e.repeat)requestDash();}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);}},{capture:true});
+window.addEventListener('keyup',e=>{if(inputPaused(round)||e.target?.closest?.('#hold-extract'))return;if(isGameKey(e.code)&&keys.has(e.code))e.preventDefault();if(e.code==='Space'&&keys.has('Space'))fire();keys.delete(e.code);},{capture:true});
 document.addEventListener('click',e=>releaseButtonFocus(e,document),{capture:false});
-function clearInput(){pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;for(const {el,state,value,thumb,base} of sticks){const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');}}
+function clearInput(){extractHeld=false;if(round)round.extractHold=null;pendingShot=null;pendingTool=null;pendingKit=false;keys.clear();mouseDown=false;for(const {el,state,value,thumb,base} of sticks){const pointer=state.pointer;state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;if(pointer!==null&&el.hasPointerCapture(pointer))el.releasePointerCapture(pointer);value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';base.style.left=base.style.top='';el.classList.remove('active','aiming');}}
 window.addEventListener('blur',clearInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInput();if(round&&!tutorialOpen){tickRound(round,gameClock());if(round.over)finishRound();}});
 
@@ -475,12 +483,12 @@ function updateHUD(){
   renderBackpackHUD();
   {const n=carriedCount(round),cap=bagCapacityOf(round),full=n>=cap;$('#bag-count').textContent=`${n}/${cap}`;$('#open-bag').classList.toggle('full',full);$('#open-bag').setAttribute('aria-label',`Open bag, ${n} of ${cap}, at risk until extract${round.levelsCleared?', carried':''}`);}
   renderInventory();
-  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(level.big||level.nodes.every(n=>n.active));
+  const level=displayLevel(round,resultPending||round.reason==='extract'),lit=level.nodes.filter(n=>n.active).length,open=!round.over&&(level.big?exitIsOpen({...round,level:{...level,extracts:[level.exit]}}):level.nodes.every(n=>n.active));
   {const s=$('#shield-hud');if(s){s.hidden=!(round.maxShield>0);$('#shield-value').textContent=round.shield;s.classList.toggle('broken',round.shield<=0);}}
   viewport.classList.toggle('low-hp',round.health>0&&round.health<=25);
   renderRoomBox(level);
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(level.number===3?'EXTRACT · HOLD BUTTON':'EXIT · OPEN'):'EXIT · LOCKED';
   if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   world.setExit(open);if(!resultPending)setCollisions();
 }
@@ -657,7 +665,7 @@ function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=
   if(label.caption.textContent!==text)label.caption.textContent=text;if(!door&&done)setIconText(label.shortEl,'check','');else setIconText(label.shortEl,'',door?(done?'':'DOOR'):'SEARCH');
   label.el.classList.toggle('done',done);label.el.classList.toggle('charging',busy);label.el.dataset.state=done?'done':busy?'busy':'idle';
   label.meter.hidden=!busy;label.meter.setAttribute('aria-valuenow',Math.round(p*100));label.fill.style.width=`${p*100}%`;label.defeated=door&&done&&ref.openedAt&&gameClock()-ref.openedAt>1500;}}
-function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · keep looting (bag at risk, timer running) · walk into the exit to extract';document.body.append(t);setTimeout(()=>t.remove(),6000);}
+function showExtractToast(){audioEvent('extract-revealed');const t=document.createElement('div');t.id='extract-toast';t.className='area-notice';t.setAttribute('role','status');t.textContent='EXTRACT OPEN · bag at risk until secured. Hold EXTRACT in the exit for 1 second.';document.body.append(t);setTimeout(()=>t.remove(),6000);}
 // Shared by the level-load roster and v2.7.0 hunter waves (nodspel/stakes.js), which add enemies mid-raid.
 function labelEnemyVisual(v){
   v.maxHealth=v.enemy.health;
@@ -676,6 +684,7 @@ let bigRuntime=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
+  void audio.unlock();
   hideSwap();
   applyEnemyDemo(round.level,location.search,AREA_SEL);
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
@@ -870,7 +879,7 @@ function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;rend
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#big-level-minimap,#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
+const HUD_SELECTORS='#hold-extract,#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -1004,11 +1013,11 @@ function renderLabels(){
     // Collapse request for NEXT frame: a caption that still lands on a fixed label/HUD after
     // placement asks for the bar, but only once that has been true for a sustained stretch.
     l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
-    // Hide: HUD overlap never moves the bar (by design); an objective overlap the lift above
-    // couldn't clear hides it too, with the same sustained-before-flip hysteresis.
+    // Hide collisions immediately; require sustained clearance before showing again.
+    // HUD overlap never moves the bar; an objective overlap the lift couldn't clear hides it too.
     const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
     if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
-    if(gate(l,'hudHidden',blocked,nowPlacement,250,1300)){l.el.hidden=true;continue;}
+    if(gate(l,'hudHidden',blocked,nowPlacement,0,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);
   }
   // show-debounce: a label that was hidden comes back only after LABEL_SHOW_HOLD_MS, so threshold crossings can't blink
@@ -1033,7 +1042,8 @@ window.__NR={...window.__NR,openSettings:audioSettings.open,closeSettings:audioS
 let perkKey=null,perkChoosing=false;
 const perkUI=createPerkUI(viewport,act);
 const perkResume=document.createElement('button');perkResume.type='button';perkResume.className='perk-resume';perkResume.textContent='CHOOSE PERK';perkResume.hidden=true;perkResume.onclick=()=>act('resume');$('#level-corner').append(perkResume);
-function openPerk(key){if(!key||round.over||perkChoosing)return;perkKey=key;clearInput();const hint=$('#encounter-hint');if(hint)hint.hidden=true;cancelToolDrag();$('#inventory').hidden=true;hideSwap();pausePick(round,Date.now());perkUI.open(round,key);perkResume.hidden=true;}
+function lootReadoutVisible(){return liveToasts(pickupToasts,gameClock()).length>0||[...document.querySelectorAll('.pickup-toast,#goal-pickup,#carry-toast,#bag-toast,#gear-toast,#kit-toast,#swap-row')].some(el=>!el.hidden&&el.getClientRects().length>0);}
+function openPerk(key){if(!key||round.over||perkChoosing||lootReadoutVisible())return;perkKey=key;clearInput();const hint=$('#encounter-hint');if(hint)hint.hidden=true;cancelToolDrag();$('#inventory').hidden=true;hideSwap();pausePick(round,Date.now());perkUI.open(round,key);perkResume.hidden=true;}
 function act(action,id,selected){
   if(!round||round.over||perkChoosing)return;
   if(action==='resume'){perkState(round).minimized=null;openPerk(perkState(round).queue[0]);return;}
@@ -1058,6 +1068,12 @@ const labelState=new Map();
 let previousGameClock=null;
 // Debug fixtures can inspect gameplay layouts without manufacturing room-clear rewards.
 let debugRoomClearsEnabled=true;
+// Debug teleports are instantaneous for the camera too; otherwise returning from a distant
+// exit leaves every world label sweeping across the screen while the camera catches up.
+function teleportPlayer(x,z){
+  position={x,z};target.set(x,0,z+RAID_CAMERA.targetOffsetZ);
+  camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();
+}
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   getCamera:()=>camera,
@@ -1071,14 +1087,14 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   quality:()=>QUALITY,
   perkPickDemo(){const key=roomKey(round,0),ps=perkState(round);ps.rooms[key]={state:'clearPending',entered:true,level:round.level.number,index:0};if(!ps.queue.includes(key))ps.queue.push(key);logCombat(round,{kind:'damage',room:key,source:'Turret',sourceId:'demo-turret',attack:'fan',amount:18,moving:false,at:gameClock()});openPerk(key);},
   deathDemo(){resumePick(round,Date.now());resetPerks(round);perkUI.close();round.lastHit={source:'Sentry',enemyId:'demo-sentry',attack:'projectile'};round.playerMoving=true;takeDamage(round,round.health+(round.shield||0),gameClock());finishRound();},
-  teleport(x,z){position={x,z};},house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
+  teleport:teleportPlayer,house:()=>({house:round.level.house,inside:world.house?.inside,roof:world.house?.roofOpacity,labels:houseLabels.map(h=>h.label.caption.textContent)}),state:()=>({position,level:round.level}),round:()=>round,project:(x,z)=>{const q=new THREE.Vector3(x,.5,z).project(camera);return {x:(q.x+1)/2*innerWidth,y:(1-q.y)/2*innerHeight};},
   openExit(){for(const n of round.level.nodes)n.active=true;updateHUD();},bagFull:()=>{round.bagFull=round.bagFull||{boxId:round.level.lootBoxes.find(b=>!b.collected)?.id,item:round.level.lootBoxes.find(b=>!b.collected)?.item};showSwap();},crash:()=>onFatal(new Error('debug crash')),info:()=>({geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,calls:renderer.info.render.calls,children:scene.children.length,labels:document.querySelectorAll('#world-labels > *').length,level:round.level.number,over:round.over}),hz:()=>hazardLabels.map(h=>h.label.el.dataset.state),
   // v2.0 screenshot hooks: weapon-found compare (ground box moved next to the player) and backpack compare.
   weaponOfferDemo(item='shotgun_breach'){const b=round.level.lootBoxes.find(x=>!x.collected);if(!b)return false;b.item=item;b.gearNotified=true;b.x=position.x;b.z=position.z;round.weaponOffer={boxId:b.id,item,at:0};showWeaponOffer();return true;},
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.17.0');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.18.0');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1353,9 +1369,13 @@ function frameInner(now){
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
-    const result=enterExit(round,position,clock);
+    const availableExit=exitAt(round,position);
+    extractButton.hidden=!availableExit;extractButton.disabled=!availableExit;
+    const result=enterExit(round,position,clock,extractHeld);
+    extractButton.style.setProperty('--hold-turn',`${round.extractHold?.progress??0}turn`);
+    if(!availableExit)extractHeld=false;
     if(result&&result!=='perk')finishRound('extraction');
-    else {const key=pickReady(round,combat,position,clock,hazardState);if(key)openPerk(key);}
+    else {const key=pickReady(round,combat,position,clock,hazardState,lootReadoutVisible());if(key)openPerk(key);}
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
   const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);shieldIcon.title=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';}

@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.17.0';
-import {RULES} from '../levels.js?v=2.17.0';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.18.0';
+import {RULES} from '../levels.js?v=2.18.0';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -26,7 +26,7 @@ const setupStickSrc=extractFn('setupStick');
 function buildStick(mode='aim'){
   const dom=new JSDOM('<canvas id=world></canvas><button id=dash>DASH</button><div id="aim-stick"><div class="stick-base"><div class="thumb"></div></div></div>');
   const el=dom.window.document.getElementById('aim-stick');el.id=`${mode}-stick`;
-  el.getBoundingClientRect=()=>({left:0,top:0,right:100,bottom:60,width:100,height:60});
+  el.getBoundingClientRect=()=>({left:50,top:50,right:150,bottom:150,width:100,height:100});
   el.setPointerCapture=()=>{};el.hasPointerCapture=()=>false;el.releasePointerCapture=()=>{};
   let wall=0,shots=0,lastAim=null,lastTap=null;
   const value={x:0,y:0},context=vm.createContext({
@@ -58,6 +58,45 @@ test('a long press that never leaves the deadzone is not a tap and does not fire
   s.fireEvent('pointerup',{clientX:100,clientY:100});
   assert.equal(s.shots(),0,'release without ever dragging, after the tap window, cancels');
 });
+test('off-center stationary tap requests auto-aim and keeps the knob relative to the ring',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  assert.equal(s.thumb.style.transform,'translate(calc(-50% + 40px),calc(-50% + 0px))');
+  assert.equal(s.context.aim,null);
+  s.setWall(120);
+  s.fireEvent('pointerup',{clientX:140,clientY:100});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
+});
+test('off-center movement inside the touchdown deadzone remains an auto-aim tap',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  s.fireEvent('pointermove',{clientX:144,clientY:98});
+  s.setWall(120);
+  s.fireEvent('pointerup',{clientX:144,clientY:98});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),true);assert.equal(s.context.aim,null);
+});
+test('off-center drag beyond the threshold fires in the touchdown-relative direction',()=>{
+  const s=buildStick();
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  s.fireEvent('pointermove',{clientX:140,clientY:160});
+  s.setWall(50);
+  s.fireEvent('pointerup',{clientX:140,clientY:160});
+  assert.equal(s.shots(),1);assert.equal(s.lastTap(),false);
+  assert.deepEqual(s.lastAim(),{x:0,z:1});
+});
+test('move stick starts at rest off-center and moves relative to touchdown',()=>{
+  const s=buildStick('move');
+  s.fireEvent('pointerdown',{clientX:140,clientY:100});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  assert.equal(s.thumb.style.transform,'translate(calc(-50% + 40px),calc(-50% + 0px))');
+  s.fireEvent('pointermove',{clientX:144,clientY:98});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+  s.fireEvent('pointermove',{clientX:140,clientY:160});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,1);
+  s.fireEvent('pointerup',{clientX:140,clientY:160});
+  assert.equal(s.value.x,0);assert.equal(s.value.y,0);
+});
 test('drag past the deadzone and release fires the dragged direction (screen -> world)',()=>{
   const s=buildStick();s.setWall(0);
   s.fireEvent('pointerdown',{clientX:100,clientY:100});
@@ -82,23 +121,13 @@ test('pointercancel always cancels, even mid-drag',()=>{
   s.fireEvent('pointercancel',{clientX:160,clientY:100});
   assert.equal(s.shots(),0);
 });
-test('the same drag from two different landing points gives an identical direction and an identical visual thumb offset',()=>{
-  const deltas=[[60,0],[0,-40],[-30,40]],origins=[{x:100,y:100},{x:260,y:40}];
-  const results=origins.map(origin=>{
-    const s=buildStick();s.setWall(0);
-    s.fireEvent('pointerdown',{clientX:origin.x,clientY:origin.y});
-    const baseLeft=s.base.style.left,baseTop=s.base.style.top;
-    const offsets=[];
-    for(const [dx,dy] of deltas){s.fireEvent('pointermove',{clientX:origin.x+dx,clientY:origin.y+dy});offsets.push(s.thumb.style.transform);}
-    s.setWall(50);s.fireEvent('pointerup',{clientX:origin.x+deltas.at(-1)[0],clientY:origin.y+deltas.at(-1)[1]});
-    return {baseLeft,baseTop,offsets,aim:s.lastAim()};
-  });
-  // These horizontal origins need no clamp; vertical clamping never changes the input offset.
-  assert.equal(results[0].baseLeft,`${origins[0].x}px`);assert.equal(results[1].baseLeft,`${origins[1].x}px`);
-  // the same relative drag produces the identical visual thumb offset regardless of where the gesture started
-  assert.deepEqual(results[0].offsets,results[1].offsets);
-  // ... and the identical fired (world) direction
-  assert.deepEqual(results[0].aim,results[1].aim);
+test('different landing points keep the base centered and clamp knob travel',()=>{
+  for(const origin of [{x:100,y:100},{x:260,y:40}]){
+    const s=buildStick();s.fireEvent('pointerdown',{clientX:origin.x,clientY:origin.y});
+    assert.equal(s.base.style.left,'');assert.equal(s.base.style.top,'');
+    assert.equal(s.context.sticks[0].state.origin.x,100);
+    assert.ok(Math.hypot(s.value.x,s.value.y)<=1);
+  }
 });
 
 test('open playfield touches use the floating right zone and never intercept buttons',()=>{
@@ -112,31 +141,14 @@ test('open playfield touches use the floating right zone and never intercept but
   s.setWall(80);s.fireEvent('pointerup',{clientX:700,clientY:180});assert.equal(s.shots(),1);
 });
 
-test('floating visual origin accounts for the stick border',()=>{
-  const s=buildStick();Object.defineProperty(s.el,'clientLeft',{value:1});Object.defineProperty(s.el,'clientTop',{value:1});
-  s.fireEvent('pointerdown',{clientX:100,clientY:100});
-  assert.equal(parseFloat(s.base.style.left)+s.el.clientLeft,100);
-  assert.equal(parseFloat(s.base.style.top)+s.el.clientTop,100);
-});
-
-for(const origin of [{x:1,y:2},{x:843,y:389},{x:50,y:55}])test(`floating base stays inside safe area below HUD at ${origin.x},${origin.y}`,()=>{
-  const s=buildStick();
-  s.context.viewport.getBoundingClientRect=()=>({left:12,top:8,right:832,bottom:382,width:820});
-  const hud=s.dom.window.document.createElement('div');hud.className='hud';
-  hud.getBoundingClientRect=()=>({bottom:60});
-  s.dom.window.document.body.append(hud);
-  const lookup=s.context.$;s.context.$=sel=>sel==='.hud'?hud:lookup(sel);
-  s.thumb.getBoundingClientRect=()=>({width:36,height:36});
-  s.fireEvent('pointerdown',{clientX:origin.x,clientY:origin.y});
-  const x=parseFloat(s.base.style.left),y=parseFloat(s.base.style.top),margin=48+18;
-  assert.ok(x-margin>=12&&x+margin<=832);
-  assert.ok(y-margin>=60&&y+margin<=382);
-  assert.equal(s.context.sticks[0].state.origin.x,origin.x);
-  assert.equal(s.context.sticks[0].state.origin.y,origin.y);
-  s.fireEvent('pointermove',{clientX:origin.x+30,clientY:origin.y+40});
-  assert.ok(Math.abs(s.value.x-.6)<1e-12);assert.ok(Math.abs(s.value.y-.8)<1e-12);
-  assert.equal(s.thumb.style.transform,`translate(calc(-50% + ${30*(48/50)}px),calc(-50% + ${40*(48/50)}px))`);
-  assert.equal(parseFloat(s.base.style.left),x);assert.equal(parseFloat(s.base.style.top),y);
+test('base stays at ring center, knob clamps to radius and returns on release',()=>{
+  const s=buildStick();s.fireEvent('pointerdown',{clientX:100,clientY:100});
+  s.fireEvent('pointermove',{clientX:300,clientY:100});
+  assert.equal(s.context.sticks[0].state.origin.x,100);
+  assert.equal(s.base.style.left,'');assert.equal(s.base.style.top,'');
+  assert.equal(s.thumb.style.transform,'translate(calc(-50% + 48px),calc(-50% + 0px))');
+  s.fireEvent('pointerup',{clientX:300,clientY:100});
+  assert.equal(s.thumb.style.transform,'translate(-50%,-50%)');
 });
 
 // DASH uses safe-viewport coordinates: left 148, bottom (controls 35 + button 110), size 62.

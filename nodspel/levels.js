@@ -1,10 +1,10 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.17.0';
-import {generateBigLevel} from './big-level.js?v=2.17.0';
-import '../data/items.js?v=2.17.0';
-import {clearPassageProps} from './archipelago-passages.js?v=2.17.0';
-import {townizeLevel} from './town-layout.js?v=2.17.0';
-import {applyEncounters} from './encounters.js?v=2.17.0';
-import '../data/raid-combat.js?v=2.17.0';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.18.0';
+import {generateBigLevel} from './big-level.js?v=2.18.0';
+import '../data/items.js?v=2.18.0';
+import {clearPassageProps} from './archipelago-passages.js?v=2.18.0';
+import {townizeLevel} from './town-layout.js?v=2.18.0';
+import {applyEncounters} from './encounters.js?v=2.18.0';
+import '../data/raid-combat.js?v=2.18.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -214,7 +214,7 @@ export function ruleSet(area,hard){const AR=AREA_RULES[area]??AREA_RULES.bunker;
 let BIG_LEVELS=false;
 export function setLevelMode(mode){BIG_LEVELS=mode==='big';}
 export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVELS,layoutOverride=null){
-  if(big)return generateBigLevel(roundSeed);
+  if(big)return generateBigLevel(roundSeed,area);
   const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');
   const AR=ruleSet(area,hard),sm=AR.sizeMul??1;
   if(hard)roundSeed=`hard^${roundSeed}`;
