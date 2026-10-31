@@ -4,7 +4,7 @@
   class AudioManager {
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
-      this.context=null;this.buses={};this.cache=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();
+      this.context=null;this.buses={};this.cache=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
       try{this.storage=env.storage===undefined?root.localStorage:env.storage;const saved=JSON.parse(this.storage?.getItem(config.storageKey)||'null');if(saved&&typeof saved==='object')for(const key of Object.keys(this.settings)){if(typeof this.settings[key]==='boolean'){if(typeof saved[key]==='boolean')this.settings[key]=saved[key];}else if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))this.settings[key]=Math.max(0,Math.min(1,saved[key]));}}catch(_){/* Private browsing and bad settings are harmless. */}
       const probe=env.probe; // Web Audio decoding only; no media element is created.
@@ -121,28 +121,43 @@
       }catch(_){return false;}finally{if(token===this.voiceToken&&!this.ducked)this.voiceBusy=false;}
     }
     async loop(slot,name,fade=0){
-      const epoch=this.epoch;
-      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked)){await this.resume();if(epoch!==this.epoch)return;}
+      const epoch=this.epoch,tokenBeforeResume=this.loopTokens.get(slot);
+      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked))await this.resume();
+      if(epoch!==this.epoch||this.loopTokens.get(slot)!==tokenBeforeResume)return;
       if(this.loops.get(slot)?.name===name)return;
       this.stopLoop(slot);const token=this.loopTokens.get(slot),cue=this.config.loops[name];if(!cue||!this.unlocked||this.context?.state!=='running')return;
       // Reserve the slot while decoding; repeated music calls share one pending request.
       this.loops.set(slot,{name,source:null});
-      try{const buffer=await this.load(cue.file);if(this.loopTokens.get(slot)!==token)return;this.loops.set(slot,{name,source:this.source(buffer,cue.bus,cue.gain,1,true,null,fade)});}catch(_){if(this.loopTokens.get(slot)===token)this.loops.delete(slot);}
+      try{
+        const buffer=await this.load(cue.file);
+        if(epoch!==this.epoch||this.loopTokens.get(slot)!==token)return;
+        if(slot==='music')this.retireFadingMusic();
+        this.loops.set(slot,{name,source:this.source(buffer,cue.bus,cue.gain,1,true,null,fade)});
+      }catch(_){if(this.loopTokens.get(slot)===token)this.loops.delete(slot);}
     }
-    stopLoop(slot){this.loopTokens.set(slot,(this.loopTokens.get(slot)||0)+1);const entry=this.loops.get(slot);this.loops.delete(slot);if(entry?.source)entry.source.stop();}
+    retireFadingMusic(){
+      const source=this.fadingMusic;this.fadingMusic=null;
+      if(source){try{source.stop();}catch(_){}}
+    }
+    stopLoop(slot){this.loopTokens.set(slot,(this.loopTokens.get(slot)||0)+1);const entry=this.loops.get(slot);this.loops.delete(slot);if(slot==='music')this.retireFadingMusic();if(entry?.source)entry.source.stop();}
     music(name='pulse',fade=0){this.desiredMusic=true;this.musicName=name;this.musicFade=fade;if(this.unlocked)void this.loop('music',name,fade);}
     fadeMusic(seconds=.8){
       this.desiredMusic=false;
-      // Invalidate an in-flight decode before it can recreate the loop.
+      // Invalidate requests waiting for either resume or decode.
       const entry=this.loops.get('music');this.loopTokens.set('music',(this.loopTokens.get('music')||0)+1);this.loops.delete('music');
-      if(!entry?.source||!this.context)return Promise.resolve();
-      const source=entry.source,param=source.prLevel.gain,now=this.context.currentTime;
+      // A repeated PLAY keeps the existing fade tracked until it ends or is replaced.
+      const source=entry?.source||this.fadingMusic;
+      if(!source||!this.context)return Promise.resolve();
+      this.fadingMusic=source;
+      const cleanup=source.onended;
+      if(entry?.source)source.onended=()=>{cleanup?.();if(this.fadingMusic===source)this.fadingMusic=null;};
+      const param=source.prLevel.gain,now=this.context.currentTime;
       if(param.cancelAndHoldAtTime)param.cancelAndHoldAtTime(now);
       else{param.cancelScheduledValues(now);param.setValueAtTime(param.value,now);}
       param.linearRampToValueAtTime(0,now+seconds);source.stop(now+seconds);
       return new Promise(resolve=>setTimeout(resolve,seconds*1000));
     }
-    stop(){this.epoch++;this.desiredMusic=false;for(const slot of this.loops.keys())this.stopLoop(slot);this.voiceToken++;this.voiceBusy=false;this.duck(false);for(const source of [...this.active]){try{source.stop();}catch(_){}}}
+    stop(){this.epoch++;this.desiredMusic=false;this.retireFadingMusic();for(const slot of this.loops.keys())this.stopLoop(slot);this.voiceToken++;this.voiceBusy=false;this.duck(false);for(const source of [...this.active]){try{source.stop();}catch(_){}}}
     settingsUI(container){
       if(!container)return;
       const group=document.createElement('fieldset');group.className='audio-settings';const legend=document.createElement('legend');legend.textContent='Audio';group.append(legend);

@@ -88,3 +88,64 @@ test('default-off hook also stays silent before app marks the splash active',()=
   vm.runInNewContext(fs.readFileSync(require.resolve('../ui/base-audio.js'),'utf8'),{window,document});
   assert.deepEqual(calls,[]);
 });
+
+const flush=()=>new Promise(setImmediate);
+const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
+test('fade cancels a music request suspended in resume even when music is requested again',async()=>{
+  const {audio:a}=fixture();await a.unlock();
+  const gate=deferred();a.context.state='suspended';
+  a.context.resume=async()=>{await gate.promise;a.context.state='running';};
+  const old=a.loop('music','pulse');
+  await a.fadeMusic(0);
+  // A new desiredMusic=true must not revive the old request.
+  a.music('bunker-theme');
+  gate.resolve();await old;await flush();
+  assert.equal(a.context.sources.length,1);
+  assert.equal(a.loops.get('music').name,'bunker-theme');
+});
+test('fade while resume is pending leaves music silent when resume completes',async()=>{
+  const {audio:a}=fixture();await a.unlock();
+  const gate=deferred();a.context.state='suspended';
+  a.context.resume=async()=>{await gate.promise;a.context.state='running';};
+  const pending=a.loop('music','pulse');await a.fadeMusic(0);
+  gate.resolve();await pending;
+  assert.equal(a.desiredMusic,false);assert.equal(a.context.sources.length,0);assert.equal(a.loops.size,0);
+});
+test('fade and restart during decoding start only the replacement music',async()=>{
+  const {audio:a}=fixture();await a.unlock();
+  const gate=deferred();a.context.decodeAudioData=()=>gate.promise;
+  const old=a.loop('music','pulse');await flush();
+  await a.fadeMusic(0);a.music('bunker-theme');await flush();
+  gate.resolve({});await old;await flush();
+  assert.equal(a.context.sources.length,1);assert.equal(a.loops.get('music').name,'bunker-theme');
+});
+test('start music, immediate PLAY completion and repeated taps never overlap fading loops',async()=>{
+  const {audio:a}=fixture();await a.unlock();
+  // Scheduled stop must leave a source alive until its deadline, as Web Audio does.
+  const live=new Set();let peak=0;
+  a.context.createBufferSource=()=>{
+    const source={playbackRate:{value:1},connect(){},disconnect(){},
+      start(){live.add(source);peak=Math.max(peak,live.size);},
+      stop(when){if(when===undefined||when<=a.context.currentTime){live.delete(source);source.onended?.();}else source.stopAt=when;}};
+    a.context.sources.push(source);return source;
+  };
+  const listeners={},window={PR_AUDIO:a,addEventListener:(name,fn)=>listeners[name]=fn};
+  a.config={...config,startTheme:'pulse'};
+  let splash=true;
+  const document={body:{classList:{contains:()=>splash}},querySelector:()=>null,addEventListener(){}};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../ui/base-audio.js'),'utf8'),{window,document});
+  await flush();assert.equal(live.size,1);
+  const first=a.loops.get('music').source;
+  const firstFade=window.PR_AUDIO_PLAY();assert.ok(live.has(first));
+  splash=false;listeners['pr:splash-finished']();await flush();
+  assert.equal(live.has(first),false);assert.equal(live.size,1);
+  const second=a.loops.get('music').source;
+  const secondFade=window.PR_AUDIO_PLAY(),thirdFade=window.PR_AUDIO_PLAY();
+  listeners.pageshow();await flush();
+  const newest=a.loops.get('music').source;
+  assert.equal(live.has(second),false);assert.equal(live.size,1);assert.equal(peak,1);
+  // A delayed ended event from the old source cannot clear newer fade tracking.
+  const lastFade=a.fadeMusic(.001);second.onended();assert.equal(a.fadingMusic,newest);
+  await Promise.all([firstFade,secondFade,thirdFade,lastFade]);
+  assert.equal(live.has(newest),true);a.stop();assert.equal(live.size,0);
+});

@@ -120,11 +120,24 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
     dummy.position.set(x,.025+r*.24,z);dummy.scale.set(r,r*(.35+rng()*.25),r*(.75+rng()*.5));dummy.rotation.set(rng()*.3,rng()*6.28,rng()*.3);dummy.updateMatrix();pebbles.setMatrixAt(i,dummy.matrix);
     const shade=.72+rng()*.4;stoneColor.setRGB(shade,shade*.98,shade*1.04);pebbles.setColorAt(i,stoneColor);
   }scene.add(pebbles);
-  let dead=false,raf=0,start=performance.now();
+  let dead=false,raf=0,start=performance.now(),lastRender=-Infinity;
+  const frameInterval=profile.name==='high'?0:1000/30;
   const still=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const resize=()=>{if(dead)return;const w=host.clientWidth||innerWidth,h=host.clientHeight||innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();};
-  const render=now=>{if(dead)return;try{clock.value=still?0:(now-start)/1000;renderer.render(scene,camera);if(!still)raf=requestAnimationFrame(render);}catch(error){dispose();onFail?.(error);}};
-  function dispose(){if(dead)return;dead=true;cancelAnimationFrame(raf);window.removeEventListener('resize',resize);const geometries=new Set(),materials=new Set();scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();renderer.domElement.remove();}
+  const render=now=>{
+    if(dead)return;
+    try{
+      if(still||now-lastRender>=frameInterval-.001){
+        // Preserve the cadence across RAF jitter instead of dropping to 20fps at 60Hz.
+        lastRender=frameInterval&&Number.isFinite(lastRender)?lastRender+Math.floor((now-lastRender+.001)/frameInterval)*frameInterval:now;
+        clock.value=still?0:(now-start)/1000;renderer.render(scene,camera);
+      }
+      if(!still)raf=requestAnimationFrame(render);
+    }catch(error){dispose();onFail?.(error);}
+  };
+  const contextLost=event=>{event.preventDefault();if(dead)return;dispose();onFail?.(new Error('Start scene WebGL context lost'));};
+  function dispose(){if(dead)return;dead=true;cancelAnimationFrame(raf);window.removeEventListener('resize',resize);renderer.domElement.removeEventListener('webglcontextlost',contextLost);pebbles.dispose();const geometries=new Set(),materials=new Set();scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();renderer.domElement.remove();}
+  renderer.domElement.addEventListener('webglcontextlost',contextLost);
   window.addEventListener('resize',resize);resize();render(start);
   return {dispose,land(callback){callback?.();}};
 }
