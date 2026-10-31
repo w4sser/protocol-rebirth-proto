@@ -1,5 +1,7 @@
-// Pure graph construction. Coordinates and footprints use the existing authored room pool.
-import {RULES,randomFromSeed} from './levels.js?v=2.13.0';
+// Pure graph construction. BIG MAP expands the existing authored room pool.
+import {RULES,randomFromSeed} from './levels.js?v=2.14.0';
+import '../data/raid-big-layout.js?v=2.14.0';
+const BIG=globalThis.DATA.raidBigLayout;
 
 export function graphDistances(graph,from=graph.spawn.roomId){
   const distances={[from]:0},queue=[from];
@@ -16,11 +18,12 @@ export function graphRoomAt(graph,p,previous=graph.spawn.roomId){
   return edge?(edge.a===previous||edge.b===previous?previous:edge.a):previous;
 }
 export function generateZoneGraph(seed){
-  const rng=randomFromSeed(`${seed}:big-graph`),count=6+Math.floor(rng()*7),spacing=RULES.spacing[1],width=RULES.levels[1].passage;
+  const rng=randomFromSeed(`${seed}:big-graph`),count=6+Math.floor(rng()*7),spacing=BIG.spacing,width=RULES.levels[1].passage;
   const pool=RULES.layouts[2],nodes=[];
   for(let i=0;i<count;i++){
     const layout=pool[Math.floor(rng()*pool.length)],index=Math.floor(rng()*layout.rooms.length),room=i===0?RULES.startRoom:layout.rooms[index];
-    nodes.push({id:i,x:(i%3)*spacing,z:-Math.floor(i/3)*spacing,w:room.w,d:room.d,name:i===0?RULES.startRoom.name:RULES.roomNames[index],layoutId:i===0?'start':layout.id,templateIndex:index,doors:[]});
+    const variant=BIG.shapes[i%BIG.shapes.length],shape=room.w>=room.d?variant:{w:variant.d,d:variant.w};
+    nodes.push({id:i,x:(i%3)*spacing,z:-Math.floor(i/3)*spacing,w:room.w*shape.w,d:room.d*shape.d,name:i===0?RULES.startRoom.name:RULES.roomNames[index],layoutId:i===0?'start':layout.id,templateIndex:index,doors:[]});
   }
   const candidates=[];for(const a of nodes)for(const b of nodes)if(a.id<b.id&&Math.abs(a.x-b.x)+Math.abs(a.z-b.z)===spacing)candidates.push({a:a.id,b:b.id,roll:rng()});
   candidates.sort((a,b)=>a.roll-b.roll);const parent=nodes.map(n=>n.id),root=i=>parent[i]===i?i:(parent[i]=root(parent[i])),tree=[],loops=[];

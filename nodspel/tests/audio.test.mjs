@@ -24,7 +24,9 @@ class Source{
   stop(){this.stopped=true;this.onended?.();}
 }
 class FakeContext{
-  state='suspended';currentTime=0;destination={};sources=[];decodes=0;
+  state='suspended';currentTime=0;sampleRate=48000;destination={};sources=[];decodes=0;
+  createBuffer(channels,length,sampleRate){const data=new Float32Array(length);return {length,sampleRate,duration:length/sampleRate,getChannelData:()=>data};}
+  createDynamicsCompressor(){return {threshold:new Param(),knee:new Param(),ratio:new Param(),attack:new Param(),release:new Param(),connect(node){this.destination=node;}};}
   createGain(){return new Gain();}
   createBufferSource(){const s=new Source();this.sources.push(s);return s;}
   async resume(){this.state='running';}
@@ -82,14 +84,14 @@ test('loading reserves VO slot and failed load releases it without consuming coo
   release({ok:false});assert.equal(await first,false);assert.equal(a.voiceBusy,false);assert.equal(a.ducked,false);assert.equal(a.lastVoice.size,0);
 });
 test('single cached fetch/decode across repeated cues',async()=>{
-  const f=fixture(),a=f.audio;await a.unlock();await a.play('shoot-carbine');f.advance(100);await a.play('shoot-carbine');
+  const f=fixture(),a=f.audio;await a.unlock();await a.play('reload-carbine');f.advance(200);await a.play('reload-carbine');
   assert.equal(f.requests,1);assert.equal(a.context.decodes,1);assert.equal(a.context.sources.length,2);
   assert.equal(a.context.sources[0].playbackRate.value,1);
 });
 test('stopped music and pending SFX/VO cannot start after stop',async()=>{
   let release;const pending=new Promise(r=>release=r);
   const a=fixture({fetch:()=>pending}).audio;await a.unlock();
-  const bed=a.loop('music','pulse'),shot=a.play('shoot-carbine'),voice=a.voice('nice-shot');a.stop();
+  const bed=a.loop('music','pulse'),shot=a.play('reload-carbine'),voice=a.voice('nice-shot');a.stop();
   release({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});await Promise.all([bed,shot,voice]);
   assert.equal(a.context.sources.length,0);assert.equal(a.loops.size,0);assert.equal(a.voiceBusy,false);
 });
@@ -235,4 +237,51 @@ test('cached raid pageshow restores only music and never revives a finished raid
       if(value===undefined)delete globalThis[key];else globalThis[key]=value;
     }
   }
+});
+
+
+test('synthesized shots are cached, bounded and route through compressor, SFX and master',async()=>{
+  const f=fixture(),a=f.audio;await a.unlock();
+  for(const weapon of Object.keys(config.shots.weapons)){
+    for(const enemy of [false,true]){
+      assert.equal(await a.play('shoot-'+weapon,{enemy}),true);
+      const source=a.context.sources.at(-1),buffer=source.buffer,samples=buffer.getChannelData(0);
+      assert.equal(source.destination.destination,a.shotLimiter);
+      assert.equal(a.shotLimiter.destination,a.buses.sfx);
+      assert.equal(a.buses.sfx.destination,a.buses.master);
+      assert.equal(a.buses.master.destination,a.context.destination);
+      assert.ok(samples.every(x=>Number.isFinite(x)&&Math.abs(x)<=config.shots.ceiling));
+      assert.ok(samples.some(x=>Math.abs(x)>.5));near(samples[0],0);near(samples.at(-1),0);
+      f.advance(100);await a.play('shoot-'+weapon,{enemy});
+      assert.equal(a.context.sources.at(-1).buffer,buffer);
+    }
+  }
+  assert.equal(f.requests,0);assert.equal(a.context.decodes,0);assert.equal(a.shotCache.size,8);
+  const [player,,enemy]=a.context.sources;
+  assert.ok(enemy.destination.gain.value<player.destination.gain.value);
+  a.set('sfx',.24);near(a.buses.sfx.gain.value,.24);
+  for(const [key,value] of [['sfx',0],['sfxMuted',true],['master',0],['muted',true]]){
+    a.set(key,value);f.advance(100);const count=a.context.sources.length;
+    assert.equal(await a.play('shoot-carbine'),false);assert.equal(a.context.sources.length,count);
+    if(key==='sfx'||key==='sfxMuted')near(a.buses.sfx.gain.value,0);else near(a.buses.master.gain.value,0);
+    a.set(key,typeof value==='boolean'?false:.75);
+  }
+});
+
+test('raid shot events select the synthesized weapon and quieter enemy path; shots vary without rebuilding buffers',async()=>{
+  const f=fixture({random:()=>.2}),a=f.audio,previous=globalThis.PR_AUDIO;
+  globalThis.PR_AUDIO=a;
+  try{
+    const {audioEvent}=await import('../audio.js?shot-route-test');await a.unlock();
+    audioEvent('shoot',{weapon:'shotgun_breach'});
+    const first=a.context.sources.at(-1);assert.ok(first);assert.equal(a.shotCache.size,1);
+    f.advance(100);f.env.random=()=>.8;audioEvent('shoot',{weapon:'shotgun_breach'});
+    const second=a.context.sources.at(-1);assert.equal(second.buffer,first.buffer);
+    assert.ok(second.playbackRate.value>first.playbackRate.value);assert.ok(second.destination.gain.value>first.destination.gain.value);
+    audioEvent('shoot',{enemy:true});const enemy=a.context.sources.at(-1);
+    assert.equal(a.shotCache.size,2);assert.ok(enemy.destination.gain.value<first.destination.gain.value);
+    a.set('sfx',0);f.advance(100);const count=a.context.sources.length;
+    audioEvent('shoot',{weapon:'shotgun_breach'});assert.equal(a.context.sources.length,count);
+    a.stop();assert.equal(a.active.size,0);
+  }finally{globalThis.PR_AUDIO=previous;}
 });

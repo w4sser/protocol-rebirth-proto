@@ -4,7 +4,7 @@
   class AudioManager {
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
-      this.context=null;this.buses={};this.cache=new Map();this.active=new Set();this.loops=new Map();this.loopTokens=new Map();
+      this.context=null;this.buses={};this.cache=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.desiredMusic=false;
       try{this.storage=env.storage===undefined?root.localStorage:env.storage;const saved=JSON.parse(this.storage?.getItem(config.storageKey)||'null');if(saved&&typeof saved==='object')for(const key of Object.keys(this.settings)){if(typeof this.settings[key]==='boolean'){if(typeof saved[key]==='boolean')this.settings[key]=saved[key];}else if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))this.settings[key]=Math.max(0,Math.min(1,saved[key]));}}catch(_){/* Private browsing and bad settings are harmless. */}
       const probe=env.probe||((typeof root.Audio==='function')?new root.Audio():null);
@@ -46,14 +46,49 @@
       }
       return this.cache.get(file);
     }
-    source(buffer,bus,gain,pitch=1,loop=false){
+    shotBuffer(weapon,enemy){
+      const key=weapon+(enemy?'-enemy':'');if(this.shotCache.has(key))return this.shotCache.get(key);
+      const C=this.config.shots,rate=this.context.sampleRate,buffer=this.context.createBuffer(1,Math.ceil(rate*C.duration),rate),out=buffer.getChannelData(0),dry=new Float32Array(out.length);
+      const alpha=hz=>1-Math.exp(-2*Math.PI*hz/rate),hi=alpha(C.highpassHz),body=alpha(C.bodyHz),tail=alpha(C.tailHz);
+      let seed=0x51f15e,low=0,mid=0,air=0;
+      for(let i=0;i<out.length;i++){
+        // Local deterministic noise: build once per weapon/distance, never per shot.
+        seed=(Math.imul(seed,1664525)+1013904223)>>>0;const noise=seed/0x80000000-1,t=i/rate;
+        low+=hi*(noise-low);mid+=body*(noise-mid);air+=tail*(noise-air);
+        const phase=2*Math.PI*(C.thumpEndHz*t+(C.thumpStartHz-C.thumpEndHz)*C.thumpDrop*(1-Math.exp(-t/C.thumpDrop)));
+        const crack=(noise-low)*C.crackGain*(enemy?C.enemyCrack:1)*Math.exp(-t/C.crackDecay);
+        const thump=Math.sin(phase)*C.thumpGain*(enemy?C.enemyThump:1)*Math.exp(-t/C.thumpDecay);
+        dry[i]=Math.min(1,t/C.attack)*(crack+thump+mid*C.bodyGain*Math.exp(-t/C.bodyDecay)+air*C.tailGain*Math.exp(-t/C.tailDecay));
+      }
+      for(let i=0;i<out.length;i++){
+        let value=dry[i];for(const echo of C.echoes){const j=i-Math.round(echo.delay*rate);if(j>=0)value+=dry[j]*echo.gain;}
+        out[i]=C.ceiling*Math.tanh(value*C.drive)*Math.min(1,(out.length-1-i)/(rate*C.fade));
+      }
+      this.shotCache.set(key,buffer);return buffer;
+    }
+    shotDestination(){
+      if(!this.shotLimiter){
+        this.shotLimiter=this.context.createDynamicsCompressor();
+        for(const [key,value] of Object.entries(this.config.shots.compressor))this.shotLimiter[key].value=value;
+        this.shotLimiter.connect(this.buses.sfx);
+      }
+      return this.shotLimiter;
+    }
+    source(buffer,bus,gain,pitch=1,loop=false,destination=null){
       const source=this.context.createBufferSource(),level=this.context.createGain();source.buffer=buffer;source.loop=loop;source.playbackRate.value=pitch;level.gain.value=gain;
-      source.connect(level);level.connect(this.buses[bus]);this.active.add(source);
+      source.connect(level);level.connect(destination||this.buses[bus]);this.active.add(source);
       source.onended=()=>{this.active.delete(source);source.disconnect();level.disconnect();};source.start();return source;
     }
-    async play(name){
+    async play(name,{enemy=false}={}){
       const cue=this.config.sfx[name];if(!cue||!this.unlocked||this.context?.state!=='running'||this.settings.muted)return false;
-      const now=this.now(),epoch=this.epoch;if(now-(this.lastSfx.get(name)??-Infinity)<cue.minGap)return false;this.lastSfx.set(name,now);
+      const now=this.now(),epoch=this.epoch,shot=name.startsWith('shoot-'),key=name+(enemy?'-enemy':'');
+      if(shot&&(this.settings.sfx===0||this.settings.sfxMuted||this.settings.master===0))return false;
+      if(now-(this.lastSfx.get(key)??-Infinity)<cue.minGap)return false;this.lastSfx.set(key,now);
+      if(shot){
+        const weapon=name.slice(6),C=this.config.shots,W=C.weapons[weapon],random=this.env.random||Math.random;
+        this.source(this.shotBuffer(weapon,enemy),'sfx',cue.gain*W.gain*(enemy?C.enemyGain:1)*(1+(random()*2-1)*this.config.gainVariation),W.pitch*(1+(random()*2-1)*this.config.pitchVariation),false,this.shotDestination());
+        return true;
+      }
       try{const buffer=await this.load(cue.file);if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return false;const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;}catch(_){return false;}
     }
     async voice(name){

@@ -9,9 +9,9 @@ import {createCombat,stepCombat} from '../combat.js';
 import {levelMapSVG} from '../level-map.js';
 
 const seeds=Array.from({length:40},(_,i)=>`big-${i}`);
-test('big generation is deterministic, diverse and uses 6-12 authored room footprints',()=>{
+test('big generation is deterministic, diverse and uses 6-12 expanded authored room footprints',()=>{
   const counts=new Set();for(const seed of seeds){const a=generateZoneGraph(seed);assert.deepEqual(a,generateZoneGraph(seed));counts.add(a.nodes.length);assert.ok(a.nodes.length>=6&&a.nodes.length<=12);
-    for(const room of a.nodes.slice(1)){const layout=RULES.layouts[2].find(l=>l.id===room.layoutId);assert.deepEqual([room.w,room.d],[layout.rooms[room.templateIndex].w,layout.rooms[room.templateIndex].d]);assert.equal(room.x%2,0);assert.equal(Math.abs(room.z%2),0);}
+    for(const room of a.nodes){const layout=RULES.layouts[2].find(l=>l.id===room.layoutId),source=room.id===0?RULES.startRoom:layout.rooms[room.templateIndex];const ratio=room.w*room.d/(source.w*source.d);assert.ok(ratio>=1.4&&ratio<=1.7);assert.ok(room.w>source.w&&room.d>source.d);assert.equal(room.x%2,0);assert.equal(Math.abs(room.z%2),0);}
     assert.deepEqual(generateBigLevel(seed),generateBigLevel(seed));
   }assert.equal(counts.size,7);
 });
@@ -25,7 +25,7 @@ test('three reachable extract types, farthest always-open exit, and three distin
   for(const seed of seeds){const g=generateZoneGraph(seed),d=graphDistances(g);assert.equal(g.extracts.length,3);assert.deepEqual(g.extracts.map(e=>e.type),['open','timed','key']);assert.equal(d[g.extracts[0].roomId],Math.max(...Object.values(d)));assert.ok(g.extracts.every(e=>d[e.roomId]!=null));assert.equal(g.pois.length,3);assert.equal(new Set(g.pois.map(p=>p.roomId)).size,3);assert.deepEqual(g.pois.map(p=>p.type),['vault','generator','bit-signal']);}
 });
 test('physical floor/solid flood fill reaches every objective, pickup, enemy and extract',()=>{
-  for(const seed of seeds.slice(0,12)){const l=generateBigLevel(seed);assert.ok(reachable(l,RULES.playerRadius,.3,l.extracts.map(e=>({...e,reach:e.r}))),seed);const ids=l.enemies.map(e=>e.id);assert.equal(new Set(ids).size,ids.length);assert.ok(l.encounters.some(e=>e.type==='shield'),seed);assert.ok(l.enemies.some(e=>e.type==='generator'),seed);}
+  for(const seed of seeds){const l=generateBigLevel(seed);assert.ok(reachable(l,RULES.playerRadius,.3,l.extracts.map(e=>({...e,reach:e.r}))),seed);const ids=l.enemies.map(e=>e.id);assert.equal(new Set(ids).size,ids.length);assert.ok(l.encounters.some(e=>e.type==='shield'),seed);assert.ok(l.enemies.some(e=>e.type==='generator'),seed);}
 });
 test('culling is exactly active room plus neighbours, including corridors; sleeping enemies do not simulate',()=>{
   const l=generateBigLevel('cull'),round={...createRound('cull',0),level:l},combat=createCombat(l,0);
@@ -74,4 +74,30 @@ test('enemies are culled by current room and frozen attacks do not block a local
   updateBigCulling(level,level.start,3000,combat);assert.equal(safePick(round,combat,level.start,3500,()=> 'off'),key);
   const shot={...combat.projectiles[0]},blast={...combat.blasts[0]};stepCombat(round,combat,level.start,10000,.04,level.walls);assert.deepEqual(combat.projectiles[0],shot);assert.deepEqual(combat.blasts[0],blast);
   updateBigCulling(level,remote,13000,combat);assert.equal(combat.projectiles[0].releaseAt,14000);assert.equal(combat.blasts[0].detonateAt,14000);
+});
+
+
+test('expanded room contents fit inside walls; cover models and counts stay authored',()=>{
+  for(const seed of seeds){
+    const level=generateBigLevel(seed);
+    assert.ok(level.rooms.some(r=>Math.max(r.w/r.d,r.d/r.w)>1.4),'hall room');
+    for(const room of level.rooms){
+      const template=generateLevel(room.id===0?1:3,`${seed}:room:${room.id}`,'bunker',false,false,RULES.layouts[2].find(l=>l.id===room.layoutId));
+      const source=template.rooms[room.id===0?0:room.templateIndex];
+      const authored=template.boxes.filter(b=>Math.abs(b.x-source.x)<source.w/2&&Math.abs(b.z-source.z)<source.d/2);
+      const boxes=level.boxes.filter(b=>b.roomId===room.id);
+      assert.equal(boxes.length,authored.length);
+      boxes.forEach((b,i)=>assert.deepEqual([b.w,b.d,b.h],[authored[i].w,authored[i].d,authored[i].h]));
+      for(const p of [...boxes,...level.nodes,...level.enemies,...level.lootBoxes,...level.spawners].filter(p=>p.roomId===room.id)){
+        assert.ok(Math.abs(p.x-room.x)+(p.w/2||p.r||.4)<room.w/2-RULES.wallThickness,`${seed}: ${p.id??'cover'} x`);
+        assert.ok(Math.abs(p.z-room.z)+(p.d/2||p.r||.4)<room.d/2-RULES.wallThickness,`${seed}: ${p.id??'cover'} z`);
+      }
+    }
+    for(const edge of level.graph.edges){
+      const a=level.rooms[edge.a],b=level.rooms[edge.b],{dir}=edge.corridor;
+      assert.equal(edge.start.x,a.x+dir.x*a.w/2);assert.equal(edge.start.z,a.z+dir.z*a.d/2);
+      assert.equal(edge.end.x,b.x-dir.x*b.w/2);assert.equal(edge.end.z,b.z-dir.z*b.d/2);
+      assert.ok(edge.corridor.w>0&&edge.corridor.d>0);
+    }
+  }
 });

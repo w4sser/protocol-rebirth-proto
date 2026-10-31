@@ -14,6 +14,15 @@
     defaults:{master:0.8,music:0.12,sfx:0.75,voice:0.9,muted:false,musicMuted:false,sfxMuted:false,voiceMuted:false},
     duckDb:-6,duckAttack:0.04,duckRelease:0.25,
     pitchVariation:0.035,gainVariation:0.08,globalVoiceCooldownMs:12000,
+    shots:{
+      duration:.32,attack:.0005,fade:.015,crackDecay:.009,bodyDecay:.045,tailDecay:.075,
+      highpassHz:1400,bodyHz:1800,tailHz:650,thumpStartHz:120,thumpEndHz:45,thumpDrop:.025,thumpDecay:.065,
+      crackGain:1.1,bodyGain:.65,thumpGain:.85,tailGain:.22,drive:1.45,ceiling:.86,
+      echoes:[{delay:.034,gain:.15},{delay:.071,gain:.07}],
+      enemyGain:.46,enemyCrack:.5,enemyThump:.55,
+      compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08},
+      weapons:{carbine:{pitch:1,gain:1},smg:{pitch:1.17,gain:.86},shotgun:{pitch:.78,gain:1.18},rifle:{pitch:.9,gain:1.08}}
+    },
     voiceCooldownMs:60000,voiceCooldowns:{'nice-shot':90000,'signal-lost':15000,'welcome-back':15000},
     voiceGain:0.95,killStreak:5,extractCountdownSeconds:10,
     rareTiers:['rare','epic','legendary'],

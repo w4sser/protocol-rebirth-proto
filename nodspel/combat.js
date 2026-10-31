@@ -1,12 +1,12 @@
-import {audioEvent} from './audio.js?v=2.13.0';
-import {ownRooms} from './perks.js?v=2.13.0';
-import {RULES,hazardState} from './levels.js?v=2.13.0';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.13.0';
-import {takeDamage,tickRound} from './round.js?v=2.13.0';
-import {houseWaypoint} from './house.js?v=2.13.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.13.0';
-import {detectionMultiplier} from './stakes.js?v=2.13.0';
-import {dashInvulnerable} from './dash.js?v=2.13.0';
+import {audioEvent} from './audio.js?v=2.14.0';
+import {ownRooms} from './perks.js?v=2.14.0';
+import {RULES,hazardState} from './levels.js?v=2.14.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.14.0';
+import {takeDamage,tickRound} from './round.js?v=2.14.0';
+import {houseWaypoint} from './house.js?v=2.14.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.14.0';
+import {detectionMultiplier} from './stakes.js?v=2.14.0';
+import {dashInvulnerable} from './dash.js?v=2.14.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -85,7 +85,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
     const b=combat.projectiles[i];if(b.sleeping)continue;if(now<(b.releaseAt??0))continue;
-    if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot');}
+    if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot',{enemy:true});}
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
     if(hit?.kind==='wall')audioEvent('impact');
