@@ -38,7 +38,8 @@ test('charger hits a solid, stays still during a 1500ms stun, then stalks anew',
  stepCombat(r,c,p,e.stunnedUntil,0,[wall]);assert.equal(e.attackPhase,'stalk');assert.equal(e.stalkUntil,e.stunnedUntil+ENEMY_TUNING.rusher.stalkMs);
 });
 test('flank x2, first unaware x3 capped without stacking, shields and blasts retain rules',()=>{
- const {r,e}=arena();hitEnemy(r,e.id,100,2,{x:0,z:-2});assert.equal(e.health,16);assert.equal(e.weakMarker,'FLANK');assert.match(recap(r,'1:0').join(' '),/Flank/);
+ // sentry, not the default grunt: grunt now carries its own back-battery bonus (nodspel/tests/enemies.test.mjs).
+ const {r,e}=arena('sentry');hitEnemy(r,e.id,100,2,{x:0,z:-2});assert.equal(e.health,16);assert.equal(e.weakMarker,'FLANK');assert.match(recap(r,'1:0').join(' '),/Flank/);
  e.aggro=false;e.lastHitAt=null;e.nearMissAt=null;e.health=20;hitEnemy(r,e.id,200,2,{x:0,z:-2});assert.equal(e.health,14);assert.equal(e.weakMarker,'UNAWARE');assert.match(deathLine(r),/Unaware/);assert.match(recap(r,'1:0').join(' '),/Flank.*Unaware/);
  hitEnemy(r,e.id,300,2,{x:0,z:-2});assert.equal(e.health,10);
  e.frontShield=70;e.health=20;assert.equal(hitEnemy(r,e.id,400,2,{x:0,z:2}),false);assert.equal(e.health,20);
@@ -62,7 +63,7 @@ test('incoming shot preserves unaware x3 at 16 ms steps',()=>{
  assert.equal(health-e.health,RULES.weapon.damage,'prior hit removes opening-shot eligibility');
 });
 test('back cone includes 60 degrees and excludes its outside',()=>{
- for(const [deg,expected] of [[59,2],[60,2],[-60,2],[61,1],[180,1]]){const {r,e}=arena();const a=Math.PI+deg*Math.PI/180;hitEnemy(r,e.id,100,1,{x:Math.sin(a)*3,z:Math.cos(a)*3});assert.equal(20-e.health,expected);}
+ for(const [deg,expected] of [[59,2],[60,2],[-60,2],[61,1],[180,1]]){const {r,e}=arena('sentry');const a=Math.PI+deg*Math.PI/180;hitEnemy(r,e.id,100,1,{x:Math.sin(a)*3,z:Math.cos(a)*3});assert.equal(20-e.health,expected);}
 });
 test('low cover blocks enemy shots; only adjacent player shots lean over it for their whole flight',()=>{
  const cover={x:0,z:2,w:2,d:1,encounterCover:true};

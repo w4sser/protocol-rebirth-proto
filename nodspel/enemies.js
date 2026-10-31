@@ -23,6 +23,11 @@ export const ENEMIES=freeze({
   // Repair heals only; it never revives dead enemies (Phase 3).
   repair:archetype('repair',['chassis','armor_panel','wheel_left','wheel_right','cable_spool','arm_base','repair_arm_pivot','tool_emitter'],'REPAIR · STOP THE HEALING',3,3),
   sniper:archetype('sniper',['core','armor_panel','optic','weakpoint','barrel_pivot','tripod_leg_01','tripod_leg_02','tripod_leg_03'],'SNIPER · BREAK SIGHT',3,3),
+  // Basic infantry trooper: covers both bare grunt and the patrol encounter (same type:'grunt').
+  patrol_grunt:archetype('patrol_grunt',['chassis','upper_frame','front_plate','side_panel_left','side_panel_right',
+    'wheel_front_left','hub_front_left','wheel_front_right','hub_front_right','wheel_rear_left','hub_rear_left','wheel_rear_right','hub_rear_right',
+    'battery_cage','weakpoint_battery','sensor_head_pivot','sensor_head','sensor_face','optic','short_machine_gun','head_turntable'],
+    'PATROL GRUNT · FLANK THE BACK',1,2),
 });
 // Maps every gameplay type/encounter (nodspel/levels.js RULES.enemyTypes, nodspel/encounters.js,
 // nodspel/stakes.js hunter waves) to the archetype model that best reads its behaviour. Keys are checked by
@@ -32,16 +37,13 @@ export const ENEMY_VISUALS=freeze({
   shield_turret:{archetype:'shield_turret'}, // stationary, shield up until EMP'd: the authored shield_arc stays visible
   turret:{archetype:'shield_turret',hideParts:['shield_arc']}, // same cabinet, no EMP-shield mechanic: hide the arc
   guard:{archetype:'tank',scale:.82}, // front_armor on the turret head reads as the guard's front shield
-  patrol:{archetype:'scout',scale:.9}, // sight-cone walker; the scout's rotors read as a patrolling scanner drone
+  patrol:{archetype:'patrol_grunt'}, // sight-cone walker; patrol is just a grunt with the patrol encounter
   grenadier:{archetype:'artillery',scale:.92},
   thrower:{archetype:'artillery',scale:.92}, // bare thrower (no encounter): identical silhouette to grenadier
   swarm:{archetype:'swarm_bot',scale:.85},
   sentry:{archetype:'sniper',scale:.88}, // bare sentry (no encounter): a stationary long-range shooter
   rusher:{archetype:'rusher'}, // bare/charging rusher (isCharger)
-  // Temporary stand-in: no infantry/trooper archetype exists yet (docs/enemy-model-mapping.md "Missing models").
-  // Reuses the rusher chassis (closest generic mobile-robot silhouette) at a smaller scale and a neutral steel
-  // tint so it never reads as an actual charger by colour; it never gets the charge lunge/stun animation.
-  grunt:{archetype:'rusher',scale:.85,tint:'#8a9096'},
+  grunt:{archetype:'patrol_grunt'}, // basic infantry trooper (bare, no encounter)
 });
 export function visualFor(e){
   if(!e||e.type==='generator')return null;
@@ -51,9 +53,21 @@ export function visualFor(e){
 }
 export const isShieldTurret=e=>e?.encounter==='shield_turret';
 export const isCharger=e=>e?.type==='rusher'&&!e.swarm;
+// Excludes guard (type:'grunt', encounter:'guard'): it stands in on the 'tank' archetype, which has no
+// weakpoint_battery part, so it keeps only the generic flank/unaware bonus from weakSide.
+export const isPatrolGrunt=e=>e?.type==='grunt'&&e.encounter!=='guard';
 export function rusherLungeSpeed(e){return Math.max(0,e.speed??0)*ENEMY_TUNING.rusher.speedMul;}
 export function rusherBackBonus(e,from,now){
   if(!isCharger(e)||!from||now>=(e.wallStunUntil??0))return null;
   const dx=from.x-e.x,dz=from.z-e.z;
   return dx*Math.sin(e.facing??0)+dz*Math.cos(e.facing??0)<-1e-9?{kind:'flank',multiplier:ENEMY_TUNING.rusher.backDamageMul}:null;
+}
+// Grunt/patrol's authored weakpoint_battery sits on the back of the chassis: a shot landing beyond 120 deg
+// off facing always deals its own 1.75x, ahead of the generic flank/unaware bonus in weakSide (round.js hitEnemy).
+export function patrolGruntBackBonus(e,from){
+  if(!isPatrolGrunt(e)||!from)return null;
+  const dx=from.x-e.x,dz=from.z-e.z,dist=Math.hypot(dx,dz);
+  if(dist<1e-9)return null;
+  const forwardDot=(dx*Math.sin(e.facing??0)+dz*Math.cos(e.facing??0))/dist;
+  return forwardDot<-.5?{kind:'flank',multiplier:ENEMY_TUNING.patrolGrunt.backDamageMul}:null;
 }
