@@ -34,12 +34,18 @@ const SKY_APRICOT = new THREE.Color(0xf3a76b);
 const SEA_HORIZON = new THREE.Color(0x202c4e);
 const SUN_COLOR = new THREE.Vector3(1, 0.6, 0.32);
 const ROCK = 0x7d6b61, ROCK_DARK = 0x4c4038; // smooth granite skerries (kobbar), grey-pink
+const ROCK_WARM = 0xab9185, ROCK_WARM_DARK = 0x6e5a52; // brighter pinkish-grey granite for the hero foreground boulders
 const PINE = 0x16302f; // near shoreline spruces
-const PINE_FAR = 0x0b1a1d, LAND_FAR = 0x0d1922; // near-black blue-green horizon islands (silhouette only)
+const PINE_FAR = 0x16222f, LAND_FAR = 0x13202f; // hazy blue-black horizon islands (silhouette only)
 const BUNKER_WALL = 0x232e36, BUNKER_TOP = 0x2c3942; // matches nodspel's bunker palette (nodspel/art.js PALETTE)
 const BUNKER_GLOW = 0xffa858; // warm lit doorway/window
 const LOOP_SECONDS = 10; // idle flight loop length, within the 8-12s the design calls for
 const REFLECT_LAYER = 1; // objects worth a planar reflection (bunker + near skerries, not the far horizon islands)
+// The fixed flight path's opening camera (t=0) looks towards world direction (0.547,0.056,-0.835)
+// with screen-right along (0.837,0,0.548) -- camera is frozen, so this is a constant. The
+// bottom-right shore/boulder clusters are built in a local frame rotated by this angle so their
+// local +X axis runs along screen-right at the canonical opening view, instead of a raw world axis.
+const SHORE_ROTATION_Y = -0.58;
 
 function seededRng(seed){ let s = seed >>> 0 || 1; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
@@ -86,7 +92,9 @@ function buildSky(renderer, cubeSize, sunDir, sunColor){
 // not sparse individual spikes.
 function buildOneIsland(rng, landGeo, landMat, pineGeo, pineMat, x, z, big){
   const group = new THREE.Group();
-  const width = big ? 100 + rng() * 50 : 30 + rng() * 34;
+  // regular islets are 2x the old width -- long, low, hazy strips flanking the sun, not small
+  // round blobs.
+  const width = big ? 100 + rng() * 50 : (30 + rng() * 34) * 2;
   const depth = width * (0.32 + rng() * 0.2);
   const topY = big ? 11 + rng() * 8 : 2.8 + rng() * 4.5;
   const half = (topY + 60) / 2; // bottom sunk well below the waterline; only the top pokes up
@@ -98,7 +106,7 @@ function buildOneIsland(rng, landGeo, landMat, pineGeo, pineMat, x, z, big){
 
   // dense enough, with wide overlapping canopies, that the ridge line reads as one solid
   // forest silhouette rather than individual sparse spikes.
-  const treeCount = big ? 70 + Math.floor(rng() * 30) : 20 + Math.floor(rng() * 16);
+  const treeCount = big ? 70 + Math.floor(rng() * 30) : 34 + Math.floor(rng() * 20);
   const trees = new THREE.InstancedMesh(pineGeo, pineMat, treeCount);
   const dummy = new THREE.Object3D();
   for(let t = 0; t < treeCount; t++){
@@ -168,41 +176,55 @@ function buildSkerry(rng, rockCount){
   return g;
 }
 
-// Concrete bunker on a rounded-granite mound, a warm lit window facing the water, and a few
-// shoreline spruces -- replaces the old dark dodecahedron "blob" (v2.15.0 reference bullet 4).
-function buildBunkerIsland(rng){
+// Low granite shore running along the right edge of the opening view, dense with spruces (one
+// tall one standing apart near the far end), with a concrete bunker -- warm lit doorway facing
+// the water -- sitting on it. Built in local coordinates along the shore's own length (0 = near
+// end at screen-left of the shore, SHORE_LEN = far end past the right edge); the whole group is
+// then rotated by SHORE_ROTATION_Y so that length axis runs along the opening camera's
+// screen-right, and positioned so the near end lands at the target screen fraction (mountStartFlight).
+const SHORE_LEN = 30;
+function buildBunkerShore(rng){
   const g = new THREE.Group();
-  const rockMat = new THREE.MeshStandardMaterial({ color: ROCK, roughness: 0.88, envMapIntensity: 0.35 });
-  const rockMatDark = new THREE.MeshStandardMaterial({ color: ROCK_DARK, roughness: 0.94, envMapIntensity: 0.35 });
+  const rockMat = new THREE.MeshStandardMaterial({ color: ROCK, roughness: 0.85, envMapIntensity: 0.45 });
+  const rockMatDark = new THREE.MeshStandardMaterial({ color: ROCK_DARK, roughness: 0.92, envMapIntensity: 0.45 });
   const rockGeo = new THREE.IcosahedronGeometry(1, 1);
-  for(let i = 0; i < 8; i++){
+  // a low rock spine along the whole shore length, not just clustered under the bunker
+  for(let i = 0; i < 16; i++){
     const rock = new THREE.Mesh(rockGeo, i % 3 === 0 ? rockMatDark : rockMat);
-    // scale how far a rock pokes above the water with its own size (big = chunky boulder, small
-    // = low pebble) instead of a flat offset, which read as a thin floating disc; triangular
-    // position distribution keeps the mound tight around the bunker instead of stray rocks.
-    const r = 0.45 + rng() * 0.85, half = r * 0.62, top = r * (0.55 + rng() * 0.35);
-    rock.position.set(((rng() + rng()) / 2 - 0.5) * 4.6, top - half, ((rng() + rng()) / 2 - 0.5) * 3.8);
-    rock.scale.set(r * (0.75 + rng() * 0.5), half, r * (0.75 + rng() * 0.5));
+    const r = 0.6 + rng() * 1.3, half = r * 0.6, top = r * (0.5 + rng() * 0.3);
+    rock.position.set(rng() * SHORE_LEN, top - half, (rng() - 0.5) * 3.2);
+    rock.scale.set(r * (0.8 + rng() * 0.4), half, r * (0.8 + rng() * 0.4));
     rock.rotation.y = rng() * Math.PI * 2;
     g.add(rock);
   }
+
+  // the bunker itself, ~2.3x the old size, sitting on the shore a bit past its middle
+  const bunkerX = SHORE_LEN * 0.5;
+  const scale = 2.3;
   const wall = new THREE.MeshStandardMaterial({ color: BUNKER_WALL, roughness: 0.8, envMapIntensity: 0.5 });
   const top = new THREE.MeshStandardMaterial({ color: BUNKER_TOP, roughness: 0.75, envMapIntensity: 0.5 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.7, 2.6), wall);
-  body.position.set(0, 0.5, 0); g.add(body);
-  const roof = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 0.6, 10), top);
-  roof.position.set(-0.3, 1.5, 0); g.add(roof);
-  // warm lit doorway/window on the +Z face, towards the water the camera approaches from
-  const winMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0c, emissive: BUNKER_GLOW, emissiveIntensity: 2.2, roughness: 0.6 });
-  const win = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 1.05), winMat);
-  win.position.set(0, 0.35, 1.31); g.add(win);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(3.4 * scale, 1.7 * scale, 2.6 * scale), wall);
+  body.position.set(bunkerX, 0.5 * scale, 0); g.add(body);
+  const roof = new THREE.Mesh(new THREE.CylinderGeometry(1.2 * scale, 1.5 * scale, 0.6 * scale, 10), top);
+  roof.position.set(bunkerX - 0.3 * scale, 1.5 * scale, 0); g.add(roof);
+  // warm lit doorway/window on the +Z face, towards the water the camera approaches from -- a
+  // bright emissive panel so it reads clearly and throws a visible streak in the planar reflection.
+  const winMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0c, emissive: BUNKER_GLOW, emissiveIntensity: 3.2, roughness: 0.6 });
+  const win = new THREE.Mesh(new THREE.PlaneGeometry(0.85 * scale, 1.05 * scale), winMat);
+  win.position.set(bunkerX, 0.35 * scale, 1.31 * scale); g.add(win);
+
+  // dense spruces along the whole shore, several taller ones, with one standing tall and apart
+  // near the far end (~93% of the way along).
   const pineMat = new THREE.MeshStandardMaterial({ color: PINE, roughness: 0.9, flatShading: true });
-  for(let i = 0; i < 5; i++){
-    const h = 1.5 + rng() * 1.5;
-    const pine = new THREE.Mesh(new THREE.ConeGeometry(0.34 + rng() * 0.2, h, 6), pineMat);
-    pine.position.set(-1.7 - rng() * 1.9, h * 0.5 - 0.35, (rng() - 0.5) * 4.2);
+  for(let i = 0; i < 14; i++){
+    const h = 1.6 + rng() * 2.2;
+    const pine = new THREE.Mesh(new THREE.ConeGeometry(0.32 + rng() * 0.22, h, 6), pineMat);
+    pine.position.set(rng() * SHORE_LEN, h * 0.5 - 0.35, (rng() - 0.5) * 3.6);
     g.add(pine);
   }
+  const tallPine = new THREE.Mesh(new THREE.ConeGeometry(0.5, 5.4, 7), pineMat);
+  tallPine.position.set(20.5, 5.4 * 0.5 - 0.3, -0.4); // lands at ~93% screen-x at the opening view
+  g.add(tallPine);
   return g;
 }
 
@@ -211,17 +233,21 @@ function buildBunkerIsland(rng){
 // bunker's own mid-distance shore mound.
 function buildForegroundBoulders(rng){
   const g = new THREE.Group();
-  const rockMat = new THREE.MeshStandardMaterial({ color: ROCK, roughness: 0.55, envMapIntensity: 1 });
-  const rockMatDark = new THREE.MeshStandardMaterial({ color: ROCK_DARK, roughness: 0.65, envMapIntensity: 1 });
+  // brighter, pinkish-grey granite (distinct from the darker ROCK used elsewhere) with a warm
+  // emissive floor so even the shadowed sides stay a dark warm grey instead of going flat black --
+  // the directional sun + bounce light then carve a lit top out of that base, same as the
+  // reference's warm-lit-top, darker-sides boulders.
+  const rockMat = new THREE.MeshStandardMaterial({ color: ROCK_WARM, roughness: 0.3, envMapIntensity: 0.4, emissive: 0x120804, emissiveIntensity: 0.08 });
+  const rockMatDark = new THREE.MeshStandardMaterial({ color: ROCK_WARM_DARK, roughness: 0.4, envMapIntensity: 0.4, emissive: 0x0c0603, emissiveIntensity: 0.05 });
   const rockGeo = new THREE.IcosahedronGeometry(1, 1);
-  // one dominant boulder plus a few smaller, clearly separated ones (gaps of open water between
-  // them) rather than six similarly-sized rocks fused into a single featureless mound.
-  const sizes = [2.6, 1.6, 1.1, 0.75];
-  const offsets = [[0, -1], [5.2, 1.5], [2.5, 5.5], [-1.5, 3]];
+  // five boulders spread with real gaps (water visible between them) across the local length,
+  // one clearly dominant, rather than a fused single mass.
+  const sizes = [1.8, 1.3, 1.5, 0.9, 1.05];
+  const offsets = [[0.5, 0], [4.2, -1.3], [7.4, 0.3], [2.3, 2.1], [5.8, 2.1]];
   for(let i = 0; i < sizes.length; i++){
     const rock = new THREE.Mesh(rockGeo, i % 2 === 0 ? rockMat : rockMatDark);
-    const r = sizes[i] * (0.85 + rng() * 0.3), half = r * 0.6, top = r * (0.6 + rng() * 0.3);
-    rock.position.set(offsets[i][0] + (rng() - 0.5) * 1.2, top - half, offsets[i][1] + (rng() - 0.5) * 1.2);
+    const r = sizes[i] * (0.85 + rng() * 0.3), half = r * 0.62, top = r * (0.6 + rng() * 0.3);
+    rock.position.set(offsets[i][0] + (rng() - 0.5) * 0.8, top - half, offsets[i][1] + (rng() - 0.5) * 0.8);
     rock.scale.set(r * (0.8 + rng() * 0.4), half, r * (0.8 + rng() * 0.4));
     rock.rotation.y = rng() * Math.PI * 2;
     g.add(rock);
@@ -230,7 +256,7 @@ function buildForegroundBoulders(rng){
   for(let i = 0; i < 3; i++){
     const h = 2 + rng() * 1.6;
     const pine = new THREE.Mesh(new THREE.ConeGeometry(0.4 + rng() * 0.22, h, 6), pineMat);
-    pine.position.set(-1 + rng() * 6, h * 0.5 - 0.3, -2 + rng() * 6);
+    pine.position.set(rng() * 8, h * 0.5 - 0.3, 1 + rng() * 2.5);
     g.add(pine);
   }
   return g;
@@ -321,20 +347,23 @@ export function mountStartFlight(host, profile, opts={}){
     skerries.add(skerry);
   });
   scene.add(skerries);
-  // Own seeded RNG stream, independent of the shared one above: buildBunkerIsland's layout must
+  // Own seeded RNG stream, independent of the shared one above: buildBunkerShore's layout must
   // stay stable on its own tuned seed, not silently reshuffle every time the skerry loop's rng()
   // call count changes (it's a fixed deterministic scene, the same for every player).
-  const bunker = buildBunkerIsland(seededRng(4242));
-  // Keep the destination visible ahead during the opening flight, well over towards the right
-  // third of frame (reference bullet 4) rather than dead centre.
-  const bunkerAt = curve.getPointAt(0.18);
-  bunker.position.set(bunkerAt.x + 44, -0.4, bunkerAt.z + 10);
+  // Anchored (and rotated by SHORE_ROTATION_Y, see its const) so its near end sits at ~68% of
+  // screen width at the fixed opening camera, running off past the right edge -- a real shore,
+  // not a small island dead-centre-right.
+  const bunker = buildBunkerShore(seededRng(4242));
+  bunker.rotation.y = SHORE_ROTATION_Y;
+  bunker.position.set(32.66, -0.4, -23.6);
   scene.add(bunker);
 
   // Large foreground granite boulders entering the bottom-right corner, close to the camera's
   // opening position -- distinct from (and in front of) the mid-distance bunker shore above.
+  // Same screen-right-aligned local frame as the shore.
   const foreground = buildForegroundBoulders(seededRng(9191));
-  foreground.position.set(points[0].x + 16.5, 0, points[0].z - 8.5);
+  foreground.rotation.y = SHORE_ROTATION_Y;
+  foreground.position.set(17.38, 0, -14.45);
   scene.add(foreground);
 
   // Far horizon skyline (bullet 2): a stable ring of forested islands around the whole loop, so
