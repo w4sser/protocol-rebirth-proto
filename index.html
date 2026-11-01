@@ -10,17 +10,17 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.21.0">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.21.0">
-<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.21.0">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.21.0">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.21.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.21.1">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.21.1">
+<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.21.1">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.21.1">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.21.1">
 <title>Protocol Rebirth</title>
 <!-- v2.12.1 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
      resolve the vendored Ultra Water engine's bare `import ... from 'three'` against our own
      vendored three.js build, with no build step. -->
 <script type="importmap">{"imports":{"three":"./nodspel/vendor/three.module.js"}}</script>
-<script src="ui/viewport.js?v=2.21.0"></script>
+<script src="ui/viewport.js?v=2.21.1"></script>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 @media (pointer:coarse){:root{--sl:max(env(safe-area-inset-left,0px),12px);--sr:max(env(safe-area-inset-right,0px),12px)}}
@@ -813,9 +813,9 @@
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=2.21.0">
-<link rel="stylesheet" href="ui/popup.css?v=2.21.0">
-<link rel="stylesheet" href="ui/loader.css?v=2.21.0">
+<link rel="stylesheet" href="ui/tokens.css?v=2.21.1">
+<link rel="stylesheet" href="ui/popup.css?v=2.21.1">
+<link rel="stylesheet" href="ui/loader.css?v=2.21.1">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -1608,7 +1608,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 @keyframes bitBadgePulse{50%{box-shadow:inset 0 0 14px var(--ad-cyan)}}
 @media(prefers-reduced-motion:reduce){.badge-pulse{animation:none}}
 </style>
-<link rel="stylesheet" href="ui/audio.css?v=2.21.0">
+<link rel="stylesheet" href="ui/audio.css?v=2.21.1">
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -1639,23 +1639,23 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><button id="splash-play" type="button" class="playbtn splash-play" aria-label="Play"><b>PLAY</b></button><small>TAP ANYWHERE TO BEGIN</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=2.21.0"></script>
-<script src="data/modules.js?v=2.21.0"></script>
-<script src="data/bit-lines.js?v=2.21.0"></script>
-<script src="data/bit.js?v=2.21.0"></script>
-<script src="data/bit-talents.js?v=2.21.0"></script>
-<script src="data/raid_zones.js?v=2.21.0"></script>
-<script src="data/recipes.js?v=2.21.0"></script>
-<script src="data/vendors.js?v=2.21.0"></script>
-<script src="data/retention.js?v=2.21.0"></script>
-<script src="data/quests.js?v=2.21.0"></script>
-<script src="data/progression.js?v=2.21.0"></script>
-<script src="data/combat.js?v=2.21.0"></script>
-<script src="data/audio.js?v=2.21.0"></script>
-<script src="ui/audio.js?v=2.21.0"></script>
-<script src="ui/base-audio.js?v=2.21.0"></script>
-<script src="save-slots.js?v=2.21.0"></script>
-<script src="start-quality.js?v=2.21.0"></script>
-<script src="app.js?v=2.21.0"></script>
+<script src="data/items.js?v=2.21.1"></script>
+<script src="data/modules.js?v=2.21.1"></script>
+<script src="data/bit-lines.js?v=2.21.1"></script>
+<script src="data/bit.js?v=2.21.1"></script>
+<script src="data/bit-talents.js?v=2.21.1"></script>
+<script src="data/raid_zones.js?v=2.21.1"></script>
+<script src="data/recipes.js?v=2.21.1"></script>
+<script src="data/vendors.js?v=2.21.1"></script>
+<script src="data/retention.js?v=2.21.1"></script>
+<script src="data/quests.js?v=2.21.1"></script>
+<script src="data/progression.js?v=2.21.1"></script>
+<script src="data/combat.js?v=2.21.1"></script>
+<script src="data/audio.js?v=2.21.1"></script>
+<script src="ui/audio.js?v=2.21.1"></script>
+<script src="ui/base-audio.js?v=2.21.1"></script>
+<script src="save-slots.js?v=2.21.1"></script>
+<script src="start-quality.js?v=2.21.1"></script>
+<script src="app.js?v=2.21.1"></script>
 </body>
 </html>
