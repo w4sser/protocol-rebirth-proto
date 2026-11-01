@@ -23,7 +23,7 @@ const BEAM_ACTOR={mask:{w:1,h:1,data:new Uint8Array([1])},pixels:new Uint32Array
 export const PIXEL_EFFECTS={
   respawn:{mod:respawn,palette:CYAN,size:4.6,loop:true,start:.33,end:1.35},
   impact:{mod:impact,palette:CORAL,size:2,height:24},
-  hit:{mod:hit,palette:CORAL,size:1.8},
+  hit:{mod:hit,palette:CORAL,size:1.8,height:8},
   explosion:{mod:explosion,palette:YELLOW,size:6,start:.8,end:3},
   emp:{mod:emp,palette:BLUE,size:5,start:.42},
   shield:{mod:shield,palette:BLUE,size:3.1,loop:true},

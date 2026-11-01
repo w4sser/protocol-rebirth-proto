@@ -1,8 +1,8 @@
-import {audioEvent} from './audio.js?v=2.20.0';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.20.0';
-import {RULES} from './levels.js?v=2.20.0';
-import {traceTargets,movePlayer,aimConePoints} from './physics.mjs?v=2.20.0';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.20.0';
+import {audioEvent} from './audio.js?v=2.21.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.21.0';
+import {RULES} from './levels.js?v=2.21.0';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.21.0';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.21.0';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
@@ -192,7 +192,10 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
     if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&(e.x-end.x)*b.dx+(e.z-end.z)*b.dz<=0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
-      changed=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b)||changed;
+      const contact=hit&&round.feedback?shotContact(b,end,hit,shotObstacles):null;
+      const applied=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b);
+      if(contact)round.feedback.impact(contact.x,contact.z,hit.kind==='enemy'&&applied);
+      changed=applied||changed;
       weapon.projectiles.splice(i,1);
     }else{b.x=end.x;b.z=end.z;}
   }
