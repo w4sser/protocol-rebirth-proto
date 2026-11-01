@@ -2743,7 +2743,7 @@ SCREENS.prep = function(){
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
-    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
+    html += '</section>';
     $app().innerHTML = html; return;
   }
   html += missionOpen + '<div class="prepgrid"><div class="pcol"><div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
@@ -2835,7 +2835,7 @@ SCREENS.prep = function(){
       (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">' + IC("play") + ' WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
       '</div>';
   }
-  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
+  html += '</section>';
   $app().innerHTML = html;
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
