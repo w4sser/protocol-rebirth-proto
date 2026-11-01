@@ -96,32 +96,63 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
   mesh(new THREE.CylinderGeometry(1.25,1.7,12,8),silhouette,0,7.8,0,1,1,1,left);
   mesh(new THREE.CylinderGeometry(1.8,1.8,1.7,8),silhouette,0,14.3,0,1,1,1,left);
   mesh(new THREE.ConeGeometry(2.1,1.6,8),silhouette,0,15.9,0,1,1,1,left);
-  // Additive, code-only searchlight from the lamp room: a soft layered beam cone that slowly
-  // sweeps a full turn, plus a small glow billboard (shader radial falloff, no canvas/texture
-  // so this has no DOM dependency). Skipped outright under reduced motion.
-  let beam=null;
+  // Additive, code-only searchlight from the lamp room: a soft beam wedge that slowly sweeps a
+  // full horizontal turn (compass-style, like a real lighthouse), plus a small glow billboard
+  // (shader radial falloff, no canvas/texture so this has no DOM dependency). Skipped outright
+  // under reduced motion.
+  let beamMat=null,beamRight=null,beamUp=null;
   if(!still){
     const lampWorld=new THREE.Vector3(0,14.3,0).multiply(left.scale).add(left.position);
-    beam=new THREE.Group();beam.position.copy(lampWorld);scene.add(beam);
     const lampColor=0xfff2c4;
-    const cone=(length,radius,opacity)=>{
-      const geo=new THREE.ConeGeometry(radius,length,24,1,true);geo.translate(0,-length/2,0);
-      const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:lampColor,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
-      m.rotation.z=-Math.PI/2;return m;
-    };
-    beam.add(cone(420,16,.045),cone(420,8,.08),cone(420,3,.13));
-    // The camera is fixed for the life of this scene, so a one-time lookAt keeps the glow
-    // facing it without per-frame billboarding. Added to the scene, not the beam, so it
-    // doesn't swing away from view as the beam sweeps.
+    // A single camera-facing quad, the wedge shape and its soft edges painted entirely in the
+    // fragment shader (smoothstep, no hard cutoffs) -- not a 3D cone mesh, so there is no polygon
+    // silhouette to look faceted or band into rings at a grazing viewing angle. The sweep direction
+    // is a real world-space compass rotation around the lamp (dir uniform), projected onto the
+    // quad's own fixed local axes every frame -- so it foreshortens toward the lamp exactly like a
+    // real horizon-hugging sweep instead of spinning like a flat on-screen clock hand.
+    const span=440,halfWidth=18;
+    const beamGeo=new THREE.PlaneGeometry(span*2,span*2);
+    beamMat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{color:{value:new THREE.Color(lampColor)},dir:{value:new THREE.Vector2(1,0)},span:{value:span},halfWidth:{value:halfWidth}},
+      vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`varying vec2 vUv;uniform vec3 color;uniform vec2 dir;uniform float span,halfWidth;
+        void main(){
+          vec2 local=(vUv-.5)*span*2.;
+          float mag=length(dir);
+          vec2 dirN=mag>1e-4?dir/mag:vec2(1.,0.);
+          vec2 rotated=vec2(local.x*dirN.x+local.y*dirN.y,-local.x*dirN.y+local.y*dirN.x);
+          float along=rotated.x,across=abs(rotated.y);
+          float reach=span*max(mag,.05);
+          float tip=smoothstep(0.,2.,along);
+          float width=mix(.2,halfWidth,clamp(along/reach,0.,1.));
+          float edge=1.-smoothstep(width*.55,width,across);
+          float lengthFade=tip*(1.-smoothstep(0.,reach,along));
+          // Fades out as the sweep points near edge-on to the viewer (dir's in-plane projection
+          // shrinks toward zero), instead of collapsing to a degenerate zero-width line.
+          float alpha=edge*lengthFade*smoothstep(0.,.35,mag)*.22;
+          if(along<0.)alpha=0.;
+          gl_FragColor=vec4(color,alpha);
+        }`
+    });
+    const beamMesh=new THREE.Mesh(beamGeo,beamMat);
+    beamMesh.name='lighthouse-searchlight';
+    beamMesh.position.copy(lampWorld);beamMesh.lookAt(camera.position);scene.add(beamMesh);
+    beamMesh.updateMatrixWorld();
+    beamRight=new THREE.Vector3(1,0,0).transformDirection(beamMesh.matrixWorld);
+    beamUp=new THREE.Vector3(0,1,0).transformDirection(beamMesh.matrixWorld);
+    // The camera is fixed for the life of this scene, so a one-time lookAt keeps the glow (and
+    // the beam quad above) facing it without per-frame billboarding.
     const glow=new THREE.Mesh(new THREE.PlaneGeometry(7,7),new THREE.ShaderMaterial({
       transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
       uniforms:{color:{value:new THREE.Color(lampColor)}},
       vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-      fragmentShader:`varying vec2 vUv;uniform vec3 color;void main(){float d=distance(vUv,vec2(.5));gl_FragColor=vec4(color,smoothstep(.5,0.,d)*.55);}`
+      fragmentShader:`varying vec2 vUv;uniform vec3 color;void main(){float d=distance(vUv,vec2(.5));gl_FragColor=vec4(color,(1.-smoothstep(0.,.5,d))*.55);}`
     }));
+    glow.name='lighthouse-lamp-glow';
     glow.position.copy(lampWorld);glow.lookAt(camera.position);scene.add(glow);
   }
-  const beamSpeed=2*Math.PI/48; // one slow sweep every 48s
+  const beamSpeed=2*Math.PI/48,beamDir3=new THREE.Vector3(); // one slow sweep every 48s
   mesh(new THREE.BoxGeometry(2.5,8,2.5),silhouette,0,5,0,1,1,1,right);
   // A shallow open paraboloid with its face tilted skyward, plus feed arm.
   const dishGeo=new THREE.LatheGeometry(Array.from({length:9},(_,i)=>{const r=i*.8;return new THREE.Vector2(r,r*r*.07);}),24);
@@ -157,7 +188,11 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
         // Preserve the cadence across RAF jitter instead of dropping to 20fps at 60Hz.
         lastRender=frameInterval&&Number.isFinite(lastRender)?lastRender+Math.floor((now-lastRender+.001)/frameInterval)*frameInterval:now;
         clock.value=still?0:(now-start)/1000;
-        if(beam)beam.rotation.y=clock.value*beamSpeed;
+        if(beamMat){
+          const angle=clock.value*beamSpeed;
+          beamDir3.set(Math.cos(angle),0,Math.sin(angle));
+          beamMat.uniforms.dir.value.set(beamDir3.dot(beamRight),beamDir3.dot(beamUp));
+        }
         renderer.render(scene,camera);
       }
       if(!still)raf=requestAnimationFrame(render);
