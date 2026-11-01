@@ -123,7 +123,7 @@ try{
   await page.waitForSelector('#splash');
   await rotateThrough(page,['#phone','#splash'],'base splash');
   for(const req of art)await req.continue();await baseLoading;await page.setRequestInterception(false);
-  await page.evaluate(()=>{document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='prep';refresh();closeAllPopups();});
+  await page.evaluate(()=>{if(window.A)A.startFtueDirect=()=>{};document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='prep';refresh();closeAllPopups();});
   await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:10000});
   await rotateThrough(page,['#phone','#app'],'base prep');
   await page.evaluate(()=>A.openWeapon('basic_carbine'));await pause(250);

@@ -170,7 +170,7 @@ async function report(page,ctx,extraSel=''){
 // never screenshot mid-fade: wait until the splash is gone, then assert it really is (no half-transparent overlay left)
 const shot=async(page,name)=>{
   await loaderGone(page);
-  await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());
+  await page.evaluate(()=>{if(window.A)A.startFtueDirect=()=>{};});await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());
   await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{});
   const left=await page.evaluate(()=>{const s=document.getElementById('splash');return s?getComputedStyle(s).opacity:null;});
   if(left!==null)fail(`${name}`,`splash still in DOM (opacity ${left}) when base should be interactive`);
