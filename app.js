@@ -5295,14 +5295,19 @@ function setupSplash(flightPending, returningFromRaid){
     else if(!flightActive) autoTimer = setTimeout(begin, 1400);
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
-  const activate = () => {
+  // v2.21.1: the first tap on the landscape itself (not PLAY) only unlocks audio so the theme plays
+  // over the water; PLAY / keyboard / a second tap enters. Autoplay-permitted browsers start at once.
+  const activate = (e) => {
+    const audioOn = !!window.PR_AUDIO?.unlocked;
     void window.PR_AUDIO?.unlock();
+    if(e && e.type === "click" && !audioOn && phase !== "descending" && !(e.target && e.target.closest && e.target.closest("#splash-play")) && window.PR_AUDIO){ return; }
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;
     if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
+  void window.PR_AUDIO?.unlock?.();
   document.addEventListener("visibilitychange", onVisibility);
   sp.addEventListener("click", activate);
   sp.addEventListener("keydown", e => {
