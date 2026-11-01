@@ -13,7 +13,7 @@ window.URL.createObjectURL = () => "blob:fake";
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-lines.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
-// v2.22.1: a fresh profile's splash auto-launches the FTUE raid once it finishes fading (see
+// v2.22.2: a fresh profile's splash auto-launches the FTUE raid once it finishes fading (see
 // test/ftue-direct.test.js); this walkthrough exercises the base layer directly instead, so the
 // pending splash timer must not fire a real deploy (medkit consumption, location.assign) partway
 // through one of the sleeps below.
@@ -39,7 +39,7 @@ const revealRoomThroughHotspot = id => {
 assert(doc.getElementById("topbar") && doc.getElementById("rotate"), "landscape-only shell with a rotate screen for portrait");
 assert(doc.getElementById("splash"), "splash shown at first start");
 assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-menu #reset-progress"), "settings menu holds Reset");
-// v2.22.1 FTUE direct path: a fresh profile's splash now goes straight into the first raid (see
+// v2.22.2 FTUE direct path: a fresh profile's splash now goes straight into the first raid (see
 // test/ftue-direct.test.js); the cold open shows once, after that raid's first extraction. This
 // walkthrough renders it directly so the rest of the base-layer coverage below still runs through
 // the familiar intro -> base -> build flow.

@@ -83,5 +83,5 @@ for(const reason of ['death','timeout','abandon'])test(`a returning save's guide
   if(reason==='death')takeDamage(round,1000,10); else { round.over=true; round.reason=reason; }
   const events=[];
   runInNewContext(finish+';finishRound();',context(round,returningLaunch,events));
-  assert.deepEqual(events,['handoff'],'a returning save never retries in place -- intro=1 alone keeps the pre-v2.22.1 behaviour exactly');
+  assert.deepEqual(events,['handoff'],'a returning save never retries in place -- intro=1 alone keeps the pre-v2.22.2 behaviour exactly');
 });
