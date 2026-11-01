@@ -70,3 +70,11 @@ Regler under FTUE:
 1. Får första raiden vara garanterad (spelaren kan inte dö), eller vill du ha verklig risk redan där?
 2. Ska cold open med B.I.T.-texten vara kvar (kortad) före första raiden, eller komma efter första extraktionen?
 3. Behöver vi nya B.I.T.-röstrader (t.ex. "gå till strålen", "nu!"), eller räcker de 8 befintliga?
+
+## 6. Beslut (Robert, 2026-11-01)
+
+1. Första raiden har riktig risk. Dör man testar man igen; försök 2 är lättare, försök 3 går inte att förlora (assist-ramp).
+2. Cold open flyttas till EFTER första extraktionen. Skjutandet ska komma direkt.
+3. Befintliga B.I.T.-rader återanvänds. De flesta spelar utan ljud, så allt viktigt måste också stå som text på skärmen.
+
+Status: v2.22.0 = PR1 + PR2 (flagga/mätning + direktväg in, cold open efter första extraktionen, retry utan bas-omväg). Kvar: fast scriptat rum + assist-ramp, clutch-extrakt, stegvis meta, layout-check för FTUE.
