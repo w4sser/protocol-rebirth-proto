@@ -1,12 +1,13 @@
-# FTUE – de första 2 minuterna (design, v2.21.0)
+# FTUE – de första 2 minuterna (design, v2.21.1)
 
 Mål: en ny spelare ska känna "aha" snabbt. Visa resultatet, inte en tutorial: in i en raid, känna striden, och avsluta med en clutch-extraktion i en tänd exit-stråle.
 
-## 1. Nuläge (audit, ny profil, 844×390, v2.21.0)
+## 1. Nuläge (audit, ny profil, 844×390, v2.21.1)
 
 | Steg | Skärm | Tryck | Tid (ca) |
 |---|---|---|---|
-| 1 | Startskärm (Nordic night + tema) | 1 (tryck var som helst) | 4 s |
+| 1 | Startskärm (tema, fyrstråle, minimal PLAY) | 1 (PLAY eller var som helst) | 4 s |
+| 1b | Svart fade (~3 s, inget att göra) | – | 7 s |
 | 2 | Cold open med B.I.T. ("You made it out…") | 1 (ENTER THE FACILITY, kommer efter ~10 s) | 15 s |
 | 3 | Bunkerhem, kort "Rebirth Core L1 · ACTIVATE" | 1 | 18 s |
 | 4 | Core-popup (story, kostnad 2/2 Scrap Alloy) | 1 (BUILD) | 20 s |
@@ -17,7 +18,7 @@ Mål: en ny spelare ska känna "aha" snabbt. Visa resultatet, inte en tutorial: 
 | 9 | Första fiende 4–6 m bort (inom räckvidd 7 m) | – | första skott ca 40 s |
 | 10 | Exit öppnar först när alla noder är aktiverade; riktig extraktion först på nivå 3 | – | första extraktion ca 3–5 min |
 
-Totalt 8 tryck och 8 skärmar innan första skottet, och 3 nivåer innan första extraktionen.
+Mätt 2026-11-01 på v2.21.1 (ENTER 15,6 s, DEPLOY 31,8 s, Start 35,3 s). Totalt 8 tryck och 8 skärmar innan första skottet, och 3 nivåer innan första extraktionen.
 
 Friktion:
 - Två "ENTER THE FACILITY" och en bygg-popup med story innan spelaren fått göra något roligt.
@@ -34,7 +35,7 @@ Friktion:
 
 Princip: ett steg = en handling. B.I.T. guidar med befintliga röstrader. Meta och menyer väntar till efter första extraktionen.
 
-1. **Tryck för att börja** – startskärmen och temat som nu. Ett tryck går direkt till en kort cold open (B.I.T. tänds, 2 rader, ingen knapp, auto efter ~4 s) och sedan rakt in i raiden. Core, bygg-popup och loadout hoppas över (fast standard-loadout).
+1. **Tryck för att börja** – splash, tema, minimal PLAY och svart fade som i v2.21.1. Ett tryck går direkt till en kort cold open (B.I.T. tänds, 2 rader, ingen knapp, auto efter ~4 s) och sedan rakt in i raiden. Core, bygg-popup och loadout hoppas över (fast standard-loadout).
 2. **Skjut** – en kort scriptad första raid (1 rum, fast seed). Två grunts står synliga framför spelaren. Kontrollerna visas som pulserande ringar på sticksen, inte som ett kort. B.I.T.: `hunters-inbound` när fienderna aktiveras, `nice-shot` vid första kill (en gång).
 3. **Ta loot** – en glödande låda på vägen till exit. Ingen popup, bara en räknare i väskan. B.I.T.: `scrap-detected`.
 4. **Clutch-extrakt** – exit-strålen tänds direkt (`extraction-marked`). När spelaren rör sig mot den kommer en liten hunter-våg (larm, 2–3 rushers) och en kort extraktionsnedräkning. Spelaren hinner alltid i första raiden (garanterat: skada kapad så spelaren inte kan dö, fiender något långsammare). Ut i strålen → resultatskärm → B.I.T. `welcome-back` i bunkerhemmet, där Core-bygget presenteras som nästa enda steg.
