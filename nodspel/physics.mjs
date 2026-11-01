@@ -113,6 +113,14 @@ export function traceShot(a,b,boxes,node) {
   return traceTargets(a,b,boxes,[node])?.kind ?? null;
 }
 
+// Contact on the swept segment, before knockback or the projectile is removed.
+export function shotContact(a,b,hit,boxes){
+  const target=hit.target??hit.node;
+  let time=target?nodeHit(a,b,target):1;
+  if(!target)for(const box of boxes)time=Math.min(time,boxHit(a,b,box));
+  return {x:a.x+(b.x-a.x)*time,z:a.z+(b.z-a.z)*time};
+}
+
 // Aim only stops at solid obstacles; living targets and loot do not clip it.
 export function aimEndpoint(position,direction,range,obstacles){
   const length=Math.hypot(direction.x,direction.z);

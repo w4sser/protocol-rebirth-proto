@@ -1,13 +1,13 @@
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.20.0';
-import {audioEvent} from './audio.js?v=2.20.0';
-import {ownRooms} from './perks.js?v=2.20.0';
-import {RULES,hazardState} from './levels.js?v=2.20.0';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint} from './physics.mjs?v=2.20.0';
-import {takeDamage,tickRound} from './round.js?v=2.20.0';
-import {houseWaypoint} from './house.js?v=2.20.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.20.0';
-import {detectionMultiplier} from './stakes.js?v=2.20.0';
-import {dashInvulnerable} from './dash.js?v=2.20.0';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.21.0';
+import {audioEvent} from './audio.js?v=2.21.0';
+import {ownRooms} from './perks.js?v=2.21.0';
+import {RULES,hazardState} from './levels.js?v=2.21.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.21.0';
+import {takeDamage,tickRound} from './round.js?v=2.21.0';
+import {houseWaypoint} from './house.js?v=2.21.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.21.0';
+import {detectionMultiplier} from './stakes.js?v=2.21.0';
+import {dashInvulnerable} from './dash.js?v=2.21.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -91,6 +91,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
     const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
     if(hit?.kind==='wall')audioEvent('impact');
+    if(hit&&round.feedback){const at=shotContact(b,end,hit,obstacles);round.feedback.impact(at.x,at.z,false);}
     if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??'Enemy',enemyId:b.enemyId,attack:b.attack??'projectile',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
@@ -151,6 +152,7 @@ function stepBlasts(round,combat,player,now,dash=null){
   for(let i=combat.blasts.length-1;i>=0;i--){
     const b=combat.blasts[i];if(b.sleeping)continue;if(now<b.detonateAt)continue;
     combat.blasts.splice(i,1);
+    round.feedback?.explosion(b.x,b.z,b.radius);
     if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,encounterDamage(round,'grenadier'),now);}
     (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
   }

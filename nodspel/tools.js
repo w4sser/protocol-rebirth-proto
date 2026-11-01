@@ -1,8 +1,8 @@
 // Toolkit (grenade / EMP / decoy): pure logic on round + level state, no DOM. Config lives in RULES.tools (levels.js).
 // One tool per raid (?tool=id:n). Throws land instantly (no bounce); the grenade then waits out its fuse.
-import {RULES} from './levels.js?v=2.20.0';
-import {aimEndpoint} from './physics.mjs?v=2.20.0';
-import {hitEnemy} from './round.js?v=2.20.0';
+import {RULES} from './levels.js?v=2.21.0';
+import {aimEndpoint} from './physics.mjs?v=2.21.0';
+import {hitEnemy} from './round.js?v=2.21.0';
 
 const PULSE_SHOW_MS=600;
 const alive=e=>e.health>0&&e.active!==false;
@@ -57,7 +57,7 @@ export function throwTool(round,origin,point,now,obstacles=[]){
   round.tool.charges--;round.tool.thrown++;
   const e={kind:def.kind,x:at.x,z:at.z,radius:def.radius,at:now};
   if(def.kind==='grenade'){e.detonateAt=now+def.fuseMs;e.damage=def.damage;fx.fuses.push(e);}
-  else if(def.kind==='emp'){Object.assign(e,applyEmp(round,at,def,now));e.until=now+PULSE_SHOW_MS;fx.pulses.push(e);}
+  else if(def.kind==='emp'){Object.assign(e,applyEmp(round,at,def,now));e.until=now+PULSE_SHOW_MS;fx.pulses.push(e);round.feedback?.emp(at.x,at.z);}
   else if(def.kind==='decoy'){e.until=now+def.lureMs;fx.decoys.push(e);applyLures(round,now);}
   return e;
 }
@@ -97,6 +97,7 @@ export function stepTools(round,now){
   for(let i=fx.fuses.length-1;i>=0;i--){
     const g=fx.fuses[i];if(now<g.detonateAt)continue;
     fx.fuses.splice(i,1);
+    round.feedback?.explosion(g.x,g.z,g.radius);
     let hits=0;
     for(const en of round.level.enemies){if(alive(en)&&dist(g,en)<=g.radius&&hitEnemy(round,en.id,now,g.damage))hits++;}
     g.hits=hits;g.until=now+PULSE_SHOW_MS;fx.pulses.push(g);blasts.push(g);

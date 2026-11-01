@@ -5,8 +5,8 @@ export const PALETTE={bg:'#050d12',fog:'#44596a',floor:'#1b252c',floorAlt:'#1821
   wall:'#232e36',wallTop:'#2c3942',box:'#28333b',neon:'#2fe6d2',neonSoft:'#1fa79a',warm:'#ffb24a',plant:'#2f8a5a',pot:'#3a4650'};
 // Quality: ?q=low|high, else saved choice, else auto (low on touch/small/weak devices).
 export function pickQuality({search='',storage=null,nav={},screen={}}={}){
-  const q=new URLSearchParams(search).get('q');if(q==='low'||q==='high')return q;
-  try{const s=storage?.getItem('nodeRaid.quality');if(s==='low'||s==='high')return s;}catch{}
+  const q=new URLSearchParams(search).get('q');if(['low','medium','high'].includes(q))return q;
+  try{const s=storage?.getItem('nodeRaid.quality');if(['low','medium','high'].includes(s))return s;}catch{}
   const touch=(nav.maxTouchPoints??0)>0,small=Math.min(screen.width??9999,screen.height??9999)<=500,weak=(nav.hardwareConcurrency??8)<=4;
   return touch||small||weak?'low':'high';
 }
