@@ -1,9 +1,9 @@
-import '../data/raid-perks.js?v=2.22.1';
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.22.1';
+import '../data/raid-perks.js?v=2.22.2';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.22.2';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.22.1';
-import {applyEncounters} from './encounters.js?v=2.22.1';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.22.1';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.22.2';
+import {applyEncounters} from './encounters.js?v=2.22.2';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.22.2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));

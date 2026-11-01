@@ -1,15 +1,15 @@
-import {applyFtueLevel} from './ftue.js?v=2.22.1';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.22.1';
-import {extractAvailable} from './big-level.js?v=2.22.1';
-import {rarityOf} from './rarity.js?v=2.22.1';
-import {audioEvent} from './audio.js?v=2.22.1';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.22.1';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.22.1';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.22.1';
-import {emptyBag,bagItems} from './raid.js?v=2.22.1';
-import {traceTargets} from './physics.mjs?v=2.22.1';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.22.1';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.22.1';
+import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.22.2';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.22.2';
+import {extractAvailable} from './big-level.js?v=2.22.2';
+import {rarityOf} from './rarity.js?v=2.22.2';
+import {audioEvent} from './audio.js?v=2.22.2';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.22.2';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.22.2';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.22.2';
+import {emptyBag,bagItems} from './raid.js?v=2.22.2';
+import {traceTargets} from './physics.mjs?v=2.22.2';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.22.2';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.22.2';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -243,6 +243,7 @@ export function tickRound(round,now) {
   if(round.over||round.pauseAt!=null)return;
   round.gameNow=now;round.remainingMs=Math.max(round.ftue?.minTimeMs??0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
   if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
+  if(round.ftue)startFtueClutch(round,now);
 }
 export function takeDamage(round,amount,now){
   tickRound(round,now);
@@ -347,6 +348,7 @@ export function activateNode(round,id,now) {
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
   // Swarm rushers wait for their own spawn point, not for a node.
   for(const enemy of round.level.enemies)if(enemy.active===false&&!enemy.swarm){enemy.active=true;enemy.spawnedAt=now;}
+  if(round.ftue)startFtueClutch(round,now);
   return true;
 }
 export function enterExit(round,position,now) {
@@ -364,6 +366,11 @@ export function enterExit(round,position,now) {
   // player deliberately walks INTO the zone; being inside when it opens does not count.
   if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
   else if(!inZone)return null;
+  if(round.ftue&&round.ftueClutch){
+    round.levelsCleared=Math.max(1,round.levelsCleared);round.exitLoot=bagItems(round.bag);
+    if(extractRound(round,now)){round.cleared=true;return 'complete';}
+    return null;
+  }
   updateClears(round,position);
   autoPickPerks(round,now,undefined,{all:true});
   round.perkExitPending=false;

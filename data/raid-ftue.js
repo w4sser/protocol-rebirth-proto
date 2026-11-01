@@ -2,6 +2,7 @@
 var RAID_FTUE_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_FTUE_ROOT.DATA = RAID_FTUE_ROOT.DATA || {};
 RAID_FTUE_ROOT.DATA.raidFtue = Object.freeze({
+  clutch: {hunters:2,countdownMs:10000},
   enemies: [{x:-.7,z:-.6},{x:.7,z:-.6}],
   attempts: [
     {damageMul:1,healthMul:1,speedMul:1,minHealth:0,minTimeMs:0,line:'BIT: Tap the right stick to shoot. Grab the supplies and extract.'},
