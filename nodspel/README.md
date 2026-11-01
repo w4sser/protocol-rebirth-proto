@@ -2,6 +2,16 @@
 
 A static Three.js extraction game for landscape phones. No backend, account, or persistent progression. Only this directory contains the playable shooter; the root prototype is separate.
 
+PixelFX billboards run on Medium/High graphics and are disabled on Low. Use
+`?debug=1&fxdemo=1&q=medium` for a repeating showcase of all effects. Cached
+animation frames prepare in short batches; sprites and 128px CanvasTextures
+reuse a fixed pool. The MIT source and attribution are in `vendor/pixelfx/`.
+
+Paused / Settings includes a default-on Vibration switch, stored globally as
+`nodeRaid.vibration`. Unsupported browsers and iOS do nothing. Native wrappers
+can call `createHaptics({backend})` or `setBackend({pulse(ms), stop()})`; both
+browser and native pulses respect the same setting.
+
 Each round starts with 100 health, an empty bag, three loaded rounds and nine reserve rounds. The shared timer lasts eight minutes. Death or timeout ends the round. An exit opens only after every node is active and extracts the current bag. Continue advances to the next level; completing level three finishes the round. Restart creates a new seed and resets the bag and health.
 
 ## Procedural levels
