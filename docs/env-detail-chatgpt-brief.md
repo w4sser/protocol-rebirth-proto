@@ -11,7 +11,7 @@ Mål: rikare, tätare miljöer utan att ändra spelkod, kamera eller ljus. Fast 
 - `.glb`, meter, Y upp, framsida −Z, origo nederst i mitten (väggprops: origo på väggens baksida, nederst i mitten; hängande: i fästpunkten).
 - En mesh per fil, inga animationer/skinning, inga lampor/kameror i filen. Tom nod `light_anchor` där en lampa ska sitta.
 - Delad atlas per zon, extern bredvid GLB: `props_atlas.png` (max 512×512) + ev. `props_emissive.png` (max 256×256). sRGB, nearest-filter som bunker-kitet. Inga normalkartor.
-- Tri-budget per item enligt listan; hela paketet < 25 000 tris.
+- Tri-budget per item enligt listan; hela paketet < 28 000 tris.
 - Bakat AO: mörka vertexfärger eller mörkare atlasfält i hörn, under föremål och i skarvar (inte separat AO-karta). Lätt "kontaktskugga" (mörk quad, ingen alpha-gradient > 64 px) under fristående props.
 - Decals: genomskinliga PNG i en atlas `decals_atlas.png` (1024×1024, 4×4 eller 4×6 rutor à 256 px) + en platt quad-`.glb` per decal (2 tris, 0,01 m över golv, origo i mitten) som pekar på rätt ruta. Ingen kollision.
 - Namn: `snake_case`, prefix zon: `bk_` (bunker), `ind_` (industri), `ark_` (skärgårdsby). Varianter `_a/_b/_c`. Decals `dc_`.
@@ -19,7 +19,12 @@ Mål: rikare, tätare miljöer utan att ändra spelkod, kamera eller ljus. Fast 
 - Leverans: PR från `main`, bara filer under `assets/props/`, `assets/decals/` och denna doc. **Ingen spelkod, inga ändringar av befintliga GLB, ljus eller kamera.**
 - Finns redan (gör inte om): tunnor, sandsäckar, rör/kabelrännor, skräphögar, oljefläck, sprickor, riskstreck, pöl, mossfläck, gatlykta, gran, buskar, staket, hus.
 
-## Props (36 st)
+## Diorama-känsla (förebild: Three.js r187 diorama city-demo)
+- **Varma emissiva fönster/lampor mot dämpad palett.** Allt annat dämpat och sammanhållet; emissiva (Amber, Coral, sparsamt BIT Cyan) är de *enda* mättade accenterna. Emissiva ytor i en **egen material-slot** (`*_emissive`-material, mappar mot `props_emissive.png`) så bloom tar dem.
+- **Material för bakat AO:** matta, plana färgfält i atlasen, inga högkontrast-texturer; AO bakas i vertexfärg så ljuset förblir mjukt och sammanhållet.
+- **Små animerade detaljer** som separata noder med egen pivot (spelet animerar, ingen animation i filen): vattenyta, flagga/vimpel, blinkande lampa, fläkt.
+
+## Props (42 st)
 | Fil | Zon | Syfte | Mått (m, B×H×D) | Tris | Pivot | Material / variation |
 |---|---|---|---|---|---|---|
 | bk_ammo_crate_stack | Bunker | Fylla hörn | 1.2×0.8×0.6 | 150 | botten | Olivgrön, stencil; a/b (2 resp. 3 lådor) |
@@ -57,6 +62,12 @@ Mål: rikare, tätare miljöer utan att ändra spelkod, kamera eller ljus. Fast 
 | ark_firewood_stack | Skärgård | Hus-liv | 1.5×1.0×0.5 | 140 | botten | Ved, mot falurött |
 | ark_outhouse | Skärgård | Liten byggnad | 1.2×2.2×1.2 | 150 | botten | Falurött + vita knutar, hjärta i dörr |
 | ark_bike_old | Skärgård | Liv | 1.7×1.0×0.5 | 160 | botten | Svart, lutad |
+| bk_ac_unit_wall | Bunker | Väggdetalj | 0.9×0.6×0.4 | 100 | vägg | Grå; fläkt som separat nod `fan` (pivot i navet) |
+| bk_blink_beacon | Bunker | Blinkande ljus | 0.2×0.3×0.2 | 40 | vägg | Coral emissive i egen slot, nod `light` |
+| ind_water_tank_roof | Industri | Takets siluett | 1.6×2.4×1.6 | 220 | botten | Trä/plåt på ben, varm lampa |
+| ark_bench_wood | Skärgård | Liv | 1.6×0.8×0.5 | 80 | botten | Mörkt trä; a/b (sliten) |
+| ark_flag_pole | Skärgård | Animerad | 0.6×4.0×0.6 | 100 | botten | Flaggan separat nod `flag` (pivot vid stången) |
+| ark_water_barrel_rain | Skärgård | Animerad | 0.6×0.9×0.6 | 80 | botten | Vattenyta separat nod `water` |
 | ark_lantern_post_small | Skärgård | Skymningsljus | 0.3×1.2×0.3 | 70 | botten | Amber emissive + `light_anchor` |
 
 ## Decals (20 st, `assets/decals/`)
@@ -87,4 +98,4 @@ Mål: rikare, tätare miljöer utan att ändra spelkod, kamera eller ljus. Fast 
 Varje 4×4 m golvyta: minst 1 stor siluett, 2–3 små props, 2 decals, smuts i alla hörn. Spelbara gångar (≥ 1,5 m) hålls fria.
 
 ## Prompt att klistra in i ChatGPT
-> Du gör ett miljödetaljpaket för mobilspelet Protocol Rebirth (Three.js, fast isometrisk kamera 52°). Läs `docs/env-detail-chatgpt-brief.md` i repot w4sser/protocol-rebirth-proto och följ den exakt. Stil: mörk nordisk low-poly, svensk skärgård och betongbunker i skymning, falurött, lila granit, mörka granar, amber lyktor, palett enligt briefen. Gör alla 36 props och 20 decals i tabellerna: .glb, meter, Y upp, origo nederst i mitten, delad atlas ≤ 512 px per zon, decal-atlas 1024 px, inga normalkartor, bakat AO i vertexfärg/atlas, tri-budget per item. Lägg filer i `assets/props/<bunker|industri|skargard>/` och `assets/decals/`, med `manifest.json` och `contact_sheet.png` (52° vinkel) per mapp. Leverera som en PR från main som bara innehåller dessa filer – ändra ingen spelkod, befintliga modeller, ljus eller kamera.
+> Du gör ett miljödetaljpaket för mobilspelet Protocol Rebirth (Three.js, fast isometrisk kamera 52°). Läs `docs/env-detail-chatgpt-brief.md` i repot w4sser/protocol-rebirth-proto och följ den exakt. Stil: mörk nordisk low-poly, svensk skärgård och betongbunker i skymning, falurött, lila granit, mörka granar, amber lyktor, palett enligt briefen; varma emissiva fönster/lampor i egen material-slot är enda mättade accent, små animerade delar (vatten, flagga, blinkljus, fläkt) som separata noder med pivot. Gör alla 42 props och 20 decals i tabellerna: .glb, meter, Y upp, origo nederst i mitten, delad atlas ≤ 512 px per zon, decal-atlas 1024 px, inga normalkartor, bakat AO i vertexfärg/atlas, tri-budget per item. Lägg filer i `assets/props/<bunker|industri|skargard>/` och `assets/decals/`, med `manifest.json` och `contact_sheet.png` (52° vinkel) per mapp. Leverera som en PR från main som bara innehåller dessa filer – ändra ingen spelkod, befintliga modeller, ljus eller kamera.
