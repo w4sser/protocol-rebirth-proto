@@ -15,6 +15,7 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
   camera.position.set(0,3.2,12);
   camera.lookAt(0,5.2,-110);
   const clock={value:0},rng=random(219);
+  const still=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1800,24,12),new THREE.ShaderMaterial({
     side:THREE.BackSide,depthWrite:false,uniforms:{time:clock},
     vertexShader:`varying vec3 direction;void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -95,6 +96,32 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
   mesh(new THREE.CylinderGeometry(1.25,1.7,12,8),silhouette,0,7.8,0,1,1,1,left);
   mesh(new THREE.CylinderGeometry(1.8,1.8,1.7,8),silhouette,0,14.3,0,1,1,1,left);
   mesh(new THREE.ConeGeometry(2.1,1.6,8),silhouette,0,15.9,0,1,1,1,left);
+  // Additive, code-only searchlight from the lamp room: a soft layered beam cone that slowly
+  // sweeps a full turn, plus a small glow billboard (shader radial falloff, no canvas/texture
+  // so this has no DOM dependency). Skipped outright under reduced motion.
+  let beam=null;
+  if(!still){
+    const lampWorld=new THREE.Vector3(0,14.3,0).multiply(left.scale).add(left.position);
+    beam=new THREE.Group();beam.position.copy(lampWorld);scene.add(beam);
+    const lampColor=0xfff2c4;
+    const cone=(length,radius,opacity)=>{
+      const geo=new THREE.ConeGeometry(radius,length,24,1,true);geo.translate(0,-length/2,0);
+      const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:lampColor,transparent:true,opacity,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+      m.rotation.z=-Math.PI/2;return m;
+    };
+    beam.add(cone(420,16,.045),cone(420,8,.08),cone(420,3,.13));
+    // The camera is fixed for the life of this scene, so a one-time lookAt keeps the glow
+    // facing it without per-frame billboarding. Added to the scene, not the beam, so it
+    // doesn't swing away from view as the beam sweeps.
+    const glow=new THREE.Mesh(new THREE.PlaneGeometry(7,7),new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{color:{value:new THREE.Color(lampColor)}},
+      vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+      fragmentShader:`varying vec2 vUv;uniform vec3 color;void main(){float d=distance(vUv,vec2(.5));gl_FragColor=vec4(color,smoothstep(.5,0.,d)*.55);}`
+    }));
+    glow.position.copy(lampWorld);glow.lookAt(camera.position);scene.add(glow);
+  }
+  const beamSpeed=2*Math.PI/48; // one slow sweep every 48s
   mesh(new THREE.BoxGeometry(2.5,8,2.5),silhouette,0,5,0,1,1,1,right);
   // A shallow open paraboloid with its face tilted skyward, plus feed arm.
   const dishGeo=new THREE.LatheGeometry(Array.from({length:9},(_,i)=>{const r=i*.8;return new THREE.Vector2(r,r*r*.07);}),24);
@@ -122,7 +149,6 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
   }scene.add(pebbles);
   let dead=false,raf=0,start=performance.now(),lastRender=-Infinity;
   const frameInterval=profile.name==='high'?0:1000/30;
-  const still=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const resize=()=>{if(dead)return;const w=host.clientWidth||innerWidth,h=host.clientHeight||innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();};
   const render=now=>{
     if(dead)return;
@@ -130,7 +156,9 @@ export function mountStartFlight(host, profile = {}, {onFail} = {}){
       if(still||now-lastRender>=frameInterval-.001){
         // Preserve the cadence across RAF jitter instead of dropping to 20fps at 60Hz.
         lastRender=frameInterval&&Number.isFinite(lastRender)?lastRender+Math.floor((now-lastRender+.001)/frameInterval)*frameInterval:now;
-        clock.value=still?0:(now-start)/1000;renderer.render(scene,camera);
+        clock.value=still?0:(now-start)/1000;
+        if(beam)beam.rotation.y=clock.value*beamSpeed;
+        renderer.render(scene,camera);
       }
       if(!still)raf=requestAnimationFrame(render);
     }catch(error){dispose();onFail?.(error);}
