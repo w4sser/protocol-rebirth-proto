@@ -7,7 +7,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const setup = app.slice(app.indexOf("function setupSplash("), app.indexOf("/* ---------- init ---------- */"));
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}={}){
+function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, returning=false}={}){
   const dom = new JSDOM(html, {url:"https://game.example/"});
   const { window } = dom, { document } = window;
   if(seen) window.sessionStorage.setItem("pr_splash_seen", seen === "stale" ? "1" : String(Date.now()));
@@ -17,10 +17,10 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
   const tasks=new Map(), images=[];
   const later=(fn,delay) => {const key=++id;tasks.set(key,{fn,at:now+delay});return key;};
   class Picture{ constructor(){this.complete=false;images.push(this);} }
-  new Function("document","window","sessionStorage","S","D","bunkerStage","Image","setTimeout","clearTimeout","lockLandscape","APP_VERSION",
-    setup + ";setupSplash();")(
+  new Function("document","window","sessionStorage","S","D","bunkerStage","Image","setTimeout","clearTimeout","lockLandscape","APP_VERSION","returning",
+    setup + ";setupSplash(false,returning);")(
     document, window, storage, {introSeen}, {baseMap:{plates:[{art:"saved-stage.webp"}]}}, () => 0,
-    Picture, later, key=>tasks.delete(key), ()=>{}, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version);
+    Picture, later, key=>tasks.delete(key), ()=>{}, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version, returning);
   const tick = ms => {
     const until=now+ms;
     while(true){
@@ -67,6 +67,18 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
 {
   // v2.12.0: a legacy/stale mark (not a recent timestamp) no longer hides the start screen.
   const t=boot({seen:"stale"});assert(t.splash(),"stale seen mark still shows the start screen");t.dom.window.close();
+}
+{
+  // v2.21.1 item 8: a raid long enough to push "seen" past the 5 min window must still land
+  // directly on the result screen -- a pending raid result always skips the splash outright.
+  const t=boot({seen:"stale",returning:true});
+  assert(!t.splash(),"a waiting raid result skips the splash even past the 5 min freshness window");
+  assert.equal(t.images.length,0,"skipping never replays the opening artwork either");t.dom.window.close();
+}
+{
+  const t=boot({blockedStorage:true,returning:true});
+  assert(!t.splash(),"a waiting raid result skips splash when session storage is unavailable");
+  t.dom.window.close();
 }
 {
   const t=boot({blockedStorage:true});

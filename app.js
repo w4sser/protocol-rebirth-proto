@@ -5239,16 +5239,19 @@ function showBaseLoader(){
 // Returns null if there's no #splash or it's already been shown this session; otherwise an
 // object the caller uses to report the flight's async outcome (flightMounted once
 // start-scene.js loads, flightFailed if it never does or later errors out).
-function setupSplash(flightPending){
+function setupSplash(flightPending, returningFromRaid){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
   // v2.12.1: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
   // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
-  let shown = false; try{
+  // v2.21.1: a raid result waiting to be shown (returningFromRaid) always skips the splash -- a
+  // raid that ran long enough to push the "seen" mark past the 5 min window must still land
+  // directly on the result screen, never flash the splash in front of it first.
+  let shown = !!returningFromRaid; try{
     const force = /[?&]splash=1\b/.test((window.location && window.location.search) || ""), at = +sessionStorage.getItem("pr_splash_seen");
-    shown = !force && at > 1e12 && Date.now() - at < 5 * 60 * 1000; sessionStorage.setItem("pr_splash_seen", String(Date.now()));
+    shown = shown || (!force && at > 1e12 && Date.now() - at < 5 * 60 * 1000); sessionStorage.setItem("pr_splash_seen", String(Date.now()));
   }catch(e){}
   if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return null; }
   const body = document.body;
@@ -5361,7 +5364,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
       flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
-  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)));
+  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
