@@ -5235,10 +5235,10 @@ function showBaseLoader(){
 // flightPending: v2.12.1 start screen -- true when the caller intends to mount the archipelago
 // flight (Medium/High quality + WebGL2; see start-quality.js). While true, the old auto-advance
 // timer is suppressed and the idle flight keeps looping until the player taps; on tap, the
-// flight eases the camera down onto the bunker island (flightCtl.land) before the existing
-// descending/finish flow continues. Returns null if there's no #splash or it's already been
-// shown this session; otherwise an object the caller uses to report the flight's async outcome
-// (flightMounted once start-scene.js loads, flightFailed if it never does or later errors out).
+// existing descending/finish flow runs with no camera move -- see begin()'s CSS fade-to-black.
+// Returns null if there's no #splash or it's already been shown this session; otherwise an
+// object the caller uses to report the flight's async outcome (flightMounted once
+// start-scene.js loads, flightFailed if it never does or later errors out).
 function setupSplash(flightPending){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
@@ -5279,12 +5279,12 @@ function setupSplash(flightPending){
     } else {
       body.classList.add("startup-descending"); sp.classList.add("descending");
       // Keep a timer as well as animationend: interrupted animations must never block play.
-      endTimer = setTimeout(finish, 1450);
+      endTimer = setTimeout(finish, 1500);
     }
   };
-  // Lands the flight camera on the bunker first (if it's mounted and active) before begin()'s
-  // existing dissolve -- otherwise behaves exactly like the old direct begin().
-  const proceed = () => { if(flightActive && flightCtl) flightCtl.land(begin); else begin(); };
+  // No camera move for this transition: fade to black, then the bunker fades in under it (see
+  // begin()'s CSS). The flight scene itself just keeps looping/disposes normally via finish().
+  const proceed = () => begin();
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
@@ -5305,8 +5305,10 @@ function setupSplash(flightPending){
   sp.addEventListener("keydown", e => {
     if(e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(); }
   });
-  sp.querySelector(".splash-track")?.addEventListener("animationend", e => {
-    if(e.animationName === "surfaceDeparture") finish();
+  // splashBlackout is the last of the two sequential phases (art fades to black, then this
+  // fades the rest of #splash away once the bunker has faded in beneath it).
+  sp.addEventListener("animationend", e => {
+    if(e.animationName === "splashBlackout") finish();
   });
   const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
     D.baseMap.plates[bunkerStage()].art];

@@ -657,25 +657,32 @@
   .splash-icon{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--txt);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
   .splash-icon .pr-ic{width:18px;height:18px;}
   .splash-title{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 260px);pointer-events:none;top:calc(18px + var(--st));text-align:center;z-index:2;font:900 20px "Archivo",sans-serif;letter-spacing:.14em;color:var(--txt);margin:0;}
-  /* Explicit width/height here (not just position) because .playbtn's base/media rules this
-     button shares for its primary-action look (gradient/border/shadow) also carry width/height
-     meant for the full-size lobby button -- equal specificity, later source order, so these win
-     and keep it a compact ~220px button regardless of viewport (was a full-width bar at short
-     landscape heights, where the lobby's own `.playbtn{width:100%}` media rule applied here too). */
-  .splash-play{position:absolute;left:50%;bottom:calc(68px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;width:220px;height:56px;}
+  /* Minimalist on purpose: the landscape owns the image, so this is a thin outline + small
+     letter-spaced text, not the big filled .playbtn used for the lobby's DEPLOY. */
+  .splash-play{position:absolute;left:50%;bottom:calc(68px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;
+    min-width:44px;min-height:44px;padding:13px 30px;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid color-mix(in srgb,var(--txt) 45%,transparent);border-radius:999px;cursor:pointer;
+    animation:splashPlayPulse 2.6s ease-in-out infinite;}
+  .splash-play b{font:700 12px "IBM Plex Mono",monospace;font-style:normal;letter-spacing:.32em;color:var(--txt);opacity:.8;text-transform:uppercase;}
+  .splash-play:active{transform:translateX(-50%) translateY(1px);}
+  @keyframes splashPlayPulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+  @media(prefers-reduced-motion:reduce){.splash-play{animation:none;}}
   #splash.descending .splash-corner,#splash.descending .splash-title,#splash.descending .splash-play{opacity:0;transition:opacity .2s ease;}
   body.splash-active #overlay,body.splash-active #settings-menu{z-index:95;}
   body.splash-active #topbar,body.splash-active #tabs,body.splash-active #bitdock,body.splash-active #app-version,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip{opacity:0;}
   body.splash-active .intro>*{animation-play-state:paused;opacity:0;pointer-events:none;}
   body.startup-bunker-intro .intro{background:linear-gradient(color-mix(in srgb,var(--ad-night) 78%,transparent),color-mix(in srgb,var(--ad-night) 94%,transparent)),url("assets/production/bunker_plate_00_found.webp") center/cover no-repeat;}
-  body.startup-descending #main{animation:bunkerArrival 1.35s cubic-bezier(.45,0,.2,1) both;will-change:transform;}
-  #splash.descending{background:transparent;}
-  #splash.descending .splash-track{animation:surfaceDeparture 1.35s cubic-bezier(.45,0,.2,1) both;}
+  /* Two sequential phases, no camera move: the art fades out to #splash's own near-black
+     background first, then once the screen is solid the bunker fades in from black under it. */
+  body.startup-descending #main{animation:bunkerArrival .8s cubic-bezier(.45,0,.2,1) .6s both;}
+  #splash.descending .splash-track{animation:surfaceDeparture .6s cubic-bezier(.45,0,.2,1) both;}
+  #splash.descending{animation:splashBlackout .8s cubic-bezier(.45,0,.2,1) .6s both;}
   #splash.descending small{opacity:0;}
   #splash.out{opacity:0;pointer-events:none;transition:opacity .18s ease;}
   @keyframes surfaceDeparture{from{opacity:1}to{opacity:0}}
+  @keyframes splashBlackout{from{opacity:1}to{opacity:0}}
   @keyframes bunkerArrival{from{opacity:0}to{opacity:1}}
-  @media(prefers-reduced-motion:reduce){body.startup-descending #main,#splash.descending .splash-track{animation:none;}#splash.descending{background:var(--ad-night);}#splash.descending .splash-track{transform:none;}}
+  @media(prefers-reduced-motion:reduce){body.startup-descending #main,#splash.descending .splash-track,#splash.descending{animation:none;}#splash.descending{background:var(--ad-night);opacity:0;}}
   #splash small{font:700 12px "IBM Plex Mono",monospace; letter-spacing:.2em; color:#75CFCC; opacity:.8; background:rgba(7,21,28,.6); padding:4px 10px; border-radius:8px;}
   .hero-art{background-image:url("assets/production/operator_op01.webp")!important; background-size:auto 128%!important; background-position:50% 4%!important; inset:0!important; filter:drop-shadow(0 10px 16px rgba(0,0,0,.6));}
   .lobby-hero{background:radial-gradient(ellipse at 50% 92%,rgba(63,224,208,.28),transparent 55%),radial-gradient(ellipse at 50% 40%,#16323c,#0b1c24 70%);}
@@ -1635,7 +1642,7 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
-  <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><button id="splash-play" type="button" class="playbtn splash-play" aria-label="Play"><b>PLAY</b></button><small>TAP ANYWHERE TO BEGIN</small></div>
+  <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><button id="splash-play" type="button" class="splash-play" aria-label="Play"><b>PLAY</b></button><small>TAP ANYWHERE TO BEGIN</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
 <script src="data/items.js?v=2.21.1"></script>

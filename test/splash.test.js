@@ -40,7 +40,7 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
   assert(!t.splash().classList.contains("descending"),"early tap waits for artwork");
   t.ready();
   assert(t.splash().classList.contains("descending"));
-  t.tick(1450);
+  t.tick(1500);
   assert(!t.splash(),"fallback unblocks play even without animationend");
   assert(!t.document.body.classList.contains("startup-descending"));
   assert(!t.document.body.classList.contains("splash-active"));
@@ -72,12 +72,14 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
   const t=boot({blockedStorage:true});
   t.document.getElementById("splash").dispatchEvent(new t.window.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
   t.tick(2500);assert(t.splash().classList.contains("descending"),"missing image events time out and keyboard starts entry");
-  t.tick(1450);assert(!t.splash());t.dom.window.close();
+  t.tick(1500);assert(!t.splash());t.dom.window.close();
 }
 {
+  // splashBlackout is the last of the two sequential fade phases (art to black, then the rest
+  // of #splash away once the bunker has faded in under it) -- see begin()'s CSS.
   const t=boot();t.ready();t.click();
-  const ev=new t.window.Event("animationend");Object.defineProperty(ev,"animationName",{value:"surfaceDeparture"});
-  t.document.querySelector(".splash-track").dispatchEvent(ev);
+  const ev=new t.window.Event("animationend");Object.defineProperty(ev,"animationName",{value:"splashBlackout"});
+  t.document.getElementById("splash").dispatchEvent(ev);
   assert(!t.splash(),"animation completion hands control to real screen");t.dom.window.close();
 }
 {
@@ -85,5 +87,23 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false}=
   t.document.dispatchEvent(new t.window.Event("visibilitychange"));
   assert(!t.splash(),"backgrounding during loading cannot leave an input-blocking layer");
   t.tick(10000);assert(!t.document.body.classList.contains("splash-active"));t.dom.window.close();
+}
+{
+  // v2.21.1: start->bunker is fade-to-black-then-fade-in, no camera move. The art fades out
+  // first (revealing #splash's own near-black background), then only once that's done does the
+  // bunker fade in under a fading #splash -- never a simultaneous cross-dissolve or a translate.
+  const keyframes = name => html.match(new RegExp("@keyframes " + name + "\\{([^}]*)\\}"))[1];
+  assert(!/transform|translate/.test(keyframes("bunkerArrival")), "bunker reveal is an opacity fade, not a camera move");
+  assert(!/transform|translate/.test(keyframes("surfaceDeparture")), "splash departure is an opacity fade, not a camera move");
+  // Pull each rule's own declaration (up to its semicolon) and read off its duration/delay,
+  // ignoring the numbers inside cubic-bezier() which aren't a duration or a delay.
+  const declOf = marker => { const i = html.indexOf(marker); return html.slice(i, html.indexOf(";", i)); };
+  const timesOf = marker => (declOf(marker).replace(/cubic-bezier\([^)]*\)/, "").match(/[\d.]+(?=s)/g) || []).map(Number);
+  const [trackDuration] = timesOf("animation:surfaceDeparture");
+  const [, splashDelay] = timesOf("animation:splashBlackout");
+  const [, bunkerDelay] = timesOf("animation:bunkerArrival");
+  assert(splashDelay >= trackDuration, "the screen only goes black after the art has fully faded");
+  assert.equal(splashDelay, bunkerDelay, "the bunker starts fading in at the same moment #splash starts fading away, not before");
+  assert(!/flightCtl\.land\(|\.land\(begin\)/.test(app), "the splash flow no longer routes through a camera-landing step");
 }
 console.log("SPLASH ENTRY PASSED (loading, automatic entry, tap/keyboard skip, reduced motion, repeat sessions, backgrounding)");

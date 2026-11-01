@@ -34,16 +34,22 @@ function boot(){
   return { dom, document, A:w.__T.A, tick, ready:() => images.forEach(i => i.onload?.()), splash:() => document.getElementById("splash") };
 }
 
-// 1) the splash carries a title, one big PLAY button (shared .playbtn style) and small
-// settings/slot icons -- the design's "minimal: title, PLAY, small settings/slot icons".
+// 1) the splash carries a title, one minimalist PLAY control (thin outline, not the big filled
+// .playbtn used for the lobby's DEPLOY -- the landscape owns the image) and small settings/slot
+// icons -- the design's "minimal: title, PLAY, small settings/slot icons".
 {
   const t = boot();
   assert(t.document.querySelector(".splash-title"), "title present");
   const play = t.document.getElementById("splash-play");
-  assert(play && play.classList.contains("playbtn"), "PLAY button exists and uses the shared primary-action style");
+  assert(play && play.classList.contains("splash-play") && !play.classList.contains("playbtn"), "PLAY control exists and is not the big filled .playbtn style");
+  assert.equal(play.textContent.trim(), "PLAY", "PLAY control keeps its accessible text");
   assert(t.document.getElementById("splash-settings-btn"), "settings icon present on the splash");
   assert(t.document.getElementById("splash-profiles-btn"), "save-slot icon present on the splash");
   t.dom.window.close();
+  const css = fs.readFileSync(path + "/index.html", "utf8");
+  assert(/\.splash-play\{[^}]*min-width:44px;min-height:44px/.test(css), "PLAY keeps a >=44px hit area despite the minimal look");
+  assert(/\.splash-play\{[^}]*background:transparent/.test(css), "PLAY has no big filled background");
+  assert(/@media\(prefers-reduced-motion:reduce\)\{\.splash-play\{animation:none;?\}\}/.test(css), "PLAY's pulse is disabled under reduced motion");
 }
 
 // 2) settings icon opens the settings menu but never starts the descent (stopPropagation)
@@ -76,7 +82,7 @@ function boot(){
   assert(!t.splash().classList.contains("descending"), "PLAY still waits for artwork, same as a direct tap");
   t.ready();
   assert(t.splash().classList.contains("descending"), "PLAY starts the descent once ready");
-  t.tick(1450);
+  t.tick(1500);
   assert(!t.splash(), "PLAY hands control to the real base/intro screen");
   t.dom.window.close();
 }
