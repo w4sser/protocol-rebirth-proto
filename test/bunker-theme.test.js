@@ -62,7 +62,7 @@ test('raid entry invokes fade and waits before navigating',async()=>{
   const segment=app.slice(app.indexOf('    const raidUrl = coreLaunchUrl'),app.indexOf('\n  deploy(){'));
   const body=segment.slice(0,segment.lastIndexOf('\n  },'));
   let release;const faded=new Promise(r=>release=r),calls=[];
-  const sandbox={session:{},window:{PR_NAVIGATE:u=>calls.push('navigate'),PR_AUDIO_RAID_ENTRY:()=>{calls.push('fade');return faded;}},coreLaunchUrl:()=>'/raid',l:{},metaReturnPath:()=>'',location:{pathname:'/'},stats:{},gear:[],weapon:null,kit:null,launchTool:null,raidBagCapacity:()=>0,raidArea:()=>'',hard:false,intro:true,questLaunchParam:()=>null,progressionGoal:()=>null,pay:null};
+  const sandbox={session:{},window:{PR_NAVIGATE:u=>calls.push('navigate'),PR_AUDIO_RAID_ENTRY:()=>{calls.push('fade');return faded;}},coreLaunchUrl:()=>'/raid',l:{},metaReturnPath:()=>'',location:{pathname:'/'},stats:{},gear:[],weapon:null,kit:null,launchTool:null,raidBagCapacity:()=>0,raidArea:()=>'',hard:false,intro:true,ftue:false,questLaunchParam:()=>null,progressionGoal:()=>null,pay:null};
   vm.runInNewContext(body,sandbox);assert.deepEqual(calls,['fade']);
   release();await new Promise(setImmediate);assert.deepEqual(calls,['fade','navigate']);
 });
@@ -164,6 +164,10 @@ test('the in-base combat test (Live Fire) fades the bunker theme out and back in
   const {window}=dom;
   for(const s of ['data/items.js','data/modules.js','data/bit.js','data/bit-talents.js','data/raid_zones.js','data/recipes.js','data/vendors.js','data/retention.js','data/progression.js','data/combat.js','app.js'])
     window.eval(fs.readFileSync(require.resolve('../'+s),'utf8'));
+  // v2.22.0: this is a fresh profile, so boot armed the FTUE direct-launch listener; this test
+  // drives the combat demo directly instead, so a real deploy must not fire once the splash's
+  // pending timers resolve after this test returns.
+  window.A.startFtueDirect=()=>{};
   const calls=[];
   window.PR_AUDIO={fadeMusic:(...a)=>{calls.push(['fade',...a]);return Promise.resolve();},music:(...a)=>calls.push(['music',...a])};
   window.A.dismissIntro();window.A.playCombatDemo();

@@ -49,6 +49,10 @@ const seed = { local:{ pr_meta_save:'{"v":99}', pr_raid_result_v1:"{}", "nodspel
   const { w, nav } = boot("http://localhost/index.html?reset=1", seed, false);
   assert(w.localStorage.getItem("pr_meta_save"));
   assert.equal(nav.length, 0); assert.equal(w.location.search, "");
-  assert(w.document.getElementById("app").innerHTML.length > 0, "app booted");
+  // v2.22.0: this seed's unrecognized save version (v99) falls back to a fresh profile, which
+  // boots by waiting for the splash to finish before launching straight into the FTUE raid --
+  // simulate that finish deterministically rather than depending on the splash's real timers.
+  w.dispatchEvent(new w.Event("pr:splash-finished"));
+  assert(w.document.getElementById("app").innerHTML.length > 0 || nav.length > 0, "app booted (base/intro screen or FTUE direct launch)");
 }
 console.log("RESET PROGRESS TEST PASSED");

@@ -12,8 +12,43 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.21.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.22.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
+// v2.22.0 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
+// profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
+// (same-origin localStorage) to timestamp the raid-side milestones.
+const FTUE_KEY = "pr_ftue_v1";
+function initFtueMetrics(){
+  try{ if(localStorage.getItem(FTUE_KEY) !== null) return; localStorage.setItem(FTUE_KEY, JSON.stringify({ step:"start", attempts:0, t:{} })); }catch(e){}
+}
+function ftueMark(key){
+  try{
+    const raw = localStorage.getItem(FTUE_KEY); if(raw === null) return;
+    const ftue = JSON.parse(raw); if(!ftue || typeof ftue !== "object") return;
+    ftue.t = ftue.t || {};
+    if(ftue.t[key] === undefined) ftue.t[key] = Date.now();
+    ftue.step = key;
+    localStorage.setItem(FTUE_KEY, JSON.stringify(ftue));
+  }catch(e){}
+}
+function renderFtueDebug(){
+  if(typeof document === "undefined") return;
+  let raw; try{ raw = localStorage.getItem(FTUE_KEY); }catch(e){ raw = null; }
+  if(raw === null) return;
+  let ftue; try{ ftue = JSON.parse(raw); }catch(e){ return; }
+  if(!ftue || typeof ftue !== "object") return;
+  let el = document.getElementById("ftue-debug");
+  if(!el){
+    el = document.createElement("div"); el.id = "ftue-debug";
+    Object.assign(el.style, { position:"fixed", left:"6px", bottom:"6px", zIndex:"99999", background:"#000c", color:"#9fe", font:"10px/1.4 monospace", padding:"6px 8px", borderRadius:"4px", pointerEvents:"none", whiteSpace:"pre" });
+    document.body.appendChild(el);
+  }
+  const t = ftue.t || {}, base = t.play;
+  const fmt = k => t[k] === undefined ? "-" : (base ? ((t[k]-base)/1000).toFixed(1) + "s" : "-");
+  el.textContent = "FTUE step:" + (ftue.step||"-") + " attempts:" + (ftue.attempts||0) +
+    "\nplay:" + fmt("play") + " raidStart:" + fmt("raidStart") + " firstShot:" + fmt("firstShot") +
+    " firstKill:" + fmt("firstKill") + " firstExtract:" + fmt("firstExtract");
+}
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
 // v2.12.1: start screen quality->water profile (start-quality.js), same dual-mode convention.
@@ -60,6 +95,7 @@ function save(){ if(typeof resetting !== "undefined" && resetting) return; try{ 
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) initFtueMetrics();
     if(raw){
       const st = JSON.parse(raw), was = st.v;
       if(st.v === 6) migrateState(st);
@@ -3584,7 +3620,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
     (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
-    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.bigMap ? "&levels=big" : "");
+    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.ftue ? "&ftue=1" : "") + (opts.bigMap ? "&levels=big" : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -4425,10 +4461,21 @@ window.A = {
   toggleBigMap(){ const on = !bigMapOn(); setBigMap(on); act("BIGMAP_TOGGLED", { on }); refresh(); },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
-  deployNodeRaid(){
+  // v2.22.0 direct path (docs/ftue-design.md): a fresh profile's splash PLAY lands here instead of
+  // the cold open / Core popup / loadout screen. Core stays unbuilt on purpose -- it's the single
+  // next step base shows once the player returns from this raid (progressionGoal() already prefers
+  // an unbuilt Core over everything else).
+  startFtueDirect(){
+    ftueMark("play");
+    ensurePrep();
+    applyStarterRaid();
+    A.deployNodeRaid({ ftue:true });
+  },
+  deployNodeRaid(opts){
     if(session.raidNavigating)return;
     session.raidNavigating=true;
     void window.PR_AUDIO?.unlock();
+    const ftue = !!(opts && opts.ftue);
     const l = newCoreLaunch(), gear = nodeRaidGear(), stats = playerStats(gear), weapon = nodeRaidWeaponId(), kit = nodeRaidKit(), tool = nodeRaidTool();
     const rb = takeRestBuff(); // Living Quarters rest: applies to this launch only (v1.82)
     if(rb) for(const k in rb) stats[k] = clampStat(k, stats[k] + rb[k]);
@@ -4443,7 +4490,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, payoff:pay && pay.kind });
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
     const navigate = () => {
       try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
       finally{ session.raidNavigating=false; }
@@ -5156,7 +5203,7 @@ window.A = {
 
 /* ---------- reset progress (base + Node Raid) ---------- */
 // Every Protocol Rebirth key: meta save, core RaidResult handoff, legacy core result, core tutorial/FTUE flags.
-const PR_STORAGE_KEYS = ["pr_meta_save", "pr_raid_result_v1", "nodspel.result.json", "nodspel.tutorial.seen"];
+const PR_STORAGE_KEYS = ["pr_meta_save", "pr_raid_result_v1", "nodspel.result.json", "nodspel.tutorial.seen", FTUE_KEY];
 const isPrKey = k => PR_STORAGE_KEYS.includes(k) || /^(pr_|nodspel\.)/.test(k);
 function clearProgressStorage(storages){
   const removed = [];
@@ -5355,7 +5402,18 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
+  // v2.22.0 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
+  // completed yet, and this isn't the return trip from that first raid) skips straight into the
+  // FTUE raid once the splash finishes -- no cold open, no Core popup, no loadout screen. Any later
+  // reload still in that same window (closed the tab mid-raid) lands right back in the FTUE raid
+  // too -- but S.raids===0 stops it from re-triggering after the first extraction: a reload between
+  // returning to base and dismissing the cold open must show that cold open again, not launch another raid.
+  // Only profiles app.js created fresh (pr_ftue_v1 written by initFtueMetrics) are FTUE-eligible; an old
+  // save that never dismissed the legacy intro keeps the legacy flow.
+  let ftueTracked = false; try{ ftueTracked = window.localStorage.getItem(FTUE_KEY) !== null; }catch(e){}
+  const ftueDirect = ftueTracked && !S.introSeen && S.raids === 0 && !(coreIngest && coreIngest.ok);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
+  if(DEBUG_AREAS) renderFtueDebug();
   tryBitImage();
   // v2.12.1 start screen: the quality/WebGL2 check (StartQuality) is synchronous, so decide
   // *before* setupSplash() whether the archipelago flight will be attempted -- setupSplash needs
@@ -5413,8 +5471,13 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
         .catch(e => { console.warn("start screen flight disabled:", e); splashCtl.flightFailed(); });
     } else splashCtl.flightFailed();
   }
-  session.screen = S.introSeen ? "base" : "intro";
-  refresh();
+  if(ftueDirect){
+    if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
+    else A.startFtueDirect();
+  } else {
+    session.screen = S.introSeen ? "base" : "intro";
+    refresh();
+  }
   // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup).
   // The BIT screen overlay is exempt: it's the TASKS tab's own home, so a scavenge/expedition completing while
   // it's open should still update it (any other popup still blocks, same as before).

@@ -8,6 +8,10 @@ const dom = new JSDOM(html, { runScripts:"outside-only", url:"http://localhost/i
 const w = dom.window;
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   w.eval(fs.readFileSync(path + "/" + s, "utf8"));
+// v2.22.0: this is a fresh profile, so boot armed the FTUE direct-launch listener; this test drives
+// the base layer directly instead, so a real deploy must not fire once the splash's pending timers
+// resolve after this test returns.
+w.A.startFtueDirect = () => {};
 const doc = w.document; w.A.dismissIntro(); w.A.go("base");
 assert.equal(doc.getElementById("app").className, "s-base");
 const pe = el => w.getComputedStyle(el).pointerEvents;

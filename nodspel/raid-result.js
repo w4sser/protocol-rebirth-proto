@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=2.21.1';
-import {RULES} from './levels.js?v=2.21.1';
-import {bagCap,equippedGear} from './round.js?v=2.21.1';
-import {readGoal} from './progression-goal.js?v=2.21.1';
+import {bagItems} from './raid.js?v=2.22.0';
+import {RULES} from './levels.js?v=2.22.0';
+import {bagCap,equippedGear} from './round.js?v=2.22.0';
+import {readGoal} from './progression-goal.js?v=2.22.0';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -58,7 +58,11 @@ export function readLaunch(search){
   return {seed:seed?seed.slice(0,64):null,raidId:rawId&&RAID_ID.test(rawId)?rawId:null,returnUrl:safeReturnUrl(p.get('return')),
     stats:readStats(p.get('stats')),gear:(p.get('gear')||'').split(',').filter(id=>RULES.playerStats.gear.includes(id)).slice(0,4),
     armorShield:p.has('armorShield')&&p.get('armorShield')!==''&&Number.isFinite(Number(p.get('armorShield')))?Math.min(RULES.playerStats.clamp.shield[1],Math.max(0,Number(p.get('armorShield')))):null,
-    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
+    weapon:readWeapon(p.get('w')),kit:readKit(p.get('kit')),tool:readTool(p.get('tool')),bag:p.get('bag')?bagCap(p.get('bag')):RULES.loot.capacity,goal:readGoal(p.get('goal')),intro:p.get('intro')==='1',
+    // ftue is distinct from intro: intro is the long-standing guided-raid script (any player still on
+    // their pre-Fabricator first raid, old or new); ftue marks the v2.22.0 fresh-profile direct path
+    // specifically, so only that cohort gets the new no-tutorial / retry-in-place / hidden-goal behaviour.
+    ftue:p.get('ftue')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest'))};
 }
 // ?quest=extract:cable:1:3 | kill:sentry:0:3 | clear:2:0:1 (type:target:progress:n[:level]) -> the tracked chain quest for the HUD chip (anything else -> null).
 const QUEST_ENEMIES=['grunt','sentry','rusher'];

@@ -7,6 +7,9 @@ function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window;
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
+  // v2.22.0: a profile with no save is fresh, so boot arms the FTUE direct-launch listener; this
+  // test never fires the splash, but a stub keeps it from navigating for real if it somehow did.
+  w.PR_NAVIGATE = u => { w.launchURL = u; };
   for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"])
     w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, SV:SAVE_VERSION, ratio:SALVAGE_TO_SCRAP };");
