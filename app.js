@@ -12,9 +12,9 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.22.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.22.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
-// v2.22.0 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
+// v2.22.1 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
 // (same-origin localStorage) to timestamp the raid-side milestones.
 const FTUE_KEY = "pr_ftue_v1";
@@ -4461,7 +4461,7 @@ window.A = {
   toggleBigMap(){ const on = !bigMapOn(); setBigMap(on); act("BIGMAP_TOGGLED", { on }); refresh(); },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
   debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
-  // v2.22.0 direct path (docs/ftue-design.md): a fresh profile's splash PLAY lands here instead of
+  // v2.22.1 direct path (docs/ftue-design.md): a fresh profile's splash PLAY lands here instead of
   // the cold open / Core popup / loadout screen. Core stays unbuilt on purpose -- it's the single
   // next step base shows once the player returns from this raid (progressionGoal() already prefers
   // an unbuilt Core over everything else).
@@ -5402,7 +5402,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
   S = load();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
-  // v2.22.0 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
+  // v2.22.1 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
   // completed yet, and this isn't the return trip from that first raid) skips straight into the
   // FTUE raid once the splash finishes -- no cold open, no Core popup, no loadout screen. Any later
   // reload still in that same window (closed the tab mid-raid) lands right back in the FTUE raid

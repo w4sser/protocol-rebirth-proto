@@ -1,4 +1,4 @@
-import '../data/raid-enemies.js?v=2.22.0';
+import '../data/raid-enemies.js?v=2.22.1';
 function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
 export const ENEMY_TUNING=freeze(globalThis.DATA.raidEnemies);
 export const ENEMY_COLORS=ENEMY_TUNING.colors; // Approved: coral damage, blue shield, green heal, yellow AoE.
@@ -6,7 +6,7 @@ export const ENEMY_COLORS=ENEMY_TUNING.colors; // Approved: coral damage, blue s
 // within a few cm of 0 already). shield_turret and scout are the two that visibly clip/float without it.
 const GROUND_OFFSET={shield_turret:.45,scout:.37};
 function archetype(id,parts,hint,tier,phase,scale=1){
-  return {id,groundOffset:GROUND_OFFSET[id]??0,model:`../assets/enemies/${id}.glb?v=2.22.0`,scale,
+  return {id,groundOffset:GROUND_OFFSET[id]??0,model:`../assets/enemies/${id}.glb?v=2.22.1`,scale,
     // Apply X rotation first, then Y: local +Z -> world +Y, local +X -> game +Z.
     forwardUpFix:{rotateX:-Math.PI/2,rotateY:-Math.PI/2},parts,stats:ENEMY_TUNING.stats[id],telegraphColors:ENEMY_COLORS,hint,tier,phase};
 }

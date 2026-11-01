@@ -12,7 +12,7 @@ window.URL.createObjectURL = () => "blob:fake";
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;
-// v2.22.0: this is a fresh profile, so boot armed the FTUE direct-launch listener; this walkthrough
+// v2.22.1: this is a fresh profile, so boot armed the FTUE direct-launch listener; this walkthrough
 // drives the base layer directly instead, so a real deploy must not fire mid-sleep below.
 A.startFtueDirect = () => {};
 const text = () => doc.getElementById("app").textContent;
