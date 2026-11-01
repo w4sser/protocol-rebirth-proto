@@ -4120,6 +4120,7 @@ window.A = {
   invJump(id){ const el = document.getElementById(id); if(el) el.scrollIntoView({ block:"start", behavior:"smooth" }); },
   playCombatDemo(){
     this.clearCombatDemo();
+    void window.PR_AUDIO?.fadeMusic(1);
     session.screen="combatDemo";
     act("COMBAT_TEST_STARTED",{});
     refresh();
@@ -4136,6 +4137,7 @@ window.A = {
     this.clearCombatDemo();
     session.combatDemo=null;
     session.screen="prep"; session.prep=null; refresh("raid_prep");
+    window.PR_AUDIO?.music("bunker-theme",1.5);
   },
   combatMove(dir,active){
     const g=session.combatDemo;if(!g)return;
