@@ -264,7 +264,15 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     // Overlap the seam slightly: rounded centers and dimensions must never
     // produce a floating-point crack between room and corridor footprints.
     floors.push({...corridor,w:corridor.w+(corridor.dir.x?.08:0),d:corridor.d+(corridor.dir.z?.08:0)});
-    for(const sign of [-1,1])walls.push({x:corridor.x+(corridor.dir.z?sign*(door/2-t/2):0),z:corridor.z+(corridor.dir.x?sign*(door/2-t/2):0),w:corridor.dir.x?corridor.w:t,d:corridor.dir.z?corridor.d:t,h:.85});
+    // Side walls run exactly room-edge to room-edge, flush with the room's own doorway walls but
+    // not overlapping them, which leaves a wallThickness-square gap at each corner (the room wall
+    // ends at the edge; the corridor wall starts there but never covers the room-side sliver).
+    // Extend the room end(s) by `t` to close it. A corridor joins a room at both ends; a branch
+    // (dead end / closet, identified by its `end` field) only at its room end - the far end is
+    // already sealed by its own cap wall in addBranch, so padding it further would poke past the cap.
+    const pad=corridor.end?t:2*t,shift=corridor.end?t/2:0;
+    const cx=corridor.x-corridor.dir.x*shift,cz=corridor.z-corridor.dir.z*shift;
+    for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*(door/2-t/2):0),z:cz+(corridor.dir.x?sign*(door/2-t/2):0),w:corridor.dir.x?corridor.w+pad:t,d:corridor.dir.z?corridor.d+pad:t,h:.85});
   }
   for(let i=0;i<rooms.length;i++){
     const room=rooms[i],{x,z,w,d}=room;
