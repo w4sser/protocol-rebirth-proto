@@ -164,7 +164,7 @@ test('the in-base combat test (Live Fire) fades the bunker theme out and back in
   const {window}=dom;
   for(const s of ['data/items.js','data/modules.js','data/bit.js','data/bit-talents.js','data/raid_zones.js','data/recipes.js','data/vendors.js','data/retention.js','data/progression.js','data/combat.js','app.js'])
     window.eval(fs.readFileSync(require.resolve('../'+s),'utf8'));
-  // v2.22.0: this is a fresh profile, so boot armed the FTUE direct-launch listener; this test
+  // v2.22.1: this is a fresh profile, so boot armed the FTUE direct-launch listener; this test
   // drives the combat demo directly instead, so a real deploy must not fire once the splash's
   // pending timers resolve after this test returns.
   window.A.startFtueDirect=()=>{};

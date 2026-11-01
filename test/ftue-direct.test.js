@@ -1,4 +1,4 @@
-// FTUE direct path (docs/ftue-design.md, v2.22.0): a fresh profile's splash goes straight into the
+// FTUE direct path (docs/ftue-design.md, v2.22.1): a fresh profile's splash goes straight into the
 // first raid -- no cold open, no Core popup, no loadout screen. A returning save is untouched. The
 // cold open shows once, on return from the first extraction, with Core as the single next step.
 // Run: node test/ftue-direct.test.js (needs jsdom, same as ui.test.js)

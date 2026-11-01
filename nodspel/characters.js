@@ -1,4 +1,4 @@
-import '../data/raid-operator.js?v=2.22.0';
+import '../data/raid-operator.js?v=2.22.1';
 
 const art=globalThis.DATA.raidOperator;
 const clips=art.clips;
@@ -8,7 +8,7 @@ const weapon={bone:'WristR',offset:[0,0,0],rotation:[-Math.PI/2,0,Math.PI/2],muz
 const rim={color:'#75cfcc',strength:.45,power:2.4};
 export const DEFAULT_CHARACTER='operator';
 export const CHARACTERS=Object.freeze({
-  operator:Object.freeze({id:'operator',model:'./assets/coast-operator.glb?v=2.22.0',scale:1.4,height:art.height,rig,clips,weapon,rim,accessories:true}),
+  operator:Object.freeze({id:'operator',model:'./assets/coast-operator.glb?v=2.22.1',scale:1.4,height:art.height,rig,clips,weapon,rim,accessories:true}),
   punk:Object.freeze({id:'punk',model:art.asset,scale:1,height:art.height,rig,clips,weapon,rim:{...rim,strength:.7},accessories:false}),
   robot:Object.freeze({id:'robot',model:null,procedural:true,scale:1,height:1.125,rig:{spine:null,head:null,chest:null},clips:{idle:null,run:null,shoot:null,dash:null,hit:null,death:null},weapon:{bone:'robotGun',offset:[0,0,.335],rotation:[0,0,0],muzzle:'muzzle'},rim:{...rim,strength:0},accessories:false}),
 });

@@ -1,14 +1,15 @@
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.22.0';
-import {extractAvailable} from './big-level.js?v=2.22.0';
-import {rarityOf} from './rarity.js?v=2.22.0';
-import {audioEvent} from './audio.js?v=2.22.0';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.22.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.22.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.22.0';
-import {emptyBag,bagItems} from './raid.js?v=2.22.0';
-import {traceTargets} from './physics.mjs?v=2.22.0';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.22.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.22.0';
+import {applyFtueLevel} from './ftue.js?v=2.22.1';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.22.1';
+import {extractAvailable} from './big-level.js?v=2.22.1';
+import {rarityOf} from './rarity.js?v=2.22.1';
+import {audioEvent} from './audio.js?v=2.22.1';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.22.1';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.22.1';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.22.1';
+import {emptyBag,bagItems} from './raid.js?v=2.22.1';
+import {traceTargets} from './physics.mjs?v=2.22.1';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.22.1';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.22.1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -240,12 +241,13 @@ export function stepNodeInteraction(round,weapon,position,now,obstacles){
 }
 export function tickRound(round,now) {
   if(round.over||round.pauseAt!=null)return;
-  round.gameNow=now;round.remainingMs=Math.max(0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
+  round.gameNow=now;round.remainingMs=Math.max(round.ftue?.minTimeMs??0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
   if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
 }
 export function takeDamage(round,amount,now){
   tickRound(round,now);
   if(round.over || round.pauseAt!=null || !Number.isFinite(amount) || amount<=0)return false;
+  if(round.ftue)amount*=round.ftue.damageMul;
   const ps=perkState(round),key=roomKey(round);
   if(hasPerk(round,'shield')&&now<ps.shieldUntil){const saved=amount*PERKS.shieldReduction;amount-=saved;logCombat(round,{kind:'perk',at:now,perk:'shield',text:`Emergency Shield: prevented ${Number(saved.toFixed(1))} damage.`});}
   const before=round.health,beforeShield=round.shield||0;
@@ -259,7 +261,8 @@ export function takeDamage(round,amount,now){
     }
   }
   if(round.telemetry)round.telemetry.damageTaken+=absorbed+Math.min(amount,round.health);
-  round.lastDamageAt=now;round.health=Math.max(0,round.health-amount);
+  round.lastDamageAt=now;round.health=Math.max(round.ftue?.minHealth??0,round.health-amount);
+  if(round.ftue)round.ftueHitSerial=(round.ftueHitSerial??0)+1;
   const meta=round.lastHit??{};logCombat(round,{kind:'damage',at:now,source:meta.source??'Unknown',sourceId:meta.enemyId??meta.sourceId??null,attack:meta.attack??'projectile',amount:before-round.health+beforeShield-(round.shield||0),moving:!!round.playerMoving});
   if(hasPerk(round,'shield')&&round.health>0&&round.health<=round.maxHealth*PERKS.shieldThreshold&&!ps.shieldRooms.includes(key)){ps.shieldRooms.push(key);ps.shieldUntil=now+PERKS.shieldMs;logCombat(round,{kind:'perk',at:now,perk:'shield',text:'Emergency Shield: activated for 2 s; room charge spent.'});}
   if(round.health===0){loseBag(round);round.over=true;round.reason='death';resetPerks(round);}
@@ -372,6 +375,7 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';resetPerks(round);return 'complete';}
   round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
+  applyFtueLevel(round);
   // A hunter wave's pending spawn point (nodspel/stakes.js) belonged to the level just left; drop it so the
   // next stepStakes() picks a zone in the new level instead of spawning hunters at stale coordinates.
   if(round.stakes)round.stakes.pendingSpawn=null;
