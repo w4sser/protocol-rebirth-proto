@@ -157,3 +157,17 @@ test('start theme continues seamlessly into the base (same source, one decode)',
   a.music('bunker-theme',1.5);await new Promise(setImmediate);
   assert.equal(a.loops.get('music').source,source);assert.equal(f.requests,1);assert.equal(a.context.sources.length,1);
 });
+
+test('the in-base combat test (Live Fire) fades the bunker theme out and back in',()=>{
+  const {JSDOM}=require('jsdom');
+  const dom=new JSDOM(fs.readFileSync(require.resolve('../index.html'),'utf8'),{runScripts:'outside-only',url:'http://localhost/index.html'});
+  const {window}=dom;
+  for(const s of ['data/items.js','data/modules.js','data/bit.js','data/bit-talents.js','data/raid_zones.js','data/recipes.js','data/vendors.js','data/retention.js','data/progression.js','data/combat.js','app.js'])
+    window.eval(fs.readFileSync(require.resolve('../'+s),'utf8'));
+  const calls=[];
+  window.PR_AUDIO={fadeMusic:(...a)=>{calls.push(['fade',...a]);return Promise.resolve();},music:(...a)=>calls.push(['music',...a])};
+  window.A.dismissIntro();window.A.playCombatDemo();
+  assert.deepEqual(calls,[['fade',1]],'entering the combat test fades the theme out over ~1s');
+  window.A.endCombatDemo();
+  assert.deepEqual(calls.at(-1),['music','bunker-theme',1.5],'leaving the combat test brings the theme back the same way the base does');
+});

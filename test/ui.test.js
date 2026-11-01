@@ -48,7 +48,7 @@ assert.notEqual(doc.getElementById("combat-player").style.top, playerTop, "tap m
 A.combatFire();
 assert.equal(doc.getElementById("combat-ammo").textContent, "17 / 18", "firing spends one round");
 A.endCombatDemo();
-assert(doc.querySelector(".combat-launch"), "closing combat test returns to raid prep");
+assert(!doc.querySelector(".combat-launch"), "v2.21.1: no Live Fire entry point in raid prep");
 A.go("base");
 assert(doc.querySelectorAll(".room-spot").length === 4, "four side-room hotspots");
 assert(doc.querySelector(".baseviewer") && doc.querySelector(".baseworld") && doc.querySelector(".baseplate"), "panoramic base viewer");
