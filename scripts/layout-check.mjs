@@ -170,7 +170,7 @@ async function report(page,ctx,extraSel=''){
 // never screenshot mid-fade: wait until the splash is gone, then assert it really is (no half-transparent overlay left)
 const shot=async(page,name)=>{
   await loaderGone(page);
-  await page.evaluate(()=>document.getElementById('splash')?.click());
+  await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());
   await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{});
   const left=await page.evaluate(()=>{const s=document.getElementById('splash');return s?getComputedStyle(s).opacity:null;});
   if(left!==null)fail(`${name}`,`splash still in DOM (opacity ${left}) when base should be interactive`);
@@ -185,7 +185,7 @@ async function newPage(w,h){
 }
 
 // ---- base (meta) ----
-const PROGRESSED="document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
+const PROGRESSED="(document.getElementById('splash-play')||document.getElementById('splash'))?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
 // v1.77 stash: stuffed stash (OVERFLOW + usage icons), sell/recycle popup, quest-warning confirm, quick-clean popup.
 const STUFF='S.modules.storage=0;S.stash={cable:7,fuse:10,scrap_alloy:20,servo:10,med_gel:10,bio_sample:10,power_cell:5,polymer_plate:10,circuit_board:10,optical_sensor:5,memory_module:5,purification_filter:5,hydraulic_component:5,transmitter:3,power_relay:5,tidal_coil:5,frost_glass:5,core_ash:3,prewar_relic:5};S.fir={polymer_plate:10,scrap_alloy:4};S.chains={bunker:{step:2,prog:0}};';
 async function baseRun([w,h]){
@@ -195,7 +195,7 @@ async function baseRun([w,h]){
     await page.goto(BASE+'/index.html',{waitUntil:'load'});await settle(900);
     if(mode==='progressed')await page.evaluate(PROGRESSED);
     // v2.12.1: every start screen (full flight or lite water) now waits for PLAY -- tap it like a player would.
-    if(mode==='fresh'){await page.waitForSelector('#splash-play',{visible:true,timeout:6000}).catch(()=>{});await new Promise(r=>setTimeout(r,2600));await page.evaluate(()=>document.getElementById('splash')?.click());}
+    if(mode==='fresh'){await page.waitForSelector('#splash-play',{visible:true,timeout:6000}).catch(()=>{});await new Promise(r=>setTimeout(r,2600));await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());}
     if(mode==='fresh')await page.waitForFunction(()=>{const s=document.getElementById('splash');return !s||!s.isConnected;},{timeout:8000}).catch(e=>fail(`${tag} fresh landing`,`splash never went away: ${String(e).slice(0,60)}`));
     await settle(300);
     await report(page,`${tag} ${mode} landing`);await shot(page,`base-${w}x${h}-${mode}-landing`);
@@ -527,7 +527,7 @@ async function raidSummaryRun([w,h],outcome='extract'){
     else {const r=window.__NR.round();r.bag=Object.fromEntries(ids.map(id=>[id,1]));window.__NR.deathDemo();}
   },outcome)]);
   await loaderGone(page);
-  await page.evaluate(()=>document.getElementById('splash')?.click());
+  await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());
   await page.waitForSelector('#overlay.raid-summary-ov .raid-summary',{visible:true});await settle(800);
   const issues=await page.evaluate(({insets,outcome})=>{
     const issues=[],summary=document.querySelector('.raid-summary'),grid=summary.querySelector('.loot-grid'),cards=[...grid.querySelectorAll('.loot-card')];
@@ -573,8 +573,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.21.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.21.0');
+    const {createRound}=await import('./round.js?v=2.21.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.21.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

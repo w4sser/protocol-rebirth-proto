@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {createEnemyModelLoader} from '../enemy-models.js?v=2.21.0';
-import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.21.0';
+import {createEnemyModelLoader} from '../enemy-models.js?v=2.21.1';
+import {attachEnemyModel,animateEnemyModel} from '../enemy-animation.js?v=2.21.1';
 
 // Stub mirrors rusher.glb's authored leg layout: each pivot is the hip joint, its one mesh
 // child sits at -hip (so the mesh's own geometry carries the hip->foot offset), with a

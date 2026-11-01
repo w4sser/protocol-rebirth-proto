@@ -66,6 +66,22 @@ test('high renders every frame and reduced motion renders once',async()=>{
   const still=await sceneFixture('medium',true);
   assert.deepEqual(still.state.renders,[0]);assert.equal(still.frames.size,0);still.ctl.dispose();
 });
+test('lighthouse beam sweeps additively from the lamp and is absent under reduced motion',async()=>{
+  const f=await sceneFixture(),beam=f.state.scene.getObjectByName('lighthouse-searchlight');
+  const glow=f.state.scene.getObjectByName('lighthouse-lamp-glow');
+  assert.ok(beam&&glow);
+  assert.deepEqual(beam.position.toArray(),glow.position.toArray());
+  assert.equal(beam.material.blending,glow.material.blending);
+  assert.ok(beam.material.transparent);assert.equal(beam.material.depthWrite,false);
+  const direction=beam.material.uniforms.dir.value.toArray();
+  f.step(12000);
+  assert.notDeepEqual(beam.material.uniforms.dir.value.toArray(),direction);
+  f.ctl.dispose();
+  const still=await sceneFixture('medium',true);
+  assert.equal(still.state.scene.getObjectByName('lighthouse-searchlight'),undefined);
+  assert.equal(still.state.scene.getObjectByName('lighthouse-lamp-glow'),undefined);
+  still.ctl.dispose();
+});
 test('context loss disposes all resources before requesting CSS fallback and is idempotent',async()=>{
   const f=await sceneFixture();let prevented=0;
   const lost=f.canvasListeners.webglcontextlost;

@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.21.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.21.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.8.0: save slots (save-slots.js). require() in Node (tests), window.SaveSlots in the browser.
 const SaveSlots = (typeof require === "function") ? require("./save-slots.js") : window.SaveSlots;
@@ -2743,7 +2743,7 @@ SCREENS.prep = function(){
     const fg = fuelGate();
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
-    html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
+    html += '</section>';
     $app().innerHTML = html; return;
   }
   html += missionOpen + '<div class="prepgrid"><div class="pcol"><div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
@@ -2835,7 +2835,7 @@ SCREENS.prep = function(){
       (!fg.ok ? '<div class="small bad">Out of fuel.</div><button class="ad" onclick="A.adFuel()">' + IC("play") + ' WATCH AD — +' + D.retention.fuel.adGrant + ' FUEL</button>' : '') +
       '</div>';
   }
-  html += '<button class="ghost combat-launch" onclick="A.playCombatDemo()">TRY THE COMBAT TEST <span>LIVE FIRE · DRONE ENCOUNTER</span></button></section>';
+  html += '</section>';
   $app().innerHTML = html;
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
@@ -4120,6 +4120,7 @@ window.A = {
   invJump(id){ const el = document.getElementById(id); if(el) el.scrollIntoView({ block:"start", behavior:"smooth" }); },
   playCombatDemo(){
     this.clearCombatDemo();
+    void window.PR_AUDIO?.fadeMusic(1);
     session.screen="combatDemo";
     act("COMBAT_TEST_STARTED",{});
     refresh();
@@ -4136,6 +4137,7 @@ window.A = {
     this.clearCombatDemo();
     session.combatDemo=null;
     session.screen="prep"; session.prep=null; refresh("raid_prep");
+    window.PR_AUDIO?.music("bunker-theme",1.5);
   },
   combatMove(dir,active){
     const g=session.combatDemo;if(!g)return;
@@ -5233,20 +5235,23 @@ function showBaseLoader(){
 // flightPending: v2.12.1 start screen -- true when the caller intends to mount the archipelago
 // flight (Medium/High quality + WebGL2; see start-quality.js). While true, the old auto-advance
 // timer is suppressed and the idle flight keeps looping until the player taps; on tap, the
-// flight eases the camera down onto the bunker island (flightCtl.land) before the existing
-// descending/finish flow continues. Returns null if there's no #splash or it's already been
-// shown this session; otherwise an object the caller uses to report the flight's async outcome
-// (flightMounted once start-scene.js loads, flightFailed if it never does or later errors out).
-function setupSplash(flightPending){
+// existing descending/finish flow runs with no camera move -- see begin()'s CSS fade-to-black.
+// Returns null if there's no #splash or it's already been shown this session; otherwise an
+// object the caller uses to report the flight's async outcome (flightMounted once
+// start-scene.js loads, flightFailed if it never does or later errors out).
+function setupSplash(flightPending, returningFromRaid){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
   // v2.12.1: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
   // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
-  let shown = false; try{
+  // v2.21.1: a raid result waiting to be shown (returningFromRaid) always skips the splash -- a
+  // raid that ran long enough to push the "seen" mark past the 5 min window must still land
+  // directly on the result screen, never flash the splash in front of it first.
+  let shown = !!returningFromRaid; try{
     const force = /[?&]splash=1\b/.test((window.location && window.location.search) || ""), at = +sessionStorage.getItem("pr_splash_seen");
-    shown = !force && at > 1e12 && Date.now() - at < 5 * 60 * 1000; sessionStorage.setItem("pr_splash_seen", String(Date.now()));
+    shown = shown || (!force && at > 1e12 && Date.now() - at < 5 * 60 * 1000); sessionStorage.setItem("pr_splash_seen", String(Date.now()));
   }catch(e){}
   if(shown){ sp.remove(); if(typeof showBaseLoader === "function") showBaseLoader(); return null; }
   const body = document.body;
@@ -5277,12 +5282,12 @@ function setupSplash(flightPending){
     } else {
       body.classList.add("startup-descending"); sp.classList.add("descending");
       // Keep a timer as well as animationend: interrupted animations must never block play.
-      endTimer = setTimeout(finish, 1450);
+      endTimer = setTimeout(finish, 1500);
     }
   };
-  // Lands the flight camera on the bunker first (if it's mounted and active) before begin()'s
-  // existing dissolve -- otherwise behaves exactly like the old direct begin().
-  const proceed = () => { if(flightActive && flightCtl) flightCtl.land(begin); else begin(); };
+  // No camera move for this transition: fade to black, then the bunker fades in under it (see
+  // begin()'s CSS). The flight scene itself just keeps looping/disposes normally via finish().
+  const proceed = () => begin();
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
@@ -5290,21 +5295,28 @@ function setupSplash(flightPending){
     else if(!flightActive) autoTimer = setTimeout(begin, 1400);
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
-  const activate = () => {
+  // v2.21.1: the first tap on the landscape itself (not PLAY) only unlocks audio so the theme plays
+  // over the water; PLAY / keyboard / a second tap enters. Autoplay-permitted browsers start at once.
+  const activate = (e) => {
+    const audioOn = !!window.PR_AUDIO?.unlocked;
     void window.PR_AUDIO?.unlock();
+    if(e && e.type === "click" && !audioOn && phase !== "descending" && !(e.target && e.target.closest && e.target.closest("#splash-play")) && window.PR_AUDIO){ return; }
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;
     if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
+  void window.PR_AUDIO?.unlock?.();
   document.addEventListener("visibilitychange", onVisibility);
   sp.addEventListener("click", activate);
   sp.addEventListener("keydown", e => {
     if(e.key === "Enter" || e.key === " "){ e.preventDefault(); activate(); }
   });
-  sp.querySelector(".splash-track")?.addEventListener("animationend", e => {
-    if(e.animationName === "surfaceDeparture") finish();
+  // splashBlackout is the last of the two sequential phases (art fades to black, then this
+  // fades the rest of #splash away once the bunker has faded in beneath it).
+  sp.addEventListener("animationend", e => {
+    if(e.animationName === "splashBlackout") finish();
   });
   const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
     D.baseMap.plates[bunkerStage()].art];
@@ -5357,7 +5369,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
       flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
-  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)));
+  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
