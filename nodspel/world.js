@@ -1,13 +1,13 @@
-import {attachEnemyModel} from './enemy-animation.js?v=2.22.2';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.2';
+import {attachEnemyModel} from './enemy-animation.js?v=2.22.3';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.3';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.22.2';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.22.2';
-import {buildTown} from './town.js?v=2.22.2';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.22.2';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.22.2';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.22.2';
-import {controlCablePath} from './control-cables.js?v=2.22.2';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.22.3';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.22.3';
+import {buildTown} from './town.js?v=2.22.3';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.22.3';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.22.3';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.22.3';
+import {controlCablePath} from './control-cables.js?v=2.22.3';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -296,5 +296,12 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   if(isArch)spots.splice(0,spots.length,...props.map(p=>({x:p.position.x,z:p.position.z})));
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
+  // v2.22.3 perf: every MeshStandardMaterial shader is built for an exact number of visible lights. Lights used to
+  // sit inside groups that get hidden at runtime (nodes out of line of sight, sleeping rooms on big levels), so the
+  // visible light count changed while playing and every lit material switched or recompiled its shader: a hitch.
+  // Re-home them (same world position) in a rig that is never hidden, so the count stays fixed per level.
+  // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
+  const lightRig=new THREE.Group();lightRig.name='world-light-rig';
+  {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
   return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
 }

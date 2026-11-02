@@ -1,6 +1,6 @@
 // Render ownership only. Reuse every source geometry, material and instance transform.
 import * as THREE from './vendor/three.module.js';
-import {graphRoomAt} from './zone-graph.js?v=2.22.2';
+import {graphRoomAt} from './zone-graph.js?v=2.22.3';
 
 export function createRoomVisibility(level,world){
   let initial=true;const temporary=[];
@@ -15,6 +15,7 @@ export function createRoomVisibility(level,world){
     world.group.updateMatrixWorld(true);
     for(const child of [...world.group.children]){
       if(registered.has(child))continue;
+      if(child.name==='world-light-rig'){registered.add(child);continue;} // never hidden: a fixed light count avoids shader switches
       // Bunker floors and walls are batched across the entire level. Partition instances
       // by room ownership so a visible batch cannot keep sleeping rooms on screen.
       if(child.isInstancedMesh){
