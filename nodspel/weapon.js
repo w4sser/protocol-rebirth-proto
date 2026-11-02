@@ -1,11 +1,13 @@
-import {audioEvent} from './audio.js?v=2.22.3';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.22.3';
-import {RULES} from './levels.js?v=2.22.3';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.22.3';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.22.3';
+// @hot stepWeapon assistAim playerShotObstacles steerShot
+import {audioEvent} from './audio.js?v=2.22.4';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.22.4';
+import {RULES} from './levels.js?v=2.22.4';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.22.4';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.22.4';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
+  // hot-ok: returns a fresh filtered list (API; callers keep it for the frame)
   return obstacles.filter(o=>!o.encounterCover||Math.hypot(Math.max(0,Math.abs(origin.x-o.x)-o.w/2),Math.max(0,Math.abs(origin.z-o.z)-o.d/2))>RULES.shooting.coverLeanReach);
 }
 export function playerDisplaced(before,after){
@@ -28,6 +30,7 @@ export function assistPreview(position,direction,obstacles,rule=RULES.weapon,mov
 }
 export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon,moving=false){
   obstacles=playerShotObstacles(position,obstacles);
+  // hot-ok-begin: result + per-candidate rejection reasons feed the debug overlay and tests (API); runs only while aiming. TODO: pool
   const window=assistWindow(rule,moving);
   const length=Math.hypot(direction.x,direction.z);
   if(length<1e-9)return {target:null,direction:{x:0,z:-1},rejections:['no direction']};
@@ -44,6 +47,7 @@ export function assistAim(position,direction,enemies,obstacles,rule=RULES.weapon
   }
   if(!target)return {target:null,direction:raw,rejections:rejections.length?rejections:[{reason:'no target'}]};
   return {target,direction:{x:(target.x-position.x)/nearest,z:(target.z-position.z)/nearest},rejections};
+  // hot-ok-end
 }
 
 // The lock preview and projectile share the same target widths and cover test.
@@ -103,7 +107,7 @@ export function steerShot(b,enemies,obstacles,rule,dt){
     if(e.health<=0||e.active===false)continue;
     const dx=e.x-b.x,dz=e.z-b.z,d=Math.hypot(dx,dz);
     if(d<.01||d>b.remaining||d>=bestD||(dx*b.dx+dz*b.dz)/d<limit)continue;
-    if(traceTargets(b,e,obstacles,[])?.kind==='wall')continue;
+    if(traceTargets(b,e,obstacles,NO_TARGETS)?.kind==='wall')continue;
     best=e;bestD=d;
   }
   if(!best)return;
@@ -174,6 +178,10 @@ function segmentPointDistance(a,b,p){
   const t=len2>1e-12?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/len2)):0;
   return Math.hypot(p.x-(a.x+dx*t),p.z-(a.z+dz*t));
 }
+// v2.22.4 hot-path scratch for stepWeapon (weaponHit/traceTargets only read these).
+const NO_TARGETS=Object.freeze([]),hotShotEnd={x:0,z:0},hotShotTargets=[],hotOneTarget=[null];
+function oneTarget(t){hotOneTarget[0]=t;return hotOneTarget;}
+function shotTargets(level,sourceId){const out=hotShotTargets;out.length=0;for(const t of level.nodes)if(t.id!==sourceId)out.push(t);for(const t of level.enemies)if(t.id!==sourceId)out.push(t);return out;}
 export function stepWeapon(weapon,round,now,dt,obstacles){
   tickRound(round,now);
   if(round.over){weapon.projectiles.length=0;return false;}
@@ -184,15 +192,16 @@ export function stepWeapon(weapon,round,now,dt,obstacles){
     const shotObstacles=playerShotObstacles(b.origin??b,obstacles);
     if(!b.resolved&&!b.aimAssisted&&!b.tap)steerShot(b,round.level.enemies,shotObstacles,weaponRule(weapon),dt);
     const distance=Math.min(b.remaining,weaponRule(weapon).bulletSpeed*dt);
-    const end={x:b.x+b.dx*distance,z:b.z+b.dz*distance};
-    const hit=b.resolved?null:weaponHit(b,end,shotObstacles,[...round.level.nodes,...round.level.enemies].filter(t=>t.id!==b.sourceId),weaponRule(weapon));
+    const end=hotShotEnd;end.x=b.x+b.dx*distance;end.z=b.z+b.dz*distance;
+    const hit=b.resolved?null:weaponHit(b,end,shotObstacles,shotTargets(round.level,b.sourceId),weaponRule(weapon));
     // A shot that whizzes close by but does not connect still gives away the shooter: an idle/patrolling
     // enemy that was not yet aggro reacts to the near miss, same as being hit (combat.js reads nearMissAt).
     // Wait until it passes the enemy; an approaching hit must keep its unaware bonus.
-    if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&(e.x-end.x)*b.dx+(e.z-end.z)*b.dz<=0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,[e])?.kind!=='wall')alertEnemy(e,now);
+    if(!b.resolved&&!hit)for(const e of round.level.enemies)if(!e.aggro&&e.health>0&&(e.x-end.x)*b.dx+(e.z-end.z)*b.dz<=0&&segmentPointDistance(b,end,e)<=weaponRule(weapon).nearMissRadius&&traceTargets(b,e,obstacles,oneTarget(e))?.kind!=='wall')alertEnemy(e,now);
     b.remaining=Math.max(0,b.remaining-distance);
     if(hit || b.remaining===0){
       const contact=hit&&round.feedback?shotContact(b,end,hit,shotObstacles):null;
+      // hot-ok: impact direction only on a hit
       const applied=applyWeaponHit(weapon,round,hit,now,{x:b.dx,z:b.dz},obstacles,b.resolved?null:b);
       if(contact)round.feedback.impact(contact.x,contact.z,hit.kind==='enemy'&&applied);
       changed=applied||changed;

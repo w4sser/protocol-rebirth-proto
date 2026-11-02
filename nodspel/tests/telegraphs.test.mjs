@@ -1,12 +1,12 @@
-import {ENEMY_TUNING} from '../enemies.js?v=2.22.3';
+import {ENEMY_TUNING} from '../enemies.js?v=2.22.4';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy} from '../round.js?v=2.22.3';
-import {RULES} from '../levels.js?v=2.22.3';
-import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.22.3';
-import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.22.3';
-import {deathTip} from '../encounters.js?v=2.22.3';
-import {recap,deathLine} from '../perks.js?v=2.22.3';
+import {createRound,hitEnemy} from '../round.js?v=2.22.4';
+import {RULES} from '../levels.js?v=2.22.4';
+import {createCombat,stepCombat,telegraphDuration} from '../combat.js?v=2.22.4';
+import {createWeapon,fireWeapon,stepWeapon} from '../weapon.js?v=2.22.4';
+import {deathTip} from '../encounters.js?v=2.22.4';
+import {recap,deathLine} from '../perks.js?v=2.22.4';
 const player=()=>({x:0,z:4});
 function arena(type='grunt',extra={}){
  const r=createRound('telegraphs',0),e={id:'foe',kind:'enemy',type,x:0,z:0,r:.48,health:20,speed:type==='rusher'?4:0,stalkUntil:0,facing:0,aggro:true,spawnedAt:-Infinity,rangeMul:1,cooldownMul:1,...extra};
@@ -80,8 +80,8 @@ test('production rendering draws coral aim lines and the permanent shield arc',a
  const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
  const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
  const start=source.indexOf('    // Floor geometry is local'),end=source.indexOf("    if(v.enemy.introGuard||v.enemy.encounter==='guard'",start);
- const {aimEndpoint}=await import('../physics.mjs?v=2.22.3');
- const render=vm.runInNewContext(`(v,alive)=>{${source.slice(start,end)}}`,{THREE,RULES,TOOL_CORAL:'coral',aimEndpoint,solids:[]});
+ const {aimEndpoint}=await import('../physics.mjs?v=2.22.4');
+ const render=vm.runInNewContext(`(v,alive)=>{${source.slice(start,end)}}`,{THREE,RULES,TOOL_CORAL:'coral',aimEndpoint,solids:[],hotEnemyDir:{x:0,z:0}});
  const guard={enemy:{frontShield:70,encounter:'guard'},group:new THREE.Group()};render(guard,true);
  assert.equal(guard.shieldFloor.visible,true);assert.equal(guard.shieldFloor.material.opacity,RULES.shooting.telegraphs.shieldDimOpacity);
  const positions=guard.shieldFloor.geometry.attributes.position;

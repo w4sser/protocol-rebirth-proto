@@ -1,3 +1,4 @@
+// @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
   const steps = Math.max(1, Math.ceil(Math.hypot(delta.x, delta.z) / .08));
@@ -68,19 +69,27 @@ export function moveWithActors(position,delta,enemies,solids,floors,radius){
   return p;
 }
 
+// v2.22.4 hot path: the x/z slab test is unrolled (the old `for (const [axis,size] of [['x','w'],['z','d']])`
+// allocated three arrays + an iterator per call, and this runs thousands of times per frame).
 function boxHit(a, b, box) {
   let near = 0, far = 1;
-  for (const [axis, size] of [['x','w'], ['z','d']]) {
-    const d = b[axis] - a[axis];
-    const lo = box[axis] - box[size] / 2, hi = box[axis] + box[size] / 2;
-    if (Math.abs(d) < 1e-9) {
-      if (a[axis] < lo || a[axis] > hi) return Infinity;
-    } else {
-      const t1 = (lo - a[axis]) / d, t2 = (hi - a[axis]) / d;
-      near = Math.max(near, Math.min(t1, t2));
-      far = Math.min(far, Math.max(t1, t2));
-      if (near > far) return Infinity;
-    }
+  const dx = b.x - a.x, xlo = box.x - box.w / 2, xhi = box.x + box.w / 2;
+  if (Math.abs(dx) < 1e-9) {
+    if (a.x < xlo || a.x > xhi) return Infinity;
+  } else {
+    const t1 = (xlo - a.x) / dx, t2 = (xhi - a.x) / dx;
+    near = Math.max(near, Math.min(t1, t2));
+    far = Math.min(far, Math.max(t1, t2));
+    if (near > far) return Infinity;
+  }
+  const dz = b.z - a.z, zlo = box.z - box.d / 2, zhi = box.z + box.d / 2;
+  if (Math.abs(dz) < 1e-9) {
+    if (a.z < zlo || a.z > zhi) return Infinity;
+  } else {
+    const t1 = (zlo - a.z) / dz, t2 = (zhi - a.z) / dz;
+    near = Math.max(near, Math.min(t1, t2));
+    far = Math.min(far, Math.max(t1, t2));
+    if (near > far) return Infinity;
   }
   return near;
 }
@@ -100,13 +109,15 @@ function nodeHit(a, b, node) {
   }
   return nodeTime;
 }
+const WALL_HIT=Object.freeze({kind:'wall'}); // shared read-only result (v2.22.4 hot path)
 export function traceTargets(a,b,boxes,nodes) {
   let nodeTime=Infinity,closest=null;
   for(const node of nodes){const time=nodeHit(a,b,node);if(time<nodeTime){nodeTime=time;closest=node;}}
   let wallTime = Infinity;
   for (const box of boxes) wallTime = Math.min(wallTime, boxHit(a,b,box));
+  // hot-ok: target hits are rare events; callers keep the result
   if (nodeTime < wallTime) return closest.kind?{kind:closest.kind,target:closest}:{kind:'node',node:closest};
-  if (wallTime !== Infinity) return {kind:'wall'};
+  if (wallTime !== Infinity) return WALL_HIT;
   return null;
 }
 export function traceShot(a,b,boxes,node) {
@@ -122,25 +133,30 @@ export function shotContact(a,b,hit,boxes){
 }
 
 // Aim only stops at solid obstacles; living targets and loot do not clip it.
+const aimEnd={x:0,z:0};
 export function aimEndpoint(position,direction,range,obstacles){
   const length=Math.hypot(direction.x,direction.z);
-  if(length<1e-9)return {...position};
-  const end={x:position.x+direction.x/length*range,z:position.z+direction.z/length*range};
+  if(length<1e-9)return {x:position.x,z:position.z}; // hot-ok: degenerate direction only
+  const end=aimEnd;end.x=position.x+direction.x/length*range;end.z=position.z+direction.z/length*range;
   let time=1;
   for(const obstacle of obstacles)time=Math.min(time,boxHit(position,end,obstacle));
-  return {x:position.x+(end.x-position.x)*time,z:position.z+(end.z-position.z)*time};
+  return {x:position.x+(end.x-position.x)*time,z:position.z+(end.z-position.z)*time}; // hot-ok: result is the API (callers keep it)
 }
 
 // Visibility fan: include both sides of each solid corner so triangles never
 // bridge across a wall silhouette. Targets do not participate in clipping.
+const coneAngles=[];const byNumber=(a,b)=>a-b;
 export function aimConePoints(position,direction,range,halfAngle,obstacles){
-  const heading=Math.atan2(direction.z,direction.x),angles=[];
+  const heading=Math.atan2(direction.z,direction.x),angles=coneAngles;angles.length=0;
   for(let i=0;i<=48;i++)angles.push(-halfAngle+2*halfAngle*i/48);
-  for(const box of obstacles)for(const sx of [-1,1])for(const sz of [-1,1]){
+  for(const box of obstacles)for(let sx=-1;sx<=1;sx+=2)for(let sz=-1;sz<=1;sz+=2){
     const angle=Math.atan2(box.z+sz*box.d/2-position.z,box.x+sx*box.w/2-position.x)-heading;
     const wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
-    for(const offset of [-1e-5,0,1e-5])if(wrapped+offset>-halfAngle&&wrapped+offset<halfAngle)angles.push(wrapped+offset);
+    for(let k=-1;k<=1;k++){const offset=k*1e-5;if(wrapped+offset>-halfAngle&&wrapped+offset<halfAngle)angles.push(wrapped+offset);}
   }
-  angles.sort((a,b)=>a-b);
-  return [{...position},...angles.map(angle=>aimEndpoint(position,{x:Math.cos(heading+angle),z:Math.sin(heading+angle)},range,obstacles))];
+  angles.sort(byNumber);
+  // hot-ok: the returned fan (one point per angle) is the API; callers keep it for the frame
+  const out=[{x:position.x,z:position.z}];const dir={x:0,z:0};
+  for(const angle of angles){dir.x=Math.cos(heading+angle);dir.z=Math.sin(heading+angle);out.push(aimEndpoint(position,dir,range,obstacles));}
+  return out;
 }

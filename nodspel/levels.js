@@ -1,10 +1,10 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.22.3';
-import {generateBigLevel} from './big-level.js?v=2.22.3';
-import '../data/items.js?v=2.22.3';
-import {clearPassageProps} from './archipelago-passages.js?v=2.22.3';
-import {townizeLevel} from './town-layout.js?v=2.22.3';
-import {applyEncounters} from './encounters.js?v=2.22.3';
-import '../data/raid-combat.js?v=2.22.3';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.22.4';
+import {generateBigLevel} from './big-level.js?v=2.22.4';
+import '../data/items.js?v=2.22.4';
+import {clearPassageProps} from './archipelago-passages.js?v=2.22.4';
+import {townizeLevel} from './town-layout.js?v=2.22.4';
+import {applyEncounters} from './encounters.js?v=2.22.4';
+import '../data/raid-combat.js?v=2.22.4';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
