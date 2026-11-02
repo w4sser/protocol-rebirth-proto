@@ -1,68 +1,68 @@
-import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.22.2';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.2';
-import {animateEnemyModel} from './enemy-animation.js?v=2.22.2';
-import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.22.2';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.22.2';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.22.2';
-import {createOperatorFX} from './operator-fx.js?v=2.22.2';
-import {createAudioSettings} from './audio-settings.js?v=2.22.2';
-import {createPixelFX} from './fx-pixel.js?v=2.22.2';
-import {createPixelFeedback} from './fx-feedback.js?v=2.22.2';
-import {createHaptics,createVibrationUI} from './haptics.js?v=2.22.2';
-import {audio,audioEvent} from './audio.js?v=2.22.2';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.22.2';
-import {createPerkUI} from './perk-ui.js?v=2.22.2';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.22.2';
+import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.22.3';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.3';
+import {animateEnemyModel} from './enemy-animation.js?v=2.22.3';
+import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.22.3';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.22.3';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.22.3';
+import {createOperatorFX} from './operator-fx.js?v=2.22.3';
+import {createAudioSettings} from './audio-settings.js?v=2.22.3';
+import {createPixelFX} from './fx-pixel.js?v=2.22.3';
+import {createPixelFeedback} from './fx-feedback.js?v=2.22.3';
+import {createHaptics,createVibrationUI} from './haptics.js?v=2.22.3';
+import {audio,audioEvent} from './audio.js?v=2.22.3';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.22.3';
+import {createPerkUI} from './perk-ui.js?v=2.22.3';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.22.3';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.22.2';
-import {loadBunkerAssets} from './bunker.js?v=2.22.2';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.22.2';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.22.2';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.22.2';
-import {createRobotSocket} from './operator-gear.js?v=2.22.2';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.22.3';
+import {loadBunkerAssets} from './bunker.js?v=2.22.3';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.22.3';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.22.3';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.22.3';
+import {createRobotSocket} from './operator-gear.js?v=2.22.3';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.22.2';import '../data/recipes.js?v=2.22.2';import '../data/vendors.js?v=2.22.2';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.22.2';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.22.2';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.22.2';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.22.2';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.22.2';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.22.2';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.22.2';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.22.2';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.22.2';
-import {buildWorld,setNodeHold} from './world.js?v=2.22.2';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.22.2';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.22.2';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.22.2';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.22.2';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.22.2';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.22.2';
-// import {stepScavenging} from './scavenging.js?v=2.22.2';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.22.2';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.22.2';
-import {routeComplete} from './objectives.js?v=2.22.2';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.22.2';
-import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.22.2';
-import {createBIT,stepBIT} from './bit.js?v=2.22.2';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.22.2';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.22.2';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.22.2';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.22.2';
-import {applyEnvironmentLight} from './environment-look.js?v=2.22.2';
-import {createRaidProfiler} from './raid-profiler.js?v=2.22.2';
-import {createPostFX} from './postfx.js?v=2.22.2';
-import {createDustField} from './dust.js?v=2.22.2';
-import {createQualityUI} from './quality-ui.js?v=2.22.2';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.22.2';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.22.2';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.22.2';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.22.2';
+import '../data/modules.js?v=2.22.3';import '../data/recipes.js?v=2.22.3';import '../data/vendors.js?v=2.22.3';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.22.3';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.22.3';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.22.3';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.22.3';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.22.3';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.22.3';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.22.3';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.22.3';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.22.3';
+import {buildWorld,setNodeHold} from './world.js?v=2.22.3';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.22.3';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.22.3';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.22.3';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.22.3';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.22.3';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.22.3';
+// import {stepScavenging} from './scavenging.js?v=2.22.3';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.22.3';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.22.3';
+import {routeComplete} from './objectives.js?v=2.22.3';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.22.3';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.22.3';
+import {createBIT,stepBIT} from './bit.js?v=2.22.3';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.22.3';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.22.3';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.22.3';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.22.3';
+import {applyEnvironmentLight} from './environment-look.js?v=2.22.3';
+import {createRaidProfiler} from './raid-profiler.js?v=2.22.3';
+import {createPostFX} from './postfx.js?v=2.22.3';
+import {createDustField} from './dust.js?v=2.22.3';
+import {createQualityUI} from './quality-ui.js?v=2.22.3';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.22.3';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.22.3';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.22.3';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.22.3';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.22.2');
+const orderResponse=await fetch('./order.json?v=2.22.3');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -108,6 +108,9 @@ const scene=new THREE.Scene();scene.background=new THREE.Color(PALETTE.bg);scene
 const renderer=new THREE.WebGLRenderer({antialias:QS.antialias,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,QS.pixelRatio));renderer.shadowMap.enabled=QS.shadows;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
+// v2.22.3 perf: checkShaderErrors makes three.js query compile/link status synchronously, which blocks the main
+// thread until the driver has finished every shader (a visible hitch on phones). Keep it for ?debug only.
+renderer.debug.checkShaderErrors=new URLSearchParams(location.search).has('debug');
 $('#game').appendChild(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,-RAID_CAMERA.halfHeight,RAID_CAMERA.near,RAID_CAMERA.far);
 const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(RAID_CAMERA.offset.x,RAID_CAMERA.offset.y,RAID_CAMERA.offset.z);
@@ -123,9 +126,24 @@ function setGraphicsQuality(next){
   QUALITY=next;try{localStorage.setItem('nodeRaid.quality',next);}catch{}
   document.documentElement.dataset.quality=next;
   pixelFX.setQuality(next);
+  // v2.22.3 perf: pixel ratio and the shadow pass are the biggest per-frame GPU costs; apply them now instead of
+  // only on next boot, so a Low switch (manual or the fps watchdog) actually makes the raid lighter.
+  {const s=qualitySettings(next);renderer.setPixelRatio(Math.min(devicePixelRatio,s.pixelRatio));renderer.setSize(viewWidth,viewHeight);
+    renderer.shadowMap.enabled=s.shadows;sun.castShadow=s.shadows;if(sun.shadow.mapSize.x!==s.shadowMap){sun.shadow.mapSize.set(s.shadowMap,s.shadowMap);sun.shadow.map?.dispose();sun.shadow.map=null;}}
   moodOn=next==='high';
   if(moodOn){postFX=createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight});dust=createDustField();scene.add(dust.points);}
   else{postFX?.dispose();postFX=null;if(dust){scene.remove(dust.points);dust.dispose();dust=null;}}
+  prewarmShaders();
+}
+// v2.22.3 perf: compile every shader the level can need while it loads, instead of the first time an effect,
+// pooled mesh or hidden object shows up mid-fight (each first-use compile is a 50-300 ms freeze on a phone).
+// Hidden objects are made visible for the compile only; three.js compiles the visible set.
+function prewarmShaders(){
+  try{if(!world)return;}catch{return;} // may run before `world` is initialised during module start-up
+  const hidden=[],extra=[new THREE.Mesh(bulletGeometry,bulletMaterial),new THREE.Mesh(bulletGeometry,enemyBulletMaterial)];
+  scene.traverse(o=>{if(!o.visible){hidden.push(o);o.visible=true;}});for(const m of extra)scene.add(m);
+  try{renderer.compile(scene,camera);}catch(e){console.warn('Shader prewarm skipped',e);}
+  finally{for(const m of extra)scene.remove(m);for(const o of hidden)o.visible=false;}
 }
 const hemi=new THREE.HemisphereLight('#a9d4e6','#0d1a20',1.7);scene.add(hemi);
 const sun=new THREE.DirectionalLight('#dff3ff',2.3);sun.castShadow=QS.shadows;sun.shadow.mapSize.set(QS.shadowMap,QS.shadowMap);
@@ -178,7 +196,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.22.2',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.22.3',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -765,6 +783,7 @@ function loadLevelInner(){
   // $('#intro-order').textContent=`ORDER: ${round.order.objective.join(' + ')} · ${round.order.loadout.weapon} · ${round.order.loadout.ammo} rounds · ${round.order.health} health`;
   updateHUD();
   $('#level-corner').hidden=false;
+  prewarmShaders();
 }
 function reset(requestedSeed){
   human?.reset();operatorFX.reset();
@@ -929,7 +948,9 @@ function renderStakesHUD(clock){
   if(round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();
 }
-function resize(){viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;renderer.setSize(viewWidth,viewHeight);postFX?.setSize(viewWidth,viewHeight);const h=RAID_CAMERA.halfHeight,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
+// v2.22.3 perf: skip identical text/attribute writes; each one re-invalidates style for the next layout read.
+const setText=(el,t)=>{if(el.textContent!==t)el.textContent=t;},setAttr=(el,k,v)=>{v=String(v);if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
+function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;renderer.setSize(viewWidth,viewHeight);postFX?.setSize(viewWidth,viewHeight);const h=RAID_CAMERA.halfHeight,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
@@ -941,8 +962,10 @@ function refreshHudRects(){
 // Degrade an enemy label to its compact health-bar-only mode (CSS hides the caption/name/marker) instead
 // of hiding the element outright — used wherever a visible enemy would otherwise lose its bar entirely.
 function barOnly(l){if(l.el.dataset.mode!=='bar'){l.el.dataset.mode='bar';l.size=null;}}
+// v2.22.3 perf: HUD rects are measured at most every 120 ms (and after a resize) instead of every frame; each
+// measurement right after the frame's DOM writes forced a full synchronous layout.
 function renderLabels(){
-  refreshHudRects();
+  {const t=performance.now();if(!(t<renderLabels.hudAt)){refreshHudRects();renderLabels.hudAt=t+120;}} // state on the function: tests run it in isolation
   const origin=$('#game').getBoundingClientRect();
   const items=labels.filter(l=>l.range&&!l.defeated).map(l=>({id:l.id,kind:l.range,x:l.point.x,z:l.point.z,
     force:l.range==='enemy'?(l.el.classList.contains('locked')||l.el.classList.contains('winding')||l.el.classList.contains('stunned')||(l.enemy?.introGuard||l.enemy?.encounter)&&l.enemy.attackPhase?'full':undefined):l===bitLabel?(bit?.healing?'full':'hidden'):(l===world.exitLabel&&!exitIsOpen(round)&&Math.hypot(l.point.x-position.x,l.point.z-position.z)>3.4?'dot':undefined)}));
@@ -1010,7 +1033,13 @@ function renderLabels(){
     const sizes={};
     // Measure each mode at the projected anchor; transforms differ between label
     // variants. Persist only the final mode/offset, never these temporary probes.
+    // v2.22.3 perf: each probe below is two forced layouts, for every visible enemy and every frame. The result only
+    // depends on the label's mode, classes, text and the viewport (plus position near the right edge, where the
+    // auto width can shrink), so it is cached on that signature and re-measured only when one of them changes.
+    const sig=`${l.el.className}|${l.el.textContent}|${viewWidth}x${viewHeight}|${l.sx>viewWidth-180?Math.round(l.sx/6):'in'}`;
+    const cache=l.sizeCache??=new Map();if(cache.size>48)cache.clear();
     for(const mode of new Set(['bar',desired,l.placement?.mode??desired])){
+      {const hit=cache.get(mode+'|'+sig);if(hit){sizes[mode]=hit;continue;}}
       l.el.dataset.mode=mode;
       l.el.style.width='';
       // Pin to the ceiling of the auto (fractional) LAYOUT width, not the rounded offsetWidth or a
@@ -1025,6 +1054,7 @@ function renderLabels(){
       l.el.style.width=`${cssWidth}px`;
       const r=l.el.getBoundingClientRect();
       sizes[mode]={w:r.width||(mode==='bar'?44:80),h:r.height||(mode==='bar'?5:24),dy:r.height?r.bottom-origin.top-l.sy:0,cssWidth};
+      if(r.height)cache.set(mode+'|'+sig,sizes[mode]);
     }
     // v2.12.1: other visible enemies' bars (never moved) count as obstacles for this caption's stack/collapse.
     const otherBars=labels.filter(o=>o!==l&&o.range==='enemy'&&!o.el.hidden&&Number.isFinite(o.sx)).map(o=>({left:o.sx-22,right:o.sx+22,top:o.sy-11,bottom:o.sy-6}));
@@ -1150,7 +1180,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.22.2');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.22.3');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1442,11 +1472,11 @@ function frameInner(now){
     else {const key=pickReady(round,combat,position,clock,hazardState,lootReadoutVisible());if(key){if(launch.ftue)autoPickPerks(round,clock,dash);else openPerk(key);}}
   }
   viewport.classList.toggle('damaged',clock<hitUntil);
-  const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);shieldIcon.title=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';}
+  const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);{const t=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';if(shieldIcon.title!==t)shieldIcon.title=t;}}
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
   bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
   bitScreen.material.color.set(bit.healing?'#3FE0D0':'#75cfcc');
-  bitLabel.point.set(bit.x,1.5,bit.z);bitLabel.caption.textContent=gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?`BIT · +${hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond} HP/s`:'BIT';bitLabel.el.classList.toggle('healing',bit.healing);
+  bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?`BIT · +${hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond} HP/s`:'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden;
@@ -1466,8 +1496,8 @@ function frameInner(now){
     const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
-    v.label.meter.hidden=!hold;v.label.meter.setAttribute('aria-valuenow',Math.round((hold?.progress??0)*100));v.label.fill.style.width=`${(hold?.progress??0)*100}%`;
-    v.label.caption.textContent=nodeCaption(v.node,clock);
+    v.label.meter.hidden=!hold;setAttr(v.label.meter,'aria-valuenow',Math.round((hold?.progress??0)*100));{const w=`${(hold?.progress??0)*100}%`;if(v.label.fill.style.width!==w)v.label.fill.style.width=w;}
+    setText(v.label.caption,nodeCaption(v.node,clock));
   }
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
