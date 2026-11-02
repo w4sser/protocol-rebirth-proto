@@ -1,9 +1,10 @@
-import '../data/raid-perks.js?v=2.22.3';
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.22.3';
+// @hot updateBigCulling
+import '../data/raid-perks.js?v=2.22.4';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.22.4';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.22.3';
-import {applyEncounters} from './encounters.js?v=2.22.3';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.22.3';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.22.4';
+import {applyEncounters} from './encounters.js?v=2.22.4';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.22.4';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
@@ -52,12 +53,15 @@ export function extractAvailable(extract,round){
   if(extract.opensAtMs!=null&&elapsed<extract.opensAtMs||extract.closesAtMs!=null&&elapsed>=extract.closesAtMs)return false;
   return extract.type==='open'||extract.type==='timed'&&elapsed>=extract.opensAtMs&&elapsed<extract.closesAtMs||extract.type==='key'&&!!round.keys?.includes(extract.key);
 }
+const SLEEP_CLOCK_KEYS=['windupAt','aimLockAt','alertAt','recoverUntil','burstEndsAt','pauseUntil','spawnAt','spawnedAt','stunnedUntil','wallStunUntil','shieldDownUntil','stalkUntil','burstStartedAt','lureUntil','attackWakeAt','releaseAt','detonateAt','at'];
+const cullActors=[];function pushAll(out,list){if(list)for(let i=0;i<list.length;i++)out.push(list[i]);}
 export function updateBigCulling(level,position,now=0,combat=null){
   if(!level.big)return null;
   level.activeRoom=graphRoomAt(level.graph,position,level.activeRoom??0);const awake=cullingRooms(level.graph,level.activeRoom);
-  for(const e of [...level.enemies,...level.spawners,...(combat?.projectiles??[]),...(combat?.blasts??[])]){
+  const actors=cullActors;actors.length=0;pushAll(actors,level.enemies);pushAll(actors,level.spawners);if(combat){pushAll(actors,combat.projectiles);pushAll(actors,combat.blasts);}
+  for(const e of actors){
     const sleeping=!awake.has(graphRoomAt(level.graph,e,e.roomId??0));
-    if(e.sleeping&& !sleeping&&e.sleptAt!=null){const delta=now-e.sleptAt;for(const key of ['windupAt','aimLockAt','alertAt','recoverUntil','burstEndsAt','pauseUntil','spawnAt','spawnedAt','stunnedUntil','wallStunUntil','shieldDownUntil','stalkUntil','burstStartedAt','lureUntil','attackWakeAt','releaseAt','detonateAt','at'])if(e[key]!=null)e[key]+=delta;if(combat?.nextFire.has(e.id))combat.nextFire.set(e.id,combat.nextFire.get(e.id)+delta);}
+    if(e.sleeping&& !sleeping&&e.sleptAt!=null){const delta=now-e.sleptAt;for(const key of SLEEP_CLOCK_KEYS)if(e[key]!=null)e[key]+=delta;if(combat?.nextFire.has(e.id))combat.nextFire.set(e.id,combat.nextFire.get(e.id)+delta);}
     if(!e.sleeping&&sleeping)e.sleptAt=now;e.sleeping=sleeping;
   }
   level.awakeRooms=awake;return awake;

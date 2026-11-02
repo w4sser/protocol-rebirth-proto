@@ -1,13 +1,14 @@
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.22.3';
-import {audioEvent} from './audio.js?v=2.22.3';
-import {ownRooms} from './perks.js?v=2.22.3';
-import {RULES,hazardState} from './levels.js?v=2.22.3';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.22.3';
-import {takeDamage,tickRound} from './round.js?v=2.22.3';
-import {houseWaypoint} from './house.js?v=2.22.3';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.22.3';
-import {detectionMultiplier} from './stakes.js?v=2.22.3';
-import {dashInvulnerable} from './dash.js?v=2.22.3';
+// @hot stepCombat stepHazards
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.22.4';
+import {audioEvent} from './audio.js?v=2.22.4';
+import {ownRooms} from './perks.js?v=2.22.4';
+import {RULES,hazardState} from './levels.js?v=2.22.4';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.22.4';
+import {takeDamage,tickRound} from './round.js?v=2.22.4';
+import {houseWaypoint} from './house.js?v=2.22.4';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.22.4';
+import {detectionMultiplier} from './stakes.js?v=2.22.4';
+import {dashInvulnerable} from './dash.js?v=2.22.4';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -15,22 +16,30 @@ export function createCombat(level,now){
   const grace=level.firstGraceMs??RULES.combat.graceMs;
   return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],blasts:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
 }
+// v2.22.4 hot-path scratch (reused every tick; traceTargets/moveWithActors only read them).
+const hotPlayerBefore={x:0,z:0},NO_DELTA=Object.freeze({x:0,z:0}),hotPlayerTarget={x:0,z:0,r:.36,kind:'player'},targetList=[hotPlayerTarget];
+const hotShotEnd={x:0,z:0},ENEMY_SHOT_AUDIO=Object.freeze({enemy:true}),coverList=[],coverBoxes=[];
+function anyNearMissAggro(enemies){for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e.aggro&&e.nearMissAt!=null)return true;}return false;}
+// Line-of-sight cover for one shooter: all solids plus a .75 box per other live enemy (pooled boxes).
+function enemyCover(obstacles,enemies,self){coverList.length=0;for(let i=0;i<obstacles.length;i++)coverList.push(obstacles[i]);let n=0;
+  for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e===self||!(e.health>0)||e.active===false)continue;let b=coverBoxes[n];if(!b)b=coverBoxes[n]={x:0,z:0,w:.75,d:.75};n++;b.x=e.x;b.z=e.z;coverList.push(b);}
+  return coverList;}
 export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   tickRound(round,now);if(round.pauseAt!=null||round.over)return;
-  const room=round.level.rooms.findIndex(r=>Math.abs(player.x-r.x)<=r.w/2&&Math.abs(player.z-r.z)<=r.d/2);
+  let room=-1;{const rooms=round.level.rooms;for(let i=0;i<rooms.length;i++){const r=rooms[i];if(Math.abs(player.x-r.x)<=r.w/2&&Math.abs(player.z-r.z)<=r.d/2){room=i;break;}}}
   if(room>=0&&!combat.visited.has(room)){
     combat.visited.add(room);combat.graceUntil=now+RULES.combat.graceMs;combat.projectiles.length=0;combat.moveAt=combat.graceUntil;
     for(const enemy of round.level.enemies)combat.nextFire.set(enemy.id,Math.max(combat.nextFire.get(enemy.id)??0,combat.graceUntil));
   }
-  const playerBefore={x:player.x,z:player.z};
-  Object.assign(player,moveWithActors(player,{x:0,z:0},round.level.enemies,obstacles,round.level.floors,RULES.playerRadius));
+  const playerBefore=hotPlayerBefore;playerBefore.x=player.x;playerBefore.z=player.z;
+  Object.assign(player,moveWithActors(player,NO_DELTA,round.level.enemies,obstacles,round.level.floors,RULES.playerRadius));
   round.playerMoving=!!round.playerMoving||Math.hypot(player.x-playerBefore.x,player.z-playerBefore.z)>RULES.shooting.movementEpsilon;
   // Encounters that run on their own clock: patrols keep walking and spawn points keep counting through the arrival grace.
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
   stepBlasts(round,combat,player,now,dash);
-  if(now<combat.graceUntil&&!round.level.enemies.some(e=>e.aggro&&e.nearMissAt!=null))return;
-  const rule=RULES.combat,target={...player,r:.36,kind:'player'};
+  if(now<combat.graceUntil&&!anyNearMissAggro(round.level.enemies))return;
+  const rule=RULES.combat,target=hotPlayerTarget;target.x=player.x;target.z=player.z;
   for(const enemy of round.level.enemies){
     if(enemy.sleeping||now<combat.graceUntil&&enemy.nearMissAt==null)continue;
     if(enemy.health<=0){enemy.windupAt=null;enemy.attackPhase=null;continue;}
@@ -43,7 +52,8 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
       enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;
       const lx=enemy.lureTarget.x-enemy.x,lz=enemy.lureTarget.z-enemy.z,ld=Math.hypot(lx,lz);
       if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt){
-        stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z},ld,obstacles,player,dt);
+        stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z}, // hot-ok: only while lured by a decoy
+ld,obstacles,player,dt);
         if(enemy.facing!==undefined)enemy.facing=turnToward(enemy.facing,angleTo(enemy,enemy.lureTarget),6*dt);
       }
       continue;
@@ -69,17 +79,19 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     const distance=Math.hypot(player.x-enemy.x,player.z-enemy.z);
     if(enemy.windupAt==null){
       if(distance<.1 || distance>rule.range*(enemy.rangeMul??1))continue;
-      const cover=[...obstacles,...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,w:.75,d:.75}))];
-      if(traceTargets(enemy,player,cover,[target])?.kind!=='player')continue;
+      const cover=enemyCover(obstacles,round.level.enemies,enemy);
+      if(traceTargets(enemy,player,cover,targetList)?.kind!=='player')continue;
+      // hot-ok: attack target is kept on the enemy for the whole windup (only on windup start)
       enemy.attackTarget={x:player.x,z:player.z};enemy.windupAt=now+telegraphDuration(enemy,round.level);
       enemy.aimLockAt=enemy.windupAt-(enemy.type==='sentry'?RULES.shooting.telegraphs.sentryLockMs:0);
     }
-    if(enemy.type==='sentry'&&now<enemy.aimLockAt)enemy.attackTarget={x:player.x,z:player.z};
+    if(enemy.type==='sentry'&&now<enemy.aimLockAt)enemy.attackTarget={x:player.x,z:player.z}; // hot-ok: sentry aim tracking only; reusing the object risks aliasing the locked aim
     if(now<enemy.windupAt)continue;
     enemy.windupAt=null;
     if(enemy.type==='thrower'){lobGrenade(round,combat,enemy,now);continue;}
     const aim=enemy.attackTarget,lockedDistance=Math.hypot(aim.x-enemy.x,aim.z-enemy.z)||1;
     const dx=(aim.x-enemy.x)/lockedDistance,dz=(aim.z-enemy.z)/lockedDistance;
+    // hot-ok: new projectile on fire only
     combat.projectiles.push({id:++combat.nextId,x:enemy.x,z:enemy.z,dx,dz,life:rule.range*(enemy.rangeMul??1)/rule.bulletSpeed,...shotInfo(round,enemy)});
     enemy.lastShotAt=now; // render-only: drives the patrol_grunt short_machine_gun recoil (nodspel/enemy-animation.js)
     const cooldown=(enemy.cooldownMs??round.level.enemyCooldownMs??rule.cooldownMs)*(enemy.cooldownMul??1);
@@ -87,11 +99,12 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   }
   for(let i=combat.projectiles.length-1;i>=0;i--){
     const b=combat.projectiles[i];if(b.sleeping)continue;if(now<(b.releaseAt??0))continue;
-    if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot',{enemy:true});}
-    const end={x:b.x+b.dx*rule.bulletSpeed*dt,z:b.z+b.dz*rule.bulletSpeed*dt};
-    const hit=traceTargets(b,end,obstacles,[target]);b.life-=dt;
+    if(!b.audioStarted){b.audioStarted=true;audioEvent('shoot',ENEMY_SHOT_AUDIO);}
+    const end=hotShotEnd;end.x=b.x+b.dx*rule.bulletSpeed*dt;end.z=b.z+b.dz*rule.bulletSpeed*dt;
+    const hit=traceTargets(b,end,obstacles,targetList);b.life-=dt;
     if(hit?.kind==='wall')audioEvent('impact');
     if(hit&&round.feedback){const at=shotContact(b,end,hit,obstacles);round.feedback.impact(at.x,at.z,false);}
+    // hot-ok: lastHit record only when a shot connects
     if(hit||b.life<=0){if(hit?.kind==='player'){round.lastHit={source:b.source??'Enemy',enemyId:b.enemyId,attack:b.attack??'projectile',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,b.damage??round.level.enemyDamage??rule.damage,now);}combat.projectiles.splice(i,1);}
     else{b.x=end.x;b.z=end.z;}
   }
@@ -278,6 +291,7 @@ export function stepHazards(round,player,now,dt,dash=null){
     if(Math.abs(player.x-h.x)<=h.w/2&&Math.abs(player.z-h.z)<=h.d/2){
       if(dashInvulnerable(dash,now))return false;
       h.carry=(h.carry??0)+(h.dps??RULES.hazard.damagePerSecond)*dt;
+      // hot-ok: lastHit record only on a damage tick
       if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;round.lastHit={source:'Shock pad',sourceId:h.id,attack:'electric hazard',at:now};if(dashInvulnerable(dash,now))return false;return takeDamage(round,dmg,now);}
     }
   }

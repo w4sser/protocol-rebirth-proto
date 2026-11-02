@@ -1,68 +1,69 @@
-import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.22.3';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.3';
-import {animateEnemyModel} from './enemy-animation.js?v=2.22.3';
-import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.22.3';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.22.3';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.22.3';
-import {createOperatorFX} from './operator-fx.js?v=2.22.3';
-import {createAudioSettings} from './audio-settings.js?v=2.22.3';
-import {createPixelFX} from './fx-pixel.js?v=2.22.3';
-import {createPixelFeedback} from './fx-feedback.js?v=2.22.3';
-import {createHaptics,createVibrationUI} from './haptics.js?v=2.22.3';
-import {audio,audioEvent} from './audio.js?v=2.22.3';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.22.3';
-import {createPerkUI} from './perk-ui.js?v=2.22.3';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.22.3';
+// @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset
+import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.22.4';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.22.4';
+import {animateEnemyModel} from './enemy-animation.js?v=2.22.4';
+import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.22.4';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.22.4';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.22.4';
+import {createOperatorFX} from './operator-fx.js?v=2.22.4';
+import {createAudioSettings} from './audio-settings.js?v=2.22.4';
+import {createPixelFX} from './fx-pixel.js?v=2.22.4';
+import {createPixelFeedback} from './fx-feedback.js?v=2.22.4';
+import {createHaptics,createVibrationUI} from './haptics.js?v=2.22.4';
+import {audio,audioEvent} from './audio.js?v=2.22.4';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.22.4';
+import {createPerkUI} from './perk-ui.js?v=2.22.4';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.22.4';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.22.3';
-import {loadBunkerAssets} from './bunker.js?v=2.22.3';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.22.3';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.22.3';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.22.3';
-import {createRobotSocket} from './operator-gear.js?v=2.22.3';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.22.4';
+import {loadBunkerAssets} from './bunker.js?v=2.22.4';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.22.4';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.22.4';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.22.4';
+import {createRobotSocket} from './operator-gear.js?v=2.22.4';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.22.3';import '../data/recipes.js?v=2.22.3';import '../data/vendors.js?v=2.22.3';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.22.3';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.22.3';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.22.3';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.22.3';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.22.3';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.22.3';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.22.3';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.22.3';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.22.3';
-import {buildWorld,setNodeHold} from './world.js?v=2.22.3';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.22.3';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.22.3';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.22.3';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.22.3';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.22.3';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.22.3';
-// import {stepScavenging} from './scavenging.js?v=2.22.3';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.22.3';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.22.3';
-import {routeComplete} from './objectives.js?v=2.22.3';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.22.3';
-import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.22.3';
-import {createBIT,stepBIT} from './bit.js?v=2.22.3';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.22.3';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.22.3';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.22.3';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.22.3';
-import {applyEnvironmentLight} from './environment-look.js?v=2.22.3';
-import {createRaidProfiler} from './raid-profiler.js?v=2.22.3';
-import {createPostFX} from './postfx.js?v=2.22.3';
-import {createDustField} from './dust.js?v=2.22.3';
-import {createQualityUI} from './quality-ui.js?v=2.22.3';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.22.3';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.22.3';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.22.3';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.22.3';
+import '../data/modules.js?v=2.22.4';import '../data/recipes.js?v=2.22.4';import '../data/vendors.js?v=2.22.4';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.22.4';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.22.4';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.22.4';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.22.4';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.22.4';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.22.4';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.22.4';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.22.4';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.22.4';
+import {buildWorld,setNodeHold} from './world.js?v=2.22.4';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.22.4';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.22.4';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.22.4';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.22.4';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.22.4';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.22.4';
+// import {stepScavenging} from './scavenging.js?v=2.22.4';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.22.4';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.22.4';
+import {routeComplete} from './objectives.js?v=2.22.4';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.22.4';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.22.4';
+import {createBIT,stepBIT} from './bit.js?v=2.22.4';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.22.4';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.22.4';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.22.4';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.22.4';
+import {applyEnvironmentLight} from './environment-look.js?v=2.22.4';
+import {createRaidProfiler} from './raid-profiler.js?v=2.22.4';
+import {createPostFX} from './postfx.js?v=2.22.4';
+import {createDustField} from './dust.js?v=2.22.4';
+import {createQualityUI} from './quality-ui.js?v=2.22.4';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.22.4';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.22.4';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.22.4';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.22.4';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.22.3');
+const orderResponse=await fetch('./order.json?v=2.22.4');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -177,18 +178,18 @@ function areaNotice(text,ms=6000){setTimeout(()=>{const n=document.createElement
 const FX_KEY='nodspel.reducedFx';
 const fxToggle=document.createElement('button');fxToggle.type='button';fxToggle.className='combat-fx-toggle';
 function renderFxToggle(){fxToggle.textContent=`Shake / haptics: ${fxEnabled()?'on':'off'}`;fxToggle.setAttribute('aria-pressed',String(fxEnabled()));}
-fxToggle.onclick=()=>{try{localStorage.setItem(FX_KEY,fxEnabled()?'0':'1');}catch{}shakes=[];haptics.stop();renderFxToggle();};
+fxToggle.onclick=()=>{try{localStorage.setItem(FX_KEY,fxEnabled()?'0':'1');}catch{}shakes.length=0;haptics.stop();renderFxToggle();};
 $('#inventory .pop-card').append(fxToggle);renderFxToggle();
 function fxEnabled(){try{return localStorage.getItem(FX_KEY)!=='0';}catch{return true;}}
 const haptics=createHaptics();
 function hapticPulse(ms){if(fxEnabled())haptics.pulse(ms);}
-let shakes=[];
+let shakes=[];const shakeScratch={x:0,z:0};
 function addShake(distance,ms,at){if(fxEnabled()&&distance>0)shakes.push({at,distance,ms});}
 function shakeOffset(now){
-  if(!fxEnabled()){shakes=[];return null;}
-  shakes=shakes.filter(s=>now-s.at<s.ms);
-  let mag=0;for(const s of shakes)mag+=s.distance*(1-(now-s.at)/s.ms);
-  return mag>0?{x:(Math.random()*2-1)*mag,z:(Math.random()*2-1)*mag}:null;
+  if(!fxEnabled()){shakes.length=0;return null;}
+  // v2.22.4 hot path: compact expired shakes in place and return a reused offset (callers read it immediately).
+  let mag=0,n=0;for(let i=0;i<shakes.length;i++){const s=shakes[i];if(now-s.at<s.ms){shakes[n++]=s;mag+=s.distance*(1-(now-s.at)/s.ms);}}shakes.length=n;
+  if(!(mag>0))return null;shakeScratch.x=(Math.random()*2-1)*mag;shakeScratch.z=(Math.random()*2-1)*mag;return shakeScratch;
 }
 if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/',import.meta.url));
     if(townLoad.failed.length){try{localStorage.setItem('nr_town_load',JSON.stringify({v:'2.0.0',at:gameClock(),...townLoad}));}catch{}if(DEBUG)areaNotice(`Town: stand-ins for ${townLoad.failed.map(f=>f.key).join(', ')} · ${townLoad.failed[0].error}`,12000);}}
@@ -196,7 +197,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.22.3',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.22.4',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -268,7 +269,7 @@ const healCrosses=Array.from({length:6},(_,i)=>{
 });
 const coneGeometry=new THREE.BufferGeometry(),coneVertices=new Float32Array(4096*9);
 coneGeometry.setAttribute('position',new THREE.BufferAttribute(coneVertices,3));coneGeometry.setDrawRange(0,0);
-const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
+const aimCone=new THREE.Mesh(coneGeometry,new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.24,side:THREE.DoubleSide,forceSinglePass:true,depthTest:false,depthWrite:false}));aimCone.renderOrder=3;aimCone.frustumCulled=false;aimCone.visible=false;scene.add(aimCone);
 const rangeRing=new THREE.Mesh(new THREE.RingGeometry(RULES.weapon.range-.04,RULES.weapon.range,96),new THREE.MeshBasicMaterial({color:'#75cfcc',transparent:true,opacity:.35,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
 rangeRing.renderOrder=2;rangeRing.rotation.x=-Math.PI/2;rangeRing.visible=false;scene.add(rangeRing);
 const lockMarker=new THREE.Mesh(new THREE.RingGeometry(.64,.73,32),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));lockMarker.rotation.x=-Math.PI/2;lockMarker.renderOrder=4;lockMarker.visible=false;scene.add(lockMarker);
@@ -389,14 +390,14 @@ toolBtn.addEventListener('pointerup',releaseTool);toolBtn.addEventListener('poin
 toolBtn.addEventListener('click',e=>{if(e.detail===0)toolTap();});
 function renderToolHUD(){
   const t=round.tool;toolBtn.hidden=!t;if(!t)return;
-  const key=`${t.kind}|${t.charges}`;
-  if(toolBtn.dataset.key!==key){
+  if(toolBtn._kind!==t.kind||toolBtn._charges!==t.charges||toolBtn._id!==t.id){toolBtn._kind=t.kind;toolBtn._charges=t.charges;toolBtn._id=t.id;
+    const key=`${t.kind}|${t.charges}`; // hot-ok: only when the tool or its charges change
     toolBtn.dataset.key=key;toolBtn.dataset.kind=t.kind;
     const count=document.createElement('b'),hint=document.createElement('small');count.textContent=t.charges;hint.textContent='E';
-    toolBtn.replaceChildren(svgIcon(`tool-${t.kind}`),count,hint);
+    toolBtn.replaceChildren(svgIcon(`tool-${t.kind}`),count,hint); // hot-ok: on change only
+    toolBtn.setAttribute('aria-label',`${toolDef(t.id).label} (E) · ${t.charges} left`); // hot-ok: on change only
   }
   toolBtn.disabled=toolBlocked();
-  toolBtn.setAttribute('aria-label',`${toolDef(t.id).label} (E) · ${t.charges} left`);
 }
 // Decoy beacon: a small cyan pillar with a blinking cap, so the thrown decoy reads as an object in the world.
 const beaconPool=[];let beaconUsed=0;
@@ -415,7 +416,7 @@ function renderToolFx(clock){
   if(combat&&!round.over){
     for(const e of round.level.enemies)if(e.type==='thrower'&&e.health>0&&e.active!==false&&e.windupAt!=null&&e.attackTarget){const R=RULES.encounters.grenadier;toolFxRing(e.attackTarget.x,e.attackTarget.z,R.radius,TOOL_CORAL,.22+.2*Math.sin(clock/70));}
     for(const b of combat.blasts){if(b.sleeping)continue;const p=Math.min(1,(clock-b.at)/(b.detonateAt-b.at));toolFxRing(b.x,b.z,b.radius,TOOL_CORAL,.35+.2*Math.sin(clock/60));toolFxRing(b.x,b.z,b.radius*p,TOOL_CORAL,.75);}
-    for(const b of combat.booms??[]){const k=Math.min(1,(clock-b.at)/600);toolFxRing(b.x,b.z,b.radius*(.3+.7*k),TOOL_CORAL,.8*(1-k));}
+    if(combat.booms)for(const b of combat.booms){const k=Math.min(1,(clock-b.at)/600);toolFxRing(b.x,b.z,b.radius*(.3+.7*k),TOOL_CORAL,.8*(1-k));}
   }
   for(let i=toolFxUsed;i<toolFxPool.length;i++)toolFxPool[i].visible=false;
   for(let i=beaconUsed;i<beaconPool.length;i++)beaconPool[i].visible=false;
@@ -477,7 +478,7 @@ function spawnKillMarker(x,z){
 function renderKillMarker(clock){
   if(!killMarker)return;
   const age=clock-killMarkerAt;killMarker.defeated=age>=RULES.feedback.killMarkerMs;
-  killMarker.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.killMarkerMs)}`;
+  setOpacity(killMarker.el,Math.max(0,1-age/RULES.feedback.killMarkerMs));
 }
 function setCollisions(){
   solids=[...round.level.walls,...round.level.boxes,...houseSolids(round.level),...doorSolids(round.level)];
@@ -627,39 +628,42 @@ function renderEnemyFeedback(clock){
     else{v.group.scale.setScalar(1);v.group.rotation.x=0;}
     animateEnemyModel(v,clock);
     if(v.meshFlash){const fa=clock-(v.enemy.lastHitAt??-Infinity);v.meshFlash.material.opacity=fa<RULES.feedback.meshFlashMs?Math.max(0,.85*(1-fa/RULES.feedback.meshFlashMs)):0;}
-    if(v.beam)v.beam.visible=alive&&v.enemy.health>0&&!!round.level.nodes.find(n=>n.id===v.enemy.node)?.shielded&&clock>=(round.level.nodes.find(n=>n.id===v.enemy.node)?.shieldDownUntil??0);
+    if(v.beam){const bn=nodeById(round.level.nodes,v.enemy.node);v.beam.visible=alive&&v.enemy.health>0&&!!bn?.shielded&&clock>=(bn?.shieldDownUntil??0);}
     if(v.shield)v.shield.visible=alive&&!v.enemy.introGuard&&(!isShieldTurret(v.enemy)||!v.enemyModel&&clock>=(v.enemy.shieldDownUntil??0));
     // distracted by a decoy: the visor turns cyan (system colour of the decoy) so the state reads without the label
     if(v.eye){const lured=!!v.enemy.lureTarget&&gameClock()<(v.enemy.lureUntil??0);v.eye.material.color.set(lured?TOOL_CYAN:'#E4705F');}
     // blocked shot: the plate flashes bright (spark) for a moment; first block explains the counter once
     if(v.shield){const ba=clock-(v.enemy.blockedAt??-Infinity);v.shield.material.opacity=ba<220?.95:.5;if(ba<220)firstHint('shield','Front shield blocks shots from the front. Flank to the side or back.');}
     if(v.cone){const e=v.enemy,s=e.sight||RULES.encounters.patrol.coneRange;v.cone.visible=alive&&!e.aggro;v.cone.scale.set(s,1,s);v.coneFill.material.opacity=e.alertAt!=null?.5:.2;}
-    v.label.point.set(v.enemy.x,v.labelY??1.7,v.enemy.z);const winding=alive&&(v.enemy.windupAt!=null||v.enemy.alertAt!=null);v.label.el.classList.toggle('winding',winding);v.label.el.classList.toggle('stunned',alive&&clock<(v.enemy.stunnedUntil??0));v.label.caption.textContent=enemyStateText(v.enemy);v.label.defeated=!alive;v.label.obscured=alive&&traceTargets(position,v.enemy,solids,[v.enemy])?.kind==='wall';v.label.el.hidden=!alive;
+    v.label.point.set(v.enemy.x,v.labelY??1.7,v.enemy.z);const winding=alive&&(v.enemy.windupAt!=null||v.enemy.alertAt!=null);v.label.el.classList.toggle('winding',winding);v.label.el.classList.toggle('stunned',alive&&clock<(v.enemy.stunnedUntil??0));v.label.caption.textContent=enemyStateText(v.enemy);v.label.defeated=!alive;v.label.obscured=alive&&traceTargets(position,v.enemy,solids,one(v.enemy))?.kind==='wall';v.label.el.hidden=!alive;
     // Floor geometry is local to the actor; committed aim cancels its rotation.
     const T=RULES.shooting.telegraphs,e=v.enemy;
     if(e.frontShield&&!e.introGuard){
       if(!v.shieldFloor){
+        // hot-ok-begin: one-time lazy creation of the shield floor arc
         const points=[],half=e.frontShield*Math.PI/180;
         for(let i=0;i<=T.arcSegments;i++){const a=-half+2*half*i/T.arcSegments;points.push(new THREE.Vector3(Math.sin(a)*T.shieldRadius,T.floorHeight,Math.cos(a)*T.shieldRadius));}
         v.shieldFloor=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:e.encounter==='shield_turret'?ENEMY_COLORS.shield:TOOL_CORAL,transparent:true}));v.group.add(v.shieldFloor);
+        // hot-ok-end
       }
       v.shieldFloor.visible=alive&&(e.encounter!=='shield_turret'||clock>=(e.shieldDownUntil??0));v.shieldFloor.material.opacity=e.attackPhase==='warning'?T.shieldBrightOpacity:T.shieldDimOpacity;
     }
     if(!e.introGuard&&e.encounter!=='guard'&&e.encounter!=='turret'&&e.encounter!=='shield_turret'&&e.type!=='generator'&&e.type!=='thrower'){
+      // hot-ok: one-time lazy creation
       if(!v.aimFloor){v.aimFloor=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:T.lineOpacity}));v.aimFloor.frustumCulled=false;v.group.add(v.aimFloor);}
       v.aimFloor.visible=alive&&e.windupAt!=null&&!!e.attackTarget;
       if(v.aimFloor.visible){
-        const dir={x:e.attackTarget.x-e.x,z:e.attackTarget.z-e.z},range=e.type==='rusher'&&!e.swarm?T.chargerRange:RULES.combat.range*(e.rangeMul??1),end=aimEndpoint(e,dir,range,solids),pos=v.aimFloor.geometry.attributes.position;
+        const dir=hotEnemyDir;dir.x=e.attackTarget.x-e.x;dir.z=e.attackTarget.z-e.z;const range=e.type==='rusher'&&!e.swarm?T.chargerRange:RULES.combat.range*(e.rangeMul??1),end=aimEndpoint(e,dir,range,solids),pos=v.aimFloor.geometry.attributes.position;
         pos.setXYZ(0,0,T.floorHeight,0);pos.setXYZ(1,end.x-e.x,T.floorHeight,end.z-e.z);pos.needsUpdate=true;v.aimFloor.rotation.y=-v.group.rotation.y;
       }
     }
     if(v.enemy.introGuard||v.enemy.encounter==='guard'||v.enemy.encounter==='turret'||isShieldTurret(v.enemy)){
-      if(!v.intent){
+      if(!v.intent){ // hot-ok-begin: one-time lazy creation
         const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
         v.intent=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({color:TOOL_CORAL,transparent:true,opacity:.85}));v.intent.renderOrder=4;v.intent.frustumCulled=false;v.group.add(v.intent);
-      }
+      } // hot-ok-end
       const turretWarning=(v.enemy.encounter==='turret'||isShieldTurret(v.enemy))&&!v.enemy.introGuard&&v.enemy.attackPhase==='warning';
-      const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&(turretWarning||['warning','burst'].includes(v.enemy.attackPhase));
+      const directions=guardShotDirections(v.enemy);v.intent.visible=alive&&directions.length>0&&(turretWarning||v.enemy.attackPhase==='warning'||v.enemy.attackPhase==='burst');
       if(turretWarning&&!v.turretWarning){v.turretWarning=createTurretWarning(TOOL_CORAL);v.group.add(v.turretWarning);}
       if(v.turretWarning){
         v.turretWarning.visible=turretWarning&&v.intent.visible;
@@ -668,22 +672,22 @@ function renderEnemyFeedback(clock){
       if(turretWarning)v.intent.visible=false;
       if(v.intent.visible){
         const pos=v.intent.geometry.attributes.position;
-        directions.forEach((dir,i)=>{const end=aimEndpoint(v.enemy,dir,RULES.combat.range*(v.enemy.rangeMul??1),solids);pos.setXYZ(i*2,0,.12,0);pos.setXYZ(i*2+1,end.x-v.enemy.x,.12,end.z-v.enemy.z);});
+        for(let i=0;i<directions.length;i++){const end=aimEndpoint(v.enemy,directions[i],RULES.combat.range*(v.enemy.rangeMul??1),solids);pos.setXYZ(i*2,0,.12,0);pos.setXYZ(i*2+1,end.x-v.enemy.x,.12,end.z-v.enemy.z);}
         pos.needsUpdate=true;v.intent.geometry.setDrawRange(0,directions.length*2);v.intent.rotation.y=-v.group.rotation.y;
       }
     }
     v.healthBar.setAttribute('aria-valuenow',v.enemy.health);renderHealthSegments(v.healthSegments,v.enemy.health,v.maxHealth);
     const age=clock-(v.enemy.lastHitAt??-Infinity);v.flash.defeated=age>=RULES.feedback.hitFlashMs||v.enemy.active===false;
-    v.flash.point.set(v.enemy.x,.65,v.enemy.z);v.flash.el.style.opacity=`${Math.max(0,1-age/RULES.feedback.hitFlashMs)}`;
+    v.flash.point.set(v.enemy.x,.65,v.enemy.z);setOpacity(v.flash.el,Math.max(0,1-age/RULES.feedback.hitFlashMs));
     v.flash.el.classList.toggle('flashing',!v.flash.defeated);
     // a shot stopped by the guard's front shield reads BLOCKED instead of a damage number
     const blocked=(v.enemy.blockedAt??-Infinity)>(v.enemy.lastHitAt??-Infinity),dage=blocked?clock-v.enemy.blockedAt:age;
     v.damage.defeated=dage>=RULES.feedback.damageNumberMs||v.enemy.active===false;
     const weak=clock-(v.enemy.weakMarkerAt??-Infinity)<RULES.shooting.weakSides.markerMs?v.enemy.weakMarker:null;
-    v.damage.caption.textContent=blocked?(isShieldTurret(v.enemy)?'SHIELDED':'BLOCKED'):weak??`−${v.enemy.lastDamage??0}`;
+    v.damage.caption.textContent=blocked?(isShieldTurret(v.enemy)?'SHIELDED':'BLOCKED'):weak??damageText(v.enemy.lastDamage??0);
     if(isShieldTurret(v.enemy))v.damage.caption.style.color=blocked?ENEMY_COLORS.shield:ENEMY_COLORS.damage;
     v.damage.point.set(v.enemy.x,1+Math.min(1,dage/RULES.feedback.damageNumberMs)*.7,v.enemy.z);
-    v.damage.el.style.opacity=`${Math.max(0,1-dage/RULES.feedback.damageNumberMs)}`;
+    setOpacity(v.damage.el,Math.max(0,1-dage/RULES.feedback.damageNumberMs));
   }
 }
 // Encounter labels: the locked door says what it needs; the spawn point warns ("!") for 1 s before the swarm bursts out.
@@ -795,7 +799,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes=[];pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro)notice(RULES.intro.tip,6000);
   if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
@@ -884,22 +888,25 @@ function renderWeaponHUD(clock){
   const reloading=weapon.reloadAt!==null&&!round.over;
   const remaining=reloading?Math.max(0,weapon.reloadAt-clock):0;
   const W=weapon.rule,fraction=reloading?Math.max(0,1-remaining/reloadInterval(round,W.reloadMs)):0;
-  $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);$('#aim-stick').classList.toggle('empty',weapon.ammo===0);$('#aim-stick').style.setProperty('--reload-turn',`${fraction}turn`);
-  $('#ammo-hud').setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${W.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);
-  for(const [i,el] of [...document.querySelectorAll('.ammo-slot')].entries()){
+  $('#ammo-hud').classList.toggle('empty',weapon.ammo===0);$('#aim-stick').classList.toggle('empty',weapon.ammo===0);{const as=$('#aim-stick');if(as._turn!==fraction){as._turn=fraction;as.style.setProperty('--reload-turn',fraction+'turn');}}
+  {const ah=$('#ammo-hud');if(ah._ammo!==weapon.ammo||ah._cap!==W.capacity||ah._res!==weapon.reserve){ah._ammo=weapon.ammo;ah._cap=W.capacity;ah._res=weapon.reserve;
+    ah.setAttribute('aria-label',`Magazine: ${weapon.ammo} of ${W.capacity} · Reserve: ${weapon.reserve===Infinity?'Unlimited':weapon.reserve}`);}} // hot-ok: on change only
+  const ammoSlots=document.querySelectorAll('.ammo-slot');for(let i=0;i<ammoSlots.length;i++){const el=ammoSlots[i];
     el.classList.toggle('loaded',i<weapon.ammo);el.classList.toggle('refilling',i===weapon.ammo&&reloading);
-    el.style.setProperty('--fill',`${i<weapon.ammo?100:i===weapon.ammo?fraction*100:0}%`);
+    {const f=i<weapon.ammo?100:i===weapon.ammo?fraction*100:0;if(el._fill!==f){el._fill=f;el.style.setProperty('--fill',f+'%');}}
   }
+  // hot-ok: string key; the DOM is only rewritten when it changes
   {const rt=$('#reload-time'),inf=weapon.reserve===Infinity,tail=reloading?` · +1 ${(remaining/1000).toFixed(1)} s`:'',k=`${weapon.ammo}/${W.capacity}|${inf?'inf':weapon.reserve}|${tail}`;
-   if(rt.dataset.k!==k){rt.dataset.k=k;if(inf)rt.replaceChildren(`${weapon.ammo}/${W.capacity} · `,svgIcon('infinity'),tail);else rt.textContent=`${weapon.ammo}/${W.capacity} · ${weapon.reserve}${tail}`;}}
+   if(rt.dataset.k!==k){ // hot-ok: on change only
+rt.dataset.k=k;if(inf)rt.replaceChildren(`${weapon.ammo}/${W.capacity} · `,svgIcon('infinity'),tail);else rt.textContent=`${weapon.ammo}/${W.capacity} · ${weapon.reserve}${tail}`;}}
   // Scavenging is paused while reserve ammunition is unlimited.
   $('#player-health').setAttribute('aria-valuenow',round.health);
   renderHealthSegments(playerHealthSegments,round.health,round.maxHealth,10);$('#player-health').hidden=round.health<=0;
   $('#player-health').classList.toggle('urgent',round.health<=25);
   labelPoint.set(position.x,playerOverheadY,position.z).project(camera);
-  $('#player-health').style.left=`${(labelPoint.x*.5+.5)*viewWidth}px`;
-  $('#player-health').style.top=`${(-labelPoint.y*.5+.5)*viewHeight}px`;
-  {const sh=$('#player-shield'),max=round.maxShield||0;if(sh){sh.hidden=!max||round.health<=0;if(max){sh.style.left=$('#player-health').style.left;sh.style.top=`${(-labelPoint.y*.5+.5)*viewHeight-12}px`;$('#player-shield-fill').style.width=`${Math.round(100*round.shield/max)}%`;sh.classList.toggle('broken',round.shield<=0);sh.setAttribute('aria-valuenow',round.shield);}}}
+  setPx($('#player-health'),'left',(labelPoint.x*.5+.5)*viewWidth);
+  setPx($('#player-health'),'top',(-labelPoint.y*.5+.5)*viewHeight);
+  {const sh=$('#player-shield'),max=round.maxShield||0;if(sh){sh.hidden=!max||round.health<=0;if(max){setPx(sh,'left',(labelPoint.x*.5+.5)*viewWidth);setPx(sh,'top',(-labelPoint.y*.5+.5)*viewHeight-12);{const sf=$('#player-shield-fill'),w=Math.round(100*round.shield/max);if(sf._w!==w){sf._w=w;sf.style.width=w+'%';}}sh.classList.toggle('broken',round.shield<=0);sh.setAttribute('aria-valuenow',round.shield);}}}
 }
 // v2.7.0 stakes HUD: heal budget meter, carried-value pulse, bag-weight gauge, alarm/wave banner + edge arrow.
 let lastCarryValue=0,alarmBannerUntil=0;
@@ -948,6 +955,12 @@ function renderStakesHUD(clock){
   if(round.healBudgetEmpty&&!round.healBudgetEmpty.shown){round.healBudgetEmpty.shown=true;notice('BIT: healing budget spent for this raid.');}
   renderHealBudgetHUD();renderCarryValueHUD(clock);renderBagWeightHUD();renderAlarmBanner(clock);renderHunterArrow();
 }
+// v2.22.4 hot-path DOM helpers: write (and build the string) only when the number changed.
+function setOpacity(el,v){if(el._op!==v){el._op=v;el.style.opacity=v;}}
+function setPx(el,prop,v){const k='_px'+prop;if(el[k]!==v){el[k]=v;el.style[prop]=v+'px';}}
+function nodeById(nodes,id){for(let i=0;i<nodes.length;i++)if(nodes[i].id===id)return nodes[i];return undefined;}
+const damageTexts=new Map();function damageText(n){let t=damageTexts.get(n);if(t===undefined){t=`−${n}`;if(damageTexts.size<512)damageTexts.set(n,t);}return t;}
+const bitHealTexts=new Map();function bitHealText(rate){let t=bitHealTexts.get(rate);if(t===undefined){t=`BIT · +${rate} HP/s`;bitHealTexts.set(rate,t);}return t;}
 // v2.22.3 perf: skip identical text/attribute writes; each one re-invalidates style for the next layout read.
 const setText=(el,t)=>{if(el.textContent!==t)el.textContent=t;},setAttr=(el,k,v)=>{v=String(v);if(el.getAttribute(k)!==v)el.setAttribute(k,v);};
 function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=stage.clientHeight;renderer.setSize(viewWidth,viewHeight);postFX?.setSize(viewWidth,viewHeight);const h=RAID_CAMERA.halfHeight,aspect=viewWidth/viewHeight;camera.left=-h*aspect;camera.right=h*aspect;camera.top=h;camera.bottom=-h;camera.updateProjectionMatrix();clearInput();}
@@ -965,6 +978,9 @@ function barOnly(l){if(l.el.dataset.mode!=='bar'){l.el.dataset.mode='bar';l.size
 // v2.22.3 perf: HUD rects are measured at most every 120 ms (and after a resize) instead of every frame; each
 // measurement right after the frame's DOM writes forced a full synchronous layout.
 function renderLabels(){
+  // hot-ok-begin: label planning/declutter passes item/box/rect objects through labels.js (planLabels, resolveLabels,
+  // placeEnemyLabel); pooling them changes that API and the layout-check hysteresis, so it stays allocating for now
+  // (~7 MB per 20 s raid in the v2.22.4 bench, far below the three.js two-pass churn fixed in renderFrame). TODO.
   {const t=performance.now();if(!(t<renderLabels.hudAt)){refreshHudRects();renderLabels.hudAt=t+120;}} // state on the function: tests run it in isolation
   const origin=$('#game').getBoundingClientRect();
   const items=labels.filter(l=>l.range&&!l.defeated).map(l=>({id:l.id,kind:l.range,x:l.point.x,z:l.point.z,
@@ -1113,6 +1129,7 @@ function renderLabels(){
     l.wantSince??=now;
     if(l.everShown&&now-l.wantSince<LABEL_SHOW_HOLD_MS){l.el.hidden=true;continue;}
     l.wasShown=l.everShown=true;}
+  // hot-ok-end
 }
 const LABEL_SHOW_HOLD_MS=1200;
 const audioSettings=createAudioSettings({document,audio,
@@ -1180,7 +1197,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.22.3');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.22.4');round.level=generateLevel(n,round.seed);loadLevel();}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1362,9 +1379,24 @@ renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();s
 renderer.domElement.addEventListener('webglcontextrestored',()=>{const el=document.getElementById('fatal');if(el&&!fatal)el.hidden=true;});
 window.addEventListener('error',e=>{if(e.error)onFatal(e.error);});
 window.addEventListener('unhandledrejection',e=>onFatal(e.reason??new Error('unhandled rejection')));
+// v2.22.4 hot-path scratch objects (reused every frame; never stored by callees).
+const hotPosBefore={x:0,z:0},hotPosDash={x:0,z:0},hotPosCombat={x:0,z:0},hotCountdown={remainingMs:0};
+const hotRenderedShots=new Set(),hotActiveShots=new Set(),hotVisibleProjectiles=[],hotAliveProjectiles=new Set(),hotAimTargets=[],hotNoAssist={target:null,direction:null};
+const hotHumanOpts={moving:false,dashing:false,dead:false,aiming:false,walkYaw:0,aimYaw:0},hotFxOpts={dashing:false,x:0,z:0,low:false};
+const hotCamGoal=new THREE.Vector3(),hotRayDir=new THREE.Vector3(),SUN_OFFSET=new THREE.Vector3(-8,18,10);
+const hotOne=[null];function one(x){hotOne[0]=x;return hotOne;} // single-target list for traceTargets (not kept)
+function copyXZ(out,p){out.x=p.x;out.z=p.z;return out;}
+const hotFps={fps:0,now:0},hotMoveDelta={x:0,z:0},hotEnemyDir={x:0,z:0};
 function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
 // Mood FX (bloom/vignette) replace the plain render call; dust drifts with the player whenever it's on.
+// v2.22.4 GC: three renders transparent+DoubleSide materials in two passes and flips material.side, which bumps
+// material.version and rebuilds program parameters/cache keys every frame (the biggest per-frame allocator on a
+// raid). Flat rings/planes/circles look identical in a single pass, so they are switched over once (swept every
+// 64 frames to catch lazily pooled meshes). Volumes (beams, shield arcs) keep the two-pass path.
+const FLAT_GEOMETRIES=new Set(['RingGeometry','PlaneGeometry','CircleGeometry']);let flatSweep=0;
+function singlePassFlat(o){const m=o.material;if(m&&!Array.isArray(m)&&m.transparent&&m.side===THREE.DoubleSide&&!m.forceSinglePass&&FLAT_GEOMETRIES.has(o.geometry?.type))m.forceSinglePass=true;}
 function renderFrame(dtForDust){
+  if((flatSweep++&63)===0)scene.traverse(singlePassFlat);
   if(dust){dust.points.position.set(position.x,0,position.z);dust.update(dtForDust,elapsed);}
   const measuring=DEBUG&&raidProfiler.active,autoReset=renderer.info.autoReset;
   if(measuring){renderer.info.autoReset=false;renderer.info.reset();}
@@ -1375,7 +1407,7 @@ function frameInner(now){
   // Real render cadence (not game time, which can be paused/hitstopped): feeds the auto-downgrade watchdog.
   const realDt=lastFrameAt==null?0:(now-lastFrameAt)/1000;lastFrameAt=now;
   if(moodOn&&!qualityPinned&&!autoDowngraded&&realDt>0){
-    fpsState=fpsMonitorStep(fpsState,{fps:1/realDt,now});
+    hotFps.fps=1/realDt;hotFps.now=now;fpsState=fpsMonitorStep(fpsState,hotFps);
     if(fpsState.triggered){autoDowngraded=true;setGraphicsQuality('low');notice('Graphics: switched to Low for smoother performance',5000);}
   }
   const clock=gameClock(),frozen=round.pauseAt!=null;
@@ -1392,16 +1424,16 @@ function frameInner(now){
   $('.timer').classList.toggle('warn',seconds<=120&&seconds>60);$('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over){perkUI.close();perkResume.hidden=true;finishRound();}
   if(!frozen&&!round.over&&!resultPending){
-    const positionBefore={...position},dashing=dash.remaining>0;
+    const positionBefore=copyXZ(hotPosBefore,position),dashing=dash.remaining>0;
     let sx=movement.x,sy=movement.y;
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);position=moveWithActors(position,{x:delta.x*speed*dt,z:delta.z*speed*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
       if(launch.ftue&&!ftueMoveMarked){ftueMoveMarked=true;fadeStickLabel(ftueMoveLabel);}}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
     playerMoving=playerDisplaced(positionBefore,position);
-    const beforeDash={...position};
+    const beforeDash=copyXZ(hotPosDash,position);
     position=stepDash(dash,position,dt,round.level.enemies,playerSolids,round.level.floors);
     playerMoving=playerMoving||playerDisplaced(beforeDash,position);
     bigRuntime?.step(position,clock,combat);
@@ -1412,9 +1444,9 @@ function frameInner(now){
     // the guard's front shield needs to know where the shot comes from; grenades (stepTools) have no origin and ignore it
     round.shooter=position;const weaponChanged=stepWeapon(weapon,round,clock,dt,playerSolids);round.shooter=null;if(weaponChanged)updateHUD();
     // Ricochets are born during simulation, after the primary fire handler.
-    const renderedShots=new Set(bullets.map(b=>b.shot.id));
+    const renderedShots=hotRenderedShots;renderedShots.clear();for(let i=0;i<bullets.length;i++)renderedShots.add(bullets[i].shot.id);
     for(const shot of weapon.projectiles)if(shot.ricochet&&!renderedShots.has(shot.id))addBulletVisual(shot);
-    const activeShots=new Set(weapon.projectiles.map(b=>b.id));
+    const activeShots=hotActiveShots;activeShots.clear();for(let i=0;i<weapon.projectiles.length;i++)activeShots.add(weapon.projectiles[i].id);
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){releaseBullet(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
     if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.lastBagPickup?.at===clock)pickupToast(round.lastBagPickup.item);{const h=nextPickupHint(round.bag);const t=h&&hintText(h);if(t)notice(t,6000);}renderKitHUD();if(round.bagFull&&round.bagFull.at===clock)notifyBagFull();if(round.kitFull&&round.kitFull.at===clock)notifyKitFull();if(round.lastEquip&&round.lastEquip.at===clock)onEquip();if(round.gearOffer&&round.gearOffer.at===clock)notifyGearOffer();if(round.weaponOffer&&round.weaponOffer.at===clock)notifyWeaponOffer();if(round.lastPickup?.item==='keycard'&&round.lastPickup.at===clock)notice('KEYCARD · WALK UP TO THE LOCKED DOOR');}
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
@@ -1427,7 +1459,7 @@ function frameInner(now){
     const combatBefore=combatSnapshot(round);
     const ftueHitBefore=round.ftueHitSerial;
     round.playerMoving=playerMoving;
-    const beforeCombat={...position};
+    const beforeCombat=copyXZ(hotPosCombat,position);
     stepCombat(round,combat,position,clock,dt,playerSolids,dash);
     playerMoving=playerMoving||playerDisplaced(beforeCombat,position);
     if(stepTools(round,clock).length)updateHUD();
@@ -1446,15 +1478,15 @@ function frameInner(now){
     }
     // Kill readability (docs/design-combat-feel-oct28.md §2.1.2/2.1.3): one event per hit/kill, however it
     // happened (weapon or tool damage), consumed here so hitstop/shake/haptics/marker/particles fire exactly once.
-    for(const feel of round.hitFeels??[]){
+    if(round.hitFeels?.length)for(const feel of round.hitFeels){
       const isKill=feel.kind!=='hit';operatorFX.sparks(feel.x,feel.z,QUALITY==='low');
       hitstop(round,feel.kind==='lastKill'?RULES.hitstop.lastKillMs:isKill?RULES.hitstop.killMs:RULES.hitstop.hitMs);
       const shake=isKill?RULES.feedback.cameraShake.kill:RULES.feedback.cameraShake.hit;addShake(shake.distance,shake.ms,now);
       if(isKill){hapticPulse(RULES.feedback.hapticKillMs);spawnKillMarker(feel.x,feel.z);world.burst(feel.x,feel.z,RULES.enemyTypes[feel.type]?.color??PALETTE.warm,true);}
     }
-    round.hitFeels=[];
+    if(round.hitFeels?.length)round.hitFeels=[]; // hot-ok: only on frames with hits; consumers may hold the old array
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
-    audioEvent('countdown',{remainingMs:round.remainingMs});
+    hotCountdown.remainingMs=round.remainingMs;audioEvent('countdown',hotCountdown);
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
@@ -1463,7 +1495,7 @@ function frameInner(now){
       const clutch=round.ftueClutch,seconds=ftueClutchSeconds(round,clock);
       if(!clutch.visualsAdded){spawnEnemyVisuals(clutch.spawned);clutch.visualsAdded=true;updateHUD();}
       if(clutch.shownSeconds!==seconds){
-        clutch.shownSeconds=seconds;
+        clutch.shownSeconds=seconds; // hot-ok: once per second during the clutch countdown
         notice(seconds>0?`EXTRACT IN ${seconds} - Hunters inbound. Reach the beam!`:'EXTRACT OPEN - Reach the beam to secure your loot.');
       }
     }
@@ -1476,7 +1508,7 @@ function frameInner(now){
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
   bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
   bitScreen.material.color.set(bit.healing?'#3FE0D0':'#75cfcc');
-  bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?`BIT · +${hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond} HP/s`:'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
+  bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?bitHealText(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond):'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}
   const dashRemaining=Math.max(0,dash.readyAt-clock),dashUnavailable=round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden;
@@ -1485,71 +1517,82 @@ function frameInner(now){
   renderToolHUD();renderToolFx(clock);
   playerRing.material.color.set(dash.remaining>0?'#3FE0D0':'#b4d8d0');
   playerRing.scale.setScalar(dash.remaining>0?1.35:1);
-  const visibleProjectiles=round.over?[]:combat.projectiles.filter(b=>!b.sleeping&&clock>=(b.releaseAt??0));
-  const aliveProjectiles=new Set(visibleProjectiles.map(b=>b.id));
+  const visibleProjectiles=hotVisibleProjectiles,aliveProjectiles=hotAliveProjectiles;visibleProjectiles.length=0;aliveProjectiles.clear();
+  if(!round.over)for(const b of combat.projectiles)if(!b.sleeping&&clock>=(b.releaseAt??0)){visibleProjectiles.push(b);aliveProjectiles.add(b.id);}
   for(const [id,m] of enemyMeshes)if(!aliveProjectiles.has(id)){scene.remove(m);enemyMeshes.delete(id);}
-  for(const b of visibleProjectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial);scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
+  for(const b of visibleProjectiles){let m=enemyMeshes.get(b.id);if(!m){m=new THREE.Mesh(bulletGeometry,enemyBulletMaterial); // hot-ok: once per new enemy projectile
+scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=Math.atan2(b.dx,b.dz);}
   {const age=clock-muzzleFlashAt;muzzleFlash.visible=age<RULES.feedback.muzzleFlashMs;if(muzzleFlash.visible)muzzleFlash.material.opacity=1-age/RULES.feedback.muzzleFlashMs;}
   if(!human)gun.position.z=.58-Math.max(0,1-(clock-muzzleFlashAt)/RULES.feedback.recoilMs)*RULES.feedback.recoilDistance;
   renderEnemyFeedback(clock);renderKillMarker(clock);
-  for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,[v.node])?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
+  for(const v of world.nodes){const visible=v.node.active||traceTargets(position,v.node,round.level.walls,one(v.node))?.kind==='node';v.group.visible=visible;v.label.obscured=!visible;
     const hold=round.nodeInteraction?.id===v.node.id?round.nodeInteraction:null;
     setNodeHold(v,hold?.progress??0);
     v.label.el.classList.toggle('charging',!!hold);
-    v.label.meter.hidden=!hold;setAttr(v.label.meter,'aria-valuenow',Math.round((hold?.progress??0)*100));{const w=`${(hold?.progress??0)*100}%`;if(v.label.fill.style.width!==w)v.label.fill.style.width=w;}
+    v.label.meter.hidden=!hold;setAttr(v.label.meter,'aria-valuenow',Math.round((hold?.progress??0)*100));{const pct=(hold?.progress??0)*100;if(v.label.fillPct!==pct){v.label.fillPct=pct;v.label.fill.style.width=pct+'%';}}
     setText(v.label.caption,nodeCaption(v.node,clock));
   }
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
+  // hot-ok: logCombat payload only on the one-time recon reveal
   for(const v of world.lootBoxes){if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
   aimCone.material.opacity=holding?.45:.15;rangeRing.material.opacity=holding?.35:.12;
-  const assisted=aiming?assistAim(position,aim,[...round.level.enemies,...round.level.nodes],playerSolids,weapon.rule,playerMoving):{target:null,direction:aim},displayAim=assisted.direction;
+  if(aiming){hotAimTargets.length=0;for(const e of round.level.enemies)hotAimTargets.push(e);for(const n of round.level.nodes)hotAimTargets.push(n);}else{hotNoAssist.direction=aim;}
+  const assisted=aiming?assistAim(position,aim,hotAimTargets,playerSolids,weapon.rule,playerMoving):hotNoAssist,displayAim=assisted.direction;
   lockMarker.visible=!!assisted.target;if(assisted.target)lockMarker.position.set(assisted.target.x,.08,assisted.target.z);
   for(const v of world.nodes)v.label.el.classList.toggle('locked',v.node===assisted.target);
+  // hot-ok: logCombat payload only once per recon-marked windup
   for(const v of world.enemies){const warning=hasPerk(round,'recon')&&v.enemy.health>0&&(v.enemy.windupAt!=null||v.enemy.attackPhase==='warning');v.label.el.classList.toggle('perk-recon',warning);if(warning&&v.enemy.reconAt!==v.enemy.windupAt){v.enemy.reconAt=v.enemy.windupAt;logCombat(round,{kind:'perk',perk:'recon',at:clock,sourceId:v.enemy.id,direction:v.enemy.attackTarget??{x:Math.sin(v.enemy.facing??0),z:Math.cos(v.enemy.facing??0)},text:`Recon: ${enemyName(v.enemy)} warning marked (${v.enemy.id}).`});}v.label.el.classList.toggle('locked',v.enemy===assisted.target);if(v.enemy===assisted.target)setIconText(v.label.caption,'aim',enemyStateText(v.enemy));}
   const manual=sticks[1].state.gesture?.target;
   aimLine.visible=!!manual&&!round.over;
   if(aimMagazine)aimMagazine.defeated=!manual||round.over;
   if(manual){const end=aimEndpoint(position,aim,weapon.rule.range,playerShotObstacles(position,playerSolids)),points=aimLine.geometry.attributes.position;points.setXYZ(0,position.x,.07,position.z);points.setXYZ(1,end.x,.07,end.z);points.needsUpdate=true;
+    // hot-ok: one-time lazy creation
     if(!aimMagazine)aimMagazine=makeLabel('',new THREE.Vector3(end.x,.2,end.z),'aim-magazine');
     aimMagazine.point.set(end.x,.2,end.z);aimMagazine.defeated=false;
+    if(aimMagazine._ammo!==weapon.ammo||aimMagazine._cap!==weapon.rule.capacity){aimMagazine._ammo=weapon.ammo;aimMagazine._cap=weapon.rule.capacity;
+    // hot-ok-begin: magazine pips are rebuilt only when ammo/capacity changes
     const key=`${weapon.ammo}/${weapon.rule.capacity}`;
     if(aimMagazine.el.dataset.magazine!==key){aimMagazine.el.dataset.magazine=key;aimMagazine.el.replaceChildren(...Array.from({length:weapon.rule.capacity},(_,i)=>{const pip=document.createElement('i');pip.className=i<weapon.ammo?'loaded':'';return pip;}));aimMagazine.el.setAttribute('aria-label',`Magazine ${key}`);}
+    } // hot-ok-end
   }
   const smoothAim=stepAim(sticks[1].state.gesture,dt);
   const facing=facingDirection(holding,walkDirection,manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim);
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
-  human?.update(dt,{moving:playerMoving&&!round.over,dashing:dash.remaining>0&&!round.over,dead:round.health<=0,aiming:holding,walkYaw:Math.atan2(walkDirection.x,walkDirection.z),aimYaw});
+  if(human){const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;human.update(dt,o);}
   if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);
-  operatorFX.update(dt,{dashing:dash.remaining>0&&!round.over,x:position.x,z:position.z,low:QUALITY==='low'});
+  {const o=hotFxOpts;o.dashing=dash.remaining>0&&!round.over;o.x=position.x;o.z=position.z;o.low=QUALITY==='low';operatorFX.update(dt,o);}
   pixelFeedback.sync(round,world,position,clock,pixelDemo?Math.min(realDt,.1):dt);
   rangeRing.visible=aiming;rangeRing.position.set(position.x,.06,position.z);rangeRing.scale.setScalar(weapon.rule.range/RULES.weapon.range);aimCone.visible=aiming&&!playerMoving;
   if(aiming){
     const footprint=assistPreview(position,aim,playerSolids,weapon.rule,playerMoving);
-    let count=0;for(let i=1;i<footprint.length-1;i++)for(const p of [footprint[0],footprint[i],footprint[i+1]]){
-      coneVertices[count++]=p.x;coneVertices[count++]=.065;coneVertices[count++]=p.z;
+    let count=0;const f0=footprint[0];for(let i=1;i<footprint.length-1;i++){const a=footprint[i],b=footprint[i+1];
+      coneVertices[count++]=f0.x;coneVertices[count++]=.065;coneVertices[count++]=f0.z;
+      coneVertices[count++]=a.x;coneVertices[count++]=.065;coneVertices[count++]=a.z;
+      coneVertices[count++]=b.x;coneVertices[count++]=.065;coneVertices[count++]=b.z;
     }
     coneGeometry.attributes.position.needsUpdate=true;coneGeometry.setDrawRange(0,count/3);
   }
-  target.lerp(new THREE.Vector3(position.x,0,position.z+RAID_CAMERA.targetOffsetZ),1-Math.exp(-dt*RAID_CAMERA.followRate));camera.position.copy(target).add(cameraOffset);
+  target.lerp(hotCamGoal.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ),1-Math.exp(-dt*RAID_CAMERA.followRate));camera.position.copy(target).add(cameraOffset);
   const shake=shakeOffset(now);if(shake){camera.position.x+=shake.x;camera.position.z+=shake.z;}
   camera.lookAt(target);camera.updateMatrixWorld();
   if(!round.over&&clock>=visibilityCheckAt){
     visibilityCheckAt=clock+100;visibilityPoint.set(position.x,.65,position.z).sub(camera.position);
-    visibilityRay.set(camera.position,visibilityPoint.clone().normalize());visibilityRay.far=visibilityPoint.length()-.08;
-    const occluded=visibilityRay.intersectObject(world.group,true).some(hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:[hit.object.material]).some(m=>m.depthWrite&&m.visible));
+    visibilityRay.set(camera.position,hotRayDir.copy(visibilityPoint).normalize());visibilityRay.far=visibilityPoint.length()-.08;
+    const occluded=visibilityRay.intersectObject(world.group,true).some( // hot-ok: throttled to 10 Hz; raycast result array is three-owned
+hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:[hit.object.material]).some(m=>m.depthWrite&&m.visible));
     playerOutline.visible=!human&&occluded;human?.setOccluded(occluded,cssTokens.getPropertyValue('--ad-cyan').trim());
   }
   for(const cross of healCrosses){
     cross.group.visible=bit.healing&&round.health<100&&!round.over&&!resultPending;
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
   }
-  sun.position.copy(target).add(new THREE.Vector3(-8,18,10));sun.target.position.copy(target);
+  sun.position.copy(target).add(SUN_OFFSET);sun.target.position.copy(target);
   world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
