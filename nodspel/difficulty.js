@@ -3,7 +3,7 @@
 // default is neutral -- a no-op -- matching the knob table in docs/difficulty-bots.md §3.
 // The live game does not call this yet (it lands with the DDA PR, docs/difficulty-bots.md §5.4);
 // today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
-import {RULES,randomFromSeed} from './levels.js?v=2.23.0';
+import {RULES,randomFromSeed} from './levels.js?v=2.25.0';
 
 export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1});
 

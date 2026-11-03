@@ -2,11 +2,12 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.23.0';
+import {rngFrom} from './art.js?v=2.25.0';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.23.0';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.23.0';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.25.0';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.25.0';
+import {createWaterMesh} from './water-shader.js?v=2.25.0';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -89,9 +90,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   clearPassageProps(level,out.passages);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
-  const water=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({color:P.water,roughness:.25,metalness:.35,transparent:true,opacity:.92}));
-  water.rotation.x=-Math.PI/2;water.position.set(cx,-.35,cz);water.receiveShadow=true;water.name='water';group.add(water);
-  const deep=new THREE.Mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshBasicMaterial({color:P.waterDeep}));deep.rotation.x=-Math.PI/2;deep.position.set(cx,-1.2,cz);group.add(deep);
+  // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
+  const shoreRects=level.floors.map(f=>f.dir?{x:f.x,z:f.z,w:f.w,d:f.d}:{x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6});
+  const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
+  water.name='water';group.add(water);
   const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
   for(const f of level.floors){
     if(f.dir){ // pier: planks + posts

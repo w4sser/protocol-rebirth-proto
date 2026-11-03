@@ -1,10 +1,10 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.23.0';
-import {generateBigLevel} from './big-level.js?v=2.23.0';
-import '../data/items.js?v=2.23.0';
-import {clearPassageProps} from './archipelago-passages.js?v=2.23.0';
-import {townizeLevel} from './town-layout.js?v=2.23.0';
-import {applyEncounters} from './encounters.js?v=2.23.0';
-import '../data/raid-combat.js?v=2.23.0';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.25.0';
+import {generateBigLevel} from './big-level.js?v=2.25.0';
+import '../data/items.js?v=2.25.0';
+import {clearPassageProps} from './archipelago-passages.js?v=2.25.0';
+import {townizeLevel} from './town-layout.js?v=2.25.0';
+import {applyEncounters} from './encounters.js?v=2.25.0';
+import '../data/raid-combat.js?v=2.25.0';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -15,7 +15,7 @@ export const RULES=Object.freeze({
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
-    // v2.23.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
+    // v2.25.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
     // extracted 94-100%. L2/L3 now hit harder (26 dmg vs the 22 default) and fire faster (1260/1200ms).
     // Older note: L2/L3 previously fell back to the global
     // RULES.combat defaults (22 dmg, 1400/1350ms cooldown) with no level-specific floor of their own,
@@ -37,10 +37,6 @@ export const RULES=Object.freeze({
     // problems per area, indexed by level (L1 one, L2 one + regular enemies, L3 two)
     plan:{bunker:[['patrol'],['guard'],['swarm','shield']],archipelago:[['patrol'],['grenadier'],['swarm','shield']],town:[['patrol'],['turret'],['door','shield']]},
     // Core guard: stands by the node behind a front shield and turns slowly. Shots only count from behind / the side.
-    // v2.23.0 baseline retune (docs/difficulty-bots.md §5): fewer/lighter burst shots and a longer
-    // recovery window -- a player (or bot) still eating full-frontal bursts over and over survives
-    // longer while working toward a flank, instead of the front shield's "learn to flank" puzzle
-    // reading as a flat, fast kill against anyone who has not already solved it.
     guard:{health:2,speed:1.4,distance:2.1,frontHalfAngleDeg:70,fireHalfAngleDeg:55,turnRadPerSec:.7,warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,damagePct:.1,counterOnHit:false},
     // Grenade thrower: stops ~5 m out, shows a coral ring on the floor where it will lob (warningMs >= 1 s), then the blast
     // lands fuseMs later. Same ring / fuse / reach as the player's Grenade (RULES.tools.defs.tool_grenade; a test pins them).

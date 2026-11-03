@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bug-regression lint (v2.22.5). Convention: every bug fix adds a rule here or a test (docs/bug-lint.md).
+// Bug-regression lint (v2.24.0). Convention: every bug fix adds a rule here or a test (docs/bug-lint.md).
 // Each rule names the PR/bug it guards. Rules are static checks over tracked files: cheap, no browser.
 // Run: node scripts/bug-lint.mjs   (part of npm test via test:bug-lint)
 import fs from 'node:fs';import path from 'node:path';import {execSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
