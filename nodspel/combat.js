@@ -1,14 +1,14 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.22.4';
-import {audioEvent} from './audio.js?v=2.22.4';
-import {ownRooms} from './perks.js?v=2.22.4';
-import {RULES,hazardState} from './levels.js?v=2.22.4';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.22.4';
-import {takeDamage,tickRound} from './round.js?v=2.22.4';
-import {houseWaypoint} from './house.js?v=2.22.4';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.22.4';
-import {detectionMultiplier} from './stakes.js?v=2.22.4';
-import {dashInvulnerable} from './dash.js?v=2.22.4';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.22.5';
+import {audioEvent} from './audio.js?v=2.22.5';
+import {ownRooms} from './perks.js?v=2.22.5';
+import {RULES,hazardState} from './levels.js?v=2.22.5';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.22.5';
+import {takeDamage,tickRound} from './round.js?v=2.22.5';
+import {houseWaypoint} from './house.js?v=2.22.5';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.22.5';
+import {detectionMultiplier} from './stakes.js?v=2.22.5';
+import {dashInvulnerable} from './dash.js?v=2.22.5';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -16,7 +16,7 @@ export function createCombat(level,now){
   const grace=level.firstGraceMs??RULES.combat.graceMs;
   return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],blasts:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
 }
-// v2.22.4 hot-path scratch (reused every tick; traceTargets/moveWithActors only read them).
+// v2.22.5 hot-path scratch (reused every tick; traceTargets/moveWithActors only read them).
 const hotPlayerBefore={x:0,z:0},NO_DELTA=Object.freeze({x:0,z:0}),hotPlayerTarget={x:0,z:0,r:.36,kind:'player'},targetList=[hotPlayerTarget];
 const hotShotEnd={x:0,z:0},ENEMY_SHOT_AUDIO=Object.freeze({enemy:true}),coverList=[],coverBoxes=[];
 function anyNearMissAggro(enemies){for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e.aggro&&e.nearMissAt!=null)return true;}return false;}

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.22.4';
-import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.22.4';
-import {RULES} from '../levels.js?v=2.22.4';
-import {STAKES} from '../stakes.js?v=2.22.4';
-import {createPixelFeedback} from '../fx-feedback.js?v=2.22.4';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.22.5';
+import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.22.5';
+import {RULES} from '../levels.js?v=2.22.5';
+import {STAKES} from '../stakes.js?v=2.22.5';
+import {createPixelFeedback} from '../fx-feedback.js?v=2.22.5';
 
 function setup(attempt=0){
   const r=createRound('ftue-clutch',0);
