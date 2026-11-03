@@ -13,7 +13,7 @@
 // enterable house (town-only), and archipelago/town area variants.
 import {
   createRound,tickRound,enterExit,exitIsOpen,collectLoot,stepDoors,stepNodeInteraction,
-  useHealthKit,healthKitBlock,doorSolids,initEquip,
+  useHealthKit,healthKitBlock,doorSolids,initEquip,extractRound,
 } from '../../nodspel/round.js';
 import {createCombat,stepCombat,stepHazards} from '../../nodspel/combat.js';
 import {createWeapon,fireAimedWeapon,stepWeapon,playerDisplaced} from '../../nodspel/weapon.js';
@@ -34,12 +34,16 @@ export const DT=1/30;
 // that is still running this long has to be a sim bug, not a real outcome, so we stop and flag it.
 const MAX_RAID_MS=11*60*1000;
 
-// Skill tiers (docs/difficulty-bots.md §4.2): aim error, reaction delay, and whether the bot kites
-// (backs off to hold range) or uses the Dash ability to escape when low on health.
+// Skill tiers (docs/difficulty-bots.md §4.2): aim error, reaction delay, whether the bot kites
+// (backs off to hold range) or uses the Dash ability to escape when low on health, whether it
+// sidesteps a telegraphed shot (§6 "Known sim gaps" -- a simple mitigation, not real cover-seeking:
+// strong/avg dodge perpendicular to the enemy's locked aim line while it is winding up; weak does
+// not), and extractHpThreshold -- the HP ratio at a level exit below which the bot bails (voluntary
+// extract) instead of pushing deeper, same signal a cautious real player reads off their own health bar.
 export const TIERS=Object.freeze({
-  strong:{aimErrDeg:0,reactMs:100,kite:true,dash:true,medkitThreshold:.40},
-  avg:{aimErrDeg:8,reactMs:300,kite:true,dash:false,medkitThreshold:.30},
-  weak:{aimErrDeg:18,reactMs:600,kite:false,dash:false,medkitThreshold:.20},
+  strong:{aimErrDeg:0,reactMs:100,kite:true,dash:true,medkitThreshold:.40,telegraphSidestep:true,extractHpThreshold:.15},
+  avg:{aimErrDeg:8,reactMs:300,kite:true,dash:false,medkitThreshold:.30,telegraphSidestep:true,extractHpThreshold:.25},
+  weak:{aimErrDeg:18,reactMs:600,kite:false,dash:false,medkitThreshold:.20,telegraphSidestep:false,extractHpThreshold:.35},
 });
 
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -150,8 +154,15 @@ function aimWithError(position,target,aimErrDeg,rng){
 
 // Run one raid to completion (death/timeout/abandon) or extraction and return its metrics.
 // ftueAttempt (0,1,2) plays the FTUE raid at that attempt's assist ramp (data/raid-ftue.js); null
-// plays a normal (non-FTUE) raid that pushes from level 1 through level 3.
-export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null}){
+// plays a normal (non-FTUE) raid. targetDepth (1,2,3), docs/difficulty-bots.md §4.2/§5: a "depth N
+// raid" -- the bot pushes levels 1..N and voluntarily extracts (round.js extractRound(), the same
+// Continue/Extract choice the real Extract-raid button offers at every non-final level exit, see
+// game.mjs's '#extract-raid' handler) right after clearing level N, instead of always pushing to
+// level 3. Leave targetDepth null to push all the way through (extract only via levelsCleared===3
+// 'complete'), the legacy behaviour kept for the unconditioned sim-bot smoke test. Independent of
+// targetDepth, the bot also bails at ANY level exit once its HP ratio is below the tier's
+// extractHpThreshold -- a cautious player reading their own health bar, not a depth goal.
+export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null,targetDepth=null}){
   const cfg=TIERS[tier];if(!cfg)throw new Error(`unknown difficulty tier: ${tier}`);
   const round=createRound(seed,0);
   // FTUE raids never take the difficulty knobs (docs/difficulty-bots.md §3: "never applies during
@@ -164,6 +175,10 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null}){
   const dash=createDash();
   let position={...round.level.start};
   const bot=makeBot(tier,`${seed}:${ftueAttempt??'normal'}`);
+  // Overrides levelReached when a voluntary extract fires right after clearing a level's exit:
+  // round.level has already advanced to the NEXT level at that point (round.js enterExit), so the
+  // depth actually played is round.levelsCleared, not round.level.number (see runRaid's return below).
+  let depthPlayed=null;
   const dtMs=dt*1000,maxTicks=Math.ceil(MAX_RAID_MS/dtMs);
   let prevKills=0,endMs=0,tick=0;
   for(;tick<maxTicks;tick++){
@@ -233,13 +248,28 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null}){
       const speed=round.stats.speed;
       if(dash.remaining===0)position=moveWithActors(position,{x:dir.x*speed*dt,z:dir.z*speed*dt},round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);
     }else if(dash.remaining===0){
-      // Holding range on a kiting tier still strafes (alternating side every ~800 ms) instead of
-      // standing dead still -- a stationary gun is an easy telegraph read for the enemy's own aim.
+      // Holding range on a kiting tier still moves (sidestep or orbit below) instead of standing
+      // dead still -- a stationary gun is an easy telegraph read for the enemy's own aim.
       let delta={x:0,z:0};
-      if(holdRange&&cfg.kite&&target){
-        if(now>=(bot.strafeUntil??0)){bot.strafeSign=bot.rng()<.5?1:-1;bot.strafeUntil=now+800;}
+      if(holdRange&&target&&cfg.telegraphSidestep&&target.windupAt!=null){
+        // Telegraph-sidestep (docs/difficulty-bots.md §6/§7): while the target is winding up, dodge
+        // perpendicular to its locked aim line (enemy.attackTarget, set once at windup start) at full
+        // speed instead of the slower strafe below -- a simple stand-in for a player ducking a
+        // telegraphed shot, not real cover-seeking. One side is picked per telegraph instance (keyed
+        // on the enemy id + its windupAt timestamp) so the bot commits instead of jittering.
+        const dodgeKey=`${target.id}:${target.windupAt}`;
+        if(bot.dodgeKey!==dodgeKey){bot.dodgeKey=dodgeKey;bot.dodgeSign=bot.rng()<.5?1:-1;}
+        const aimAt=target.attackTarget??position;
+        const line=norm(aimAt.x-target.x,aimAt.z-target.z);
+        delta={x:-line.z*bot.dodgeSign*round.stats.speed*dt,z:line.x*bot.dodgeSign*round.stats.speed*dt};
+      }else if(holdRange&&cfg.kite&&target){
+        // One strafe direction per target engagement (re-rolled only when the target changes, not on
+        // a timer): a direction held long enough actually orbits a stationary/slow-turning enemy
+        // (e.g. a front-shield guard, turnRadPerSec .7) around to its exposed side/back, where an
+        // alternating left-right wiggle never travels far enough to get there.
+        if(bot.strafeTargetId!==target.id&&now>=(bot.strafeMinUntil??0)){bot.strafeTargetId=target.id;bot.strafeSign=bot.rng()<.5?1:-1;bot.strafeMinUntil=now+3000;}
         const toTarget=norm(target.x-position.x,target.z-position.z);
-        delta={x:-toTarget.z*bot.strafeSign*round.stats.speed*.5*dt,z:toTarget.x*bot.strafeSign*round.stats.speed*.5*dt};
+        delta={x:-toTarget.z*bot.strafeSign*round.stats.speed*dt,z:toTarget.x*bot.strafeSign*round.stats.speed*dt};
       }
       position=moveWithActors(position,delta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);
     }
@@ -282,6 +312,13 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null}){
     }
     const result=enterExit(round,position,now);
     if(result==='next'){
+      // Voluntary extract decision (docs/difficulty-bots.md §4.2/§5): reached the target depth, or
+      // hurt enough to bail regardless of depth -- the same Continue/Extract choice a real player
+      // gets at this exit (game.mjs '#extract-raid'). ftueAttempt!=null never reaches here (the FTUE
+      // raid's own clutch extraction is handled inside enterExit/round.js, not this policy).
+      const hpRatio=round.health/round.maxHealth;
+      const shouldExtract=ftueAttempt==null&&((targetDepth!=null&&round.levelsCleared>=targetDepth)||hpRatio<cfg.extractHpThreshold);
+      if(shouldExtract&&extractRound(round,now)){depthPlayed=round.levelsCleared;endMs=now;break;}
       if(knobs&&ftueAttempt==null)applyDifficulty(round.level,knobs);
       combat=createCombat(round.level,now);bot.firstSeen.clear();bot.stuckTicks=0;bot.sideUntil=-Infinity;bot.route=null;
       bot.targetId=null;bot.targetMisses=0;bot.targetReevalAt=0;
@@ -294,8 +331,9 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null}){
     survived:round.reason!=='death',extracted,died:round.reason==='death'?1:0,
     timeToExtractSec:extracted?endMs/1000:null,
     damageTakenPct:Math.min(100,round.telemetry.damageTaken/round.maxHealth*100),
-    levelReached:round.level.number,levelsCleared:round.levelsCleared,
+    levelReached:depthPlayed??round.level.number,levelsCleared:round.levelsCleared,
     kills:bot.kills.length,ttkSecList:bot.kills.map(ms=>ms/1000),
+    medkitsUsed:round.telemetry.medkitsUsed,
     timedOut:tick>=maxTicks,
   };
 }

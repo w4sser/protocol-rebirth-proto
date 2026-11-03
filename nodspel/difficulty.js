@@ -5,10 +5,12 @@
 // today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
 import {RULES,randomFromSeed} from './levels.js?v=2.23.0';
 
-export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1});
+export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1});
 
-// hp/dmg bounds from docs/difficulty-bots.md §3; count is a per-room delta, not a multiplier.
-export const KNOB_BOUNDS=Object.freeze({hp:[.85,1.2],dmg:[.8,1.15],count:[-1,1],aggro:[.85,1.15]});
+// hp/dmg/aggro/cadence bounds from docs/difficulty-bots.md §3; count is a per-room delta, not a
+// multiplier. cadence multiplies enemyCooldownMs directly, so above 1 is SLOWER fire (easier) and
+// below 1 is FASTER fire (harder) -- the opposite sense of hp/dmg/aggro/count, where above 1 is harder.
+export const KNOB_BOUNDS=Object.freeze({hp:[.85,1.2],dmg:[.8,1.15],count:[-1,1],aggro:[.85,1.15],cadence:[.9,1.15]});
 
 export function applyDifficulty(level,knobs={}){
   const k={...NEUTRAL_KNOBS,...knobs};
@@ -17,10 +19,15 @@ export function applyDifficulty(level,knobs={}){
     level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*k.dmg);
     level.dmgMul=(level.dmgMul??1)*k.dmg;
   }
-  // aggro/alert radius has no per-level field to scale yet (stepCombat/sightRange read the global
-  // RULES.combat.detectRange and RULES.encounters[type].coneRange) -- stored for the combat.js wiring
-  // the DDA PR adds; a neutral aggro is still a true no-op today.
+  // aggro: multiplies the detection/sight range stepCombat's seen-check and patrolSight's cone use
+  // (encounters.js inSightCone, combat.js's detectRange check both read level.aggroMul); a neutral
+  // aggro is still a true no-op since both default the multiplier to 1 when unset.
   if(k.aggro!==1)level.aggroMul=k.aggro;
+  // cadence: scales the fallback fire-rate cooldown the same way k.dmg scales the fallback damage
+  // (combat.js reads enemy.cooldownMs ?? level.enemyCooldownMs ?? RULES.combat.cooldownMs); enemies
+  // with their own per-type cooldownMs/encounter recovery timer are outside this knob's reach, same
+  // scope limitation k.dmg already has against encounter-specific damagePct values.
+  if(k.cadence!==1)level.enemyCooldownMs=Math.round((level.enemyCooldownMs??RULES.combat.cooldownMs)*k.cadence);
   if(k.count)adjustEnemyCount(level,k.count);
   return level;
 }

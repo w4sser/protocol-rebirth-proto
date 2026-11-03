@@ -18,6 +18,8 @@ import * as THREE from './vendor/three.module.js';
 import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.23.0';
 import {loadBunkerAssets} from './bunker.js?v=2.23.0';
 import {setArea,setHard,isHard,setQuestLoot,setLevelMode} from './levels.js?v=2.23.0';
+import {applyDifficulty} from './difficulty.js?v=2.23.0';
+import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.23.0';
 import {nextPickupHint,hintText} from './item-hints.js?v=2.23.0';
 import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.23.0';
 import {createRobotSocket} from './operator-gear.js?v=2.23.0';
@@ -789,6 +791,10 @@ function loadLevelInner(){
   $('#level-corner').hidden=false;
   prewarmShaders();
 }
+// Per-player adaptive difficulty (docs/difficulty-bots.md §3). Loaded once; applied at raid
+// generation only (never mid-fight) and never during FTUE/intro -- see ddaEligible() below.
+let ddaState=loadDdaState(localStorage);
+const ddaEligible=()=>!launch.ftue&&!launch.intro;
 function reset(requestedSeed){
   human?.reset();operatorFX.reset();
   perkUI.close();perkResume.hidden=true;perkKey=null;perkChoosing=false;
@@ -799,7 +805,7 @@ function reset(requestedSeed){
   // latestResult=null;
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
-  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
+  round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro)notice(RULES.intro.tip,6000);
   if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
@@ -811,6 +817,23 @@ function finishRound(outcome=round.reason){
   if(!$('#round-over').hidden&&!resultPending)return;
   resultPending=outcome==='extraction'&&!round.over;
   if(round.over)audioEvent('result',{success:['extract','complete'].includes(round.reason)});
+  // DDA signal (docs/difficulty-bots.md §3): recorded once per finished raid, never for FTUE/intro.
+  // enemiesDefeated/elapsed time stands in for the sim's per-kill TTK -- the real raid has no
+  // per-kill timestamp instrumentation, so this is a coarse average, not the sim's precise figure.
+  if(round.over&&!round.ddaRecorded&&ddaEligible()){
+    round.ddaRecorded=true;
+    const extracted=['extract','complete'].includes(round.reason),elapsedMs=round.durationMs-round.remainingMs;
+    ddaState=recordDdaRaid(ddaState,{
+      depth:Math.max(1,round.levelsCleared||round.level.number||1),
+      outcome:extracted?1:0,death:round.reason==='death',
+      damagePct:Math.min(100,round.telemetry.damageTaken/round.maxHealth*100),
+      ttkSec:round.enemiesDefeated>0?elapsedMs/round.enemiesDefeated/1000:undefined,
+      timeToExtractSec:extracted?elapsedMs/1000:undefined,
+      medkitsUsed:round.telemetry.medkitsUsed??0,
+      clutch:extracted&&round.health/round.maxHealth<.15,
+    },Date.now());
+    saveDdaState(ddaState,localStorage);
+  }
   // FTUE raid (docs/ftue-design.md): a death/timeout/abandon retries straight into the FTUE raid in
   // place -- no base detour, no round-over screen. Only the attempt counter is bumped; assist ramps
   // land in a later release. The retry keeps launch.seed (not a fresh random one): handoffRaidResult
@@ -1500,6 +1523,7 @@ function frameInner(now){
       }
     }
     const result=enterExit(round,position,clock);
+    if(result==='next'&&ddaEligible())applyDifficulty(round.level,ddaState.knobs);
     if(result&&result!=='perk')finishRound('extraction');
     else {const key=pickReady(round,combat,position,clock,hazardState,lootReadoutVisible());if(key){if(launch.ftue)autoPickPerks(round,clock,dash);else openPerk(key);}}
   }

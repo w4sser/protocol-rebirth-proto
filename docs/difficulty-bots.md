@@ -140,3 +140,88 @@ Differences from the live game (`nodspel/game.mjs`), in order of how much they m
 2. **Softer return after a lapse.** If >3 days since last raid, nudge the skill estimate toward easier (s := min(s, s*0.5 - 0.2)) and use double step size for the next 2 raids (faster convergence).
 3. Targets in §2 approved as written.
 4. Build both: headless sim bots (3 tiers) + tuner, then the DDA system, then tune the baseline. Small PRs.
+
+## 8. v2.23.0 results: extract policy, baseline retune, DDA, convergence (2026-11-03)
+Every number here is copied from tool output: `tools/difficulty-bots/baseline.mjs` (n=50 seeds per tier, neutral knobs,
+raw JSON in `baseline-before.json` / `baseline-after.json`) and `converge.mjs --seeds 20 --raids 10 --depth 2`
+(`convergence-L2.txt`). The sim bot now extracts voluntarily (a depth-N raid plays levels 1..N, then extracts), so extract% is meaningful.
+
+### Baseline BEFORE retune (n=50)
+| tier | raid/depth | n reached | survival | extract | median TTE (s) | mean damage |
+|---|---|---|---|---|---|---|
+| strong | L1 | 50 | 100% | 100% | 6.1 | 0% |
+| strong | L2 | 50 | 14% | 0% | - | 88.2% |
+| strong | L3 | 1 | 0% | 0% | - | 100% |
+| strong | FTUE1 | 50 | 100% | 100% | 6 | 0% |
+| strong | FTUE2 | 50 | 100% | 100% | 5.8 | 0% |
+| strong | FTUE3 | 50 | 100% | 100% | 5.6 | 0% |
+| avg | L1 | 50 | 100% | 100% | 5.9 | 0.2% |
+| avg | L2 | 50 | 10% | 0% | - | 92.2% |
+| avg | L3 | 0 | -% | -% | - | -% |
+| avg | FTUE1 | 50 | 100% | 100% | 6.6 | 0% |
+| avg | FTUE2 | 50 | 100% | 100% | 6.6 | 0% |
+| avg | FTUE3 | 50 | 100% | 100% | 6.1 | 0% |
+| weak | L1 | 50 | 100% | 100% | 5.7 | 0% |
+| weak | L2 | 50 | 4% | 0% | - | 96% |
+| weak | L3 | 0 | -% | -% | - | -% |
+| weak | FTUE1 | 50 | 100% | 100% | 6.7 | 0% |
+| weak | FTUE2 | 50 | 100% | 100% | 6.7 | 0% |
+| weak | FTUE3 | 50 | 100% | 100% | 6.3 | 0% |
+
+### Baseline AFTER retune (n=50)
+| tier | raid/depth | n reached | survival | extract | median TTE (s) | mean damage |
+|---|---|---|---|---|---|---|
+| strong | L1 | 50 | 100% | 100% | 6.1 | 0% |
+| strong | L2 | 50 | 18% | 0% | - | 86.3% |
+| strong | L3 | 0 | -% | -% | - | -% |
+| strong | FTUE1 | 50 | 100% | 100% | 6 | 0% |
+| strong | FTUE2 | 50 | 100% | 100% | 5.8 | 0% |
+| strong | FTUE3 | 50 | 100% | 100% | 5.6 | 0% |
+| avg | L1 | 50 | 100% | 100% | 5.9 | 0.2% |
+| avg | L2 | 50 | 18% | 2% | 135.4 | 91.5% |
+| avg | L3 | 2 | 100% | 50% | 75.6 | 63% |
+| avg | FTUE1 | 50 | 100% | 100% | 6.6 | 0% |
+| avg | FTUE2 | 50 | 100% | 100% | 6.6 | 0% |
+| avg | FTUE3 | 50 | 100% | 100% | 6.1 | 0% |
+| weak | L1 | 50 | 100% | 100% | 5.7 | 0% |
+| weak | L2 | 50 | 4% | 0% | - | 96% |
+| weak | L3 | 0 | -% | -% | - | -% |
+| weak | FTUE1 | 50 | 100% | 100% | 6.7 | 0% |
+| weak | FTUE2 | 50 | 100% | 100% | 6.7 | 0% |
+| weak | FTUE3 | 50 | 100% | 100% | 6.3 | 0% |
+
+### Tuning changes (data only)
+| field | old | new |
+|---|---|---|
+| L2 enemyCooldownMs | 1400 (RULES.combat default) | 1700 |
+| L2 enemyDamage | 22 (RULES.combat default) | 14 |
+| L3 enemyCooldownMs | 1350 | 1500 |
+| L3 enemyDamage | 22 (RULES.combat default) | 16 |
+| guard burstShots | 3 | 2 |
+| guard recoveryMs | 1600 | 2200 |
+| guard damagePct | 0.10 | 0.07 |
+
+**Targets not met.** FTUE and L1 meet/exceed targets for every tier. L2 is still a wall for the sim bot (avg 18% survival /
+2% extract vs the 70/60 target); L3 is barely reached (avg n=2). The retune moved L2 survival strong 14->18%, avg 10->18%,
+weak 4->4%. The remaining gap is most likely the sim bot itself (§6: no cover, no dodging), so this
+PR does not retune further against it. Retuning harder to hit 70% on L2 would probably make the game far too easy for real players.
+
+### DDA (nodspel/dda.js)
+Implemented per §3/§7: EMA α=0.3 over the last 5 raids, one bounded step per raid, needs 2 same-direction signals,
+drifts to neutral after 3 in-band raids, a death eases the next raid by up to one step, off during FTUE/intro, no UI. Applied only
+at raid generation (game.mjs reset() via applyDifficulty). Loot multiplier stays within 1.0-1.2. Lapse >3 days -> one step
+easier. Storage: `localStorage pr_dda_v1`, falls back to defaults on corrupt data. New knob `cadence` (enemy cooldown multiplier,
+bounds 0.9-1.15) and `aggro` is now wired into detection/sight range.
+
+### Convergence (depth L2, 20 simulated players x 10 raids, rolling-5 extract%)
+| tier | raid 1 | raid 6 | raid 10 | in 65-75% by raid 6 |
+|---|---|---|---|---|
+| strong | 0% | 0% | 1% | no |
+| avg | 5% | 4% | 2% | no |
+| weak | 0% | 1% | 1% | no |
+
+Knob clipping (share of raids where the knob was pinned at a bound): cadence 76.5-80%, aggro 46.5-50%, hp 16.5-20%,
+dmg 0%, count 0%. **DDA does not converge on L2 for the sim bot.** It moves to its easy bounds, which is the right direction,
+but even all of §3's easiest bounds can't close a gap from about 2% to 70%. It is unclear why dmg never clips (it has the
+widest easy range, 0.8); the step ordering in dda.js should be checked next. Follow-ups: give the sim bot cover/dodging (§6), then re-measure and decide
+whether L2 needs a deeper data retune or wider DDA bounds.

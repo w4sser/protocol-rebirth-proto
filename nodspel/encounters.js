@@ -43,7 +43,7 @@ export function inSightCone(enemy,point,range,halfAngleDeg){
   return d<=range&&(d<1e-6||angleDiff(enemy.facing??0,angleTo(enemy,point))<=halfAngleDeg*PI/180);
 }
 // Stealth shrinks the cone, a full bag grows it (bag weight, data/raid-stakes.js).
-export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round);
+export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round)*(round?.level?.aggroMul??1);
 export const encountersOf=level=>level?.intro?[]:(level?.encounters??[]);
 export const hintFor=type=>RULES.encounters.hints[type]??null;
 // Weapon-only positional bonus, evaluated before the hit wakes the target.

@@ -61,7 +61,7 @@ ld,obstacles,player,dt);
     // Patrol: unaware until the sight cone catches the player (a 1 s "!" first) or it is shot.
     if(enemy.patrol&&!enemy.introGuard&&!enemy.aggro&&enemy.health>0)patrolSight(round,enemy,player,now,obstacles,target);
     // Detection: stealth shrinks the range at which an enemy notices you, a full bag grows it (bag weight, data/raid-stakes.js). Once noticed (or shot) it stays aggro.
-    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0))*detectionMultiplier(round);
+    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0))*detectionMultiplier(round)*(round.level?.aggroMul??1);
     if(seen||enemy.lastHitAt!=null||enemy.nearMissAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'||isShieldTurret(enemy)){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}

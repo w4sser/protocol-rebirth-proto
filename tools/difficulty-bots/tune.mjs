@@ -78,13 +78,18 @@ function raidSegment(raids){
 }
 
 // Runs every segment for one tier: FTUE raid 1/2/3 (3 independent samples per seed, one per attempt
-// index) and normal-raid depth L1/L2/L3 (one raid per seed, derived as above). Knobs never reach
-// the FTUE raids.
+// index) and normal-raid depth L1/L2/L3. Each depth is its own "depth N raid" campaign (sim.mjs
+// runRaid's targetDepth, docs/difficulty-bots.md §4.2/§5): n independent seeds that push levels
+// 1..N and voluntarily extract right after clearing N (or bail earlier on low HP), so extract% is
+// the real game's definition of extraction at that depth, not just the two ways a push-to-L3 raid
+// can end ('complete' at L3 or a mid-raid death). Knobs never reach the FTUE raids.
 export function runTier(tier,n,knobs=null){
-  const normalSeeds=seedsFor(`${tier}-normal`,n);
-  const normalRaids=normalSeeds.map(seed=>runRaid({tier,seed,knobs}));
   const segments={};
-  for(const depth of [1,2,3])segments[`L${depth}`]=depthSegment(normalRaids,depth);
+  for(const depth of [1,2,3]){
+    const seeds=seedsFor(`${tier}-depth${depth}`,n);
+    const raids=seeds.map(seed=>runRaid({tier,seed,knobs,targetDepth:depth}));
+    segments[`L${depth}`]=depthSegment(raids,depth);
+  }
   for(let attempt=0;attempt<3;attempt++){
     const ftueSeeds=seedsFor(`${tier}-ftue${attempt}`,n);
     const ftueRaids=ftueSeeds.map(seed=>runRaid({tier,seed,ftueAttempt:attempt}));
