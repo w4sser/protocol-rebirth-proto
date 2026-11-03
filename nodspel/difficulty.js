@@ -10,7 +10,7 @@ export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1})
 // hp/dmg/aggro/cadence bounds from docs/difficulty-bots.md §3; count is a per-room delta, not a
 // multiplier. cadence multiplies enemyCooldownMs directly, so above 1 is SLOWER fire (easier) and
 // below 1 is FASTER fire (harder) -- the opposite sense of hp/dmg/aggro/count, where above 1 is harder.
-export const KNOB_BOUNDS=Object.freeze({hp:[.85,1.2],dmg:[.8,1.15],count:[-1,1],aggro:[.85,1.15],cadence:[.9,1.15]});
+export const KNOB_BOUNDS=Object.freeze({hp:[.85,1.8],dmg:[.8,1.3],count:[-1,2],aggro:[.85,1.3],cadence:[.85,1.15]});
 
 export function applyDifficulty(level,knobs={}){
   const k={...NEUTRAL_KNOBS,...knobs};

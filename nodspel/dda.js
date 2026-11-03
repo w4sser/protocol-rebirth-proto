@@ -17,6 +17,8 @@ const LAPSE_MS=3*24*60*60*1000;
 const IN_BAND_EPSILON=.12; // |s| below this counts as "in band" for the drift-to-neutral rule
 const IN_BAND_RAIDS=3; // §3: "moves back toward neutral after 3 raids in band"
 const CONSECUTIVE_NEEDED=2; // §3: "needs 2 consecutive signals in the same direction before it moves"
+const COUNT_HARDER_MIN_S=.35;
+const COUNT_HARDER_MIN_EXTRACT=.85; // ...and only while the player still extracts >=85% (EMA)
 const COUNT_RAID_INTERVAL=2; // §3: count steps "every 2 raids", slower than the other knobs
 
 // Step size per raid (docs/difficulty-bots.md §3 table) and spend priority: "spends the cheapest
@@ -26,10 +28,16 @@ const COUNT_RAID_INTERVAL=2; // §3: count steps "every 2 raids", slower than th
 const KNOB_ORDER=Object.freeze([
   {key:'cadence',step:.05,harder:-1},
   {key:'aggro',step:.05,harder:1},
-  {key:'hp',step:.05,harder:1},
-  {key:'dmg',step:.05,harder:1},
+  {key:'hp',step:.1,harder:1},
   {key:'count',step:1,harder:1},
+  {key:'dmg',step:.05,harder:1},
 ]);
+
+// Harder side (v2.23.0, docs/difficulty-bots.md §9): the fixed sim bots showed cadence/aggro/dmg barely move
+// strong/avg players (they win on aim and positioning), while one extra enemy and tougher enemies do. So
+// when stepping HARDER the DDA spends count and hp first, then aggro/cadence, and dmg last (dmg mainly
+// punishes weaker players). Easing keeps the original cheapest-invisible-first order.
+const HARDER_ORDER=Object.freeze(['count','hp','aggro','cadence','dmg'].map(k=>KNOB_ORDER.find(o=>o.key===k)));
 
 function boundsFor(knob){return KNOB_BOUNDS[knob];}
 
@@ -41,8 +49,8 @@ function boundsFor(knob){return KNOB_BOUNDS[knob];}
 // weight (0.15) of the four signals.
 export const DEPTH_BANDS=Object.freeze({
   1:{extractTarget:.70,damagePct:[30,60],timeSec:[120,240],ttkSec:5},
-  2:{extractTarget:.70,damagePct:[40,70],timeSec:[180,300],ttkSec:6},
-  3:{extractTarget:.70,damagePct:[50,80],timeSec:[240,420],ttkSec:7},
+  2:{extractTarget:.75,damagePct:[40,70],timeSec:[180,300],ttkSec:6},
+  3:{extractTarget:.75,damagePct:[50,80],timeSec:[240,420],ttkSec:7},
 });
 
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
@@ -116,9 +124,12 @@ export function checkLapse(state,now,storage){
 
 // `raidsSinceCountStep` gates the count knob's own, slower "every 2 raids" cadence (docs §3),
 // independent of whether cadence/aggro/hp/dmg stepped more recently.
-function pickKnobToStep(knobs,dirSign,raidsSinceCountStep){
-  for(const {key,step,harder} of KNOB_ORDER){
+function pickKnobToStep(knobs,dirSign,raidsSinceCountStep,s=0,outcomeEma=1){
+  for(const {key,step,harder} of dirSign>0?HARDER_ORDER:KNOB_ORDER){
     if(key==='count'&&raidsSinceCountStep<COUNT_RAID_INTERVAL)continue;
+    // An extra enemy is the biggest single jump; only add one for a clearly strong signal (bots that
+    // were barely above the band got one, then collapsed and oscillated).
+    if(key==='count'&&dirSign>0&&(s<COUNT_HARDER_MIN_S||outcomeEma<COUNT_HARDER_MIN_EXTRACT))continue;
     const [lo,hi]=boundsFor(key),delta=dirSign*harder*step,next=clamp(knobs[key]+delta,lo,hi);
     if(Math.abs(next-knobs[key])>1e-9)return {key,next};
   }
@@ -160,7 +171,7 @@ export function recordRaid(state,signal,now){
     // gate, but still only one step, still respecting priority order and bounds.
     stepped=pickKnobToStep(knobs,-1,raidsSinceCountStep);
   }else if(rawDir!==0&&consecutive>=CONSECUTIVE_NEEDED){
-    stepped=pickKnobToStep(knobs,rawDir,raidsSinceCountStep);
+    stepped=pickKnobToStep(knobs,rawDir,raidsSinceCountStep,s,emaOf(history,'outcome')??1);
   }else if(rawDir===0&&inBandRaids>=IN_BAND_RAIDS){
     stepped=pickKnobToDrift(knobs);
   }
@@ -178,8 +189,15 @@ export function recordRaid(state,signal,now){
   };
 }
 
-// Loot scaling (docs §7 decision 1): up to +20% above neutral for a struggling player (negative
-// skill estimate), never below 1.0 -- weak players are never punished with less loot.
+// Loot scaling (docs §7 decision 1): proportional to how far the DDA knobs sit on the HARDER side of
+// neutral, up to +20% when every knob is at its hard bound. Never below 1.0 -- easing never costs loot.
 export function lootMultiplier(state){
-  return 1+.2*clamp(-(state?.s??0),0,1);
+  const knobs=state?.knobs;if(!knobs)return 1;
+  let sum=0,n=0;
+  for(const {key,harder} of KNOB_ORDER){
+    const v=knobs[key];if(!Number.isFinite(v))continue;
+    const [lo,hi]=boundsFor(key),neutral=NEUTRAL_KNOBS[key],bound=harder>0?hi:lo;
+    sum+=clamp((v-neutral)/(bound-neutral),0,1);n++;
+  }
+  return n?1+.2*clamp(sum/n,0,1):1;
 }

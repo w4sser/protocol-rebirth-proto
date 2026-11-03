@@ -15,14 +15,16 @@ export const RULES=Object.freeze({
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
-    // v2.23.0 baseline retune (docs/difficulty-bots.md §5): L2/L3 previously fell back to the global
+    // v2.23.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
+    // extracted 94-100%. L2/L3 now hit harder (26 dmg vs the 22 default) and fire faster (1260/1200ms).
+    // Older note: L2/L3 previously fell back to the global
     // RULES.combat defaults (22 dmg, 1400/1350ms cooldown) with no level-specific floor of their own,
     // unlike L1's explicit gentler numbers below -- a sharp, untuned cliff straight out of the FTUE's
     // forgiving curve. These give L2/L3 their own (still harder-than-L1) floor. firstGraceMs is left
     // at the RULES.combat.graceMs default (3000ms): tests/combat.test.mjs's level 2 vs 3 enemy-speed
     // comparison samples movement at a fixed t=3000ms and depends on grace already having elapsed.
-    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
-    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
+    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1260,enemyDamage:26,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1200,enemyDamage:26,title:'Dead End'},
   ],
   // Encounters (docs/design-encounters-toolkit.md §1): one named problem per level, placed by encounters.js.
   // Every problem telegraphs >= telegraphMs (coral sight line / "!"), no single hit takes more than maxHitFraction

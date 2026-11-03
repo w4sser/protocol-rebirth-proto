@@ -143,11 +143,12 @@ test('checkLapse saves immediately so a second check before any raid ends does n
 });
 
 test('loot multiplier is 1.0-1.2, only above neutral for a struggling (negative skill) player, never below 1.0',()=>{
-  assert.equal(lootMultiplier({s:0}),1);
-  assert.equal(lootMultiplier({s:1}),1,'a strong player gets no loot penalty');
-  assert.equal(lootMultiplier({s:-1}),1.2,'max struggling = max bonus');
-  assert.ok(Math.abs(lootMultiplier({s:-.5})-1.1)<1e-9);
-  assert.equal(lootMultiplier({s:-5}),1.2,'clamped, never above the +20% cap');
+  const N={hp:1,dmg:1,count:0,aggro:1,cadence:1};
+  assert.equal(lootMultiplier({s:0,knobs:N}),1);
+  assert.equal(lootMultiplier({s:-1,knobs:{hp:.85,dmg:.8,count:-1,aggro:.85,cadence:1.15}}),1,'easier never changes loot');
+  assert.ok(Math.abs(lootMultiplier({s:1,knobs:{hp:1.8,dmg:1.3,count:3,aggro:1.3,cadence:.85}})-1.2)<1e-9,'all hard bounds = +20%');
+  const half=lootMultiplier({s:.5,knobs:{...N,count:3}});
+  assert.ok(half>1&&half<1.2,'partial harder = partial bonus');
   assert.equal(lootMultiplier(undefined),1);
 });
 
