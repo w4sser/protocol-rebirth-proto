@@ -1,4 +1,4 @@
-import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.24.0';
+import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.25.0';
 // Encounters (docs/design-encounters-toolkit.md §1, PR C): one named problem per level, placed in the
 // existing seeded rooms. This file is the pure part: placement + small geometry helpers. The live behaviour
 // (guard turning, patrol sight, swarm spawn) runs in combat.js, hit rules in round.js, visuals in world.js.
@@ -13,9 +13,9 @@ import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.24.0';
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.24.0';
-import {traceTargets} from './physics.mjs?v=2.24.0';
-import {detectionMultiplier} from './stakes.js?v=2.24.0';
+import {RULES} from './levels.js?v=2.25.0';
+import {traceTargets} from './physics.mjs?v=2.25.0';
+import {detectionMultiplier} from './stakes.js?v=2.25.0';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','shield_turret','patrol','swarm','shield','door','grenadier'];
@@ -43,7 +43,7 @@ export function inSightCone(enemy,point,range,halfAngleDeg){
   return d<=range&&(d<1e-6||angleDiff(enemy.facing??0,angleTo(enemy,point))<=halfAngleDeg*PI/180);
 }
 // Stealth shrinks the cone, a full bag grows it (bag weight, data/raid-stakes.js).
-export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round);
+export const sightRange=(round,type='patrol')=>RULES.encounters[type].coneRange*(1-(round?.stats?.stealth??0))*detectionMultiplier(round)*(round?.level?.aggroMul??1);
 export const encountersOf=level=>level?.intro?[]:(level?.encounters??[]);
 export const hintFor=type=>RULES.encounters.hints[type]??null;
 // Weapon-only positional bonus, evaluated before the hit wakes the target.

@@ -1,15 +1,15 @@
-import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.24.0';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.24.0';
-import {extractAvailable} from './big-level.js?v=2.24.0';
-import {rarityOf} from './rarity.js?v=2.24.0';
-import {audioEvent} from './audio.js?v=2.24.0';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.24.0';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.24.0';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.24.0';
-import {emptyBag,bagItems} from './raid.js?v=2.24.0';
-import {traceTargets} from './physics.mjs?v=2.24.0';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.24.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.24.0';
+import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.25.0';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.25.0';
+import {extractAvailable} from './big-level.js?v=2.25.0';
+import {rarityOf} from './rarity.js?v=2.25.0';
+import {audioEvent} from './audio.js?v=2.25.0';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.25.0';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.25.0';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.25.0';
+import {emptyBag,bagItems} from './raid.js?v=2.25.0';
+import {traceTargets} from './physics.mjs?v=2.25.0';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.25.0';
+import {createStakesState,heal,healRemaining} from './stakes.js?v=2.25.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -21,7 +21,7 @@ export function createRound(seed,now,stats=RULES.playerStats.base) {
   const durationMs=Math.round(ROUND_DURATION_MS*(isHard()?RULES.hard.timerMul:1));
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0,medkitsUsed:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -68,6 +68,14 @@ export function collectLoot(round,position,now,weapon){
         // Full bag: signal once per approach (re-arms after the player steps away).
         if(carriedCount(round)>=bagCapacityOf(round)){if(!box.fullNotified){box.fullNotified=true;audioEvent('bag-full');round.bagFull={boxId:box.id,item:box.item,at:now};changed=true;}continue;}
         round.bag[box.item]++;round.lastBagPickup={item:box.item,at:now};
+        // DDA loot bonus (docs/difficulty-bots.md §7 decision 1): round.lootMul is 1.0-1.2, set once
+        // at raid start from the DDA state (never below 1.0, so this only ever adds). A fractional
+        // carry accumulates across pickups so a +20% bonus grants one extra unit roughly every 5th
+        // material instead of silently rounding away to nothing on a single pickup.
+        if((round.lootMul??1)>1){
+          round.lootBonusCarry=(round.lootBonusCarry??0)+(round.lootMul-1);
+          if(round.lootBonusCarry>=1){round.lootBonusCarry--;round.bag[box.item]++;}
+        }
       }
       box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};changed=true;
     }
@@ -208,7 +216,7 @@ export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;
   if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max||healRemaining(round)<=0)return false;
   audioEvent('medkit');
-  if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth);return true;
+  if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.medkitsUsed++;return true;
 }
 // Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
 // then drops for good) or an EMP holds the shield down for a few seconds. Shielded nodes without a generator charge as before.

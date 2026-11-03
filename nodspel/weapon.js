@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.24.0';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.24.0';
-import {RULES} from './levels.js?v=2.24.0';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.24.0';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.24.0';
+import {audioEvent} from './audio.js?v=2.25.0';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.25.0';
+import {RULES} from './levels.js?v=2.25.0';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.25.0';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.25.0';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
@@ -178,7 +178,7 @@ function segmentPointDistance(a,b,p){
   const t=len2>1e-12?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/len2)):0;
   return Math.hypot(p.x-(a.x+dx*t),p.z-(a.z+dz*t));
 }
-// v2.24.0 hot-path scratch for stepWeapon (weaponHit/traceTargets only read these).
+// v2.22.4 hot-path scratch for stepWeapon (weaponHit/traceTargets only read these).
 const NO_TARGETS=Object.freeze([]),hotShotEnd={x:0,z:0},hotShotTargets=[],hotOneTarget=[null];
 function oneTarget(t){hotOneTarget[0]=t;return hotOneTarget;}
 function shotTargets(level,sourceId){const out=hotShotTargets;out.length=0;for(const t of level.nodes)if(t.id!==sourceId)out.push(t);for(const t of level.enemies)if(t.id!==sourceId)out.push(t);return out;}

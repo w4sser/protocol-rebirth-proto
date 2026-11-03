@@ -1,14 +1,14 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.24.0';
-import {audioEvent} from './audio.js?v=2.24.0';
-import {ownRooms} from './perks.js?v=2.24.0';
-import {RULES,hazardState} from './levels.js?v=2.24.0';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.24.0';
-import {takeDamage,tickRound} from './round.js?v=2.24.0';
-import {houseWaypoint} from './house.js?v=2.24.0';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.24.0';
-import {detectionMultiplier} from './stakes.js?v=2.24.0';
-import {dashInvulnerable} from './dash.js?v=2.24.0';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.25.0';
+import {audioEvent} from './audio.js?v=2.25.0';
+import {ownRooms} from './perks.js?v=2.25.0';
+import {RULES,hazardState} from './levels.js?v=2.25.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.25.0';
+import {takeDamage,tickRound} from './round.js?v=2.25.0';
+import {houseWaypoint} from './house.js?v=2.25.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.25.0';
+import {detectionMultiplier} from './stakes.js?v=2.25.0';
+import {dashInvulnerable} from './dash.js?v=2.25.0';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -16,7 +16,7 @@ export function createCombat(level,now){
   const grace=level.firstGraceMs??RULES.combat.graceMs;
   return {visited:new Set([initial]),graceUntil:now+grace,projectiles:[],blasts:[],nextId:0,moveAt:now+grace,nextFire:new Map(level.enemies.map((e,i)=>[e.id,now+grace+i*250]))};
 }
-// v2.24.0 hot-path scratch (reused every tick; traceTargets/moveWithActors only read them).
+// v2.22.4 hot-path scratch (reused every tick; traceTargets/moveWithActors only read them).
 const hotPlayerBefore={x:0,z:0},NO_DELTA=Object.freeze({x:0,z:0}),hotPlayerTarget={x:0,z:0,r:.36,kind:'player'},targetList=[hotPlayerTarget];
 const hotShotEnd={x:0,z:0},ENEMY_SHOT_AUDIO=Object.freeze({enemy:true}),coverList=[],coverBoxes=[];
 function anyNearMissAggro(enemies){for(let i=0;i<enemies.length;i++){const e=enemies[i];if(e.aggro&&e.nearMissAt!=null)return true;}return false;}
@@ -61,7 +61,7 @@ ld,obstacles,player,dt);
     // Patrol: unaware until the sight cone catches the player (a 1 s "!" first) or it is shot.
     if(enemy.patrol&&!enemy.introGuard&&!enemy.aggro&&enemy.health>0)patrolSight(round,enemy,player,now,obstacles,target);
     // Detection: stealth shrinks the range at which an enemy notices you, a full bag grows it (bag weight, data/raid-stakes.js). Once noticed (or shot) it stays aggro.
-    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0))*detectionMultiplier(round);
+    const seen=!enemy.patrol&&Math.hypot(player.x-enemy.x,player.z-enemy.z)<=rule.detectRange*(1-(round.stats?.stealth??0))*detectionMultiplier(round)*(round.level?.aggroMul??1);
     if(seen||enemy.lastHitAt!=null||enemy.nearMissAt!=null)enemy.aggro=true;
     if(!enemy.aggro){enemy.windupAt=null;continue;}
     if(enemy.introGuard||enemy.encounter==='guard'||enemy.encounter==='turret'||isShieldTurret(enemy)){stepGuard(round,enemy,combat,player,now,dt,obstacles,target);continue;}

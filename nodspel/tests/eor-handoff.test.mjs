@@ -47,7 +47,7 @@ for(const reason of ['extract','complete','death','timeout','abandon','checkpoin
   const context={round,launch,resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},localStorage:storage,audioEvent:(name,detail)=>audio.push({name,success:detail.success}),
     handoffRaidResult:(r,opts)=>handoffRaidResult(r,{...opts,storage,navigate:()=>events.push('navigate')}),
     clearInput:()=>events.push('clear'),hideSwap(){},clearBullets(){},updateHUD(){},lastCombatFeedback:()=>'',deathTip:()=>null,setIconText(){},
-    resultView:()=>({}),renderResult:()=>events.push('render')};
+    resultView:()=>({}),renderResult:()=>events.push('render'),ddaEligible:()=>false};
   runInNewContext(finish+`;finishRound(${reason==='checkpoint'?"'extraction'":''});`,context);
   assert.deepEqual(audio,reason==='checkpoint'?[]:[{name:'result',success:['extract','complete'].includes(reason)}]);
   if(['checkpoint','storage-failure'].includes(reason))assert.deepEqual(events,reason==='checkpoint'?['render','clear']:['render','clear']);

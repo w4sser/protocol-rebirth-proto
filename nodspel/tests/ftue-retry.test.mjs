@@ -25,7 +25,7 @@ function context(round,launch,events){
     handoffRaidResult:(r)=>{events.push('handoff');assert.equal(r,round,'handoffRaidResult receives the real round');return true;},
     clearInput:()=>events.push('clear'),hideSwap(){},clearBullets(){},updateHUD(){},lastCombatFeedback:()=>'',deathTip:()=>null,setIconText(){},
     resultView:()=>({}),renderResult(){},
-    ftueMark:key=>events.push('mark:'+key),ftueBumpAttempt:()=>events.push('bumpAttempt'),reset:seed=>events.push('reset:'+seed)};
+    ftueMark:key=>events.push('mark:'+key),ftueBumpAttempt:()=>events.push('bumpAttempt'),reset:seed=>events.push('reset:'+seed),ddaEligible:()=>false};
 }
 
 for(const reason of ['death','timeout','abandon'])test(`FTUE raid (ftue=1) ${reason} retries in place with the same seed, bumps the attempt counter, never hands off to base`,()=>{
