@@ -21,8 +21,8 @@ export const RULES=Object.freeze({
     // forgiving curve. These give L2/L3 their own (still harder-than-L1) floor. firstGraceMs is left
     // at the RULES.combat.graceMs default (3000ms): tests/combat.test.mjs's level 2 vs 3 enemy-speed
     // comparison samples movement at a fixed t=3000ms and depends on grace already having elapsed.
-    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1700,enemyDamage:14,title:'Narrow Passage'},
-    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1500,enemyDamage:16,title:'Dead End'},
+    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1400,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1350,title:'Dead End'},
   ],
   // Encounters (docs/design-encounters-toolkit.md §1): one named problem per level, placed by encounters.js.
   // Every problem telegraphs >= telegraphMs (coral sight line / "!"), no single hit takes more than maxHitFraction
@@ -39,7 +39,7 @@ export const RULES=Object.freeze({
     // recovery window -- a player (or bot) still eating full-frontal bursts over and over survives
     // longer while working toward a flank, instead of the front shield's "learn to flank" puzzle
     // reading as a flat, fast kill against anyone who has not already solved it.
-    guard:{health:2,speed:1.4,distance:2.1,frontHalfAngleDeg:70,fireHalfAngleDeg:55,turnRadPerSec:.7,warningMs:1000,burstShots:2,burstIntervalMs:180,recoveryMs:2200,damagePct:.07,counterOnHit:false},
+    guard:{health:2,speed:1.4,distance:2.1,frontHalfAngleDeg:70,fireHalfAngleDeg:55,turnRadPerSec:.7,warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,damagePct:.1,counterOnHit:false},
     // Grenade thrower: stops ~5 m out, shows a coral ring on the floor where it will lob (warningMs >= 1 s), then the blast
     // lands fuseMs later. Same ring / fuse / reach as the player's Grenade (RULES.tools.defs.tool_grenade; a test pins them).
     // Solutions: kill or flank it before the lob (2 hp), or step out of the ring (2.2 s from first sign to blast).

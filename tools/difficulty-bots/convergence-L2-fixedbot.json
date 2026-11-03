@@ -1,0 +1,205 @@
+{
+  "seeds": 20,
+  "raids": 10,
+  "depth": 2,
+  "results": [
+    {
+      "tier": "strong",
+      "seeds": 20,
+      "raids": 10,
+      "depth": 2,
+      "rolling": [
+        {
+          "raid": 1,
+          "n": 20,
+          "extractPct": 100
+        },
+        {
+          "raid": 2,
+          "n": 40,
+          "extractPct": 100
+        },
+        {
+          "raid": 3,
+          "n": 60,
+          "extractPct": 100
+        },
+        {
+          "raid": 4,
+          "n": 80,
+          "extractPct": 100
+        },
+        {
+          "raid": 5,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 6,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 7,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 8,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 9,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 10,
+          "n": 100,
+          "extractPct": 100
+        }
+      ],
+      "clipPct": {
+        "hp": 10,
+        "dmg": 0,
+        "count": 0,
+        "aggro": 50,
+        "cadence": 80
+      },
+      "inBandByRaid6": false
+    },
+    {
+      "tier": "avg",
+      "seeds": 20,
+      "raids": 10,
+      "depth": 2,
+      "rolling": [
+        {
+          "raid": 1,
+          "n": 20,
+          "extractPct": 100
+        },
+        {
+          "raid": 2,
+          "n": 40,
+          "extractPct": 100
+        },
+        {
+          "raid": 3,
+          "n": 60,
+          "extractPct": 100
+        },
+        {
+          "raid": 4,
+          "n": 80,
+          "extractPct": 100
+        },
+        {
+          "raid": 5,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 6,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 7,
+          "n": 100,
+          "extractPct": 100
+        },
+        {
+          "raid": 8,
+          "n": 100,
+          "extractPct": 99
+        },
+        {
+          "raid": 9,
+          "n": 100,
+          "extractPct": 99
+        },
+        {
+          "raid": 10,
+          "n": 100,
+          "extractPct": 99
+        }
+      ],
+      "clipPct": {
+        "hp": 10,
+        "dmg": 0,
+        "count": 0,
+        "aggro": 50,
+        "cadence": 80
+      },
+      "inBandByRaid6": false
+    },
+    {
+      "tier": "weak",
+      "seeds": 20,
+      "raids": 10,
+      "depth": 2,
+      "rolling": [
+        {
+          "raid": 1,
+          "n": 20,
+          "extractPct": 85
+        },
+        {
+          "raid": 2,
+          "n": 40,
+          "extractPct": 87.5
+        },
+        {
+          "raid": 3,
+          "n": 60,
+          "extractPct": 86.7
+        },
+        {
+          "raid": 4,
+          "n": 80,
+          "extractPct": 86.3
+        },
+        {
+          "raid": 5,
+          "n": 100,
+          "extractPct": 86
+        },
+        {
+          "raid": 6,
+          "n": 100,
+          "extractPct": 84
+        },
+        {
+          "raid": 7,
+          "n": 100,
+          "extractPct": 85
+        },
+        {
+          "raid": 8,
+          "n": 100,
+          "extractPct": 86
+        },
+        {
+          "raid": 9,
+          "n": 100,
+          "extractPct": 84
+        },
+        {
+          "raid": 10,
+          "n": 100,
+          "extractPct": 85
+        }
+      ],
+      "clipPct": {
+        "hp": 2.5,
+        "dmg": 0,
+        "count": 0,
+        "aggro": 15,
+        "cadence": 40.5
+      },
+      "inBandByRaid6": false
+    }
+  ]
+}

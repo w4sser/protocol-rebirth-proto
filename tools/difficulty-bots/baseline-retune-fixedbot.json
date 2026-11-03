@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-03",
+  "seeds": 50,
+  "knobs": "neutral",
+  "tiers": {
+    "strong": {
+      "L1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.1,
+        "meanDamagePct": 0,
+        "meanTTKSec": 1.8
+      },
+      "L2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 22.2,
+        "meanDamagePct": 3,
+        "meanTTKSec": 4.9
+      },
+      "L3": {
+        "n": 49,
+        "survivalPct": 100,
+        "extractPct": 95.9,
+        "medianTTESec": 53.5,
+        "meanDamagePct": 16.4,
+        "meanTTKSec": 8.3
+      },
+      "FTUE1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6,
+        "meanDamagePct": 0,
+        "meanTTKSec": 0.8,
+        "deathsPct": 0
+      },
+      "FTUE2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 5.8,
+        "meanDamagePct": 0,
+        "meanTTKSec": 0.7,
+        "deathsPct": 0
+      },
+      "FTUE3": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 5.6,
+        "meanDamagePct": 0,
+        "meanTTKSec": 0.4,
+        "deathsPct": 0
+      }
+    },
+    "avg": {
+      "L1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 5.9,
+        "meanDamagePct": 0.2,
+        "meanTTKSec": 1.8
+      },
+      "L2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 26,
+        "meanDamagePct": 4.1,
+        "meanTTKSec": 6.4
+      },
+      "L3": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 96,
+        "medianTTESec": 59.8,
+        "meanDamagePct": 21.8,
+        "meanTTKSec": 9.1
+      },
+      "FTUE1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.6,
+        "meanDamagePct": 0,
+        "meanTTKSec": 1.2,
+        "deathsPct": 0
+      },
+      "FTUE2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.6,
+        "meanDamagePct": 0,
+        "meanTTKSec": 1.2,
+        "deathsPct": 0
+      },
+      "FTUE3": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.1,
+        "meanDamagePct": 0,
+        "meanTTKSec": 0.7,
+        "deathsPct": 0
+      }
+    },
+    "weak": {
+      "L1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 5.7,
+        "meanDamagePct": 0,
+        "meanTTKSec": 2.2
+      },
+      "L2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 31.1,
+        "meanDamagePct": 44.8,
+        "meanTTKSec": 6.8
+      },
+      "L3": {
+        "n": 49,
+        "survivalPct": 100,
+        "extractPct": 89.8,
+        "medianTTESec": 60.3,
+        "meanDamagePct": 71,
+        "meanTTKSec": 7.3
+      },
+      "FTUE1": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.7,
+        "meanDamagePct": 0,
+        "meanTTKSec": 1,
+        "deathsPct": 0
+      },
+      "FTUE2": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.7,
+        "meanDamagePct": 0,
+        "meanTTKSec": 1,
+        "deathsPct": 0
+      },
+      "FTUE3": {
+        "n": 50,
+        "survivalPct": 100,
+        "extractPct": 100,
+        "medianTTESec": 6.3,
+        "meanDamagePct": 0,
+        "meanTTKSec": 0.8,
+        "deathsPct": 0
+      }
+    }
+  }
+}

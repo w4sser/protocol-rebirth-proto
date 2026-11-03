@@ -24,6 +24,7 @@ import {stepStakes} from '../../nodspel/stakes.js';
 import {createDash,startDash,stepDash,dashCharge} from '../../nodspel/dash.js';
 import {roomAt} from '../../nodspel/perks.js';
 import {applyDifficulty} from '../../nodspel/difficulty.js';
+import {shieldBlocks} from '../../nodspel/encounters.js';
 
 // The sim only plays the bunker area (what FTUE and new-player raids use) at normal (non-Hard)
 // difficulty; see the "Known sim gaps" note in docs/difficulty-bots.md.
@@ -41,9 +42,9 @@ const MAX_RAID_MS=11*60*1000;
 // not), and extractHpThreshold -- the HP ratio at a level exit below which the bot bails (voluntary
 // extract) instead of pushing deeper, same signal a cautious real player reads off their own health bar.
 export const TIERS=Object.freeze({
-  strong:{aimErrDeg:0,reactMs:100,kite:true,dash:true,medkitThreshold:.40,telegraphSidestep:true,extractHpThreshold:.15},
-  avg:{aimErrDeg:8,reactMs:300,kite:true,dash:false,medkitThreshold:.30,telegraphSidestep:true,extractHpThreshold:.25},
-  weak:{aimErrDeg:18,reactMs:600,kite:false,dash:false,medkitThreshold:.20,telegraphSidestep:false,extractHpThreshold:.35},
+  strong:{aimErrDeg:0,reactMs:100,kite:true,dash:true,medkitThreshold:.40,telegraphSidestep:true,extractHpThreshold:.15,flankAfterMs:0},
+  avg:{aimErrDeg:8,reactMs:300,kite:true,dash:false,medkitThreshold:.30,telegraphSidestep:true,extractHpThreshold:.25,flankAfterMs:1500},
+  weak:{aimErrDeg:18,reactMs:600,kite:false,dash:false,medkitThreshold:.20,telegraphSidestep:false,extractHpThreshold:.35,flankAfterMs:5000},
 });
 
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -91,7 +92,7 @@ function steerDirection(bot,position,goal,repel,now){
 // locked-door bypass instead of just walking straight at a point and stalling on a wall. Cheap to run
 // once per objective (a new target/node/exit) and cached by the caller (routeWaypoint below), not
 // run every tick.
-const GRID_STEP=.2,GRID_DIRS=[[1,0],[-1,0],[0,1],[0,-1]],GRID_CAP=8000;
+const GRID_STEP=.2,GRID_DIRS=[[1,0],[-1,0],[0,1],[0,-1]],GRID_CAP=40000;
 function bfsRoute(round,start,goalTest,playerSolids){
   const key=(x,z)=>x+','+z;
   const sx=Math.round(start.x/GRID_STEP),sz=Math.round(start.z/GRID_STEP);
@@ -215,13 +216,29 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null,targetDepth
     // next node (a shielded node's generator is itself a live `enemy`, so it is always targeted
     // before the node is reachable) > walk to the open exit.
     let goal=null,repel=false,holdRange=false,waypoint=null;
+    if(!target)bot.flanking=false;
     const range=weapon.rule.range;
     if(target){
       goal=target;
       const d=dist(position,target);
       repel=cfg.kite&&d<range*.45;
       holdRange=!repel&&d<=range;
-      if(!holdRange&&!repel){
+      // Front-shielded enemies (guard, shield turret) block every hit inside their front cone
+      // (encounters.js shieldBlocks). A kiting tier flanks: it routes to a point behind the
+      // enemy's current facing and only shoots once outside the cone, like a real player circling
+      // a shield guard. Tiers differ in how long they keep shooting the shield head-on before
+      // realising they must flank (flankAfterMs: strong 0, avg 1.5 s, weak 5 s).
+      const blocked=target.frontShield&&shieldBlocks(target,position,now);
+      if(!blocked||bot.blockedId!==target.id){bot.blockedId=blocked?target.id:null;bot.blockedSince=now;}
+      if(blocked&&now-bot.blockedSince>=cfg.flankAfterMs){
+        // Goal = any reachable cell within weapon range with line of sight and OUTSIDE the shield
+        // cone (judged against the enemy's facing at plan time; replanned every 400 ms as it turns).
+        const fr=range*.85;
+        waypoint=routeWaypoint(bot,`flank:${target.id}`,position,p=>dist(p,target)<=fr&&dist(p,target)>1.2&&!shieldBlocks(target,p,now)&&!wallBlocked(p,target,playerSolids),playerSolids,round,now,400);
+        if(!waypoint){const side=Math.sin((target.facing??0)-Math.atan2(position.x-target.x,position.z-target.z))>0?1:-1;const to=norm(position.x-target.x,position.z-target.z);waypoint={x:position.x-to.z*side*2,z:position.z+to.x*side*2};}
+        goal=waypoint;repel=false;holdRange=false;bot.flanking=true;
+      }else bot.flanking=false;
+      if(!holdRange&&!repel&&!bot.flanking){
         waypoint=routeWaypoint(bot,`enemy:${target.id}`,position,p=>dist(p,target)<1.6&&!wallBlocked(p,target,playerSolids),playerSolids,round,now,500);
       }
     }else{
@@ -284,11 +301,11 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null,targetDepth
     const moving=playerDisplaced(positionBefore,position);
     noteStuck(bot,movedIntent,dist(positionBefore,position),now);
 
-    if(process.env.SIM_DEBUG&&tick%30===0)console.log((now/1000).toFixed(1),'pos',position.x.toFixed(2),position.z.toFixed(2),'target',target&&target.id,'liveEnemies',liveEnemies.length,'level',round.level.number,'hp',round.health,'kit',round.kit?.medkit);
+    if(process.env.SIM_DEBUG&&tick%30===0)console.log((now/1000).toFixed(1),target?JSON.stringify({t:target.type,h:+target.health.toFixed(1),x:+target.x.toFixed(1),z:+target.z.toFixed(1),sh:target.shield??target.shielded,st:target.state}):'','ammo',weapon.ammo,weapon.reserve,weapon.reloadingUntil??weapon.reloadAt,(round.perks?.events??[]).slice(-4).map(e=>e.kind+':'+(e.outcome??e.target??'')).join(','),'fl',bot.flanking,bot.route?.key,bot.route?.path?.length,'wb',target?wallBlocked(position,target,playerSolids):'','pos',position.x.toFixed(2),position.z.toFixed(2),'target',target&&target.id,'liveEnemies',liveEnemies.length,'level',round.level.number,'hp',round.health,'kit',round.kit?.medkit);
     const roomNow=roomAt(round.level,position);if(roomNow>=0)round.currentRoom=roomNow;
     if(target){
       const engageAt=(bot.firstSeen.get(target.id)??now)+cfg.reactMs;
-      const canShoot=now>=engageAt&&dist(position,target)<=range&&!wallBlocked(position,target,playerSolids);
+      const canShoot=now>=engageAt&&dist(position,target)<=range&&!wallBlocked(position,target,playerSolids)&&!(bot.flanking&&shieldBlocks(target,position,now));
       if(canShoot){
         round.shooter=position;
         fireAimedWeapon(weapon,round,position,aimWithError(position,target,cfg.aimErrDeg,bot.rng),now,playerSolids,moving,false);
@@ -320,6 +337,10 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null,targetDepth
       const shouldExtract=ftueAttempt==null&&((targetDepth!=null&&round.levelsCleared>=targetDepth)||hpRatio<cfg.extractHpThreshold);
       if(shouldExtract&&extractRound(round,now)){depthPlayed=round.levelsCleared;endMs=now;break;}
       if(knobs&&ftueAttempt==null)applyDifficulty(round.level,knobs);
+      // game.mjs loadLevelInner() puts the player at the new level's start on every level load;
+      // without this the bot stayed at the old level's exit coordinates (often inside L2 geometry)
+      // and never moved again -> L2+ raids timed out/died with 0 progress for every tier.
+      position={...round.level.start};
       combat=createCombat(round.level,now);bot.firstSeen.clear();bot.stuckTicks=0;bot.sideUntil=-Infinity;bot.route=null;
       bot.targetId=null;bot.targetMisses=0;bot.targetReevalAt=0;
     }

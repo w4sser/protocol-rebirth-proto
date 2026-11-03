@@ -225,3 +225,20 @@ dmg 0%, count 0%. **DDA does not converge on L2 for the sim bot.** It moves to i
 but even all of §3's easiest bounds can't close a gap from about 2% to 70%. It is unclear why dmg never clips (it has the
 widest easy range, 0.8); the step ordering in dda.js should be checked next. Follow-ups: give the sim bot cover/dodging (§6), then re-measure and decide
 whether L2 needs a deeper data retune or wider DDA bounds.
+
+## 8. Sim-bot fix and re-measure (2026-11-03, NOT shipped)
+Why L2 extract was 1-2% for every tier: three bugs in the sim bot, not in the game.
+1. `sim.mjs` never moved the player to `round.level.start` after a level exit (`game.mjs` `loadLevelInner` does). The bot stayed at L1's exit coordinates inside L2's geometry and froze. Raids timed out or died with no progress.
+2. Front-shield guards block every head-on hit (`encounters.js` `shieldBlocks`), and the bot never flanked. It ended in a stalemate or slow death. Fix: route to a cell in range, with line of sight, outside the shield cone. Per-tier `flankAfterMs` is 0 for strong, 1.5 s for avg and 5 s for weak.
+3. The BFS cap (8000 cells) was too small for two-room levels, so routing silently failed. Raised to 40000.
+
+Fixed bot, n=50, neutral knobs, extract% / mean damage%:
+| tier | L2 pre-retune | L2 retune | L3 pre-retune | L3 retune |
+|---|---|---|---|---|
+| strong | 100 / 4.4 | 100 / 3.0 | 95.9 / 20.1 | 95.9 / 16.4 |
+| avg | 100 / 8.5 | 100 / 4.1 | 96 / 29 | 96 / 21.8 |
+| weak | 90 / 86.3 | 100 / 44.8 | 82.1 / 91.8 | 89.8 / 71 |
+
+The pre-retune game is already easier than the §2 targets for this bot, so the v2.23.0 levels.js easing (L2/L3 damage and cooldown, guard burst) is reverted.
+Even at the hardest DDA bounds (hp 1.2, dmg 1.15, count +1, aggro 1.15, cadence 0.9), avg L2 reaches 90% extract (n=20). The doc bounds cannot pull avg or strong into 65-75%. Convergence (n=20, 10 raids) is in `convergence-L*-fixedbot.json`.
+Also, sim time-to-extract (L2 ~22-31 s) is far below the targets (3-5 min). The bot is likely still much better or faster than humans, so it needs calibrating against real play before tuning on it.
