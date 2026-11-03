@@ -1,4 +1,4 @@
-import {extractAvailable} from './big-level.js?v=2.22.5';
+import {extractAvailable} from './big-level.js?v=2.24.0';
 
 // Gameplay reports events at their actual point of resolution. This adapter
 // observes persistent visuals without changing simulation or save data.

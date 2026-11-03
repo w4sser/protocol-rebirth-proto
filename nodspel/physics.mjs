@@ -69,7 +69,7 @@ export function moveWithActors(position,delta,enemies,solids,floors,radius){
   return p;
 }
 
-// v2.22.5 hot path: the x/z slab test is unrolled (the old `for (const [axis,size] of [['x','w'],['z','d']])`
+// v2.24.0 hot path: the x/z slab test is unrolled (the old `for (const [axis,size] of [['x','w'],['z','d']])`
 // allocated three arrays + an iterator per call, and this runs thousands of times per frame).
 function boxHit(a, b, box) {
   let near = 0, far = 1;
@@ -109,7 +109,7 @@ function nodeHit(a, b, node) {
   }
   return nodeTime;
 }
-const WALL_HIT=Object.freeze({kind:'wall'}); // shared read-only result (v2.22.5 hot path)
+const WALL_HIT=Object.freeze({kind:'wall'}); // shared read-only result (v2.24.0 hot path)
 export function traceTargets(a,b,boxes,nodes) {
   let nodeTime=Infinity,closest=null;
   for(const node of nodes){const time=nodeHit(a,b,node);if(time<nodeTime){nodeTime=time;closest=node;}}
