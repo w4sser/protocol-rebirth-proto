@@ -17,7 +17,7 @@
         "survivalPct": 100,
         "extractPct": 100,
         "medianTTESec": 22.2,
-        "meanDamagePct": 4.7,
+        "meanDamagePct": 5,
         "meanTTKSec": 4.9
       },
       "L3": {
@@ -25,7 +25,7 @@
         "survivalPct": 100,
         "extractPct": 95.9,
         "medianTTESec": 55.1,
-        "meanDamagePct": 24.3,
+        "meanDamagePct": 25.7,
         "meanTTKSec": 7.8
       },
       "FTUE1": {
@@ -70,7 +70,7 @@
         "survivalPct": 100,
         "extractPct": 100,
         "medianTTESec": 26.1,
-        "meanDamagePct": 8.6,
+        "meanDamagePct": 10,
         "meanTTKSec": 6.4
       },
       "L3": {
@@ -78,7 +78,7 @@
         "survivalPct": 100,
         "extractPct": 96,
         "medianTTESec": 59.8,
-        "meanDamagePct": 29.9,
+        "meanDamagePct": 33,
         "meanTTKSec": 9.1
       },
       "FTUE1": {
@@ -120,19 +120,19 @@
       },
       "L2": {
         "n": 50,
-        "survivalPct": 90,
-        "extractPct": 90,
-        "medianTTESec": 31,
-        "meanDamagePct": 86.3,
-        "meanTTKSec": 6.4
+        "survivalPct": 50,
+        "extractPct": 50,
+        "medianTTESec": 30.5,
+        "meanDamagePct": 93.9,
+        "meanTTKSec": 5.1
       },
       "L3": {
-        "n": 27,
-        "survivalPct": 96.3,
-        "extractPct": 85.2,
-        "medianTTESec": 61.7,
-        "meanDamagePct": 91.8,
-        "meanTTKSec": 7.1
+        "n": 12,
+        "survivalPct": 91.7,
+        "extractPct": 75,
+        "medianTTESec": 56.8,
+        "meanDamagePct": 90.5,
+        "meanTTKSec": 6.5
       },
       "FTUE1": {
         "n": 50,

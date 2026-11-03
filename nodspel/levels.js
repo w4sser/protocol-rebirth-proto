@@ -16,15 +16,16 @@ export const RULES=Object.freeze({
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
     // v2.25.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
-    // extracted 94-100%. L2/L3 now hit harder (26 dmg vs the 22 default) and fire faster (1260/1200ms).
+    // extracted 94-100%. L2/L3 now hit harder (level dmgMul 1.15/1.2, which also scales encounter damagePct --
+    // enemyDamage alone only reaches fallback enemies, which bunker raids barely have) and fire faster (1260/1200ms).
     // Older note: L2/L3 previously fell back to the global
     // RULES.combat defaults (22 dmg, 1400/1350ms cooldown) with no level-specific floor of their own,
     // unlike L1's explicit gentler numbers below -- a sharp, untuned cliff straight out of the FTUE's
     // forgiving curve. These give L2/L3 their own (still harder-than-L1) floor. firstGraceMs is left
     // at the RULES.combat.graceMs default (3000ms): tests/combat.test.mjs's level 2 vs 3 enemy-speed
     // comparison samples movement at a fixed t=3000ms and depends on grace already having elapsed.
-    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1260,enemyDamage:26,title:'Narrow Passage'},
-    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1200,enemyDamage:26,title:'Dead End'},
+    {rooms:2,nodes:2,enemies:2,enemyHealth:2,size:{w:[10,12],d:[10,12]},passage:1.8,partition:true,nodesBeyondPassage:true,deadEnd:false,enemySpeed:1.2,enemyCooldownMs:1260,dmgMul:1.15,title:'Narrow Passage'},
+    {rooms:3,nodes:3,enemies:3,size:{w:[10,12],d:[10,12]},passage:2.2,partition:false,deadEnd:true,enemySpeed:2.2,enemySpawnZ:-4.1,enemyCooldownMs:1200,dmgMul:1.2,title:'Dead End'},
   ],
   // Encounters (docs/design-encounters-toolkit.md §1): one named problem per level, placed by encounters.js.
   // Every problem telegraphs >= telegraphMs (coral sight line / "!"), no single hit takes more than maxHitFraction
@@ -389,7 +390,7 @@ export function applyAreaRules(level,AR){
   for(const [i,e] of level.enemies.entries())if(!e.encounter&&(AR.mix?i>0:e.extra)){const t=RULES.enemyTypes[pickWeighted(AR.mix?AR.mix[n-1]:RULES.variety[n-1].mix,rng())];
     e.speed=(e.speed??0)/(RULES.enemyTypes[e.type]?.speedMul||1)*(t.speedMul||0);e.type=Object.keys(RULES.enemyTypes).find(k=>RULES.enemyTypes[k]===t);e.rangeMul=t.rangeMul;e.cooldownMul=t.cooldownMul;e.standoff=t.standoff;}
   for(const e of level.enemies)e.health=Math.max(1,Math.round((e.health??RULES.enemyHealth)*AR.hpMul));
-  level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*AR.dmgMul);level.dmgMul=AR.dmgMul;
+  {const dm=AR.dmgMul*(RULES.levels[n-1]?.dmgMul??1);level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*dm);level.dmgMul=dm;}
   if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
   // v1.87 tracked extract quest (e.g. Fuse Box: 2 Fuse from Bunker L2): its level always holds at least one of the item, so the step
   // takes ~1-2 raids instead of a ~10 % roll. Never replaces the scout item. Off unless the meta launch tracks such a quest.

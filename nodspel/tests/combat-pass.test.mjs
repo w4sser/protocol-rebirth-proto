@@ -122,7 +122,7 @@ test('Hard rules: table, flag, timer, hp / damage multipliers, 2+ encounters per
       const reg=e=>!e.encounter&&!e.extra;
       const nh=N.enemies.filter(reg).map(e=>e.health),hh=Hd.enemies.filter(reg).map(e=>e.health);
       assert.ok(Math.min(...hh)>=Math.min(...nh),'hard enemies are never softer');
-      assert.equal(Hd.dmgMul,ruleSet(area,true).dmgMul);
+      assert.ok(Math.abs(Hd.dmgMul-ruleSet(area,true).dmgMul*(RULES.levels[n-1].dmgMul??1))<1e-9); // v2.25.0 per-depth dmgMul
     }
     assert.ok(ruleSet(area,true).hpMul>ruleSet(area,false).hpMul);
   }

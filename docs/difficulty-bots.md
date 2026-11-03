@@ -242,3 +242,38 @@ Fixed bot, n=50, neutral knobs, extract% / mean damage%:
 The pre-retune game is already easier than the §2 targets for this bot, so the v2.23.0 levels.js easing (L2/L3 damage and cooldown, guard burst) is reverted.
 Even at the hardest DDA bounds (hp 1.2, dmg 1.15, count +1, aggro 1.15, cadence 0.9), avg L2 reaches 90% extract (n=20). The doc bounds cannot pull avg or strong into 65-75%. Convergence (n=20, 10 raids) is in `convergence-L*-fixedbot.json`.
 Also, sim time-to-extract (L2 ~22-31 s) is far below the targets (3-5 min). The bot is likely still much better or faster than humans, so it needs calibrating against real play before tuning on it.
+
+## 9. v2.25.0: harder depths 2-3 and wider DDA hard bounds (2026-11-03)
+Why: Robert plays depths 2-3 and finds them TOO EASY. With the fixed sim bots, strong and avg extracted 94-100% and weak 71-90% on L1-L3. The DDA sat at its hardest bounds, and avg still extracted 90% on L2.
+
+**Baseline (nodspel/levels.js).** A new per-depth `dmgMul` (L2 1.15, L3 1.2) multiplies the area dmgMul. It scales the encounter `damagePct` hits and the fallback damage. The cap `maxHitFraction` still applies, and it multiplies with archipelago/town/hard, so deeper areas scale too. L2/L3 `enemyCooldownMs` is now 1260/1200. Finding: the old per-level `enemyDamage` / `enemyCooldownMs` fields only reach fallback enemies. Bunker raids are almost all encounter-typed, so a baseline retune through those fields was a no-op. That is why the v2.23.0 retune measured nothing.
+
+**DDA (nodspel/difficulty.js KNOB_BOUNDS, nodspel/dda.js).**
+| knob | old bounds | new bounds |
+|---|---|---|
+| hp | 0.85-1.20 | 0.85-1.80 (harder step 0.10) |
+| dmg | 0.80-1.15 | 0.80-1.30 |
+| count | -1..+1 | -1..+2 |
+| aggro | 0.85-1.15 | 0.85-1.30 |
+| cadence | 0.90-1.15 | 0.85-1.15 |
+- The easy side is unchanged.
+- Stepping harder now spends count, then hp, aggro, cadence and dmg last. The sims showed cadence, aggro and dmg barely move strong/avg bots, while dmg mostly punishes weak ones. Easing keeps the cheapest-first order.
+- An extra enemy is only added when s ≥ 0.35 and extract EMA ≥ 85%.
+- The L2/L3 DDA extract target is 0.75 (was 0.70). The bots are faster than humans, so the time and TTK terms push them a bit harder.
+- Lapse rule (>3 days, softer return) is unchanged.
+- **Loot fix:** `lootMultiplier` used to give the bonus for a *negative* skill estimate, which is the opposite of §7.1. It now scales with how far the knobs sit on the harder side of neutral: +20% when every knob is at its hard bound, and never below 1.0.
+
+**Baseline, neutral knobs, n=50, L2 extract% / mean damage% (`baseline-v2250-harder.json`):**
+| tier | L2 before | L2 after | L3 before | L3 after |
+|---|---|---|---|---|
+| strong | 100 / 4.4 | 100 / 5.0 | 95.9 / 20.1 | 95.9 / 25.7 |
+| avg | 100 / 8.5 | 100 / 10.0 | 96 / 29 | 96 / 33 |
+| weak | 90 / 86.3 | 50 / 93.9 | 82.1 / 91.8 | 75 (n=12) / 90.5 |
+
+**Convergence with DDA, L2, 20 players x 15 raids, rolling-5 extract% (`convergence-L2-v2250.txt`):**
+| tier | raid 1 | raid 6 | raid 10 | raid 15 | before (v2.23 bounds, raid 10) | knob clip% |
+|---|---|---|---|---|---|---|
+| strong | 100 | 94 | 83 | 93 | 100 | count 79, hp 17, others ≤1 |
+| avg | 100 | 84 | 67 | 71 | 99 | count 73, cadence 29, aggro 10 |
+| weak | 50 | 51 | 61 | 72 | 85 | cadence 70, aggro 45, hp 26, count 22 |
+Clip% counts either bound. Cadence and aggro stop mattering once they are pinned, so DDA no longer stalls at its limits. The remaining work is done by count and hp, which sit at or within their new bounds. Strong ends in its 85-90% band (83-93), avg is at the low edge of 70-80 (67-71), and weak recovers through the easy side to 61-72. This leans slightly easier than the brief, which was asked for because the bots are much faster than humans (L2 time-to-extract 22-31 s vs a 3-5 min target).
