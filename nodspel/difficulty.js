@@ -1,0 +1,58 @@
+// Per-player adaptive difficulty hook (docs/difficulty-bots.md §3). Pure function: scales a
+// generated level's enemies in place, applied once at raid generation (never mid-fight). Every
+// default is neutral -- a no-op -- matching the knob table in docs/difficulty-bots.md §3.
+// The live game does not call this yet (it lands with the DDA PR, docs/difficulty-bots.md §5.4);
+// today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
+import {RULES,randomFromSeed} from './levels.js?v=2.23.0';
+
+export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1});
+
+// hp/dmg bounds from docs/difficulty-bots.md §3; count is a per-room delta, not a multiplier.
+export const KNOB_BOUNDS=Object.freeze({hp:[.85,1.2],dmg:[.8,1.15],count:[-1,1],aggro:[.85,1.15]});
+
+export function applyDifficulty(level,knobs={}){
+  const k={...NEUTRAL_KNOBS,...knobs};
+  if(k.hp!==1)for(const e of level.enemies)if(e.type!=='generator')e.health=Math.max(1,Math.round(e.health*k.hp));
+  if(k.dmg!==1){
+    level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*k.dmg);
+    level.dmgMul=(level.dmgMul??1)*k.dmg;
+  }
+  // aggro/alert radius has no per-level field to scale yet (stepCombat/sightRange read the global
+  // RULES.combat.detectRange and RULES.encounters[type].coneRange) -- stored for the combat.js wiring
+  // the DDA PR adds; a neutral aggro is still a true no-op today.
+  if(k.aggro!==1)level.aggroMul=k.aggro;
+  if(k.count)adjustEnemyCount(level,k.count);
+  return level;
+}
+
+// +1..n: clone a nearby non-generator enemy per room, offset a seeded short distance away (a few
+// placement attempts clear of walls/boxes; a room with no clear spot simply skips that room).
+// -1..n: drop extras first (AREA_RULES.extraEnemies bodies, nodspel/levels.js), then any enemy,
+// cheapest (lowest health) first, never leaving a room with its shielded-node generator orphaned.
+function adjustEnemyCount(level,count){
+  const rng=randomFromSeed(`${level.seed}:difficulty:count`);
+  const solids=[...level.walls,...level.boxes];
+  const clear=p=>!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6);
+  if(count>0){
+    for(let n=0;n<count;n++){
+      const source=level.enemies.filter(e=>e.type!=='generator').sort((a,b)=>a.health-b.health)[0];
+      if(!source)break;
+      let placed=null;
+      for(let attempt=0;attempt<50&&!placed;attempt++){
+        const angle=rng()*2*Math.PI,radius=1.4+rng()*1.4;
+        const p={x:source.x+Math.cos(angle)*radius,z:source.z+Math.sin(angle)*radius};
+        if(clear(p))placed=p;
+      }
+      if(!placed)continue;
+      level.enemies.push({...source,id:`enemy-${level.enemies.length+1}`,x:placed.x,z:placed.z,health:source.health,active:true,extra:true,encounter:undefined});
+    }
+  }else{
+    const removable=()=>[...level.enemies].filter(e=>e.type!=='generator'&&!(e.node||level.nodes.some(nd=>nd.generatorId===e.id)));
+    for(let n=0;n<-count;n++){
+      const pool=removable().filter(e=>e.extra).length?removable().filter(e=>e.extra):removable();
+      const drop=pool.sort((a,b)=>a.health-b.health)[0];
+      if(!drop)break;
+      level.enemies.splice(level.enemies.indexOf(drop),1);
+    }
+  }
+}

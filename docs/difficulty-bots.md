@@ -50,7 +50,92 @@ Adaptive goal: every skill tier converges to about **65–75% extract** on the d
 4. **Tuner script** `tools/difficulty-bots/tune.mjs`: (a) sweeps the baseline knob grid (HP 0.8–1.2, dmg 0.8–1.2, count −1…+1, aggro 0.85–1.15) at DDA off and picks the baseline where **avg** hits the targets in §2. (b) runs 20-raid campaigns with DDA on for each tier and checks that every tier converges into the 65–75% extract band within ≤6 raids without oscillating (≤1 sign flip per 5 raids), and that knobs stay inside the bounds. (c) reports the bounds that clip. If weak still sits below the band at the min bound, either widen the bound or hand the problem to non-combat help such as gear.
 5. CI: a small fixed-seed regression (e.g. 50 raids per tier) checks that the avg-tier extract rate stays within ±10 pts of the stored baseline.
 
-## 5. Decisions (Robert, 2026-11-03)
+## 5. Measured baseline (headless sim)
+`tools/difficulty-bots/sim.mjs` + `tools/difficulty-bots/tune.mjs` (§4), neutral knobs (`hp=1,dmg=1,count=0,aggro=1`,
+i.e. `nodspel/difficulty.js`'s `applyDifficulty` is a no-op), bunker area, **n=50 seeds per tier**, 2026-11-03.
+Numbers below are the real `tune.mjs` output, not estimates. A depth's survival/extract is conditioned on
+reaching it (§4's own definition): e.g. L2 survival is "of the raids that got past L1 alive, what fraction
+did not die while still on L2" (dying one level deeper still counts as surviving L2).
+
+### FTUE raids (attempt ramp; raid 3 is the shipped lethal-clamp guarantee)
+| tier | raid | survival | extract | median time-to-extract | mean damage taken | mean TTK |
+|---|---|---|---|---|---|---|
+| strong | 1 | 100% | 100% | 5.8s | 0.2% | 0.5s |
+| strong | 2 | 100% | 100% | 5.9s | 0% | 0.5s |
+| strong | 3 | 100% | 100% | 5.4s | 0% | 0.3s |
+| avg | 1 | 100% | 100% | 6.3s | 0% | 0.7s |
+| avg | 2 | 100% | 100% | 6.3s | 0.1% | 0.8s |
+| avg | 3 | 100% | 100% | 5.7s | 0.1% | 0.6s |
+| weak | 1 | 100% | 100% | 6.7s | 0% | 1.0s |
+| weak | 2 | 100% | 100% | 6.7s | 0% | 1.0s |
+| weak | 3 | 100% | 100% | 6.3s | 0% | 0.8s |
+
+Every tier clears every FTUE raid every time, with near-zero damage. That is not the tiers converging
+(aim error/reaction barely matter here) -- it is `firstGraceMs:5000` (`nodspel/levels.js` level 1): the FTUE
+room's two grunts are dead well inside level 1's 5 s combat grace window, so they never get a shot off.
+**Sanity check against the real browser bot's §1 numbers** (`tools/difficulty-bots/run.mjs` + `ftue-bot.mjs`,
+5 runs on live v2.22.4): that bot's median time-to-extract was 46.5s with first kill at a 29.0s median, which
+§1 already attributes to "the bot's navigation, not combat: it has perfect aim and walks to enemies." The
+headless strong tier has the same perfect aim but none of the touch-stick fumbling that dominated the
+browser bot's time, which is exactly why 5.8s vs 46.5s is the expected gap, not a discrepancy -- both bots
+are aim-perfect; only navigation cost differs.
+
+### Normal raids by depth (one raid per seed, pushed from level 1 through level 3)
+| tier | depth | n reached | survival | extract | mean damage taken | mean TTK |
+|---|---|---|---|---|---|---|
+| strong | L1 | 50 | 100% | 0% | 98.0% | 5.0s |
+| strong | L2 | 50 | 4% | 0% | 98.0% | 5.0s |
+| strong | L3 | 0 | - | - | - | - |
+| avg | L1 | 50 | 100% | 0% | 97.6% | 4.2s |
+| avg | L2 | 50 | 6% | 0% | 97.6% | 4.2s |
+| avg | L3 | 2 | 100% | 0% | 90.0% | 4.4s |
+| weak | L1 | 50 | 100% | 0% | 94.0% | 4.0s |
+| weak | L2 | 50 | 6% | 0% | 94.0% | 4.0s |
+| weak | L3 | 0 | - | - | - | - |
+
+Extract is 0% everywhere because the bot's policy (§4.2) never calls the voluntary extract action -- it
+always pushes toward the next level, so for a normal raid "extracted" only happens by fully clearing level
+3 (`reason:'complete'`), and across 150 raids (3 tiers x 50 seeds) that happened twice (both `avg`). Every
+tier survives L1 (its own damage still averages 94-98% of max HP -- raids that live are not living
+comfortably), then L2's extra bodies (`AREA_RULES.bunker.extraEnemies`, a shorter 3 s combat grace instead
+of L1's 5 s, and a partition room) are close to a hard wall: 4-6% survival with almost no separation between
+tiers. That near-identical L2 number across strong/avg/weak is itself a finding, not noise: at `n=50` the
+skill knobs this PR models (aim error, reaction delay, kiting, Dash) barely move survival once a room's
+total incoming ranged DPS exceeds what standing in the open and shooting back can out-race, because none of
+them reduce incoming fire (no cover-seeking, no telegraph-dodging -- see §7). This is the real, current,
+untuned baseline the DDA system (§3) and the baseline retune (§4.4(a)) are meant to fix; it is deliberately
+reported as-is rather than adjusted to look closer to the §2 targets.
+
+## 6. Known sim gaps
+Differences from the live game (`nodspel/game.mjs`), in order of how much they matter to the numbers above:
+- **No cover-seeking or telegraph-dodging.** Every attack is telegraphed >=600ms before it lands
+  (`RULES.shooting.telegraphs`) and real players are expected to sidestep during the windup or duck behind
+  a crate. The bot does neither -- "kite" only backs off when a target is already closer than ~45% of
+  weapon range, and otherwise strafes in place. This is almost certainly the single biggest reason L2+
+  survival is so flat across tiers (see §5): it is the one real mitigation this bot does not model at all.
+- **No BIT passive healing, no tool use, no gear/weapon pickups.** The bot never equips a found weapon or
+  armor, never throws a grenade/EMP/decoy, and never stands near BIT to regen. All of these only make a
+  real run *more* survivable, so the sim's damage-taken numbers are a conservative (pessimistic) estimate.
+- **Mid-raid perk offers are not simulated.** In the shipped build, `updateClears()` -- the function that
+  populates the room-clear perk queue -- is only called from a `debugRoomClearsEnabled` branch of the frame
+  loop, so live play does not currently get mid-raid perk cards either; the sim matches that. Perks are
+  still auto-picked once per level exit (`round.js`'s own `autoPickPerks` inside `enterExit`/`extractRound`),
+  same as the real game.
+- **No hitstop.** Real play briefly freezes the game clock on a hit/kill for impact feel
+  (`perks.js` `hitstop`); the sim never calls it, so combat resolves a little faster in sim-seconds than it
+  would on screen. Negligible next to the points above.
+- **Bunker area only, no Hard mode, no archipelago/town variants, no "big levels."** `setArea('bunker')` /
+  `setHard(false)` are fixed; FTUE and most new-player raids are bunker anyway.
+- **Approximate navigation.** The bot walks a grid-BFS route (the same technique
+  `nodspel/tests/playthrough.test.mjs` uses to prove a route exists) to the next node/medkit/exit, or
+  straight at a visible target, with a perpendicular side-step to break a stall -- not true pathfinding
+  around other moving bodies. It does not go out of its way for optional loot (e.g. a locked closet's
+  keycard); that loot has no effect on survival/extract.
+- **Target selection has a deliberate 3-reevaluation hysteresis** (~1s) to stop it thrashing between two
+  near-tied targets at a visibility boundary (a flicker the sim hit against a node pedestal's edge during
+  development); a human player would not perceive that flicker and would just keep shooting.
+
+## 7. Decisions (Robert, 2026-11-03)
 1. **Loot scales with difficulty above neutral.** Loot quantity/rarity bonus proportional to DDA difficulty above neutral, up to **+20% at max bound**. No reduction below neutral (weak players are not punished).
 2. **Softer return after a lapse.** If >3 days since last raid, nudge the skill estimate toward easier (s := min(s, s*0.5 - 0.2)) and use double step size for the next 2 raids (faster convergence).
 3. Targets in §2 approved as written.
