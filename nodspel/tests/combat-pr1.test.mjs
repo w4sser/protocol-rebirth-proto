@@ -133,13 +133,13 @@ test('guard and intro retain parallel bursts; ordinary sentry retains a single s
 test('game wiring shares movement for preview and release, draws all warning lanes and preserves BIT condition',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
   assert.match(source,/fireAimedWeapon\(weapon,round,position,direction,clock,playerSolids,playerMoving,tap\)/);
-  // v2.22.5: the target list is a reused scratch array filled with enemies + nodes each aiming frame
+  // v2.24.0: the target list is a reused scratch array filled with enemies + nodes each aiming frame
   assert.match(source,/hotAimTargets\.length=0;for\(const e of round\.level\.enemies\)hotAimTargets\.push\(e\);for\(const n of round\.level\.nodes\)hotAimTargets\.push\(n\);/);
   assert.match(source,/assistAim\(position,aim,hotAimTargets,playerSolids,weapon.rule,playerMoving\)/);
   assert.match(source,/assistPreview\(position,aim,playerSolids,weapon.rule,playerMoving\)/);
   assert.match(source,/new THREE.LineSegments\(/);
   assert.match(source,/guardShotDirections\(v.enemy\)/);
   assert.match(source,/setDrawRange\(0,directions.length\*2\)/);
-  assert.match(source,/v.enemy.attackPhase==='warning'\|\|v.enemy.attackPhase==='burst'/); // v2.22.5: allocation-free form
+  assert.match(source,/v.enemy.attackPhase==='warning'\|\|v.enemy.attackPhase==='burst'/); // v2.24.0: allocation-free form
   assert.match(source,/const moving=magnitude>\.12\|\|dashing\|\|Math.hypot/);
 });
