@@ -50,6 +50,8 @@ Adaptive goal: every skill tier converges to about **65–75% extract** on the d
 4. **Tuner script** `tools/difficulty-bots/tune.mjs`: (a) sweeps the baseline knob grid (HP 0.8–1.2, dmg 0.8–1.2, count −1…+1, aggro 0.85–1.15) at DDA off and picks the baseline where **avg** hits the targets in §2. (b) runs 20-raid campaigns with DDA on for each tier and checks that every tier converges into the 65–75% extract band within ≤6 raids without oscillating (≤1 sign flip per 5 raids), and that knobs stay inside the bounds. (c) reports the bounds that clip. If weak still sits below the band at the min bound, either widen the bound or hand the problem to non-combat help such as gear.
 5. CI: a small fixed-seed regression (e.g. 50 raids per tier) checks that the avg-tier extract rate stays within ±10 pts of the stored baseline.
 
-## 5. Open questions
-- Should DDA also scale loot? Proposal: no, because reward stays honest.
-- Should a death in the window soft-reset the skill estimate faster for returning (lapsed) players?
+## 5. Decisions (Robert, 2026-11-03)
+1. **Loot scales with difficulty above neutral.** Loot quantity/rarity bonus proportional to DDA difficulty above neutral, up to **+20% at max bound**. No reduction below neutral (weak players are not punished).
+2. **Softer return after a lapse.** If >3 days since last raid, nudge the skill estimate toward easier (s := min(s, s*0.5 - 0.2)) and use double step size for the next 2 raids (faster convergence).
+3. Targets in §2 approved as written.
+4. Build both: headless sim bots (3 tiers) + tuner, then the DDA system, then tune the baseline. Small PRs.
