@@ -1,11 +1,11 @@
-import {audioEvent} from './audio.js?v=2.25.0';
+import {audioEvent} from './audio.js?v=2.25.1';
 // v2.7.0 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
 // weight. No heat mechanic - waves run on a fixed clock. All tuning lives in data/raid-stakes.js.
-import {traceTargets} from './physics.mjs?v=2.25.0';
-import {RULES,randomFromSeed} from './levels.js?v=2.25.0';
-import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.25.0';
-import '../data/raid-stakes.js?v=2.25.0';
-import '../data/raid-camera.js?v=2.25.0';
+import {traceTargets} from './physics.mjs?v=2.25.1';
+import {RULES,randomFromSeed} from './levels.js?v=2.25.1';
+import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.25.1';
+import '../data/raid-stakes.js?v=2.25.1';
+import '../data/raid-camera.js?v=2.25.1';
 export const RAID_CAMERA = globalThis.DATA.raidCamera;
 export const STAKES = globalThis.DATA.raidStakes;
 
@@ -21,8 +21,15 @@ export function healBudget(round) { return round?.stakes?.budget ?? STAKES.healB
 export function healRemaining(round) { return Math.max(0, healBudget(round) - (round.stakes?.healed ?? 0)); }
 // Clamps `amount` to both the remaining budget and the headroom to max HP, applies it to round.health,
 // and raises a one-shot notice (round.healBudgetLow / round.healBudgetEmpty) the first time each threshold is crossed.
-export function heal(round, now, amount) {
+// v2.25.1: opts.budget === false (medkits) bypasses the shared budget and does not spend it: medkits are always usable.
+export function heal(round, now, amount, opts) {
   const s = round?.stakes;
+  if (opts?.budget === false) {
+    if (!s || round.over || !Number.isFinite(amount) || amount <= 0) return 0;
+    const applied = Math.min(amount, Math.max(0, (round.maxHealth ?? 100) - round.health));
+    if (applied > 0) { round.health += applied; if (round.telemetry) round.telemetry.healed = (round.telemetry.healed || 0) + applied; }
+    return applied;
+  }
   if (!s || round.over || !Number.isFinite(amount) || amount <= 0) return 0;
   const remaining = Math.max(0, healBudget(round) - s.healed), headroom = Math.max(0, (round.maxHealth ?? 100) - round.health);
   const applied = Math.min(amount, remaining, headroom);

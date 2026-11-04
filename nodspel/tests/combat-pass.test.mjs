@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RULES,AREAS,AREA_RULES,generateLevel,ruleSet} from '../levels.js';
 // the Hard flag lives in the module instance round.js imports (it carries the ?v= tag), so flip it there
-import {setHard,isHard} from '../levels.js?v=2.25.0';
+import {setHard,isHard} from '../levels.js?v=2.25.1';
 import {createRound,ROUND_DURATION_MS,hitEnemy} from '../round.js';
 import {createCombat,stepCombat} from '../combat.js';
 import {readLaunch,buildRaidResult} from '../raid-result.js';
@@ -122,7 +122,7 @@ test('Hard rules: table, flag, timer, hp / damage multipliers, 2+ encounters per
       const reg=e=>!e.encounter&&!e.extra;
       const nh=N.enemies.filter(reg).map(e=>e.health),hh=Hd.enemies.filter(reg).map(e=>e.health);
       assert.ok(Math.min(...hh)>=Math.min(...nh),'hard enemies are never softer');
-      assert.ok(Math.abs(Hd.dmgMul-ruleSet(area,true).dmgMul*(RULES.levels[n-1].dmgMul??1))<1e-9); // v2.25.0 per-depth dmgMul
+      assert.ok(Math.abs(Hd.dmgMul-ruleSet(area,true).dmgMul*(RULES.levels[n-1].dmgMul??1))<1e-9); // v2.25.1 per-depth dmgMul
     }
     assert.ok(ruleSet(area,true).hpMul>ruleSet(area,false).hpMul);
   }
