@@ -107,15 +107,12 @@ try{
     // Reset only the debug fixture between independent viewport cases.
     await page.evaluate(()=>{const r=window.__NR.round();r.perks.taken=[];});
   }
-  // A real HUD tap must spend a kit, and an exhausted budget remains tappable for feedback.
-  await page.evaluate(()=>{window.__NR.setRoomClearsEnabled(false);const r=window.__NR.round();r.level.enemies=[];r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget-5;});
+  // A real HUD tap must spend a kit. v2.25.1: medkits ignore the BIT/regen heal budget, so a spent budget still heals.
+  await page.evaluate(()=>{window.__NR.setRoomClearsEnabled(false);const r=window.__NR.round();r.level.enemies=[];r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget;});
   await page.waitForFunction(()=>document.querySelector('#use-kit b').textContent==='2');
   await page.tap('#use-kit');
   await page.waitForFunction(()=>window.__NR.round().kit.medkit===1);
-  assert.ok(await page.evaluate(()=>{const r=window.__NR.round();return r.health>40&&r.health<=45&&r.stakes.healed<=r.stakes.budget;}),'tap heals within budget');
-  await page.evaluate(()=>{const r=window.__NR.round();r.health=40;r.stakes.healed=r.stakes.budget;});
-  await page.tap('#use-kit');await page.waitForFunction(()=>document.querySelector('#encounter-hint').textContent.includes('budget spent'));
-  assert.equal(await page.evaluate(()=>window.__NR.round().kit.medkit),1,'blocked tap preserves kit');
+  assert.ok(await page.evaluate(()=>{const r=window.__NR.round();return r.health>=70&&r.stakes.healed===r.stakes.budget;}),'tap heals full medkit with budget spent');
   await page.evaluateOnNewDocument(()=>{sessionStorage.removeItem('pr_splash_seen');});
   await page.setRequestInterception(true);const art=[];
   page.removeAllListeners('request');page.on('request',req=>{if(req.url().includes('splash_archipelago_radar_lighthouse'))art.push(req);else req.continue().catch(()=>{});});
