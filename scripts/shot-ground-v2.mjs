@@ -40,7 +40,11 @@ try {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
-      page.on('console', m => {if(/ground-preview-v2/.test(m.text())) console.log(area,mode,m.text());});
+      page.on('console', m => {
+        if (/ground-preview-v2/.test(m.text())) console.log(area,mode,m.text());
+        if (m.type()==='error' && /WebGLProgram|shader error|ERROR: 0:|ground-preview/i.test(m.text()))
+          errors.push(m.text().slice(0,600));
+      });
       await page.evaluateOnNewDocument(() => {
         window.__dc = 0;
         for (const C of [WebGLRenderingContext,WebGL2RenderingContext])
@@ -78,10 +82,31 @@ try {
                  drawsPerFrame:Math.round((window.__dc-d0)/60)});};
         requestAnimationFrame(tick);
       }));
+      // DEBUG-ONLY attribution audit: these planes originate in world.js hazard gameplay,
+      // not in ground-preview.js. Compare projected positions with the screenshot.
+      const sceneAudit=await page.evaluate(() => {
+        const api=window.__NR;
+        const level=api?.state?.()?.level;
+        if (!level || !api.project) return null;
+        const coord = item => ({
+          x:item.x, z:item.z,
+          screen:api.project(item.x,item.z),
+          ...(item.w!=null ? {w:item.w,d:item.d} : {}),
+          ...(item.id!=null ? {id:item.id} : {}),
+        });
+        return {
+          level:level.number,
+          hazards:(level.hazards || []).map(coord),
+          keycard:(level.lootBoxes || []).filter(box => box.item === 'keycard').map(coord),
+          otherLoot:(level.lootBoxes || []).filter(box => box.item !== 'keycard').length,
+        };
+      });
+      if (sceneAudit) console.log('[ground-keycard-audit]',area,mode,JSON.stringify(sceneAudit));
       const name=area+(process.env.LEVEL?'-L'+process.env.LEVEL:'')+'-'+mode;
       await page.screenshot({path:join(OUT,name+'.png')});
-      results.push({name,...perf,ground,errors});
+      results.push({name,...perf,ground,sceneAudit,errors});
       console.log(name,JSON.stringify(perf),JSON.stringify(ground));
+      if (errors.length) throw new Error('WebGL or page errors in '+name+': '+errors.join(' | '));
       await page.close();
     }
   }
