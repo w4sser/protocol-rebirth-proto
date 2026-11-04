@@ -47,6 +47,8 @@ jobs:
         run: npm i --no-save puppeteer
       - name: Render OFF/HIGH/LOW for bunker and archipelago from raid camera
         run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
       - name: Upload in-engine comparison captures
         if: always()
         uses: actions/upload-artifact@v4
