@@ -61,7 +61,8 @@ function highMaterial(layers, mask) {
 function cutoutMaterial(tex) {
   return new THREE.MeshStandardMaterial({
     map: tex, vertexColors: true, side: THREE.DoubleSide,
-    alphaTest: .49, transparent: false, depthWrite: true,
+    // Soft coverage, prefiltered mipmaps and blending avoid hard clip/speckle at the raid camera.
+    alphaTest: .035, transparent: true, depthWrite: false,
     roughness: .95, metalness: 0,
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
   });
