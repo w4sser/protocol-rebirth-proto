@@ -1,25 +1,27 @@
-# Protocol Rebirth - Node Raid / Terrain Kit (ground pass 1)
+# Protocol Rebirth / Node Raid – Ground Pass v2 (assets only)
 
-Original procedural assets; no external paid art or code changes. All dimensions are metres, Y-up, forward -Z. Separate GLB files: `_lod1` and `_lod2` are lower-detail geometry, not runtime LOD logic. Every GLB has **one mesh, one material, no compression**, no animation. External PNGs in this folder are required beside the GLBs.
+Original locally generated low-poly environment assets, no paid dependencies. The goal of this pass is **readability from the ~52-degree isometric raid camera**, with bigger granite/moss islands, distinctly greener moss and pale-green lichen, brighter paths, and a cheaper mobile alternative. See `contact_sheet_v2.png` and `dusk_preview_v2.png`. These are **illustrations, not in-engine screenshots**.
 
-## Ground layers
-Nine seamlessly repeatable 512x512 indexed PNG albedo maps: granite, moss, pine needles, gravel, mud, grass, sand, concrete, wet concrete. Tile each at **4x4 m**, nominal 128 px/metre. sRGB for albedo. Source colors are intentionally harmonized for dusk lighting. Texture memory is approximately 9 MiB if expanded to RGBA8; actual runtime memory depends on the loader/mipmaps.
+## Changes from v1
+- Replaced the corresponding albedo textures (granite/moss/grass/gravel/pine needles) with flatter and more distinct Nordic colors. Added lichen and worn-concrete/grime textures.
+- Replaced the nature splat mask `chunk_0_0_splat.png` with larger patches; added `chunk_0_0_bunker_splat.png` (dry concrete, wet concrete, worn concrete, grime; no natural ground in bunkers).
+- Added separate **4 m** and **8 m** walkable terrain tiles, both nature and bunker. All tiles have exact nominal horizontal bounds, origin at ground-contact center, and Y-up / front -Z. Splat and vertexpaint meshes have interior variation, but boundaries meet at height 0.
+- Seven brighter 1.8m-wide trails rebuilt with finer edge bands and alpha test texture `ground_trail_albedo.png` (local Y=+0.016m).
+- Six 2–3x-larger muted decals in `decal_atlas.png`: wear / wheel tracks / **lichen** / needles / puddle / mud. **No footprints or red/coral**. Footstep GLB removed.
 
-## Terrain blending (requires engine integration)
-`terrain_chunk_16m_vertexpaint.glb` is a 31x31-grid quad terrain (1922 tris, 0.516m step). COLOR_0.rgba stores **normalized blending weights**, **not baked albedo**, in order **granite / moss / gravel / pine_needles**; weights total 1.00 at every vertex. Do **not** multiply these weights as ordinary vertex tint when doing final rendering. `_lod1` / `_lod2` use 22 / 15 segments.
+## Rendering profiles (engine integration required)
+**High – 4+1 samples per pixel:** `terrain_tile_{4|8}m_splat_{nature|bunker}.glb` + four repeated albedo textures (tile every 4m) + one RGBA splat. `TEXCOORD_1` is mask UV. RGBA channels in `ground_layers.json`, separately for bunker and nature. Existing 16m samples remain for backwards comparison.
 
-`terrain_chunk_16m_splat.glb` is the alternative approach with repeated material UV0 and UV1 in [0,1] for `chunk_0_0_splat.png`. The RGBA splat is 256x256, same layer order, weights total 255 per pixel. The GLB's moss baseColorTexture is a **fallback preview only**; standard glTF does not implement 4-way texture blending. Engine shader must blend the four layer textures. Each 16m edge is **exactly Y=0**, so neighboring chunks share no cracks; interior height variation is below 0.34m. `terrain_chunk_8m_vertexpaint.glb` is an 8m sample.
+**High alternative – 4 samples per pixel:** `terrain_tile_4m_vertexpaint_{nature|bunker}.glb`. `COLOR_0.rgba` contains normalized blending weights (NOT albedo/AO), so a custom shader is still required. Avoid multiplying COLOR_0 into the normal PBR color for these tiles.
 
-## Trails and decals
-- `trail_straight_2m/4m/8m`, `trail_curve_45/90`, `trail_t_junction`, `trail_end` are gravel-colored strips approximately 1.36m wide. The edges use COLOR_0.a=0. **Alpha test** is used, not alpha blending. More attractive dithered edge fading needs a runtime shader.
-- Trails/decal mesh heights are locally Y=0.012m; when laid on rolling terrain, project/conform to ground in the placement system so they remain 1.2cm above it. The four T-junction quads butt up without overlap.
-- Six decals share `decal_atlas.png` (3 columns x 2 rows): wear, wheel tracks, footprints, pine needles, puddle, mud. All have one material and use binary alpha-test cutout.
-- There is no collision for trails/decals. Terrain is walkable. Terrain mesh origin is bottom-centre, with local edges at Y=0.
+**Mobile cheap – one sample per pixel:** `terrain_tile_{4|8}m_mobile_{nature|bunker}_{a|b|c|d}.glb` + **one** premade 512px 2x2 atlas `ground_mobile_nature_atlas.png` or `ground_mobile_bunker_atlas.png`. Four local variants reduce repeating patterns. These are flat walkable meshes rendered with standard GLTFLoader/MeshStandardMaterial, no 5-texture splat shader. This is the proposed baseline for low/mid-range phones.
 
-## Engine integration (not included in this PR)
-Support a four-layer onBeforeCompile splat/vertex-weight blend, displacement or CPU ground projection for strips, repeat texture sampling, chunk culling, and InstancedMesh for repeated decals. Vertex color alpha on trail strips is a transparency/fade mask and must be preserved. Three.js GLTFLoader can load all files, but glTF alone does not blend layers.
+**Important:** PR #188's preview still always constructs a *five-texture* splat shader and references the now-removed `decal_footprints.glb`. Someone integrating this PR must switch the preview to the `mobile` set for LOW, change `decals` to `decal_lichen`, use the correct bunker mask in bunker areas, and place 4/8m tiles. That **engine work is explicitly outside this asset-only PR**.
 
-## QA notes
-All generated GLBs are GLB v2 with 4-byte aligned chunks, valid POSITION/NORMAL/TEXCOORD_0/COLOR_0, UINT16 indices and one material. Byte lengths, tris, bounds and material counts are listed per file in `manifest.json`. No Draco, KTX2, Meshopt or extensions. Full Khronos `npx gltf-validator` and in-engine visual review are **still required** before merging; they have not been claimed as executed. Textures are forced to identical left/right and top/bottom edge pixels in addition to periodic noise. Verification previews accompany this kit.
+## GLB/texture conventions
+Metres, Y-up, front -Z, pivot at center ground contact, scale 1, rotation 0. One mesh and material per GLB; normal and COLOR_0 included. No Draco / KTX2 / Meshopt. External PNG textures must reside beside GLBs. Trails/decals are non-colliding and lie 0.016m above placement plane; conform/project them to uneven terrain at runtime. Do not apply wall/floor `fitStructure` to terrain. Bunker/nature tiles are walkable. Collision metadata, dimensions, triangles and sizes in `manifest.json`.
 
-Do not apply `fitStructure` to terrain: the intended footprints are 8m or 16m, with exact 0m boundary heights.
+## QA and acceptance status
+This is a **draft**, and NOT a ready-to-merge performance claim. Structural GLB checks are not a substitute for Khronos `npx gltf-validator`. Validation still needed: zero validator errors; in-engine LOW/HIGH mobile frame times vs existing terrain; 4 adjacent tiles with no gaps/z-fighting; trail alpha edges at camera angle; 3x3 texture repeat. The mobile profile uses one ground atlas sample per pixel **by design**, but actual measured fps depends on the full renderer.
+
+No gameplay files, shaders, existing bunker kit, or other assets outside `assets/env/terrain` are modified. See stacked PR #189 on asset PR #183. PR #188 remains a non-merge test preview.

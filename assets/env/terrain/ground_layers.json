@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "units": "metres",
   "texel_density_px_per_m": 128,
   "tile_size_m": 4,
@@ -66,6 +66,34 @@
       "encoding": "sRGB",
       "wrap": "REPEAT",
       "size_px": 512
+    },
+    {
+      "name": "lichen",
+      "albedo": "ground_lichen_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "concrete_worn",
+      "albedo": "ground_concrete_worn_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "grime",
+      "albedo": "ground_grime_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "trail",
+      "albedo": "ground_trail_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 256
     }
   ],
   "sample_chunk": {
@@ -81,13 +109,7 @@
       "B": "gravel",
       "A": "pine_needles"
     },
-    "weights": "normalized to 255 per pixel; no implicit base layer",
-    "vertex_color_channels": {
-      "R": "granite",
-      "G": "moss",
-      "B": "gravel",
-      "A": "pine_needles"
-    }
+    "weights": "Normalized per pixel (0..255)"
   },
   "decal_atlas": {
     "filename": "decal_atlas.png",
@@ -98,11 +120,70 @@
     "cells": [
       "wear",
       "wheel_tracks",
-      "footprints",
+      "lichen",
       "pine_needles",
       "puddle",
       "mud"
     ],
-    "alpha": "binary cutout"
-  }
+    "alpha": "palette transparency, MASK/cutout; no footprints; no coral",
+    "recommended_scale": 1
+  },
+  "profiles": {
+    "nature_high": {
+      "splat": "chunk_0_0_splat.png",
+      "layer_order_rgba": [
+        "granite",
+        "moss",
+        "gravel",
+        "pine_needles"
+      ],
+      "tile_sizes_m": [
+        4,
+        8,
+        16
+      ]
+    },
+    "bunker_high": {
+      "splat": "chunk_0_0_bunker_splat.png",
+      "layer_order_rgba": [
+        "concrete",
+        "wet_concrete",
+        "concrete_worn",
+        "grime"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ]
+    },
+    "nature_mobile": {
+      "atlas": "ground_mobile_nature_atlas.png",
+      "tile_variants": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ],
+      "samples_per_pixel": 1
+    },
+    "bunker_mobile": {
+      "atlas": "ground_mobile_bunker_atlas.png",
+      "tile_variants": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ],
+      "samples_per_pixel": 1
+    }
+  },
+  "performance_note": "High profile is 5 samples/pixel including splat; low profile is single atlas lookup/pixel. Requires engine to switch materials. Texture memory excludes mipmaps/shadows."
 }
