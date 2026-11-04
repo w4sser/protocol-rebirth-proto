@@ -41,21 +41,40 @@ function model(filename) {
     undefined, reject,
   ));
 }
-function highMaterial(layers, mask) {
+function highMaterial(layers, mask, biome) {
+  // PASS 4: reweight existing smooth macro splat, no extra texture lookups/no new noise.
+  // Nature keeps the moss and the path legibility; bunker uses existing broad wet/worn/grime masks.
   const m = new THREE.MeshStandardMaterial({roughness: .94, metalness: 0});
   m.onBeforeCompile = shader => {
     for (let i = 0; i < 4; i++) shader.uniforms['groundLayer' + i] = {value: layers[i]};
     shader.uniforms.groundMask = {value: mask};
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvGroundXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+      .replace('#include <common>', '#include <common>\\nvarying vec2 vGroundXZ;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\\nvGroundXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+    const weightTune = biome === 'nature'
+      ? 'groundWeights *= vec4(0.93,1.44,0.80,0.90);'
+      : 'groundWeights *= vec4(1.0,1.28,1.28,1.32);';
+    const colorTune = biome === 'nature'
+      // Moss-rich areas get a restrained cool green tint and depth; all derived from
+      // the existing smooth splat weights (never high-frequency TV-static noise).
+      ? 'float mossCoverage=smoothstep(0.32,0.70,groundWeights.g); float mossDepth=smoothstep(0.56,0.83,groundWeights.g); groundColor*=mix(vec3(1.0),vec3(0.92,1.015,0.89),mossCoverage); groundColor*=1.0-0.060*mossDepth;'
+      // Darken existing broad wet/worn/grime regions slightly, not the entire floor.
+      : 'float wetDepth=smoothstep(0.12,0.44,groundWeights.g); float wornDepth=smoothstep(0.15,0.40,groundWeights.b+groundWeights.a*0.6); groundColor*=1.0-0.055*wetDepth-0.048*wornDepth;';
+    const fragment = [
+      'vec4 groundWeights=texture2D(groundMask,vGroundXZ/16.0);',
+      weightTune,
+      'groundWeights/=max(dot(groundWeights,vec4(1.0)),0.001);',
+      'vec2 groundUV=vGroundXZ/4.0;',
+      'vec3 groundColor=texture2D(groundLayer0,groundUV).rgb*groundWeights.r+texture2D(groundLayer1,groundUV).rgb*groundWeights.g+texture2D(groundLayer2,groundUV).rgb*groundWeights.b+texture2D(groundLayer3,groundUV).rgb*groundWeights.a;',
+      colorTune,
+      'diffuseColor.rgb*=groundColor;'
+    ].join(' ');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>',
-        '#include <common>\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
-      .replace('#include <map_fragment>',
-        'vec4 groundWeights=texture2D(groundMask,vGroundXZ/16.0); groundWeights/=max(dot(groundWeights,vec4(1.0)),0.001); vec2 groundUV=vGroundXZ/4.0; diffuseColor.rgb*=texture2D(groundLayer0,groundUV).rgb*groundWeights.r+texture2D(groundLayer1,groundUV).rgb*groundWeights.g+texture2D(groundLayer2,groundUV).rgb*groundWeights.b+texture2D(groundLayer3,groundUV).rgb*groundWeights.a;');
+        '#include <common>\\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
+      .replace('#include <map_fragment>', fragment);
   };
-  m.customProgramCacheKey = () => 'ground-v2-world-splat';
+  m.customProgramCacheKey = () => 'ground-v4-' + biome;
   return m;
 }
 function cutoutMaterial(tex) {
@@ -89,8 +108,12 @@ async function loadAssets(biome, profile) {
         : texture('ground_mobile_' + biome + '_atlas.png'),
     ]);
     const surfaceMaterial = profile === 'high'
-      ? highMaterial(surface[0], surface[1])
-      : new THREE.MeshStandardMaterial({map:surface,roughness:.94,metalness:0,vertexColors:true});
+      ? highMaterial(surface[0], surface[1], biome)
+      : new THREE.MeshStandardMaterial({
+          map:surface,roughness:.94,metalness:0,vertexColors:true,
+          // Single atlas lookup remains unchanged. Subtle LOW-only green lift.
+          color: biome === 'nature' ? new THREE.Color().setRGB(.975,1.035,.96) : new THREE.Color(0xffffff),
+        });
     const tiles = new Map(tileFiles.map((f,i) => [f, tileModels[i].geometry]));
     return {
       surfaceMaterial, tiles,
