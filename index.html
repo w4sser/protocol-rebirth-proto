@@ -819,6 +819,39 @@
     body:not([data-screen=base]) #bitdock{bottom:calc(var(--nav-h,0px) + 8px);}
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
+  /* v2.26.0 Clean Base UI: the bunker is the screen. No bottom bar, no permanent nameplates; tap a room for its action sheet. */
+  body[data-screen=base] #tabs{justify-content:flex-end; align-items:flex-end; padding:8px calc(10px + var(--sr)) calc(8px + env(safe-area-inset-bottom,0px)) 10px;}
+  body[data-screen=base] #tabs>button:not(.nav-prep),body[data-screen=base] #tabs .nav-gap{display:none;}
+  body[data-screen=base] #tabs .nav-prep{width:150px; min-height:60px; font-size:16px;}
+  body[data-screen=base].basemenu-open #tabs{flex-direction:column; gap:6px; left:auto;}
+  body[data-screen=base].basemenu-open #tabs>button:not(.nav-prep):not(.nav-base){display:flex; flex:none; flex-direction:row; width:150px; max-width:none; min-height:46px; gap:8px; justify-content:flex-start; padding:0 12px; font-size:13px;}
+  body[data-screen=base].basemenu-open #tabs>button .ni{font-size:20px;}
+  .basemenu-btn{position:absolute; z-index:23; right:calc(10px + var(--sr,0px) + 158px); bottom:calc(8px + env(safe-area-inset-bottom,0px)); width:52px; height:52px; min-height:52px; padding:0; margin:0; display:grid; place-items:center; border-radius:16px; border:2px solid var(--line); background:var(--solid); color:var(--txt); font-size:22px;}
+  .basemenu-btn.open{border-color:var(--accent); color:var(--accent);}
+  .basemenu-btn .dot{position:absolute; top:6px; right:6px; width:10px; height:10px; border-radius:50%; background:var(--ok2); box-shadow:0 0 0 2px var(--solid);}
+  .baseviewer .hubstate{display:none;}
+  .baseviewer .mapspot.plate .tag{min-width:64px; min-height:64px; padding:0; justify-content:center; background:transparent; border-color:transparent; box-shadow:none; color:transparent; animation:none;}
+  .baseviewer .mapspot.plate .tag>*,.baseviewer .mapspot.plate>small{display:none;}
+  .baseviewer .mapspot.plate.selected .tag,.baseviewer.ftue .mapspot.plate.goal-target .tag{min-width:0; min-height:var(--tap); padding:4px 10px 4px 6px; background:var(--solid); border-color:var(--accent); color:var(--txt);}
+  .baseviewer .mapspot.plate.selected .tag>*,.baseviewer.ftue .mapspot.plate.goal-target .tag>*{display:revert;}
+  .baseviewer .mapspot.plate.selected .tag{box-shadow:0 0 0 3px rgba(117,207,204,.35),0 0 22px rgba(117,207,204,.55);}
+  .baseviewer.ftue .mapspot.plate.goal-target:not(.selected) .tag{animation:buildglow 1.6s ease-in-out infinite;}
+  .baseviewer .mapspot.plate .badge{top:8px; right:8px; margin:0; min-width:0; width:12px; height:12px; padding:0; font-size:0; border-width:2px; animation:none;}
+  .baseviewer .mapspot.plate .badge.up{animation:dotpulse 1.6s ease-in-out infinite;}
+  .baseviewer .mapspot.plate .badge.timer{width:auto; height:20px; padding:0 6px; font-size:11px; top:auto; bottom:4px; right:50%; transform:translateX(50%); background:var(--solid); color:var(--txt); border-color:var(--warn2);}
+  .baseviewer .mapspot.plate.selected .badge,.baseviewer.ftue .mapspot.plate.goal-target .badge{display:none;}
+  .baseviewer .mapspot.plate.goal-target:not(.selected) .tag{border-color:rgba(117,207,204,.55); border-style:dashed; border-radius:50%;}
+  .baseviewer.ftue .mapspot.plate.goal-target:not(.selected) .tag{border-style:solid; border-radius:14px;}
+  @keyframes dotpulse{0%,100%{box-shadow:0 0 0 0 rgba(103,229,156,.7)}50%{box-shadow:0 0 0 7px rgba(103,229,156,0)}}
+  .roomsheet{position:absolute; z-index:24; left:50%; transform:translateX(-50%); bottom:calc(8px + env(safe-area-inset-bottom,0px)); max-width:min(560px,calc(100% - 20px - 2 * 158px - 60px)); display:flex; align-items:center; gap:10px; padding:6px 44px 6px 12px; border-radius:16px; background:var(--solid); border:2px solid var(--accent); box-shadow:0 6px 24px #000a;}
+  .roomsheet .rs-head{display:flex; flex-direction:column; min-width:0;} .roomsheet .rs-head b{font:800 15px "Archivo",sans-serif; white-space:nowrap;} .roomsheet .rs-head small{color:var(--dim); font-size:11px; white-space:nowrap;}
+  .roomsheet .rs-acts{display:flex; gap:6px;} .roomsheet .rs-acts button{width:auto; min-height:44px; margin:0; padding:4px 12px; white-space:nowrap; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 4px; line-height:1.1;} .roomsheet .rs-acts small{flex-basis:100%; text-align:center; font-size:10px; opacity:.85;}
+  .roomsheet .rs-x{position:absolute; right:2px; top:50%; transform:translateY(-50%); width:44px; height:44px; min-height:44px; padding:0; margin:0; background:none; border:0; color:var(--dim);}
+  .s-base .progress-goal{bottom:calc(8px + env(safe-area-inset-bottom,0px)); width:fit-content; max-width:min(300px,calc(100% - 260px));}
+  .s-base .progress-goal:not(.open)>:not(b):not(.qgrow){display:none;} .s-base section.progress-goal:not(.open){cursor:pointer; min-height:44px; justify-content:center;}
+  .s-base .progress-goal.qgoal .qphase{display:none;}
+  .baseviewer.has-sel .progress-goal,.baseviewer.has-sel .goalpill{display:none;}
+  @media (prefers-reduced-motion:reduce){.baseviewer .mapspot.plate .badge.up,.baseviewer.ftue .mapspot.plate.goal-target .tag{animation:none;}}
 </style>
 <link rel="stylesheet" href="ui/tokens.css?v=2.25.0">
 <link rel="stylesheet" href="ui/popup.css?v=2.25.0">
