@@ -1,0 +1,36 @@
+name: ground-v2-khronos
+on:
+  pull_request:
+    paths:
+      - 'assets/env/terrain/**'
+      - 'scripts/validate-terrain-glbs.mjs'
+      - 'scripts/shot-ground-v2.mjs'
+      - 'nodspel/ground-preview.js'
+      - 'nodspel/game.mjs'
+      - '.github/workflows/ground-validation.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check preview source syntax
+        run: |
+          node --check nodspel/ground-preview.js
+          node --check nodspel/game.mjs
+          node --check scripts/shot-ground-v2.mjs
+          node --check scripts/validate-terrain-glbs.mjs
+      - name: Install official Khronos glTF Validator
+        run: npm install --no-save --no-package-lock gltf-validator@2.0.0-dev.3.10
+      - name: Validate every ground GLB and its external PNG resources
+        run: node scripts/validate-terrain-glbs.mjs
+      - name: Upload full glTF issue report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ground-v2-khronos-report
+          path: verify-out/ground-v2/khronos-glb-validation.json
+          if-no-files-found: warn
