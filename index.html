@@ -820,7 +820,7 @@
     #app.s-base .goalpill{bottom:calc(var(--nav-h,0px) + 8px);}
   }
   /* v2.26.0 Clean Base UI: the bunker is the screen. No bottom bar, no permanent nameplates; tap a room for its action sheet. */
-  body[data-screen=base] #tabs{justify-content:flex-end; align-items:flex-end; padding:8px calc(10px + var(--sr)) calc(8px + env(safe-area-inset-bottom,0px)) 10px;}
+  body[data-screen=base] #tabs{left:auto; justify-content:flex-end; align-items:flex-end; padding:8px calc(10px + var(--sr)) calc(8px + env(safe-area-inset-bottom,0px)) 10px;}
   body[data-screen=base] #tabs>button:not(.nav-prep),body[data-screen=base] #tabs .nav-gap{display:none;}
   body[data-screen=base] #tabs .nav-prep{width:150px; min-height:60px; font-size:16px;}
   body[data-screen=base].basemenu-open #tabs{flex-direction:column; gap:6px; left:auto;}
