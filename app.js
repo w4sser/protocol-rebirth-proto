@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.25.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.26.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2369,7 +2369,7 @@ function setupBaseViewer(){
     const card = e.target.closest("section.progress-goal"); if(card && !e.target.closest("button")){ card.classList.toggle("open"); session.goalOpen = card.classList.contains("open"); return; }
     const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); if(!spot && !(suppress || moved) && !e.target.closest("button, .progress-goal")) selectBaseSpot(null); return; }
     // v2.26.0 Clean Base: first tap selects the room + shows its action sheet; tapping the selected room again opens it.
-    if(spot.classList.contains("selected")) return baseSpotOpen(spot);
+    if(e.detail === 0 || spot.classList.contains("selected")) return baseSpotOpen(spot); // keyboard (Enter/Space) opens directly
     selectBaseSpot(spot);
   });
   session.cameraLayoutFn = layout;
@@ -2467,7 +2467,7 @@ function selectBaseSpot(spot){
   if(!spot) return;
   spot.classList.add("selected"); spot.setAttribute("aria-pressed", "true");
   const h = baseSheetHtml(spot);
-  viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="dialog" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small></div><div class="rs-acts">' + h.acts + '</div>' +
+  viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="group" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small></div><div class="rs-acts">' + h.acts + '</div>' +
     '<button type="button" class="rs-x" onclick="A.baseAct(\'close\')" aria-label="Close">' + IC("close") + '</button></div>');
 }
 function moduleBadge(modId){
