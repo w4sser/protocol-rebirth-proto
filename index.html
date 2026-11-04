@@ -847,8 +847,8 @@
   .roomsheet .rs-head{display:flex; flex-direction:column; min-width:0;} .roomsheet .rs-head b{font:800 15px "Archivo",sans-serif; white-space:nowrap;} .roomsheet .rs-head small{color:var(--dim); font-size:11px; white-space:nowrap;}
   .roomsheet .rs-acts{display:flex; gap:6px;} .roomsheet .rs-acts button{width:auto; min-height:44px; margin:0; padding:4px 12px; white-space:nowrap; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:0 4px; line-height:1.1;} .roomsheet .rs-acts small{flex-basis:100%; text-align:center; font-size:10px; opacity:.85;}
   .roomsheet .rs-x{position:absolute; right:2px; top:50%; transform:translateY(-50%); width:44px; height:44px; min-height:44px; padding:0; margin:0; background:none; border:0; color:var(--dim);}
-  .s-base .progress-goal{bottom:calc(8px + env(safe-area-inset-bottom,0px)); width:fit-content; max-width:min(300px,calc(100% - 260px));}
-  .s-base .progress-goal:not(.open)>:not(b):not(.qgrow){display:none;} .s-base section.progress-goal:not(.open){cursor:pointer; min-height:44px; justify-content:center;}
+  #app.s-base .progress-goal{top:calc(var(--tb-h,0px) + 6px); bottom:auto; width:fit-content; max-width:min(300px,calc(100% - 260px));}
+  #app.s-base .progress-goal:not(.open)>:not(b):not(.qgrow){display:none;} #app.s-base section.progress-goal:not(.open){cursor:pointer; min-height:44px; justify-content:center;}
   .s-base .progress-goal.qgoal .qphase{display:none;}
   .baseviewer.has-sel .progress-goal,.baseviewer.has-sel .goalpill{display:none;}
   @media (prefers-reduced-motion:reduce){.baseviewer .mapspot.plate .badge.up,.baseviewer.ftue .mapspot.plate.goal-target .tag{animation:none;}}

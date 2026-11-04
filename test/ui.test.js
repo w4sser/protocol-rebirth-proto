@@ -111,6 +111,7 @@ tap(doc.querySelector(".core-spot"));
 assert(doc.querySelector(".core-spot.selected") && doc.querySelector(".roomsheet") && !doc.querySelector("#overlay .bpop"), "v2.26.0: first pointer tap selects the Core and shows its action sheet");
 assert(/Core/.test(doc.querySelector(".roomsheet .rs-head b").textContent) && doc.querySelector(".roomsheet .rs-acts button"), "action sheet names the room and offers actions");
 tap(doc.querySelector(".baseviewer")); assert(!doc.querySelector(".roomsheet") && !doc.querySelector(".mapspot.selected"), "tapping empty space dismisses the selection");
+A.baseMenu(); assert(doc.body.classList.contains("basemenu-open") && doc.querySelector(".basemenu-btn[aria-expanded=true]"), "v2.26.0: compact corner menu opens the secondary nav"); A.baseMenu(); assert(!doc.body.classList.contains("basemenu-open"), "menu closes");
 tap(doc.querySelector(".core-spot")); { const b = doc.querySelector(".roomsheet .rs-acts button"); b.onclick = window.Function("event", b.getAttribute("onclick")); b.click(); }
 assert(doc.querySelector("#overlay .bpop"), "sheet OPEN opens the Core popup");
 assert(doc.querySelector(".core-spot .tag em"), "building plate shows its level");
