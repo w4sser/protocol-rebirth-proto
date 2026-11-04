@@ -9,7 +9,7 @@ import {generateLevel,RULES,isHard} from './levels.js?v=2.26.0';
 import {emptyBag,bagItems} from './raid.js?v=2.26.0';
 import {traceTargets} from './physics.mjs?v=2.26.0';
 import {shieldBlocks,weakSide} from './encounters.js?v=2.26.0';
-import {createStakesState,heal,healRemaining} from './stakes.js?v=2.26.0';
+import {createStakesState,heal} from './stakes.js?v=2.26.0';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -207,16 +207,15 @@ export function equipFromBackpack(round,index,now){
 }
 // Medkits live in the kit slot (brought from base or picked up, max RULES.kitMax.medkit); unused ones come home on extract, lost on death.
 export function healthKitBlock(round){
-  if(healRemaining(round)<=0)return 'Healing budget spent for this raid';
   if(!(round.kit?.medkit>0)&&!(round.bag?.medkit>0))return 'No medkits carried';
   if(round.health>=(round.maxHealth??100))return 'Health full';
   return '';
 }
 export function useHealthKit(round,now){
   const max=round.maxHealth??100;tickRound(round,now);const kit=round.kit?.medkit>0;
-  if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max||healRemaining(round)<=0)return false;
+  if(round.over||round.pauseAt!=null||(!kit&&!round.bag.medkit)||round.health>=max)return false;
   audioEvent('medkit');
-  if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth);if(round.telemetry)round.telemetry.medkitsUsed++;return true;
+  if(kit)round.kit.medkit--;else round.bag.medkit--;heal(round,now,RULES.rewards.medkitHealth,{budget:false});if(round.telemetry)round.telemetry.medkitsUsed++;return true;
 }
 // Encounter 6: a node with a live generator cannot be charged until the generator is shot (the node's `shielded` flag
 // then drops for good) or an EMP holds the shield down for a few seconds. Shielded nodes without a generator charge as before.

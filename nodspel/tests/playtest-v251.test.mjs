@@ -30,7 +30,7 @@ test('modal-owned pointer release is swallowed after close; a fresh press works'
   assert.equal(gate.handle(event('pointerup'),false),false);
   assert.equal(gate.handle(event('pointerup'),true),true);
 });
-test('HUD tap heals within the remaining budget and exhausted taps give feedback without spending a kit',()=>{
+test('HUD tap heals full medkit even with the heal budget nearly spent (v2.25.1: kits ignore the budget)',()=>{
   const source=fs.readFileSync(new URL('../game.mjs',import.meta.url),'utf8'),r=createRound('kit-tap',0);
   r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget-5;
   let feedback='',updates=0;
@@ -38,8 +38,8 @@ test('HUD tap heals within the remaining budget and exhausted taps give feedback
   const ctx={inputPaused,round:r,resultPending:false,gameClock:()=>0,useHealthKit,healthKitBlock,notice:s=>feedback=s,updateHUD:()=>updates++,refreshKitLabels(){},$:()=>button};
   vm.createContext(ctx);
   vm.runInContext(source.match(/function useKit\(\)\{[^\n]+/)[0]+'\n'+source.match(/function renderKitHUD\(\)\{[^\n]+/)[0],ctx);
-  vm.runInContext('renderKitHUD();useKit()',ctx);assert.equal(button.disabled,false);assert.equal(r.health,45);assert.equal(r.kit.medkit,1);assert.equal(updates,1);
-  vm.runInContext('renderKitHUD();useKit()',ctx);assert.equal(button.disabled,false);assert.match(feedback,/budget spent/);assert.equal(r.kit.medkit,1);
+  vm.runInContext('renderKitHUD();useKit()',ctx);assert.equal(button.disabled,false);assert.equal(r.health,70);assert.equal(r.kit.medkit,1);assert.equal(updates,1);
+  vm.runInContext('renderKitHUD();useKit()',ctx);assert.equal(r.health,100);assert.equal(r.kit.medkit,0);assert.equal(updates,2);
   assert.match(source,/bindHUDTap\(\$\('#use-kit'\),\(\)=>useKit\(\)\)/);
 });
 test('active Transmitter supply has a visible guaranteed Archipelago radio crate across seeds',()=>{

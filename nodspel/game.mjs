@@ -29,6 +29,7 @@ import {svgIcon,setIconText} from './svg-icons.js?v=2.26.0';
 import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.26.0';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.26.0';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.26.0';
+import {safeSpawn} from './spawn.js?v=2.26.0';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.26.0';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.26.0';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.26.0';
@@ -748,7 +749,7 @@ function loadLevelInner(){
   applyEnemyDemo(round.level,location.search,AREA_SEL);
   applyEnemyDemoMixed(round.level,location.search,AREA_SEL);
   world?.dispose();clearBullets();clearInput();mouseKnown=false;weapon.scavenging=null;
-  playerMoving=false;position={...round.level.start};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
+  playerMoving=false;position=safeSpawn(round.level);aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
   player.position.set(position.x,0,position.z);
   // Debug-only: unlock the exit and stand the player next to it so a screenshot shows the lit active
   // extraction point (TASK 1). Gated on both params plus a small level; never runs in normal play.

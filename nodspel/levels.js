@@ -15,7 +15,7 @@ export const RULES=Object.freeze({
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
-    // v2.25.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
+    // v2.25.1 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
     // extracted 94-100%. L2/L3 now hit harder (level dmgMul 1.15/1.2, which also scales encounter damagePct --
     // enemyDamage alone only reaches fallback enemies, which bunker raids barely have) and fire faster (1260/1200ms).
     // Older note: L2/L3 previously fell back to the global
@@ -124,8 +124,8 @@ export const RULES=Object.freeze({
     types:['scrap_alloy','power_cell','cable','fuse','medkit','polymer_plate','servo','optical_sensor','circuit_board','salvage_crate','data_core','hydraulic_component','memory_module','transmitter','power_relay','ai_fragment','bio_sample','scout_rig','dampener_cloak','smg_vector','rifle_marksman','shotgun_breach','encrypted_drive','rebirth_shard','neural_core','archipelago_chart','town_survey','contract_chip','tidal_coil','frost_glass','core_ash'],
     weights:[
       {cable:4,scrap_alloy:4,polymer_plate:3,salvage_crate:4},
-      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:1},
-      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:2,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1,contract_chip:.5,core_ash:.4}],
+      {fuse:3,scrap_alloy:2,power_cell:2,polymer_plate:3,servo:3,optical_sensor:2,circuit_board:2,salvage_crate:4,data_core:2,cable:1,scout_rig:1,smg_vector:1,shotgun_breach:1,power_relay:2,ai_fragment:2.5},
+      {salvage_crate:4,data_core:3,circuit_board:2,hydraulic_component:2,memory_module:2,optical_sensor:1,power_relay:3,ai_fragment:3.5,servo:1,polymer_plate:1,bio_sample:1,scout_rig:1,dampener_cloak:1,rifle_marksman:1,shotgun_breach:1,encrypted_drive:1,rebirth_shard:1,neural_core:1,contract_chip:.5,core_ash:.4}],
     pickupRadius:1.6},
   // Level variety (seeded from `${seed}:variety`, so base layouts are unchanged). Level 1 stays gentle: grunts only, no hazards.
   enemyTypes:{
