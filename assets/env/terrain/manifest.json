@@ -3,7 +3,7 @@
   "units": "metres",
   "up_axis": "Y",
   "front": "-Z",
-  "origin": "bottom centre (trail/decal surface +0.012m local Y)",
+  "origin": "terrain: centre on Y=0 boundary; trail/decal geometry at local Y=+0.016m",
   "grid_terrain_m": [
     4,
     8,
@@ -13,8 +13,8 @@
     "terrain_vertexpaint": "COLOR_0.rgba = normalized four material weights; not AO/tint",
     "terrain_splat": "COLOR_0.rgb=AO/tint; A=255",
     "terrain_mobile": "COLOR_0.rgb=AO/tint; material samples one precomposed atlas",
-    "trails": "COLOR_0.rgb=tint/AO; A=edge fade; alpha test requires suitable runtime material",
-    "decals": "COLOR_0.rgb=tint/AO; texture alpha-test; no footstep/coral"
+    "trails": "COLOR_0 RGB is white tint; A=255. Soft edge is dithered alpha in ground_trail_albedo.png, alphaMode MASK",
+    "decals": "COLOR_0 RGB=white tint, A=255. Cutout alpha is in shared decal_atlas.png; lichen replaces footprints; no coral"
   },
   "assets": [
     {
