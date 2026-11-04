@@ -1,0 +1,329 @@
+{
+  "kit": "Protocol Rebirth — Shoreline Kit v0.1",
+  "units": "metres",
+  "up_axis": "Y",
+  "front": "-Z",
+  "origin": "bottom-centre",
+  "atlas": "shore_atlas.png",
+  "collision_types": [
+    "none",
+    "walkable",
+    "box",
+    "cylinder r=N"
+  ],
+  "vertex_colors": "COLOR_0 RGB AO multiplier; A tip wind on reeds, static surface=1",
+  "assets": [
+    {
+      "file": "shore_sand_straight_2m.glb",
+      "kind": "shore_strip",
+      "approx_dimensions_m": [
+        2,
+        0,
+        1.9585
+      ],
+      "bbox_m": {
+        "min": [
+          -1,
+          0,
+          -1.0085
+        ],
+        "max": [
+          1,
+          0,
+          0.95
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 8,
+      "material_count": 1,
+      "file_size_bytes": 2380,
+      "notes": "Nominal length 2m, cold sand; straight side flush at X±1."
+    },
+    {
+      "file": "shore_sand_straight_4m.glb",
+      "kind": "shore_strip",
+      "approx_dimensions_m": [
+        4,
+        0,
+        1.9585
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -1.0085
+        ],
+        "max": [
+          2,
+          0,
+          0.95
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 16,
+      "material_count": 1,
+      "file_size_bytes": 3296,
+      "notes": "Nominal length 4m, beach ribbon; both X ends flush."
+    },
+    {
+      "file": "shore_sand_inner_90.glb",
+      "kind": "shore_curve",
+      "approx_dimensions_m": [
+        0.9,
+        0,
+        0.9
+      ],
+      "bbox_m": {
+        "min": [
+          -0.59,
+          0,
+          -0.59
+        ],
+        "max": [
+          0.31,
+          0,
+          0.31
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4228,
+      "notes": "Quarter-annulus inner bend, no overhang outside its measured bbox."
+    },
+    {
+      "file": "shore_sand_outer_90.glb",
+      "kind": "shore_curve",
+      "approx_dimensions_m": [
+        1.18,
+        0,
+        1.18
+      ],
+      "bbox_m": {
+        "min": [
+          -0.59,
+          0,
+          -0.59
+        ],
+        "max": [
+          0.59,
+          0,
+          0.59
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4196,
+      "notes": "Quarter-annulus outer bend; align to nominal footprint in level tools."
+    },
+    {
+      "file": "shore_rock_edge_4m.glb",
+      "kind": "rock_edge",
+      "approx_dimensions_m": [
+        4,
+        0.4642,
+        1.24
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -0.62
+        ],
+        "max": [
+          2,
+          0.4642,
+          0.62
+        ]
+      },
+      "collision": "box",
+      "triangle_count": 72,
+      "material_count": 1,
+      "file_size_bytes": 9688,
+      "notes": "Faceted granite shore edge; identical 0.39m end heights; uncapped open ends for seam-safe butt-joining."
+    },
+    {
+      "file": "shore_sandbar_4m.glb",
+      "kind": "sandbar",
+      "approx_dimensions_m": [
+        4,
+        0.09,
+        1.5052
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -0.7526
+        ],
+        "max": [
+          2,
+          0.09,
+          0.7526
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4216,
+      "notes": "Curved sandbar flat at both 4m endpoints, with raised central ridge."
+    },
+    {
+      "file": "shore_reeds_a.glb",
+      "kind": "reed",
+      "approx_dimensions_m": [
+        0.5349,
+        0.5166,
+        0.5001
+      ],
+      "bbox_m": {
+        "min": [
+          -0.2791,
+          0,
+          -0.2719
+        ],
+        "max": [
+          0.2558,
+          0.5166,
+          0.2282
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 9,
+      "material_count": 1,
+      "file_size_bytes": 2548,
+      "notes": "Compact irregular reed cluster, RGBA wind tip weights."
+    },
+    {
+      "file": "shore_reeds_b.glb",
+      "kind": "reed",
+      "approx_dimensions_m": [
+        0.5096,
+        0.6201,
+        0.5089
+      ],
+      "bbox_m": {
+        "min": [
+          -0.3,
+          0,
+          -0.2983
+        ],
+        "max": [
+          0.2096,
+          0.6201,
+          0.2106
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 12,
+      "material_count": 1,
+      "file_size_bytes": 2892,
+      "notes": "Compact irregular reed cluster, RGBA wind tip weights."
+    },
+    {
+      "file": "shore_reeds_c.glb",
+      "kind": "reed",
+      "approx_dimensions_m": [
+        0.5145,
+        0.6978,
+        0.5167
+      ],
+      "bbox_m": {
+        "min": [
+          -0.2471,
+          0,
+          -0.2647
+        ],
+        "max": [
+          0.2674,
+          0.6978,
+          0.252
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 15,
+      "material_count": 1,
+      "file_size_bytes": 3236,
+      "notes": "Compact irregular reed cluster, RGBA wind tip weights."
+    },
+    {
+      "file": "shore_pier_footing.glb",
+      "kind": "pier_base",
+      "approx_dimensions_m": [
+        0.5,
+        1.165,
+        0.5
+      ],
+      "bbox_m": {
+        "min": [
+          -0.25,
+          0,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          1.165,
+          0.25
+        ]
+      },
+      "collision": "cylinder r=0.25",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4212,
+      "notes": "Single decaying pier timber with 1.15m exposed height."
+    },
+    {
+      "file": "shore_driftwood_a.glb",
+      "kind": "debris",
+      "approx_dimensions_m": [
+        1.48,
+        0.2,
+        0.48
+      ],
+      "bbox_m": {
+        "min": [
+          -0.76,
+          0,
+          -0.29
+        ],
+        "max": [
+          0.72,
+          0.2,
+          0.19
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 6,
+      "material_count": 1,
+      "file_size_bytes": 2152,
+      "notes": "Dry irregular driftwood, rotated/scale jitter instance prop."
+    },
+    {
+      "file": "shore_waterline_foam_2m.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        2,
+        0,
+        0.0582
+      ],
+      "bbox_m": {
+        "min": [
+          -1,
+          0.012,
+          -0.5198
+        ],
+        "max": [
+          1,
+          0.012,
+          -0.4616
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 18,
+      "material_count": 1,
+      "file_size_bytes": 3552,
+      "notes": "Opaque, segmented pale waterline foam at Y+0.012m. Avoid coplanar shoreline planes."
+    }
+  ]
+}
