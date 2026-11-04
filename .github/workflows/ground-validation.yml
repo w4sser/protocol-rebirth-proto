@@ -4,6 +4,7 @@ on:
     paths:
       - 'assets/env/terrain/**'
       - 'scripts/validate-terrain-glbs.mjs'
+      - 'scripts/validate-terrain-pngs.mjs'
       - 'scripts/shot-ground-v2.mjs'
       - 'nodspel/ground-preview.js'
       - 'nodspel/game.mjs'
@@ -23,6 +24,9 @@ jobs:
           node --check nodspel/game.mjs
           node --check scripts/shot-ground-v2.mjs
           node --check scripts/validate-terrain-glbs.mjs
+          node --check scripts/validate-terrain-pngs.mjs
+      - name: Validate new PNG files, alpha and splat channel normalization
+        run: node scripts/validate-terrain-pngs.mjs
       - name: Install official Khronos glTF Validator
         run: npm install --no-save --no-package-lock gltf-validator@2.0.0-dev.3.10
       - name: Validate every ground GLB and its external PNG resources
