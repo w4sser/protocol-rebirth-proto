@@ -102,6 +102,37 @@ try {
         };
       });
       if (sceneAudit) console.log('[ground-keycard-audit]',area,mode,JSON.stringify(sceneAudit));
+      // Pixel probe for the two salmon shapes observed in Pass 2/3 screenshots.
+      // The same seed has a Keycard at roughly x=525,y=124 on bunker L1.
+      // Report the actual intersected geometry/material, including decal instances.
+      if (area==='bunker' && mode==='high' && !process.env.LEVEL) {
+        const pinkProbe=await page.evaluate(async () => {
+          const ground=window.__groundPreview;
+          const camera=window.__NR?.getCamera?.();
+          const scene=ground?.group?.parent;
+          if(!scene || !camera) return {error:'scene or camera unavailable'};
+          const THREE=await import('./vendor/three.module.js');
+          const rect=document.querySelector('#game canvas').getBoundingClientRect();
+          const out=[];
+          for(const [px,py] of [[539,211],[781,275],[877,386]]) {
+            const ndc=new THREE.Vector2((px-rect.left)/rect.width*2-1,-((py-rect.top)/rect.height*2-1));
+            const ray=new THREE.Raycaster();ray.setFromCamera(ndc,camera);
+            const hits=ray.intersectObjects(scene.children,true);
+            const nearest=hits.filter(h=>h.point.y<.5 && h.point.y>-.5).slice(0,15)
+              .map(h=>{
+                const o=h.object,m=Array.isArray(o.material)?o.material[0]:o.material;
+                return {type:o.type,name:o.name||'',geometry:o.geometry?.type||'',
+                  material:m?.name||m?.type||'',color:m?.color?.getHexString?.()||'',
+                  opacity:m?.opacity??1, instanceId:h.instanceId??null,
+                  y:+h.point.y.toFixed(3),distance:+h.distance.toFixed(3),
+                  parent:o.parent?.name||o.parent?.type||''};
+              });
+            out.push({pixel:[px,py],nearest});
+          }
+          return out;
+        });
+        console.log('[pink-quad-probe]',JSON.stringify(pinkProbe));
+      }
       const name=area+(process.env.LEVEL?'-L'+process.env.LEVEL:'')+'-'+mode;
       await page.screenshot({path:join(OUT,name+'.png')});
       results.push({name,...perf,ground,sceneAudit,errors});
