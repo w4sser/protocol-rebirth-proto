@@ -9,7 +9,7 @@
       "albedo": "ground_granite_albedo.png",
       "encoding": "sRGB",
       "wrap": "REPEAT",
-      "size_px": 512
+      "size_px": 256
     },
     {
       "name": "moss",
@@ -109,7 +109,8 @@
       "B": "gravel",
       "A": "pine_needles"
     },
-    "weights": "Normalized per pixel (0..255)"
+    "weights": "Normalized per pixel (0..255)",
+    "mask_resolution_px": 96
   },
   "decal_atlas": {
     "filename": "decal_atlas.png",
@@ -125,8 +126,9 @@
       "puddle",
       "mud"
     ],
-    "alpha": "palette transparency, MASK/cutout; no footprints; no coral",
-    "recommended_scale": 1
+    "alpha": "palette transparency with soft per-pixel coverage; smooth organic boundaries; no fine grain, footprints or coral",
+    "recommended_scale": 1,
+    "size_px": 256
   },
   "profiles": {
     "nature_high": {
@@ -141,7 +143,8 @@
         4,
         8,
         16
-      ]
+      ],
+      "mask_resolution_px": 96
     },
     "bunker_high": {
       "splat": "chunk_0_0_bunker_splat.png",
@@ -154,7 +157,8 @@
       "tile_sizes_m": [
         4,
         8
-      ]
+      ],
+      "mask_resolution_px": 96
     },
     "nature_mobile": {
       "atlas": "ground_mobile_nature_atlas.png",
@@ -168,7 +172,8 @@
         4,
         8
       ],
-      "samples_per_pixel": 1
+      "samples_per_pixel": 1,
+      "atlas_size_px": 256
     },
     "bunker_mobile": {
       "atlas": "ground_mobile_bunker_atlas.png",
@@ -182,8 +187,9 @@
         4,
         8
       ],
-      "samples_per_pixel": 1
+      "samples_per_pixel": 1,
+      "atlas_size_px": 256
     }
   },
-  "performance_note": "High profile is 5 samples/pixel including splat; low profile is single atlas lookup/pixel. Requires engine to switch materials. Texture memory excludes mipmaps/shadows."
+  "performance_note": "High profile is 5 samples/pixel including splat; low profile is single atlas lookup/pixel. Requires engine to switch materials. Texture memory excludes mipmaps/shadows. Pass 3 preview replaces only granite/decal/mask/atlas PNGs; original green moss and light trails unchanged."
 }
