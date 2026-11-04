@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const validator = require('gltf-validator');
-const dir = fileURLToPath(new URL('../assets/env/terrain/', import.meta.url));
+const dir = resolve(fileURLToPath(new URL('../assets/env/terrain/', import.meta.url)));
 const outDir = fileURLToPath(new URL('../verify-out/ground-v2/', import.meta.url));
 const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8'));
 const actual = (await readdir(dir)).filter(f => f.endsWith('.glb')).sort();
