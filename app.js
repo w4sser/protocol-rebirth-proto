@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.25.1"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.26.0"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2365,10 +2365,12 @@ function setupBaseViewer(){
   const finish = e => { pointers.delete(e.pointerId);drag=null;viewer.classList.remove("dragging");if(!pointers.size)setTimeout(()=>{ suppress=false;moved=false; },0); };
   viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
   viewer.addEventListener("click", e => {
-    const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); return; }
-    if(spot.dataset.destination) A.openBuilding(spot.dataset.destination);
-    else if(spot.dataset.gate && baseAllows("navigation","prep")) A.go("prep");
-    else if(spot.dataset.room) A.openRoom(spot.dataset.room);
+    if(e.target.closest(".roomsheet, .basemenu-btn")) return;
+    const card = e.target.closest("section.progress-goal"); if(card && !e.target.closest("button")){ card.classList.toggle("open"); session.goalOpen = card.classList.contains("open"); return; }
+    const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); if(!spot && !(suppress || moved) && !e.target.closest("button, .progress-goal")) selectBaseSpot(null); return; }
+    // v2.26.0 Clean Base: first tap selects the room + shows its action sheet; tapping the selected room again opens it.
+    if(e.detail === 0 || spot.classList.contains("selected")) return baseSpotOpen(spot); // keyboard (Enter/Space) opens directly
+    selectBaseSpot(spot);
   });
   session.cameraLayoutFn = layout;
   if(session.cameraResize) window.removeEventListener("resize", session.cameraResize);
@@ -2383,10 +2385,9 @@ function setupBaseViewer(){
 function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
-  if(!card || !card.offsetHeight) return;
   const box = id => { const e = document.getElementById(id); return e && e.offsetHeight ? e.getBoundingClientRect() : null; };
   const n = box("tabs"), tb = box("topbar");
-  const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
+  const c = card && card.offsetHeight ? card.getBoundingClientRect() : { left:-1e4, right:-1e4, top:1e5, bottom:1e5 }, v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
   const bad = m => hit(m, c) || (n && hit(m, n)) || (tb && hit(m, tb));
@@ -2395,7 +2396,7 @@ function clearPlatesFromCard(viewer, card, scale){
     // Blocked: under the card, or in the strip below the card top where the card column hides it, or under the floating nav / top chips.
     const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n)) || (tb && hit(r, tb));
     if(!blocked) return;
-    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? Math.min(c.top, n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
+    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? (c.top > r.top ? Math.min(c.top, n.top) : n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
     const moves = [[0, up], [right, 0], [right, up], [0, lift], [right, lift], [0, drop], [right, drop]];
     for(const [dx, dy] of moves){
       const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
@@ -2426,6 +2427,48 @@ function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
     '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">LVL ' + level + '</em>' : '') + '</span>' +
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
 }
+/* v2.26.0 Clean Base UI: tap a room -> highlight + compact contextual action sheet (Open / Upgrade / Collect). */
+function baseSpotKey(spot){ return spot ? (spot.dataset.gate ? "gate" : spot.dataset.destination || spot.dataset.room) : null; }
+function baseSpotOpen(spot){
+  session.baseSel = null;
+  if(spot.dataset.destination) A.openBuilding(spot.dataset.destination);
+  else if(spot.dataset.gate){ if(baseAllows("navigation","prep")) A.go("prep"); }
+  else if(spot.dataset.room) A.openRoom(spot.dataset.room);
+}
+function costShort(cost){ return costParts(cost).map(p => p.need + " " + (p.kind === "item" ? ITEMS[p.id].name : p.id === "dataCores" ? "Data Cores" : "Scrap")).join(" · "); }
+function baseSheetHtml(spot){
+  const key = baseSpotKey(spot), btn = (cls, label, on, aria) => '<button type="button" class="' + cls + '" onclick="' + on + '"' + (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + label + '</button>';
+  if(key === "gate") return { title:D.baseMap.raidGate.label, sub:"Deploy to the surface", acts:baseAllows("navigation","prep") ? btn("primary", IC("nav-raid") + " RAID", "A.baseAct('open')") : '' };
+  const room = spot.dataset.room && D.baseMap.rooms.find(r => r.id === spot.dataset.room);
+  const mod = spot.dataset.destination || (room && room.destination), unlocked = !room || roomUnlocked(room.id);
+  const title = room ? room.label : (MODS[mod] ? MODS[mod].name : D.baseMap.core.label);
+  let sub = "", acts = "";
+  if(!unlocked) sub = spot.classList.contains("ready") ? "Access ready" : (room.requirement && room.requirement.text) || "Locked";
+  else if(mod) sub = "Level " + (S.modules[mod] || 0);
+  const bip = mod && buildInProgress(mod);
+  if(bip) sub += " · building " + fmtLeft(bip.doneAt - idleNow());
+  acts += btn("ghost", IC("chevron-right") + (unlocked ? " OPEN" : " VIEW"), "A.baseAct('open')", (unlocked ? "Open " : "View ") + title);
+  const next = mod && unlocked && !bip && nextLevelDef(mod);
+  if(next && next.level <= moduleCap(mod) && baseAllows("interactions", mod)){
+    const ok = canAfford(next.cost);
+    acts += ok ? btn("primary build-ready", IC("build") + " UPGRADE <small>" + esc(costShort(next.cost)) + "</small>", "A.build('" + mod + "')", "Upgrade " + title + " to level " + next.level + ": " + costShort(next.cost))
+      : '<button type="button" class="ghost" disabled aria-label="Upgrade needs ' + esc(costShort(next.cost)) + '">' + IC("build") + ' <small>' + esc(costShort(next.cost)) + '</small></button>';
+  }
+  if(mod === "rebirth_core"){ const st = genStored(idleNow()); if(st >= IDLE.generator.minCollect) acts += btn("ghost", IC("cur-scrap") + " COLLECT +" + st, "A.collectScrap()", "Collect " + st + " scrap"); }
+  return { title, sub, acts };
+}
+function selectBaseSpot(spot){
+  const viewer = document.querySelector(".baseviewer"); if(!viewer) return;
+  viewer.querySelectorAll(".mapspot.selected").forEach(s => { s.classList.remove("selected"); s.removeAttribute("aria-pressed"); });
+  const old = viewer.querySelector(".roomsheet"); if(old) old.remove();
+  viewer.classList.toggle("has-sel", !!spot);
+  session.baseSel = baseSpotKey(spot);
+  if(!spot) return;
+  spot.classList.add("selected"); spot.setAttribute("aria-pressed", "true");
+  const h = baseSheetHtml(spot);
+  viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="group" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small></div><div class="rs-acts">' + h.acts + '</div>' +
+    '<button type="button" class="rs-x" onclick="A.baseAct(\'close\')" aria-label="Close">' + IC("close") + '</button></div>');
+}
 function moduleBadge(modId){
   const bip = buildInProgress(modId); if(bip) return ["timer", IC("timer") + ' ' + fmtLeft(bip.doneAt - idleNow())];
   const next = nextLevelDef(modId);
@@ -2450,7 +2493,7 @@ SCREENS.base = function(){
   const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
   const plate = BM.plates[stage];
   const previous = session.plateStage !== null && session.plateStage !== stage ? BM.plates[session.plateStage] : null;
-  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
+  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + (ftueOver() ? '' : ' ftue') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
@@ -2471,11 +2514,15 @@ SCREENS.base = function(){
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() + '</div>';
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() +
+    '<button type="button" class="basemenu-btn' + (session.baseMenu ? ' open' : '') + '" onclick="A.baseMenu()" aria-expanded="' + !!session.baseMenu + '" aria-label="Menu: stash, shop, BIT, weapons">' + IC("nav-stash") + (["stash","vendor","bit","arms"].some(id => navAllowed(id) && navBadge(id)) ? '<span class="dot" aria-hidden="true"></span>' : '') + '</button></div>';
+  document.body.classList.toggle("basemenu-open", !!session.baseMenu);
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
   setupBaseViewer();
+  if(session.baseSel){ const v = document.querySelector(".baseviewer"), sel = session.baseSel;
+    const spot = v && [...v.querySelectorAll(".mapspot")].find(s => baseSpotKey(s) === sel); selectBaseSpot(spot || null); }
 };
 
 // BIT hub: fullscreen (reuses the #overlay.wpnov/.fabov pattern, see bitScreenHtml). $app() stays empty behind it.
@@ -4295,6 +4342,8 @@ window.A = {
     else { S.tracked = { module: modId, level }; S.trackedStreak = 0; act("TRACK_SET", S.tracked); }
     refresh();
   },
+  baseMenu(){ session.baseMenu = !session.baseMenu; document.body.classList.toggle("basemenu-open", session.baseMenu); const b = document.querySelector(".basemenu-btn"); if(b){ b.classList.toggle("open", session.baseMenu); b.setAttribute("aria-expanded", String(session.baseMenu)); } },
+  baseAct(what){ const spot = document.querySelector(".baseviewer .mapspot.selected"); if(what === "open" && spot) return baseSpotOpen(spot); selectBaseSpot(null); },
   build(modId){
     closeBuildingPopup();
     const next = nextLevelDef(modId);
