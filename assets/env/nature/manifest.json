@@ -1,0 +1,512 @@
+{
+  "kit": "Protocol Rebirth — Faceted Granite Rocks v0.1",
+  "units": "metres",
+  "up_axis": "Y",
+  "front": "-Z",
+  "origin": "bottom centre",
+  "atlas": "rock_atlas.png",
+  "lod_pattern": "name_lod1.glb and name_lod2.glb (separate files, level 0 basename)",
+  "collision_types": [
+    "none",
+    "walkable",
+    "box",
+    "cylinder r=N"
+  ],
+  "vertex_colors": "COLOR_0.rgb baked AO, static alpha=1",
+  "assets": [
+    {
+      "file": "rock_granite_s_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        0.4697,
+        0.2549,
+        0.4537
+      ],
+      "bbox_m": {
+        "min": [
+          -0.2338,
+          0,
+          -0.2142
+        ],
+        "max": [
+          0.2359,
+          0.2549,
+          0.2395
+        ]
+      },
+      "collision": "cylinder r=0.25",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7928,
+      "notes": "Low-poly S granite variant a. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_s_b.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        0.5808,
+        0.2775,
+        0.5157
+      ],
+      "bbox_m": {
+        "min": [
+          -0.2518,
+          0,
+          -0.2683
+        ],
+        "max": [
+          0.329,
+          0.2775,
+          0.2474
+        ]
+      },
+      "collision": "cylinder r=0.25",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7928,
+      "notes": "Low-poly S granite variant b. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_s_c.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        0.6509,
+        0.2996,
+        0.5208
+      ],
+      "bbox_m": {
+        "min": [
+          -0.2683,
+          0,
+          -0.2649
+        ],
+        "max": [
+          0.3826,
+          0.2996,
+          0.2559
+        ]
+      },
+      "collision": "cylinder r=0.25",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7924,
+      "notes": "Low-poly S granite variant c. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_m_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        1.2573,
+        0.676,
+        1.172
+      ],
+      "bbox_m": {
+        "min": [
+          -0.6255,
+          0,
+          -0.5534
+        ],
+        "max": [
+          0.6318,
+          0.676,
+          0.6186
+        ]
+      },
+      "collision": "cylinder r=0.61",
+      "triangle_count": 132,
+      "material_count": 1,
+      "file_size_bytes": 16592,
+      "notes": "Low-poly M granite variant a. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_m_b.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        1.6032,
+        0.7275,
+        1.3685
+      ],
+      "bbox_m": {
+        "min": [
+          -0.7378,
+          0,
+          -0.676
+        ],
+        "max": [
+          0.8654,
+          0.7275,
+          0.6925
+        ]
+      },
+      "collision": "cylinder r=0.61",
+      "triangle_count": 132,
+      "material_count": 1,
+      "file_size_bytes": 16592,
+      "notes": "Low-poly M granite variant b. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_m_c.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        1.8153,
+        0.7853,
+        1.5712
+      ],
+      "bbox_m": {
+        "min": [
+          -0.8089,
+          0,
+          -0.7844
+        ],
+        "max": [
+          1.0064,
+          0.7853,
+          0.7868
+        ]
+      },
+      "collision": "cylinder r=0.61",
+      "triangle_count": 132,
+      "material_count": 1,
+      "file_size_bytes": 16592,
+      "notes": "Low-poly M granite variant c. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_l_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.6209,
+        1.263,
+        2.2353
+      ],
+      "bbox_m": {
+        "min": [
+          -1.2637,
+          0,
+          -1.0797
+        ],
+        "max": [
+          1.3572,
+          1.263,
+          1.1556
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 300,
+      "material_count": 1,
+      "file_size_bytes": 35748,
+      "notes": "Low-poly L granite variant a. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_l_a_lod1.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        2.1894,
+        1.263,
+        2.0411
+      ],
+      "bbox_m": {
+        "min": [
+          -1.0892,
+          0,
+          -0.9638
+        ],
+        "max": [
+          1.1002,
+          1.263,
+          1.0773
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 108,
+      "material_count": 1,
+      "file_size_bytes": 13864,
+      "notes": "Approx 50% poly rock LOD1; same nominal radius/height."
+    },
+    {
+      "file": "rock_granite_l_a_lod2.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        2.1511,
+        1.2479,
+        2.0782
+      ],
+      "bbox_m": {
+        "min": [
+          -1.0707,
+          0,
+          -0.9811
+        ],
+        "max": [
+          1.0804,
+          1.2479,
+          1.0971
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7936,
+      "notes": "Approx 25% poly rock LOD2; same nominal radius/height."
+    },
+    {
+      "file": "rock_granite_l_b.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        2.9177,
+        1.3592,
+        2.4589
+      ],
+      "bbox_m": {
+        "min": [
+          -1.3008,
+          0,
+          -1.2719
+        ],
+        "max": [
+          1.6169,
+          1.3592,
+          1.187
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 300,
+      "material_count": 1,
+      "file_size_bytes": 35748,
+      "notes": "Low-poly L granite variant b. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_l_b_lod1.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        2.7918,
+        1.3592,
+        2.383
+      ],
+      "bbox_m": {
+        "min": [
+          -1.2848,
+          0,
+          -1.1771
+        ],
+        "max": [
+          1.507,
+          1.3592,
+          1.2059
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 108,
+      "material_count": 1,
+      "file_size_bytes": 13864,
+      "notes": "Approx 50% poly rock LOD1; same nominal radius/height."
+    },
+    {
+      "file": "rock_granite_l_b_lod2.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        2.6605,
+        1.3588,
+        2.3621
+      ],
+      "bbox_m": {
+        "min": [
+          -1.1535,
+          0,
+          -1.2289
+        ],
+        "max": [
+          1.507,
+          1.3588,
+          1.1332
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7936,
+      "notes": "Approx 25% poly rock LOD2; same nominal radius/height."
+    },
+    {
+      "file": "rock_granite_l_c.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        3.3899,
+        1.4672,
+        2.8787
+      ],
+      "bbox_m": {
+        "min": [
+          -1.5095,
+          0,
+          -1.3429
+        ],
+        "max": [
+          1.8804,
+          1.4672,
+          1.5358
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 300,
+      "material_count": 1,
+      "file_size_bytes": 35748,
+      "notes": "Low-poly L granite variant c. Grey-pink stone with lichen/moss top."
+    },
+    {
+      "file": "rock_granite_l_c_lod1.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        3.1613,
+        1.4672,
+        2.7362
+      ],
+      "bbox_m": {
+        "min": [
+          -1.4087,
+          0,
+          -1.366
+        ],
+        "max": [
+          1.7526,
+          1.4672,
+          1.3702
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 108,
+      "material_count": 1,
+      "file_size_bytes": 13864,
+      "notes": "Approx 50% poly rock LOD1; same nominal radius/height."
+    },
+    {
+      "file": "rock_granite_l_c_lod2.glb",
+      "kind": "rock_lod",
+      "approx_dimensions_m": [
+        2.9817,
+        1.4672,
+        2.3857
+      ],
+      "bbox_m": {
+        "min": [
+          -1.2291,
+          0,
+          -1.2134
+        ],
+        "max": [
+          1.7526,
+          1.4672,
+          1.1723
+        ]
+      },
+      "collision": "cylinder r=1.14",
+      "triangle_count": 56,
+      "material_count": 1,
+      "file_size_bytes": 7932,
+      "notes": "Approx 25% poly rock LOD2; same nominal radius/height."
+    },
+    {
+      "file": "rock_slab_a.glb",
+      "kind": "rock_slab",
+      "approx_dimensions_m": [
+        2.0946,
+        0.154,
+        1.3424
+      ],
+      "bbox_m": {
+        "min": [
+          -1.0946,
+          0,
+          -0.7222
+        ],
+        "max": [
+          1,
+          0.154,
+          0.6202
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4256,
+      "notes": "Flat granite shelf with lichen on top, top readable in isometric camera."
+    },
+    {
+      "file": "rock_slab_b.glb",
+      "kind": "rock_slab",
+      "approx_dimensions_m": [
+        2.5692,
+        0.22,
+        1.5835
+      ],
+      "bbox_m": {
+        "min": [
+          -1.3036,
+          0,
+          -0.7593
+        ],
+        "max": [
+          1.2656,
+          0.22,
+          0.8242
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 24,
+      "material_count": 1,
+      "file_size_bytes": 4256,
+      "notes": "Flat granite shelf with lichen on top, top readable in isometric camera."
+    },
+    {
+      "file": "cliff_wall_4m.glb",
+      "kind": "cliff",
+      "approx_dimensions_m": [
+        4,
+        1.65,
+        0.9598
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -0.4799
+        ],
+        "max": [
+          2,
+          1.65,
+          0.4799
+        ]
+      },
+      "collision": "box",
+      "triangle_count": 96,
+      "material_count": 1,
+      "file_size_bytes": 12432,
+      "notes": "Four-meter faceted cliff wall, uncapped ends: exact end heights 1.65m, no overlapping coplanar cap faces."
+    },
+    {
+      "file": "rock_scree_a.glb",
+      "kind": "rock_scree",
+      "approx_dimensions_m": [
+        3.0966,
+        0.2154,
+        2.3098
+      ],
+      "bbox_m": {
+        "min": [
+          -1.5062,
+          0,
+          -0.8899
+        ],
+        "max": [
+          1.5904,
+          0.2154,
+          1.4199
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 70,
+      "material_count": 1,
+      "file_size_bytes": 9512,
+      "notes": "Single-instanced talus/scree prefab: fourteen irregular stones (70 tris) in 3m footprint."
+    }
+  ]
+}
