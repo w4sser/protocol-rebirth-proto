@@ -30,7 +30,7 @@ const revealRoomThroughHotspot = id => {
   const st=window.__TEST_STATE(),m=window.DATA.modules.find(m=>m.id===id),next=m&&m.levels.find(l=>l.level===(st.modules[id]||0)+1);
   if(next){for(const [key,n] of Object.entries(next.cost.items||{}))st.stash[key]=Math.max(n,st.stash[key]||0);if(next.cost.scrap)st.cur.scrap=Math.max(st.cur.scrap,next.cost.scrap);}
   A.go('base');
-  tap(doc.querySelector('.room-spot[data-room="' + id + '"]')); tap(doc.querySelector('.room-spot[data-room="' + id + '"]')); // v2.27.0: tap selects, tap again opens
+  tap(doc.querySelector('.room-spot[data-room="' + id + '"]')); tap(doc.querySelector('.room-spot[data-room="' + id + '"]')); // v2.27.1: tap selects, tap again opens
   const button = doc.querySelector("#overlay button.primary");
   assert(button, id + " ready reveal panel"); A.unlockRoom(id);A.back();
 };
@@ -108,10 +108,10 @@ assert(/BUILD|RAID FOR/.test(doc.querySelector("#overlay .bpop button.primary").
 (doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 A.go("base");
 tap(doc.querySelector(".core-spot"));
-assert(doc.querySelector(".core-spot.selected") && doc.querySelector(".roomsheet") && !doc.querySelector("#overlay .bpop"), "v2.27.0: first pointer tap selects the Core and shows its action sheet");
+assert(doc.querySelector(".core-spot.selected") && doc.querySelector(".roomsheet") && !doc.querySelector("#overlay .bpop"), "v2.27.1: first pointer tap selects the Core and shows its action sheet");
 assert(/Core/.test(doc.querySelector(".roomsheet .rs-head b").textContent) && doc.querySelector(".roomsheet .rs-acts button"), "action sheet names the room and offers actions");
 tap(doc.querySelector(".baseviewer")); assert(!doc.querySelector(".roomsheet") && !doc.querySelector(".mapspot.selected"), "tapping empty space dismisses the selection");
-A.baseMenu(); assert(doc.body.classList.contains("basemenu-open") && doc.querySelector(".basemenu-btn[aria-expanded=true]"), "v2.27.0: compact corner menu opens the secondary nav"); A.baseMenu(); assert(!doc.body.classList.contains("basemenu-open"), "menu closes");
+A.baseMenu(); assert(doc.body.classList.contains("basemenu-open") && doc.querySelector(".basemenu-btn[aria-expanded=true]"), "v2.27.1: compact corner menu opens the secondary nav"); A.baseMenu(); assert(!doc.body.classList.contains("basemenu-open"), "menu closes");
 tap(doc.querySelector(".core-spot")); { const b = doc.querySelector(".roomsheet .rs-acts button"); b.onclick = window.Function("event", b.getAttribute("onclick")); b.click(); }
 assert(doc.querySelector("#overlay .bpop"), "sheet OPEN opens the Core popup");
 assert(doc.querySelector(".core-spot .tag em"), "building plate shows its level");
