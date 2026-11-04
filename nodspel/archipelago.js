@@ -2,12 +2,12 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.26.0';
+import {rngFrom} from './art.js?v=2.27.0';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.26.0';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.26.0';
-import {createWaterMesh} from './water-shader.js?v=2.26.0';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.27.0';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.27.0';
+import {createWaterMesh} from './water-shader.js?v=2.27.0';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -84,6 +84,29 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   }
   return boulders.length;
 }
+// Sparse decorative shoreline rocks (visual only, no collider): seeded, irregular, some clusters,
+// nudged outward onto the sand/water side of the edge and skipped if they touch any reservation.
+function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
+  let n=0;
+  for(const w of shore){
+    const ax=w.w>w.d,len=Math.max(w.w,w.d),f=islands.find(f=>ax?Math.abs(Math.abs(w.z-f.z)-f.d/2)<.6:Math.abs(Math.abs(w.x-f.x)-f.w/2)<.6);
+    const out=f?Math.sign(ax?w.z-f.z:w.x-f.x)||1:1;
+    for(let t=-len/2+rng()*4;t<len/2;t+=3+rng()*7){
+      if(rng()<.45)continue;
+      const k=rng()<.35?2+Math.floor(rng()*2):1;
+      for(let i=0;i<k;i++){
+        const s=.22+rng()*.3,m=new THREE.Mesh(rockGeo,rockMat[rng()<.5?0:1]);
+        const tt=t+(i?(rng()-.5)*1.4:0),off=out*(.35+rng()*.6);
+        m.position.set(w.x+(ax?tt:off),s*.25-.12,w.z+(ax?off:tt));
+        m.scale.set(s,s*(.6+rng()*.5),s*(.8+rng()*.4));m.rotation.set(rng()*.5,rng()*6.3,rng()*.5);
+        const b=new THREE.Box3().setFromObject(m);
+        if(reservations.some(p=>b.max.x>p.x-p.w/2&&b.min.x<p.x+p.w/2&&b.max.z>p.z-p.d/2&&b.min.z<p.z+p.d/2))continue;
+        m.castShadow=m.receiveShadow=true;m.name='archipelago-shore-rock';group.add(m);n++;
+      }
+    }
+  }
+  return n;
+}
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
@@ -125,7 +148,19 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     return gap&&{x:r.x,z:gap.z,w:r.w+.96,d:gap.d+.96};
   }).filter(Boolean);
   const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...piers,...partitions,...source.placements];
-  for(const w of source.walls)out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+  // v2.27: water is the island boundary. Shore walls (on the rim of exactly one island floor) get no
+  // boulders, only an invisible collider equal to the authored wall, so actors still stop at the edge.
+  // Interior walls (partitions, shared room edges) keep their boulder clusters and their cover.
+  const islands=level.floors.filter(f=>!f.dir);
+  const onRim=(w,f)=>{const ax=w.w>w.d,e=.6;
+    return ax?Math.abs(Math.abs(w.z-f.z)-f.d/2)<e&&Math.abs(w.x-f.x)<f.w/2+e
+      :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
+  const shore=[];
+  for(const w of source.walls){
+    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
+    else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+  }
+  out.shoreProps=shoreRocks(shore,islands,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group);
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
   for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
