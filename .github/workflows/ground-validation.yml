@@ -53,6 +53,13 @@ jobs:
         run: node scripts/shot-ground-v2.mjs
         env:
           SMOKE_CAPTURE: '1'
+      - name: Diagnose coral rectangles near Keycard (level 3, ground OFF/HIGH/LOW)
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          AREAS: bunker
+          LEVEL: '3'
+          OUT: verify-out/ground-v2/keycard-audit
       - name: Upload in-engine comparison captures
         if: always()
         uses: actions/upload-artifact@v4
