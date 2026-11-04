@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.26.0"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.26.1"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2368,7 +2368,7 @@ function setupBaseViewer(){
     if(e.target.closest(".roomsheet, .basemenu-btn")) return;
     const card = e.target.closest("section.progress-goal"); if(card && !e.target.closest("button")){ card.classList.toggle("open"); session.goalOpen = card.classList.contains("open"); return; }
     const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); if(!spot && !(suppress || moved) && !e.target.closest("button, .progress-goal")) selectBaseSpot(null); return; }
-    // v2.26.0 Clean Base: first tap selects the room + shows its action sheet; tapping the selected room again opens it.
+    // v2.26.1 Clean Base: first tap selects the room + shows its action sheet; tapping the selected room again opens it.
     if(e.detail === 0 || spot.classList.contains("selected")) return baseSpotOpen(spot); // keyboard (Enter/Space) opens directly
     selectBaseSpot(spot);
   });
@@ -2427,7 +2427,7 @@ function plateHtml(cls, style, attrs, icon, label, level, badge, sub){
     '<span class="tag"><i aria-hidden="true">' + icon + '</i><b>' + esc(label) + '</b>' + (level !== null ? '<em aria-label="level ' + level + '">LVL ' + level + '</em>' : '') + '</span>' +
     (sub ? '<small>' + sub + '</small>' : '') + (badge ? '<span class="badge ' + badge[0] + '">' + badge[1] + '</span>' : '') + '</button>';
 }
-/* v2.26.0 Clean Base UI: tap a room -> highlight + compact contextual action sheet (Open / Upgrade / Collect). */
+/* v2.26.1 Clean Base UI: tap a room -> highlight + compact contextual action sheet (Open / Upgrade / Collect). */
 function baseSpotKey(spot){ return spot ? (spot.dataset.gate ? "gate" : spot.dataset.destination || spot.dataset.room) : null; }
 function baseSpotOpen(spot){
   session.baseSel = null;
@@ -2442,7 +2442,7 @@ function baseSheetHtml(spot){
   const room = spot.dataset.room && D.baseMap.rooms.find(r => r.id === spot.dataset.room);
   const mod = spot.dataset.destination || (room && room.destination), unlocked = !room || roomUnlocked(room.id);
   const title = room ? room.label : (MODS[mod] ? MODS[mod].name : D.baseMap.core.label);
-  let sub = "", acts = "";
+  let sub = "", acts = "", cost = "";
   if(!unlocked) sub = spot.classList.contains("ready") ? "Access ready" : (room.requirement && room.requirement.text) || "Locked";
   else if(mod) sub = "Level " + (S.modules[mod] || 0);
   const bip = mod && buildInProgress(mod);
@@ -2451,11 +2451,12 @@ function baseSheetHtml(spot){
   const next = mod && unlocked && !bip && nextLevelDef(mod);
   if(next && next.level <= moduleCap(mod) && baseAllows("interactions", mod)){
     const ok = canAfford(next.cost);
-    acts += ok ? btn("primary build-ready", IC("build") + " UPGRADE <small>" + esc(costShort(next.cost)) + "</small>", "A.build('" + mod + "')", "Upgrade " + title + " to level " + next.level + ": " + costShort(next.cost))
-      : '<button type="button" class="ghost" disabled aria-label="Upgrade needs ' + esc(costShort(next.cost)) + '">' + IC("build") + ' <small>' + esc(costShort(next.cost)) + '</small></button>';
+    cost = '<span class="rs-cost' + (ok ? ' ok' : '') + '">' + IC("build") + ' Lv ' + next.level + ': ' + esc(costShort(next.cost)) + '</span>'; // v2.26.1: cost lives in the text column (wraps), never inside a button
+    acts += ok ? btn("primary build-ready", IC("build") + " UPGRADE", "A.build('" + mod + "')", "Upgrade " + title + " to level " + next.level + ": " + costShort(next.cost))
+      : '<button type="button" class="ghost" disabled aria-label="Upgrade needs ' + esc(costShort(next.cost)) + '">' + IC("lock") + ' UPGRADE</button>';
   }
   if(mod === "rebirth_core"){ const st = genStored(idleNow()); if(st >= IDLE.generator.minCollect) acts += btn("ghost", IC("cur-scrap") + " COLLECT +" + st, "A.collectScrap()", "Collect " + st + " scrap"); }
-  return { title, sub, acts };
+  return { title, sub, acts, cost };
 }
 function selectBaseSpot(spot){
   const viewer = document.querySelector(".baseviewer"); if(!viewer) return;
@@ -2466,7 +2467,7 @@ function selectBaseSpot(spot){
   if(!spot) return;
   spot.classList.add("selected"); spot.setAttribute("aria-pressed", "true");
   const h = baseSheetHtml(spot);
-  viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="group" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small></div><div class="rs-acts">' + h.acts + '</div>' +
+  viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="group" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small>' + (h.cost || '') + '</div><div class="rs-acts">' + h.acts + '</div>' +
     '<button type="button" class="rs-x" onclick="A.baseAct(\'close\')" aria-label="Close">' + IC("close") + '</button></div>');
 }
 function moduleBadge(modId){

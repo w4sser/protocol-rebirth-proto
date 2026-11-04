@@ -261,6 +261,18 @@ async function baseRun([w,h]){
               else if(!p.classList.contains('gate')&&(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1))out.push(t+'" is not fully inside the viewer');}
             return out;});
           for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}`);
+          // v2.26.1 bug lint (owner phone 820x377): selected-room action sheet never overlaps RAID/menu, its buttons never overlap its text, >=44px.
+          const sheetErr=await page.evaluate(()=>{const c=document.querySelector('.core-spot');if(!c||typeof selectBaseSpot!=='function')return [];selectBaseSpot(c);
+            const R=e=>e&&e.offsetWidth?e.getBoundingClientRect():null,ov=(a,b)=>a&&b&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>0&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0,out=[];
+            const sh=R(document.querySelector('.roomsheet'));if(!sh){selectBaseSpot(null);return ['no action sheet after selecting the Core'];}
+            if(ov(sh,R(document.querySelector('#tabs .nav-prep'))))out.push('action sheet overlaps the RAID button');
+            if(ov(sh,R(document.querySelector('.basemenu-btn'))))out.push('action sheet overlaps the menu button');
+            const txt=[...document.querySelectorAll('.roomsheet .rs-head > *')].map(R).filter(Boolean);
+            for(const b of document.querySelectorAll('.roomsheet button')){const r=R(b);if(!r)continue;const l=b.textContent.trim()||b.getAttribute('aria-label');
+              if(r.width<44||r.height<44)out.push(`sheet button "${l}" below 44px`);if(txt.some(t=>ov(r,t)))out.push(`sheet button "${l}" overlaps the title/level/cost text`);
+              if(r.left<sh.left-1||r.right>sh.right+1)out.push(`sheet button "${l}" overflows the sheet`);}
+            selectBaseSpot(null);return out;});
+          for(const e of sheetErr)fail(`${tag} base sheet`,e);
         }
       }
     }
@@ -584,8 +596,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.26.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.26.0');
+    const {createRound}=await import('./round.js?v=2.26.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.26.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
