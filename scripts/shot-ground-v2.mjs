@@ -37,6 +37,7 @@ const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
     for (const mode of ['off','high','low']) {
+      console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
       page.on('console', m => {if(/ground-preview-v2/.test(m.text())) console.log(area,mode,m.text());});
@@ -71,7 +72,7 @@ try {
         if (ground.error || !ground.ready || ground.tiles4m+ground.tiles8m===0)
           throw new Error('Ground preview not ready: '+JSON.stringify(ground));
       }
-      const perf=await page.evaluate(()=>new Promise(ok=>{
+      const perf=process.env.SMOKE_CAPTURE==='1' ? {fps:null,drawsPerFrame:null} : await page.evaluate(()=>new Promise(ok=>{
         let n=0; const d0=window.__dc,t0=performance.now();
         const tick=()=>{if(++n<60) requestAnimationFrame(tick);
         else ok({fps:+(60*1000/(performance.now()-t0)).toFixed(1),
