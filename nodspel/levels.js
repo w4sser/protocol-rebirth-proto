@@ -1,10 +1,10 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.25.0';
-import {generateBigLevel} from './big-level.js?v=2.25.0';
-import '../data/items.js?v=2.25.0';
-import {clearPassageProps} from './archipelago-passages.js?v=2.25.0';
-import {townizeLevel} from './town-layout.js?v=2.25.0';
-import {applyEncounters} from './encounters.js?v=2.25.0';
-import '../data/raid-combat.js?v=2.25.0';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.25.1';
+import {generateBigLevel} from './big-level.js?v=2.25.1';
+import '../data/items.js?v=2.25.1';
+import {clearPassageProps} from './archipelago-passages.js?v=2.25.1';
+import {townizeLevel} from './town-layout.js?v=2.25.1';
+import {applyEncounters} from './encounters.js?v=2.25.1';
+import '../data/raid-combat.js?v=2.25.1';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -15,7 +15,7 @@ export const RULES=Object.freeze({
     free_tool:{notice:'Fresh tool. Use it.'}},
   levels:[
     {rooms:1,nodes:1,enemies:1,enemyHealth:2,size:{w:[12,15],d:[10,14]},passage:0,partition:false,deadEnd:false,enemySpeed:.8,enemyCooldownMs:2400,enemyDamage:10,enemyWindupMs:500,firstGraceMs:5000,title:'Control Room'},
-    // v2.25.0 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
+    // v2.25.1 baseline (docs/difficulty-bots.md §9): owner playtest said depths 2-3 were TOO EASY; fixed sim bots
     // extracted 94-100%. L2/L3 now hit harder (level dmgMul 1.15/1.2, which also scales encounter damagePct --
     // enemyDamage alone only reaches fallback enemies, which bunker raids barely have) and fire faster (1260/1200ms).
     // Older note: L2/L3 previously fell back to the global

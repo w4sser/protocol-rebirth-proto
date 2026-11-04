@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,useHealthKit,hitEnemy,tickRound} from '../round.js';
-import {generateLevel} from '../levels.js';
+import {createRound,useHealthKit,healthKitBlock,hitEnemy,tickRound} from '../round.js';
+import {generateLevel,RULES} from '../levels.js';
 import {STAKES,healBudget,healRemaining,heal,carriedWeight,speedMultiplier,detectionMultiplier,carryValuePulsed,carriedValue,stepStakes,waveCountdownMs,hunterArrowScreenPoint} from '../stakes.js';
 import {bagValue} from '../raid.js';
 import {traceTargets} from '../physics.mjs';
@@ -102,14 +102,22 @@ test('BIT warns once when the budget runs low, and once more when it is spent',(
   heal(r,2,healBudget(r));
   assert.ok(r.healBudgetEmpty);
 });
-test('medkits, kill rewards and BIT regen all draw from the same shared budget',()=>{
-  const r=createRound('heal-shared',0);r.health=0;r.kit={medkit:5};
-  r.stakes.healed=healBudget(r)-5; // 5 HP of budget left, from some other heal source
-  assert.equal(useHealthKit(r,0),true);
-  assert.ok(r.health<=5,'the medkit was clamped by the shared budget, not its full 30 HP');
+// v2.25.1 bug (Robert): once BIT's heal budget was spent, medkits were refused too. Medkits are independent of the budget.
+test('medkits ignore the shared heal budget: usable (full 30 HP) even when BIT/regen budget is spent',()=>{
+  const r=createRound('heal-shared',0);r.health=10;r.kit={medkit:2};
+  r.stakes.healed=healBudget(r); // budget fully spent by BIT / kill / perk heals
   assert.equal(healRemaining(r),0);
-  assert.equal(useHealthKit(r,1),false,'budget empty: the kit is refused rather than wasted');
-  assert.equal(r.kit.medkit,4,'only the first, successful use consumed a kit');
+  assert.equal(healthKitBlock(r),'','no block reason with packs + missing HP');
+  assert.equal(useHealthKit(r,0),true);
+  assert.equal(r.health,10+RULES.rewards.medkitHealth,'full medkit heal, not clamped by the budget');
+  assert.equal(r.stakes.healed,healBudget(r),'medkits do not spend the budget');
+  assert.equal(useHealthKit(r,1),true,'second kit also works');
+  assert.equal(r.kit.medkit,0);
+  r.health=r.maxHealth;assert.equal(healthKitBlock(r),'No medkits carried');
+});
+test('medkits do not drain the BIT/regen budget',()=>{
+  const r=createRound('heal-indep',0);r.health=10;r.kit={medkit:1};const before=healRemaining(r);
+  assert.equal(useHealthKit(r,0),true);assert.equal(healRemaining(r),before);
 });
 test('a kill reward heal is clamped by the budget too',()=>{
   const r=createRound('heal-kill',0);r.level.nodes=[];r.health=0;r.stakes.healed=healBudget(r);
