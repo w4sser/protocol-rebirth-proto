@@ -49,8 +49,8 @@ function highMaterial(layers, mask, biome) {
     for (let i = 0; i < 4; i++) shader.uniforms['groundLayer' + i] = {value: layers[i]};
     shader.uniforms.groundMask = {value: mask};
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\\nvarying vec2 vGroundXZ;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\\nvGroundXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+      .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvGroundXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
     const weightTune = biome === 'nature'
       ? 'groundWeights *= vec4(0.93,1.44,0.80,0.90);'
       : 'groundWeights *= vec4(1.0,1.28,1.28,1.32);';
@@ -71,7 +71,7 @@ function highMaterial(layers, mask, biome) {
     ].join(' ');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>',
-        '#include <common>\\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
+        '#include <common>\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
       .replace('#include <map_fragment>', fragment);
   };
   m.customProgramCacheKey = () => 'ground-v4-' + biome;
