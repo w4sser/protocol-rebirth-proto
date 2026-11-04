@@ -66,8 +66,7 @@ try {
       await sleep(2000);
       let ground=null;
       if (mode !== 'off') {
-        await page.waitForFunction('window.__groundPreview && window.__groundPreview.ready',{timeout:30000});
-        await page.evaluate(()=>window.__groundPreview.ready);
+        await page.waitForFunction('window.__groundPreview?.stats?.ready || window.__groundPreview?.stats?.error',{polling:250,timeout:45000});
         ground=await page.evaluate(()=>({...window.__groundPreview.stats}));
         if (ground.error || !ground.ready || ground.tiles4m+ground.tiles8m===0)
           throw new Error('Ground preview not ready: '+JSON.stringify(ground));
