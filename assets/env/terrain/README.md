@@ -25,3 +25,9 @@ Metres, Y-up, front -Z, pivot at center ground contact, scale 1, rotation 0. One
 This is a **draft**, and NOT a ready-to-merge performance claim. Structural GLB checks are not a substitute for Khronos `npx gltf-validator`. Validation still needed: zero validator errors; in-engine LOW/HIGH mobile frame times vs existing terrain; 4 adjacent tiles with no gaps/z-fighting; trail alpha edges at camera angle; 3x3 texture repeat. The mobile profile uses one ground atlas sample per pixel **by design**, but actual measured fps depends on the full renderer.
 
 No gameplay files, shaders, existing bunker kit, or other assets outside `assets/env/terrain` are modified. See stacked PR #189 on asset PR #183. PR #188 remains a non-merge test preview.
+
+## Ground Pass 3 preview review (stacked above preview PR #190)
+- Removed sub-pixel speckling from all six decal atlas cells. The cutout coverage is now continuous and smoothly feathered; use alpha blending in the v3 preview material rather than alphaTest 0.49.
+- Granite is now neutral cool gray (no saturated lilac). Nature and bunker splat masks use irregular, softly feathered macro patches (96 px previews); separate bunker concrete, worn/wet concrete and grime are maintained.
+- Low/mobile nature and bunker atlases are now 256px with four 128px variants. The new surfaces are intentionally low-frequency to improve distant readability and reduce shimmer.
+- These lower resolution textures replace only six example PNGs; GLB meshes and layout stay unchanged. Revisit the resolution/quality tradeoff if low-device texture quality is insufficient. This branch remains an unmerged draft and should be visually assessed from the same raid camera.
