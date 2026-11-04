@@ -8,7 +8,7 @@
 // FTUE_KEY precedent in app.js/game.mjs (nr_ftue/pr_ftue_v1 are flat too despite being conceptually
 // per-profile) -- a real per-slot key would need the base save-slot plumbing (save-slots.js) threaded
 // into nodspel/, out of scope for this PR.
-import {NEUTRAL_KNOBS,KNOB_BOUNDS} from './difficulty.js?v=2.26.0';
+import {NEUTRAL_KNOBS,KNOB_BOUNDS} from './difficulty.js?v=2.27.0';
 
 export const DDA_KEY='pr_dda_v1';
 const EMA_ALPHA=.3;

@@ -82,7 +82,7 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
       const rocks=group.children.filter(m=>m.name==='archipelago-rock'),paths=group.children.filter(m=>m.name==='archipelago-passage');
       assert.equal(info.rocks,rocks.length);assert.equal(info.rockColliders,level.walls,'uses gameplay wall colliders');
       assert.equal(paths.length,info.passages.length);
-      assert.equal(rocks.length,level.walls.length,'one collider per visible rock');
+      assert.equal(rocks.length,level.walls.filter(c=>!c.shore).length,'one collider per visible rock');
       const byWall=new Map();
       for(const rock of rocks){
         assert.ok(rock.scale.x>=BOULDER_S[0]-1e-6&&rock.scale.x<=BOULDER_S[1]+1e-6,'boulder radius in the v2.1.0 range');
@@ -94,7 +94,7 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
         const bounds=new THREE.Box3().setFromObject(rock);
         for(const p of info.passages)assert.ok(!intersects({x:(bounds.min.x+bounds.max.x)/2,z:(bounds.min.z+bounds.max.z)/2,w:bounds.max.x-bounds.min.x,d:bounds.max.z-bounds.min.z},p),'rendered boulder stays outside clearance');
       }
-      for(const collider of level.walls){
+      for(const collider of level.walls.filter(c=>!c.shore)){
         const boxes=byWall.get(collider)??[];assert.equal(boxes.length,1,'one rock per collider');
         const b=boxes[0];
         // Compare every edge, not only centerlines: the whole collider equals the footprint.
@@ -243,5 +243,16 @@ test('repeated builds preserve source walls, rock transforms, colliders and pass
         assert.equal(archipelagoPassages(level),passages);
       }finally{second.dispose();}
     }finally{first.dispose();}
+  }
+});
+test('v2.27 shore walls: no boulders, invisible collider equal to the authored wall, shore props have no collider',()=>{
+  for(const n of [1,2,3])for(let seed=0;seed<6;seed++){
+    const level=generateLevel(n,`shore-${seed}`,'archipelago'),authored=level.walls.map(w=>({...w}));
+    const {group,info}=renderArchipelago(level),shore=level.walls.filter(c=>c.shore);
+    assert.ok(shore.length>0,'some shore walls detected');
+    for(const c of shore)assert.ok(authored.some(w=>w.x===c.x&&w.z===c.z&&w.w===c.w&&w.d===c.d),'shore collider = authored wall');
+    const props=group.children.filter(m=>m.name==='archipelago-shore-rock');
+    assert.equal(props.length,info.shoreProps);
+    for(const m of props)assert.ok(!m.userData.collider&&m.scale.x<=.52+1e-6,'small decorative');
   }
 });
