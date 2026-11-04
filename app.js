@@ -2385,10 +2385,9 @@ function setupBaseViewer(){
 function clearPlatesFromCard(viewer, card, scale){
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
-  if(!card || !card.offsetHeight) return;
   const box = id => { const e = document.getElementById(id); return e && e.offsetHeight ? e.getBoundingClientRect() : null; };
   const n = box("tabs"), tb = box("topbar");
-  const c = card.getBoundingClientRect(), v = viewer.getBoundingClientRect(), gap = 4;
+  const c = card && card.offsetHeight ? card.getBoundingClientRect() : { left:-1e4, right:-1e4, top:1e5, bottom:1e5 }, v = viewer.getBoundingClientRect(), gap = 4;
   const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
   const rects = plates.map(p => p.getBoundingClientRect());
   const bad = m => hit(m, c) || (n && hit(m, n)) || (tb && hit(m, tb));
@@ -2397,7 +2396,7 @@ function clearPlatesFromCard(viewer, card, scale){
     // Blocked: under the card, or in the strip below the card top where the card column hides it, or under the floating nav / top chips.
     const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n)) || (tb && hit(r, tb));
     if(!blocked) return;
-    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? Math.min(c.top, n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
+    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? (c.top > r.top ? Math.min(c.top, n.top) : n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
     const moves = [[0, up], [right, 0], [right, up], [0, lift], [right, lift], [0, drop], [right, drop]];
     for(const [dx, dy] of moves){
       const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
