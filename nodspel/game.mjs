@@ -740,6 +740,8 @@ function labelEnemyVisual(v){
 // New enemies appearing after the level finished loading (hunter waves): give them a mesh + full label rig.
 function spawnEnemyVisuals(enemies){for(const enemy of enemies)labelEnemyVisual(world.addEnemy(enemy));}
 let bigRuntime=null;
+// PREVIEW: ?ground=1 overlays ChatGPT ground pass 1 (assets/env/terrain). Absent => no import, no change.
+const GROUND_PREVIEW=new URLSearchParams(location.search).get('ground')==='1';let groundPreview=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -759,7 +761,7 @@ function loadLevelInner(){
     player.position.set(position.x,0,position.z);
   }
   {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(fog.color);scene.fog.near=fog.near;scene.fog.far=fog.far;}
-  killMarker=null;aimMagazine=null;world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});$('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
+  killMarker=null;aimMagazine=null;world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});groundPreview?.dispose();groundPreview=null;if(GROUND_PREVIEW)import('./ground-preview.js?v=2.25.1').then(m=>{groundPreview=m.addGroundPreview(round.level,scene);window.__groundPreview=groundPreview;});$('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
   bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
