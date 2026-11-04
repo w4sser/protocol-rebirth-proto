@@ -146,7 +146,7 @@ function placeDecor(floors, group, assets, biome, profile, levelSeed, stats) {
   const pathSet = DECALS[biome];
   for (let f=0; f<floors.length; f++) {
     const floor = floors[f], alongX = floor.w >= floor.d, len = alongX ? floor.w : floor.d;
-    if (len >= 6 && (floor.dir || hash(levelSeed, f, 9) % 4 === 0)) {
+    if (len >= 6 && (biome === 'nature' || floor.dir)) {
       const usable = len - 1;
       let cursor = -usable/2, remaining = usable;
       while (remaining >= 1.999) {
