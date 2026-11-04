@@ -739,6 +739,11 @@ function labelEnemyVisual(v){
 // New enemies appearing after the level finished loading (hunter waves): give them a mesh + full label rig.
 function spawnEnemyVisuals(enemies){for(const enemy of enemies)labelEnemyVisual(world.addEnemy(enemy));}
 let bigRuntime=null;
+// Draft-only ground pass v2 toggle; no import or renderer change without ?ground=2.
+const GROUND_V2_PARAMS=new URLSearchParams(location.search);
+const GROUND_V2=GROUND_V2_PARAMS.get('ground')==='2';
+const GROUND_V2_PROFILE=GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'high';
+let groundPreviewV2=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -758,7 +763,18 @@ function loadLevelInner(){
     player.position.set(position.x,0,position.z);
   }
   {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(fog.color);scene.fog.near=fog.near;scene.fog.far=fog.far;}
-  killMarker=null;aimMagazine=null;world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});$('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
+  killMarker=null;aimMagazine=null;
+  groundPreviewV2?.dispose();groundPreviewV2=null;
+  world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
+  if(GROUND_V2){
+    const previewLevel=round.level;
+    import('./ground-preview.js?v=ground-v2').then(module=>{
+      if(round.level!==previewLevel)return;
+      groundPreviewV2=module.addGroundPreview(previewLevel,scene,{area:AREA_SEL,profile:GROUND_V2_PROFILE});
+      window.__groundPreview=groundPreviewV2;
+    }).catch(error=>console.error('[ground-preview-v2] import failed:',error));
+  }
+  $('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
   bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
