@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "units": "metres",
+  "texel_density_px_per_m": 128,
+  "tile_size_m": 4,
+  "layers": [
+    {
+      "name": "granite",
+      "albedo": "ground_granite_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "moss",
+      "albedo": "ground_moss_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "pine_needles",
+      "albedo": "ground_pine_needles_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "gravel",
+      "albedo": "ground_gravel_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "mud",
+      "albedo": "ground_mud_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "grass",
+      "albedo": "ground_grass_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "sand",
+      "albedo": "ground_sand_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "concrete",
+      "albedo": "ground_concrete_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "wet_concrete",
+      "albedo": "ground_wet_concrete_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    }
+  ],
+  "sample_chunk": {
+    "name": "chunk_0_0",
+    "dimensions_m": [
+      16,
+      16
+    ],
+    "splat": "chunk_0_0_splat.png",
+    "channels": {
+      "R": "granite",
+      "G": "moss",
+      "B": "gravel",
+      "A": "pine_needles"
+    },
+    "weights": "normalized to 255 per pixel; no implicit base layer",
+    "vertex_color_channels": {
+      "R": "granite",
+      "G": "moss",
+      "B": "gravel",
+      "A": "pine_needles"
+    }
+  },
+  "decal_atlas": {
+    "filename": "decal_atlas.png",
+    "grid": [
+      3,
+      2
+    ],
+    "cells": [
+      "wear",
+      "wheel_tracks",
+      "footprints",
+      "pine_needles",
+      "puddle",
+      "mud"
+    ],
+    "alpha": "binary cutout"
+  }
+}
