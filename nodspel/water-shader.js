@@ -7,6 +7,19 @@ import * as THREE from './vendor/three.module.js';
 
 export const WATER_COLORS={shallow:'#1d6a72',mid:'#17526b',deep:'#06161f',foam:'#9fd6e0',sky:'#5f7f92'};
 const MAX_DIST=9; // world units of shore gradient encoded in the texture
+// Preview coastlines supply polygons; default levels still supply rectangles.
+// Point-to-segment distances are baked once on CPU, never in the water shader.
+function polygonShoreDistance(x,z,points){
+  let inside=false,best=MAX_DIST*MAX_DIST;
+  for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const a=points[j],b=points[i],dx=b.x-a.x,dz=b.z-a.z;
+    const t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/Math.max(1e-8,dx*dx+dz*dz)));
+    const sx=x-(a.x+t*dx),sz=z-(a.z+t*dz);
+    best=Math.min(best,sx*sx+sz*sz);
+    if((a.z>z)!==(b.z>z) && x<(b.x-a.x)*(z-a.z)/(b.z-a.z)+a.x)inside=!inside;
+  }
+  return inside?0:Math.sqrt(best);
+}
 
 // Bake distance-to-land (0 at land edge .. 1 at MAX_DIST) into a single-channel texture.
 export function bakeShoreTexture(rects,bounds,{texelsPerUnit=2,maxSize=256}={}){
@@ -16,8 +29,15 @@ export function bakeShoreTexture(rects,bounds,{texelsPerUnit=2,maxSize=256}={}){
   for(let j=0;j<sz;j++){const z=z0+(j+.5)/sz*d;
     for(let i=0;i<sx;i++){const x=x0+(i+.5)/sx*w;let best=MAX_DIST;
       for(let k=0;k<rects.length;k++){const r=rects[k];
-        const dx=Math.max(Math.abs(x-r.x)-r.w/2,0),dz=Math.max(Math.abs(z-r.z)-r.d/2,0);
-        const dist=Math.sqrt(dx*dx+dz*dz)-(r.round||0);if(dist<best)best=dist;}
+        let dist;
+        if(r.points?.length>=3){
+          dist=polygonShoreDistance(x,z,r.points);
+        }else{
+          const dx=Math.max(Math.abs(x-r.x)-r.w/2,0),dz=Math.max(Math.abs(z-r.z)-r.d/2,0);
+          dist=Math.sqrt(dx*dx+dz*dz)-(r.round||0);
+        }
+        if(dist<best)best=dist;
+      }
       data[j*sx+i]=Math.round(Math.max(0,Math.min(1,best/MAX_DIST))*255);}}
   const tex=new THREE.DataTexture(data,sx,sz,THREE.RedFormat,THREE.UnsignedByteType);
   tex.magFilter=tex.minFilter=THREE.LinearFilter;tex.wrapS=tex.wrapT=THREE.ClampToEdgeWrapping;tex.needsUpdate=true;
