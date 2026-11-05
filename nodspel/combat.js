@@ -9,7 +9,7 @@ import {houseWaypoint} from './house.js?v=2.27.1';
 import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.27.1';
 import {detectionMultiplier} from './stakes.js?v=2.27.1';
 import {dashInvulnerable} from './dash.js?v=2.27.1';
-import {bridgeWaypoint} from './bridge-flow.mjs';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.27.1-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
