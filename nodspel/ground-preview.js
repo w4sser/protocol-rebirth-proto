@@ -4,6 +4,7 @@ import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.1';
 import { shoreBounds, SHORE_FADE_START, SHORE_FADE_END, SHORE_SAND_COLOR } from './shore-fade.mjs';
+import { coastCoves, coastSeed } from './coastline.mjs';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
@@ -54,30 +55,49 @@ function model(filename) {
 // from world-space XZ and the parent island footprint, not per tile edges.
 function addShoreFade(shader, profile){
   shader.uniforms.shoreSandColor={value:new THREE.Color(SHORE_SAND_COLOR)};
-  const vertexDeclarations='attribute vec4 shoreBounds; varying vec4 vShoreBounds; varying vec2 vShoreXZ;';
-  const fragmentDeclarations='varying vec4 vShoreBounds; varying vec2 vShoreXZ; uniform vec3 shoreSandColor;';
+  shader.uniforms.shoreRockColor={value:new THREE.Color('#697471')};
+  const vertexDeclarations='attribute vec4 shoreBounds, shoreCoveA, shoreCoveB; varying vec4 vShoreBounds,vShoreCoveA,vShoreCoveB; varying vec2 vShoreXZ;';
+  const fragmentDeclarations='varying vec4 vShoreBounds,vShoreCoveA,vShoreCoveB; varying vec2 vShoreXZ; uniform vec3 shoreSandColor,shoreRockColor;';
   shader.vertexShader=shader.vertexShader
     .replace('#include <common>','#include <common>\n'+vertexDeclarations)
-    .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvShoreXZ=(modelMatrix*vec4(transformed,1.0)).xz; vShoreBounds=shoreBounds;');
+    .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvShoreXZ=(modelMatrix*vec4(transformed,1.0)).xz; vShoreBounds=shoreBounds; vShoreCoveA=shoreCoveA; vShoreCoveB=shoreCoveB;');
   const wobble=profile==='low'
     ? '0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)'
     : '(0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)+0.045*sin(vShoreXZ.x*2.65-vShoreXZ.y*2.10+0.6))';
   const blend=[
     'float shoreDistance=min(min(vShoreXZ.x-vShoreBounds.x, vShoreBounds.z-vShoreXZ.x),min(vShoreXZ.y-vShoreBounds.y, vShoreBounds.w-vShoreXZ.y));',
     'float shoreFactor=smoothstep('+SHORE_FADE_START.toFixed(3)+','+SHORE_FADE_END.toFixed(3)+',shoreDistance+'+wobble+');',
-    'diffuseColor.rgb=mix(shoreSandColor,diffuseColor.rgb,shoreFactor);'
+    // Angular cove directions are precomputed once per island. Two short sandy
+    // pockets; the rest of the coastline fades to granite, even on LOW.
+    'vec2 shoreDir=normalize(vShoreXZ-vec2((vShoreBounds.x+vShoreBounds.z)*0.5,(vShoreBounds.y+vShoreBounds.w)*0.5)+vec2(0.00001));',
+    'float beachA=smoothstep(vShoreCoveA.z,vShoreCoveA.w,dot(shoreDir,vShoreCoveA.xy));',
+    'float beachB=smoothstep(vShoreCoveB.z,vShoreCoveB.w,dot(shoreDir,vShoreCoveB.xy));',
+    'vec3 coastColor=mix(shoreRockColor,shoreSandColor,max(beachA,beachB));',
+    'diffuseColor.rgb=mix(coastColor,diffuseColor.rgb,shoreFactor);'
   ].join(' ');
   shader.fragmentShader=shader.fragmentShader
     .replace('#include <common>','#include <common>\n'+fragmentDeclarations)
     .replace('#include <color_fragment>','#include <color_fragment>\n'+blend);
 }
-function attachShoreBounds(geometry,floor){
+function attachShoreBounds(geometry,floor,levelSeed){
   // Geometry is shared in the asset cache. Clone only this tile so attributes
   // can describe the ISLAND boundary, preventing 4m/8m internal seam fades.
   const out=geometry.clone(),bounds=shoreBounds(floor);
   const count=out.getAttribute('position').count,buf=new Float32Array(count*4);
   for(let i=0;i<count;i++)buf.set(bounds,i*4);
   out.setAttribute('shoreBounds',new THREE.BufferAttribute(buf,4));
+  const coves=coastCoves(coastSeed(levelSeed,floor));
+  const coveValues=coves.map(c=>{
+    const a=c.center*Math.PI*2;
+    const low=Math.cos((c.halfWidth+.012)*Math.PI*2);
+    const high=Math.cos((c.halfWidth-.008)*Math.PI*2);
+    return [Math.cos(a),Math.sin(a),low,high];
+  });
+  for(let i=0;i<2;i++){
+    const attrib=new Float32Array(count*4);
+    for(let j=0;j<count;j++)attrib.set(coveValues[i],j*4);
+    out.setAttribute(i===0?'shoreCoveA':'shoreCoveB',new THREE.BufferAttribute(attrib,4));
+  }
   return out;
 }
 function highMaterial(layers, mask, biome) {
@@ -114,7 +134,7 @@ function highMaterial(layers, mask, biome) {
         '#include <common>\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
       .replace('#include <map_fragment>', fragment);
   };
-  m.customProgramCacheKey = () => 'ground-v8-shore-' + biome;
+  m.customProgramCacheKey = () => 'ground-v9-skerry-' + biome;
   return m;
 }
 function cutoutMaterial(tex) {
@@ -157,7 +177,7 @@ async function loadAssets(biome, profile) {
     // keeping one atlas lookup and opaque depth-write rendering.
     if(profile==='low' && biome==='nature'){
       surfaceMaterial.onBeforeCompile=shader=>addShoreFade(shader,'low');
-      surfaceMaterial.customProgramCacheKey=()=> 'ground-v8-shore-low';
+      surfaceMaterial.customProgramCacheKey=()=> 'ground-v9-skerry-low';
     }
     // Draw surface in the opaque pass, behind game rings and transparent effects.
     // The legacy grass backup is lowered in archipelago.js for the preview.
@@ -284,7 +304,7 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
           (mode === 'high' ? 'splat_' + biome : 'mobile_' + biome + '_' + variant) + '.glb';
         const geometry = assets.tiles.get(filename);
         if (!geometry) throw new Error('Missing ground prefab ' + filename);
-        const tileGeometry = biome==='nature' ? attachShoreBounds(geometry,floor) : geometry;
+        const tileGeometry = biome==='nature' ? attachShoreBounds(geometry,floor,level.seed) : geometry;
         const tile = new THREE.Mesh(tileGeometry, assets.surfaceMaterial);
         if(biome==='nature'){tile.userData.shoreGeometry=true;stats.shoreFadeTiles++;}
         tile.scale.set(sx/size, 1, sz/size);
