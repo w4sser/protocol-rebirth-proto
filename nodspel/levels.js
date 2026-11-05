@@ -2,7 +2,7 @@ import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.27.1';
 import {generateBigLevel} from './big-level.js?v=2.27.1';
 import '../data/items.js?v=2.27.1';
 import {clearPassageProps} from './archipelago-passages.js?v=2.27.1';
-import {BRIDGE_MIN_WIDTH} from './bridge-flow.mjs';
+import {BRIDGE_MIN_WIDTH} from './bridge-flow.mjs?v=2.27.1-bridge1';
 import {townizeLevel} from './town-layout.js?v=2.27.1';
 import {applyEncounters} from './encounters.js?v=2.27.1';
 import '../data/raid-combat.js?v=2.27.1';
