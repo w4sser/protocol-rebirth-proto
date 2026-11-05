@@ -9,5 +9,9 @@ assert.equal(by('audio-ogg-m4a-pairs').check({files:['assets/audio/sfx/x.ogg','a
  assert.equal(by('medkit-independent-of-heal-budget').check({roundSrc:bad}).length,2,'v2.25.1 fires');}
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position={...round.level.start};'}).length,2,'spawn rule fires');
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position=safeSpawn(round.level);'}).length,0);
+assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
+{const badCss=by('perk-choice-touch-44');
+ // Smoke: rule id exists and repo currently passes (file-based check).
+ assert.ok(badCss,'perk-choice-touch-44 rule present');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
