@@ -8,7 +8,7 @@
 // FTUE_KEY precedent in app.js/game.mjs (nr_ftue/pr_ftue_v1 are flat too despite being conceptually
 // per-profile) -- a real per-slot key would need the base save-slot plumbing (save-slots.js) threaded
 // into nodspel/, out of scope for this PR.
-import {NEUTRAL_KNOBS,KNOB_BOUNDS} from './difficulty.js?v=2.25.0';
+import {NEUTRAL_KNOBS,KNOB_BOUNDS} from './difficulty.js?v=2.27.1';
 
 export const DDA_KEY='pr_dda_v1';
 const EMA_ALPHA=.3;
@@ -33,7 +33,7 @@ const KNOB_ORDER=Object.freeze([
   {key:'dmg',step:.05,harder:1},
 ]);
 
-// Harder side (v2.25.0, docs/difficulty-bots.md §9): the fixed sim bots showed cadence/aggro/dmg barely move
+// Harder side (v2.25.1, docs/difficulty-bots.md §9): the fixed sim bots showed cadence/aggro/dmg barely move
 // strong/avg players (they win on aim and positioning), while one extra enemy and tougher enemies do. So
 // when stepping HARDER the DDA spends count and hp first, then aggro/cadence, and dmg last (dmg mainly
 // punishes weaker players). Easing keeps the original cheapest-invisible-first order.

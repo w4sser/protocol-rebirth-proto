@@ -243,6 +243,17 @@ async function baseRun([w,h]){
           await shot(page,`base-${w}x${h}-settings-scrolled`);
         }
         if(name==='base'){ // v1.67: room plates never sit under the goal card
+          // v2.27.1 Clean Base UI: with nothing selected the bunker art fills >=80% of the screen, no bottom bar/nameplates, rooms >=44px hit areas.
+          const env=await page.evaluate(()=>{let ok=0,n=0;const W=innerWidth,H=innerHeight;for(let x=4;x<W;x+=W/40)for(let y=4;y<H;y+=H/30){n++;const e=document.elementFromPoint(x,y);if(e&&(e.matches('.baseplate,.baseviewer,.baseworld')||e.closest('.mapspot')))ok++;}
+            const small=[...document.querySelectorAll('.baseworld .mapspot')].filter(p=>{const r=p.getBoundingClientRect();return r.width&&(r.width<44||r.height<44);}).map(p=>p.getAttribute('aria-label'));
+            const tabs=[...document.querySelectorAll('#tabs>button')].filter(b=>b.offsetWidth&&!b.classList.contains('nav-prep')).length;
+            const plates=[...document.querySelectorAll('.baseworld .mapspot .tag b')].filter(b=>b.offsetWidth).map(b=>b.textContent);
+            return {pct:ok/n*100,small,tabs,plates,sel:!!document.querySelector('.mapspot.selected')};});
+          console.log(`  ${tag} base environment ${env.pct.toFixed(1)}%`);
+          if(!env.sel&&env.pct<80)fail(`${tag} base`,`environment covers only ${env.pct.toFixed(1)}% of the screen (need >=80%)`);
+          for(const l of env.small)fail(`${tag} base`,`room hit area "${l}" below 44px`);
+          if(env.tabs)fail(`${tag} base`,`${env.tabs} bottom-bar buttons visible besides RAID`);
+          if(!env.sel&&env.plates.length>1)fail(`${tag} base`,`permanent nameplates visible: ${env.plates.join(', ')}`);
           const hit=await page.evaluate(()=>{const c=document.querySelector('.s-base .progress-goal'),vw=document.querySelector('.baseviewer'),nav=document.getElementById('tabs'),tbar=document.getElementById('topbar');if(!c||!vw)return [];
             const a=c.getBoundingClientRect(),v=vw.getBoundingClientRect(),n=nav&&nav.offsetHeight?nav.getBoundingClientRect():null,tbr=tbar&&tbar.offsetHeight?tbar.getBoundingClientRect():null,ov=(x,y)=>Math.min(x.right,y.right)-Math.max(x.left,y.left)>2&&Math.min(x.bottom,y.bottom)-Math.max(x.top,y.top)>2,out=[];
             for(const p of document.querySelectorAll('.baseworld .mapspot.plate')){const r=p.getBoundingClientRect(),t=(p.querySelector('b')||p).textContent.trim();
@@ -250,6 +261,18 @@ async function baseRun([w,h]){
               else if(!p.classList.contains('gate')&&(r.left<v.left-1||r.right>v.right+1||r.top<v.top-1||r.bottom>v.bottom+1))out.push(t+'" is not fully inside the viewer');}
             return out;});
           for(const t of hit)fail(`${tag} ${name}`,`room plate "${t}`);
+          // v2.26.1 bug lint (owner phone 820x377): selected-room action sheet never overlaps RAID/menu, its buttons never overlap its text, >=44px.
+          const sheetErr=await page.evaluate(()=>{const c=document.querySelector('.core-spot');if(!c||typeof selectBaseSpot!=='function')return [];selectBaseSpot(c);
+            const R=e=>e&&e.offsetWidth?e.getBoundingClientRect():null,ov=(a,b)=>a&&b&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>0&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0,out=[];
+            const sh=R(document.querySelector('.roomsheet'));if(!sh){selectBaseSpot(null);return ['no action sheet after selecting the Core'];}
+            if(ov(sh,R(document.querySelector('#tabs .nav-prep'))))out.push('action sheet overlaps the RAID button');
+            if(ov(sh,R(document.querySelector('.basemenu-btn'))))out.push('action sheet overlaps the menu button');
+            const txt=[...document.querySelectorAll('.roomsheet .rs-head > *')].map(R).filter(Boolean);
+            for(const b of document.querySelectorAll('.roomsheet button')){const r=R(b);if(!r)continue;const l=b.textContent.trim()||b.getAttribute('aria-label');
+              if(r.width<44||r.height<44)out.push(`sheet button "${l}" below 44px`);if(txt.some(t=>ov(r,t)))out.push(`sheet button "${l}" overlaps the title/level/cost text`);
+              if(r.left<sh.left-1||r.right>sh.right+1)out.push(`sheet button "${l}" overflows the sheet`);}
+            selectBaseSpot(null);return out;});
+          for(const e of sheetErr)fail(`${tag} base sheet`,e);
         }
       }
     }
@@ -573,8 +596,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.25.0');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.25.0');
+    const {createRound}=await import('./round.js?v=2.27.1');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.27.1');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

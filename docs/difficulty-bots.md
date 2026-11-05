@@ -277,3 +277,11 @@ Why: Robert plays depths 2-3 and finds them TOO EASY. With the fixed sim bots, s
 | avg | 100 | 84 | 67 | 71 | 99 | count 73, cadence 29, aggro 10 |
 | weak | 50 | 51 | 61 | 72 | 85 | cadence 70, aggro 45, hp 26, count 22 |
 Clip% counts either bound. Cadence and aggro stop mattering once they are pinned, so DDA no longer stalls at its limits. The remaining work is done by count and hp, which sit at or within their new bounds. Strong ends in its 85-90% band (83-93), avg is at the low edge of 70-80 (67-71), and weak recovers through the easy side to 61-72. This leans slightly easier than the brief, which was asked for because the bots are much faster than humans (L2 time-to-extract 22-31 s vs a 3-5 min target).
+
+**Convergence with DDA, L3, 20 players x 15 raids, rolling-5 extract% (`convergence-L3-v2250.txt`):**
+| tier | raid 1 | raid 6 | raid 10 | raid 15 |
+|---|---|---|---|---|
+| strong | 100 | 91 | 80 | 86 |
+| avg | 90 | 81 | 61 | 63 |
+| weak | 50 | 47 | 53 | 68 |
+L3 lands harder than L2: strong sits in its band by raid 15, avg ends below the 70-80 target (61-63), and weak recovers through the easy side to 68.

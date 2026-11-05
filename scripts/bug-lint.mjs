@@ -31,6 +31,18 @@ export const RULES=[
      return out;}},
   {id:'single-app-version-const',pr:'#69 (fix/version-1651)',why:'version label drifted from the cache tags; app.js must keep one APP_VERSION literal',
    check(){const m=read('app.js').match(/const APP_VERSION\s*=\s*"([\d.]+)"/g)||[];return m.length===1?[]:[`app.js: expected exactly one APP_VERSION const, found ${m.length}`];}},
+  {id:'medkit-independent-of-heal-budget',pr:'v2.25.1 (fix/healthpack-bit-heal)',why:'medkits were refused once BIT/regen heal budget was spent; kits must not gate on or spend the shared budget',
+   check(ctx){const src=ctx?.roundSrc??read('nodspel/round.js');const out=[];
+     for(const fn of ['healthKitBlock','useHealthKit']){const m=src.match(new RegExp('export function '+fn+'\\([^)]*\\)\\{[\\s\\S]*?\\n\\}'));
+       if(!m){out.push(`nodspel/round.js: ${fn}() not found`);continue;}
+       if(/healRemaining|healBudget/.test(m[0]))out.push(`nodspel/round.js: ${fn}() must not gate on the shared heal budget`);
+       if(fn==='useHealthKit'&&!/budget\s*:\s*false/.test(m[0]))out.push('nodspel/round.js: useHealthKit() must heal with {budget:false}');}
+     return out;}},
+  {id:'raid-spawn-validated',pr:'v2.25.1 (fix/healthpack-bit-heal, spawn outside level)',why:'player spawned outside the level; the raid spawn must go through safeSpawn (walkable floor, not in a wall)',
+   check(ctx){const src=ctx?.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(/position\s*=\s*\{\s*\.\.\.round\.level\.start\s*\}/.test(src))out.push('nodspel/game.mjs: spawn uses raw round.level.start; use safeSpawn(round.level)');
+     if(!/position\s*=\s*safeSpawn\(round\.level\)/.test(src))out.push('nodspel/game.mjs: loadLevel must place the player with safeSpawn(round.level)');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
