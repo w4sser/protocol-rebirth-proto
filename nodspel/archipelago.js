@@ -110,6 +110,10 @@ function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
+  // Only the draft ground preview shifts its legacy grass backup away from the new
+  // textured surface. On iOS, the old 4mm gap + positive polygon offset allowed
+  // Safari to depth-test the flat green base in front of the textured overlay.
+  const terrainPreview=typeof location!=='undefined' && new URLSearchParams(location.search).get('ground')==='2';
   clearPassageProps(level,out.passages);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
@@ -125,7 +129,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
       for(let t=-len/2+.6;t<len/2;t+=1.4)for(const s of [-1,1]){const px=along==='x'?f.x+t:f.x+s*(f.w/2-.1),pz=along==='x'?f.z+s*(f.d/2-.1):f.z+t;box(px,-.4,pz,.16,.7,.16,P.post);}
       out.piers++;continue;}
     // island: grass top, sand rim, irregular shore blobs below the walkable edge
-    box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
+    const grass=box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
+    grass.name='archipelago-grass-backup';
+    // Move *only* the visual fallback. Gameplay floors/colliders stay at Y=0.
+    // The preview terrain now has a reliable depth separation on mobile.
+    if(terrainPreview) grass.position.y-=.06;
     box(f.x,-.32,f.z,f.w+1.2,.3,f.d+1.2,P.sand);
     for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
       r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
