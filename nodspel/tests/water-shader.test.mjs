@@ -11,6 +11,18 @@ test('shore bake: 0 on land, grows with distance, capped at low res',()=>{
   const at=(x,z)=>data[Math.floor((z+20)/40*height)*width+Math.floor((x+20)/40*width)];
   assert.equal(at(0,0),0);assert.ok(at(4,0)>0&&at(4,0)<at(8,0));assert.equal(at(19,19),255);
 });
+test('polygon coastline moves wave foam to an irregular outline instead of the authored rectangle',()=>{
+  const bounds={x0:-12,z0:-12,w:24,d:24};
+  const poly=[{x:-5,z:0},{x:0,z:-5},{x:5,z:0},{x:0,z:5}];
+  const t=bakeShoreTexture([{points:poly}],bounds);
+  const {width,height,data}=t.image;
+  const at=(x,z)=>data[Math.floor((z+12)/24*height)*width+Math.floor((x+12)/24*width)];
+  assert.equal(at(0,0),0,'interior is land');
+  assert.equal(at(4,0),0,'point along diamond axis is still land');
+  assert.ok(at(4,4)>at(4,0),'the corner outside the diagonal shoreline is water');
+  assert.ok(at(10,10)>at(4,4),'water gets deeper farther from the rocky contour');
+  t.dispose();
+});
 test('archipelago water: one shader mesh, no separate deep plane, quality flags',()=>{
   const level=generateLevel(1,'water-s','archipelago');
   for(const [props,caustics,lite] of [[1,1,false],[.55,0,true]]){
