@@ -9,6 +9,11 @@ on:
       - 'nodspel/ground-preview.js'
       - 'nodspel/ground-organic-trail.mjs'
       - 'nodspel/shore-fade.mjs'
+      - 'nodspel/coastline.mjs'
+      - 'nodspel/archipelago.js'
+      - 'nodspel/water-shader.js'
+      - 'nodspel/tests/coastline.test.mjs'
+      - 'nodspel/tests/water-shader.test.mjs'
       - 'nodspel/tests/shore-fade.test.mjs'
       - 'nodspel/tests/ground-organic-trail.test.mjs'
       - 'nodspel/game.mjs'
@@ -27,6 +32,10 @@ jobs:
           node --check nodspel/ground-preview.js
           node --check nodspel/ground-organic-trail.mjs
           node --check nodspel/shore-fade.mjs
+          node --check nodspel/coastline.mjs
+          node --check nodspel/archipelago.js
+          node --check nodspel/water-shader.js
+          node --check nodspel/tests/coastline.test.mjs
           node --check nodspel/tests/shore-fade.test.mjs
           node --check nodspel/tests/ground-organic-trail.test.mjs
           node --check nodspel/game.mjs
@@ -37,6 +46,8 @@ jobs:
         run: node --test nodspel/tests/ground-organic-trail.test.mjs
       - name: Verify opaque HIGH/LOW shore fades and tile seam continuity
         run: node --test nodspel/tests/shore-fade.test.mjs
+      - name: Verify organic coast, mostly rocky coverage and water foam alignment
+        run: node --test nodspel/tests/coastline.test.mjs nodspel/tests/water-shader.test.mjs
       - name: Validate new PNG files, alpha and splat channel normalization
         run: node scripts/validate-terrain-pngs.mjs
       - name: Install official Khronos glTF Validator
