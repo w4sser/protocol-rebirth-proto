@@ -2,6 +2,7 @@
 // No collision, camera, controls or gameplay changes. Without ?ground=2 this file is never imported.
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
+import { planOrganicTrail } from './ground-organic-trail.mjs';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
@@ -13,7 +14,6 @@ const DECALS = {
   nature: ['lichen', 'pine_needles', 'wheel_tracks', 'puddle', 'mud'],
   bunker: ['wear', 'wheel_tracks', 'puddle', 'mud'],
 };
-const TRAILS = ['trail_straight_2m', 'trail_straight_4m', 'trail_straight_8m'];
 const allDecals = [...new Set(Object.values(DECALS).flat())];
 const cache = new Map();
 
@@ -35,8 +35,16 @@ function model(filename) {
     gltf => {
       let mesh = null;
       gltf.scene.traverse(n => { if (n.isMesh && !mesh) mesh = n; });
-      if (!mesh) reject(new Error('No mesh in ' + filename));
-      else resolve(mesh);
+      if (!mesh) { reject(new Error('No mesh in ' + filename)); return; }
+      // The GLB uses visual relief up to ~66 mm. The node's gameplay halo starts
+      // at 18 mm, so keep this *visual-only* overlay level at Y=0 instead.
+      // Collision remains in level data; models/assets are not rewritten.
+      const geometry=mesh.geometry.clone(),position=geometry.getAttribute('position');
+      for(let i=0;i<position.count;i++)position.setY(i,0);
+      position.needsUpdate=true;
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      resolve({geometry});
     },
     undefined, reject,
   ));
@@ -83,7 +91,7 @@ function cutoutMaterial(tex) {
     // Soft coverage, prefiltered mipmaps and blending avoid hard clip/speckle at the raid camera.
     alphaTest: .035, transparent: true, depthWrite: false,
     roughness: .95, metalness: 0,
-    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
   });
 }
 async function loadAssets(biome, profile) {
@@ -94,9 +102,8 @@ async function loadAssets(biome, profile) {
       ? [4, 8].map(size => 'terrain_tile_' + size + 'm_splat_' + biome + '.glb')
       : [4, 8].flatMap(size => ['a','b','c','d'].map(v =>
         'terrain_tile_' + size + 'm_mobile_' + biome + '_' + v + '.glb'));
-    const [tileModels, trailModels, decalModels, trailTex, decalTex, surface] = await Promise.all([
+    const [tileModels, decalModels, trailTex, decalTex, surface] = await Promise.all([
       Promise.all(tileFiles.map(model)),
-      Promise.all(TRAILS.map(f => model(f + '.glb'))),
       Promise.all(allDecals.map(f => model('decal_' + f + '.glb'))),
       texture('ground_trail_albedo.png'),
       texture('decal_atlas.png'),
@@ -114,12 +121,20 @@ async function loadAssets(biome, profile) {
           // Single atlas lookup remains unchanged. Subtle LOW-only green lift.
           color: biome === 'nature' ? new THREE.Color().setRGB(.975,1.035,.96) : new THREE.Color(0xffffff),
         });
+    // Draw surface in the opaque pass, behind game rings and transparent effects.
+    surfaceMaterial.polygonOffset=true;
+    surfaceMaterial.polygonOffsetFactor=1;
+    surfaceMaterial.polygonOffsetUnits=1;
     const tiles = new Map(tileFiles.map((f,i) => [f, tileModels[i].geometry]));
+    const trailMaterial=new THREE.MeshStandardMaterial({
+      map:trailTex,vertexColors:true,transparent:true,depthWrite:false,
+      side:THREE.DoubleSide,roughness:.96,metalness:0,
+      polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1,
+    });
     return {
       surfaceMaterial, tiles,
-      trails: new Map(TRAILS.map((f,i) => [f, trailModels[i].geometry])),
       decals: new Map(allDecals.map((f,i) => [f, decalModels[i].geometry])),
-      trailMaterial: cutoutMaterial(trailTex), decalMaterial: cutoutMaterial(decalTex),
+      trailMaterial, decalMaterial: cutoutMaterial(decalTex),
     };
   })().catch(e => { cache.delete(key); throw e; });
   cache.set(key, p);
@@ -166,37 +181,38 @@ function grid(floor, place) {
   }
 }
 function placeDecor(floors, group, assets, biome, profile, levelSeed, stats) {
-  const y = profile === 'high' ? .09 : .027;
-  const pathSet = DECALS[biome];
-  for (let f=0; f<floors.length; f++) {
-    const floor = floors[f], alongX = floor.w >= floor.d, len = alongX ? floor.w : floor.d;
-    if (len >= 6 && (biome === 'nature' || floor.dir)) {
-      const usable = len - 1;
-      let cursor = -usable/2, remaining = usable;
-      while (remaining >= 1.999) {
-        const seg = remaining >= 8 ? 8 : remaining >= 4 ? 4 : 2;
-        const mesh = new THREE.Mesh(assets.trails.get('trail_straight_' + seg + 'm'), assets.trailMaterial);
-        mesh.position.set(alongX ? floor.x+cursor+seg/2 : floor.x, y,
-                          alongX ? floor.z : floor.z+cursor+seg/2);
-        mesh.rotation.y = alongX ? Math.PI/2 : 0;
-        mesh.renderOrder = 3;
-        group.add(mesh); stats.trails++;
-        cursor += seg; remaining -= seg;
+  const pathSet=DECALS[biome];
+  for(let f=0;f<floors.length;f++){
+    const floor=floors[f];
+    if(biome==='nature' && !floor.dir){
+      const trail=planOrganicTrail(floor,hash(levelSeed,f,87));
+      if(trail){
+        const geometry=new THREE.BufferGeometry();
+        geometry.setAttribute('position',new THREE.BufferAttribute(trail.positions,3));
+        geometry.setAttribute('uv',new THREE.BufferAttribute(trail.uvs,2));
+        geometry.setAttribute('color',new THREE.BufferAttribute(trail.colors,4));
+        geometry.setIndex(new THREE.BufferAttribute(trail.indices,1));
+        geometry.computeVertexNormals();
+        const mesh=new THREE.Mesh(geometry,assets.trailMaterial);
+        mesh.name='ground-organic-footpath';
+        mesh.frustumCulled=true;
+        // The node halo and hold ring are at .018m/.026m: this is .010m.
+        mesh.renderOrder=-1;group.add(mesh);stats.trails++;
       }
     }
-    const count = Math.min(6, Math.floor(floor.w*floor.d/55));
-    for (let i=0; i<count; i++) {
-      const h = hash(levelSeed ^ 0xcafe, f, i);
-      const kind = pathSet[h % pathSet.length];
-      const mesh = new THREE.Mesh(assets.decals.get(kind), assets.decalMaterial);
-      const rx = ((hash(h, 1, 23) & 65535)/65535-.5);
-      const rz = ((hash(h, 2, 37) & 65535)/65535-.5);
-      // Keep enlarged 3-5m decals inside each floor as far as practical.
-      const xRange = Math.max(0, floor.w-4.5), zRange = Math.max(0, floor.d-4.5);
-      mesh.position.set(floor.x + rx*xRange, y+.003+i*.0003, floor.z + rz*zRange);
-      mesh.rotation.y = (hash(h, 3, 11)%4)*Math.PI/2;
-      mesh.renderOrder = 4;
-      group.add(mesh); stats.decals++;
+    // Retain Pass 3 quiet decals, but never let them cover gameplay node rings.
+    const count=Math.min(6,Math.floor(floor.w*floor.d/55));
+    for(let i=0;i<count;i++){
+      const h=hash(levelSeed^0xcafe,f,i);
+      const kind=pathSet[h%pathSet.length];
+      const mesh=new THREE.Mesh(assets.decals.get(kind),assets.decalMaterial);
+      const rx=((hash(h,1,23)&65535)/65535-.5);
+      const rz=((hash(h,2,37)&65535)/65535-.5);
+      const xRange=Math.max(0,floor.w-4.5),zRange=Math.max(0,floor.d-4.5);
+      mesh.position.set(floor.x+rx*xRange,.011+i*.0002,floor.z+rz*zRange);
+      mesh.rotation.y=(hash(h,3,11)%4)*Math.PI/2;
+      mesh.renderOrder=-1;
+      group.add(mesh);stats.decals++;
     }
   }
 }
@@ -205,7 +221,7 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
   const mode = profile === 'low' ? 'low' : 'high';
   const group = new THREE.Group();
   group.name = 'ground-preview-v2';
-  group.userData = {profile:mode, biome, assetVersion:2};
+  group.userData = {profile:mode, biome, assetVersion:5};
   scene.add(group);
   const stats = {profile:mode,biome,tiles4m:0,tiles8m:0,trails:0,decals:0,ready:false};
   const ready = loadAssets(biome, mode).then(assets => {
@@ -221,9 +237,9 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
         if (!geometry) throw new Error('Missing ground prefab ' + filename);
         const tile = new THREE.Mesh(geometry, assets.surfaceMaterial);
         tile.scale.set(sx/size, 1, sz/size);
-        tile.position.set(x+sx/2, .018, z+sz/2);
+        tile.position.set(x+sx/2, .004, z+sz/2);
         tile.receiveShadow = true;
-        tile.renderOrder = 2;
+        tile.renderOrder = -2;
         group.add(tile);
         stats[size === 8 ? 'tiles8m' : 'tiles4m']++;
       });
