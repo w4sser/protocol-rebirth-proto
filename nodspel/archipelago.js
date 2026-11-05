@@ -188,6 +188,8 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
       const data=coastRingData(profile),geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
       geo.setAttribute('color',new THREE.BufferAttribute(data.colors,3));
+      geo.setAttribute('uv',new THREE.BufferAttribute(data.uvs,2));
+      geo.setAttribute('shoreBlend',new THREE.BufferAttribute(data.blends,1));
       geo.setIndex(new THREE.BufferAttribute(data.indices,1));
       geo.computeVertexNormals();
       const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:true});
