@@ -2,7 +2,7 @@
 // No collision, camera, controls or gameplay changes. Without ?ground=2 this file is never imported.
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { planOrganicTrail } from './ground-organic-trail.mjs';
+import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.1';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
@@ -122,9 +122,10 @@ async function loadAssets(biome, profile) {
           color: biome === 'nature' ? new THREE.Color().setRGB(.975,1.035,.96) : new THREE.Color(0xffffff),
         });
     // Draw surface in the opaque pass, behind game rings and transparent effects.
-    surfaceMaterial.polygonOffset=true;
-    surfaceMaterial.polygonOffsetFactor=1;
-    surfaceMaterial.polygonOffsetUnits=1;
+    // The legacy grass backup is lowered in archipelago.js for the preview.
+    // Do not push the opaque terrain *away* in the depth buffer on mobile:
+    // Safari's lower depth precision otherwise reveals the flat olive grass.
+    surfaceMaterial.polygonOffset=false;
     const tiles = new Map(tileFiles.map((f,i) => [f, tileModels[i].geometry]));
     const trailMaterial=new THREE.MeshStandardMaterial({
       map:trailTex,vertexColors:true,transparent:true,depthWrite:false,
