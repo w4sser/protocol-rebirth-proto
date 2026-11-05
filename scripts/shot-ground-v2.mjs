@@ -53,7 +53,11 @@ try {
             if(original) C.prototype[name]=function(...args){window.__dc++;return original.apply(this,args);};
           }
       });
-      await page.setViewport({width:1280,height:720,deviceScaleFactor:1});
+      const mobile=process.env.MOBILE_VIEWPORT==='1';
+      if(mobile) await page.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1');
+      await page.setViewport(mobile
+        ? {width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true}
+        : {width:1280,height:720,deviceScaleFactor:1});
       const params = new URLSearchParams({
         seed:'groundshot',debug:'1',q:mode==='low'?'low':'high',area,return:'../index.html',
       });
