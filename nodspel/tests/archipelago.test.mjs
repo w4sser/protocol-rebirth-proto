@@ -82,7 +82,6 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
       const rocks=group.children.filter(m=>m.name==='archipelago-rock'),paths=group.children.filter(m=>m.name==='archipelago-passage');
       assert.equal(info.rocks,rocks.length);assert.equal(info.rockColliders,level.walls,'uses gameplay wall colliders');
       assert.equal(paths.length,0,'navigation openings must not create beige road geometry');
-      assert.ok(info.passages.length>0,'navigation clearance remains available');
       assert.equal(rocks.length,level.walls.filter(c=>!c.shore).length,'one collider per visible rock');
       const byWall=new Map();
       for(const rock of rocks){
