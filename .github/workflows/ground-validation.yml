@@ -59,6 +59,13 @@ jobs:
         run: node scripts/shot-ground-v2.mjs
         env:
           SMOKE_CAPTURE: '1'
+      - name: Capture iPhone-sized archipelago HIGH and LOW
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          OUT: verify-out/ground-v2/phone-viewport
       - name: Diagnose coral rectangles near Keycard (level 3, ground OFF/HIGH/LOW)
         run: node scripts/shot-ground-v2.mjs
         env:
