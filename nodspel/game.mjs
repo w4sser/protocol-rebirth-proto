@@ -744,6 +744,25 @@ let bigRuntime=null;
 const GROUND_V2_PARAMS=new URLSearchParams(location.search);
 const GROUND_V2=GROUND_V2_PARAMS.get('ground')==='2';
 const GROUND_V2_PROFILE=GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'high';
+const GROUND_DEBUG=GROUND_V2 && GROUND_V2_PARAMS.has('groundDebug');
+// Opt-in real-device diagnostics. Reports loading separately from GPU rendering;
+// prevents confusing a missing preview with a design problem in the grass color.
+function groundStatus(message){
+  if(!GROUND_DEBUG)return;
+  let box=document.querySelector('#ground-preview-status');
+  if(!box){
+    box=document.createElement('div');
+    box.id='ground-preview-status';
+    Object.assign(box.style,{
+      position:'fixed',left:'50%',bottom:'8px',transform:'translateX(-50%)',
+      padding:'4px 8px',font:'12px monospace',background:'rgba(0,0,0,.85)',
+      color:'#3FE0D0',borderRadius:'4px',whiteSpace:'nowrap',
+      zIndex:'99999',pointerEvents:'none'
+    });
+    document.body.append(box);
+  }
+  box.textContent=message;
+}
 let groundPreviewV2=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
@@ -769,11 +788,22 @@ function loadLevelInner(){
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
   if(GROUND_V2){
     const previewLevel=round.level;
-    import('./ground-preview.js?v=ground-v5').then(module=>{
+    groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': importing…');
+    import('./ground-preview.js?v=ground-v7-mobile-depth').then(module=>{
       if(round.level!==previewLevel)return;
-      groundPreviewV2=module.addGroundPreview(previewLevel,scene,{area:AREA_SEL,profile:GROUND_V2_PROFILE});
-      window.__groundPreview=groundPreviewV2;
-    }).catch(error=>console.error('[ground-preview-v5] import failed:',error));
+      const preview=module.addGroundPreview(previewLevel,scene,{area:AREA_SEL,profile:GROUND_V2_PROFILE});
+      groundPreviewV2=preview;
+      window.__groundPreview=preview;
+      groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': loading assets…');
+      preview.ready.then(()=>{
+        if(round.level!==previewLevel)return;
+        if(preview.stats.error)groundStatus('Ground ERROR: '+preview.stats.error);
+        else groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': loaded '+(preview.stats.tiles4m+preview.stats.tiles8m)+' tiles, flat bases hidden '+preview.stats.backupsHidden);
+      });
+    }).catch(error=>{
+      console.error('[ground-preview-v7] import failed:',error);
+      groundStatus('Ground IMPORT ERROR: '+String(error));
+    });
   }
   $('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
