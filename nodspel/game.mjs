@@ -349,6 +349,13 @@ function setupStick(selector,value,onShot){
     state.pointer=null;state.gesture=null;state.origin=null;state.touchdown=null;value.x=value.y=0;thumb.style.transform='translate(-50%,-50%)';el.classList.remove('active','aiming');
   }
   el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);el.addEventListener('lostpointercapture',release);
+  // Safari may deliver pointerup to the original target rather than the stick
+  // after touch capture is interrupted. Preserve the release-to-fire gesture
+  // for the owning pointer, without changing mouse or keyboard fire behavior.
+  // The element handler clears state first when pointerup reaches the stick,
+  // so this document fallback cannot trigger a duplicate shot.
+  document.addEventListener('pointerup',release);
+  document.addEventListener('pointercancel',release);
 }
 setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
 
