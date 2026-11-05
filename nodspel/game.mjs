@@ -745,6 +745,9 @@ const GROUND_V2_PARAMS=new URLSearchParams(location.search);
 const GROUND_V2=GROUND_V2_PARAMS.get('ground')==='2';
 const GROUND_V2_PROFILE=GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'high';
 const GROUND_DEBUG=GROUND_V2 && GROUND_V2_PARAMS.has('groundDebug');
+// Start fetching the preview module as soon as this module initializes. The
+// same promise is reused to build each level and to preload terrain during boot.
+const groundModulePromise=GROUND_V2?import('./ground-preview.js?v=ground-v8-preload'):null;
 // Opt-in real-device diagnostics. Reports loading separately from GPU rendering;
 // prevents confusing a missing preview with a design problem in the grass color.
 function groundStatus(message){
@@ -789,7 +792,7 @@ function loadLevelInner(){
   if(GROUND_V2){
     const previewLevel=round.level;
     groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': importing…');
-    import('./ground-preview.js?v=ground-v7-mobile-depth').then(module=>{
+    groundModulePromise.then(module=>{
       if(round.level!==previewLevel)return;
       const preview=module.addGroundPreview(previewLevel,scene,{area:AREA_SEL,profile:GROUND_V2_PROFILE});
       groundPreviewV2=preview;
@@ -1665,6 +1668,26 @@ hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:
   }
   sun.position.copy(target).add(SUN_OFFSET);sun.target.position.copy(target);
   world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
+}
+// Do not reveal the ordinary green fallback and switch to textured ground a
+// second later. Keep the existing boot loader over the scene until the selected
+// HIGH/LOW ground resources have finished downloading and decoding. Game
+// rendering starts only afterwards. An explicit timeout permits recovery when
+// an asset server or connection fails.
+if(GROUND_V2){
+  groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': preparing assets…');
+  let bootTimeout;
+  try{
+    await Promise.race([
+      groundModulePromise.then(module=>module.preloadGroundAssets(AREA_SEL,GROUND_V2_PROFILE)),
+      new Promise((_,reject)=>{
+        bootTimeout=setTimeout(()=>reject(new Error('terrain asset preload timed out')),10000);
+      }),
+    ]);
+  }catch(error){
+    console.error('[ground-preview] preload failed; allowing fallback:',error);
+    groundStatus('Ground PRELOAD ERROR: '+String(error));
+  }finally{clearTimeout(bootTimeout);}
 }
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
 // Boot loader stays up until the first frame has been rendered and painted, then fades out.
