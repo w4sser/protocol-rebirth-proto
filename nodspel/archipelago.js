@@ -9,6 +9,7 @@ import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archip
 export {archipelagoPassages} from './archipelago-passages.js?v=2.27.1';
 import {createWaterMesh} from './water-shader.js?v=2.27.1-coast9';
 import {coastlineProfile,coastRingData} from './coastline.mjs';
+import {bridgeClearances} from './bridge-flow.mjs';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -150,6 +151,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     if(!floor.dir)coastProfiles.set(floor,coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72}));
   }
   clearPassageProps(level,out.passages);
+  out.bridgeClearances=bridgeClearances(level);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
@@ -163,10 +165,32 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   water.name='water';group.add(water);
   const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
   for(const f of level.floors){
-    if(f.dir){ // pier: planks + posts
+    if(f.dir){ // walkable pier: clear center deck, open landings, posts outside
       box(f.x,-.08,f.z,f.w,.16,f.d,P.pier);
-      const along=f.dir.x?'x':'z',len=along==='x'?f.w:f.d;
-      for(let t=-len/2+.6;t<len/2;t+=1.4)for(const s of [-1,1]){const px=along==='x'?f.x+t:f.x+s*(f.w/2-.1),pz=along==='x'?f.z+s*(f.d/2-.1):f.z+t;box(px,-.4,pz,.16,.7,.16,P.post);}
+      const along=f.dir.x?'x':'z',len=along==='x'?f.w:f.d,width=along==='x'?f.d:f.w;
+      // Wide mouth at each end provides a natural entry funnel. These are
+      // visual planks only; the widened logical floors provide actual movement.
+      for(const end of [-1,1]){
+        const depth=1.45,half=width/2,wide=half+.75;
+        const points=along==='x'
+          ? [[f.x+end*(len/2-.08),f.z-half],[f.x+end*(len/2-.08),f.z+half],
+             [f.x+end*(len/2+depth),f.z+wide],[f.x+end*(len/2+depth),f.z-wide]]
+          : [[f.x-half,f.z+end*(len/2-.08)],[f.x+half,f.z+end*(len/2-.08)],
+             [f.x+wide,f.z+end*(len/2+depth)],[f.x-wide,f.z+end*(len/2+depth)]];
+        const geo=new THREE.BufferGeometry(),verts=[];
+        for(const [x,z] of points)verts.push(x,.015,z);
+        geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+        geo.setIndex([0,1,2,0,2,3]);geo.computeVertexNormals();
+        const apron=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:P.pier,side:THREE.DoubleSide,roughness:1}));
+        apron.name='archipelago-bridge-apron';group.add(apron);
+      }
+      // Deck posts sit outside the playable strip, so they read as rails
+      // rather than trunks/obstacles standing in the firing lane.
+      for(let t=-len/2+.9;t<len/2;t+=2.2)for(const sign of [-1,1]){
+        const px=along==='x'?f.x+t:f.x+sign*(width/2+.20);
+        const pz=along==='x'?f.z+sign*(width/2+.20):f.z+t;
+        box(px,-.4,pz,.13,.7,.13,P.post);
+      }
       out.piers++;continue;}
     // island: grass top, sand rim, irregular shore blobs below the walkable edge
     const grass=box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
@@ -214,7 +238,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   // margin along their whole walkway, not only at the room doorway they lead to: a boulder
   // cluster built on the thin rail wall flanking a pier can otherwise bulge into the plank path
   // anywhere along its length, not just at the ends.
-  const piers=level.floors.filter(f=>f.dir).map(f=>({x:f.x,z:f.z,w:f.w+.96,d:f.d+.96}));
+  const piers=out.bridgeClearances;
   // A partition's own gap is already a passage, but the long solid run either side of it is a
   // thin wall too: left alone it can bulge a boulder cluster across the full room width, a room
   // row over from the gap, sealing the node behind the partition off from the rest of the floor.
