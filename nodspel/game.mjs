@@ -817,6 +817,10 @@ function groundStatus(message){
   box.textContent=message;
 }
 let groundPreviewV2=null;
+// Preview of asset PRs #184-#186: ?props=1 (archipelago only, visual-only, no colliders).
+const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
+const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.0'):null;
+let propsPreview=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -838,6 +842,7 @@ function loadLevelInner(){
   {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(fog.color);scene.fog.near=fog.near;scene.fog.far=fog.far;}
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
+  propsPreview?.dispose();propsPreview=null;
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
   if(GROUND_V2){
     const previewLevel=round.level;
@@ -858,6 +863,7 @@ function loadLevelInner(){
       groundStatus('Ground IMPORT ERROR: '+String(error));
     });
   }
+  if(PROPS_PREVIEW&&round.level.archipelago){const lvl=round.level;propsModulePromise.then(m=>{if(round.level!==lvl)return;propsPreview=m.addPropsPreview(lvl,scene,{profile:GROUND_V2_PROFILE});window.__propsPreview=propsPreview;}).catch(e=>console.error('[props-preview] import failed',e));}
   $('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
