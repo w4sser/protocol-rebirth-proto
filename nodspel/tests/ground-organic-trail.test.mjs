@@ -70,6 +70,8 @@ test('scene overlay is below gameplay ring elevations and renders first',async()
   assert.match(source,/position\.setY\(i,0\)/);
   assert.match(source,/surfaceMaterial\.polygonOffset=false/,'opaque ground must not be offset behind mobile fallback');
   const arch=await readFile(new URL('../archipelago.js',import.meta.url),'utf8');
-  assert.match(arch,/if\(terrainPreview\) grass\.position\.y-=\.06/,'legacy grass backup lowered only in terrain preview');
+  assert.match(arch,/if\(terrainPreview\)\s*\{\s*grass\.position\.y-=\.06/,'legacy backup lowered only in terrain preview');
+  assert.match(arch,/grass\.renderOrder=-3/,'fallback must render before textured tiles');
+  assert.match(arch,/grass\.material\.depthWrite=false/,'fallback must not block overlay depth');
   assert.doesNotMatch(source,/TRAILS\.map/);
 });
