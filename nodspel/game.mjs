@@ -1,6 +1,6 @@
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset
 import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.27.1';
-import {artilleryFlight} from './artillery-flight.mjs';
+import {artilleryFlight} from './artillery-flight.mjs?v=2.27.1-bridge1';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.27.1';
 import {animateEnemyModel} from './enemy-animation.js?v=2.27.1';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.27.1';
