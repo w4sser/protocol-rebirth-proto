@@ -55,7 +55,9 @@ export function planOrganicTrail(floor,seed=0){
   }
   for(let i=0;i<steps;i++)for(let k=0;k<cols.length-1;k++){
     const a=i*cols.length+k,b=(i+1)*cols.length+k;
-    indices.push(a,b,a+1,b,b+1,a+1);
+    // Keep both axes front-facing/upward, including paths oriented along X.
+    if(alongX)indices.push(a,a+1,b,b,a+1,b+1);
+    else indices.push(a,b,a+1,b,b+1,a+1);
   }
   return{positions:new Float32Array(pos),uvs:new Float32Array(uv),
     colors:new Float32Array(rgba),indices:new Uint16Array(indices),
