@@ -9,6 +9,7 @@ import {houseWaypoint} from './house.js?v=2.27.1';
 import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.27.1';
 import {detectionMultiplier} from './stakes.js?v=2.27.1';
 import {dashInvulnerable} from './dash.js?v=2.27.1';
+import {bridgeWaypoint} from './bridge-flow.mjs';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -190,7 +191,14 @@ function doorwayWaypoint(level,enemy,player){
 // One movement step towards `goal` (gd = distance), blocked by walls, the player and other enemies.
 function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-  const step=Math.min(gd,enemy.speed*dt),dx=(goal.x-enemy.x)/gd*step,dz=(goal.z-enemy.z)/gd*step;
+  // All moving enemies use the same bridge waypoints as players, not only
+  // swarm rushers. Route through the centered approach before chasing a
+  // target on another island. This prevents corner-cutting into side rocks.
+  const routed=bridgeWaypoint(round.level,enemy,goal)??goal;
+  const routeDistance=Math.hypot(routed.x-enemy.x,routed.z-enemy.z);
+  if(routeDistance<1e-6)return;
+  const step=Math.min(routeDistance,enemy.speed*dt);
+  const dx=(routed.x-enemy.x)/routeDistance*step,dz=(routed.z-enemy.z)/routeDistance*step;
   let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
   // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
   // The sidestep is committed for a moment, otherwise the next normal step just slides them back onto the corner.
