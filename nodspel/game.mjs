@@ -1,5 +1,6 @@
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset
 import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.27.1';
+import {artilleryFlight} from './artillery-flight.mjs';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.27.1';
 import {animateEnemyModel} from './enemy-animation.js?v=2.27.1';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.27.1';
@@ -356,6 +357,35 @@ setupStick('#move-stick',movement);setupStick('#aim-stick',shooting,fire);
 const toolBtn=$('#tool-btn'),TOOL_CORAL='#E4705F',TOOL_CYAN='#3FE0D0',toolDrag={pointer:null,x:0,y:0,active:false,dir:null,dist:0};
 const toolColor=kind=>kind==='grenade'?TOOL_CORAL:TOOL_CYAN;
 const toolRingGeometry=new THREE.RingGeometry(.94,1,64),toolFxPool=[];let toolFxUsed=0;
+// Reuse a small number of bright, camera-readable artillery shells. Never
+// instantiate per-frame objects, and never change the combat fuse/damage.
+const artilleryCoreGeometry=new THREE.SphereGeometry(.21,10,8);
+const artilleryGlowGeometry=new THREE.SphereGeometry(.38,10,8);
+const artilleryShells=[];
+let artilleryUsed=0;
+function renderArtilleryShells(clock){
+  artilleryUsed=0;
+  if(combat&&!round.over)for(const blast of combat.blasts){
+    if(blast.sleeping||clock<(blast.at??0)||clock>=(blast.detonateAt??0))continue;
+    let effect=artilleryShells[artilleryUsed];
+    if(!effect){
+      const group=new THREE.Group(),core=new THREE.Mesh(artilleryCoreGeometry,
+        new THREE.MeshBasicMaterial({color:'#fff1b7',depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
+      const glow=new THREE.Mesh(artilleryGlowGeometry,
+        new THREE.MeshBasicMaterial({color:'#FF704F',transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
+      group.add(glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
+      scene.add(group);effect={group,core,glow};artilleryShells.push(effect);
+    }
+    artilleryUsed++;
+    const p=artilleryFlight(blast,clock);
+    effect.group.visible=true;
+    effect.group.position.set(p.x,p.y,p.z);
+    effect.group.scale.setScalar(.8+p.size);
+    effect.glow.material.opacity=.40+.25*Math.sin(clock/90)**2;
+    effect.core.material.color.set(p.t>.77?'#ffffff':'#fff1b7');
+  }
+  for(let i=artilleryUsed;i<artilleryShells.length;i++)artilleryShells[i].group.visible=false;
+}
 const toolArcPoints=Array.from({length:25},()=>new THREE.Vector3());
 const toolArc=new THREE.Line(new THREE.BufferGeometry().setFromPoints(toolArcPoints),new THREE.LineBasicMaterial({color:TOOL_CYAN,transparent:true,opacity:.85,depthTest:false}));toolArc.renderOrder=4;toolArc.frustumCulled=false;toolArc.visible=false;scene.add(toolArc);
 function toolFxRing(x,z,radius,color,opacity){
@@ -363,7 +393,7 @@ function toolFxRing(x,z,radius,color,opacity){
   if(!m){m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=4;scene.add(m);toolFxPool.push(m);}
   toolFxUsed++;m.visible=true;m.position.set(x,.07,z);m.scale.setScalar(Math.max(.01,radius));m.material.color.set(color);m.material.opacity=opacity;
 }
-function clearToolFx(){for(const m of toolFxPool)m.visible=false;toolArc.visible=false;}
+function clearToolFx(){for(const m of toolFxPool)m.visible=false;for(const fx of artilleryShells)fx.group.visible=false;toolArc.visible=false;}
 function toolBlocked(){return !round||round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden||!(round.hitstopUntil!=null?toolCharges(round)>0:canUseTool(round));}
 // One-time explanations (persisted): shown through the shared notice, never as a popup.
 const FIRST_HINT_KEY='nodspel.firstHints.v1';
@@ -409,6 +439,7 @@ function placeDecoyBeacon(d,clock){let b=beaconPool[beaconUsed];
   beaconUsed++;b.visible=true;b.position.set(d.x,0,d.z);b.userData.cap.visible=Math.floor(clock/250)%2===0;}
 function renderToolFx(clock){
   toolFxUsed=0;beaconUsed=0;
+  renderArtilleryShells(clock);
   const fx=round.toolFx;
   if(fx&&!round.over){
     for(const g of fx.fuses){const p=Math.min(1,(clock-g.at)/(g.detonateAt-g.at));toolFxRing(g.x,g.z,g.radius,TOOL_CORAL,.3+.2*Math.sin(clock/60));toolFxRing(g.x,g.z,g.radius*p,TOOL_CORAL,.7);}
@@ -418,7 +449,7 @@ function renderToolFx(clock){
   // Grenade thrower: a faint ring at the aimed spot while it winds up, then the fuse ring closing in until the blast (coral = danger).
   if(combat&&!round.over){
     for(const e of round.level.enemies)if(e.type==='thrower'&&e.health>0&&e.active!==false&&e.windupAt!=null&&e.attackTarget){const R=RULES.encounters.grenadier;toolFxRing(e.attackTarget.x,e.attackTarget.z,R.radius,TOOL_CORAL,.22+.2*Math.sin(clock/70));}
-    for(const b of combat.blasts){if(b.sleeping)continue;const p=Math.min(1,(clock-b.at)/(b.detonateAt-b.at));toolFxRing(b.x,b.z,b.radius,TOOL_CORAL,.35+.2*Math.sin(clock/60));toolFxRing(b.x,b.z,b.radius*p,TOOL_CORAL,.75);}
+    for(const b of combat.blasts){if(b.sleeping)continue;const p=Math.min(1,(clock-b.at)/(b.detonateAt-b.at));toolFxRing(b.x,b.z,b.radius,TOOL_CORAL,.55+.2*Math.sin(clock/70));toolFxRing(b.x,b.z,b.radius*p,TOOL_CORAL,.90);}
     if(combat.booms)for(const b of combat.booms){const k=Math.min(1,(clock-b.at)/600);toolFxRing(b.x,b.z,b.radius*(.3+.7*k),TOOL_CORAL,.8*(1-k));}
   }
   for(let i=toolFxUsed;i<toolFxPool.length;i++)toolFxPool[i].visible=false;
