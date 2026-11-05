@@ -24,6 +24,17 @@ test('footpath is a single, inset, winding ribbon with a width between 0.6m and 
     assert.ok(Math.abs(y-.010)<1e-6,'under node halo at y=.018');
   }
 });
+test('winding faces up whether a floor runs along X or Z',()=>{
+  for(const bounds of [{...floor},{...floor,w:9,d:14}]){
+    const p=planOrganicTrail(bounds,987);
+    // Cross product of a first non-degenerate triangle's horizontal vectors.
+    const [a,b,c]=p.indices;
+    const x=i=>p.positions[i*3],z=i=>p.positions[i*3+2];
+    const ay=(x(b)-x(a))*(z(c)-z(a))-(z(b)-z(a))*(x(c)-x(a));
+    assert.ok(ay<0,'upward cross product Y = dz*dx - dx*dz');
+  }
+});
+
 test('frayed sides and faded interruptions are soft and never hard-walled',()=>{
   const result=planOrganicTrail(floor,49);
   const cols=9;
