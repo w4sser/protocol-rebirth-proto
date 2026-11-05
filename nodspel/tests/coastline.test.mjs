@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
-import {coastlineProfile,coastCoves,coastSeed,coastBeachAt,coastRingData} from '../coastline.mjs';
+import {coastlineProfile,coastCoves,coastSeed,coastBeachAt,coastRingData,COAST_BLEND_STOPS} from '../coastline.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago} from '../archipelago.js';
 
@@ -33,14 +33,27 @@ test('seeded coves stay narrow and deterministic for HIGH and LOW',()=>{
     assert.ok(coastBeachAt(floor,floor.x+Math.cos(theta)*10,floor.z+Math.sin(theta)*10,'deterministic')>.9);
   }
 });
-test('visual coast shell forms a continuous closed four-ring mesh with no gameplay data changes',()=>{
+test('coast shell has six feathered, continuous inset rings and unchanged gameplay floors',()=>{
   const p=coastlineProfile(floor,'shore-mesh'),b=coastRingData(p),n=p.points.length;
-  assert.equal(b.positions.length,n*4*3);
-  assert.equal(b.colors.length,n*4*3);
-  assert.equal(b.indices.length,n*3*6);
+  const count=COAST_BLEND_STOPS.length;
+  assert.equal(count,6);
+  assert.deepEqual([...COAST_BLEND_STOPS],[0,.12,.53,.87,1,1]);
+  assert.equal(b.positions.length,n*count*3);
+  assert.equal(b.colors.length,n*count*3);
+  assert.equal(b.uvs.length,n*count*2);
+  assert.equal(b.blends.length,n*count);
+  assert.equal(b.indices.length,n*(count-1)*6);
   assert.ok(b.positions.every(Number.isFinite));
   assert.ok(b.colors.every(v=>v>=0&&v<=1));
-  assert.ok(b.indices.every(v=>v<n*4));
+  assert.ok(b.indices.every(v=>v<n*count));
+  for(let i=0;i<n;i++){
+    assert.equal(b.blends[i],0,'inset ring uses pure ground terrain');
+    assert.equal(b.blends[4*n+i],1,'coast reaches full granite/sand color');
+    assert.ok(b.positions[i*3+1]>.004,'feather lies above preview terrain');
+    assert.ok(b.positions[i*3+1]<.018,'feather stays under node progress ring');
+    const dx=b.positions[i*3]-p.floor.x,dz=b.positions[i*3+2]-p.floor.z;
+    assert.ok(Math.hypot(dx,dz)<p.points[i].innerRadial-.22,'blend starts before rectangular terrain edge');
+  }
   assert.deepEqual(floor,{x:2,z:-3,w:16,d:12});
 });
 test('ground preview shells replace rectangular sand rim only in opt-in terrain mode',()=>{
@@ -65,7 +78,11 @@ test('ground preview shells replace rectangular sand rim only in opt-in terrain 
     assert.ok(group.children.filter(o=>o.name==='water').length===1);
     assert.ok(boxes.every(b=>!(b.color==='#7a6d52'&&b.w>4)),'no rectangular sand rim in preview');
     assert.equal(JSON.stringify(level.floors),originalFloors,'authoring floor rectangles unchanged');
-    for(const mesh of shells)assert.equal(mesh.userData.visualOnly,true);
+    for(const mesh of shells){
+      assert.equal(mesh.userData.visualOnly,true);
+      assert.equal(mesh.geometry.getAttribute('shoreBlend').count,mesh.geometry.getAttribute('position').count);
+      assert.equal(mesh.geometry.getAttribute('color').count,mesh.geometry.getAttribute('shoreBlend').count);
+    }
   }finally{
     if(original===undefined)delete globalThis.location; else globalThis.location=original;
     group.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
