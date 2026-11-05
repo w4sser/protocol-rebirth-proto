@@ -2,6 +2,7 @@ import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.27.1';
 import {generateBigLevel} from './big-level.js?v=2.27.1';
 import '../data/items.js?v=2.27.1';
 import {clearPassageProps} from './archipelago-passages.js?v=2.27.1';
+import {BRIDGE_MIN_WIDTH} from './bridge-flow.mjs';
 import {townizeLevel} from './town-layout.js?v=2.27.1';
 import {applyEncounters} from './encounters.js?v=2.27.1';
 import '../data/raid-combat.js?v=2.27.1';
@@ -238,7 +239,12 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
   const lay=layoutOverride??layoutFor(roundSeed,number),SR=number===1&&area==='bunker'?RULES.startRoom:null,srRng=randomFromSeed(`${roundSeed}:startroom`);
   // v2.1.2: archipelago passage openings read .6 wider than their base rule.passage so the
   // chunky boulder clusters either side have room to sit clear of the walkable gap.
-  const t=RULES.wallThickness,door=(SR?SR.closet.width:rule.passage)+(area==='archipelago'?.6:0),closets=[];
+  // Archipelago bridges need room for two circling actors and a sideways shot.
+  // Widen the whole authored opening (floor AND its paired walls), not just
+  // the displayed plank mesh, so physics/nav agree with what players see.
+  const t=RULES.wallThickness,door=area==='archipelago'
+    ? Math.max(BRIDGE_MIN_WIDTH,(SR?SR.closet.width:rule.passage)+.6)
+    : (SR?SR.closet.width:rule.passage),closets=[];
   for(let i=0;i<rule.rooms;i++){
     const ar=lay.rooms?.[i],room={x:between(...RULES.startRoomOffset),z:between(...RULES.startRoomOffset),w:ar?ar.w*sm:between(...rule.size.w),d:ar?ar.d*sm:between(...rule.size.d),name:RULES.roomNames[i],doors:[]};
     if(SR&&i===0)Object.assign(room,{x:SR.x,z:SR.z,w:SR.w,d:SR.d,name:SR.name});
