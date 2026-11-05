@@ -2,7 +2,7 @@
 // No collision, camera, controls or gameplay changes. Without ?ground=2 this file is never imported.
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.1';
+import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.2';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {

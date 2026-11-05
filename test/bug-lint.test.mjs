@@ -11,5 +11,9 @@ assert.equal(by('raid-spawn-validated').check({gameSrc:'position={...round.level
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position=safeSpawn(round.level);'}).length,0);
 assert.ok(by('artillery-fx-prewarm').check({gameSrc:'function prewarmShaders(){}\nprewarmShaders();'}).length>=1,'#196 fires without pre-create');
 assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtilleryShell(){}\nfunction makeToolFxRing(){}\nmakeArtilleryShell();makeToolFxRing();makeToolFxRing();\nfunction prewarmShaders(){}\nprewarmShaders();'}).length,0,'#196 passes with pre-create');
+assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
+{const badCss=by('perk-choice-touch-44');
+ // Smoke: rule id exists and repo currently passes (file-based check).
+ assert.ok(badCss,'perk-choice-touch-44 rule present');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');

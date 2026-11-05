@@ -28,7 +28,7 @@ test('picker renders only three SVG option cards and a countdown and routes sele
     ui.hud(r,document.querySelector('aside'));assert.equal(document.querySelectorAll('.perk-hud svg').length,1);assert.ok(document.querySelector('.perk-hud [aria-label]'));
     ui.close();assert.equal(ui.layer.hidden,true);assert.equal(document.querySelector('header').inert,false);assert.equal(document.querySelector('#preserved').inert,true);assert.equal(document.querySelector('main').classList.contains('perk-modal-open'),false);
     ui.open(r,key);assert.equal(document.querySelector('header').inert,true);ui.close();assert.equal(document.querySelector('header').inert,false);
-    const css=fs.readFileSync(new URL('../perks.css',import.meta.url),'utf8');assert.match(css,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);assert.match(css,/min-height:44px/);assert.match(css,/prefers-reduced-motion/);assert.match(css,/--ad-primary/);
+    const css=fs.readFileSync(new URL('../perks.css',import.meta.url),'utf8');assert.match(css,/grid-template-columns:repeat\(3,minmax\(44px,1fr\)\)/);assert.match(css,/min-height:44px/);assert.match(css,/prefers-reduced-motion/);assert.match(css,/--ad-primary/);
   }finally{delete globalThis.document;dom.window.close();}
 });
 test('held pointer and keyboard gestures cannot outlast the lock; a fresh press selects',async()=>{
@@ -68,6 +68,22 @@ test('minimized offers remain identical and terminal rolling never grants a regu
   const r=createRound('terminal-ui',0);r.level.number=3;const s=perkState(r),key=`3:${r.level.rooms.length-1}`;s.rooms[key]={state:'clearPending',level:3,index:r.level.rooms.length-1};s.queue=[key];
   const ids=offer(r,key);s.minimized=key;assert.deepEqual(offer(r,key),ids);
   s.rooms[key].offer=['roll'];assert.ok(choosePerk(r,key,'roll',100,{readyAt:9000}));assert.equal(hasPerk(r,'roll'),false);assert.deepEqual(s.taken,['roll']);assert.match(s.selectedEffects.roll,/Reset dash now/);
+});
+
+test('timeoutMs:0 keeps the picker open without starting auto-pick',async()=>{
+  const dom=new JSDOM('<main></main>');globalThis.document=dom.window.document;
+  let ui;const actions=[];
+  try{
+    const r=createRound('no-deadline',0),s=perkState(r),key='1:0';s.rooms[key]={state:'clearPending',level:1,index:0};s.queue=[key];
+    ui=createPerkUI(document.querySelector('main'),(...a)=>actions.push(a));
+    ui.open(r,key,{timeoutMs:0});
+    const bar=document.querySelector('.perk-countdown-bar');
+    assert.equal(bar.style.animation,'none');
+    await new Promise(res=>setTimeout(res,50));
+    assert.equal(ui.layer.hidden,false);assert.equal(actions.length,0);
+    const buttons=[...document.querySelectorAll('.perk-choice')];
+    for(const b of buttons){const r=b.getBoundingClientRect();assert.ok(r.width>=0);assert.ok(r.height>=0);}
+  }finally{ui?.close();delete globalThis.document;dom.window.close();}
 });
 
 test('choice deadline starts after visible layout and does not wait for animation frames',()=>{
