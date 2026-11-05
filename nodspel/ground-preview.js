@@ -226,7 +226,8 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
   group.name = 'ground-preview-v2';
   group.userData = {profile:mode, biome, assetVersion:5};
   scene.add(group);
-  const stats = {profile:mode,biome,tiles4m:0,tiles8m:0,trails:0,decals:0,ready:false};
+  const backupVisibility = new Map();
+  const stats = {profile:mode,biome,tiles4m:0,tiles8m:0,trails:0,decals:0,backupsHidden:0,ready:false};
   const ready = loadAssets(biome, mode).then(assets => {
     if (!group.parent) return;
     const seed = floorSeed(level);
@@ -248,11 +249,28 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
       });
     }
     placeDecor(level.floors, group, assets, biome, mode, seed, stats);
+    // Mobile depth buffers can still choose the almost-coplanar flat grass over
+    // the textured preview. Once all ground tiles are ready, never draw the
+    // redundant fallback grass alongside the preview. This is reversible
+    // on teardown and changes no collision/gameplay surfaces.
+    if(biome==='nature'){
+      scene.traverse(node=>{
+        if(node.name==='archipelago-grass-backup'){
+          backupVisibility.set(node,node.visible);
+          node.visible=false;
+        }
+      });
+      stats.backupsHidden=backupVisibility.size;
+    }
     stats.ready = true;
     console.log('[ground-preview-v2]', JSON.stringify(stats));
   }).catch(error => {
     stats.error = String(error);
     console.error('[ground-preview-v2] failed:', error);
   });
-  return {group,stats,ready,dispose() { scene.remove(group); group.clear(); }};
+  return {group,stats,ready,dispose() {
+    for(const [mesh,visible] of backupVisibility)mesh.visible=visible;
+    backupVisibility.clear();
+    scene.remove(group);group.clear();
+  }};
 }
