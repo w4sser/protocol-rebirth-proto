@@ -106,7 +106,7 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
   }
   assert.ok(maxHeightSeen>1.2,'full v2.1.0 boulder height is reachable, not capped low like the v2.1.1 flat strip');
 });
-test('archipelago passage openings read .6 wider than the same layout without the boulder widening',()=>{
+test('archipelago corridors have at least 4m of usable width, while partition gaps retain their authored clearance',()=>{
   const partitionGaps=level=>{
     const byRow=new Map();
     for(const w of level.walls){if(Math.abs(w.h-1.7)>1e-9)continue;const key=w.z.toFixed(3);(byRow.get(key)??byRow.set(key,[]).get(key)).push(w);}
@@ -115,7 +115,7 @@ test('archipelago passage openings read .6 wider than the same layout without th
   for(const n of [2,3])for(let seed=0;seed<8;seed++){
     const a=generateLevel(n,`width-${seed}`,'archipelago'),b=generateLevel(n,`width-${seed}`,'bunker');
     assert.equal(a.corridors.length,b.corridors.length,`L${n} seed ${seed}: same corridor count`);
-    for(let i=0;i<a.corridors.length;i++)assert.ok(Math.abs(a.corridors[i].width-(b.corridors[i].width+.6))<1e-9,`L${n} seed ${seed} corridor ${i} widened by .6`);
+    for(let i=0;i<a.corridors.length;i++)assert.ok(Math.abs(a.corridors[i].width-Math.max(4,b.corridors[i].width+.6))<1e-9,`L${n} seed ${seed} corridor ${i} has a full bridge-width opening`);
     const ga=partitionGaps(a).sort((x,y)=>x-y),gb=partitionGaps(b).sort((x,y)=>x-y);
     assert.equal(ga.length,gb.length,`L${n} seed ${seed}: same partition count`);
     for(let i=0;i<ga.length;i++)assert.ok(Math.abs(ga[i]-(gb[i]+.6))<1e-9,`L${n} seed ${seed} partition ${i} widened by .6`);
