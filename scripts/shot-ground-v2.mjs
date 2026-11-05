@@ -78,6 +78,31 @@ try {
         ground=await page.evaluate(()=>({...window.__groundPreview.stats}));
         if (ground.error || !ground.ready || ground.tiles4m+ground.tiles8m===0)
           throw new Error('Ground preview not ready: '+JSON.stringify(ground));
+        if(mobile && area==='archipelago'){
+          const geometryAudit=await page.evaluate(()=>{
+            const overlay=window.__groundPreview?.group;
+            const scene=overlay?.parent;
+            if(!scene)return {error:'ground scene unavailable'};
+            const grass=[],terrain=[];
+            scene.traverse(o=>{
+              if(o.name==='archipelago-grass-backup'){
+                o.updateWorldMatrix(true,false);
+                const b=o.geometry?.boundingBox;
+                if(!b)o.geometry?.computeBoundingBox();
+                const top=o.localToWorld(new (o.position.constructor)(0,o.geometry.boundingBox.max.y,0)).y;
+                grass.push(top);
+              }
+              if(o.parent===overlay && o.type==='Mesh'){
+                if(o.renderOrder===-2)terrain.push(o.position.y);
+              }
+            });
+            return {grass,terrain};
+          });
+          if(geometryAudit.error || !geometryAudit.grass.length || !geometryAudit.terrain.length ||
+             Math.max(...geometryAudit.grass)>=Math.min(...geometryAudit.terrain)-.005)
+            throw new Error('Mobile layered ground is not separated: '+JSON.stringify(geometryAudit));
+          console.log('[mobile-ground-depth]',mode,JSON.stringify(geometryAudit));
+        }
       }
       const perf=process.env.SMOKE_CAPTURE==='1' ? {fps:null,drawsPerFrame:null} : await page.evaluate(()=>new Promise(ok=>{
         let n=0; const d0=window.__dc,t0=performance.now();
