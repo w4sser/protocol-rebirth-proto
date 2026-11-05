@@ -78,6 +78,10 @@ try {
         ground=await page.evaluate(()=>({...window.__groundPreview.stats}));
         if (ground.error || !ground.ready || ground.tiles4m+ground.tiles8m===0)
           throw new Error('Ground preview not ready: '+JSON.stringify(ground));
+        // The green legacy grass must be hidden behind textured preview on
+        // small iPhone viewports, otherwise it can appear as a flat olive field.
+        if(area==='archipelago' && (!ground.backupsHidden || ground.trails!==0))
+          throw new Error('Archipelago preview should hide base grass and draw no full paths: '+JSON.stringify(ground));
         if(mobile && area==='archipelago'){
           const geometryAudit=await page.evaluate(()=>{
             const overlay=window.__groundPreview?.group;
