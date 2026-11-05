@@ -184,7 +184,9 @@ function placeDecor(floors, group, assets, biome, profile, levelSeed, stats) {
   const pathSet=DECALS[biome];
   for(let f=0;f<floors.length;f++){
     const floor=floors[f];
-    if(biome==='nature' && !floor.dir){
+    // No complete trail on small islands. Save path geometry for expansive areas only.
+    // Existing quiet moss/lichen decals remain to imply local wear around gameplay.
+    if(biome==='nature' && !floor.dir && Math.min(floor.w,floor.d)>=20 && floor.w*floor.d>=480){
       const trail=planOrganicTrail(floor,hash(levelSeed,f,87));
       if(trail){
         const geometry=new THREE.BufferGeometry();
