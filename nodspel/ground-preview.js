@@ -1,8 +1,8 @@
-// Draft-only ground pass v2 preview: ?ground=2&groundProfile=high|low.
-// No collision, camera, controls or gameplay changes. Without ?ground=2 this file is never imported.
+// Ground pass v2 (default-on since v2.28.0; ?ground=0 disables, ?groundProfile=high|low overrides).
+// No collision, camera, controls or gameplay changes. With ?ground=0 this file is never imported.
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.2';
+import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.28.0';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
