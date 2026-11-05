@@ -133,7 +133,14 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     grass.name='archipelago-grass-backup';
     // Move *only* the visual fallback. Gameplay floors/colliders stay at Y=0.
     // The preview terrain now has a reliable depth separation on mobile.
-    if(terrainPreview) grass.position.y-=.06;
+    if(terrainPreview){
+      grass.position.y-=.06;
+      // An opaque base drawn later can still obscure the texture on low-precision
+      // iOS depth buffers. Paint this fallback first and do not write its depth:
+      // terrain is then always the visible ground layer once its GLBs load.
+      grass.renderOrder=-3;
+      grass.material.depthWrite=false;
+    }
     box(f.x,-.32,f.z,f.w+1.2,.3,f.d+1.2,P.sand);
     for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
       r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
