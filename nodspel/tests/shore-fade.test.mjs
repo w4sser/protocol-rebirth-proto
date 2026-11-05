@@ -31,15 +31,18 @@ test('shoreline fade is deterministic and does not affect piers',()=>{
     assert.equal(shoreFadeAt({...island,dir:{x:1,z:0}},-3,-9,low),1);
   }
 });
-test('both rendering profiles use opaque world-space shader blend, not global alpha',async()=>{
+test('both profiles blend the same world-space terrain into rock, without alpha sorting',async()=>{
   const src=await readFile(new URL('../ground-preview.js',import.meta.url),'utf8');
-  assert.match(src,/function addShoreFade\(shader, profile\)/);
-  assert.match(src,/shader\.vertexShader=.*shader\.vertexShader/);
-  assert.match(src,/attribute vec4 shoreBounds, shoreCoveA, shoreCoveB/);
-  assert.match(src,/diffuseColor\.rgb=mix\(coastColor,diffuseColor\.rgb,shoreFactor\)/);
-  assert.match(src,/if\(biome==='nature'\)addShoreFade\(shader,'high'\)/);
-  assert.match(src,/surfaceMaterial\.onBeforeCompile=shader=>addShoreFade\(shader,'low'\)/);
-  assert.match(src,/tileGeometry = biome==='nature' \? attachShoreBounds\(geometry,floor,level.seed\) : geometry/);
-  assert.match(src,/shoreGeometry\)node\.geometry\.dispose/);
-  assert.doesNotMatch(src,/surfaceMaterial\.transparent\s*=\s*true/);
+  assert.match(src,/function coastFeatherMaterial\(surface,profile\)/);
+  assert.match(src,/attribute float shoreBlend/);
+  assert.match(src,/vCoastBlend=shoreBlend/);
+  assert.match(src,/texture2D\(coastMask,vCoastXZ\/16\.0\)/,'HIGH matches its original splat mask');
+  assert.match(src,/texture2D\(coastAtlas,coastUV\)/,'LOW reuses its existing atlas');
+  assert.match(src,/coastFeather=smoothstep\(0\.035,0\.965,vCoastBlend\+coastDither\)/);
+  assert.match(src,/diffuseColor\.rgb=mix\(terrainColor,diffuseColor\.rgb,coastFeather\)/);
+  assert.match(src,/node\.material=assets\.coastMaterial/);
+  assert.match(src,/for\(const \[mesh,material\] of coastMaterials\)mesh\.material=material/);
+  assert.doesNotMatch(src,/addShoreFade\(shader/,'old hard-edged rectangular shore shader removed');
+  assert.doesNotMatch(src,/attachShoreBounds\(geometry/,'no redundant per-tile geometry cloning');
+  assert.doesNotMatch(src,/surfaceMaterial\.transparent\s*=\s*true/,'ground remains opaque');
 });
