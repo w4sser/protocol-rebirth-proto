@@ -202,8 +202,9 @@ function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
   // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
   // The sidestep is committed for a moment, otherwise the next normal step just slides them back onto the corner.
-  const nearBridge=round.level.archipelago&&round.level.floors.some(f=>f.dir&&
-    Math.abs(enemy.x-f.x)<=f.w/2+1.1&&Math.abs(enemy.z-f.z)<=f.d/2+1.1);
+  let nearBridge=false;
+  if(round.level.archipelago)for(const f of round.level.floors)if(f.dir&&
+    Math.abs(enemy.x-f.x)<=f.w/2+1.1&&Math.abs(enemy.z-f.z)<=f.d/2+1.1){nearBridge=true;break;}
   // Every bot can negotiate a passing lane on a bridge, not only swarmers.
   // Otherwise opposite-direction bots both aim for the center and deadlock.
   if(enemy.swarm||nearBridge){
