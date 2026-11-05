@@ -219,6 +219,13 @@ function placeDecor(floors, group, assets, biome, profile, levelSeed, stats) {
     }
   }
 }
+// Resolve the ground's GLBs and textures during the existing boot loader,
+// not after the raid is already visible. loadAssets caches each biome/profile.
+export async function preloadGroundAssets(area='archipelago', profile='high') {
+  const biome = area === 'bunker' ? 'bunker' : 'nature';
+  await loadAssets(biome, profile === 'low' ? 'low' : 'high');
+}
+
 export function addGroundPreview(level, scene, {area = 'archipelago', profile = 'high'} = {}) {
   const biome = area === 'bunker' ? 'bunker' : 'nature';
   const mode = profile === 'low' ? 'low' : 'high';
