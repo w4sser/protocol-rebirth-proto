@@ -11,7 +11,27 @@ function load(dir,name){
     let mesh=null;g.scene.traverse(n=>{if(n.isMesh&&!mesh)mesh=n;});
     if(!mesh)return reject(new Error('no mesh '+name));
     // COLOR_0.a is the wind weight (README contract), never transparency.
+    mesh.material=mesh.material.clone();
     mesh.material.transparent=false;mesh.material.alphaTest=0;
+    // Preview-only palette correction until the source GLBs are re-exported.
+    // Old rock atlas is purple/pink and grass atlas plus baked AO reads nearly black.
+    if(dir==='nature/rocks/'||name==='shore_rock_edge_4m'){
+      mesh.material.map=null;mesh.material.vertexColors=false;
+      mesh.material.color.setRGB(.53,.58,.60);
+      mesh.material.roughness=1;
+    }else if(name.startsWith('grass_tuft_')||name==='heather_tuft_a'){
+      mesh.material.map=null;mesh.material.vertexColors=false;
+      mesh.material.color.setRGB(.48,.69,.33);
+      mesh.material.roughness=1;
+    }else if(name.startsWith('pebble_granite_')){
+      mesh.material.map=null;mesh.material.vertexColors=false;
+      mesh.material.color.setRGB(.51,.57,.59);
+      mesh.material.roughness=1;
+    }else if(name==='lichen_patch_a'){
+      mesh.material.map=null;mesh.material.vertexColors=false;
+      mesh.material.color.setRGB(.55,.61,.55);
+      mesh.material.roughness=1;
+    }
     resolve({geometry:mesh.geometry,material:mesh.material});
   },undefined,reject)));
   return cache.get(key);
