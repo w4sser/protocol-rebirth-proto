@@ -130,9 +130,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
       r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
   }
-  for(const p of out.passages){
-    const path=box(p.x,.012,p.z,p.w,.024,p.d,P.sand);path.name='archipelago-passage';path.userData.clearance=p;
-  }
+  // Pass 6: passage rectangles are NAVIGATION CLEARANCES, not visual roads.
+  // Keep them in out.passages and all clearance/reservation logic below, but never
+  // paint beige boxes over the island. On small islands these were a diagonal band
+  // that visually cut the entire play space in two.
+  // Large islands can use the opt-in organic trail, not these straight strips.
   // Clearance includes the AI radius, so rock edges cannot catch an actor at either approach.
   // Piers/docks/bridges (corridor, dead-end and closet floors tagged with `dir`) need the same
   // margin along their whole walkway, not only at the room doorway they lead to: a boulder
