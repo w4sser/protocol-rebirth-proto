@@ -81,7 +81,7 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
     try{
       const rocks=group.children.filter(m=>m.name==='archipelago-rock'),paths=group.children.filter(m=>m.name==='archipelago-passage');
       assert.equal(info.rocks,rocks.length);assert.equal(info.rockColliders,level.walls,'uses gameplay wall colliders');
-      assert.equal(paths.length,info.passages.length);
+      assert.equal(paths.length,0,'navigation openings must not create beige road geometry');
       assert.equal(rocks.length,level.walls.filter(c=>!c.shore).length,'one collider per visible rock');
       const byWall=new Map();
       for(const rock of rocks){
@@ -100,17 +100,13 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
         // Compare every edge, not only centerlines: the whole collider equals the footprint.
         for(const [actual,expected] of [[collider.x-collider.w/2,b.min.x],[collider.x+collider.w/2,b.max.x],[collider.z-collider.d/2,b.min.z],[collider.z+collider.d/2,b.max.z]])assert.ok(Math.abs(actual-expected)<1e-6);
       }
-      for(const path of paths){
-        const bounds=new THREE.Box3().setFromObject(path),p=path.userData.clearance;
-        assert.ok(Math.abs(bounds.max.x-bounds.min.x-p.w)<1e-5);
-        assert.ok(Math.abs(bounds.max.z-bounds.min.z-p.d)<1e-5);
-        assert.ok(bounds.max.y>0,'ground strip visible above grass and pier');
-      }
+      // Pass 6: passage clearances are still maintained in info.passages, but not drawn.
+      assert.ok(info.passages.every(p=>p.w>0&&p.d>0),'navigation clearance geometry remains valid');
     }finally{rendered.dispose();}
   }
   assert.ok(maxHeightSeen>1.2,'full v2.1.0 boulder height is reachable, not capped low like the v2.1.1 flat strip');
 });
-test('archipelago passage openings read .6 wider than the same layout without the boulder widening',()=>{
+test('archipelago corridors have at least 4m of usable width, while partition gaps retain their authored clearance',()=>{
   const partitionGaps=level=>{
     const byRow=new Map();
     for(const w of level.walls){if(Math.abs(w.h-1.7)>1e-9)continue;const key=w.z.toFixed(3);(byRow.get(key)??byRow.set(key,[]).get(key)).push(w);}
@@ -119,7 +115,7 @@ test('archipelago passage openings read .6 wider than the same layout without th
   for(const n of [2,3])for(let seed=0;seed<8;seed++){
     const a=generateLevel(n,`width-${seed}`,'archipelago'),b=generateLevel(n,`width-${seed}`,'bunker');
     assert.equal(a.corridors.length,b.corridors.length,`L${n} seed ${seed}: same corridor count`);
-    for(let i=0;i<a.corridors.length;i++)assert.ok(Math.abs(a.corridors[i].width-(b.corridors[i].width+.6))<1e-9,`L${n} seed ${seed} corridor ${i} widened by .6`);
+    for(let i=0;i<a.corridors.length;i++)assert.ok(Math.abs(a.corridors[i].width-Math.max(4,b.corridors[i].width+.6))<1e-9,`L${n} seed ${seed} corridor ${i} has a full bridge-width opening`);
     const ga=partitionGaps(a).sort((x,y)=>x-y),gb=partitionGaps(b).sort((x,y)=>x-y);
     assert.equal(ga.length,gb.length,`L${n} seed ${seed}: same partition count`);
     for(let i=0;i<ga.length;i++)assert.ok(Math.abs(ga[i]-(gb[i]+.6))<1e-9,`L${n} seed ${seed} partition ${i} widened by .6`);

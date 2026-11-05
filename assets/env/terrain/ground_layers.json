@@ -1,0 +1,195 @@
+{
+  "schema_version": 2,
+  "units": "metres",
+  "texel_density_px_per_m": 128,
+  "tile_size_m": 4,
+  "layers": [
+    {
+      "name": "granite",
+      "albedo": "ground_granite_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 256
+    },
+    {
+      "name": "moss",
+      "albedo": "ground_moss_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "pine_needles",
+      "albedo": "ground_pine_needles_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "gravel",
+      "albedo": "ground_gravel_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "mud",
+      "albedo": "ground_mud_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "grass",
+      "albedo": "ground_grass_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "sand",
+      "albedo": "ground_sand_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "concrete",
+      "albedo": "ground_concrete_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "wet_concrete",
+      "albedo": "ground_wet_concrete_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "lichen",
+      "albedo": "ground_lichen_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "concrete_worn",
+      "albedo": "ground_concrete_worn_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "grime",
+      "albedo": "ground_grime_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 512
+    },
+    {
+      "name": "trail",
+      "albedo": "ground_trail_albedo.png",
+      "encoding": "sRGB",
+      "wrap": "REPEAT",
+      "size_px": 256
+    }
+  ],
+  "sample_chunk": {
+    "name": "chunk_0_0",
+    "dimensions_m": [
+      16,
+      16
+    ],
+    "splat": "chunk_0_0_splat.png",
+    "channels": {
+      "R": "granite",
+      "G": "moss",
+      "B": "gravel",
+      "A": "pine_needles"
+    },
+    "weights": "Normalized per pixel (0..255)",
+    "mask_resolution_px": 96
+  },
+  "decal_atlas": {
+    "filename": "decal_atlas.png",
+    "grid": [
+      3,
+      2
+    ],
+    "cells": [
+      "wear",
+      "wheel_tracks",
+      "lichen",
+      "pine_needles",
+      "puddle",
+      "mud"
+    ],
+    "alpha": "palette transparency with soft per-pixel coverage; smooth organic boundaries; no fine grain, footprints or coral",
+    "recommended_scale": 1,
+    "size_px": 256
+  },
+  "profiles": {
+    "nature_high": {
+      "splat": "chunk_0_0_splat.png",
+      "layer_order_rgba": [
+        "granite",
+        "moss",
+        "gravel",
+        "pine_needles"
+      ],
+      "tile_sizes_m": [
+        4,
+        8,
+        16
+      ],
+      "mask_resolution_px": 96
+    },
+    "bunker_high": {
+      "splat": "chunk_0_0_bunker_splat.png",
+      "layer_order_rgba": [
+        "concrete",
+        "wet_concrete",
+        "concrete_worn",
+        "grime"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ],
+      "mask_resolution_px": 96
+    },
+    "nature_mobile": {
+      "atlas": "ground_mobile_nature_atlas.png",
+      "tile_variants": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ],
+      "samples_per_pixel": 1,
+      "atlas_size_px": 256
+    },
+    "bunker_mobile": {
+      "atlas": "ground_mobile_bunker_atlas.png",
+      "tile_variants": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ],
+      "tile_sizes_m": [
+        4,
+        8
+      ],
+      "samples_per_pixel": 1,
+      "atlas_size_px": 256
+    }
+  },
+  "performance_note": "High profile is 5 samples/pixel including splat; low profile is single atlas lookup/pixel. Requires engine to switch materials. Texture memory excludes mipmaps/shadows. Pass 3 preview replaces only granite/decal/mask/atlas PNGs; original green moss and light trails unchanged."
+}

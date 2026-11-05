@@ -9,6 +9,8 @@ assert.equal(by('audio-ogg-m4a-pairs').check({files:['assets/audio/sfx/x.ogg','a
  assert.equal(by('medkit-independent-of-heal-budget').check({roundSrc:bad}).length,2,'v2.25.1 fires');}
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position={...round.level.start};'}).length,2,'spawn rule fires');
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position=safeSpawn(round.level);'}).length,0);
+assert.ok(by('artillery-fx-prewarm').check({gameSrc:'function prewarmShaders(){}\nprewarmShaders();'}).length>=1,'#196 fires without pre-create');
+assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtilleryShell(){}\nfunction makeToolFxRing(){}\nmakeArtilleryShell();makeToolFxRing();makeToolFxRing();\nfunction prewarmShaders(){}\nprewarmShaders();'}).length,0,'#196 passes with pre-create');
 assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
 {const badCss=by('perk-choice-touch-44');
  // Smoke: rule id exists and repo currently passes (file-based check).

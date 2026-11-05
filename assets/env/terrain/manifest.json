@@ -1,0 +1,1078 @@
+{
+  "kit": "Protocol Rebirth - Node Raid Ground Pass v0.2",
+  "units": "metres",
+  "up_axis": "Y",
+  "front": "-Z",
+  "origin": "terrain: centre on Y=0 boundary; trail/decal geometry at local Y=+0.016m",
+  "grid_terrain_m": [
+    4,
+    8,
+    16
+  ],
+  "vertex_color_convention": {
+    "terrain_vertexpaint": "COLOR_0.rgba = normalized four material weights; not AO/tint",
+    "terrain_splat": "COLOR_0.rgb=AO/tint; A=255",
+    "terrain_mobile": "COLOR_0.rgb=AO/tint; material samples one precomposed atlas",
+    "trails": "COLOR_0 RGB is white tint; A=255. Soft edge is dithered alpha in ground_trail_albedo.png, alphaMode MASK",
+    "decals": "COLOR_0 RGB=white tint, A=255. Cutout alpha is in shared decal_atlas.png; lichen replaces footprints; no coral"
+  },
+  "assets": [
+    {
+      "file": "decal_lichen.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        3.5,
+        0,
+        3.8
+      ],
+      "bbox_m": {
+        "min": [
+          -1.75,
+          0.016,
+          -1.9
+        ],
+        "max": [
+          1.75,
+          0.016,
+          1.9
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1612,
+      "notes": "V2: pale green lichen patch replaces footprints; no coral."
+    },
+    {
+      "file": "decal_mud.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        4.2,
+        0,
+        3.5
+      ],
+      "bbox_m": {
+        "min": [
+          -2.1,
+          0.016,
+          -1.75
+        ],
+        "max": [
+          2.1,
+          0.016,
+          1.75
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1608,
+      "notes": "V2: enlarged muted 3x2 cutout atlas, offset 0.016m."
+    },
+    {
+      "file": "decal_pine_needles.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        3.9,
+        0,
+        3.65
+      ],
+      "bbox_m": {
+        "min": [
+          -1.95,
+          0.016,
+          -1.825
+        ],
+        "max": [
+          1.95,
+          0.016,
+          1.825
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1628,
+      "notes": "V2: enlarged muted 3x2 cutout atlas, offset 0.016m."
+    },
+    {
+      "file": "decal_puddle.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        3.8,
+        0,
+        3.25
+      ],
+      "bbox_m": {
+        "min": [
+          -1.9,
+          0.016,
+          -1.625
+        ],
+        "max": [
+          1.9,
+          0.016,
+          1.625
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1616,
+      "notes": "V2: enlarged muted 3x2 cutout atlas, offset 0.016m."
+    },
+    {
+      "file": "decal_wear.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        4.4,
+        0,
+        3.25
+      ],
+      "bbox_m": {
+        "min": [
+          -2.2,
+          0.016,
+          -1.625
+        ],
+        "max": [
+          2.2,
+          0.016,
+          1.625
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1612,
+      "notes": "V2: enlarged muted 3x2 cutout atlas, offset 0.016m."
+    },
+    {
+      "file": "decal_wheel_tracks.glb",
+      "kind": "decal",
+      "approx_dimensions_m": [
+        3.7,
+        0,
+        5
+      ],
+      "bbox_m": {
+        "min": [
+          -1.85,
+          0.016,
+          -2.5
+        ],
+        "max": [
+          1.85,
+          0.016,
+          2.5
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1624,
+      "notes": "V2: enlarged muted 3x2 cutout atlas, offset 0.016m."
+    },
+    {
+      "file": "terrain_chunk_16m_splat.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        16,
+        0.2801,
+        16
+      ],
+      "bbox_m": {
+        "min": [
+          -8,
+          0,
+          -8
+        ],
+        "max": [
+          8,
+          0.2801,
+          8
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 1922,
+      "material_count": 1,
+      "file_size_bytes": 58372,
+      "notes": "Fallback moss visual; splat texture read by custom material."
+    },
+    {
+      "file": "terrain_chunk_16m_vertexpaint_lod1.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        16,
+        0.2806,
+        16
+      ],
+      "bbox_m": {
+        "min": [
+          -8,
+          0,
+          -8
+        ],
+        "max": [
+          8,
+          0.2806,
+          8
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 968,
+      "material_count": 1,
+      "file_size_bytes": 30656,
+      "notes": "RGBA vertex weights: granite,moss,gravel,pine_needles. Shader required."
+    },
+    {
+      "file": "terrain_chunk_16m_vertexpaint_lod2.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        16,
+        0.2771,
+        16
+      ],
+      "bbox_m": {
+        "min": [
+          -8,
+          0,
+          -8
+        ],
+        "max": [
+          8,
+          0.2771,
+          8
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 450,
+      "material_count": 1,
+      "file_size_bytes": 15532,
+      "notes": "RGBA vertex weights: granite,moss,gravel,pine_needles. Shader required."
+    },
+    {
+      "file": "terrain_chunk_16m_vertexpaint.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        16,
+        0.2801,
+        16
+      ],
+      "bbox_m": {
+        "min": [
+          -8,
+          0,
+          -8
+        ],
+        "max": [
+          8,
+          0.2801,
+          8
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 1922,
+      "material_count": 1,
+      "file_size_bytes": 58152,
+      "notes": "RGBA vertex weights: granite,moss,gravel,pine_needles. Shader required."
+    },
+    {
+      "file": "terrain_chunk_8m_vertexpaint.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0.232,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0.232,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 450,
+      "material_count": 1,
+      "file_size_bytes": 15516,
+      "notes": "8m sample; same 4-way RGBA weight convention."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_bunker_a.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant a."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_bunker_b.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant b."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_bunker_c.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant c."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_bunker_d.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant d."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_nature_a.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant a."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_nature_b.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant b."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_nature_c.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant c."
+    },
+    {
+      "file": "terrain_tile_4m_mobile_nature_d.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant d."
+    },
+    {
+      "file": "terrain_tile_4m_splat_bunker.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0.066,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0.066,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 200,
+      "material_count": 1,
+      "file_size_bytes": 8208,
+      "notes": "Bunker terrain concrete, wet concrete, worn concrete and grime, never pine needles. 5 texture samples per pixel including mask."
+    },
+    {
+      "file": "terrain_tile_4m_splat_nature.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0.066,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0.066,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 200,
+      "material_count": 1,
+      "file_size_bytes": 8204,
+      "notes": "Nature terrain with large granite and green moss islands; use high-quality splat/vertex shader. 5 texture samples per pixel including mask."
+    },
+    {
+      "file": "terrain_tile_4m_vertexpaint_bunker.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0.066,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0.066,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 200,
+      "material_count": 1,
+      "file_size_bytes": 8220,
+      "notes": "Bunker terrain concrete, wet concrete, worn concrete and grime, never pine needles. 4 texture samples per pixel; COLOR_0 = RGBA layer weights."
+    },
+    {
+      "file": "terrain_tile_4m_vertexpaint_nature.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        4,
+        0.066,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0,
+          -2
+        ],
+        "max": [
+          2,
+          0.066,
+          2
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 200,
+      "material_count": 1,
+      "file_size_bytes": 8216,
+      "notes": "Nature terrain with large granite and green moss islands; use high-quality splat/vertex shader. 4 texture samples per pixel; COLOR_0 = RGBA layer weights."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_bunker_a.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1644,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant a."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_bunker_b.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1644,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant b."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_bunker_c.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1644,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant c."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_bunker_d.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1644,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_bunker_atlas.png, precomposed variant d."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_nature_a.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant a."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_nature_b.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant b."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_nature_c.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant c."
+    },
+    {
+      "file": "terrain_tile_8m_mobile_nature_d.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 2,
+      "material_count": 1,
+      "file_size_bytes": 1656,
+      "notes": "Mobile cheap: 1 texture sample from ground_mobile_nature_atlas.png, precomposed variant d."
+    },
+    {
+      "file": "terrain_tile_8m_splat_bunker.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0.066,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0.066,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 512,
+      "material_count": 1,
+      "file_size_bytes": 17476,
+      "notes": "Bunker terrain concrete, wet concrete, worn concrete and grime, never pine needles. 5 texture samples per pixel including mask."
+    },
+    {
+      "file": "terrain_tile_8m_splat_nature.glb",
+      "kind": "terrain",
+      "approx_dimensions_m": [
+        8,
+        0.066,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -4,
+          0,
+          -4
+        ],
+        "max": [
+          4,
+          0.066,
+          4
+        ]
+      },
+      "collision": "walkable",
+      "triangle_count": 512,
+      "material_count": 1,
+      "file_size_bytes": 17472,
+      "notes": "Nature terrain with large granite and green moss islands; use high-quality splat/vertex shader. 5 texture samples per pixel including mask."
+    },
+    {
+      "file": "trail_curve_45.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        1.451,
+        0,
+        1.876
+      ],
+      "bbox_m": {
+        "min": [
+          -0.456,
+          0.016,
+          -0.867
+        ],
+        "max": [
+          0.995,
+          0.016,
+          1.009
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 144,
+      "material_count": 1,
+      "file_size_bytes": 5688,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_curve_90.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        2.074,
+        0,
+        2.074
+      ],
+      "bbox_m": {
+        "min": [
+          -0.759,
+          0.016,
+          -0.759
+        ],
+        "max": [
+          1.315,
+          0.016,
+          1.315
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 240,
+      "material_count": 1,
+      "file_size_bytes": 8284,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_end.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        1.78,
+        0,
+        2
+      ],
+      "bbox_m": {
+        "min": [
+          -0.89,
+          0.016,
+          -1
+        ],
+        "max": [
+          0.89,
+          0.016,
+          1
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 48,
+      "material_count": 1,
+      "file_size_bytes": 3020,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_straight_2m.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        1.806,
+        0,
+        2
+      ],
+      "bbox_m": {
+        "min": [
+          -0.903,
+          0.016,
+          -1
+        ],
+        "max": [
+          0.903,
+          0.016,
+          1
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 48,
+      "material_count": 1,
+      "file_size_bytes": 3064,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_straight_4m.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        1.82,
+        0,
+        4
+      ],
+      "bbox_m": {
+        "min": [
+          -0.91,
+          0.016,
+          -2
+        ],
+        "max": [
+          0.91,
+          0.016,
+          2
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 96,
+      "material_count": 1,
+      "file_size_bytes": 4360,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_straight_8m.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        1.82,
+        0,
+        8
+      ],
+      "bbox_m": {
+        "min": [
+          -0.91,
+          0.016,
+          -4
+        ],
+        "max": [
+          0.91,
+          0.016,
+          4
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 192,
+      "material_count": 1,
+      "file_size_bytes": 6960,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    },
+    {
+      "file": "trail_t_junction.glb",
+      "kind": "trail",
+      "approx_dimensions_m": [
+        4,
+        0,
+        2.88
+      ],
+      "bbox_m": {
+        "min": [
+          -2,
+          0.016,
+          -2
+        ],
+        "max": [
+          2,
+          0.016,
+          0.88
+        ]
+      },
+      "collision": "none",
+      "triangle_count": 8,
+      "material_count": 1,
+      "file_size_bytes": 2100,
+      "notes": "V2: bright 1.8m path, 0.016m local height, shader or cutout tex handles edge fade."
+    }
+  ],
+  "release_stage": "draft / needs in-game and Khronos validation",
+  "renderer_profiles": {
+    "high": {
+      "sample_count_per_pixel": 5,
+      "vertexpaint": 4,
+      "splat_nature": "chunk_0_0_splat.png",
+      "splat_bunker": "chunk_0_0_bunker_splat.png",
+      "splat_size_px": 256
+    },
+    "low": {
+      "sample_count_per_pixel": 1,
+      "nature_atlas": "ground_mobile_nature_atlas.png",
+      "bunker_atlas": "ground_mobile_bunker_atlas.png",
+      "tile_names": "terrain_tile_{4|8}m_mobile_{nature|bunker}_{a|b|c|d}.glb",
+      "note": "Mobile texture samples estimated excluding standard engine lighting/shadows."
+    }
+  }
+}

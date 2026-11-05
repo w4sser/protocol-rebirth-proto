@@ -43,7 +43,14 @@ export const RULES=[
      if(/position\s*=\s*\{\s*\.\.\.round\.level\.start\s*\}/.test(src))out.push('nodspel/game.mjs: spawn uses raw round.level.start; use safeSpawn(round.level)');
      if(!/position\s*=\s*safeSpawn\(round\.level\)/.test(src))out.push('nodspel/game.mjs: loadLevel must place the player with safeSpawn(round.level)');
      return out;}},
-  {id:'perk-choice-touch-44',pr:'v2.27.2 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
+  {id:'artillery-fx-prewarm',pr:'#196',why:'first artillery shell + landing ring compiled mid-fight and hitching on iPhone',
+   check(ctx){const src=ctx?.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(!/function makeArtilleryShell\b/.test(src))out.push('nodspel/game.mjs: makeArtilleryShell() missing (pooled shell factory)');
+     if(!/function makeToolFxRing\b/.test(src))out.push('nodspel/game.mjs: makeToolFxRing() missing (pooled landing ring factory)');
+     if(!/makeArtilleryShell\(\);\s*makeToolFxRing\(\);\s*makeToolFxRing\(\);/.test(src))out.push('nodspel/game.mjs: must pre-create 1 artillery shell + 2 landing rings at init for shader prewarm');
+     if(!/function prewarmShaders\b/.test(src)||!/prewarmShaders\(\);/.test(src))out.push('nodspel/game.mjs: prewarmShaders() must still run so hidden artillery FX compile at level load');
+     return out;}},
+  {id:'perk-choice-touch-44',pr:'v2.28.0 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
    check(){const out=[];const css=read('nodspel/perks.css');const game=read('nodspel/game.mjs');const ui=read('nodspel/perk-ui.js');const layout=read('scripts/layout-check.mjs');
      if(!/\.perk-grid\{[^}]*minmax\(\s*44px\s*,/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-grid columns must use minmax(44px,...) so cards cannot collapse below the touch target');
      if(!/\.perk-choice\{[^}]*min-width:\s*44px/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-choice must set min-width:44px');

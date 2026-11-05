@@ -1,14 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.27.2';
-import {audioEvent} from './audio.js?v=2.27.2';
-import {ownRooms} from './perks.js?v=2.27.2';
-import {RULES,hazardState} from './levels.js?v=2.27.2';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.27.2';
-import {takeDamage,tickRound} from './round.js?v=2.27.2';
-import {houseWaypoint} from './house.js?v=2.27.2';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.27.2';
-import {detectionMultiplier} from './stakes.js?v=2.27.2';
-import {dashInvulnerable} from './dash.js?v=2.27.2';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.0';
+import {audioEvent} from './audio.js?v=2.28.0';
+import {ownRooms} from './perks.js?v=2.28.0';
+import {RULES,hazardState} from './levels.js?v=2.28.0';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.0';
+import {takeDamage,tickRound} from './round.js?v=2.28.0';
+import {houseWaypoint} from './house.js?v=2.28.0';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.0';
+import {detectionMultiplier} from './stakes.js?v=2.28.0';
+import {dashInvulnerable} from './dash.js?v=2.28.0';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.0-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -158,7 +159,7 @@ function stepCharger(round,e,combat,player,now,dt,obstacles,dash){
 // A thrower killed during the warning never lobs; a blast already in the air still lands (leave the ring).
 function lobGrenade(round,combat,enemy,now){
   const G=RULES.encounters.grenadier,at=enemy.attackTarget;enemy.attackTarget=null;
-  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
+  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,fromX:enemy.x,fromZ:enemy.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
   combat.nextFire.set(enemy.id,now+G.cooldownMs);
 }
 function stepBlasts(round,combat,player,now,dash=null){
@@ -190,11 +191,23 @@ function doorwayWaypoint(level,enemy,player){
 // One movement step towards `goal` (gd = distance), blocked by walls, the player and other enemies.
 function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   const blockers=[...obstacles,{...player,r:RULES.playerRadius},...round.level.enemies.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
-  const step=Math.min(gd,enemy.speed*dt),dx=(goal.x-enemy.x)/gd*step,dz=(goal.z-enemy.z)/gd*step;
+  // All moving enemies use the same bridge waypoints as players, not only
+  // swarm rushers. Route through the centered approach before chasing a
+  // target on another island. This prevents corner-cutting into side rocks.
+  const routed=bridgeWaypoint(round.level,enemy,goal)??goal;
+  const routeDistance=Math.hypot(routed.x-enemy.x,routed.z-enemy.z);
+  if(routeDistance<1e-6)return;
+  const step=Math.min(routeDistance,enemy.speed*dt);
+  const dx=(routed.x-enemy.x)/routeDistance*step,dz=(routed.z-enemy.z)/routeDistance*step;
   let next=movePlayer(enemy,{x:dx,z:dz},blockers,round.level.floors,.48);
   // Swarm rushers that get wedged on a pedestal / corner step round it (keeping the side they chose) instead of grinding in place.
   // The sidestep is committed for a moment, otherwise the next normal step just slides them back onto the corner.
-  if(enemy.swarm){
+  let nearBridge=false;
+  if(round.level.archipelago)for(const f of round.level.floors)if(f.dir&&
+    Math.abs(enemy.x-f.x)<=f.w/2+1.1&&Math.abs(enemy.z-f.z)<=f.d/2+1.1){nearBridge=true;break;}
+  // Every bot can negotiate a passing lane on a bridge, not only swarmers.
+  // Otherwise opposite-direction bots both aim for the center and deadlock.
+  if(enemy.swarm||nearBridge){
     const sidestep=side=>movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
     if((enemy.slideLeft??0)>0){enemy.slideLeft-=dt;next=sidestep(enemy.slide);}
     else if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){

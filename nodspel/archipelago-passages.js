@@ -1,3 +1,4 @@
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.0-bridge1';
 const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-6&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-6;
 // Discover openings from the final wall layout, including partitions and encounter-cut side routes.
 // A strip spans the wall and both approaches; narrow it to the actual clear corridor footprint.
@@ -51,5 +52,8 @@ export function inPassageClearance(footprint,passages){
 }
 // Remove collidable dressing before gameplay takes copies of the solid list.
 export function clearPassageProps(level,passages=archipelagoPassages(level)){
-  for(let i=level.boxes.length-1;i>=0;i--)if(inPassageClearance(level.boxes[i],passages))level.boxes.splice(i,1);
+  // Include the full bridge and generous landings, not merely doorway gaps.
+  // This removal happens on level generation, before gameplay takes collider copies.
+  const zones=level.archipelago?[...passages,...bridgeClearances(level)]:passages;
+  for(let i=level.boxes.length-1;i>=0;i--)if(inPassageClearance(level.boxes[i],zones))level.boxes.splice(i,1);
 }
