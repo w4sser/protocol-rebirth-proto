@@ -7,7 +7,8 @@ import {rngFrom} from './art.js?v=2.27.1';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.27.1';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.27.1';
-import {createWaterMesh} from './water-shader.js?v=2.27.1';
+import {createWaterMesh} from './water-shader.js?v=2.27.1-coast9';
+import {coastlineProfile,coastRingData} from './coastline.mjs';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -107,6 +108,36 @@ function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
   }
   return n;
 }
+// Visual-only rock scatter follows the actual, seeded coastline rather than the
+// rectangular authoring walls. It never contributes gameplay colliders.
+function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
+  let count=0;
+  for(const profile of profiles.values()){
+    const points=profile.points,n=points.length;
+    const goal=Math.min(32,Math.max(9,Math.round(profile.totalLength/3.8)));
+    const jitter=Math.floor(rng()*n);
+    for(let i=0;i<goal;i++){
+      const index=(Math.floor((i+.45)*n/goal)+jitter)%n;
+      const p=points[index];
+      if(p.beach>.30 || rng()<.21)continue;
+      const clusters=(rng()<.23)?2:1;
+      for(let j=0;j<clusters;j++){
+        const q=points[(index+j*2)%n];
+        if(q.beach>.40)continue;
+        const scale=.32+rng()*.40,mesh=new THREE.Mesh(rockGeo,rockMat[rng()<.55?0:1]);
+        mesh.position.set(q.x+(rng()-.5)*.46,-.05+scale*.17,q.z+(rng()-.5)*.46);
+        mesh.scale.set(scale,scale*(.55+rng()*.55),scale*(.8+rng()*.4));
+        mesh.rotation.set(rng()*.30,rng()*6.3,rng()*.30);
+        const bounds=new THREE.Box3().setFromObject(mesh);
+        if(reservations.some(p=>bounds.max.x>p.x-p.w/2&&bounds.min.x<p.x+p.w/2&&bounds.max.z>p.z-p.d/2&&bounds.min.z<p.z+p.d/2))continue;
+        mesh.name='archipelago-coast-rock';
+        mesh.castShadow=mesh.receiveShadow=true;
+        group.add(mesh);count++;
+      }
+    }
+  }
+  return count;
+}
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
@@ -114,11 +145,20 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   // textured surface. On iOS, the old 4mm gap + positive polygon offset allowed
   // Safari to depth-test the flat green base in front of the textured overlay.
   const terrainPreview=typeof location!=='undefined' && new URLSearchParams(location.search).get('ground')==='2';
+  const coastProfiles=new Map();
+  if(terrainPreview)for(const floor of level.floors){
+    if(!floor.dir)coastProfiles.set(floor,coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72}));
+  }
   clearPassageProps(level,out.passages);
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
-  const shoreRects=level.floors.map(f=>f.dir?{x:f.x,z:f.z,w:f.w,d:f.d}:{x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6});
+  const shoreRects=level.floors.map(f=>{
+    if(f.dir)return {x:f.x,z:f.z,w:f.w,d:f.d};
+    const p=coastProfiles.get(f);
+    return p?{points:p.points.map(v=>({x:v.x,z:v.z}))}:
+      {x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6};
+  });
   const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
   water.name='water';group.add(water);
   const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
@@ -141,9 +181,26 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
       grass.renderOrder=-3;
       grass.material.depthWrite=false;
     }
-    box(f.x,-.32,f.z,f.w+1.2,.3,f.d+1.2,P.sand);
-    for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
-      r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
+    const profile=coastProfiles.get(f);
+    if(profile){
+      // One opaque, low-poly perimeter shell: rounded coves, granite shelves and
+      // short sand pockets. The original rectangular playable floor remains.
+      const data=coastRingData(profile),geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
+      geo.setAttribute('color',new THREE.BufferAttribute(data.colors,3));
+      geo.setIndex(new THREE.BufferAttribute(data.indices,1));
+      geo.computeVertexNormals();
+      const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:true});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.name='archipelago-coast-shell';
+      mesh.receiveShadow=true;
+      mesh.userData.visualOnly=true;
+      group.add(mesh);
+    }else{
+      box(f.x,-.32,f.z,f.w+1.2,.3,f.d+1.2,P.sand);
+      for(let k=0;k<8;k++){const a=rng()*Math.PI*2,r=new THREE.Mesh(new THREE.CylinderGeometry(1,1.2,.3,10),new THREE.MeshStandardMaterial({color:P.sand,roughness:1}));
+        r.scale.set(1.5+rng()*2,1,1.5+rng()*2);r.position.set(f.x+Math.cos(a)*f.w*.5,-.36,f.z+Math.sin(a)*f.d*.5);group.add(r);}
+    }
   }
   // Pass 6: passage rectangles are NAVIGATION CLEARANCES, not visual roads.
   // Keep them in out.passages and all clearance/reservation logic below, but never
@@ -177,7 +234,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
     if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
     else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
-  out.shoreProps=shoreRocks(shore,islands,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group);
+  out.shoreProps=terrainPreview
+    ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)
+    : shoreRocks(shore,islands,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group);
+  if(terrainPreview){
+    out.coastProfiles=coastProfiles.size;
+    out.coastRockFraction=[...coastProfiles.values()].reduce((s,p)=>s+p.rockyRatio,0)/Math.max(1,coastProfiles.size);
+  }
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
   for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
