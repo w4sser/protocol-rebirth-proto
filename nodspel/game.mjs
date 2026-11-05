@@ -366,23 +366,34 @@ const toolColor=kind=>kind==='grenade'?TOOL_CORAL:TOOL_CYAN;
 const toolRingGeometry=new THREE.RingGeometry(.94,1,64),toolFxPool=[];let toolFxUsed=0;
 // Reuse a small number of bright, camera-readable artillery shells. Never
 // instantiate per-frame objects, and never change the combat fuse/damage.
+// Materials stay per-shell so concurrent lobs can animate color/opacity independently.
 const artilleryCoreGeometry=new THREE.SphereGeometry(.21,10,8);
 const artilleryGlowGeometry=new THREE.SphereGeometry(.38,10,8);
 const artilleryShells=[];
 let artilleryUsed=0;
+function makeArtilleryShell(){
+  const group=new THREE.Group(),core=new THREE.Mesh(artilleryCoreGeometry,
+    new THREE.MeshBasicMaterial({color:'#fff1b7',depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
+  const glow=new THREE.Mesh(artilleryGlowGeometry,
+    new THREE.MeshBasicMaterial({color:'#FF704F',transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
+  group.add(glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
+  group.visible=false;scene.add(group);
+  const effect={group,core,glow};artilleryShells.push(effect);return effect;
+}
+function makeToolFxRing(){
+  const m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.renderOrder=4;m.visible=false;scene.add(m);toolFxPool.push(m);return m;
+}
+// Pre-create one shell + two landing rings (outer/progress) while the level loads.
+// prewarmShaders() compiles hidden scene objects, so the first live lob skips the
+// iPhone shader/geometry hitch without extra draw cost (they stay invisible).
+makeArtilleryShell();makeToolFxRing();makeToolFxRing();
 function renderArtilleryShells(clock){
   artilleryUsed=0;
   if(combat&&!round.over)for(const blast of combat.blasts){
     if(blast.sleeping||clock<(blast.at??0)||clock>=(blast.detonateAt??0))continue;
     let effect=artilleryShells[artilleryUsed];
-    if(!effect){
-      const group=new THREE.Group(),core=new THREE.Mesh(artilleryCoreGeometry,
-        new THREE.MeshBasicMaterial({color:'#fff1b7',depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
-      const glow=new THREE.Mesh(artilleryGlowGeometry,
-        new THREE.MeshBasicMaterial({color:'#FF704F',transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
-      group.add(glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
-      scene.add(group);effect={group,core,glow};artilleryShells.push(effect);
-    }
+    if(!effect)effect=makeArtilleryShell();
     artilleryUsed++;
     const p=artilleryFlight(blast,clock);
     effect.group.visible=true;
@@ -397,7 +408,7 @@ const toolArcPoints=Array.from({length:25},()=>new THREE.Vector3());
 const toolArc=new THREE.Line(new THREE.BufferGeometry().setFromPoints(toolArcPoints),new THREE.LineBasicMaterial({color:TOOL_CYAN,transparent:true,opacity:.85,depthTest:false}));toolArc.renderOrder=4;toolArc.frustumCulled=false;toolArc.visible=false;scene.add(toolArc);
 function toolFxRing(x,z,radius,color,opacity){
   let m=toolFxPool[toolFxUsed];
-  if(!m){m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));m.rotation.x=-Math.PI/2;m.renderOrder=4;scene.add(m);toolFxPool.push(m);}
+  if(!m)m=makeToolFxRing();
   toolFxUsed++;m.visible=true;m.position.set(x,.07,z);m.scale.setScalar(Math.max(.01,radius));m.material.color.set(color);m.material.opacity=opacity;
 }
 function clearToolFx(){for(const m of toolFxPool)m.visible=false;for(const fx of artilleryShells)fx.group.visible=false;toolArc.visible=false;}

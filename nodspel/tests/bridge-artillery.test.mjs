@@ -75,3 +75,11 @@ test('artillery rendering tracks live combat lob data, without altering collisio
   assert.match(game,/new THREE.SphereGeometry\(\.21/);
   assert.match(ground,/if\(biome==='nature' && floor.dir\)continue/,'bridge planks are not painted over by ground assets');
 });
+
+test('artillery shell and landing rings are pre-created for shader prewarm',async()=>{
+  const game=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
+  assert.match(game,/function makeArtilleryShell\b/);
+  assert.match(game,/function makeToolFxRing\b/);
+  assert.match(game,/makeArtilleryShell\(\);\s*makeToolFxRing\(\);\s*makeToolFxRing\(\);/);
+  assert.match(game,/function prewarmShaders\b/);
+});
