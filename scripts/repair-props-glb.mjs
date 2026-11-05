@@ -30,7 +30,7 @@ function pack(name){
  const json={asset:{version:'2.0',generator:'Protocol Rebirth repaired prop'},scene:0,scenes:[{nodes:[0]}],nodes:[{mesh:0,name}],meshes:[{name,primitives:[{attributes:{POSITION:0,NORMAL:1,COLOR_0:2},material:0,mode:4}]}],materials:[{name:'cool_granite',pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],metallicFactor:0,roughnessFactor:1},doubleSided:true}],accessors:[{bufferView:0,componentType:5126,count,type:'VEC3',min,max},{bufferView:1,componentType:5126,count,type:'VEC3'},{bufferView:2,componentType:5121,normalized:true,count,type:'VEC4'}],bufferViews:[{buffer:0,byteOffset:0,byteLength:p.byteLength,target:34962},{buffer:0,byteOffset:p.byteLength,byteLength:no.byteLength,target:34962},{buffer:0,byteOffset:p.byteLength+no.byteLength,byteLength:co.byteLength,target:34962}],buffers:[{byteLength:binary.length}]};
  const j=Buffer.from(JSON.stringify(json)),pad=(4-j.length%4)%4,jbuf=Buffer.concat([j,Buffer.alloc(pad,32)]),out=Buffer.alloc(12+8+jbuf.length+8+binary.length);
  out.write('glTF',0);out.writeUInt32LE(2,4);out.writeUInt32LE(out.length,8);out.writeUInt32LE(jbuf.length,12);out.write('JSON',16);jbuf.copy(out,20);
- const offset=20+jbuf.length;out.writeUInt32LE(binary.length,offset);out.write('BIN\\0',offset+4,'binary');binary.copy(out,offset+8);
+ const offset=20+jbuf.length;out.writeUInt32LE(binary.length,offset);out.writeUInt32LE(0x004e4942,offset+4);binary.copy(out,offset+8);
  return {out,count,triangles:count/3,min,max};
 }
 for(const name of names){
