@@ -3,8 +3,6 @@
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { planOrganicTrail } from './ground-organic-trail.mjs?v=2.27.1';
-import { shoreBounds, SHORE_FADE_START, SHORE_FADE_END, SHORE_SAND_COLOR } from './shore-fade.mjs';
-import { coastCoves, coastSeed } from './coastline.mjs';
 
 const DIR = new URL('../assets/env/terrain/', import.meta.url);
 const LAYERS = {
@@ -51,54 +49,63 @@ function model(filename) {
     undefined, reject,
   ));
 }
-// Pass 8: entirely opaque shoreline color fade. This is evaluated per fragment
-// from world-space XZ and the parent island footprint, not per tile edges.
-function addShoreFade(shader, profile){
-  shader.uniforms.shoreSandColor={value:new THREE.Color(SHORE_SAND_COLOR)};
-  shader.uniforms.shoreRockColor={value:new THREE.Color('#697471')};
-  const vertexDeclarations='attribute vec4 shoreBounds, shoreCoveA, shoreCoveB; varying vec4 vShoreBounds,vShoreCoveA,vShoreCoveB; varying vec2 vShoreXZ;';
-  const fragmentDeclarations='varying vec4 vShoreBounds,vShoreCoveA,vShoreCoveB; varying vec2 vShoreXZ; uniform vec3 shoreSandColor,shoreRockColor;';
-  shader.vertexShader=shader.vertexShader
-    .replace('#include <common>','#include <common>\n'+vertexDeclarations)
-    .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvShoreXZ=(modelMatrix*vec4(transformed,1.0)).xz; vShoreBounds=shoreBounds; vShoreCoveA=shoreCoveA; vShoreCoveB=shoreCoveB;');
-  const wobble=profile==='low'
-    ? '0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)'
-    : '(0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)+0.045*sin(vShoreXZ.x*2.65-vShoreXZ.y*2.10+0.6))';
-  const blend=[
-    'float shoreDistance=min(min(vShoreXZ.x-vShoreBounds.x, vShoreBounds.z-vShoreXZ.x),min(vShoreXZ.y-vShoreBounds.y, vShoreBounds.w-vShoreXZ.y));',
-    'float shoreFactor=smoothstep('+SHORE_FADE_START.toFixed(3)+','+SHORE_FADE_END.toFixed(3)+',shoreDistance+'+wobble+');',
-    // Angular cove directions are precomputed once per island. Two short sandy
-    // pockets; the rest of the coastline fades to granite, even on LOW.
-    'vec2 shoreDir=normalize(vShoreXZ-vec2((vShoreBounds.x+vShoreBounds.z)*0.5,(vShoreBounds.y+vShoreBounds.w)*0.5)+vec2(0.00001));',
-    'float beachA=smoothstep(vShoreCoveA.z,vShoreCoveA.w,dot(shoreDir,vShoreCoveA.xy));',
-    'float beachB=smoothstep(vShoreCoveB.z,vShoreCoveB.w,dot(shoreDir,vShoreCoveB.xy));',
-    'vec3 coastColor=mix(shoreRockColor,shoreSandColor,max(beachA,beachB));',
-    'diffuseColor.rgb=mix(coastColor,diffuseColor.rgb,shoreFactor);'
-  ].join(' ');
-  shader.fragmentShader=shader.fragmentShader
-    .replace('#include <common>','#include <common>\n'+fragmentDeclarations)
-    .replace('#include <color_fragment>','#include <color_fragment>\n'+blend);
-}
-function attachShoreBounds(geometry,floor,levelSeed){
-  // Geometry is shared in the asset cache. Clone only this tile so attributes
-  // can describe the ISLAND boundary, preventing 4m/8m internal seam fades.
-  const out=geometry.clone(),bounds=shoreBounds(floor);
-  const count=out.getAttribute('position').count,buf=new Float32Array(count*4);
-  for(let i=0;i<count;i++)buf.set(bounds,i*4);
-  out.setAttribute('shoreBounds',new THREE.BufferAttribute(buf,4));
-  const coves=coastCoves(coastSeed(levelSeed,floor));
-  const coveValues=coves.map(c=>{
-    const a=c.center*Math.PI*2;
-    const low=Math.cos((c.halfWidth+.012)*Math.PI*2);
-    const high=Math.cos((c.halfWidth-.008)*Math.PI*2);
-    return [Math.cos(a),Math.sin(a),low,high];
+// Pass 10: a SHARED opaque coastline material covers an inset strip of island
+// terrain and then smoothly transitions into the Pass 9 rocky shore shell.
+// The actual logical floor and all collision data remain unchanged.
+function coastFeatherMaterial(surface,profile){
+  const high=profile==='high';
+  const material=new THREE.MeshStandardMaterial({
+    roughness:.96,metalness:0,vertexColors:true,side:THREE.DoubleSide,
+    depthWrite:true,transparent:false,flatShading:false,
   });
-  for(let i=0;i<2;i++){
-    const attrib=new Float32Array(count*4);
-    for(let j=0;j<count;j++)attrib.set(coveValues[i],j*4);
-    out.setAttribute(i===0?'shoreCoveA':'shoreCoveB',new THREE.BufferAttribute(attrib,4));
-  }
-  return out;
+  material.onBeforeCompile=shader=>{
+    if(high){
+      for(let i=0;i<4;i++)shader.uniforms['coastLayer'+i]={value:surface[0][i]};
+      shader.uniforms.coastMask={value:surface[1]};
+    }else shader.uniforms.coastAtlas={value:surface};
+
+    shader.vertexShader=shader.vertexShader
+      .replace('#include <common>',
+        '#include <common>\nattribute float shoreBlend; varying float vCoastBlend; varying vec2 vCoastXZ;')
+      .replace('#include <worldpos_vertex>',
+        '#include <worldpos_vertex>\nvCoastBlend=shoreBlend; vCoastXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+    const uniforms=high
+      ? 'uniform sampler2D coastLayer0,coastLayer1,coastLayer2,coastLayer3,coastMask;'
+      : 'uniform sampler2D coastAtlas;';
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',
+      '#include <common>\nvarying float vCoastBlend; varying vec2 vCoastXZ; '+uniforms);
+
+    // Both profiles use the very same cliff/sand vertex colors. HIGH samples
+    // the identical ground textures and splat mask as the main terrain.
+    // LOW samples one corner of its existing low-frequency nature atlas.
+    const terrain=high?[
+      'vec4 coastWeights=texture2D(coastMask,vCoastXZ/16.0);',
+      'coastWeights*=vec4(0.93,1.44,0.80,0.90);',
+      'coastWeights/=max(dot(coastWeights,vec4(1.0)),0.001);',
+      'vec2 coastUV=vCoastXZ/4.0;',
+      'vec3 terrainColor=texture2D(coastLayer0,coastUV).rgb*coastWeights.r+texture2D(coastLayer1,coastUV).rgb*coastWeights.g+texture2D(coastLayer2,coastUV).rgb*coastWeights.b+texture2D(coastLayer3,coastUV).rgb*coastWeights.a;',
+      'float mossCoverage=smoothstep(0.32,0.70,coastWeights.g); float mossDepth=smoothstep(0.56,0.83,coastWeights.g);',
+      'terrainColor*=mix(vec3(1.0),vec3(0.92,1.015,0.89),mossCoverage); terrainColor*=1.0-0.060*mossDepth;'
+    ]:[
+      'vec2 coastUV=vec2(0.52+0.45*fract(vCoastXZ.x/9.0),0.025+0.45*fract(vCoastXZ.y/9.0));',
+      'vec3 terrainColor=texture2D(coastAtlas,coastUV).rgb*vec3(0.975,1.035,0.960);'
+    ];
+    // Feather varies smoothly in world space, avoiding a uniform outline and
+    // making the ground recede into granite, with the two pre-seeded sand coves.
+    const wobble=high
+      ? '(0.080*sin(vCoastXZ.x*1.08+vCoastXZ.y*.61)+0.043*sin(vCoastXZ.x*2.17-vCoastXZ.y*1.24))'
+      : '(0.075*sin(vCoastXZ.x*1.08+vCoastXZ.y*.61))';
+    const blend=[
+      ...terrain,
+      'float coastDither='+wobble+'*min(vCoastBlend*2.0,(1.0-vCoastBlend)*2.0);',
+      'float coastFeather=smoothstep(0.035,0.965,vCoastBlend+coastDither);',
+      'diffuseColor.rgb=mix(terrainColor,diffuseColor.rgb,coastFeather);'
+    ].join(' ');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',
+      '#include <color_fragment>\n'+blend);
+  };
+  material.customProgramCacheKey=()=> 'ground-coast-v10-'+profile;
+  return material;
 }
 function highMaterial(layers, mask, biome) {
   // PASS 4: reweight existing smooth macro splat, no extra texture lookups/no new noise.
@@ -107,7 +114,6 @@ function highMaterial(layers, mask, biome) {
   m.onBeforeCompile = shader => {
     for (let i = 0; i < 4; i++) shader.uniforms['groundLayer' + i] = {value: layers[i]};
     shader.uniforms.groundMask = {value: mask};
-    if(biome==='nature')addShoreFade(shader,'high');
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec2 vGroundXZ;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvGroundXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
@@ -134,7 +140,7 @@ function highMaterial(layers, mask, biome) {
         '#include <common>\nvarying vec2 vGroundXZ; uniform sampler2D groundLayer0,groundLayer1,groundLayer2,groundLayer3,groundMask;')
       .replace('#include <map_fragment>', fragment);
   };
-  m.customProgramCacheKey = () => 'ground-v9-skerry-' + biome;
+  m.customProgramCacheKey = () => 'ground-v10-' + biome;
   return m;
 }
 function cutoutMaterial(tex) {
@@ -173,12 +179,8 @@ async function loadAssets(biome, profile) {
           // Single atlas lookup remains unchanged. Subtle LOW-only green lift.
           color: biome === 'nature' ? new THREE.Color().setRGB(.975,1.035,.96) : new THREE.Color(0xffffff),
         });
-    // LOW uses the exact same world-space shoreline fade with one cheap sine,
-    // keeping one atlas lookup and opaque depth-write rendering.
-    if(profile==='low' && biome==='nature'){
-      surfaceMaterial.onBeforeCompile=shader=>addShoreFade(shader,'low');
-      surfaceMaterial.customProgramCacheKey=()=> 'ground-v9-skerry-low';
-    }
+
+    const coastMaterial=biome==='nature'?coastFeatherMaterial(surface,profile):null;
     // Draw surface in the opaque pass, behind game rings and transparent effects.
     // The legacy grass backup is lowered in archipelago.js for the preview.
     // Do not push the opaque terrain *away* in the depth buffer on mobile:
@@ -191,7 +193,7 @@ async function loadAssets(biome, profile) {
       polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1,
     });
     return {
-      surfaceMaterial, tiles,
+      surfaceMaterial, coastMaterial, tiles,
       decals: new Map(allDecals.map((f,i) => [f, decalModels[i].geometry])),
       trailMaterial, decalMaterial: cutoutMaterial(decalTex),
     };
@@ -289,10 +291,11 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
   const mode = profile === 'low' ? 'low' : 'high';
   const group = new THREE.Group();
   group.name = 'ground-preview-v2';
-  group.userData = {profile:mode, biome, assetVersion:5};
+  group.userData = {profile:mode, biome, assetVersion:10};
   scene.add(group);
   const backupVisibility = new Map();
-  const stats = {profile:mode,biome,tiles4m:0,tiles8m:0,trails:0,decals:0,backupsHidden:0,shoreFadeTiles:0,ready:false};
+  const coastMaterials = new Map();
+  const stats = {profile:mode,biome,tiles4m:0,tiles8m:0,trails:0,decals:0,backupsHidden:0,coastFeatherMeshes:0,ready:false};
   const ready = loadAssets(biome, mode).then(assets => {
     if (!group.parent) return;
     const seed = floorSeed(level);
@@ -304,9 +307,7 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
           (mode === 'high' ? 'splat_' + biome : 'mobile_' + biome + '_' + variant) + '.glb';
         const geometry = assets.tiles.get(filename);
         if (!geometry) throw new Error('Missing ground prefab ' + filename);
-        const tileGeometry = biome==='nature' ? attachShoreBounds(geometry,floor,level.seed) : geometry;
-        const tile = new THREE.Mesh(tileGeometry, assets.surfaceMaterial);
-        if(biome==='nature'){tile.userData.shoreGeometry=true;stats.shoreFadeTiles++;}
+        const tile = new THREE.Mesh(geometry, assets.surfaceMaterial);
         tile.scale.set(sx/size, 1, sz/size);
         tile.position.set(x+sx/2, .004, z+sz/2);
         tile.receiveShadow = true;
@@ -325,9 +326,14 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
         if(node.name==='archipelago-grass-backup'){
           backupVisibility.set(node,node.visible);
           node.visible=false;
+        }else if(node.name==='archipelago-coast-shell' && node.geometry?.getAttribute('shoreBlend')){
+          coastMaterials.set(node,node.material);
+          node.material=assets.coastMaterial;
+          node.renderOrder=-1; // after the ground (-2), before node indicators
         }
       });
       stats.backupsHidden=backupVisibility.size;
+      stats.coastFeatherMeshes=coastMaterials.size;
     }
     stats.ready = true;
     console.log('[ground-preview-v2]', JSON.stringify(stats));
@@ -338,8 +344,9 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
   return {group,stats,ready,dispose() {
     for(const [mesh,visible] of backupVisibility)mesh.visible=visible;
     backupVisibility.clear();
+    for(const [mesh,material] of coastMaterials)mesh.material=material;
+    coastMaterials.clear();
     scene.remove(group);
-    group.traverse(node=>{if(node.userData?.shoreGeometry)node.geometry.dispose();});
     group.clear();
   }};
 }
