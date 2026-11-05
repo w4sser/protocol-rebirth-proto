@@ -72,26 +72,57 @@ export function coastlineProfile(floor,levelSeed,{samples=72}={}){
   }
   return {floor,seed,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
 }
+// Six opaque rings instead of a 4-ring untextured slab.
+// The first ~1.05 m is INSET into the existing walkable rectangle: the same
+// ground texture can cover the rectangle-to-coast join, then fade progressively
+// to rock (or, occasionally, sand). No alpha sorting or collisions are added.
+export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
 export function coastRingData(profile){
-  const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[];
-  const rock=['#697471','#7c8082','#6f7480','#3b4657'];
-  const beach=['#877859','#938162','#908063','#665948'];
-  const hex=(h)=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255);
+  const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
+  const rock=['#647075','#68747A','#737A7C','#657077','#596576','#3C4756'];
+  const beach=['#7F795C','#827B5D','#908064','#8A795D','#74664F','#5D5143'];
+  const toLinear=h=>[1,3,5].map(i=>{
+    const c=parseInt(h.slice(i,i+2),16)/255;
+    return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);
+  });
   const lerp=(a,b,t)=>a+(b-a)*t;
-  for(let ring=0;ring<4;ring++)for(let i=0;i<n;i++){
+  const inset=Math.min(1.05,Math.max(.23,Math.min(floor.w,floor.d)*.12));
+  for(let ring=0;ring<COAST_BLEND_STOPS.length;ring++)for(let i=0;i<n;i++){
     const p=points[i],c=Math.cos(p.angle),s=Math.sin(p.angle);
     const d=p.radial-p.innerRadial;
-    const radius=[p.innerRadial-.16,p.innerRadial+d*.53,p.radial-.07,p.radial+.22][ring];
-    const yRock=[-.024,-.07,-.085,-.73][ring],ySand=[-.024,-.17,-.29,-.54][ring];
-    const y=lerp(yRock,ySand,p.beach);
-    positions.push(floor.x+c*radius,y,floor.z+s*radius);
-    const cliffShade=.92+.085*Math.sin(i*.56+profile.seed*.003);
-    const colR=hex(rock[ring]),colS=hex(beach[ring]);
+    const radii=[
+      p.innerRadial-inset,
+      p.innerRadial-inset*.54,
+      p.innerRadial-.015,
+      p.innerRadial+d*.41,
+      p.radial-.06,
+      p.radial+.22,
+    ];
+    const radius=Math.max(.05,radii[ring]);
+    const x=floor.x+c*radius,z=floor.z+s*radius;
+    // The inset feather sits ABOVE the preview terrain (+0.004 m), but BELOW
+    // node-progress rings (+0.018 m). Farther out it drops into the cliff side.
+    const rockY=[.010,.010,.0095,-.046,-.085,-.73];
+    const sandY=[.010,.010,.0095,-.115,-.25,-.54];
+    positions.push(x,lerp(rockY[ring],sandY[ring],p.beach),z);
+    blends.push(COAST_BLEND_STOPS[ring]);
+    const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
+    const colR=toLinear(rock[ring]),colS=toLinear(beach[ring]);
     for(let k=0;k<3;k++)colors.push(clamp(lerp(colR[k],colS[k],p.beach)*cliffShade,0,1));
+    // LOW mode uses the green quadrant of its existing 2x2 atlas for the
+    // INNER band; from here both profiles feather toward coastline colors.
+    const fract=v=>v-Math.floor(v);
+    uvs.push(.525+.45*fract(x/4),.025+.45*fract(z/4));
   }
-  for(let ring=0;ring<3;ring++)for(let i=0;i<n;i++){
+  for(let ring=0;ring<COAST_BLEND_STOPS.length-1;ring++)for(let i=0;i<n;i++){
     const j=(i+1)%n,a=ring*n+i,b=ring*n+j,c=(ring+1)*n+i,d=(ring+1)*n+j;
     indices.push(a,b,c,b,d,c);
   }
-  return {positions:new Float32Array(positions),colors:new Float32Array(colors),indices:new Uint16Array(indices)};
+  return {
+    positions:new Float32Array(positions),
+    colors:new Float32Array(colors),
+    uvs:new Float32Array(uvs),
+    blends:new Float32Array(blends),
+    indices:new Uint16Array(indices),
+  };
 }
