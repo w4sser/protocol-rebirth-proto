@@ -47,6 +47,24 @@ try {
       });
       await page.evaluateOnNewDocument(() => {
         window.__dc = 0;
+        // Capture the exact moment the boot overlay starts fading. The first
+        // playable frame must never display unfinished (flat green) ground.
+        window.__groundBootAudit = {revealedReady:null,loadedAtReveal:null};
+        const attachBootObserver=()=>{
+          const loader=document.getElementById('boot-loader');
+          if(!loader)return;
+          const observe=new MutationObserver(()=>{
+            if(!loader.classList.contains('out') || window.__groundBootAudit.revealedReady!==null)return;
+            const status=window.__groundPreview?.stats;
+            window.__groundBootAudit.revealedReady=!!status?.ready;
+            window.__groundBootAudit.loadedAtReveal=status?{...status}:null;
+            observe.disconnect();
+          });
+          observe.observe(loader,{attributes:true,attributeFilter:['class']});
+        };
+        if(document.readyState==='loading')
+          document.addEventListener('DOMContentLoaded',attachBootObserver,{once:true});
+        else attachBootObserver();
         for (const C of [WebGLRenderingContext,WebGL2RenderingContext])
           for (const name of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']) {
             const original=C.prototype[name];
@@ -78,6 +96,11 @@ try {
         ground=await page.evaluate(()=>({...window.__groundPreview.stats}));
         if (ground.error || !ground.ready || ground.tiles4m+ground.tiles8m===0)
           throw new Error('Ground preview not ready: '+JSON.stringify(ground));
+        await page.waitForFunction('window.__groundBootAudit?.revealedReady!==null',{timeout:10000});
+        const bootAudit=await page.evaluate(()=>window.__groundBootAudit);
+        if(!bootAudit.revealedReady)
+          throw new Error('Boot screen revealed unfinished terrain: '+JSON.stringify(bootAudit));
+        console.log('[ground-boot-ready]',area,mode,JSON.stringify(bootAudit.loadedAtReveal));
         // The green legacy grass must be hidden behind textured preview on
         // small iPhone viewports, otherwise it can appear as a flat olive field.
         if(area==='archipelago' && (!ground.backupsHidden || ground.trails!==0))
