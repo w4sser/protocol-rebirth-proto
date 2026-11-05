@@ -57,8 +57,8 @@ function addShoreFade(shader, profile){
   const vertexDeclarations='attribute vec4 shoreBounds; varying vec4 vShoreBounds; varying vec2 vShoreXZ;';
   const fragmentDeclarations='varying vec4 vShoreBounds; varying vec2 vShoreXZ; uniform vec3 shoreSandColor;';
   shader.vertexShader=shader.vertexShader
-    .replace('#include <common>','#include <common>\\n'+vertexDeclarations)
-    .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\\nvShoreXZ=(modelMatrix*vec4(transformed,1.0)).xz; vShoreBounds=shoreBounds;');
+    .replace('#include <common>','#include <common>\n'+vertexDeclarations)
+    .replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvShoreXZ=(modelMatrix*vec4(transformed,1.0)).xz; vShoreBounds=shoreBounds;');
   const wobble=profile==='low'
     ? '0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)'
     : '(0.065*sin(vShoreXZ.x*1.47+vShoreXZ.y*1.19)+0.045*sin(vShoreXZ.x*2.65-vShoreXZ.y*2.10+0.6))';
@@ -68,8 +68,8 @@ function addShoreFade(shader, profile){
     'diffuseColor.rgb=mix(shoreSandColor,diffuseColor.rgb,shoreFactor);'
   ].join(' ');
   shader.fragmentShader=shader.fragmentShader
-    .replace('#include <common>','#include <common>\\n'+fragmentDeclarations)
-    .replace('#include <color_fragment>','#include <color_fragment>\\n'+blend);
+    .replace('#include <common>','#include <common>\n'+fragmentDeclarations)
+    .replace('#include <color_fragment>','#include <color_fragment>\n'+blend);
 }
 function attachShoreBounds(geometry,floor){
   // Geometry is shared in the asset cache. Clone only this tile so attributes
