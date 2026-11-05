@@ -43,6 +43,17 @@ export const RULES=[
      if(/position\s*=\s*\{\s*\.\.\.round\.level\.start\s*\}/.test(src))out.push('nodspel/game.mjs: spawn uses raw round.level.start; use safeSpawn(round.level)');
      if(!/position\s*=\s*safeSpawn\(round\.level\)/.test(src))out.push('nodspel/game.mjs: loadLevel must place the player with safeSpawn(round.level)');
      return out;}},
+  {id:'perk-choice-touch-44',pr:'v2.27.2 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
+   check(){const out=[];const css=read('nodspel/perks.css');const game=read('nodspel/game.mjs');const ui=read('nodspel/perk-ui.js');const layout=read('scripts/layout-check.mjs');
+     if(!/\.perk-grid\{[^}]*minmax\(\s*44px\s*,/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-grid columns must use minmax(44px,...) so cards cannot collapse below the touch target');
+     if(!/\.perk-choice\{[^}]*min-width:\s*44px/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-choice must set min-width:44px');
+     if(/\.perk-choice:active\{[^}]*scale\(/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-choice:active must not scale (scale shrinks getBoundingClientRect below the 44px floor)');
+     if(!/open\(round,\s*key\s*,\s*opts/.test(ui)&&!/opts\.timeoutMs/.test(ui))out.push('nodspel/perk-ui.js: open() must accept opts.timeoutMs');
+     if(!/perkPickDemo\(\)\{[\s\S]*?openPerk\(key,\{timeoutMs:\s*0\}\)/.test(game))out.push('nodspel/game.mjs: perkPickDemo must open with {timeoutMs:0} so layout can measure before auto-pick');
+     if(!/perkForceTimeout\(\)\{act\('timeout'\);\}/.test(game))out.push('nodspel/game.mjs: perkForceTimeout() must call act(\'timeout\') for layout after measure');
+     if(!/perkForceTimeout\(\)/.test(layout))out.push('scripts/layout-check.mjs: perkPopupRun must call __NR.perkForceTimeout() after the 44px assert');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

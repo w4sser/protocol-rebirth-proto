@@ -243,7 +243,7 @@ async function baseRun([w,h]){
           await shot(page,`base-${w}x${h}-settings-scrolled`);
         }
         if(name==='base'){ // v1.67: room plates never sit under the goal card
-          // v2.27.1 Clean Base UI: with nothing selected the bunker art fills >=80% of the screen, no bottom bar/nameplates, rooms >=44px hit areas.
+          // v2.27.2 Clean Base UI: with nothing selected the bunker art fills >=80% of the screen, no bottom bar/nameplates, rooms >=44px hit areas.
           const env=await page.evaluate(()=>{let ok=0,n=0;const W=innerWidth,H=innerHeight;for(let x=4;x<W;x+=W/40)for(let y=4;y<H;y+=H/30){n++;const e=document.elementFromPoint(x,y);if(e&&(e.matches('.baseplate,.baseviewer,.baseworld')||e.closest('.mapspot')))ok++;}
             const small=[...document.querySelectorAll('.baseworld .mapspot')].filter(p=>{const r=p.getBoundingClientRect();return r.width&&(r.width<44||r.height<44);}).map(p=>p.getAttribute('aria-label'));
             const tabs=[...document.querySelectorAll('#tabs>button')].filter(b=>b.offsetWidth&&!b.classList.contains('nav-prep')).length;
@@ -596,8 +596,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.27.1');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.27.1');
+    const {createRound}=await import('./round.js?v=2.27.2');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.27.2');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -656,6 +656,8 @@ async function perkPopupRun([w,h]){
   await shot(page,`perk-pick-${w}x${h}`);
   if(await page.$eval('.perk-panel',e=>!!e.querySelector('h2,.pop-x,.perk-recap,.perk-sub,.perk-confirm')||!e.querySelector('.perk-countdown-bar')))fail(tag,'picker must contain only cards and countdown');
   const first=before.first;
+  // Demo opens with timeoutMs:0 so the 44px measure cannot race the live 4s auto-pick closing the overlay to 0x0.
+  await page.evaluate(()=>window.__NR.perkForceTimeout());
   await page.waitForFunction(()=>document.querySelector('.perk-overlay').hidden,{timeout:6000});
   if(!await page.$eval('.controls',e=>!e.inert&&getComputedStyle(e).visibility!=='hidden'))fail(tag,'HUD not restored after timeout');
   if(!await page.evaluate(id=>window.__NR.round().perks.taken.includes(id),first))fail(tag,'timeout did not pick the first offered card');

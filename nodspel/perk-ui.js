@@ -1,5 +1,5 @@
-import {audioEvent} from './audio.js?v=2.27.1';
-import {cards,cardEffect,offer,perkState,PERKS} from './perks.js?v=2.27.1';
+import {audioEvent} from './audio.js?v=2.27.2';
+import {cards,cardEffect,offer,perkState,PERKS} from './perks.js?v=2.27.2';
 const paths={
   chain:'M5 17l7-10 1 6h6l-7 10-1-6H5z M4 4h4 M18 4h2',
   reload:'M5 9a8 8 0 1 1-1 7 M5 4v5h5 M12 8v5l3 2',
@@ -39,10 +39,12 @@ export function createPerkUI(viewport,action){
     if(open){for(const el of viewport.children){if(el===layer||background.has(el))continue;background.set(el,el.inert);el.inert=true;}}
     else {for(const [el,inert] of background)el.inert=inert;background.clear();}
   }
-  return {layer,open(round,key){
+  return {layer,open(round,key,opts={}){
     audioEvent('perk-open');
     clearTimeout(autoTimer);clearTimeout(lockTimer);
     const generation=++countdownGeneration;
+    // timeoutMs:0 keeps the picker open (layout/debug measure); default is the live raid deadline.
+    const timeoutMs=opts.timeoutMs==null?PERKS.pickTimeoutMs:opts.timeoutMs;
     const ids=offer(round,key);grid.replaceChildren();
     bar.style.animation='none';void bar.offsetWidth;
     for(const id of ids){const c=cards.find(c=>c.id===id),button=document.createElement('button');button.type='button';button.className='perk-choice';button.dataset.accent=c.accent;
@@ -63,8 +65,13 @@ export function createPerkUI(viewport,action){
     // Finish the visible layout before starting the four-second deadline. The input lock
     // runs inside that budget; auto-pick must not depend on animation-frame delivery.
     panel.getBoundingClientRect();
-    bar.style.animation=`perk-countdown ${PERKS.pickTimeoutMs}ms linear forwards`;
-    autoTimer=setTimeout(()=>{if(generation===countdownGeneration&&!layer.hidden)action('timeout');},PERKS.pickTimeoutMs);
+    if(timeoutMs>0){
+      bar.style.animation=`perk-countdown ${timeoutMs}ms linear forwards`;
+      autoTimer=setTimeout(()=>{if(generation===countdownGeneration&&!layer.hidden)action('timeout');},timeoutMs);
+    }else{
+      // No auto-pick: keep the countdown bar full so layout can measure stable >=44px touch targets.
+      bar.style.animation='none';bar.style.transform='scaleX(1)';
+    }
   },confirm(text,selected){countdownGeneration++;audioEvent('perk-select');clearTimeout(autoTimer);clearTimeout(lockTimer);panel.classList.remove('locked');for(const b of grid.children)b.disabled=true;selected?.classList.add('picked');},close(){countdownGeneration++;clearTimeout(autoTimer);clearTimeout(lockTimer);layer.hidden=true;readyAt=Infinity;armedPointer=null;setModal(false);},
   hud(round,container){let el=container.querySelector('.perk-hud');if(!el){el=document.createElement('div');el.className='perk-hud';el.setAttribute('aria-label','Active raid perks');container.append(el);}el.replaceChildren();for(const id of perkState(round).taken){const c=cards.find(c=>c.id===id),span=document.createElement('span');span.dataset.perk=id;span.title=`${c.name}: ${perkState(round).selectedEffects?.[id]??c.effect}`;span.setAttribute('role','img');span.setAttribute('aria-label',span.title);span.append(perkIcon(id));el.append(span);}}
   };
