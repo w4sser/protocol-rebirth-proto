@@ -159,7 +159,7 @@ function stepCharger(round,e,combat,player,now,dt,obstacles,dash){
 // A thrower killed during the warning never lobs; a blast already in the air still lands (leave the ring).
 function lobGrenade(round,combat,enemy,now){
   const G=RULES.encounters.grenadier,at=enemy.attackTarget;enemy.attackTarget=null;
-  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
+  if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,fromX:enemy.x,fromZ:enemy.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
   combat.nextFire.set(enemy.id,now+G.cooldownMs);
 }
 function stepBlasts(round,combat,player,now,dash=null){
