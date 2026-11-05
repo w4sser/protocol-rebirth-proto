@@ -11,13 +11,17 @@ export function coastSeed(levelSeed,floor){
   for(const ch of label)s=Math.imul(s^ch.charCodeAt(0),16777619);
   return s>>>0;
 }
+export function coastCoves(seed){
+  return [
+    {center:.09+.26*unit(seed+113),halfWidth:.048+.007*unit(seed+37)},
+    {center:.58+.25*unit(seed+229),halfWidth:.048+.008*unit(seed+43)},
+  ];
+}
 export function coastBeach(t,seed){
   // Two small coves occupying ~20% of angular perimeter. Everything between
   // them is granite or rocky skerry; there is no continuous sand rim.
-  const c1=.09+.26*unit(seed+113),c2=.58+.25*unit(seed+229);
-  const w1=.048+.007*unit(seed+37),w2=.048+.008*unit(seed+43);
-  const d=Math.min(circleDistance(t,c1)-w1,circleDistance(t,c2)-w2);
-  return 1-smooth(-.008,.012,d);
+  return Math.max(...coastCoves(seed).map(p =>
+    1-smooth(-.008,.012,circleDistance(t,p.center)-p.halfWidth)));
 }
 export function coastBeachAt(floor,x,z,levelSeed){
   if(floor.dir)return 0;
