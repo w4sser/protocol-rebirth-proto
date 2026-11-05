@@ -8,8 +8,8 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.27.1';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.27.1';
 import {createWaterMesh} from './water-shader.js?v=2.27.1-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs';
-import {bridgeClearances} from './bridge-flow.mjs';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.27.1-bridge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.27.1-bridge1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
