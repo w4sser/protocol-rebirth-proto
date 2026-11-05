@@ -245,6 +245,7 @@ function placeDecor(floors, group, assets, biome, profile, levelSeed, stats) {
   const pathSet=DECALS[biome];
   for(let f=0;f<floors.length;f++){
     const floor=floors[f];
+    if(biome==='nature' && floor.dir)continue;
     // No complete trail on small islands. Save path geometry for expansive areas only.
     // Existing quiet moss/lichen decals remain to imply local wear around gameplay.
     if(biome==='nature' && !floor.dir && Math.min(floor.w,floor.d)>=20 && floor.w*floor.d>=480){
@@ -301,6 +302,8 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
     const seed = floorSeed(level);
     for (let f=0; f<level.floors.length; f++) {
       const floor = level.floors[f];
+      // Real wood planks and the approach funnel must stay visible on bridges.
+      if(biome==='nature' && floor.dir)continue;
       grid(floor, (x,z,sx,sz,size) => {
         const variant = 'abcd'[hash(seed,Math.floor(x*8),Math.floor(z*8))%4];
         const filename = 'terrain_tile_' + size + 'm_' +
