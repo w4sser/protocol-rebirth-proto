@@ -35,11 +35,11 @@ test('both rendering profiles use opaque world-space shader blend, not global al
   const src=await readFile(new URL('../ground-preview.js',import.meta.url),'utf8');
   assert.match(src,/function addShoreFade\(shader, profile\)/);
   assert.match(src,/shader\.vertexShader=.*shader\.vertexShader/);
-  assert.match(src,/attribute vec4 shoreBounds/);
-  assert.match(src,/diffuseColor\.rgb=mix\(shoreSandColor,diffuseColor\.rgb,shoreFactor\)/);
+  assert.match(src,/attribute vec4 shoreBounds, shoreCoveA, shoreCoveB/);
+  assert.match(src,/diffuseColor\.rgb=mix\(coastColor,diffuseColor\.rgb,shoreFactor\)/);
   assert.match(src,/if\(biome==='nature'\)addShoreFade\(shader,'high'\)/);
   assert.match(src,/surfaceMaterial\.onBeforeCompile=shader=>addShoreFade\(shader,'low'\)/);
-  assert.match(src,/tileGeometry = biome==='nature' \? attachShoreBounds\(geometry,floor\) : geometry/);
+  assert.match(src,/tileGeometry = biome==='nature' \? attachShoreBounds\(geometry,floor,level.seed\) : geometry/);
   assert.match(src,/shoreGeometry\)node\.geometry\.dispose/);
   assert.doesNotMatch(src,/surfaceMaterial\.transparent\s*=\s*true/);
 });
