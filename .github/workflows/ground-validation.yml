@@ -8,6 +8,8 @@ on:
       - 'scripts/shot-ground-v2.mjs'
       - 'nodspel/ground-preview.js'
       - 'nodspel/ground-organic-trail.mjs'
+      - 'nodspel/shore-fade.mjs'
+      - 'nodspel/tests/shore-fade.test.mjs'
       - 'nodspel/tests/ground-organic-trail.test.mjs'
       - 'nodspel/game.mjs'
       - '.github/workflows/ground-validation.yml'
@@ -24,6 +26,8 @@ jobs:
         run: |
           node --check nodspel/ground-preview.js
           node --check nodspel/ground-organic-trail.mjs
+          node --check nodspel/shore-fade.mjs
+          node --check nodspel/tests/shore-fade.test.mjs
           node --check nodspel/tests/ground-organic-trail.test.mjs
           node --check nodspel/game.mjs
           node --check scripts/shot-ground-v2.mjs
@@ -31,6 +35,8 @@ jobs:
           node --check scripts/validate-terrain-pngs.mjs
       - name: Verify organic trail widths, fade, winding and node-depth order
         run: node --test nodspel/tests/ground-organic-trail.test.mjs
+      - name: Verify opaque HIGH/LOW shore fades and tile seam continuity
+        run: node --test nodspel/tests/shore-fade.test.mjs
       - name: Validate new PNG files, alpha and splat channel normalization
         run: node scripts/validate-terrain-pngs.mjs
       - name: Install official Khronos glTF Validator
