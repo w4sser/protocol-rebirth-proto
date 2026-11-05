@@ -81,7 +81,8 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
     try{
       const rocks=group.children.filter(m=>m.name==='archipelago-rock'),paths=group.children.filter(m=>m.name==='archipelago-passage');
       assert.equal(info.rocks,rocks.length);assert.equal(info.rockColliders,level.walls,'uses gameplay wall colliders');
-      assert.equal(paths.length,info.passages.length);
+      assert.equal(paths.length,0,'navigation openings must not create beige road geometry');
+      assert.ok(info.passages.length>0,'navigation clearance remains available');
       assert.equal(rocks.length,level.walls.filter(c=>!c.shore).length,'one collider per visible rock');
       const byWall=new Map();
       for(const rock of rocks){
@@ -100,12 +101,8 @@ test('each chunky boulder has exactly one matching gameplay footprint collider',
         // Compare every edge, not only centerlines: the whole collider equals the footprint.
         for(const [actual,expected] of [[collider.x-collider.w/2,b.min.x],[collider.x+collider.w/2,b.max.x],[collider.z-collider.d/2,b.min.z],[collider.z+collider.d/2,b.max.z]])assert.ok(Math.abs(actual-expected)<1e-6);
       }
-      for(const path of paths){
-        const bounds=new THREE.Box3().setFromObject(path),p=path.userData.clearance;
-        assert.ok(Math.abs(bounds.max.x-bounds.min.x-p.w)<1e-5);
-        assert.ok(Math.abs(bounds.max.z-bounds.min.z-p.d)<1e-5);
-        assert.ok(bounds.max.y>0,'ground strip visible above grass and pier');
-      }
+      // Pass 6: passage clearances are still maintained in info.passages, but not drawn.
+      assert.ok(info.passages.every(p=>p.w>0&&p.d>0),'navigation clearance geometry remains valid');
     }finally{rendered.dispose();}
   }
   assert.ok(maxHeightSeen>1.2,'full v2.1.0 boulder height is reachable, not capped low like the v2.1.1 flat strip');
