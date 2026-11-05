@@ -103,8 +103,8 @@ try {
         console.log('[ground-boot-ready]',area,mode,JSON.stringify(bootAudit.loadedAtReveal));
         // The green legacy grass must be hidden behind textured preview on
         // small iPhone viewports, otherwise it can appear as a flat olive field.
-        if(area==='archipelago' && (!ground.backupsHidden || ground.trails!==0))
-          throw new Error('Archipelago preview should hide base grass and draw no full paths: '+JSON.stringify(ground));
+        if(area==='archipelago' && (!ground.backupsHidden || ground.trails!==0 || ground.coastFeatherMeshes<1))
+          throw new Error('Archipelago should hide base grass, omit small-island paths and blend every coast shell: '+JSON.stringify(ground));
         if(mobile && area==='archipelago'){
           const geometryAudit=await page.evaluate(()=>{
             const overlay=window.__groundPreview?.group;
