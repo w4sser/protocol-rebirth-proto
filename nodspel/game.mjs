@@ -747,7 +747,7 @@ const GROUND_V2_PROFILE=GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'hig
 const GROUND_DEBUG=GROUND_V2 && GROUND_V2_PARAMS.has('groundDebug');
 // Start fetching the preview module as soon as this module initializes. The
 // same promise is reused to build each level and to preload terrain during boot.
-const groundModulePromise=GROUND_V2?import('./ground-preview.js?v=ground-v8-preload'):null;
+const groundModulePromise=GROUND_V2?import('./ground-preview.js?v=ground-v8-shore'):null;
 // Opt-in real-device diagnostics. Reports loading separately from GPU rendering;
 // prevents confusing a missing preview with a design problem in the grass color.
 function groundStatus(message){
