@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.5 - design review in progress |
+| Document status | Living design reference, v1.6 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -601,7 +601,7 @@ The FTUE design document's final implementation-status paragraph is older than s
 
 **D2.3 alignment:** The historical FTUE pressure countdown is not the newly approved five-second extraction procedure. D2.7 must explicitly reconcile FTUE teaching and any scripted encounter with the quick-mode contract. This update neither changes the running tutorial nor automatically approves an exception or a replacement hunter sequence. [D01]
 
-**APPROVED D3.1 — Opening direction:** A **very short playable introduction** establishes BIT and the immediate situation, followed almost immediately by combat. The extended bunker explanation and first restoration payoff follow the **first extraction**, rather than delaying the first shot with a bunker tour or extensive menus. This is the selected **option C** for the opening. Exact framing, controls, lines, timing, and tutorial assistance are still open and require phone playtesting; the previously documented first-shot target is not a newly approved fixed threshold. [D01]
+**REVISED OWNER DIRECTION D3.1 — Opening:** The player begins **without BIT**, fights toward and discovers the bunker, and **first meets BIT inside the bunker**. BIT greets the returning operator with the owner's line: **“You're late, but you're back.”** The encounter is a narrative/character payoff, not BIT tutorial narration before combat. Immediate playable movement and combat remain essential; no extended menus or exposition should precede the action. This explicitly supersedes the previous assumption that BIT guides the opening before combat and the bunker is first revealed only after a separate initial extraction. Whether reaching the bunker itself completes/extracts the intro, and how loot, node gates, and failure work in that opening, remain **OPEN**, not implicitly resolved by the revised story. [D01]
 
 ### 13.3 Intended learning sequence
 
@@ -609,10 +609,10 @@ This is a consolidated design sequence, not a frame-by-frame claim about the cur
 
 | Stage | Player experience | What should be learned | What should wait |
 | --- | --- | --- | --- |
-| First contact | Move, aim/fire, encounter an obvious threat | "I can control this, and attacks can be read." | Full equipment statistics and economy |
+| First contact | Move, aim/fire while approaching the unknown bunker, without BIT as an early guide | "I can control this, and attacks can be read." | Full equipment statistics and economy |
 | First useful find | Recognize and collect supplies | "This is worth taking home." | Every item family and crafting recipe |
-| First extraction | Reach the available exit under readable pressure | "Finding is not keeping; getting home matters." | Multiple competing quest systems |
-| First home payoff | Restore power and understand the next useful facility | "My raid changes this place." | All long-term currencies and upgrade trees |
+| Intro completion / first extraction (exact relationship OPEN) | Reach the bunker and meet BIT; separately teach when carried loot is banked | "Finding is not keeping; getting home matters." | Multiple competing quest systems |
+| First bunker discovery and restoration payoff | Meet BIT, see the damaged Core, and understand the next useful repair | "My raid changes this place." | All long-term currencies and upgrade trees |
 | First preparation | Use a relevant piece of equipment or benefit | "What I built affects my next attempt." | Advanced optimization |
 | First independent choice | Choose a goal or decide to push further | "I am making my own risk/reward decision." | Optional retention and commerce experiments |
 
@@ -909,6 +909,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v1.6, 6 November 2026:** Revised D3.1 from BIT-first onboarding to a playable combat approach culminating in discovering BIT inside the bunker. Recorded owner's greeting, “You're late, but you're back.” The boundary between introductory mission completion and extraction is explicitly open. Documentation only.
 - **v1.5, 6 November 2026:** Approved D3.1 (option C): very short interactive BIT introduction, immediate combat, bunker introduction after the first extraction. Exact opening beats and FTUE testing remain open. Documentation only.
 - **v1.4, 6 November 2026:** Approved D2.4 (required nodes consistently unlock forward progression, separate from return extraction) and D2.8 (deeper loot opportunities plus a distinct valuable terminal objective/payoff, option C). Preserved open reward/encounter tuning, topology, and FTUE questions. Documentation only.
 - **v1.0, 6 November 2026:** Consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts.
