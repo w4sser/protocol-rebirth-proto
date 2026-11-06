@@ -1,1 +1,0 @@
-Layout CI should run in independent browser processes for popups, base, bunker and town to avoid SwiftShader resource exhaustion.
