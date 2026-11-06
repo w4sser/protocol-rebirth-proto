@@ -9,17 +9,18 @@ footer{padding:10px 16px;background:#1b2740;font-size:12px;display:flex;gap:20px
 a{color:#3fe0d0}#metric{font-variant-numeric:tabular-nums}
 </style></head><body>
 <header><h1>POLYFORK / ASSET REVIEW</h1>
-<label>Kit <select id="kit"><option value="All">All (20)</option><option>Forest</option><option>Coast</option><option>Bunker</option></select></label>
+<label>Kit <select id="kit"><option value="All">All (56)</option><option>Forest</option><option>Coast</option><option>Bunker</option></select></label>
 <label>Model <select id="model"></select></label>
 <button id="prev" aria-label="Previous asset">Previous</button><button id="next" aria-label="Next asset">Next</button>
-<label><input type="checkbox" id="rotate" checked> Rotate</label>
+<label><input type="checkbox" id="rotate" checked> Rotate</label><label><input type="checkbox" id="auto"> Auto-cycle</label>
 <span id="status" role="status">Ready</span></header>
 <canvas id="view"></canvas>
 <footer><span id="metric">Select a model</span><span>Reference checker: 1 m floor grid, normalized max dimension 3 m for visual comparison (not production scale).</span><a id="assetLink" target="_blank" rel="noopener noreferrer">Source model</a><span>Remote CDN / no model copies committed</span></footer>
 <script type="module">
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-const picks=[["Forest","Birch Tree","birch-tree-181b33"],["Forest","Tall Pine","tall-pine-tree-ab4108"],["Forest","Young Pine","young-pine-0d7695"],["Forest","Fern","fern-plant-1559b8"],["Forest","Grass Tuft","grass-tuft-a40a08"],["Forest","Fallen Log","fallen-log-1685fb"],["Forest","Large Boulder","large-boulder-a29b99"],["Forest","Medium Rock","medium-rock-e08405"],["Forest","Round Bush","round-bush-cd2ac0"],["Forest","Tree Stump","tree-stump-ec3f48"],["Coast","Driftwood Log","driftwood-log-89a68f"],["Coast","Rock Armour","rock-armour-revetment-aea1ca"],["Coast","Marram Grass","marram-grass-tuft-8c7a99"],["Coast","Seaweed Drift","seaweed-drift-line-6566c3"],["Coast","Boat Shed","boat-shed-74c94f"],["Coast","Mooring Bollard","mooring-bollard-2d4bc9"],["Bunker","Hazard Sign","hazard-sign-plate-d54657"],["Bunker","Gas Cylinder Cabinet","gas-cylinder-cabinet-cea23b"],["Bunker","Cargo Crate","cargo-crate-696892"],["Bunker","Battery Bank","battery-bank-b4d362"]];
+import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs';
+const picks=POLYFORK_CANDIDATES.map(({category,name,id})=>[category,name,id]);
 const kit=document.querySelector('#kit'),model=document.querySelector('#model'),status=document.querySelector('#status'),metric=document.querySelector('#metric'),link=document.querySelector('#assetLink');
 const canvas=document.querySelector('#view'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -51,5 +52,6 @@ kit.addEventListener('change',refresh);model.addEventListener('change',selectMod
 document.querySelector('#prev').addEventListener('click',()=>{model.selectedIndex=(model.selectedIndex-1+current.length)%current.length;selectModel();});
 document.querySelector('#next').addEventListener('click',()=>{model.selectedIndex=(model.selectedIndex+1)%current.length;selectModel();});
 const clock=new THREE.Clock();function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.05);if(document.querySelector('#rotate').checked)root.rotation.y+=dt*.35;
+if(document.querySelector('#auto').checked&&Math.floor(performance.now()/3500)!==Math.floor((performance.now()-dt*1000)/3500)){model.selectedIndex=(model.selectedIndex+1)%current.length;selectModel();}
 const w=canvas.clientWidth,h=canvas.clientHeight;if(w&&h){const dpr=renderer.getPixelRatio();if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}renderer.render(scene,camera);}}refresh();frame();
 </script></body></html>
