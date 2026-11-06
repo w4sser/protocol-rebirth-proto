@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.9 - design review in progress |
+| Document status | Living design reference, v2.0 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -605,6 +605,8 @@ The FTUE design document's final implementation-status paragraph is older than s
 
 **APPROVED D3.5 — First restoration sequence:** After meeting BIT, the player uses an item found on the opening approach to restore a meaningful piece of the bunker, with an immediately visible change. The **approved implementation direction** is to guarantee two Scrap Alloy on the approach, settle them through the bunker-entry extraction, spend them on the **actual Rebirth Core L1** upgrade (current cost: 2 Scrap Alloy; restores emergency power and reveals room access), and show the Core hall lighting up. Then BIT points to **Fabricator L1** as the next concrete reason to raid (current cost: 20 Scrap, 2 Cable, 2 Scrap Alloy; first build yields Scavenger Vest, +25 shield and +1 bag slot). **APPROVED D3.6:** If the player dies before reaching the bunker, the complete introductory mission restarts free of charge from its beginning, with the two guaranteed Scrap Alloy available again; no intro loot or Core upgrade is duplicated on failure. Regular D1 risk rules still govern unsuccessful attempts. The exact pickup/activation UI, retry presentation, and BIT dialogue beyond the owner's greeting remain open. [D01] [S07]
 
+**APPROVED D3.7 — First ordinary raid BIT guidance:** Use contextual, non-blocking guidance rather than constant instructions or forced dialogue. The **proposed teaching triggers** are: (1) Fabricator/Cable purpose at deployment, (2) combat danger warnings only when useful, not a repeat of basic shooting controls, (3) first relevant Cable pickup and progress, (4) first required node opens the **forward** gate, (5) extraction vs. continue with exposed cargo, and (6) results that accurately describe retained/lost items and the next home goal. Suppress chatter during urgent combat; explain new mechanisms once and help only when a player stalls. Exact barks, timeouts, iconography, and event scheduling remain design/implementation proposals; only the contextual guidance approach is approved. [D01]
+
 ### 13.3 Intended learning sequence
 
 This is a consolidated design sequence, not a frame-by-frame claim about the current UI.
@@ -911,6 +913,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.0, 6 November 2026:** Approved D3.7 contextual, non-blocking BIT guidance during the first ordinary raid; proposed six event-based learning moments and guidance scheduling, distinguished from the earlier no-BIT introductory approach. Exact bark/trigger tuning and implementation remain open. Documentation only.
 - **v1.9, 6 November 2026:** Approved the concrete D3.5 Core L1 first restoration (two guaranteed Scrap Alloy from intro, consumed at Core activation, visible power restoration, Fabricator L1 next goal) and D3.6 (free full intro restart on death, no duplication or permanent-progress loss). Exact UX and pacing still open. Documentation only.
 - **v1.8, 6 November 2026:** Approved D3.5 concept (spend intro loot to restore a visible part of home). Proposed a deterministic two-Scrap-Alloy pickup, existing Core L1 restoration, and Fabricator L1 as next raid goal, carefully separating proposed detail from owner approval. Documentation only.
 - **v1.7, 6 November 2026:** Approved D3.2: bunker entry concludes the introductory playable mission as the first extraction, BIT is encountered inside, and the first regular raid with BIT follows. Exact entry/intro loot/loss/retry rules remain open. Documentation only.
