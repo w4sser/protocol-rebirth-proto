@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.1 - design review in progress |
+| Document status | Living design reference, v1.2 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -13,7 +13,7 @@
 | Prototype version inspected | `2.28.0`; meta save version `15` |
 | Scope | The player-facing game, its interconnected loops, progression, onboarding, and design intent |
 | Verification | Repository documents and selected implementation/data files inspected. No new end-to-end playtest was performed for this document. |
-| Subsequent owner decisions | [Design Decision Register](design-decisions.md): D1 Controlled Risk approved; D1 details and D2 mission structure remain in review |
+| Subsequent owner decisions | [Design Decision Register](design-decisions.md): D1 Controlled Risk and D2.1/D2.2 extraction principles approved; D1 details and D2.3-D2.7 remain in review |
 
 ### How to read this document
 
@@ -27,7 +27,9 @@ This is a consolidated explanation of the game, not a claim that every design id
 
 Where these differ, both are recorded rather than quietly rewriting history. Numerical values below are a snapshot, not permanent balance commitments. Follow the linked sources when changing them.
 
-**Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. The exact Secure Slot specification and interrupted-session handling remain open. This documentation update does not change gameplay. [D01]
+**Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. The exact Secure Slot specification and interrupted-session handling remain open. [D01]
+
+**D2.1 and D2.2 are also approved:** Every ordinary raid has at least one return extraction available from the beginning, and the player may extract successfully with an incomplete personal objective. Reaching and completing extraction remains necessary; the interaction, node roles, topology, and special-mode mapping are still in review. These approvals do not change the running game by themselves. [D01]
 
 **Reading routes:** Read sections 1-4 for the game in one sitting. Read sections 5-12 to understand its systems. For onboarding and UX work, continue with sections 13-14 and the review register in section 18. Read the separate [Design Decision Register](design-decisions.md) for approvals and proposed details. AI tools should also read section 21.
 
@@ -125,6 +127,8 @@ PvE remains the baseline. Do not add currencies casually. BIT may perform one ac
 
 **APPROVED D1:** Carried and equipped valuable gear is at risk. One Secure Slot unlocks at Vault L1. BIT does not automatically return lost items, and insurance/paid bag recovery are not part of the target core loop. The player can always retry with the free Basic Carbine. Precise Secure Slot eligibility, quantity, and interrupted-session behavior are not yet settled. [D01]
 
+**APPROVED D2.1/D2.2:** Ordinary raids provide at least one return extraction available from the start. Personal-objective completion does not gate that return. The player must still get there and complete extraction; successful extraction does not automatically complete a quest or clear a depth. [D01]
+
 ---
 
 ## 3. The connected loops
@@ -148,6 +152,8 @@ flowchart LR
 ```
 
 The diagram shows the main loss rule. The one approved Secure Slot exception is explained in section 6.4. Historical BIT rescue and insurance definitions are implementation-alignment work, not additional approved protection mechanisms. [D01]
+
+The sequence is illustrative, not a set of mandatory exit prerequisites. Under D2.1/D2.2, the player may return with an incomplete personal goal; neither finding all required loot nor finishing every encounter is a prerequisite for the guaranteed ordinary return extraction. [D01]
 
 ### 3.2 Nested loops and their jobs
 
@@ -199,15 +205,21 @@ The player identifies a purpose: a tracked upgrade part, a quest, scouting an ar
 
 ### During the raid
 
-**CURRENT:** The standard structure has three depths within a shared round. The player moves through spaces with enemies, cover, loot, and control nodes. In the ordinary non-Big-Map flow, all nodes on the current level must be active before its exit opens. Nodes can be interacted with through the supported shooting/proximity mechanics, with shielded variants creating additional problems. [S04] [S09]
+**CURRENT AT THE INSPECTED BASELINE:** The standard structure has three depths within a shared round. The player moves through spaces with enemies, cover, loot, and control nodes. In the ordinary non-Big-Map flow, all nodes on the current level must be active before its exit opens. Nodes can be interacted with through the supported shooting/proximity mechanics, with shielded variants creating additional problems. [S04] [S09]
 
-The player does not automatically need to kill every enemy to open an exit. The underlying objective is to satisfy the exit conditions and survive the journey, not universally clear the map.
+The baseline does not automatically require killing every enemy to open an exit. Its node-gated return is recorded here as implementation history, not the newly approved future rule.
 
-**OPEN D2:** The owner has not yet decided whether normal raids should retain mandatory node-gated exits or offer a return extraction reachable from the start. The [D2 review](design-decisions.md#d2---mission-purpose-objectives--extraction) separates personal purpose from exit conditions and recommends the latter as a proposal only. D1 does not approve this change. [D01]
+**APPROVED D2.1:** Every ordinary raid must offer at least one return extraction available from the beginning, without first activating the level's nodes, completing the personal objective, or clearing all enemies. The player must physically reach and complete extraction; availability does not promise safety or an instant exit. [D01]
+
+**APPROVED D2.2:** Extracting with a partially or wholly incomplete personal objective is a successful extraction. Only the actual haul is banked. Unfinished objectives remain unfinished and receive only the progress or rewards their own conditions support. [D01]
+
+**OPEN DETAILS:** D2.3 proposes a deliberately started short countdown, with five seconds as an initial test value only. The exact interaction, node roles, return topology, deadline behavior, and special-mode mapping are not approved. Do not infer that all nodes were removed or the running game was changed. [D01]
 
 ### At a depth exit
 
-After an early depth, the player may extract or continue. Continuing does **not** secure the bag. The same carried value remains at risk in the next depth. The final normal depth completes the raid when the player deliberately enters the available exit. [S04] [S05]
+In the inspected baseline, after an early depth, the player may extract or continue. Continuing does **not** secure the bag. The same carried value remains at risk in the next depth. The final normal depth completes the raid when the player deliberately enters the available exit. [S04] [S05]
+
+The no-banking-on-continue rule remains approved under D1. D2's topology review must specify how ordinary return routes work after a depth transition without silently treating the historical node gate as the target rule. [D01]
 
 **CURRENT variant:** Big Map has separate extraction availability logic and multiple extraction definitions. It should be treated as a mode-specific structure, not assumed to follow every rule of the three-depth flow. [S04]
 
@@ -229,6 +241,8 @@ These are baseline settings, not universal guarantees for FTUE or every mode. Wa
 ### After the raid
 
 Successful loot is reconciled into the persistent economy. Currency-bearing pickups convert to the relevant currency; materials and gear have different storage destinations. An unsuccessful raid records loss rather than silently treating a previous depth as a successful bank. The result should then lead back to a useful next action. [S02] [S05] [S08] [S12]
+
+**D2.2 result contract:** Extraction outcome, personal-objective completion, and depth-clear progress are distinct facts. Early extraction must not fabricate cleared depths, completed nodes, scouting credit, or quest rewards merely to satisfy old result-ingestion assumptions. [D01]
 
 **PROPOSAL for result-screen hierarchy:** Outcome -> what came home or was lost -> progress toward the chosen goal -> one recommended next action. Secondary XP bars should not obscure that explanation. A protected item must be shown separately from successful extraction rather than implying the entire failed raid was a success. [D01]
 
@@ -488,13 +502,15 @@ A raid can contain several different reasons to act:
 
 | Objective type | Example | What completes it |
 | --- | --- | --- |
-| Exit requirement | Activate the current level's control nodes in the inspected normal mode | Satisfy that mode's gate/extraction rules; D2 is reviewing the intended future rule |
+| Return extraction | Under approved D2.1, at least one ordinary return route is available from the start | Reach and complete its extraction procedure; personal-goal completion is not required. The inspected baseline's node gate needs alignment. |
 | Personal build goal | Find Cable for a facility upgrade | Bring home enough usable materials and perform the build |
 | Quest | Extract specified items, defeat a specified enemy, or hand in parts | Meet that quest's own objective and claim/hand in as required |
 | Optional opportunity | Extra cache, equipment pickup, searchable room | Take the opportunity and, for exposed carried rewards, extract |
 | Scouting goal | Recover a chart/survey | Extract the relevant scouting item under the baseline rule |
 
-**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and what is currently required to leave it. D2 proposes separating personal-goal completion from the ability to extract; it is not yet approved. [D01]
+**APPROVED D2.2:** Personal-goal completion and successful extraction are independent. The player may leave successfully with an incomplete goal; the missing requirement does not become completed merely because the player got home. [D01]
+
+**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and how to get home. The exact HUD hierarchy and revised node functions remain under review. [D01]
 
 ### 11.3 Quest systems
 
@@ -699,7 +715,7 @@ This is a review register, not permission to implement every item. Explicit appr
 | Priority | Topic | Status / evidence | Required outcome |
 | --- | --- | --- | --- |
 | P0 | Death and protection | D1 direction APPROVED: full risk, one Vault L1 Secure Slot, no BIT auto-rescue, no insurance/paid bag recovery, free retry | Finalize D1-A through D1-D and align runtime paths, migration, and UI; do not reopen the five approved rules by treating old code as design authority |
-| P0 | Mission purpose and exits | D2 IN REVIEW: current node-gated model vs a return extraction reachable from the start | Decide extraction accessibility, then specify objectives, node roles, mode differences, and result vocabulary |
+| P0 | Mission purpose and exits | D2.1/D2.2 APPROVED: at least one ordinary return extraction available from the start; personal-goal completion is independent | Align the old node-gated implementation; finish D2.3-D2.7 procedure, nodes, topology, communication, and special-mode mapping |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
@@ -720,7 +736,7 @@ A backend/account system is also described as future work in the agent guide. Th
 
 ### What this document does not approve
 
-D1 approves the five specified risk/recovery rules. It does not automatically authorize a gameplay commit or merge. The D1 specification recommendations and all D2 recommendations remain unapproved. [D01]
+D1 approves the five specified risk/recovery rules. D2.1/D2.2 approve an available ordinary return extraction and successful extraction independent of personal-objective completion. None of these approvals automatically authorizes a gameplay commit or merge. D1 specification recommendations and D2.3-D2.7 remain unapproved; the proposed five-second countdown is not a locked rule. [D01]
 
 No new currencies, replacement economy, guaranteed success outside the defined FTUE assistance, removal of kill rewards, Helldivers-style friendly fire, broader monetization, or combat rewrite is authorized here. The purpose is a shared understanding from which scoped decisions can be made.
 
@@ -764,8 +780,8 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 | Raid | One launched field run ending in extraction or loss; not a synonym for a single room |
 | Depth / level | A stage inside the normal raid; not Operator level |
 | Area | Bunker, Archipelago, or Town on the world map |
-| Node | A control objective involved in opening exits in the current normal flow; its intended future role is under D2 review |
-| Extraction | The successful act that banks the exposed carried haul |
+| Node | A control objective involved in opening exits in the inspected baseline; its future role is under D2 review and cannot block the guaranteed ordinary return route |
+| Extraction | The successful act that banks the exposed carried haul; not automatic personal-objective or depth completion |
 | Secure Slot | The one item-protection mechanism approved at Vault L1; quantity, eligibility, and settlement details remain under review |
 | HOME | Already secured persistent possessions |
 | BAG | Exposed raid cargo except any explicitly protected item |
@@ -800,7 +816,7 @@ Implementation and historical-document links below are pinned to the inspected c
 
 | ID | Source | Used for |
 | --- | --- | --- |
-| D01 | [Design Decision Register][D01] | Owner-approved D1, proposed D1 details, and unapproved D2 review; no gameplay implementation implied |
+| D01 | [Design Decision Register][D01] | Owner-approved D1 and D2.1/D2.2, proposed D1 details and D2.3-D2.7; no gameplay implementation implied |
 | S01 | [Agent guide][S01] | Product direction, locked rules, UI constraints, future backend boundary |
 | S02 | [Base application][S02] | Current app/save versions, persistent state, FTUE instrumentation, built-copy comments |
 | S03 | [Art direction][S03] | Tone, setting, character identity, visual priorities, color semantics |
@@ -847,6 +863,7 @@ Useful questions include: "What must a new player understand before their first 
 
 - **v1.0, 6 November 2026:** Consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts.
 - **v1.1, 6 November 2026:** Recorded owner-approved Controlled Risk decision D1, linked the decision register, reconciled the loss/BIT/insurance/free-retry direction across relevant sections, and opened D2 as an explicitly unapproved proposal. Secure Slot details and interrupted-session behavior remain open. No gameplay change or fresh runtime validation is implied.
+- **v1.2, 6 November 2026:** Recorded D2.1/D2.2 approval: at least one ordinary return extraction available from the start, with extraction success independent of personal-objective completion. Updated the loop, objective, result, glossary, and review sections while retaining the older node-gated behavior as the inspected baseline. D1 details, D2.3's countdown proposal, and D2.4-D2.7 remain open. Documentation only; no gameplay change or new runtime verification.
 
 [D01]: design-decisions.md
 [S01]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/AGENTS.md
