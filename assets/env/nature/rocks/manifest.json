@@ -18,79 +18,79 @@
       "file": "rock_granite_s_a.glb",
       "kind": "rock",
       "approx_dimensions_m": [
-        0.4724,
-        0.2539,
-        0.4626
+        0.4861,
+        0.2375,
+        0.4646
       ],
       "bbox_m": {
         "min": [
-          -0.2365,
+          -0.23793598248018444,
           0,
-          -0.2383
+          -0.21527335058062405
         ],
         "max": [
-          0.2359,
-          0.2539,
-          0.2243
+          0.24819952716299445,
+          0.2375,
+          0.24935941294408454
         ]
       },
       "collision": "cylinder r=0.25",
-      "triangle_count": 49,
+      "triangle_count": 45,
       "material_count": 1,
-      "file_size_bytes": 7132,
-      "notes": "Low-poly S granite variant a. Grey-pink stone with lichen/moss top."
+      "file_size_bytes": 4808,
+      "notes": "Rebuilt cool neutral granite with valid GLB header and vertex colors. No external texture."
     },
     {
       "file": "rock_granite_s_b.glb",
       "kind": "rock",
       "approx_dimensions_m": [
-        0.5937,
-        0.2775,
-        0.4754
+        0.5523,
+        0.266,
+        0.5657
       ],
       "bbox_m": {
         "min": [
-          -0.2647,
+          -0.2867045668507268,
           0,
-          -0.2437
+          -0.2652526462390838
         ],
         "max": [
-          0.329,
-          0.2775,
-          0.2317
+          0.2655507768258414,
+          0.266,
+          0.30046940245466786
         ]
       },
       "collision": "cylinder r=0.25",
-      "triangle_count": 49,
+      "triangle_count": 45,
       "material_count": 1,
-      "file_size_bytes": 7132,
-      "notes": "Low-poly S granite variant b. Grey-pink stone with lichen/moss top."
+      "file_size_bytes": 4804,
+      "notes": "Rebuilt cool neutral granite with valid GLB header and vertex colors. No external texture."
     },
     {
       "file": "rock_granite_s_c.glb",
       "kind": "rock",
       "approx_dimensions_m": [
-        0.6834,
-        0.2996,
-        0.5735
+        0.6064,
+        0.285,
+        0.6586
       ],
       "bbox_m": {
         "min": [
-          -0.3008,
+          -0.31515577644494996,
           0,
-          -0.3167
+          -0.33028656944224355
         ],
         "max": [
-          0.3826,
-          0.2996,
-          0.2569
+          0.291222843175433,
+          0.285,
+          0.3283303596360514
         ]
       },
       "collision": "cylinder r=0.25",
-      "triangle_count": 49,
+      "triangle_count": 45,
       "material_count": 1,
-      "file_size_bytes": 7132,
-      "notes": "Low-poly S granite variant c. Grey-pink stone with lichen/moss top."
+      "file_size_bytes": 4804,
+      "notes": "Rebuilt cool neutral granite with valid GLB header and vertex colors. No external texture."
     },
     {
       "file": "rock_granite_m_a.glb",

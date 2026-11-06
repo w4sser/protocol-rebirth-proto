@@ -122,26 +122,26 @@
       "kind": "rock_edge",
       "approx_dimensions_m": [
         4,
-        0.4642,
-        1.24
+        0.425,
+        1.2
       ],
       "bbox_m": {
         "min": [
           -2,
           0,
-          -0.62
+          -0.6
         ],
         "max": [
           2,
-          0.4642,
-          0.62
+          0.42500000000000004,
+          0.6
         ]
       },
       "collision": "box",
       "triangle_count": 72,
       "material_count": 1,
-      "file_size_bytes": 9688,
-      "notes": "Faceted granite shore edge; identical 0.39m end heights; uncapped open ends for seam-safe butt-joining."
+      "file_size_bytes": 7024,
+      "notes": "Rebuilt cool neutral granite with valid GLB header and vertex colors. No external texture."
     },
     {
       "file": "shore_sandbar_4m.glb",

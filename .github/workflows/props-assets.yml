@@ -1,0 +1,18 @@
+name: props-asset-validation
+on:
+  pull_request:
+    paths:
+      - 'assets/env/**'
+      - 'scripts/validate-props.mjs'
+      - '.github/workflows/props-assets.yml'
+  workflow_dispatch:
+jobs:
+  gltf-validator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --package-lock=false gltf-validator@2.0.0-dev.3.10
+      - run: node scripts/validate-props.mjs
