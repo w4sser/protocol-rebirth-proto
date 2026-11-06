@@ -259,6 +259,31 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ---
 
+## D3 — First-Time Player Experience (FTUE)
+
+**Status: D3.1 APPROVED (option C). Later FTUE sequencing and tutorials remain IN REVIEW.**
+
+### D3.1 — Short playable opening, then immediate raid action
+
+**APPROVED by Robert on 6 November 2026.** Open the game with a **very short interactive introduction that establishes BIT and the immediate situation**, then transition almost immediately into playable combat. Do not begin with a long bunker tour, menu sequence, or lore presentation. The substantive bunker introduction and restoration payoff come **after the first extraction**.
+
+The goal is to combine an immediate sense of player agency with a reason to care about what is being restored. The opening should teach by having the player act, not through extensive explanation.
+
+**Not yet approved as an exact implementation:** The opening scene, lines, camera, how much player control precedes the first shot, whether the intro uses an uninterrupted raid map, tutorial difficulty/assistance, and the final timing threshold. First shot within roughly 15 seconds is an existing FTUE **design target**, not a newly confirmed hard acceptance threshold or a measured result. This approval does not authorize an added 60-second introduction.
+
+### D3.2 — Next FTUE review (OPEN)
+
+- What are the actual first 30 seconds, beat by beat, including player input and BIT's minimum dialogue?
+- What do the first combat, loot pickup, node, and extraction teach, in what order?
+- Does the first raid require node progression, or can it teach an available exit without confusing the forward-node rule in D2?
+- How is the first bunker payoff revealed, and what single action should the player want to perform next?
+- Which systems are **deferred** (crafting catalog, currencies, talent trees, daily quests, retention layers, advanced inventory) until after players need them?
+- How will fresh-save tests measure actual player understanding rather than just successful button presses?
+
+**Implementation boundary:** The existing code/documentation already contains a direct-raid FTUE and assisted attempts. D3.1 is a design decision, not evidence that the current build matches the requested exact opening. No gameplay change was made by recording it.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -272,3 +297,5 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 | 2026-11-06 | D2.4: Required nodes always unlock forward depth progression in quick mode; finite final stage | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D2.8: Option C — deeper reward opportunities and a distinct valuable final objective/payoff | Approved by Robert; final objective and reward tuning open |
 | 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
+| 2026-11-06 | D3.1: Option C — a very short playable introduction with BIT, immediate combat, and the bunker revealed after first extraction | Approved by Robert; implementation alignment pending |
+| 2026-11-06 | D3.2: Exact first 30 seconds, teaching order, deferred systems, first payoff, and FTUE metrics | Open |
