@@ -5,27 +5,31 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.0 - for team review |
-| Prepared | 6 November 2026 |
+| Document status | Living design reference, v1.1 - design review in progress |
+| Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
 | Repository baseline | `w4sser/protocol-rebirth-proto`, `main`, commit `88a9ac6364d0dcf5463c2a5f700f4817960ecaca` |
 | Prototype version inspected | `2.28.0`; meta save version `15` |
 | Scope | The player-facing game, its interconnected loops, progression, onboarding, and design intent |
 | Verification | Repository documents and selected implementation/data files inspected. No new end-to-end playtest was performed for this document. |
+| Subsequent owner decisions | [Design Decision Register](design-decisions.md): D1 Controlled Risk approved; D1 details and D2 mission structure remain in review |
 
 ### How to read this document
 
-This is a consolidated explanation of the game, not a claim that every design idea has shipped. It deliberately separates four kinds of information:
+This is a consolidated explanation of the game, not a claim that every design idea has shipped. It deliberately separates five kinds of information:
 
 - **CURRENT**: supported by inspected code or configuration at the baseline above. A data entry is not, by itself, proof that every associated UI path works.
-- **DIRECTION**: recorded design intent or an owner decision. It may be implemented only partly.
+- **DIRECTION**: recorded design intent. It may be implemented only partly.
+- **APPROVED**: a decision explicitly accepted by Robert and recorded in the decision register. Approval changes the intended design; it does not prove runtime implementation.
 - **PROPOSAL**: a recommendation for discussion, including adaptations of the supplied Helldivers 2 analysis. It is not an approved implementation brief.
-- **OPEN**: an unresolved decision, contradiction, or behavior requiring verification.
+- **OPEN**: an unresolved decision, detail, contradiction, or behavior requiring verification.
 
 Where these differ, both are recorded rather than quietly rewriting history. Numerical values below are a snapshot, not permanent balance commitments. Follow the linked sources when changing them.
 
-**Reading routes:** Read sections 1-4 for the game in one sitting. Read sections 5-12 to understand its systems. For onboarding and UX work, continue with sections 13-14 and the decision register in section 18. AI tools should also read section 21.
+**Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. The exact Secure Slot specification and interrupted-session handling remain open. This documentation update does not change gameplay. [D01]
+
+**Reading routes:** Read sections 1-4 for the game in one sitting. Read sections 5-12 to understand its systems. For onboarding and UX work, continue with sections 13-14 and the review register in section 18. Read the separate [Design Decision Register](design-decisions.md) for approvals and proposed details. AI tools should also read section 21.
 
 ---
 
@@ -117,7 +121,9 @@ Introduce a system when it helps the player make a meaningful decision. Explain 
 
 ### Boundaries to preserve
 
-PvE remains the baseline. Do not add currencies casually. BIT may perform one active assignment at a time. The free starter weapon protects the ability to attempt another raid. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01] [S11]
+PvE remains the baseline. Do not add currencies casually. BIT may perform one active assignment at a time. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01]
+
+**APPROVED D1:** Carried and equipped valuable gear is at risk. One Secure Slot unlocks at Vault L1. BIT does not automatically return lost items, and insurance/paid bag recovery are not part of the target core loop. The player can always retry with the free Basic Carbine. Precise Secure Slot eligibility, quantity, and interrupted-session behavior are not yet settled. [D01]
 
 ---
 
@@ -141,7 +147,7 @@ flowchart LR
     J --> A
 ```
 
-The diagram shows the main loss rule. Legacy protection and recovery features need the separate qualification in section 6.4.
+The diagram shows the main loss rule. The one approved Secure Slot exception is explained in section 6.4. Historical BIT rescue and insurance definitions are implementation-alignment work, not additional approved protection mechanisms. [D01]
 
 ### 3.2 Nested loops and their jobs
 
@@ -189,11 +195,15 @@ The player identifies a purpose: a tracked upgrade part, a quest, scouting an ar
 
 **UX requirement:** The preparation screen should answer three questions before exposing extra statistics: Where am I going? Why am I going? What am I putting at risk?
 
+**APPROVED D1:** Insurance is excluded from the target core preparation loop. This is a design change to align in implementation, not a claim that the old configuration is already removed. [D01]
+
 ### During the raid
 
 **CURRENT:** The standard structure has three depths within a shared round. The player moves through spaces with enemies, cover, loot, and control nodes. In the ordinary non-Big-Map flow, all nodes on the current level must be active before its exit opens. Nodes can be interacted with through the supported shooting/proximity mechanics, with shielded variants creating additional problems. [S04] [S09]
 
 The player does not automatically need to kill every enemy to open an exit. The underlying objective is to satisfy the exit conditions and survive the journey, not universally clear the map.
+
+**OPEN D2:** The owner has not yet decided whether normal raids should retain mandatory node-gated exits or offer a return extraction reachable from the start. The [D2 review](design-decisions.md#d2---mission-purpose-objectives--extraction) separates personal purpose from exit conditions and recommends the latter as a proposal only. D1 does not approve this change. [D01]
 
 ### At a depth exit
 
@@ -220,7 +230,7 @@ These are baseline settings, not universal guarantees for FTUE or every mode. Wa
 
 Successful loot is reconciled into the persistent economy. Currency-bearing pickups convert to the relevant currency; materials and gear have different storage destinations. An unsuccessful raid records loss rather than silently treating a previous depth as a successful bank. The result should then lead back to a useful next action. [S02] [S05] [S08] [S12]
 
-**PROPOSAL for result-screen hierarchy:** Outcome -> what came home or was lost -> progress toward the chosen goal -> one recommended next action. Secondary XP bars should not obscure that explanation.
+**PROPOSAL for result-screen hierarchy:** Outcome -> what came home or was lost -> progress toward the chosen goal -> one recommended next action. Secondary XP bars should not obscure that explanation. A protected item must be shown separately from successful extraction rather than implying the entire failed raid was a success. [D01]
 
 ---
 
@@ -282,7 +292,7 @@ Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery
 | State | Meaning | Risk |
 | --- | --- | --- |
 | At home | Persistent materials, gear, or currency already secured | Not lost merely because the next raid fails |
-| Carried in the raid | Newly found materials and unequipped carried gear | Exposed until successful extraction |
+| Carried in the raid | Newly found materials and unequipped carried gear | Exposed until successful extraction, except the approved Secure Slot rule |
 | Equipped in the raid | Selected weapon/armor and relevant carried supplies | Valuable equipment is part of the raid's risk; the basic free weapon is the fallback |
 
 **CURRENT:** Unequipped backpack gear shares the raid's overall carrying-space constraint with materials and also has its own smaller backpack limit. Medkits use a dedicated kit count rather than ordinary material-bag slots. Encounter keycards are handled separately. [S04]
@@ -299,15 +309,17 @@ A found item should communicate at least one actionable use: a tracked build, a 
 
 A full bag creates a comparison: keep the parts for today's goal, replace them with rarer future value, or extract. The interface must distinguish the amount already **HOME** from the amount still in the **BAG**.
 
-### 6.4 Loss rule and unresolved exceptions
+### 6.4 Approved loss rule and remaining specification
 
-**DIRECTION + CURRENT raid logic:** Only extraction banks the haul. Death, timeout, or abandonment loses exposed raid cargo. Merely advancing to the next depth does not bank it. [S01] [S04] [S05]
+**APPROVED D1 - Controlled Risk:** Carried and equipped valuable gear is at risk until extraction. Death, timeout, and deliberate abandonment lose exposed cargo and risked equipment. Possessions left at home and previously earned permanent progression remain intact. Advancing to another depth never banks the bag. [D01]
 
-**OPEN:** Other data and older documents still describe a Storage secure slot, BIT item rescue, Guardian Safe Return, insurance, and post-death bag recovery. Some belong to older/meta or experimental paths; some remain in active configuration. This review has not established one consistent, end-to-end protection contract across all modes. [S07] [S11] [S13] [S14]
+Vault / Storage L1 unlocks **one Secure Slot** as the single item-protection mechanism. BIT's automatic item rescue is removed from the intended design. Insurance and paid bag recovery are removed from the core loop. A free Basic Carbine retry must always remain possible; this does not restore the previous bag or grant free replacement armor, tools, or medkits. [D01]
 
-Until reconciled, do not teach both "everything carried is lost" and "this item always survives" as universally true. A player-facing protection promise must name what is protected, under which mode, when it is selected, and how the result screen proves it worked.
+**OPEN DETAILS, not a reopening of D1:** The owner has not yet finalized one unit versus a stack, allowed item categories, whether the protected item occupies ordinary bag capacity, exact in-raid selection/settlement, or interrupted-session behavior. The recommendation is one unit using ordinary capacity, with materials/ordinary valuables eligible but no equipment or dedicated mission/scouting keys. These refinements remain proposals in D1-A through D1-D, not approved facts. [D01]
 
-Persistent learning and progression are separate from preserving loot. The design can let XP or skill progress survive a failed run without pretending that its cargo was extracted.
+**IMPLEMENTATION ALIGNMENT:** Baseline data and historical documents still contain Storage secure-slot copy, BIT Bond rescue, Guardian Safe Return, insurance, and post-death bag recovery. Audit and align their active and legacy paths with D1. Their continued presence is not an alternative approved design. No runtime removal or full end-to-end verification is claimed by this documentation change. [S07] [S11] [S13] [S14] [D01]
+
+Persistent learning is separate from preserving loot. D1 preserves previously earned progression but does not set new XP awards for a failed run. Any protected-item result must be explicit, limited to the final eligibility rule, and reconciled exactly once.
 
 ---
 
@@ -317,15 +329,15 @@ The bunker is a persistent place whose systems become functional. Its progressio
 
 ### Main facilities
 
-| Facility | Role | Current progression examples |
+| Facility | Role | Current progression examples and approved direction |
 | --- | --- | --- |
 | Rebirth Core | Power, facility access, broader progression gates | L1 restores initial power; L2 opens further access and module caps; L3 supports Town access |
 | Fabricator | Crafting, recycling, and preparation | L1 awards a Scavenger Vest and basic crafting/prep; L2 provides advanced recipes and tools |
-| Storage / Vault | Capacity and inventory convenience | Stash expansion, Armory expansion, additional raid carrying capability; secure-slot copy requires the loss-rule review |
+| Storage / Vault | Capacity and inventory convenience | Stash expansion, Armory expansion, additional raid carrying capability; one Secure Slot at L1 approved by D1, with its detailed specification pending |
 | BIT Bay | BIT hardware and supported capabilities | Initial functionality and loot intelligence; later cargo capability |
 | Living Quarters | Rest and readiness | Rest is configured to restore some bunker power and provide a shield benefit for the next raid |
 
-Living Quarters exists in the room/access and rest systems; it should not be presented as an identical multi-level module tree to the four main module definitions. [S07] [S18]
+Living Quarters exists in the room/access and rest systems; it should not be presented as an identical multi-level module tree to the four main module definitions. [S07] [S18] [D01]
 
 ### Separate access, construction, and benefit
 
@@ -349,11 +361,11 @@ The Fabricator commissioning reward illustrates the intended connection: bringin
 | Scrap Alloy | Physical construction/crafting material | Carried as an item and consumed by specific requirements |
 | Data Cores | Currency used in selected progression costs and exchanges | Not the same as every item with "Core" in its name |
 | Contract Chips | Quest/trade currency for the BIT catalog | Separate from Operator XP and Bond XP |
-| Signals | Insurance/recovery and exchange-related prototype currency | Experimental/mode-dependent; not evidence of a launched monetization model |
+| Signals | Historical/prototype insurance, recovery, and exchange currency | D1 removes insurance/paid bag recovery from the target core loop; other uses and the eventual business model remain undecided |
 | Operator XP / Bond XP | Progression measures | Not ordinary spendable currencies |
 | Bunker Power / Fuel | System-specific meters | Power is a facility state; Fuel belongs to the optional retention layer |
 
-**CURRENT:** Salvage is no longer a separate soft currency. A **Salvage Crate** remains a valid loot item and currently converts to 24 Scrap on successful ingestion. Older documents cite different conversion values; current item data is the baseline here. [S11] [S12] [S18] [S19]
+**CURRENT:** Salvage is no longer a separate soft currency. A **Salvage Crate** remains a valid loot item and currently converts to 24 Scrap on successful ingestion. Older documents cite different conversion values; current item data is the baseline here. [S11] [S12] [S18] [S19] [D01]
 
 ### 8.2 Material families
 
@@ -381,9 +393,11 @@ The Quartermaster sells selected common supplies and gear, buys items, and provi
 
 Selling for Scrap and breaking an item into base materials are different actions. The recycle map is deliberately lossy and excludes protected categories such as Protocol/story items; the exact allowed action should come from data, not a blanket "all junk is recyclable" assumption. [S08]
 
-### 8.5 An explicit monetization tension
+### 8.5 Monetization boundary: partly resolved, partly open
 
-The data includes exchanging Signals for Data Cores, while earlier design language characterizes Signals as safety/time rather than power. Data Cores can participate in progression, so these statements are not automatically compatible. Treat the eventual business model and paid progression boundaries as an open decision, not as a resolved "cosmetics-only" or "no paid advantage" promise. [S19] [S20]
+**APPROVED D1:** Insurance and paid bag recovery are excluded from the core loop. This resolves those two uses; it does not decide every other use of Signals or the eventual business model. [D01]
+
+**OPEN:** The baseline data includes exchanging Signals for Data Cores, while earlier design language characterizes Signals as safety/time rather than power. Data Cores can participate in progression, so these statements are not automatically compatible. Treat paid progression boundaries as an open decision, not as a resolved "cosmetics-only" or "no paid advantage" promise. [S19] [S20]
 
 ---
 
@@ -413,7 +427,7 @@ The current design is therefore a mixture of automatic numerical development and
 
 The equipment model includes incremental upgrades, Mk tiers, and attachments. Barrel, magazine, and optic attachments create visible range, capacity, or damage changes, with tier requirements. The art data also distinguishes visual grades: Salvaged, Restored, Custom, and Svartverk. The last is a configured visual grade, not automatically an independent fourth merge tier. [S11] [S12]
 
-**Important implementation detail:** The current save-model comments describe tier, attachments, and upgrade level as belonging to a built copy. Older comments describing permanent per-item-ID upgrades must not be used to promise that a lost upgraded gun returns with its investment intact. [S02]
+**Important implementation detail:** The current save-model comments describe tier, attachments, and upgrade level as belonging to a built copy. Older comments describing permanent per-item-ID upgrades must not be used to promise that a lost upgraded gun returns with its investment intact. D1 confirms that valuable deployed equipment is at risk, not automatically rebuilt after failure. [S02] [D01]
 
 **OPEN:** Merge documentation describes a universal three-copy rule, while current configuration uses `copies: [3, 7]`. Use the live merge logic and UI when explaining the exact requirement; do not reproduce the obsolete rule as settled design. [S06] [S11]
 
@@ -440,7 +454,9 @@ Early narrative presence does not mean every Bay hardware function is already un
 
 ### Talent identities
 
-**Scout** supports information and finding useful loot. **Guardian** supports survival and defensive capability. **Scavenger** supports the home economy and scavenging. The configured tree includes mutually exclusive choices on some rows as well as passive effects. Particular protection talents remain subject to the loss-rule reconciliation in section 6.4. [S14]
+**Scout** supports information and finding useful loot. **Guardian** supports survival and defensive capability. **Scavenger** supports the home economy and scavenging. The configured tree includes mutually exclusive choices on some rows as well as passive effects. [S14]
+
+**APPROVED D1:** Automatic item rescue is no longer part of the intended BIT design. Existing Bond rescue and Guardian Safe Return must not remain as additional death-protection paths beside the Secure Slot. Their removal or replacement needs an implementation plan; the exact replacement talent is not approved here. This does not remove pre-loss support such as warnings or shields. [D01]
 
 The newer talent data explicitly replaces the older single-active-skill toggle for the core skills: learned nodes become passive. This does **not** overturn the separate rule that BIT can perform only one active assignment at a time. [S01] [S14]
 
@@ -472,13 +488,13 @@ A raid can contain several different reasons to act:
 
 | Objective type | Example | What completes it |
 | --- | --- | --- |
-| Exit requirement | Activate the current level's control nodes | Satisfy that mode's gate/extraction rules |
+| Exit requirement | Activate the current level's control nodes in the inspected normal mode | Satisfy that mode's gate/extraction rules; D2 is reviewing the intended future rule |
 | Personal build goal | Find Cable for a facility upgrade | Bring home enough usable materials and perform the build |
 | Quest | Extract specified items, defeat a specified enemy, or hand in parts | Meet that quest's own objective and claim/hand in as required |
-| Optional opportunity | Extra cache, equipment pickup, searchable room | Take the opportunity and, for carried rewards, extract |
-| Scouting goal | Recover a chart/survey | Extract the relevant scouting item |
+| Optional opportunity | Extra cache, equipment pickup, searchable room | Take the opportunity and, for exposed carried rewards, extract |
+| Scouting goal | Recover a chart/survey | Extract the relevant scouting item under the baseline rule |
 
-**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and what is currently required to leave it.
+**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and what is currently required to leave it. D2 proposes separating personal-goal completion from the ability to extract; it is not yet approved. [D01]
 
 ### 11.3 Quest systems
 
@@ -529,6 +545,8 @@ The older opening-playtest guide begins at the base with the Core. A later FTUE 
 **CURRENT code/data:** The direct-raid FTUE has a fixed pair of initial grunt positions, an assistance ramp, and a clutch sequence that adds two hunters once the nodes are active. The third assistance setting includes minimum-health and minimum-time protection. Its ten-second clutch countdown creates pressure but explicitly does not close the beam or independently end the raid. [S24] [S25]
 
 The FTUE design document's final implementation-status paragraph is older than some of this code. Treat the code as evidence that these pieces exist, while still verifying the full fresh-save experience on a device.
+
+**D1 boundary:** The Secure Slot unlock remains Vault L1. Do not quietly grant a second item-rescue system before that upgrade. D1 does not by itself overturn the separately recorded FTUE assistance direction. [D01]
 
 ### 13.3 Intended learning sequence
 
@@ -597,13 +615,15 @@ These systems should return the player to a useful raid purpose: a craft complet
 
 ### 15.2 Optional retention modes
 
-| Mode | Configured role |
+| Mode | Configured role in the inspected baseline |
 | --- | --- |
 | `core` | Default; test the base loop without the optional retention package |
 | `bit` | Adds the Morning Report and BIT expeditions |
 | `full` | Adds Fuel, additional daily contracts, decryption, streak, and overnight-yield features |
 
 Do not confuse these optional daily contracts with the separately configured BIT quests and permanent quest chains. They are different systems with overlapping terminology. [S18] [S21]
+
+**APPROVED D1 constraint:** Whatever optional mode is enabled, the free starter retry must remain available. Any Fuel/payment/wait restriction that blocks it must be reconciled. Insurance and paid bag recovery must not reappear as a hidden exception to the target core loop. The retained baseline table is not approval of every experimental feature. [D01]
 
 ### 15.3 Power and rest
 
@@ -664,7 +684,7 @@ BIT's established dialogue tone should remain consistent across base and raid. I
 | Progression through participation and efficiency | Preserve a recoverable path and useful progress after setbacks | Do not erase the meaning of extraction loss |
 | Player-favoring clarity and recoverability | Make warnings, consequences, and return paths understandable | Generosity is not the same as guaranteeing every raid succeeds |
 | Participation in a larger purpose | Use visible bunker/world restoration as the near-term purpose | A global campaign is not required for the current slice |
-| Spending that feels supportive | Define business-model boundaries deliberately before implementation | No launched monetization or no-paid-power claim is established here |
+| Spending that feels supportive | Define business-model boundaries deliberately before implementation | D1 excludes insurance and paid bag recovery from the core loop; broader business-model questions remain open |
 
 The video's respawn resources, friendly fire, shared loot, and stratagem input sequences belong to its particular cooperative design. They are not automatic recommendations for this game. Especially in an extraction game with losable gear, copying an isolated punishment mechanic without its surrounding recovery system would be a different design.
 
@@ -674,20 +694,21 @@ The video's respawn resources, friendly fire, shared loot, and stratagem input s
 
 ## 18. Decisions, contradictions, and scope boundaries
 
-This is a review register, not permission to implement every item.
+This is a review register, not permission to implement every item. Explicit approvals and proposed refinements are recorded in the [Design Decision Register](design-decisions.md). [D01]
 
-| Priority | Topic | Evidence / tension | Required outcome |
+| Priority | Topic | Status / evidence | Required outcome |
 | --- | --- | --- | --- |
-| P0 | Death and protection | Strict loss rule vs secure-slot, BIT rescue, insurance, and recovery definitions | One mode-specific contract, matching UI, and an end-to-end test |
+| P0 | Death and protection | D1 direction APPROVED: full risk, one Vault L1 Secure Slot, no BIT auto-rescue, no insurance/paid bag recovery, free retry | Finalize D1-A through D1-D and align runtime paths, migration, and UI; do not reopen the five approved rules by treating old code as design authority |
+| P0 | Mission purpose and exits | D2 IN REVIEW: current node-gated model vs a return extraction reachable from the start | Decide extraction accessibility, then specify objectives, node roles, mode differences, and result vocabulary |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly |
-| P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy without changing their underlying meanings |
+| P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
-| P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment | Explain Bond, hardware, talents, and assignments separately |
-| P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics | Clearly state what is lost with a particular item |
+| P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment; rescue conflicts resolved in direction by D1 | Explain Bond, hardware, talents, and assignments separately; remove/refactor item-rescue effects without adding a second protection route |
+| P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics; D1 confirms deployed valuable gear is risked | Clearly state what is lost with a particular item |
 | P1 | Merge requirements | Three-copy prose vs `[3, 7]` configuration | Verify live behavior and update old descriptions |
-| P1 | Bag expansion | Module copy and progression mapping are not perfectly aligned | Show the actual computed capacity and each contributing source |
-| P1 | Retention layering | Idle/power systems plus optional Fuel/contracts/report systems | Decide what belongs in the default experience and when it is revealed |
-| P1 | Commerce boundaries | Signals-to-Data-Cores exchange vs safety/time-only language | Explicit policy before any real-money release |
+| P1 | Bag expansion | Module copy and progression mapping are not perfectly aligned; Secure Slot capacity detail still open | Show the actual computed capacity and each contributing source |
+| P1 | Retention layering | Idle/power systems plus optional Fuel/contracts/report systems | Decide default exposure; preserve D1's free retry regardless of optional systems |
+| P1 | Commerce boundaries | D1 excludes insurance/paid bag recovery; Signals-to-Data-Cores exchange and wider policy remain open | Explicit policy before any real-money release |
 | P2 | Catalog placeholders | Weekly operation stub and blueprint/catalog references | Separate visible promises from complete playable functionality |
 | P2 | Old technical documentation | Node Raid README and integration history describe superseded states | Point readers here for the baseline; retain history without presenting it as current |
 
@@ -699,7 +720,9 @@ A backend/account system is also described as future work in the agent guide. Th
 
 ### What this document does not approve
 
-It does not authorize new currencies, replacing the economy, guaranteed success outside the defined FTUE assistance, removing kill rewards, adopting Helldivers-style friendly fire, adding monetization, or rewriting combat. Its purpose is a shared understanding from which scoped decisions can be made.
+D1 approves the five specified risk/recovery rules. It does not automatically authorize a gameplay commit or merge. The D1 specification recommendations and all D2 recommendations remain unapproved. [D01]
+
+No new currencies, replacement economy, guaranteed success outside the defined FTUE assistance, removal of kill rewards, Helldivers-style friendly fire, broader monetization, or combat rewrite is authorized here. The purpose is a shared understanding from which scoped decisions can be made.
 
 ---
 
@@ -741,10 +764,11 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 | Raid | One launched field run ending in extraction or loss; not a synonym for a single room |
 | Depth / level | A stage inside the normal raid; not Operator level |
 | Area | Bunker, Archipelago, or Town on the world map |
-| Node | A control objective involved in opening a level's exit |
-| Extraction | The successful act that banks the carried haul |
+| Node | A control objective involved in opening exits in the current normal flow; its intended future role is under D2 review |
+| Extraction | The successful act that banks the exposed carried haul |
+| Secure Slot | The one item-protection mechanism approved at Vault L1; quantity, eligibility, and settlement details remain under review |
 | HOME | Already secured persistent possessions |
-| BAG | Exposed raid cargo, not yet secured |
+| BAG | Exposed raid cargo except any explicitly protected item |
 | Stash | Home storage for materials |
 | Armory | Home storage for equipment and related usable items |
 | Scrap | Soft currency |
@@ -768,14 +792,15 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 
 ### 21.1 Source hierarchy
 
-For **what the build currently does**, prioritize inspected behavior and current implementation over old prose. For **what the game is intended to become**, prioritize explicit owner decisions and approved direction. Code is not automatic design approval, and an old proposal is not implementation evidence.
+For **what the build currently does**, prioritize inspected behavior and current implementation over old prose. For **what the game is intended to become**, prioritize explicit owner decisions and approved direction. The separate decision register records approvals made after the inspected baseline. Code is not automatic design approval, and an old proposal is not implementation evidence.
 
-All repository links below are pinned to the inspected commit. This prevents the document's evidence silently changing underneath a review. Update the baseline and relevant claims together when refreshing it.
+Implementation and historical-document links below are pinned to the inspected commit. This prevents the document's evidence silently changing underneath a review. Update the baseline and relevant claims together when refreshing it. D01 is intentionally a relative link to the living decision register in the same branch: its approvals are not claims about that older code snapshot.
 
 ### 21.2 Sources
 
 | ID | Source | Used for |
 | --- | --- | --- |
+| D01 | [Design Decision Register][D01] | Owner-approved D1, proposed D1 details, and unapproved D2 review; no gameplay implementation implied |
 | S01 | [Agent guide][S01] | Product direction, locked rules, UI constraints, future backend boundary |
 | S02 | [Base application][S02] | Current app/save versions, persistent state, FTUE instrumentation, built-copy comments |
 | S03 | [Art direction][S03] | Tone, setting, character identity, visual priorities, color semantics |
@@ -808,18 +833,22 @@ The user's supplied feedback and design discussion motivate the review questions
 
 ### 21.3 Maintenance rules
 
-When a change alters a player-facing loop, update the relevant section in the same PR or link the documentation follow-up. State whether the change is approved direction, implemented behavior, an experiment, or a proposal. Keep historical conflicts visible until a decision and verification actually resolve them.
+When a change alters a player-facing loop, update the relevant section in the same PR or link the documentation follow-up. State whether the change is approved direction, implemented behavior, an experiment, or a proposal. Once a direction is decided, mark the former design conflict as resolved and separately track any remaining implementation mismatch or specification detail.
 
-Keep exact balance tables in their source data. This reference should explain the job of the system and only repeat selected numbers that materially help a reader understand it. Documentation-only updates should not silently change runtime behavior or balance.
+Keep exact balance tables in their source data. This reference should explain the job of the system and only repeat selected numbers that materially help a reader understand it. Documentation-only updates should not silently change runtime behavior or balance. Never relabel an approved rule as CURRENT until implementation evidence supports it.
 
 ### 21.4 Instructions for AI-assisted use
 
-Use this document as the navigation layer, then inspect the linked implementation for the question being asked. Preserve the status labels. Never turn a proposal, a catalog entry, a stale comment, or a configured-but-unverified path into a shipped feature. When a source conflicts with this reference, report the conflict and the baseline involved rather than inventing a reconciliation.
+Use this document as the navigation layer, then inspect the linked implementation for the question being asked. Preserve the status labels and read D01 for post-baseline approvals. Never turn a proposal, a catalog entry, a stale comment, an approved-but-unimplemented rule, or a configured-but-unverified path into a shipped feature. When a source conflicts with this reference, report the conflict and the baseline involved rather than inventing a reconciliation.
 
 Useful questions include: "What must a new player understand before their first extraction?", "Which permanent systems currently interrupt the first raid?", "What does this upgrade change in the next run?", and "Which source defines the actual death behavior for this mode?"
 
-**Document change log:** v1.0, 6 November 2026 - consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts. No gameplay change is implied.
+### Document change log
 
+- **v1.0, 6 November 2026:** Consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts.
+- **v1.1, 6 November 2026:** Recorded owner-approved Controlled Risk decision D1, linked the decision register, reconciled the loss/BIT/insurance/free-retry direction across relevant sections, and opened D2 as an explicitly unapproved proposal. Secure Slot details and interrupted-session behavior remain open. No gameplay change or fresh runtime validation is implied.
+
+[D01]: design-decisions.md
 [S01]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/AGENTS.md
 [S02]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/app.js
 [S03]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/art-direction.md
