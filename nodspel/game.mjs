@@ -821,6 +821,10 @@ let groundPreviewV2=null;
 const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
 const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.0'):null;
 let propsPreview=null;
+// Opt-in Polyfork CDN experiment. No requests or new meshes without ?polyfork=1.
+const POLYFORK_PREVIEW=GROUND_V2_PARAMS.get('polyfork')==='1';
+const polyforkModulePromise=POLYFORK_PREVIEW?import('./polyfork-dressing.mjs?v=polyfork-pilot1'):null;
+let polyforkPreview=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -843,7 +847,16 @@ function loadLevelInner(){
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
   propsPreview?.dispose();propsPreview=null;
+  polyforkPreview?.dispose();polyforkPreview=null;
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
+  if(POLYFORK_PREVIEW&&round.level.archipelago){
+    const lvl=round.level;
+    polyforkModulePromise.then(module=>{
+      if(round.level!==lvl)return;
+      polyforkPreview=module.addPolyforkDressing(lvl,scene,{quality:QUALITY});
+      window.__polyforkPreview=polyforkPreview;
+    }).catch(error=>console.error('[polyfork-test] import failed',error));
+  }
   if(GROUND_V2){
     const previewLevel=round.level;
     groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': importing…');
