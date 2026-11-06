@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1, D3.2, D3.5, and D3.6 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
+**Status: D3.1, D3.2, D3.5, D3.6, and D3.7 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -325,6 +325,40 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Still open:** failure point/respawn transition, whether to repeat an opening cinematic after death, difficulty assistance across repeated tries, exact pickup placement, voice lines beyond BIT's owner's greeting, and onboarding telemetry.
 
+### D3.7 — BIT guidance in the first ordinary raid (APPROVED: option B)
+
+**OWNER APPROVAL (6 November 2026):** Use **contextual guidance** in the first ordinary quick raid after the player discovers BIT and restores Core L1. BIT explains each unfamiliar mechanic when relevant, reacts to actions, and helps a player who is visibly stuck. **No long tutorial sequence, mandatory interruptions, or constant hand-holding.** This approved *guidance style* does not mean every line, trigger, UI element, or delay below is already approved.
+
+**Design goal:** The first ordinary raid feels like the actual game, with BIT acting as a companion rather than a tutorial instructor. The player retains control. This is separate from the combat approach intro where BIT has not yet been found.
+
+#### Proposed event-driven teaching script — exact triggers and dialogue under review
+
+| Beat | Suggested trigger | What BIT/UI communicates | Player learning | Skip / repeat logic |
+| --- | --- | --- | --- | --- |
+| 1. Purpose | Once, on first deployment together after Core L1 | Short BIT cue: find Cable for Fabricator; one unobtrusive tracked-goal marker | Why this raid matters | No blocking mission briefing; omit if already understood |
+| 2. Combat | On first enemy contact | **No default controls lecture**; contextual warning only for actual distinctive danger | Player can reuse shooting/movement learned in the intro | Combat warning takes precedence over story/loot |
+| 3. Useful loot | On collecting first relevant Cable (or on first relevant tracked pickup if sources are adjusted) | One line plus a contextual `Cable x/2` progress cue, reflecting actual inventory/requirement; do not open the bag | Loot advances a specific home goal | Once per concept; never invent the pickup or progress |
+| 4. Forward node | First time a player approaches a required node | Explain it opens the **next forward gate**; light/gate visibly responds on activation | Node controls the route deeper, not the return extraction | No repeat for every node; assist if player demonstrably stalls |
+| 5. Extract vs. continue | When a usable return extraction and/or a deeper route present an actionable choice **and** the player has an exposed valuable haul | Identify safe-return direction separately from forward gate and briefly contrast secure-now against deeper-risk | Extracting banks ordinary loot; progressing does not | Present at a safe/clear moment, never as a modal prompt or automatic choice |
+| 6. Result | After an actual successful extraction or failed raid | Summarize actual secured/lost/protected items, progress toward Fabricator, and one next step; BIT line is brief and contextual | Why to return and what changed | Results must match D1/D2; do not award an unfinished quest |
+
+**Draft BIT line examples (NOT CANONICAL):** At deployment: “We need Cable for the Fabricator. Try bringing some home this time.” On a relevant find: “There it is. One less excuse for that Fabricator.” At a node: “That relay controls the next gate. Wake it up.” At the risk choice: “We can go home with this. Or push deeper. Your call.” On safe return: “Welcome home. Let's see what we can fix.”
+
+#### Proposed guidance scheduling rules (not separately approved)
+
+1. **Priority:** urgent combat/survival telegraphs > active interaction/return extraction > first-time mechanic explanation > optional lore/personality chatter.
+2. **No interruptions:** never take movement/aim/fire controls away for these teaching beats. Never auto-extract, auto-activate nodes, or choose an objective on the player's behalf.
+3. **Avoid chatter pileups:** only one non-urgent message at a time. Queue or discard stale informational lines; only display them while the relevant decision can still be made. Re-evaluate after danger clears.
+4. **Teach at use:** teach Cable when seen/collected, node use at first node, extraction only when actionable and valuable. Avoid an exhaustive pre-raid briefing.
+5. **Reminder escalation:** first give the player space; if stalled, highlight the relevant affordance, then show a single short hint. Use observed non-progress, not a fixed intrusive bark timer. Exact thresholds are tuning work.
+6. **Silent accessibility:** critical BIT guidance must be replicated through compact text and world-space markers with legible mobile contrast; dialogue audio is optional, comprehension is not.
+7. **Idempotent milestones:** mark the first-time concept as taught in a save-safe way, so repeated attempts do not spam identical first-introduction lines; allow needed tactical reminders on retries.
+8. **Node and extraction semantics:** preserve D2.4 (nodes always unlock the route forward) and D2.1–D2.3 (separately available, deliberate return extraction) without implying that node completion banks the bag.
+
+**Integration caveats:** The current `data/raid-ftue.js` still defines a BIT line telling the player to tap the right stick before extraction, and `nodspel/ftue.js` contains an authored hunter/clutch moment; both predate this revised intro/first-raid structure. `data/bit.js` contains relevant bark categories, but also stale insurance/recovery language that conflicts with D1. An implementation PR must distinguish **intro without BIT**, **first regular raid with BIT**, and **later standard raids**, and audit those older paths without silently carrying over old tutorials or protection rules.
+
+**Still to approve:** final exact dialogue (except the owner's initial bunker greeting), which trigger precedes the first node versus first Cable, how the player finds the first usable return extraction, concrete stalled-player timeout thresholds, event sequencing under simultaneous hazards, and first-raid difficulty assistance. Validation must test a player who finds no Cable, an immediate return, death before seeing the extraction, repeated failure, and a player who chooses to complete the entire raid.
+
 ### D3.4 — Validation questions (OPEN)
 
 - Can first-time players identify the bunker as their destination without BIT guiding them verbally from the outset?
@@ -353,4 +387,5 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D3.2: Reaching the bunker completes the intro mission as its first extraction; BIT is discovered inside; first ordinary raid follows with BIT | Approved by Robert; implementation pending |
 | 2026-11-06 | D3.5: Two guaranteed Scrap Alloy from intro are spent on real Core L1; visible power restoration; Fabricator L1 is next goal | Approved by Robert; implementation pending |
 | 2026-11-06 | D3.6: Death before bunker entry resets introductory mission from start with guaranteed loot and free retry | Approved by Robert; implementation pending |
+| 2026-11-06 | D3.7: Option B — contextual, non-blocking BIT guidance in first ordinary raid, with relevant help and anti-stall assistance | Approved; exact triggers/dialogue and timing proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
