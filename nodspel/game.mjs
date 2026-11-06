@@ -853,7 +853,8 @@ function loadLevelInner(){
     const lvl=round.level;
     polyforkModulePromise.then(module=>{
       if(round.level!==lvl)return;
-      polyforkPreview=module.addPolyforkDressing(lvl,scene,{quality:QUALITY});
+      const mode=GROUND_V2_PARAMS.get('polyforkMode')==='profiles'?'profiles':'scatter';
+      polyforkPreview=module.addPolyforkDressing(lvl,scene,{quality:QUALITY,mode});
       window.__polyforkPreview=polyforkPreview;
     }).catch(error=>console.error('[polyfork-test] import failed',error));
   }

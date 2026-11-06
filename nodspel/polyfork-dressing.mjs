@@ -3,6 +3,7 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs';
+import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
@@ -85,11 +86,12 @@ function geometryParts(asset){
   if(!parts.length)throw new Error('No meshes in Polyfork GLB');
   return {size,parts};
 }
-export function addPolyforkDressing(level,scene,{quality='high',density=1}={}){
+export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='scatter'}={}){
   const group=new THREE.Group();group.name='polyfork-experimental-dressing';scene.add(group);
-  const items=planPolyforkDressing(level,{quality,density}),groups=new Map();
+  const composition=mode==='profiles'?planProfiledDressing(level,{quality,density}):null;
+  const items=composition?composition.items:planPolyforkDressing(level,{quality,density}),groups=new Map();
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}
-  const stats={enabled:true,quality,planned:items.length,loaded:0,meshes:0,triangles:0,failed:[],ready:false};
+  const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],planned:items.length,loaded:0,meshes:0,triangles:0,failed:[],ready:false};
   const q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),m=new THREE.Matrix4(),up=new THREE.Vector3(0,1,0);
   let alive=true;
   const jobs=[...groups].map(async([id,list])=>{
