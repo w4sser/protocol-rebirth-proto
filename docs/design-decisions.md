@@ -106,7 +106,7 @@ Relevant audit locations: `AGENTS.md`, `app.js`, `nodspel/round.js`, `nodspel/ra
 
 ## D2 - Mission Purpose, Objectives & Extraction
 
-**Status: D2.1, D2.2, and D2.3 APPROVED by Robert on 6 November 2026 for the current short-session PvE mode. Remaining D2 details are IN REVIEW.**
+**Status: D2.1–D2.4 and D2.8 APPROVED by Robert on 6 November 2026 for the current short-session PvE mode. Remaining topology, presentation, and FTUE details are IN REVIEW.**
 
 ### The question
 
@@ -180,11 +180,32 @@ Very short extraction runs may become efficient. Evaluate that risk through trav
 
 **Remaining implementation details:** Resolve the countdown's interaction with the raid deadline, same-tick death/completion, pausing, and app backgrounding before implementation. Approval of D2.3 does not silently decide those edge cases or authorize additional fees, forced waves, or recovery mechanics. Team extraction and other multiplayer rules belong to the future-mode review under M1.
 
+### D2.4 — Nodes open the forward route (APPROVED)
+
+In the current quick PvE mode, activating the required nodes is the **consistent prerequisite for opening the route forward to the next depth**. This repeats from depth to depth until the authored **finite raid ending**; the current three-depth prototype is a concrete implementation baseline, not a universal duration/level-count requirement for future modes.
+
+**Forward progression is not extraction.** Players can instead use the separately accessible return extraction under D2.1 and bank their current haul under D2.2/D2.3. Continuing does not bank any cargo under D1. Do not reclassify the required forward nodes as merely optional side objectives, or use node completion as a hidden condition for returning home.
+
+At the terminal depth, finishing the level's node challenge leads to the raid's designed end, not an infinite cycle of deeper stages. Exact terminal extraction interaction and final reward placement remain implementation/design details to specify.
+
+The owner explicitly preferred preserving this understandable core structure rather than changing it solely in response to onboarding-complexity feedback. Improve the clarity of what nodes open and how return extraction differs before considering a structural redesign.
+
+### D2.8 — Depth rewards and an authored final payoff (APPROVED, option C)
+
+The current quick mode should offer **progressively more attractive loot opportunities deeper into the raid**, plus a **clear, authored final objective or discovery with a meaningful payoff**. The last stage should feel worth reaching beyond simply collecting more of the same loot.
+
+A successful early extraction remains a valid outcome. Full completion is a distinct, desirable achievement, but the approved approach does **not** specify a generic automatic full-clear currency/XP bonus or punish players for leaving early.
+
+A valuable cache, encounter/boss, major discovery, or progression-relevant find are **candidate implementations**, not a fixed choice or a promise that every run must end in a boss fight. The exact final objective, reward type, guarantee/drop rate, pacing, and how to avoid full-clear farming dominance remain **OPEN** for balancing and playtesting.
+
+**Design intent:** Reasons to go deeper should be located in the playable world, clearly anticipated and understood, and connected to the bunker or equipment loop. The cost of continuing is the additional exposure of accumulated carried gear and loot.
+
+---
 ### Other open D2 decisions
 
 | ID | Detail | Status |
 | --- | --- | --- |
-| D2.4 | Node roles in the quick mode: deeper access, optional objectives, alternative exits, or a defined mix | Open; no replacement node mechanic approved |
+| D2.4 | Nodes consistently unlock the route to the next depth in the quick mode; the final depth ends the raid | Approved; implementation alignment pending |
 | D2.5 | Extraction topology: spawn distance, return paths after depth transitions, and Big Map mapping | Open; no map redesign approved |
 | D2.6 | Objective hierarchy: personal purpose, local tasks, optional rewards, and exit guidance | Open; no HUD redesign approved |
 | D2.7 | FTUE and special-mission treatment within the current experience | Open; no implicit exception to ordinary quick-raid rules approved |
@@ -234,7 +255,7 @@ Robert clarified on 6 November 2026 that the game mode being designed now is the
 
 Define each mode's purpose, session length, players/teams, objectives, extraction, death/recovery, and reward contract together. Decide whether progression and inventories are shared, separate, or constrained, and how differing risk levels affect rewards. For co-op, explicitly define revives, loot ownership, leaving separately, and interrupted sessions. For PvP, explicitly define the intended competitive rules and what player information is available.
 
-The next active design question remains **D2.4: what nodes are for in the quick mode**, without assuming they must also exist in the longer modes.
+D2.4 is now approved for the quick mode: nodes consistently unlock the forward route. The next active design review should prioritize the **FTUE and clarity of the complete first raid-to-bunker loop**, followed by the exact final payoff and unresolved extraction topology. Future longer modes need not use nodes.
 
 ---
 
@@ -248,4 +269,6 @@ The next active design question remains **D2.4: what nodes are for in the quick 
 | 2026-11-06 | D2.2: Successful extraction permitted with an incomplete personal objective | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D2.3: Short, deliberately started, cancellable extraction with movement/aim/fire and no forced new wave in the first test | Approved by Robert for the quick PvE mode; five seconds approved as initial test tuning, not a permanent value |
 | 2026-11-06 | M1: Current mode is the quick experience; later explore longer, freer PvP and co-op PvE modes | Scope clarified and future exploration requested; no new mode implementation approved |
-| 2026-11-06 | D2.4 through D2.7: Nodes, topology, information hierarchy, and special-mode treatment | Open; not yet approved |
+| 2026-11-06 | D2.4: Required nodes always unlock forward depth progression in quick mode; finite final stage | Approved by Robert; implementation alignment pending |
+| 2026-11-06 | D2.8: Option C — deeper reward opportunities and a distinct valuable final objective/payoff | Approved by Robert; final objective and reward tuning open |
+| 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
