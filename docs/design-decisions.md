@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1, D3.2, D3.5, D3.6, and D3.7 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
+**Status: D3.1, D3.2, D3.5, D3.6, D3.7, and D3.8 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -359,6 +359,24 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Still to approve:** final exact dialogue (except the owner's initial bunker greeting), which trigger precedes the first node versus first Cable, how the player finds the first usable return extraction, concrete stalled-player timeout thresholds, event sequencing under simultaneous hazards, and first-raid difficulty assistance. Validation must test a player who finds no Cable, an immediate return, death before seeing the extraction, repeated failure, and a player who chooses to complete the entire raid.
 
+### D3.8 — Adaptive assistance after first ordinary-raid failures (APPROVED)
+
+**Owner approval (6 November 2026):** Keep the first real quick PvE raid exciting and genuinely winnable/losable. After failures, offer **subtle, progressive help**, first through BIT's contextual guidance and then through more forgiving combat parameters. A failed player must still **fight, complete appropriate objectives, and intentionally extract**. No automatic win, instant extraction, or hidden banked exposed bag. This assistance is specifically for the **first ordinary raid after BIT is found**, not the standalone fight-to-bunker introduction (D3.6) and not a new global rule for every raid.
+
+**Proposed ramp for implementation / balancing:**
+
+| Attempt at first ordinary raid | Design behavior | Status |
+| --- | --- | --- |
+| First | Baseline intended combat difficulty, readable enemy telegraphs, contextual BIT guidance | Approved direction; exact tuning open |
+| Second (after one unsuccessful attempt) | Slightly less enemy damage/pressure and more precise BIT hints for problems previously encountered | Approved progressive-assistance direction; numbers open |
+| Third and later | Additional bounded enemy damage/speed or health forgiveness, optional shield assistance and more decisive anti-stall hints | Approved progressive-assistance direction; numbers and caps open |
+
+**Existing prototype baseline is not approved tuning:** `data/raid-ftue.js` currently defines attempt multipliers (1.0/1.0/1.0; 0.5 damage/0.75 health/0.8 speed; 0.25 damage/0.5 health/0.6 speed), and on the third attempt a 1 HP minimum and 1-second minimum-time protection. These are implementation facts from the inspected snapshot, **not numbers Robert has approved as the target**. The earlier system also includes BIT instructional text and a hunter clutch that must be reconciled with D3.1/D3.7. A hard invulnerability/guaranteed-survival effect must not be treated as authorized by this approval; only a forgiving **but still failable** first regular raid is approved.
+
+**Preserved contract:** D1's at-risk carried and equipped gear and free retry still apply; D2 forward-node/extraction distinctions remain intact. If the player's bag is lost on failure, difficulty assistance does not quietly recover it. The free Basic Carbine and next attempt must be accessible even with empty resources. Progression and permanent state must not be reset merely to apply first-raid help.
+
+**Still open:** exact multipliers, maximum assistance, how to count quits/timeouts/disconnects, whether to cap assistance after a success, how it interacts with DDA and Hard variants, and which BIT lines and visual hints are shown. Validate with repeated first-raid failures and successful early extraction; measure understanding and player agency, not just completion.
+
 ### D3.4 — Validation questions (OPEN)
 
 - Can first-time players identify the bunker as their destination without BIT guiding them verbally from the outset?
@@ -388,4 +406,5 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D3.5: Two guaranteed Scrap Alloy from intro are spent on real Core L1; visible power restoration; Fabricator L1 is next goal | Approved by Robert; implementation pending |
 | 2026-11-06 | D3.6: Death before bunker entry resets introductory mission from start with guaranteed loot and free retry | Approved by Robert; implementation pending |
 | 2026-11-06 | D3.7: Option B — contextual, non-blocking BIT guidance in first ordinary raid, with relevant help and anti-stall assistance | Approved; exact triggers/dialogue and timing proposed |
+| 2026-11-06 | D3.8: Gradually increasing subtle BIT and combat assistance after failed first ordinary-raid attempts, without guaranteed success | Approved by Robert; exact numerical ramp and edge cases open |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
