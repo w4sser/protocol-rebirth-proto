@@ -103,7 +103,7 @@ Relevant audit locations: `AGENTS.md`, `app.js`, `nodspel/round.js`, `nodspel/ra
 
 ## D2 - Mission Purpose, Objectives & Extraction
 
-**Status: IN REVIEW. No D2 rule has been approved.**
+**Status: D2.1 and D2.2 APPROVED by Robert on 6 November 2026. Remaining D2 details are IN REVIEW.**
 
 ### The question
 
@@ -121,35 +121,81 @@ A clear purpose does not automatically justify making that purpose a compulsory 
 
 ### Baseline being reviewed
 
-The inspected baseline reference describes normal three-depth raids where control nodes open a level exit, followed by an Extract / Continue decision at early depths. Big Map uses different extraction-availability logic. This is the recorded baseline, not a claim that the recommendation below is already implemented. See [reference section 4](game-design-reference.md#4-an-ordinary-raid-from-intention-to-consequence) and [section 11](game-design-reference.md#11-world-structure-objectives-and-quests).
+The inspected baseline reference describes normal three-depth raids where control nodes open a level exit, followed by an Extract / Continue decision at early depths. Big Map uses different extraction-availability logic. This remains the recorded implementation baseline, not the newly approved target design. See [reference section 4](game-design-reference.md#4-an-ordinary-raid-from-intention-to-consequence) and [section 11](game-design-reference.md#11-world-structure-objectives-and-quests).
 
-### Recommended direction - proposal only
+### D2.1 - At least one return extraction available from the start
 
-**Let the goal guide the expedition, not hold the player hostage.**
+**APPROVED.** Every ordinary raid must offer at least one return extraction route available from the beginning. That route must not require completing the personal objective, activating the level's nodes first, or clearing all enemies before it can be used.
 
-1. Give the player one primary personal purpose. Early on, derive it from the next useful bunker improvement; later allow a choice among relevant existing goals. Do not add a mandatory mission-selection menu just to state a goal.
-2. Successful extraction is valid even if the personal goal is incomplete. The player banks the actual haul; an unfinished quest stays unfinished, with any legitimate incremental progress preserved according to its own rules.
-3. In ordinary raids, make at least one return extraction reachable from the start without first completing every node or killing every enemy. Reachable does not mean instant or safe: the player must physically reach it and finish its communicated extraction action.
-4. Use nodes to unlock optional routes, deeper access, valuable objectives, or alternative exits rather than impose the same mandatory cleanup on every run. This is a proposed role change, not an approved implementation instruction.
-5. Offer optional detours and discoveries beyond the main purpose. The player should see the potential value and risk, not a checklist that implies every opportunity must be completed.
-6. Preserve the existing core promise at a depth transition: extract now to bank the haul, or continue with all exposed possessions still at risk. A level transition is never an automatic bank.
-7. Teach the same success/loss vocabulary across normal raids, Big Map, and FTUE. Any special mission with a mandatory objective or unusual exit rule requires explicit approval and communication before deployment.
+Available does not mean instant or safe. The player must physically reach a valid extraction point and complete its extraction procedure. The procedure itself, its duration, the exit's placement, and its behavior during combat remain to be specified. No extraction fee or new cost is approved by this decision.
 
-### Why this is the recommendation
+This replaces the default mandatory-node-gated-return assumption for ordinary raids in the intended design. It does not remove nodes or approve a particular replacement function for them. It also does not change the running game by itself.
 
-It preserves the extraction decision even when the player finds something valuable before finishing the map's systems. It also separates agency from completionism: leaving with a useful but incomplete haul can be a deliberate success rather than a failed mission disguised as success.
+### D2.2 - Successful extraction is independent of personal-objective completion
 
-The trade-off is that very short extractions may become efficient. That should be evaluated through destination, travel, danger, loot placement, and deeper reward value rather than silently invalidating an otherwise valid extraction. No loot rebalance, anti-farming rule, or removal of existing kill rewards is approved here.
+**APPROVED.** A player may extract successfully even when the personal main objective is partly or wholly unfinished.
 
-### Main alternative
+A successful extraction banks the actual carried haul and returns eligible surviving equipment according to D1. An unfinished quest remains unfinished. Objective progress and rewards are awarded only when their own requirements have actually been satisfied. Extracting early does not automatically count as clearing a depth, completing a scouting goal, finding a missing component, or finishing a quest chain.
 
-Keep the node-gated exit model as the normal rule, but make the required node objective singular and immediately understandable, with an early achievable exit and optional deeper content. This changes less of the existing structure, but the player cannot freely choose to leave while the required gate is unresolved.
+Example: a player needs two Cable, finds one Cable and a useful weapon, and chooses to return. The extraction succeeds and the actual possessions come home. The two-Cable requirement is not automatically completed.
 
-### Decision requested next
+**Result distinction:** Extraction outcome, objective completion, and depth-clear progress are separate facts. The result screen and result contract must not collapse them into a single success/failure flag.
 
-Should normal raids provide at least one return extraction reachable from the start, with the player's personal goal guiding what they attempt rather than gating their right to leave?
+### Approval scope and remaining recommendations
 
-This is the first D2 choice to settle. Exact extraction interaction, normal/Big Map topology, timer behavior, additional objectives, and special-mission exceptions follow after it; they are not implicitly approved by reading this proposal.
+Robert's confirmation accepted D2.1 and D2.2. It did **not** approve every proposal discussed alongside them. D1-A through D1-D also remain unresolved.
+
+The following remain proposals:
+
+- Present one primary personal purpose, initially derived from the next useful bunker improvement, without adding an obligatory mission-selection menu.
+- Use nodes for deeper access, optional rewards, routes, or alternative extraction points. Their precise roles remain undecided; they may not negate D2.1's ordinary return route.
+- Surround the main purpose with optional detours and discoveries rather than a checklist that implies every opportunity is mandatory.
+- Apply a consistent, clearly communicated success/loss vocabulary across ordinary raids, Big Map, and FTUE. Mode-specific mapping and any special-mission exception still need an explicit decision; no new exception is granted here.
+
+The D1 rule already remains in force: continuing deeper never automatically banks exposed possessions. Exact access and return topology after a depth transition belongs to the remaining D2 review.
+
+### Design rationale and trade-off
+
+The approved direction preserves a decision to leave when the player finds something valuable before completing the map's systems. Leaving with a useful but incomplete haul can be a deliberate successful extraction rather than being forced to finish a personal task.
+
+Very short extraction runs may become efficient. Evaluate that risk through travel, danger, loot placement, and the value of deeper opportunities. No new anti-farming penalty, minimum kill count, minimum raid duration, loot rebalance, or kill-reward removal is approved here. The former proposal to retain node-gated return as the default ordinary-raid rule was not selected.
+
+### D2.3 - Extraction procedure: next proposal, NOT APPROVED
+
+**Recommendation for the ordinary-raid prototype:** A deliberate start followed by a short, cancellable extraction countdown.
+
+| Aspect | Proposed rule |
+| --- | --- |
+| Start | Enter the marked extraction zone and tap EXTRACT once. Walking through it must not automatically end the raid. |
+| Duration | Start playtesting at five seconds. This is a tuning hypothesis, not an approved final balance value. |
+| Player agency | The player can move, aim, and fire while remaining within the extraction zone. No need to hold a UI button throughout. |
+| Damage | The player remains vulnerable. Nonlethal damage does not restart the countdown. |
+| Cancellation | Leaving the zone cancels the attempt and clears its progress. Re-entering requires another deliberate start. This is not Abandon and does not discard the bag. |
+| Completion | Completing the countdown alive secures the haul and ends the raid. Death beforehand follows D1. |
+| Enemy pressure | Do not require a newly spawned wave for every extraction in the first test. Existing threats can continue to apply pressure; a quiet departure remains valid. Dedicated extraction encounters would be a separate choice. |
+| Readability | Show the zone boundary, countdown, and cancellation clearly; no dependence on audio alone. |
+
+Before implementation, resolve the countdown's interaction with the raid deadline, same-tick death/completion, pausing, app backgrounding, and future co-op. These are open details, not implied approvals. D2.1/D2.2 do not require this particular countdown model.
+
+### Other open D2 decisions
+
+| ID | Detail | Status |
+| --- | --- | --- |
+| D2.4 | Node roles: deeper access, optional objectives, alternative exits, or a defined mix | Open; no replacement node mechanic approved |
+| D2.5 | Extraction topology: spawn distance, return paths after depth transitions, and Big Map mapping | Open; no map redesign approved |
+| D2.6 | Objective hierarchy: personal purpose, local tasks, optional rewards, and exit guidance | Open; no HUD redesign approved |
+| D2.7 | FTUE and special-mission treatment | Open; no implicit exception to ordinary-raid rules approved |
+
+### Implementation checks required by D2.1 and D2.2
+
+1. In an ordinary raid, the guaranteed return extraction is reachable and usable before node or personal-objective completion, subject only to the eventual extraction procedure and survival.
+2. Extracting with an incomplete tracked upgrade or quest banks only the actual haul and correctly leaves unmet requirements unfinished.
+3. Extraction does not fabricate `levelsCleared`, node completion, scouting credit, quest rewards, or other objective achievements merely to satisfy old result-ingestion assumptions.
+4. Continuing to another depth does not settle the bag. Once topology is decided, verify its return route rather than silently reintroducing the old exit gate.
+5. Ordinary successes and failures still follow D1; Secure Slot protection does not turn death into a successful extraction.
+6. Check fresh and returning profiles and explicitly document how Big Map, Hard variants, and FTUE map onto the approved rule. Do not assume an exemption or claim those modes were changed.
+
+No gameplay change or fresh runtime test is part of this documentation update.
 
 ---
 
@@ -159,4 +205,7 @@ This is the first D2 choice to settle. Exact extraction interaction, normal/Big 
 | --- | --- | --- |
 | 2026-11-06 | D1: Controlled Risk and all five expressly listed rules | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D1-A through D1-D: Secure Slot specification and interrupted sessions | Proposed details; not yet approved |
-| 2026-11-06 | D2: Mission purpose, optional objectives, and extraction accessibility | In review; recommendation not yet approved |
+| 2026-11-06 | D2.1: At least one return extraction available from the beginning of every ordinary raid | Approved by Robert; implementation alignment pending |
+| 2026-11-06 | D2.2: Successful extraction permitted with an incomplete personal objective | Approved by Robert; implementation alignment pending |
+| 2026-11-06 | D2.3: Short, deliberately started, cancellable extraction countdown | Proposed for review; five seconds is a test value, not an approved rule |
+| 2026-11-06 | D2.4 through D2.7: Nodes, topology, information hierarchy, and special-mode treatment | Open; not yet approved |
