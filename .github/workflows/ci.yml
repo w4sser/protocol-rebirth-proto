@@ -15,6 +15,11 @@ jobs:
       - run: npm test
       - run: cd nodspel && npm test
   layout:
+    name: layout / ${{ matrix.group }}
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [popups, base, raid-bunker, raid-town]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +30,9 @@ jobs:
       - run: node scripts/layout-check.mjs
         env:
           LAYOUT_OUT: verify-out
+          LAYOUT_GROUP: ${{ matrix.group }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: layout-screenshots
+          name: layout-screenshots-${{ matrix.group }}
           path: verify-out
