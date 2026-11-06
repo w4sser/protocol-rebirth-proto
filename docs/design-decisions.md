@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1 REVISED BY OWNER — combat approach leads to bunker discovery and the first meeting with BIT. Beat timing and tutorial integration remain OPEN.**
+**Status: D3.1 and D3.2 APPROVED — introductory combat approach culminates in bunker-entry extraction, then first meeting with BIT. Exact beats and failure handling remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -275,7 +275,13 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **This explicitly supersedes** the earlier D3.1 assumption that BIT appears before the opening combat and that the first bunker reveal must occur only after a standalone first extraction. We retain the useful principle of *immediate playable action* and avoid extensive menus or exposition before shooting, but the discovery of BIT **inside the bunker** is now the central FTUE narrative beat.
 
-### D3.2 — Candidate experience (PROPOSAL, not a fully approved script)
+### D3.2 — Intro mission concludes at the bunker entrance (APPROVED)
+
+**OWNER APPROVAL (6 November 2026):** Reaching and entering the bunker **completes the introductory playable mission and serves as its first successful extraction**. The player then discovers BIT **inside the bunker**, where BIT first speaks: **"You're late, but you're back."** The damaged bunker establishes why later raids matter. The **first ordinary raid after this meeting is the first raid undertaken together with BIT**, and is where the regular node-based depth progression, risk/loot choices, and optional return extraction can be taught.
+
+**FTUE-specific onboarding exception:** Bunker entry is the intro's bespoke extraction endpoint. It should not automatically be treated as requiring the five-second player-started ordinary extraction procedure (D2.3), or as requiring completion of ordinary node gates. This is a distinct introductory mission flow, not a change to ordinary quick-raids. The precise interaction with the bunker entrance, any intro loot/result settlement, and death/retry behavior remain to be specified explicitly.
+
+### D3.3 — Candidate experience (PROPOSAL, not a fully approved script)
 
 1. **Approach:** Begin outdoors and establish a simple immediate destination through readable environment design. The operator is controllable almost immediately; encounters teach movement and shooting through play.
 2. **Break through:** Fight past a short enemy resistance and find the bunker entrance. Use light, sightlines, and geometry rather than a long tutorial narration.
@@ -283,11 +289,11 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 4. **Meet BIT:** A dormant or waiting BIT comes alive and addresses the operator with the owner's line. Presentation details, animation, exact staging, and any follow-up joke are not yet approved.
 5. **See what is broken:** BIT and the damaged Rebirth Core reveal an understandable reason to undertake subsequent raids and restoration.
 
-**Unresolved critical integration:** Does reaching the bunker **complete and extract** the introductory playable mission, or does the game use a separate raid extraction prior to entering? The previous assumption of an extraction followed by a bunker reveal is no longer safe to reuse. The introductory approach must be aligned with D1 risk rules, D2 node-to-forward-route logic, and D2.3 extraction without silently inventing an exception.
+**Resolved:** Bunker entry itself completes and extracts the introductory playable mission (D3.2). No separate pre-bunker extraction is required. **Still open:** the exact entry interaction, whether introductory loot is carried and banked, what can be lost before reaching the bunker, and how a failed first approach is retried. These require consistent player-facing explanation and deliberate reconciliation with D1, rather than unapproved hidden exceptions.
 
 **Other open details:** Exact seconds to first shot, objective and node placement, loot pickup before discovery, amount of guidance before BIT is found, player failure/retry, first post-discovery raid, and which meta systems remain hidden.
 
-### D3.3 — Validation questions (OPEN)
+### D3.4 — Validation questions (OPEN)
 
 - Can first-time players identify the bunker as their destination without BIT guiding them verbally from the outset?
 - Is there meaningful shooting and movement almost immediately, with minimal blocking instructions?
@@ -312,4 +318,5 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D2.8: Option C — deeper reward opportunities and a distinct valuable final objective/payoff | Approved by Robert; final objective and reward tuning open |
 | 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
 | 2026-11-06 | D3.1: Fight toward the bunker, discover BIT inside; opening line: 'You're late, but you're back.' | Revised owner direction; supersedes BIT-before-combat and bunker-after-extraction assumptions; implementation pending |
-| 2026-11-06 | D3.2/D3.3: Opening mission extraction/settlement, exact beats, teaching order, and comprehension checks | Open |
+| 2026-11-06 | D3.2: Reaching the bunker completes the intro mission as its first extraction; BIT is discovered inside; first ordinary raid follows with BIT | Approved by Robert; implementation pending |
+| 2026-11-06 | D3.3/D3.4: Entrance interaction, intro loot/loss/retry, exact beats, teaching order, and comprehension checks | Open |
