@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.8 - design review in progress |
+| Document status | Living design reference, v1.9 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -603,7 +603,7 @@ The FTUE design document's final implementation-status paragraph is older than s
 
 **REVISED OWNER DIRECTION D3.1 — Opening:** The player begins **without BIT**, fights toward and discovers the bunker, and **first meets BIT inside the bunker**. BIT greets the returning operator with the owner's line: **“You're late, but you're back.”** The encounter is a narrative/character payoff, not BIT tutorial narration before combat. Immediate playable movement and combat remain essential; no extended menus or exposition should precede the action. This explicitly supersedes the previous assumption that BIT guides the opening before combat and the bunker is first revealed only after a separate initial extraction. **APPROVED D3.2:** Reaching/entering the bunker **completes the introductory playable mission as its first successful extraction**; this is a bespoke FTUE endpoint, not the ordinary D2.3 extraction procedure. The first standard quick raid follows after the meeting with BIT and is the first such mission played with BIT. Exact intro loot settlement, entrance interaction, and failure/retry details remain **OPEN**. [D01] [D01]
 
-**APPROVED D3.5 — First restoration concept:** After meeting BIT, the player uses an item found on the opening approach to restore a meaningful piece of the bunker, with an immediately visible change. The **proposed implementation** is to guarantee two Scrap Alloy on the approach, settle them through the bunker-entry extraction, spend them on the **actual Rebirth Core L1** upgrade (current cost: 2 Scrap Alloy; restores emergency power and reveals room access), and show the Core hall lighting up. Then BIT points to **Fabricator L1** as the next concrete reason to raid (current cost: 20 Scrap, 2 Cable, 2 Scrap Alloy; first build yields Scavenger Vest, +25 shield and +1 bag slot). Exact pickup pacing, intro failure/retry, dialogue, and the contextual interaction are **not yet individually owner-approved**. [D01] [S07]
+**APPROVED D3.5 — First restoration sequence:** After meeting BIT, the player uses an item found on the opening approach to restore a meaningful piece of the bunker, with an immediately visible change. The **approved implementation direction** is to guarantee two Scrap Alloy on the approach, settle them through the bunker-entry extraction, spend them on the **actual Rebirth Core L1** upgrade (current cost: 2 Scrap Alloy; restores emergency power and reveals room access), and show the Core hall lighting up. Then BIT points to **Fabricator L1** as the next concrete reason to raid (current cost: 20 Scrap, 2 Cable, 2 Scrap Alloy; first build yields Scavenger Vest, +25 shield and +1 bag slot). **APPROVED D3.6:** If the player dies before reaching the bunker, the complete introductory mission restarts free of charge from its beginning, with the two guaranteed Scrap Alloy available again; no intro loot or Core upgrade is duplicated on failure. Regular D1 risk rules still govern unsuccessful attempts. The exact pickup/activation UI, retry presentation, and BIT dialogue beyond the owner's greeting remain open. [D01] [S07]
 
 ### 13.3 Intended learning sequence
 
@@ -911,6 +911,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v1.9, 6 November 2026:** Approved the concrete D3.5 Core L1 first restoration (two guaranteed Scrap Alloy from intro, consumed at Core activation, visible power restoration, Fabricator L1 next goal) and D3.6 (free full intro restart on death, no duplication or permanent-progress loss). Exact UX and pacing still open. Documentation only.
 - **v1.8, 6 November 2026:** Approved D3.5 concept (spend intro loot to restore a visible part of home). Proposed a deterministic two-Scrap-Alloy pickup, existing Core L1 restoration, and Fabricator L1 as next raid goal, carefully separating proposed detail from owner approval. Documentation only.
 - **v1.7, 6 November 2026:** Approved D3.2: bunker entry concludes the introductory playable mission as the first extraction, BIT is encountered inside, and the first regular raid with BIT follows. Exact entry/intro loot/loss/retry rules remain open. Documentation only.
 - **v1.6, 6 November 2026:** Revised D3.1 from BIT-first onboarding to a playable combat approach culminating in discovering BIT inside the bunker. Recorded owner's greeting, “You're late, but you're back.” The boundary between introductory mission completion and extraction is explicitly open. Documentation only.
