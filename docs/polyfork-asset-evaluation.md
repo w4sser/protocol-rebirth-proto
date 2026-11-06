@@ -45,7 +45,7 @@ Original 20 selected assets:
 
 ## License checkpoint
 
-The upstream [README](https://github.com/lucas-martinic/polyfork-catalog) says commercial usage is allowed, but says **not to re-upload or redistribute GLB files**; keeping local copies may require their [platform license](https://polyfork.dev/platform). The viewer links to the CDN only. Before shipping a commercial mobile game, have the current [license terms](https://polyfork.dev/licensing) reviewed, especially if assets are bundled with a game or mirrored into the game repository. A URL-only preview is not evidence of production distribution rights.
+The [Polyfork licensing page](https://polyfork.dev/licensing) (updated July 2026) explicitly allows using models in commercial games, including shipping models *inside a game*, with no attribution requirement. It forbids distributing the GLB files as standalone assets or asset packs. The upstream [catalog README](https://github.com/lucas-martinic/polyfork-catalog) also warns against re-uploading or independently redistributing the model files. This experiment links to the CDN only; before moving models into the public source repository or hosting model files directly as downloadable standalone GLBs, clarify the exact distribution scenario with Polyfork. CDN availability remains a separate production consideration.
 
 ## Evaluation criteria
 
