@@ -686,7 +686,11 @@ async function pauseMapRun([w,h]){
   await shot(page,`pause-map-${w}x${h}`);await page.close();
 }
 
+const layoutGroup=process.env.LAYOUT_GROUP||'all';
+if(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))throw Error('Unknown LAYOUT_GROUP');
+const group=name=>layoutGroup==='all'||layoutGroup===name;
 try{
+  if(group('popups')){
   for(const vp of VIEWPORTS)await pauseMapRun(vp);
   for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
   for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
@@ -694,11 +698,15 @@ try{
   await encShotRun([844,390]);
   await iphoneSafeAreaRun();
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
-  for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
   for(const vp of VIEWPORTS)await payoffRun(vp);
-  for(const vp of VIEWPORTS)await baseRun(vp);
-  for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);
+  }
+  if(group('base')){
+    for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
+    for(const vp of VIEWPORTS)await baseRun(vp);
+  }
+  if(group('raid-bunker'))for(const vp of VIEWPORTS)await raidRun(vp,'bunker');
+  if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
 // one line per problem, listing the viewports it happens at
 const grouped=new Map();

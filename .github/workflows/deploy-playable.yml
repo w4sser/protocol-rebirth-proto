@@ -1,0 +1,37 @@
+name: Deploy playable site
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare playable site only
+        run: |
+          mkdir -p _site
+          cp index.html manifest.json .nojekyll app.js save-slots.js start-quality.js start-scene.js _site/
+          cp -R assets data nodspel ui _site/
+          rm -rf _site/assets/reference
+          rm -rf _site/nodspel/node_modules _site/nodspel/tests _site/nodspel/test
+          echo "Deployment payload:"
+          du -sh _site _site/assets
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          timeout: 1200000
