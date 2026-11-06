@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1, D3.2, and D3.5 concept APPROVED — introductory combat leads to bunker-entry extraction, BIT discovery, then a visible first restoration using intro loot. Exact beats and failure handling remain OPEN.**
+**Status: D3.1, D3.2, D3.5, and D3.6 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -293,11 +293,11 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Other open details:** Exact seconds to first shot, objective and node placement, loot pickup before discovery, amount of guidance before BIT is found, player failure/retry, first post-discovery raid, and which meta systems remain hidden.
 
-### D3.5 — First home payoff: spend intro loot on restoration (APPROVED at concept level)
+### D3.5 — First home payoff: restore the actual Core L1 (APPROVED)
 
 **Owner choice: Option B (6 November 2026).** After meeting BIT, the player uses something collected during the introductory combat approach to **restore one meaningful part of the bunker**. The outcome must be visibly noticeable, not a token tutorial message. This establishes the lesson: what you safely bring home can rebuild home.
 
-**Concrete sequence proposed for the next specification pass (not yet individually owner-approved):**
+**Owner-approved sequence (6 November 2026):**
 
 1. During the introductory approach, guarantee **two Scrap Alloy** pickups on the mandatory path, showing their use without requiring a full inventory tutorial. The introduction ends as a special extraction when entering the bunker (D3.2); the two items settle once.
 2. BIT first greets the player inside: **"You're late, but you're back."** A short visual beat focuses attention on the damaged Rebirth Core.
@@ -308,9 +308,22 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Proposed example BIT reaction after restoration:** "Well. At least something still works." This is draft dialogue, **not approved canonical writing**.
 
-**Open design/implementation details:** exact intro loot pickup and settlement, whether death before reaching the bunker loses that introductory load, deterministic pickup affordance, ensuring the player cannot enter without the required two alloy (or handling that state coherently), how much of the base is explorable immediately, whether the restored Core screen is a contextual action or a focused camera moment, and exact timing. The concept choice B does **not** automatically approve all concrete beats or copy above.
+**Open implementation/presentation details:** exact pickup positions and feedback; one-time intro loot settlement; what other loot, if any, can be carried; exact Core activation animation/UI; how much of the base is explorable; and timing. These are not reasons to reopen the approved two-alloy Core L1 contract. BIT's optional follow-up quip is still draft dialogue, not canonical writing.
 
 **Avoid:** creating a separate fake FTUE currency/item, silently awarding a Core upgrade for free, giving out the Fabricator/Vest immediately, multiple required menus before the second raid, or making the narrative reveal depend on a regular raid's three-depth node clear.
+
+### D3.6 — Introduction failure and replay (APPROVED)
+
+**Owner approval (6 November 2026):** If the operator dies before reaching the bunker, **restart the introductory mission from its beginning** with the same guaranteed two Scrap Alloy available again on its authored path. The player can retry without cost, debt, cooldown, or any loss of previously earned permanent progression.
+
+- Failed introductory attempts do **not** trigger successful extraction, consume already-secured home resources, award Core L1, or duplicate loot.
+- On successful bunker-entry extraction, settle collected introductory materials **once**. Core L1 then consumes the two Scrap Alloy and visibly powers the bunker.
+- Preserve the canonical D1 protection principle: an uncompleted attempt does not secretly bank exposed loot. Deterministic replay is a way to retry the tutorial, **not free recovery of a failed raid's accumulated bag**.
+- The introduction must remain completable even if players initially miss or fail to collect a pickup: clearly signal missing required items or keep them on the mandatory route; exact UX is open.
+
+**Next player goal (APPROVED direction):** After Core L1, lead the player toward **Fabricator L1** using its existing requirements (20 Scrap, two Cable, two Scrap Alloy). Highlight Cable as the most legible immediate reason for the first ordinary raid with BIT, without falsely granting the other required resources. The eventual Scavenger Vest reward is the pay-off, not an immediate FTUE grant.
+
+**Still open:** failure point/respawn transition, whether to repeat an opening cinematic after death, difficulty assistance across repeated tries, exact pickup placement, voice lines beyond BIT's owner's greeting, and onboarding telemetry.
 
 ### D3.4 — Validation questions (OPEN)
 
@@ -338,5 +351,6 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
 | 2026-11-06 | D3.1: Fight toward the bunker, discover BIT inside; opening line: 'You're late, but you're back.' | Revised owner direction; supersedes BIT-before-combat and bunker-after-extraction assumptions; implementation pending |
 | 2026-11-06 | D3.2: Reaching the bunker completes the intro mission as its first extraction; BIT is discovered inside; first ordinary raid follows with BIT | Approved by Robert; implementation pending |
-| 2026-11-06 | D3.5: Option B — first bunker restoration consumes loot brought from the introduction, with a visible payoff | Approved concept; proposed Core L1/two-alloy/Fabricator sequence awaits detailed confirmation |
-| 2026-11-06 | D3.3/D3.4: Entrance interaction, intro loot/loss/retry, exact beats, teaching order, and comprehension checks | Open |
+| 2026-11-06 | D3.5: Two guaranteed Scrap Alloy from intro are spent on real Core L1; visible power restoration; Fabricator L1 is next goal | Approved by Robert; implementation pending |
+| 2026-11-06 | D3.6: Death before bunker entry resets introductory mission from start with guaranteed loot and free retry | Approved by Robert; implementation pending |
+| 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
