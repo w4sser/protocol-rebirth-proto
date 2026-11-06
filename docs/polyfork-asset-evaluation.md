@@ -6,7 +6,9 @@
 
 Open `nodspel/polyfork-preview.html` on a local web server (the project uses ES modules; do not open with file://). Select a model and switch between Forest, Coast and Bunker. The viewer loads remote GLBs from `https://polyfork.dev/cdn/<asset-id>.glb` via the project-local Three.js GLTFLoader. It reports original bounds, triangle count, mesh/material counts and initial loading time. The grid is 1 m; rendered assets are normalized to 3 m **for comparison only** and should not be taken as approved gameplay scale.
 
-Selected 20 assets:
+The shared registry now contains **56 asset candidates** (24 Forest, 16 Coast, 16 Bunker). The table below is the original 20-model starting shortlist; the full live registry and viewer contain all 56. This is a catalogue selection, not a visual approval.
+
+Original 20 selected assets:
 
 | Category | Asset | Polyfork ID | Recommendation |
 |---|---|---|---|
@@ -34,7 +36,7 @@ Selected 20 assets:
 ## Integration decision and safeguards
 
 - **Keep existing terrain/coast blending, bridges, existing collision, navigation and playable boundaries.** Do not replace the ground shader or coastal mesh.
-- This pilot is opt-in and does **not** add loading requests or draw calls to real raids.
+- The model gallery is separate. The **in-raid Polyfork test** is opt-in with `?polyfork=1&area=archipelago`; without this parameter there are **no** Polyfork CDN requests and no additional mesh draw calls. The new test adds visual dressing to a real raid but never changes collision geometry.
 - Candidate placement for a later raid branch: forest undergrowth and rocks outside critical combat space; sparse driftwood and shore stones; occasional industrial cabinet/crate in bunker set dressing.
 - Validate asset orientation, unit size, pivots, texture/material appearance under game lighting, GPU memory, triangle counts and draw calls before integration.
 - Preserve bridge funnel width, clear movement lanes and enemy navigation. Never add physical collision to decorative plants.
@@ -50,3 +52,19 @@ The upstream [README](https://github.com/lucas-martinic/polyfork-catalog) says c
 Score each asset from 1-5 for (1) Protocol Rebirth art direction, (2) readability from the actual mobile raid camera, (3) fit with the existing saturated grass/granite palette and (4) estimated mobile cost. **No model is approved for production yet.** Validate in-game screenshots against baseline, retain only the highest-scoring assets and implement separately with a feature flag and fallback.
 
 Upstream source kits: [Nature & Forest](https://github.com/lucas-martinic/polyfork-catalog/blob/main/kits/nature-forest-kit-f29d6a.md), [Coast & Boardwalk](https://github.com/lucas-martinic/polyfork-catalog/blob/main/kits/coast-and-boardwalk-d883fd.md), [Research Lab](https://github.com/lucas-martinic/polyfork-catalog/blob/main/kits/research-lab-9b9b5d.md), [Space Base](https://github.com/lucas-martinic/polyfork-catalog/blob/main/kits/space-base-kit-cf65de.md).
+
+
+## Expanded playable experiment (draft PR #202)
+
+**How to try the branch locally**
+1. Checkout `feat/polyfork-asset-evaluation` from the repository and start a local HTTP server in the repository root, e.g. `python3 -m http.server 8000`.
+2. Browse `http://localhost:8000/nodspel/polyfork-preview.html` for the full **56-model gallery**. Use **Auto-cycle** to review all models, noting triangle counts, materials and original dimensions.
+3. Open the existing raid URL for this branch with `?area=archipelago&polyfork=1&q=high&seed=polyfork-qa`. Keep the rest of your normal raid launch parameters. **Compare the same seed with `polyfork=0`.** Use `q=low` as the mobile budget test.
+4. Inspect `window.__polyforkPreview.stats` in developer tools after `ready` resolves. It reports planned/loaded instances, mesh and triangle counts, and failures. A failure is not hidden.
+5. Run `node --test nodspel/tests/polyfork-dressing.test.mjs` and the existing `npm run verify` from a local checkout. Until CI or the browser confirms, these are verification instructions, not a claim tests passed.
+
+**Runtime behavior:** 16 vegetative/shoreline model types are currently eligible for seeded placement; the remaining reviewed items are gallery-only. The broader set of 56 is deliberate: large buildings/industrial structures should not be sprinkled into navigable terrain. A later separately reviewed pass can hand-place them in bunker and town scenes.
+
+Limits: max 125 decorative instances in HIGH and 40 in LOW per level, with geometry shared per GLB and one InstancedMesh per mesh part. All are visual-only. Placement uses `propReservations()` from the existing props system, extra clearance for big assets, and preserves the current coast, ground, bridges and pathfinding.
+
+**Current limitations:** CDN reachability/CORS, actual appearance and mobile FPS have not yet been verified in a device browser. Source GLBs can be much heavier than their low-poly labels imply; measure GPU cost before any merge. Load failures are logged and do not block the raid. This is not a production asset-redistribution solution.
