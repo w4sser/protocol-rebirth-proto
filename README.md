@@ -20,4 +20,8 @@ Save lives in `localStorage` (`pr_meta_save`, v6). Old save versions are discard
 
 ## Design docs
 
-See `META_v0.1.md` and `PROTOTYPE_SPEC_v0.1.md` in the parent project.
+**Start here: [Game Design & Loop Reference](docs/game-design-reference.md).** A consolidated English reference for the game's vision, connected loops, combat, extraction, bunker restoration, economy, equipment, BIT, world progression, FTUE, and UX. It distinguishes current implementation from design direction, proposals, and unresolved questions, with sources pinned to the inspected code revision.
+
+For onboarding reviews, use its [first-time player experience](docs/game-design-reference.md#13-first-time-player-experience) and [decision register](docs/game-design-reference.md#18-decisions-contradictions-and-scope-boundaries). Some earlier descriptions above and in separate design notes reflect historical prototype behavior; the reference explicitly records those differences rather than treating every older note as current.
+
+Original design sources: `META_v0.1.md` and `PROTOTYPE_SPEC_v0.1.md` in the parent project.
