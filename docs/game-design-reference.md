@@ -1,0 +1,849 @@
+# Protocol Rebirth
+## Game Design & Loop Reference
+
+> **Go out with a purpose. Decide what is worth the risk. Come home with something that changes what you can do next.**
+
+| Document control | Value |
+| --- | --- |
+| Document status | Living design reference, v1.0 - for team review |
+| Prepared | 6 November 2026 |
+| Design owner | Robert Wasser |
+| Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
+| Repository baseline | `w4sser/protocol-rebirth-proto`, `main`, commit `88a9ac6364d0dcf5463c2a5f700f4817960ecaca` |
+| Prototype version inspected | `2.28.0`; meta save version `15` |
+| Scope | The player-facing game, its interconnected loops, progression, onboarding, and design intent |
+| Verification | Repository documents and selected implementation/data files inspected. No new end-to-end playtest was performed for this document. |
+
+### How to read this document
+
+This is a consolidated explanation of the game, not a claim that every design idea has shipped. It deliberately separates four kinds of information:
+
+- **CURRENT**: supported by inspected code or configuration at the baseline above. A data entry is not, by itself, proof that every associated UI path works.
+- **DIRECTION**: recorded design intent or an owner decision. It may be implemented only partly.
+- **PROPOSAL**: a recommendation for discussion, including adaptations of the supplied Helldivers 2 analysis. It is not an approved implementation brief.
+- **OPEN**: an unresolved decision, contradiction, or behavior requiring verification.
+
+Where these differ, both are recorded rather than quietly rewriting history. Numerical values below are a snapshot, not permanent balance commitments. Follow the linked sources when changing them.
+
+**Reading routes:** Read sections 1-4 for the game in one sitting. Read sections 5-12 to understand its systems. For onboarding and UX work, continue with sections 13-14 and the decision register in section 18. AI tools should also read section 21.
+
+---
+
+## Contents
+
+1. [The game in one page](#1-the-game-in-one-page)
+2. [Design pillars and boundaries](#2-design-pillars-and-boundaries)
+3. [The connected loops](#3-the-connected-loops)
+4. [An ordinary raid, from intention to consequence](#4-an-ordinary-raid-from-intention-to-consequence)
+5. [Combat and encounter design](#5-combat-and-encounter-design)
+6. [Loot, inventory, extraction, and loss](#6-loot-inventory-extraction-and-loss)
+7. [The bunker: restoration as progression](#7-the-bunker-restoration-as-progression)
+8. [Economy, crafting, and trading](#8-economy-crafting-and-trading)
+9. [Operator and equipment progression](#9-operator-and-equipment-progression)
+10. [BIT: companion, capability, and relationship](#10-bit-companion-capability-and-relationship)
+11. [World structure, objectives, and quests](#11-world-structure-objectives-and-quests)
+12. [Difficulty and replayability](#12-difficulty-and-replayability)
+13. [First-time player experience](#13-first-time-player-experience)
+14. [UX and information architecture](#14-ux-and-information-architecture)
+15. [Between-session and retention loops](#15-between-session-and-retention-loops)
+16. [World, tone, art, and presentation](#16-world-tone-art-and-presentation)
+17. [Lessons to adapt from the Helldivers 2 reference](#17-lessons-to-adapt-from-the-helldivers-2-reference)
+18. [Decisions, contradictions, and scope boundaries](#18-decisions-contradictions-and-scope-boundaries)
+19. [What a successful playtest should demonstrate](#19-what-a-successful-playtest-should-demonstrate)
+20. [Glossary](#20-glossary)
+21. [Source map and maintenance contract](#21-source-map-and-maintenance-contract)
+
+---
+
+## 1. The game in one page
+
+**Protocol Rebirth is a landscape-mobile, PvE extraction shooter connected to a persistent bunker-restoration game.** The player is an operator exploring a damaged Nordic world with BIT, a small hovering CRT-faced companion. Short raids supply the materials, equipment, knowledge, and access needed to rebuild the facility and reach further into the world. [S01] [S02] [S03]
+
+The central fantasy is not simply collecting better guns. It is **turning dangerous expeditions into a place worth returning to**. A dark room becomes operational. A useful tool becomes available. BIT gains capability. A previously unreachable area becomes a plausible next expedition.
+
+The player has two connected responsibilities:
+
+| In the field | At home |
+| --- | --- |
+| Read threats, move, aim, and survive | Understand the next useful improvement |
+| Find supplies that matter to a chosen goal | Spend, craft, equip, or save what came home |
+| Decide which fights and detours are worthwhile | Restore the bunker and develop BIT |
+| Manage limited carrying capacity and increasing pressure | Choose the purpose of the next raid |
+| Extract before the risk exceeds the value | See a concrete consequence of the last raid |
+
+### The central player question
+
+> **"I have something useful. Is the next opportunity worth risking what I already carry?"**
+
+That question only works when the player understands what the loot does, what is at risk, and how to get home. Confusing menus, unexplained currencies, or unclear exit conditions weaken the central decision rather than merely making the interface less attractive.
+
+### Format and scope
+
+**CURRENT:** The prototype is a browser-based static game, with a base/meta layer at the repository root and a Three.js raid layer in `nodspel/`. These are connected through the launch/result flow; they should not be described as two unrelated products. Progress is stored locally. The normal raid clock is eight minutes, while players may end a raid sooner by extracting. The first-time flow is a separate, shorter experience. [S01] [S02] [S04] [S05]
+
+**DIRECTION:** Accessible extraction tension for a broader mobile audience, not a full military simulation. PvE only; no PvP. The bunker is the home and a principal motivation for taking risks. [S01] [S06]
+
+**Not established by this baseline:** production multiplayer, a server-authoritative economy, cross-device accounts, a shared global campaign, or a released real-money business model. Do not present these as existing features.
+
+---
+
+## 2. Design pillars and boundaries
+
+The following consolidates recorded direction into a common design vocabulary. It is not an instruction to add more systems.
+
+### 2.1 Purpose before collection
+
+A desirable improvement should create a concrete need, and that need should point toward an actionable source. "Find Cable for the Fabricator" is stronger than "Collect resources." A quest must name where an item comes from, and that source must actually support the request. [S01] [S07] [S08]
+
+### 2.2 Risk should produce a decision
+
+Carried loot remains exposed until extraction. Going deeper, taking a detour, replacing an item in a full bag, or bringing valuable equipment should change the player's risk calculation. Clearing a stage is not the same as banking its loot. [S04] [S05]
+
+### 2.3 Combat should create readable problems
+
+Movement, cover, timing, range, and flanking should matter. An encounter should be understandable before it is lethal. Tools should offer an alternative solution, not be the only way a player can pass a basic encounter. [S09] [S10]
+
+### 2.4 Progression should be visible and useful
+
+The player should be able to connect a reward to a changed capability: an extra bag slot, a functioning room, a different weapon behavior, a tool, or a newly accessible location. The current game includes numerical progression too; the principle is not a ban on numbers, but a demand that their benefit be legible. [S07] [S11] [S12]
+
+### 2.5 BIT makes the loop personal
+
+BIT is a companion, not merely a menu for bonuses. Its voice connects danger, loss, recovery, discovery, and rebuilding. Relationship progression, hardware progression, and task assignment should feel related without being confused with one another. [S03] [S13] [S14]
+
+### 2.6 Clarity before complexity
+
+Introduce a system when it helps the player make a meaningful decision. Explain what happened before asking for the next action. Locked content must explain its unlock path. The existence of a system does not justify putting it on the first screen. [S01] [S15]
+
+### Boundaries to preserve
+
+PvE remains the baseline. Do not add currencies casually. BIT may perform one active assignment at a time. The free starter weapon protects the ability to attempt another raid. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01] [S11]
+
+---
+
+## 3. The connected loops
+
+### 3.1 Core session loop
+
+```mermaid
+flowchart LR
+    A[Choose a useful goal] --> B[Prepare a raid]
+    B --> C[Explore and fight]
+    C --> D[Find useful loot]
+    D --> E{Extract or continue?}
+    E -->|Continue at risk| C
+    E -->|Extract| F[Bank the haul]
+    F --> G[Build, craft, equip, or save]
+    G --> H[See a new capability or next need]
+    H --> A
+    C -->|Death, timeout, or abandon| I[Lose exposed cargo]
+    I --> J[Understand the loss and re-equip]
+    J --> A
+```
+
+The diagram shows the main loss rule. Legacy protection and recovery features need the separate qualification in section 6.4.
+
+### 3.2 Nested loops and their jobs
+
+| Loop | Player action | Payoff | What it contributes |
+| --- | --- | --- | --- |
+| Moment-to-moment combat | Read a threat, reposition, attack, recover | Survive or create an opening | Immediate play quality and mastery |
+| Room/encounter | Solve a tactical problem, interact, search | Access, loot, or a cleared route | Local accomplishment and pacing |
+| Raid | Pursue a purpose, weigh detours, extract | Banked materials and equipment | Risk/reward tension |
+| Restoration | Track a requirement, secure parts, activate an upgrade | A functioning bunker system | Tangible persistent progress |
+| Equipment | Find/craft gear, improve a build, deploy it | A different or stronger combat option | Preparation and attachment to possessions |
+| Operator/BIT progression | Play, learn, develop skills and talents | Persistent capability and relationship | Continuity across success and failure |
+| World progression | Improve the Core and complete scouting | New areas and objective chains | Medium-term aspiration |
+| Return-session | Collect completed work and select the next goal | A useful starting point for another raid | Continuity between sessions |
+
+**Design interpretation:** The raid supplies the bunker; the bunker gives the raid its purpose. Neither half should become a detached checklist.
+
+### 3.3 The restoration loop in concrete terms
+
+```text
+I want the Fabricator online
+  -> I need Cable, Scrap Alloy, and Scrap
+  -> I know where to search
+  -> I find the missing parts
+  -> I choose whether to secure them now
+  -> I return and activate the Fabricator
+  -> I receive the Scavenger Vest and access to crafting/preparation
+  -> The next raid has a visible benefit and a new purpose
+```
+
+This example uses an existing upgrade and reward, not a new tutorial item. Fabricator L1 currently costs 20 Scrap, two Cable, and two Scrap Alloy; its one-time commissioning reward is a Scavenger Vest. [S07]
+
+### 3.4 The emotional loop
+
+**DIRECTION / SYNTHESIS:** Curiosity -> tension -> a deliberate commitment -> relief or loss -> visible recovery/rebuilding -> renewed ambition.
+
+Success should feel like bringing something home. Failure should create a comprehensible setback and another approach, not uncertainty about what the game did to the player's possessions.
+
+---
+
+## 4. An ordinary raid, from intention to consequence
+
+### Before deployment
+
+The player identifies a purpose: a tracked upgrade part, a quest, scouting an area, a useful weapon, or a deliberately larger haul. Available preparation draws on the player's equipment, consumables, tools, BIT capabilities, and unlocked destinations. The early flow restricts preparation before the Fabricator is online. [S07] [S11]
+
+**UX requirement:** The preparation screen should answer three questions before exposing extra statistics: Where am I going? Why am I going? What am I putting at risk?
+
+### During the raid
+
+**CURRENT:** The standard structure has three depths within a shared round. The player moves through spaces with enemies, cover, loot, and control nodes. In the ordinary non-Big-Map flow, all nodes on the current level must be active before its exit opens. Nodes can be interacted with through the supported shooting/proximity mechanics, with shielded variants creating additional problems. [S04] [S09]
+
+The player does not automatically need to kill every enemy to open an exit. The underlying objective is to satisfy the exit conditions and survive the journey, not universally clear the map.
+
+### At a depth exit
+
+After an early depth, the player may extract or continue. Continuing does **not** secure the bag. The same carried value remains at risk in the next depth. The final normal depth completes the raid when the player deliberately enters the available exit. [S04] [S05]
+
+**CURRENT variant:** Big Map has separate extraction availability logic and multiple extraction definitions. It should be treated as a mode-specific structure, not assumed to follow every rule of the three-depth flow. [S04]
+
+### Pressure during a run
+
+Several configured systems constrain indefinite wandering:
+
+| Pressure | Current design/data | Intended decision |
+| --- | --- | --- |
+| Round clock | Eight-minute normal budget; Hard uses a shorter clock | Finish the purpose or leave before time runs out |
+| Hunter waves | Alarm after 75 seconds, then waves on a 45-second cadence | Avoid treating cleared space as permanently safe |
+| Healing allowance | A shared 60 HP raid healing budget | Decide when further damage exposure is no longer worthwhile |
+| Carrying capacity | Base bag of four; progression can raise it, capped at ten | Prioritize what to bring home |
+| Bag burden | Configured full-bag penalties up to 20% movement speed and increased detection | More value can also make leaving harder |
+| Deeper encounters | Additional enemies, encounter combinations, and valuable loot | Accept greater danger for a better return |
+
+These are baseline settings, not universal guarantees for FTUE or every mode. Waves use a fixed clock, not a separate heat mechanic. Spawn rules seek hidden, distant valid locations rather than simply placing hunters beside the player. [S04] [S09] [S11] [S16]
+
+### After the raid
+
+Successful loot is reconciled into the persistent economy. Currency-bearing pickups convert to the relevant currency; materials and gear have different storage destinations. An unsuccessful raid records loss rather than silently treating a previous depth as a successful bank. The result should then lead back to a useful next action. [S02] [S05] [S08] [S12]
+
+**PROPOSAL for result-screen hierarchy:** Outcome -> what came home or was lost -> progress toward the chosen goal -> one recommended next action. Secondary XP bars should not obscure that explanation.
+
+---
+
+## 5. Combat and encounter design
+
+### 5.1 Player capabilities
+
+The player moves, aims/fires, uses cover, dashes, interacts with nodes and loot, and uses available healing or a selected tool. Weapon range, damage, firing/reload behavior, spread, and assistance create different handling profiles. Avoid deriving current input behavior from the old Node Raid README; it describes an earlier combat model. [S09] [S10] [S12]
+
+### 5.2 Weapon identities
+
+| Weapon | Current identity | Decision it should support |
+| --- | --- | --- |
+| Basic Carbine | Always-available starter; forgiving guided tracer behavior | Re-enter the loop without needing a replacement gun |
+| Vector SMG | Fast fire and a larger magazine at shorter range | Maintain pressure while moving and managing proximity |
+| Breach Shotgun | Short-range pellet fan and knockback | Commit to a close engagement and exploit space/control |
+| Marksman Rifle | Longer range, stronger deliberate shots, slower cadence | Use sightlines and time attacks carefully |
+
+These are existing weapon families. The document does not imply that every family is equally balanced or available during onboarding. [S12]
+
+### 5.3 Enemies as tactical problems
+
+The inspected encounter configuration includes the following roles:
+
+| Encounter | What the player reads | Non-tool response | Tool-assisted response |
+| --- | --- | --- | --- |
+| Patrol / grunt | Detection cone or a telegraphed firing line | Avoid its view, sidestep, flank, or attack from an advantageous angle | Decoy can redirect attention |
+| Front-shield guard | Protected front, slow turning, burst and recovery | Circle to the side/rear or move during recovery | Decoy can pull it away from its position |
+| Sentry / turret | A firing lane and a recovery window | Use cover and advance between attacks | EMP provides an opening |
+| Grenadier / thrower | A marked landing area before the blast | Leave the ring or interrupt the enemy | A tool is not required to understand the solution |
+| Rusher / swarm | A charge or emerging close-range group | Sidestep, retreat, or funnel enemies through constrained space | Grenade can clear a cluster |
+| Shielded node | A visible generator/shield relationship | Break the generator | EMP temporarily disables the shield |
+| Locked passage | A locked direct route and an alternative | Find the keycard or take the longer route | Not every obstacle requires a tool solution |
+
+The rows summarize configured problems, not a promise that all appear in every area. Front shields are directional; a shielded enemy should not be interpreted as invulnerable from every angle. [S09] [S10]
+
+### 5.4 Toolkit
+
+The current toolkit contains **Decoy**, **Grenade**, and **EMP**. The loadout supports one tool type for a raid, with limited charges; Fabricator progression and recipes supply them. Medkits are a separate consumable/kit system. [S08] [S12]
+
+The point is to make preparation relevant without making it a test with one correct answer. A player should be able to recognize a problem in the field and understand why a different tool would have helped next time.
+
+### 5.5 Temporary raid upgrades
+
+**CURRENT:** Field perks are temporary, not permanent account upgrades. The configuration offers them after two room clears and includes a four-second choice timeout. Examples include Chain Reaction, Calm Reload, Rolling, Emergency Shield, Field Medic, Recon, Field Dressing, and Ricochet. [S17]
+
+Their job is to add variation within a run. Their presentation must make their lifetime clear: **"For this raid"**, not an ambiguous upgrade that appears to persist forever. FTUE suppression and default timeout behavior should be checked in the actual flow rather than inferred from the card list.
+
+### 5.6 Readability is part of difficulty
+
+Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery windows communicate the rules. Difficulty should come from responding to a readable problem, not from invisible attacks or contradictory cues. Existing combat data supports flanking/unaware bonuses and explicit warning behavior. [S09] [S10]
+
+---
+
+## 6. Loot, inventory, extraction, and loss
+
+### 6.1 Three different places a possession can be
+
+| State | Meaning | Risk |
+| --- | --- | --- |
+| At home | Persistent materials, gear, or currency already secured | Not lost merely because the next raid fails |
+| Carried in the raid | Newly found materials and unequipped carried gear | Exposed until successful extraction |
+| Equipped in the raid | Selected weapon/armor and relevant carried supplies | Valuable equipment is part of the raid's risk; the basic free weapon is the fallback |
+
+**CURRENT:** Unequipped backpack gear shares the raid's overall carrying-space constraint with materials and also has its own smaller backpack limit. Medkits use a dedicated kit count rather than ordinary material-bag slots. Encounter keycards are handled separately. [S04]
+
+### 6.2 Home storage
+
+The **Stash** holds materials. The **Armory** holds equipment, consumables, tools, and attachments. Their capacities are separate: current data starts each at 12 slots, with Storage progression expanding them. Stack sizes are item-defined; do not equate a home-storage slot with a raid pickup. [S07] [S12]
+
+This separation prevents a material-cleanup workflow from implicitly treating a valuable weapon as disposable clutter. It also lets preparation focus on usable gear while construction focuses on required parts.
+
+### 6.3 What makes loot meaningful
+
+A found item should communicate at least one actionable use: a tracked build, a recipe, a quest, a scouting unlock, a trade, equipment, or sale value. The shared `itemInfo` helper derives usage from actual module and recipe data, reducing the chance that a description promises a nonexistent use. [S08]
+
+A full bag creates a comparison: keep the parts for today's goal, replace them with rarer future value, or extract. The interface must distinguish the amount already **HOME** from the amount still in the **BAG**.
+
+### 6.4 Loss rule and unresolved exceptions
+
+**DIRECTION + CURRENT raid logic:** Only extraction banks the haul. Death, timeout, or abandonment loses exposed raid cargo. Merely advancing to the next depth does not bank it. [S01] [S04] [S05]
+
+**OPEN:** Other data and older documents still describe a Storage secure slot, BIT item rescue, Guardian Safe Return, insurance, and post-death bag recovery. Some belong to older/meta or experimental paths; some remain in active configuration. This review has not established one consistent, end-to-end protection contract across all modes. [S07] [S11] [S13] [S14]
+
+Until reconciled, do not teach both "everything carried is lost" and "this item always survives" as universally true. A player-facing protection promise must name what is protected, under which mode, when it is selected, and how the result screen proves it worked.
+
+Persistent learning and progression are separate from preserving loot. The design can let XP or skill progress survive a failed run without pretending that its cargo was extracted.
+
+---
+
+## 7. The bunker: restoration as progression
+
+The bunker is a persistent place whose systems become functional. Its progression gives meaning to otherwise generic resources. The base presentation uses staged artwork and interactive room hotspots, while raids use the separate 3D game layer. This distinction matters for implementation, not for the player's understanding of one connected world. [S02] [S07]
+
+### Main facilities
+
+| Facility | Role | Current progression examples |
+| --- | --- | --- |
+| Rebirth Core | Power, facility access, broader progression gates | L1 restores initial power; L2 opens further access and module caps; L3 supports Town access |
+| Fabricator | Crafting, recycling, and preparation | L1 awards a Scavenger Vest and basic crafting/prep; L2 provides advanced recipes and tools |
+| Storage / Vault | Capacity and inventory convenience | Stash expansion, Armory expansion, additional raid carrying capability; secure-slot copy requires the loss-rule review |
+| BIT Bay | BIT hardware and supported capabilities | Initial functionality and loot intelligence; later cargo capability |
+| Living Quarters | Rest and readiness | Rest is configured to restore some bunker power and provide a shield benefit for the next raid |
+
+Living Quarters exists in the room/access and rest systems; it should not be presented as an identical multi-level module tree to the four main module definitions. [S07] [S18]
+
+### Separate access, construction, and benefit
+
+A room being revealed is not the same as it being operational. A room being operational is not the same as having every later level unlocked. Likewise, a visual restoration stage and the Core's persistent power state are separate concepts in the data. UI copy should say which transition the player is making. [S07]
+
+### A strong upgrade payoff
+
+The Fabricator commissioning reward illustrates the intended connection: bringing the facility online awards a Scavenger Vest with **+25 shield and +1 bag slot**, ready for the next default loadout. The system also contains first-upgrade payoff configurations, such as a nearby loot cluster that makes additional carrying capacity useful. [S07] [S11]
+
+**PROPOSAL:** Treat this as the model for important unlocks. Show what changed at home, then let the player experience its value in the next raid. Avoid awarding five unrelated systems at the same instant.
+
+---
+
+## 8. Economy, crafting, and trading
+
+### 8.1 Resource vocabulary
+
+| Resource | Role supported by the inspected data | Important distinction |
+| --- | --- | --- |
+| Scrap | Main soft currency for purchases, construction, crafting, and upgrades | Not the same as the material Scrap Alloy |
+| Scrap Alloy | Physical construction/crafting material | Carried as an item and consumed by specific requirements |
+| Data Cores | Currency used in selected progression costs and exchanges | Not the same as every item with "Core" in its name |
+| Contract Chips | Quest/trade currency for the BIT catalog | Separate from Operator XP and Bond XP |
+| Signals | Insurance/recovery and exchange-related prototype currency | Experimental/mode-dependent; not evidence of a launched monetization model |
+| Operator XP / Bond XP | Progression measures | Not ordinary spendable currencies |
+| Bunker Power / Fuel | System-specific meters | Power is a facility state; Fuel belongs to the optional retention layer |
+
+**CURRENT:** Salvage is no longer a separate soft currency. A **Salvage Crate** remains a valid loot item and currently converts to 24 Scrap on successful ingestion. Older documents cite different conversion values; current item data is the baseline here. [S11] [S12] [S18] [S19]
+
+### 8.2 Material families
+
+The data groups materials into Power, Mechanical, Electronics, Bio/Medical, Protocol, and valuables/scouting items. Examples include Cable and Power Cells; Scrap Alloy, Servo, and Polymer Plate; Circuit Boards and Optical Sensors; Med Gel and Bio Samples; and AI Fragments, Encrypted Drives, Rebirth Shards, and Neural Cores. [S12]
+
+Different materials should make destination and depth choices meaningful. Avoid inventing a universal four-tier rarity structure from an old economy proposal: the current item rarities and actual loot tables are the implementation baseline.
+
+### 8.3 Sources and sinks
+
+```text
+Raids, quests, supported idle activities, and trading
+  -> materials / currency / equipment
+  -> facility upgrades / crafting / equipment improvements / trades
+  -> new capacity, capability, or access
+  -> new raid purposes
+```
+
+The Fabricator turns materials plus Scrap into consumables, weapons, attachments, tools, advanced components, or Data Cores through supported synthesis recipes. Recipes are gated by the relevant Fabricator level and, where applicable, unlock flags. [S08]
+
+Examples already present include crafting the Vector SMG, Breach Shotgun, Marksman Rifle, Scavenger Vest, medkits, a Power Relay, and attachments. These are not all available at the beginning.
+
+### 8.4 Trading and recycling
+
+The Quartermaster sells selected common supplies and gear, buys items, and provides specific barter exchanges. Current barter examples include Servo for a Hydraulic Component and Memory Modules for a Transmitter. The vendor data does not list the SMG or shotgun as direct stock. [S19]
+
+Selling for Scrap and breaking an item into base materials are different actions. The recycle map is deliberately lossy and excludes protected categories such as Protocol/story items; the exact allowed action should come from data, not a blanket "all junk is recyclable" assumption. [S08]
+
+### 8.5 An explicit monetization tension
+
+The data includes exchanging Signals for Data Cores, while earlier design language characterizes Signals as safety/time rather than power. Data Cores can participate in progression, so these statements are not automatically compatible. Treat the eventual business model and paid progression boundaries as an open decision, not as a resolved "cosmetics-only" or "no paid advantage" promise. [S19] [S20]
+
+---
+
+## 9. Operator and equipment progression
+
+### 9.1 Progression layers
+
+| Layer | What persists | What the player understands |
+| --- | --- | --- |
+| Operator level | Overall raid-derived XP and level | "I am becoming more experienced." |
+| Use-based skills | Mobility, Stealth, Vitality, Search, Crafting | "Doing this makes me better at it." |
+| Weapon mastery | Weapon-use/kill-based mastery progression | "I know this weapon better." |
+| Equipment build | Upgrade levels, Mk tier, fitted attachments on the relevant built copy | "This is a valuable piece of gear I prepared." |
+| Bunker and area unlocks | Operational facilities and access | "My home and available expeditions have expanded." |
+| BIT | Bond, hardware, and talents | "My companion is growing with me." |
+| Raid perks | Nothing beyond the current run | "This raid has a particular temporary build." |
+
+The distinction between persistent character development, a losable item build, and temporary perks must remain explicit. [S02] [S11] [S14] [S17]
+
+### 9.2 Operator development
+
+**CURRENT data:** Operator progression is configured up to level 30. Use-based skills include Mobility through movement/dashing, Stealth through close node interaction, Vitality through damage/healing/survival, Search through searching containers, and Crafting through crafting/extracted items. Weapon mastery uses kill thresholds and modifies handling. [S11]
+
+The current design is therefore a mixture of automatic numerical development and explicit preparation choices. It is not purely horizontal progression.
+
+### 9.3 Equipment development
+
+The equipment model includes incremental upgrades, Mk tiers, and attachments. Barrel, magazine, and optic attachments create visible range, capacity, or damage changes, with tier requirements. The art data also distinguishes visual grades: Salvaged, Restored, Custom, and Svartverk. The last is a configured visual grade, not automatically an independent fourth merge tier. [S11] [S12]
+
+**Important implementation detail:** The current save-model comments describe tier, attachments, and upgrade level as belonging to a built copy. Older comments describing permanent per-item-ID upgrades must not be used to promise that a lost upgraded gun returns with its investment intact. [S02]
+
+**OPEN:** Merge documentation describes a universal three-copy rule, while current configuration uses `copies: [3, 7]`. Use the live merge logic and UI when explaining the exact requirement; do not reproduce the obsolete rule as settled design. [S06] [S11]
+
+### 9.4 Progression should widen useful choices
+
+**PROPOSAL:** Review each major upgrade against two questions: What can the player do differently? Where will they notice it immediately? Preserve satisfying numerical growth, but prioritize new tactical options, carrying decisions, and access over layers of nearly invisible percentage bonuses.
+
+---
+
+## 10. BIT: companion, capability, and relationship
+
+BIT is the emotional connection between the hostile field and the recovering bunker. Its established tone is helpful, loyal, dry, and slightly cheeky. It comments on discoveries, death, returning home, completed construction, and the player's next need. [S03] [S13]
+
+### Four systems that should not be conflated
+
+| BIT layer | Purpose | Current evidence |
+| --- | --- | --- |
+| Character/presentation | Make the journey feel shared | Contextual dialogue and a fixed CRT-faced identity |
+| Bay hardware | Improve physical capability | BIT Bay module levels and cargo/scan-related benefits |
+| Bond | Represent accumulated relationship/experience | Bond thresholds, raid XP sources, and a configured cap of 20 |
+| Talent tree | Let the player specialize | Scout, Guardian, and Scavenger branches with ranks, row gates, choices, and capstones |
+
+Early narrative presence does not mean every Bay hardware function is already unlocked. Likewise, Bond level, Bay level, and Operator level are not three names for the same progression bar. [S07] [S13] [S14]
+
+### Talent identities
+
+**Scout** supports information and finding useful loot. **Guardian** supports survival and defensive capability. **Scavenger** supports the home economy and scavenging. The configured tree includes mutually exclusive choices on some rows as well as passive effects. Particular protection talents remain subject to the loss-rule reconciliation in section 6.4. [S14]
+
+The newer talent data explicitly replaces the older single-active-skill toggle for the core skills: learned nodes become passive. This does **not** overturn the separate rule that BIT can perform only one active assignment at a time. [S01] [S14]
+
+### BIT assignments
+
+Scavenging, a longer expedition, and accompanying/supporting a raid represent opportunity costs. A companion away on an assignment should not simultaneously provide every field benefit. The exact availability rules should remain visible rather than requiring the player to infer them from missing bonuses. [S01] [S18]
+
+**PROPOSAL for guidance:** BIT should identify a need, point to a useful source, acknowledge a meaningful find, and explain a consequence. It should not narrate every pickup or compete with urgent combat information.
+
+---
+
+## 11. World structure, objectives, and quests
+
+### 11.1 World progression
+
+The configured world-map order is **Bunker -> Archipelago -> Town**. A new area's access combines Core progression with a successful scouting extraction. [S11]
+
+| Area | Identity | Configured access |
+| --- | --- | --- |
+| Bunker | Facility interiors, constrained routes, initial encounters | Starting area |
+| Archipelago | Islands, piers, rocky shores, patrols | Core L2 plus an extracted Archipelago Chart from the Bunker |
+| Town | Abandoned settlement, searchable houses, harder encounters | Core L3 plus an extracted Town Survey from the Archipelago |
+
+This makes exploration itself part of progression: the player does not unlock every destination merely by accumulating a generic account level.
+
+### 11.2 Keep objective types distinct
+
+A raid can contain several different reasons to act:
+
+| Objective type | Example | What completes it |
+| --- | --- | --- |
+| Exit requirement | Activate the current level's control nodes | Satisfy that mode's gate/extraction rules |
+| Personal build goal | Find Cable for a facility upgrade | Bring home enough usable materials and perform the build |
+| Quest | Extract specified items, defeat a specified enemy, or hand in parts | Meet that quest's own objective and claim/hand in as required |
+| Optional opportunity | Extra cache, equipment pickup, searchable room | Take the opportunity and, for carried rewards, extract |
+| Scouting goal | Recover a chart/survey | Extract the relevant scouting item |
+
+**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and what is currently required to leave it.
+
+### 11.3 Quest systems
+
+**CURRENT configuration:** Generated BIT quests draw from reachable world facts and cover kills, searches, extraction, or clears. The data sets three per day, one free swap, and a choice of rewards. Permanent quest chains separately provide ordered area progression, named steps, material hand-ins, and unlocks. [S21]
+
+The configured Bunker chain is **Wake the Core**. The Archipelago chain is **Signals at Sea**. Rewards include materials, tools, Scrap, XP, Contract Chips, recipes, cosmetics, and Hard access. There is not an equivalent authored Town chain in the inspected quest-chain table; do not invent one to make the presentation symmetrical. [S21]
+
+Contract Chips feed BIT's catalog of recipe access, selected materials, Hard passes, and cosmetic looks. A weekly-operation reward table is explicitly a stub: the weekly operation should not be described as implemented. The catalog also mentions items such as the Gull Drone blueprint; catalog presence alone does not prove a complete playable drone system. [S21]
+
+---
+
+## 12. Difficulty and replayability
+
+The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
+
+### Readable challenge, not invisible punishment
+
+The intended encounter contract preserves warnings and alternative tactical responses. More enemies, stronger combinations, and reduced time can create pressure without making cues unreliable. Preparation should help, but the player should still understand how to respond after an imperfect loadout choice.
+
+### Adaptive difficulty
+
+**CURRENT code:** A between-raid adaptive difficulty system uses recent outcomes and combat/performance signals to adjust bounded parameters for later raid generation. It does not claim to change those parameters in the middle of a fight. It requires repeated signals before shifting and treats the early FTUE separately. [S22]
+
+The source contains target extraction bands, but those are tuning inputs, not measured player retention or proof of a good experience. Its storage key is also currently shared rather than save-slot namespaced, which matters when comparing fresh profiles on one device.
+
+### Replayability test
+
+**PROPOSAL:** A repeated raid should provide at least one changed reason to play: a new purpose, a different route, a meaningful loadout choice, a different encounter decision, a desirable haul, or a useful upgrade payoff. Changing only the seed is not sufficient evidence of meaningful variation.
+
+---
+
+## 13. First-time player experience
+
+### 13.1 The problem to solve
+
+The supplied team feedback is that too much is introduced without explanation. The repository's FTUE audit similarly describes multiple pre-combat screens and competing goals. These are reasons to investigate comprehension, not proof that every new player fails every step. [S15]
+
+The onboarding goal is not to teach the entire system inventory. It is to establish one complete, memorable loop:
+
+> **Act -> find something useful -> get out -> make home better -> understand why to go again.**
+
+### 13.2 Current direction and implementation evidence
+
+The older opening-playtest guide begins at the base with the Core. A later FTUE decision instead prioritizes immediate shooting and moves the cold open to after the first extraction. These are different historical flows, not steps to concatenate. [S15] [S23]
+
+**DIRECTION recorded in the FTUE document:** The first attempt has real risk. A failed attempt leads to an easier second attempt, followed by a strongly assisted third attempt. Important guidance must also work without sound. [S15]
+
+**CURRENT code/data:** The direct-raid FTUE has a fixed pair of initial grunt positions, an assistance ramp, and a clutch sequence that adds two hunters once the nodes are active. The third assistance setting includes minimum-health and minimum-time protection. Its ten-second clutch countdown creates pressure but explicitly does not close the beam or independently end the raid. [S24] [S25]
+
+The FTUE design document's final implementation-status paragraph is older than some of this code. Treat the code as evidence that these pieces exist, while still verifying the full fresh-save experience on a device.
+
+### 13.3 Intended learning sequence
+
+This is a consolidated design sequence, not a frame-by-frame claim about the current UI.
+
+| Stage | Player experience | What should be learned | What should wait |
+| --- | --- | --- | --- |
+| First contact | Move, aim/fire, encounter an obvious threat | "I can control this, and attacks can be read." | Full equipment statistics and economy |
+| First useful find | Recognize and collect supplies | "This is worth taking home." | Every item family and crafting recipe |
+| First extraction | Reach the available exit under readable pressure | "Finding is not keeping; getting home matters." | Multiple competing quest systems |
+| First home payoff | Restore power and understand the next useful facility | "My raid changes this place." | All long-term currencies and upgrade trees |
+| First preparation | Use a relevant piece of equipment or benefit | "What I built affects my next attempt." | Advanced optimization |
+| First independent choice | Choose a goal or decide to push further | "I am making my own risk/reward decision." | Optional retention and commerce experiments |
+
+### 13.4 Targets, not measured achievements
+
+The FTUE design proposes first shot in under 15 seconds and first extraction in under 90 seconds. These are targets from the design document, not results established by this review. The more important comprehension checks are whether the player knows their purpose, recognizes what they gained, and voluntarily chooses another raid. [S15]
+
+**PROPOSAL:** Reveal systems by demonstrated relevance. Do not simply replace eight opening screens with an eight-screen tutorial after extraction.
+
+---
+
+## 14. UX and information architecture
+
+### 14.1 Information hierarchy
+
+The raid should prioritize immediate danger, the current actionable objective, and the path/rules for extraction. Bag value and progress toward a tracked goal should support decisions without covering the playfield. Temporary offers must not obscure an urgent attack. [S01] [S03]
+
+At home, prioritize the next useful improvement and its benefit. At the Fabricator, show craftable outputs and missing inputs. In the Armory, show usable equipment and meaningful comparisons. On BIT screens, distinguish Bond, talents, and assignment availability.
+
+### 14.2 Screen responsibilities
+
+| Surface | Primary question |
+| --- | --- |
+| Base | What should I restore or improve next, and why? |
+| Room detail | What does this room do, and what changes at the next level? |
+| World map | Where can I go, what is there, and what unlocks the next area? |
+| Raid preparation | What is my purpose and what am I taking/risking? |
+| Raid HUD | What requires action now? |
+| Loot comparison | Why would I take this instead of what I already carry? |
+| Raid result | What did I secure or lose, and what can I do with the outcome? |
+| Armory / equipment | What does this item let me do, and what improvement is available? |
+| BIT | What has BIT learned, what can it do, and is it available? |
+
+This table is a responsibility model, not a requirement to add new screens.
+
+### 14.3 Reveal information where it is used
+
+The armory/UI design calls for contextual currency presentation instead of showing all counters everywhere. Apply the same logic to mechanics: show a missing part beside the build it serves; explain a stat beside the choice it changes; show a locked area's actual requirements beside that area. [S06]
+
+**PROPOSAL:** Every introduced system should have four explicit answers: What is it? Why should I care now? What action can I take? How will I recognize the outcome?
+
+### 14.4 Existing presentation constraints
+
+Keep controls within the safe area, preserve a full-bleed playfield, use shared popup components, keep notices unobtrusive, and use bespoke icons rather than emoji. The art direction prioritizes player/BIT/immediate threats, then routes and boundaries, then cover/objectives, then atmosphere. [S01] [S03]
+
+---
+
+## 15. Between-session and retention loops
+
+### 15.1 Always-on idle systems in the data
+
+The current idle configuration is separate from the optional retention-mode experiment. It includes a Core Scrap generator, construction timers, a sequential Fabricator queue, BIT scavenging, and a welcome-back summary. The first eligible higher-level build and first craft have instant-completion exceptions to preserve early momentum. [S18]
+
+These systems should return the player to a useful raid purpose: a craft completed, an upgrade is ready, or a missing-material gap has narrowed.
+
+### 15.2 Optional retention modes
+
+| Mode | Configured role |
+| --- | --- |
+| `core` | Default; test the base loop without the optional retention package |
+| `bit` | Adds the Morning Report and BIT expeditions |
+| `full` | Adds Fuel, additional daily contracts, decryption, streak, and overnight-yield features |
+
+Do not confuse these optional daily contracts with the separately configured BIT quests and permanent quest chains. They are different systems with overlapping terminology. [S18] [S21]
+
+### 15.3 Power and rest
+
+Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a capped offline drain, and supports reinforcement or a Cable hand-in. Low power can affect non-Core room availability; the design copy preserves the ability to raid. Living Quarters rest provides configured power recovery and a next-raid shield benefit. [S07] [S13] [S18]
+
+**Design risk to review:** Power, Fuel, construction, crafting, scavenging, quests, and a Morning Report can collectively turn a simple return into administrative work. Their combined cost must be tested, not assessed one feature at a time.
+
+### 15.4 Desired reason to return
+
+**PROPOSAL:** Lead with anticipation of a useful expedition or a meaningful restoration payoff. Timers and reminders should support that motivation rather than substitute for an enjoyable raid. Do not add more retention layers until the unadorned loop makes players choose another run.
+
+---
+
+## 16. World, tone, art, and presentation
+
+### 16.1 Tone and setting
+
+**DIRECTION:** "Dark, but never hopeless." A damaged world can still be alive, beautiful, and worth rebuilding. Nordic melancholy sits beside human warmth, rather than generic dystopian horror. [S03]
+
+The contrast is **soft nature and hard engineering**: asymmetrical vegetation and rock against deliberate Cold War concrete and machinery. Swedish identity should come through the landscape and built environment, not national flags.
+
+The operator is an adult, slender, hooded figure rather than a cute/chibi hero. BIT's friendly CRT face and distinctive body are locked visual assets, not invitations to invent a different smile for each use. [S03]
+
+### 16.2 Readability and color
+
+| Signal | Meaning |
+| --- | --- |
+| Cyan | BIT, powered systems, extraction |
+| Amber | Loot, human warmth, optional opportunity/value |
+| Coral / danger red | Hostile sensing and confirmed danger |
+| Neutral contrast | Player separation and readable walkable space |
+
+The primary UI action also has its own tokenized treatment. Color is semantic, not decoration. Large forms, controlled density, and clear silhouettes should survive phone-scale viewing. [S01] [S03]
+
+### 16.3 Narrative through action
+
+The existing premise connects the operator, BIT, a dead facility, and the possibility of restoring it. Protocol fragments add mystery through decryption in the optional layer. The inspected sources do not define a complete ending, final antagonist, or fully authored campaign; those must remain unspecified here. [S11] [S18]
+
+**PROPOSAL:** Let turning on a room, reaching a new coastline, recovering a signal, or discovering a useful machine carry story significance. Personal visible restoration can deliver a larger purpose before any shared-world live-service system exists.
+
+### 16.4 Audio and silent play
+
+BIT's established dialogue tone should remain consistent across base and raid. Important guidance cannot depend on hearing a voice line; the recorded FTUE decision explicitly requires critical information on screen as well. Music and atmosphere should support the world's restrained, hopeful mood without masking actionable combat information. The latter is a presentation recommendation, not a new audio implementation claim. [S13] [S15]
+
+---
+
+## 17. Lessons to adapt from the Helldivers 2 reference
+
+**Status: PROPOSAL.** This section interprets the video and transcript supplied for the design discussion. It is not an independent verification of Helldivers 2's current mechanics, and it does not silently replace Protocol Rebirth's existing rules.
+
+| Reference principle | Adaptation for Protocol Rebirth | Boundary |
+| --- | --- | --- |
+| Clear primary objective, optional secondary work, uncertain discoveries | Establish one understandable purpose, then offer optional opportunities around it | Do not turn a short mobile raid into a long checklist |
+| A visible mission/reward/upgrade loop | Connect the haul to a specific bunker or equipment payoff | Avoid rewards that lack an understandable use |
+| Enemies create pressure, not just farming opportunities | Make routing, avoidance, timing, and extraction worthwhile decisions | Current kills contribute to other systems; removing those rewards is a separate design change |
+| Big, perceivable capability choices | Favor noticeable tools, weapon identities, capacity, and access | Do not falsely describe the existing numerical progression as absent |
+| Preparation near the moment it matters | Explain and offer equipment choices when there is an actual mission context | Do not teach the whole loadout system before the player has experienced combat |
+| Progression through participation and efficiency | Preserve a recoverable path and useful progress after setbacks | Do not erase the meaning of extraction loss |
+| Player-favoring clarity and recoverability | Make warnings, consequences, and return paths understandable | Generosity is not the same as guaranteeing every raid succeeds |
+| Participation in a larger purpose | Use visible bunker/world restoration as the near-term purpose | A global campaign is not required for the current slice |
+| Spending that feels supportive | Define business-model boundaries deliberately before implementation | No launched monetization or no-paid-power claim is established here |
+
+The video's respawn resources, friendly fire, shared loot, and stratagem input sequences belong to its particular cooperative design. They are not automatic recommendations for this game. Especially in an extraction game with losable gear, copying an isolated punishment mechanic without its surrounding recovery system would be a different design.
+
+**Reference timestamps:** core loop 1:13-2:26; mission structure 2:36-5:30; death/friendly fire 5:35-8:43; enemy rewards and shared loot 8:50-10:34; distinct input/decision rhythm 10:40-12:24; progression 12:50-17:04; broader campaign and spending 17:09-20:59. [V01]
+
+---
+
+## 18. Decisions, contradictions, and scope boundaries
+
+This is a review register, not permission to implement every item.
+
+| Priority | Topic | Evidence / tension | Required outcome |
+| --- | --- | --- | --- |
+| P0 | Death and protection | Strict loss rule vs secure-slot, BIT rescue, insurance, and recovery definitions | One mode-specific contract, matching UI, and an end-to-end test |
+| P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly |
+| P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy without changing their underlying meanings |
+| P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
+| P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment | Explain Bond, hardware, talents, and assignments separately |
+| P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics | Clearly state what is lost with a particular item |
+| P1 | Merge requirements | Three-copy prose vs `[3, 7]` configuration | Verify live behavior and update old descriptions |
+| P1 | Bag expansion | Module copy and progression mapping are not perfectly aligned | Show the actual computed capacity and each contributing source |
+| P1 | Retention layering | Idle/power systems plus optional Fuel/contracts/report systems | Decide what belongs in the default experience and when it is revealed |
+| P1 | Commerce boundaries | Signals-to-Data-Cores exchange vs safety/time-only language | Explicit policy before any real-money release |
+| P2 | Catalog placeholders | Weekly operation stub and blueprint/catalog references | Separate visible promises from complete playable functionality |
+| P2 | Old technical documentation | Node Raid README and integration history describe superseded states | Point readers here for the baseline; retain history without presenting it as current |
+
+### Future scope, not current baseline
+
+Co-op has been discussed as a direction, including low-friction joining. This review does not establish a production multiplayer implementation or rules for shared loot, revives, friendly fire, or synchronized extraction. Those require a separate design contract.
+
+A backend/account system is also described as future work in the agent guide. The current design reference must not assume cloud saves, server-authoritative results, social progression, or a global campaign already exist. [S01]
+
+### What this document does not approve
+
+It does not authorize new currencies, replacing the economy, guaranteed success outside the defined FTUE assistance, removing kill rewards, adopting Helldivers-style friendly fire, adding monetization, or rewriting combat. Its purpose is a shared understanding from which scoped decisions can be made.
+
+---
+
+## 19. What a successful playtest should demonstrate
+
+These are proposed validation questions. They are not measured outcomes of this documentation task.
+
+### Comprehension
+
+After an uncoached first complete loop, ask the player to explain what they were trying to achieve, what they brought home, what would have been lost on failure, what changed at the base, and why they might play another raid. A correct code path is not evidence that the player understood it. [S23]
+
+### Decision quality
+
+Observe whether the player makes a deliberate extraction/continue choice, recognizes an optional opportunity, uses an enemy's tell to change behavior, and selects or values equipment for a reason. Distinguish "I chose not to fight" from "I never noticed the enemy" and "I chose to leave" from "I could not find anything else."
+
+### Suggested measures
+
+| Measure | Definition |
+| --- | --- |
+| Time to first shot | First valid shot minus first PLAY action, on a genuinely fresh profile |
+| Time to first extraction | First successful extraction minus first PLAY action; record attempts separately |
+| First-loop completion | New profiles that extract and perform the intended first home payoff |
+| Second-raid initiation | Players who voluntarily launch the next raid after seeing the first payoff |
+| Goal comprehension | Player can name the active purpose and expected benefit without coaching |
+| Risk comprehension | Player can distinguish home inventory, carried value, and relevant protection rules |
+| Upgrade comprehension | Player can identify what an upgrade changes in actual play |
+| Decision diversity | Different informed approaches are observed, not merely different button presses |
+
+The prototype contains local FTUE timestamps and an event log, including a `ONE_MORE_RAID` concept in its documentation. Audit event definitions before treating them as a complete analytics funnel. No production retention percentages are asserted here. [S26] [S15]
+
+**Recommended first review:** Inspect one fresh-save journey and one returning-player journey. For each interruption, record the triggering system, the decision it enables, whether the player needs it now, and what can be deferred without removing useful agency.
+
+---
+
+## 20. Glossary
+
+| Term | Meaning in this document |
+| --- | --- |
+| Raid | One launched field run ending in extraction or loss; not a synonym for a single room |
+| Depth / level | A stage inside the normal raid; not Operator level |
+| Area | Bunker, Archipelago, or Town on the world map |
+| Node | A control objective involved in opening a level's exit |
+| Extraction | The successful act that banks the carried haul |
+| HOME | Already secured persistent possessions |
+| BAG | Exposed raid cargo, not yet secured |
+| Stash | Home storage for materials |
+| Armory | Home storage for equipment and related usable items |
+| Scrap | Soft currency |
+| Scrap Alloy | A physical material, not Scrap currency |
+| Rebirth Core | The central bunker facility |
+| Data Cores | A progression-related currency |
+| Operator level | Overall player progression |
+| BIT Bond | Relationship/experience progression with BIT |
+| BIT Bay | The companion's hardware facility |
+| BIT talent | A learned specialization effect; not the same as an assignment |
+| BIT assignment | Work that occupies BIT, subject to the one-active-task rule |
+| Mk tier | Equipment build tier, separate from its incremental upgrade level |
+| Field perk | A temporary modifier for the current raid |
+| FTUE | First-time user experience: the introduction to play and the core loop |
+| DDA | Dynamic difficulty adjustment applied to subsequent raid generation |
+| Retention mode | A developer-configured experimental layer, not a difficulty setting |
+
+---
+
+## 21. Source map and maintenance contract
+
+### 21.1 Source hierarchy
+
+For **what the build currently does**, prioritize inspected behavior and current implementation over old prose. For **what the game is intended to become**, prioritize explicit owner decisions and approved direction. Code is not automatic design approval, and an old proposal is not implementation evidence.
+
+All repository links below are pinned to the inspected commit. This prevents the document's evidence silently changing underneath a review. Update the baseline and relevant claims together when refreshing it.
+
+### 21.2 Sources
+
+| ID | Source | Used for |
+| --- | --- | --- |
+| S01 | [Agent guide][S01] | Product direction, locked rules, UI constraints, future backend boundary |
+| S02 | [Base application][S02] | Current app/save versions, persistent state, FTUE instrumentation, built-copy comments |
+| S03 | [Art direction][S03] | Tone, setting, character identity, visual priorities, color semantics |
+| S04 | [Raid round logic][S04] | Clock, inventory, terminal outcomes, extraction versus continuation, FTUE/Big-Map branches |
+| S05 | [Meta/core integration history][S05] | Connected-loop contract and later explicit extraction/loss decisions; earlier sections are historical |
+| S06 | [Armory design][S06] | Gear/stock separation and contextual UI intent; proposal-era numbers require current-code checks |
+| S07 | [Facility data][S07] | Module requirements and benefits, storage capacities, room/access structure |
+| S08 | [Recipes and item-use helpers][S08] | Crafting, recycling, material uses, displayable item purpose |
+| S09 | [Raid level rules][S09] | Normal depths, nodes, encounters, alternate solutions, Hard settings |
+| S10 | [Combat tuning][S10] | Telegraphs, weak-side bonuses, assistance-related settings |
+| S11 | [Progression data][S11] | Starter state, bag progression, skills, Operator/mastery, world access, gear tiers and art |
+| S12 | [Item data][S12] | Weapons, armor, materials, tool definitions, currency-bearing loot |
+| S13 | [BIT data][S13] | Bond, dialogue, older skill definitions, rescue-related copy |
+| S14 | [BIT talent data][S14] | Current branch structure, passive-core replacement, protection talent definitions |
+| S15 | [FTUE design and decisions][S15] | Audit, direct-raid direction, owner decisions, target timings |
+| S16 | [Raid stakes tuning][S16] | Healing budget, hunter cadence, spawn constraints, bag burden |
+| S17 | [Raid perk data][S17] | Temporary upgrades, room-clear trigger, choice timer |
+| S18 | [Retention, idle, power, and rest data][S18] | Mode distinctions, offline systems, facility maintenance, rest |
+| S19 | [Vendor data][S19] | Stock, barter, currency exchanges, monetization tension |
+| S20 | [Economy design history][S20] | Original proposals and later owner decisions; not a single current spec |
+| S21 | [Quest and chip-shop data][S21] | Generated quests, authored chains, catalog, explicitly stubbed weekly operation |
+| S22 | [Adaptive difficulty][S22] | Between-raid adaptation and local storage limitation |
+| S23 | [Opening playtest guide][S23] | Earlier complete-loop route and comprehension-validation questions |
+| S24 | [FTUE raid logic][S24] | Fixed opening enemies, clutch sequence, countdown semantics |
+| S25 | [FTUE assistance data][S25] | Attempts and assistance settings |
+| S26 | [Repository README][S26] | Connected raid entry point and documented event-log concepts; onboarding/save prose is historical |
+| V01 | [Supplied Helldivers 2 design video][V01] | External design inspiration, interpreted from the supplied transcript/screenshots |
+
+The user's supplied feedback and design discussion motivate the review questions and proposed adaptations. They are not substituted for current repository behavior.
+
+### 21.3 Maintenance rules
+
+When a change alters a player-facing loop, update the relevant section in the same PR or link the documentation follow-up. State whether the change is approved direction, implemented behavior, an experiment, or a proposal. Keep historical conflicts visible until a decision and verification actually resolve them.
+
+Keep exact balance tables in their source data. This reference should explain the job of the system and only repeat selected numbers that materially help a reader understand it. Documentation-only updates should not silently change runtime behavior or balance.
+
+### 21.4 Instructions for AI-assisted use
+
+Use this document as the navigation layer, then inspect the linked implementation for the question being asked. Preserve the status labels. Never turn a proposal, a catalog entry, a stale comment, or a configured-but-unverified path into a shipped feature. When a source conflicts with this reference, report the conflict and the baseline involved rather than inventing a reconciliation.
+
+Useful questions include: "What must a new player understand before their first extraction?", "Which permanent systems currently interrupt the first raid?", "What does this upgrade change in the next run?", and "Which source defines the actual death behavior for this mode?"
+
+**Document change log:** v1.0, 6 November 2026 - consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts. No gameplay change is implied.
+
+[S01]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/AGENTS.md
+[S02]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/app.js
+[S03]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/art-direction.md
+[S04]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/nodspel/round.js
+[S05]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/meta-core-integration.md
+[S06]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/design-armory.md
+[S07]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/modules.js
+[S08]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/recipes.js
+[S09]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/nodspel/levels.js
+[S10]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/raid-combat.js
+[S11]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/progression.js
+[S12]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/items.js
+[S13]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/bit.js
+[S14]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/bit-talents.js
+[S15]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/ftue-design.md
+[S16]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/raid-stakes.js
+[S17]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/raid-perks.js
+[S18]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/retention.js
+[S19]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/vendors.js
+[S20]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/economy-design.md
+[S21]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/quests.js
+[S22]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/nodspel/dda.js
+[S23]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/docs/opening-playtest.md
+[S24]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/nodspel/ftue.js
+[S25]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/data/raid-ftue.js
+[S26]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/README.md
+[V01]: https://www.youtube.com/watch?v=sTa7GatZC98
