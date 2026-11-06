@@ -5,31 +5,34 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.2 - design review in progress |
+| Document status | Living design reference, v1.3 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
 | Repository baseline | `w4sser/protocol-rebirth-proto`, `main`, commit `88a9ac6364d0dcf5463c2a5f700f4817960ecaca` |
 | Prototype version inspected | `2.28.0`; meta save version `15` |
-| Scope | The player-facing game, its interconnected loops, progression, onboarding, and design intent |
+| Scope | Current short-session PvE design and connected systems; future longer PvP/co-op directions are recorded separately, not specified as implemented modes |
 | Verification | Repository documents and selected implementation/data files inspected. No new end-to-end playtest was performed for this document. |
-| Subsequent owner decisions | [Design Decision Register](design-decisions.md): D1 Controlled Risk and D2.1/D2.2 extraction principles approved; D1 details and D2.3-D2.7 remain in review |
+| Subsequent owner decisions | [Design Decision Register](design-decisions.md): D1 and D2.1-D2.3 approved for the quick mode; M1 clarifies current scope and future-mode exploration; D1 details and D2.4-D2.7 remain in review |
 
 ### How to read this document
 
-This is a consolidated explanation of the game, not a claim that every design idea has shipped. It deliberately separates five kinds of information:
+This is a consolidated explanation of the game, not a claim that every design idea has shipped. It deliberately separates six kinds of information:
 
 - **CURRENT**: supported by inspected code or configuration at the baseline above. A data entry is not, by itself, proof that every associated UI path works.
 - **DIRECTION**: recorded design intent. It may be implemented only partly.
 - **APPROVED**: a decision explicitly accepted by Robert and recorded in the decision register. Approval changes the intended design; it does not prove runtime implementation.
 - **PROPOSAL**: a recommendation for discussion, including adaptations of the supplied Helldivers 2 analysis. It is not an approved implementation brief.
 - **OPEN**: an unresolved decision, detail, contradiction, or behavior requiring verification.
+- **FUTURE EXPLORATION**: a direction the owner wants to examine later, not an approved feature specification, implementation task, or delivery commitment.
 
 Where these differ, both are recorded rather than quietly rewriting history. Numerical values below are a snapshot, not permanent balance commitments. Follow the linked sources when changing them.
 
 **Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. The exact Secure Slot specification and interrupted-session handling remain open. [D01]
 
-**D2.1 and D2.2 are also approved:** Every ordinary raid has at least one return extraction available from the beginning, and the player may extract successfully with an incomplete personal objective. Reaching and completing extraction remains necessary; the interaction, node roles, topology, and special-mode mapping are still in review. These approvals do not change the running game by themselves. [D01]
+**D2.1-D2.3 are also approved for the current quick PvE mode:** At least one return extraction is available from the beginning, and the player may extract successfully with an incomplete personal objective. Extraction starts deliberately and uses a short, cancellable countdown while the player can move, aim, and fire. Five seconds is the approved initial test value, not permanent tuning. Nodes, return topology, timer/interruption edge cases, and existing-variant mapping still require review. These approvals do not change the running game by themselves. [D01]
+
+**M1 scope clarification:** The mode being designed now is the fast, short-session experience. Later exploration should consider longer, freer PvP extraction and longer cooperative PvE, potentially without node activation as the organizing activity. "PvE only" therefore describes the current quick mode, not an irreversible product-wide ban on future PvP. No new multiplayer mode is approved for implementation. [D01]
 
 **Reading routes:** Read sections 1-4 for the game in one sitting. Read sections 5-12 to understand its systems. For onboarding and UX work, continue with sections 13-14 and the review register in section 18. Read the separate [Design Decision Register](design-decisions.md) for approvals and proposed details. AI tools should also read section 21.
 
@@ -63,7 +66,7 @@ Where these differ, both are recorded rather than quietly rewriting history. Num
 
 ## 1. The game in one page
 
-**Protocol Rebirth is a landscape-mobile, PvE extraction shooter connected to a persistent bunker-restoration game.** The player is an operator exploring a damaged Nordic world with BIT, a small hovering CRT-faced companion. Short raids supply the materials, equipment, knowledge, and access needed to rebuild the facility and reach further into the world. [S01] [S02] [S03]
+**Protocol Rebirth is a landscape-mobile extraction game connected to persistent bunker restoration, currently focused on a short-session PvE mode.** The player is an operator exploring a damaged Nordic world with BIT, a small hovering CRT-faced companion. Short raids supply the materials, equipment, knowledge, and access needed to rebuild the facility and reach further into the world. Future modes are exploration directions, not existing multiplayer functionality. [S01] [S02] [S03] [D01]
 
 The central fantasy is not simply collecting better guns. It is **turning dangerous expeditions into a place worth returning to**. A dark room becomes operational. A useful tool becomes available. BIT gains capability. A previously unreachable area becomes a plausible next expedition.
 
@@ -85,9 +88,19 @@ That question only works when the player understands what the loot does, what is
 
 ### Format and scope
 
-**CURRENT:** The prototype is a browser-based static game, with a base/meta layer at the repository root and a Three.js raid layer in `nodspel/`. These are connected through the launch/result flow; they should not be described as two unrelated products. Progress is stored locally. The normal raid clock is eight minutes, while players may end a raid sooner by extracting. The first-time flow is a separate, shorter experience. [S01] [S02] [S04] [S05]
+**CURRENT:** The prototype is a browser-based static game, with a base/meta layer at the repository root and a Three.js raid layer in `nodspel/`. These are connected through the launch/result flow; they should not be described as two unrelated products. Progress is stored locally. The normal raid clock is eight minutes, while players may end a raid sooner by extracting. The first-time flow is a separate, shorter experience. These are baseline facts about the current prototype, not universal duration rules for future modes. [S01] [S02] [S04] [S05]
 
-**DIRECTION:** Accessible extraction tension for a broader mobile audience, not a full military simulation. PvE only; no PvP. The bunker is the home and a principal motivation for taking risks. [S01] [S06]
+**DIRECTION FOR THE CURRENT QUICK MODE:** Accessible PvE extraction tension for a broader mobile audience, not a full military simulation. The bunker is the home and a principal motivation for taking risks. The older blanket "PvE only; no PvP" statement is qualified by M1: it still describes the present focus, but no longer rules out future PvP exploration. [S01] [S06] [D01]
+
+### Current focus and future-mode tracks
+
+| Track | Session and objective direction | Status |
+| --- | --- | --- |
+| Quick PvE raid | The current short-session experience. Nodes exist in the inspected build; their revised role remains under review. D1/D2 define the approved target risk and extraction behavior. | Current design focus; approved changes are not a claim of implementation. |
+| Longer, freer PvP extraction | Later explore more player-directed sessions, with Tarkov as the owner's reference and node activation not assumed as the mandatory structure. | FUTURE EXPLORATION; player counts, squads, duration, objectives, and economy are not decided. |
+| Longer cooperative PvE | Later explore extended sessions with other players against AI, potentially with different objectives and pacing from the quick mode. | FUTURE EXPLORATION; team size, revives, loot ownership, and team extraction are not decided. |
+
+These are descriptive tracks, not approved player-facing mode names. The owner's "free for all" reference is not silently treated as a finalized deathmatch, solo-only, or squad ruleset. A shared world and systems may be useful foundations, but cross-mode progression and inventory transfer remain open. [D01]
 
 **Not established by this baseline:** production multiplayer, a server-authoritative economy, cross-device accounts, a shared global campaign, or a released real-money business model. Do not present these as existing features.
 
@@ -123,11 +136,13 @@ Introduce a system when it helps the player make a meaningful decision. Explain 
 
 ### Boundaries to preserve
 
-PvE remains the baseline. Do not add currencies casually. BIT may perform one active assignment at a time. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01]
+PvE remains the current quick-mode focus. M1 allows later exploration of PvP and longer co-op sessions; it does not insert them into the current implementation scope. Do not add currencies casually. BIT may perform one active assignment at a time. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01] [D01]
 
 **APPROVED D1:** Carried and equipped valuable gear is at risk. One Secure Slot unlocks at Vault L1. BIT does not automatically return lost items, and insurance/paid bag recovery are not part of the target core loop. The player can always retry with the free Basic Carbine. Precise Secure Slot eligibility, quantity, and interrupted-session behavior are not yet settled. [D01]
 
-**APPROVED D2.1/D2.2:** Ordinary raids provide at least one return extraction available from the start. Personal-objective completion does not gate that return. The player must still get there and complete extraction; successful extraction does not automatically complete a quest or clear a depth. [D01]
+**APPROVED D2.1/D2.2:** Ordinary quick raids provide at least one return extraction available from the start. Personal-objective completion does not gate that return. The player must still get there and complete extraction; successful extraction does not automatically complete a quest or clear a depth. [D01]
+
+**APPROVED D2.3:** The player deliberately starts a short, cancellable extraction countdown and remains able to move, aim, and fire within the zone. Nonlethal hits do not reset it; leaving cancels the attempt, not the raid. Five seconds is the first test value. No newly spawned extraction wave is required in that first test. This rule is scoped to the quick mode, not automatically to future multiplayer. [D01]
 
 ---
 
@@ -153,7 +168,7 @@ flowchart LR
 
 The diagram shows the main loss rule. The one approved Secure Slot exception is explained in section 6.4. Historical BIT rescue and insurance definitions are implementation-alignment work, not additional approved protection mechanisms. [D01]
 
-The sequence is illustrative, not a set of mandatory exit prerequisites. Under D2.1/D2.2, the player may return with an incomplete personal goal; neither finding all required loot nor finishing every encounter is a prerequisite for the guaranteed ordinary return extraction. [D01]
+The sequence is illustrative, not a set of mandatory exit prerequisites. Under D2.1/D2.2, the player may return with an incomplete personal goal; neither finding all required loot nor finishing every encounter is a prerequisite for the guaranteed ordinary return extraction. D2.3 defines the quick-mode departure procedure. [D01]
 
 ### 3.2 Nested loops and their jobs
 
@@ -195,6 +210,8 @@ Success should feel like bringing something home. Failure should create a compre
 
 ## 4. An ordinary raid, from intention to consequence
 
+This section specifies the current quick PvE track. Its approved target changes are distinguished from the older inspected build. Future modes need their own rules rather than inheriting every detail here. [D01]
+
 ### Before deployment
 
 The player identifies a purpose: a tracked upgrade part, a quest, scouting an area, a useful weapon, or a deliberately larger haul. Available preparation draws on the player's equipment, consumables, tools, BIT capabilities, and unlocked destinations. The early flow restricts preparation before the Fabricator is online. [S07] [S11]
@@ -209,19 +226,35 @@ The player identifies a purpose: a tracked upgrade part, a quest, scouting an ar
 
 The baseline does not automatically require killing every enemy to open an exit. Its node-gated return is recorded here as implementation history, not the newly approved future rule.
 
-**APPROVED D2.1:** Every ordinary raid must offer at least one return extraction available from the beginning, without first activating the level's nodes, completing the personal objective, or clearing all enemies. The player must physically reach and complete extraction; availability does not promise safety or an instant exit. [D01]
+**APPROVED D2.1:** Every ordinary quick raid must offer at least one return extraction available from the beginning, without first activating the level's nodes, completing the personal objective, or clearing all enemies. The player must physically reach and complete extraction; availability does not promise safety or an instant exit. [D01]
 
 **APPROVED D2.2:** Extracting with a partially or wholly incomplete personal objective is a successful extraction. Only the actual haul is banked. Unfinished objectives remain unfinished and receive only the progress or rewards their own conditions support. [D01]
 
-**OPEN DETAILS:** D2.3 proposes a deliberately started short countdown, with five seconds as an initial test value only. The exact interaction, node roles, return topology, deadline behavior, and special-mode mapping are not approved. Do not infer that all nodes were removed or the running game was changed. [D01]
+### Approved quick-mode extraction procedure
+
+**APPROVED D2.3:** A deliberate start followed by a short, cancellable countdown. [D01]
+
+| Step or event | Approved behavior |
+| --- | --- |
+| Enter the marked zone | Show the EXTRACT action; merely walking through does not end the raid. |
+| Tap EXTRACT once | Start the countdown. Five seconds is the first playtest value, not a permanently fixed balance number. |
+| During the countdown | The player may move inside the zone, aim, and fire without holding an interaction button. |
+| Take a nonlethal hit | Health/damage rules still apply, but the countdown is not reset. The player remains vulnerable. |
+| Leave the zone | Cancel and reset the extraction attempt. The raid continues and the bag remains exposed; this is not Abandon. Returning requires another deliberate start. |
+| Finish alive | Secure the actual haul and end the raid. Death before completion follows D1. |
+| Enemy pressure | Existing threats may continue to attack. A new extraction-specific wave is not required in the first test, and a quiet departure is valid. |
+
+The zone, countdown, and cancellation must be readable without sound. The first test does not add an extraction fee, a compulsory final kill count, or a forced wave. [D01]
+
+**OPEN DETAILS:** Node roles, return topology, countdown/deadline priority, same-tick death/completion, pause/background behavior, and existing-variant mapping require explicit follow-up. Dedicated dramatic extraction encounters would be a separate choice. Do not infer that all nodes were removed or the running game was changed. Future team extraction is not specified by this single-player-oriented quick-mode contract. [D01]
 
 ### At a depth exit
 
 In the inspected baseline, after an early depth, the player may extract or continue. Continuing does **not** secure the bag. The same carried value remains at risk in the next depth. The final normal depth completes the raid when the player deliberately enters the available exit. [S04] [S05]
 
-The no-banking-on-continue rule remains approved under D1. D2's topology review must specify how ordinary return routes work after a depth transition without silently treating the historical node gate as the target rule. [D01]
+The no-banking-on-continue rule remains approved under D1. The baseline's automatic-on-entry final extraction needs alignment with D2.3's deliberate start; it is not an additional approved exception. D2's topology review must specify how ordinary return routes work after a depth transition without silently treating the historical node gate as the target rule. [D01]
 
-**CURRENT variant:** Big Map has separate extraction availability logic and multiple extraction definitions. It should be treated as a mode-specific structure, not assumed to follow every rule of the three-depth flow. [S04]
+**CURRENT variant:** Big Map has separate extraction availability logic and multiple extraction definitions. It should be treated as a mode-specific structure, not assumed to follow every rule of the three-depth flow. Big Map's presence is not proof that the future longer PvP or co-op modes already exist. [S04] [D01]
 
 ### Pressure during a run
 
@@ -236,7 +269,7 @@ Several configured systems constrain indefinite wandering:
 | Bag burden | Configured full-bag penalties up to 20% movement speed and increased detection | More value can also make leaving harder |
 | Deeper encounters | Additional enemies, encounter combinations, and valuable loot | Accept greater danger for a better return |
 
-These are baseline settings, not universal guarantees for FTUE or every mode. Waves use a fixed clock, not a separate heat mechanic. Spawn rules seek hidden, distant valid locations rather than simply placing hunters beside the player. [S04] [S09] [S11] [S16]
+These are baseline settings, not universal guarantees for FTUE or every mode. Waves use a fixed clock, not a separate heat mechanic. Spawn rules seek hidden, distant valid locations rather than simply placing hunters beside the player. D2.3's rejection of a compulsory new extraction wave does not remove this existing raid-pressure system. [S04] [S09] [S11] [S16] [D01]
 
 ### After the raid
 
@@ -313,7 +346,7 @@ Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery
 
 ### 6.2 Home storage
 
-The **Stash** holds materials. The **Armory** holds equipment, consumables, tools, and attachments. Their capacities are separate: current data starts each at 12 slots, with Storage progression expanding them. Stack sizes are item-defined; do not equate a home-storage slot with a raid pickup. [S07] [S12]
+The **Stash** holds materials. The **Armory** holds equipment, consumables, tools, and attachments. Their capacitiesities are separate: current data starts each at 12 slots, with Storage progression expanding them. Stack sizes are item-defined; do not equate a home-storage slot with a raid pickup. [S07] [S12]
 
 This separation prevents a material-cleanup workflow from implicitly treating a valuable weapon as disposable clutter. It also lets preparation focus on usable gear while construction focuses on required parts.
 
@@ -325,7 +358,7 @@ A full bag creates a comparison: keep the parts for today's goal, replace them w
 
 ### 6.4 Approved loss rule and remaining specification
 
-**APPROVED D1 - Controlled Risk:** Carried and equipped valuable gear is at risk until extraction. Death, timeout, and deliberate abandonment lose exposed cargo and risked equipment. Possessions left at home and previously earned permanent progression remain intact. Advancing to another depth never banks the bag. [D01]
+**APPROVED D1 - Controlled Risk:** Carried and equipped valuable gear is at risk until extraction. Death, timeout, and deliberate abandonment lose exposed cargo and risked equipment. Possessions left at home and previously earned permanent progression remain intact. Advancing to another depth never banks the bag. This is the current quick-loop contract; future modes require an explicit decision about what they share or vary. [D01]
 
 Vault / Storage L1 unlocks **one Secure Slot** as the single item-protection mechanism. BIT's automatic item rescue is removed from the intended design. Insurance and paid bag recovery are removed from the core loop. A free Basic Carbine retry must always remain possible; this does not restore the previous bag or grant free replacement armor, tools, or medkits. [D01]
 
@@ -502,7 +535,7 @@ A raid can contain several different reasons to act:
 
 | Objective type | Example | What completes it |
 | --- | --- | --- |
-| Return extraction | Under approved D2.1, at least one ordinary return route is available from the start | Reach and complete its extraction procedure; personal-goal completion is not required. The inspected baseline's node gate needs alignment. |
+| Return extraction | Under approved D2.1, at least one ordinary quick-mode return route is available from the start | Reach and complete D2.3's extraction procedure; personal-goal completion is not required. The inspected baseline's node gate needs alignment. |
 | Personal build goal | Find Cable for a facility upgrade | Bring home enough usable materials and perform the build |
 | Quest | Extract specified items, defeat a specified enemy, or hand in parts | Meet that quest's own objective and claim/hand in as required |
 | Optional opportunity | Extra cache, equipment pickup, searchable room | Take the opportunity and, for exposed carried rewards, extract |
@@ -510,7 +543,7 @@ A raid can contain several different reasons to act:
 
 **APPROVED D2.2:** Personal-goal completion and successful extraction are independent. The player may leave successfully with an incomplete goal; the missing requirement does not become completed merely because the player got home. [D01]
 
-**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and how to get home. The exact HUD hierarchy and revised node functions remain under review. [D01]
+**PROPOSAL:** Present these as a hierarchy, not five competing primary missions. The player needs to know both why they entered the raid and how to get home. The exact HUD hierarchy and revised node functions remain under review. Node activation is not established as a requirement for future longer modes. [D01]
 
 ### 11.3 Quest systems
 
@@ -563,6 +596,8 @@ The older opening-playtest guide begins at the base with the Core. A later FTUE 
 The FTUE design document's final implementation-status paragraph is older than some of this code. Treat the code as evidence that these pieces exist, while still verifying the full fresh-save experience on a device.
 
 **D1 boundary:** The Secure Slot unlock remains Vault L1. Do not quietly grant a second item-rescue system before that upgrade. D1 does not by itself overturn the separately recorded FTUE assistance direction. [D01]
+
+**D2.3 alignment:** The historical FTUE pressure countdown is not the newly approved five-second extraction procedure. D2.7 must explicitly reconcile FTUE teaching and any scripted encounter with the quick-mode contract. This update neither changes the running tutorial nor automatically approves an exception or a replacement hunter sequence. [D01]
 
 ### 13.3 Intended learning sequence
 
@@ -637,9 +672,9 @@ These systems should return the player to a useful raid purpose: a craft complet
 | `bit` | Adds the Morning Report and BIT expeditions |
 | `full` | Adds Fuel, additional daily contracts, decryption, streak, and overnight-yield features |
 
-Do not confuse these optional daily contracts with the separately configured BIT quests and permanent quest chains. They are different systems with overlapping terminology. [S18] [S21]
+Do not confuse these optional daily contracts with the separately configured BIT quests and permanent quest chains. They are different systems with overlapping terminology. Retention-mode switches are also not the future PvP/co-op game modes described by M1. [S18] [S21] [D01]
 
-**APPROVED D1 constraint:** Whatever optional mode is enabled, the free starter retry must remain available. Any Fuel/payment/wait restriction that blocks it must be reconciled. Insurance and paid bag recovery must not reappear as a hidden exception to the target core loop. The retained baseline table is not approval of every experimental feature. [D01]
+**APPROVED D1 constraint:** Whatever optional retention mode is enabled in the current quick experience, the free starter retry must remain available. Any Fuel/payment/wait restriction that blocks it must be reconciled. Insurance and paid bag recovery must not reappear as a hidden exception to the target core loop. The retained baseline table is not approval of every experimental feature. [D01]
 
 ### 15.3 Power and rest
 
@@ -715,28 +750,33 @@ This is a review register, not permission to implement every item. Explicit appr
 | Priority | Topic | Status / evidence | Required outcome |
 | --- | --- | --- | --- |
 | P0 | Death and protection | D1 direction APPROVED: full risk, one Vault L1 Secure Slot, no BIT auto-rescue, no insurance/paid bag recovery, free retry | Finalize D1-A through D1-D and align runtime paths, migration, and UI; do not reopen the five approved rules by treating old code as design authority |
-| P0 | Mission purpose and exits | D2.1/D2.2 APPROVED: at least one ordinary return extraction available from the start; personal-goal completion is independent | Align the old node-gated implementation; finish D2.3-D2.7 procedure, nodes, topology, communication, and special-mode mapping |
-| P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly |
+| P0 | Mission purpose and exits | D2.1-D2.3 APPROVED for quick PvE: return available from start, incomplete goals allowed, deliberate cancellable extraction; five seconds is initial test tuning | Align the old node-gated/automatic-entry implementation; resolve timer/interruption edges and D2.4-D2.7 nodes, topology, communication, and existing-variant mapping |
+| P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly and reconcile it with the approved quick-mode extraction |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
 | P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment; rescue conflicts resolved in direction by D1 | Explain Bond, hardware, talents, and assignments separately; remove/refactor item-rescue effects without adding a second protection route |
 | P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics; D1 confirms deployed valuable gear is risked | Clearly state what is lost with a particular item |
 | P1 | Merge requirements | Three-copy prose vs `[3, 7]` configuration | Verify live behavior and update old descriptions |
 | P1 | Bag expansion | Module copy and progression mapping are not perfectly aligned; Secure Slot capacity detail still open | Show the actual computed capacity and each contributing source |
-| P1 | Retention layering | Idle/power systems plus optional Fuel/contracts/report systems | Decide default exposure; preserve D1's free retry regardless of optional systems |
+| P1 | Retention layering | Idle/power systems plus optional Fuel/contracts/report systems | Decide default exposure; preserve D1's free retry regardless of optional retention systems |
 | P1 | Commerce boundaries | D1 excludes insurance/paid bag recovery; Signals-to-Data-Cores exchange and wider policy remain open | Explicit policy before any real-money release |
+| P2 | Future game modes | M1: current mode is quick PvE; longer, freer PvP and co-op PvE are requested exploration tracks | Define separate mode contracts later; do not universalize nodes, timers, inventory transfer, or team rules |
 | P2 | Catalog placeholders | Weekly operation stub and blueprint/catalog references | Separate visible promises from complete playable functionality |
-| P2 | Old technical documentation | Node Raid README and integration history describe superseded states | Point readers here for the baseline; retain history without presenting it as current |
+| P2 | Old technical documentation | Node Raid README and integration history describe superseded states; older global PvE-only wording is qualified by M1 | Point readers here for the baseline and approved scope; retain history without presenting it as current authority |
 
 ### Future scope, not current baseline
 
-Co-op has been discussed as a direction, including low-friction joining. This review does not establish a production multiplayer implementation or rules for shared loot, revives, friendly fire, or synchronized extraction. Those require a separate design contract.
+**M1 - owner-requested exploration:** The current mode is the quick experience. Later, examine longer, freer PvP extraction with Tarkov as a reference and longer cooperative PvE sessions. Those modes may use objectives other than activating nodes. The owner has not fixed durations, player/team counts, objective structures, or delivery timing. "Free for all" does not settle deathmatch versus extraction, solo versus squads, or the presence of AI. [D01]
+
+The world, bunker, BIT, combat, and extraction identity may provide common foundations, but shared progression, cross-mode inventory, reward rates, and loss/protection variations remain undecided. A later mode review must define these alongside revives, loot ownership, team extraction, and interruption handling. Do not quietly allow easy-mode rewards to transfer into another mode, or prohibit such transfer, without deciding the intended relationship. [D01]
+
+This clarification means "PvE only" remains a current quick-mode constraint, not a permanent product-wide prohibition. It does not authorize PvP implementation, matchmaking, networking, a mode menu, or a parallel build. Low-friction joining has been discussed previously, but no production multiplayer behavior is established by this reference. [D01]
 
 A backend/account system is also described as future work in the agent guide. The current design reference must not assume cloud saves, server-authoritative results, social progression, or a global campaign already exist. [S01]
 
 ### What this document does not approve
 
-D1 approves the five specified risk/recovery rules. D2.1/D2.2 approve an available ordinary return extraction and successful extraction independent of personal-objective completion. None of these approvals automatically authorizes a gameplay commit or merge. D1 specification recommendations and D2.3-D2.7 remain unapproved; the proposed five-second countdown is not a locked rule. [D01]
+D1 approves the five specified risk/recovery rules for the loop under review. D2.1-D2.3 approve the quick mode's available return, independent personal-goal completion, and deliberate short extraction procedure. Five seconds is an approved initial test value, not permanent tuning. M1 records current scope and future exploration, not additional game-mode implementation. None of these approvals automatically authorizes a gameplay commit or merge. D1 specification recommendations, D2.3's remaining edge cases, and D2.4-D2.7 remain open. [D01]
 
 No new currencies, replacement economy, guaranteed success outside the defined FTUE assistance, removal of kill rewards, Helldivers-style friendly fire, broader monetization, or combat rewrite is authorized here. The purpose is a shared understanding from which scoped decisions can be made.
 
@@ -778,9 +818,11 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 | Term | Meaning in this document |
 | --- | --- |
 | Raid | One launched field run ending in extraction or loss; not a synonym for a single room |
-| Depth / level | A stage inside the normal raid; not Operator level |
+| Quick mode / Quick Raid | Descriptive working label for the current short-session PvE experience, not an approved marketing name |
+| Future mode | A separately reviewed ruleset; longer PvP/co-op tracks are exploration directions, not shipped features |
+| Depth / level | A stage inside the normal quick raid; not Operator level |
 | Area | Bunker, Archipelago, or Town on the world map |
-| Node | A control objective involved in opening exits in the inspected baseline; its future role is under D2 review and cannot block the guaranteed ordinary return route |
+| Node | A control objective involved in opening exits in the inspected baseline; its quick-mode role is under D2.4 review and cannot block the guaranteed ordinary return route; not universal to future modes |
 | Extraction | The successful act that banks the exposed carried haul; not automatic personal-objective or depth completion |
 | Secure Slot | The one item-protection mechanism approved at Vault L1; quantity, eligibility, and settlement details remain under review |
 | HOME | Already secured persistent possessions |
@@ -800,7 +842,7 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 | Field perk | A temporary modifier for the current raid |
 | FTUE | First-time user experience: the introduction to play and the core loop |
 | DDA | Dynamic difficulty adjustment applied to subsequent raid generation |
-| Retention mode | A developer-configured experimental layer, not a difficulty setting |
+| Retention mode | A developer-configured experimental layer, not a difficulty setting or the future PvP/co-op game modes |
 
 ---
 
@@ -816,8 +858,8 @@ Implementation and historical-document links below are pinned to the inspected c
 
 | ID | Source | Used for |
 | --- | --- | --- |
-| D01 | [Design Decision Register][D01] | Owner-approved D1 and D2.1/D2.2, proposed D1 details and D2.3-D2.7; no gameplay implementation implied |
-| S01 | [Agent guide][S01] | Product direction, locked rules, UI constraints, future backend boundary |
+| D01 | [Design Decision Register][D01] | Owner-approved D1, D2.1-D2.3, M1 scope clarification and future exploration; outstanding details and no gameplay implementation implied |
+| S01 | [Agent guide][S01] | Product direction, UI constraints, future backend boundary; its broad PvE-only wording is qualified by later owner clarification M1 |
 | S02 | [Base application][S02] | Current app/save versions, persistent state, FTUE instrumentation, built-copy comments |
 | S03 | [Art direction][S03] | Tone, setting, character identity, visual priorities, color semantics |
 | S04 | [Raid round logic][S04] | Clock, inventory, terminal outcomes, extraction versus continuation, FTUE/Big-Map branches |
@@ -853,9 +895,11 @@ When a change alters a player-facing loop, update the relevant section in the sa
 
 Keep exact balance tables in their source data. This reference should explain the job of the system and only repeat selected numbers that materially help a reader understand it. Documentation-only updates should not silently change runtime behavior or balance. Never relabel an approved rule as CURRENT until implementation evidence supports it.
 
+State the applicable mode whenever a rule depends on session length, node objectives, team structure, extraction, or reward transfer. Do not turn current quick-mode behavior into a universal product restriction, or turn future exploration into an implementation commitment. [D01]
+
 ### 21.4 Instructions for AI-assisted use
 
-Use this document as the navigation layer, then inspect the linked implementation for the question being asked. Preserve the status labels and read D01 for post-baseline approvals. Never turn a proposal, a catalog entry, a stale comment, an approved-but-unimplemented rule, or a configured-but-unverified path into a shipped feature. When a source conflicts with this reference, report the conflict and the baseline involved rather than inventing a reconciliation.
+Use this document as the navigation layer, then inspect the linked implementation for the question being asked. Preserve the status labels and read D01 for post-baseline approvals. Never turn a proposal, a catalog entry, a stale comment, an approved-but-unimplemented rule, a future-mode idea, or a configured-but-unverified path into a shipped feature. When a source conflicts with this reference, report the conflict and the baseline involved rather than inventing a reconciliation.
 
 Useful questions include: "What must a new player understand before their first extraction?", "Which permanent systems currently interrupt the first raid?", "What does this upgrade change in the next run?", and "Which source defines the actual death behavior for this mode?"
 
@@ -864,6 +908,7 @@ Useful questions include: "What must a new player understand before their first 
 - **v1.0, 6 November 2026:** Consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts.
 - **v1.1, 6 November 2026:** Recorded owner-approved Controlled Risk decision D1, linked the decision register, reconciled the loss/BIT/insurance/free-retry direction across relevant sections, and opened D2 as an explicitly unapproved proposal. Secure Slot details and interrupted-session behavior remain open. No gameplay change or fresh runtime validation is implied.
 - **v1.2, 6 November 2026:** Recorded D2.1/D2.2 approval: at least one ordinary return extraction available from the start, with extraction success independent of personal-objective completion. Updated the loop, objective, result, glossary, and review sections while retaining the older node-gated behavior as the inspected baseline. D1 details, D2.3's countdown proposal, and D2.4-D2.7 remain open. Documentation only; no gameplay change or new runtime verification.
+- **v1.3, 6 November 2026:** Recorded D2.3 approval for deliberate, short, cancellable quick-mode extraction, with five seconds as initial test tuning. Added M1: the current focus is the quick PvE experience, while longer, freer PvP and cooperative PvE are future exploration. Qualified the older global PvE-only wording, separated mode scope from common systems, and left multiplayer/transfer rules unspecified. D1 details, D2.3 edge cases, and D2.4-D2.7 remain open. No gameplay implementation or new runtime verification.
 
 [D01]: design-decisions.md
 [S01]: https://github.com/w4sser/protocol-rebirth-proto/blob/88a9ac6364d0dcf5463c2a5f700f4817960ecaca/AGENTS.md
