@@ -1,0 +1,16 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const file='scripts/layout-check.mjs';
+let s=await readFile(file,'utf8');
+const start='try{\n  for(const vp of VIEWPORTS)await pauseMapRun(vp);';
+const end="  for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);\n}finally";
+if(!s.includes(start)||!s.includes(end))throw Error('Unexpected layout script');
+s=s.replace(start,"const layoutGroup=process.env.LAYOUT_GROUP||'all';\nif(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))throw Error('Invalid LAYOUT_GROUP');\nconst group=name=>layoutGroup==='all'||layoutGroup===name;\ntry{\n  if(group('popups')){\n  for(const vp of VIEWPORTS)await pauseMapRun(vp);");
+s=s.replace("  for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);\n  for(const vp of VIEWPORTS)await introGoalRun(vp);","  for(const vp of VIEWPORTS)await introGoalRun(vp);");
+s=s.replace("  for(const vp of VIEWPORTS)await baseRun(vp);\n  for(const vp of VIEWPORTS)for(const area of ['bunker','town'])await raidRun(vp,area);\n}finally","  }\n  if(group('base')){\n    for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);\n    for(const vp of VIEWPORTS)await baseRun(vp);\n  }\n  if(group('raid-bunker'))for(const vp of VIEWPORTS)await raidRun(vp,'bunker');\n  if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');\n}finally");
+await writeFile(file,s);
+const ci='.github/workflows/ci.yml';let y=await readFile(ci,'utf8');
+y=y.replace('  layout:\n    runs-on: ubuntu-latest',"  layout:\n    strategy:\n      fail-fast: false\n      matrix:\n        group: [popups, base, raid-bunker, raid-town]\n    name: layout / "+'$'+"{{ matrix.group }}\n    runs-on: ubuntu-latest");
+y=y.replace('          LAYOUT_OUT: verify-out','          LAYOUT_OUT: verify-out\n          LAYOUT_GROUP: '+'$'+'{{ matrix.group }}');
+y=y.replace('          name: layout-screenshots','          name: layout-screenshots-'+'$'+'{{ matrix.group }}');
+await writeFile(ci,y);
+console.log('CI split applied');
