@@ -261,27 +261,41 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1 APPROVED (option C). Later FTUE sequencing and tutorials remain IN REVIEW.**
+**Status: D3.1 REVISED BY OWNER — combat approach leads to bunker discovery and the first meeting with BIT. Beat timing and tutorial integration remain OPEN.**
 
-### D3.1 — Short playable opening, then immediate raid action
+### D3.1 — Fight your way home; discover BIT in the bunker
 
-**APPROVED by Robert on 6 November 2026.** Open the game with a **very short interactive introduction that establishes BIT and the immediate situation**, then transition almost immediately into playable combat. Do not begin with a long bunker tour, menu sequence, or lore presentation. The substantive bunker introduction and restoration payoff come **after the first extraction**.
+**OWNER DIRECTION (6 November 2026, superseding the earlier option-C ordering):** The player **does not begin with BIT acting as an introductory guide**. The player **shoots their way toward the bunker**, discovers it, and **meets BIT for the first time inside**. BIT's introduction is a character/story payoff, not a tutorial voice heard from the outset.
 
-The goal is to combine an immediate sense of player agency with a reason to care about what is being restored. The opening should teach by having the player act, not through extensive explanation.
+The owner supplied BIT's first greeting, in its slightly sardonic voice:
 
-**Not yet approved as an exact implementation:** The opening scene, lines, camera, how much player control precedes the first shot, whether the intro uses an uninterrupted raid map, tutorial difficulty/assistance, and the final timing threshold. First shot within roughly 15 seconds is an existing FTUE **design target**, not a newly confirmed hard acceptance threshold or a measured result. This approval does not authorize an added 60-second introduction.
+> **"You're late, but you're back."**
 
-### D3.2 — Next FTUE review (OPEN)
+This line strongly suggests a pre-existing history without requiring a lore dump. The encounter should feel like finding a person/companion and the place to which the operator belongs. The damaged bunker and its restoration stakes can then be introduced naturally.
 
-- What are the actual first 30 seconds, beat by beat, including player input and BIT's minimum dialogue?
-- What do the first combat, loot pickup, node, and extraction teach, in what order?
-- Does the first raid require node progression, or can it teach an available exit without confusing the forward-node rule in D2?
-- How is the first bunker payoff revealed, and what single action should the player want to perform next?
-- Which systems are **deferred** (crafting catalog, currencies, talent trees, daily quests, retention layers, advanced inventory) until after players need them?
-- How will fresh-save tests measure actual player understanding rather than just successful button presses?
+**This explicitly supersedes** the earlier D3.1 assumption that BIT appears before the opening combat and that the first bunker reveal must occur only after a standalone first extraction. We retain the useful principle of *immediate playable action* and avoid extensive menus or exposition before shooting, but the discovery of BIT **inside the bunker** is now the central FTUE narrative beat.
 
-**Implementation boundary:** The existing code/documentation already contains a direct-raid FTUE and assisted attempts. D3.1 is a design decision, not evidence that the current build matches the requested exact opening. No gameplay change was made by recording it.
+### D3.2 — Candidate experience (PROPOSAL, not a fully approved script)
 
+1. **Approach:** Begin outdoors and establish a simple immediate destination through readable environment design. The operator is controllable almost immediately; encounters teach movement and shooting through play.
+2. **Break through:** Fight past a short enemy resistance and find the bunker entrance. Use light, sightlines, and geometry rather than a long tutorial narration.
+3. **Discover home:** The bunker entrance opens and the moment of relief contrasts with the hostile exterior.
+4. **Meet BIT:** A dormant or waiting BIT comes alive and addresses the operator with the owner's line. Presentation details, animation, exact staging, and any follow-up joke are not yet approved.
+5. **See what is broken:** BIT and the damaged Rebirth Core reveal an understandable reason to undertake subsequent raids and restoration.
+
+**Unresolved critical integration:** Does reaching the bunker **complete and extract** the introductory playable mission, or does the game use a separate raid extraction prior to entering? The previous assumption of an extraction followed by a bunker reveal is no longer safe to reuse. The introductory approach must be aligned with D1 risk rules, D2 node-to-forward-route logic, and D2.3 extraction without silently inventing an exception.
+
+**Other open details:** Exact seconds to first shot, objective and node placement, loot pickup before discovery, amount of guidance before BIT is found, player failure/retry, first post-discovery raid, and which meta systems remain hidden.
+
+### D3.3 — Validation questions (OPEN)
+
+- Can first-time players identify the bunker as their destination without BIT guiding them verbally from the outset?
+- Is there meaningful shooting and movement almost immediately, with minimal blocking instructions?
+- Does discovering BIT feel like a character moment rather than opening another tutorial menu?
+- Can players explain *why they should go back into danger* after meeting BIT?
+- Is the introductory run's success, loot settlement, and failure behavior consistent with the extraction rules they subsequently learn?
+
+**Implementation boundary:** Existing docs and code describe a direct-raid FTUE with assisted attempts and a different timing of the bunker reveal. This revised narrative direction is **not an assertion that the current build already matches it**, and this docs-only PR does not implement it.
 ---
 
 ## Decision history
@@ -297,5 +311,5 @@ The goal is to combine an immediate sense of player agency with a reason to care
 | 2026-11-06 | D2.4: Required nodes always unlock forward depth progression in quick mode; finite final stage | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D2.8: Option C — deeper reward opportunities and a distinct valuable final objective/payoff | Approved by Robert; final objective and reward tuning open |
 | 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
-| 2026-11-06 | D3.1: Option C — a very short playable introduction with BIT, immediate combat, and the bunker revealed after first extraction | Approved by Robert; implementation alignment pending |
-| 2026-11-06 | D3.2: Exact first 30 seconds, teaching order, deferred systems, first payoff, and FTUE metrics | Open |
+| 2026-11-06 | D3.1: Fight toward the bunker, discover BIT inside; opening line: 'You're late, but you're back.' | Revised owner direction; supersedes BIT-before-combat and bunker-after-extraction assumptions; implementation pending |
+| 2026-11-06 | D3.2/D3.3: Opening mission extraction/settlement, exact beats, teaching order, and comprehension checks | Open |
