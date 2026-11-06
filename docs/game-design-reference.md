@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v1.4 - design review in progress |
+| Document status | Living design reference, v1.5 - design review in progress |
 | Prepared / updated | 6 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -601,6 +601,8 @@ The FTUE design document's final implementation-status paragraph is older than s
 
 **D2.3 alignment:** The historical FTUE pressure countdown is not the newly approved five-second extraction procedure. D2.7 must explicitly reconcile FTUE teaching and any scripted encounter with the quick-mode contract. This update neither changes the running tutorial nor automatically approves an exception or a replacement hunter sequence. [D01]
 
+**APPROVED D3.1 — Opening direction:** A **very short playable introduction** establishes BIT and the immediate situation, followed almost immediately by combat. The extended bunker explanation and first restoration payoff follow the **first extraction**, rather than delaying the first shot with a bunker tour or extensive menus. This is the selected **option C** for the opening. Exact framing, controls, lines, timing, and tutorial assistance are still open and require phone playtesting; the previously documented first-shot target is not a newly approved fixed threshold. [D01]
+
 ### 13.3 Intended learning sequence
 
 This is a consolidated design sequence, not a frame-by-frame claim about the current UI.
@@ -907,6 +909,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v1.5, 6 November 2026:** Approved D3.1 (option C): very short interactive BIT introduction, immediate combat, bunker introduction after the first extraction. Exact opening beats and FTUE testing remain open. Documentation only.
 - **v1.4, 6 November 2026:** Approved D2.4 (required nodes consistently unlock forward progression, separate from return extraction) and D2.8 (deeper loot opportunities plus a distinct valuable terminal objective/payoff, option C). Preserved open reward/encounter tuning, topology, and FTUE questions. Documentation only.
 - **v1.0, 6 November 2026:** Consolidated the game's loops and system model, separated current evidence from direction/proposals, and recorded unresolved documentation conflicts.
 - **v1.1, 6 November 2026:** Recorded owner-approved Controlled Risk decision D1, linked the decision register, reconciled the loss/BIT/insurance/free-retry direction across relevant sections, and opened D2 as an explicitly unapproved proposal. Secure Slot details and interrupted-session behavior remain open. No gameplay change or fresh runtime validation is implied.
