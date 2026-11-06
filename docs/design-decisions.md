@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1 and D3.2 APPROVED — introductory combat approach culminates in bunker-entry extraction, then first meeting with BIT. Exact beats and failure handling remain OPEN.**
+**Status: D3.1, D3.2, and D3.5 concept APPROVED — introductory combat leads to bunker-entry extraction, BIT discovery, then a visible first restoration using intro loot. Exact beats and failure handling remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -293,6 +293,25 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Other open details:** Exact seconds to first shot, objective and node placement, loot pickup before discovery, amount of guidance before BIT is found, player failure/retry, first post-discovery raid, and which meta systems remain hidden.
 
+### D3.5 — First home payoff: spend intro loot on restoration (APPROVED at concept level)
+
+**Owner choice: Option B (6 November 2026).** After meeting BIT, the player uses something collected during the introductory combat approach to **restore one meaningful part of the bunker**. The outcome must be visibly noticeable, not a token tutorial message. This establishes the lesson: what you safely bring home can rebuild home.
+
+**Concrete sequence proposed for the next specification pass (not yet individually owner-approved):**
+
+1. During the introductory approach, guarantee **two Scrap Alloy** pickups on the mandatory path, showing their use without requiring a full inventory tutorial. The introduction ends as a special extraction when entering the bunker (D3.2); the two items settle once.
+2. BIT first greets the player inside: **"You're late, but you're back."** A short visual beat focuses attention on the damaged Rebirth Core.
+3. Offer exactly one contextual action: **RESTORE EMERGENCY POWER — Rebirth Core L1**. Consume the two carried-home Scrap Alloy. This matches the currently configured Core L1 cost: **0 Scrap + 2 Scrap Alloy** (`data/modules.js`).
+4. Show the Core activating, emergency lights starting up, and access to other rooms becoming visibly possible. Avoid forcing the player through a full crafting/menu tutorial.
+5. BIT identifies the **Fabricator** as the next meaningful objective. Its existing L1 requirements are **20 Scrap, 2 Cable, 2 Scrap Alloy**, and its first commissioning reward is a **Scavenger Vest (+25 shield, +1 raid bag slot)** along with basic crafting/preparation. Present Cable as the immediate, legible reason to venture out again, while other requirements can be collected naturally.
+6. The first ordinary quick raid begins after this payoff, with BIT now present. Teach forward nodes, loot risk, and optional extraction in that subsequent raid, without changing their already-approved contracts.
+
+**Proposed example BIT reaction after restoration:** "Well. At least something still works." This is draft dialogue, **not approved canonical writing**.
+
+**Open design/implementation details:** exact intro loot pickup and settlement, whether death before reaching the bunker loses that introductory load, deterministic pickup affordance, ensuring the player cannot enter without the required two alloy (or handling that state coherently), how much of the base is explorable immediately, whether the restored Core screen is a contextual action or a focused camera moment, and exact timing. The concept choice B does **not** automatically approve all concrete beats or copy above.
+
+**Avoid:** creating a separate fake FTUE currency/item, silently awarding a Core upgrade for free, giving out the Fabricator/Vest immediately, multiple required menus before the second raid, or making the narrative reveal depend on a regular raid's three-depth node clear.
+
 ### D3.4 — Validation questions (OPEN)
 
 - Can first-time players identify the bunker as their destination without BIT guiding them verbally from the outset?
@@ -319,4 +338,5 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D2.5–D2.7: Return topology, information hierarchy, and special-mode treatment | Open; not yet approved |
 | 2026-11-06 | D3.1: Fight toward the bunker, discover BIT inside; opening line: 'You're late, but you're back.' | Revised owner direction; supersedes BIT-before-combat and bunker-after-extraction assumptions; implementation pending |
 | 2026-11-06 | D3.2: Reaching the bunker completes the intro mission as its first extraction; BIT is discovered inside; first ordinary raid follows with BIT | Approved by Robert; implementation pending |
+| 2026-11-06 | D3.5: Option B — first bunker restoration consumes loot brought from the introduction, with a visible payoff | Approved concept; proposed Core L1/two-alloy/Fabricator sequence awaits detailed confirmation |
 | 2026-11-06 | D3.3/D3.4: Entrance interaction, intro loot/loss/retry, exact beats, teaching order, and comprehension checks | Open |
