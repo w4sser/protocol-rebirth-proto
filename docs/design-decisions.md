@@ -1317,10 +1317,23 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M23 — Teach Enemy Roles Through Play, Then Combine (OWNER APPROVED, 7 November 2026)
+
+**Approved design decision:** Introduce Protocol Rebirth's tactical enemy archetypes **quickly and clearly through actual combat**, not long tutorials or explanatory interruptions. The player should experience a readable threat pattern and learn a useful response (movement, cover, flanking, target prioritization, telegraph recognition) through action and timely contextual feedback. As players gain fluency, increase challenge through **new combinations of known enemy roles, environmental layouts and positional tradeoffs** rather than merely inflating enemy HP or damage.
+
+**Relationship to M22 and M21:** The free Basic Carbine must make first encounters engaging and viable. Early encounters should teach distinctive counters without being dull target practice; later mixes should create genuinely new decisions (for example, how to reposition against artillery while handling a rusher). Higher-depth complexity earns its place through tactics and opportunities for better but **not guaranteed** loot. Ordinary extraction remains voluntary and separate from forward nodes under D1/D2.
+
+**Design boundaries:** Avoid lengthy tutorial cards, control locks, opaque overlap of simultaneous untelegraphed attacks, unfair forced damage, HUD-button proliferation, and equipment checks that make a paying or advanced build necessary. BIT's contextual help should reinforce discoveries without instructing every movement, consistent with D3.7. The opening FTUE encounter sequence retains its already-approved authored beats.
+
+**Not yet approved:** Exact archetype order or counts, first-mix timing, encounter density, depth assignment, enemy health/damage, counterplay windows, world layout templates, tutorial copy and objective metrics. Recommended validation: observe first-time mobile players learning each role through play and facing their first two-role encounter **using only Basic Carbine**; success means they can describe what threatened them and change position or priorities without a tutorial interruption. No gameplay code is authorized by this documentation decision.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M23: Teach distinct enemy archetypes rapidly through play; increase difficulty through enemy/environment combinations, not long tutorials or HP inflation | Owner approved; encounter sequencing and tuning open |
 | 2026-11-07 | M22: Tactical combat is primarily enemy behavior, role combinations, positioning and environment; Basic Carbine must remain intrinsically fun | Owner approved; encounter tuning and gear choices open |
 | 2026-11-07 | M21: Deeper ordinary raids combine richer tactical choices with improved *chances* of valuable loot; extraction remains optional | Owner approved; specific encounter and loot tuning open |
 | 2026-11-07 | M19D: Home Project / in-raid probabilistic targeting; major rooms 2–3 stages at unchanged total cost; materials commerce after gameplay-built Fabricator L1 
