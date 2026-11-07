@@ -83,6 +83,15 @@ jobs:
           MOBILE_VIEWPORT: '1'
           AREAS: archipelago
           OUT: verify-out/ground-v2/phone-viewport
+      - name: Capture archipelago Level 2 timber bridge in iPhone viewport
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          LEVEL: '2'
+          BRIDGE_FOCUS: '1'
+          OUT: verify-out/ground-v2/bridge-viewport
       - name: Diagnose coral rectangles near Keycard (level 3, ground OFF/HIGH/LOW)
         run: node scripts/shot-ground-v2.mjs
         env:
