@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.12 - M23 enemy learning through combat and tactical combinations|
+| Document status | Living design reference, v4.13 - M24 player-chosen raid difficulty and first-raid assistance exception|
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -772,6 +772,8 @@ The intended encounter contract preserves warnings and alternative tactical resp
 
 ### Adaptive difficulty
 
+**APPROVED M24 — Chosen risk, not hidden performance scaling:** In the target ordinary quick-raid experience, challenge primarily follows **the route/depth and optional dangerous encounters the player chooses**, with clear environmental, enemy and contextual BIT risk signals. Do not invisibly scale enemy health, damage or intensity according to performance in order to steer success rates. Player skill, threat recognition and intentional extraction should matter. **Exception:** Approved D3.8 permits bounded progressive assistance on repeated failures of the **first ordinary raid after BIT is found**, without guaranteed survival or bag recovery. This first-raid onboarding exception is *not* a global dynamic difficulty policy. The existing adaptive system described immediately below is **legacy implementation evidence**, not an approved design requirement. Exact signal UX and encounter numbers remain open. [D01]
+
 **CURRENT code:** A between-raid adaptive difficulty system uses recent outcomes and combat/performance signals to adjust bounded parameters for later raid generation. It does not claim to change those parameters in the middle of a fight. It requires repeated signals before shifting and treats the early FTUE separately. [S22]
 
 The source contains target extraction bands, but those are tuning inputs, not measured player retention or proof of a good experience. Its storage key is also currently shared rather than save-slot namespaced, which matters when comparing fresh profiles on one device.
@@ -1136,6 +1138,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.13, 7 November 2026:** Owner approved M24: standard raid difficulty follows chosen depth/routes, readable risks and tactical threats, rather than invisible player-performance scaling. The D3.8 bounded first-normal-raid failure assistance is explicitly retained; inspected adaptive code remains historical baseline only. Docs only.
 - **v4.12, 7 November 2026:** Approved M23: introduce distinct enemy archetypes quickly through playable encounters and build subsequent tactical difficulty through combinations, terrain and positioning, not long tutorials or HP inflation. No game code changed.
 - **v4.11, 7 November 2026:** Owner locked M22: enemy behavior, combinations, positioning and terrain are the primary combat depth; Basic Carbine alone must stay fun and viable, with later equipment providing additional approaches. Implementation/tuning remain open; docs only.
 - **v4.10, 7 November 2026:** Owner approved M21: deeper quick raids should offer richer tactical encounters/route choices alongside improved probabilistic loot opportunities, without guaranteeing rewards or removing voluntary extraction. Specific tuning remains open; docs only.
