@@ -1291,10 +1291,23 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M21 — Depth Rewards Through Tactical Escalation (OWNER APPROVED, 7 November 2026)
+
+**Locked:** In ordinary quick raids, moving into deeper areas should offer **more varied tactical challenges, meaningful route and positioning decisions, and better *opportunities* for valuable loot**. The player's reason to advance is both the enjoyment of combat decision-making and a potentially more valuable haul; do not rely on numerically stronger versions of otherwise identical encounters or currency yield alone.
+
+**Critical boundaries:** No fixed rare-item drops or completion rewards are guaranteed by moving deeper. Depth does not bank the bag, and the player can choose to retreat and deliberately extract with the loot already found, under approved D1/D2. Forward nodes only unlock progress deeper, never become a requirement to return home. Tactical escalation must be readable and fair on touch controls; do not achieve it by simply adding HUD buttons, unavoidable damage or enemies that obscure telegraphs.
+
+**Design implications, not detailed implementation approvals:** Consider enemy-role combinations and clearly legible counters (e.g. flanking a directional-shield turret, responding to rushers or artillery), terrain/cover/approach differences, optional higher-risk side routes, and loot opportunities with probabilistic rarity. Increase decision richness, not just enemy HP. This should coexist with M20's BIT-signaled living-world detours and the overarching bunker Project picked at home.
+
+**Still open:** Precise depth scaling, enemy combinations, spatial encounter grammar, loot odds, route complexity, accessible escape paths, difficulty tuning and per-device performance. Do not silently turn these examples into a fixed build specification. **Documentation-only approval; no game code or merge authorized.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M21: Deeper ordinary raids combine richer tactical choices with improved *chances* of valuable loot; extraction remains optional | Owner approved; specific encounter and loot tuning open |
 | 2026-11-07 | M19D: Home Project / in-raid probabilistic targeting; major rooms 2–3 stages at unchanged total cost; materials commerce after gameplay-built Fabricator L1 
 | 2026-11-07 | M20C: BIT foregrounds no more than one living-world lead at the bunker; other optional surprises emerge naturally in raids | Owner approved; home selection and replacement rules open |
 | 2026-11-07 | M20B: BIT discoveries can be revisited over multiple ordinary raids and turn over through organic world changes, without short expiry/FOMO | Owner approved; transition triggers and simultaneous lead count open |
