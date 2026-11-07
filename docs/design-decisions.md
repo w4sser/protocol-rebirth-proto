@@ -533,7 +533,7 @@ Raid for components -> extract -> repair/upgrade a room (earned functional unloc
 
 ## M3 — World-Class Meta-Game Economy & Monetization Benchmark
 
-**Status: DESIGN PROPOSAL requested by owner, 7 November 2026. No commercial architecture, spend-to-progress policy, pricing, pass, or event system approved for implementation.**
+**Status: Benchmark and detailed systems remain design proposals. The previously open M3.6 monetization boundary is now resolved by owner-approved Model C (M4): functional progress monetization is allowed. Exact mechanics/pricing still require review.**
 
 ### M3.1 — What to learn from the benchmarks
 
@@ -609,7 +609,7 @@ Illustrative SEK amounts are **hypotheses**, not claimed competitor prices or ap
 
 ### M3.6 — Owner decisions needed (OPEN)
 
-1. **Paid power boundary:** (A) cosmetic-only, (B) cosmetic-first plus carefully bounded convenience (e.g. optional noncompetitive construction time reduction with earnable access, but no extraction insurance or paid rarities), or (C) explicitly sell functional power/resources like the strongest 4X monetization models. **Recommendation: B as a deliberate future boundary if revenue ambition requires progression spend; launch lean on cosmetics and prove basic engagement first.** Each needs economic/fairness simulation and future PvP rules.
+1. **Paid power boundary: RESOLVED by owner — C, full midcore selling functional meta progression/resources as well as cosmetics (see M4).** Specific sellable resources, caps and fairness safeguards remain subject to detailed design and testing.
 2. **Currency UX:** one soft currency **Scrap**, earned materials, and one premium **Signals**. Are Data Cores kept as earned progression resource or merged/removed? Do not add a second paid currency without evidence.
 3. **Customization MVP:** slot-based/2.5D room editor vs. full free placement in the current pre-rendered bunker. **Recommendation: small room presets/placement first; expand with proven usage.**
 4. **Offer sequencing:** direct items/room bundles first, then premium wallet; delay season pass/Growth Fund/monthly card until purchase motivation and retention are measured.
@@ -625,6 +625,110 @@ Illustrative SEK amounts are **hypotheses**, not claimed competitor prices or ap
 - Naavik, *Evolution of Hybridcasual*, Survivor.io monetization case: https://naavik.co/deep-dives/evolution-of-hybridcasual-deepdive/
 - Appfigures, August 2025 top-grossing games: https://appfigures.com/resources/insights/highest-earning-mobile-games-august-2025-worldwide
 - Toca Boca World official Home Designer store categories: https://tocaboca.helpshift.com/hc/en/3-toca-boca-world/faq/135-what-type-of-content-is-available-for-purchase-on-toca-boca-world/
+
+---
+
+## M4 — Full Midcore Monetization, Premium Economy and Extraction Integrity
+
+**Owner decision (7 November 2026): ECONOMY MODEL C IS APPROVED AS COMMERCIAL DIRECTION.** Signals and offers **may** sell functional metagame progression, progression resources and acceleration, as well as cosmetic customization of the bunker, operator and BIT. This supersedes M2/M3 recommendations that premium spending would initially be restricted to cosmetic-only or limited convenience. **It does not approve specific rates, packs, live-ops mechanics, individual power items or game-code implementation.** The detailed numbers and boundaries below are design proposals for owner tuning/sign-off.
+
+### M4.1 — Commercial boundaries
+
+- Approved D1 remains unchanged: **no premium insurance, full-bag rescue, death reversal, extra paid Secure Slots or automatic extraction**. Field-carried loot and valuable deployed equipment retain risk; the free Basic Carbine retry remains.
+- Functional purchases may **shorten metagame grinds**, but premium ownership cannot remove the need to fight, activate nodes for forward progress, decide to extract, and survive the extraction procedure.
+- Separate **permanent unlocks** (room tiers, knowledge, operator milestones) from **expendable raid assets** (weapons, consumables, materials currently carried). A purchased noncosmetic asset put into a raid is at risk like its earned equivalent; display this explicitly before purchase/equip.
+- For later competitive PvP: choose either a **normalized combat-power mode** or clearly separate paid-power progression matchmaking. A paid metagame imbalance must not silently transfer into nominally fair PvP.
+- Include real-money price clarity, accessible free route to gameplay content, no fabricated deadlines/discounts, no misleading currency exchange, and age/platform safeguards. Economic scale is not a license to hide purchase consequences.
+
+### M4.2 — Three resource planes and sources / sinks (PROPOSED)
+
+| Resource | Gameplay sources | Optional premium sources | Sinks / purpose | Persistence |
+| --- | --- | --- | --- | --- |
+| **Scrap** (soft money) | Successful extractions, sale/recycle, missions, events | Signals -> disclosed Scrap supply package | Crafting, common materials, room upgrades, utility prep | Secured at home |
+| **Physical materials** (Scrap Alloy, Cable, electronics, rare parts) | Extractions, supported gameplay crafting/barter, milestone rewards | Signals -> **specific, disclosed materials**; no RNG mystery crates; rare materials require explicit catalog decision | Core, Fabricator, Vault, BIT Bay, build recipes | Home-stored safe; carried loot risky |
+| **Data Cores / research components** | Depth rewards, progression, missions | Optional Signals -> bounded research package; tune scarcity and free path | High-tier technology and equipment research | Secured, not automatically lost |
+| **Signals** (premium money) | Clear small free grants in milestones/events, optional non-purchase earn loop | Direct IAP / gift card / bundle grants | Resource/research packages, cosmetic collections, expansion/upgrade accelerator, themed offers | Persistent wallet; only one paid wallet |
+| **Operator XP, BIT Bond** (progress, not wallet) | Gameplay / survival / BIT actions | Proposed separate limited metagame milestone boosts; no instant maxed talents without explicit review | Operator milestone choices, BIT capability progression | Persistent progression |
+| **Season points** (optional one pass track) | Normal raid and home tasks | Paid premium reward track, not a second paid currency | Deterministic reward ladder | Season-specific only |
+
+**Currencies intentionally not added:** separate paint tokens, room coins, drone gems, and a new 'build speed' premium coin. Avoid overlapping premium wallets. No soft-currency inflow for surviving a failed loot extraction unless supported by explicitly disclosed non-bag activity rewards; D1 is the default.
+
+### M4.3 — Starter numerical economy model (PROPOSED TEST CONFIG; NOT APPROVED BALANCE)
+
+**Signals wallet starter IAP ladder (illustrative Swedish nominal prices, not exchange rate/competitor quote):**
+
+| Purchase pack | Signals | SEK (illustrative) |
+| --- | ---: | ---: |
+| Trial | 100 | 19 kr |
+| Small | 550 | 89 kr |
+| Medium | 1,200 | 179 kr |
+| Large | 2,600 | 349 kr |
+
+These are unit-economics assumptions only: effective SEK/Signal varies across larger packs, should be presented clearly and verified through store price tiers/taxes, refunds, net receipts and purchase telemetry. Do not imply these are current platform prices.
+
+**Example gameplay/economy offers in Signals:** 100–250 for a common construction supply pack; 300–600 for a targeted Fabricator/Vault materials kit; 500–1,000 for selected advanced research components; 150–400 for an upgrade queue acceleration when genuine construction time exists; 150–450 for a BIT shell or single operator style; 400–900 for room furnishing collection; 900–1,600 for an operator+BIT+room matching theme. No timer is introduced solely to monetize skipping it without an explicit separate decision. No paid bag rescue, guaranteed raid extraction or additional paid Secure Slot.
+
+**Initial free earn hypothesis:** 25–60 Signals per week for an engaged nonpayer through clearly stated milestones/events, plus a finite first-week introduction grant of 50 Signals *after* FTUE (never introduce a shop during the signed-off FTUE). Values must be tuned against catalog affordability, progression time, session economy and ARPDAU; guaranteed earn routes are part of economy testing rather than final commitments.
+
+**Prototype throughput targets for simulation (not shipped promises):** First Fabricator should remain feasible for a typical free player within a few successfully completed early raids. Afterward, choose an illustrative meaningful bunker upgrade cadence of about 3–7 days of ordinary engagement; use player-session distributions to tune, not artificial pain points. Paid acceleration may compress the path, but must not bypass authored discovery/area milestones or clear a raid.
+
+### M4.4 — Commercial offer ladder connected to moments (PROPOSED)
+
+| Moment | Offer archetype | Illustrative SEK test range | Delivery / guardrail |
+| --- | --- | --- | --- |
+| Post-FTUE first successful standard extraction | **Welcome Back** room starter and small Signals bundle | 19–39 kr | No interruption of tutorial, and free decoration exists |
+| Fabricator restored | **Workshop Builder** specific Scrap/materials + optional furnishings | 39–99 kr | Inputs explicit, no guaranteed mission completion |
+| First Vault unlock / first losable custom loadout | **Operator Preparation** gear blueprint/resources + cosmetic style | 59–129 kr | No death insurance; any fielded purchased equipment is at-risk |
+| BIT Bay milestone | **BIT Companion Set** targeted research component + persistent skin | 59–129 kr | BIT function still earnable, cosmetics permanent |
+| New world region or Core tier | **Rebirth Growth Fund** milestone-based Signals/resources, paid tier | 99–249 kr | Earned tier grants by actual milestones; no paid world skip |
+| Post-retention/engaged cohorts | **Supply Card / monthly** periodic disclosed Signals or base supply | Price test later | Clear subscription/renewal/cancel disclosure; avoid daily-login compulsion |
+| Seasonal content | **Restoration Season** free and paid tracks, cosmetic and some functional rewards | Price test later | Activities use existing raids/base; no pay-only combat content |
+
+**Offer hygiene:** show one context-relevant offer max per completed return/restoration beat rather than stacking modals; optional in the shop, visible content/price/expiry, deterministic rewards, no false discounts or manipulative loss-trigger purchase. Never sell a paid revival on a death screen.
+
+### M4.5 — Commercial progression and event loops (PROPOSED)
+
+```text
+A. Core:
+select bunker need -> do meaningful raid -> physically extract -> bank resources
+-> restore permanent capability -> visibly change home -> new region/goal
+
+B. Paid acceleration:
+player sees a transparent missing-resource/upgrade requirement
+-> compare earnable location/route and optional disclosed Signals package
+-> buy or earn -> complete persistent bunker milestone
+-> raid remains playable and extraction stakes unchanged
+
+C. Personal expression:
+name bunker for free -> restore room -> get a free starter style
+-> arrange slot-based furnishings -> coordinate operator/CRT drone skins
+-> earn or buy themed set -> display at home and in-field
+
+D. Live operations:
+weekly ordinary-raid challenge / optional room-theme activity
+-> deterministic event rewards -> curated time-limited thematic collection
+-> next season / larger restoration project
+```
+
+**Do not:** invent daily forced chores, lock the free Basic Carbine behind pay, charge for renaming the bunker, create drop chance paid loot crates, allow instant mission/extraction completion, or add a universal upgrade timer solely to sell speed-ups.
+
+### M4.6 — Economy balancing, segmentation, safety and rollout (PROPOSED)
+
+Track a double-entry ledger of Signals and key resources (source, sink, reason, granted/purchased, retained/at-risk), prices, inflation, purchases and progression milestones. Baseline free player session economy before introducing the shop. Run cohort simulations for **free / occasional buyer / regular buyer / high spender** across the first 7, 30 and 90 days. Measure upgrade access gap and the free player's ability to recover from gear losses alongside payer spend.
+
+Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first extraction and Fabricator, first purchase and repeat rates, cosmetics attach rate, payer conversion, net ARPDAU, ARPPU, LTV, refunds, and paid/free time-to-upgrade ratio. A/B test offer clarity and direct packs, never intentionally worsen the free game to force purchases. **Exclusion/safeguards:** age verification as required, no predatory loss-reactive offers, transparent probability where any chance product is ever proposed, purchase limits/parental controls where relevant, region-specific store and consumer obligations.
+
+**First product validation order:** (1) prove base restoration + room decoration engagement without payments, (2) add reliable Signals wallet and deterministic direct cosmetic packs, (3) A/B test optional disclosed materials and progression acceleration, (4) introduce milestone offers, (5) add a lightweight season only if retention and commercial demand support it.
+
+### M4.7 — Approval and implementation status
+
+**APPROVED by owner:** full midcore **Model C** is the direction, including willingness to sell resources/functional metagame progression alongside visual room/operator/BIT products.
+
+**NOT YET APPROVED:** Specific IAP pack ratios/prices, progression boost types/caps, sellable rare materials or research, timers, pay-to-progress ceilings, season pass structure, real-money monetization copy, or live implementation. Explicitly preserve D1/D2/D3 contracts.
+
+**Next review question:** Should premium progression be primarily **direct specific resource purchases**, primarily **Growth Fund / milestone bundles**, or a **hybrid** with both (recommended)? This choice determines UI/store surface and pressure on economy tuning.
+
+**External benchmarks:** Whiteout Survival and Survivor.io are monetization inspiration, not proof these specific assumptions will replicate their revenue results. The M3 sources remain reference-only.
 
 ---
 
@@ -653,5 +757,6 @@ Illustrative SEK amounts are **hypotheses**, not claimed competitor prices or ap
 | 2026-11-07 | P1.3: Option C — Operator XP/levels with a few meaningful build choices at milestones, reduce redundant minor skill tracks | Approved by Robert; specifics and removals open |
 | 2026-11-07 | M2: Meta-game monetization direction: currency, operator looks, room-by-room bunker customization, and BIT visual personalization | Owner-requested direction confirmed; cosmetic-only economy, catalog, pricing and detailed loop proposed, not approved |
 | 2026-11-07 | M2.3a: Optional player naming of the bunker, inspired by farm naming in Hay Day | Owner suggestion recorded; free editable name and prompt timing proposed, not yet final approval |
-| 2026-11-07 | M3: Benchmark-led world-class economy concept: three loops, currency layers, cosmetic catalog, event strategy and paid-power boundary | Researched design proposal; owner approval of paid progression and pricing still OPEN |
+| 2026-11-07 | M3: Benchmark-led world-class economy concept: three loops, currency layers, cosmetic catalog, event strategy and paid-power boundary | Research/proposals recorded; paid-power boundary subsequently resolved by M4 Model C |
+| 2026-11-07 | M4: Full midcore Model C permits functional meta progression/resource sales plus cosmetics, but not raid-success insurance or paid death recovery | Approved commercial direction by Robert; economy ratios, sellable items, caps and offers are proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
