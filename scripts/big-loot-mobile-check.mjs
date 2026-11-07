@@ -60,20 +60,31 @@ try{
   const client=await page.createCDPSession();
   const touch=(type,dx=0,dy=0)=>client.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:stick.x+dx,y:stick.y+dy,id:1,radiusX:3,radiusY:3,force:1}]});
   await writeFile(resolve(out,`plan-${width}x${height}.json`),JSON.stringify(plan,null,2));
-  await touch('touchStart');let point=0,collected=false;const motion=[];
-  for(let tick=0;tick<300;tick++){
+  let point=0,collected=false;const motion=[];
+  for(let tick=0;tick<400;tick++){
    const current=await page.evaluate(id=>{const nr=window.__NR;return {position:nr.state().position,collected:nr.state().level.lootBoxes.find(b=>b.id===id)?.collected,over:nr.round().over};},plan.target.id);
    if(tick%10===0)motion.push({tick,point,...current});
    if(tick%50===0)console.log('TOUCH_PROGRESS',width,tick,point,current.position);
    if(current.collected){collected=true;break;}assert.equal(current.over,false,'Fixture raid ended before pickup');
-   while(point<plan.path.length-1&&Math.hypot(plan.path[point].x-current.position.x,plan.path[point].z-current.position.z)<.1)point++;
+   // Slow software rendering can carry an actor beyond a small waypoint between
+   // CDP replies. Advance after crossing it instead of oscillating around it.
+   while(point<plan.path.length-1){
+    const a=plan.path[point],prev=point?plan.path[point-1]:plan.start;
+    const sx=a.x-prev.x,sz=a.z-prev.z,len=Math.hypot(sx,sz)||1;
+    const along=((a.x-current.position.x)*sx+(a.z-current.position.z)*sz)/len;
+    const side=Math.abs((current.position.x-prev.x)*sz-(current.position.z-prev.z)*sx)/len;
+    if(Math.hypot(a.x-current.position.x,a.z-current.position.z)<.18||(along<=.1&&side<.4))point++;else break;
+   }
    const target=plan.path[Math.min(point,plan.path.length-1)];assert.ok(target,'Expected a walking path, not teleport pickup');
    const dx=target.x-current.position.x,dz=target.z-current.position.z,length=Math.hypot(dx,dz)||1;
    const magnitude=plan.stickRadius*Math.max(.45,Math.min(.9,length/.5));
+   // Short real touch gestures stop movement while the controller reads state.
+   // This avoids coupling movement overshoot to slow headless CDP round trips.
+   await touch('touchStart');
    await touch('touchMove',(dx-dz)/length/Math.SQRT2*magnitude,(dx+dz)/length/Math.SQRT2*magnitude);
-   await sleep(80);
+   await sleep(40);
+   await touch('touchEnd');
   }
-  await touch('touchEnd');
   await page.screenshot({path:resolve(out,`touch-${width}x${height}.png`)});
   await writeFile(resolve(out,`motion-${width}x${height}.json`),JSON.stringify({plan,motion,collected},null,2));
   assert.ok(collected,'Real touch navigation did not collect the target; inspect motion and screenshot');
