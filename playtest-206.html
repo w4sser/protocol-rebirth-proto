@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Protocol Rebirth - PR206 playtest</title>
+<style>body{background:#101827;color:#eee;font:16px system-ui;padding:2rem}a{color:#72d8d0}</style>
+</head>
+<body><h1>Protocol Rebirth</h1><p id="status">Loading PR206 playtest...</p>
+<script>
+// Preview entry only. Existing index.html, gameplay and production Pages are untouched.
+// File proxies do not always resolve /nodspel/ to /nodspel/index.html, so normalize
+// navigation through the game's existing PR_NAVIGATE seam. Returning from the raid
+// uses this entry's filename through the existing metaReturnPath contract.
+(async function(){
+  var root = new URL('./', location.href).href;
+  try {
+    var response = await fetch(new URL('index.html', root));
+    if (!response.ok) throw new Error('Game HTML returned HTTP ' + response.status);
+    var html = await response.text();
+    if (!html.includes('id="splash-play"') || !html.includes('src="app.js')) throw new Error('Unexpected game HTML');
+    var setup = '(function(){' +
+      'try{localStorage.setItem("pr.bigMap","1");}catch(e){}' +
+      'window.PR_NAVIGATE=function(target){' +
+      'var u=new URL(target,document.baseURI);' +
+      'if(u.origin!==location.origin)throw new Error("Preview navigation must stay same-origin");' +
+      'if(u.pathname.endsWith("/nodspel/"))u.pathname+="index.html";' +
+      'location.assign(u.href);' +
+      '};' +
+      '})();';
+    var escapedRoot = root.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    html = html.replace(/<head(?:\s[^>]*)?>/i, function(m){
+      return m + '<base href="' + escapedRoot + '"><script>' + setup + '<' + '/script>';
+    });
+    html = html.replace(/<title>[^<]*<\/title>/i, '<title>Protocol Rebirth - PR206 playtest</title>');
+    document.open(); document.write(html); document.close();
+  } catch (error) {
+    document.getElementById('status').textContent = 'Preview could not start: ' + error.message;
+  }
+})();
+</script>
+</body>
+</html>
