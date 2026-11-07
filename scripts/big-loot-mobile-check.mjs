@@ -49,7 +49,7 @@ try{
     for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
      const id=key(q.i+di,q.j+dj);if(seen.has(id))continue;
      const t={x:p.x+di*step,z:p.z+dj*step};if(t.x<minX||t.x>maxX||t.z<minZ||t.z>maxZ)continue;
-     const moved=movePlayer(p,{x:di*step,z:dj*step},solids,l.floors,RULES.playerRadius);
+     const moved=movePlayer(p,{x:di*step,z:dj*step},solids,l.floors,RULES.playerRadius+.1);
      if(Math.hypot(moved.x-t.x,moved.z-t.z)>1e-6)continue;
      seen.add(id);queue.push({i:q.i+di,j:q.j+dj,parent:k});
     }
@@ -59,18 +59,24 @@ try{
   const stick=await page.$eval('#move-stick',el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
   const client=await page.createCDPSession();
   const touch=(type,dx=0,dy=0)=>client.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:stick.x+dx,y:stick.y+dy,id:1,radiusX:3,radiusY:3,force:1}]});
-  await touch('touchStart');let point=0,collected=false;
-  for(let tick=0;tick<180;tick++){
+  await writeFile(resolve(out,`plan-${width}x${height}.json`),JSON.stringify(plan,null,2));
+  await touch('touchStart');let point=0,collected=false;const motion=[];
+  for(let tick=0;tick<300;tick++){
    const current=await page.evaluate(id=>{const nr=window.__NR;return {position:nr.state().position,collected:nr.state().level.lootBoxes.find(b=>b.id===id)?.collected,over:nr.round().over};},plan.target.id);
+   if(tick%10===0)motion.push({tick,point,...current});
+   if(tick%50===0)console.log('TOUCH_PROGRESS',width,tick,point,current.position);
    if(current.collected){collected=true;break;}assert.equal(current.over,false,'Fixture raid ended before pickup');
-   while(point<plan.path.length-1&&Math.hypot(plan.path[point].x-current.position.x,plan.path[point].z-current.position.z)<.22)point++;
+   while(point<plan.path.length-1&&Math.hypot(plan.path[point].x-current.position.x,plan.path[point].z-current.position.z)<.1)point++;
    const target=plan.path[Math.min(point,plan.path.length-1)];assert.ok(target,'Expected a walking path, not teleport pickup');
    const dx=target.x-current.position.x,dz=target.z-current.position.z,length=Math.hypot(dx,dz)||1;
-   const magnitude=plan.stickRadius*.9;
+   const magnitude=plan.stickRadius*Math.max(.45,Math.min(.9,length/.5));
    await touch('touchMove',(dx-dz)/length/Math.SQRT2*magnitude,(dx+dz)/length/Math.SQRT2*magnitude);
-   await sleep(100);
+   await sleep(80);
   }
-  await touch('touchEnd');assert.ok(collected,'Real touch navigation did not collect the target');
+  await touch('touchEnd');
+  await page.screenshot({path:resolve(out,`touch-${width}x${height}.png`)});
+  await writeFile(resolve(out,`motion-${width}x${height}.json`),JSON.stringify({plan,motion,collected},null,2));
+  assert.ok(collected,'Real touch navigation did not collect the target; inspect motion and screenshot');
   const state=await page.evaluate(()=>({position:window.__NR.state().position,bag:window.__NR.round().bag,big:window.__NR.state().level.big,quality:window.__NR.quality()}));
   await page.screenshot({path:resolve(out,`bunker-big-${width}x${height}.png`)});
   assert.equal(errors.length,0,errors.join('\n'));
