@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.6 - M20 living-world opportunities integrated into ordinary raids |
+| Document status | Living design reference, v4.7 - M20A BIT bunker teasers and in-raid discovery |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -900,7 +900,9 @@ Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a ca
 
 **APPROVED M20 — Living world, optional raid side paths:** BIT surfaces fresh leads (signals, unusual enemy activity, salvage rumors) that create **voluntary tactical detours inside ordinary raids**. **No separate mission queue**, compulsory daily quest board or streak chores. The player chooses their primary Bunker Project at home, then chooses whether to investigate the lead during play, continue the main route or extract. The lead may change what is possible, but never guarantees an item, pays out without extraction or blocks ordinary D1/D2/D3 rules. The **player's home should visibly change** through 2–3 meaningful stages per major room **within the same total cost**, and direct material purchasing opens **only after Fabricator L1 is earned and built through gameplay**, while the approved hybrid Growth Fund and cosmetic product families remain optional. [D01]
 
-**Still open:** Whether BIT teases a lead at home or discovers it during the raid; frequency, expiry/persistence, reward tables, narrative presentation, eligible areas and source tuning. Do not convert these into another login checklist. Pre-existing `bit`/`full` modes with morning/daily systems are historical prototype configurations, not approvals of mandatory daily content.
+**APPROVED M20A — Bunker preview, in-raid discovery:** BIT provides a subtle, optional hint *while the player is at the bunker before deployment* (e.g. a strange signal), giving the player a reason to wonder about the world. The **meaning and tangible opportunity are discovered only while playing an ordinary raid**. The cue is neither a compulsory pre-raid contract nor a new mission queue or guaranteed loot promise. Players can ignore it, investigate on a side path or extract normally. Keep the introduction's approved D3 pacing intact and make the hint understandable with audio muted. Exact teaser language, trigger timing and presentation are not yet approved. [D01]
+
+**Still open:** Frequency, expiry/persistence, reward tables, narrative presentation, eligible areas and source tuning. Do not convert these into another login checklist. Pre-existing `bit`/`full` modes with morning/daily systems are historical prototype configurations, not approvals of mandatory daily content.
 
 ---
 
@@ -1121,6 +1123,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.7, 7 November 2026:** Owner approved M20A: BIT gives a discreet living-world lead in the bunker before an ordinary raid; what it means is discovered during gameplay. The hint is optional, never a mission queue, purchase or loot guarantee. Frequency, persistence, rewards and exact presentation remain open. Documentation only, no gameplay code.
 - **v4.6, 7 November 2026:** Owner locked M20: optional BIT-signaled living-world leads exist as detours inside normal raids; no separate mission queue or mandatory daily tasks. Clarified integration with owner-approved home Project, 2–3 cost-neutral visual restoration stages, and post-Fabricator-only material purchases. Presentation and pacing still open; no code change.
 - **v4.5, 7 November 2026:** Added M19C concrete first-ten-successful-extraction experience and current module cost audit. Rewards arise only from actually banked resources and earned unlocks; outcomes are a flexible test sequence, not count-based grants or final economy tuning.
 - **v4.4, 7 November 2026:** M19B clarified that simplifying progression does not remove tactile passive effects: level-based operator speed growth and current loot-bag movement/detection cost remain central, with their exact curve/visual feedback awaiting device playtest. No gameplay code changed.
