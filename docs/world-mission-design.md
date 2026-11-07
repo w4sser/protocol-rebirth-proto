@@ -109,6 +109,16 @@ Do **not** guarantee precise drops through a "likely" label, except explicitly a
 
 Suggested initial library **per biome**: 2–3 recognizable landmarks, 2 approach patterns, 2 tactical/opportunity templates, and one authored deep objective. These are **production sizing hypotheses**, not locked content counts. Apply one learned mechanic in multiple spaces before inventing more.
 
+## 6A. Variation within each world — M18A
+
+**OWNER-REQUESTED DESIGN REQUIREMENT, 7 November 2026:** Replaying the same world must feel substantially different because **loot opportunities, enemies, route topology, tactical challenges and ways to play** change from raid to raid. Merely changing prop colors, room order or random damage numbers does not count as meaningful replayability.
+
+**Companion specification:** [M18A Raid Variety & World Replayability](raid-variety-system.md) defines six variation axes (routes, enemies, tactical verbs, loot opportunities, optional field events, and changing mission/discovery purpose); seeded situation grammar; biome-specific encounter pools; possible anti-repeat weighting; mobile/extraction validity constraints; and actual-play verification criteria.
+
+**Guiding rule:** Stable biome identity + remixed tactical situation. Reuse recognizable buildings, granite/pine/coastal landmarks and learned systems while changing the threats and opportunities around them. In three consecutive committed raids to the same biome, players should have at least two meaningfully different decisions to make (playtest hypothesis). No procedural generator is accepted if it makes extraction unreachable, quest loot impossible, mobile combat unreadable, or a paid-only tool mandatory.
+
+**Status:** Approved owner *direction for substantial within-world variety*; exact director algorithm, variants, encounter frequencies, loot adjustments and dynamic event catalog are design proposals only. Existing big-level procedural generation should be measured for real coverage before replacing it.
+
 ## 7. Exploration and discovery without slowing an eight-minute raid
 
 **A raid should contain at least one moment of curiosity, but not necessarily a mandatory lore collectible.**
