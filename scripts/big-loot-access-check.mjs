@@ -13,10 +13,10 @@ const items=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,i]));
 const count=()=>({cable:0,scrap_alloy:0,polymer_plate:0,power_cell:0});
 const metrics={baseline:count(),candidate:count()};
 function geometry(l){return {rooms:l.rooms,floors:l.floors,walls:l.walls,boxes:l.boxes,nodes:l.nodes,enemies:l.enemies,graph:l.graph,doors:l.doors,spawners:l.spawners,lootPositions:l.lootBoxes.map(({id,x,z,roomId,requiresNode,key})=>({id,x,z,roomId,requiresNode,key}))};}
-// Static audit uses the real movement function and pickup radius, NOT teleport-to-loot.
+// Static audit uses the real movement function, actor radius and pickup radius, NOT teleport-to-loot.
 // It excludes renderer-added props, live enemies, combat and locked-door interactions.
 function access(l){
- const step=.5,radius=.32,solids=[...l.walls,...l.boxes],floors=l.floors;
+ const step=.5,radius=RULES.playerRadius,solids=[...l.walls,...l.boxes,...l.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],floors=l.floors;
  const minX=Math.min(...floors.map(f=>f.x-f.w/2)),maxX=Math.max(...floors.map(f=>f.x+f.w/2));
  const minZ=Math.min(...floors.map(f=>f.z-f.d/2)),maxZ=Math.max(...floors.map(f=>f.z+f.d/2));
  const key=(i,j)=>`${i},${j}`,seen=new Set([key(0,0)]),queue=[[0,0]],remaining=new Set(l.lootBoxes.filter(b=>isOrdinaryLoot(b,items[b.item])).map(b=>b.id));

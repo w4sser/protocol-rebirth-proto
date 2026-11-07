@@ -6,6 +6,7 @@ on:
       - 'nodspel/**'
       - 'data/items.js'
       - 'scripts/big-loot-access-check.mjs'
+      - 'scripts/big-loot-mobile-check.mjs'
       - '.github/workflows/big-loot-validation.yml'
 permissions:
   contents: read
@@ -45,4 +46,23 @@ jobs:
         with:
           name: big-loot-validation
           path: verify-out/big-loot/
+          retention-days: 14
+  mobile-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm i --no-save puppeteer
+      - name: Touch movement and pickup at two phone viewports
+        run: node scripts/big-loot-mobile-check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: big-loot-mobile-smoke
+          path: verify-out/big-loot-mobile/
           retention-days: 14
