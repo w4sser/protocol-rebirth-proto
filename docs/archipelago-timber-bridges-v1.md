@@ -8,7 +8,7 @@
 After successful Forest/Granite environment pass (#203), bridges stand out as flat brown rectangles with thin posts. The organic islands now look better than their artificial connections.
 
 ## Hypothesis and scope
-Weathered timber deck, readable planks, broad landings and heavy supports outside the playable surface should improve the scene without changes to collision and navigation.
+Weathered timber deck, readable planks, broad landings and heavy supports outside the playable surface should improve the scene without widening the deck over water or affecting AI waypoint logic. After the first phone test, the collision change is deliberately limited to the landward ends.
 
 - Replace flat deck and thin posts with individual aged grey-brown boards, variable tones and subtle seeded offsets.
 - Instance boards per tone (at most 4 groups per bridge); add understructure and heavy piles outside the walking strip.
@@ -17,7 +17,7 @@ Weathered timber deck, readable planks, broad landings and heavy supports outsid
 - Visual pass contains no new GLB licensing/CDN dependencies. The later landing collision fix is intentionally limited to archipelago corridor-wall geometry.
 
 ## Acceptance checklist
-- [ ] From phone raid camera, bridges look like Nordic weathered timber rather than rectangular blocks.
+- [x] From phone raid camera, bridges look like Nordic weathered timber rather than rectangular blocks (owner approved).
 - [ ] Landings connect convincingly to the islands; no gaps or beige wedges.
 - [ ] Player and enemies cross freely in both directions, including diagonal cuts from land; no new water shortcuts, cross-bridge widening or shooting obstructions.
 - [ ] Clear sightlines for enemies, loot and telegraphed danger.
