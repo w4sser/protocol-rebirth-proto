@@ -1,0 +1,20 @@
+name: bridge-landing-collision
+on:
+  pull_request:
+    paths:
+      - 'nodspel/bridge-flow.mjs'
+      - 'nodspel/levels.js'
+      - 'nodspel/big-level.js'
+      - 'nodspel/tests/bridge-landing-collision.test.mjs'
+      - '.github/workflows/bridge-landing-collision.yml'
+jobs:
+  diagonal-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate land-side diagonal entry and water edge blocking
+        run: node --test nodspel/tests/bridge-landing-collision.test.mjs
