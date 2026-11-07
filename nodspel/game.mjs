@@ -1322,6 +1322,7 @@ function teleportPlayer(x,z){
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   getCamera:()=>camera,
+  getScene:()=>scene,
   operator:()=>human,
   capturePerformance(options={}){return raidProfiler.start({...options,metadata:{area:AREA_SEL,quality:QUALITY,userAgent:navigator.userAgent,viewport:{width:viewWidth,height:viewHeight,pixelRatio:renderer.getPixelRatio()},renderMode:'whole frame including postprocessing',deviceLabel:options.deviceLabel||'unspecified',physicalPhoneVerified:options.physicalPhoneVerified===true}});},
   setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},
