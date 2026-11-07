@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Protocol Rebirth - Polyfork asset evaluation</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;background:#101923;color:#dce5ec}
+*{box-sizing:border-box}body{margin:0}header{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:#1b2740}
+h1{font-size:17px;margin:0 12px 0 0}label{font-size:13px}select,button{font:inherit;background:#2e5c63;color:white;border:1px solid #528b91;border-radius:5px;padding:6px 9px}
+button{cursor:pointer}#status{font-size:12px;color:#9ebdbd}#view{width:100%;height:calc(100dvh - 124px);display:block;touch-action:none}
+footer{padding:10px 16px;background:#1b2740;font-size:12px;display:flex;gap:20px;flex-wrap:wrap}
+a{color:#3fe0d0}#metric{font-variant-numeric:tabular-nums}
+</style></head><body>
+<header><h1>POLYFORK / ASSET REVIEW</h1>
+<label>Kit <select id="kit"><option value="All">All (56)</option><option>Forest</option><option>Coast</option><option>Bunker</option></select></label>
+<label>Model <select id="model"></select></label>
+<button id="prev" aria-label="Previous asset">Previous</button><button id="next" aria-label="Next asset">Next</button>
+<label><input type="checkbox" id="rotate" checked> Rotate</label><label><input type="checkbox" id="auto"> Auto-cycle</label>
+<span id="status" role="status">Ready</span></header>
+<canvas id="view"></canvas>
+<footer><span id="metric">Select a model</span><span>Reference checker: 1 m floor grid, normalized max dimension 3 m for visual comparison (not production scale).</span><a id="assetLink" target="_blank" rel="noopener noreferrer">Source model</a><span>Remote CDN / no model copies committed</span></footer>
+<script type="module">
+import * as THREE from './vendor/three.module.js';
+import {GLTFLoader} from './vendor/GLTFLoader.js';
+import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs';
+const picks=POLYFORK_CANDIDATES.map(({category,name,id})=>[category,name,id]);
+const kit=document.querySelector('#kit'),model=document.querySelector('#model'),status=document.querySelector('#status'),metric=document.querySelector('#metric'),link=document.querySelector('#assetLink');
+const canvas=document.querySelector('#view'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();scene.background=new THREE.Color('#1b2740');
+scene.add(new THREE.HemisphereLight('#d7f5ff','#574b5b',2.2));
+const sun=new THREE.DirectionalLight('#fff0cf',2.5);sun.position.set(-4,8,6);scene.add(sun);
+const camera=new THREE.PerspectiveCamera(35,1,.1,200);camera.position.set(6,5.3,9);camera.lookAt(0,1.1,0);
+const grid=new THREE.GridHelper(20,20,'#527078','#33454f');scene.add(grid);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(20,20),new THREE.MeshStandardMaterial({color:'#324c49',roughness:1}));floor.rotation.x=-Math.PI/2;floor.position.y=-.012;scene.add(floor);
+const root=new THREE.Group();scene.add(root);const loader=new GLTFLoader();
+let current=[],generation=0;const cache=new Map();
+function refresh(){current=picks.filter(p=>kit.value==='All'||p[0]===kit.value);model.replaceChildren(...current.map((p,i)=>new Option(p[1],String(i))));selectModel();}
+function count(root){let triangles=0,meshes=0,materials=new Set();root.traverse(o=>{if(!o.isMesh)return;meshes++;const g=o.geometry;const n=g.index?g.index.count:g.getAttribute('position')?.count||0;triangles+=Math.floor(n/3);for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m);});return {triangles,meshes,materials:materials.size};}
+function clearRoot(){while(root.children.length)root.remove(root.children[0]);}
+async function selectModel(){const pick=current[Number(model.value)||0];if(!pick)return;const token=++generation;clearRoot();status.textContent='Loading '+pick[1]+'...';metric.textContent='';link.href='https://polyfork.dev/asset/'+pick[2];
+const started=performance.now();try{
+  let gltf=cache.get(pick[2]);if(!gltf){gltf=await loader.loadAsync('https://polyfork.dev/cdn/'+pick[2]+'.glb');cache.set(pick[2],gltf);}
+  if(token!==generation)return;
+  const asset=gltf.scene.clone(true),box=new THREE.Box3().setFromObject(asset),size=box.getSize(new THREE.Vector3());
+  if(!(size.length()>0))throw Error('Empty bounds');
+  // Review-only normalization: positions mesh at the floor and fits its largest axis in 3m.
+  const scale=3/Math.max(size.x,size.y,size.z);asset.scale.setScalar(scale);asset.updateMatrixWorld(true);
+  const bounds=new THREE.Box3().setFromObject(asset),center=bounds.getCenter(new THREE.Vector3());
+  asset.position.x-=center.x;asset.position.z-=center.z;asset.position.y-=bounds.min.y;root.add(asset);
+  const c=count(asset);metric.textContent='Original bounds '+size.toArray().map(n=>n.toFixed(2)).join(' x ')+' m | '+c.triangles.toLocaleString()+' triangles | '+c.meshes+' meshes | '+c.materials+' materials | '+Math.round(performance.now()-started)+' ms';
+  status.textContent='Loaded '+pick[1];
+}catch(error){if(token!==generation)return;status.textContent='Failed: '+String(error.message||error);metric.textContent='Could not load remote GLB. Check CDN access/CORS/network.';console.error(error);}}
+kit.addEventListener('change',refresh);model.addEventListener('change',selectModel);
+document.querySelector('#prev').addEventListener('click',()=>{model.selectedIndex=(model.selectedIndex-1+current.length)%current.length;selectModel();});
+document.querySelector('#next').addEventListener('click',()=>{model.selectedIndex=(model.selectedIndex+1)%current.length;selectModel();});
+const clock=new THREE.Clock();function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.05);if(document.querySelector('#rotate').checked)root.rotation.y+=dt*.35;
+if(document.querySelector('#auto').checked&&Math.floor(performance.now()/3500)!==Math.floor((performance.now()-dt*1000)/3500)){model.selectedIndex=(model.selectedIndex+1)%current.length;selectModel();}
+const w=canvas.clientWidth,h=canvas.clientHeight;if(w&&h){const dpr=renderer.getPixelRatio();if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}renderer.render(scene,camera);}}refresh();frame();
+</script></body></html>
