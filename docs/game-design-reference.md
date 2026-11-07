@@ -5,8 +5,8 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.1 - design review in progress |
-| Prepared / updated | 6 November 2026 |
+| Document status | Living design reference, v2.2 - design review in progress |
+| Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
 | Repository baseline | `w4sser/protocol-rebirth-proto`, `main`, commit `88a9ac6364d0dcf5463c2a5f700f4817960ecaca` |
@@ -609,6 +609,8 @@ The FTUE design document's final implementation-status paragraph is older than s
 
 **APPROVED D3.8 — Failure assistance in first ordinary raid:** The first attempt retains genuine risk. After failure, BIT provides more targeted context and the encounter becomes incrementally more forgiving on later retries. This should not auto-complete nodes, save exposed loot, guarantee survival, or perform extraction for the player. The first successful extraction must remain a player achievement. `data/raid-ftue.js` currently contains specific attempt multipliers and a third-attempt minimum-health aid; those values are code baseline only, **not owner-approved final tuning**. The system must be reconciled with the now-separate introductory bunker approach and the first actual raid undertaken with BIT. [D01] [S25]
 
+**PROPOSED D3.9 — FTUE design closure (awaiting owner sign-off):** Use a short authored no-BIT combat approach with two guaranteed Scrap Alloy; enter the bunker through one deliberate door interaction to complete the exceptional intro extraction without an ordinary countdown/result interruption; first meet BIT inside, spend the real two alloy on Core L1, and show the facility revive; track Fabricator/Cable for the next standard raid with BIT. In that first ordinary raid teach node-forward vs extract-home under D1/D2 without requiring Cable or full depth clear to extract. Intro death fully restarts the opening; first regular-raid failure retains D1 losses and D3.8 adaptive aid. **Compulsory FTUE ends on the first successful normal extraction and the Fabricator progress/next-goal reveal, not on completing the Fabricator.** Exact timings, encounter values, bark cooldowns, and visual polish remain playtest/implementation details. This is a proposed implementation contract and is not yet owner-approved as a package. [D01]
+
 ### 13.3 Intended learning sequence
 
 This is a consolidated design sequence, not a frame-by-frame claim about the current UI.
@@ -915,6 +917,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.2, 7 November 2026:** Drafted D3.9 final FTUE closure package for owner sign-off, including explicit bunker-door completion, no pre-BIT result interruption, first normal extraction as onboarding exit, and Fabricator not required to finish onboarding. Proposal only; no code changes.
 - **v2.1, 6 November 2026:** Approved D3.8 progressive contextual and combat assistance after failed attempts at the first ordinary raid with BIT, while preserving genuine loss and player-controlled extraction. Exact assistance values and legacy FTUE reconciliation remain open. Documentation only.
 - **v2.0, 6 November 2026:** Approved D3.7 contextual, non-blocking BIT guidance during the first ordinary raid; proposed six event-based learning moments and guidance scheduling, distinguished from the earlier no-BIT introductory approach. Exact bark/trigger tuning and implementation remain open. Documentation only.
 - **v1.9, 6 November 2026:** Approved the concrete D3.5 Core L1 first restoration (two guaranteed Scrap Alloy from intro, consumed at Core activation, visible power restoration, Fabricator L1 next goal) and D3.6 (free full intro restart on death, no duplication or permanent-progress loss). Exact UX and pacing still open. Documentation only.
