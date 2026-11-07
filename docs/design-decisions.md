@@ -726,9 +726,99 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 **NOT YET APPROVED:** Specific IAP pack ratios/prices, progression boost types/caps, sellable rare materials or research, timers, pay-to-progress ceilings, season pass structure, real-money monetization copy, or live implementation. Explicitly preserve D1/D2/D3 contracts.
 
-**Next review question:** Should premium progression be primarily **direct specific resource purchases**, primarily **Growth Fund / milestone bundles**, or a **hybrid** with both (recommended)? This choice determines UI/store surface and pressure on economy tuning.
+**RESOLVED M5 (7 November 2026):** The owner selected **hybrid C**, with direct resource packages and a milestone-based Growth Fund alongside cosmetic ownership offers. The specific product UX and balance are proposed in M5.
 
 **External benchmarks:** Whiteout Survival and Survivor.io are monetization inspiration, not proof these specific assumptions will replicate their revenue results. The M3 sources remain reference-only.
+
+---
+
+## M5 — Hybrid Commercial Product Structure: Direct Resources + Growth Fund + Cosmetics
+
+**OWNER APPROVAL, 7 November 2026:** Commercial offer architecture **C (HYBRID)** is locked. Protocol Rebirth will support **direct resource/functional-progression offers** for an immediate need, **milestone-based Growth Funds** for longer-term engagement, and **cosmetic identity products** for room-by-room bunker decoration, operator and BIT. This is a commercial product-category decision. Specific Signal prices, reward amounts, release milestones, growth-fund contents and payment configuration remain **PROPOSED**, not approved ship balance.
+
+### M5.1 — Three product families (APPROVED structure; definitions below PROPOSED)
+
+1. **Direct supply / missing-part purchase:** A disclosed, deterministic amount of an existing resource or fixed bundle, bought with Signals or a transparently displayed real-money bundle. The UI presents **earnable location/raid path and optional purchase side by side**. Never pretend an item must be purchased, and never unlock a region or complete an extraction directly by buying it.
+2. **Rebirth Growth Fund:** A one-off milestone-value product, purchased explicitly, whose reward track is unlocked by **actual completed permanent gameplay achievements**. Players may buy it later and claim qualifying prior milestones retroactively. Separate a free track from the purchased tier; show total included rewards up front. It is not a recurring subscription, random drop, or calendar-driven daily-login task.
+3. **Cosmetic ownership:** Permanent directly disclosed products and themed sets for individual bunker rooms, operator clothes/gear appearances, and BIT shell/CRT face/dock. A functional room is earned through the core loop first; decoration belongs to account identity and is not lost when gear is lost. Bunker naming and renaming remain free.
+
+### M5.2 — Candidate Rebirth Growth Fund v1 product (PROPOSED CONTENT AND VALUES)
+
+**UI placement:** An unobtrusive **Growth Fund** card under the bunker **Projects / Progression** area plus a store tab; not a modal during the locked FTUE or after raid death.
+
+**Unlock to *view*:** After the first successful ordinary extraction and results summary (D3.9 completed). **Purchase is never a requirement to continue.**
+
+**Trigger ledger (server-authoritative in a production online economy):** `growth_fund_id`, `purchased_at`, `milestone_id`, `milestone_completed_at`, `reward_claimed_at`, `grant_transaction_id`. Completed milestones can be previewed before buying, and **retroactive paid rewards** become claimable after a later purchase. Exactly-once grants and purchase restoration required. Avoid double rewards on sync, reinstall, receipt restore or replay.
+
+**Illustrative reward ladder (NOT FINAL TUNING):**
+
+| Achievement milestone | Free-track example | Paid-track example |
+| --- | --- | --- |
+| Complete FTUE / first normal extraction | 50 Signals or a small earned cosmetic (subject to overlap with separately planned FTUE bonus; **not both by default**) | 150 Signals + a bunker starter prop |
+| Build Fabricator L1 | Scrap and one basic cosmetic | 250 Signals + identified components |
+| Build Vault L1 | Cosmetic room object or earned resource | 300 Signals + Vault-themed decor |
+| Build BIT Bay L1 | BIT accessory palette | 350 Signals + unique BIT shell |
+| Reach Core L2 | Earned rare component | 500 Signals + themed room set |
+| Reach Core L3 | Permanent commemorative cosmetic | 750 Signals + multi-surface identity bundle |
+
+**Illustrative paid track total** = 2,300 Signals plus specified items, not a promised ROI; purchase price/value ratio must be simulated against economy, receipt costs, regional taxes and cannibalization. Avoid a claim such as “20x value” unless methodology and baseline prices genuinely support it. **Do not tie paid milestones to obtaining the purchased bundle itself**. Milestones remain gameplay-earned even if bought resources speed preparation.
+
+**Growth Fund v1 should follow *bunker milestones*, not raw Operator Level**, because the chosen progression architecture makes restoring the world the principal long-term journey. Operator milestones could support a separate product later but are not authorized now.
+
+### M5.3 — Candidate direct resource product behavior (PROPOSED DETAIL)
+
+**Entry point:** In a functional bunker room's repair panel, show: (a) exact missing items and amounts, (b) a **Find in raid** action that takes the player to a relevant accessible source/route, and (c) **Get materials** which opens an optional purchase sheet. Prioritize the earning path visually; never block closing the offer or entering a raid.
+
+**Catalog test products (all numeric values pending tuning):**
+
+| Candidate product | Example contents | Signals trial range | Delivery |
+| --- | --- | ---: | --- |
+| Salvage Supply | 100 Scrap + 1 Scrap Alloy | 100–200 | Direct secured home stash |
+| Workshop Components | 2 Cable + 2 Scrap Alloy + 20 Scrap | 300–500 | Specific inputs, no randomized loot |
+| Electronics Cache | 2 Circuit Boards + 1 Power Cell | 450–750 | Named items; check authored region gates |
+| Research Kit | Bounded Data Cores plus named component | 600–1,000 | Advanced progression; verify obtainable free route |
+
+**Cart logic:** For the selected room show only materials **actually missing**; if an offered bundle contains excess, show excess explicitly. Never silently consume Signals to fill requirements. A purchase grants items to the **secured home stash**, not carried raid inventory, avoiding confusion about bag protection. Construction still requires the room to be accessible and all non-material eligibility conditions to be met. The player explicitly presses BUILD. Separate purchasing from building; don't auto-complete it. When stash capacity limits are reached, provide a safe pending-claim queue rather than silently discarding paid goods.
+
+**Anti-exploit:** One authoritative entitlement/grant transaction per purchase, duplicate-receipt handling, refund/reversal policy, server-reconciled Signal balance. Free earned materials, inventory overflow and vault upgrades must remain viable. Rare story/area scouting objects should **not be offered in v1** until approved against world-access rules. No purchase of raid outcome, free-extraction, insurance, extra paid Secure Slot or auto-recover lost items.
+
+### M5.4 — Commercial placement in the actual player journey (PROPOSED UX)
+
+| Surface / moment | What the player sees | Offer type | Display priority |
+| --- | --- | --- | --- |
+| **Before first ordinary extraction** | No shop interruption | None | Protect D3 FTUE |
+| **First completed normal extraction** | Results, Fabricator progress, next mission | Optional small welcome identity pack (store entry after result) | Progress first, commerce second |
+| **Bunker overview** | Named bunker, current repair, next unlock, owned cosmetics | Single subtle `Shop` link; optional relevant theme spotlight | Bunker action first |
+| **Room detail / build requirement** | Owned/missing material counts, target location, `Find in raid` | Optional `Get materials` purchase sheet | Earn path first; buy is a parallel option |
+| **Projects / progression** | World restoration milestones and rewards | Growth Fund free/paid ladder | Nonintrusive, persistent |
+| **Room decoration mode** | Free starter set, place/preview slots, owned items | Specific room themes; buy direct or Signals | Decoration first |
+| **Operator appearance / BIT Bay** | Preview skins/shells, owned/equipped state | Cosmetics and mixed bundles | No combat-stat ambiguity |
+| **Post restoration milestone** | Show real gameplay unlock and visual payoff | One context-relevant offer shortcut, never mandatory modal | Celebrate before sale |
+| **Raid death / loss screen** | Actual lost gear/items and free Basic Carbine retry | **No loss-triggered purchase** | D1 risk integrity |
+| **Raid underway / extraction countdown** | Combat and extraction only | **No commerce UI** | Safety and clarity |
+
+**Max exposure rule (proposed):** At most one contextually selected offer surface per homecoming/build milestone. Permanent shop access is fine, but no offer stack, forced full-screen sale or dark-pattern countdown. Growth Fund and resource prompts must never interrupt active combat, loot decisions, or extraction.
+
+### M5.5 — Pilot release order and product analytics (PROPOSED)
+
+1. Instrument earned/paid resource ledgers, true missing-part demand, upgrade timing, raid failure rates and Signals grants/spends.
+2. Make one room's free decoration loop genuinely fun, and release a small direct cosmetic offer to test willingness-to-pay.
+3. Add one or two deterministic **Get materials** offers on genuine repair screens and measure purchase conversion versus free raid continuation and Fabricator completion.
+4. Add **one** bunker milestone Growth Fund (free and paid track, retroactive claims); test its conversion, claim rate, effect on return sessions, long-term margin and whether it undermines regular supply pack purchases.
+5. Expand to other room/Operator/BIT themes and scheduled event collections once these loops work; do not introduce a season pass or a second Fund at launch merely to inflate offer count.
+
+**Telemetry:** `room_requirement_seen`, `find_in_raid_tapped`, `get_materials_opened`, `bundle_previewed`, `iap_started/succeeded/refunded`, `signals_spent`, `fund_viewed/purchased`, `fund_milestone_unlocked/claimed`, `cosmetic_previewed/equipped`, `raid_started/extracted/died`, `room_built`. Cohort analysis free, occasional, regular and high-paying over 7/30/90 days; purchase conversion, repeat rate, paid/free time to unlock, stalled player percentage, raid participation after spending, ARPDAU/LTV and refund rate.
+
+### M5.6 — Still requiring separate sign-off
+
+- Exact real-money packs and premium Signal conversion rates.
+- Exact Growth Fund price, rewards, tier count and whether one-time/batch claim UI is preferable; future funds require separate catalog approval.
+- Which rare or upgraded resource families can be sold, quantity caps, entitlement handling on refunds, and whether a particular authored gate requires *actual extraction* of a scouting item.
+- Whether bought materials can be used for any room upgrade or only a specified catalog scope; trade/exchange restrictions to prevent unlimited arbitrage.
+- Whether recurring memberships, speed-ups, paid XP and passes are introduced at all; Model C permits considering them but C *product structure* does not approve them automatically.
+- Presentation, platform/age safeguards, account saving and live receipt validation.
+
+**Hierarchy of decisions:** M4 approves selling functional progression; M5 approves **hybrid product families**. M5's catalog and Growth Fund numerical design are **proposed**, not final. D1/D2/D3 remain intact.
 
 ---
 
@@ -759,4 +849,5 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 | 2026-11-07 | M2.3a: Optional player naming of the bunker, inspired by farm naming in Hay Day | Owner suggestion recorded; free editable name and prompt timing proposed, not yet final approval |
 | 2026-11-07 | M3: Benchmark-led world-class economy concept: three loops, currency layers, cosmetic catalog, event strategy and paid-power boundary | Research/proposals recorded; paid-power boundary subsequently resolved by M4 Model C |
 | 2026-11-07 | M4: Full midcore Model C permits functional meta progression/resource sales plus cosmetics, but not raid-success insurance or paid death recovery | Approved commercial direction by Robert; economy ratios, sellable items, caps and offers are proposed |
+| 2026-11-07 | M5: Hybrid commercial structure C — direct resource offers + bunker milestone Growth Fund + room/operator/BIT cosmetic products | Approved by Robert; UX details, numerical rewards and prices remain proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
