@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.7 - identity/home M12, eight-minute raid M14 and tactical encounter grammar M15 |
+| Document status | Living design reference, v3.8 - enemy roles/difficulty M16 and weapon/tool/build counterplay M17 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -689,6 +689,18 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Transfer across locations:** Bunker Shielded Relay = power + flank, summer-night forest Scout Crossing = attention + sight lines, town Alarmed Workshop = disrupt support + optional alarm route. Keep expected special-room duration roughly 20–60 seconds, use existing touch actions, protect mobile FPS, no mandatory stealth/puzzles or expensive unique art. Skill mastery can yield optional **earned** titles/nameplates, while all field-carried materials obey D1 loss and D2 successful extraction. All numerical encounter frequency and reward details remain unapproved playtest hypotheses. [D01]
 
+### 11.7 M16 — Enemy roles and difficulty as decision complexity
+
+**DESIGN SPECIFICATION:** [Enemy Roles & Difficulty Progression](enemy-roles-difficulty-design.md) defines enemy tactical questions, warning tells, free/basic counters, proposed pairings and progression through three biomes and raid depths. Shield turret teaches flanking/power, rusher teaches movement, repair teaches priority, scout teaches awareness, artillery teaches movement under pressure, sniper teaches sightline management; combinations change **the decision**, not just HP. [D01]
+
+**PROPOSED progression:** Intro simple telegraphed threat; depth one readable basic/grunt/rusher, depth two one role combination and optional tactical problem, depth three a more demanding combination of already learned rules and distinct deeper reward. Bunker teaches power/cover, forest emphasizes scout/landscape lanes and town emphasizes alarms/support/crossfire. These are design targets; archetype models in code do not prove all behaviors live in current big levels. No spawn or numeric balancing changes are approved. [D01]
+
+### 11.8 M17 — Equipment counterplay and flexible builds
+
+**DESIGN SPECIFICATION:** [Weapons, Tools & Combat Builds](combat-builds-design.md) connects the prototype's four weapons (Basic Carbine, Vector SMG, Marksman Rifle, Breach Shotgun), three armor choices (Scavenger Vest, Scout Rig, Dampener Cloak) and available tool data (Decoy, EMP, Grenade) to M16 tactical needs. The four **proposed emergent playstyles** are Assault, Breacher, Recon and Saboteur; they are **not new classes or another XP track**. [D01]
+
+**Core rule:** Equipment should change options, strengths and limitations in a fight. Fast SMG, precise Marksman, close knockback Shotgun and free/basic Carbine each suit different threats, while Decoy/EMP/Grenade support optional tactics rather than exclusive progress. Existing item data puts Decoy at Fabricator L1 and EMP/Grenade at L2; this is source data, not an owner approval of the final tool economy or proof all runtime pathways function. Gear loss still obeys D1; skins remain permanently owned, and no paid-only counter or shop intervention appears in active raids. See the M17 counterplay matrix and controlled playtest design. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1049,6 +1061,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.8, 7 November 2026:** Added the joint M16/M17 design pass. M16 specifies enemy roles, biome/depth difficulty and paired-pressure encounters; M17 maps the current weapons/armor/tools to four emergent tactical build identities, explicitly preserving free counterplay, controlled-risk loss and limited operator milestone choices. Documentation only; no spawn/tuning or gameplay code changes.
 - **v3.7, 7 November 2026:** Detailed M15 reusable tactical encounter grammar across bunker/forest/town using six verbs (power, diversion, flank, hazards, support, optional risk/reward) and explicit candidate priority for Shielded Relay Room Issue #205. No gameplay code changes or approved mechanics/rates.
 - **v3.6, 7 November 2026:** Added the integrated eight-minute raid blueprint M14 with concrete combat / optional tactical room / extraction / persistent home-and-identity rhythm, first Shielded Relay Room slice, guardrails and playtest acceptance. No game code changes or numerical tuning approval.
 - **v3.5, 7 November 2026:** Added the integrated Identity & Home Meta system specification (M12) with shared operator/BIT/bunker/profile identity, early free rewards and cosmetic currency separation. Recorded the owner's new core gameplay enjoyment priority (M13): optional multi-solution tactical problem rooms inspired by classic Metal Gear Solid, starting with a proposed Shielded Relay Room vertical slice. No code changes or balancing approvals.
