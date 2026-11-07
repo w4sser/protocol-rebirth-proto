@@ -18,8 +18,13 @@ export function propInPassage(object,passages){
 }
 // Deck planks are instanced by wood shade, so detail scales without one draw call per board.
 const BRIDGE_CUBE=new THREE.BoxGeometry(1,1,1);
+BRIDGE_CUBE.userData.shared=true; // world.dispose traverses per-level meshes
 const BRIDGE_PLANK_MATS=['#8B8173','#A09481','#756E64','#9C917E']
-  .map(color=>new THREE.MeshStandardMaterial({color,roughness:.96,metalness:0,flatShading:true}));
+  .map(color=>{
+    const material=new THREE.MeshStandardMaterial({color,roughness:.96,metalness:0,flatShading:true});
+    material.userData.shared=true;
+    return material;
+  });
 function buildTimberPier(f,seed,quality,group,box){
   const high=(quality?.props??1)>=1;
   const plan=planBridgeDeck(f,seed,{quality:high?'high':'low'});
