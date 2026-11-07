@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.1 - FTUE/progression/commercial architecture approved; economy harness PR #204 under review |
+| Document status | Living design reference, v3.2 - progression/economy approved principles; higher early restoration frequency M9 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -520,6 +520,14 @@ A first-pass formula-based Excel model now covers **four illustrative post-FTUE 
 
 **NEXT OPEN DESIGN DECISION:** Set the **first-week free-player restoration cadence** before locking purchased resource bundles. Proposed baseline: Fabricator L1 after a few successful post-FTUE raids, one other significant restoration within roughly the first week, Core L2 as the following medium-term journey. This is a test hypothesis, **not owner-approved timing or a commitment to inject artificial upgrade timers**. The first-week rhythm must be validated against gameplay and actual loot/pickup distributions, then benchmarked against spend-only scenarios. [D01]
 
+### 8.12 M9 — More frequent first-week restoration (owner direction)
+
+**APPROVED M9 DIRECTION:** Players should restore **more tangible things early** than the initial week-one suggestion implied, because the bunker must visibly come alive after successful raids. Keep two complementary scales of progress: **major functional upgrades** (Rebirth Core, Fabricator, Vault, BIT Bay), and **small, frequent, low-cost visual restoration beats** (lighting, improvised bed, repaired workbench, docking corner, furnishings). These should produce a noticeable before/after and often make new room-customization spots available, **without becoming an additional progression tree or currency**. This is an owner-approved principle, not a fixed tuning calendar. See [M9](design-decisions.md#m9--early-restoration-cadence-more-visible-progress).
+
+**PROPOSED PLAYTEST CADENCE:** The approved FTUE already restores Core L1 and introduces BIT. Fabricator L1 remains an early major milestone over the first few ordinary extractions. Between major milestones, give 1–2 small visible restorations in early homecomings and a free starter decoration/corner after onboarding. Across roughly days 3–7, allow a choice of Vault L1 or BIT Bay L1 plus another 2–3 small restoration beats, keeping Core L2 a larger medium-term ambition. These are **experience targets, not hard day gates**.
+
+**Do not compromise FTUE or economy:** No compulsory naming/decorator/repair screens before the first successful ordinary extraction ends D3.9. Small restorations must not consume the exact scarce materials required for critical core progress, or use timers invented to sell skips. A successful extraction can contribute to functional room restoration, home visuals, and customization without manufacturing a new spendable resource or reward notification stack. Evaluate visible-home-change rate, room-upgrade delay and first-week retention in playtests. [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -989,6 +997,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.2, 7 November 2026:** Owner requested and approved more frequent visible early bunker restorations (M9), differentiating major functional rooms from low-cost visual repair beats. Recorded proposed first-week sequence and critical FTUE/material-gating protections. No code or numeric balance changes.
 - **v3.1, 7 November 2026:** Linked draft PR #204 deterministic offline economy harness and initial successful Actions test. Recorded open decision on first-week free restoration rhythm and need for actual big-level/pickup calibration. Workbook binary pending upload. No game changes or new economic approvals.
 - **v3.0, 7 November 2026:** Recorded M7 matched-activity/pay-only Monte Carlo (1,000 seeds per cohort) using prototype loot-weighted random pickups. Identified Core L2 free progression bottleneck and late-tier rare material purchase plateau. Explicit sampling limitations and next actual-runtime validation. Analysis only; no live economy changes.
 - **v2.9, 7 November 2026:** Completed and documented first-pass post-FTUE 30-day economy scenario (M6) across four spend/activity personas, with explicit baseline sources, assumptions, results and priorities for same-activity controlled experiments and stochastic loot validation. Documentation only; no prices or implementation approved.
