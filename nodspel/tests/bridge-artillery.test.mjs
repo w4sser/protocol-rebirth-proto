@@ -6,6 +6,7 @@ import {generateLevel} from '../levels.js';
 import {buildWorld} from '../world.js';
 import {movePlayer} from '../physics.mjs';
 import {BRIDGE_MIN_WIDTH,bridgeClearances,inBridgeClearance,bridgeWaypoint} from '../bridge-flow.mjs';
+import {planBridgeDeck} from '../bridge-deck.mjs';
 import {artilleryFlight} from '../artillery-flight.mjs';
 
 // Runs on logical geometry, not the prettier visual coastline.
@@ -31,7 +32,14 @@ test('every rendered pine clears the full bridge and generous funnel landings',(
     const level=generateLevel(n,'bridge-tree-'+i,'archipelago');
     const scene=new THREE.Scene(),world=buildWorld(level,scene,{quality:'low'});
     try{
-      assert.ok(world.group.children.some(o=>o.name==='archipelago-bridge-apron'),'wooden approach flares exist');
+      // PR #207 replaced planar apron meshes with separate instanced planks.
+      // Test the updated visual contract (both broad landings still exist).
+      assert.ok(world.group.children.some(o=>o.name==='archipelago-timber-planks'),'weathered wood deck visible');
+      for(const f of level.floors.filter(f=>f.dir)){
+        const plan=planBridgeDeck(f,level.seed,{quality:'low'});
+        assert.ok(plan?.planks.some(p=>p.landing),'wooden approach flares exist');
+        assert.equal(plan.planks.filter(p=>p.landing).length,4,'LOW landings at both ends');
+      }
       for(const p of world.group.children.filter(x=>x.name==='pine')){
         const b=new THREE.Box3().setFromObject(p);
         assert.ok(!inBridgeClearance({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z},bridgeClearances(level)),'tree blocks bridge');
