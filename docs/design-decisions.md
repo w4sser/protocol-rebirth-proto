@@ -920,6 +920,40 @@ This is **not yet approved**. Work from actual raid retention/loot and the user 
 
 ---
 
+## M9 — Early Restoration Cadence: More Visible Progress
+
+**Owner direction, 7 November 2026 — APPROVED design principle:** The first-week progression should deliver **more frequent restorations and visible changes** than the initial M8 proposal. Keep the previously proposed longer-term Core L2 ambition, but ensure the player feels that something tangible is happening in the bunker early and repeatedly. The individual beats, timings, costs and exact ordering below are **PROPOSALS** for playtest, not approved fixed schedule.
+
+### Two scales of restoration
+
+1. **Major functional room milestones** (Core, Fabricator, Vault, BIT Bay) unlock consequential gameplay capabilities and remain meaningful multi-raid goals. Do not cheaply hand out every major system in the first sessions.
+2. **Small, immediately visible restoration beats** change the home between major milestones: lighting circuits, an improvised bed, workbench dressing, repairable power conduits, a corner of the living space, BIT docking furniture and starter decor slots. A beat should give a distinct **before/after** and optionally an earned cosmetic or a new usable space; it must not create another currency, upgrade tree or busywork system.
+
+**Essential FTUE compatibility:** The existing approved D3.9 sequence remains unchanged: introductory extraction, Core L1, BIT reveal, first normal raid, end onboarding at first successful ordinary extraction. Any optional naming, decorative placement or additional restoration should be offered **after** that first ordinary extraction or as a non-blocking optional activity. Do not insert mandatory UI into the approved tutorial.
+
+### Proposed early-week experience (tuning targets, not calendar gates)
+
+| Approximate moment | Player payoff | Relationship to major progression |
+| --- | --- | --- |
+| First session | Dramatic Core L1 power-up, BIT encounter | Already approved FTUE |
+| First 2–3 successful ordinary raids | Fabricator L1, first gear preparation, visibly operable workshop | Core functional path |
+| Days 1–2 | Repair lighting in an adjacent space; recover improvised bed / small home area | Small, low-cost visual changes |
+| Days 2–3 | First free furnishable corner and cosmetics; BIT docking corner restoration | Free identity on-ramp; **not** BIT Bay L1 gameplay gating |
+| Days 3–5 | Vault L1 **or** BIT Bay L1 based on player choice | Preserve choice and distinct payoff |
+| Days 5–7 | Another 2–3 small restorations; new cosmetic placement spots; visible progress toward Core L2 | Core L2 remains a larger next goal |
+
+**Practical economy rule:** First-week small repairs should use very low quantities of *already used* Scrap/common resources or free milestone rewards. They must **not consume the exact scarce Cable/Alloy/Polymer amounts needed to unlock Fabricator/Vault**, trapping the free player behind decorative progress. More visual progress must not become extra maintenance or an artificial purchase pressure mechanism.
+
+**Proposed UX:** On a successful homecoming, highlight at most one available small restoration, show its visual delta, and reward the act of repairing with an optional first free decoration. Avoid adding separate level bars or many simultaneous exclamation badges. Decoration is permanent; equipment carried into raids still follows D1 risk.
+
+### Validation before changing live economy
+
+Test whether players can answer *what changed in my home after this raid?* and can identify the next larger functional objective. Measure number of visually meaningful restorations per first 3/5/10 extractions, time to first customization, free-player upgrade stagnation, first-week return and whether small repairs delay Core L2.
+
+**Status boundary:** Owner approved **higher early restoration frequency and visual payoff**, not any exact number of repairs, prices or calendar-locked event schedule. M8 proposed balanced pacing is adjusted accordingly; no game code changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -950,5 +984,6 @@ This is **not yet approved**. Work from actual raid retention/loot and the user 
 | 2026-11-07 | M5: Hybrid commercial structure C — direct resource offers + bunker milestone Growth Fund + room/operator/BIT cosmetic products | Approved by Robert; UX details, numerical rewards and prices remain proposed |
 | 2026-11-07 | M6: Editable post-FTUE 30-day economic scenario across four sample spend/engagement cohorts | Completed modeling analysis; all scenario input values unapproved and nonpredictive |
 | 2026-11-07 | M7: Matched spend-only Monte Carlo, 1,000 seeds x 4 tiers, prototype-weighted randomized loot | Analysis complete; rates/packs synthetic and unapproved, no code changes |
-| 2026-11-07 | M8: Separate PR #204 for deterministic offline Node Raid economy harness and proposed first-week progression rhythm | Harness test successful; design rhythm remains a proposal, no balance change |
+| 2026-11-07 | M8: Separate PR #204 for deterministic offline Node Raid economy harness and proposed first-week progression rhythm | Harness test successful; initial pacing superseded by M9's increased early restoration direction |
+| 2026-11-07 | M9: Increase frequency of early visible bunker restorations while preserving meaningful major room milestones and D3 FTUE | Approved direction by Robert; exact beats, costs and timings proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
