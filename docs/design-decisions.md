@@ -1072,6 +1072,24 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M14 — Eight-Minute Raid Pacing and Tactical-to-Meta Loop
+
+**OWNER REQUEST (7 November 2026):** Define how combat, exploration, Metal Gear Solid-inspired room problem-solving, return extraction and persistent meta work together inside an ordinary ~8-minute quick PvE raid. Detailed design created: [The Eight-Minute Raid](eight-minute-raid-design.md).
+
+**Approved constraints inherited, not reopened:** D1 controlled risk and basic free retry; D2.1 return extraction available at the start, D2.2 extraction independent of personal objective, D2.3 deliberate short extraction (five seconds as first-test value), D2.4 required nodes open **forward** progress, D2.8 distinct deeper payoff; D3.9 mandatory FTUE structure; M9 early visible bunker change; M10–M12 operator/BIT/profile/home identity; M13 fun and multi-solution tactical problem-solving.
+
+**Proposed rhythm, NOT fixed or shipped:** 0:00–0:30 deploy and orient, 0:30–1:45 first combat and meaningful pickup, 1:45–3:00 one optional tactical special room, 3:00–3:30 decision to extract or go deeper, 3:30–5:30 riskier encounters, 5:30–7:15 distinct deeper payoff, 7:15–8:00 final return/extraction for players who stayed. Short successful raids may end earlier; this is **not a forced eight-minute corridor or automatic end-of-run extraction**.
+
+**Proposed encounter library:** combat pulses (~10–25 seconds), optional tactical special rooms (~20–60 seconds) and optional opportunity/risk rooms (~15–45 seconds). Test approximately one tactical room in an engaged short raid; *not* a mandatory new gate for an ordinary return extraction. Preferred first vertical slice remains Shielded Relay Room with direct flank/combat, destroyable large power relay and optionally an existing EMP. The design specifies controls, telegraph, reward relevance, variation, BIT support, test metrics and mobile performance constraints.
+
+**Meta integration:** A successful extraction gives banked materials for functional and smaller visual bunker repairs, existing operator/BIT progression and selected earned identity cosmetics. Tactical feats may unlock an achievement-only title/nameplate, but loot must still be extracted if it is to enter the home stash. Theme cosmetics are permanent and gear copies remain losable. Premium offers occur at home, never in the tactical/extraction decision.
+
+**Playtest success hypothesis:** Players explain a tactical room's problem and use multiple viable solutions, recall a memorable choice, enjoy the raid more than a matched combat-only run, and do not experience an unacceptable reduction in mobile performance or early extraction clarity. Specific timings, frequencies, rewards and thresholds need direct playtest approval before implementation.
+
+**Decision status:** User requested this integrated **design definition**; exact quantitative rhythm, mechanic selection and commercial effects are PROPOSED, not owner-approved tuning. No code changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1108,4 +1126,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M11: Player callsign, collectible nameplates and wider identity cosmetics added to the meta scope | Owner direction confirmed; specific names, art, costs and UI remain proposals |
 | 2026-11-07 | M12: Integrated Identity & Home Meta specification linking profile, operator, BIT, bunker and monetization | Design specification drafted; detailed mechanics remain proposed |
 | 2026-11-07 | M13: Core gameplay must be more fun; explore classic MGS-style multi-solution tactical room problems | Owner-requested design priority; examples and slice proposed, no implementation |
+| 2026-11-07 | M14: Eight-minute raid design linking action, optional tactical rooms, extraction choice and persistent meta | Integrated proposal documented; pacing/mechanics to validate in playtest, no code changes |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
