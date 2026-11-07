@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.6 - FTUE approved; progression C approved; meta-economy benchmark proposal in review |
+| Document status | Living design reference, v2.7 - FTUE and progression architecture approved; full midcore monetization C approved as direction |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -450,7 +450,7 @@ Selling for Scrap and breaking an item into base materials are different actions
 
 **APPROVED D1:** Insurance and paid bag recovery are excluded from the core loop. This resolves those two uses; it does not decide every other use of Signals or the eventual business model. [D01]
 
-**OPEN:** The baseline data includes exchanging Signals for Data Cores, while earlier design language characterizes Signals as safety/time rather than power. Data Cores can participate in progression, so these statements are not automatically compatible. Treat paid progression boundaries as an open decision, not as a resolved "cosmetics-only" or "no paid advantage" promise. [S19] [S20]
+**M4 APPROVED DIRECTION:** The owner chose full midcore paid progression (Model C). The baseline still includes Signals-to-Data-Cores exchange, and the precise future rate, material catalog and premium-player-power limits remain **OPEN**. Old insurance and full-bag recovery are excluded under D1, regardless of Model C. [S19] [S20]
 
 ---
 
@@ -462,7 +462,7 @@ Selling for Scrap and breaking an item into base materials are different actions
 
 **RESEARCHED PROPOSAL M3 (7 November 2026; NOT APPROVED FOR IMPLEMENTATION):** Whiteout Survival demonstrates a persistent base/progression/social/event commercial model; Survivor.io combines approachable combat with chapter milestone packs, monthly products, paid passes and event-linked progression; Toca Boca World demonstrates appealing room/character identity and purchasable decoration sets. Their monetization cannot simply be cloned into an extraction shooter: paid risk removal, forced social dependence and wide stat/power gaps could compromise the approved D1 risk contract and future PvP viability. Sources and detailed comparators are recorded in [decision register M3](design-decisions.md#m3--world-class-meta-game-economy--monetization-benchmark).
 
-**Proposed economy spine:** Scrap as earned day-to-day currency; materials/Data Cores as extracted progression; **Signals**, if repurposed, as a single premium currency with transparent limited earned availability, initially focused on persistent cosmetics. Direct-price room bundles and collections should remain understandable without currency conversion. The specific paid progression boundary is an explicit outstanding owner decision: cosmetic-only vs cosmetic-first with carefully bounded convenience vs sale of functional power. No option is silently approved here.
+**Proposed economy spine:** Scrap as earned day-to-day currency; materials/Data Cores as extracted progression; **Signals**, if repurposed, as a single premium currency with transparent limited earned availability, initially focused on persistent cosmetics. Direct-price room bundles and collections should remain understandable without currency conversion. The former paid-progression choice is now resolved as **Model C** (M4): functional meta progression may be sold, but exact offer rules are still open.
 
 **Proposed commercial loops:** (1) raid -> extract -> restore room -> unlock new function/region -> next purposeful raid, (2) name and decorate bunker room -> style operator and BIT -> acquire optional themed looks/collections, (3) themed weekly/monthly goals using the ordinary raid and customization mechanics -> free earned cosmetics + optional paid collections. Do not introduce compulsory event tasks or a swarm of separate wallets.
 
@@ -471,6 +471,20 @@ Selling for Scrap and breaking an item into base materials are different actions
 **Implementation reality:** The current bunker is rendered as pre-authored stage plates with interactive DOM hotspots, not an existing free-placement room decorator. Test **small room-specific fixed slots/presets** with starter furniture first; measure actual engagement before funding a full Toca Boca-style editor. Cosmetic inventory must be permanent and independent from gear that is lost on raid death. Display the same operator/BIT cosmetics in base and raid if feasible.
 
 **Success metrics:** D1/D7/D30 retention and meaningful upgrades completed; first room customization, first preview/purchase, repeat purchases, room pack adoption, owner style use, cohort LTV and net revenue, as well as free-vs-paid access gap. Optimize with limits on friction and purchase pressure, not monetization in isolation. [D01]
+
+### 8.7 M4 — Full midcore monetization, approved direction and provisional economy
+
+**APPROVED M4 (7 November 2026):** The owner selected **commercial Model C**, explicitly allowing the game to sell both **functional meta progression and resources** and lasting visual customization of bunker rooms, operator and BIT. The old M3 cosmetic-first recommendation is **superseded on the paid-power boundary**. This approval establishes the business strategy, **not** final purchasable items, balance or shop implementation. [D01]
+
+**Non-negotiable existing gameplay contract:** No paid raid insurance, whole-bag recovery, automatic extraction, extra paid Secure Slots or purchase that reverses death (D1/D2). At-risk deployed gear remains losable even if purchased directly; the free Basic Carbine remains available. Paid progress may shorten bunker and operator development, but must not bypass the need to undertake real raids and execute player-controlled extraction. Later PvP requires explicit combat-power normalization or other visibly fair segmentation.
+
+**Candidate economy, testing only:** Scrap = earned common currency; physical items and Data Cores = gameplay progression inputs also potentially sold as **specific disclosed resource packs**; Signals = one premium wallet bought or modestly earned and spent on resources, progression acceleration and lasting cosmetics; XP/Bond = persistent progression meters rather than yet another currency. No additional room/decor/drone paid wallets. Prior historical insurance and Signals-to-Data-Cores code must be reconciled to this design; the item-sale catalog is not approved yet.
+
+**Illustrative price and sink test, unapproved:** 100 Signals/19 kr, 550/89 kr, 1,200/179 kr, 2,600/349 kr; resource pack ~100–600 Signals, advanced research ~500–1,000, outfit/BIT skin ~150–450, room collection ~400–900, coordinated full set ~900–1,600 Signals. These are *economy model starting assumptions*, not real store prices, a currency exchange-rate claim or competitor benchmarks. Avoid inventing artificial upgrade wait times solely to sell speed-ups.
+
+**Recurring offer loop:** A raid produces extraction-earned materials -> a tangible bunker goal becomes reachable -> a free earnable path and a disclosed Signals route are shown without blocking gameplay -> upgrade changes room/capability -> optional decorated room, operator/BIT themes and milestone bundles gain emotional value -> weekly thematic events use normal raid/base actions rather than separate chores. Milestone Growth Fund, monthly Supply Card, and seasonal pass are later review items, not approved offers. Give room naming away for free and keep purchased cosmetics independent of raid-death loss.
+
+**Validation:** Cohort analysis over free/occasional/regular/high-spending players; measured D1/D7/D30, upgrade time and payer/free progression gap, material inflation, payer conversion, first purchase, repeat purchase, net revenue/LTV, cosmetic uptake, refunds and raid abandon/death rates. Preserve clearly labeled prices, age/platform consumer safeguards, and no loss-triggered manipulative revival offers. See detailed ledger, trial offer catalog, open decisions and benchmark references in [decision register M4](design-decisions.md#m4--full-midcore-monetization-premium-economy-and-extraction-integrity).
 
 ## 9. Operator and equipment progression
 
@@ -941,6 +955,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.7, 7 November 2026:** Owner selected full midcore Model C, permitting paid functional meta resources/progression alongside cosmetic room/operator/BIT purchases. Proposed a concrete Signals wallet, sinks/sources, starter SEK price ratios, milestone/seasonal offers, paid-vs-free modeling and explicit D1 extraction integrity guardrails. Numerical offers and implementation remain proposals.
 - **v2.6, 7 November 2026:** Researched Whiteout Survival, Survivor.io and Toca Boca World as distinct monetization/progression references; proposed M3 three-loop economy, currency separation, clear direct cosmetic packs, phased live events, and measurable commercial validation. Paid progression policy, offers and pricing remain unapproved. Documentation only.
 - **v2.5, 7 November 2026:** Owner approved P1.3 hybrid Operator milestone choices; meta monetization direction expanded to premium currency and visual personalization of operator, bunker rooms and BIT. Recorded optional bunker naming inspired by Hay Day as a proposed identity feature without adding FTUE friction. No monetization mechanics, prices or removals were approved. Documentation only.
 - **v2.4, 7 November 2026:** Owner approved P1.1 option C — bunker progression opens the world, Operator progression establishes playstyle, equipment provides risky tactical builds, and BIT grows as a companion. Identified overlap and FTUE/BIT Bay inconsistencies for future review without authorizing removals. Documentation only.
