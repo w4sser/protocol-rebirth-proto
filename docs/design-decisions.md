@@ -1229,6 +1229,18 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19B — Preserve Passive Operator Speed and Bag Burden
+
+**Owner clarification, 7 November 2026:** Removing visible progression clutter **must not remove tactile progression**. Specifically retain the feeling of **getting faster through character leveling**, and of **moving more slowly with a fuller loot bag**. These may operate behind the scenes, requiring no extra upgrade menu or separate skill XP meters.
+
+**Existing code reference:** `nodspel/stakes.js` uses bag/backpack **occupied-slot fraction**, not item kilograms, to apply movement slowdown and increased detection; existing reference notes a potential 20% full-load speed penalty. `nodspel/levels.js` defines base speed and clamps; actual source of level-speed improvements must be audited to avoid double counting. Details and tests in [M19A Progression Simplification — Passive Growth and Encumbrance](progression-simplification.md#passive-growth-and-physical-encumbrance--m19b-owner-clarification).
+
+**Proposed system:** One Operator level with occasional bounded passive speed milestones (no visible Mobility XP grind); continuous readable load penalty and optional small Heavy Load cue; gear offers real speed/defense compromises. High Operator level must not completely erase loaded risk. Speed curve, thresholds and migration of legacy Mobility progression **not yet approved**.
+
+**Status:** Owner direction confirmed, numerical tuning and implementation open. No game code changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1274,5 +1286,6 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M18B: Archipelago playable areas larger, Bunker size retained with higher structural variety | Owner direction confirmed; size multiplier and layouts to playtest |
 | 2026-11-07 | M19: One integrated 30/60/90-day progression and content economy linked to raids and home | Detailed proposal; timelines and balance require validation |
 | 2026-11-07 | M19A: Less early progression UI, optional deeper endgame systems | Owner direction confirmed; exact track consolidation/open decisions remain proposals |
+| 2026-11-07 | M19B: Passive level-based movement growth plus full-bag movement/detection consequences | Owner direction confirmed; level curve and exact penalty retained for later tuning |
 | 2026-11-07 | M19B: Ghost of the Past / No Fear of Tomorrow player nameplates | Owner-supplied names recorded; art and earning rules proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
