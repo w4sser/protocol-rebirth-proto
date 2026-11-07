@@ -887,6 +887,39 @@ All tiers averaged **41.966 successful extractions** in the matched test. On the
 
 ---
 
+## M8 — Economy Simulation Harness and Next Design Decisions
+
+**Status: IMPLEMENTATION SUPPORT PR OPEN, no additional balancing decisions approved (7 November 2026).**
+
+The first **Economy Simulation Harness** has been implemented in separate draft [PR #204](https://github.com/w4sser/protocol-rebirth-proto/pull/204) from `main`, specifically to avoid code changes in design [PR #201](https://github.com/w4sser/protocol-rebirth-proto/pull/201).
+
+- Source `scripts/economy-sim.mjs` reuses the current **real** `generateLevel`, `collectLoot`, `extractRound` / `abandonRound`, `extractScrapBonus` and item `grantsCurrency` code.
+- GitHub Actions `economy simulation` runs tests and 1,000 deterministic raid seeds, publishing `runs.csv` and `summary.json` as workflow artifacts. First harness run [#1](https://github.com/w4sser/protocol-rebirth-proto/actions/runs/42356595152) completed successfully.
+- This is a **generative loot and optimistic collection calibration**, not real navigation, full combat, big-level extraction, player decision making, or production monetization.
+- Offline GitHub Pages remains fully supported because the tool is a Node.js developer/CI script; no backend required. A transaction backend will be necessary later for real-money wallets, receipts and authoritative premium inventory.
+- The workbook `Protocol_Rebirth_30_Day_Economy_Model_v2.xlsx` remains a local conversation artifact; the **binary file has not been committed to GitHub** by the connector. The upload path and checksum are recorded under [docs/economy/README.md](economy/README.md).
+
+### M8.1 — Next design workstream (PROPOSED)
+
+1. **Earnable progression baseline:** Specify the target raid count and typical number of calendar days to first meaningful restoration (Fabricator L1), first meaningful risk-management choice (Vault L1), and Core L2 world expansion, without arbitrary timer walls.
+2. **Authentic extraction economy:** Upgrade harness coverage to the current big-level mode, node/depth path selection, actual backpack/item swaps, persistent storage and real game result ingestion. Calibrate distributions of earned resource value per attempt/success/depth.
+3. **Price-to-progress integrity:** Using calibrated distributions, measure same-activity F2P vs paid at 89 / 399 / 1,999 SEK. Decide explicit caps / allowable resource families only after measuring how purchases alter a 30-day progression journey. No model value is a shipping guarantee.
+4. **Growth Fund v1:** Retain **bunker milestones** as the primary proposal (not raw Operator Level), retroactive rewards and free + paid tiers. Resolve whether paid resources are meaningful but not world-key substitutes; define real grant and claim flows after engine calibration.
+5. **Persistent home identity monetization:** Define each functional bunker room's starting free furniture, purchasable surfaces and 2.5D slot placement interactions; permanent room/operator/BIT looks, independent of gear death.
+6. **Monetization UI contract:** No forced popup during FTUE, raid, extraction, or death; resource upsells appear next to **Find in Raid** options and milestone offers after upgrade celebrations.
+
+### M8.2 — Product question to decide next (OPEN)
+
+**What is the intended *first-week progression rhythm* for a normally engaged, free player?**
+
+- **A: Fast restoration:** Fabricator L1 during the first 2–3 successful post-FTUE raids; Vault/Bit Bay soon after; progression emphasizes frequent room customization.
+- **B: Balanced restoration (recommended hypothesis):** Fabricator L1 within the first few successful raids, one more meaningful room upgrade within roughly the first week, Core L2 as a medium-term goal. The number of sessions and days must be tested, not chosen solely to monetize.
+- **C: Long restoration:** Core and room upgrades take considerably longer; players collect resources and personalize fewer spaces early, which may reduce the perception of progress before the game loop is proven.
+
+This is **not yet approved**. Work from actual raid retention/loot and the user experience before setting Signal prices.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -917,4 +950,5 @@ All tiers averaged **41.966 successful extractions** in the matched test. On the
 | 2026-11-07 | M5: Hybrid commercial structure C — direct resource offers + bunker milestone Growth Fund + room/operator/BIT cosmetic products | Approved by Robert; UX details, numerical rewards and prices remain proposed |
 | 2026-11-07 | M6: Editable post-FTUE 30-day economic scenario across four sample spend/engagement cohorts | Completed modeling analysis; all scenario input values unapproved and nonpredictive |
 | 2026-11-07 | M7: Matched spend-only Monte Carlo, 1,000 seeds x 4 tiers, prototype-weighted randomized loot | Analysis complete; rates/packs synthetic and unapproved, no code changes |
+| 2026-11-07 | M8: Separate PR #204 for deterministic offline Node Raid economy harness and proposed first-week progression rhythm | Harness test successful; design rhythm remains a proposal, no balance change |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
