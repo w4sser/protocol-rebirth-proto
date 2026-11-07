@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.3 - early restoration M9 and first-class operator customization M10 |
+| Document status | Living design reference, v3.4 - early restoration M9, operator M10 and player identity M11 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -574,6 +574,16 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 
 **FIRST WEEK PROPOSAL:** After the *first successful ordinary extraction ends the approved FTUE*, allow a free operator appearance choice in the home. Introduce starter room furnishings and an earned BIT visual accent alongside additional small bunker restorations. Thematic matching collections can later span **operator + BIT + bunker room** without creating more paid currencies. No compulsory early shop/customization screen interrupts the signed-off D3.9 onboarding. [D01]
 
+### 9.6 M11 — Callsigns, nameplates and collectible player identity
+
+**OWNER DIRECTION:** Expand cosmetic customization into an intentionally collectable **player identity** layer, including a player-selected name/callsign and cool, distinct nameplates. The player also names the bunker separately. The precise recalled external game reference ('Legion Morning' / 'Trapdoor') remains **unverified**, so do not attribute features to it as fact. [D01]
+
+**PROPOSED model:** **Callsign** is free, editable operator/player display text; **Bunker Name** is a different free editable home identity; **BIT** remains the recognizable companion name with customizable CRT/shell/visuals; **Nameplate** is a separate permanent earned/purchased visual frame that displays the Callsign and may combine material, emblem, themed banner, and short title. Account names should not be confused with unique identifiers. In offline GitHub Pages, use local-profile persistence only and do not claim globally unique handles/cloud identity until a backend exists. If shared online later, moderation/reporting/privacy and identity collision rules are required.
+
+**PROPOSED additional collectible products:** nameplate frames (salvaged steel, naval radar/CRT glow, coast lighthouse motifs), earned achievement titles, sleeve patches and facility emblems, profile banners, portraits/poses and restrained homecoming animations. The most valuable treatments should visibly reinforce the game art direction, not introduce combat readability noise or tiny low-value visual clutter. Avoid flags and paid advantages. Every purchased plate/title/appearance should survive death under D1.
+
+**FIRST-WEEK INTEGRATION:** After the first successful ordinary extraction finishes the approved D3.9 FTUE, offer an optional single 'Make it yours' profile action (Callsign and separate bunker naming, both skippable); supply a free plate/frame, an initial operator look, a BIT accent and one room-decoration starter. Later rewards and commercial themes connect **profile/nameplate + operator + BIT + bunker** instead of creating four independent progression economies or wallets. All specific rewards, store sets, display moments and editor scope are proposals. [D01]
+
 ## 10. BIT: companion, capability, and relationship
 
 BIT is the emotional connection between the hostile field and the recovering bunker. Its established tone is helpful, loyal, dry, and slightly cheeky. It comments on discoveries, death, returning home, completed construction, and the player's next need. [S03] [S13]
@@ -1005,6 +1015,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.4, 7 November 2026:** Captured M11 player Callsign and collectible nameplate direction, plus earned titles, emblems, profile cards and coordinated cosmetics across operator/BIT/bunker. Specified an optional post-FTUE naming flow and offline local-only identity caveat. Exact catalog and UX remain proposals; no code change.
 - **v3.3, 7 November 2026:** Owner reaffirmed that operator appearance is a core meta customization pillar, not subordinate to bunker room restoration. Added proposed cosmetic slots, early free styling reward and strict separation of owned cosmetic identity from losable equipment under D1. Documentation only.
 - **v3.2, 7 November 2026:** Owner requested and approved more frequent visible early bunker restorations (M9), differentiating major functional rooms from low-cost visual repair beats. Recorded proposed first-week sequence and critical FTUE/material-gating protections. No code or numeric balance changes.
 - **v3.1, 7 November 2026:** Linked draft PR #204 deterministic offline economy harness and initial successful Actions test. Recorded open decision on first-week free restoration rhythm and need for actual big-level/pickup calibration. Workbook binary pending upload. No game changes or new economic approvals.
