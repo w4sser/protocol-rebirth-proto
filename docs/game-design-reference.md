@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.9 - M18 world and mission structure across bunker, archipelago and town |
+| Document status | Living design reference, v4.0 - M18A replayability and within-world raid variation requirement |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -713,6 +713,14 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Implementation audit required:** The legacy `data/raid_zones.js` probability-based extraction simulator and old scripted progression settings conflict with parts of the intended quick playable Node Raid; treat them as existing historical code, **not an override of D1/D2/D3**. The existing BIT quest data offers daily tasks and Bunker/Archipelago authored chains, but an equivalent Town chain is currently a content proposal. Do not claim the new design has been implemented. [D01]
 
+### 11.10 M18A — Meaningful replayability within every world
+
+**OWNER DIRECTION, 7 November 2026:** Each visit to Bunker, Archipelago or Town must offer compelling **variation in loot opportunities, enemy roles/compositions and ways to approach encounters**. Replaying the same biome should create different decisions, not just different visual decoration or damage statistics. The detailed proposed solution is [Raid Variety & World Replayability](raid-variety-system.md). [D01]
+
+**Six proposed variation axes:** route/layout topology, enemy combinations, tactical mechanism, loot opportunity family/placement, bounded dynamic field event, and personal mission/discovery purpose. Build seeded, constrained and debug-reproducible encounter situations from a compatible library, preserving learned combat rules and each biome's visual identity. The *Raid Situation Director* is a **design proposal**, not an asserted current feature. Track what a player actually encounters, not only what the map generator technically places. [D01]
+
+**Proposed test benchmark:** across three consecutive committed raids in one biome, at least two should produce meaningfully different route and enemy/loot decisions; across five, players should remember three different situations. Anti-repeat weighting and events should be tuned from data, not automatically added. Maintain D2 return-extraction accessibility, D3 FTUE consistency, real loot and quest legality, and low-end mobile performance. Exact percentages, spawn weights, event lists and changes to game code are **not approved**. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1073,6 +1081,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.0, 7 November 2026:** Added owner-requested M18A strong within-biome raid variation: loot, enemy compositions, routes, tactical choices, optional field events and mission purpose. Linked proposed seeded situation-director design and proposed anti-repeat validation; no gameplay or economic changes.
 - **v3.9, 7 November 2026:** Defined M18 World & Mission Design across Bunker, Archipelago and Town, region unlocks via Core plus extracted scouting items, one-purpose mission hierarchy, procedural map templates, story/mystery spine and legacy-raid alignment risks. Documented only; no new story canon or gameplay code approved.
 - **v3.8, 7 November 2026:** Added the joint M16/M17 design pass. M16 specifies enemy roles, biome/depth difficulty and paired-pressure encounters; M17 maps the current weapons/armor/tools to four emergent tactical build identities, explicitly preserving free counterplay, controlled-risk loss and limited operator milestone choices. Documentation only; no spawn/tuning or gameplay code changes.
 - **v3.7, 7 November 2026:** Detailed M15 reusable tactical encounter grammar across bunker/forest/town using six verbs (power, diversion, flank, hazards, support, optional risk/reward) and explicit candidate priority for Shielded Relay Room Issue #205. No gameplay code changes or approved mechanics/rates.
