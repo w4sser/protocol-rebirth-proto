@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.9 - M19D core/meta/commerce approvals; concurrent retention decisions retained |
+| Document status | Living design reference, v4.10 - M21 deeper tactical choices and loot opportunities|
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -899,6 +899,8 @@ Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a ca
 
 **Design risk to review:** Power, Fuel, construction, crafting, scavenging, quests, and a Morning Report can collectively turn a simple return into administrative work. Their combined cost must be tested, not assessed one feature at a time.
 
+**APPROVED M21 — Tactical depth and probabilistic opportunity:** The ordinary quick raid's deeper areas should become more interesting through varied enemy-role combinations, readable counters, positioning, route choices and optional risk — *and* provide better chances at valuable loot. Deeper must not mean merely higher HP, damage or fixed material payouts. Valuable finds remain uncertain, carried goods remain at risk under D1, and a player can intentionally return-extract before full depth completion under D2. Specific enemy setups, map layout, loot weights and balance require design/playtests; they are not locked by this directional decision. [D01]
+
 ### 15.4 Desired reason to return
 
 **APPROVED M20 — Living world, optional raid side paths:** BIT surfaces fresh leads (signals, unusual enemy activity, salvage rumors) that create **voluntary tactical detours inside ordinary raids**. **No separate mission queue**, compulsory daily quest board or streak chores. The player chooses their primary Bunker Project at home, then chooses whether to investigate the lead during play, continue the main route or extract. The lead may change what is possible, but never guarantees an item, pays out without extraction or blocks ordinary D1/D2/D3 rules. The **player's home should visibly change** through 2–3 meaningful stages per major room **within the same total cost**, and direct material purchasing opens **only after Fabricator L1 is earned and built through gameplay**, while the approved hybrid Growth Fund and cosmetic product families remain optional. [D01]
@@ -1130,6 +1132,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.10, 7 November 2026:** Owner approved M21: deeper quick raids should offer richer tactical encounters/route choices alongside improved probabilistic loot opportunities, without guaranteeing rewards or removing voluntary extraction. Specific tuning remains open; docs only.
 - **v4.9, 7 November 2026:** Locked M19D's three owner decisions and linked the concise core/meta/commerce contract. Reconciled M5 entry timing and progression guidance; retained history with supersession markers. No gameplay or deployment changes.
 
 - **v4.9, 7 November 2026:** Owner approved M20C: BIT foregrounds no more than one voluntary lead at the bunker, while other optional discoveries remain possible organically in ordinary raids. The single home cue is not another tracked project or quest list. Home selection/replacement timing remains open; no gameplay code.
