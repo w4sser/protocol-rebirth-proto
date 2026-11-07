@@ -405,6 +405,53 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 **Implementation boundary:** Existing docs and code describe a direct-raid FTUE with assisted attempts and a different timing of the bunker reveal. This revised narrative direction is **not an assertion that the current build already matches it**, and this docs-only PR does not implement it.
 ---
 
+## P1 — Progression Architecture: Bunker, Operator, Equipment, BIT
+
+**Status: APPROVED principle (option C, 7 November 2026). The concrete pruning, pacing, reward mapping and individual system removals below are PROPOSALS.**
+
+### P1.1 — Four complementary roles (APPROVED)
+
+Robert selected **option C: the bunker drives the world; the operator drives playstyle**. Treat this as the progression architecture:
+
+- **Bunker = persistent world restoration and access.** Core power and area gates, Fabricator capabilities, Vault storage/one Secure Slot, and BIT Bay hardware determine what players can explore or do. Bunker restoration is the most visible long-term progress anchor.
+- **Operator = personal playstyle.** Growth should let the player approach combat/search/extraction differently. Operator progression must not compete with the bunker for the overarching next objective.
+- **Equipment = tactical preparation and at-risk build.** Weapons, armor, attachments and selected tools add meaningful loadout tradeoffs. Valuable deployed builds remain losable under D1; temporary raid perks are not persistent gear.
+- **BIT = companion and support.** Relationship and hardware create tangible companion functionality while preserving BIT's personality/identity established in FTUE.
+
+**Hierarchy:** One clear long-term **bunker goal** (e.g. restore Fabricator) drives what to look for; one primary actionable **raid purpose** guides the next session. Other progression layers support interesting choices rather than producing competing mandatory task lists.
+
+**Design test for major unlocks:** (a) What new thing can the player do? (b) Where will the player notice it within the next raid or at home? Simple numeric gains may support a milestone but should not be its entire identity.
+
+### P1.2 — Simplification review (PROPOSED, not approved removals)
+
+| Layer in inspected prototype | Proposed action | Rationale and boundary |
+| --- | --- | --- |
+| Rebirth Core (L1–L3) | **KEEP as main world spine** | Existing L1 restores power, L2 supports Transit Hub and module caps, L3 Town access. Preserve D3 first Core restoration. Avoid presenting every gate at once. |
+| Fabricator (L1–L2) | **KEEP as capability unlock** | Equipment/crafting/preparation; the first Scavenger Vest and extra bag slot are tangible. Reveal advanced recipes only when relevant. |
+| Vault / Storage (L1–L3) | **KEEP, streamline presentation** | Permanent capacity and one Secure Slot at L1 under D1; don't reintroduce other insurance/protection. Show concrete haul impact. |
+| BIT Bay (L1–L2) | **KEEP, resolve story inconsistency** | BIT is found and follows player *before* BIT Bay L1. Recast L1 as repair/upgrade of scanning capability, **not** first meeting or first activation of BIT. L2 cargo capability remains separate from rescue-on-death. |
+| Living Quarters / rest and power meter | **REVIEW / POSSIBLY DEFER** | Not part of the four primary levelled room trees. Assess whether rest/fuel adds choices or upkeep friction; do not silently remove an existing feature. |
+| Operator level (1–30) | **KEEP, deemphasize as primary goal** | Show milestones rather than interrupting after every XP increment; audit level-sourced bag upgrades against Vault's capacity role. |
+| Use-based skills (Mobility, Stealth, Vitality, Search, Crafting) | **REVIEW / POTENTIALLY CONSOLIDATE** | Multiple invisible percent-only tracks risk busywork. Keep if they meaningfully change decisions; exact removals not approved. |
+| Weapon mastery / equipment upgrade / Mk tiers / attachments | **SEPARATE OR SIMPLIFY** | Favor one clear weapon identity and attachments/build decisions; audit overlap among mastery, Mk upgrades and raw incremental stat boosts before removing anything. |
+| BIT Bond levels, talents, skills and BIT Bay | **REVIEW OVERLAP** | Distinguish relationship progression, earned companion behavior and hardware capability; avoid three menus that independently improve the same ability. Existing BIT death-item rescue conflicts with D1 and must be removed/replaced under the already-approved rule. |
+| Temporary raid perks | **KEEP DISTINCT from persistent progression** | Run-specific tactical variance must not be presented as permanent ability or earned gear. |
+| Economy, quests, currencies, retention | **AUDIT AFTER SPINE** | Too many concurrent rewards/notifications obscure bunker purpose. Insurance and paid-bag recovery already excluded under D1; other monetization and currency decisions are open. |
+
+### P1.3 — Next decision for owner (OPEN)
+
+Which simplification model governs **Operator progression**?
+
+- **A. Passive/milestone track:** Operator XP/levels and a few consequential unlocks; remove/absorb most use-based numerical skills. Equipment and BIT hold tactical specificity.
+- **B. Explicit player builds:** Operator level awards scarce choices from a small, visible set of playstyle perks. Avoid many simultaneous mastery/skill trees.
+- **C. Hybrid:** Operator level supplies simple milestones and a small number of meaningful build choices; consolidate minor use-based skills and overlaps with weapon mastery, keeping weapon equipment customization independent.
+
+**Recommendation to review: C**, with a strict complexity budget. This is a separate design decision and has **not** yet been approved. No numeric cap, number of skill branches, reset cost, or talent catalog is authorized.
+
+**Implementation boundary:** P1.1 is documentation-only owner-approved direction; P1.2–P1.3 are proposals awaiting deliberate decisions. Preserve all existing behavior until separately authorized to alter it.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -425,4 +472,6 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 | 2026-11-06 | D3.7: Option B — contextual, non-blocking BIT guidance in first ordinary raid, with relevant help and anti-stall assistance | Approved; exact triggers/dialogue and timing proposed |
 | 2026-11-06 | D3.8: Gradually increasing subtle BIT and combat assistance after failed first ordinary-raid attempts, without guaranteed success | Approved by Robert; exact numerical ramp and edge cases open |
 | 2026-11-07 | D3.9: All six FTUE closure rules including bunker-entry extraction, Core L1 restoration, first-raid failure rules and onboarding ending at first ordinary extraction | Approved by Robert; design closed for implementation and playtesting, no code changes |
+| 2026-11-07 | P1.1: Option C — bunker drives world unlocks, Operator drives playstyle, equipment defines tactical builds, BIT companion growth | Approved by Robert; implementation alignment pending |
+| 2026-11-07 | P1.2/P1.3: Progression simplification and Operator architecture choice | Proposed for review; no system removals approved |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
