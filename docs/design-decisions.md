@@ -1106,6 +1106,34 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M16 — Enemy Roles & Difficulty Progression
+
+**Requested design definition (7 November 2026):** Each enemy should pose a distinct **tactical question** with a readable tell and at least one free/basic response. Difficulty increases primarily through **combinations, spatial constraints, timing and meaningful deeper-risk opportunities**, not just HP inflation. Full proposed design: [M16 Enemy Roles & Difficulty](enemy-roles-difficulty-design.md).
+
+**Current source references:** `nodspel/enemies.js`, `data/raid-enemies.js`, `nodspel/levels.js`, `nodspel/round.js`. Current visual registry includes basic/patrol grunt, rusher, shield turret, tank, swarm, scout, repair, artillery and sniper archetypes, **but presence in the registry is not proof of full live behavior/spawn support**.
+
+**Proposed encounter pairs:** Grunt+Rusher (move under ranged pressure); Shield Turret+Grunt (target power/flank while exposed); Swarm+Rusher (funnel and keep retreat lane); Repair+Turret (support prioritization); Scout+Patrol (avoid/intercept alert); Sniper+Rusher (cross lanes intelligently); Artillery+other (leave telegraphed strike while still fighting). One primary pressure plus one support pressure in early stages; only add more once players understand both.
+
+**Biomes:** Bunker teaches relay, cover, shield/flank; forest uses open granite/pine sightlines, scouts and rushers; town stresses support links, street crossing and alarms. Forward depth adds complexity, not only stronger stats. Every combination must leave clear, fair options for Basic Carbine users, preserve D2 return extraction, and remain readable/performance-safe on phone.
+
+**Status:** PROPOSED role/encounter progression design; precise spawns, tuning, hard-mode treatment and implementation remain unapproved. No game code changed.
+
+---
+
+## M17 — Weapons, Tools & Combat Builds
+
+**Requested joint design definition (7 November 2026):** Weapons and tools are **responses to enemy tactical roles**, not a universal DPS ladder. Full proposed design: [M17 Weapons, Tools & Combat Builds](combat-builds-design.md) tied directly to M16 and M15.
+
+**Actual existing item-data baseline (`data/items.js`):** free Basic Carbine, Vector SMG, Marksman Rifle, Breach Shotgun; Scavenger Vest, Scout Rig, Dampener Cloak; Decoy (Fabricator L1), EMP/Grenade (Fabricator L2); Long Barrel / Extended Mag / Optic attachments. Availability in data is not a claim every interaction is completely functioning end-to-end.
+
+**Proposed build identities, not added classes:** Assault/All-Rounder (flexible), Breacher (close/knockback), Recon (precision/position), Saboteur (EMP/decoy/environment). Real item selection creates the build, with transparent weaknesses and costs. No new class XP tree. Operator milestones P1.3 remain limited, meaningful choices. Basic Carbine/movement gives viable path to all *required* early encounters; gadgets make specific solutions faster/safer but are never a paywalled key.
+
+**Risk/monetization boundary:** D1 valuable gear and tool charges remain at risk; purchased/earned cosmetics remain permanent. No premium-only enemy counter or risk cancellation. M4/M5 commercial economy is not rebalanced by these proposed builds. Combat choices must be evaluated against both survival and alternative tactics, not only raw time-to-kill.
+
+**Status:** PROPOSED counterplay and player build taxonomy; item numerical tuning, attachment simplification and exact unlock cadence pending mobile playtests. No gameplay changes.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1144,4 +1172,6 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M13: Core gameplay must be more fun; explore classic MGS-style multi-solution tactical room problems | Owner-requested design priority; examples and slice proposed, no implementation |
 | 2026-11-07 | M14: Eight-minute raid design linking action, optional tactical rooms, extraction choice and persistent meta | Integrated proposal documented; pacing/mechanics to validate in playtest, no code changes |
 | 2026-11-07 | M15: Reusable Tactical Encounter Grammar (T1–T6) and bunker/forest/town composition | Design proposal documented; no mechanic catalogue or spawn tuning approved |
+| 2026-11-07 | M16: Enemy tactical roles, combinations and difficulty across depths/biomes | Design proposed, spawn/tuning approval outstanding |
+| 2026-11-07 | M17: Existing weapons, tools and four emergent counterplay builds linked to M16 | Design proposed, no new classes or item changes approved |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
