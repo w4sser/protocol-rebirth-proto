@@ -954,6 +954,35 @@ Test whether players can answer *what changed in my home after this raid?* and c
 
 ---
 
+## M10 — Operator Visual Customization as a First-Class Meta Pillar
+
+**OWNER DIRECTION (7 November 2026):** Character customization must remain a **first-class element** of Protocol Rebirth's meta-game, alongside bunker restoration/decor and BIT customization. Do not let the next room-restoration design pass exclude the operator. The specific catalog, slots, early unlock cadence, and monetization balance below are **proposed details**, not approved final implementation.
+
+### Proposed scope and presentation
+
+- **Persistent operator identity:** select character appearance in a dedicated operator customization view, with accessible previews from the bunker, gear preparation, and cosmetics shop.
+- **Visual slots, initial concept:** head/face and hair, upper/lower clothing or full outfit, headgear, backpack/armor appearance, and weapon skins; scope down for the first implementation to **one full-body outfit plus helmet/headgear and a palette** if production budget is tight. A slot is cosmetic unless explicitly a *gameplay equipment* slot.
+- **Separation of ownership from risk:** cosmetic entitlements persist across death and are not consumed when the player loses an equipped weapon or armor. Actual weapon/armor performance and losable inventory remain governed by D1. Clearly distinguish 'appearance' from loadout power, especially because M4 allows functional meta purchases.
+- **Early free expression:** one or more starter looks and an early earned customization reward shortly after the first successful ordinary extraction, rather than forcing an operator editor into the signed-off D3.9 FTUE.
+- **Theme coherence:** curated collections can offer matching operator clothes, a BIT shell/CRT style and bunker room props. Any purchased appearance must be visible regularly from the mobile camera or in home/inspection surfaces to have demonstrated value; do not promise visually invisible microdetails as main products.
+- **Technical & competitive integrity:** test silhouette readability, mobile rendering budget, character animation compatibility, gear overlays and future PvP visibility. Do not attach combat stats or protected hitboxes to cosmetic looks.
+
+### Proposed first-week integrated ownership progression
+
+```text
+Core L1 / discover BIT (approved FTUE)
+  -> first normal extraction completes FTUE
+  -> discover free starter operator appearance choice
+  -> restore first functional workshop + first small home repairs
+  -> unlock free room furniture and BIT paint/CRT treatment
+  -> earn/select more outfits through progression
+  -> optionally coordinate operator + BIT + bunker in themed store collections
+```
+
+**Next design review:** Specify the operator's exact customization categories and first-week free outfit reward **together with** each bunker's customizable rooms and BIT skins. Do not prioritize room furnishings alone at the expense of player identity.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -986,4 +1015,5 @@ Test whether players can answer *what changed in my home after this raid?* and c
 | 2026-11-07 | M7: Matched spend-only Monte Carlo, 1,000 seeds x 4 tiers, prototype-weighted randomized loot | Analysis complete; rates/packs synthetic and unapproved, no code changes |
 | 2026-11-07 | M8: Separate PR #204 for deterministic offline Node Raid economy harness and proposed first-week progression rhythm | Harness test successful; initial pacing superseded by M9's increased early restoration direction |
 | 2026-11-07 | M9: Increase frequency of early visible bunker restorations while preserving meaningful major room milestones and D3 FTUE | Approved direction by Robert; exact beats, costs and timings proposed |
+| 2026-11-07 | M10: Operator appearance customization must be a first-class meta pillar beside bunker rooms and BIT | Confirmed owner direction; cosmetic categories, rewards and production scope proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
