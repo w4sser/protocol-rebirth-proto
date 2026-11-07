@@ -1024,6 +1024,54 @@ Three distinct names and one visual presentation layer:
 
 ---
 
+## M12 — Integrated Identity & Home Meta Design Pass
+
+**Owner direction carried forward, 7 November 2026:** Operator, BIT, bunker and player identity/nameplates must work **together**, not as separate disconnected menus or currencies. **Design specification created:** [Identity & Home Meta](identity-home-meta.md), including player journey, a shared cosmetic inventory, functional-versus-cosmetic boundaries, themed collections, early-week free rewards and non-blocking monetization placements.
+
+**Already approved:** M9 higher early restoration frequency, M10 operator appearance as first-class, M11 callsign/nameplates as a customization pillar, M4/M5 hybrid commercial structure, and D1–D3 extraction/FTUE rules.
+
+**New proposals, not yet approved:** a single `Customize` hub for Operator / Bunker / BIT / Profile, an optional post-FTUE `Make it Yours` identity action, permanent cross-surface cosmetic entitlement model, curated examples of four themed collections, first-five-extractions visibility target and detailed SKU/achievement reward mix. Initial bunker customization uses room-based curated slots/presets compatible with current pre-rendered plates, not automatic commitment to a full free-placement editor.
+
+**Acceptance principle:** A post-FTUE free player can select a visible operator look, earn or equip a nameplate and visibly modify one home element early, and still understand their next functional restoration; no extra currency or mandatory popups. A purchased/earned appearance persists through death, but real deployed gear remains at risk.
+
+---
+
+## M13 — Core Gameplay Must Become More Fun: Tactical Room Problem-Solving
+
+**OWNER DIRECTION, 7 November 2026:** Current core gameplay needs substantial improvement in enjoyment. Investigate **room-specific tactical problem-solving reminiscent of early Metal Gear Solid**: observing a situation, understanding its systems, choosing among approaches, and creating satisfying consequences. This is a **separate core-gameplay quality priority**, not something that cosmetics, meta rewards or higher enemy health can compensate for. The game reference is a *creative inspiration*, not a requirement to copy its stealth systems or copyrighted content.
+
+### M13.1 — Experience principle (proposed)
+
+**Every interesting encounter should offer at least one meaningful decision beyond simply choosing which enemy to shoot.** A subset of authored/templated **special rooms** should present a readable problem, 2–3 viable solutions and clearly communicated consequences.
+
+| Room prototype | Readable problem | Multiple possible player solutions | Meaningful outcome |
+| --- | --- | --- | --- |
+| **Shielded Relay Room** | Rotating shield turret guards a power terminal | Flank shield; shoot exposed power conduit; use scarce EMP | Different ammo/tool exposure and time spent, same reachable mission goal |
+| **Patrol & Alarm Workshop** | Drone patrol watches an equipment cache | Time the patrol; draw it away with decoy/noise; destroy alarm hardware then fight | Lower risk and time reward for preparation; loud route still viable |
+| **Flooded Generator Bay** | Conductive puddles and switching electrical relays | Cut power then cross; reroute through maintenance path; risk fast dash | Clear trade-off between speed, hazard and optional loot |
+| **Security Door / Camera Hall** | Door is sealed and camera can call reinforcements | Locate override; use alternate exposed route; destroy camera and fight | Distinct routes rather than key-item hunt |
+| **Supply Chain Ambush** | Enemy weapons/cover are tied to a visible destructible object | Attack chokepoint, move cover, disable turret power first | Player-engineered advantage, not hidden combat stats |
+
+### M13.2 — Mobile-extraction guardrails (proposed)
+
+- A special room should read within seconds and normally resolve in **20–60 seconds**, not turn an ~8-minute raid into a sequence of tedious puzzles.
+- Keep controls compatible with current phone shooting: **aim/shoot, movement, existing interaction, and current gadget/BIT affordances**. Avoid adding 5 separate buttons for each room.
+- **Optional solutions, not a single brittle answer.** Combat-forward play remains viable but incurs credible risk/resource costs. Telegraph mechanical interactions through art, animation, sound and BIT context, then let players discover combinations.
+- Vary only a subset of rooms/raids at first to preserve combat pacing. Rooms may affect optional caches, enemy threat or forward route opportunity; never silently remove the already-approved return extraction or demand completion of personal objectives (D2).
+- Make BIT a **hint and opportunity detector**, not an auto-solve feature or a constant narration stream. Equipment (EMP, decoy, explosives) can open alternate solutions without requiring premium purchase.
+- Protect mobile FPS budgets by reusing existing props/logic, and don't design puzzles around tiny details invisible from the top-down camera.
+- Prefer **mechanical interactions with visible outcomes** (disable shield, reroute power, redirect patrol, break alarm) over numeric damage/health scaling or abstract switch-color code riddles.
+
+### M13.3 — Cheapest vertical slice (proposal, not authorized code change)
+
+Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a clearly highlighted power supply, and two proven routes: (A) flank/shoot it, (B) disable the power supply to expose it, with EMP as an optional third solution if existing tools support it. Instrument first-time comprehension, whether the player chooses more than one method across attempts, time to resolve, deaths, and whether players voluntarily discuss/experiment with their solutions.
+
+**Research and playtest questions:** Can new players describe the problem in one sentence? Does each method work under time pressure and on mobile? Does the room produce a memorable story? Are choices tactically meaningful or just slower versus faster UI actions? Does it improve enjoyment without bloating raid duration? Can one mechanic be reused across multiple biomes?
+
+**Status:** OWNER-REQUESTED CORE GAMEPLAY PRIORITY, not a locked catalogue of rooms or implementation. No gameplay code modified. Progress through a playable vertical slice and playtesting before scaling.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1058,4 +1106,6 @@ Three distinct names and one visual presentation layer:
 | 2026-11-07 | M9: Increase frequency of early visible bunker restorations while preserving meaningful major room milestones and D3 FTUE | Approved direction by Robert; exact beats, costs and timings proposed |
 | 2026-11-07 | M10: Operator appearance customization must be a first-class meta pillar beside bunker rooms and BIT | Confirmed owner direction; cosmetic categories, rewards and production scope proposed |
 | 2026-11-07 | M11: Player callsign, collectible nameplates and wider identity cosmetics added to the meta scope | Owner direction confirmed; specific names, art, costs and UI remain proposals |
+| 2026-11-07 | M12: Integrated Identity & Home Meta specification linking profile, operator, BIT, bunker and monetization | Design specification drafted; detailed mechanics remain proposed |
+| 2026-11-07 | M13: Core gameplay must be more fun; explore classic MGS-style multi-solution tactical room problems | Owner-requested design priority; examples and slice proposed, no implementation |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
