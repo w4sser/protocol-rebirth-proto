@@ -36,18 +36,19 @@ replace('function rank(st,goal,bag,id){',`function tradeForGoal(st,goal){
   st.scrap-=qty*stock.price;st.tradeSpent=(st.tradeSpent??0)+qty*stock.price;st.items[id]=(st.items[id]??0)+qty;
  }
 }
+function retainRank(st,bag,id){return rank(st,nextGoal(st),{...bag,[id]:Math.max(0,(bag[id]??0)-1)},id);}
 function rank(st,goal,bag,id){`);
 replace('  collectLoot(r,b,now++,null);',`  collectLoot(r,b,now++,null);
   if(config.swaps&&!b.collected&&!ITEMS[b.item]?.slot&&!b.key&&b.item!=='ammo_pack'&&b.item!=='medkit'){
    const incoming=rank(st,nextGoal(st),r.bag,b.item);
-   const removable=Object.keys(clean(r.bag)).filter(id=>id!==b.item&&rank(st,nextGoal(st),r.bag,id)<incoming).sort((a,b)=>rank(st,nextGoal(st),r.bag,a)-rank(st,nextGoal(st),r.bag,b));
+   // Compare value of REMOVING a unit, not value of adding yet another copy.
+   const removable=Object.keys(clean(r.bag)).filter(id=>id!==b.item&&retainRank(st,r.bag,id)<incoming).sort((a,b)=>retainRank(st,r.bag,a)-retainRank(st,r.bag,b));
    if(removable.length)swapLoot(r,b.id,removable[0],now++);
   }`);
 replace("  const selected=route.slice(0,reaches3?6:4),early=new Set(route.slice(0,3).map(x=>x.id));",`  const selected=route.slice(0,reaches3?6:4);
   const earlyCount=config.fastStart&&!st.built.fabricator?4:3;
   const early=new Set(route.slice(0,earlyCount).map(x=>x.id));
   const middle=new Set(route.slice(earlyCount,earlyCount+2).map(x=>x.id));`);
-replace("    b.item=pickWeighted(RULES.loot.weights[0],randomFromSeed(seed+':early:'+b.id)());", "    b.item=pickWeighted(RULES.loot.weights[0],randomFromSeed(seed+':early:'+b.id)());");
 replace('   const g=gather(r,boxes,st,config,discover,now);',`   if(config.tiered&&middle.has(room.id))for(const box of boxes)if(!box.requiresNode&&!box.key&&box.item!=='medkit'&&box.item!=='ammo_pack'){
     // Candidate spatial tiering: use current depth-2 pool in middle rooms; deep optional source remains unchanged.
     box.item=pickWeighted(RULES.loot.weights[1],randomFromSeed(seed+':middle:'+box.id)());
@@ -59,6 +60,10 @@ replace('   if(useful){stall=0;progress++;}else maxStall=Math.max(maxStall,++sta
    if(config.repairs&&[1,3,5].includes(wins)&&st.scrap-(COSTS[nextGoal(st)]?.scrap??0)>=5){st.scrap-=5;st.repairs++;}`);
 replace('endScrap:st.scrap,endItems:', 'tradeSpent:st.tradeSpent,repairs:st.repairs,endScrap:st.scrap,endItems:');
 replace('stall3:players.filter(p=>p.maxStall>=3).length,players', 'stall3:players.filter(p=>p.maxStall>=3).length,threeRepairs:players.filter(p=>p.repairs>=3).length,tradeScrapMedian:q(players.map(p=>p.tradeSpent??0),.5),players');
+replace(" console.log('FIRST_TEN_SELF_TESTS_OK');", ` const testState={items:{},built:{},scrap:20};
+ assert.equal(retainRank(testState,{cable:2,scrap_alloy:2},'cable'),100,'retain the last needed Cable');
+ assert.equal(retainRank(testState,{cable:2,scrap_alloy:2},'scrap_alloy'),100,'retain the last needed Alloy');
+ console.log('FIRST_TEN_SELF_TESTS_OK');`);
 replace("const out='verify-out/first-ten'","const out='verify-out/first-ten-refined'");
 replace("candidate:'Replace ordinary floor loot in first 3 visited Big Map rooms with actual early pool; no extra crates or guaranteed drops; not gameplay code'", "candidate:'Spatial early/middle/deep pools; optional 4 early rooms only before Fabricator; real swapLoot for deliberate replacement; separately model existing free vendor. No gameplay changes.'");
 replace("'Vendors, recycling, hand-ins, quests, maintenance, crafting restocks, purchasing, home overflow, live navigation, combat and time costs'", "'Except the vendor scenario: vendors. All scenarios exclude quest rewards, crafting, maintenance, purchases, overflow, navigation and combat. Candidate repair prices are invented test values.'");
