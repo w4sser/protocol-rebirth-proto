@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.10 - M21 deeper tactical choices and loot opportunities|
+| Document status | Living design reference, v4.11 - M22 enemy/environment-first tactical combat|
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -899,6 +899,8 @@ Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a ca
 
 **Design risk to review:** Power, Fuel, construction, crafting, scavenging, quests, and a Morning Report can collectively turn a simple return into administrative work. Their combined cost must be tested, not assessed one feature at a time.
 
+**APPROVED M22 — Combat depth from threats and terrain first:** Ordinary combat earns tactical depth mainly from enemy behavior, enemy-role combinations, positioning and the environment. Players read and counter threats using movement, flanks, terrain, timing and route selection. **Basic Carbine alone must remain genuinely fun and viable**; later weapons, gadgets and builds introduce alternative solutions and tradeoffs, not a mandatory equipment gate or a cure for otherwise dull fights. Deep-raid escalation (M21) should combine legible patterns into richer problems without demanding more mandatory touch-HUD buttons. Exact encounter scripts, tuning and gadget controls are open. M4/M5 commercial meta progression does not authorize bought combat bypasses or automatic wins. [D01]
+
 **APPROVED M21 — Tactical depth and probabilistic opportunity:** The ordinary quick raid's deeper areas should become more interesting through varied enemy-role combinations, readable counters, positioning, route choices and optional risk — *and* provide better chances at valuable loot. Deeper must not mean merely higher HP, damage or fixed material payouts. Valuable finds remain uncertain, carried goods remain at risk under D1, and a player can intentionally return-extract before full depth completion under D2. Specific enemy setups, map layout, loot weights and balance require design/playtests; they are not locked by this directional decision. [D01]
 
 ### 15.4 Desired reason to return
@@ -1132,6 +1134,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.11, 7 November 2026:** Owner locked M22: enemy behavior, combinations, positioning and terrain are the primary combat depth; Basic Carbine alone must stay fun and viable, with later equipment providing additional approaches. Implementation/tuning remain open; docs only.
 - **v4.10, 7 November 2026:** Owner approved M21: deeper quick raids should offer richer tactical encounters/route choices alongside improved probabilistic loot opportunities, without guaranteeing rewards or removing voluntary extraction. Specific tuning remains open; docs only.
 - **v4.9, 7 November 2026:** Locked M19D's three owner decisions and linked the concise core/meta/commerce contract. Reconciled M5 entry timing and progression guidance; retained history with supersession markers. No gameplay or deployment changes.
 
