@@ -823,7 +823,7 @@ const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.0'):nul
 let propsPreview=null;
 // Opt-in Polyfork CDN experiment. No requests or new meshes without ?polyfork=1.
 const POLYFORK_PREVIEW=GROUND_V2_PARAMS.get('polyfork')==='1';
-const polyforkModulePromise=POLYFORK_PREVIEW?import('./polyfork-dressing.mjs?v=polyfork-pilot1'):null;
+const polyforkModulePromise=POLYFORK_PREVIEW?import('./polyfork-dressing.mjs?v=polyfork-pilot1-coastal-v1'):null;
 let polyforkPreview=null;
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
@@ -853,7 +853,8 @@ function loadLevelInner(){
     const lvl=round.level;
     polyforkModulePromise.then(module=>{
       if(round.level!==lvl)return;
-      const mode=GROUND_V2_PARAMS.get('polyforkMode')==='profiles'?'profiles':'scatter';
+      const requestedMode=GROUND_V2_PARAMS.get('polyforkMode');
+      const mode=['profiles','coastal'].includes(requestedMode)?requestedMode:'scatter';
       polyforkPreview=module.addPolyforkDressing(lvl,scene,{quality:QUALITY,mode});
       window.__polyforkPreview=polyforkPreview;
     }).catch(error=>console.error('[polyfork-test] import failed',error));
