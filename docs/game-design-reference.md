@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.3 - M19A minimal early systems and richer optional endgame |
+| Document status | Living design reference, v4.4 - M19B passive movement growth and loot-burden feel retained |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -745,6 +745,12 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Review recommendation, not approved system removal:** Hide or consolidate five separate use-based Operator skills, independent early weapon mastery interface and overlapping BIT Bond/talent tree presentation. Preserve acquired save state until a reviewed migration exists. Advanced difficulty variants, meaningful build specialization, earned identity and richer bunker room customization can open later as *optional strategic depth* without more currencies, mandatory daily login loops, paid death protection or a forced new tutorial. [D01]
 
+### 11.14 M19B — Passive operator growth and tangible carried-load risk
+
+**OWNER CLARIFICATION:** "Less is more" means fewer visible progression management tasks, **not** removal of subtle movement mechanics. Retain a noticeable but bounded feeling of **getting faster when leveling** and **slowing down when carrying more loot**, preferably as invisible/background progression under existing Operator level. See [M19A passive growth and physical encumbrance](progression-simplification.md#passive-growth-and-physical-encumbrance--m19b-owner-clarification). [D01]
+
+**CURRENT CODE vs PROPOSAL:** `nodspel/stakes.js` already applies bag/backpack-slot occupancy penalties to movement and increased detection, up to the existing configured cap; this is a *slot fraction*, not a mass/weight simulation. A permanent level-based movement improvement with a suitable bounded milestone curve and clean replacement/consolidation of legacy Mobility XP is a design proposal until runtime stats are checked and tuning validated. **Preserve a tactical full-bag cost even for advanced operators.** No extra early skill tree, five background progress bars or onerous per-level selection UI. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1105,6 +1111,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.4, 7 November 2026:** M19B clarified that simplifying progression does not remove tactile passive effects: level-based operator speed growth and current loot-bag movement/detection cost remain central, with their exact curve/visual feedback awaiting device playtest. No gameplay code changed.
 - **v4.3, 7 November 2026:** Captured M19A owner direction for simpler early progression and optional endgame depth, with a proposed pruning/reveal plan for Operator skills, weapon mastery and BIT Bond/talents. No implementation or skill deletion.
 - **v4.2, 7 November 2026:** Added M19 cohesive 30/60/90-day progression and content economy, one home Project, meaningful post-raid payoff, content reuse, commercial boundaries and explicit remaining tuning decisions. Design only; gameplay updates remain on separate feature branch.
 - **v4.1, 7 November 2026:** Owner clarified Archipelago needs substantially larger navigable outdoor areas while Bunker sizing works but needs richer structural/encounter variety. Added M18B, spatial generator audit and playtest-only 1.5–2x footprint hypothesis. No gameplay edits.
