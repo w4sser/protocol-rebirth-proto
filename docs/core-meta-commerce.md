@@ -30,6 +30,10 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **UX hypotheses after eligibility:** missing-part panels pair a truthful free source/route with an optional disclosed purchase; paid goods go to home storage; building remains explicit. Exact placements, pack catalogs, caps, prices, rewards and production entitlement verification need separate design/validation. No commerce during raids, extraction or loss screens.
 
+## Approved deep-raid experience (M21)
+
+**Owner-approved direction, 7 November 2026:** Deeper areas of ordinary raids combine **richer tactical encounters**, meaningful route/positioning tradeoffs and **better probabilistic opportunities** for valuable loot. Reward outcomes remain uncertain and are only secured through actual extraction. Forward nodes enable pushing deeper but never block an early return; D1/D2 risk and voluntary extraction remain intact. Varied enemy combinations, readable counterplay and optional higher-risk routes are design approaches to test, not approved encounter blueprints or drop-rate numbers. Retain simple mobile controls and avoid solving difficulty solely through HP inflation. BIT's one foregrounded home hint and optional living-world in-raid detours (M20–M20C) must fit this same normal raid loop.
+
 ## Hypotheses and next decision
 
 Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, intermediate functionality, first-ten-extraction cadence, paid acceleration limits and commercial values. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
