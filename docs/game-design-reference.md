@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.4 - FTUE design approved; progression architecture C approved; broader review in progress |
+| Document status | Living design reference, v2.5 - FTUE approved; Operator hybrid approved; meta monetization in design review |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -454,6 +454,10 @@ Selling for Scrap and breaking an item into base materials are different actions
 
 ---
 
+**OWNER-REQUESTED M2 — Meta-game monetization direction, proposals not final commercial approval:** The long-lived bunker identity is a natural cosmetic canvas. Propose a simple two-wallet separation: gameplay-earned Scrap and materials for functional upgrades, and a single premium-like cosmetic currency (potentially a repurposed **Signals**, subject to removing its historic recovery/insurance and Data-Core conversion functions). Candidate spend surfaces are **room-by-room bunker decor**, persistent **operator outfits/weapon looks**, and **BIT shells/screens/accessories**, with themed sets across surfaces. Paid visuals should not vanish on raid death, while gameplay equipment remains at risk. A room must first be functionally restored through gameplay before it becomes a decoration canvas; direct decor packs and earnable starter furnishings can then create optional identity-driven spending. Propose slot-based/curated decoration first because the current bunker is pre-rendered art with DOM hotspots rather than a free-placement 3D editor. Pricing, cosmetic-only premium restriction, catalog, regional compliance, and earn rates remain **OPEN**. [D01] [S07]
+
+**OWNER SUGGESTION M2.3a — Name your bunker:** Offer a free editable persistent bunker name to strengthen the feeling of home, with a default identity until chosen. This is **not a required FTUE screen**; offer it as an optional action after home restoration or during a later return. Show the name on the home overview and after returning from raids; sharing names publicly needs separate social/privacy requirements. The name is not itself a paid item. Inspired by the user's *Hay Day* farm-naming reference, not a commitment to copy that game's monetization. [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -475,6 +479,8 @@ The distinction between persistent character development, a losable item build, 
 **CURRENT data:** Operator progression is configured up to level 30. Use-based skills include Mobility through movement/dashing, Stealth through close node interaction, Vitality through damage/healing/survival, Search through searching containers, and Crafting through crafting/extracted items. Weapon mastery uses kill thresholds and modifies handling. [S11]
 
 The current design is therefore a mixture of automatic numerical development and explicit preparation choices. It is not purely horizontal progression.
+
+**APPROVED P1.3 — Operator milestone hybrid (7 November 2026):** Keep Operator XP/level as a simple background progression with a limited number of meaningful playstyle choices at milestones. Review and consolidate redundant minor use-based percentage skills and overlapping mastery tracks, without assuming any specific skill has already been removed. Attachments and equipment builds remain an independent tactical system. Exact milestone levels, number of choices, loadout constraints and respec behavior are still open. [D01]
 
 ### 9.3 Equipment development
 
@@ -921,6 +927,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.5, 7 November 2026:** Owner approved P1.3 hybrid Operator milestone choices; meta monetization direction expanded to premium currency and visual personalization of operator, bunker rooms and BIT. Recorded optional bunker naming inspired by Hay Day as a proposed identity feature without adding FTUE friction. No monetization mechanics, prices or removals were approved. Documentation only.
 - **v2.4, 7 November 2026:** Owner approved P1.1 option C — bunker progression opens the world, Operator progression establishes playstyle, equipment provides risky tactical builds, and BIT grows as a companion. Identified overlap and FTUE/BIT Bay inconsistencies for future review without authorizing removals. Documentation only.
 - **v2.3, 7 November 2026:** Owner approved all six D3.9 FTUE closure rules; FTUE high-level design is locked for implementation and playtesting. Other game-system design remains under review. Documentation only.
 - **v2.2, 7 November 2026:** Drafted D3.9 final FTUE closure package for owner sign-off, including explicit bunker-door completion, no pre-BIT result interruption, first normal extraction as onboarding exit, and Fabricator not required to finish onboarding. Proposal only; no code changes.
