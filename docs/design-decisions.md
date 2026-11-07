@@ -822,6 +822,43 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 ---
 
+## M6 — 30-Day Economy Scenario Model (ANALYSIS, 7 November 2026)
+
+**Status:** Completed **first-pass editable Excel scenario model** at the user's request, using module costs verified in `data/modules.js`, the structural Node Raid loot weights/bonus from `nodspel/levels.js`, starting Scrap from `data/progression.js`, and M4–M5's **unapproved** numerical purchase hypotheses. The workbook is a chat artifact, not committed to GitHub in this docs-only PR. **The results are not a revenue forecast and do not authorize balance changes.**
+
+### M6.1 — Scope and explicit assumptions
+
+- Post-FTUE day 1–30; **Core L1 has already been restored** using the two guaranteed introductory Scrap Alloy. Starts with 20 Scrap (old prototype baseline; requires reconciliation with revised FTUE) and zero spare Alloy.
+- Prescribed *modeling* build order (not forced design): **Fabricator L1 → Vault L1 → BIT Bay L1 → Core L2 → Fabricator L2 → BIT Bay L2 → Core L3**. The exact individual module ingredient costs are taken from the current `data/modules.js`; no authored scouting gate simulation and at most one upgrade completed per day.
+- Four example *spend and engagement personas* (not measured segment sizes): free 1.2 raids/day, 66% successful extraction, 20% deeper-push share; occasional 1.6/day, 70%, 25%, 89 kr wallet/month; regular 2.2/day, 75%, 38%, 250 kr wallet plus 149 kr one-time Growth Fund; high spender 3/day, 80%, 55%, 1,850 kr wallet plus 149 kr Fund.
+- Expected item yields per successful raid are editable **assumptions**, not observed drop frequencies. They take the shape of current node-depth weights but are **not** actual data-driven Monte Carlo outcomes. Expected-value fractional items are a mathematical approximation, not inventory a player literally owns.
+- Signals reference 1,200/179 kr; simple example free drip 2 Signals/day plus 50 post-FTUE; abstract **300 Signals deterministic supply basket** of common resources (no story keys). These are test inputs only, not live prices or loot offers.
+- Fund example payout: first regular extraction 150 Signals; Fabricator L1 250; Vault L1 300; BIT Bay L1 350; Core L2 500; Core L3 750, for 2,300 possible paid Signals if all conditions met. Prior milestones are claimable retroactively after a day-7 fund purchase. This numeric catalog is NOT owner-approved.
+- The four personas differ in **time, extraction skill AND purchases**. Differences in milestones cannot be attributed to payment alone. Revenue shown is **assumed spending per sample persona**, not payer conversion, ARPDAU or population-weighted LTV.
+
+### M6.2 — Initial 30-day expected-value model output
+
+| Cohort | Assumed gross spend per player in 30 days | Expected successful extractions | Fabricator L1 | Core L2 | Latest achieved milestone at day 30 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Free | 0 kr | 23.76 | Day 5 | Day 20 | Fabricator L2 (day 28) |
+| Occasional | 89 kr | 33.60 | Day 3 | Day 14 | BIT Bay L2 (day 25) |
+| Regular | 399 kr | 49.50 | Day 2 | Day 9 | BIT Bay L2 (day 14) |
+| High spender | 1,999 kr | 72.00 | Day 1 | Day 6 | Core L3 (day 19) |
+
+**Interpreting this output:** high-spend progress is much faster, but the model deliberately gives high spenders substantially more active raids and success. Rare extracted item requirements (e.g., AI Fragment, Memory Module and Encrypted Drive) prevent an instant all-paid world skip under the current proposed supply basket; a real variance-based simulation may produce wide spreads especially for free players. The modeled Fund generates 1,550 Signals claimed by day 30 for the regular persona and 2,300 for the high-spender, with no assumption of instant checkout purchase pressure.
+
+### M6.3 — Next pass before finalizing economy or store
+
+1. **Same-activity controlled experiment:** Keep attempts/day, extraction rate and depth exactly equal for free and paying cohorts, vary only paid Signals supply and Fund purchases; quantify *spend-only* speedup separately from engagement.
+2. **Stochastic loot simulation:** Bootstrap genuine Node Raid mechanics and Monte Carlo 100–1,000 players/cohort; output median, P10/P90 upgrade days, dry streak probability, and resource inflation. Reconcile other zone loot tables and actual traversal depth.
+3. **Real player telemetry:** Gather fresh-save first-raid and 30-day session data, attempt and extraction rates, retained loot volume, module completion, sink/source ledger, purchase impressions and actual commercial interest. Current workbook is not calibrated.
+4. **Full commercial unit economics:** Add DAU cohort mix, D1/D7/D30 retention, conversion rate, cohort payer share, purchase frequency, store revenue share, taxes, refunds, CPI/ROAS and regional price tiers before making LTV claims.
+5. **Fairness boundary:** Verify free players can make steady progress and recover from failures, and paid resource supply does not replace physical raiding, secure a bag, or bypass D1/D2 narrative/scouting requirements.
+
+**Approval boundary:** This is documented **analysis**, not a new owner decision. Model ratios and recommended revisions remain OPEN. No gameplay or payment code has changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -850,4 +887,5 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 | 2026-11-07 | M3: Benchmark-led world-class economy concept: three loops, currency layers, cosmetic catalog, event strategy and paid-power boundary | Research/proposals recorded; paid-power boundary subsequently resolved by M4 Model C |
 | 2026-11-07 | M4: Full midcore Model C permits functional meta progression/resource sales plus cosmetics, but not raid-success insurance or paid death recovery | Approved commercial direction by Robert; economy ratios, sellable items, caps and offers are proposed |
 | 2026-11-07 | M5: Hybrid commercial structure C — direct resource offers + bunker milestone Growth Fund + room/operator/BIT cosmetic products | Approved by Robert; UX details, numerical rewards and prices remain proposed |
+| 2026-11-07 | M6: Editable post-FTUE 30-day economic scenario across four sample spend/engagement cohorts | Completed modeling analysis; all scenario input values unapproved and nonpredictive |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
