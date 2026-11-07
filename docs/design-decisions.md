@@ -1329,10 +1329,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M24 — Player-Chosen, Legible Raid Difficulty (OWNER APPROVED, 7 November 2026)
+
+**Approved design decision:** Ordinary Protocol Rebirth raids should scale challenge **primarily according to player decisions**, including selected route, room/depth progression, whether to engage dangerous optional encounters and when to deliberately extract. **Risks must be intelligible before players commit** through clear threat telegraphs, environmental staging and appropriately contextual BIT cues, while preserving the possibility of surprise. Do not secretly adjust enemy health, damage, composition or intensity based on the player's recent or in-raid performance to force a target win rate.
+
+**Why:** Players must be able to learn the world, improve combat skill with the always-available Basic Carbine, and attribute their success or loss to tactical choices and understood risks. A run can be demanding or unexpectedly dangerous without becoming arbitrary or secretly punitive. M21/M22/M23's deeper enemy combinations and counterplay provide the difficulty curve; riskier routes can offer improved *chances* of valuable loot, never guaranteed rewards. D1 loss and D2 voluntary extraction remain intact.
+
+**Explicitly retained exception (APPROVED D3.8):** The **first ordinary raid after meeting BIT** may give bounded, progressive assistance after repeated failed attempts: improved BIT hints and more forgiving but **still failable** combat tuning. This onboarding exception is distinct from hidden adaptive difficulty across normal repeat raids; it does not grant automatic wins, free extraction, recovered failed bags, immortality or purchased insurance. The separate opening approach follows its approved D3.6 retry rule.
+
+**Existing code is not target policy:** The inspected prototype includes between-raid adaptive difficulty. Document it as baseline/legacy implementation only; this approval sets a different target for ordinary raids. No code modification is authorized in this design-only PR.
+
+**Still open:** How to communicate branch/depth risk with environment, BIT and minimal UI; exact depth bands, difficulty and reward tuning, variant opt-ins (including Hard), enemy telegraphs, the boundaries of deliberate randomness, and parameters of D3.8 assistance. Test whether players can predict relative danger and explain why they were defeated, without making every encounter deterministic.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M24: Ordinary raid difficulty follows chosen depth/routes and legible risk, not hidden performance scaling; preserve bounded D3.8 first-normal-raid assistance | Owner approved; presentation and numeric tuning open |
 | 2026-11-07 | M23: Teach distinct enemy archetypes rapidly through play; increase difficulty through enemy/environment combinations, not long tutorials or HP inflation | Owner approved; encounter sequencing and tuning open |
 | 2026-11-07 | M22: Tactical combat is primarily enemy behavior, role combinations, positioning and environment; Basic Carbine must remain intrinsically fun | Owner approved; encounter tuning and gear choices open |
 | 2026-11-07 | M21: Deeper ordinary raids combine richer tactical choices with improved *chances* of valuable loot; extraction remains optional | Owner approved; specific encounter and loot tuning open |
