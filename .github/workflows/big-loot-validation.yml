@@ -1,0 +1,48 @@
+name: Big Map loot validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'nodspel/**'
+      - 'data/items.js'
+      - 'scripts/big-loot-access-check.mjs'
+      - '.github/workflows/big-loot-validation.yml'
+permissions:
+  contents: read
+jobs:
+  loot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Loot band contract tests
+        run: node --test nodspel/tests/big-loot.test.mjs
+      - name: Baseline comparison and static pickup access
+        run: node scripts/big-loot-access-check.mjs 1000
+      - name: Retain source snapshot for reproducible offline review
+        if: always()
+        run: |
+          mkdir -p verify-out/big-loot
+          python - <<'PY'
+          import subprocess, zipfile
+          from pathlib import Path
+          suffixes={'.js','.mjs','.cjs','.json','.html','.css','.md','.webmanifest'}
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          with zipfile.ZipFile('verify-out/big-loot/source-snapshot.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in paths:
+                  p=Path(name)
+                  if name and p.is_file() and p.suffix in suffixes:
+                      z.write(p,name)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: big-loot-validation
+          path: verify-out/big-loot/
+          retention-days: 14
