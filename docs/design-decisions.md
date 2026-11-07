@@ -1,5 +1,7 @@
 # Protocol Rebirth - Design Decision Register
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 | Document control | Value |
 | --- | --- |
 | Decision owner | Robert Wasser |
@@ -746,7 +748,7 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 **UI placement:** An unobtrusive **Growth Fund** card under the bunker **Projects / Progression** area plus a store tab; not a modal during the locked FTUE or after raid death.
 
-**Unlock to *view*:** After the first successful ordinary extraction and results summary (D3.9 completed). **Purchase is never a requirement to continue.**
+**SUPERSEDED entry timing (M19D):** The earlier proposal allowed a paid resource-bearing Fund preview after first ordinary extraction. Its paid offer/view/purchase entry now waits until **Fabricator L1 is earned and built through gameplay**. Record earlier earned milestones for retroactive claims. Cosmetic-only offers may appear after D3.9 and its results summary. **Purchase is never a requirement to continue.**
 
 **Trigger ledger (server-authoritative in a production online economy):** `growth_fund_id`, `purchased_at`, `milestone_id`, `milestone_completed_at`, `reward_claimed_at`, `grant_transaction_id`. Completed milestones can be previewed before buying, and **retroactive paid rewards** become claimable after a later purchase. Exactly-once grants and purchase restoration required. Avoid double rewards on sync, reinstall, receipt restore or replay.
 
@@ -767,7 +769,7 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 ### M5.3 — Candidate direct resource product behavior (PROPOSED DETAIL)
 
-**Entry point:** In a functional bunker room's repair panel, show: (a) exact missing items and amounts, (b) a **Find in raid** action that takes the player to a relevant accessible source/route, and (c) **Get materials** which opens an optional purchase sheet. Prioritize the earning path visually; never block closing the offer or entering a raid.
+**Entry point — timing revised by M19D:** Only after gameplay-built Fabricator L1, in an accessible functional bunker room's repair panel, show: (a) exact missing items and amounts, (b) a **Find in raid** action that takes the player to a relevant accessible source/route, and (c) **Get materials** which opens an optional purchase sheet. Prioritize the earning path visually; never block closing the offer or entering a raid.
 
 **Catalog test products (all numeric values pending tuning):**
 
@@ -789,10 +791,10 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 | **Before first ordinary extraction** | No shop interruption | None | Protect D3 FTUE |
 | **First completed normal extraction** | Results, Fabricator progress, next mission | Optional small welcome identity pack (store entry after result) | Progress first, commerce second |
 | **Bunker overview** | Named bunker, current repair, next unlock, owned cosmetics | Single subtle `Shop` link; optional relevant theme spotlight | Bunker action first |
-| **Room detail / build requirement** | Owned/missing material counts, target location, `Find in raid` | Optional `Get materials` purchase sheet | Earn path first; buy is a parallel option |
-| **Projects / progression** | World restoration milestones and rewards | Growth Fund free/paid ladder | Nonintrusive, persistent |
+| **Room detail / build requirement** | Owned/missing counts and likely in-raid routes | Optional `Get materials` **only after gameplay-built Fabricator L1**; no material offer before it | Earn path first; no guaranteed drop |
+| **Projects / progression** | Earned world restoration milestones | Free track; paid resource-bearing Fund offered only after gameplay-built Fabricator L1 | Earlier achievements retained for retroactive claims |
 | **Room decoration mode** | Free starter set, place/preview slots, owned items | Specific room themes; buy direct or Signals | Decoration first |
-| **Operator appearance / BIT Bay** | Preview skins/shells, owned/equipped state | Cosmetics and mixed bundles | No combat-stat ambiguity |
+| **Operator appearance / BIT Bay** | Preview skins/shells, owned/equipped state | Cosmetics after D3.9/results; resource-bearing mixed bundles only after gameplay-built Fabricator L1 | No combat-stat ambiguity |
 | **Post restoration milestone** | Show real gameplay unlock and visual payoff | One context-relevant offer shortcut, never mandatory modal | Celebrate before sale |
 | **Raid death / loss screen** | Actual lost gear/items and free Basic Carbine retry | **No loss-triggered purchase** | D1 risk integrity |
 | **Raid underway / extraction countdown** | Combat and extraction only | **No commerce UI** | Safety and clarity |
@@ -803,7 +805,7 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 1. Instrument earned/paid resource ledgers, true missing-part demand, upgrade timing, raid failure rates and Signals grants/spends.
 2. Make one room's free decoration loop genuinely fun, and release a small direct cosmetic offer to test willingness-to-pay.
-3. Add one or two deterministic **Get materials** offers on genuine repair screens and measure purchase conversion versus free raid continuation and Fabricator completion.
+3. After gameplay-built Fabricator L1, test one or two deterministic **Get materials** offers on genuine repair screens; measure conversion and free raid continuation. **Superseded:** using supply offers to accelerate initial Fabricator completion.
 4. Add **one** bunker milestone Growth Fund (free and paid track, retroactive claims); test its conversion, claim rate, effect on return sessions, long-term margin and whether it undermines regular supply pack purchases.
 5. Expand to other room/Operator/BIT themes and scheduled event collections once these loops work; do not introduce a season pass or a second Fund at launch merely to inflate offer count.
 
@@ -823,6 +825,8 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 ---
 
 ## M6 — 30-Day Economy Scenario Model (ANALYSIS, 7 November 2026)
+
+> **Historical model limitation, M19D:** Pre-Fabricator purchasing assumptions are superseded. Preserve these outputs as historical analysis; rerun with gameplay-built Fabricator eligibility, unchanged total stage costs and actual route/loot distributions before drawing balance conclusions.
 
 **Status:** Completed **first-pass editable Excel scenario model** at the user's request, using module costs verified in `data/modules.js`, the structural Node Raid loot weights/bonus from `nodspel/levels.js`, starting Scrap from `data/progression.js`, and M4–M5's **unapproved** numerical purchase hypotheses. The workbook is a chat artifact, not committed to GitHub in this docs-only PR. **The results are not a revenue forecast and do not authorize balance changes.**
 
@@ -860,6 +864,8 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 ---
 
 ## M7 — Controlled Spend Comparison + Random Loot Simulation (7 November 2026)
+
+> **Historical model limitation, M19D:** Any pre-Fabricator paid-resource availability is superseded by the gameplay-built Fabricator L1 gate. Results below have not been recalculated.
 
 **Analysis completed, not a new economy approval.** An updated, editable workbook `Protocol_Rebirth_30_Day_Economy_Model_v2.xlsx` was delivered as a conversation artifact; the **binary workbook is not yet in GitHub**. Model contents, SHA-256 and expected upload location are tracked at [docs/economy/README.md](economy/README.md), which is committed to this docs branch. It retains the original expected-value engine but adds `Simulation Setup`, `Monte Carlo Runs`, `Monte Carlo Summary`, `Controlled Comparison`, and `Simulation Notes`. Its Monte Carlo output is a reproducible **snapshot**, requiring an explicit rerun after changing inputs; the original engine and summary cell formulas remain editable.
 
@@ -906,7 +912,7 @@ The first **Economy Simulation Harness** has been implemented in separate draft 
 3. **Price-to-progress integrity:** Using calibrated distributions, measure same-activity F2P vs paid at 89 / 399 / 1,999 SEK. Decide explicit caps / allowable resource families only after measuring how purchases alter a 30-day progression journey. No model value is a shipping guarantee.
 4. **Growth Fund v1:** Retain **bunker milestones** as the primary proposal (not raw Operator Level), retroactive rewards and free + paid tiers. Resolve whether paid resources are meaningful but not world-key substitutes; define real grant and claim flows after engine calibration.
 5. **Persistent home identity monetization:** Define each functional bunker room's starting free furniture, purchasable surfaces and 2.5D slot placement interactions; permanent room/operator/BIT looks, independent of gear death.
-6. **Monetization UI contract:** No forced popup during FTUE, raid, extraction, or death; resource upsells appear next to **Find in Raid** options and milestone offers after upgrade celebrations.
+6. **Monetization UI contract (M19D supersedes earlier timing):** No commerce during FTUE, raid, extraction or death; no material offer anywhere before gameplay-built Fabricator L1. Only after eligibility may resource upsells appear beside **Find in Raid**, following any upgrade celebration.
 
 ### M8.2 — Product question to decide next (OPEN)
 
@@ -1277,10 +1283,19 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19D — Connected Core / Meta / Commerce (APPROVED)
+
+**Owner approval, 7 November 2026:** Lock (1) an overarching bunker Project chosen at home with material targeting through meaningful in-raid route choices and loot probabilities, never guaranteed ordinary requested items; (2) 2–3 clearly visible stages for major bunker rooms within each room's existing TOTAL resource cost, no new currency or extra mandatory grind; (3) no resource purchase offers until Fabricator L1 has been earned and built through gameplay. Earlier eligible monetization is cosmetic-only after D3.9 and its results summary.
+
+The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authoritative for this connected design. It retains D1/D2/D3, M5 product families and the one-time milestone Fund with free/paid tracks and late retroactive claims. Conflicting M5 entry timing and pre-Fabricator supply-kit paths are superseded; historical models are not rerun. Stage splits, intermediate utility, drop rates and commercial values remain hypotheses. Documentation only.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M19D: Home Project / in-raid probabilistic targeting; major rooms 2–3 stages at unchanged total cost; materials commerce after gameplay-built Fabricator L1 
 | 2026-11-07 | M20C: BIT foregrounds no more than one living-world lead at the bunker; other optional surprises emerge naturally in raids | Owner approved; home selection and replacement rules open |
 | 2026-11-07 | M20B: BIT discoveries can be revisited over multiple ordinary raids and turn over through organic world changes, without short expiry/FOMO | Owner approved; transition triggers and simultaneous lead count open |
 | 2026-11-07 | M20A: BIT subtly previews a voluntary lead in the bunker; its meaning is discovered in an ordinary raid | Owner approved; exact trigger, visuals and cadence still open |

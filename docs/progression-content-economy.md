@@ -1,5 +1,7 @@
 # Protocol Rebirth — M19 Progression & Content Economy (30/60/90-Day Design)
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > **Status:** Detailed DESIGN PROPOSAL, 7 November 2026. User requested continuing design while they provide a future Archipelago/collision gameplay recording. Incorporates approved D1/D2/D3, P1.1/P1.3, M5 commercial structure and M9/M12 identity direction; actual reward cadence, item prices, unlock costs and event calendar are **not approved**. No runtime or spreadsheet changes.
 
 ## 1. Player promise and product guardrails
@@ -37,7 +39,7 @@ HOME: Scrap 20 / 20, Scrap Alloy 2 / 2, Cable 1 / 2
 NEXT: Recover one more Cable
 LIKELY: Bunker electrical storage
 [TRACK & RAID]    [VIEW PROJECT]
-Optional, only after FTUE: [GET MATERIALS] — fully disclosed; never blocks free route
+Optional, only after gameplay-earned and built Fabricator L1: [GET MATERIALS] — fully disclosed; never blocks free route
 ```
 
 The above figures are **illustrative** and not intended to replace the current `data/modules.js` actual costs. Do not mislabel already-banked materials as carried. Avoid stacking upgrade completed, nameplate equipped, BIT new trick, Growth Fund and shop prompts at once; show the most important home change, let the player explore the rest.
@@ -49,6 +51,8 @@ The above figures are **illustrative** and not intended to replace the current `
 | **Every meaningful successful return** | Visible useful partial progress | One fewer missing Cable, newly banked gear or completed small repair | Even early extraction can be a legitimate success; never conjure dropped loot on death |
 | **Every few successful raids** | Distinct visible/functional milestone | Fabricator functionality, room lighting, BIT dock, Vault, small furnishings | Small repairs must not compete with rare core-upgrade inputs or create busywork |
 | **Major expedition milestone** | New future possibilities | Core L2 + extracted Archipelago Chart; Core L3 + extracted Town Survey | Actual world intelligence extracted; purchase alone never bypasses scouting |
+
+**Approved M19D restoration rule:** Major rooms use 2–3 clearly visible stages within their existing total resource requirements. Stage costs sum to the original amount for each resource; no extra wallet or mandatory grind. Exact splits and intermediate function remain hypotheses. Separate optional decorative repairs below must not become required room stages with extra costs.
 
 **Complication to test:** Some longer-term projects have significant real requirements. If a player experiences 5–6 successful short raids with no visible new home change, test additional low-cost earned repairs or rebalanced acquisition—not artificial "instant progression" purchase pressure.
 
@@ -90,7 +94,7 @@ Instead of shipping a bespoke mission for every return, reuse authored gameplay 
 ## 8. Monetization is connected to ambition but not required for gameplay integrity
 
 **Three approved product families:**
-- **Deterministic resources:** existing spendable currency/material packages for clear missing requirements, with free raid source beside paid path. Never sell a purchased item as an immune piece of field gear.
+- **Deterministic resources (only after gameplay-built Fabricator L1):** existing spendable currency/material packages for clear missing requirements, with free raid source beside paid path. Never sell a purchased item as an immune piece of field gear.
 - **Rebirth Growth Fund:** purchase once, claim real earned milestone rewards including previously attained eligible milestones. No calendar pay-to-log-in progression or fake checkpoint completion.
 - **Permanent cosmetic identity:** themed operator/room/BIT/profile components, owned across loss. Room naming and Callsign edits always free; earned mastery cosmetics should retain meaningful exclusive identity.
 
@@ -132,7 +136,7 @@ Review cohorts by 1/3/5/10/20 successful raids and by total elapsed playtime, **
 
 **Before final balance:** Finish/validate real optional outdoor graph and collision path (Archipelago / shots / player / enemies), test the M13 Shielded Relay Room, verify actual drops/quest facts, reconcile legacy insurance with approved D1, and compare economy harness simulations to observed raids.
 
-**Next design decisions after M19:**
+**Historical planning list — next-question priority superseded by M19D:** The [contract](core-meta-commerce.md#hypotheses-and-next-decision) now presents one next owner decision: intermediate room-stage functionality. The following remain later review work, not additional questions for this sign-off.
 1. **Simplify progression explicitly:** Which existing use-based skill/weapon mastery/talent tracks are retained, collapsed or removed? Owner has approved Operator hybrid **direction** but has not approved individual deletions. Recommend a consolidation pass before adding any new bar.
 2. **Set first 10 successful-raid reward cadence:** Based on actual progression costs from `data/modules.js` and plausible playtest data, lock goals and small home improvements with source/sink budget.
 3. **Plan M20 Retention & LiveOps** without calendar chores, and only after replay variety/mission design has a validated core.

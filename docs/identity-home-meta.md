@@ -1,5 +1,7 @@
 # Protocol Rebirth — Identity & Home Meta Systems
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > **Status:** Integrated design proposal, 7 November 2026. Owner direction approved for all four identity pillars (bunker/room, operator, BIT and player callsign/nameplates). Exact progression rewards, content counts, art scope, pricing and build UI are **not approved**. No gameplay implementation in this docs PR.
 
 ## 1. Product promise
@@ -52,7 +54,7 @@ Restore lights, a sleeping corner, workshop dressing, a power conduit, a BIT doc
 
 Keep fast navigation and persistent **RAID** action. Do not make a new top-level screen for each equipable cosmetic. Home overview, projects, store and cosmetics have different jobs: `Home=progress`, `Projects=function`, `Customize=identity`, `Shop=optional acquisition`.
 
-**Contextual commerce:** On an unowned cosmetic preview, show direct price or Signals and what is included; on a missing functional repair input, show `Find in Raid` and optional `Get Materials` side by side. Purchased gear and resources never rescue raid losses or auto-extract. Growth Fund lives in Projects and rewards earned bunker milestones; theme packs can contain operator + BIT + room + nameplate cosmetics.
+**Contextual commerce:** On an unowned cosmetic preview, show direct price or Signals and what is included; on a missing functional repair input, show likely in-raid routes; optional `Get Materials` is eligible only after gameplay-built Fabricator L1. Before that, no material or mixed resource offers; cosmetic-only commerce follows D3.9 and its result summary. Purchased gear and resources never rescue raid losses or auto-extract. Growth Fund lives in Projects and rewards earned bunker milestones; theme packs can contain operator + BIT + room + nameplate cosmetics.
 
 ## 5. Proposed week-one experience; no calendar gating
 

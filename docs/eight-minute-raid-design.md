@@ -1,5 +1,7 @@
 # Protocol Rebirth — The Eight-Minute Raid: Combat, Tactical Problems, Extraction and Home
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > **Status:** M14 detailed design proposal, 7 November 2026. The owner requested this integrated definition. It refines previously approved D1 (risk), D2 (extraction/depth), D3 (FTUE) and M9–M13 (frequent home progress, identity and more enjoyable tactical gameplay). **The exact pacing, room frequency, rewards and tactical mechanics are proposals for playtest, not newly approved shipped constants.** Documentation only.
 
 ## 1. Design thesis
@@ -102,7 +104,7 @@ At moments when the player has gained something valuable, give the information n
 
 | In-raid accomplishment | Immediate raid experience | Persistent home/operator/BIT effect **if eligible and secured** | Identity and monetization relation |
 | --- | --- | --- | --- |
-| **Extract specific components** | Spot useful loot; choose what to keep and survive | Build Fabricator/Vault/BIT Bay or advance Core | Targeted material shortage can show optional **Find in Raid** vs **Get Materials** at home only |
+| **Extract specific components** | Spot useful loot; choose what to keep and survive | Build Fabricator/Vault/BIT Bay or advance Core | Home Project guides probabilistic in-raid route choices; optional **Get Materials** at home only after gameplay-built Fabricator L1 |
 | **Earn common supplies** | Reliable partial value even on a modest return | Low-cost visible repairs: lighting, workshop dressing, sleeping corner, fixtures | Creates furniture slots and a desire to decorate; no pay-for-basic-home requirement |
 | **Discover or master a tactical system** | Solve the turret/power problem in a satisfying way | Progress toward **earned** title, emblem/nameplate and eventually optional operator cosmetic | Achievement-specific identity is primarily earned, not automatically duplicated in the shop |
 | **Use BIT intelligently** | Scans, opportunities and readable tactical hints | BIT Bond/earned equipment progression as appropriate; new shell/CRT looks from meta milestones | Functional bond separate from a purchasable BIT look |

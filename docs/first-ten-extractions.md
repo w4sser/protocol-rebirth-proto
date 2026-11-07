@@ -1,5 +1,7 @@
 # Protocol Rebirth — M19C: First Ten Successful Extractions
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > **Status:** Detailed progression design proposal, 7 November 2026. Follows owner direction M19A (**less early, deeper optional endgame**) and M19B (**passive felt movement gains and meaningful full-bag penalty**). Defines a **test journey, not ten guaranteed scripted outcomes**. Retains D1/D2/D3 and M5. No gameplay, drops, rewards, prices or numeric speed tuning implemented.
 
 ## 0. Define the measurement unit before designing the rewards
@@ -30,7 +32,7 @@ Source: `data/modules.js` and `data/progression.js` on design reference branch; 
 | --- | --- | --- | --- | --- |
 | **#1 — I got home** | "I can make it back with something." | Actual secured Cable / Scrap Alloy / Scrap; first Fabricator Project progress | Finish D3.9; **one** tracked Project, one clear RAID action; optional name/Callsign *after* onboarding | Gather next missing Fabricator part, or revisit a new observed room |
 | **#2 — I have a purpose** | "I know what I'm hunting." | More banked Fabricator materials; if affordable, build **Fabricator L1** and see workbench activate/vest | Show `HOME x / NEED y`; explain likely source, not guaranteed loot; no skills tree | Try available crafting/prep or choose one attractive likely-source route |
-| **#3 — My bunker changes** | "I improved this place." | Fabricator commissioning payoff *if earned*; otherwise small **cosmetic/visible repair** using an explicitly separate low-cost source (not automatically free) | Notice armor/weapon choice difference; one passive Operator improvement may accrue quietly | Track either BIT Bay L1 or Vault L1 depending on materials |
+| **#3 — My bunker changes** | "I improved this place." | Fabricator commissioning payoff *if earned*; otherwise an earned visible **stage of the same room within its existing total cost**; a separate optional cosmetic repair is a hypothesis, never mandatory | Notice armor/weapon choice difference; one passive Operator improvement may accrue quietly | Track either BIT Bay L1 or Vault L1 depending on materials |
 | **#4 — I can try a different tactic** | "I learned another solution." | Earned loadout option, Decoy after Fabricator L1, or first optional encounter tactic; no guaranteed item | One optional tool / enemy counter at a time; preserve free Carbine effectiveness | Choose a risky detour for a relevant part or take a safe return |
 | **#5 — BIT matters** | "My companion helps me find things." | **BIT Bay L1** if 20 Scrap + 2 Cable + 1 Polymer Plate obtained; otherwise visible dock/project stage progress and context advice | Introduce BIT's **actual gameplay benefit** on completion, not a Bond XP dashboard | Choose BIT upgrade vs Storage; try guidance in a varied raid |
 | **#6 — Loot becomes a decision** | "Do I leave now with a heavy bag?" | Bank better gear / targeted component; possibly a small restoration stage; no scripted payout | Make carried load vs speed/detection legible; one small **Heavy Load** cue if threshold meaningful | Extract safely with current valuables or push into an optional cache |
@@ -93,7 +95,7 @@ NEXT: Find one Cable — likely in electrical storage
 
 Above shows **illustrative** inventory numbers; derive all live counts from actual stash/currencies and carry reconciliation. If a Project becomes affordable, the result can offer `RESTORE FABRICATOR` at Home. If restoring a room, show a clear visual before/after and a practical *next-raid benefit*, then get out of the player's way.
 
-**Home top-level:** (1) one Project; (2) RAID; (3) optional BIT/Operator/Customize entry. No forced Growth Fund or $ prompt during FTUE or extraction choice. All paid materials must be labeled as optional and the free earn path clearly available.
+**Home top-level:** (1) one Project; (2) RAID; (3) optional BIT/Operator/Customize entry. No forced Growth Fund or $ prompt during FTUE or extraction choice. No material offers before Fabricator L1 has been earned and built through gameplay; cosmetic-only commerce after D3.9 and results. Once eligible, paid materials remain optional with the free earn path visible.
 
 ## 7. Economy integrity and calibration work
 
@@ -136,7 +138,7 @@ Above shows **illustrative** inventory numbers; derive all live counts from actu
 
 ## 9. Remaining owner decisions
 
-- Should two **small decorative repairs** be possible before the first bigger functional module, and which **noncompeting common sources** fund them? Recommendation: yes, **only when affordably earned**, and they do not add a separate progress bar.
+- **Resolved M19D for major rooms:** 2–3 visible stages within existing TOTAL cost. Separate decorative repairs remain optional hypotheses and cannot add mandatory grind. The next decision is intermediate-stage functionality; see the [contract](core-meta-commerce.md#hypotheses-and-next-decision).
 - When is the first **optional passive level-speed improvement** perceptible? Test feel at fixed empty/full load against current runtime before choosing numbers.
 - What percentage of players should be able to build **Fabricator L1** within their first ~3 successful ordinary extractions (across losses)? Needs simulation + human testing before target set.
 - How should player-facing Chart/Survey tracking behave when the current quest path cannot yield that item? Must fix unlock/content pipeline first; don't surface an impossible goal.

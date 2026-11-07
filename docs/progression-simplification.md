@@ -1,5 +1,7 @@
 # M19A — Progressive Complexity: Less Early, Deeper Endgame
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > Owner direction, 7 November 2026: **Less is more for the early and mid game. Endgame may introduce more systems and depth.** This is a design-direction approval, not approval of precise milestone levels, removals, or implementation. Companion to [M19](progression-content-economy.md).
 
 ## Thesis

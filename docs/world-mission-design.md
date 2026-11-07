@@ -1,5 +1,7 @@
 # Protocol Rebirth — M18 World & Mission Design
 
+> **Supersession — M19D, 7 November 2026:** [Core, Meta & Commerce Contract](core-meta-commerce.md) is the single source of truth for the connected target design: home Project, probabilistic in-raid material targeting, 2–3 major-room stages within unchanged total cost, and no material offers before gameplay-built Fabricator L1. Earlier conflicting proposals below are historical; unapproved tuning remains hypothetical.
+
 > **Status:** Integrated design **proposal**, 7 November 2026. Prepared after M16–M17. This is design documentation in PR #201, not authorization to change gameplay, area layouts or economic rates. Explicitly preserve D1/D2/D3, including early return extraction. **Owner-approved prior direction:** world order Bunker → Archipelago → Town, permanent bunker/Core progression, earned scouting access and short mobile raids. Exact missions, landmarks, room templates and content targets below are proposed.
 
 ## 1. Promise: a world worth reclaiming
@@ -169,7 +171,7 @@ The outer loop should balance three kinds of satisfaction:
 
 **Operator / BIT / Profile:** Combat mastery earns titles or nameplates, BIT recognition and optional cosmetic accents; operator clothes/weapon looks display identity. They do not change the logic of a world map key. Room-by-room bunker restoration displays tangible progress and supplies the resource demand that gives missions purpose.
 
-**Monetization:** optional Signals/resource bundles and Growth Fund can help with **material progression under approved M4/M5** but may not substitute for extracting the required scouting chart/survey or physically using extraction. Cosmetic purchases do not unlock a world region. No cash shop prompt during a raid or forced FTUE.
+**Monetization (M19D eligibility):** Only after gameplay-built Fabricator L1 may optional resource bundles and a paid resource-bearing Growth Fund be offered. They can help with **material progression under approved M4/M5** but may not substitute for extracting the required scouting chart/survey or physically using extraction. Cosmetic purchases do not unlock a world region. No cash shop prompt during a raid or forced FTUE.
 
 ## 10. Content validation matrix
 
