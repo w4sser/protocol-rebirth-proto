@@ -106,7 +106,7 @@ try {
       await sleep(2000);
       if(process.env.BRIDGE_FOCUS==='1'){
         const audit=await page.evaluate(()=>{
-          const scene=window.__groundPreview?.group?.parent;
+          const scene=window.__NR?.getScene?.()||window.__groundPreview?.group?.parent;
           const meshes=[];
           scene?.traverse(o=>{if(o.name==='archipelago-timber-planks')meshes.push({instances:o.count,visualOnly:o.userData.visualOnly});});
           return {meshes:meshes.length,instances:meshes.reduce((s,m)=>s+m.instances,0),allVisualOnly:meshes.every(m=>m.visualOnly)};
