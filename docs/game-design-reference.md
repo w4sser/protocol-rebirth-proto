@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.2 - progression/economy approved principles; higher early restoration frequency M9 |
+| Document status | Living design reference, v3.3 - early restoration M9 and first-class operator customization M10 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -566,6 +566,14 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 
 ---
 
+### 9.5 M10 — Operator cosmetic customization is a first-class meta pillar
+
+**OWNER DIRECTION, 7 November 2026:** The next bunker-room/restoration specification must include **operator character customization** as an equally intentional meta pillar, along with bunker room decoration and BIT identity. It is **not** relegated to a later optional feature. The owner-approved scope is the principle; exact slots, art counts and purchase offers are not yet approved. [D01]
+
+**PROPOSED initial operator editor:** Preview the operator in the bunker and loadout menu; choose clothing/outfit, headwear/helmet look, optional colors and equipment/weapon appearances. Keep permanent purchased/earned cosmetic ownership separate from any actual deployed weapon or armor copies which remain at risk under D1. Prioritize customization whose visual difference is readable from the actual mobile gameplay camera, and test animation/silhouette/PvP readability. Start with an affordable art scope (e.g. full-body outfit + headwear + palette) before proliferating tiny gear sub-slots.
+
+**FIRST WEEK PROPOSAL:** After the *first successful ordinary extraction ends the approved FTUE*, allow a free operator appearance choice in the home. Introduce starter room furnishings and an earned BIT visual accent alongside additional small bunker restorations. Thematic matching collections can later span **operator + BIT + bunker room** without creating more paid currencies. No compulsory early shop/customization screen interrupts the signed-off D3.9 onboarding. [D01]
+
 ## 10. BIT: companion, capability, and relationship
 
 BIT is the emotional connection between the hostile field and the recovering bunker. Its established tone is helpful, loyal, dry, and slightly cheeky. It comments on discoveries, death, returning home, completed construction, and the player's next need. [S03] [S13]
@@ -997,6 +1005,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.3, 7 November 2026:** Owner reaffirmed that operator appearance is a core meta customization pillar, not subordinate to bunker room restoration. Added proposed cosmetic slots, early free styling reward and strict separation of owned cosmetic identity from losable equipment under D1. Documentation only.
 - **v3.2, 7 November 2026:** Owner requested and approved more frequent visible early bunker restorations (M9), differentiating major functional rooms from low-cost visual repair beats. Recorded proposed first-week sequence and critical FTUE/material-gating protections. No code or numeric balance changes.
 - **v3.1, 7 November 2026:** Linked draft PR #204 deterministic offline economy harness and initial successful Actions test. Recorded open decision on first-week free restoration rhythm and need for actual big-level/pickup calibration. Workbook binary pending upload. No game changes or new economic approvals.
 - **v3.0, 7 November 2026:** Recorded M7 matched-activity/pay-only Monte Carlo (1,000 seeds per cohort) using prototype loot-weighted random pickups. Identified Core L2 free progression bottleneck and late-tier rare material purchase plateau. Explicit sampling limitations and next actual-runtime validation. Analysis only; no live economy changes.
