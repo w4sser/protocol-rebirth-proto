@@ -1261,9 +1261,11 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 **Locked follow-up:** Such opportunities occur as **optional side paths within ordinary raids**, never as a separate mission queue, special mission mode or required pre-raid contract selection. Players choose their primary Bunker Project at home; during ordinary raids they can investigate BIT's lead, continue their planned route or voluntarily extract under D2. Any extra reward must be physically found/earned and extracted under D1; the lead is not a grant or guaranteed rare drop. A side path must not block extraction, forward-node progression or FTUE completion.
 
+**M20A OWNER APPROVAL (7 November 2026):** BIT gives a **subtle, optional teaser while the player is at the bunker before deployment** (for example, an unusual signal or activity). This gives the next ordinary raid a reason to look forward to, but **what the lead actually means is discovered during the raid**. The bunker hint is not a mission acceptance screen, deterministic material reservation, new map mode, or promise of a particular item. The player can ignore the hint, deploy normally, explore it in a regular raid, or extract without addressing it. No mandatory dialog, pre-raid menu, or daily quest board. A hint must be perceivable without audio, while exact visual copy/placement and trigger timing remain under design review.
+
 **Alignment with recently approved core/meta decisions:** The tracked Bunker Project is chosen at home; directional material opportunities and tactical route choices happen during the raid; large rooms deliver 2–3 visibly meaningful restoration stages **within their existing total material cost**; direct material purchases are unavailable until the player has **earned and built Fabricator L1 through play**. After that point, M4/M5 hybrid commerce (optional deterministic resource offers, Growth Fund and cosmetic ownership) may support but must not replace the normal raid/extract/restore loop. No shop interruption within the locked FTUE or a raid, and never paid insurance, bag recovery or successful extraction.
 
-**Open, not approved by this decision:** Whether BIT previews a lead in the bunker before deployment versus revealing it only during exploration; exact opportunity frequency, persistence/expiry, lead selection, costs/rewards, biome eligibility, tactical encounters, iconography, BIT dialogue, event cadence and any monetization tie-in. Avoid turning optional leads into a daily checklist under a different name.
+**Open, not approved by this decision:** Exact lead-preview timing/placement and BIT dialogue; opportunity frequency, persistence/expiry, lead selection, costs/rewards, biome eligibility, tactical encounters, iconography, event cadence and any monetization tie-in. Avoid turning optional leads into a daily checklist under a different name.
 
 **Acceptance for the future implementation:** A returning player can understand a fresh possible lead without opening a mission board; an ordinary raid remains complete and worth playing if the lead is ignored; following it creates an extra tactical decision and potential earned payoff, not guaranteed loot. The player can still retreat with their haul, and monetization never triggers during combat or extraction. **Documentation only; no implementation approved.**
 
@@ -1271,10 +1273,10 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ## Decision history
 
-| 2026-11-07 | M20: BIT living-world leads are optional side routes inside ordinary raids; no separate mission queue or required daily tasks | Owner approved. Presentation and reward cadence remain open. |
-
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M20A: BIT subtly previews a voluntary lead in the bunker; its meaning is discovered in an ordinary raid | Owner approved; exact trigger, visuals and cadence still open |
+| 2026-11-07 | M20: BIT living-world leads are optional side routes inside ordinary raids; no separate mission queue or required daily tasks | Owner approved; reward cadence still open |
 | 2026-11-06 | D1: Controlled Risk and all five expressly listed rules | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D1-A through D1-D: Secure Slot specification and interrupted sessions | Proposed details; not yet approved |
 | 2026-11-06 | D2.1: At least one return extraction available from the beginning of every ordinary quick raid | Approved by Robert; implementation alignment pending |
