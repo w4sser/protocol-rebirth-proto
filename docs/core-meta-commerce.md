@@ -38,6 +38,10 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **Owner-approved direction, 7 November 2026:** The core combat's tactical depth comes first from **enemy behavior and combinations, positioning, environmental geometry and readable counterplay**. An ordinary raid must be engaging with the **free Basic Carbine**, not only after a powerful upgrade or purchase. Weapons, gadgets, builds and meta progression add *alternative solutions* and tradeoffs; they do not substitute for good encounters or create a paid win condition. Combine enemy roles to raise the decision complexity in deeper areas (M21), while preserving mobile readability, voluntary extraction and loot risk. Exact enemy role sequencing, gadget UX, encounter layouts and power curves remain to be designed/tested, not pre-approved implementation details.
 
+## Approved enemy learning curve (M23)
+
+**Owner-approved direction, 7 November 2026:** Establish recognizable enemy archetypes quickly in real combat, with no long tutorial/card sequence. The early combat experience gives the player enough visual information and space to learn each threat's counterplay while using the Basic Carbine. Progressively recombine known roles, terrain, cover and player positioning to make deeper raids more tactically demanding without relying on HP inflation, extra required controls or paid equipment. BIT's coaching remains contextual and unobtrusive. Encounter order, statistics, readability thresholds and mix timings are still hypotheses to validate on phones.
+
 ## Hypotheses and next decision
 
 Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, intermediate functionality, first-ten-extraction cadence, paid acceleration limits and commercial values. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
