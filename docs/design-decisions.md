@@ -1157,6 +1157,22 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M18A — Strong Within-World Raid Variety (Owner Direction)
+
+**OWNER REQUIREMENT, 7 November 2026:** Bunker, Archipelago and Town must each produce **highly varied repeat raids** with different **loot, enemies and ways to play**. The goal is differences in the player's decisions and memorable moments, not simply remixed scenery or higher stats.
+
+**New proposed specification:** [Raid Variety & World Replayability](raid-variety-system.md), linked from [M18 World & Mission Design](world-mission-design.md). Six axes: **V1 topology/route, V2 enemy role composition, V3 tactical opportunity (T1–T5), V4 loot opportunity distribution, V5 bounded dynamic field event, V6 mission/discovery purpose**. A seeded, constrained *Raid Situation Director* is a **design option**, not a live system or approved implementation. Variants should reuse recognizable assets, consistent mechanics and biome grammar; meaningful variation should be validated from what players actually encounter rather than theoretical seed variety.
+
+**Examples proposed:** Bunker relay-defense vs service-wing scavenging vs repair-supported cache; forest scout clearing vs pine/swarm choke vs signal-relay detour; Town house search vs repaired-turret garage vs risky archive crossing. Player build choices (M17) must interact with these differences: the same gun remains usable, but different gear/tactics become situationally preferable.
+
+**Must preserve:** authored D3 FTUE, D1 controlled loss, D2.1 available return-from-start and D2.2 objective independence, D2.3 deliberate physical extraction, D2.4 node gating *forward only*, real quest item reachability, readable threats, collision/bridge routing and verified mobile FPS. No required premium item and no false guaranteed loot promises.
+
+**Proposed acceptance:** In three consecutive committed raids to the same biome, at least two should differ in meaningful **route/encounter decisions**; in five, players can describe at least three distinct memorable situations. This is a playtest hypothesis, not an approved KPI. Audit actual Node Raid big-level variant coverage and compare matched seeds before introducing anti-repeat weighting.
+
+**Status:** Strong replayability **approved as owner direction**. Specific director, content variant counts, spawn/loot weighting, event pacing and code remain **unapproved proposals**. No gameplay code changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1198,4 +1214,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M16: Enemy tactical roles, combinations and difficulty across depths/biomes | Design proposed, spawn/tuning approval outstanding |
 | 2026-11-07 | M17: Existing weapons, tools and four emergent counterplay builds linked to M16 | Design proposed, no new classes or item changes approved |
 | 2026-11-07 | M18: Three distinct world regions, mission hierarchy, scouting unlocks and raid extraction invariants | Integrated design proposed; catalog/mission UX/content counts pending owner review |
+| 2026-11-07 | M18A: Strong repeat-raid variation within every world (loot/enemies/routes/tactics/events) | Owner direction confirmed; situation-director design and quantitative targets proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
