@@ -1173,6 +1173,22 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M18B — Larger Archipelago, More Varied Bunker (Owner Direction)
+
+**OWNER REQUIREMENT, 7 November 2026:** Current Archipelago playable areas feel **too small**, whereas the Bunker footprint **works** but needs more room/encounter variation. Do not apply a single global map scale to all biomes. Updated specification: [M18A Raid Variety & World Replayability, section M18B](raid-variety-system.md#11a-m18b--biome-scale-and-structural-variety-correction-owner-direction).
+
+**Observed source baseline:** `data/raid-big-layout.js` has shared spacing 22 and scale shapes; `nodspel/zone-graph.js` builds a common 6–12-node grid; `nodspel/big-level.js` currently sources Bunker room templates even when assembling other named areas, with subsequent area-specific layers. This suggests an outdoor-topology design/implementation gap, **not** a reliable exact measurement of Archipelago walkable area. Audit full rendering and generation before changing code.
+
+**Proposed Archipelago direction:** Separate area-specific outdoor graph with wider *usable* open spaces, granite shelves, forest glades, multiple approaches, shoreline paths and navigable island crossings. Test 1.5–2x actual navigable footprint **as a hypothesis**, without doubling empty travel time; first actionable encounter/choice should remain close, and early D2 extraction always reachable. Prefer more optional branches and tactical possibilities over longer mandatory paths.
+
+**Proposed Bunker direction:** Keep comparable session/traversal footprint but remix geometry/room order, loops/forks, room functions, enemy combos, power/support interactions and loot locations. Potential modular room identities: Reactor Loop, Storage Branch and Security Wing.
+
+**Constraints:** D1/D2/D3 preservation, ~8-minute full-commit aspiration with viable shorter returns, clear pathfinding/bridges, no trees/props on bridge, actual mobile collision/shooting space, Low >40 FPS test goal, nonempty and valid procedural route/loot mix. No changes to camera or model asset scaling as a substitute for redesign.
+
+**Decision boundary:** Owner-approved **direction** (larger Archipelago, Bunker footprint adequate but greater variety). Numerical area multiplier, exact room counts, route lengths, and topology implementation are **proposed, not owner-signed-off or implemented**.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1215,4 +1231,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M17: Existing weapons, tools and four emergent counterplay builds linked to M16 | Design proposed, no new classes or item changes approved |
 | 2026-11-07 | M18: Three distinct world regions, mission hierarchy, scouting unlocks and raid extraction invariants | Integrated design proposed; catalog/mission UX/content counts pending owner review |
 | 2026-11-07 | M18A: Strong repeat-raid variation within every world (loot/enemies/routes/tactics/events) | Owner direction confirmed; situation-director design and quantitative targets proposed |
+| 2026-11-07 | M18B: Archipelago playable areas larger, Bunker size retained with higher structural variety | Owner direction confirmed; size multiplier and layouts to playtest |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
