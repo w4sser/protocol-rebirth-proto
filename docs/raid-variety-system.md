@@ -202,3 +202,52 @@ For each player and each seed, record **encounters actually seen**, not merely g
 - Should a few **signature landmarks remain fixed** in each biome while routes/enemy/loot shuffle? **Recommendation: yes**, for identity, mastery and navigation memory.
 
 **Owner direction captured:** Strong variation in loot, opponents, routes, encounter situations and player tactics **within every world** is required. Mechanic lists, event catalog and encounter frequency are **proposed, not yet approved or built**.
+
+## 11A. M18B — Biome Scale and Structural Variety Correction (Owner Direction)
+
+**OWNER REQUIREMENT, 7 November 2026:** Present playable **Archipelago areas are too small**; expand them meaningfully. **Bunker room-area sizing is broadly acceptable**, but it still needs increased encounter and room-composition variety. This is a differentiated design direction; it does **not** approve a blanket global map scaling factor.
+
+### Real implementation baseline verified
+
+- `data/raid-big-layout.js` defines a shared `spacing:22` and shape multipliers of `1.2–1.6` (by axis).
+- `nodspel/zone-graph.js` currently generates **6–12 graph nodes** on a three-column grid with shared spacing and shared `RULES.layouts[2]` template selection; exact walkable dimensions vary with authored rooms and multipliers. The numbers **are not a measurement of total Archipelago usable play area**.
+- `nodspel/big-level.js` calls `generateZoneGraph(seed)` without an area-specific topology parameter, and populates graph rooms by sourcing `generateLevel(...,'bunker',...)` templates, while keeping an `area`/archipelago flag. Later visual environment transformations may differ, but this baseline does **not** establish a distinct forest-specific spatial director.
+- Relevant past playtest issues: bridge entrances too narrow for aiming and movement, bots becoming stuck, trees on bridges, terrain/coast blending and low-end FPS. A larger forest must **not** compound these.
+
+### Separate spatial strategies
+
+| Design axis | **Archipelago (bigger)** | **Bunker (same broad footprint, more variety)** |
+| --- | --- | --- |
+| World geometry | Own **outdoor terrain graph**, multiple broad traversal spaces and distinct paths | Keep comparable raid reach/travel budget, remix room connections |
+| Topology | Open clearings, granite ridges, forest corridors, inlets/shoreline, traversable bridges, utility outposts | Loop vs fork vs hub, alternate side rooms, short utility tunnels |
+| Combat | More sightline lengths and approach directions, kiting space and patrol sweep; protected retreat lanes | Cover layouts, narrow pressure with flanking routes, power/support systems |
+| Loot | Different visible exploration opportunities around terrain landmarks; optional distant cache | Rotate cache placement and mechanical/electronic rooms |
+| Identity | Forest and shore must feel **like outdoor space**, not a bunker grid with trees | Distinct laboratory, generator hall, maintenance, storage, crew quarters |
+| Variants | Terrain macro shapes + route choice + enemy roles + optional event | Room type order + alternate connection + defense mechanism + loot |
+| Exit | D2 return extraction accessible from spawn through verified physical route | Same D2 return rule, without mandatory objective/room clear |
+| Performance | Streaming/culling and LOD as needed; density budget independent of size | Reuse assets, room culling, avoid active enemy/VFX overload |
+
+### Size and pacing tests (hypotheses, NOT approved values)
+
+- Test **roughly 1.5x–2x the meaningful traversable/open-space footprint of current Archipelago** as a *first comparative experiment*, not an across-the-board room-scale multiplier. Measure actual accessible ground area, effective movement distance, number of route decisions and encounter contact time on generated seeds.
+- **Do not grow traversal time proportionally:** a larger map should have multiple nearby worthwhile options and alternative extraction approaches, rather than simply placing the objective twice as far away.
+- Aim for a **first meaningful choice / first combat or loot opportunity within ~30–45 seconds**, even on a larger forest map; players who prefer a quick raid must still get value.
+- A committed raid can explore a *subset* of the bigger terrain and voluntarily push into an optional distant zone. Keep ~8-minute full-run aspiration; avoid a mandatory map clear.
+- Compare **three landscape archetypes** in the first playable test: (1) **Granite Coast** with curving shore and a high overlook; (2) **Dense Pine Forest** with two wooded paths and one open glade; (3) **Island Crossing** with a navigable wide bridge and an alternative inland route. These are suggested archetypes, not guaranteed separate islands or boats.
+- In Bunker, test **three distinct same-size room sequences**: (1) Reactor Loop, (2) Storage Branch, (3) Security Wing. Deliberately vary encounter/loot/tactical verb; don't simply rotate wall color.
+
+### Acceptance gates
+
+1. Archipelago testers perceive more freedom, distinct approach angles and a stronger sense of wilderness; measure **usable navigable area**, not background sea.
+2. Within 3 committed runs in Archipelago, terrain shape and tactical route options demonstrably differ, not only tree props.
+3. In 3 Bunker runs of similar footprint, players can describe at least two meaningfully different room sequences/encounters.
+4. All generation seeds used in the build preserve reachable D2 return extraction, no bridge pathfinding or shooting funnel, no disconnected objective/loot, and valid bot access.
+5. Phone Low settings maintain prior **>40 FPS goal**, with first-use combat VFX performance checked; landscape dressing and distant assets must not introduce disproportionate scene cost.
+6. Measure actual time to first combat/loot, distance walked, time to first return possibility, median full-commit duration and fraction of raid spent on uninteresting traversal.
+
+### Concrete next engineering research, after design review
+
+**Audit spatial ownership** across `zone-graph.js`, `big-level.js`, `levels.js`, archipelago terrain dressing/passage collision and town re-skin before proposing a code PR. Build one **area-specific outdoor graph** behind a flag/isolated PR, preserving existing Bunker sizing, then run deterministic seed/collision tests and three phone playthroughs. Avoid changing asset dimensions or the current camera as a shortcut.
+
+**Decision status:** Owner direction **CONFIRMED**: Archipelago larger, Bunker size broadly acceptable with more structural variety. The 1.5x–2x size, example terrain and room templates, time budgets and exact acceptance thresholds are **proposed and require playtest validation**.
+
