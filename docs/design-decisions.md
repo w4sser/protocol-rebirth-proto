@@ -261,7 +261,7 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 ## D3 — First-Time Player Experience (FTUE)
 
-**Status: D3.1, D3.2, D3.5, D3.6, D3.7, and D3.8 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
+**Status: D3.1, D3.2, D3.5, D3.6, D3.7, D3.8, and D3.9 APPROVED — intro combat, bunker-entry extraction, BIT discovery, actual Core L1 restoration using intro loot, and free full intro restart on failure. Presentation details remain OPEN.**
 
 ### D3.1 — Fight your way home; discover BIT in the bunker
 
@@ -377,9 +377,9 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Still open:** exact multipliers, maximum assistance, how to count quits/timeouts/disconnects, whether to cap assistance after a success, how it interacts with DDA and Hard variants, and which BIT lines and visual hints are shown. Validate with repeated first-raid failures and successful early extraction; measure understanding and player agency, not just completion.
 
-### D3.9 — Final FTUE closure package (PROPOSED, awaiting owner approval)
+### D3.9 — Final FTUE closure package (APPROVED by owner, 7 November 2026)
 
-This six-rule implementation contract consolidates the remaining *design* decisions; exact seconds, enemy stats, camera staging, performance and voice line variations should be decided through implementation and mobile playtesting, not mistaken for approved fixed numbers.
+**OWNER APPROVAL (7 November 2026): All six rules below are locked.** This implementation contract closes the high-level FTUE design review. Exact seconds, enemy stats, camera staging, performance and voice line variations should be decided through implementation and mobile playtesting, not mistaken for approved fixed numbers.
 
 1. **Intro layout:** Short authored linear outdoor combat approach to a clear bunker destination; the two guaranteed Scrap Alloy are placed along the mandatory path. Do not introduce node-gating, the full inventory/economy, or a parallel mission structure during this approach. Gameplay begins immediately.
 2. **Intro exit/settlement:** Entering the bunker requires one explicit door interaction. This concludes the special introductory mission and banks the introductory items exactly once; **do not** require the ordinary five-second EXTRACT countdown, a normal node clear or a separate interrupting result screen before meeting BIT.
@@ -388,11 +388,11 @@ This six-rule implementation contract consolidates the remaining *design* decisi
 5. **Failure:** Intro death restarts the special intro free with no permanently lost progression or duplicated items. First ordinary-raid death follows normal D1 losses/free Basic Carbine retries and the D3.8 bounded progressive assistance, never an automatic victory, resurrection, or retained carried bag.
 6. **FTUE completion:** End compulsory onboarding after the **first successful ordinary extraction** and its honest Fabricator-progress/next-goal presentation; **do not** require completing Fabricator L1, clearing every depth, finding two Cable, or reaching the final stage first. Thereafter the normal game is accessible. If the first normal raid fails, replay with progressively more suitable assistance rather than keeping players in a mandatory pop-up loop.
 
-**Non-blocking UX acceptance criteria (proposed):** After starting, the player can move/shoot without any required explanatory card. The two pickups cannot be permanently missed or duplicated. The player recognizes the bunker entrance, gets an uninterrupted first BIT greeting, spends exactly the earned two alloy, sees an unmistakable change in the home, can explain the first post-home objective, can identify node-forward vs extraction-home separately, and sees accurate banked vs lost inventory after the first regular raid. Every key cue works with audio muted on a small phone viewport.
+**Implementation and playtest acceptance criteria (derived from approved contract):** After starting, the player can move/shoot without any required explanatory card. The two pickups cannot be permanently missed or duplicated. The player recognizes the bunker entrance, gets an uninterrupted first BIT greeting, spends exactly the earned two alloy, sees an unmistakable change in the home, can explain the first post-home objective, can identify node-forward vs extraction-home separately, and sees accurate banked vs lost inventory after the first regular raid. Every key cue works with audio muted on a small phone viewport.
 
 **Deferred to tuning/test rather than new strategic votes:** exact first-shot/bunker discovery durations; damage/HP/speed assistance multipliers; helper bark cooldowns; exact staging and wording beyond “You're late, but you're back”; spawn placement and encounter intensity; animations/FX; and action button placement. Validate first-run completion, fail/retry, no-Cable extraction, and full-clear paths on phone.
 
-**Boundary:** These six details are a proposed owner sign-off package, **not yet APPROVED** merely because the parent FTUE philosophy was approved. No gameplay code changed.
+**Boundary:** All six rules were explicitly approved by Robert on 7 November 2026. Exact pacing, UI, combat values and dialogue beyond the owner's original BIT greeting remain to be implemented and validated. FTUE design is considered closed at the behavioral-contract level; no gameplay code changed as part of the documentation approval.
 
 ### D3.4 — Validation questions (OPEN)
 
@@ -424,5 +424,5 @@ This six-rule implementation contract consolidates the remaining *design* decisi
 | 2026-11-06 | D3.6: Death before bunker entry resets introductory mission from start with guaranteed loot and free retry | Approved by Robert; implementation pending |
 | 2026-11-06 | D3.7: Option B — contextual, non-blocking BIT guidance in first ordinary raid, with relevant help and anti-stall assistance | Approved; exact triggers/dialogue and timing proposed |
 | 2026-11-06 | D3.8: Gradually increasing subtle BIT and combat assistance after failed first ordinary-raid attempts, without guaranteed success | Approved by Robert; exact numerical ramp and edge cases open |
-| 2026-11-07 | D3.9: Proposed final six-rule FTUE closure contract including bunker entry, first ordinary extraction, and onboarding completion | Proposed for owner sign-off; no code changes |
+| 2026-11-07 | D3.9: All six FTUE closure rules including bunker-entry extraction, Core L1 restoration, first-raid failure rules and onboarding ending at first ordinary extraction | Approved by Robert; design closed for implementation and playtesting, no code changes |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
