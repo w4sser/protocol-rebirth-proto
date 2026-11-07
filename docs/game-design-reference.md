@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.4 - M19B passive movement growth and loot-burden feel retained |
+| Document status | Living design reference, v4.5 - M19C first ten successful extractions and earned reward cadence |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -751,6 +751,14 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **CURRENT CODE vs PROPOSAL:** `nodspel/stakes.js` already applies bag/backpack-slot occupancy penalties to movement and increased detection, up to the existing configured cap; this is a *slot fraction*, not a mass/weight simulation. A permanent level-based movement improvement with a suitable bounded milestone curve and clean replacement/consolidation of legacy Mobility XP is a design proposal until runtime stats are checked and tuning validated. **Preserve a tactical full-bag cost even for advanced operators.** No extra early skill tree, five background progress bars or onerous per-level selection UI. [D01]
 
+### 11.15 M19C — First ten successful ordinary extractions
+
+**DESIGN PROPOSAL:** [M19C First Ten Successful Extractions](first-ten-extractions.md) specifies a **playtest journey of ten ordinary successful returns**, not a guaranteed ten-raid sequence or scripted resource grants. It links each success to a possible tangible outcome, one clear tracked Bunker Project and a new reason to return: extraction confidence → Fabricator progress/commissioning → visible home change → tool choice → BIT usefulness → heavy-bag risk decision → loadout identity → Vault/Core tradeoff → actual scouting ambitions → a coherent longer-term home goal. Missed milestones slide naturally with real acquired items, failures and player choice. [D01]
+
+**Current module requirements checked in `data/modules.js`:** Fabricator L1 20 Scrap + 2 Cable + 2 Scrap Alloy; BIT Bay L1 20 Scrap + 2 Cable + 1 Polymer Plate; Vault L1 50 Scrap + 2 Polymer Plate + 2 Scrap Alloy; Core L2 120 Scrap + Power Relay + Circuit Board + Power Cell + AI Fragment. These are current prototype costs, not approved new tuning. `data/progression.js` still contains legacy scripted first-hour guarantees and insurance/recovery; the D1/D3.9 target direction supersedes those. Core L2's old zone unlock copy requires alignment with M18 extracted Chart/Archipelago goal before treating world access as implemented. [D01]
+
+**Experience contract:** Each meaningful extraction should show truthfully banked loot, progress to the chosen Project and **one** next action. Optional low-cost visual home repairs and earned equipment affordances should help avoid an empty-feeling early economy without competing for scarce Core parts; temporary M19B level movement improvements and existing bag-burden penalties stay tactile and largely behind the scenes. No extra early skill bars, forced Growth Fund prompt or rare-part completion through the success counter. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1111,6 +1119,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.5, 7 November 2026:** Added M19C concrete first-ten-successful-extraction experience and current module cost audit. Rewards arise only from actually banked resources and earned unlocks; outcomes are a flexible test sequence, not count-based grants or final economy tuning.
 - **v4.4, 7 November 2026:** M19B clarified that simplifying progression does not remove tactile passive effects: level-based operator speed growth and current loot-bag movement/detection cost remain central, with their exact curve/visual feedback awaiting device playtest. No gameplay code changed.
 - **v4.3, 7 November 2026:** Captured M19A owner direction for simpler early progression and optional endgame depth, with a proposed pruning/reveal plan for Operator skills, weapon mastery and BIT Bond/talents. No implementation or skill deletion.
 - **v4.2, 7 November 2026:** Added M19 cohesive 30/60/90-day progression and content economy, one home Project, meaningful post-raid payoff, content reuse, commercial boundaries and explicit remaining tuning decisions. Design only; gameplay updates remain on separate feature branch.
