@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.1 - M18B larger Archipelago and greater same-scale Bunker variation |
+| Document status | Living design reference, v4.2 - M19 integrated 30/60/90-day progression and content economy |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -729,6 +729,16 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Source alignment:** Big Map uses shared `data/raid-big-layout.js` room spacing, shared graph generation (`nodspel/zone-graph.js`) and Bunker-authored templates inside `nodspel/big-level.js`, although terrain/dressing can differ downstream. Thus a larger forest is a **topology and encounter-space problem**, not just a model-size or cosmetic change. Verify the complete generated geometry/runtime path before implementation. No game code was changed. [D01]
 
+### 11.12 M19 — Progression and content economy integrated across 30/60/90 days
+
+**DESIGN PROPOSAL:** The [M19 Progression & Content Economy](progression-content-economy.md) connects one player-selected persistent home Project, meaningful raid loot and early extraction, Operator XP and few deliberate choices, losable loadout, BIT companion support, four identity/cosmetic focus areas, and scouting gates for Archipelago/Town. The bunker and its visible restoration remain the primary long-term anchor, not one of six competing progress bars. [D01]
+
+**Cadence hierarchy:** useful partial progress at each meaningful successful return; occasional small restoration or functional upgrade after several raids; a distinct region/world milestone only after a real Core upgrade **and** the relevant successfully extracted Chart/Survey. The 30/60/90-day framing is for validating content depth and long-term progression, **not calendar gates or guaranteed unlock timing**. [D01]
+
+**Content multiplier:** systematic enemy pairing, tactical mechanics, variable route topology, optional world incidents and relevant loot opportunity produce repeat value from a constrained validated content kit. Shop products under approved M5 remain deterministic resource acceleration, retroactive Growth Fund based on earned milestones, and permanent cosmetics. No paid death protection, bypassing extracted reconnaissance, exclusive gadget counter or shop during active raid. [D01]
+
+**Still open:** Simplification/removal of currently overlapping skill/mastery tracks, precise first-ten-successful-raids reward cadence, actual economy source/sink tuning and M20 retention/LiveOps. All need real generated/played raid results and mobile testing; this documentation does not modify runtime or spreadsheet data. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1089,6 +1099,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.2, 7 November 2026:** Added M19 cohesive 30/60/90-day progression and content economy, one home Project, meaningful post-raid payoff, content reuse, commercial boundaries and explicit remaining tuning decisions. Design only; gameplay updates remain on separate feature branch.
 - **v4.1, 7 November 2026:** Owner clarified Archipelago needs substantially larger navigable outdoor areas while Bunker sizing works but needs richer structural/encounter variety. Added M18B, spatial generator audit and playtest-only 1.5–2x footprint hypothesis. No gameplay edits.
 - **v4.0, 7 November 2026:** Added owner-requested M18A strong within-biome raid variation: loot, enemy compositions, routes, tactical choices, optional field events and mission purpose. Linked proposed seeded situation-director design and proposed anti-repeat validation; no gameplay or economic changes.
 - **v3.9, 7 November 2026:** Defined M18 World & Mission Design across Bunker, Archipelago and Town, region unlocks via Core plus extracted scouting items, one-purpose mission hierarchy, procedural map templates, story/mystery spine and legacy-raid alignment risks. Documented only; no new story canon or gameplay code approved.
