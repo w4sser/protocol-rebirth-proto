@@ -1090,6 +1090,22 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M15 — Reusable Tactical Encounter Grammar
+
+**Design continuation requested, 7 November 2026.** Detailed proposal documented in [Tactical Encounter Grammar](tactical-encounter-grammar.md). This builds on the owner-requested M13 core-gameplay fun direction and M14 eight-minute gameplay-to-meta rhythm, without authorizing new implementation.
+
+**Proposed six tactical mechanics:** **T1 Cut Power** (relay/shield systems), **T2 Divert Attention** (patrols/noise/decoy), **T3 Flank/Break Sight** (directional weakpoints/cover), **T4 Trigger Environment** (telegraphed hazards), **T5 Disrupt Support** (healers/scout alert networks), and **T6 Trade Access for Risk** (optional valuable routes/caches, not a new input verb). Build encounters by combining one primary rule with a readable enemy role, optional secondary rule, a viable direct-combat fallback, and an optional loot payoff. The same mechanics should recur in bunker, summer-night forest and town instead of individual bespoke puzzles.
+
+**Priority design hypothesis:** Start with T1 + T3 + T5 (clearly connected to existing enemy roles); use Issue [#205](https://github.com/w4sser/protocol-rebirth-proto/issues/205) as the T1/T3 Shielded Relay Room prototype when development is scheduled. T2 and T4 require careful patrol and hazard implementation feasibility; T6 binds tactical opportunity to D1/D2 extraction risk. None of these new environmental interactions is claimed to exist in live code.
+
+**Core constraints:** Preserve D1 loss and fallback, D2 return-from-start and depth-only node gating, D3.9 authored FTUE, readable mobile-camera combat, current controls, ~20–60 s optional tactical rooms, modest content complexity, no paid-exclusive puzzle solutions. A successful solution should generally reduce health/ammo/time cost rather than create an extra premium-loot fountain. A smart tactic may later earn distinctive nameplates/titles under M11/M12.
+
+**Next design questions open:** special-room frequency; whether alternative solutions are competitively viable rather than fake choices; how and when to reward encounter mastery cosmetically; and which systemic tactic transfers best across three biomes. Prototype success must be measured against combat-only rooms before scaling content.
+
+**Status:** PROPOSED detailed design, **not yet owner-approved mechanic catalogue, spawn rates, reward tuning or implementation**. No code changes.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1127,4 +1143,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M12: Integrated Identity & Home Meta specification linking profile, operator, BIT, bunker and monetization | Design specification drafted; detailed mechanics remain proposed |
 | 2026-11-07 | M13: Core gameplay must be more fun; explore classic MGS-style multi-solution tactical room problems | Owner-requested design priority; examples and slice proposed, no implementation |
 | 2026-11-07 | M14: Eight-minute raid design linking action, optional tactical rooms, extraction choice and persistent meta | Integrated proposal documented; pacing/mechanics to validate in playtest, no code changes |
+| 2026-11-07 | M15: Reusable Tactical Encounter Grammar (T1–T6) and bunker/forest/town composition | Design proposal documented; no mechanic catalogue or spawn tuning approved |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
