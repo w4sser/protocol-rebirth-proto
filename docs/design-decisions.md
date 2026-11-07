@@ -1219,6 +1219,16 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19B — Two Named Identity Nameplates (Owner Copy)
+
+**OWNER CONTENT CHOICE, 7 November 2026:** Add two player-facing nameplates/titles, with exact English wording: **Ghost of the Past** and **No Fear of Tomorrow**. Record under the approved identity pillar M11–M12 and [Identity & Home Meta design](identity-home-meta.md#6a-two-named-player-nameplates--owner-supplied-names).
+
+**Proposed thematic treatment, not approved art/unlock:** Ghost of the Past = old-world memory/archive discovery, weathered lavender metal and faint cyan CRT treatment; No Fear of Tomorrow = rebuilding/courage, deep navy with warm-amber horizon. Prefer earned achievements (Town archive extraction vs voluntary high-risk raid or restoration) but owner has **not** yet specified unlock rules, rarity, purchase availability or art.
+
+**Status:** Exact two names **owner supplied and recorded**; design/earn rules and implementation remain proposals. No code changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1264,4 +1274,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M18B: Archipelago playable areas larger, Bunker size retained with higher structural variety | Owner direction confirmed; size multiplier and layouts to playtest |
 | 2026-11-07 | M19: One integrated 30/60/90-day progression and content economy linked to raids and home | Detailed proposal; timelines and balance require validation |
 | 2026-11-07 | M19A: Less early progression UI, optional deeper endgame systems | Owner direction confirmed; exact track consolidation/open decisions remain proposals |
+| 2026-11-07 | M19B: Ghost of the Past / No Fear of Tomorrow player nameplates | Owner-supplied names recorded; art and earning rules proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
