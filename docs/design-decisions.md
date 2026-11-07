@@ -1189,6 +1189,24 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19 — Integrated Progression & Content Economy (30/60/90 Days)
+
+**User requested continued design work, 7 November 2026**, while preparing a future Archipelago/collision gameplay recording. Full design specification: [M19 Progression & Content Economy](progression-content-economy.md). This describes how raids, home restoration, Operator, BIT, losable gear, identity and world access become **one coherent player journey**, rather than disconnected leveling systems.
+
+**Existing owner-approved decisions preserved:** D1 controlled-risk exposure, one Vault L1 Secure Slot and free Basic Carbine; D2 short optional return extraction and distinct deeper rewards; D3 fixed introductory sequence; P1.1 bunker drives world/operator drives playstyle/equipment is risked/BIT helps; P1.3 a few meaningful Operator milestone decisions; M5 direct resource products, one-time retroactive Growth Fund and permanent cosmetics; M9 frequent visible early restoration; M10–M12 identity/home pillars; M18–M18B varied areas and larger Archipelago.
+
+**Proposed 30/60/90-day architecture:** Not calendar-gated progression. Early play establishes visible home, functional Core/Fabricator/Vault/BIT upgrades and basic loadout choices; medium-term unlocks and explores Archipelago with distinctive tactics; longer-term introduces Town, deeper combinations, authored discoveries, earned mastery identity and more restored living spaces. Exact days, milestone counts, reward sizes and progression speed are **not approved** and must be tuned to successful-raid cohorts, real economy costs and device playtests.
+
+**One primary Project UX:** Each homecoming visibly tracks banked resources against one chosen bunker/world goal and supplies a corresponding free **Track & Raid** action. Secondary Operator/BIТ achievements, visual repairs and optional products remain unobtrusive. A raid is fun in itself; meta provides lasting reason to return. Small repairs do not introduce another currency or block major room inputs.
+
+**Content economy:** Reuse M15 tactical grammar, M16 enemy combinations, M18A raid variation, a small validated map/landmark library and authored world milestones rather than creating one handcrafted mission per visit. Measure actual player-facing diversity, not generator seed novelty.
+
+**Commerce boundaries:** M5 products are optional and transparent; no purchase bypasses physical extraction or scouting, no rescue/extra Secure Slot, no paid-only counter, no mandatory FTUE monetization. Actual backend authority is required for production purchase and cosmetic ownership; offline Pages data is not production-secure.
+
+**Status:** DETAILED DESIGN PROPOSAL; **no newly approved prices, resources, reward timelines, individual skill-tree removals or implementation**. Next owner review is explicit progression simplification, first ten successful-raid rewards, and subsequent M20 LiveOps.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1232,4 +1250,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M18: Three distinct world regions, mission hierarchy, scouting unlocks and raid extraction invariants | Integrated design proposed; catalog/mission UX/content counts pending owner review |
 | 2026-11-07 | M18A: Strong repeat-raid variation within every world (loot/enemies/routes/tactics/events) | Owner direction confirmed; situation-director design and quantitative targets proposed |
 | 2026-11-07 | M18B: Archipelago playable areas larger, Bunker size retained with higher structural variety | Owner direction confirmed; size multiplier and layouts to playtest |
+| 2026-11-07 | M19: One integrated 30/60/90-day progression and content economy linked to raids and home | Detailed proposal; timelines and balance require validation |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
