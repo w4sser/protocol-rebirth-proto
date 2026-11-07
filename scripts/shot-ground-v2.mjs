@@ -36,7 +36,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
-    for (const mode of ['off','high','low']) {
+    for (const mode of (process.env.COASTAL_FOCUS==='1'?['high']:['off','high','low'])) {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
@@ -80,6 +80,7 @@ try {
         seed:'groundshot',debug:'1',q:mode==='low'?'low':'high',area,return:'../index.html',
       });
       if (mode !== 'off') {params.set('ground','2');params.set('groundProfile',mode);}
+      if (process.env.COASTAL_FOCUS==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
@@ -114,6 +115,26 @@ try {
         console.log('[timber-bridge-meshes]',area,mode,JSON.stringify(audit));
         if(audit.meshes===0||audit.instances<5||!audit.allVisualOnly)
           throw new Error('Timber bridge render missing or invalid: '+JSON.stringify(audit));
+      }
+      if (process.env.COASTAL_FOCUS==='1') {
+        await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "coastal" && window.__polyforkPreview.stats.ready', {polling:250,timeout:45000});
+        const life=await page.evaluate(()=>{
+          const st=window.__polyforkPreview.stats;
+          const level=window.__NR?.state?.()?.level;
+          const record=st.landmarks?.[0];
+          if(record&&level){
+            const islands=level.floors.filter(f=>!f.dir),island=islands[record.islandIndex];
+            if(island){
+              const center=record.center;
+              const x=island.x+(center.x-island.x)*.76,z=island.z+(center.z-island.z)*.76;
+              window.__NR.teleport(x,z);
+            }
+          }
+          return {landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned};
+        });
+        console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
+        if(!life.landmarks?.length || !life.planned)throw new Error('No coastal vignette for seeded capture');
+        await sleep(1800);
       }
       let ground=null;
       if (mode !== 'off') {
