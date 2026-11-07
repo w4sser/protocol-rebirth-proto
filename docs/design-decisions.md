@@ -859,6 +859,34 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 
 ---
 
+## M7 — Controlled Spend Comparison + Random Loot Simulation (7 November 2026)
+
+**Analysis completed, not a new economy approval.** An updated, editable workbook `Protocol_Rebirth_30_Day_Economy_Model_v2.xlsx` was delivered as a conversation artifact, **not added to the repository**. It retains the original expected-value engine but adds `Simulation Setup`, `Monte Carlo Runs`, `Monte Carlo Summary`, `Controlled Comparison`, and `Simulation Notes`. Its Monte Carlo output is a reproducible **snapshot**, requiring an explicit rerun after changing inputs; the original engine and summary cell formulas remain editable.
+
+**Controlled assumptions:** 1,000 matched random seeds per spend tier (4,000 simulated player outcomes); **exactly the same randomized raids and loot per seed across all four tiers**, 2 attempts/day, 70% extraction chance, 30% deep-choice chance, 30 days after FTUE. Spend = 0, 89, 399, or 1,999 SEK over 30 days. Purchases use the M4/M5 provisional Signals wallet/resource basket and Growth Fund assumptions, **not observed sale behavior**. Functional supply packs exclude rare key gate ingredients. The initial Core L1 is already complete as required by D3.9.
+
+**Loot generation:** Weighted random draws take the relative item weights for the three depths from current `nodspel/levels.js` (e.g. depth 1 Cable 4 / Alloy 4 / Polymer 3 / Salvage Crate 4, depths 2–3 supporting rarer finds). For a successful shallow run, sample two depth-1 items and one depth-2 item; for a deep run, sample two depth-1, one depth-2 and one depth-3 item. This simplified sampling respects a base 4-slot bag but **does not emulate actual spawned locations, pathing, pickup selection, node traversal, stacking, zone gating, true extraction Scrap bonuses or player inventory strategies**. It is a much stronger variance test than assuming fractional loot but **NOT** a calibrated replay of the actual game runtime. Avoid describing these synthetic outcomes as actual code-measured drop rates.
+
+| Spend cohort | Core L2 achieved by day 30 | Median Core L2 day (31 means not achieved) | Core L2 P10–P90, days | Core L3 achieved by day 30 | Mean completed milestones |
+| --- | ---: | ---: | --- | ---: | ---: |
+| Free, 0 SEK | 89.4% | 16 | 9–31 (31 censored) | 0.1% | 4.348 |
+| Occasional, 89 SEK | 89.4% | 15.5 | 9–31 (31 censored) | 0.1% | 4.348 |
+| Regular, 399 SEK | 97.6% | 9 | 6–21 | 0.7% | 5.326 |
+| High spender, 1,999 SEK | 97.6% | 9 | 4–21 | 0.7% | 5.328 |
+
+All tiers averaged **41.966 successful extractions** in the matched test. On these supply baskets, spending from 399 to 1,999 SEK barely accelerates the median world upgrade because Core's rare key ingredients remain a drop-gated bottleneck. **This is a model diagnosis, not a recommendation to make rare story keys purchasable.** The rare-item/late-Core arrival estimate is especially sensitive to simplified pickup policy and drop tables.
+
+**Immediate economy design actions for next tuning pass:**
+1. Preserve a viable free path but inspect why the first Core L2 transition misses the first 30 days for ~10.6% of the matched free group; tune item source clarity and earned crafting/barter/pity routes rather than introducing unjustified paid-only gates.
+2. Separate money's mechanical value from real skill/engagement across all later commercial scenarios: paired outcomes are preferable to personas that both spend and play more.
+3. Test a second **supply basket design** with targeted *non-story* required items, with caps, to learn whether paying meaningfully accelerates without replacing the need for extracting rare authored access keys.
+4. Build a run-level instrumentation harness using **actual** loot generation/retention events (not just `levels.js` weights). Compare observed median and P10/P90 first upgrade days to the simplified model; then iterate prices and fund.
+5. Do not infer payer conversion, DAU mix, LTV, revenue, or optimal commercial pricing from this simulation.
+
+**No game code changed; no final price, drop-rate, funded reward, or purchase policy was approved.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -888,4 +916,5 @@ Core KPIs: D1/D7/D30 retention, time to Core L2 / first personalized room, first
 | 2026-11-07 | M4: Full midcore Model C permits functional meta progression/resource sales plus cosmetics, but not raid-success insurance or paid death recovery | Approved commercial direction by Robert; economy ratios, sellable items, caps and offers are proposed |
 | 2026-11-07 | M5: Hybrid commercial structure C — direct resource offers + bunker milestone Growth Fund + room/operator/BIT cosmetic products | Approved by Robert; UX details, numerical rewards and prices remain proposed |
 | 2026-11-07 | M6: Editable post-FTUE 30-day economic scenario across four sample spend/engagement cohorts | Completed modeling analysis; all scenario input values unapproved and nonpredictive |
+| 2026-11-07 | M7: Matched spend-only Monte Carlo, 1,000 seeds x 4 tiers, prototype-weighted randomized loot | Analysis complete; rates/packs synthetic and unapproved, no code changes |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
