@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.6 - integrated Identity/Home M12 and eight-minute tactical raid blueprint M14 |
+| Document status | Living design reference, v3.7 - identity/home M12, eight-minute raid M14 and tactical encounter grammar M15 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -681,6 +681,14 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **First playable validation:** Compare a matched combat-only raid and a raid with Shielded Relay Room on new-player comprehension, fun, second-method exploration, time and deaths, visible gear/material payoff, after-return desire to play again, extraction clarity and mobile FPS. Keep cosmetics permanent, fielded gear at risk and any commerce outside active raids. Details and proposed gates are in [M14](design-decisions.md#m14--eight-minute-raid-pacing-and-tactical-to-meta-loop).
 
+### 11.6 M15 — Six reusable tactical encounter mechanics
+
+**NEW DESIGN SPECIFICATION:** The [Tactical Encounter Grammar](tactical-encounter-grammar.md) proposes six small reusable mechanisms to produce varied decision-rich rooms without bespoke puzzles: **T1 Cut Power** (visible relays linked to shields/alarms), **T2 Divert Attention** (patrol/noise/decoy), **T3 Flank/Break Sight** (directional armor/cover), **T4 Trigger Environment** (visible hazards), **T5 Disrupt Support** (repair, scout and reinforcement links), and **T6 Trade Access for Risk** (optional loot routes with time/health/gear consequences). T6 is a player choice/reward pattern, not a new interaction button. [D01]
+
+**Proposed room construction:** one readable enemy threat + one primary mechanic + optionally a second familiar mechanic + two or more viable responses, including straightforward mobile shooting + optional worthwhile loot + the preserved D2 return-extraction choice. Test T1/T3 first via Shielded Relay Room ([Issue #205](https://github.com/w4sser/protocol-rebirth-proto/issues/205)), then test T5 or T2 in the next biome only if the first tactical-room playtest actually improves enjoyment. The code already includes several relevant enemy archetypes, **but this design does not assert that the environmental link/AI behaviors are currently implemented**. [D01]
+
+**Transfer across locations:** Bunker Shielded Relay = power + flank, summer-night forest Scout Crossing = attention + sight lines, town Alarmed Workshop = disrupt support + optional alarm route. Keep expected special-room duration roughly 20–60 seconds, use existing touch actions, protect mobile FPS, no mandatory stealth/puzzles or expensive unique art. Skill mastery can yield optional **earned** titles/nameplates, while all field-carried materials obey D1 loss and D2 successful extraction. All numerical encounter frequency and reward details remain unapproved playtest hypotheses. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1041,6 +1049,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.7, 7 November 2026:** Detailed M15 reusable tactical encounter grammar across bunker/forest/town using six verbs (power, diversion, flank, hazards, support, optional risk/reward) and explicit candidate priority for Shielded Relay Room Issue #205. No gameplay code changes or approved mechanics/rates.
 - **v3.6, 7 November 2026:** Added the integrated eight-minute raid blueprint M14 with concrete combat / optional tactical room / extraction / persistent home-and-identity rhythm, first Shielded Relay Room slice, guardrails and playtest acceptance. No game code changes or numerical tuning approval.
 - **v3.5, 7 November 2026:** Added the integrated Identity & Home Meta system specification (M12) with shared operator/BIT/bunker/profile identity, early free rewards and cosmetic currency separation. Recorded the owner's new core gameplay enjoyment priority (M13): optional multi-solution tactical problem rooms inspired by classic Metal Gear Solid, starting with a proposed Shielded Relay Room vertical slice. No code changes or balancing approvals.
 - **v3.4, 7 November 2026:** Captured M11 player Callsign and collectible nameplate direction, plus earned titles, emblems, profile cards and coordinated cosmetics across operator/BIT/bunker. Specified an optional post-FTUE naming flow and offline local-only identity caveat. Exact catalog and UX remain proposals; no code change.
