@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.7 - FTUE and progression architecture approved; full midcore monetization C approved as direction |
+| Document status | Living design reference, v2.8 - FTUE and progression approved; full-midcore and hybrid product architecture C approved |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -486,6 +486,18 @@ Selling for Scrap and breaking an item into base materials are different actions
 
 **Validation:** Cohort analysis over free/occasional/regular/high-spending players; measured D1/D7/D30, upgrade time and payer/free progression gap, material inflation, payer conversion, first purchase, repeat purchase, net revenue/LTV, cosmetic uptake, refunds and raid abandon/death rates. Preserve clearly labeled prices, age/platform consumer safeguards, and no loss-triggered manipulative revival offers. See detailed ledger, trial offer catalog, open decisions and benchmark references in [decision register M4](design-decisions.md#m4--full-midcore-monetization-premium-economy-and-extraction-integrity).
 
+### 8.8 M5 — Approved hybrid commercial product structure (7 November 2026)
+
+**OWNER APPROVAL M5:** The full midcore Model C (M4) is delivered commercially through **three complementary product families:** (1) deterministic direct **resource offers** for a specific room/upgrade need, (2) a **Rebirth Growth Fund** that pays out rewards at earned bunker milestones, and (3) lasting cosmetic **room/operator/BIT collections**. These categories are locked; balance and precise offer definitions are still in review. [D01]
+
+**Growth Fund v1 — proposed product specification:** A one-off explicit purchase reveals a premium track parallel to a free bunker-restoration milestone track; achievements are earned by real play and building, **not by buying the fund**. The proposed six milestones are FTUE first normal extraction, Fabricator L1, Vault L1, BIT Bay L1, Core L2 and Core L3. A player purchasing late may **claim all previously earned eligible premium rewards retroactively**. Reward claiming must be exactly-once and recoverable across reinstall/sync/refund. Show total reward contents without fake multiplier/value claims. Proposed test reward ladder: 150/250/300/350/500/750 Signals on the respective paid milestones (2,300 total) plus explicitly listed resources and cosmetics; the currency amounts and eventual fund price are **not approved**.
+
+**Direct resource offers — proposed interaction:** In an accessible functional room's missing-requirements panel, show the exact shortfall. Provide equal legibility for `Find in raid` (earned acquisition) and optional `Get materials` (deterministic disclosed Signals purchase). Any paid inputs land in secured home storage and must not force a BUILD interaction or bypass other eligibility gates. No paid scouting/quest completion, extra Secure Slots, death recovery or automatic successful extraction. Stash capacity/overflows require non-lossy pending claims for purchases. Potential product examples: Scrap/Alloy supply, Cable/Fabricator kit, Electronics cache and bounded research kits. Prices, quantities, source availability and rare-material permissions remain proposed.
+
+**Monetization surfaces — proposed UI responsibilities:** No shop before completed FTUE or during a raid/death/extraction. Post-first-normal-extraction: an optional welcome identity offer **after** the result and core next-goal; bunker overview: one non-blocking store link; room build detail: exact requirements with `Find in raid` + optional `Get materials`; Projects/Progression tab: Growth Fund; room decorator: furniture/room themes; Operator and BIT Bay appearances: cosmetic preview/equip; after milestone: one relevant non-forced offer shortcut after showing the actual upgrade result. Never substitute a commercial modal for BIT's approved storytelling or interrupt movement/aim/fire.
+
+**Test sequence and economics:** Prove free room decorating; validate deterministic repair-adjacent products; then one bunker milestone Growth Fund with late retroactive claiming; only later scale curated themed collections and live events. Monitor paid vs free progression timing, first/return purchase, purchase refunds, room personalization, fund milestone completion/claim rate, raid participation after purchases and D1/D7/D30 retention. Detailed decision record, numerical hypotheses and unresolved offer questions are in [M5](design-decisions.md#m5--hybrid-commercial-product-structure-direct-resources--growth-fund--cosmetics). [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -955,6 +967,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.8, 7 November 2026:** Owner approved commercial hybrid C (M5) direct resources + bunker milestone Growth Fund + cosmetic collections; specified proposed late/retroactive claiming, room-adjacent direct purchase UX, commercial placements, event and offer guardrails without approving numerical rates or implementing commerce. Documentation only.
 - **v2.7, 7 November 2026:** Owner selected full midcore Model C, permitting paid functional meta resources/progression alongside cosmetic room/operator/BIT purchases. Proposed a concrete Signals wallet, sinks/sources, starter SEK price ratios, milestone/seasonal offers, paid-vs-free modeling and explicit D1 extraction integrity guardrails. Numerical offers and implementation remain proposals.
 - **v2.6, 7 November 2026:** Researched Whiteout Survival, Survivor.io and Toca Boca World as distinct monetization/progression references; proposed M3 three-loop economy, currency separation, clear direct cosmetic packs, phased live events, and measurable commercial validation. Paid progression policy, offers and pricing remain unapproved. Documentation only.
 - **v2.5, 7 November 2026:** Owner approved P1.3 hybrid Operator milestone choices; meta monetization direction expanded to premium currency and visual personalization of operator, bunker rooms and BIT. Recorded optional bunker naming inspired by Hay Day as a proposed identity feature without adding FTUE friction. No monetization mechanics, prices or removals were approved. Documentation only.
