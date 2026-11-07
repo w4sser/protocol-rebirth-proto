@@ -17,13 +17,17 @@ export function graphRoomAt(graph,p,previous=graph.spawn.roomId){
   const edge=graph.edges.find(e=>Math.abs(p.x-e.corridor.x)<=e.corridor.w/2&&Math.abs(p.z-e.corridor.z)<=e.corridor.d/2);
   return edge?(edge.a===previous||edge.b===previous?previous:edge.a):previous;
 }
-export function generateZoneGraph(seed){
-  const rng=randomFromSeed(`${seed}:big-graph`),count=6+Math.floor(rng()*7),spacing=BIG.spacing,width=RULES.levels[1].passage;
+export function generateZoneGraph(seed,area='bunker'){
+  // The archipelago requires genuinely larger outdoor encounter spaces rather than
+  // scaling the same bunker map uniformly. Preserve the bunker generation baseline.
+  const outdoor=area==='archipelago';
+  const rng=randomFromSeed(`${seed}:big-graph:${area}`),count=outdoor?9+Math.floor(rng()*4):6+Math.floor(rng()*7),spacing=outdoor?BIG.archipelago.spacing:BIG.spacing,width=outdoor?BIG.archipelago.passage:RULES.levels[1].passage;
   const pool=RULES.layouts[2],nodes=[];
   for(let i=0;i<count;i++){
     const layout=pool[Math.floor(rng()*pool.length)],index=Math.floor(rng()*layout.rooms.length),room=i===0?RULES.startRoom:layout.rooms[index];
-    const variant=BIG.shapes[i%BIG.shapes.length],shape=room.w>=room.d?variant:{w:variant.d,d:variant.w};
-    nodes.push({id:i,x:(i%3)*spacing,z:-Math.floor(i/3)*spacing,w:room.w*shape.w,d:room.d*shape.d,name:i===0?RULES.startRoom.name:RULES.roomNames[index],layoutId:i===0?'start':layout.id,templateIndex:index,doors:[]});
+    const shapes=outdoor?BIG.archipelago.shapes:BIG.shapes;
+    const variant=shapes[(i+Math.floor(rng()*shapes.length))%shapes.length],shape=room.w>=room.d?variant:{w:variant.d,d:variant.w};
+    nodes.push({id:i,x:(i%3)*spacing,z:-Math.floor(i/3)*spacing,w:room.w*shape.w,d:room.d*shape.d,name:i===0?RULES.startRoom.name:(outdoor?['Granite Clearing','Pine Grove','Coastal Ridge','Signal Outpost'][i%4]:RULES.roomNames[index]),layoutId:i===0?'start':layout.id,templateIndex:index,doors:[]});
   }
   const candidates=[];for(const a of nodes)for(const b of nodes)if(a.id<b.id&&Math.abs(a.x-b.x)+Math.abs(a.z-b.z)===spacing)candidates.push({a:a.id,b:b.id,roll:rng()});
   candidates.sort((a,b)=>a.roll-b.roll);const parent=nodes.map(n=>n.id),root=i=>parent[i]===i?i:(parent[i]=root(parent[i])),tree=[],loops=[];
