@@ -1303,10 +1303,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M22 — Tactical Combat Foundation: Enemies and Environment First (OWNER APPROVED, 7 November 2026)
+
+**Locked:** Protocol Rebirth's moment-to-moment combat depth primarily comes from **recognizable enemy behaviors, combinations of enemy roles, player positioning and readable environmental geometry**. The player should respond through movement, flanking, timing, cover and route selection. Encounters need to be intrinsically engaging using the always-available **Basic Carbine**, including when the player owns no premium equipment or advanced build.
+
+**Locked relationship to equipment:** Weapons, gadgets and builds **expand the viable ways to solve those tactical situations** (different strengths, tradeoffs and play styles), but must not be the sole source of interesting tactical play or a mandatory power key for ordinary encounters. Powerful unlocks can feel rewarding without rendering the free starter tool ineffective. Avoid designing ordinary fights around purchased damage/power or adding multiple mandatory ability buttons to the phone HUD.
+
+**Core / meta / commerce connection:** Players learn enemies and terrain during raids; earned gear and upgrades offer fresh approaches on later raids; deeper areas combine familiar enemy roles in new ways under M21. The approved M4/M5 functional-metaprogression commerce may accelerate permitted progression but must not make Basic Carbine combat unfun or invalidate D1/D2 extraction risk. Purchases never auto-win, remove the need for counterplay or bypass extraction.
+
+**Candidate encounter examples (NOT locked implementation):** A front-shielded rotating turret encourages flanking; a mobile rusher pressures movement and sightlines; an artillery telegraph encourages repositioning; a mixed encounter forces target prioritization and route changes. Each threat must have legible tells, reachable counterplay and fair movement/collision at mobile scale. These are illustrations, not fixed encounter scripts, enemy stats or production orders.
+
+**Still open:** Which enemy-role pairings ship first, encounter density and depth progression, how strong the Basic Carbine remains through late-game power curves, optional gadget activation UX, counterplay telegraph timings, accessibility and performance. Validate with **Basic Carbine-only** playtests before using advanced gear to make encounters enjoyable. **Documentation only; no game code or merge authorized.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-07 | M22: Tactical combat is primarily enemy behavior, role combinations, positioning and environment; Basic Carbine must remain intrinsically fun | Owner approved; encounter tuning and gear choices open |
 | 2026-11-07 | M21: Deeper ordinary raids combine richer tactical choices with improved *chances* of valuable loot; extraction remains optional | Owner approved; specific encounter and loot tuning open |
 | 2026-11-07 | M19D: Home Project / in-raid probabilistic targeting; major rooms 2–3 stages at unchanged total cost; materials commerce after gameplay-built Fabricator L1 
 | 2026-11-07 | M20C: BIT foregrounds no more than one living-world lead at the bunker; other optional surprises emerge naturally in raids | Owner approved; home selection and replacement rules open |
