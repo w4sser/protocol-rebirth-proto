@@ -438,17 +438,83 @@ Robert selected **option C: the bunker drives the world; the operator drives pla
 | Temporary raid perks | **KEEP DISTINCT from persistent progression** | Run-specific tactical variance must not be presented as permanent ability or earned gear. |
 | Economy, quests, currencies, retention | **AUDIT AFTER SPINE** | Too many concurrent rewards/notifications obscure bunker purpose. Insurance and paid-bag recovery already excluded under D1; other monetization and currency decisions are open. |
 
-### P1.3 — Next decision for owner (OPEN)
+### P1.3 — Operator milestone hybrid (APPROVED, option C)
 
-Which simplification model governs **Operator progression**?
+**OWNER APPROVAL (7 November 2026): Option C — Operator XP and levels remain a simple background progression, with a limited number of significant player-facing playstyle choices at milestones.** Equipment and attachments remain an independent source of tactical options. Consolidate/reassess minor use-based skills and redundant mastery/stat tracks rather than making players administer them all in parallel.
+
+**Original alternatives (for decision history):**
 
 - **A. Passive/milestone track:** Operator XP/levels and a few consequential unlocks; remove/absorb most use-based numerical skills. Equipment and BIT hold tactical specificity.
 - **B. Explicit player builds:** Operator level awards scarce choices from a small, visible set of playstyle perks. Avoid many simultaneous mastery/skill trees.
 - **C. Hybrid:** Operator level supplies simple milestones and a small number of meaningful build choices; consolidate minor use-based skills and overlaps with weapon mastery, keeping weapon equipment customization independent.
 
-**Recommendation to review: C**, with a strict complexity budget. This is a separate design decision and has **not** yet been approved. No numeric cap, number of skill branches, reset cost, or talent catalog is authorized.
+**Status:** C is approved as the operator progression architecture. Exact unlock milestone levels, number of active perks, branch design, respec rules, and which existing skills are merged or removed remain **OPEN**; do not infer authorization to delete all use-based skills.
 
-**Implementation boundary:** P1.1 is documentation-only owner-approved direction; P1.2–P1.3 are proposals awaiting deliberate decisions. Preserve all existing behavior until separately authorized to alter it.
+**Implementation boundary:** P1.1 and P1.3 are owner-approved design direction; P1.2 is a simplification proposal. Preserve all existing behavior until separately authorized to alter it.
+
+---
+
+## M2 — Monetization Connected to the Meta-Game
+
+**Status: Owner-requested direction, 7 November 2026: currency monetization plus character, bunker room-by-room, and BIT visual customization. The following economy, product catalog, technical plan and pricing are design PROPOSALS, not yet owner-approved detailed commercial rules.**
+
+### M2.1 — Owner intent (CONFIRMED)
+
+The game's monetization needs a strong connection to the persistent meta-game. Robert wants **currency** as a commercial lever alongside **visual purchases for the operator, individually customizable bunker rooms, and BIT**. Room-by-room personalization takes inspiration from the owner-cited **Toca Boca** customization experience, but must fit Protocol Rebirth's mood and technical budget. The owner explicitly requested monetization-loop recommendations.
+
+This is **not** an approval to monetize secure slots, loss recovery, or weapons/power. The approved D1 restriction on insurance and paid bag recovery remains intact. Age/audience and platform requirements will be checked before implementation.
+
+### M2.2 — Proposed two-currency model (NOT APPROVED)
+
+| Layer | Proposed purpose | Sources / purchase | Spend | Constraint |
+| --- | --- | --- | --- | --- |
+| **Scrap** (existing soft currency) | Earned gameplay economy | Raids, legitimate trades/recycling | Gameplay construction, crafting, repair; optionally a limited set of basic earned decorations | Never require paid purchase for core loop |
+| **Signals** (existing premium-like currency name, repurposed) | Premium and occasional earned cosmetic purchasing | Direct currency purchases, a few transparent earned grants | Cosmetic room collections, operator outfits, BIT shells/accessories, cosmetic bundles | Proposed cosmetic-only; remove/reconcile existing Signals-to-Data-Cores exchanges, insurance and paid-bag recovery before release |
+| **Data Cores / items** | Rare earned progression materials, distinct from premium wallet | Gameplay | Upgrade requirements / equipment opportunities | Do not allow premium purchase of core progression materials under cosmetic-first proposal |
+
+**A single premium wallet is preferable to adding three cosmetic currencies.** Keep prices in real-money locally displayed where required, and do not make the game economy depend on buying Signals.
+
+**Important existing mismatch:** Current `data/progression.js` and `docs/economy-design.md` still reference insurance, recovery, and Signals-to-progression pathways; the economy design document is historical/proposed and contains obsolete Salvage terminology. This proposal does not silently update implementation or settle old monetization contradictions. If paid utility/resource acquisition is desired, that is a separate explicit design decision requiring risk/fairness review.
+
+### M2.3 — Proposed cosmetic ownership and personalization (NOT APPROVED)
+
+- **Bunker room-by-room:** Restore the functional room via gameplay first, then customize its visual identity using furniture, floors, walls, lighting, displays, decorative machinery, props and a small selection of themed styles. Decoration never replaces the room's gameplay upgrade or blocks Core access. Starter free items and earned furnishings should make the feature useful without purchase. Preview/place/reposition/store/reuse owned decorations.
+- **Operator:** Outfits, armor appearances, helmets, colors, patches and weapon appearance wraps are persistent **cosmetic entitlements**, separate from losable inventory stats and attachments. Dying must not delete purchased visuals, and cosmetic choices must not camouflage hitboxes or create an information advantage in PvP later.
+- **BIT:** Shells, screens/CRT face treatments, visual expression sets, antenna/hover FX and dock skins, with the same companion functionality regardless of purchase. Own one BIT identity across home and field.
+- **Themed product sets:** Example candidate collections: *Nordic Summer Night*, *Cold War Utility*, *Cozy Shelter*, *Salvaged Workshop*, and *Retro CRT*. Can be sold as a room pack, matching operator look and BIT style, or a disclosed bundle; no mystery loot-box presentation recommended.
+- **Progression connection:** Completing/repairing a room unlocks its new customization canvas (not a price gate). A visible upgrade creates emotional investment and an optional reason to personalize it. Cosmetic purchases apply immediately and persist on the account.
+- **Technical reality:** The inspected bunker currently relies on staged image plates and DOM hotspots, not a freely editable 3D room decorator. Room-level interactive decoration would require a new controlled layer, authored room scenes or slot-based placement; avoid assuming full free-placement or instant parity with Toca Boca World. Prefer low-overhead 2.5D/slot-based room customization for mobile proof-of-fun, then expand based on actual engagement and performance.
+
+### M2.4 — Proposed commercial engagement loop (NOT APPROVED)
+
+```text
+Raid for components -> extract -> repair/upgrade a room (earned functional unlock)
+   -> discover a personalizable room -> earn a starter cosmetic / preview a themed pack
+   -> spend earned or purchased cosmetic currency (optional)
+   -> decorate room + coordinate operator / BIT appearance
+   -> see identity in bunker and raids -> return for new rewards, room unlocks and collections
+```
+
+**Value proposition:** Players pay for *identity, expression and a world worth inhabiting*, not relief from losing raids. Include cosmetic rewards from play so the home stays expressive and meaningful without payment.
+
+**Store design candidates:**
+- A small, visible room collection (floor/wall plus a curated set of decor assets) and individually purchasable items.
+- Operator + BIT match sets and mixed identity bundles.
+- A rotating thematic spotlight supported by a persistent evergreen catalog; do not create artificial scarcity to compensate for shallow gameplay.
+- Avoid a paid combat booster, pay-to-extract, paid secure slots, premium raid fuel, premium insurance, and automatic paid progression/rare material packs in the baseline proposal.
+- Only consider a cosmetic seasonal pass *after* cosmetics have proven repeat demand; it is not approved now.
+
+**Illustrative price tests, NOT promises or external market benchmarks:** $1–3 individual small cosmetic; $4–8 themed room set; $5–10 operator/BIT appearance pack; $10–16 multi-surface collection. Test willingness to pay and local price tiers before choosing actual price points.
+
+### M2.5 — Open decisions before monetization implementation
+
+1. **Fairness boundary:** Is the premium wallet cosmetic-only (recommended starting model), or is paid time/convenience/resource conversion acceptable? No decision here.
+2. **Decoration interaction depth:** Room preset/slot-based editor first (recommended MVP), versus full free placement from the outset (expensive in current DOM-art bunker).
+3. **Cosmetic entitlement scope:** Account-wide, permanently owned, re-usable across rooms where technically relevant; exact equip/duplicate policy TBD.
+4. **Commercial offer structure:** Direct packs vs wallet vs hybrid, earn rates, catalogs, regional pricing, and whether any room-level cosmetics can be earned through loot without tying purchases to death losses.
+5. **Audience/platform guardrails:** Confirm target age, local consumer disclosure, app store rules, in-app purchase mechanisms and safeguards before shipping. Do not assume a children's game commerce pattern is appropriate without matching audience rules.
+
+**Source-grounded inspiration:** Official Toca Boca World documentation describes thematic Home Designer houses, furniture packs, character styles and an initially free decoration set; Fortnite's official item shop provides examples of direct sale cosmetic bundles and styles. This is reference research, not evidence about Protocol Rebirth conversion, ARPPU, revenue or feasible implementation costs.
 
 ---
 
@@ -473,5 +539,7 @@ Which simplification model governs **Operator progression**?
 | 2026-11-06 | D3.8: Gradually increasing subtle BIT and combat assistance after failed first ordinary-raid attempts, without guaranteed success | Approved by Robert; exact numerical ramp and edge cases open |
 | 2026-11-07 | D3.9: All six FTUE closure rules including bunker-entry extraction, Core L1 restoration, first-raid failure rules and onboarding ending at first ordinary extraction | Approved by Robert; design closed for implementation and playtesting, no code changes |
 | 2026-11-07 | P1.1: Option C — bunker drives world unlocks, Operator drives playstyle, equipment defines tactical builds, BIT companion growth | Approved by Robert; implementation alignment pending |
-| 2026-11-07 | P1.2/P1.3: Progression simplification and Operator architecture choice | Proposed for review; no system removals approved |
+| 2026-11-07 | P1.2: Progression simplification and specific system removals | Proposed for review; no system removals approved |
+| 2026-11-07 | P1.3: Option C — Operator XP/levels with a few meaningful build choices at milestones, reduce redundant minor skill tracks | Approved by Robert; specifics and removals open |
+| 2026-11-07 | M2: Meta-game monetization direction: currency, operator looks, room-by-room bunker customization, and BIT visual personalization | Owner-requested direction confirmed; cosmetic-only economy, catalog, pricing and detailed loop proposed, not approved |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
