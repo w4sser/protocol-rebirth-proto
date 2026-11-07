@@ -1,0 +1,32 @@
+# Timber bridges visual pass v1 (Protocol Rebirth)
+
+**Status:** Candidate for mobile visual QA; not approved for merge.
+**Area:** Archipelago.
+**Target:** HIGH as visual reference, LOW as cheaper version.
+
+## Problem
+After successful Forest/Granite environment pass (#203), bridges stand out as flat brown rectangles with thin posts. The organic islands now look better than their artificial connections.
+
+## Hypothesis and scope
+Weathered timber deck, readable planks, broad landings and heavy supports outside the playable surface should improve the scene without changes to collision and navigation.
+
+- Replace flat deck and thin posts with individual aged grey-brown boards, variable tones and subtle seeded offsets.
+- Instance boards per tone (at most 4 groups per bridge); add understructure and heavy piles outside the walking strip.
+- Widen visual landings, retaining existing logical floors, reservations, walls, AI bridge waypoints, and coastlines.
+- HIGH uses closer plank spacing; LOW uses fewer boards.
+- All additions are visual; no new GLB licensing or CDN dependency.
+
+## Acceptance checklist
+- [ ] From phone raid camera, bridges look like Nordic weathered timber rather than rectangular blocks.
+- [ ] Landings connect convincingly to the islands; no gaps or beige wedges.
+- [ ] Player and enemies cross freely in both directions; no new collision or shooting obstructions.
+- [ ] Clear sightlines for enemies, loot and telegraphed danger.
+- [ ] Fixed seed recreates the same visual bridge.
+- [ ] LOW quality keeps the silhouette and target mobile performance over 40 FPS.
+- [ ] GitHub CI and ground-v2-khronos checks pass.
+
+## Test
+Load a fixed archipelago seed with area=archipelago&polyfork=1&polyforkMode=profiles&q=high&seed=variety-01. Compare with main and repeat using q=low.
+
+## Verification so far
+Pure-data planner passed 3 local Node tests for determinism, walkable footprint, and LOW simplification. Physical-device review and measured FPS are still needed before merging.
