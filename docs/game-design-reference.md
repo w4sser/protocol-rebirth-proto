@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.5 - FTUE approved; Operator hybrid approved; meta monetization in design review |
+| Document status | Living design reference, v2.6 - FTUE approved; progression C approved; meta-economy benchmark proposal in review |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -457,6 +457,20 @@ Selling for Scrap and breaking an item into base materials are different actions
 **OWNER-REQUESTED M2 — Meta-game monetization direction, proposals not final commercial approval:** The long-lived bunker identity is a natural cosmetic canvas. Propose a simple two-wallet separation: gameplay-earned Scrap and materials for functional upgrades, and a single premium-like cosmetic currency (potentially a repurposed **Signals**, subject to removing its historic recovery/insurance and Data-Core conversion functions). Candidate spend surfaces are **room-by-room bunker decor**, persistent **operator outfits/weapon looks**, and **BIT shells/screens/accessories**, with themed sets across surfaces. Paid visuals should not vanish on raid death, while gameplay equipment remains at risk. A room must first be functionally restored through gameplay before it becomes a decoration canvas; direct decor packs and earnable starter furnishings can then create optional identity-driven spending. Propose slot-based/curated decoration first because the current bunker is pre-rendered art with DOM hotspots rather than a free-placement 3D editor. Pricing, cosmetic-only premium restriction, catalog, regional compliance, and earn rates remain **OPEN**. [D01] [S07]
 
 **OWNER SUGGESTION M2.3a — Name your bunker:** Offer a free editable persistent bunker name to strengthen the feeling of home, with a default identity until chosen. This is **not a required FTUE screen**; offer it as an optional action after home restoration or during a later return. Show the name on the home overview and after returning from raids; sharing names publicly needs separate social/privacy requirements. The name is not itself a paid item. Inspired by the user's *Hay Day* farm-naming reference, not a commitment to copy that game's monetization. [D01]
+
+### 8.6 M3 monetization benchmark and proposed economy
+
+**RESEARCHED PROPOSAL M3 (7 November 2026; NOT APPROVED FOR IMPLEMENTATION):** Whiteout Survival demonstrates a persistent base/progression/social/event commercial model; Survivor.io combines approachable combat with chapter milestone packs, monthly products, paid passes and event-linked progression; Toca Boca World demonstrates appealing room/character identity and purchasable decoration sets. Their monetization cannot simply be cloned into an extraction shooter: paid risk removal, forced social dependence and wide stat/power gaps could compromise the approved D1 risk contract and future PvP viability. Sources and detailed comparators are recorded in [decision register M3](design-decisions.md#m3--world-class-meta-game-economy--monetization-benchmark).
+
+**Proposed economy spine:** Scrap as earned day-to-day currency; materials/Data Cores as extracted progression; **Signals**, if repurposed, as a single premium currency with transparent limited earned availability, initially focused on persistent cosmetics. Direct-price room bundles and collections should remain understandable without currency conversion. The specific paid progression boundary is an explicit outstanding owner decision: cosmetic-only vs cosmetic-first with carefully bounded convenience vs sale of functional power. No option is silently approved here.
+
+**Proposed commercial loops:** (1) raid -> extract -> restore room -> unlock new function/region -> next purposeful raid, (2) name and decorate bunker room -> style operator and BIT -> acquire optional themed looks/collections, (3) themed weekly/monthly goals using the ordinary raid and customization mechanics -> free earned cosmetics + optional paid collections. Do not introduce compulsory event tasks or a swarm of separate wallets.
+
+**Indicative test offers, not approved prices:** 19–39 kr starter decorations, 39–99 kr operator/BIT style bundle, 59–129 kr room set, 129–249 kr cross-surface collection. These are internal initial price hypotheses, not competitor market quotes. Seasonal passes, monthly cards and progression/Growth Fund-style deals are later-phase hypotheses after retention and purchase demand are validated.
+
+**Implementation reality:** The current bunker is rendered as pre-authored stage plates with interactive DOM hotspots, not an existing free-placement room decorator. Test **small room-specific fixed slots/presets** with starter furniture first; measure actual engagement before funding a full Toca Boca-style editor. Cosmetic inventory must be permanent and independent from gear that is lost on raid death. Display the same operator/BIT cosmetics in base and raid if feasible.
+
+**Success metrics:** D1/D7/D30 retention and meaningful upgrades completed; first room customization, first preview/purchase, repeat purchases, room pack adoption, owner style use, cohort LTV and net revenue, as well as free-vs-paid access gap. Optimize with limits on friction and purchase pressure, not monetization in isolation. [D01]
 
 ## 9. Operator and equipment progression
 
@@ -927,6 +941,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.6, 7 November 2026:** Researched Whiteout Survival, Survivor.io and Toca Boca World as distinct monetization/progression references; proposed M3 three-loop economy, currency separation, clear direct cosmetic packs, phased live events, and measurable commercial validation. Paid progression policy, offers and pricing remain unapproved. Documentation only.
 - **v2.5, 7 November 2026:** Owner approved P1.3 hybrid Operator milestone choices; meta monetization direction expanded to premium currency and visual personalization of operator, bunker rooms and BIT. Recorded optional bunker naming inspired by Hay Day as a proposed identity feature without adding FTUE friction. No monetization mechanics, prices or removals were approved. Documentation only.
 - **v2.4, 7 November 2026:** Owner approved P1.1 option C — bunker progression opens the world, Operator progression establishes playstyle, equipment provides risky tactical builds, and BIT grows as a companion. Identified overlap and FTUE/BIT Bay inconsistencies for future review without authorizing removals. Documentation only.
 - **v2.3, 7 November 2026:** Owner approved all six D3.9 FTUE closure rules; FTUE high-level design is locked for implementation and playtesting. Other game-system design remains under review. Documentation only.
