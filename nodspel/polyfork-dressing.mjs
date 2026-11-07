@@ -2,7 +2,7 @@
 // Visual-only, deterministic and bounded. No gameplay collision, no changes to terrain/shore.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs';
+import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 const SAMPLE_IDS=[
