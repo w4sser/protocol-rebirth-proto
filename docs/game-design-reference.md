@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.5 - integrated Identity & Home Meta M12; tactical room problem-solving priority M13 |
+| Document status | Living design reference, v3.6 - integrated Identity/Home M12 and eight-minute tactical raid blueprint M14 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -669,6 +669,18 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Key constraints:** No forced puzzles on every room; most instances should resolve in ~20–60 seconds and keep the short-raid tempo. Aggressive shooting remains valid, not a fail state; it may be costlier in ammo/time/risk. BIT offers hints without solving automatically. Do not add paid-only puzzle solutions or reinterpret D2 return extraction/optional objectives as hard gates. Prioritize the highest fun delta per engineering/art cost and test enjoyment, comprehension, multiple-solution usage and raid length before committing a new mechanic family. **Design exploration only; no code changes authorized by this statement.**
 
+### 11.5 M14 — Eight-minute raid gameplay and meta reward architecture
+
+**OWNER-REQUESTED DESIGN DEFINITION, 7 November 2026:** See the dedicated [Eight-Minute Raid Design](eight-minute-raid-design.md) for the proposed moment-to-moment timeline, combat/tactical/opportunity encounter taxonomy, Shielded Relay Room vertical slice, extraction-risk decision loop, BIT behavior, progression rewards, first-week homecoming and fun/performance acceptance criteria. **This is a detailed proposal, not newly approved numerical balance or runnable implementation.** [D01]
+
+**Experience thesis:** Go out with a purpose, get satisfying mobile action early, discover an understandable tactical situation with multiple workable solutions, acquire something personally useful, choose **bank now vs push deeper**, and make the successful homecoming visibly change functional rooms, operator/BIT identity or a profile/nameplate. The raid must be enjoyable in its own right; meta restoration is reinforcement, not a substitute.
+
+**Illustrative complete-raid rhythm:** 0:00–0:30 orientation; 0:30–1:45 first short combat/loot; 1:45–3:00 optional environmental/tactical problem; 3:00–3:30 return-or-depth decision; 3:30–5:30 more dangerous combinations; 5:30–7:15 distinct deeper payoff; 7:15–8:00 return and extraction when the player stayed. An ordinary raid **never requires waiting eight minutes or clearing the tactical room before using the D2.1 return exit**. D2.4 nodes gate forward depth, not the guaranteed available return route. D1 risk remains and D2.3's deliberately begun five-second first-test extraction contract remains intact. [D01]
+
+**Paced problem-solving, not puzzle overload:** Propose one special room in a committed short raid as a test; reuse a readable linked power supply, flankable turret and existing optional EMP without new control buttons. Maintain substantial responsive combat and movement, a few loot/risk opportunities and room responses in ~20–60 seconds. BIT can hint after genuine hesitation without auto-solving. Achievement-only titles/plates may acknowledge mastering a mechanic, but field materials **only** enter home storage through actual successful extraction.
+
+**First playable validation:** Compare a matched combat-only raid and a raid with Shielded Relay Room on new-player comprehension, fun, second-method exploration, time and deaths, visible gear/material payoff, after-return desire to play again, extraction clarity and mobile FPS. Keep cosmetics permanent, fielded gear at risk and any commerce outside active raids. Details and proposed gates are in [M14](design-decisions.md#m14--eight-minute-raid-pacing-and-tactical-to-meta-loop).
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1029,6 +1041,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.6, 7 November 2026:** Added the integrated eight-minute raid blueprint M14 with concrete combat / optional tactical room / extraction / persistent home-and-identity rhythm, first Shielded Relay Room slice, guardrails and playtest acceptance. No game code changes or numerical tuning approval.
 - **v3.5, 7 November 2026:** Added the integrated Identity & Home Meta system specification (M12) with shared operator/BIT/bunker/profile identity, early free rewards and cosmetic currency separation. Recorded the owner's new core gameplay enjoyment priority (M13): optional multi-solution tactical problem rooms inspired by classic Metal Gear Solid, starting with a proposed Shielded Relay Room vertical slice. No code changes or balancing approvals.
 - **v3.4, 7 November 2026:** Captured M11 player Callsign and collectible nameplate direction, plus earned titles, emblems, profile cards and coordinated cosmetics across operator/BIT/bunker. Specified an optional post-FTUE naming flow and offline local-only identity caveat. Exact catalog and UX remain proposals; no code change.
 - **v3.3, 7 November 2026:** Owner reaffirmed that operator appearance is a core meta customization pillar, not subordinate to bunker room restoration. Added proposed cosmetic slots, early free styling reward and strict separation of owned cosmetic identity from losable equipment under D1. Documentation only.
