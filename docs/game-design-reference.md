@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.8 - M20B persistent, organically changing world leads |
+| Document status | Living design reference, v4.9 - M20C one BIT home lead, organic raid surprises |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -904,7 +904,9 @@ Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a ca
 
 **APPROVED M20B — Persistent, organically changing leads:** BIT's teaser refers to an optional world opportunity that **can be investigated across multiple ordinary raids**. It does not disappear after one run or on a short daily countdown. Opportunities turn over through believable **world changes**, not daily-quest resets or designed FOMO. Players can ignore the clue and continue their Bunker Project without losing access merely because they did not play immediately. A persistent *lead* is not a loot guarantee, fixed chest or a new mission log, and all acquired loot still requires genuine extraction under D1.
 
-**Still open:** Exact frequency, conditions for organic replacement, number of simultaneous leads, rewards, narrative presentation, eligible regions and source tuning. No fixed expiry thresholds, item grants or new UI/menu are approved. Do not convert these into another login checklist. Pre-existing `bit`/`full` modes with morning/daily systems are historical prototype configurations, not approvals of mandatory daily content.
+**APPROVED M20C — One foregrounded home lead:** BIT highlights **at most one active opportunity at a time in the bunker**, distinct from the player's **single primary Bunker Project**. Do not present a task list or mission queue. **Other voluntary discoveries can occur spontaneously within ordinary raids** without prior hints. The bunker teaser can persist across several raids without short expiry under M20B; there is no penalty for ignoring it. The one-lead limit applies to BIT's visible **home preview**, not to the total variety of emergent in-raid events.
+
+**Still open:** Exact frequency, conditions for organic replacement, how one lead is selected and displayed at home, rewards, narrative presentation, eligible regions and source tuning. No fixed expiry thresholds, item grants or new UI/menu are approved. Do not convert these into another login checklist. Pre-existing `bit`/`full` modes with morning/daily systems are historical prototype configurations, not approvals of mandatory daily content.
 
 ---
 
@@ -1125,6 +1127,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.9, 7 November 2026:** Owner approved M20C: BIT foregrounds no more than one voluntary lead at the bunker, while other optional discoveries remain possible organically in ordinary raids. The single home cue is not another tracked project or quest list. Home selection/replacement timing remains open; no gameplay code.
 - **v4.8, 7 November 2026:** Owner approved M20B: optional BIT leads remain discoverable over multiple ordinary raids and are replaced through organic world changes rather than short timers or FOMO. Transition triggers, simultaneous lead count, frequency and rewards remain open. Documentation only, no gameplay code.
 - **v4.7, 7 November 2026:** Owner approved M20A: BIT gives a discreet living-world lead in the bunker before an ordinary raid; what it means is discovered during gameplay. The hint is optional, never a mission queue, purchase or loot guarantee. Frequency, persistence, rewards and exact presentation remain open. Documentation only, no gameplay code.
 - **v4.6, 7 November 2026:** Owner locked M20: optional BIT-signaled living-world leads exist as detours inside normal raids; no separate mission queue or mandatory daily tasks. Clarified integration with owner-approved home Project, 2–3 cost-neutral visual restoration stages, and post-Fabricator-only material purchases. Presentation and pacing still open; no code change.
