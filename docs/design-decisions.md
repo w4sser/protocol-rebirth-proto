@@ -983,6 +983,47 @@ Core L1 / discover BIT (approved FTUE)
 
 ---
 
+## M11 — Player Callsign, Nameplates and Collectible Identity
+
+**OWNER DIRECTION (7 November 2026):** Expand meta customization beyond bunker, operator outfit and BIT. Explore **an individual player/operator name** and collectable, visually distinctive **nameplates**, plus other compelling identity cosmetics. The user cites a remembered game possibly named "Legion Morning" by "Trapdoor"; that exact title/feature attribution was **not independently verified** during research and must not be treated as factual design evidence. Treat the underlying player motivation—own name + evocative presentation—as the creative reference.
+
+### M11.1 — Identity architecture (PROPOSED SPECIFICATION)
+
+Three distinct names and one visual presentation layer:
+1. **Player / Operator Callsign:** The player's chosen free, editable visible name (e.g. `ECHO-17`). Local profile identity in the offline prototype; account-level identity later if online profiles are introduced. No premium charge for choosing or changing the name. Do not use this as authentication or as the sole permanent ID.
+2. **Bunker Name:** A separate personal home name (M2.3a), also free and editable (e.g. `North Light`). Shown on home overview/return, potentially shared later with permission.
+3. **BIT:** The companion retains the narrative name **BIT** and recognizable personality. Cosmetic shells/CRT looks can personalize BIT without needing to alter its canonical story name. Optional pet nickname is a separate unapproved future possibility.
+4. **Nameplate presentation:** The actual product is an equipable themed plate/border with material treatment, typography, emblem, visual accent, and optional short title, attached to the callsign. Plate cosmetics are independent of name text.
+
+### M11.2 — Proposed collectible cosmetic surfaces
+
+| Cosmetic | Examples | Earned / purchased | Placement |
+| --- | --- | --- | --- |
+| **Nameplate frames** | Brushed military tag, salvaged steel, CRT terminal, lighthouse signal, rare animated static | Starter frame free; milestones/events; deterministic Signals store | Profile, home return, raid results, future co-op lobby |
+| **Titles / epithets** | The Returned, Signal Hunter, Warden of the Coast | Earned accomplishments and optionally cosmetic bundles for non-achievement titles | Beside callsign in profile/results |
+| **Emblems / patches** | Unit insignia, rescued facility seal, custom non-national shapes | Gameplay achievements, cosmetic store | Nameplate, operator sleeve, bunker door |
+| **Profile background / banner** | Stormy archipelago, illuminated bunker, analog radar | Earned and purchased | Operator profile, results, future social card |
+| **Portrait pose / highlight** | Calm after-action pose, BIT hovering near shoulder, silhouette against searchlights | Milestones and thematic collection | Profile/post-extraction |
+| **Arrival/homecoming flourish** | Brief subtle screen reveal/scanline for identity, never obstruct combat | Select premium/earned rarity | Bunker return / result transition only |
+
+**Avoid:** expensive microscopic accessories invisible from the mobile camera, national flags (against established art direction), competitive identification ambiguity, visual noise during combat, or gameplay bonuses attached to a nameplate.
+
+### M11.3 — Proposed player first-week UX
+
+- Keep D3.9 mandatory FTUE intact. After the first successful normal extraction, a single optional `Make it yours` card allows a Callsign, then optionally naming the bunker, with deferral and sensible defaults. Do not stack two obligatory naming dialogs.
+- Provide one free identity plate and a starter operator look, a visible free BIT style accent, and a free small room-decorating reward; these should feel like a **cohesive first identity kit**, not four separate currency unlocks.
+- Early achievements provide the first distinctive frame/title and a banner, so customization feels rewarding without payment.
+- Premium thematic collections can coordinate **nameplate + operator outfit + BIT shell + bunker room/door**. Cosmetic ownership is permanent even when raid equipment is lost under D1.
+- In the current offline/PAGES prototype, names and cosmetic loadouts are stored locally (without claiming cloud sync, anti-duplication or unique global player names). If multiplayer/social sharing is added: assign stable internal IDs, moderate public names and offer reports, privacy filters and optional visibility.
+
+### M11.4 — Decision boundaries and next integrated pass
+
+**Approved direction:** individual player identity, nameplate cosmetics and additional compelling customization belong in the roadmap alongside bunker/operator/BIT. **Not yet approved:** exact naming flow, uniqueness, character/name limits, plate art counts, equipped slot counts, sale price, animation scope, public profile sharing, rename cost (recommended always free), or specific rarity tiers.
+
+**Next integrated design deliverable:** A single **Identity & Home Meta** spec showing shared style themes and timed first-week payoffs across **player profile/nameplate, operator appearance, BIT and bunker rooms**, with **free earned / premium purchased** access explicitly marked per content item. Present one coherent home customization UI, not four new progression menus.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1016,4 +1057,5 @@ Core L1 / discover BIT (approved FTUE)
 | 2026-11-07 | M8: Separate PR #204 for deterministic offline Node Raid economy harness and proposed first-week progression rhythm | Harness test successful; initial pacing superseded by M9's increased early restoration direction |
 | 2026-11-07 | M9: Increase frequency of early visible bunker restorations while preserving meaningful major room milestones and D3 FTUE | Approved direction by Robert; exact beats, costs and timings proposed |
 | 2026-11-07 | M10: Operator appearance customization must be a first-class meta pillar beside bunker rooms and BIT | Confirmed owner direction; cosmetic categories, rewards and production scope proposed |
+| 2026-11-07 | M11: Player callsign, collectible nameplates and wider identity cosmetics added to the meta scope | Owner direction confirmed; specific names, art, costs and UI remain proposals |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
