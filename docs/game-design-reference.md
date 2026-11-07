@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.4 - early restoration M9, operator M10 and player identity M11 |
+| Document status | Living design reference, v3.5 - integrated Identity & Home Meta M12; tactical room problem-solving priority M13 |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -584,6 +584,12 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 
 **FIRST-WEEK INTEGRATION:** After the first successful ordinary extraction finishes the approved D3.9 FTUE, offer an optional single 'Make it yours' profile action (Callsign and separate bunker naming, both skippable); supply a free plate/frame, an initial operator look, a BIT accent and one room-decoration starter. Later rewards and commercial themes connect **profile/nameplate + operator + BIT + bunker** instead of creating four independent progression economies or wallets. All specific rewards, store sets, display moments and editor scope are proposals. [D01]
 
+### 9.7 M12 — Integrated Identity & Home Meta system
+
+**SPECIFICATION NOW DRAFTED:** [Identity & Home Meta](identity-home-meta.md) combines **player Callsign/nameplates, operator appearance, BIT visuals, bunker restoration and room decoration** into one product journey and a shared permanent cosmetic inventory. The owner's previously approved direction is that these surfaces matter together; the exact free rewards, UI tab design and themed SKU catalog remain proposals. [D01]
+
+**Suggested product model:** `Home` communicates recovery and next objective; `Projects` communicates functional upgrades and Growth Fund; `Customize` is a single accessible place for the four identity surfaces; `Shop` sells optional deterministic resources and themed cosmetic sets. Each successful homecoming ideally changes something visible or brings a concrete functional restoration closer. The first identity choices are **free and optional after FTUE**, not mandatory prompts inside it. The bunker can be named separately from the operator. A shared theme may cover all four identity surfaces; no separate premium wallet for each. [D01]
+
 ## 10. BIT: companion, capability, and relationship
 
 BIT is the emotional connection between the hostile field and the recovering bunker. Its established tone is helpful, loyal, dry, and slightly cheeky. It comments on discoveries, death, returning home, completed construction, and the player's next need. [S03] [S13]
@@ -654,6 +660,14 @@ The configured Bunker chain is **Wake the Core**. The Archipelago chain is **Sig
 Contract Chips feed BIT's catalog of recipe access, selected materials, Hard passes, and cosmetic looks. A weekly-operation reward table is explicitly a stub: the weekly operation should not be described as implemented. The catalog also mentions items such as the Gull Drone blueprint; catalog presence alone does not prove a complete playable drone system. [S21]
 
 ---
+
+### 11.4 M13 — Tactical room problem-solving as a core-gameplay improvement priority
+
+**OWNER REQUEST, 7 November 2026:** The present combat/extraction core needs to be **more enjoyable**, beyond improvements to loot and meta rewards. Inspired by *classic Metal Gear Solid* room situations, selected raid rooms should offer a legible problem, multiple viable tactical solutions and meaningful consequences; the player should be able to observe, experiment and outsmart enemies. [D01]
+
+**PROPOSED first vertical slice: Shielded Relay Room.** A visible turret/shield system can be handled by flanking its vulnerable side, destroying a visible power source to disable the defense, or bringing an EMP (optional if the current loadout/tool implementation supports it). The solution is readable from the mobile camera, uses existing movement/shoot/interaction affordances, and rewards players who understand the environment. Other proposals include camera/alarm rooms, patrol diversion, flooded power hazards and destructible supply chokepoints. See [M13 in decisions](design-decisions.md#m13--core-gameplay-must-become-more-fun-tactical-room-problem-solving).
+
+**Key constraints:** No forced puzzles on every room; most instances should resolve in ~20–60 seconds and keep the short-raid tempo. Aggressive shooting remains valid, not a fail state; it may be costlier in ammo/time/risk. BIT offers hints without solving automatically. Do not add paid-only puzzle solutions or reinterpret D2 return extraction/optional objectives as hard gates. Prioritize the highest fun delta per engineering/art cost and test enjoyment, comprehension, multiple-solution usage and raid length before committing a new mechanic family. **Design exploration only; no code changes authorized by this statement.**
 
 ## 12. Difficulty and replayability
 
@@ -1015,6 +1029,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.5, 7 November 2026:** Added the integrated Identity & Home Meta system specification (M12) with shared operator/BIT/bunker/profile identity, early free rewards and cosmetic currency separation. Recorded the owner's new core gameplay enjoyment priority (M13): optional multi-solution tactical problem rooms inspired by classic Metal Gear Solid, starting with a proposed Shielded Relay Room vertical slice. No code changes or balancing approvals.
 - **v3.4, 7 November 2026:** Captured M11 player Callsign and collectible nameplate direction, plus earned titles, emblems, profile cards and coordinated cosmetics across operator/BIT/bunker. Specified an optional post-FTUE naming flow and offline local-only identity caveat. Exact catalog and UX remain proposals; no code change.
 - **v3.3, 7 November 2026:** Owner reaffirmed that operator appearance is a core meta customization pillar, not subordinate to bunker room restoration. Added proposed cosmetic slots, early free styling reward and strict separation of owned cosmetic identity from losable equipment under D1. Documentation only.
 - **v3.2, 7 November 2026:** Owner requested and approved more frequent visible early bunker restorations (M9), differentiating major functional rooms from low-cost visual repair beats. Recorded proposed first-week sequence and critical FTUE/material-gating protections. No code or numeric balance changes.
