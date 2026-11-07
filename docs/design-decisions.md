@@ -1241,6 +1241,20 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19C — First Ten Successful Extractions: Earned Progression, Not Scripted Rewards
+
+**Owner requested the first-ten extraction sequence, 7 November 2026.** Detailed design: [M19C First Ten Successful Extractions](first-ten-extractions.md). An extraction count refers to successfully completed **ordinary raids after the authored intro** and excludes failures; this is a **test cohort lens**, not an entitlement to an upgrade or loot drop. Partial Project progress and voluntary short extraction remain meaningful.
+
+**Observed current source data (`data/modules.js`):** Core L1 costs 2 Scrap Alloy (FTUE); Fabricator L1 is 20 Scrap + 2 Cable + 2 Scrap Alloy and commissions the Scavenger Vest; BIT Bay L1 is 20 Scrap + 2 Cable + 1 Polymer Plate; Vault L1 is 50 Scrap + 2 Polymer Plate + 2 Scrap Alloy and yields stash capacity plus the single D1 Secure Slot; Core L2 is 120 Scrap + Power Relay + Circuit Board + Power Cell + AI Fragment. Source values are current code, **not new owner-approved final balance**.
+
+**Proposed progression of experiences:** #1 extraction confidence and next Fabricator Project; #2 purpose and banked material; #3 visible home/gear benefit if earned; #4 tactical choice and light prep; #5 BIT benefit if BIT Bay truly completed; #6 bag-burden extraction decision; #7 loadout identity; #8 Vault versus Core investment; #9 world reconnaissance preparation; #10 coherent owned-home / operator/goal loop and broader ambition. Completion can slide forward or backward based on actual drops, upgrades, deaths and player choices. **No automatic payout or room unlock at success N.**
+
+**Critical code alignment:** `data/progression.js` includes legacy force-success, guaranteed first-hour loot and paid insurance/recovery incompatible with approved D1/D3; Core L2's legacy zone descriptions do not fully reflect the M18 Archipelago Chart rule. Before implementing, validate actual world-unlock scouting items, free return extraction, current simulated vs Node Raid code path and material attainability. Do not surface impossible quests.
+
+**Status:** Detailed design proposal; specific milestones, pacing rates, cosmetic repairs, passives, sources/sinks, tech migration and implementation pending playtests. No gameplay change.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1287,5 +1301,6 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M19: One integrated 30/60/90-day progression and content economy linked to raids and home | Detailed proposal; timelines and balance require validation |
 | 2026-11-07 | M19A: Less early progression UI, optional deeper endgame systems | Owner direction confirmed; exact track consolidation/open decisions remain proposals |
 | 2026-11-07 | M19B: Passive level-based movement growth plus full-bag movement/detection consequences | Owner direction confirmed; level curve and exact penalty retained for later tuning |
+| 2026-11-07 | M19C: First ten successful ordinary extractions with actual-resource Project progress | Detailed design proposal; no scripted loot/reward grants by success count |
 | 2026-11-07 | M19B: Ghost of the Past / No Fear of Tomorrow player nameplates | Owner-supplied names recorded; art and earning rules proposed |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
