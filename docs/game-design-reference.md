@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.0 - M18A replayability and within-world raid variation requirement |
+| Document status | Living design reference, v4.1 - M18B larger Archipelago and greater same-scale Bunker variation |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -721,6 +721,14 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Proposed test benchmark:** across three consecutive committed raids in one biome, at least two should produce meaningfully different route and enemy/loot decisions; across five, players should remember three different situations. Anti-repeat weighting and events should be tuned from data, not automatically added. Maintain D2 return-extraction accessibility, D3 FTUE consistency, real loot and quest legality, and low-end mobile performance. Exact percentages, spawn weights, event lists and changes to game code are **not approved**. [D01]
 
+### 11.11 M18B — Larger Archipelago; more varied same-scale Bunker
+
+**OWNER DIRECTION, 7 November 2026:** Current Archipelago areas feel **too small** and require substantially larger meaningful **playable** outdoor space, while the **Bunker size is broadly adequate** and instead needs more room/route/encounter variety. See [M18A/M18B Raid Variety Spec](raid-variety-system.md#11a-m18b--biome-scale-and-structural-variety-correction-owner-direction) for spatial requirements, current source audit, proposed terrain and room archetypes, navigation/performance safeguards and test gates. [D01]
+
+**PROPOSED test:** Compare roughly **1.5–2x** present reachable Archipelago ground area with three terrain shapes—granite coast, pine forest glades, and island crossing—without multiplying empty traversal time or introducing bridge bottlenecks. Keep early combat/loot accessible, viable short returns and full runs near the ~8-minute aspiration. For Bunker, compare three same-footprint room compositions (reactor loop, storage branch, security wing) with varied loot and tactical enemies. The multipliers, templates and targets are playtest hypotheses, **not approved balance**. [D01]
+
+**Source alignment:** Big Map uses shared `data/raid-big-layout.js` room spacing, shared graph generation (`nodspel/zone-graph.js`) and Bunker-authored templates inside `nodspel/big-level.js`, although terrain/dressing can differ downstream. Thus a larger forest is a **topology and encounter-space problem**, not just a model-size or cosmetic change. Verify the complete generated geometry/runtime path before implementation. No game code was changed. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1081,6 +1089,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.1, 7 November 2026:** Owner clarified Archipelago needs substantially larger navigable outdoor areas while Bunker sizing works but needs richer structural/encounter variety. Added M18B, spatial generator audit and playtest-only 1.5–2x footprint hypothesis. No gameplay edits.
 - **v4.0, 7 November 2026:** Added owner-requested M18A strong within-biome raid variation: loot, enemy compositions, routes, tactical choices, optional field events and mission purpose. Linked proposed seeded situation-director design and proposed anti-repeat validation; no gameplay or economic changes.
 - **v3.9, 7 November 2026:** Defined M18 World & Mission Design across Bunker, Archipelago and Town, region unlocks via Core plus extracted scouting items, one-purpose mission hierarchy, procedural map templates, story/mystery spine and legacy-raid alignment risks. Documented only; no new story canon or gameplay code approved.
 - **v3.8, 7 November 2026:** Added the joint M16/M17 design pass. M16 specifies enemy roles, biome/depth difficulty and paired-pressure encounters; M17 maps the current weapons/armor/tools to four emergent tactical build identities, explicitly preserving free counterplay, controlled-risk loss and limited operator milestone choices. Documentation only; no spawn/tuning or gameplay code changes.
