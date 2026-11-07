@@ -78,6 +78,17 @@ The above is a **sequence of player accomplishments**, not a forced day-by-day s
 
 These are art/commerce proposals, not a confirmed SKU catalog or bundle pricing. Prioritize combinations that read at mobile-camera distance. No new national flags or combat-relevant hitbox modifications.
 
+## 6A. Two named player nameplates — owner-supplied names
+
+**Owner-selected copy, 7 November 2026:** Two identity/nameplate names to include in the Protocol Rebirth design catalog, with exact capitalization and wording:
+
+| Nameplate (exact text) | Emotional theme | Suggested visual treatment (PROPOSAL) | Suggested earning path (PROPOSAL) |
+| --- | --- | --- | --- |
+| **Ghost of the Past** | Memory, loss and searching for what remains of the old world | Weathered slate/metal, muted lavender granite, faint archival CRT signal and restrained cyan interference | Find and successfully extract a distinctive archive/memory discovery in the abandoned Town; do not treat witnessing or looting alone as banking an at-risk item |
+| **No Fear of Tomorrow** | Courage and the determination to rebuild rather than just survive | Deep navy base, optimistic warm-amber horizon and narrow cyan edge light | Complete a difficult voluntary extraction challenge, or a major multi-raid bunker restoration milestone; exact challenge requires fair playtesting |
+
+**Decision boundary:** The **two exact names are owner-provided content to preserve**. Art direction, rarity, rarity tier, unlock criteria, achievement-only versus purchasable availability and technical representation remain **unapproved proposals**. Preference is to make these **earned identity titles/nameplates**, rather than a paid substitute for an actual difficult achievement. Show them in the single Profile/Customize surface, not as two new currencies or independent upgrade tracks. No new gameplay/UI code is implied.
+
 ## 7. Economy rules
 
 - Free path: meaningful room progress and starter decor, one functional operator look selection and basic nameplate available early, earned thematic rewards over time.
