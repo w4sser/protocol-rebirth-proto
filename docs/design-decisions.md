@@ -1255,7 +1255,23 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M20 — Living World Opportunities Inside Ordinary Raids (OWNER APPROVED, 7 November 2026)
+
+**Locked:** The return incentive is a **living world**, not a compulsory daily-contract board. BIT notices fresh, optional leads such as a signal, altered enemy activity or potentially useful salvage. The player can return to the same familiar biome and find a meaningfully different opportunity. There are **no mandatory daily chores or punitive log-in streaks** as the primary retention loop.
+
+**Locked follow-up:** Such opportunities occur as **optional side paths within ordinary raids**, never as a separate mission queue, special mission mode or required pre-raid contract selection. Players choose their primary Bunker Project at home; during ordinary raids they can investigate BIT's lead, continue their planned route or voluntarily extract under D2. Any extra reward must be physically found/earned and extracted under D1; the lead is not a grant or guaranteed rare drop. A side path must not block extraction, forward-node progression or FTUE completion.
+
+**Alignment with recently approved core/meta decisions:** The tracked Bunker Project is chosen at home; directional material opportunities and tactical route choices happen during the raid; large rooms deliver 2–3 visibly meaningful restoration stages **within their existing total material cost**; direct material purchases are unavailable until the player has **earned and built Fabricator L1 through play**. After that point, M4/M5 hybrid commerce (optional deterministic resource offers, Growth Fund and cosmetic ownership) may support but must not replace the normal raid/extract/restore loop. No shop interruption within the locked FTUE or a raid, and never paid insurance, bag recovery or successful extraction.
+
+**Open, not approved by this decision:** Whether BIT previews a lead in the bunker before deployment versus revealing it only during exploration; exact opportunity frequency, persistence/expiry, lead selection, costs/rewards, biome eligibility, tactical encounters, iconography, BIT dialogue, event cadence and any monetization tie-in. Avoid turning optional leads into a daily checklist under a different name.
+
+**Acceptance for the future implementation:** A returning player can understand a fresh possible lead without opening a mission board; an ordinary raid remains complete and worth playing if the lead is ignored; following it creates an extra tactical decision and potential earned payoff, not guaranteed loot. The player can still retreat with their haul, and monetization never triggers during combat or extraction. **Documentation only; no implementation approved.**
+
+---
+
 ## Decision history
+
+| 2026-11-07 | M20: BIT living-world leads are optional side routes inside ordinary raids; no separate mission queue or required daily tasks | Owner approved. Presentation and reward cadence remain open. |
 
 | Date | Decision | Status |
 | --- | --- | --- |
