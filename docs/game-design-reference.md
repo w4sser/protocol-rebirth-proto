@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.3 - FTUE design approved; broader design review in progress |
+| Document status | Living design reference, v2.4 - FTUE design approved; progression architecture C approved; broader review in progress |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -371,6 +371,10 @@ Vault / Storage L1 unlocks **one Secure Slot** as the single item-protection mec
 Persistent learning is separate from preserving loot. D1 preserves previously earned progression but does not set new XP awards for a failed run. Any protected-item result must be explicit, limited to the final eligibility rule, and reconciled exactly once.
 
 ---
+
+**APPROVED P1.1 — Progression architecture C:** The bunker drives world development and is the clearest long-term objective; Operator progression drives the player's playstyle; gear/loadout provides tactical choices at risk under D1; BIT develops as a companion through relationship and useful field capabilities. These are complementary roles, not four equally prominent competing goal trees. Every major upgrade should explain both the new choice/capability it creates and where it will be felt in the next raid or at home. [D01]
+
+**OPEN P1.2–P1.3 (simplification proposals, NOT owner-approved removals):** Keep the Core, Fabricator, Vault and BIT Bay as distinct purposeful facilities, but review the overlap between operator level, use-based skills, weapon mastery, Mk/attachment upgrades, BIT Bond and hardware, and ancillary maintenance systems. BIT must already be encountered and able to accompany the player before BIT Bay L1; therefore the existing description that BIT becomes 'online' only when building BIT Bay L1 conflicts with approved FTUE and needs implementation reconciliation. Likewise, BIT item rescue/insurance language conflicts with D1. Do not remove features solely because they are listed for audit. [D01] [S07] [S11] [S13]
 
 ## 7. The bunker: restoration as progression
 
@@ -917,6 +921,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.4, 7 November 2026:** Owner approved P1.1 option C — bunker progression opens the world, Operator progression establishes playstyle, equipment provides risky tactical builds, and BIT grows as a companion. Identified overlap and FTUE/BIT Bay inconsistencies for future review without authorizing removals. Documentation only.
 - **v2.3, 7 November 2026:** Owner approved all six D3.9 FTUE closure rules; FTUE high-level design is locked for implementation and playtesting. Other game-system design remains under review. Documentation only.
 - **v2.2, 7 November 2026:** Drafted D3.9 final FTUE closure package for owner sign-off, including explicit bunker-door completion, no pre-BIT result interruption, first normal extraction as onboarding exit, and Fabricator not required to finish onboarding. Proposal only; no code changes.
 - **v2.1, 6 November 2026:** Approved D3.8 progressive contextual and combat assistance after failed attempts at the first ordinary raid with BIT, while preserving genuine loss and player-controlled extraction. Exact assistance values and legacy FTUE reconciliation remain open. Documentation only.
