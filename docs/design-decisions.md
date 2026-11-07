@@ -1207,6 +1207,18 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M19A — Progressive Complexity: Less Early, Deeper Endgame
+
+**OWNER DIRECTION, 7 November 2026:** "Less is more" for progression and onboarding; **endgame may carry more systems and complexity**. The first/main loop stays easy to understand and pleasant to use. Detailed proposal: [M19A Progression Simplification](progression-simplification.md).
+
+**Recommended simplification for review:** One visible bunker Project; Operator XP passively accrues with a few high-value milestone choices (approved P1.3); actual gear and a single optional tool create tactical builds; BIT first acts as a character with practical Bay hardware. Avoid simultaneous foregrounded five use-based skill XP tracks, weapon mastery grind and BIT Bond/talent tree. One Customize hub remains optional after FTUE. No new mastery currency or endgame wallet.
+
+**Proposed endgame expansion:** Advanced encounter combinations, optional hard-mode variants, richer tradeoff-driven builds and meaningful Operator/BIT choices, challenge achievements/earned identity and more sophisticated home decoration. Unlocked through genuine progress and mastery, never time-based chores or shop payments. Preserve D1 risk and D2 extraction as the universal core.
+
+**Decision status:** The **minimal-early, deeper-endgame direction is confirmed by owner**. Specific removal/hiding/consolidation of five use-based skills, weapon mastery and BIT talent structure; migration; unlock levels and late-game scope **remain proposals pending approval**. No code or tuning changed.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1251,4 +1263,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M18A: Strong repeat-raid variation within every world (loot/enemies/routes/tactics/events) | Owner direction confirmed; situation-director design and quantitative targets proposed |
 | 2026-11-07 | M18B: Archipelago playable areas larger, Bunker size retained with higher structural variety | Owner direction confirmed; size multiplier and layouts to playtest |
 | 2026-11-07 | M19: One integrated 30/60/90-day progression and content economy linked to raids and home | Detailed proposal; timelines and balance require validation |
+| 2026-11-07 | M19A: Less early progression UI, optional deeper endgame systems | Owner direction confirmed; exact track consolidation/open decisions remain proposals |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
