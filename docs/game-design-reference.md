@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.9 - FTUE/progression/commercial architecture approved; economy scenario M6 recorded |
+| Document status | Living design reference, v3.0 - FTUE/progression/commercial architecture approved; economy M6/M7 analyzed |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -506,6 +506,14 @@ A first-pass formula-based Excel model now covers **four illustrative post-FTUE 
 
 **Priority next analysis:** compare free-versus-paid under identical playing time and success rate to isolate *payment effect*, then replace hypothesized loot per successful extraction with instrumented actual runs and stochastic distributions. A separate population, retention and store-fees model is needed before any revenue/LTV/ROAS conclusions. [D01]
 
+### 8.10 M7 — Matched spend-only + stochastic loot analysis (7 November 2026)
+
+**Completed analytic second pass, NOT approved tuning:** The separate updated Excel workbook (conversation artifact, `Protocol_Rebirth_30_Day_Economy_Model_v2.xlsx`) compares 1,000 paired random seeds under four spend settings with **identical** attempted raids, extraction outcomes and generated loot across spend tiers. The new Monte Carlo uses the actual relative three-depth item **weights** from `nodspel/levels.js` but simplifies spawned/picked items to a 3–4-item retained-sample policy; it is **not** a faithful simulation of game-level loot placement, movement or pickup behavior. Numeric assumptions: 2 attempts/day, 70% extraction chance, 30% deeper choice, 30 days after FTUE. Payments are 0 / 89 / 399 / 1,999 SEK assumed per persona, including a day-7 Growth Fund for the last two tiers and deterministic common-resource Signal bundles. The full interpretation is in [M7](design-decisions.md#m7--controlled-spend-comparison--random-loot-simulation-7-november-2026).
+
+**Illustrative results:** Core L2 day-30 unlock rate **89.4% / 89.4% / 97.6% / 97.6%** (free, occasional, regular, high); median arrival **day 16 / 15.5 / 9 / 9**. Core L3 day-30 unlock rate only **0.1% / 0.1% / 0.7% / 0.7%** due to rare ingredient gates under the sampling assumptions. Since gameplay conditions are paired, the late-game spend plateau is a model property rather than a skill/time confound; it does **not** establish the live economy or support unbounded rare-component sales.
+
+**Next validation:** run actual loot generation + inventory retention from game runtime or instrument device playtests, then revise paid-basket composition, free rare-item acquisition routes and prices with fully stochastic observed input data. All revenues/prices/progression percentages in this section are hypothetical scenario outputs; no game code or monetization catalog changed. [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -975,6 +983,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.0, 7 November 2026:** Recorded M7 matched-activity/pay-only Monte Carlo (1,000 seeds per cohort) using prototype loot-weighted random pickups. Identified Core L2 free progression bottleneck and late-tier rare material purchase plateau. Explicit sampling limitations and next actual-runtime validation. Analysis only; no live economy changes.
 - **v2.9, 7 November 2026:** Completed and documented first-pass post-FTUE 30-day economy scenario (M6) across four spend/activity personas, with explicit baseline sources, assumptions, results and priorities for same-activity controlled experiments and stochastic loot validation. Documentation only; no prices or implementation approved.
 - **v2.8, 7 November 2026:** Owner approved commercial hybrid C (M5) direct resources + bunker milestone Growth Fund + cosmetic collections; specified proposed late/retroactive claiming, room-adjacent direct purchase UX, commercial placements, event and offer guardrails without approving numerical rates or implementing commerce. Documentation only.
 - **v2.7, 7 November 2026:** Owner selected full midcore Model C, permitting paid functional meta resources/progression alongside cosmetic room/operator/BIT purchases. Proposed a concrete Signals wallet, sinks/sources, starter SEK price ratios, milestone/seasonal offers, paid-vs-free modeling and explicit D1 extraction integrity guardrails. Numerical offers and implementation remain proposals.
