@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v2.8 - FTUE and progression approved; full-midcore and hybrid product architecture C approved |
+| Document status | Living design reference, v2.9 - FTUE/progression/commercial architecture approved; economy scenario M6 recorded |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -498,6 +498,14 @@ Selling for Scrap and breaking an item into base materials are different actions
 
 **Test sequence and economics:** Prove free room decorating; validate deterministic repair-adjacent products; then one bunker milestone Growth Fund with late retroactive claiming; only later scale curated themed collections and live events. Monitor paid vs free progression timing, first/return purchase, purchase refunds, room personalization, fund milestone completion/claim rate, raid participation after purchases and D1/D7/D30 retention. Detailed decision record, numerical hypotheses and unresolved offer questions are in [M5](design-decisions.md#m5--hybrid-commercial-product-structure-direct-resources--growth-fund--cosmetics). [D01]
 
+### 8.9 M6 — First 30-day economy simulation (analysis, not a tuning decision)
+
+A first-pass formula-based Excel model now covers **four illustrative post-FTUE 30-day personas** with editable daily raiding, extraction rates, depth preferences, expected loot/scrap yields, real module ingredient costs, Signals wallet, deterministic common-material supply purchases, and a milestone-based retroactive Growth Fund. It treats Core L1 as completed in the signed-off introductory mission, and models one upgrade/day through Fabricator L1, Vault L1, BIT Bay L1, Core L2, Fabricator L2, BIT Bay L2 and Core L3. The workbook was produced as a **downloadable conversation artifact**; only the methodology and result synopsis are recorded in repository docs (see [M6 in decision register](design-decisions.md#m6--30-day-economy-scenario-model-analysis-7-november-2026)). **This is not a forecast or authorization to ship new prices/resources.**
+
+**Initial assumed example results:** free persona (1.2 raids/day, 66% extraction success, no spend) reaches Fabricator L2 by day 28 and Core L2 day 20; occasional paid persona (89 kr modeled spend, 1.6 raids/day, 70% extraction success) reaches BIT Bay L2 by day 25 and Core L2 day 14; regular paid persona (399 kr and 2.2 raids/day, 75%) reaches BIT Bay L2 by day 14 and Core L2 day 9; high spender (1,999 kr and 3 raids/day, 80%) reaches Core L3 by day 19 and Core L2 day 6. **Different time investment and extraction skill heavily confound purchase effects.** These results are deterministic expected-inventory threshold crossings, not per-player outcome probabilities. Rare drops need stochastic Monte Carlo validation.
+
+**Priority next analysis:** compare free-versus-paid under identical playing time and success rate to isolate *payment effect*, then replace hypothesized loot per successful extraction with instrumented actual runs and stochastic distributions. A separate population, retention and store-fees model is needed before any revenue/LTV/ROAS conclusions. [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -967,6 +975,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v2.9, 7 November 2026:** Completed and documented first-pass post-FTUE 30-day economy scenario (M6) across four spend/activity personas, with explicit baseline sources, assumptions, results and priorities for same-activity controlled experiments and stochastic loot validation. Documentation only; no prices or implementation approved.
 - **v2.8, 7 November 2026:** Owner approved commercial hybrid C (M5) direct resources + bunker milestone Growth Fund + cosmetic collections; specified proposed late/retroactive claiming, room-adjacent direct purchase UX, commercial placements, event and offer guardrails without approving numerical rates or implementing commerce. Documentation only.
 - **v2.7, 7 November 2026:** Owner selected full midcore Model C, permitting paid functional meta resources/progression alongside cosmetic room/operator/BIT purchases. Proposed a concrete Signals wallet, sinks/sources, starter SEK price ratios, milestone/seasonal offers, paid-vs-free modeling and explicit D1 extraction integrity guardrails. Numerical offers and implementation remain proposals.
 - **v2.6, 7 November 2026:** Researched Whiteout Survival, Survivor.io and Toca Boca World as distinct monetization/progression references; proposed M3 three-loop economy, currency separation, clear direct cosmetic packs, phased live events, and measurable commercial validation. Paid progression policy, offers and pricing remain unapproved. Documentation only.
