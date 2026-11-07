@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.8 - enemy roles/difficulty M16 and weapon/tool/build counterplay M17 |
+| Document status | Living design reference, v3.9 - M18 world and mission structure across bunker, archipelago and town |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -701,6 +701,18 @@ Contract Chips feed BIT's catalog of recipe access, selected materials, Hard pas
 
 **Core rule:** Equipment should change options, strengths and limitations in a fight. Fast SMG, precise Marksman, close knockback Shotgun and free/basic Carbine each suit different threats, while Decoy/EMP/Grenade support optional tactics rather than exclusive progress. Existing item data puts Decoy at Fabricator L1 and EMP/Grenade at L2; this is source data, not an owner approval of the final tool economy or proof all runtime pathways function. Gear loss still obeys D1; skins remain permanently owned, and no paid-only counter or shop intervention appears in active raids. See the M17 counterplay matrix and controlled playtest design. [D01]
 
+### 11.9 M18 — Region identities, exploration, world gates and mission hierarchy
+
+**NEW DESIGN SPECIFICATION:** [World & Mission Design](world-mission-design.md) defines Bunker, Archipelago and Town as three distinct gameplay spaces rather than visual skins; proposes an environmental narrative spine, mission-purpose hierarchy, world-map contracts, procedural map grammar, and the practical relationship between exploration, extraction, bunker restoration, BIT quests, operator mastery and identity cosmetics. Exact mission catalog, art quantities and pacing are proposed, not locked. [D01]
+
+**Configured access carried forward:** Bunker available at start; Archipelago requires **Core L2 + successfully extracted Archipelago Chart**, while Town requires **Core L3 + successfully extracted Town Survey**. Tracking a goal or completing a tactical room is **not** permission to gate an ordinary return extraction. D2.1 return access from the beginning, D2.2 personal objective optionality and D2.3 deliberate short physical extraction continue to apply, alongside D2.4 node-only forward progression. For scouting items, extraction is what banks carried intel; purchasing upgrade resources cannot substitute for the actual reconnaissance objective. [D01]
+
+**One visible purpose:** Make the primary tracked restoration/scouting goal unmistakable, with one likely area/route hint and visible return exit. BIT contracts, tactical discoveries and deeper opportunities remain secondary; the result distinguishes **successful extraction**, **quest completion**, **extracted materials**, **scouting unlock**, and **depth reached**. Present uncertain loot families as likely, not guaranteed. [D01]
+
+**Biome gameplay:** Bunker emphasizes short technical spaces, Cut Power, flanking and industrial systems; Archipelago emphasizes granite/pine route choices, forest scouts and crossing sightlines; Town emphasizes searchable homes, support enemies, alarm/ambush opportunities and environmental storytelling. Test procedural map connectivity, bridges, spawned obstacles and return extraction across seeds; guard the established mobile performance target and the hopeful Nordic summer-night mood. [D01]
+
+**Implementation audit required:** The legacy `data/raid_zones.js` probability-based extraction simulator and old scripted progression settings conflict with parts of the intended quick playable Node Raid; treat them as existing historical code, **not an override of D1/D2/D3**. The existing BIT quest data offers daily tasks and Bunker/Archipelago authored chains, but an equivalent Town chain is currently a content proposal. Do not claim the new design has been implemented. [D01]
+
 ## 12. Difficulty and replayability
 
 The game varies through seeded layouts, area identity, depth, encounter combinations, loot, weapon/tool selection, and temporary perks. Hard variants remix existing spaces with more demanding settings and rewards, rather than constituting an entirely separate world. [S09] [S17]
@@ -1061,6 +1073,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.9, 7 November 2026:** Defined M18 World & Mission Design across Bunker, Archipelago and Town, region unlocks via Core plus extracted scouting items, one-purpose mission hierarchy, procedural map templates, story/mystery spine and legacy-raid alignment risks. Documented only; no new story canon or gameplay code approved.
 - **v3.8, 7 November 2026:** Added the joint M16/M17 design pass. M16 specifies enemy roles, biome/depth difficulty and paired-pressure encounters; M17 maps the current weapons/armor/tools to four emergent tactical build identities, explicitly preserving free counterplay, controlled-risk loss and limited operator milestone choices. Documentation only; no spawn/tuning or gameplay code changes.
 - **v3.7, 7 November 2026:** Detailed M15 reusable tactical encounter grammar across bunker/forest/town using six verbs (power, diversion, flank, hazards, support, optional risk/reward) and explicit candidate priority for Shielded Relay Room Issue #205. No gameplay code changes or approved mechanics/rates.
 - **v3.6, 7 November 2026:** Added the integrated eight-minute raid blueprint M14 with concrete combat / optional tactical room / extraction / persistent home-and-identity rhythm, first Shielded Relay Room slice, guardrails and playtest acceptance. No game code changes or numerical tuning approval.
