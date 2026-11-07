@@ -5,7 +5,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v3.0 - FTUE/progression/commercial architecture approved; economy M6/M7 analyzed |
+| Document status | Living design reference, v3.1 - FTUE/progression/commercial architecture approved; economy harness PR #204 under review |
 | Prepared / updated | 7 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -514,6 +514,12 @@ A first-pass formula-based Excel model now covers **four illustrative post-FTUE 
 
 **Next validation:** run actual loot generation + inventory retention from game runtime or instrument device playtests, then revise paid-basket composition, free rare-item acquisition routes and prices with fully stochastic observed input data. All revenues/prices/progression percentages in this section are hypothetical scenario outputs; no game code or monetization catalog changed. [D01]
 
+### 8.11 M8 — Economy calibration tooling and first-week meta progression
+
+**IMPLEMENTATION SUPPORT:** [Draft PR #204](https://github.com/w4sser/protocol-rebirth-proto/pull/204) contains an offline CI-runnable economy harness invoking the real Node Raid level generation, pickups, bag settlement and currency grants. It does **not** change gameplay. It outputs seed-level `runs.csv` and `summary.json` for comparison with M6/M7, available from the GitHub Actions `economy simulation` artifact. First focused action run passed. Navigation, combat, current big-level routes and actual player choices are **not** simulated; there is no actual commercial system or server backend here. The Excel workbook remains outside GitHub pending manual binary upload; see [economy model guide](economy/README.md).
+
+**NEXT OPEN DESIGN DECISION:** Set the **first-week free-player restoration cadence** before locking purchased resource bundles. Proposed baseline: Fabricator L1 after a few successful post-FTUE raids, one other significant restoration within roughly the first week, Core L2 as the following medium-term journey. This is a test hypothesis, **not owner-approved timing or a commitment to inject artificial upgrade timers**. The first-week rhythm must be validated against gameplay and actual loot/pickup distributions, then benchmarked against spend-only scenarios. [D01]
+
 ## 9. Operator and equipment progression
 
 ### 9.1 Progression layers
@@ -983,6 +989,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v3.1, 7 November 2026:** Linked draft PR #204 deterministic offline economy harness and initial successful Actions test. Recorded open decision on first-week free restoration rhythm and need for actual big-level/pickup calibration. Workbook binary pending upload. No game changes or new economic approvals.
 - **v3.0, 7 November 2026:** Recorded M7 matched-activity/pay-only Monte Carlo (1,000 seeds per cohort) using prototype loot-weighted random pickups. Identified Core L2 free progression bottleneck and late-tier rare material purchase plateau. Explicit sampling limitations and next actual-runtime validation. Analysis only; no live economy changes.
 - **v2.9, 7 November 2026:** Completed and documented first-pass post-FTUE 30-day economy scenario (M6) across four spend/activity personas, with explicit baseline sources, assumptions, results and priorities for same-activity controlled experiments and stochastic loot validation. Documentation only; no prices or implementation approved.
 - **v2.8, 7 November 2026:** Owner approved commercial hybrid C (M5) direct resources + bunker milestone Growth Fund + cosmetic collections; specified proposed late/retroactive claiming, room-adjacent direct purchase UX, commercial placements, event and offer guardrails without approving numerical rates or implementing commerce. Documentation only.
