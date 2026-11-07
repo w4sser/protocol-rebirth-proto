@@ -1134,6 +1134,29 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 
 ---
 
+## M18 — World & Mission Design: Three Distinct Regions and One Clear Purpose
+
+**Requested continuation, 7 November 2026.** Detailed design proposal: [World & Mission Design](world-mission-design.md). World exploration and progression should create a different, recognizable play experience in Bunker, Archipelago forest and abandoned Town, tying the next raid to bunker restoration, player mastery and the mystery of Protocol Rebirth.
+
+**Existing configured world progression (preserved):** Bunker starts available; Archipelago access requires **Core L2 plus a successfully extracted Archipelago Chart**; Town access requires **Core L3 plus a successfully extracted Town Survey**. The intended world is Nordic summer night with pine forest, lavender/gray granite, sea/islands, industrial bunker and abandoned red/yellow coastal buildings. This is a configured design baseline, not proof all unlocks and geometry are aligned in current live code.
+
+**Proposed differentiated biome jobs:**
+- Bunker teaches environmental power, shielding, cover, return extraction and short practical restoration quests.
+- Archipelago introduces wider granite/pine path choices, readable scouting pressure and bridge/shoreline navigation.
+- Town layers home/searchable interiors, support/alarm systems, sightlines and story traces.
+
+**Proposed mission hierarchy:** One **player-selected tracked purpose** leads; authored world/scouting milestones, BIT daily contracts, optional tactical opportunities and deeper payoff are secondary. Each category settles independently. **D2.1/D2.2 remain binding:** every ordinary raid has at least one accessible return extraction from spawn, which neither a personal goal, scouting chart nor special room can gate. Physical chart/survey must actually come home via successful extraction; Core level is a separate persistent access requirement.
+
+**Important code-baseline conflicts:** `data/raid_zones.js` still contains legacy simulated extraction probability multipliers and old risk routes, while Node Raid / Big Map have physical generation and exit logic. `data/progression.js` retains a historical scripted first hour and insurance/whole-bag recovery assumptions superseded by D1/D3. `data/quests.js` includes BIT daily quests and the Bunker and Archipelago chains but no equivalent authored Town story chain. These are integration/authoring gaps, not new approved features. Do not conflate simulated raid probabilities with the approved D2.3 five-second physical extraction interaction.
+
+**Proposed generation language:** recognizable approach, fork/landmark, tactical room, scavenge pocket, pressure transition, distinct deeper payoff and clear return approach. Ensure seedable physical connectivity, no bridge softlocks or blocking props, meaningful route choice and good mobile FPS. Use shared M15 verbs and M16 enemy roles so biome differentiation comes from tactical decisions, not only visuals.
+
+**Story spine (proposed):** Bunker *A Dead Home* (why does the Core still respond?), Archipelago *Lights Across the Water* (what keeps coastal systems running?), Town *Echoes of Ordinary Life* (what happened to the people, what is rebuilding for?). Quiet, hopeful environmental storytelling with brief BIT observations; no forced lore dialogue during fighting.
+
+**Status:** Design proposal documented and referenced, **not an owner-approved mission catalogue, story canon, region content count, loot table, economic tuning or game implementation**. Recommended follow-on is an implementation audit of live world/quest/extraction paths and a playable mission UX slice, after design review.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1174,4 +1197,5 @@ Prototype **Shielded Relay Room** first: one existing shielded turret/defense, a
 | 2026-11-07 | M15: Reusable Tactical Encounter Grammar (T1–T6) and bunker/forest/town composition | Design proposal documented; no mechanic catalogue or spawn tuning approved |
 | 2026-11-07 | M16: Enemy tactical roles, combinations and difficulty across depths/biomes | Design proposed, spawn/tuning approval outstanding |
 | 2026-11-07 | M17: Existing weapons, tools and four emergent counterplay builds linked to M16 | Design proposed, no new classes or item changes approved |
+| 2026-11-07 | M18: Three distinct world regions, mission hierarchy, scouting unlocks and raid extraction invariants | Integrated design proposed; catalog/mission UX/content counts pending owner review |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
