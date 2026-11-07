@@ -1,0 +1,34 @@
+name: coastal-life-preview
+on:
+  pull_request:
+    paths:
+      - 'nodspel/polyfork-coastal-life.mjs'
+      - 'nodspel/polyfork-dressing.mjs'
+      - 'nodspel/game.mjs'
+      - 'scripts/shot-ground-v2.mjs'
+      - '.github/workflows/coastal-life-preview.yml'
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i --no-save puppeteer
+      - name: Render Level 2 Coastal Life from iPhone raid camera
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          LEVEL: '2'
+          COASTAL_FOCUS: '1'
+          OUT: verify-out/coastal-life
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coastal-life-phone-capture
+          path: verify-out/coastal-life
+          if-no-files-found: warn
