@@ -485,10 +485,23 @@ This is **not** an approval to monetize secure slots, loss recovery, or weapons/
 - **Progression connection:** Completing/repairing a room unlocks its new customization canvas (not a price gate). A visible upgrade creates emotional investment and an optional reason to personalize it. Cosmetic purchases apply immediately and persist on the account.
 - **Technical reality:** The inspected bunker currently relies on staged image plates and DOM hotspots, not a freely editable 3D room decorator. Room-level interactive decoration would require a new controlled layer, authored room scenes or slot-based placement; avoid assuming full free-placement or instant parity with Toca Boca World. Prefer low-overhead 2.5D/slot-based room customization for mobile proof-of-fun, then expand based on actual engagement and performance.
 
+### M2.3a — Personal bunker name (OWNER SUGGESTION; PROPOSED UX)
+
+Robert suggested a **player-chosen bunker name**, referencing the ownership and identity established by naming a farm in *Hay Day*. This is a proposed addition to the persistent meta-game, **not yet a formally approved final UX contract**.
+
+**Recommended design:** Let the player choose a short, persistent bunker name as an optional identity action, unlocked after the Core L1 home reveal. Give the bunker an editable, non-generic display identity in the home overview and post-raid return. Naming is **free, renameable, and does not require premium currency**; no name-change fees or competitive benefits. Avoid displaying a compulsory naming form before the first ordinary extraction, because D3.9's signed-off FTUE must remain brief and uninterrupted. A subtle optional prompt can appear at the first return or once the player has demonstrated ownership through a restoration.
+
+The player's chosen name then ties cosmetic room themes into a unified authored home: the storefront sells styles and room expression, **not the right to name or own the bunker**.
+
+**Potential future sharing:** Showcase bunker names and decorations to friends only after cooperative/social systems and privacy policy are separately designed. If player-entered names can be public, add length limits, moderation/reporting, profanity screening and safe defaults. Exact name length, default placeholder, first-prompt moment, allowable characters and cross-device storage remain open.
+
+**Draft BIT reaction only:** “You named it? Well, I suppose that makes it official.” Not approved canonical dialogue.
+
 ### M2.4 — Proposed commercial engagement loop (NOT APPROVED)
 
 ```text
 Raid for components -> extract -> repair/upgrade a room (earned functional unlock)
+   -> optionally name the bunker and develop a sense of ownership
    -> discover a personalizable room -> earn a starter cosmetic / preview a themed pack
    -> spend earned or purchased cosmetic currency (optional)
    -> decorate room + coordinate operator / BIT appearance
@@ -542,4 +555,5 @@ Raid for components -> extract -> repair/upgrade a room (earned functional unloc
 | 2026-11-07 | P1.2: Progression simplification and specific system removals | Proposed for review; no system removals approved |
 | 2026-11-07 | P1.3: Option C — Operator XP/levels with a few meaningful build choices at milestones, reduce redundant minor skill tracks | Approved by Robert; specifics and removals open |
 | 2026-11-07 | M2: Meta-game monetization direction: currency, operator looks, room-by-room bunker customization, and BIT visual personalization | Owner-requested direction confirmed; cosmetic-only economy, catalog, pricing and detailed loop proposed, not approved |
+| 2026-11-07 | M2.3a: Optional player naming of the bunker, inspired by farm naming in Hay Day | Owner suggestion recorded; free editable name and prompt timing proposed, not yet final approval |
 | 2026-11-06 | D3.3/D3.4: Exact entrance and pickup UI, introductory pacing, BIT follow-up dialogue, tutoring/assistance, and comprehension checks | Open |
