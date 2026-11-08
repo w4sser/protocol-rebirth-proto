@@ -10,10 +10,63 @@ export {archipelagoPassages} from './archipelago-passages.js?v=2.28.0';
 import {createWaterMesh} from './water-shader.js?v=2.28.0-coast9';
 import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.0-bridge1';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.0-bridge1';
+import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
   return inPassageClearance({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z},passages);
+}
+// Deck planks are instanced by wood shade, so detail scales without one draw call per board.
+const BRIDGE_CUBE=new THREE.BoxGeometry(1,1,1);
+BRIDGE_CUBE.userData.shared=true; // world.dispose traverses per-level meshes
+const BRIDGE_PLANK_MATS=['#8B8173','#A09481','#756E64','#9C917E']
+  .map(color=>{
+    const material=new THREE.MeshStandardMaterial({color,roughness:.96,metalness:0,flatShading:true});
+    material.userData.shared=true;
+    return material;
+  });
+function buildTimberPier(f,seed,quality,group,box){
+  const high=(quality?.props??1)>=1;
+  const plan=planBridgeDeck(f,seed,{quality:high?'high':'low'});
+  if(!plan)return;
+  const alongX=plan.along==='x',width=plan.width,len=plan.length;
+  // A dark, narrow understructure shows between individual weathered boards.
+  // It changes no logical floor or collider and does not create a physical gap.
+  box(f.x,-.11,f.z,f.w,.16,f.d,'#3E423F');
+  for(const side of [-1,1]){
+    const cross=side*(width/2-.08);
+    box(alongX?f.x:f.x+cross,-.22,alongX?f.z+cross:f.z,
+      alongX?len:.18,.22,alongX?.18:len,'#554F47');
+  }
+  // Cross timbers and thick, low pilings sit beyond the walkable edges.
+  // No railing or new collider pinches player / enemy approach lanes.
+  for(let i=0;i<plan.supports.length;i+=2){
+    const t=plan.supports[i].t;
+    box(alongX?f.x+t:f.x,-.31,alongX?f.z:f.z+t,
+      alongX?.24:width+.32,.21,alongX?width+.32:.24,'#514B44');
+  }
+  for(const s of plan.supports){
+    const x=alongX?f.x+s.t:f.x+s.side*(width/2+.27);
+    const z=alongX?f.z+s.side*(width/2+.27):f.z+s.t;
+    box(x,-.42,z,.30,1.15,.30,'#47443D');
+    box(x,.19,z,.35,.09,.35,'#8B8071');
+  }
+  const rot=new THREE.Quaternion(),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3();
+  for(let tone=0;tone<BRIDGE_PLANK_MATS.length;tone++){
+    const parts=plan.planks.filter(p=>p.tone===tone);
+    if(!parts.length)continue;
+    const mesh=new THREE.InstancedMesh(BRIDGE_CUBE,BRIDGE_PLANK_MATS[tone],parts.length);
+    for(let i=0;i<parts.length;i++){
+      const p=parts[i];
+      position.set(alongX?f.x+p.t:f.x+p.cross,.028,alongX?f.z+p.cross:f.z+p.t);
+      scale.set(alongX?p.length:p.width,.09,alongX?p.width:p.length);
+      mesh.setMatrixAt(i,matrix.compose(position,rot,scale));
+    }
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.castShadow=high;mesh.receiveShadow=true;
+    mesh.name='archipelago-timber-planks';mesh.userData.visualOnly=true;
+    group.add(mesh);
+  }
 }
 // Keep authoring walls and the initial placement clearances separate from runtime
 // footprint colliders. Rebuilding a live level must not use moved actors or rocks as input.
@@ -165,33 +218,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   water.name='water';group.add(water);
   const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
   for(const f of level.floors){
-    if(f.dir){ // walkable pier: clear center deck, open landings, posts outside
-      box(f.x,-.08,f.z,f.w,.16,f.d,P.pier);
-      const along=f.dir.x?'x':'z',len=along==='x'?f.w:f.d,width=along==='x'?f.d:f.w;
-      // Wide mouth at each end provides a natural entry funnel. These are
-      // visual planks only; the widened logical floors provide actual movement.
-      for(const end of [-1,1]){
-        const depth=1.45,half=width/2,wide=half+.75;
-        const points=along==='x'
-          ? [[f.x+end*(len/2-.08),f.z-half],[f.x+end*(len/2-.08),f.z+half],
-             [f.x+end*(len/2+depth),f.z+wide],[f.x+end*(len/2+depth),f.z-wide]]
-          : [[f.x-half,f.z+end*(len/2-.08)],[f.x+half,f.z+end*(len/2-.08)],
-             [f.x+wide,f.z+end*(len/2+depth)],[f.x-wide,f.z+end*(len/2+depth)]];
-        const geo=new THREE.BufferGeometry(),verts=[];
-        for(const [x,z] of points)verts.push(x,.015,z);
-        geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-        geo.setIndex([0,1,2,0,2,3]);geo.computeVertexNormals();
-        const apron=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:P.pier,side:THREE.DoubleSide,roughness:1}));
-        apron.name='archipelago-bridge-apron';group.add(apron);
-      }
-      // Deck posts sit outside the playable strip, so they read as rails
-      // rather than trunks/obstacles standing in the firing lane.
-      for(let t=-len/2+.9;t<len/2;t+=2.2)for(const sign of [-1,1]){
-        const px=along==='x'?f.x+t:f.x+sign*(width/2+.20);
-        const pz=along==='x'?f.z+sign*(width/2+.20):f.z+t;
-        box(px,-.4,pz,.13,.7,.13,P.post);
-      }
-      out.piers++;continue;}
+    if(f.dir){
+      buildTimberPier(f,level.seed,quality,group,box);
+      out.piers++;continue;
+    }
     // island: grass top, sand rim, irregular shore blobs below the walkable edge
     const grass=box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
     grass.name='archipelago-grass-backup';

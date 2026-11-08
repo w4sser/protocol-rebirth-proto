@@ -2,7 +2,7 @@ import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.0';
 import {generateBigLevel} from './big-level.js?v=2.28.0';
 import '../data/items.js?v=2.28.0';
 import {clearPassageProps} from './archipelago-passages.js?v=2.28.0';
-import {BRIDGE_MIN_WIDTH} from './bridge-flow.mjs?v=2.28.0-bridge1';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
 import {townizeLevel} from './town-layout.js?v=2.28.0';
 import {applyEncounters} from './encounters.js?v=2.28.0';
 import '../data/raid-combat.js?v=2.28.0';
@@ -285,9 +285,19 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     // Extend the room end(s) by `t` to close it. A corridor joins a room at both ends; a branch
     // (dead end / closet, identified by its `end` field) only at its room end - the far end is
     // already sealed by its own cap wall in addBranch, so padding it further would poke past the cap.
-    const pad=corridor.end?t:2*t,shift=corridor.end?t/2:0;
-    const cx=corridor.x-corridor.dir.x*shift,cz=corridor.z-corridor.dir.z*shift;
-    for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*(door/2-t/2):0),z:cz+(corridor.dir.x?sign*(door/2-t/2):0),w:corridor.dir.x?corridor.w+pad:t,d:corridor.dir.z?corridor.d+pad:t,h:.85});
+    const islandPier=area==='archipelago';
+    // Invisible side walls used to reach the shoreline and catch angled movement.
+    // Recess them ONLY at the land entrance(s). The existing narrow logical
+    // corridor floor still stops actors from stepping into water.
+    const trim=islandPier?BRIDGE_LAND_RAIL_RECESS:0;
+    const pad=islandPier?0:(corridor.end?t:2*t);
+    const shift=islandPier?(corridor.end?trim/2:0):(corridor.end?-t/2:0);
+    const cx=corridor.x+corridor.dir.x*shift,cz=corridor.z+corridor.dir.z*shift;
+    const shorten=islandPier?trim*(corridor.end?1:2):0;
+    for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*(door/2-t/2):0),
+      z:cz+(corridor.dir.x?sign*(door/2-t/2):0),
+      w:corridor.dir.x?Math.max(.3,corridor.w+pad-shorten):t,
+      d:corridor.dir.z?Math.max(.3,corridor.d+pad-shorten):t,h:.85});
   }
   for(let i=0;i<rooms.length;i++){
     const room=rooms[i],{x,z,w,d}=room;
@@ -296,7 +306,12 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
       const edge={x:x+dir.x*(w/2-t/2),z:z+dir.z*(d/2-t/2)};
       const opening=room.doors.some(p=>equal(p,dir));
       if(!opening)walls.push({...edge,w:isX?t:w,d:isX?d:t,h:dir.z>0?.65:1.15});
-      else for(const sign of [-1,1])walls.push({x:edge.x+(isX?0:sign*(length+door)/4),z:edge.z+(isX?sign*(length+door)/4:0),w:isX?t:(length-door)/2,d:isX?(length-door)/2:t,h:.85});
+      else {
+        const mouth=area==='archipelago'?bridgeMouthWidth(door,length,t):door;
+        for(const sign of [-1,1])walls.push({x:edge.x+(isX?0:sign*(length+mouth)/4),
+          z:edge.z+(isX?sign*(length+mouth)/4:0),
+          w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,h:.85});
+      }
     }
     const side=rng()<.5?1:-1;
     if(rule.partition){

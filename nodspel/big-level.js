@@ -5,6 +5,7 @@ import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.0';
 import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.0';
 import {applyEncounters} from './encounters.js?v=2.28.0';
 import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.0';
+import {BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
@@ -26,10 +27,28 @@ export function generateBigLevel(seed,area='bunker'){
     for(const dir of RULES.directions){
       const isX=!!dir.x,length=isX?room.d:room.w,edge={x:room.x+dir.x*(room.w/2-t/2),z:room.z+dir.z*(room.d/2-t/2)};
       if(!room.doors.some(d=>d.x===dir.x&&d.z===dir.z))level.walls.push({...edge,w:isX?t:room.w,d:isX?room.d:t,h:dir.z>0?.65:1.15,roomId:room.id});
-      else for(const sign of [-1,1])level.walls.push({x:edge.x+(isX?0:sign*(length+width)/4),z:edge.z+(isX?sign*(length+width)/4:0),w:isX?t:(length-width)/2,d:isX?(length-width)/2:t,h:.85,roomId:room.id});
+      else {
+        // Open a forgiving land-side mouth without widening the bridge over water.
+        const mouth=area==='archipelago'?bridgeMouthWidth(width,length,t):width;
+        for(const sign of [-1,1])level.walls.push({
+          x:edge.x+(isX?0:sign*(length+mouth)/4),
+          z:edge.z+(isX?sign*(length+mouth)/4:0),
+          w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,
+          h:.85,roomId:room.id});
+      }
     }
   }
-  for(const c of level.corridors){level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});for(const sign of [-1,1])level.walls.push({x:c.x+(c.dir.z?sign*(width/2+t/2):0),z:c.z+(c.dir.x?sign*(width/2+t/2):0),w:c.dir.x?c.w:t,d:c.dir.z?c.d:t,h:.85,roomIds:c.roomIds});}
+  for(const c of level.corridors){
+    level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});
+    const cross=c.dir.x?c.d:c.w;
+    const length=c.dir.x?c.w:c.d;
+    const shortened=area==='archipelago'
+      ?Math.max(.30,length-2*BRIDGE_LAND_RAIL_RECESS):length;
+    for(const sign of [-1,1])level.walls.push({
+      x:c.x+(c.dir.z?sign*(cross/2+t/2):0),
+      z:c.z+(c.dir.x?sign*(cross/2+t/2):0),
+      w:c.dir.x?shortened:t,d:c.dir.z?shortened:t,h:.85,roomIds:c.roomIds});
+  }
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];
     if(poi.type==='bit-signal'){poi.description=`BIT SIGNAL: field upgrade every ${globalThis.DATA.raidPerks.clearsPerOffer} cleared rooms`;continue;}

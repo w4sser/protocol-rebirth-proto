@@ -90,7 +90,32 @@ try {
       if (process.env.LEVEL) {
         await page.evaluate(n=>window.__NR.goLevel(n),Number(process.env.LEVEL));
       }
+      // Optional bridge framing: capture a real Level 2 connecting pier rather
+      // than Level 1's single island (which cannot validate bridge visuals).
+      if(process.env.BRIDGE_FOCUS==='1'){
+        const bridge=await page.evaluate(()=>{
+          const floor=window.__NR?.state?.()?.level?.floors?.find(f=>f.dir);
+          if(!floor)return null;
+          const alongX=!!floor.dir.x,len=alongX?floor.w:floor.d;
+          const offset=Math.min(2.7,len*.25);
+          window.__NR.teleport(floor.x-(alongX?offset:0),floor.z-(alongX?0:offset));
+          return {x:floor.x,z:floor.z,len,width:alongX?floor.d:floor.w};
+        });
+        if(!bridge)throw new Error('BRIDGE_FOCUS requested but no connecting pier exists');
+        console.log('[timber-bridge-focus]',area,mode,JSON.stringify(bridge));
+      }
       await sleep(2000);
+      if(process.env.BRIDGE_FOCUS==='1'){
+        const audit=await page.evaluate(()=>{
+          const scene=window.__NR?.getScene?.()||window.__groundPreview?.group?.parent;
+          const meshes=[];
+          scene?.traverse(o=>{if(o.name==='archipelago-timber-planks')meshes.push({instances:o.count,visualOnly:o.userData.visualOnly});});
+          return {meshes:meshes.length,instances:meshes.reduce((s,m)=>s+m.instances,0),allVisualOnly:meshes.every(m=>m.visualOnly)};
+        });
+        console.log('[timber-bridge-meshes]',area,mode,JSON.stringify(audit));
+        if(audit.meshes===0||audit.instances<5||!audit.allVisualOnly)
+          throw new Error('Timber bridge render missing or invalid: '+JSON.stringify(audit));
+      }
       if (process.env.COASTAL_FOCUS==='1') {
         await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "coastal" && window.__polyforkPreview.stats.ready', {polling:250,timeout:45000});
         const life=await page.evaluate(()=>{

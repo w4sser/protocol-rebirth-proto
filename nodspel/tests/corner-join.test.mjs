@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateLevel,RULES} from '../levels.js';
 import {generateBigLevel} from '../big-level.js';
+import {bridgeMouthWidth} from '../bridge-flow.mjs';
 
-// A corridor/branch wall must reach all the way into the room's own doorway wall at every room
-// connection, or a wallThickness-square hole opens at the corner (feedback item 7: "corners show
-// gaps/wrong ends"). This probes the exact square that regressed before the levels.js corner-pad
-// fix: the sliver just inside the room, beside the corridor's own side wall.
+// Bunker/town corridor corners must be closed at the original doorway width.
+// Archipelago deliberately has a wider land-side mouth; the old probe inside that
+// opening must remain free. Probe instead at the OUTSIDE edge of the new mouth
+// to catch genuine missing room-wall segments without rejecting diagonal entry.
 const covers=(walls,p)=>walls.some(w=>Math.abs(p.x-w.x)<w.w/2+1e-9&&Math.abs(p.z-w.z)<w.d/2+1e-9);
 
 function cornerProbes(level){
@@ -19,9 +20,18 @@ function cornerProbes(level){
     for(const endVal of [center-axisLen/2,center+axisLen/2]){
       if(c.end&&Math.abs(endVal-nearEnd)>1e-6)continue;
       const away=endVal<center?-1:1;
+      const room=level.archipelago&&level.rooms.find(r=>c.dir.x
+        ?Math.abs(Math.abs(endVal-r.x)-r.w/2)<.02&&Math.abs(c.z-r.z)<.02
+        :Math.abs(Math.abs(endVal-r.z)-r.d/2)<.02&&Math.abs(c.x-r.x)<.02);
+      const mouth=room?bridgeMouthWidth(c.width,c.dir.x?room.d:room.w,t):c.width;
+      const cross=room?mouth/2+t/2:c.width/2-t/2;
+      // The outward corridor end is the near side of the adjoining room.
+      // Check the surviving room wall beyond the widened mouth, not the
+      // deliberately empty space inside that mouth.
+      const axis=endVal+away*t/2;
       for(const sign of [-1,1])probes.push(c.dir.x
-        ?{x:endVal+away*t/2,z:c.z+sign*(c.width/2-t/2)}
-        :{x:c.x+sign*(c.width/2-t/2),z:endVal+away*t/2});
+        ?{x:axis,z:c.z+sign*cross}
+        :{x:c.x+sign*cross,z:axis});
     }
   }
   return probes;

@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.0';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.0';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.0';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.0-ground-v10';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.0-ground-v10-timber-v1';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.0';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.0';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.0';
@@ -1323,6 +1323,7 @@ function teleportPlayer(x,z){
 // Screenshot/debug hook (only with ?debug): teleport, open the exit, jump to a level.
 if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   getCamera:()=>camera,
+  getScene:()=>scene,
   operator:()=>human,
   capturePerformance(options={}){return raidProfiler.start({...options,metadata:{area:AREA_SEL,quality:QUALITY,userAgent:navigator.userAgent,viewport:{width:viewWidth,height:viewHeight,pixelRatio:renderer.getPixelRatio()},renderMode:'whole frame including postprocessing',deviceLabel:options.deviceLabel||'unspecified',physicalPhoneVerified:options.physicalPhoneVerified===true}});},
   setRoomClearsEnabled(enabled){debugRoomClearsEnabled=enabled;},

@@ -33,6 +33,20 @@ export function archipelagoPassages(level){
       }
       if(hi-lo<.8)continue;
       const p=axis==='x'?{x:(lo+hi)/2,z:center,w:hi-lo,d:depth}:{x:center,z:(lo+hi)/2,w:depth,d:hi-lo};
+      // Timber bridge mouths are wider than the water-side floor. The recessed
+      // rails no longer constrain this wall-gap scan, so clamp its clearance
+      // to the supported bridge center rather than discarding a valid opening
+      // when the 3x3 ground sample falls on the overhanging mouth shoulders.
+      if(level.archipelago){
+        const branches=[...(level.corridors??[]),...(level.deadEnds??[]),...(level.closet?[level.closet]:[])];
+        const bridge=branches.find(c=>axis==='x'&&c.dir?.z&&Math.abs(c.x-p.x)<.05&&Math.abs(c.z-p.z)<=c.d/2+1
+          ||axis==='z'&&c.dir?.x&&Math.abs(c.z-p.z)<.05&&Math.abs(c.x-p.x)<=c.w/2+1);
+        if(bridge){
+          const supportedWidth=Math.max(.8,bridge.width-1.0); // .5m safe shoulder for bot radius
+          if(axis==='x')p.w=Math.min(p.w,supportedWidth);
+          else p.d=Math.min(p.d,supportedWidth);
+        }
+      }
       // Require continuous ground on both sides, not an unrelated gap between islands.
       let grounded=true;
       for(const s of [-1,0,1])for(const t of [-1,0,1]){
@@ -40,6 +54,27 @@ export function archipelagoPassages(level){
         if(!level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.001&&Math.abs(z-f.z)<=f.d/2+.001))grounded=false;
       }
       if(grounded&&!level.walls.some(w=>overlaps(w,p)))passages.push({...p,axis});
+    }
+  }
+  // A broad island doorway can be intersected by a nearby room partition.
+  // The general wall-gap scan rejects an all-width strip in that case, even
+  // though a safe approach lane remains. Find a real, wall-free lane through
+  // the room edge and onto the narrow bridge; don't widen the water floor.
+  if(level.archipelago)for(const room of level.rooms??[])for(const dir of room.doors??[]){
+    const mouth={x:room.x+dir.x*(room.w/2-.2),z:room.z+dir.z*(room.d/2-.2)};
+    const covers=p=>Math.abs(p.x-mouth.x)<p.w/2&&Math.abs(p.z-mouth.z)<p.d/2;
+    if(passages.some(covers))continue;
+    for(const lateral of [0,.4,-.4,.8,-.8]){
+      const p=dir.x
+        ?{x:mouth.x,z:mouth.z+lateral,w:1.4,d:2,axis:'z'}
+        :{x:mouth.x+lateral,z:mouth.z,w:2,d:1.4,axis:'x'};
+      if(!covers(p)||level.walls.some(w=>overlaps(w,p)))continue;
+      let supported=true;
+      for(const sx of [-.49,0,.49])for(const sz of [-.49,0,.49]){
+        const x=p.x+sx*p.w,z=p.z+sz*p.d;
+        if(!level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.001&&Math.abs(z-f.z)<=f.d/2+.001))supported=false;
+      }
+      if(supported){passages.push(p);break;}
     }
   }
   level.archPassages=passages;
