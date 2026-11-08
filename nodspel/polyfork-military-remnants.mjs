@@ -106,7 +106,12 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
     used.add(site.islandIndex);
     if(selected.length>=limit)break;
   }
-  return {regions:base.regions,items:base.items,
+  // Preserve the existing Coastal Life vignette, but clear forest/rock dressing
+  // from a recognisable military perimeter. Without this, the bunker disappears
+  // behind the old densely scattered pines and shrubs in the raid camera.
+  const cleared=base.items.filter(item=>item.profile==='coastal-life'||!selected.some(site=>
+    Math.hypot(item.x-site.center.x,item.z-site.center.z)<5.0));
+  return {regions:base.regions,items:cleared,
     landmarks:[...base.landmarks,...selected],militaryLandmarks:selected,
     architecture:selected};
 }
