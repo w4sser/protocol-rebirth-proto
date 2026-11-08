@@ -3,6 +3,7 @@
 // Meshes live in the existing opt-in Polyfork experimental scene group.
 import * as THREE from './vendor/three.module.js';
 import {seededRandom} from './polyfork-profiles.mjs?v=profile-v1';
+import {GLACIAL_DOOR_SETBACK} from './glacial-bedrock-layout.mjs?v=glacial-layout-v1';
 
 const P={
   concrete:'#77786F',light:'#929186',edge:'#575D59',stain:'#454B43',
@@ -32,8 +33,11 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
   let activeSite=null;
   function instance(kind,color,part){
     const c=Math.cos(activeSite.ry),s=Math.sin(activeSite.ry);
-    const world={...part,x:activeSite.center.x+c*part.x+s*part.z,
-      z:activeSite.center.z-s*part.x+c*part.z,rot:part.rot+activeSite.ry};
+    // Place the sealed door INSIDE the recessed natural cliff face. The rock
+    // mesh is supplied by glacial-bedrock.mjs, not this concrete layer.
+    const z=part.z+(activeSite.scene==='sealed-rock-portal'&&activeSite.cliffBacked?GLACIAL_DOOR_SETBACK:0);
+    const world={...part,x:activeSite.center.x+c*part.x+s*z,
+      z:activeSite.center.z-s*part.x+c*z,rot:part.rot+activeSite.ry};
     const key=kind+':'+color;
     if(!batches.has(key))batches.set(key,{kind,color,parts:[]});
     batches.get(key).parts.push(world);
@@ -80,9 +84,11 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     box(P.edge,-w*.40,.80,.12,.20,.77,.23);
     box(P.edge,w*.40,.80,.12,.20,.77,.23);
     roof(P.concrete,0,1.43,d*.51,w*.54,.25,d*.43);
-    box(P.light,0,1.48,d*.55,w*.70,.09,d*.64);
+    // The cap and dome previously overlapped, producing z-fighting on iOS.
+    // Keep two non-coplanar pieces with a positive 1cm air gap instead.
+    box(P.light,0,1.595,d*.55,w*.70,.06,d*.64);
     rubble(r,w,d,high?11:6);
-    weather(r,w,d,1.54,high?7:2);
+    weather(r,w,d,1.625,high?7:2);
   }
   function foundations(r,l){
     const w=l.width,d=l.depth;
@@ -124,9 +130,11 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
       box(P.edge,0,1.29,.001,1.23,.042,.02);
       box(P.iron,.52,.76,-.004,.075,.17,.031);
     }
-    box(P.concrete,0,2.09,.63,w*.91,.22,d*.74);
+    // The cap floats just 2.5cm above the lower lintel; upper faces are
+    // strictly separated from each other and from moss, never coplanar.
+    box(P.concrete,0,2.15,.63,w*.91,.21,d*.74);
     rubble(r,w,d,high?16:8);
-    weather(r,w,d,2.2,high?5:1);
+    weather(r,w,d,2.255,high?5:1);
   }
   function reclaimedPerimeter(r,l){
     // Broken outworks, lichen and overgrown remnants stay INSIDE the coast-only
@@ -134,7 +142,7 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     const w=l.width,d=l.depth,side=r()<.5?-1:1,x=side*w*.32;
     box(P.concrete,x,.18,d*.70,w*.22,.33,.15,(r()-.5)*.24);
     box(P.edge,-x,.12,d*.80,w*.17,.24,.18,(r()-.5)*.35);
-    box(P.moss,x,.36,d*.70,w*.19,.035,.14);
+    box(P.moss,x,.363,d*.70,w*.19,.018,.14);
     if(high){
       box(P.lichen,-x,.26,d*.80,w*.15,.03,.17);
       box(P.stain,x,.09,d*.57,.09,.18,.025);
