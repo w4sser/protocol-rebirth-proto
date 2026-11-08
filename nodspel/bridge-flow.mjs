@@ -29,6 +29,36 @@ export function bridgeEntryFlare(f,along){
   return depth>0&&fromEnd>=0&&fromEnd<depth
     ?BRIDGE_ENTRY_FLARE_EXTRA*(1-fromEnd/depth):0;
 }
+
+// Near a landfall, an actor running along the visible plank edge can be
+// blocked as the walkable taper narrows. Ease only the lateral component
+// towards the center while preserving total speed; never widen water floors
+// or change controls away from a bridge entrance.
+export function guideBridgeApproach(level,position,delta,radius,out=delta){
+  out.x=delta.x;out.z=delta.z;
+  if(!level?.archipelago)return out;
+  for(const f of level.floors??[]){
+    if(!f.bridgeFunnel||!f.dir)continue;
+    const xAxis=!!f.dir.x,axis=xAxis?'x':'z',side=xAxis?'z':'x';
+    const length=xAxis?f.w:f.d,width=xAxis?f.d:f.w;
+    const along=position[axis]-f[axis],across=position[side]-f[side];
+    const moveAlong=delta[axis],speed=Math.hypot(delta.x,delta.z);
+    const depth=Math.min(BRIDGE_ENTRY_FLARE_DEPTH,length/3);
+    if(!depth||Math.abs(along)<length/2-depth-.35||Math.abs(along)>length/2+2.5
+      ||Math.abs(moveAlong)<1e-5||Math.sign(moveAlong)!==-Math.sign(along)
+      ||Math.abs(across)>width/2+BRIDGE_ENTRY_FLARE_EXTRA/2+.65)continue;
+    const look=along+moveAlong-Math.sign(along)*(radius+.1);
+    const safeWidth=width/2+bridgeEntryFlare(f,look)/2-radius-.1;
+    const over=Math.abs(across+out[side])-Math.max(0,safeWidth);
+    if(over<=0||Math.abs(across)<.01)continue;
+    out[side]-=Math.sign(across)*Math.min(over,Math.abs(moveAlong)*.6);
+    const corrected=Math.hypot(out.x,out.z);
+    if(corrected>1e-8){out.x*=speed/corrected;out.z*=speed/corrected;}
+    break;
+  }
+  return out;
+}
+
 export function bridgeEntrySupports(f,x,z){
   if(!f.bridgeFunnel||!f.dir)return false;
   const along=f.dir.x?x-f.x:z-f.z,across=f.dir.x?z-f.z:x-f.x;

@@ -1,6 +1,39 @@
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
 import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.1';
-export function movePlayer(position, delta, boxes, floors, radius) {
+
+// Diagnostic-only explanation of a rejected movement step. The ordinary
+// physics path never calls this unless a bridgeDebug observer is attached.
+export function describeMoveBlock(from,to,boxes,floors,radius){
+  if(typeof floors==='number'){
+    const edge=floors-radius;
+    if(Math.abs(to.x)>edge||Math.abs(to.z)>edge)return {kind:'bounds'};
+  }else{
+    const d=radius*.707;
+    const samples=[[0,0],[-radius,0],[radius,0],[0,-radius],[0,radius],[-d,-d],[d,-d],[-d,d],[d,d]];
+    for(const [dx,dz] of samples){
+      const x=to.x+dx,z=to.z+dz;
+      if(!floors.some(f=>(Math.abs(x-f.x)<=f.w/2&&Math.abs(z-f.z)<=f.d/2)||bridgeEntrySupports(f,x,z))){
+        return {kind:'floor',sample:{x,z}};
+      }
+    }
+  }
+  for(let i=0;i<boxes.length;i++){
+    const b=boxes[i];
+    if(Number.isFinite(b.r)){
+      const dist=Math.hypot(to.x-b.x,to.z-b.z),previous=Math.hypot(from.x-b.x,from.z-b.z);
+      if(dist<radius+b.r-1e-8&&dist<=previous+1e-9)
+        return {kind:b.rock?'rock':b.kind??'circle',index:i,collider:{x:b.x,z:b.z,r:b.r}};
+    }else{
+      const x=Math.max(b.x-b.w/2,Math.min(to.x,b.x+b.w/2));
+      const z=Math.max(b.z-b.d/2,Math.min(to.z,b.z+b.d/2));
+      if(Math.hypot(to.x-x,to.z-z)<radius)
+        return {kind:b.shore?'shore':b.bridgeRail?'rail':b.kind??'solid',index:i,collider:{x:b.x,z:b.z,w:b.w,d:b.d}};
+    }
+  }
+  return {kind:'slide'};
+}
+
+export function movePlayer(position, delta, boxes, floors, radius, onBlocked=null) {
   const p = {...position};
   const steps = Math.max(1, Math.ceil(Math.hypot(delta.x, delta.z) / .08));
   const limit = typeof floors==='number'?floors-radius:Infinity;
@@ -18,20 +51,26 @@ export function movePlayer(position, delta, boxes, floors, radius) {
   });
   for (let i = 0; i < steps; i++) {
     const x = Math.max(-limit, Math.min(limit, p.x + delta.x / steps));
-    if (onFloor(x,p.z) && !blocked(x, p.z)) p.x = x;
     const z = Math.max(-limit, Math.min(limit, p.z + delta.z / steps));
+    // Accept a clear diagonal step before testing axis-separated fallbacks.
+    if(onFloor(x,z)&&!blocked(x,z)){p.x=x;p.z=z;continue;}
+    const prevX=p.x,prevZ=p.z;
+    if (onFloor(x,p.z) && !blocked(x, p.z)) p.x = x;
     if (onFloor(p.x,z) && !blocked(p.x, z)) p.z = z;
+    if(onBlocked&&(Math.abs(p.x-x)>1e-5||Math.abs(p.z-z)>1e-5))
+      onBlocked({from:{x:prevX,z:prevZ},wanted:{x,z},reached:{x:p.x,z:p.z},
+        reason:describeMoveBlock({x:prevX,z:prevZ},{x,z},boxes,floors,radius)});
   }
   return p;
 }
 
 // Static geometry stays solid. Actors use circles and yield to movement;
 // repeated separation also handles enemies becoming active under the player.
-export function moveWithActors(position,delta,enemies,solids,floors,radius){
+export function moveWithActors(position,delta,enemies,solids,floors,radius,onBlocked=null){
   let p={...position};const actors=enemies.filter(e=>e.health>0&&e.active!==false);
   const steps=Math.max(1,Math.ceil(Math.hypot(delta.x,delta.z)/.08));
   for(let step=0;step<steps;step++){
-    p=movePlayer(p,{x:delta.x/steps,z:delta.z/steps},solids,floors,radius);
+    p=movePlayer(p,{x:delta.x/steps,z:delta.z/steps},solids,floors,radius,onBlocked);
     for(let pass=0;pass<16;pass++){
       let overlaps=false;
       for(const enemy of actors){

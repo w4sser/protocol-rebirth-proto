@@ -29,6 +29,7 @@ import '../data/modules.js?v=2.28.1';import '../data/recipes.js?v=2.28.1';import
 import {svgIcon,setIconText} from './svg-icons.js?v=2.28.1';
 import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.1';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.1';
+import {guideBridgeApproach} from './bridge-flow.mjs?v=2.28.1';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.1';
 import {safeSpawn} from './spawn.js?v=2.28.1';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.1';
@@ -1554,6 +1555,32 @@ const hotCamGoal=new THREE.Vector3(),hotRayDir=new THREE.Vector3(),SUN_OFFSET=ne
 const hotOne=[null];function one(x){hotOne[0]=x;return hotOne;} // single-target list for traceTargets (not kept)
 function copyXZ(out,p){out.x=p.x;out.z=p.z;return out;}
 const hotFps={fps:0,now:0},hotMoveDelta={x:0,z:0},hotEnemyDir={x:0,z:0};
+const BRIDGE_DEBUG=new URLSearchParams(location.search).get('bridgeDebug')==='1';
+let bridgeDebugPanel=null,bridgeBlockCount=0;
+if(BRIDGE_DEBUG){
+  bridgeDebugPanel=document.createElement('pre');
+  bridgeDebugPanel.setAttribute('aria-label','Bridge collision diagnostic');
+  bridgeDebugPanel.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99999;max-width:75vw;padding:5px 7px;background:rgba(0,0,0,.85);color:#9fe;font:11px/1.3 monospace;pointer-events:none;white-space:pre-wrap';
+  bridgeDebugPanel.textContent='BRIDGE DEBUG - move towards a bridge';
+  document.body.append(bridgeDebugPanel);
+}
+function traceBridgeBlock(event){
+  const level=round?.level;
+  if(!BRIDGE_DEBUG||!level?.archipelago)return;
+  const bridge=level.floors?.find(f=>f.bridgeFunnel&&Math.abs(event.from.x-f.x)<=f.w/2+3
+    &&Math.abs(event.from.z-f.z)<=f.d/2+3);
+  if(!bridge)return;
+  bridgeBlockCount++;
+  const fmt=p=>p.x.toFixed(2)+','+p.z.toFixed(2);
+  const report={seed:level.seed,level:level.number,blocked:bridgeBlockCount,
+    reason:event.reason,from:event.from,wanted:event.wanted,reached:event.reached,bridge};
+  window.__bridgeCollision=report;
+  bridgeDebugPanel.textContent='BRIDGE DEBUG - '+event.reason.kind+' #'+bridgeBlockCount
+    +'\nseed '+level.seed+' L'+level.number
+    +'\nfrom '+fmt(event.from)+' to '+fmt(event.wanted)
+    +'\nreached '+fmt(event.reached)
+    +'\nblock '+JSON.stringify(event.reason.collider??event.reason.sample??{});
+}
 function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
 // Mood FX (bloom/vignette) replace the plain render call; dust drifts with the player whenever it's on.
 // v2.22.4 GC: three renders transparent+DoubleSide materials in two passes and flips material.side, which bumps
@@ -1596,7 +1623,9 @@ function frameInner(now){
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;
+        if(round.level.archipelago)guideBridgeApproach(round.level,position,hotMoveDelta,RULES.playerRadius);
+        position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius,BRIDGE_DEBUG?traceBridgeBlock:null);}
       if(launch.ftue&&!ftueMoveMarked){ftueMoveMarked=true;fadeStickLabel(ftueMoveLabel);}}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
     playerMoving=playerDisplaced(positionBefore,position);
