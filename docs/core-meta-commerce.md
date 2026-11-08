@@ -106,7 +106,7 @@ Safely resume the **same** recoverable raid when D1-D permits, preserving loot, 
 
 **Respect already-established results:** Confirmed extraction, death, explicit Abandon or an earlier legitimate timeout are not overwritten when a later timer/reconnect occurs. No late extraction, full-bag rescue, duplicate protected item, extra reward or extract-only mission credit. D1-D.3's new-raid lock ends once the authoritative final result exists; D1-D.4 shows that real result rather than a stale Resume/Abandon decision.
 
-**D1-D.6 now resolves a true simultaneous **completed extraction** versus death or original raid timeout in favor of extraction; incomplete extraction never counts and earlier death/timeout still fails. **Still open:** other same-tick ties including recovery-window expiry and resumption, authoritative time/event sequencing, suspended-world simulation, clock/persistence technology, recovery-window duration and UI. The design principle is **first legitimate authoritative terminal event**, not the first client message received. No gameplay code.
+**D1-D.6 now resolves a genuine exact-time tie:** completed extraction wins against death or the original raid timeout at the same authoritative instant; incomplete extraction never counts and earlier death/timeout still fails. **Still open:** other same-tick ties including recovery-window expiry and resumption, authoritative time/event sequencing, suspended-world simulation, clock/persistence technology, recovery-window duration and UI. The design principle is **first legitimate authoritative terminal event**, not the first client message received. No gameplay code.
 
 ## Approved extraction wins an exact authoritative death/timeout tie (D1-D.6)
 
