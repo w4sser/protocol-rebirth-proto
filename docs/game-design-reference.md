@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.46 - M39 responsive action-first Operator animation feel|
+| Document status | Living design reference, v4.47 - M40 contextual BIT expression in ordinary raids|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -605,11 +605,23 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 
 **APPROVED M39, option A (8 November 2026):** The target is an **immediately responsive, action-oriented Operator** whose movement, turning, aiming and shooting feel direct and satisfying. Animation supports **readable direction changes, weapon feedback, hits, interactions and extraction**; it gives weight and personality **without gratuitously delaying, blocking or overriding valid input**. This is a high-level game-feel choice, not a fixed frame timing, an animation state machine, a movement rewrite or mandatory zero-duration actions.
 
-**M38 remains binding:** All cosmetic Operator identities use the same control/animation foundation with consistent hitboxes, combat timing and mechanical capabilities. Prioritize the **feel of one animated Basic-Carbine playtest slice over a large cosmetic catalog**. M22–M25 tactical readability and player-chosen risk must survive; character feedback cannot obscure enemy attacks or override valid decisions. BIT can visually react to events as the companion without triggering unauthorized help: **active distraction requires completed BIT Bay L1 and player action under M28–M35**.
+**M38 remains binding:** All cosmetic Operator identities use the same control/animation foundation with consistent hitboxes, combat timing and mechanical capabilities. Prioritize the **feel of one animated Basic-Carbine playtest slice over a large cosmetic catalog**. M22–M25 tactical readability and player-chosen risk must survive; character feedback cannot obscure enemy attacks or override valid decisions. **M40 subsequently locks BIT's restrained contextual hover/CRT expressions during normal raids** for genuine exploration, threats, damage, discoveries, decisions, extraction and failure, without constant noise or blocking input. This companion expression does not trigger unauthorized help: **active distraction requires completed BIT Bay L1 and player action under M28–M35**.
 
 **Still open for production and mobile playtesting:** Exact animations and transition/cancel/blend rules, recoil and hit feedback detail, rig, clip count, frame durations, weapon differentiation, BIT motion/expression, visual effects, touch-control feel, optimization and performance target. Do not convert these into further strategic A/B micromanagement. D1-D.13 remains separately unapproved/deferred. **Design only: no code, art, 3D animations, tests, deploy or PR merge authorized.** [D01]
 
 ## 10. BIT: companion, capability, and relationship
+
+### 10.1 M40 — Contextually expressive field companion (owner approved)
+
+**APPROVED M40, option A (8 November 2026):** BIT is a **present, emotionally expressive companion during ordinary raids**, with **restrained hover/motion and readable CRT face/screen reactions** to genuine **exploration, emerging enemies, Operator damage, valuable loot discoveries, meaningful route choices, successful extraction and failure**. Expression is a frequent-enough part of actual play to create companionship, **not** a feature restricted to scripted bunker and narrative scenes.
+
+**Protect tactical play:** Reactions are **selective, brief and understandable at landscape mobile scale**, never constantly interrupting the player or competing with immediate threat telegraphs, aiming, loot/extraction clarity, or M39 responsive combat. BIT must not steal input, create a new HUD meter, mandatory dialogue, unrelated progress tree, forced objective or loot grant. Critical gameplay cues remain readable without audio; cosmetic variants remain personality-only under M38.
+
+**BIT is present before Bay unlock:** Basic expression and contextual D3/M20 guidance are independent of BIT Bay upgrades. **Active combat help still requires completed BIT Bay L1 and deliberate player activation** under M28–M35. Animated looks or a concerned facial expression cannot distract an enemy, shield/rescue the player, bank loot, guarantee discovery or automate extraction. D1/D2 risk and outcome rules still apply.
+
+**Open for creative implementation and phone playtests:** Exact expression language, frequency, priority, gesture/hover poses, event triggers, short lines/audio, animation assets, tech integration and performance. Validate a **small set of real event-driven reactions in an actual raid** before a large BIT skin/animation catalogue. **Design only; no game code, art, UI, effects, tests, deployment or PR merge authorized.** [D01]
+
+
 
 BIT is the emotional connection between the hostile field and the recovering bunker. Its established tone is helpful, loyal, dry, and slightly cheeky. It comments on discoveries, death, returning home, completed construction, and the player's next need. [S03] [S13]
 
@@ -1030,7 +1042,7 @@ This is a review register, not permission to implement every item. Explicit appr
 | P0 | Mission purpose and exits | D2.1-D2.3 APPROVED for quick PvE: return available from start, incomplete goals allowed, deliberate cancellable extraction; five seconds is initial test tuning | Align the old node-gated/automatic-entry implementation; resolve timer/interruption edges and D2.4-D2.7 nodes, topology, communication, and existing-variant mapping |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly and reconcile it with the approved quick-mode extraction |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
-| P0 | Animated Operator and BIT identity | **M38/M39 APPROVED:** multiple permanent Operator/BIT looks on one mechanical Operator, plus **responsive, action-first Operator movement, aiming and firing** with readable hits/interactions/extraction | Validate one satisfying Basic-Carbine movement/combat slice and consistent hitboxes/animation timing across skins; next decide BIT's high-level personality presence (M40), then tune art/performance in mobile playtests |
+| P0 | Animated Operator and BIT identity | **M38/M39/M40 APPROVED:** permanent Operator/BIT looks on one mechanical Operator, responsive action-first movement/shooting and **subtle contextual BIT CRT/hover reactions during normal raids** | Validate Operator/BIT responsiveness and in-raid personality in one Basic-Carbine mobile playtest; next choose the high-level enemy-hit feedback target (M41), then build and tune a playable proof-of-fun slice rather than more technical A/B rules |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
 | P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment; rescue conflicts resolved in direction by D1 | Explain Bond, hardware, talents, and assignments separately; remove/refactor item-rescue effects without adding a second protection route |
 | P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics; D1 confirms deployed valuable gear is risked | Clearly state what is lost with a particular item |
@@ -1183,6 +1195,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.47, 8 November 2026:** Owner approved M40 option A: BIT is a contextually expressive companion during ordinary raids, reacting through restrained hovering and CRT/face animation to actual exploration, enemy danger, player damage, valuable discoveries, decisions, extraction and failure. Reactions must stay non-blocking, mobile-readable and selective without new HUD or progression systems. M28–M35 combat help still requires completed BIT Bay L1 and player action. M41 enemy-hit feedback direction is next; then playable fun validation instead of strategic minutiae. No code or assets.
 - **v4.46, 8 November 2026:** Owner approved M39 option A: responsive, action-first Operator movement, direction changes, aim and fire, with rewarding weapon/hit/interact/extract animation feedback. Animation must not needlessly block valid inputs or change timing/hitboxes across M38 skins. BIT expression may reinforce play without new powers. Detailed clips, transition rules, technical pipelines and phone performance remain open for production/playtests. M40 contextual BIT presence is next; D1-D.13 still deferred. Documentation only; no code/assets.
 - **v4.45, 8 November 2026:** Owner approved M38 option A: multiple cosmetic Operator looks share one gameplay/controls/animation foundation, without class-specific abilities, hitbox/stat advantages or variation in tactical power. Operator/BIT cosmetics are permanently owned through raid death while deployed gear remains at risk. Prioritize expressive Operator animation and BIT reactions before a large skin collection; BIT Bay L1 combat support remains separately gated. M39 animation feel is next; D1-D.13 reconnection details deferred. Docs only, no gameplay/art changes.
 - **v4.44, 8 November 2026:** Owner approved D1-D.12 option A: legitimately pre-interruption input arriving late may resolve once only with verified origin, eligibility and authoritative order. Client timestamps alone are insufficient; stale/replayed/duplicate commands, held-control extension and changes to an already-final outcome are forbidden. D1-D.5/D1-D.6 terminal ordering and exact tie remain. Precise anti-replay/ordering, fairness, networking and UX stay open. Documentation only; no gameplay code.
