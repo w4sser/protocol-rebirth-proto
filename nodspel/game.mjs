@@ -59,6 +59,7 @@ import {createRaidProfiler} from './raid-profiler.js?v=2.28.0';
 import {createPostFX} from './postfx.js?v=2.28.0';
 import {createDustField} from './dust.js?v=2.28.0';
 import {createQualityUI} from './quality-ui.js?v=2.28.0';
+import {archipelagoDressingConfig} from './archipelago-dressing-policy.mjs?v=default-v1';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.0';
 import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.0';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.0';
@@ -139,6 +140,8 @@ function setGraphicsQuality(next){
   if(moodOn){postFX=createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight});dust=createDustField();scene.add(dust.points);}
   else{postFX?.dispose();postFX=null;if(dust){scene.remove(dust.points);dust.dispose();dust=null;}}
   prewarmShaders();
+  // A runtime Low downgrade must also replace the expensive vegetation instances.
+  if(POLYFORK_ACTIVE&&round?.level?.archipelago)refreshArchipelagoDressing(round.level);
 }
 // v2.22.3 perf: compile every shader the level can need while it loads, instead of the first time an effect,
 // pooled mesh or hidden object shows up mid-fight (each first-use compile is a 50-300 ms freeze on a phone).
@@ -821,10 +824,24 @@ let groundPreviewV2=null;
 const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
 const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.0'):null;
 let propsPreview=null;
-// Opt-in Polyfork CDN experiment. No requests or new meshes without ?polyfork=1.
-const POLYFORK_PREVIEW=GROUND_V2_PARAMS.get('polyfork')==='1';
-const polyforkModulePromise=POLYFORK_PREVIEW?import('./polyfork-dressing.mjs?v=polyfork-pilot1-coastal-v1'):null;
-let polyforkPreview=null;
+// Default visual-only island identities and rare Coastal Life shoreline scenes.
+// ?polyfork=0 disables the external-asset layer; other areas never load the module.
+const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
+const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-pilot1-coastal-v1'):null;
+let polyforkPreview=null,polyforkLoadToken=0;
+function refreshArchipelagoDressing(level){
+  const token=++polyforkLoadToken;
+  polyforkPreview?.dispose();polyforkPreview=null;window.__polyforkPreview=null;
+  if(!POLYFORK_ACTIVE||!level?.archipelago)return;
+  const config=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY});
+  polyforkModulePromise.then(module=>{
+    // Ignore a slow CDN/import response after a new raid or graphics change.
+    if(token!==polyforkLoadToken||round.level!==level)return;
+    polyforkPreview=module.addPolyforkDressing(level,scene,{
+      quality:config.quality,density:config.density,mode:config.mode});
+    window.__polyforkPreview=polyforkPreview;
+  }).catch(error=>console.warn('[archipelago-dressing] import failed; base environment retained',error));
+}
 function loadLevel(){
   bigRuntime?.dispose();bigRuntime=null;try{loadLevelInner();}catch(e){onFatal(e);}}
 function loadLevelInner(){
@@ -847,18 +864,8 @@ function loadLevelInner(){
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
   propsPreview?.dispose();propsPreview=null;
-  polyforkPreview?.dispose();polyforkPreview=null;
   world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
-  if(POLYFORK_PREVIEW&&round.level.archipelago){
-    const lvl=round.level;
-    polyforkModulePromise.then(module=>{
-      if(round.level!==lvl)return;
-      const requestedMode=GROUND_V2_PARAMS.get('polyforkMode');
-      const mode=['profiles','coastal'].includes(requestedMode)?requestedMode:'scatter';
-      polyforkPreview=module.addPolyforkDressing(lvl,scene,{quality:QUALITY,mode});
-      window.__polyforkPreview=polyforkPreview;
-    }).catch(error=>console.error('[polyfork-test] import failed',error));
-  }
+  refreshArchipelagoDressing(round.level);
   if(GROUND_V2){
     const previewLevel=round.level;
     groundStatus('Ground '+GROUND_V2_PROFILE.toUpperCase()+': importing…');

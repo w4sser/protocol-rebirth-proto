@@ -4,6 +4,8 @@ on:
     paths:
       - 'nodspel/polyfork-coastal-life.mjs'
       - 'nodspel/polyfork-dressing.mjs'
+      - 'nodspel/archipelago-dressing-policy.mjs'
+      - 'nodspel/tests/archipelago-dressing-policy.test.mjs'
       - 'nodspel/game.mjs'
       - 'scripts/shot-ground-v2.mjs'
       - '.github/workflows/coastal-life-preview.yml'
@@ -17,7 +19,7 @@ jobs:
         with:
           node-version: 20
       - run: npm i --no-save puppeteer
-      - name: Render Level 2 Coastal Life from iPhone raid camera
+      - name: Verify default Coastal Life HIGH and LOW from iPhone raid camera
         run: node scripts/shot-ground-v2.mjs
         env:
           SMOKE_CAPTURE: '1'
