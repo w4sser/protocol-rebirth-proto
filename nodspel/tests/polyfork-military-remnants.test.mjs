@@ -7,6 +7,7 @@ import {planCoastalLifeDressing} from '../polyfork-coastal-life.mjs';
 import {archipelagoDressingConfig} from '../archipelago-dressing-policy.mjs';
 import {propReservations} from '../props-placement.mjs';
 import {generateLevel} from '../levels.js';
+import {buildWorld} from '../world.js';
 const fixture={
   archipelago:true,seed:'military-qa-01',
   floors:[
@@ -93,6 +94,20 @@ test('Big Map has several ruins and a readable early landmark',()=>{
   }
   assert.ok(present>=8,'most big maps should feature a fortification');
   assert.ok(early>=6,'most big maps need a landmark on one of the first two islands');
+});
+test('military-style cover uses existing gameplay collision, not fake brown crates',()=>{
+  for(const militaryStyle of [false,true]){
+    const level=generateLevel(2,'military-cover-qa','archipelago');
+    const boxes=JSON.stringify(level.boxes),scene=new THREE.Scene();
+    const world=buildWorld(level,scene,{quality:'low',militaryStyle});
+    try{
+      const name=militaryStyle?'archipelago-derelict-concrete-cover':'archipelago-crate';
+      const covers=world.group.children.filter(o=>o.name===name);
+      assert.equal(covers.length,level.boxes.length);
+      assert.equal(JSON.stringify(level.boxes),boxes);
+      assert.ok(covers.every(o=>level.boxes.includes(o.userData.collider)));
+    }finally{world.dispose();}
+  }
 });
 test('geometry is mobile-bounded, seeded, disposable and visual-only',()=>{
   const site={scene:'sealed-rock-portal',center:{x:22,z:18},ry:.3,islandIndex:1,
