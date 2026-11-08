@@ -12,7 +12,7 @@ Weathered timber deck, readable planks, broad landings and heavy supports outsid
 
 - Replace flat deck and thin posts with individual aged grey-brown boards, variable tones and subtle seeded offsets.
 - Instance boards per tone (at most 4 groups per bridge); add understructure and heavy piles outside the walking strip.
-- Widen visual landings. Subsequent player feedback required a generous **land-side collision mouth**: broaden only the island doorway and recess invisible sidewalls by 0.55 m at land connections. Keep bridge floor widths, water-boundary collision and AI bridge waypoints unchanged.
+- Widen visual landings. Subsequent player feedback required a generous **land-side collision mouth**: broaden only the island doorway and recess invisible sidewalls by 1.0 m at land connections to clear larger bot collision radii near partition corners. Keep bridge floor widths, water-boundary collision and AI bridge waypoints unchanged.
 - HIGH uses closer plank spacing; LOW uses fewer boards.
 - Visual pass contains no new GLB licensing/CDN dependencies. The later landing collision fix is intentionally limited to archipelago corridor-wall geometry.
 
