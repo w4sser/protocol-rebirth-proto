@@ -29,4 +29,8 @@ b.A.questLog("bunker", 0); assert(q("#overlay.qlogov.fsdetail"), "quest/task det
 b.A.openStashItem("smg_vector"); const scr = q("#overlay.wpnov .wpnscreen");
 assert(scr && scr.querySelector(":scope > .wpn-close"), "weapon close is a direct child of the screen (not inside the stats column)");
 assert(!q(".wpn-r .wpn-close"), "no close left in the stats column");
+// Fabricator already had its own fullscreen layout (fabov, v1.9x): same contract, keep it.
+assert(/#overlay\.fabov\{position:fixed!important;inset:0!important;[^}]*z-index:60!important/.test(html), "fabricator fills the viewport above the top bar");
+assert(/#overlay\.fabov \.pop-x\{top:10px!important;left:/.test(html), "fabricator close top-left");
+b.A.openBuilding("fabricator"); assert(q("#overlay.fabov"), "fabricator opens fullscreen"); assert(q("#overlay.fabov .pop-x"), "fabricator has the shared close badge"); b.w.closeAllPopups();
 console.log("FULLSCREEN DETAIL TEST PASSED");
