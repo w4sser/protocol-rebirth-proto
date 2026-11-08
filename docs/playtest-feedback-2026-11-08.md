@@ -23,10 +23,10 @@ mot `main` och räknas som levererade först när de är mergade och live; övri
 | Småfix (egen PR, status uppdateras vid merge) | Förslag – kräver Roberts beslut |
 |---|---|
 | Sköldad vakt fastnar: placeringen kräver en gångbar flank med fri sikt från start, annars flyttas vakten (omöjligt möte utelämnas, skölden tas aldrig bort) – [PR #219](https://github.com/w4sser/protocol-rebirth-proto/pull/219), **mergad, live i v2.28.1**. "Förutsägbar rörelse" för sköldade fiender är kvar som förslag (A/D) | A. Upptäckt + jakt: synligt alert-läge, jaktläge, läsbar leash/give-up |
-| Kompakt raid-HUD uppe till vänster – **pågår, ej levererat** | B. Pre-shot-telegraf på alla fiendetyper, behåll de röda lasrarna |
+| Kompakt raid-HUD uppe till vänster – [PR #220](https://github.com/w4sser/protocol-rebirth-proto/pull/220), **draft, väntar på visuell mobil-QA, ej mergad** | B. Pre-shot-telegraf på alla fiendetyper, behåll de röda lasrarna |
 | Detaljskärmar fyller appens vy, stängknapp uppe till vänster, valutarad dold där den inte behövs – **pågår, ej levererat** | C. Ersätt timad perk-väljare mitt i raiden med en fysisk terminal i ett rum, ingen nedräkning |
-| "Bunker Level 1/2…"-titelkort, raidtimern pausad under kortet – **pågår, ej levererat** | D. Fler fiendemönster – i första hand varianter av befintliga arketyper, max 1–2 nya |
-| Grön "Continue Raid"-knapp på resultatskärmen – **pågår, ej levererat** | E. Rum som taktiska pussel: grindordning, riskrum, fjärrbrytare – spelarval, inte tvång |
+| "Bunker Level 1/2…"-titelkort, raidtimern pausad under kortet – [PR #220](https://github.com/w4sser/protocol-rebirth-proto/pull/220), **draft, ej mergad** | D. Fler fiendemönster – i första hand varianter av befintliga arketyper, max 1–2 nya |
+| Grön "Continue Raid"-knapp på resultatskärmen – [PR #220](https://github.com/w4sser/protocol-rebirth-proto/pull/220), **draft, ej mergad** | E. Rum som taktiska pussel: grindordning, riskrum, fjärrbrytare – spelarval, inte tvång |
 | Markering av vald/ej vald karta/område – **under utredning**, se §1.1 | F. FTUE-fördjupning: progressiv disclosure, tydligare "Lämna in", bevarat det som gillades |
 
 ### 1.1 Om "under utredning"-raden
