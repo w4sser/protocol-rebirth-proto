@@ -28,3 +28,25 @@ export function suggestSwap(goal,bag,incoming){
   options.sort((a,b)=>a.regressions-b.regressions||a.loss-b.loss||a.rarity-b.rarity);
   return options[0]?.id??null;
 }
+// Advice is conservative: never recommend an action that increases any tracked
+// upgrade deficit. A player can still override it with Choose other.
+export function swapRecommendation(goal,bag,incoming){
+  const dropId=suggestSwap(goal,bag,incoming);
+  if(!dropId)return {action:'keep',dropId:null,reason:'No better trade available'};
+  const before=goal?goalProgress(goal,bag).parts:[];
+  const next={...bag,[dropId]:bag[dropId]-1,[incoming]:(bag[incoming]||0)+1};
+  const after=goal?goalProgress(goal,next).parts:[];
+  const lost=before.some((p,i)=>after[i].remaining>p.remaining);
+  if(lost)return {action:'keep',dropId,reason:'Protects your upgrade materials'};
+  if(before.some((p,i)=>after[i].remaining<p.remaining))return {action:'swap',dropId,reason:'Advances your tracked upgrade'};
+  const oldItem=itemDef(dropId),newItem=itemDef(incoming);
+  if(oldItem?.scouts||oldItem?.protocolTarget)return {action:'keep',dropId,reason:'Keep this progression item'};
+  if(newItem?.scouts||newItem?.protocolTarget)return {action:'swap',dropId,reason:'Useful progression item'};
+  const oldValue=oldItem?.sellValue??0,newValue=newItem?.sellValue??0;
+  if(newValue>oldValue)return {action:'swap',dropId,reason:'Higher loot value'};
+  if(newValue<oldValue)return {action:'keep',dropId,reason:'Current loot is worth more'};
+  const rarityRank=id=>RARITY_ORDER.indexOf(rarityOf(id));
+  return rarityRank(incoming)>rarityRank(dropId)
+    ? {action:'swap',dropId,reason:'Higher rarity loot'}
+    : {action:'keep',dropId,reason:'No improvement over your current loot'};
+}
