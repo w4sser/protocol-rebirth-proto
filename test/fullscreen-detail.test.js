@@ -25,7 +25,7 @@ for(const id of ["rebirth_core","bit_bay","storage"]){
   assert(closeFirst(), id + ": close badge is the card's first child (top-left)");
   b.w.closeAllPopups();
 }
-b.A.questLog("bunker", 0); assert(q("#overlay.qlogov.fsdetail"), "quest/task detail fullscreen"); assert(closeFirst(), "quest log close first"); b.w.closeAllPopups();
+b.A.questLog("bunker", 0); assert(q("#overlay.qlogov.fsdetail"), "quest/task detail fullscreen"); assert(closeFirst(), "quest log close first"); assert(q("#overlay.qlogov .pop-card").querySelectorAll("button").length>=3, "quest log keeps its actions (tabs, quest rows, RAID/track) inside the fullscreen card"); b.w.closeAllPopups();
 b.A.openStashItem("smg_vector"); const scr = q("#overlay.wpnov .wpnscreen");
 assert(scr && scr.querySelector(":scope > .wpn-close"), "weapon close is a direct child of the screen (not inside the stats column)");
 assert(!q(".wpn-r .wpn-close"), "no close left in the stats column");
