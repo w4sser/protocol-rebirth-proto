@@ -43,6 +43,26 @@ export const RULES=[
      if(/position\s*=\s*\{\s*\.\.\.round\.level\.start\s*\}/.test(src))out.push('nodspel/game.mjs: spawn uses raw round.level.start; use safeSpawn(round.level)');
      if(!/position\s*=\s*safeSpawn\(round\.level\)/.test(src))out.push('nodspel/game.mjs: loadLevel must place the player with safeSpawn(round.level)');
      return out;}},
+  {id:'shield-guard-rear-clearance',pr:'v2.28.1 (fix/shield-guard-rear-clearance)',why:'playtest: a front-shielded guard stood with its back against the generator/node and could not be killed; placement must revalidate the flank after ALL encounters are placed',
+   check(ctx){const src=ctx?.encSrc??read('nodspel/encounters.js');const out=[];
+     const body=(src.match(/export function applyEncounters\([\s\S]*?\n}\n/)||[''])[0];
+     if(!/ensureRearClearance\(level,rng(?:,\{omit:false\})?\);\s*return level\.encounters;/.test(body))out.push('nodspel/encounters.js: applyEncounters must call ensureRearClearance(level,rng) last, right before returning');
+     if(!/function hasClearRear\b/.test(src))out.push('nodspel/encounters.js: hasClearRear() missing');
+     if(!/export function walkMap\b/.test(src)||!/walkMap\(level,enemy\.id\)/.test(src))out.push('nodspel/encounters.js: flank must be proven walkable from the start (walkMap)');
+     const ens=(src.match(/export function ensureRearClearance\([\s\S]*?\n}\n/)||[''])[0];
+     if(/frontShield\s*=\s*0/.test(ens))out.push('nodspel/encounters.js: ensureRearClearance must not strip the front shield; omit the impossible encounter instead');
+     const lv=ctx?.levelsSrc??read('nodspel/levels.js');
+     if(!/applyAreaRules\(level,AR\);\s*\/\/[^\n]*\n\s*ensureRearClearance\(/.test(lv))out.push('nodspel/levels.js: generateLevel must re-run ensureRearClearance after applyAreaRules (extra bodies)');
+     return out;}},
+  {id:'playtest-1108-ui',pr:'v2.28.2 (fix/playtest-ui-20261108)',why:'playtest 2026-11-08: Continue raid must be the green primary, a Bunker Level card must pause the raid clock, the phone bag/NEED panel must stay compact',
+   check(ctx){const out=[];const html=ctx?.html??read('nodspel/index.html'),css=(ctx?.css??read('nodspel/style.css')).replace(/\s+/g,' '),game=ctx?.game??read('nodspel/game.mjs'),layout=ctx?.layout??read('scripts/layout-check.mjs');
+     if(!/id="continue-raid" class="result-continue"/.test(html))out.push('nodspel/index.html: #continue-raid must use class result-continue');
+     if(!/\.result-continue\{[^}]*background:var\(--ad-continue\)/.test(css))out.push('nodspel/style.css: .result-continue must use var(--ad-continue)');
+     const intro=(game.match(/function showLevelIntro\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/pausePick\(/.test(intro)||!/resumePick\(/.test(intro))out.push('nodspel/game.mjs: showLevelIntro must pausePick and resumePick the raid clock');
+     if(!/showLevelIntro\(\);/.test(game))out.push('nodspel/game.mjs: loadLevel must call showLevelIntro()');
+     if(!/raidGoalCompactRun\(vp\)/.test(layout))out.push('scripts/layout-check.mjs: the compact bag/NEED panel check must run');
+     return out;}},
   {id:'artillery-fx-prewarm',pr:'#196',why:'first artillery shell + landing ring compiled mid-fight and hitching on iPhone',
    check(ctx){const src=ctx?.gameSrc??read('nodspel/game.mjs');const out=[];
      if(!/function makeArtilleryShell\b/.test(src))out.push('nodspel/game.mjs: makeArtilleryShell() missing (pooled shell factory)');
