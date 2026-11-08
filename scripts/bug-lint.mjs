@@ -90,13 +90,20 @@ export const RULES=[
      if(!/const sideDoor=area!=='archipelago'&&room\.doors\.some\(p=>p\.x!==0\)/.test(lv)||!/-\(door\/2\+t\/2\+\.02\)/.test(lv))out.push('nodspel/levels.js: with a side door the partition must clear the doorway span (z <= -(door/2+t/2))');
      if(!c.levelsSrc&&!read('nodspel/tests/door-clearance.test.mjs').includes('walkable starts on both sides'))out.push('nodspel/tests/door-clearance.test.mjs: keep the both-sides corridor approach sweep');
      return out;}},
-  {id:'scouted-area-no-chart',pr:'v2.28.6 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
+  {id:'level-intro-fullscreen',pr:'v2.28.4 (playtest 2026-11-08)',why:'the BUNKER LEVEL N card between segments did not fill the screen: it lived inside the transformed #viewport',
+   check(c={}){const out=[];const html=c.htmlSrc??read('nodspel/index.html'),css=c.cssSrc??read('nodspel/style.css'),lc=c.layoutSrc??read('scripts/layout-check.mjs');
+     const vp=html.indexOf('id="viewport"'),card=html.indexOf('id="level-intro"'),end=html.lastIndexOf('</script>');
+     if(card<0||card<end)out.push('nodspel/index.html: #level-intro must sit after the scripts, directly in <body>, outside #viewport');
+     if(!/\.level-intro-card\{position:fixed;inset:0;width:100vw;height:100vh;[^}]*z-index:60/.test(css))out.push('nodspel/style.css: .level-intro-card must be fixed, inset 0, 100vw x full height, z-index 60');
+     if(!/level card does not fill the screen/.test(lc))out.push('scripts/layout-check.mjs: the level card step must assert full-screen coverage');
+     return out;}},
+  {id:'scouted-area-no-chart',pr:'v2.28.5 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
    check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js'),app=c.appSrc??read('app.js'),game=c.gameSrc??read('nodspel/game.mjs');
      if(!/AR\.scout&&[^{]*!SCOUTED\.has\(/.test(lv))out.push('nodspel/levels.js: the scout crate must be skipped for areas in SCOUTED');
      if(!/&scouted=/.test(app)||!/scouted:\s*scoutedAreas\(\)/.test(app))out.push('app.js: the raid launch must pass the account\'s scouted areas (&scouted=)');
      if(!/setScouted\(launch\.scouted\)/.test(game))out.push('nodspel/game.mjs: must call setScouted(launch.scouted) before any level is generated');
      return out;}},
-  {id:'core-loot-hint',pr:'v2.28.6 (playtest 2026-11-08)',why:'Core L2->L3 showed 0/2 Memory Module with no hint where to raid for it',
+  {id:'core-loot-hint',pr:'v2.28.5 (playtest 2026-11-08)',why:'Core L2->L3 showed 0/2 Memory Module with no hint where to raid for it',
    check(c={}){const out=[];const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');
      if(!/lootHintHtml\(p\)/.test(app))out.push('app.js: building cost rows must render lootHintHtml(p) for missing parts');
      if(!/D\.lootSources/.test(app))out.push('app.js: lootHint must read DATA.lootSources (generated), not hand-written areas');

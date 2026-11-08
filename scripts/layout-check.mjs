@@ -750,7 +750,9 @@ try{
     await page.goto(`${BASE}/nodspel/?seed=intro&area=bunker&debug=1&levelIntro=1`,{waitUntil:'load'});
     await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});await loaderGone(page);await page.click('#tutorial-start');
     await page.waitForFunction(()=>window.__NR&&window.__NR.round?.()&&!document.getElementById('level-intro').hidden,{timeout:30000});
-    const m=await page.evaluate(()=>{const el=document.getElementById('level-intro'),t=document.getElementById('level-intro-text');const r=t.getBoundingClientRect();return {shown:!el.hidden,text:t.textContent,w:r.width,vw:innerWidth,paused:window.__NR.round().pauseAt!=null};});
+    const m=await page.evaluate(()=>{const el=document.getElementById('level-intro'),t=document.getElementById('level-intro-text');const r=t.getBoundingClientRect();return {shown:!el.hidden,text:t.textContent,w:r.width,vw:innerWidth,paused:window.__NR.round().pauseAt!=null,card:(()=>{const c=el.getBoundingClientRect();return{l:c.left,t:c.top,r:c.right,b:c.bottom,ih:innerHeight,parent:el.parentElement.tagName,corners:(()=>{const pe=el.style.pointerEvents;el.style.pointerEvents='auto';/* the card is pointer-events:none, which elementFromPoint skips */const hit=[[1,1],[innerWidth-2,1],[1,innerHeight-2],[innerWidth-2,innerHeight-2]].map(([x,y])=>el.contains(document.elementFromPoint(x,y)));el.style.pointerEvents=pe;return hit;})()};})()};});
+    // v2.28.4 playtest: the Bunker 2/3 card must cover the WHOLE screen (it sat inside the transformed #viewport before).
+    {const c=m.card;if(c.parent!=='BODY'||c.l>1||c.t>1||c.r<m.vw-1||c.b<c.ih-1||c.corners.includes(false))fail(tag,`level card does not fill the screen (${JSON.stringify(c)})`);}
     if(!m.shown||!/^BUNKER LEVEL \d+$/.test(m.text))fail(tag,`level card not shown (${JSON.stringify(m)})`);
     if(m.w>m.vw)fail(tag,'level card text wider than the viewport');
     if(!m.paused)fail(tag,'raid clock not paused under the level card');
