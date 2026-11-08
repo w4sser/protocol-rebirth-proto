@@ -5,7 +5,7 @@
 | Document control | Value |
 | --- | --- |
 | Decision owner | Robert Wasser |
-| Last updated | 7 November 2026 |
+| Last updated | 8 November 2026 |
 | Review branch | `docs/game-design-reference-2026-11-06` |
 | Review PR | [PR #201](https://github.com/w4sser/protocol-rebirth-proto/pull/201) - do not merge until the design review is complete |
 | Companion document | [Game Design & Loop Reference](game-design-reference.md) |
@@ -1343,10 +1343,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M25 — Environmental Risk Signaling and Contextual BIT Guidance (OWNER APPROVED, 8 November 2026)
+
+**Approved decision:** Communicate the danger of routes and encounters **primarily through environmental evidence, visible enemy behavior/telegraphs, and short contextual hints from BIT**, rather than explicit numeric risk scores, universal low/medium/high labels, or complete advance disclosure. The player should be able to **suspect and interpret increasing risk** before committing, while retaining uncertainty, discovery and occasional surprises.
+
+**Practical design contract:** A risky route or tactical encounter should provide **observable clues** that support a meaningful decision: e.g., signs of battle, more fortified structures, distinctive hostile silhouettes, projectile-warning behavior, unusual sound/light/activity cues or BIT's concise remark about an unfamiliar threat. Such examples are **possible tools**, not a fixed art/encounter requirement. More severe threats must remain readable and counterable at mobile-camera scale. BIT complements visual information rather than acting as a mandatory narrator, and critical cues must still work with audio muted.
+
+**Protect player agency:** This expresses M24's player-chosen difficulty through the game world: players can choose a dangerous route, avoid it, or extract under D1/D2 after considering the evidence. Do not hide unavoidable damage behind a surprising enemy ability, imply a guaranteed rare reward from a warning, or display a precise risk rating that makes exploratory observation irrelevant. D3.7 contextual/no-interruption guidance and the D3.8 first-normal-raid assistance exception still apply.
+
+**Still open:** Exactly which world cues map to which threats/biomes, how much ambiguity is fair, BIT's trigger conditions and lines, accessible color/audio substitutes, new-enemy warning timing, and whether any optional non-numeric signage is needed in specific edge cases. Validate whether players can **recognize that one route may be more dangerous and explain the evidence**, not whether they can predict every enemy or loot item.
+
+**Documentation only:** No code, HUD additions, encounter tuning, deploy, or PR merge authorized by this approval.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | M25: Risk is communicated mainly through environment, enemy signals and brief contextual BIT cues, not numeric risk grades or total foreknowledge | Owner approved; exact signaling and thresholds open |
 | 2026-11-07 | M24: Ordinary raid difficulty follows chosen depth/routes and legible risk, not hidden performance scaling; preserve bounded D3.8 first-normal-raid assistance | Owner approved; presentation and numeric tuning open |
 | 2026-11-07 | M23: Teach distinct enemy archetypes rapidly through play; increase difficulty through enemy/environment combinations, not long tutorials or HP inflation | Owner approved; encounter sequencing and tuning open |
 | 2026-11-07 | M22: Tactical combat is primarily enemy behavior, role combinations, positioning and environment; Basic Carbine must remain intrinsically fun | Owner approved; encounter tuning and gear choices open |
