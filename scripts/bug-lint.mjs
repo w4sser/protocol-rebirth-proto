@@ -77,7 +77,7 @@ export const RULES=[
      if(!/makeArtilleryShell\(\);\s*makeToolFxRing\(\);\s*makeToolFxRing\(\);/.test(src))out.push('nodspel/game.mjs: must pre-create 1 artillery shell + 2 landing rings at init for shader prewarm');
      if(!/function prewarmShaders\b/.test(src)||!/prewarmShaders\(\);/.test(src))out.push('nodspel/game.mjs: prewarmShaders() must still run so hidden artillery FX compile at level load');
      return out;}},
-  {id:'dda-extra-on-floor',pr:'v2.28.6 (fix/dda-spawn-floor-20261108)',why:'playtest 2026-11-08 "spawn utanför leveln": DDA extra enemies were placed 1.4-2.8m from a source checking only walls/boxes, landing behind exterior walls, and cloned front-shielded encounter actors',
+  {id:'dda-extra-on-floor',pr:'v2.28.4 (fix/dda-spawn-floor-20261108)',why:'playtest 2026-11-08 "spawn utanför leveln": DDA extra enemies were placed 1.4-2.8m from a source checking only walls/boxes, landing behind exterior walls, and cloned front-shielded encounter actors',
    check(c={}){const out=[];const src=c.ddaSrc??read('nodspel/difficulty.js');
      if(!/walkMap\(/.test(src))out.push('nodspel/difficulty.js: extras must be reachable (walkMap from the start)');
      if(!/level\.floors\.some\(/.test(src))out.push('nodspel/difficulty.js: extras must check their full footprint against level.floors');
