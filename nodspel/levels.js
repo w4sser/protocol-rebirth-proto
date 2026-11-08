@@ -1,5 +1,5 @@
 import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.0';
-import {generateBigLevel} from './big-level.js?v=2.28.0';
+import {generateBigLevel} from './big-level.js?v=2.28.0-big-enemy-variety-v1';
 import '../data/items.js?v=2.28.0';
 import {clearPassageProps} from './archipelago-passages.js?v=2.28.0';
 import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
