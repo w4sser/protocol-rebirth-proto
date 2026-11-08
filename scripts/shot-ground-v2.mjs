@@ -90,7 +90,7 @@ try {
       if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
       if (process.env.COASTAL_FOCUS==='1') params.set('polyforkMode','coastal');
       if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
-      if (process.env.MILITARY_FOCUS==='1') {params.set('polyfork','1');params.delete('polyforkMode');params.set('seed','military-qa-01');}
+      if (process.env.MILITARY_FOCUS==='1') {params.delete('polyfork');params.delete('polyforkMode');params.set('seed','military-qa-01');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
