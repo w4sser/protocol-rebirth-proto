@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'nodspel/polyfork-military-remnants.mjs'
+      - 'nodspel/military-architecture.mjs'
       - 'nodspel/polyfork-dressing.mjs'
       - 'nodspel/archipelago-dressing-policy.mjs'
       - 'nodspel/tests/polyfork-military-remnants.test.mjs'
