@@ -22,10 +22,11 @@ function boot(save){
   const costs = [...b.w.document.querySelectorAll("#overlay .cost.miss")];
   const mm = costs.find(c => /Memory Module/.test(c.textContent)), ed = costs.find(c => /Encrypted Drive/.test(c.textContent));
   assert(mm && ed, "Core L2->L3 lists Memory Module and Encrypted Drive as missing");
-  for(const c of [mm, ed]) assert.strictEqual(c.querySelector(".lhint").textContent, "Loot crates · Bunker level 3 / Archipelago level 3", "hint from active loot tables");
+  for(const c of [mm, ed]) assert.strictEqual(c.querySelector(".lhint").textContent, "Loot crates · Bunker 3 / Archipelago 3", "hint from active loot tables");
   assert(!b.w.document.querySelector("#overlay .cost.ok .lhint"), "owned parts carry no hint");
   const T = b.w.eval("lootHint");
-  assert(/^Last crate · Bunker level 3 · extract to scout$/.test(T("archipelago_chart")), "chart hint: guaranteed last crate, extract to scout");
+  assert.strictEqual(T("power_relay"), "Loot crates · Bunker 2–3 / Archipelago 2–3", "contiguous levels collapse to a range");
+  assert(/^Last crate · Bunker 3 · extract to scout$/.test(T("archipelago_chart")), "chart hint: guaranteed last crate, extract to scout");
   { const s = b.S(); s.areaScouted = Object.assign(s.areaScouted || {}, { archipelago:true }); }
   assert.strictEqual(T("archipelago_chart"), "", "no chart hint once Archipelago is scouted");
   console.log("LOOT SOURCES TEST PASSED");

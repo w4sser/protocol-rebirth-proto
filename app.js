@@ -397,9 +397,12 @@ function advanceBaseState(reason){
 function lootHint(id){
   const L = D.lootSources; if(!L) return "";
   const sc = (L.scouts || []).find(x => x.item === id);
-  if(sc) return areaScouted(ITEMS[id].scouts) ? "" : "Last crate · " + (AREA_DEFS[sc.area] ? AREA_DEFS[sc.area].name : sc.area) + " level " + sc.level + " · extract to scout";
+  if(sc) return areaScouted(ITEMS[id].scouts) ? "" : "Last crate · " + (AREA_DEFS[sc.area] ? AREA_DEFS[sc.area].name : sc.area) + " " + sc.level + " · extract to scout";
   const src = (L.crates || {})[id]; if(!src || !src.length) return "";
-  return "Loot crates · " + src.map(x => (AREA_DEFS[x.area] ? AREA_DEFS[x.area].name : x.area) + " level " + x.level).join(" / ");
+  // Grouped per area with level ranges, e.g. "Loot crates · Bunker 2–3 / Archipelago 2–3" (QA 2026-11-08: shorter, readable).
+  const by = {}; src.forEach(x => (by[x.area] = by[x.area] || []).push(x.level));
+  const span = ls => { ls = [...new Set(ls)].sort((a,b) => a-b); return ls.length > 1 && ls.at(-1) - ls[0] === ls.length - 1 ? ls[0] + "–" + ls.at(-1) : ls.join(", "); };
+  return "Loot crates · " + Object.keys(by).map(a => (AREA_DEFS[a] ? AREA_DEFS[a].name : a) + " " + span(by[a])).join(" / ");
 }
 function lootHintHtml(p){ const h = p.kind === "item" && p.have < p.need ? lootHint(p.id) : ""; return h ? '<span class="lhint">' + esc(h) + '</span>' : ""; }
 function costParts(cost){
