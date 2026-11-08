@@ -1,0 +1,139 @@
+{
+  "source": "https://polyfork.dev",
+  "license": "CC-BY-4.0",
+  "files": [
+    {
+      "id": "birch-tree-181b33",
+      "file": "birch-tree-181b33.glb",
+      "source": "https://polyfork.dev/cdn/birch-tree-181b33.glb",
+      "bytes": 72308,
+      "sha256": "efd4813338b7ae46a429b182e2c632490b6b2113c5654a9a5e8277a639c13de8"
+    },
+    {
+      "id": "cattail-reed-6abbb3",
+      "file": "cattail-reed-6abbb3.glb",
+      "source": "https://polyfork.dev/cdn/cattail-reed-6abbb3.glb",
+      "bytes": 45936,
+      "sha256": "da0f9ec2b40509515ffcb53757b9e8c012bfcad2102211e752dd4d5b7019039a"
+    },
+    {
+      "id": "driftwood-log-89a68f",
+      "file": "driftwood-log-89a68f.glb",
+      "source": "https://polyfork.dev/cdn/driftwood-log-89a68f.glb",
+      "bytes": 95708,
+      "sha256": "e8b6b9761fbfc33085949a79b9a41b14bd3011d8d7e2c20b975d9825831c8d73"
+    },
+    {
+      "id": "fallen-log-1685fb",
+      "file": "fallen-log-1685fb.glb",
+      "source": "https://polyfork.dev/cdn/fallen-log-1685fb.glb",
+      "bytes": 56908,
+      "sha256": "5febe55e615a4600ea5404297945b55ef4885de9041291febe458ca7ac0d3b62"
+    },
+    {
+      "id": "fern-plant-1559b8",
+      "file": "fern-plant-1559b8.glb",
+      "source": "https://polyfork.dev/cdn/fern-plant-1559b8.glb",
+      "bytes": 93172,
+      "sha256": "578b2bf355756ae8b92248386a08dc92d867abe4f05a0d054aef66a3172f5aa5"
+    },
+    {
+      "id": "grass-tuft-a40a08",
+      "file": "grass-tuft-a40a08.glb",
+      "source": "https://polyfork.dev/cdn/grass-tuft-a40a08.glb",
+      "bytes": 43704,
+      "sha256": "3ae87f58a36aad088eaa4a75d8a97c67a7dcab90cfc047e6263dc0c5f7e8bcf2"
+    },
+    {
+      "id": "lobster-pot-stack-d870f0",
+      "file": "lobster-pot-stack-d870f0.glb",
+      "source": "https://polyfork.dev/cdn/lobster-pot-stack-d870f0.glb",
+      "bytes": 76716,
+      "sha256": "d6e10dcab0c86c35b80d4e85d0cad29eeb1efe047a0c1e1eb3587a8d16e8882c"
+    },
+    {
+      "id": "marram-grass-tuft-8c7a99",
+      "file": "marram-grass-tuft-8c7a99.glb",
+      "source": "https://polyfork.dev/cdn/marram-grass-tuft-8c7a99.glb",
+      "bytes": 202380,
+      "sha256": "78f3332630e4426b073b353b05446d01d0673a251e2709edafa13253d8eb07ec"
+    },
+    {
+      "id": "medium-rock-e08405",
+      "file": "medium-rock-e08405.glb",
+      "source": "https://polyfork.dev/cdn/medium-rock-e08405.glb",
+      "bytes": 44328,
+      "sha256": "e85b74591fded8de1f7492f3d187328031763bd6889ed5625c6cefd923c93bec"
+    },
+    {
+      "id": "mooring-bollard-2d4bc9",
+      "file": "mooring-bollard-2d4bc9.glb",
+      "source": "https://polyfork.dev/cdn/mooring-bollard-2d4bc9.glb",
+      "bytes": 90416,
+      "sha256": "304bb9b4aa4969b069c42d2e1b252c2bceabe92770fb8b6386ed9e981cde90a8"
+    },
+    {
+      "id": "net-pile-0bd489",
+      "file": "net-pile-0bd489.glb",
+      "source": "https://polyfork.dev/cdn/net-pile-0bd489.glb",
+      "bytes": 115868,
+      "sha256": "553cf811a12251568b5fe7e71a9642c21fbfe6dc8b915280ea0e236f6417abbc"
+    },
+    {
+      "id": "round-bush-cd2ac0",
+      "file": "round-bush-cd2ac0.glb",
+      "source": "https://polyfork.dev/cdn/round-bush-cd2ac0.glb",
+      "bytes": 67072,
+      "sha256": "3a7f963bd765924c531c53369d1fe2f724f19f8f45aef2eabe5ace238871ac26"
+    },
+    {
+      "id": "sea-holly-clump-ce3bc6",
+      "file": "sea-holly-clump-ce3bc6.glb",
+      "source": "https://polyfork.dev/cdn/sea-holly-clump-ce3bc6.glb",
+      "bytes": 128272,
+      "sha256": "ff67ef23cdaa083919365f489760b0e11d8a6f7de2bd43fc3d388b61d2fdea81"
+    },
+    {
+      "id": "seaweed-drift-line-6566c3",
+      "file": "seaweed-drift-line-6566c3.glb",
+      "source": "https://polyfork.dev/cdn/seaweed-drift-line-6566c3.glb",
+      "bytes": 117380,
+      "sha256": "0f249046b8b073e4e1cb8fb0b4918373bdd172545e5698eef86d0c93a69d358a"
+    },
+    {
+      "id": "small-rock-db33a7",
+      "file": "small-rock-db33a7.glb",
+      "source": "https://polyfork.dev/cdn/small-rock-db33a7.glb",
+      "bytes": 24756,
+      "sha256": "43990df646f9cc5406e48c1c049fadcff200cf751b3edd734a86ffef37947bba"
+    },
+    {
+      "id": "tall-pine-tree-ab4108",
+      "file": "tall-pine-tree-ab4108.glb",
+      "source": "https://polyfork.dev/cdn/tall-pine-tree-ab4108.glb",
+      "bytes": 41632,
+      "sha256": "32081cc8c954233d04b9e4ee1569efc4df2a2f8e97f8e30f9e55e63ee9d6171e"
+    },
+    {
+      "id": "tree-stump-ec3f48",
+      "file": "tree-stump-ec3f48.glb",
+      "source": "https://polyfork.dev/cdn/tree-stump-ec3f48.glb",
+      "bytes": 59276,
+      "sha256": "63a3ead03d4192134314e10eb79161310a112095d9472a2bc5abeab36cacdf6f"
+    },
+    {
+      "id": "wildflower-68d3a1",
+      "file": "wildflower-68d3a1.glb",
+      "source": "https://polyfork.dev/cdn/wildflower-68d3a1.glb",
+      "bytes": 47936,
+      "sha256": "c1eb0b97dce8fafee34f940088d2004567b1dfec01be6d460f80921bb9893a99"
+    },
+    {
+      "id": "young-pine-0d7695",
+      "file": "young-pine-0d7695.glb",
+      "source": "https://polyfork.dev/cdn/young-pine-0d7695.glb",
+      "bytes": 32528,
+      "sha256": "9bf72146a74e005aae80ea5962623b9810279426ab605570190607e0d0cde352"
+    }
+  ]
+}
