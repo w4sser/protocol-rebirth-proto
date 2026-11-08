@@ -154,10 +154,10 @@ try {
               window.__NR.teleport(island.x+dx*.74,island.z+dz*.74);
             }
           }
-          return {mode:st.mode,landmarks:st.militaryLandmarks,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
+          return {mode:st.mode,landmarks:st.militaryLandmarks,architecture:st.militaryGeometry,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
         });
         console.log('[military-remnants-preview]',area,mode,JSON.stringify(audit));
-        if(!audit.landmarks?.length||!audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
+        if(!audit.landmarks?.length||audit.architecture?.structures!==1||audit.architecture?.parts<8||audit.architecture?.drawCalls>15||!audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
           throw new Error('Military Remnants vignette absent/invalid: '+JSON.stringify(audit));
         await sleep(1800);
       }
