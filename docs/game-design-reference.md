@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.44 - D1-D.12 authoritative in-flight input reconciliation|
+| Document status | Living design reference, v4.45 - M38 shared gameplay Operator and permanent cosmetic identities|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -575,7 +575,7 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 
 **PROPOSED initial operator editor:** Preview the operator in the bunker and loadout menu; choose clothing/outfit, headwear/helmet look, optional colors and equipment/weapon appearances. Keep permanent purchased/earned cosmetic ownership separate from any actual deployed weapon or armor copies which remain at risk under D1. Prioritize customization whose visual difference is readable from the actual mobile gameplay camera, and test animation/silhouette/PvP readability. Start with an affordable art scope (e.g. full-body outfit + headwear + palette) before proliferating tiny gear sub-slots.
 
-**FIRST WEEK PROPOSAL:** After the *first successful ordinary extraction ends the approved FTUE*, allow a free operator appearance choice in the home. Introduce starter room furnishings and an earned BIT visual accent alongside additional small bunker restorations. Thematic matching collections can later span **operator + BIT + bunker room** without creating more paid currencies. No compulsory early shop/customization screen interrupts the signed-off D3.9 onboarding. [D01]
+**FIRST WEEK PROPOSAL:** After the *first successful ordinary extraction ends the approved FTUE*, allow a free operator appearance choice in the home. Introduce starter room furnishings and an earned BIT visual accent alongside additional small bunker restorations. Thematic matching collections can later span **operator + BIT + bunker room** without creating more paid currencies. No compulsory early shop/customization screen interrupts the signed-off D3.9 onboarding. **M38 later approves multiple cosmetic Operator identities on one mechanical/animation foundation and persistent Operator/BIT skins; exact categories, free rewards and counts remain proposals.** [D01]
 
 ### 9.6 M11 — Callsigns, nameplates and collectible player identity
 
@@ -592,6 +592,14 @@ The equipment model includes incremental upgrades, Mk tiers, and attachments. Ba
 **SPECIFICATION NOW DRAFTED:** [Identity & Home Meta](identity-home-meta.md) combines **player Callsign/nameplates, operator appearance, BIT visuals, bunker restoration and room decoration** into one product journey and a shared permanent cosmetic inventory. The owner's previously approved direction is that these surfaces matter together; the exact free rewards, UI tab design and themed SKU catalog remain proposals. [D01]
 
 **Suggested product model:** `Home` communicates recovery and next objective; `Projects` communicates functional upgrades and Growth Fund; `Customize` is a single accessible place for the four identity surfaces; `Shop` sells optional deterministic resources and themed cosmetic sets. Each successful homecoming ideally changes something visible or brings a concrete functional restoration closer. The first identity choices are **free and optional after FTUE**, not mandatory prompts inside it. The bunker can be named separately from the operator. A shared theme may cover all four identity surfaces; no separate premium wallet for each. [D01]
+
+### 9.8 M38 — Shared Operator gameplay, multiple skins, and expressive BIT (owner approved)
+
+**APPROVED M38, option A (8 November 2026):** The playable character has **one shared mechanical Operator foundation** with multiple visibly different **characters/outfits/skins using the same responsive animation and control system**. A look cannot alter hitboxes, collision, actual combat stats, unique abilities or tactical advantage. Different gameplay strategies still come from Operator milestones, **genuinely at-risk equipment** and player tactics under P1. There is **no additional mechanical Operator-class selection** hidden in cosmetic identity.
+
+**Owned cosmetics persist:** Earned and paid **Operator/BIT appearance entitlements remain owned after death**, distinct from losable deployed gear and carried loot under D1. Keep outfits readable from the mobile game camera and ensure cosmetic silhouettes never confer a competitive advantage. BIT has its own cosmetic appearance variants and **expressive visual reactions** in the bunker and raids; its personality and guidance predate BIT Bay L1. **Actual active combat support remains gated by fully completed BIT Bay L1 and the existing player-triggered distraction/cooldown M28–M35 rules**, never by a skin or expression.
+
+**Quality priority and open specifics:** **Polish reactive Operator movement/combat animation and BIT's expressive presence before scaling the skin catalogue.** The shared animation foundation is a design compatibility constraint, not an approved specific rig, animation system or clip collection. Exact roster/looks, animation reactions, skin counts, accessory slots, earned/free/paid inventory, art, controls, performance, mobile UX and sequencing remain open. M39 should next lock a **game-feel direction** for animations, not technical minutiae. D1-D.13 is still unapproved/deferred. This records design only; **no code, UI, 3D models, animations or merge authorized**. [D01]
 
 ## 10. BIT: companion, capability, and relationship
 
@@ -1014,6 +1022,7 @@ This is a review register, not permission to implement every item. Explicit appr
 | P0 | Mission purpose and exits | D2.1-D2.3 APPROVED for quick PvE: return available from start, incomplete goals allowed, deliberate cancellable extraction; five seconds is initial test tuning | Align the old node-gated/automatic-entry implementation; resolve timer/interruption edges and D2.4-D2.7 nodes, topology, communication, and existing-variant mapping |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly and reconcile it with the approved quick-mode extraction |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
+| P0 | Animated Operator and BIT identity | **M38 APPROVED:** multiple Operator and BIT cosmetic identities, one gameplay Operator/hitbox/control foundation, permanent skins; prioritize reactive character feel before skin quantity | Lock M39 responsive versus weighty game-feel target; test input feedback, animation readability, BIT reactions and mobile performance, then scope animation/skin art without new mechanical classes |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
 | P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment; rescue conflicts resolved in direction by D1 | Explain Bond, hardware, talents, and assignments separately; remove/refactor item-rescue effects without adding a second protection route |
 | P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics; D1 confirms deployed valuable gear is risked | Clearly state what is lost with a particular item |
@@ -1166,6 +1175,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.45, 8 November 2026:** Owner approved M38 option A: multiple cosmetic Operator looks share one gameplay/controls/animation foundation, without class-specific abilities, hitbox/stat advantages or variation in tactical power. Operator/BIT cosmetics are permanently owned through raid death while deployed gear remains at risk. Prioritize expressive Operator animation and BIT reactions before a large skin collection; BIT Bay L1 combat support remains separately gated. M39 animation feel is next; D1-D.13 reconnection details deferred. Docs only, no gameplay/art changes.
 - **v4.44, 8 November 2026:** Owner approved D1-D.12 option A: legitimately pre-interruption input arriving late may resolve once only with verified origin, eligibility and authoritative order. Client timestamps alone are insufficient; stale/replayed/duplicate commands, held-control extension and changes to an already-final outcome are forbidden. D1-D.5/D1-D.6 terminal ordering and exact tie remain. Precise anti-replay/ordering, fairness, networking and UX stay open. Documentation only; no gameplay code.
 - **v4.43, 8 November 2026:** Owner approved D1-D.11 option A: authoritative real input-loss detection from trusted lifecycle/connectivity/valid-input signals with bounded tolerance for brief network jitter. A single missed update does not automatically trigger loss or fail a raid. On confirmed loss, neutralize held controls under D1-D.10 without pausing original raid time or danger. Exact numeric thresholds, signals, in-flight packet ordering, technology, fairness and UX remain open. Design docs only; no game code.
 - **v4.42, 8 November 2026:** Owner approved D1-D.10 option A: after authoritative interruption/input-loss detection, neutralize held move/aim/fire and interaction rather than repeating them; prior legitimate commands and active projectiles/effects are not rolled back. Original raid deadline and verified danger continue, with no new operator autopilot. Exact detection, in-flight commands, physics and reconnection UX remain open; docs only, no gameplay code.
