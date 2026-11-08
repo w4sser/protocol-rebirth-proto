@@ -25,10 +25,10 @@ function cornerProbes(level){
         :Math.abs(Math.abs(endVal-r.z)-r.d/2)<.02&&Math.abs(c.x-r.x)<.02);
       const mouth=room?bridgeMouthWidth(c.width,c.dir.x?room.d:room.w,t):c.width;
       const cross=room?mouth/2+t/2:c.width/2-t/2;
-      // Recessed archipelago side rails intentionally do not reach the room edge.
-      // Check the surviving room wall from INSIDE the island; the old outward
-      // probe would demand solid collision in the explicitly widened landing.
-      const axis=room?endVal-away*t/2:endVal+away*t/2;
+      // The outward corridor end is the near side of the adjoining room.
+      // Check the surviving room wall beyond the widened mouth, not the
+      // deliberately empty space inside that mouth.
+      const axis=endVal+away*t/2;
       for(const sign of [-1,1])probes.push(c.dir.x
         ?{x:axis,z:c.z+sign*cross}
         :{x:c.x+sign*cross,z:axis});
