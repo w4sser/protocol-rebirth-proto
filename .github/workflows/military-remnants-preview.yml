@@ -1,0 +1,46 @@
+name: military-remnants-preview
+on:
+  pull_request:
+    paths:
+      - 'nodspel/polyfork-military-remnants.mjs'
+      - 'nodspel/military-architecture.mjs'
+      - 'nodspel/polyfork-dressing.mjs'
+      - 'nodspel/archipelago-dressing-policy.mjs'
+      - 'nodspel/tests/polyfork-military-remnants.test.mjs'
+      - 'nodspel/game.mjs'
+      - 'scripts/shot-ground-v2.mjs'
+      - '.github/workflows/military-remnants-preview.yml'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test nodspel/tests/polyfork-military-remnants.test.mjs
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm i --no-save puppeteer
+      - name: Capture Military Remnants at mobile HIGH and LOW
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          LEVEL: '3'
+          MILITARY_FOCUS: '1'
+          OUT: verify-out/military-remnants
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: military-remnants-phone-capture
+          path: verify-out/military-remnants
+          if-no-files-found: warn

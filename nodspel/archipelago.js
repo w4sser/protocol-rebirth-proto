@@ -192,7 +192,7 @@ function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
   }
   return count;
 }
-export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
+export function buildArchipelago(level,group,box,{pine=null,quality={props:1},militaryStyle=false}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
   // Ground pass (default-on since v2.28.0, ?ground=0 disables) shifts its legacy grass backup away from the new
@@ -299,7 +299,22 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   }
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
-  for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
+  for(const c of level.boxes){
+    const g=new THREE.Group();g.userData.collider=c;
+    g.name=militaryStyle?'archipelago-derelict-concrete-cover':'archipelago-crate';
+    if(militaryStyle){
+      // Re-use the existing gameplay cover volumes; swap only the "brown crate"
+      // look for abandoned coastal-defence concrete with lichen and damp seams.
+      box(c.x,c.h/2,c.z,c.w,c.h,c.d,'#747770',g);
+      box(c.x,c.h+.012,c.z,c.w*.86,.025,c.d*.82,'#687459',g);
+      box(c.x,c.h*.69,c.z-c.d/2-.009,c.w*.76,.043,.025,'#545A55',g);
+      box(c.x+c.w*.17,c.h*.21,c.z-c.d/2-.013,c.w*.12,c.h*.35,.021,'#626960',g);
+    }else{
+      box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);
+      box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);
+    }
+    group.add(g);
+  }
   // boats offshore (visual only, never collidable)
   for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
     g.position.set(cx+Math.cos(a)*r,-.3,cz+Math.sin(a)*r);g.rotation.y=rng()*6.3;

@@ -6,6 +6,8 @@ import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
 import {polyforkLocalUrl} from './polyfork-local-url.mjs?v=2.28.0';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
+import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v3';
+import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v2';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
@@ -92,10 +94,15 @@ function geometryParts(asset){
 export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='scatter'}={}){
   const group=new THREE.Group();group.name='polyfork-experimental-dressing';scene.add(group);
   const composition=mode==='profiles'?planProfiledDressing(level,{quality,density}):
-    mode==='coastal'?planCoastalLifeDressing(level,{quality,density}):null;
+    mode==='coastal'?planCoastalLifeDressing(level,{quality,density}):
+    mode==='military'?planMilitaryRemnantsDressing(level,{quality,density}):null;
   const items=composition?composition.items:planPolyforkDressing(level,{quality,density}),groups=new Map();
+  const fortifications=composition?.architecture?.length?
+    renderMilitaryArchitecture(composition.architecture,group,{quality,seed:level.seed}):null;
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}
-  const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],landmarks:composition?.landmarks??[],planned:items.length,loaded:0,meshes:0,triangles:0,failed:[],ready:false};
+  const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],landmarks:composition?.landmarks??[],militaryLandmarks:composition?.militaryLandmarks??[],planned:items.length,loaded:0,meshes:0,triangles:0,
+    militaryGeometry:fortifications?.stats??{structures:0,parts:0,meshes:0,drawCalls:0},
+    failed:[],ready:false};
   const q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),m=new THREE.Matrix4(),up=new THREE.Vector3(0,1,0);
   let alive=true;
   const jobs=[...groups].map(async([id,list])=>{
@@ -119,5 +126,5 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
     }catch(error){stats.failed.push({id,error:String(error?.message??error)});console.warn('[polyfork]',id,error);}
   });
   const ready=Promise.all(jobs).then(()=>{stats.ready=true;console.info('[polyfork-test]',JSON.stringify(stats));});
-  return {group,stats,ready,dispose(){alive=false;scene.remove(group);group.clear();}};
+  return {group,stats,ready,dispose(){alive=false;fortifications?.dispose();scene.remove(group);group.clear();}};
 }
