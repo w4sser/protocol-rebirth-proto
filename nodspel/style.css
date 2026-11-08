@@ -376,3 +376,63 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#tool-btn,#us
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer, queued perk and both sticks. */
 #extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:min(240px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px));white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
+/* Bag full choice: readable in short landscape phone viewports, no 4s dismissal. */
+#viewport .swap-row[data-kind=bag]{
+  box-sizing:border-box;left:50%;margin-left:0;top:60px;bottom:auto;
+  transform:translateX(-50%);z-index:18;
+  display:flex;flex-direction:column;gap:7px;
+  width:min(460px,calc(100% - 48px));max-width:calc(100% - 48px);
+  max-height:calc(100% - 80px);padding:8px 12px 10px;
+  border-color:var(--ad-loot);background:var(--ad-ink);color:var(--ad-bone);
+  box-shadow:0 6px 24px color-mix(in srgb,var(--ad-night) 80%,transparent);
+}
+#viewport .swap-row[data-kind=bag][hidden]{display:none}
+.swap-row[data-kind=bag] .swap-head.pop-head{
+  box-sizing:border-box;flex-shrink:0;min-height:30px;margin:0;padding:0 0 0 33px;
+  gap:8px;letter-spacing:normal;text-transform:none;
+}
+.swap-dialog-title{font-size:14px;color:var(--ad-loot);white-space:nowrap}
+.swap-dialog-subtitle{font-size:10px;font-weight:400;color:var(--ad-bone);opacity:.75}
+.swap-row[data-kind=bag] .swap-goal{
+  font-size:10px;flex-shrink:0;margin:0 0 0 32px;
+  color:var(--ad-bit);overflow-wrap:anywhere;
+}
+.swap-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;min-width:0}
+.swap-choice-item{
+  display:flex;flex-direction:column;gap:3px;min-width:0;
+  padding:7px 9px;border:1px solid var(--rc,var(--ad-loot));border-left-width:4px;
+  border-radius:6px;background:color-mix(in srgb,var(--ad-loot) 7%,var(--ad-ink));
+  color:var(--ad-bone);text-align:left;
+}
+.swap-choice-caption{font:700 9px/1.2 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.06em;color:var(--ad-loot)}
+.swap-choice-name{font:700 13px/1.25 'IBM Plex Sans',sans-serif;overflow-wrap:anywhere;white-space:normal}
+.swap-choice-meta{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;font:9px/1.25 'IBM Plex Mono',ui-monospace,monospace}
+.swap-choice-status{color:var(--ad-bone);opacity:.85}
+.swap-choice-status.swap-needed{color:var(--ad-loot);font-weight:700;opacity:1}
+.swap-choice-value{white-space:nowrap;color:var(--ad-bit)}
+.swap-reason{font:11px/1.3 'IBM Plex Sans',sans-serif;margin:0;overflow-wrap:anywhere}
+.swap-recommendation-label{color:var(--ad-loot)}
+.swap-actions{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0}
+.swap-actions .swap-action{
+  display:flex;align-items:center;justify-content:center;min-height:44px;min-width:94px;
+  padding:7px 10px;flex:1 1 auto;border:1px solid var(--ad-bit);
+  border-radius:6px;background:var(--ad-night);color:var(--ad-bone);
+  font:700 11px/1.15 'IBM Plex Sans',sans-serif;text-align:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.swap-actions .swap-action.recommended{
+  border-color:var(--ad-loot);background:color-mix(in srgb,var(--ad-loot) 20%,var(--ad-ink));
+  color:var(--ad-bone);
+}
+.swap-actions .swap-action:active,.swap-choice-option:active{background:color-mix(in srgb,var(--ad-bit) 20%,var(--ad-night))}
+.swap-choice-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;min-height:0;max-height:140px;overflow-y:auto;overscroll-behavior:contain;padding:2px}
+.swap-choice-option{position:relative;min-width:0;min-height:52px;padding:0;background:transparent;border:0;border-radius:6px;cursor:pointer}
+.swap-choice-option .swap-choice-item{height:100%;box-sizing:border-box}
+.swap-choice-option .swap-choice-recommended{position:absolute;right:5px;top:5px;font:700 8px/1 'IBM Plex Mono',ui-monospace,monospace;color:var(--ad-loot)}
+.swap-choice-option:focus-visible,.swap-actions .swap-action:focus-visible{outline:2px solid var(--ad-cyan);outline-offset:2px}
+@media (max-height:400px){
+  #viewport .swap-row[data-kind=bag]{top:54px;max-height:calc(100% - 66px);gap:5px;padding:6px 10px 8px}
+  .swap-choice-item{padding:5px 7px;gap:2px}
+  .swap-choice-name{font-size:12px}
+  .swap-choice-list{max-height:106px}
+}
