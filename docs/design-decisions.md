@@ -40,7 +40,7 @@ These five approvals are final for this review unless Robert explicitly reopens 
 
 Ordinary carried loot and valuable deployed equipment remain at risk until successful extraction. Clearing a room or advancing to another depth is not extraction and does not bank the bag. Death, timeout, and deliberate abandonment are unsuccessful raid outcomes for this contract.
 
-The Secure Slot is the one approved item-protection mechanism. **D1-A locks exactly one protected unit (not a stack), occupying ordinary bag capacity without adding space. D1-B locks eligibility to ordinary materials and ordinary valuables only; all weapons, armor, tools, consumables and dedicated scouting/mission keys are excluded, including found or unequipped equipment.** D1-C now approves player-selected protection, including replacement or clearing; exact timing, mobile UX and post-raid settlement remain open.
+The Secure Slot is the one approved item-protection mechanism. **D1-A locks exactly one protected unit (not a stack), occupying ordinary bag capacity without adding space. D1-B locks eligibility to ordinary materials and ordinary valuables only; all weapons, armor, tools, consumables and dedicated scouting/mission keys are excluded, including found or unequipped equipment.** D1-C approves deliberate selection, replacement or clearing **whenever the in-raid bag is accessible, including near enemies**. These actions grant **no pause, invulnerability or guaranteed safety**; exact mobile UX, bag-access rules and post-raid settlement remain open.
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
@@ -77,7 +77,7 @@ The result screen must distinguish lost possessions, any protected item, and ret
 
 **Approved owner choice (option A):** Once **Vault L1 is fully restored**, its **one Secure Slot protects exactly one eligible item unit**, never a complete stack. The selected unit continues to occupy its **ordinary bag capacity**; the Secure Slot adds **no cargo cell, weight allowance, or additional carrying space**. A stack containing several units cannot be treated as one protected item to save its entire contents. No second protected unit or protection mechanism is introduced.
 
-**Boundaries:** D1-A is about **quantity and capacity only**. **D1-B later approves item-category eligibility and D1-C approves deliberate player selection, replacement and clearing of protection**. Exact timing, mobile UX and loss settlement remain open in D1-C follow-up; interrupted sessions remain under D1-D. D1's existing risk and loot-loss rule, no BIT auto-rescue/insurance/paid recovery, and free Basic Carbine retry remain intact. No implication that current code already conforms, and no game code or other implementation is authorized.
+**Boundaries:** D1-A is about **quantity and capacity only**. **D1-B later approves item-category eligibility and D1-C approves deliberate player selection, replacement and clearing of protection**. **D1-C.1 later approves timing whenever the in-raid bag can be opened, even near enemies, without pausing or protecting the player.** Exact mobile UX, when the bag is otherwise available, and loss settlement remain open; interrupted sessions remain under D1-D. D1's existing risk and loot-loss rule, no BIT auto-rescue/insurance/paid recovery, and free Basic Carbine retry remain intact. No implication that current code already conforms, and no game code or other implementation is authorized.
 
 **Playtest acceptance:** A player can tell that a stack is not fully protected, the protected unit still counts toward bag usage, and every unprotected unit remains exposed to raid loss. Validate quantities and bag-size messaging after D1-B/C are settled.
 
@@ -87,7 +87,7 @@ The result screen must distinguish lost possessions, any protected item, and ret
 
 **Preserve D1-A and D1:** Protect **one unit, not one stack**, with the unit occupying its normal bag capacity; no additional carrying space or further rescue/insurance is created. Only **fully restored Vault L1** unlocks the Slot. Other exposed loot and deployed equipment remain at risk, and D2's normal extraction and objective-completion requirements are unchanged. Protection of ordinary materials/valuables does **not** automatically grant quest completion, area unlocks or extraction credit.
 
-**Still open:** The **exact item taxonomy and classification edge cases**, including ordinary materials used by an objective versus dedicated mission/scouting keys; **D1-C now locks player-driven selection, switching and clearing**, while exact interaction timing, mobile presentation and one-time result settlement remain open; **D1-D** interrupted-session behavior, UI feedback and tests also remain open. This approval defines category boundaries but does not grant item-specific exemptions, auto-selection, stack-wide protection or guaranteed extraction.
+**Still open:** The **exact item taxonomy and classification edge cases**, including ordinary materials used by an objective versus dedicated mission/scouting keys; **D1-C now locks player-driven selection, switching and clearing**, while **D1-C.1 permits using those actions whenever the bag is accessible, even under threat, with no safety/pause benefit**; exact mobile presentation, inventory availability and one-time result settlement remain open; **D1-D** interrupted-session behavior, UI feedback and tests also remain open. This approval defines category boundaries but does not grant item-specific exemptions, auto-selection, stack-wide protection or guaranteed extraction.
 
 **Acceptance for later implementation:** A player can identify that ordinary materials/valuables are eligible, and that found/unequipped weapons, armor, tools, consumables and dedicated keys cannot be protected. Losing the raid never retains more than the selected one eligible unit once D1-C is designed. **Documentation only; no gameplay code, UI, deploy or merge.**
 
@@ -97,19 +97,31 @@ The result screen must distinguish lost possessions, any protected item, and ret
 
 **Preserve D1-A and D1-B:** The selection is of **one unit rather than a whole stack**, within the bag's ordinary carrying capacity, with no new storage or capacity. Eligible categories are ordinary materials/valuables only; weapons, armor (including found/unequipped), tools, consumables and dedicated scouting/mission keys cannot be selected. An empty Secure Slot protects nothing. Vault L1 must be fully built to unlock the ability. The exception is never a second rescue, insurance, guaranteed extraction or objective-clear mechanism. On-screen selection must make the **currently protected unit** and loss exposure of other units intelligible.
 
-**Specifically left open:** **When** a player is allowed to select/switch/clear during a raid (e.g. any inventory access or only safe moments), exact touch UI and confirmation, behavior if an item leaves the bag or is consumed, and **how the selected unit is reconciled after extraction, death, timeout, abandonment or interrupted sessions**. Exact result settlement must later guarantee no item duplication or fraudulent extraction/objective credit, but the procedure is not locked by D1-C. D1-D crash/disconnect policy remains separate. No automatic price-based protection selection is approved.
+**D1-C.1 later resolves when selection is allowed:** the player may select/switch/clear **whenever the bag is accessible**, even near enemies, with **no forced safe-combat state, pause, damage immunity or guaranteed safety**. **Specifically still open:** exact touch UI/confirmation, underlying inventory-access rules, behavior if an item leaves the bag or is consumed, and **how the selected unit is reconciled after extraction, death, timeout, abandonment or interrupted sessions**. Exact result settlement must later guarantee no item duplication or fraudulent extraction/objective credit, but the procedure is not locked by D1-C. D1-D crash/disconnect policy remains separate. No automatic price-based protection selection is approved.
 
 **Playtest question:** Can a player understand that selecting a new eligible unit removes protection from the former one, can deliberately clear the Slot, and knows what remains at risk, without confusing a single unit with an entire stack? **Documentation only; no gameplay, UI, tests, deployment or merge approved.**
 
+### D1-C.1 — Secure Slot Changes Whenever the Raid Bag Is Accessible (OWNER APPROVED, 8 November 2026)
+
+**Approved owner choice (option A):** During an ordinary raid, whenever the player can **open/access the bag**, the player may **select, replace or clear** protection of the one eligible Secure Slot unit. **Nearby enemies or active danger do not themselves disable these actions**; no safe-area or out-of-combat prerequisite is added. This does not require the bag to be openable at every conceivable moment or unlock bag access in other restricted states.
+
+**Risk stays real:** Opening the bag or changing protection **does not pause the raid, make the operator invulnerable, freeze enemy actions or guarantee safety**. Taking attention away from movement, aiming and combat to manage an item remains a voluntary tactical risk. Do not mandate an enemy-free window, free protection from attacks or an additional automated rescue mechanism.
+
+**D1-A/B/C continuity:** Only one eligible **ordinary material/valuable unit** is protected at a time, within its normal bag occupancy. The **player**, never an automatic value algorithm, chooses what to protect. Switching removes protection from the previously selected unit immediately; clearing the Slot protects nothing. No equipment, consumable, tool or dedicated scouting/mission-key selection becomes eligible; D1 loss and voluntary extraction rules stand.
+
+**Still open:** Exact mobile touch interaction, bag open/close behavior and availability in other states, accessibility/feedback, handling items removed/consumed from the bag, **post-raid one-time reconciliation** for success/death/timeout/abandonment, and **D1-D** crash/disconnect handling. D1-C.1 decides the **combat availability principle**, not the underlying inventory UX, pause architecture or settlement implementation.
+
+**Playtest acceptance:** A player can deliberately switch to a newly found eligible unit while enemies are nearby, the original becomes exposed, and threats continue to act normally; there is no hidden safety benefit or arbitrary combat lockout. **Documentation only; no game/UI code, tests, deployment or merge authorized.**
+
 ### Remaining D1 specification details
 
-**D1-A, D1-B and D1-C's player-controlled selection policy are approved above.** D1-C **timing, mobile UX and result settlement** remain open. The following **D1-D interrupted-session policy is PROPOSED, NOT YET APPROVED**.
+**D1-A, D1-B and D1-C's player-controlled selection policy are approved above.** D1-C **player selection and access timing** are approved, including use under threat without pause/safety. Exact **mobile/inventory UX and result settlement** remain open. The following **D1-D interrupted-session policy is PROPOSED, NOT YET APPROVED**.
 
 | ID | Detail to finalize | Recommendation | Reason |
 | --- | --- | --- | --- |
 | D1-D | Interrupted sessions | Distinguish a crash/disconnect/backgrounded app from explicit abandonment. Specify durable raid state and recover-or-settle behavior before implementation; do not promise reconnection or compensation that the prototype cannot yet support. | Prevents accidental loss, duplicated results, or force-closing the app to reclaim risked gear. |
 
-D1-A's **one-unit, no-extra-capacity rule** and D1-B's **ordinary materials/valuables-only category restriction** are now explicitly approved. Exact item classification, **D1-C interaction timing and post-raid settlement**, and **D1-D interruptions** remain open; selection/replacement/clearing are now approved, while historical settlement recommendations are not approvals.
+D1-A's **one-unit, no-extra-capacity rule** and D1-B's **ordinary materials/valuables-only category restriction** are now explicitly approved. Exact item classification, **D1-C mobile/inventory UX and post-raid settlement**, and **D1-D interruptions** remain open; D1-C.1 resolves that bag access permits protection changes even in combat without a pause or invulnerability; selection/replacement/clearing are now approved, while historical settlement recommendations are not approvals.
 
 Exact mission-item eligibility and extraction credit must be checked alongside D2. UI interaction and safe moment-to-moment access to the bag belong in the UX review. Do not insert an unapproved payment, cooldown, or extra rescue mechanic to solve these details.
 
@@ -119,7 +131,7 @@ Exact mission-item eligibility and extraction credit must be checked alongside D
 | --- | --- |
 | Raid outcomes | Check extraction, death, timeout, deliberate abandon, depth transitions, and Big Map results. Confirm that continuing never banks ordinary cargo. |
 | Equipment ledger | Reserve only what was actually deployed. Return surviving equipment and unused charges once; do not touch equipment left at home or refund consumed charges. |
-| Secure Slot | Align with **approved D1-A and D1-B** (one unit, normal bag capacity; ordinary materials/valuables only; weapons, armor, tools, consumables and dedicated keys excluded). Align with **approved D1-C** player selection, replacement and clearing (old selection immediately loses protection); finalize open D1-C timing/UI/settlement and D1-D interruptions, then test stacks, equipment swaps, full bags and repeated result ingestion. |
+| Secure Slot | Align with **approved D1-A and D1-B** (one unit, normal bag capacity; ordinary materials/valuables only; weapons, armor, tools, consumables and dedicated keys excluded). Align with **approved D1-C** player selection, replacement and clearing (old selection immediately loses protection); finalize open D1-C bag/mobile UX and post-raid settlement (timing approved by D1-C.1) and D1-D interruptions, then test stacks, equipment swaps, full bags and repeated result ingestion. |
 | BIT | Audit Bond rescue and Guardian Safe Return. Remove the additional item-rescue behavior and update talent descriptions after a replacement/removal decision. |
 | Insurance/recovery | Audit preparation, death screens, Signals costs, optional retention modes, and legacy simulated-raid paths. No live core-loop route should contradict the removal. |
 | Free retry | Test an empty Armory and Stash, zero currencies, low power, and any enabled Fuel mode. A free starter attempt must remain possible. |
@@ -173,7 +185,7 @@ Example: a player needs two Cable, finds one Cable and a useful weapon, and choo
 
 ### Approval scope and remaining recommendations
 
-Robert's confirmations accepted D2.1, D2.2, and the D2.3 extraction model below for the current quick mode. They did **not** approve every proposal discussed alongside them. D1-A's one-unit/no-extra-capacity and D1-B's allowed/excluded categories are approved; D1-C selection policy is approved, while its timing/UI/settlement, D1-D interruptions and item-taxonomy edge cases remain unresolved. Longer PvP/co-op modes are future exploration under M1, not implicit extensions of this ruleset.
+Robert's confirmations accepted D2.1, D2.2, and the D2.3 extraction model below for the current quick mode. They did **not** approve every proposal discussed alongside them. D1-A's one-unit/no-extra-capacity and D1-B's allowed/excluded categories are approved; D1-C selection and D1-C.1 when-bag-accessible timing are approved, while mobile/inventory UX, settlement, D1-D interruptions and item-taxonomy edge cases remain unresolved. Longer PvP/co-op modes are future exploration under M1, not implicit extensions of this ruleset.
 
 The following remain proposals:
 
@@ -1550,6 +1562,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | D1-C.1: Secure Slot selection/switch/clear available whenever the raid bag is accessible, including near enemies; no pause, invulnerability or guaranteed safety | Owner approved; mobile/inventory UX, bag availability, and post-raid settlement remain open |
 | 2026-11-08 | D1-C: Player explicitly selects, replaces or clears protection of one eligible item unit during raid; replaced unit immediately becomes unprotected, no auto-selection | Owner approved; interaction timing, mobile UX and post-raid settlement remain open |
 | 2026-11-08 | D1-B: Only ordinary material or ordinary valuable units eligible; weapons/armor (including found or unequipped), tools, consumables and dedicated scouting/mission keys excluded | Owner approved; exact item taxonomy and D1-C/D1-D remain open |
 | 2026-11-08 | D1-A: Secure Slot protects exactly one eligible item unit, not a stack, while occupying normal bag capacity and adding no carrying space | Owner approved; D1-B item eligibility, D1-C selection/settlement and D1-D interruptions open |
