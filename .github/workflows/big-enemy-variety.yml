@@ -1,0 +1,45 @@
+name: big-archipelago-enemy-variety
+on:
+  pull_request:
+    paths:
+      - 'nodspel/big-level.js'
+      - 'nodspel/tests/big-archipelago-enemy-variety.test.mjs'
+      - 'scripts/shot-ground-v2.mjs'
+      - '.github/workflows/big-enemy-variety.yml'
+jobs:
+  enemy-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify seeded threats, existing encounters and difficulty caps
+        run: node --test nodspel/tests/big-archipelago-enemy-variety.test.mjs
+
+  mobile-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install browser for real raid camera captures
+        run: npm i --no-save puppeteer
+      - name: Capture Big Archipelago sentry, rusher and artillery on iPhone viewport
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          LEVEL: '1'
+          ENEMY_FOCUS: '1'
+          OUT: verify-out/big-enemy-variety
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: big-enemy-variety-phone-captures
+          path: verify-out/big-enemy-variety/
+          if-no-files-found: warn
