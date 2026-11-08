@@ -40,13 +40,13 @@ These five approvals are final for this review unless Robert explicitly reopens 
 
 Ordinary carried loot and valuable deployed equipment remain at risk until successful extraction. Clearing a room or advancing to another depth is not extraction and does not bank the bag. Death, timeout, and deliberate abandonment are unsuccessful raid outcomes for this contract.
 
-The Secure Slot is the one approved item-protection mechanism. **D1-A now locks its quantity/capacity: exactly one item unit (not a stack), occupying normal bag capacity without adding cargo space.** Item eligibility and selection/settlement remain open under D1-B/C.
+The Secure Slot is the one approved item-protection mechanism. **D1-A locks exactly one protected unit (not a stack), occupying ordinary bag capacity without adding space. D1-B locks eligibility to ordinary materials and ordinary valuables only; all weapons, armor, tools, consumables and dedicated scouting/mission keys are excluded, including found or unequipped equipment.** Selection/replacement/settlement remain open under D1-C.
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
 | Ordinary materials, valuables, weapons, and armor found in the raid | Retained and reconciled at home | Exposed items are lost |
 | Valuable equipped weapon or armor taken from home | Returned | Lost |
-| Other carried equipment, unused consumables, and unused tool charges | Returned as applicable | Lost unless explicitly eligible for and selected in the Secure Slot |
+| Other carried equipment, unused consumables, and unused tool charges | Returned as applicable | Lost; **D1-B excludes weapons, armor, tools and consumables from Secure Slot eligibility** |
 | Consumed supplies and spent tool charges | Spent; not refunded | Spent; not refunded |
 | Item covered by the approved Secure Slot rule | Retained | Retained |
 | Free Basic Carbine | Available for another attempt | Available for another attempt |
@@ -77,21 +77,30 @@ The result screen must distinguish lost possessions, any protected item, and ret
 
 **Approved owner choice (option A):** Once **Vault L1 is fully restored**, its **one Secure Slot protects exactly one eligible item unit**, never a complete stack. The selected unit continues to occupy its **ordinary bag capacity**; the Secure Slot adds **no cargo cell, weight allowance, or additional carrying space**. A stack containing several units cannot be treated as one protected item to save its entire contents. No second protected unit or protection mechanism is introduced.
 
-**Boundaries:** This approval is about **quantity and capacity only**. It does **not** decide which item categories can be protected (D1-B), when/how a player selects or swaps the protected unit or how it settles after failure (D1-C), or interrupted-session handling (D1-D). D1's existing risk and loot-loss rule, no BIT auto-rescue/insurance/paid recovery, and free Basic Carbine retry remain intact. No implication that current code already conforms, and no game code or other implementation is authorized.
+**Boundaries:** D1-A is about **quantity and capacity only**. **D1-B later approves item-category eligibility**, but does not decide when/how a player selects or swaps the protected unit or how it settles after failure (D1-C), or interrupted-session handling (D1-D). D1's existing risk and loot-loss rule, no BIT auto-rescue/insurance/paid recovery, and free Basic Carbine retry remain intact. No implication that current code already conforms, and no game code or other implementation is authorized.
 
 **Playtest acceptance:** A player can tell that a stack is not fully protected, the protected unit still counts toward bag usage, and every unprotected unit remains exposed to raid loss. Validate quantities and bag-size messaging after D1-B/C are settled.
 
+### D1-B — Secure Slot eligible items (OWNER APPROVED, 8 November 2026)
+
+**Approved owner choice (option A):** The only Secure Slot may protect **one unit of an ordinary material or ordinary valuable** carried in the raid. **No weapon or armor is eligible**, whether equipped, found, carried unequipped, or taken off during the raid. **Tools, consumables, and dedicated scouting or mission-key items are also ineligible.** A player must not evade the equipment exclusion by unequipping or moving an item into the bag.
+
+**Preserve D1-A and D1:** Protect **one unit, not one stack**, with the unit occupying its normal bag capacity; no additional carrying space or further rescue/insurance is created. Only **fully restored Vault L1** unlocks the Slot. Other exposed loot and deployed equipment remain at risk, and D2's normal extraction and objective-completion requirements are unchanged. Protection of ordinary materials/valuables does **not** automatically grant quest completion, area unlocks or extraction credit.
+
+**Still open:** The **exact item taxonomy and classification edge cases**, including how to distinguish ordinary materials that an objective also requests from special dedicated mission/scouting keys; **D1-C** selection, replacement, clearing and one-time result settlement; **D1-D** interrupted-session behavior; final mobile UI/feedback and tests. This approval defines category boundaries but does not grant item-specific exemptions, auto-selection, stack-wide protection or guaranteed extraction.
+
+**Acceptance for later implementation:** A player can identify that ordinary materials/valuables are eligible, and that found/unequipped weapons, armor, tools, consumables and dedicated keys cannot be protected. Losing the raid never retains more than the selected one eligible unit once D1-C is designed. **Documentation only; no gameplay code, UI, deploy or merge.**
+
 ### Remaining D1 specification details
 
-**D1-A is approved above.** The following **D1-B through D1-D details are PROPOSALS, NOT YET APPROVED** and must not be treated as final specifications.
+**D1-A and D1-B are approved above.** The following **D1-C and D1-D details are PROPOSALS, NOT YET APPROVED** and must not be treated as final specifications.
 
 | ID | Detail to finalize | Recommendation | Reason |
 | --- | --- | --- | --- |
-| D1-B | Eligible items | Materials and ordinary valuables only. Exclude all weapons and armor, including found/unequipped copies; also exclude tools, consumables, and dedicated scouting/mission-key items. | Merely excluding equipped gear would let players unequip an expensive weapon to protect it. An ordinary material is not excluded just because a quest also requests it. |
 | D1-C | Selection and reconciliation | The player selects, replaces, or clears the protected unit during the raid. Replacing protection removes the old protected tag; it never duplicates cargo. A saved unit reaches home exactly once but does not turn a failed raid into an extraction or satisfy an extract-only objective. Currency-bearing valuables, if eligible, convert once at settlement. | Preserves an understandable tactical choice and keeps possession separate from mission success. |
 | D1-D | Interrupted sessions | Distinguish a crash/disconnect/backgrounded app from explicit abandonment. Specify durable raid state and recover-or-settle behavior before implementation; do not promise reconnection or compensation that the prototype cannot yet support. | Prevents accidental loss, duplicated results, or force-closing the app to reclaim risked gear. |
 
-D1-A's **one-unit, no-extra-capacity rule is now explicitly owner approved**. The recommended exclusion of found/unequipped gear (D1-B) and selection/settlement design (D1-C) remain **unapproved proposals**.
+D1-A's **one-unit, no-extra-capacity rule** and D1-B's **ordinary materials/valuables-only category restriction** are now explicitly approved. Exact item classification, **D1-C** selection/settlement and **D1-D** interruptions remain open; their historical recommendations are not approvals.
 
 Exact mission-item eligibility and extraction credit must be checked alongside D2. UI interaction and safe moment-to-moment access to the bag belong in the UX review. Do not insert an unapproved payment, cooldown, or extra rescue mechanic to solve these details.
 
@@ -101,7 +110,7 @@ Exact mission-item eligibility and extraction credit must be checked alongside D
 | --- | --- |
 | Raid outcomes | Check extraction, death, timeout, deliberate abandon, depth transitions, and Big Map results. Confirm that continuing never banks ordinary cargo. |
 | Equipment ledger | Reserve only what was actually deployed. Return surviving equipment and unused charges once; do not touch equipment left at home or refund consumed charges. |
-| Secure Slot | Align implementation with **approved D1-A** (one item unit, normal bag capacity). Finalize **open D1-B/C** eligibility and selection/settlement before implementing those parts; test stacks, full bags, swaps and repeated result ingestion. |
+| Secure Slot | Align with **approved D1-A and D1-B** (one unit, normal bag capacity; ordinary materials/valuables only; weapons, armor, tools, consumables and dedicated keys excluded). Finalize **open D1-C** selection/settlement, reconcile D1-D interruptions, and test stacks, equipment swaps, full bags and repeated result ingestion. |
 | BIT | Audit Bond rescue and Guardian Safe Return. Remove the additional item-rescue behavior and update talent descriptions after a replacement/removal decision. |
 | Insurance/recovery | Audit preparation, death screens, Signals costs, optional retention modes, and legacy simulated-raid paths. No live core-loop route should contradict the removal. |
 | Free retry | Test an empty Armory and Stash, zero currencies, low power, and any enabled Fuel mode. A free starter attempt must remain possible. |
@@ -155,7 +164,7 @@ Example: a player needs two Cable, finds one Cable and a useful weapon, and choo
 
 ### Approval scope and remaining recommendations
 
-Robert's confirmations accepted D2.1, D2.2, and the D2.3 extraction model below for the current quick mode. They did **not** approve every proposal discussed alongside them. D1-A's one-unit/no-extra-capacity rule is approved; D1-B through D1-D remain unresolved. Longer PvP/co-op modes are future exploration under M1, not implicit extensions of this ruleset.
+Robert's confirmations accepted D2.1, D2.2, and the D2.3 extraction model below for the current quick mode. They did **not** approve every proposal discussed alongside them. D1-A's one-unit/no-extra-capacity and D1-B's allowed/excluded categories are approved; D1-C/D1-D and item-taxonomy edge cases remain unresolved. Longer PvP/co-op modes are future exploration under M1, not implicit extensions of this ruleset.
 
 The following remain proposals:
 
@@ -1532,6 +1541,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | D1-B: Only ordinary material or ordinary valuable units eligible; weapons/armor (including found or unequipped), tools, consumables and dedicated scouting/mission keys excluded | Owner approved; exact item taxonomy and D1-C/D1-D remain open |
 | 2026-11-08 | D1-A: Secure Slot protects exactly one eligible item unit, not a stack, while occupying normal bag capacity and adding no carrying space | Owner approved; D1-B item eligibility, D1-C selection/settlement and D1-D interruptions open |
 | 2026-11-08 | M37: Require full material cost in home stash and one explicit completion action per visual restoration stage; no partial deposits, no automatic construction | Owner approved; stage cost splits, UX and art open |
 | 2026-11-08 | M36: Switch the one tracked Bunker Project freely between accessible rooms; completed steps and invested resources persist in original room, with no refund or switching cost | Owner approved; exact UX and handling of unfinished partial stages open |
@@ -1556,7 +1566,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 | 2026-11-07 | M20A: BIT subtly previews a voluntary lead in the bunker; its meaning is discovered in an ordinary raid | Owner approved; exact trigger, visuals and cadence still open |
 | 2026-11-07 | M20: BIT living-world leads are optional side routes inside ordinary raids; no separate mission queue or required daily tasks | Owner approved; reward cadence still open |
 | 2026-11-06 | D1: Controlled Risk and all five expressly listed rules | Approved by Robert; implementation alignment pending |
-| 2026-11-06 | D1-B through D1-D: item eligibility, selection/settlement and interrupted sessions | Proposed details; not yet approved |
+| 2026-11-06 | D1-C/D1-D: selection/settlement and interrupted sessions | Proposed details; not yet approved |
 | 2026-11-06 | D2.1: At least one return extraction available from the beginning of every ordinary quick raid | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D2.2: Successful extraction permitted with an incomplete personal objective | Approved by Robert; implementation alignment pending |
 | 2026-11-06 | D2.3: Short, deliberately started, cancellable extraction with movement/aim/fire and no forced new wave in the first test | Approved by Robert for the quick PvE mode; five seconds approved as initial test tuning, not a permanent value |
