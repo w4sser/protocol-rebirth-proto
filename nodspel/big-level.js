@@ -4,8 +4,59 @@ import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.0';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
 import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.0';
 import {applyEncounters} from './encounters.js?v=2.28.0';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt,graphDistances} from './zone-graph.js?v=2.28.0';
 import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
+
+// Small, readable variation in the ordinary (non-encounter) Big Archipelago
+// defenders. Each room still gets exactly its original one base actor and the
+// authored POI enemies/health/spawns are untouched. Depth, not adaptive combat
+// performance, determines which existing telegraphed archetypes can appear.
+export function applyBigArchipelagoEnemyVariety(level){
+  if(!level?.big||level.area!=='archipelago')return level;
+  const depth=graphDistances(level.graph);
+  const candidates=level.enemies.filter(e=>/^big-enemy-\\d+$/.test(e.id)&&
+    e.type==='grunt'&&!e.encounter&&e.health>0&&e.active!==false)
+    .sort((a,b)=>(depth[a.roomId]??99)-(depth[b.roomId]??99)||a.roomId-b.roomId);
+  const reserve=candidates.filter(e=>(depth[e.roomId]??99)>0);
+  const limit=Math.min(5,Math.max(2,Math.ceil(reserve.length*.45)));
+  const counts={sentry:0,rusher:0,thrower:0};
+  let changed=0;
+  const retype=(e,type)=>{
+    if(!e||!type||changed>=limit||e.type!=='grunt')return false;
+    const d=depth[e.roomId]??99;
+    if(type==='rusher'&&d<2||type==='thrower'&&d<3)return false;
+    const previous=RULES.enemyTypes[e.type],next=RULES.enemyTypes[type];
+    if(!next)return false;
+    e.speed=(e.speed??0)/(previous?.speedMul||1)*next.speedMul;
+    e.type=type;
+    e.rangeMul=next.rangeMul;
+    e.cooldownMul=next.cooldownMul;
+    e.standoff=next.standoff;
+    counts[type]++;changed++;
+    return true;
+  };
+  // Guarantee an early visual contrast, a mobile threat farther out, and one
+  // telegraphed area-denial challenge only after three graph connections.
+  retype(reserve.find(e=>(depth[e.roomId]??99)===1)??reserve[0],'sentry');
+  retype(reserve.find(e=>(depth[e.roomId]??99)>=2),'rusher');
+  retype(reserve.find(e=>(depth[e.roomId]??99)>=3),'thrower');
+  const rng=randomFromSeed(level.seed+':big-archipelago-enemy-mix-v1');
+  for(const e of reserve){
+    if(changed>=limit)break;
+    const d=depth[e.roomId]??99,roll=rng();
+    if(d===1){
+      if(roll<.20&&counts.sentry<2)retype(e,'sentry');
+    }else if(d===2){
+      if(roll<.25&&counts.rusher<2)retype(e,'rusher');
+      else if(roll<.45&&counts.sentry<2)retype(e,'sentry');
+    }else if(d>=3){
+      if(roll<.16&&counts.thrower<2)retype(e,'thrower');
+      else if(roll<.39&&counts.rusher<2)retype(e,'rusher');
+      else if(roll<.59&&counts.sentry<3)retype(e,'sentry');
+    }
+  }
+  return level;
+}
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
@@ -72,6 +123,8 @@ export function generateBigLevel(seed,area='bunker'){
       level.lootBoxes.push({id:'big-vault-key',key:'big-vault-key',item:'keycard',x:room.x,z:room.z-2,roomId:room.id,requiresNode:node.id,revealed:true,collected:false,source:'VAULT KEY: ACTIVATE THIS ROOM TERMINAL; OPENS KEY EXTRACT'});
     }else poi.description='GENERATOR: destroy the generator to drop the terminal shield';
   }
+  // POI encounters are finalized first; never retype their guard, turret or swarm.
+  applyBigArchipelagoEnemyVariety(level);
   if(area==='archipelago'){
     // Protect generous diagonal approaches against inherited bunker cover.
     // Those crates were authored for 1.8m passages. In a 4.2m bridge landing
