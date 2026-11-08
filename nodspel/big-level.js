@@ -72,6 +72,31 @@ export function generateBigLevel(seed,area='bunker'){
       level.lootBoxes.push({id:'big-vault-key',key:'big-vault-key',item:'keycard',x:room.x,z:room.z-2,roomId:room.id,requiresNode:node.id,revealed:true,collected:false,source:'VAULT KEY: ACTIVATE THIS ROOM TERMINAL; OPENS KEY EXTRACT'});
     }else poi.description='GENERATOR: destroy the generator to drop the terminal shield';
   }
+  if(area==='archipelago'){
+    // Protect generous diagonal approaches against inherited bunker cover.
+    // Those crates were authored for 1.8m passages. In a 4.2m bridge landing
+    // some become invisible pinch points, particularly for .48m enemy radii.
+    const protectedMouths=[];
+    for(const c of level.corridors){
+      const alongX=!!c.dir.x,cross=alongX?c.d:c.w;
+      for(const roomId of c.roomIds){
+        const room=level.rooms[roomId];
+        if(!room)continue;
+        const along=alongX?'x':'z';
+        const sign=Math.sign(c[along]-room[along])||Math.sign(c.dir[along])||1;
+        const edge=room[along]+sign*room[alongX?'w':'d']/2;
+        const reach=3.6,intoBridge=.5;
+        protectedMouths.push({
+          x:alongX?edge-sign*(reach-intoBridge)/2:c.x,
+          z:alongX?c.z:edge-sign*(reach-intoBridge)/2,
+          w:alongX?reach+intoBridge:cross+2.8,
+          d:alongX?cross+2.8:reach+intoBridge,
+        });
+      }
+    }
+    const overlap=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.z-b.z)<(a.d+b.d)/2;
+    level.boxes=level.boxes.filter(b=>!protectedMouths.some(m=>overlap(b,m)));
+  }
   return level;
 }
 export function extractAvailable(extract,round){
