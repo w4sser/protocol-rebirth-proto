@@ -1,0 +1,52 @@
+name: glacial-bedrock-preview
+on:
+  pull_request:
+    paths:
+      - 'nodspel/assets/env/glacial/**'
+      - 'nodspel/glacial-bedrock-layout.mjs'
+      - 'nodspel/glacial-bedrock.mjs'
+      - 'nodspel/military-architecture.mjs'
+      - 'nodspel/polyfork-military-remnants.mjs'
+      - 'nodspel/polyfork-dressing.mjs'
+      - 'nodspel/tests/glacial-bedrock.test.mjs'
+      - 'scripts/shot-ground-v2.mjs'
+      - '.github/workflows/glacial-bedrock-preview.yml'
+jobs:
+  validate-assets-and-placement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate binary GLBs and camera/collision-safe placements
+        run: node --test nodspel/tests/glacial-bedrock.test.mjs
+      - name: Regression-test approved Bungenas composition
+        run: node --test nodspel/tests/polyfork-military-remnants.test.mjs
+  iphone-high-low:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Chromium screenshot harness
+        run: npm i --no-save puppeteer
+      - name: Render and audit rock-backed bunkers in HIGH and LOW
+        run: node scripts/shot-ground-v2.mjs
+        env:
+          SMOKE_CAPTURE: '1'
+          MOBILE_VIEWPORT: '1'
+          AREAS: archipelago
+          LEVEL: '3'
+          MILITARY_FOCUS: '1'
+          GLACIAL_FOCUS: '1'
+          OUT: verify-out/glacial-bedrock
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: glacial-bedrock-mobile-high-low
+          path: verify-out/glacial-bedrock/
+          if-no-files-found: warn
