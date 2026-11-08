@@ -5,6 +5,7 @@ import {coastlineProfile} from './coastline.mjs?v=2.28.0-bridge1';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
 import {seededRandom} from './polyfork-profiles.mjs?v=profile-v1';
+import {safeGlacialFootprint,glacialFootprint} from './glacial-bedrock-layout.mjs?v=glacial-layout-v1';
 
 export const MILITARY_FORMS=Object.freeze([
   {id:'coastal-pillbox',label:'Partly buried coastal pillbox',width:3.7,depth:1.35,height:1.55},
@@ -87,13 +88,14 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
   // Keep approved Forest/Granite/Coastal Life and their mobile item budgets.
   const base=planCoastalLifeDressing(level,{quality,density:bounded*.84});
   const unchanged={regions:base.regions,items:base.items,landmarks:base.landmarks,
-    militaryLandmarks:[],architecture:[]};
+    militaryLandmarks:[],architecture:[],cliffs:[]};
   if(!level?.archipelago||bounded<.5)return unchanged;
   const sites=militarySites(level,base.landmarks[0]?.islandIndex??-1);
-  const selected=[],perIsland=new Map();
-  // Discrete coastal-defence complexes rather than a continuous concrete rim.
-  // Allow one main landmark plus one distinct outwork on an island.
+  const selected=[],perIsland=new Map(),cliffs=[];
+  // Discrete, buried coastal fortifications; never a row of doors into open water.
+  // Every portal MUST have a substantial glacier-polished cliff behind it.
   const limit=level.big?6:4;
+  let portalAssigned=false;
   for(const site of sites){
     const placed=perIsland.get(site.islandIndex)??0;
     if(placed>=2)continue;
@@ -101,25 +103,54 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
     const fishing=base.landmarks[0];
     if(fishing?.islandIndex===site.islandIndex&&
       Math.hypot(fishing.center.x-site.center.x,fishing.center.z-site.center.z)<4.6)continue;
-    const r=seededRandom(level.seed+':bungenas-form-v4:'+site.islandIndex+':'+
+    const r=seededRandom(level.seed+':bungenas-form-v5:'+site.islandIndex+':'+
       site.center.x.toFixed(2)+':'+site.center.z.toFixed(2));
     const sameIsland=selected.find(other=>other.islandIndex===site.islandIndex);
-    // First ruin needs a readable pillbox or portal. Companion sites use
-    // distinct forms so neighboring remains do not become obvious duplicates.
-    const variants=selected.length===0?[MILITARY_FORMS[0],MILITARY_FORMS[2]]:
-      MILITARY_FORMS.filter(form=>form.id!==sameIsland?.scene);
-    const form=variants[Math.floor(r()*variants.length)];
-    selected.push({type:'military',scene:form.id,islandIndex:site.islandIndex,
+    const scale=.95+r()*.10;
+    const canPortal=!portalAssigned&&
+      safeGlacialFootprint(level,site,cliffs,scale)&&
+      (!fishing||Math.hypot(fishing.center.x-site.center.x,fishing.center.z-site.center.z)>7.0);
+    // A recognizable portal is placed as soon as a safe bedrock headland exists.
+    // Otherwise use a pillbox or roofless foundations, never a freestanding door.
+    const variants=selected.length===0?[MILITARY_FORMS[0]]:
+      MILITARY_FORMS.slice(0,2).filter(form=>form.id!==sameIsland?.scene);
+    const form=canPortal?MILITARY_FORMS[2]:
+      variants[Math.floor(r()*variants.length)];
+    const landmark={type:'military',scene:form.id,islandIndex:site.islandIndex,
       center:site.center,ry:site.ry,width:form.width,depth:form.depth,
-      height:form.height,siteRole:sameIsland?'outwork':'landmark',visualOnly:true});
+      height:form.height,siteRole:sameIsland?'outwork':'landmark',
+      visualOnly:true,cliffBacked:canPortal};
+    selected.push(landmark);
+    if(canPortal){
+      cliffs.push({kind:'portal',center:site.center,ry:site.ry,scale,
+        islandIndex:site.islandIndex,visualOnly:true,doorSite:true});
+      portalAssigned=true;
+    }
     perIsland.set(site.islandIndex,placed+1);
     if(selected.length>=limit)break;
   }
-  // Remove obscuring tall dressing, but keep a natural forest/granite baseline.
-  // The architecture itself adds grass, heather, moss and encroaching saplings.
+  // Additional long, continuous headlands turn isolated little islands into a
+  // varied archipelago. They are actual reusable 12.8m GLBs, not stacked cubes.
+  // Their entire footprint remains seaward of navigable floors and bridge lanes.
+  const extraLimit=level.big?2:1;
+  let extra=0;
+  for(const site of sites){
+    if(extra>=extraLimit)break;
+    const r=seededRandom(level.seed+':glacial-headland-v1:'+site.islandIndex+':'+
+      site.center.x.toFixed(2)+':'+site.center.z.toFixed(2));
+    const scale=.90+r()*.17;
+    if(!safeGlacialFootprint(level,site,cliffs,scale))continue;
+    if(selected.some(x=>Math.hypot(x.center.x-site.center.x,x.center.z-site.center.z)<8.3))continue;
+    if(base.landmarks.some(x=>x.center&&Math.hypot(x.center.x-site.center.x,x.center.z-site.center.z)<8.3))continue;
+    cliffs.push({kind:'headland',center:site.center,ry:site.ry,scale,
+      islandIndex:site.islandIndex,visualOnly:true,doorSite:false});
+    extra++;
+  }
+  // Remove only the trees which would hide a low bunker silhouette; other
+  // islands keep approved forest, granite and fishing vignettes.
   const cleared=base.items.filter(item=>item.profile==='coastal-life'||!selected.some(site=>
     Math.hypot(item.x-site.center.x,item.z-site.center.z)<4.7));
   return {regions:base.regions,items:cleared,
     landmarks:[...base.landmarks,...selected],militaryLandmarks:selected,
-    architecture:selected};
+    architecture:selected,cliffs};
 }
