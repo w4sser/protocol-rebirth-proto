@@ -1373,7 +1373,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ## M27 — Post-Fabricator Project Choice: Vault L1 or BIT Bay L1 (OWNER APPROVED, 8 November 2026)
 
-**Approved decision:** Once **Fabricator L1 has been earned and fully built through gameplay**, the player may choose either **Vault L1** or **BIT Bay L1** as their next primary Bunker Project, **provided the chosen room is accessible under existing unlock/world rules**. There is **no newly imposed fixed Vault-before-BIT-Bay or BIT-Bay-before-Vault order**. BIT may recommend an option based on the player's experience and resource needs, but cannot force or silently select it. The player has **exactly one actively tracked primary Bunker Project** at a time; the other room remains a future option, not a competing required to-do list.
+**Approved decision:** Once **Fabricator L1 has been earned and fully built through gameplay**, the player may choose either **Vault L1** or **BIT Bay L1** as their next primary Bunker Project, **provided the chosen room is accessible under existing unlock/world rules**. There is **no newly imposed fixed Vault-before-BIT-Bay or BIT-Bay-before-Vault order**. BIT may recommend an option based on the player's experience and resource needs, but cannot force or silently select it. The player has **exactly one actively tracked primary Bunker Project** at a time; the other room remains a future option, not a competing required to-do list. **Later M36 approves switching the tracked Project among accessible rooms without losing completed stages or invested materials; switching adds no fee or refund.**
 
 **Distinct meaningful motivations (not two currencies):** Vault L1 offers permanent storage convenience and the single earned **Secure Slot** once the room is completely restored under D1. BIT Bay L1 offers further BIT hardware/support capabilities after completion; BIT was already discovered, speaks and accompanies the player during FTUE and ordinary raids before the Bay is built. **Later M28 approval (8 November 2026) resolves the capability family** to limited active combat support after full Bay completion; the earlier scanning/intelligence direction is a historical proposal rather than the chosen L1 reward. **Later M29 resolves the first support behavior to brief enemy distraction, M30 locks player-triggered contextual activation, M31 lets BIT choose the most immediately threatening enemy when activated, and M32 makes the ability reusable with a meaningful cooldown after successful activations, and M34 rules out full immunity while allowing weaker, shorter or different responses from resistant enemies**; exact input/placement, enemy-specific reactions, threat-ranking logic, cooldown duration/reset and balancing remain open. Make the differences legible before the player commits resources, without promising a particular material drop.
 
@@ -1381,7 +1381,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 **Supersession of legacy assumptions:** Previous economy simulations and example build orders showing `Fabricator L1 → Vault L1 → BIT Bay L1` are **illustrative historical scenarios**, not the newly approved required order. Existing unlock prerequisites still apply; this decision does not automatically make inaccessible rooms available.
 
-**Still open:** Exact contextual input/placement, threat-priority logic and cooldown tuning for M29–M32's player-triggered, BIT-targeted distraction, how to present the two project alternatives from the bunker, BIT recommendation triggers, whether/how to switch an in-progress tracked project without losing committed stages, and the particular stage/material splits. Validate that players can identify the trade-off, deliberately choose one project and see its benefit after full completion. **Documentation only; no code change, deployment or merge authorized.**
+**Later M36 resolves switching:** The player may change the one tracked primary Project to another accessible room at home at any point before completion, preserving every finished visual restoration stage and all materials already committed to their original room. No refund, transfer or switching fee. **Still open:** Exact switching/navigation UX, whether and how unfinished stages accept partial contributions, BIT recommendation triggers, particular stage/material splits, and M29–M35 BIT input/target/cooldown tuning. Validate that players can recognize their tracked Project versus other ongoing room progress and never lose or duplicate invested materials. **Documentation only; no code change, deployment or merge authorized.**
 
 ---
 
@@ -1493,10 +1493,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M36 — Free Tracked-Project Switching with Persistent Room Investment (OWNER APPROVED, 8 November 2026)
+
+**Approved owner choice (option A):** The player can **freely switch which accessible Bunker Project is tracked as the one primary goal**, from the bunker/home, including before the current room is fully restored. This is a change in **which project is followed/foregrounded**, not a reset or cancellation of the physical restoration of another room. At any moment, **exactly one primary Bunker Project is actively tracked** (M19D/M27). A room must still meet its existing accessibility/unlock prerequisites; switching tracking cannot unlock an inaccessible room.
+
+**Persistence and cost:** Every **completed visual restoration stage stays complete in its original room**, and **materials already invested there stay committed to that room**. Switching the tracked Project carries **no fee, penalty, refund, resource transfer or duplicate material grant**. Do not silently move previously invested resources from Vault L1 to BIT Bay L1 or vice versa. Progress on other rooms remains real even while those rooms are not the tracked goal. The existing room-wide total material costs are unchanged (M26), and real gameplay abilities still unlock **only when the respective room is fully completed**, not on switching or on a partial stage.
+
+**Player agency and presentation:** After fully earning and completing Fabricator L1, the approved choice between accessible Vault L1 and BIT Bay L1 remains genuine (M27); the player is not locked into that choice. BIT may recommend, but never force, automatically reassign or override the player's tracked Project. Show one next-action/material-hunting focus rather than several competing task lists. Switching must not grant targeted loot, skip genuine extraction, change death protection or introduce a purchase.
+
+**Intentionally open:** Precise bunker navigation, confirmation/selection UI, how other eligible projects are surfaced, and **whether/how partially funded but unfinished stages accept or retain material contributions**. The latter is a separate accounting/interaction decision; this lock only requires that **any resources already committed remain with their original room** and are not refunded or duplicated. Stage-by-stage material splits, art states and full-completion visuals are also unapproved.
+
+**Playtest acceptance:** A player can track Vault, invest in visible restoration, switch to accessible BIT Bay and later return to Vault; the restored stage and invested cost are intact, the sum of materials in inventory/rooms is consistent, and only one Project is presented as tracked at once. **Documentation only; no game code, assets, tests, deployment or merge authorized.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | M36: Switch the one tracked Bunker Project freely between accessible rooms; completed steps and invested resources persist in original room, with no refund or switching cost | Owner approved; exact UX and handling of unfinished partial stages open |
 | 2026-11-08 | M35: Player activation without a reachable BIT target consumes the use and starts cooldown with clear failure feedback | Owner approved; reachability, cooldown duration/reset, UI and balance open |
 | 2026-11-08 | M34: No enemy is fully immune to BIT distraction; resistant foes react with weaker, shorter or tactically different effects, clearly and fairly communicated | Owner approved; exact enemy responses, UI, cooldown and balance open |
 | 2026-11-08 | M33: Ordinary enemies are distractible; some heavy/specialist types can resist or react differently, with clear, fair signals | Owner approved; enemy mapping, reaction strength, immunity, cooldown and balance open |
