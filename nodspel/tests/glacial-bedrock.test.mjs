@@ -68,6 +68,10 @@ test('all portals are recessed into a valid glacial bedrock ridge, never sea-fac
     for(let ci=0;ci<p.cliffs.length;ci++){
       const c=p.cliffs[ci],footprint=glacialFootprint(c,c.scale);
       landmasses++;
+      // Camera offset (+17,+17) must look toward the DOOR with the rock behind it.
+      // SE-facing cliffs produced a giant opaque granite blob over the operator.
+      assert.ok(Math.sin(c.ry)+Math.cos(c.ry)<-.5,
+        'large cliff must be on north/west backdrop shoreline, not camera foreground');
       assert.ok(safeGlacialFootprint(level,c,p.cliffs.filter((_,j)=>ci!==j),c.scale));
       assert.ok(!level.floors.some(f=>overlap(f,footprint,.03)),'visual rock cannot block actual floor or bridge');
       assert.ok(c.visualOnly);
