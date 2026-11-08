@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.16 - M27 player choice of Vault or BIT Bay after Fabricator|
+| Document status | Living design reference, v4.17 - M28 BIT Bay L1 limited combat support|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -606,7 +606,9 @@ BIT is the emotional connection between the hostile field and the recovering bun
 | Bond | Represent accumulated relationship/experience | Bond thresholds, raid XP sources, and a configured cap of 20 |
 | Talent tree | Let the player specialize | Scout, Guardian, and Scavenger branches with ranks, row gates, choices, and capstones |
 
-Early narrative presence does not mean every Bay hardware function is already unlocked. Likewise, Bond level, Bay level, and Operator level are not three names for the same progression bar. [S07] [S13] [S14]
+Early narrative presence does not mean every Bay hardware function is already unlocked. Likewise, Bond level, Bay level, and Operator level are not three names for the same progression bar. [S07] [S13]
+
+**APPROVED M28 target override:** The current/proposed scanning and cargo hardware descriptions above are **not** approval of scanning as the first BIT Bay L1 payoff. The first completed Bay level instead enables **limited active combat support** (exact behavior still open) after the player has already found BIT in the bunker and brought it on ordinary raids. Existing basic BIT dialogue, world hints and guidance remain available before Bay L1. Combat support never rescues lost loot or guarantees survival under D1. [D01] [S14]
 
 ### Talent identities
 
@@ -770,7 +772,9 @@ The game varies through seeded layouts, area identity, depth, encounter combinat
 
 The intended encounter contract preserves warnings and alternative tactical responses. More enemies, stronger combinations, and reduced time can create pressure without making cues unreliable. Preparation should help, but the player should still understand how to respond after an imperfect loadout choice.
 
-**APPROVED M27 — Choose Vault or BIT Bay after Fabricator:** After the player **earns and fully builds Fabricator L1**, the next tracked Bunker Project is a **real choice between accessible Vault L1 and accessible BIT Bay L1**, not a fixed progression chain. Vault L1's complete restoration unlocks storage functionality and the **one Secure Slot** under D1; BIT Bay L1's complete restoration improves BIT's support hardware (precise ability still to be specified). BIT was already discovered and accompanies the player before BIT Bay L1. BIT may make a contextual recommendation but must not require one option; **only one primary Project is actively tracked** at a time. Both rooms keep their existing accessibility gates, total material cost split over 2–3 visual-only stages, and functional unlock only on completion under M26. Earlier simulation build-order tables are illustrative, not mandatory design. Details of recommendation and switching/tracking UX remain open. [D01]
+**APPROVED M28 — BIT Bay L1 active combat-support payoff:** Fully building BIT Bay L1 upgrades the **already present and narratively active** BIT with **limited direct support during combat**—potentially a brief enemy distraction or short defensive assist. These are **alternative examples**, not authorization for both or an implementation prescription. This is **not** BIT's first activation, and enhanced scanning/intelligence is **not** the approved primary BIT Bay L1 reward (older scanning descriptions are historical proposals). Support must create tactical breathing room, **not** automatic kills or victories, guaranteed survival/extraction, post-death loot protection, second Secure Slot or insurance. Maintain simple mobile inputs, visible timing constraints and meaningful positioning/Basic Carbine play. D1/D2/D3 and M22–M27 remain in force; no benefit appears before the final visual restoration stage under M26. **Open:** exact effect, activation (player-triggered versus contextual automation), cooldown, visuals and Bond/Bay L2 interplay. [D01]
+
+**APPROVED M27 — Choose Vault or BIT Bay after Fabricator:** After the player **earns and fully builds Fabricator L1**, the next tracked Bunker Project is a **real choice between accessible Vault L1 and accessible BIT Bay L1**, not a fixed progression chain. Vault L1's complete restoration unlocks storage functionality and the **one Secure Slot** under D1; BIT Bay L1's complete restoration grants BIT **bounded active combat support** (capability family approved by M28; exact first ability and trigger remain open). BIT was already discovered and accompanies the player before BIT Bay L1. BIT may make a contextual recommendation but must not require one option; **only one primary Project is actively tracked** at a time. Both rooms keep their existing accessibility gates, total material cost split over 2–3 visual-only stages, and functional unlock only on completion under M26. Earlier simulation build-order tables are illustrative, not mandatory design. Details of recommendation and switching/tracking UX remain open. [D01]
 
 **APPROVED M26 — Visual-only restoration stages:** For each major bunker room, break the **existing total construction materials** into 2–3 stage costs (never add them to the original total). The room becomes **visibly more restored after every stage**, but **no new gameplay function, stat, equipment reward, Secure Slot, or meta utility is granted until the entire room is complete**. The final step must deliver a clearly felt functional payoff. Do not activate Fabricator L1's crafting/commissioning reward or unlock material commerce until full Fabricator L1 is earned and built; Vault L1's Secure Slot likewise waits until its full completion. Earlier proposals for intermediate utility are superseded by M26; exact cost split, art and timings remain unapproved. D3's actual Core L1 FTUE activation remains intact. [D01]
 
@@ -1144,6 +1148,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.17, 8 November 2026:** Owner approved M28: full BIT Bay L1 completion unlocks limited active combat support (e.g., brief distraction or defense), not initial BIT activation or enhanced scanning as primary L1 reward. Exact ability and activation remain open; no automatic wins, lost-loot rescue or guaranteed survival. Docs only.
 - **v4.16, 8 November 2026:** Owner approved M27: after fully earned Fabricator L1, player chooses accessible Vault L1 or BIT Bay L1 as the single tracked Project. BIT may suggest but cannot enforce; both rooms retain final-stage functional unlock and no extra materials. Earlier fixed build sequences are not mandates. Documentation only.
 - **v4.15, 8 November 2026:** Owner approved M26: major rooms gain 2–3 meaningful visual-only restoration stages within their unchanged total resource cost; all functional perks/room rewards unlock at full completion, including Fabricator material-commerce eligibility and Vault Secure Slot. Detailed stages/cost splits remain open. Documentation only.
 - **v4.14, 8 November 2026:** Owner approved M25: players read route/encounter risk from environment, enemy tells and concise contextual BIT cues, without explicit numerical risk tiers or total foreknowledge; preserve mobile accessibility, fair counterplay and voluntary extraction. Documentation only.
