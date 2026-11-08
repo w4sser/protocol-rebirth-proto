@@ -379,9 +379,17 @@ function makeArtilleryShell(){
     new THREE.MeshBasicMaterial({color:'#fff1b7',depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
   const glow=new THREE.Mesh(artilleryGlowGeometry,
     new THREE.MeshBasicMaterial({color:'#FF704F',transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
-  group.add(glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
+  // Bright, pooled comet tail makes the incoming arc readable on a phone.
+  // One instanced draw call, no per-frame mesh allocation.
+  const trail=new THREE.InstancedMesh(artilleryGlowGeometry,
+    new THREE.MeshBasicMaterial({color:'#FFB36B',transparent:true,opacity:.68,depthTest:false,depthWrite:false,toneMapped:false,fog:false}),5);
+  trail.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  trail.frustumCulled=false;trail.renderOrder=4;
+  group.add(trail,glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
   group.visible=false;scene.add(group);
-  const effect={group,core,glow};artilleryShells.push(effect);return effect;
+  const effect={group,core,glow,trail,matrix:new THREE.Matrix4(),tailPosition:new THREE.Vector3(),
+    tailScale:new THREE.Vector3(),tailRotation:new THREE.Quaternion()};
+  artilleryShells.push(effect);return effect;
 }
 function makeToolFxRing(){
   const m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
@@ -401,9 +409,16 @@ function renderArtilleryShells(clock){
     const p=artilleryFlight(blast,clock);
     effect.group.visible=true;
     effect.group.position.set(p.x,p.y,p.z);
-    effect.group.scale.setScalar(.8+p.size);
-    effect.glow.material.opacity=.40+.25*Math.sin(clock/90)**2;
+    effect.group.scale.setScalar(1.05+p.size);
+    effect.glow.material.opacity=.50+.25*Math.sin(clock/90)**2;
     effect.core.material.color.set(p.t>.77?'#ffffff':'#fff1b7');
+    for(let i=0;i<5;i++){
+      const tail=artilleryFlight(blast,Math.max(blast.at??clock,clock-(i+1)*48));
+      effect.tailPosition.set(tail.x-p.x,tail.y-p.y,tail.z-p.z);
+      effect.tailScale.setScalar(.27-i*.04);
+      effect.trail.setMatrixAt(i,effect.matrix.compose(effect.tailPosition,effect.tailRotation,effect.tailScale));
+    }
+    effect.trail.instanceMatrix.needsUpdate=true;
   }
   for(let i=artilleryUsed;i<artilleryShells.length;i++)artilleryShells[i].group.visible=false;
 }

@@ -276,16 +276,16 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
   }
   if(SR)addBranch(rooms[0],SR.closet.dir,SR.closet.length,closets);
   for(const corridor of [...corridors,...deadEnds,...closets]){
+    const islandPier=area==='archipelago';
     // Overlap the seam slightly: rounded centers and dimensions must never
     // produce a floating-point crack between room and corridor footprints.
-    floors.push({...corridor,w:corridor.w+(corridor.dir.x?.08:0),d:corridor.d+(corridor.dir.z?.08:0)});
+    floors.push({...corridor,w:corridor.w+(corridor.dir.x?.08:0),d:corridor.d+(corridor.dir.z?.08:0),bridgeFunnel:islandPier});
     // Side walls run exactly room-edge to room-edge, flush with the room's own doorway walls but
     // not overlapping them, which leaves a wallThickness-square gap at each corner (the room wall
     // ends at the edge; the corridor wall starts there but never covers the room-side sliver).
     // Extend the room end(s) by `t` to close it. A corridor joins a room at both ends; a branch
     // (dead end / closet, identified by its `end` field) only at its room end - the far end is
     // already sealed by its own cap wall in addBranch, so padding it further would poke past the cap.
-    const islandPier=area==='archipelago';
     // Invisible side walls used to reach the shoreline and catch angled movement.
     // Recess them ONLY at the land entrance(s). The existing narrow logical
     // corridor floor still stops actors from stepping into water.

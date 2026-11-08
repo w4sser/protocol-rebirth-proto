@@ -1,9 +1,10 @@
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
+import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.0';
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
   const steps = Math.max(1, Math.ceil(Math.hypot(delta.x, delta.z) / .08));
   const limit = typeof floors==='number'?floors-radius:Infinity;
-  const onFloor=(x,z)=>typeof floors==='number' || [[0,0],[-radius,0],[radius,0],[0,-radius],[0,radius],[-radius*.707,-radius*.707],[radius*.707,-radius*.707],[-radius*.707,radius*.707],[radius*.707,radius*.707]].every(([dx,dz])=>floors.some(f=>Math.abs(x+dx-f.x)<=f.w/2 && Math.abs(z+dz-f.z)<=f.d/2));
+  const onFloor=(x,z)=>typeof floors==='number' || [[0,0],[-radius,0],[radius,0],[0,-radius],[0,radius],[-radius*.707,-radius*.707],[radius*.707,-radius*.707],[-radius*.707,radius*.707],[radius*.707,radius*.707]].every(([dx,dz])=>floors.some(f=>(Math.abs(x+dx-f.x)<=f.w/2 && Math.abs(z+dz-f.z)<=f.d/2)||bridgeEntrySupports(f,x+dx,z+dz)));
   const blocked = (x, z) => boxes.some(b => {
     if(Number.isFinite(b.r)){
       const distance=Math.hypot(x-b.x,z-b.z),previous=Math.hypot(p.x-b.x,p.z-b.z);
@@ -72,6 +73,7 @@ export function moveWithActors(position,delta,enemies,solids,floors,radius){
 // v2.24.0 hot path: the x/z slab test is unrolled (the old `for (const [axis,size] of [['x','w'],['z','d']])`
 // allocated three arrays + an iterator per call, and this runs thousands of times per frame).
 function boxHit(a, b, box) {
+  if(Number.isFinite(box.r))return nodeHit(a,b,box);
   let near = 0, far = 1;
   const dx = b.x - a.x, xlo = box.x - box.w / 2, xhi = box.x + box.w / 2;
   if (Math.abs(dx) < 1e-9) {
@@ -149,10 +151,22 @@ const coneAngles=[];const byNumber=(a,b)=>a-b;
 export function aimConePoints(position,direction,range,halfAngle,obstacles){
   const heading=Math.atan2(direction.z,direction.x),angles=coneAngles;angles.length=0;
   for(let i=0;i<=48;i++)angles.push(-halfAngle+2*halfAngle*i/48);
-  for(const box of obstacles)for(let sx=-1;sx<=1;sx+=2)for(let sz=-1;sz<=1;sz+=2){
-    const angle=Math.atan2(box.z+sz*box.d/2-position.z,box.x+sx*box.w/2-position.x)-heading;
-    const wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
-    for(let k=-1;k<=1;k++){const offset=k*1e-5;if(wrapped+offset>-halfAngle&&wrapped+offset<halfAngle)angles.push(wrapped+offset);}
+  for(const box of obstacles){
+    if(Number.isFinite(box.r)){
+      const dx=box.x-position.x,dz=box.z-position.z,distance=Math.hypot(dx,dz);
+      if(distance<=box.r){angles.push(-halfAngle,halfAngle);continue;}
+      const center=Math.atan2(dz,dx)-heading,spread=Math.asin(Math.min(1,box.r/distance));
+      for(const side of [-1,1])for(const offset of [-1e-5,0,1e-5]){
+        const angle=center+side*spread+offset,wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
+        if(wrapped>-halfAngle&&wrapped<halfAngle)angles.push(wrapped);
+      }
+      continue;
+    }
+    for(let sx=-1;sx<=1;sx+=2)for(let sz=-1;sz<=1;sz+=2){
+      const angle=Math.atan2(box.z+sz*box.d/2-position.z,box.x+sx*box.w/2-position.x)-heading;
+      const wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
+      for(let k=-1;k<=1;k++){const offset=k*1e-5;if(wrapped+offset>-halfAngle&&wrapped+offset<halfAngle)angles.push(wrapped+offset);}
+    }
   }
   angles.sort(byNumber);
   // hot-ok: the returned fan (one point per angle) is the API; callers keep it for the frame

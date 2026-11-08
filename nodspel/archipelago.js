@@ -118,7 +118,7 @@ function clearRock(mesh,reservations){
   }
   mesh.position.x+=bx-x;mesh.position.z+=bz-z;
 }
-// Each visible rock owns its own exact AABB; empty space between displaced rocks
+// Each visible rock owns its own ground-level circular collider; empty space between rocks
 // is never filled by an enclosing cluster rectangle.
 function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   const alongX=w.w>w.d,len=Math.max(w.w,w.d),n=Math.max(1,Math.round(len/1.1)),boulders=[];
@@ -134,7 +134,11 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   }
   for(const m of boulders){
     const b=new THREE.Box3().setFromObject(m);
-    const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y};
+    // The full rotated AABB used to snag players on empty corners above the ground.
+    // Keep it for placement/metadata but use a round, foot-level contact radius.
+    const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,
+      w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y,
+      r:Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.42,rock:true};
     colliders.push(collider);m.userData.collider=collider;
   }
   return boulders.length;

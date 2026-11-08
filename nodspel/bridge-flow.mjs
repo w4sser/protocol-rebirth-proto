@@ -17,6 +17,25 @@ export function bridgeRailLength(walkwayLength){
   return Math.max(.30,walkwayLength-2*BRIDGE_LAND_RAIL_RECESS);
 }
 
+// The visible deck widens only for the first 0.85 m at each landfall.
+// Reuse the exact taper for footstep support: no invisible walkable water
+// outside the rendered planks, and no changes to the center combat lane.
+export const BRIDGE_ENTRY_FLARE_DEPTH=.85;
+export const BRIDGE_ENTRY_FLARE_EXTRA=.9;
+export function bridgeEntryFlare(f,along){
+  const length=f.dir?.x?f.w:f.d;
+  const fromEnd=length/2-Math.abs(along);
+  return fromEnd>=0&&fromEnd<BRIDGE_ENTRY_FLARE_DEPTH
+    ?BRIDGE_ENTRY_FLARE_EXTRA*(1-fromEnd/BRIDGE_ENTRY_FLARE_DEPTH):0;
+}
+export function bridgeEntrySupports(f,x,z){
+  if(!f.bridgeFunnel||!f.dir)return false;
+  const along=f.dir.x?x-f.x:z-f.z,across=f.dir.x?z-f.z:x-f.x;
+  const length=f.dir.x?f.w:f.d,width=f.dir.x?f.d:f.w;
+  return Math.abs(along)<=length/2 &&
+    Math.abs(across)<=width/2+bridgeEntryFlare(f,along)/2;
+}
+
 
 const inside=(p,f,pad=0)=>Math.abs(p.x-f.x)<=f.w/2+pad&&Math.abs(p.z-f.z)<=f.d/2+pad;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -43,36 +62,81 @@ const roomIndex=(rooms,p)=>rooms.findIndex(r=>inside(p,r,-.02));
 const corridorIndex=(corridors,p)=>corridors.findIndex(c=>inside(p,c,.12));
 const axisOf=c=>c.dir?.x?{x:Math.sign(c.dir.x),z:0}:{x:0,z:Math.sign(c.dir.z||1)};
 
-// Waypoint along a known connecting bridge. Both ends have a generous
-// centered landing. While crossing, navigate toward the opposite landing
-// instead of steering straight at a moving target on another island.
+// Big Map corridors use roomIds and are not laid out in sequential room order.
+// Cache their adjacency once; re-evaluating it for every moving bot is expensive.
+const networks=new WeakMap();
+function bridgeNetwork(level){
+  const cached=networks.get(level);
+  if(cached?.rooms===level.rooms&&cached?.corridors===level.corridors)return cached;
+  const rooms=level.rooms,corridors=level.corridors,links=rooms.map(()=>[]);
+  const edges=corridors.map((c,index)=>{
+    const a=c.roomIds?rooms.findIndex(r=>r.id===c.roomIds[0]):index;
+    const b=c.roomIds?rooms.findIndex(r=>r.id===c.roomIds[1]):index+1;
+    if(a<0||b<0||a>=rooms.length||b>=rooms.length||a===b)return null;
+    links[a].push({to:b,edge:index});links[b].push({to:a,edge:index});
+    return {a,b};
+  });
+  const network={rooms,corridors,links,edges};networks.set(level,network);return network;
+}
+function firstBridge(links,origin,goals){
+  const queue=[origin],visited=new Set([origin]),first=new Map();
+  for(let head=0;head<queue.length;head++){
+    const current=queue[head];
+    for(const link of links[current]??[]){
+      if(visited.has(link.to))continue;
+      visited.add(link.to);
+      const initial=first.get(current)??link.edge;
+      if(goals.includes(link.to))return initial;
+      first.set(link.to,initial);queue.push(link.to);
+    }
+  }
+  return -1;
+}
+function hopsTo(links,start,goals){
+  if(goals.includes(start))return 0;
+  const queue=[start],visited=new Set([start]),depth=new Map([[start,0]]);
+  for(let head=0;head<queue.length;head++){
+    const current=queue[head];
+    for(const link of links[current]??[]){
+      if(visited.has(link.to))continue;
+      const d=depth.get(current)+1;
+      if(goals.includes(link.to))return d;
+      visited.add(link.to);depth.set(link.to,d);queue.push(link.to);
+    }
+  }
+  return Infinity;
+}
+
+// Always take a centered approach, even on a non-sequential Big Map graph.
+// Route to the next island first, not directly across rocks towards the target.
 export function bridgeWaypoint(level,actor,target){
   if(!level?.archipelago||!(level.rooms?.length>1)||!(level.corridors?.length))return null;
   const rooms=level.rooms,corridors=level.corridors;
   const a=roomIndex(rooms,actor),b=roomIndex(rooms,target);
   const on=corridorIndex(corridors,actor),targetOn=corridorIndex(corridors,target);
-  if(a>=0 && a===b)return null;
-  if(on>=0 && targetOn===on)return null;
-  let index=-1,towardSecond=true;
+  if(on<0&&a>=0&&a===b)return null;
+  if(on>=0&&on===targetOn)return null;
+  const {edges,links}=bridgeNetwork(level);
+  const targetEdge=targetOn>=0?edges[targetOn]:null;
+  const goals=b>=0?[b]:targetEdge?[targetEdge.a,targetEdge.b]:[];
+  if(!goals.length)return null;
+  let index=-1,towardSecond=false;
   if(on>=0){
     index=on;
-    // When on a bridge, head for the end closer to the target room.
-    towardSecond=b>=0?b>on : targetOn>=0?targetOn>=on :
-      distance(rooms[Math.min(on+1,rooms.length-1)],target)<distance(rooms[on],target);
-  }else if(a>=0){
-    const destination=b>=0?b:targetOn>=0?(targetOn>=a?a+1:a-1):-1;
-    if(destination<0||destination===a)return null;
-    towardSecond=destination>a;
-    index=towardSecond?a:a-1;
-  }else return null;
-  const c=corridors[index];
-  if(!c?.dir||!rooms[index]||!rooms[index+1])return null;
-  const v=axisOf(c),along=c.dir.x?c.w:c.d;
-  const sign=towardSecond?1:-1;
+    const edge=edges[index];if(!edge)return null;
+    const da=hopsTo(links,edge.a,goals),db=hopsTo(links,edge.b,goals);
+    towardSecond=db<da||(db===da&&distance(rooms[edge.b],target)<distance(rooms[edge.a],target));
+  }else{
+    if(a<0)return null;
+    index=targetEdge&&(targetEdge.a===a||targetEdge.b===a)
+      ?targetOn:firstBridge(links,a,goals);
+    if(index<0)return null;
+    const edge=edges[index];if(!edge)return null;
+    towardSecond=edge.a===a;
+  }
+  const c=corridors[index],v=axisOf(c),along=c.dir.x?c.w:c.d,sign=towardSecond?1:-1;
   const near={x:c.x-v.x*sign*(along/2+.85),z:c.z-v.z*sign*(along/2+.85)};
   const far={x:c.x+v.x*sign*(along/2+.85),z:c.z+v.z*sign*(along/2+.85)};
-  // Only leave the entry waypoint once aligned with the bridge center line.
-  // A moving bot should not cut the corner and scrape the side rocks.
-  if(on<0 && distance(actor,near)>.72)return near;
+  if(on<0&&distance(actor,near)>.72)return near;
   return far;
 }

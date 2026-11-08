@@ -1,4 +1,5 @@
 // Deterministic visual plan for Nordic timber footbridges.
+import {bridgeEntryFlare} from './bridge-flow.mjs?v=2.28.0';
 // Navigation floors, collision and AI paths are deliberately untouched.
 function seededRandom(seed){
   let s=2166136261;
@@ -18,7 +19,7 @@ export function planBridgeDeck(floor,levelSeed,{quality='high'}={}){
     planks.push({
       t:-length/2+(i+.5)*pitch,
       length:Math.max(.10,pitch-(isLow?.07:.04)),
-      width:Math.max(.1,width-.10-r()*.09),
+      width:Math.max(.1,width+bridgeEntryFlare(floor,-length/2+(i+.5)*pitch)-.10-r()*.09),
       cross:(r()-.5)*.035,
       tone:Math.floor(r()*4),landing:false,
     });

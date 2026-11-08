@@ -39,7 +39,7 @@ export function generateBigLevel(seed,area='bunker'){
     }
   }
   for(const c of level.corridors){
-    level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});
+    level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0),bridgeFunnel:area==='archipelago'});
     const cross=c.dir.x?c.d:c.w;
     const length=c.dir.x?c.w:c.d;
     const shortened=area==='archipelago'
