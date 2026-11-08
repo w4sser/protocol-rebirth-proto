@@ -62,7 +62,7 @@ import {createQualityUI} from './quality-ui.js?v=2.28.0';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.0';
 import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.0';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.0';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.0';
+import {swapItemStatus,swapRecommendation} from './swap-guidance.js?v=2.28.0';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
@@ -1345,30 +1345,92 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
-function showSwap(){{const t=document.getElementById('bag-toast');if(t)t.hidden=true;}
-  const info=round.bagFull;if(!info)return;
-  const panel=$('.bag-panel');panel?.classList.remove('bag-full-flash');void panel?.offsetWidth;panel?.classList.add('bag-full-flash');
-  const box=round.level.lootBoxes.find(b=>b.id===info.boxId);if(box&&!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
-  let el=$('#swap-row');if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';el.setAttribute('role','dialog');el.setAttribute('aria-label','Bag full – swap');$('#viewport').append(el);}
-  el.dataset.kind='bag';el.replaceChildren();
-  const head=document.createElement('div');head.className='swap-head';head.innerHTML='<b>Bag full – swap?</b><span>Tap an item to swap it</span>';
-  const close=document.createElement('button');close.className='pop-x swap-close';close.type='button';close.append(svgIcon('close'));close.setAttribute('aria-label','Keep bag');close.onclick=hideSwap;head.classList.add('pop-head');el.append(close,head);
-  const row=document.createElement('div');row.className='swap-items';
-  const suggested=suggestSwap(launch.goal,round.bag,info.item);let suggestionShown=false;
-  const chip=(id,isNew)=>{
-    const b=document.createElement(isNew?'div':'button'),r=rarityOf(id);b.className='swap-item'+(isNew?' swap-new':'');b.dataset.rarity=r;b.style.setProperty('--rc',RARITY_COLORS[r]);
-    const name=document.createElement('span');name.textContent=ITEM_NAMES[id]??id;b.append(name);
-    const status=swapItemStatus(launch.goal,round.bag,id,isNew);
-    if(status){const hint=document.createElement('small');hint.className='swap-purpose';hint.textContent=status;b.append(hint);b.classList.toggle('swap-needed',status==='NEEDED NOW');}
-    if(!isNew&&!suggestionShown&&id===suggested){suggestionShown=true;b.classList.add('swap-suggested');const hint=document.createElement('small');hint.className='swap-suggestion';hint.textContent='SUGGESTED';b.append(hint);}
-    return b;
+function showSwap(){
+  const toast=document.getElementById('bag-toast');if(toast)toast.hidden=true;
+  const info=round?.bagFull;
+  if(!info||round.over||resultPending||!nearBlocked())return;
+  const box=round.level.lootBoxes.find(b=>b.id===info.boxId);
+  if(!box||box.collected)return;
+  if(!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
+  let el=$('#swap-row');
+  if(!el){el=document.createElement('section');el.id='swap-row';el.className='swap-row pop-card';$('#viewport').append(el);}
+  el.dataset.kind='bag';el.setAttribute('role','dialog');el.setAttribute('aria-label','Bag full - choose loot');el.hidden=false;
+  const recommendation=swapRecommendation(launch.goal,round.bag,info.item);
+  const carried=bagItems(round.bag);
+  const suggested=recommendation.dropId;
+  const value=id=>globalThis.DATA.items.find(item=>item.id===id)?.sellValue??0;
+  const name=id=>ITEM_NAMES[id]??id;
+  const stale=()=>round.over||resultPending||round.bagFull?.boxId!==info.boxId||!nearBlocked();
+  const make=(tag,cls,content)=>{const node=document.createElement(tag);node.className=cls;if(content!==undefined)node.textContent=content;return node;};
+  const tile=(id,context)=>{
+    const card=make('div','swap-choice-item');
+    const caption=make('small','swap-choice-caption',context);card.append(caption);
+    const item=make('strong','swap-choice-name',name(id));card.append(item);
+    const details=make('div','swap-choice-meta');
+    const status=swapItemStatus(launch.goal,round.bag,id,context==='PICK UP');
+    if(status){const tag=make('span','swap-choice-status',status);if(status==='NEEDED NOW')tag.classList.add('swap-needed');details.append(tag);}
+    details.append(make('span','swap-choice-value',`~${value(id)} Scrap`));card.append(details);
+    card.dataset.rarity=rarityOf(id);card.style.setProperty('--rc',RARITY_COLORS[rarityOf(id)]);
+    return card;
   };
-  if(launch.goal){const goal=document.createElement('div');goal.className='swap-goal';goal.textContent=`For ${launch.goal.name} LVL ${launch.goal.level} · extract to secure supplies`;el.append(goal);}
-  const carried=document.createElement('div');carried.className='swap-carried';
-  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,gameClock());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};carried.append(b);}
-  const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.append(svgIcon('swap'));row.append(carried,arrow,chip(info.item,true));el.append(row);el.hidden=false;
-  const suggestedChip=carried.querySelector('.swap-suggested');if(suggestedChip)carried.scrollLeft=Math.max(0,suggestedChip.offsetLeft-carried.offsetLeft);
-  clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,4000);
+  const button=(label,kind,action)=>{
+    const b=make('button','swap-action '+kind,label);
+    b.type='button';b.onclick=e=>{e.stopPropagation();action();};return b;
+  };
+  const applySwap=dropId=>{
+    if(stale()||!round.bag[dropId]){hideSwap();return;}
+    const dropped=swapLoot(round,info.boxId,dropId,gameClock());
+    if(!dropped){hideSwap();return;}
+    labelLoot(world.addLoot(dropped));
+    for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;
+    clearBagFull();updateHUD();
+  };
+  const render=(chooseOther=false)=>{
+    if(stale()){hideSwap();return;}
+    el.replaceChildren();
+    const close=button('','swap-close',hideSwap);close.className='pop-x swap-close';close.append(svgIcon('close'));close.setAttribute('aria-label','Leave loot and close');el.append(close);
+    const head=make('header','swap-head pop-head');
+    head.append(make('b','swap-dialog-title',chooseOther?'Choose an item to drop':'Bag full'));
+    head.append(make('span','swap-dialog-subtitle',chooseOther?'Tap a bag item to replace it':'One item out, one item in'));el.append(head);
+    if(launch.goal)el.append(make('p','swap-goal',`For ${launch.goal.name} LVL ${launch.goal.level} - extract to secure`));
+    if(chooseOther){
+      el.append(tile(info.item,'PICK UP'));
+      const choices=make('div','swap-choice-list');
+      for(const id of [...new Set(carried)]){
+        const entry=button('','swap-choice-option',()=>applySwap(id));
+        entry.append(tile(id,'DROP'));
+        if(id===suggested)entry.append(make('small','swap-choice-recommended','SUGGESTED'));
+        choices.append(entry);
+      }
+      el.append(choices);
+      const footer=make('div','swap-actions');
+      footer.append(button('BACK','secondary',()=>render(false)),button('KEEP LOOT','secondary',hideSwap));
+      el.append(footer);
+    }else{
+      const summary=make('div','swap-summary');
+      if(suggested){
+        summary.append(tile(suggested,'DROP'));
+        summary.append(tile(info.item,'PICK UP'));
+      }else{
+        summary.append(tile(info.item,'FOUND'));
+      }
+      el.append(summary);
+      const rec=make('p','swap-reason',recommendation.reason);
+      rec.prepend(make('strong','swap-recommendation-label',recommendation.action==='swap'?'SUGGESTED: SWAP. ':'SUGGESTED: KEEP. '));
+      el.append(rec);
+      const actions=make('div','swap-actions');
+      if(recommendation.action==='swap'&&suggested){
+        actions.append(button('SWAP','recommended',()=>applySwap(suggested)),button('KEEP LOOT','secondary',hideSwap));
+      }else{
+        actions.append(button('KEEP LOOT','recommended',hideSwap));
+        if(suggested)actions.append(button('SWAP ANYWAY','secondary',()=>applySwap(suggested)));
+      }
+      if(carried.length>0)actions.append(button('CHOOSE OTHER','secondary',()=>render(true)));
+      el.append(actions);
+    }
+    el.hidden=false;
+  };
+  render();
   try{const n=+(localStorage.getItem(HINT_KEY)||0);if(n<2){localStorage.setItem(HINT_KEY,String(n+1));bitHintUntil=gameClock()+3500;}}catch{}
 }
 // Kit slot full: short, non-blocking notice; the kit stays on the ground.
