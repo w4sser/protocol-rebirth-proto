@@ -74,7 +74,15 @@ D1-A protects one unit within ordinary bag capacity; D1-B permits ordinary mater
 
 D1-D continues to require resumption of the **same** safely restored raid while eligible, retaining real loot/equipment risk, objective progress and Secure Slot selection. The recovery window is **not a promise of pause immunity, safe combat, a rewind or guaranteed connection**, and relaunching must not reset or bypass it.
 
-**Still open:** Exact window length/start, deadline communication, the original raid clock's behavior during interruption and timeout interaction, authoritative saved-state storage, platform constraints and UX/anti-abuse details. Documentation only.
+**Still open:** Exact window length/start, deadline communication, the now-approved D1-D.2 real-time original raid deadline, with exact timeout/expiry precedence still open, authoritative saved-state storage, platform constraints and UX/anti-abuse details. Documentation only.
+
+## Approved original raid deadline continues through interruption (D1-D.2)
+
+**Owner-approved, 8 November 2026:** The ordinary raid's original **extraction deadline continues counting in real elapsed time** during app crash, lost connection or backgrounding. D1-D.1's bounded recovery window is about **return availability**, not additional raid time; no interruption freezes or extends the original deadline or undoes a legitimate timeout.
+
+Safely resume the **same** recoverable raid when D1-D permits, preserving loot, equipment risk and selected Secure Slot unit. A legitimately timed-out raid cannot be resumed to extract late; determine and settle **one authoritative result once** under D1/D1-C.2. No free extraction, immunity, whole-bag rescue or duplication.
+
+**Still open:** Enemy/world simulation while the app is suspended, clock and persistence authority, timeout/expiry precedence, exact recovery duration and UX. Documentation only, no game code.
 
 ## Commerce structure retained
 
@@ -182,8 +190,8 @@ The player chooses the activation moment (M30) while BIT selects the most immedi
 
 Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, first-ten-extraction cadence, paid acceleration limits and commercial values. **Intermediate room utility is no longer open:** M26 locks it to *none* until final completion. **Vault vs BIT Bay build order is no longer open:** M27 lets the player choose where both are accessible. **Switching the tracked Project is also resolved by M36:** free switching preserves room-specific investment with no fee or refund. **Stage payments are resolved by M37:** every stage needs its full cost and a deliberate player action; no partial deposits or auto-building. **BIT Bay L1's benefit is no longer open:** M28 locks limited combat support, M29 locks its first ability to brief enemy distraction, M30 locks player-controlled contextual activation, M31 locks BIT's post-activation choice of the most immediate threat, M32 locks reuse with a meaningful cooldown between successful uses, M33 locks enemy-dependent susceptibility with readable/fair differences, M34 rules out full immunity while permitting weaker, shorter or different responses, and M35 requires cooldown and failure feedback after a no-reachable-target activation. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
 
-**Next single decision — does the ordinary raid timer continue during an interruption? (D1-D.2)**
-- **A — Original raid deadline runs in real elapsed time (recommended).** Closing/backgrounding the app does not extend or freeze the raid's original extraction deadline. The separate D1-D.1 recovery window cannot extend an ordinary raid or undo legitimate timeout; exact authoritative simulation/timeout precedence remains open.
-- **B — Brief, bounded grace for the raid countdown.** Allow a limited technical suspension of raid countdown during a recoverable interruption, then resume from remaining time if the raid can be safely restored. This makes interruptions less punishing but risks deliberate force-close abuse. It cannot grant invulnerability, turn a real death into a resume, or rewind combat/loot; grace duration and safeguards remain open.
+**Next single decision — may a player launch a new raid while a previous interrupted raid is unresolved? (D1-D.3)**
+- **A — Resolve the pending raid first (recommended).** Only one ordinary raid may remain unresolved at a time. Before launching another, the player resumes the existing safely recoverable raid, explicitly abandons it, or receives its authoritative final outcome. Merely reopening the app does not forfeit the old raid. Its original timer keeps running.
+- **B — Starting a new raid explicitly forfeits the pending one.** A new raid can begin after a clear warning and deliberate confirmation that the player abandons the previous interrupted raid. Settle that raid exactly once under D1/D1-C.2 before launching the new one. Fewer navigation steps, but a greater risk of accidentally forfeiting valuable loot.
 
-**Neither raid-clock behavior is approved yet.** D1-D.1 locks only how long a safely recoverable raid may remain *available*, not how its own normal countdown behaves. Both alternatives preserve D1 risk, D1-C.2 settlement, no free extraction, no pause immunity and no duplicate results.
+**Neither new-raid entry policy is approved.** Both preserve D1-D same-raid recovery, D1-D.1 limited recovery availability, D1-D.2 real-time raid deadline, and authoritative once-only settlement, without pause immunity, concurrent duplicate loot or free extraction. Exact UX and timeout precedence remain open.
