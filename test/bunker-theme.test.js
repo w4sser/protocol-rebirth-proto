@@ -62,7 +62,7 @@ test('raid entry invokes fade and waits before navigating',async()=>{
   const segment=app.slice(app.indexOf('    const raidUrl = coreLaunchUrl'),app.indexOf('\n  deploy(){'));
   const body=segment.slice(0,segment.lastIndexOf('\n  },'));
   let release;const faded=new Promise(r=>release=r),calls=[];
-  const sandbox={session:{},window:{PR_NAVIGATE:u=>calls.push('navigate'),PR_AUDIO_RAID_ENTRY:()=>{calls.push('fade');return faded;}},coreLaunchUrl:()=>'/raid',l:{},metaReturnPath:()=>'',location:{pathname:'/'},stats:{},gear:[],weapon:null,kit:null,launchTool:null,raidBagCapacity:()=>0,raidArea:()=>'',hard:false,intro:true,ftue:false,questLaunchParam:()=>null,progressionGoal:()=>null,pay:null};
+  const sandbox={session:{},window:{PR_NAVIGATE:u=>calls.push('navigate'),PR_AUDIO_RAID_ENTRY:()=>{calls.push('fade');return faded;}},coreLaunchUrl:()=>'/raid',l:{},metaReturnPath:()=>'',location:{pathname:'/'},stats:{},gear:[],weapon:null,kit:null,launchTool:null,raidBagCapacity:()=>0,scoutedAreas:()=>[],raidArea:()=>'',hard:false,intro:true,ftue:false,questLaunchParam:()=>null,progressionGoal:()=>null,pay:null};
   vm.runInNewContext(body,sandbox);assert.deepEqual(calls,['fade']);
   release();await new Promise(setImmediate);assert.deepEqual(calls,['fade','navigate']);
 });

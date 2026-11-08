@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.4';
-import {createRound,collectLoot} from '../round.js?v=2.28.4';
-import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.4';
+import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.6';
+import {createRound,collectLoot} from '../round.js?v=2.28.6';
+import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.6';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('bag pickups are recorded for the toast; gear and full-bag skips are not',()=>{

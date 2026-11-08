@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.4"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.6"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -392,6 +392,19 @@ function advanceBaseState(reason){
   }
   return changed;
 }
+// v2.28.6 (playtest 2026-11-08): where a missing part drops -- from DATA.lootSources, generated from the raid's
+// active loot tables (scripts/gen-loot-sources.mjs). Crate drops are a chance, so the hint says "Loot crates".
+function lootHint(id){
+  const L = D.lootSources; if(!L) return "";
+  const sc = (L.scouts || []).find(x => x.item === id);
+  if(sc) return areaScouted(ITEMS[id].scouts) ? "" : "Last crate · " + (AREA_DEFS[sc.area] ? AREA_DEFS[sc.area].name : sc.area) + " " + sc.level + " · extract to scout";
+  const src = (L.crates || {})[id]; if(!src || !src.length) return "";
+  // Grouped per area with level ranges, e.g. "Loot crates · Bunker 2–3 / Archipelago 2–3" (QA 2026-11-08: shorter, readable).
+  const by = {}; src.forEach(x => (by[x.area] = by[x.area] || []).push(x.level));
+  const span = ls => { ls = [...new Set(ls)].sort((a,b) => a-b); return ls.length > 1 && ls.at(-1) - ls[0] === ls.length - 1 ? ls[0] + "–" + ls.at(-1) : ls.join(", "); };
+  return "Loot crates · " + Object.keys(by).map(a => (AREA_DEFS[a] ? AREA_DEFS[a].name : a) + " " + span(by[a])).join(" / ");
+}
+function lootHintHtml(p){ const h = p.kind === "item" && p.have < p.need ? lootHint(p.id) : ""; return h ? '<span class="lhint">' + esc(h) + '</span>' : ""; }
 function costParts(cost){
   const parts = [];
   if(cost.scrap) parts.push({ kind:"cur", id:"scrap", need:cost.scrap, have:S.cur.scrap });
@@ -2945,6 +2958,7 @@ function slotTileHtml(def, locked, mini){
 const WMAP = D.worldMap, AREA_DEFS = {}; WMAP.areas.forEach(a => AREA_DEFS[a.id] = a);
 const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(location.search || "");
 function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
+function scoutedAreas(){ return Object.keys(S.areaScouted || {}).filter(areaScouted); }
 function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
 function areaEarned(id){ return areaCoreOk(id) && areaScouted(id); }
 function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaEarned(id); }
@@ -3663,6 +3677,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (Number.isFinite(opts.armorShield) ? "&armorShield=" + encodeURIComponent(opts.armorShield) : "") +
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
+    (opts.scouted && opts.scouted.length ? "&scouted=" + encodeURIComponent(opts.scouted.join(",")) : "") + // v2.28.6: areas already scouted -> raid drops no redundant chart/survey
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
@@ -4540,7 +4555,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
     const navigate = () => {
       try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
       finally{ session.raidNavigating=false; }
@@ -5035,7 +5050,7 @@ window.A = {
       const parts = costParts(next.cost);
       body = '<p class="eff">' + esc(next.benefitText || next.unlockText || m.blurb) + '</p><div class="costs">' + parts.map(p => {
         const ok = p.have >= p.need;
-        return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
+        return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + lootHintHtml(p) + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
       }).join("") + '</div>';
       const miss = parts.find(p => p.have < p.need);
       if(next.level > moduleCap(modId)) cta = '<button class="primary big" onclick="A.openBuilding(\'rebirth_core\')">UPGRADE CORE FIRST</button>';
