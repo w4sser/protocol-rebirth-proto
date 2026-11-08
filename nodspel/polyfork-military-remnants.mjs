@@ -16,6 +16,10 @@ const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rectNear=(x,z,f,pad=0)=>Math.abs(x-f.x)<=f.w/2+pad&&Math.abs(z-f.z)<=f.d/2+pad;
 const floorContains=(floor,x,z,pad=0)=>rectNear(x,z,floor,pad);
+// Isometric camera is southeast of the player (+X,+Z). Large geology must sit
+// BEHIND the island (north/west) so the cliff cannot cover the operator/door.
+// Other shores retain small rocks and coastal ruins but not 5m-high mountains.
+export const glacierBackdropSide=site=>site?.normal?.x+site?.normal?.z < -.5;
 function outerRadius(coast,x,z){
   const f=coast.floor,theta=(Math.atan2(z-f.z,x-f.x)+TAU)%TAU;
   const q=theta/TAU*coast.points.length,i=Math.floor(q)%coast.points.length,t=q-Math.floor(q);
@@ -107,7 +111,7 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
       site.center.x.toFixed(2)+':'+site.center.z.toFixed(2));
     const sameIsland=selected.find(other=>other.islandIndex===site.islandIndex);
     const scale=.95+r()*.10;
-    const canPortal=!portalAssigned&&
+    const canPortal=!portalAssigned&&glacierBackdropSide(site)&&
       safeGlacialFootprint(level,site,cliffs,scale)&&
       (!fishing||Math.hypot(fishing.center.x-site.center.x,fishing.center.z-site.center.z)>7.0);
     // A recognizable portal is placed as soon as a safe bedrock headland exists.
@@ -139,6 +143,7 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
     const r=seededRandom(level.seed+':glacial-headland-v1:'+site.islandIndex+':'+
       site.center.x.toFixed(2)+':'+site.center.z.toFixed(2));
     const scale=.90+r()*.17;
+    if(!glacierBackdropSide(site))continue;
     if(!safeGlacialFootprint(level,site,cliffs,scale))continue;
     if(selected.some(x=>Math.hypot(x.center.x-site.center.x,x.center.z-site.center.z)<8.3))continue;
     if(base.landmarks.some(x=>x.center&&Math.hypot(x.center.x-site.center.x,x.center.z-site.center.z)<8.3))continue;
