@@ -14,7 +14,7 @@ export const GLACIAL_ASSETS=Object.freeze({
     low:'./assets/env/glacial/glacial_portal_low.glb',
   }),
 });
-const loader=new GLTFLoader(),assetCache=new Map();
+const loader=new GLTFLoader(),assetCache=new Map(),materialCache=new WeakMap();
 export function glacialAssetUrl(kind,quality){
   const path=GLACIAL_ASSETS[kind]?.[quality==='high'?'high':'low'];
   if(!path)throw new Error('Unknown glacial bedrock asset: '+kind);
@@ -38,11 +38,23 @@ function parts(gltf){
   gltf.scene.traverse(o=>{
     if(!o.isMesh)return;
     if(!o.geometry?.getAttribute('position'))throw new Error('Missing glacial positions');
-    const material=o.material;
-    if(Array.isArray(material)||!material)throw new Error('Glacial mesh must have one material');
+    const original=o.material;
+    if(Array.isArray(original)||!original)throw new Error('Glacial mesh must have one material');
     if(!o.geometry.getAttribute('color'))throw new Error('Glacial vertex colors missing');
+    // Sundown lighting previously washed the glacial rock into a featureless
+    // pale blob. Multiply the baked large-scale slate/lichen bands by this
+    // granite-gray tint, preserving smooth ice-polished normals.
+    if(!materialCache.has(original)){
+      const granite=original.clone();
+      granite.color.multiply(new THREE.Color('#9CA0A5'));
+      granite.roughness=1;granite.metalness=0;
+      granite.vertexColors=true;granite.flatShading=false;
+      granite.userData.shared=true;
+      materialCache.set(original,granite);
+    }
+    const material=materialCache.get(original);
     found.push({geometry:o.geometry,material,transform:o.matrixWorld.clone()});
-    o.geometry.userData.shared=true;material.userData.shared=true;
+    o.geometry.userData.shared=true;
   });
   if(found.length!==1)throw new Error('Expected one mesh in original glacial GLB');
   return found;
