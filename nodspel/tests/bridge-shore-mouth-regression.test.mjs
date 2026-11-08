@@ -25,7 +25,11 @@ test('reported L2 seed has no tiny shoreline obstruction at bridge mouth',()=>{
     &&Math.abs(w.w-.3)<.09&&Math.abs(w.d-.4)<.09;
   const authored=level.walls.filter(isCaptured);
   assert.ok(authored.length>0,'capture seed must reproduce the recorded authored wall');
-  assert.ok(authored.every(w=>w.bridgeMouthStub),'captured wall is a tiny landing seam');
+  // This particular obstacle is NOT tagged as a bridgeMouthStub: it came
+  // from another wall-generation path. This is why checking only tagged
+  // doorway remnants missed the bug in previous passes.
+  assert.ok(authored.some(w=>w.w<=.65&&w.d<=.65),
+    'captured obstruction must be a tiny untagged shore fragment');
   const group=render(level);
   try{
     assert.ok(!level.walls.some(w=>w.shore&&isCaptured(w)),

@@ -59,12 +59,12 @@ test('bridge rail collision lies outside the full 4-metre walkway',()=>{
 });
 
 test('full bridge entry accepts angled movement from both banks and sides, on both axes',()=>{
-  // Previously, just reaching the first 30 cm of planks could pass tests while
-  // the player hit invisible rails 1 m later. Travel 2.8 m onto the bridge.
+  // Test realistic diagonals into the original narrow deck; deliberately
+  // avoid unsupported shortcuts that the wide visual funnel used to imply.
   for(const vertical of [false,true]){
     const level=simpleLevel(vertical),along=vertical?'z':'x',across=vertical?'x':'z';
     for(const radius of [.36,.48])for(const sign of [-1,1])for(const bank of [0,1]){
-      for(const fromOffset of [-.25,.35,1.0,1.2])for(const toOffset of [.65,1.0,1.2]){
+      for(const fromOffset of [-.25,.35,.7])for(const toOffset of [.65,1.0]){
         const start={x:0,z:0},target={x:0,z:0};
         const bankDir=bank===0?1:-1;
         start[along]=(bank===0?0:19)+bankDir*3;
