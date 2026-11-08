@@ -36,7 +36,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
-    for (const mode of (process.env.COASTAL_FOCUS==='1'?['high']:['off','high','low'])) {
+    for (const mode of (process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
@@ -137,7 +137,7 @@ try {
           return {mode:st.mode,landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned,meshes:st.meshes};
         });
         console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
-        if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length)
+        if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length||life.planned>(mode==='low'?40:125))
           throw new Error('Default Archipelago dressing failed to render: '+JSON.stringify(life));
         await sleep(1800);
       }
