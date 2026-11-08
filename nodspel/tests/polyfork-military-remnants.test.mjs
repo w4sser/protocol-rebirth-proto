@@ -33,7 +33,7 @@ test('Bungenas landmark uses built concrete architecture, no GLB tech props or V
     ['coastal-pillbox','overgrown-foundations','sealed-rock-portal']);
   const a=planMilitaryRemnantsDressing(fixture),b=planMilitaryRemnantsDressing(fixture);
   assert.deepEqual(a,b);
-  assert.ok(a.militaryLandmarks.length<=2);
+  assert.ok(a.militaryLandmarks.length>=2&&a.militaryLandmarks.length<=4);
   assert.equal(a.architecture.length,a.militaryLandmarks.length);
   assert.ok(!a.items.some(x=>x.profile==='military'),'no fake military tech in asset layer');
   assert.ok(a.militaryLandmarks.every(x=>x.visualOnly));
@@ -57,7 +57,17 @@ test('fortification footprints remain beyond playable island and bridge floors',
     assert.ok(high.items.length<=125&&low.items.length<=40);
     const keys=new Set(high.items.map(key));
     assert.ok(low.items.every(item=>keys.has(key(item))));
-    assert.ok(high.militaryLandmarks.length<=2);
+    assert.ok(high.militaryLandmarks.length<=4);
+    const counts=new Map();
+    for(const site of high.militaryLandmarks){
+      counts.set(site.islandIndex,(counts.get(site.islandIndex)??0)+1);
+      assert.ok(counts.get(site.islandIndex)<=2,'at most two military sites per island');
+      for(const other of high.militaryLandmarks){
+        if(site===other)continue;
+        assert.ok(Math.hypot(site.center.x-other.center.x,site.center.z-other.center.z)>=5.99,
+          'outworks need safe spacing');
+      }
+    }
     installed+=high.militaryLandmarks.length;
     plans.push(high);
     for(const site of high.militaryLandmarks){
@@ -82,14 +92,18 @@ test('Big Map has several ruins and a readable early landmark',()=>{
   for(let i=0;i<12;i++){
     const level=generateLevel(1,'military-big-'+i,'archipelago',false,true);
     const plan=planMilitaryRemnantsDressing(level);
-    assert.ok(plan.militaryLandmarks.length<=3);
+    assert.ok(plan.militaryLandmarks.length<=6);
+    const counts=new Map();
+    for(const site of plan.militaryLandmarks)
+      counts.set(site.islandIndex,(counts.get(site.islandIndex)??0)+1);
+    assert.ok([...counts.values()].every(count=>count<=2));
     assert.deepEqual(plan.architecture,plan.militaryLandmarks);
     if(plan.militaryLandmarks.length){
       present++;
       const first=plan.militaryLandmarks[0];
       if(first.islandIndex<=1)early++;
       assert.notEqual(first.scene,'overgrown-foundations','first landmark should have a readable bunker silhouette');
-      assert.equal(new Set(plan.militaryLandmarks.map(x=>x.islandIndex)).size,plan.militaryLandmarks.length);
+      assert.ok(plan.militaryLandmarks.every(site=>site.visualOnly));
     }
   }
   assert.ok(present>=8,'most big maps should feature a fortification');
@@ -117,7 +131,7 @@ test('geometry is mobile-bounded, seeded, disposable and visual-only',()=>{
     const a=renderMilitaryArchitecture([site],parent,{quality,seed:'military-qa-01'});
     assert.equal(a.stats.structures,1);
     assert.ok(a.stats.parts>8&&a.stats.parts<110);
-    assert.ok(a.stats.drawCalls<=15,'batch by low-poly material and geometry');
+    assert.ok(a.stats.drawCalls<=22,'batch by low-poly material and geometry');
     assert.ok(a.group.children.every(child=>child.userData.visualOnly));
     assert.ok(a.group.children[0].children.every(child=>child.userData.visualOnly));
     assert.ok(a.group.children[0].children.every(child=>child.isInstancedMesh));
@@ -128,4 +142,28 @@ test('geometry is mobile-bounded, seeded, disposable and visual-only',()=>{
     a.dispose();a.dispose();
     assert.equal(parent.children.length,before-1);
   }
+});
+
+test('several overgrown complexes share instanced draw calls and do not change gameplay',()=>{
+  const sites=planMilitaryRemnantsDressing(fixture).militaryLandmarks;
+  assert.ok(sites.length>=2,'fixture should have more than one fortification');
+  const group=new THREE.Group();
+  const one=renderMilitaryArchitecture([sites[0]],group,{quality:'high',seed:fixture.seed});
+  const soloCalls=one.stats.drawCalls;
+  const singleParts=one.stats.parts;
+  one.dispose();
+  const all=renderMilitaryArchitecture(sites,group,{quality:'high',seed:fixture.seed});
+  try{
+    assert.equal(all.stats.structures,sites.length);
+    assert.ok(all.stats.parts>singleParts);
+    assert.ok(all.stats.drawCalls<=22,'shared instancing must bound all complexes');
+    assert.ok(all.stats.drawCalls<=soloCalls+8,'site count must not multiply draw calls');
+    assert.ok(all.group.children.every(child=>child.userData.visualOnly));
+    assert.ok(all.group.children[0].children.every(child=>child.isInstancedMesh));
+    for(const landmark of sites){
+      assert.ok(landmark.visualOnly);
+      assert.ok(!fixture.floors.some(f=>
+        Math.abs(landmark.center.x-f.x)<f.w/2&&Math.abs(landmark.center.z-f.z)<f.d/2));
+    }
+  }finally{all.dispose();}
 });
