@@ -269,7 +269,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .room-obj{min-height:22px;padding:2px 6px}.room-obj .pr-ic{width:16px;height:16px}
 @media(max-width:650px){.level-corner{--lc-r:16px}}
 /* Blocking title card shown before a new bunker level becomes interactive; see level-intro.mjs. */
-.level-intro-card{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:var(--st,0px) var(--sr,0px) var(--sb,0px) var(--sl,0px);background:var(--ad-night);pointer-events:none}
+.level-intro-card{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;height:calc(var(--vh,1vh) * 100);z-index:60;display:flex;align-items:center;justify-content:center;padding:var(--st,0px) var(--sr,0px) var(--sb,0px) var(--sl,0px);background:var(--ad-night);pointer-events:none}
 .level-intro-card span{font:800 clamp(22px,5vw,34px) 'Archivo',sans-serif;letter-spacing:3px;text-transform:uppercase;color:var(--ad-bone)}
 /* v1.77.0: result popup fits short landscape viewports. Header/footer are pinned; only the body scrolls, so the primary button never leaves the screen. */
 #round-over .result-card{display:flex;flex-direction:column;max-height:calc(100dvh - 32px - var(--sb,0px))}

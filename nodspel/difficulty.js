@@ -3,8 +3,8 @@
 // default is neutral -- a no-op -- matching the knob table in docs/difficulty-bots.md §3.
 // The live game does not call this yet (it lands with the DDA PR, docs/difficulty-bots.md §5.4);
 // today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
-import {RULES,randomFromSeed} from './levels.js?v=2.28.3';
-import {walkMap} from './encounters.js?v=2.28.3';
+import {RULES,randomFromSeed} from './levels.js?v=2.28.4';
+import {walkMap} from './encounters.js?v=2.28.4';
 
 export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1});
 
@@ -41,7 +41,7 @@ function adjustEnemyCount(level,count){
   const rng=randomFromSeed(`${level.seed}:difficulty:count`);
   // v2.28.4: an extra must stand fully on real floor (its whole footprint), clear of walls/boxes/locked doors and
   // other bodies, and be walkable from the start -- before this, a clone 1.4-2.8 m from its source could land
-  // behind an exterior wall (playtest 2026-11-08 "spawn utanför leveln").
+  // behind an exterior wall (playtest 2026-11-08 "spawn outside the level").
   const solids=[...level.walls,...level.boxes,...(level.doors??[]).filter(d=>d.locked)];
   const R=.48,onFloor=(x,z)=>level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.02&&Math.abs(z-f.z)<=f.d/2+.02);
   const walk=walkMap(level,'__dda');
@@ -49,12 +49,12 @@ function adjustEnemyCount(level,count){
     &&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6)
     &&!level.enemies.some(e=>Math.hypot(p.x-e.x,p.z-e.z)<(e.r??R)+R+.1)&&walk(p);
   // Clone a plain body, never an encounter actor: a cloned guard/shield turret kept its front shield with no
-  // flank guarantee. Encounter-only fields are stripped if only an encounter actor is available.
+  // flank guarantee. With no plain body in the level, no extra is added.
   const plain=e=>e.type!=='generator'&&!e.encounter&&!e.frontShield&&!e.introGuard&&!e.node;
   if(count>0){
     for(let n=0;n<count;n++){
       const pool=level.enemies.filter(plain);
-      const source=(pool.length?pool:level.enemies.filter(e=>e.type!=='generator')).sort((a,b)=>a.health-b.health)[0];
+      const source=pool.sort((a,b)=>a.health-b.health)[0]; // no plain body -> no extra (never a shieldless shield actor)
       if(!source)break;
       let placed=null;
       for(let attempt=0;attempt<50&&!placed;attempt++){
@@ -63,8 +63,7 @@ function adjustEnemyCount(level,count){
         if(clear(p))placed=p;
       }
       if(!placed)continue;
-      const {frontShield,patrol,introGuard,node,facing,archetype,...body}=source;
-      level.enemies.push({...body,...(archetype&&archetype!=='shield_turret'?{archetype}:{}),id:`enemy-${level.enemies.length+1}`,x:placed.x,z:placed.z,health:source.health,active:true,extra:true,encounter:undefined});
+      level.enemies.push({...source,id:`enemy-${level.enemies.length+1}`,x:placed.x,z:placed.z,health:source.health,active:true,extra:true,encounter:undefined});
     }
   }else{
     const removable=()=>[...level.enemies].filter(e=>e.type!=='generator'&&!(e.node||level.nodes.some(nd=>nd.generatorId===e.id)));
