@@ -50,7 +50,7 @@ export function militarySites(level,excludeIsland=-1){
   const maxW=Math.max(...MILITARY_FORMS.map(f=>f.width));
   const maxD=Math.max(...MILITARY_FORMS.map(f=>f.depth));
   for(const [islandIndex,f] of islands.entries()){
-    if(Math.min(f.w,f.d)<11)continue;
+    if(Math.min(f.w,f.d)<9.5)continue;
     const coast=coastlineProfile(f,level.seed,{samples:144});
     const sides=[
       {normal:{x:1,z:0},tangent:{x:0,z:1},span:f.d,edge:{x:f.x+f.w/2,z:f.z}},
@@ -60,7 +60,7 @@ export function militarySites(level,excludeIsland=-1){
     ];
     for(const side of sides){
       if(side.span<maxW+2.0)continue;
-      for(const shift of [0,-.23,.23]){
+      for(const shift of [0,-.23,.23,-.40,.40]){
         const t=shift*side.span;
         if(Math.abs(t)+maxW/2+.5>side.span/2)continue;
         const center={
@@ -84,33 +84,41 @@ export function militarySites(level,excludeIsland=-1){
 }
 export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}){
   const bounded=clamp(Number.isFinite(density)?density:1,0,1);
-  // Military is opt-in. Keep approved Forest, Granite, Coastal Life as the base.
+  // Keep approved Forest/Granite/Coastal Life and their mobile item budgets.
   const base=planCoastalLifeDressing(level,{quality,density:bounded*.84});
   const unchanged={regions:base.regions,items:base.items,landmarks:base.landmarks,
     militaryLandmarks:[],architecture:[]};
   if(!level?.archipelago||bounded<.5)return unchanged;
   const sites=militarySites(level,base.landmarks[0]?.islandIndex??-1);
-  const selected=[],used=new Set();
-  const limit=level.big?3:2;
+  const selected=[],perIsland=new Map();
+  // Discrete coastal-defence complexes rather than a continuous concrete rim.
+  // Allow one main landmark plus one distinct outwork on an island.
+  const limit=level.big?6:4;
   for(const site of sites){
-    if(used.has(site.islandIndex))continue;
-    const r=seededRandom(level.seed+':bungenas-form-v3:'+site.islandIndex);
-    // The first nearby fortification must have a tall, unmistakable silhouette.
-    // Foundations remain in rotation farther into the archipelago.
-    const form=selected.length===0
-      ?(r()<.5?MILITARY_FORMS[0]:MILITARY_FORMS[2])
-      :MILITARY_FORMS[Math.floor(r()*MILITARY_FORMS.length)];
+    const placed=perIsland.get(site.islandIndex)??0;
+    if(placed>=2)continue;
+    if(selected.some(other=>Math.hypot(other.center.x-site.center.x,other.center.z-site.center.z)<6.0))continue;
+    const fishing=base.landmarks[0];
+    if(fishing?.islandIndex===site.islandIndex&&
+      Math.hypot(fishing.center.x-site.center.x,fishing.center.z-site.center.z)<4.6)continue;
+    const r=seededRandom(level.seed+':bungenas-form-v4:'+site.islandIndex+':'+
+      site.center.x.toFixed(2)+':'+site.center.z.toFixed(2));
+    const sameIsland=selected.find(other=>other.islandIndex===site.islandIndex);
+    // First ruin needs a readable pillbox or portal. Companion sites use
+    // distinct forms so neighboring remains do not become obvious duplicates.
+    const variants=selected.length===0?[MILITARY_FORMS[0],MILITARY_FORMS[2]]:
+      MILITARY_FORMS.filter(form=>form.id!==sameIsland?.scene);
+    const form=variants[Math.floor(r()*variants.length)];
     selected.push({type:'military',scene:form.id,islandIndex:site.islandIndex,
       center:site.center,ry:site.ry,width:form.width,depth:form.depth,
-      height:form.height,visualOnly:true});
-    used.add(site.islandIndex);
+      height:form.height,siteRole:sameIsland?'outwork':'landmark',visualOnly:true});
+    perIsland.set(site.islandIndex,placed+1);
     if(selected.length>=limit)break;
   }
-  // Preserve the existing Coastal Life vignette, but clear forest/rock dressing
-  // from a recognisable military perimeter. Without this, the bunker disappears
-  // behind the old densely scattered pines and shrubs in the raid camera.
+  // Remove obscuring tall dressing, but keep a natural forest/granite baseline.
+  // The architecture itself adds grass, heather, moss and encroaching saplings.
   const cleared=base.items.filter(item=>item.profile==='coastal-life'||!selected.some(site=>
-    Math.hypot(item.x-site.center.x,item.z-site.center.z)<5.0));
+    Math.hypot(item.x-site.center.x,item.z-site.center.z)<4.7));
   return {regions:base.regions,items:cleared,
     landmarks:[...base.landmarks,...selected],militaryLandmarks:selected,
     architecture:selected};
