@@ -14,7 +14,7 @@ import {moveWithActors,movePlayer,traceTargets} from '../physics.mjs';
 import {applyIntroEncounter} from '../progression-goal.js';
 import {reachable} from '../town-layout.js';
 import {bagItems} from '../raid.js';
-import {shieldBlocks,encounterDamage,facingVec,angleTo,angleDiff,inSightCone,sightRange,deathTip,encountersOf,hintFor,ENCOUNTER_TYPES} from '../encounters.js';
+import {shieldBlocks,encounterDamage,facingVec,angleTo,angleDiff,inSightCone,sightRange,deathTip,encountersOf,hintFor,ENCOUNTER_TYPES,guardRearClear,ensureRearClearance} from '../encounters.js';
 
 const DEBUG=true;
 const E=RULES.encounters,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -623,4 +623,49 @@ test('each normal and hard encounter package retains a reachable side or back fi
       assert.ok(found,`${area} L${number} hard=${hard} ${enemy.encounter}: reachable flank outside the front warning`);
     }
   }
+});
+
+// v2.28.1 (bug-lint #1): a front-shielded guard stood with its back against a wall/node/generator placed
+// after it cannot ever be flanked (playtest 01M6XHN8Q31EQREG197Y30NGPH). encounters.js now revalidates every
+// guard/shield_turret once ALL solids for the level exist (ensureRearClearance) and relocates it if its only
+// flank is boxed in; this proves that holds over many seeds, levels, areas and hard mode, not just one layout.
+test('v2.28.1 bug-lint #1: every front-shielded guard/shield_turret keeps a reachable flank arc, across many seeds/levels/areas/hard',()=>{
+  let checked=0;
+  for(const hard of [false,true])for(const area of AREAS)for(let n=1;n<=3;n++)for(let s=0;s<40;s++){
+    const level=generateLevel(n,`rear-${s}`,area,hard);
+    for(const enemy of level.enemies.filter(e=>e.frontShield)){
+      checked++;
+      assert.ok(guardRearClear(level,enemy),`${area} L${n} hard=${hard} rear-${s} ${enemy.encounter}: no reachable flank - its back is boxed in`);
+    }
+  }
+  assert.ok(checked>50,`sanity: the sweep actually hit guard/shield_turret encounters (${checked})`);
+});
+
+// v2.28.1 bug-lint #1 fixture: hand-build the exact playtest shape (01M6XHN8Q31EQREG197Y30NGPH) - a guard
+// boxed in on every side but its front by wall/generator solids placed around it - and prove (a) the raw
+// placement is correctly flagged unflankable and (b) ensureRearClearance (run after every encounter/solid for
+// the level exists) relocates it to a spot that is. A tiny deterministic PRNG keeps the repick reproducible.
+function fixedRng(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+const round2=v=>Math.round(v*100)/100;
+test('v2.28.1 bug-lint #1 fixture: a guard boxed in by wall/generator solids on every side but its front is detected and relocated to a flankable spot',()=>{
+  generateLevel(1,'reset-townband','bunker'); // reset the module-private townBand flag before hand-building a level
+  const guard={id:'enemy-1',kind:'enemy',x:-8,z:-8,r:.48,health:2,speed:1.4,type:'grunt',encounter:'guard',frontShield:70,facing:Math.PI/4,active:true};
+  const generator={id:'enemy-2',kind:'enemy',x:round2(-8+Math.sin(Math.PI/4+Math.PI)*1.3),z:round2(-8+Math.cos(Math.PI/4+Math.PI)*1.3),r:.48,health:2,speed:0,type:'generator',encounter:'shield',active:true};
+  // dense wall solids on every sample radius/angle hasClearRear sweeps (outside the front cone), standing in
+  // for the bunker walls + node terminal the real playtest screenshot shows boxing the guard in
+  const walls=[];
+  for(let rel=78;rel<=282;rel+=6)for(const r of [.9,1.3,1.7,2.1,2.5]){
+    const a=guard.facing+rel*Math.PI/180;
+    walls.push({x:round2(guard.x+Math.sin(a)*r),z:round2(guard.z+Math.cos(a)*r),w:.5,d:.5,h:1.2});
+  }
+  const node={id:'node-1',x:5,z:5,r:.8,active:false};
+  const level={rooms:[{x:0,z:0,w:40,d:40}],floors:[{x:0,z:0,w:40,d:40}],walls,boxes:[],lootBoxes:[],hazards:[],
+    nodes:[node],enemies:[guard,generator],start:{x:7.1,z:11},exit:{x:-20,z:-20},
+    encounters:[{type:'guard',enemyId:guard.id,nodeId:node.id,x:guard.x,z:guard.z}]};
+  assert.equal(guardRearClear(level,guard),false,'sanity: the hand-built corner really has no flank before the fix runs');
+  ensureRearClearance(level,fixedRng(12345));
+  assert.equal(guard.rearBlocked,false,'relocated instead of left flagged - the open area by the node gives it room');
+  assert.ok(guard.x!==-8||guard.z!==-8,'it actually moved off the boxed-in spot');
+  assert.equal(guardRearClear(level,guard),true,'the new spot has a real, walkable, line-of-sight flank');
+  assert.equal(level.encounters[0].x,guard.x);assert.equal(level.encounters[0].z,guard.z);
 });

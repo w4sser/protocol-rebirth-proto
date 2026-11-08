@@ -1,4 +1,4 @@
-import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.0';
+import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.1';
 // Encounters (docs/design-encounters-toolkit.md §1, PR C): one named problem per level, placed in the
 // existing seeded rooms. This file is the pure part: placement + small geometry helpers. The live behaviour
 // (guard turning, patrol sight, swarm spawn) runs in combat.js, hit rules in round.js, visuals in world.js.
@@ -13,9 +13,9 @@ import {ENEMY_TUNING,isShieldTurret} from './enemies.js?v=2.28.0';
 //   shield  shoot the generator                          | EMP drops the node shield
 //   grenadier  leave the coral ring before the blast     | kill / flank it before the lob (Decoy also pulls it off)
 // The guard is a L2+ problem (L1 teaches the patrol). Hard (RULES.hard.plan) stacks two or three problems per level.
-import {RULES} from './levels.js?v=2.28.0';
-import {traceTargets} from './physics.mjs?v=2.28.0';
-import {detectionMultiplier} from './stakes.js?v=2.28.0';
+import {RULES} from './levels.js?v=2.28.1';
+import {traceTargets} from './physics.mjs?v=2.28.1';
+import {detectionMultiplier} from './stakes.js?v=2.28.1';
 
 const PI=Math.PI,dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export const ENCOUNTER_TYPES=['guard','turret','shield_turret','patrol','swarm','shield','door','grenadier'];
@@ -102,7 +102,72 @@ export function applyEncounters(level,area,rng,hard=false){
     const e=level.enemies.find(e=>e.id===enc.enemyId),C=RULES.encounters.shield_turret;
     if(e){enc.type='shield_turret';Object.assign(e,{encounter:'shield_turret',archetype:'shield_turret',frontShield:C.frontHalfAngleDeg,health:C.health});}
   }
+  // Last: every solid on the board now exists (a shield generator, a swarm's extra bodies...), so this is the
+  // only point a front-shielded guard/shield_turret can be checked and, if needed, moved to a spot whose rear
+  // is actually reachable. See docs/bug-lint.md #1.
+  ensureRearClearance(level,rng);
   return level.encounters;
+}
+
+// ---- rear-clearance (bug-lint #1): a front-shielded guard/shield_turret must always have a flank the
+// player can walk to, see it from, and stand in - otherwise its vulnerable side is unreachable and it
+// cannot be killed. "Flank" here is any spot outside the shield's own front arc (shieldBlocks above),
+// with a little buffer past the exact edge, swept across a few engagement distances - lenient on purpose,
+// since the goal is only to catch a back truly boxed in, not to re-litigate every placement that already
+// has room to work with (tests/encounters.test.mjs proves those solvable with the real sim).
+const FLANK_BUFFER_DEG=8,FLANK_STEP_DEG=20,FLANK_RADII=[1.3,1.8,2.4],FLANK_MARGIN=.5;
+const enemyFootprint=e=>e.type==='generator'?{x:e.x,z:e.z,w:1.6,d:1.1}:{x:e.x,z:e.z,w:(e.r||.48)*2,d:(e.r||.48)*2};
+// Every OTHER live enemy counts as a solid here (a generator, a second guard, a regular filler body...),
+// matching combat.js stepCombat which feeds round.level.enemies into the player's own movement collision.
+const solidsWithEnemies=(level,exceptId)=>[...solidsOf(level),...level.enemies.filter(e=>e.id!==exceptId&&e.health!==0).map(enemyFootprint)];
+export function hasClearRear(level,p,facing,solids,frontHalfAngleDeg=RULES.encounters.guard.frontHalfAngleDeg){
+  const room=roomIndexOf(level,p),start=frontHalfAngleDeg+FLANK_BUFFER_DEG,end=360-start;
+  for(let deg=start;deg<=end;deg+=FLANK_STEP_DEG)for(const r of FLANK_RADII){
+    const a=facing+deg*PI/180,q={x:round2(p.x+Math.sin(a)*r),z:round2(p.z+Math.cos(a)*r)};
+    if(roomIndexOf(level,q)!==room)continue; // stay in the same room: a flank through a wall is not reachable
+    if(traceTargets(q,p,solids,[])?.kind==='wall')continue; // must actually see/hit the enemy from there
+    if(spotFree(level,q,FLANK_MARGIN,solids))return true;
+  }
+  return false;
+}
+// Test-only helper: recomputes the full solids (incl. other enemies) for one enemy and checks its rear arc.
+export const guardRearClear=(level,enemy)=>hasClearRear(level,enemy,enemy.facing??0,solidsWithEnemies(level,enemy.id),enemy.frontShield);
+// Re-anchor a guard to a node-relative spot whose rear is clear, now every encounter is on the board. A
+// non-node encounter (shield_turret) gets a small local nudge instead, keeping its cover/lane intact.
+function relocateForClearRear(level,enemy,enc,rng){
+  const solids=solidsWithEnemies(level,enemy.id);
+  if(enc.type==='guard'){
+    const G=RULES.encounters.guard,node=level.nodes.find(n=>n.id===enc.nodeId);if(!node)return false;
+    const keep=[level.start,level.exit],cands=[];
+    for(let k=0;k<16;k++){const a=k/16*2*PI,p={x:round2(node.x+Math.sin(a)*G.distance),z:round2(node.z+Math.cos(a)*G.distance)};
+      if(!spotFree(level,p,1,solids)||keep.some(o=>dist(p,o)<2.6))continue;
+      const arr=arrival(level,p),d=dist(p,arr),facing=angleTo(p,arr);
+      if(d<4.2||d>6.8||!hasClearRear(level,p,facing,solids,enemy.frontShield))continue;
+      cands.push({p,facing});}
+    if(!cands.length)return false;
+    const {p,facing}=shuffled(cands,rng)[0];
+    Object.assign(enemy,{x:p.x,z:p.z,facing});enc.x=p.x;enc.z=p.z;return true;
+  }
+  for(const r of [.5,.8,1.1,1.4])for(let k=0;k<12;k++){
+    const a=k/12*2*PI,p={x:round2(enemy.x+Math.sin(a)*r),z:round2(enemy.z+Math.cos(a)*r)};
+    if(roomIndexOf(level,p)!==roomIndexOf(level,enemy)||!spotFree(level,p,.9,solids))continue;
+    if([level.start,level.exit].some(o=>dist(p,o)<2))continue;
+    const facing=enc.from?angleTo(p,enc.from):(enemy.facing??0);
+    if(!hasClearRear(level,p,facing,solids,enemy.frontShield))continue;
+    Object.assign(enemy,{x:p.x,z:p.z,facing});enc.x=p.x;enc.z=p.z;return true;
+  }
+  return false;
+}
+export function ensureRearClearance(level,rng){
+  for(const enc of level.encounters){
+    if(enc.type!=='guard'&&enc.type!=='shield_turret')continue;
+    const enemy=level.enemies.find(e=>e.id===enc.enemyId);if(!enemy)continue;
+    if(hasClearRear(level,enemy,enemy.facing??0,solidsWithEnemies(level,enemy.id),enemy.frontShield)){enemy.rearBlocked=false;continue;}
+    if(relocateForClearRear(level,enemy,enc,rng)){enemy.rearBlocked=false;continue;}
+    // Could not find any clear rear spot even after relocating (a very tight room). Never leave an unkillable
+    // enemy: keep it in place and keep its collision, but drop the front shield so it can be shot from any side.
+    enemy.rearBlocked=true;enemy.frontShield=0;
+  }
 }
 
 // Where the player comes from into the room that holds `p`: the gap in its partition, else its door, else the start (first room).
