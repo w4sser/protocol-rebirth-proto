@@ -36,7 +36,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
-    for (const mode of (process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
+    for (const mode of (process.env.MILITARY_FOCUS==='1'||process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
@@ -85,6 +85,7 @@ try {
       // captures disable external dressing to keep their render baselines stable.
       if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
       if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
+      if (process.env.MILITARY_FOCUS==='1') {params.set('polyfork','1');params.set('polyforkMode','military');params.set('seed','military-qa-01');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
@@ -139,6 +140,25 @@ try {
         console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
         if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length||life.planned>(mode==='low'?40:125))
           throw new Error('Default Archipelago dressing failed to render: '+JSON.stringify(life));
+        await sleep(1800);
+      }
+      if (process.env.MILITARY_FOCUS==='1') {
+        await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "military" && window.__polyforkPreview.stats.ready',{polling:250,timeout:45000});
+        const audit=await page.evaluate(()=>{
+          const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
+          if(record){
+            const level=window.__NR?.state?.()?.level;
+            const island=level?.floors.filter(f=>!f.dir)[record.islandIndex];
+            if(island){
+              const dx=record.center.x-island.x,dz=record.center.z-island.z;
+              window.__NR.teleport(island.x+dx*.74,island.z+dz*.74);
+            }
+          }
+          return {mode:st.mode,landmarks:st.militaryLandmarks,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
+        });
+        console.log('[military-remnants-preview]',area,mode,JSON.stringify(audit));
+        if(!audit.landmarks?.length||!audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
+          throw new Error('Military Remnants vignette absent/invalid: '+JSON.stringify(audit));
         await sleep(1800);
       }
       let ground=null;
