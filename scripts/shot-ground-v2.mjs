@@ -80,7 +80,11 @@ try {
         seed:'groundshot',debug:'1',q:mode==='low'?'low':'high',area,return:'../index.html',
       });
       if (mode !== 'off') {params.set('ground','2');params.set('groundProfile',mode);}
-      if (process.env.COASTAL_FOCUS==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
+      // The dedicated coastal smoke must exercise the actual default launch,
+      // not silently opt into the preview using URL flags. Other ground-only
+      // captures disable external dressing to keep their render baselines stable.
+      if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
+      if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
@@ -130,10 +134,11 @@ try {
               window.__NR.teleport(x,z);
             }
           }
-          return {landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned};
+          return {mode:st.mode,landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned,meshes:st.meshes};
         });
         console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
-        if(!life.landmarks?.length || !life.planned)throw new Error('No coastal vignette for seeded capture');
+        if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length)
+          throw new Error('Default Archipelago dressing failed to render: '+JSON.stringify(life));
         await sleep(1800);
       }
       let ground=null;
