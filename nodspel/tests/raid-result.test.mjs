@@ -38,7 +38,7 @@ test('meta raidId is used only for the launched seed',()=>{
 test('round-over has a hidden return-to-base button',async()=>{
   const {readFile}=await import('node:fs/promises');
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-  assert.match(html,/<button id="return-base" hidden>Return to base<\/button>/);
+  assert.match(html,/<button id="return-base"[^>]*hidden>Return to base<\/button>/);
 });
 import {extractRound,abandonRound} from '../round.js';
 test('extract after a level ends the raid with everything secured',()=>{
@@ -62,6 +62,17 @@ test('launched raids hide Restart in favour of Abandon, and checkpoints offer ex
   assert.match(js,/\$\('#reset'\)\.hidden=!!launch\.returnUrl/);assert.match(js,/\$\('#new-round'\)\.hidden=!!launch\.returnUrl/);
 });
 
+test('Continue raid is the green primary CTA; Return to base stays secondary (owner-requested exception to orange-is-primary)',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  const css=await readFile(new URL('../style.css',import.meta.url),'utf8');
+  const tokens=await readFile(new URL('../../ui/tokens.css',import.meta.url),'utf8');
+  assert.match(html,/<button id="continue-raid" class="result-continue"[^>]*>Continue raid<\/button>/);
+  assert.match(html,/<button id="return-base" class="result-secondary"[^>]*>Return to base<\/button>/);
+  assert.match(tokens,/--ad-continue\s*:\s*#[0-9a-fA-F]{3,8}/,'ui/tokens.css defines a dedicated green token');
+  assert.match(css,/\.result-continue\{[^}]*background:var\(--ad-continue\)/,'Continue raid uses the green token, not a raw colour');
+  assert.doesNotMatch(css,/\.result-continue\{[^}]*#[0-9a-fA-F]{3,8}/,'no raw hex on the Continue raid rule');
+});
 test('standalone Restart closes the pause/settings overlay before starting the new round',async()=>{
   const {readFile}=await import('node:fs/promises');
   const vm=await import('node:vm');

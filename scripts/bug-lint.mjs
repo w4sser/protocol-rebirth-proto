@@ -54,6 +54,15 @@ export const RULES=[
      const lv=ctx?.levelsSrc??read('nodspel/levels.js');
      if(!/applyAreaRules\(level,AR\);\s*\/\/[^\n]*\n\s*ensureRearClearance\(/.test(lv))out.push('nodspel/levels.js: generateLevel must re-run ensureRearClearance after applyAreaRules (extra bodies)');
      return out;}},
+  {id:'playtest-1108-ui',pr:'v2.28.2 (fix/playtest-ui-20261108)',why:'playtest 2026-11-08: Continue raid must be the green primary, a Bunker Level card must pause the raid clock, the phone bag/NEED panel must stay compact',
+   check(ctx){const out=[];const html=ctx?.html??read('nodspel/index.html'),css=(ctx?.css??read('nodspel/style.css')).replace(/\s+/g,' '),game=ctx?.game??read('nodspel/game.mjs'),layout=ctx?.layout??read('scripts/layout-check.mjs');
+     if(!/id="continue-raid" class="result-continue"/.test(html))out.push('nodspel/index.html: #continue-raid must use class result-continue');
+     if(!/\.result-continue\{[^}]*background:var\(--ad-continue\)/.test(css))out.push('nodspel/style.css: .result-continue must use var(--ad-continue)');
+     const intro=(game.match(/function showLevelIntro\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/pausePick\(/.test(intro)||!/resumePick\(/.test(intro))out.push('nodspel/game.mjs: showLevelIntro must pausePick and resumePick the raid clock');
+     if(!/showLevelIntro\(\);/.test(game))out.push('nodspel/game.mjs: loadLevel must call showLevelIntro()');
+     if(!/raidGoalCompactRun\(vp\)/.test(layout))out.push('scripts/layout-check.mjs: the compact bag/NEED panel check must run');
+     return out;}},
   {id:'artillery-fx-prewarm',pr:'#196',why:'first artillery shell + landing ring compiled mid-fight and hitching on iPhone',
    check(ctx){const src=ctx?.gameSrc??read('nodspel/game.mjs');const out=[];
      if(!/function makeArtilleryShell\b/.test(src))out.push('nodspel/game.mjs: makeArtilleryShell() missing (pooled shell factory)');
