@@ -18,8 +18,8 @@ const fixture={
   start:{x:-9,z:0},exit:{x:100,z:0}
 };
 const key=x=>[x.id,x.x,x.y,x.z,x.h].join(':');
-test('opt-in only; preserve Coastal Life default and independent forest/granite modes',()=>{
-  assert.equal(archipelagoDressingConfig({area:'archipelago'}).mode,'coastal');
+test('default military composition preserves Coastal Life and independent forest/granite modes',()=>{
+  assert.equal(archipelagoDressingConfig({area:'archipelago'}).mode,'military');
   for(const mode of ['scatter','profiles','coastal','military']){
     assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?polyforkMode='+mode}).mode,mode);
   }
