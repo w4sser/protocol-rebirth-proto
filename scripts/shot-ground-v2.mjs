@@ -144,6 +144,20 @@ try {
       }
       if (process.env.MILITARY_FOCUS==='1') {
         await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "military" && window.__polyforkPreview.stats.ready',{polling:250,timeout:45000});
+        // Capture the ACTUAL first player view before any debug teleport.
+        // Previous tests falsely passed by teleporting straight to a tiny remote ruin.
+        const initial=await page.evaluate(()=>{
+          const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
+          const level=window.__NR?.state?.()?.level;
+          const cameraPoint=record&&window.__NR?.project(record.center.x,record.center.z);
+          const nearest=record&&level?.start?
+            Math.hypot(record.center.x-level.start.x,record.center.z-level.start.z):null;
+          return {position:window.__NR?.state?.()?.position,landmarks:st.militaryLandmarks?.length??0,
+            firstIsland:record?.islandIndex??null,nearest,point:cameraPoint,viewport:[innerWidth,innerHeight],
+            inFrame:!!cameraPoint&&cameraPoint.x>=0&&cameraPoint.x<=innerWidth&&cameraPoint.y>=0&&cameraPoint.y<=innerHeight};
+        });
+        console.log('[military-unassisted-first-view]',area,mode,JSON.stringify(initial));
+        await page.screenshot({path:join(OUT,area+'-L'+(process.env.LEVEL||1)+'-'+mode+'-initial.png')});
         const audit=await page.evaluate(()=>{
           const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
           if(record){
@@ -157,7 +171,9 @@ try {
           return {mode:st.mode,landmarks:st.militaryLandmarks,architecture:st.militaryGeometry,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
         });
         console.log('[military-remnants-preview]',area,mode,JSON.stringify(audit));
-        if(!audit.landmarks?.length||audit.architecture?.structures!==1||audit.architecture?.parts<8||audit.architecture?.drawCalls>15||!audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
+        if(!audit.landmarks?.length||audit.architecture?.structures!==audit.landmarks.length||
+          audit.architecture?.parts<audit.landmarks.length*8||audit.architecture?.drawCalls>45||
+          !audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
           throw new Error('Military Remnants vignette absent/invalid: '+JSON.stringify(audit));
         await sleep(1800);
       }
