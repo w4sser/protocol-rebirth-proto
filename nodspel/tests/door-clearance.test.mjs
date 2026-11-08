@@ -4,8 +4,8 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {generateLevel} from '../levels.js';import {movePlayer} from '../physics.mjs';
 const near=(p,o)=>{const cx=Math.max(o.x-o.w/2,Math.min(p.x,o.x+o.w/2)),cz=Math.max(o.z-o.d/2,Math.min(p.z,o.z+o.d/2));return Math.hypot(p.x-cx,p.z-cz);};
 const free=(p,r,L,solids)=>[[0,0],[r,0],[-r,0],[0,r],[0,-r]].every(([a,b])=>L.floors.some(f=>Math.abs(p.x+a-f.x)<=f.w/2&&Math.abs(p.z+b-f.z)<=f.d/2))&&!solids.some(o=>near(p,o)<r+.02);
-const levels=function*(){for(let s=0;s<40;s++)for(let n=1;n<=3;n++)for(const hard of [false,true])yield [n,`dc-${s}`,hard,generateLevel(n,`dc-${s}`,'bunker',hard)];};
-test('no partition wall reaches into a doorway mouth (bunker, all levels, hard too)',()=>{
+const levels=function*(){for(const area of ['bunker','town'])for(let s=0;s<40;s++)for(let n=1;n<=3;n++)for(const hard of [false,true])yield [n,`${area}:dc-${s}`,hard,generateLevel(n,`dc-${s}`,area,hard)];};
+test('no partition wall reaches into a doorway mouth (bunker + town, all levels, hard too)',()=>{
   for(const [n,s,h,L] of levels())for(const room of L.rooms.filter(r=>r.partition))for(const dir of room.doors.filter(d=>d.x!==0)){
     const mouth={x:room.x+dir.x*room.w/2,z:room.z};const door=L.corridors[0]?.width??1.8;
     const parts=L.walls.filter(w=>Math.abs(w.z-room.partition.z)<.01&&w.h===1.7);

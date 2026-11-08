@@ -6,7 +6,9 @@ vm.runInContext('var window=this; var DATA=window.DATA={};' + fs.readFileSync(ne
 const F = ctx.DATA.questFacts;
 test('questFacts cover every area and zone', () => { for(const a of AREAS) for(let n = 1; n <= 3; n++) assert.ok(F[a] && F[a][n], a + n); });
 test('listed enemies, items and houses really appear', () => {
-  const S = 120;
+  // v2.28.6: 400 seeds (was 120): town2 smg_vector sits at ~18.6 % over 1000 seeds but a 120-seed sample swung 10.8-12.5 %
+  // around the 12 % floor whenever unrelated geometry shifted the rng stream. More samples, same thresholds.
+  const S = 400;
   for(const a of AREAS){ setArea(a); for(let n = 1; n <= 3; n++){ const f = F[a][n], enem = {}, items = {}; let houses = 0;
     for(let s = 0; s < S; s++){ const L = generateLevel(n, 'qf' + s, a);
       for(const t of new Set(L.enemies.map(e => e.type))) enem[t] = (enem[t] || 0) + 1;

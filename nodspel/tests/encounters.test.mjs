@@ -232,7 +232,8 @@ function flankByRoute(S,g,side){
     if(S.round.over)return false;}
   return false;
 }
-function flankGuard(S,g,side){return flankGreedy(S,g,side)||(g.health>0&&!S.round.over&&flankByRoute(S,g,side));}
+let flankRescues=0; // review P2: the route fallback must stay rare -- asserted below so it cannot silently absorb snags
+function flankGuard(S,g,side){if(flankGreedy(S,g,side))return true;if(g.health>0&&!S.round.over&&flankByRoute(S,g,side)){flankRescues++;return true;}return false;}
 function flankGreedy(S,g,side){
   for(let t=0;t<14000&&g.health>0&&!S.round.over;t+=DT*1000){
     const rel=angleDiff(g.facing,angleTo(g,S.P));
@@ -256,6 +257,8 @@ test('guard WITHOUT a tool: flank it (its shield only covers the front), shoot i
     assert.ok(win.S.round.health>0&&win.S.maxDrop<=hitCap(win.S),`max single hit ${win.S.maxDrop} <= ${hitCap(win.S)}`);
     assert.equal(win.S.round.enemiesDefeated,1);
   }
+  // at most one seed-side may need the planned-route rescue (enc-b side 1 after the v2.28.6 partition nudge); more means snags
+  assert.ok(flankRescues<=1,`route rescues ${flankRescues} (greedy flank failing broadly = real regression)`);
 });
 
 test('guard WITH a Decoy: it walks off the node and holds fire, the node lights without a shot fired',()=>{

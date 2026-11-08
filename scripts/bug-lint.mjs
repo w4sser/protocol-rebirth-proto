@@ -87,7 +87,7 @@ export const RULES=[
      return out;}},
   {id:'partition-door-clearance',pr:'v2.28.6 (playtest 2026-11-08 corridors)',why:'Bunker L2 partition end jutted into the side doorway mouth; players and enemies snagged in corridors',
    check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js');
-     if(!/const sideDoor=area==='bunker'&&room\.doors\.some\(p=>p\.x!==0\)/.test(lv)||!/-\(door\/2\+t\/2\+\.02\)/.test(lv))out.push('nodspel/levels.js: with a side door the partition must clear the doorway span (z <= -(door/2+t/2))');
+     if(!/const sideDoor=area!=='archipelago'&&room\.doors\.some\(p=>p\.x!==0\)/.test(lv)||!/-\(door\/2\+t\/2\+\.02\)/.test(lv))out.push('nodspel/levels.js: with a side door the partition must clear the doorway span (z <= -(door/2+t/2))');
      if(!c.levelsSrc&&!read('nodspel/tests/door-clearance.test.mjs').includes('walkable starts on both sides'))out.push('nodspel/tests/door-clearance.test.mjs: keep the both-sides corridor approach sweep');
      return out;}},
   {id:'scouted-area-no-chart',pr:'v2.28.6 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
