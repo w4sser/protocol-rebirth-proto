@@ -130,7 +130,7 @@ try {
         const enemyAudit=await page.evaluate(()=>{
           const level=window.__NR?.state?.()?.level;
           if(!level?.big)return {error:'Big Map not active'};
-          const actors=level.enemies.filter(e=>/^big-enemy-\\d+$/.test(e.id)&&!e.encounter);
+          const actors=level.enemies.filter(e=>/^big-enemy-\d+$/.test(e.id)&&!e.encounter);
           const types=Object.fromEntries([...new Set(actors.map(e=>e.type))].map(t=>[t,actors.filter(e=>e.type===t).length]));
           return {seed:level.seed,rooms:level.rooms.length,types,
             chosen:['sentry','rusher','thrower'].map(t=>{
