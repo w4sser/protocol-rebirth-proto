@@ -200,8 +200,31 @@ try {
             throw new Error('Glacial cliff LOD budget exceeded: '+JSON.stringify(audit.glacial));
         }
         await sleep(1800);
-        if(process.env.GLACIAL_FOCUS==='1')
+        if(process.env.GLACIAL_FOCUS==='1'){
+          // Presence alone isn't enough: first visual version passed tests with
+          // a giant opaque rock hiding the bunker and even the operator.
+          const visibility=await page.evaluate(async()=>{
+            const THREE=await import('./vendor/three.module.js');
+            const cam=window.__NR?.getCamera?.(),scene=window.__NR?.getScene?.();
+            const portal=window.__polyforkPreview?.stats?.militaryLandmarks?.find(x=>x.scene==='sealed-rock-portal');
+            if(!cam||!scene||!portal)return {error:'Missing camera, scene or door'};
+            const z=1.05,c=Math.cos(portal.ry),s=Math.sin(portal.ry);
+            const p=new THREE.Vector3(portal.center.x+s*z,1.04,portal.center.z+c*z);
+            const delta=p.clone().sub(cam.position),distance=delta.length();
+            const rays=new THREE.Raycaster(cam.position,delta.normalize(),0,Math.max(.01,distance-.25));
+            const rocks=[];
+            scene.traverse(o=>{if(o.name?.startsWith('glacial-bedrock-'))rocks.push(o);});
+            const blocked=rays.intersectObjects(rocks,false);
+            const proj=p.clone().project(cam);
+            return {doorInFrame:Math.abs(proj.x)<=1&&Math.abs(proj.y)<=1,
+              blocked:blocked.length>0,blockingRock:blocked[0]?.object?.name??null,
+              distance,firstOccluder:blocked[0]?.distance??null,rocks:rocks.length};
+          });
+          console.log('[glacial-camera-visibility]',area,mode,JSON.stringify(visibility));
+          if(visibility.error||!visibility.doorInFrame||visibility.blocked||visibility.rocks<1)
+            throw new Error('Glacial rock occludes the real bunker door from gameplay camera: '+JSON.stringify(visibility));
           await page.screenshot({path:join(OUT,area+'-glacial-'+mode+'-portal.png')});
+        }
       }
       let ground=null;
       if (mode !== 'off') {
