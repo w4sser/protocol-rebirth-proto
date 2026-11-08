@@ -77,13 +77,25 @@ export const RULES=[
      if(!/makeArtilleryShell\(\);\s*makeToolFxRing\(\);\s*makeToolFxRing\(\);/.test(src))out.push('nodspel/game.mjs: must pre-create 1 artillery shell + 2 landing rings at init for shader prewarm');
      if(!/function prewarmShaders\b/.test(src)||!/prewarmShaders\(\);/.test(src))out.push('nodspel/game.mjs: prewarmShaders() must still run so hidden artillery FX compile at level load');
      return out;}},
-  {id:'dda-extra-on-floor',pr:'v2.28.4 (fix/dda-spawn-floor-20261108)',why:'playtest 2026-11-08 "spawn utanför leveln": DDA extra enemies were placed 1.4-2.8m from a source checking only walls/boxes, landing behind exterior walls, and cloned front-shielded encounter actors',
+  {id:'dda-extra-on-floor',pr:'v2.28.5 (fix/dda-spawn-floor-20261108)',why:'playtest 2026-11-08 "spawn utanför leveln": DDA extra enemies were placed 1.4-2.8m from a source checking only walls/boxes, landing behind exterior walls, and cloned front-shielded encounter actors',
    check(c={}){const out=[];const src=c.ddaSrc??read('nodspel/difficulty.js');
      if(!/walkMap\(/.test(src))out.push('nodspel/difficulty.js: extras must be reachable (walkMap from the start)');
      if(!/level\.floors\.some\(/.test(src))out.push('nodspel/difficulty.js: extras must check their full footprint against level.floors');
      if(!/filter\(d=>d\.locked\)/.test(src))out.push('nodspel/difficulty.js: locked doors must count as solids for extras');
      if(!/!e\.frontShield/.test(src)||!/!e\.encounter/.test(src))out.push('nodspel/difficulty.js: extras must clone only plain bodies (no frontShield/encounter actors)');
      if(/pool\.length\s*\?\s*pool\s*:/.test(src))out.push('nodspel/difficulty.js: no fallback from the plain pool to any enemy (it cloned shield actors)');
+     return out;}},
+  {id:'scouted-area-no-chart',pr:'v2.28.5 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
+   check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js'),app=c.appSrc??read('app.js'),game=c.gameSrc??read('nodspel/game.mjs');
+     if(!/AR\.scout&&[^{]*!SCOUTED\.has\(/.test(lv))out.push('nodspel/levels.js: the scout crate must be skipped for areas in SCOUTED');
+     if(!/&scouted=/.test(app)||!/scouted:\s*scoutedAreas\(\)/.test(app))out.push('app.js: the raid launch must pass the account\'s scouted areas (&scouted=)');
+     if(!/setScouted\(launch\.scouted\)/.test(game))out.push('nodspel/game.mjs: must call setScouted(launch.scouted) before any level is generated');
+     return out;}},
+  {id:'core-loot-hint',pr:'v2.28.5 (playtest 2026-11-08)',why:'Core L2->L3 showed 0/2 Memory Module with no hint where to raid for it',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');
+     if(!/lootHintHtml\(p\)/.test(app))out.push('app.js: building cost rows must render lootHintHtml(p) for missing parts');
+     if(!/D\.lootSources/.test(app))out.push('app.js: lootHint must read DATA.lootSources (generated), not hand-written areas');
+     if(!/src="data\/loot-sources\.js/.test(html))out.push('index.html: must load data/loot-sources.js');
      return out;}},
   {id:'perk-choice-touch-44',pr:'v2.28.0 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
    check(){const out=[];const css=read('nodspel/perks.css');const game=read('nodspel/game.mjs');const ui=read('nodspel/perk-ui.js');const layout=read('scripts/layout-check.mjs');

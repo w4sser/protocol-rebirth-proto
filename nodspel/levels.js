@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.4';
-import {generateBigLevel} from './big-level.js?v=2.28.4';
-import '../data/items.js?v=2.28.4';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.4';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.4-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.4';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.4';
-import '../data/raid-combat.js?v=2.28.4';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.5';
+import {generateBigLevel} from './big-level.js?v=2.28.5';
+import '../data/items.js?v=2.28.5';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.5';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.5-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.5';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.5';
+import '../data/raid-combat.js?v=2.28.5';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -201,6 +201,10 @@ export function houseItem(kind,number,roll,area='town'){if(kind==='medicine_cabi
 export const AREA_LOOT={archipelago:{world:[{},{tidal_coil:5},{tidal_coil:10}]},town:{house:[{},{frost_glass:8},{frost_glass:10}]}};
 export function areaTable(area,number,where){return{...RULES.loot.weights[number-1],...AREA_LOOT[area]?.[where]?.[number-1]};}
 let QUEST_LOOT=null;
+// v2.28.5 (playtest t352u): an already-scouted area's chart/survey no longer drops; the crate keeps its normal loot.
+let SCOUTED=new Set();
+export function setScouted(list){SCOUTED=new Set(Array.isArray(list)?list:[]);}
+export const scoutTarget=item=>globalThis.DATA.items.find(i=>i.id===item)?.scouts;
 export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level,source:globalThis.DATA.items.find(i=>i.id===q.item)?.raidSource}:null;}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
@@ -414,7 +418,7 @@ export function applyAreaRules(level,AR){
     e.speed=(e.speed??0)/(RULES.enemyTypes[e.type]?.speedMul||1)*(t.speedMul||0);e.type=Object.keys(RULES.enemyTypes).find(k=>RULES.enemyTypes[k]===t);e.rangeMul=t.rangeMul;e.cooldownMul=t.cooldownMul;e.standoff=t.standoff;}
   for(const e of level.enemies)e.health=Math.max(1,Math.round((e.health??RULES.enemyHealth)*AR.hpMul));
   {const dm=AR.dmgMul*(RULES.levels[n-1]?.dmgMul??1);level.enemyDamage=Math.round((level.enemyDamage??RULES.combat.damage)*dm);level.dmgMul=dm;}
-  if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
+  if(AR.scout&&AR.scout.level===n&&level.lootBoxes.length&&!SCOUTED.has(scoutTarget(AR.scout.item))){const b=level.lootBoxes.at(-1);b.item=AR.scout.item;b.scout=true;}
   // v1.87 tracked extract quest (e.g. Fuse Box: 2 Fuse from Bunker L2): its level always holds at least one of the item, so the step
   // takes ~1-2 raids instead of a ~10 % roll. Never replaces the scout item. Off unless the meta launch tracks such a quest.
   if(QUEST_LOOT&&QUEST_LOOT.level===n&&(!QUEST_LOOT.source||QUEST_LOOT.source.area===level.area)){
