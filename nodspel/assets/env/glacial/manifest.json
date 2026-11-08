@@ -1,0 +1,56 @@
+{
+  "name": "Protocol Rebirth Glacial Granite / Bungenas",
+  "version": 1,
+  "author": "Protocol Rebirth",
+  "license": "Original authored for project",
+  "assets": [
+    {
+      "id": "headland_high",
+      "file": "glacial_headland_high.glb",
+      "triangles": 900,
+      "bytes": 23188
+    },
+    {
+      "id": "headland_low",
+      "file": "glacial_headland_low.glb",
+      "triangles": 282,
+      "bytes": 8348
+    },
+    {
+      "id": "portal_high",
+      "file": "glacial_portal_high.glb",
+      "triangles": 900,
+      "bytes": 23192
+    },
+    {
+      "id": "portal_low",
+      "file": "glacial_portal_low.glb",
+      "triangles": 282,
+      "bytes": 8352
+    }
+  ],
+  "dimensionsM": {
+    "width": 12.8,
+    "depth": 8.4,
+    "baseY": -1.22,
+    "heightAbout": 5.5
+  },
+  "transform": {
+    "up": "Y",
+    "front": "-Z",
+    "outward": "+Z",
+    "pivot": "front edge x=0 z=0"
+  },
+  "material": {
+    "type": "PBR",
+    "materials": 1,
+    "textures": 0,
+    "vertexColors": true,
+    "normals": true,
+    "doubleSided": true
+  },
+  "physics": {
+    "visualOnly": true,
+    "intersectsWalkableFloors": false
+  }
+}
