@@ -88,7 +88,7 @@ export const RULES=[
   {id:'scouted-area-no-chart',pr:'v2.28.5 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
    check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js'),app=c.appSrc??read('app.js'),game=c.gameSrc??read('nodspel/game.mjs');
      if(!/AR\.scout&&[^{]*!SCOUTED\.has\(/.test(lv))out.push('nodspel/levels.js: the scout crate must be skipped for areas in SCOUTED');
-     if(!/&scouted=/.test(app)||!/scouted:\s*Object\.keys\(S\.areaScouted/.test(app))out.push('app.js: the raid launch must pass the account\'s scouted areas (&scouted=)');
+     if(!/&scouted=/.test(app)||!/scouted:\s*scoutedAreas\(\)/.test(app))out.push('app.js: the raid launch must pass the account\'s scouted areas (&scouted=)');
      if(!/setScouted\(launch\.scouted\)/.test(game))out.push('nodspel/game.mjs: must call setScouted(launch.scouted) before any level is generated');
      return out;}},
   {id:'core-loot-hint',pr:'v2.28.5 (playtest 2026-11-08)',why:'Core L2->L3 showed 0/2 Memory Module with no hint where to raid for it',

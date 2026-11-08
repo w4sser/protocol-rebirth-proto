@@ -2955,6 +2955,7 @@ function slotTileHtml(def, locked, mini){
 const WMAP = D.worldMap, AREA_DEFS = {}; WMAP.areas.forEach(a => AREA_DEFS[a.id] = a);
 const DEBUG_AREAS = typeof location !== "undefined" && /[?&]debug(=|&|$)/.test(location.search || "");
 function areaScouted(id){ return !!(S.areaScouted && S.areaScouted[id]); }
+function scoutedAreas(){ return Object.keys(S.areaScouted || {}).filter(areaScouted); }
 function areaCoreOk(id){ const q = AREA_DEFS[id] && AREA_DEFS[id].requires; return !q || coreLevel() >= q.core; }
 function areaEarned(id){ return areaCoreOk(id) && areaScouted(id); }
 function areaUnlocked(id){ const a = AREA_DEFS[id]; if(!a) return false; if(!a.requires || DEBUG_AREAS || S.debugAreas) return true; return areaEarned(id); }
@@ -4551,7 +4552,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:Object.keys(S.areaScouted || {}).filter(areaScouted), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
     const navigate = () => {
       try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
       finally{ session.raidNavigating=false; }
