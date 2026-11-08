@@ -9,6 +9,8 @@ assert.equal(by('audio-ogg-m4a-pairs').check({files:['assets/audio/sfx/x.ogg','a
  assert.equal(by('medkit-independent-of-heal-budget').check({roundSrc:bad}).length,2,'v2.25.1 fires');}
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position={...round.level.start};'}).length,2,'spawn rule fires');
 assert.equal(by('raid-spawn-validated').check({gameSrc:'position=safeSpawn(round.level);'}).length,0);
+assert.ok(by('level-intro-fullscreen').check({htmlSrc:'<div id="viewport"><div id="level-intro"></div></div><script></script>',cssSrc:'.level-intro-card{position:fixed;inset:0;z-index:30}',layoutSrc:''}).length===3,'v2.28.4 card fires');
+assert.equal(by('level-intro-fullscreen').check({htmlSrc:'<div id="viewport"></div><script></script><div id="level-intro"></div>',cssSrc:'.level-intro-card{position:fixed;inset:0;width:100vw;height:100vh;z-index:60}',layoutSrc:'level card does not fill the screen'}).length,0,'v2.28.4 card passes');
 assert.ok(by('dda-extra-on-floor').check({ddaSrc:'const clear=p=>!solids.some(o=>1);'}).length>=1,'v2.28.4 fires on wall-only extra placement');
 assert.ok(by('dda-extra-on-floor').check({ddaSrc:'walkMap(level);level.floors.some(f=>1);filter(d=>d.locked);e=>!e.encounter&&!e.frontShield;(pool.length?pool:all)'}).length>=1,'v2.28.4 fires on fallback');
 assert.equal(by('dda-extra-on-floor').check({ddaSrc:'walkMap(level);level.floors.some(f=>1);filter(d=>d.locked);e=>!e.encounter&&!e.frontShield'}).length,0,'v2.28.4 passes with floor+reach+plain checks');
