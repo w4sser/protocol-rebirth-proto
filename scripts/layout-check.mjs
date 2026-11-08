@@ -724,6 +724,27 @@ try{
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
   for(const vp of VIEWPORTS)await raidGoalCompactRun(vp);
+  // Playtest 2026-11-08 item 5: mid-raid result -> Continue raid is the green primary, Return to base stays reachable,
+  // and tapping Continue actually resumes the raid on the next level.
+  for(const [w,h] of VIEWPORTS){const tag=`raid continue-result ${w}x${h}`;console.log(tag);const page=await newPage(w,h);
+    await page.goto(`${BASE}/nodspel/?seed=continue&area=bunker&debug=1&return=${encodeURIComponent(BASE+"/index.html")}`,{waitUntil:'load'});
+    await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});await loaderGone(page);await page.click('#tutorial-start');
+    await page.waitForFunction(()=>window.__NR&&window.__NR.round?.(),{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));
+    const before=await page.evaluate(()=>window.__NR.round().level.number);
+    const r=await page.evaluate(()=>window.__NR.pendingResultDemo());
+    if(r!=='next'){fail(tag,`expected a mid-raid result, got ${r}`);await page.close();continue;}
+    await page.waitForSelector('#continue-raid',{visible:true,timeout:10000}).catch(()=>fail(tag,'Continue raid not visible'));
+    const m=await page.evaluate(()=>{const c=document.getElementById('continue-raid'),b=document.getElementById('return-base'),cs=getComputedStyle(c),rc=c.getBoundingClientRect(),rb=b.getBoundingClientRect();
+      const top=(el,r)=>document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('button')===el;
+      return {bg:cs.backgroundColor,cw:rc.width,ch:rc.height,bw:rb.width,bh:rb.height,bHidden:b.hidden,cTop:top(c,rc),bTop:b.hidden||top(b,rb)};});
+    const [R,G,B]=(m.bg.match(/\d+/g)||[]).map(Number);
+    if(!(G>R+40&&G>B+40))fail(tag,`Continue raid is not green (${m.bg})`);
+    if(m.cw<44||m.ch<44||(!m.bHidden&&(m.bw<44||m.bh<44)))fail(tag,`result touch target under 44px ${JSON.stringify(m)}`);
+    if(!m.cTop||!m.bTop)fail(tag,`a result action is covered and cannot be tapped ${JSON.stringify(m)}`);
+    await shot(page,`raid-continue-result-${w}x${h}`);
+    await page.click('#continue-raid');
+    await page.waitForFunction(n=>document.getElementById('round-over').hidden&&window.__NR.round().level.number>n&&!window.__NR.round().over,{timeout:10000},before).catch(()=>fail(tag,'Continue raid did not resume the raid on the next level'));
+    await page.close();}
   // Playtest 2026-11-08 item 4: the BUNKER LEVEL card itself (opted in; debug harnesses skip it otherwise).
   for(const [w,h] of VIEWPORTS){const tag=`raid level-intro ${w}x${h}`;console.log(tag);const page=await newPage(w,h);
     await page.goto(`${BASE}/nodspel/?seed=intro&area=bunker&debug=1&levelIntro=1`,{waitUntil:'load'});
