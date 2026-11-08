@@ -299,7 +299,7 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*railOffset:0),
       z:cz+(corridor.dir.x?sign*railOffset:0),
       w:corridor.dir.x?Math.max(.3,corridor.w+pad-shorten):t,
-      d:corridor.dir.z?Math.max(.3,corridor.d+pad-shorten):t,h:.85});
+      d:corridor.dir.z?Math.max(.3,corridor.d+pad-shorten):t,h:.85,bridgeRail:islandPier});
   }
   for(let i=0;i<rooms.length;i++){
     const room=rooms[i],{x,z,w,d}=room;

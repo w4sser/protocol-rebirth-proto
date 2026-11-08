@@ -45,9 +45,9 @@ test('bridge rail collision lies outside the full 4-metre walkway',()=>{
       const width=xAxis?c.d:c.w;
       const railWidth=xAxis?'d':'w',railLength=xAxis?'w':'d';
       const rails=level.walls.filter(w=>
-        Math.abs(w[along]-c[along])<.02 &&
-        Math.abs(w[railLength]-Math.max(.30,c[railLength]-2*BRIDGE_LAND_RAIL_RECESS))<.05 &&
-        Math.abs(w[railWidth]-.4)<.01
+        w.bridgeRail===true && Math.abs(w[along]-c[along])<.02 &&
+        Math.abs(w[across]-c[across])>=width/2 &&
+        Math.abs(w[across]-c[across])<width/2+1
       );
       assert.equal(rails.length,2,'both corridor rails found');
       for(const rail of rails){

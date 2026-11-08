@@ -47,7 +47,7 @@ export function generateBigLevel(seed,area='bunker'){
     for(const sign of [-1,1])level.walls.push({
       x:c.x+(c.dir.z?sign*(cross/2+t/2):0),
       z:c.z+(c.dir.x?sign*(cross/2+t/2):0),
-      w:c.dir.x?shortened:t,d:c.dir.z?shortened:t,h:.85,roomIds:c.roomIds});
+      w:c.dir.x?shortened:t,d:c.dir.z?shortened:t,h:.85,roomIds:c.roomIds,bridgeRail:area==='archipelago'});
   }
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];

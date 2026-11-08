@@ -138,7 +138,7 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
     // Keep it for placement/metadata but use a round, foot-level contact radius.
     const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,
       w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y,
-      r:Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.42,rock:true};
+      r:Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.42,rock:true,bridgeRail:!!w.bridgeRail};
     colliders.push(collider);m.userData.collider=collider;
   }
   return boulders.length;
@@ -291,7 +291,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
+    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true,bridgeRail:!!w.bridgeRail});shore.push(w);}
     else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
   out.shoreProps=terrainPreview
