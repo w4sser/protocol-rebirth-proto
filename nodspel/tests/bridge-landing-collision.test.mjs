@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {generateLevel} from '../levels.js';
 import {generateBigLevel} from '../big-level.js';
 import {movePlayer} from '../physics.mjs';
+import {archipelagoPassages} from '../archipelago-passages.js';
 import {BRIDGE_LAND_MOUTH_EXTRA,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from '../bridge-flow.mjs';
 
 // Tests the actual 9-sample, collision-aware player movement, not a loose
@@ -71,4 +72,19 @@ test('large seeded layouts retain a forgiving land-side approach without widenin
   }
   assert.ok(sampled>60);
   assert.deepEqual(failures,[]);
+});
+
+// The enlarged land mouths must still be recognized by the rock/decor clearance
+// finder. A missed doorway can let a shoreline boulder grow across the entrance.
+test('passage detector recognizes every enlarged Archipelago room opening',()=>{
+  for(const n of [2,3])for(let seed=0;seed<12;seed++){
+    const level=generateLevel(n,`passage-${seed}`,'archipelago');
+    const passages=archipelagoPassages(level);
+    for(const [index,room] of level.rooms.entries())for(const dir of room.doors){
+      const mouth={x:room.x+dir.x*(room.w/2-.2),z:room.z+dir.z*(room.d/2-.2)};
+      assert.ok(passages.some(p=>Math.abs(p.x-mouth.x)<p.w/2&&Math.abs(p.z-mouth.z)<p.d/2),
+        'missed room opening: '+JSON.stringify({n,seed,index,mouth,room,passages,
+          corridors:level.corridors,deadEnds:level.deadEnds}));
+    }
+  }
 });
