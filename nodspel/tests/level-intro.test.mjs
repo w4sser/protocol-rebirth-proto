@@ -37,12 +37,12 @@ function fn(name){
 }
 assert.match(source,/showLevelIntro\(\);\s*\n\}/,'loadLevelInner calls showLevelIntro() before returning');
 
-function harness(level){
+function harness(level,search=''){
   const round={level,pauseAt:null,pausedMs:0};
   const dom={introHidden:true,introText:''};
   const els={'#level-intro-text':{set textContent(v){dom.introText=v;}},'#level-intro':{get hidden(){return dom.introHidden;},set hidden(v){dom.introHidden=v;}}};
   const ctx=vm.createContext({round,levelIntroTitle,LEVEL_INTRO_MS:15,pausePick,resumePick,levelIntroTimer:null,
-    $:sel=>els[sel],setTimeout,clearTimeout,Date});
+    $:sel=>els[sel],setTimeout,clearTimeout,Date,URLSearchParams,location:{search}});
   vm.runInContext(fn('showLevelIntro'),ctx);
   return {round,dom,ctx};
 }
@@ -61,4 +61,10 @@ test('showLevelIntro is a no-op outside discrete bunker levels (big/continuous a
   h.ctx.showLevelIntro();
   assert.equal(h.dom.introHidden,true);
   assert.equal(h.round.pauseAt,null,'never pauses a level that has no title to show');
+});
+test('debug harness URLs skip the card unless they opt in with levelIntro=1',()=>{
+  const skip=harness({number:1,big:false},'?debug=1');skip.ctx.showLevelIntro();
+  assert.equal(skip.dom.introHidden,true);assert.equal(skip.round.pauseAt,null);
+  const opt=harness({number:1,big:false},'?debug=1&levelIntro=1');opt.ctx.showLevelIntro();
+  assert.equal(opt.dom.introText,'BUNKER LEVEL 1');assert.equal(opt.round.pauseAt!=null,true);
 });
