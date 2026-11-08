@@ -827,7 +827,7 @@ let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
 const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
-const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-pilot1-coastal-v1'):null;
+const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1'):null;
 let polyforkPreview=null,polyforkLoadToken=0;
 function refreshArchipelagoDressing(level){
   const token=++polyforkLoadToken;
