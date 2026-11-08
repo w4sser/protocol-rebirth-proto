@@ -58,7 +58,7 @@ export function applyBigArchipelagoEnemyVariety(level){
   return level;
 }
 
-export function generateBigLevel(seed,area='bunker'){
+export function generateBigLevel(seed,area='bunker',{enemyVariety=true}={}){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
   // BIG MAP graph still used 1.8 m bunker corridors in the Archipelago.
   // Widen the REAL graph/collision/floor corridors, not just the visible planks.
@@ -124,7 +124,7 @@ export function generateBigLevel(seed,area='bunker'){
     }else poi.description='GENERATOR: destroy the generator to drop the terminal shield';
   }
   // POI encounters are finalized first; never retype their guard, turret or swarm.
-  applyBigArchipelagoEnemyVariety(level);
+  if(enemyVariety)applyBigArchipelagoEnemyVariety(level);
   if(area==='archipelago'){
     // Protect generous diagonal approaches against inherited bunker cover.
     // Those crates were authored for 1.8m passages. In a 4.2m bridge landing
