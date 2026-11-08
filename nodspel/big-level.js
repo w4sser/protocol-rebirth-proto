@@ -5,12 +5,19 @@ import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.0';
 import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.0';
 import {applyEncounters} from './encounters.js?v=2.28.0';
 import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.0';
-import {BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
+  // BIG MAP graph still used 1.8 m bunker corridors in the Archipelago.
+  // Widen the REAL graph/collision/floor corridors, not just the visible planks.
+  // This also keeps graphRoomAt and bridge waypoint reservations in sync.
+  if(area==='archipelago')for(const edge of graph.edges){
+    const c=edge.corridor,w=Math.max(BRIDGE_MIN_WIDTH,c.width,4.2);
+    edge.corridor={...c,width:w,w:c.dir.x?c.w:w,d:c.dir.z?c.d:w};
+  }
   const level={number:1,seed:String(seed),big:true,area,archipelago:area==='archipelago',graph,title:'Node Network',choiceSide:1,layoutId:'big',rooms,floors:rooms.map(r=>({...r})),walls:[],boxes:[],nodes:[],enemies:[],lootBoxes:[],hazards:[],encounters:[],spawners:[],doors:[],corridors:graph.edges.map(e=>({...e.corridor,roomIds:[e.a,e.b]})),deadEnds:[],routeChoices:[],start:{x:graph.spawn.x,z:graph.spawn.z},exit:graph.extracts[0],extracts:graph.extracts,theme:RULES.variety[0].theme};
-  const t=RULES.wallThickness,width=RULES.levels[1].passage;
+  const t=RULES.wallThickness,width=area==='archipelago'?4.2:RULES.levels[1].passage;
   for(const room of rooms){
     // Spread authored cover and objectives across the larger footprint; model sizes stay fixed.
     const template=generateLevel(room.id===0?1:3,`${seed}:room:${room.id}`,'bunker',false,false,RULES.layouts[2].find(l=>l.id===room.layoutId)),source=template.rooms[room.id===0?0:room.templateIndex];
