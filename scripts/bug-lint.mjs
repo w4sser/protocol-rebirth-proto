@@ -85,6 +85,13 @@ export const RULES=[
      if(!/!e\.frontShield/.test(src)||!/!e\.encounter/.test(src))out.push('nodspel/difficulty.js: extras must clone only plain bodies (no frontShield/encounter actors)');
      if(/pool\.length\s*\?\s*pool\s*:/.test(src))out.push('nodspel/difficulty.js: no fallback from the plain pool to any enemy (it cloned shield actors)');
      return out;}},
+  {id:'level-intro-fullscreen',pr:'v2.28.4 (playtest 2026-11-08)',why:'the BUNKER LEVEL N card between segments did not fill the screen: it lived inside the transformed #viewport',
+   check(c={}){const out=[];const html=c.htmlSrc??read('nodspel/index.html'),css=c.cssSrc??read('nodspel/style.css'),lc=c.layoutSrc??read('scripts/layout-check.mjs');
+     const vp=html.indexOf('id="viewport"'),card=html.indexOf('id="level-intro"'),end=html.lastIndexOf('</script>');
+     if(card<0||card<end)out.push('nodspel/index.html: #level-intro must sit after the scripts, directly in <body>, outside #viewport');
+     if(!/\.level-intro-card\{position:fixed;inset:0;width:100vw;height:100vh;[^}]*z-index:60/.test(css))out.push('nodspel/style.css: .level-intro-card must be fixed, inset 0, 100vw x full height, z-index 60');
+     if(!/level card does not fill the screen/.test(lc))out.push('scripts/layout-check.mjs: the level card step must assert full-screen coverage');
+     return out;}},
   {id:'scouted-area-no-chart',pr:'v2.28.5 (playtest t352u)',why:'Archipelago Chart / Town Survey kept dropping after the area was already scouted -- redundant pickup',
    check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js'),app=c.appSrc??read('app.js'),game=c.gameSrc??read('nodspel/game.mjs');
      if(!/AR\.scout&&[^{]*!SCOUTED\.has\(/.test(lv))out.push('nodspel/levels.js: the scout crate must be skipped for areas in SCOUTED');
