@@ -927,7 +927,10 @@ function loadLevelInner(){
 // raid clock is paused (pausePick, same mechanism as the perk picker) so it can't tick underneath it.
 function showLevelIntro(){
   const title=levelIntroTitle(round.level);
-  if(!title)return;
+  // Automated ?debug=1 harnesses (layout/viewport/smoke) drive input right after load; the card would swallow it.
+  // They opt back in with &levelIntro=1 (layout-check does, to cover the card itself). Players never pass debug.
+  const qs=new URLSearchParams(location.search);
+  if(!title||(qs.has('debug')&&qs.get('levelIntro')!=='1'))return;
   if(levelIntroTimer!=null)clearTimeout(levelIntroTimer);
   const forRound=round;
   pausePick(forRound,Date.now());

@@ -724,6 +724,15 @@ try{
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
   for(const vp of VIEWPORTS)await raidGoalCompactRun(vp);
+  // Playtest 2026-11-08 item 4: the BUNKER LEVEL card itself (opted in; debug harnesses skip it otherwise).
+  for(const [w,h] of VIEWPORTS){const tag=`raid level-intro ${w}x${h}`;console.log(tag);const page=await newPage(w,h);
+    await page.goto(`${BASE}/nodspel/?seed=intro&area=bunker&debug=1&levelIntro=1`,{waitUntil:'load'});
+    await page.waitForFunction('window.__NR',{timeout:30000});
+    const m=await page.evaluate(()=>{const el=document.getElementById('level-intro'),t=document.getElementById('level-intro-text');const r=t.getBoundingClientRect();return {shown:!el.hidden,text:t.textContent,w:r.width,vw:innerWidth,paused:window.__NR.round().pauseAt!=null};});
+    if(!m.shown||!/^BUNKER LEVEL \d+$/.test(m.text))fail(tag,`level card not shown (${JSON.stringify(m)})`);
+    if(m.w>m.vw)fail(tag,'level card text wider than the viewport');
+    if(!m.paused)fail(tag,'raid clock not paused under the level card');
+    await shot(page,`raid-level-intro-${w}x${h}`);await page.close();}
   for(const vp of VIEWPORTS)await payoffRun(vp);
   }
   if(group('base')){
