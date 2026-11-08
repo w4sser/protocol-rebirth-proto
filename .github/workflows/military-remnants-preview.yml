@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 20
       - run: npm i --no-save puppeteer
-      - name: Capture Military Remnants at mobile HIGH and LOW
+      - name: Capture default Military Remnants at mobile HIGH and LOW
         run: node scripts/shot-ground-v2.mjs
         env:
           SMOKE_CAPTURE: '1'

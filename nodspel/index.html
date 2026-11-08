@@ -89,7 +89,7 @@
   <aside class="rotate" role="status"><span><svg class="pr-ic" aria-hidden="true"><use href="ui-icons.svg#phone-rotate"/></svg></span><h2>Rotate your phone</h2><p>Hold your phone in landscape to play.</p></aside>
   <script type="module">
     document.querySelector('#tutorial-start').onclick=()=>{void window.PR_AUDIO?.unlock();document.documentElement.dataset.startRequested='true';document.querySelector('#tutorial').hidden=true;};
-    import('./game.mjs?v=2.28.0-ground-v10-coast-feather-coastal-v1-timber-v1-dressing-default-v1-vendored-glbs-military-visual4').catch(error => {
+    import('./game.mjs?v=2.28.0-ground-v10-coast-feather-coastal-v1-timber-v1-dressing-default-military-v2-vendored-glbs-military-visual4').catch(error => {
       document.querySelector('#boot-loader')?.remove();
       document.querySelector('#loading').hidden=false;
       document.querySelector('#loading').textContent = 'The game could not start. Reload in a browser with WebGL support.';
