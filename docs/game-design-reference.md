@@ -8,8 +8,8 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.13 - M24 player-chosen raid difficulty and first-raid assistance exception|
-| Prepared / updated | 7 November 2026 |
+| Document status | Living design reference, v4.14 - M25 environmental risk and BIT signaling|
+| Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
 | Repository baseline | `w4sser/protocol-rebirth-proto`, `main`, commit `88a9ac6364d0dcf5463c2a5f700f4817960ecaca` |
@@ -770,6 +770,8 @@ The game varies through seeded layouts, area identity, depth, encounter combinat
 
 The intended encounter contract preserves warnings and alternative tactical responses. More enemies, stronger combinations, and reduced time can create pressure without making cues unreliable. Preparation should help, but the player should still understand how to respond after an imperfect loadout choice.
 
+**APPROVED M25 — Read risk in the world:** Signal route and enemy danger primarily through **environmental evidence, visible threat behaviors/telegraphs and short, situational BIT cues**, rather than numeric danger ratings or exhaustive advance disclosure. A player should be able to *suspect* which approach is riskier and choose intelligently while retaining discovery. Warnings must be readable at mobile scale and comprehensible with audio muted; surprise is fine, untelegraphed unavoidable punishment is not. BIT remains contextual and non-blocking (D3.7). Exact cue art, trigger timing and any accessibility alternatives require test-based design, not default new HUD elements. This is the presentation contract for M24's player-chosen risk; D1/D2 extraction rules remain. [D01]
+
 ### Adaptive difficulty
 
 **APPROVED M24 — Chosen risk, not hidden performance scaling:** In the target ordinary quick-raid experience, challenge primarily follows **the route/depth and optional dangerous encounters the player chooses**, with clear environmental, enemy and contextual BIT risk signals. Do not invisibly scale enemy health, damage or intensity according to performance in order to steer success rates. Player skill, threat recognition and intentional extraction should matter. **Exception:** Approved D3.8 permits bounded progressive assistance on repeated failures of the **first ordinary raid after BIT is found**, without guaranteed survival or bag recovery. This first-raid onboarding exception is *not* a global dynamic difficulty policy. The existing adaptive system described immediately below is **legacy implementation evidence**, not an approved design requirement. Exact signal UX and encounter numbers remain open. [D01]
@@ -1138,6 +1140,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.14, 8 November 2026:** Owner approved M25: players read route/encounter risk from environment, enemy tells and concise contextual BIT cues, without explicit numerical risk tiers or total foreknowledge; preserve mobile accessibility, fair counterplay and voluntary extraction. Documentation only.
 - **v4.13, 7 November 2026:** Owner approved M24: standard raid difficulty follows chosen depth/routes, readable risks and tactical threats, rather than invisible player-performance scaling. The D3.8 bounded first-normal-raid failure assistance is explicitly retained; inspected adaptive code remains historical baseline only. Docs only.
 - **v4.12, 7 November 2026:** Approved M23: introduce distinct enemy archetypes quickly through playable encounters and build subsequent tactical difficulty through combinations, terrain and positioning, not long tutorials or HP inflation. No game code changed.
 - **v4.11, 7 November 2026:** Owner locked M22: enemy behavior, combinations, positioning and terrain are the primary combat depth; Basic Carbine alone must stay fun and viable, with later equipment providing additional approaches. Implementation/tuning remain open; docs only.
