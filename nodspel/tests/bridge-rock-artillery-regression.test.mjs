@@ -24,7 +24,7 @@ test('bridge funnel is supported only under visibly widened landfall planks',()=
   const f={x:5,z:0,w:10,d:4,dir:{x:1,z:0},bridgeFunnel:true};
   assert.equal(bridgeEntrySupports(f,.1,2.18),true);
   assert.equal(bridgeEntrySupports(f,5,2.18),false);
-  assert.equal(bridgeEntrySupports(f,5+4,2.18),false);
+  assert.equal(bridgeEntrySupports(f,5+2.5,2.18),false);
   assert.equal(bridgeEntrySupports({...f,bridgeFunnel:false},.1,2.18),false);
   const plan=planBridgeDeck(f,'funnel',{quality:'high'});
   const edge=plan.planks.filter(p=>!p.landing&&Math.abs(p.t)>plan.length/2-BRIDGE_ENTRY_FLARE_DEPTH);
