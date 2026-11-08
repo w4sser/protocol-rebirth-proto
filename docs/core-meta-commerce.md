@@ -86,12 +86,18 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **Explicitly unapproved:** Exact cooldown length, when/how it starts or resets, feedback, input placement, target/no-target handling, upgrades reducing cooldown, balancing, role eligibility and how interruption affects an activation. An ability that executes against an eligible enemy counts as a successful activation for this rule; a kill is not required.
 
+## Approved BIT enemy susceptibility (M33)
+
+**Owner-approved, 8 November 2026:** BIT's distraction **works against ordinary enemy types**; some heavy or specialized foes **may resist or react differently**, with fair, clear enemy/environment/BIT cues that work on muted mobile devices. This does not choose any specific immune enemy or exact resistance effect. The existing M30 player-triggered activation, M31 BIT selection of the most immediate suitable threat and M32 reusable cooldown remain. No automatic kills, guaranteed escape or loot recovery.
+
+**Still open:** Enemy-by-enemy susceptibility, reduced/altered distraction versus complete immunity, exact target selection/fallback for resistant threats, no-target/failed activation rules, timing, UI, cooldown/reset, reaction visuals/audio, BIT Bond and balancing. A particular failed-use penalty or targeting algorithm is not implied.
+
 ## Hypotheses and next decision
 
-Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, first-ten-extraction cadence, paid acceleration limits and commercial values. **Intermediate room utility is no longer open:** M26 locks it to *none* until final completion. **Vault vs BIT Bay build order is no longer open:** M27 lets the player choose where both are accessible. **BIT Bay L1's benefit is no longer open:** M28 locks limited combat support, M29 locks its first ability to brief enemy distraction, M30 locks player-controlled contextual activation, M31 locks BIT's post-activation choice of the most immediate threat, and M32 locks reuse with a meaningful cooldown between successful uses. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
+Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, first-ten-extraction cadence, paid acceleration limits and commercial values. **Intermediate room utility is no longer open:** M26 locks it to *none* until final completion. **Vault vs BIT Bay build order is no longer open:** M27 lets the player choose where both are accessible. **BIT Bay L1's benefit is no longer open:** M28 locks limited combat support, M29 locks its first ability to brief enemy distraction, M30 locks player-controlled contextual activation, M31 locks BIT's post-activation choice of the most immediate threat, M32 locks reuse with a meaningful cooldown between successful uses, and M33 locks enemy-dependent susceptibility with readable/fair differences. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
 
-**Next single decision — which enemy types can BIT distract?**
-- **A — Enemy-specific susceptibility (recommended).** Ordinary threats can be distracted, while some heavy or specialized enemies may resist or react differently. Susceptibility and any resistance must be readable and fair; exact enemy eligibility and timings remain open. This preserves distinct enemy archetypes and difficult encounter counterplay.
-- **B — Universal distraction.** Every enemy type responds to a brief distraction, including heavy and specialized threats. The effect is consistent and easy to understand, but can undermine encounter identities unless later tuned very carefully.
+**Next single decision — what should enemy resistance mean?**
+- **A — Reduced or altered distraction, not full immunity (recommended).** A heavy/specialist foe may have a shorter or different readable reaction. BIT still creates an opportunity; exact effect and timing remain open.
+- **B — Some fully immune enemy types.** Gives exceptional threats stronger identity, but requires unmistakable cues and careful BIT targeting so player-controlled use does not feel arbitrarily wasted. Exact types and fallback remain open.
 
-**Neither eligibility model is approved yet.** In both, the player triggers BIT, BIT chooses the most immediate *eligible* danger, and cooldown-based repeat use remains M32. Exact enemy exceptions, reaction duration, cooldown, UI and numerical balance remain open.
+**Neither option is approved.** Keep M30 manual activation, M31 BIT target choice, M32 cooldown-based reuse and M33 fair archetype differences. Exact reactions, cooldown, UI and balancing remain open.
