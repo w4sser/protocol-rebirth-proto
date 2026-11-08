@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {swapItemStatus,suggestSwap} from '../swap-guidance.js';
+import {swapItemStatus,suggestSwap,swapRecommendation} from '../swap-guidance.js';
 
 const goal={name:'Fabricator',parts:[{id:'cable',need:2,secured:0}]};
 test('carried goal supplies are protected before rarity; incoming gets the same purpose information',()=>{
@@ -30,4 +30,26 @@ test('standalone raids use rarity, handle empty bags, and do not invent a tracke
   assert.equal(swapItemStatus(null,{cable:1},'cable'),null);
   assert.equal(suggestSwap(null,{cable:1,data_core:1},'ai_fragment'),'cable');
   assert.equal(suggestSwap(null,{},'ai_fragment'),null);
+});
+test('recommendation swaps for a needed goal item, with a one-tap suggested trade',()=>{
+  assert.deepEqual(swapRecommendation(goal,{fuse:1},'cable'),
+    {action:'swap',dropId:'fuse',reason:'Advances your tracked upgrade'});
+});
+
+test('recommended trade never drops required supplies just to gain sale value',()=>{
+  assert.deepEqual(swapRecommendation(goal,{cable:2},'ai_fragment'),
+    {action:'keep',dropId:'cable',reason:'Protects your upgrade materials'});
+});
+
+test('recommendation compares sale value, preserving higher-value loot',()=>{
+  assert.deepEqual(swapRecommendation(null,{power_relay:1},'fuse'),
+    {action:'keep',dropId:'power_relay',reason:'Current loot is worth more'});
+  assert.deepEqual(swapRecommendation(null,{fuse:1},'ai_fragment'),
+    {action:'swap',dropId:'fuse',reason:'Higher loot value'});
+});
+
+test('safe trades avoid protected progression items and choose cheaper equal-rarity loot',()=>{
+  assert.equal(suggestSwap(null,{fuse:1,scrap_alloy:1},'ai_fragment'),'scrap_alloy');
+  assert.deepEqual(swapRecommendation(null,{ai_fragment:1},'ai_fragment'),
+    {action:'keep',dropId:null,reason:'No better trade available'});
 });
