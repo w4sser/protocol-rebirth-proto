@@ -629,15 +629,18 @@ test('each normal and hard encounter package retains a reachable side or back fi
 // after it cannot ever be flanked (playtest 01M6XHN8Q31EQREG197Y30NGPH). encounters.js now revalidates every
 // guard/shield_turret once ALL solids for the level exist (ensureRearClearance) and relocates it if its only
 // flank is boxed in; this proves that holds over many seeds, levels, areas and hard mode, not just one layout.
-test('v2.28.1 bug-lint #1: every front-shielded guard/shield_turret keeps a reachable flank arc, across many seeds/levels/areas/hard',()=>{
-  let checked=0;
+test('v2.28.1 bug-lint #1: every front-shielded guard/shield_turret keeps a walkable line-of-sight flank, across many seeds/levels/areas/hard',()=>{
+  let checked=0,omitted=0,total=0;
   for(const hard of [false,true])for(const area of AREAS)for(let n=1;n<=3;n++)for(let s=0;s<40;s++){
     const level=generateLevel(n,`rear-${s}`,area,hard);
     for(const enemy of level.enemies.filter(e=>e.frontShield)){
       checked++;
-      assert.ok(guardRearClear(level,enemy),`${area} L${n} hard=${hard} rear-${s} ${enemy.encounter}: no reachable flank - its back is boxed in`);
+      assert.ok(guardRearClear(level,enemy),`${area} L${n} hard=${hard} rear-${s} ${enemy.encounter}: no walkable flank - its back is boxed in`);
+      assert.ok(enemy.frontShield>=60,'shield never stripped');
     }
+    omitted+=(level.omittedEncounters??[]).length;total+=level.encounters.filter(e=>e.type==='guard'||e.type==='shield_turret').length;
   }
+  assert.ok(omitted<=Math.ceil((total+omitted)*.02),`impossible-encounter omission stays rare (${omitted}/${total+omitted})`);
   assert.ok(checked>50,`sanity: the sweep actually hit guard/shield_turret encounters (${checked})`);
 });
 
@@ -664,8 +667,31 @@ test('v2.28.1 bug-lint #1 fixture: a guard boxed in by wall/generator solids on 
     encounters:[{type:'guard',enemyId:guard.id,nodeId:node.id,x:guard.x,z:guard.z}]};
   assert.equal(guardRearClear(level,guard),false,'sanity: the hand-built corner really has no flank before the fix runs');
   ensureRearClearance(level,fixedRng(12345));
-  assert.equal(guard.rearBlocked,false,'relocated instead of left flagged - the open area by the node gives it room');
+  assert.ok(level.enemies.includes(guard)&&guard.frontShield===70,'relocated with its shield intact, not omitted or stripped');
   assert.ok(guard.x!==-8||guard.z!==-8,'it actually moved off the boxed-in spot');
   assert.equal(guardRearClear(level,guard),true,'the new spot has a real, walkable, line-of-sight flank');
   assert.equal(level.encounters[0].x,guard.x);assert.equal(level.encounters[0].z,guard.z);
+});
+
+// v2.28.1 review: when no walkable flank exists anywhere, the impossible encounter is omitted at generation -
+// the shield is never silently stripped and no unkillable enemy is left on the board.
+test('v2.28.1 bug-lint #1 fixture: a guard sealed off from the player is omitted, not stripped',()=>{
+  generateLevel(1,'reset-townband','bunker');
+  const guard={id:'enemy-1',kind:'enemy',x:0,z:0,r:.48,health:2,speed:1.4,type:'grunt',encounter:'guard',frontShield:70,facing:0,active:true};
+  const ring=[];for(let k=0;k<64;k++){const a=k/64*2*Math.PI;ring.push({x:round2(Math.sin(a)*4),z:round2(Math.cos(a)*4),w:.6,d:.6,h:2});}
+  const node={id:'node-1',x:1.5,z:0,r:.8,active:false};
+  const level={rooms:[{x:0,z:0,w:30,d:30}],floors:[{x:0,z:0,w:30,d:30}],walls:ring,boxes:[],lootBoxes:[],hazards:[],
+    nodes:[node],enemies:[guard],start:{x:12,z:12},exit:{x:-12,z:-12},encounters:[{type:'guard',enemyId:guard.id,nodeId:node.id,x:0,z:0}]};
+  ensureRearClearance(level,fixedRng(7));
+  assert.equal(level.enemies.length,0,'omitted');assert.equal(level.encounters.length,0);
+  assert.equal(level.omittedEncounters[0].reason,'no-walkable-flank');assert.equal(guard.frontShield,70,'shield untouched');
+});
+
+// v2.28.1 review: omission happens only in generateLevel's final pass, so enemy ids stay unique; the Big Map's
+// POI guards (applyEncounters per room) also keep a walkable flank.
+test('v2.28.1 bug-lint #1: unique enemy ids after omission, and Big Map shielded guards keep a walkable flank',async()=>{
+  const {generateBigLevel}=await import('../big-level.js');
+  for(const area of AREAS)for(const hard of [false,true])for(let s=0;s<30;s++){const L=generateLevel(2+(s%2),`review-${s}`,area,hard);const I=L.enemies.map(e=>e.id);assert.equal(new Set(I).size,I.length,`${area} review-${s}: duplicate enemy id`);}
+  let n=0;for(let s=0;s<12;s++){const L=generateBigLevel(`big-${s}`);for(const e of L.enemies.filter(e=>e.frontShield)){n++;assert.ok(guardRearClear(L,e),`big-${s} ${e.id}: no walkable flank`);}}
+  assert.ok(n>5,'sanity: Big Map has shielded guards');
 });
