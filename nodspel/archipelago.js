@@ -118,7 +118,7 @@ function clearRock(mesh,reservations){
   }
   mesh.position.x+=bx-x;mesh.position.z+=bz-z;
 }
-// Each visible rock owns its own exact AABB; empty space between displaced rocks
+// Each visible rock owns its own ground-level circular collider; empty space between rocks
 // is never filled by an enclosing cluster rectangle.
 function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   const alongX=w.w>w.d,len=Math.max(w.w,w.d),n=Math.max(1,Math.round(len/1.1)),boulders=[];
@@ -134,7 +134,11 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   }
   for(const m of boulders){
     const b=new THREE.Box3().setFromObject(m);
-    const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y};
+    // The full rotated AABB used to snag players on empty corners above the ground.
+    // Keep it for placement/metadata but use a round, foot-level contact radius.
+    const collider={x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,
+      w:b.max.x-b.min.x,d:b.max.z-b.min.z,h:b.max.y,
+      r:Math.min(b.max.x-b.min.x,b.max.z-b.min.z)*.42,rock:true,bridgeRail:!!w.bridgeRail};
     colliders.push(collider);m.userData.collider=collider;
   }
   return boulders.length;
@@ -287,8 +291,20 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
-    else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+    if(islands.filter(f=>onRim(w,f)).length===1){
+      // Some narrow doorway remnants are still classified as shoreline
+      // walls, even though they sit *inside* a bridge landing. The player's
+      // nine-point floor test already stops them leaving land / the pier.
+      // Drop only these tiny (<.65m) seam colliders near a bridge approach;
+      // retain every normal shoreline wall elsewhere around the island.
+      const tinyMouthStub=w.bridgeMouthStub||(w.w<=.65&&w.d<=.65);
+      const touchesLanding=piers.some(p=>
+        Math.abs(w.x-p.x)<=(w.w+p.w)/2+.15&&
+        Math.abs(w.z-p.z)<=(w.d+p.d)/2+.15);
+      if(tinyMouthStub&&touchesLanding)continue;
+      colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true,bridgeRail:!!w.bridgeRail});
+      shore.push(w);
+    }else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
   out.shoreProps=terrainPreview
     ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)

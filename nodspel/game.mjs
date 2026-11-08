@@ -29,6 +29,7 @@ import '../data/modules.js?v=2.28.0';import '../data/recipes.js?v=2.28.0';import
 import {svgIcon,setIconText} from './svg-icons.js?v=2.28.0';
 import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.0';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.0';
+import {guideBridgeApproach} from './bridge-flow.mjs?v=2.28.0';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.0';
 import {safeSpawn} from './spawn.js?v=2.28.0';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.0';
@@ -379,9 +380,17 @@ function makeArtilleryShell(){
     new THREE.MeshBasicMaterial({color:'#fff1b7',depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
   const glow=new THREE.Mesh(artilleryGlowGeometry,
     new THREE.MeshBasicMaterial({color:'#FF704F',transparent:true,opacity:.55,depthTest:false,depthWrite:false,toneMapped:false,fog:false}));
-  group.add(glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
+  // Bright, pooled comet tail makes the incoming arc readable on a phone.
+  // One instanced draw call, no per-frame mesh allocation.
+  const trail=new THREE.InstancedMesh(artilleryGlowGeometry,
+    new THREE.MeshBasicMaterial({color:'#FFB36B',transparent:true,opacity:.68,depthTest:false,depthWrite:false,toneMapped:false,fog:false}),5);
+  trail.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  trail.frustumCulled=false;trail.renderOrder=4;
+  group.add(trail,glow,core);group.renderOrder=5;glow.renderOrder=5;core.renderOrder=6;
   group.visible=false;scene.add(group);
-  const effect={group,core,glow};artilleryShells.push(effect);return effect;
+  const effect={group,core,glow,trail,matrix:new THREE.Matrix4(),tailPosition:new THREE.Vector3(),
+    tailScale:new THREE.Vector3(),tailRotation:new THREE.Quaternion()};
+  artilleryShells.push(effect);return effect;
 }
 function makeToolFxRing(){
   const m=new THREE.Mesh(toolRingGeometry,new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
@@ -401,9 +410,16 @@ function renderArtilleryShells(clock){
     const p=artilleryFlight(blast,clock);
     effect.group.visible=true;
     effect.group.position.set(p.x,p.y,p.z);
-    effect.group.scale.setScalar(.8+p.size);
-    effect.glow.material.opacity=.40+.25*Math.sin(clock/90)**2;
+    effect.group.scale.setScalar(1.05+p.size);
+    effect.glow.material.opacity=.50+.25*Math.sin(clock/90)**2;
     effect.core.material.color.set(p.t>.77?'#ffffff':'#fff1b7');
+    for(let i=0;i<5;i++){
+      const tail=artilleryFlight(blast,Math.max(blast.at??clock,clock-(i+1)*48));
+      effect.tailPosition.set(tail.x-p.x,tail.y-p.y,tail.z-p.z);
+      effect.tailScale.setScalar(.27-i*.04);
+      effect.trail.setMatrixAt(i,effect.matrix.compose(effect.tailPosition,effect.tailRotation,effect.tailScale));
+    }
+    effect.trail.instanceMatrix.needsUpdate=true;
   }
   for(let i=artilleryUsed;i<artilleryShells.length;i++)artilleryShells[i].group.visible=false;
 }
@@ -1540,6 +1556,32 @@ const hotCamGoal=new THREE.Vector3(),hotRayDir=new THREE.Vector3(),SUN_OFFSET=ne
 const hotOne=[null];function one(x){hotOne[0]=x;return hotOne;} // single-target list for traceTargets (not kept)
 function copyXZ(out,p){out.x=p.x;out.z=p.z;return out;}
 const hotFps={fps:0,now:0},hotMoveDelta={x:0,z:0},hotEnemyDir={x:0,z:0};
+const BRIDGE_DEBUG=new URLSearchParams(location.search).get('bridgeDebug')==='1';
+let bridgeDebugPanel=null,bridgeBlockCount=0;
+if(BRIDGE_DEBUG){
+  bridgeDebugPanel=document.createElement('pre');
+  bridgeDebugPanel.setAttribute('aria-label','Bridge collision diagnostic');
+  bridgeDebugPanel.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99999;max-width:75vw;padding:5px 7px;background:rgba(0,0,0,.85);color:#9fe;font:11px/1.3 monospace;pointer-events:none;white-space:pre-wrap';
+  bridgeDebugPanel.textContent='BRIDGE DEBUG - move towards a bridge';
+  document.body.append(bridgeDebugPanel);
+}
+function traceBridgeBlock(event){
+  const level=round?.level;
+  if(!BRIDGE_DEBUG||!level?.archipelago)return;
+  const bridge=level.floors?.find(f=>f.bridgeFunnel&&Math.abs(event.from.x-f.x)<=f.w/2+3
+    &&Math.abs(event.from.z-f.z)<=f.d/2+3);
+  if(!bridge)return;
+  bridgeBlockCount++;
+  const fmt=p=>p.x.toFixed(2)+','+p.z.toFixed(2);
+  const report={seed:level.seed,level:level.number,blocked:bridgeBlockCount,
+    reason:event.reason,from:event.from,wanted:event.wanted,reached:event.reached,bridge};
+  window.__bridgeCollision=report;
+  bridgeDebugPanel.textContent='BRIDGE DEBUG - '+event.reason.kind+' #'+bridgeBlockCount
+    +'\nseed '+level.seed+' L'+level.number
+    +'\nfrom '+fmt(event.from)+' to '+fmt(event.wanted)
+    +'\nreached '+fmt(event.reached)
+    +'\nblock '+JSON.stringify(event.reason.collider??event.reason.sample??{});
+}
 function frame(now){if(fatal)return;try{frameInner(now);}catch(e){onFatal(e);}}
 // Mood FX (bloom/vignette) replace the plain render call; dust drifts with the player whenever it's on.
 // v2.22.4 GC: three renders transparent+DoubleSide materials in two passes and flips material.side, which bumps
@@ -1582,7 +1624,9 @@ function frameInner(now){
     sx+=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
     sy+=Number(keys.has('KeyS')||keys.has('ArrowDown'))-Number(keys.has('KeyW')||keys.has('ArrowUp'));
     const magnitude=Math.hypot(sx,sy);
-    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius);}
+    if(magnitude>.12){const scale=Math.min(1,magnitude)/magnitude,delta=doorAssist(round.level.house,position,screenToWorld(sx*scale,sy*scale));walkDirection=screenToWorld(sx/magnitude,sy/magnitude);if(dash.remaining===0){const speed=round.stats.speed*speedMultiplier(round);hotMoveDelta.x=delta.x*speed*dt;hotMoveDelta.z=delta.z*speed*dt;
+        if(round.level.archipelago)guideBridgeApproach(round.level,position,hotMoveDelta,RULES.playerRadius);
+        position=moveWithActors(position,hotMoveDelta,round.level.enemies,playerSolids,round.level.floors,RULES.playerRadius,BRIDGE_DEBUG?traceBridgeBlock:null);}
       if(launch.ftue&&!ftueMoveMarked){ftueMoveMarked=true;fadeStickLabel(ftueMoveLabel);}}
     if(!round.over&&!resultPending)round.telemetry.distanceM+=Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z);
     playerMoving=playerDisplaced(positionBefore,position);

@@ -122,7 +122,7 @@ function stepCharger(round,e,combat,player,now,dt,obstacles,dash){
   const T=RULES.shooting.telegraphs,R=ENEMY_TUNING.rusher;
   if(e.attackPhase==='charge'){
     const step=Math.min(e.chargeRemaining,rusherLungeSpeed(e)*dt),dir=e.chargeDirection;
-    const endpoint=aimEndpoint(e,dir,step,obstacles.map(o=>({...o,w:o.w+T.enemyRadius*2,d:o.d+T.enemyRadius*2})));
+    const endpoint=aimEndpoint(e,dir,step,obstacles.map(o=>Number.isFinite(o.r)?{...o,r:o.r+T.enemyRadius}:{...o,w:o.w+T.enemyRadius*2,d:o.d+T.enemyRadius*2}));
     const travelled=Math.hypot(endpoint.x-e.x,endpoint.z-e.z);
     const hit=traceTargets(e,endpoint,[],[{...player,r:RULES.playerRadius+T.enemyRadius,kind:'player'}]);
     if(hit&&!e.chargeHit){e.chargeHit=true;round.lastHit={source:'rusher',enemyId:e.id,attack:'charge',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,round.level.enemyDamage??RULES.combat.damage,now);}
@@ -209,8 +209,14 @@ function stepEnemy(round,enemy,goal,gd,obstacles,player,dt){
   // Otherwise opposite-direction bots both aim for the center and deadlock.
   if(enemy.swarm||nearBridge){
     const sidestep=side=>movePlayer(enemy,{x:-dz*side+dx*.3,z:dx*side+dz*.3},blockers,round.level.floors,.48);
-    if((enemy.slideLeft??0)>0){enemy.slideLeft-=dt;next=sidestep(enemy.slide);}
-    else if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
+    if((enemy.slideLeft??0)>0){
+      enemy.slideLeft=Math.max(0,enemy.slideLeft-dt);
+      const alt=sidestep(enemy.slide??1);
+      // Never replace a working forward step with a blocked sidestep.
+      if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.6 &&
+        Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>Math.hypot(next.x-enemy.x,next.z-enemy.z))next=alt;
+      else enemy.slideLeft=0;
+    }else if(Math.hypot(next.x-enemy.x,next.z-enemy.z)<step*.3){
       enemy.slide??=1;
       for(const side of [enemy.slide,-enemy.slide]){const alt=sidestep(side);
         if(Math.hypot(alt.x-enemy.x,alt.z-enemy.z)>=step*.3){next=alt;enemy.slide=side;enemy.slideLeft=.4;break;}}

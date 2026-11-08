@@ -41,12 +41,13 @@ export function generateBigLevel(seed,area='bunker'){
           x:edge.x+(isX?0:sign*(length+mouth)/4),
           z:edge.z+(isX?sign*(length+mouth)/4:0),
           w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,
-          h:.85,roomId:room.id});
+          h:.85,roomId:room.id,
+          bridgeMouthStub:area==='archipelago'&&(length-mouth)/2<=.65});
       }
     }
   }
   for(const c of level.corridors){
-    level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0)});
+    level.floors.push({...c,w:c.w+(c.dir.x?.08:0),d:c.d+(c.dir.z?.08:0),bridgeFunnel:area==='archipelago'});
     const cross=c.dir.x?c.d:c.w;
     const length=c.dir.x?c.w:c.d;
     const shortened=area==='archipelago'
@@ -54,7 +55,7 @@ export function generateBigLevel(seed,area='bunker'){
     for(const sign of [-1,1])level.walls.push({
       x:c.x+(c.dir.z?sign*(cross/2+t/2):0),
       z:c.z+(c.dir.x?sign*(cross/2+t/2):0),
-      w:c.dir.x?shortened:t,d:c.dir.z?shortened:t,h:.85,roomIds:c.roomIds});
+      w:c.dir.x?shortened:t,d:c.dir.z?shortened:t,h:.85,roomIds:c.roomIds,bridgeRail:area==='archipelago'});
   }
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];
