@@ -69,16 +69,22 @@ test('all generated bridge and branch doorways are traversable after shoreline /
         const axis=c.dir.x?'x':'z',side=c.dir.x?'z':'x';
         const length=c.dir.x?c.w:c.d,width=c.dir.x?c.d:c.w;
         const inner=Math.min(1.05,Math.max(.18,length/2));
-        for(const bank of banks)for(const radius of [.36,.48])
-          for(const lateral of [-.85,0,.85])for(const angled of [false,true]){
-          const edge=bank*length/2;
-          const from=point(c,axis,side,edge+bank*1.2,lateral);
-          const to=point(c,axis,side,edge-bank*inner,angled?lateral*.55:lateral);
-          const end=movePlayer(from,{x:to.x-from.x,z:to.z-from.z},
-            solids,level.floors,radius);
-          assert.ok(dist(end,to)<.12,
-            'blocked doorway: '+diagnostic(label,level,portal,bank,radius,from,to,end,solids));
-          entryChecks++;
+        for(const bank of banks)for(const radius of [.36,.48]){
+          // Big Map intentionally retains narrower bridges. Test only body
+          // centers which really fit on their visual/physical deck.
+          const safeOffset=Math.min(.85,Math.max(.1,width/2-radius-.18));
+          for(const lateral of [-safeOffset,0,safeOffset])for(const angled of [false,true]){
+            const edge=bank*length/2;
+            const from=point(c,axis,side,edge+bank*1.2,lateral);
+            const to=point(c,axis,side,edge-bank*inner,angled?lateral*.55:lateral);
+            let firstBlock=null;
+            const end=movePlayer(from,{x:to.x-from.x,z:to.z-from.z},
+              solids,level.floors,radius,event=>{firstBlock??=event;});
+            assert.ok(dist(end,to)<.12,
+              'blocked doorway: '+diagnostic(label,level,portal,bank,radius,from,to,end,solids)
+              +JSON.stringify({c,firstBlock}));
+            entryChecks++;
+          }
         }
       }
     }finally{dispose();}
@@ -94,15 +100,21 @@ test('continuous central lane through every main bridge remains open after final
     const {solids,dispose}=runtime(level);
     try{
       for(const [i,c] of (level.corridors??[]).entries()){
-        const axis=c.dir.x?'x':'z',side=c.dir.x?'z':'x',length=c.dir.x?c.w:c.d;
-        for(const radius of [.36,.48])for(const lateral of [0,.65]){
-          const from=point(c,axis,side,-length/2-1.0,lateral);
-          const to=point(c,axis,side,length/2+1.0,lateral);
-          const end=movePlayer(from,{x:to.x-from.x,z:to.z-from.z},
-            solids,level.floors,radius);
-          assert.ok(dist(end,to)<.14,
-            'blocked full bridge: '+diagnostic(label,level,'corridor-'+i,0,radius,from,to,end,solids));
-          paths++;
+        const axis=c.dir.x?'x':'z',side=c.dir.x?'z':'x';
+        const length=c.dir.x?c.w:c.d,width=c.dir.x?c.d:c.w;
+        for(const radius of [.36,.48]){
+          const safeOffset=Math.min(.65,Math.max(.1,width/2-radius-.18));
+          for(const lateral of [0,safeOffset]){
+            const from=point(c,axis,side,-length/2-1.0,lateral);
+            const to=point(c,axis,side,length/2+1.0,lateral);
+            let firstBlock=null;
+            const end=movePlayer(from,{x:to.x-from.x,z:to.z-from.z},
+              solids,level.floors,radius,event=>{firstBlock??=event;});
+            assert.ok(dist(end,to)<.14,
+              'blocked full bridge: '+diagnostic(label,level,'corridor-'+i,0,radius,from,to,end,solids)
+              +JSON.stringify({c,firstBlock}));
+            paths++;
+          }
         }
       }
     }finally{dispose();}
@@ -156,10 +168,11 @@ test('no invisible bridge-mouth seam remains as a blocking shore collider',()=>{
     try{
       for(const {c,label:portal,banks} of portals(level)){
         const axis=c.dir.x?'x':'z',side=c.dir.x?'z':'x';
-        const length=c.dir.x?c.w:c.d;
+        const length=c.dir.x?c.w:c.d,width=c.dir.x?c.d:c.w;
+        const half=Math.min(.9,Math.max(.1,width/2-.48-.15));
         for(const bank of banks){
           const edge=bank*length/2;
-          for(const lateral of [-.9,-.45,0,.45,.9]){
+          for(const lateral of [-half,-half/2,0,half/2,half]){
             const sample=point(c,axis,side,edge+bank*.08,lateral);
             for(const [i,b] of solids.entries()){
               if(!b.shore)continue;
