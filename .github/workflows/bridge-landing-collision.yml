@@ -14,6 +14,7 @@ on:
       - 'nodspel/tests/bridge-funnel-pass2.test.mjs'
       - 'nodspel/tests/bridge-entry-guidance.test.mjs'
       - 'nodspel/tests/bridge-shore-mouth-regression.test.mjs'
+      - 'nodspel/tests/archipelago-collision-sweep.test.mjs'
       - 'nodspel/tests/bridge-landing-collision.test.mjs'
       - '.github/workflows/bridge-landing-collision.yml'
 jobs:
@@ -26,4 +27,4 @@ jobs:
         with:
           node-version: 20
       - name: Validate bridge entries, rock contacts, bot navigation and artillery
-        run: node --test nodspel/tests/bridge-landing-collision.test.mjs nodspel/tests/bridge-rock-artillery-regression.test.mjs nodspel/tests/bridge-funnel-pass2.test.mjs nodspel/tests/bridge-entry-guidance.test.mjs nodspel/tests/bridge-shore-mouth-regression.test.mjs
+        run: node --test nodspel/tests/bridge-landing-collision.test.mjs nodspel/tests/bridge-rock-artillery-regression.test.mjs nodspel/tests/bridge-funnel-pass2.test.mjs nodspel/tests/bridge-entry-guidance.test.mjs nodspel/tests/bridge-shore-mouth-regression.test.mjs nodspel/tests/archipelago-collision-sweep.test.mjs
