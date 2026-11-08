@@ -56,6 +56,27 @@ export function archipelagoPassages(level){
       if(grounded&&!level.walls.some(w=>overlaps(w,p)))passages.push({...p,axis});
     }
   }
+  // A broad island doorway can be intersected by a nearby room partition.
+  // The general wall-gap scan rejects an all-width strip in that case, even
+  // though a safe approach lane remains. Find a real, wall-free lane through
+  // the room edge and onto the narrow bridge; don't widen the water floor.
+  if(level.archipelago)for(const room of level.rooms??[])for(const dir of room.doors??[]){
+    const mouth={x:room.x+dir.x*(room.w/2-.2),z:room.z+dir.z*(room.d/2-.2)};
+    const covers=p=>Math.abs(p.x-mouth.x)<p.w/2&&Math.abs(p.z-mouth.z)<p.d/2;
+    if(passages.some(covers))continue;
+    for(const lateral of [0,.4,-.4,.8,-.8]){
+      const p=dir.x
+        ?{x:mouth.x,z:mouth.z+lateral,w:1.4,d:2,axis:'z'}
+        :{x:mouth.x+lateral,z:mouth.z,w:2,d:1.4,axis:'x'};
+      if(!covers(p)||level.walls.some(w=>overlaps(w,p)))continue;
+      let supported=true;
+      for(const sx of [-.49,0,.49])for(const sz of [-.49,0,.49]){
+        const x=p.x+sx*p.w,z=p.z+sz*p.d;
+        if(!level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.001&&Math.abs(z-f.z)<=f.d/2+.001))supported=false;
+      }
+      if(supported){passages.push(p);break;}
+    }
+  }
   level.archPassages=passages;
   level._archPassagesWalls=level.walls;
   return passages;
