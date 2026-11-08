@@ -2,9 +2,10 @@
 import '../data/raid-perks.js?v=2.28.0';
 import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.0';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.0';
+import {RULES,generateLevel,randomFromSeed,areaTable,pickWeighted} from './levels.js?v=2.28.0';
 import {applyEncounters} from './encounters.js?v=2.28.0';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt,graphDistances} from './zone-graph.js?v=2.28.0';
+import {applyBunkerLootBands} from './big-loot.js?v=2.28.0';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
@@ -25,7 +26,7 @@ export function generateBigLevel(seed,area='bunker'){
     level.lootBoxes.push({...spot,id:`big-loot-${room.id}`,item:loot?.item??'salvage_crate',collected:false});
     for(const dir of RULES.directions){
       const isX=!!dir.x,length=isX?room.d:room.w,edge={x:room.x+dir.x*(room.w/2-t/2),z:room.z+dir.z*(room.d/2-t/2)};
-      if(!room.doors.some(d=>d.x===dir.x&&d.z===dir.z))level.walls.push({...edge,w:isX?t:room.w,d:isX?room.d:t,h:dir.z>0?.65:1.15,roomId:room.id});
+      if(!room.doors.some(d=>d.x===dir.x&&d.z===dir.z))level.walls.push({...edge,w:isX?t:room.w,d:isX?(length):t,h:dir.z>0?.65:1.15,roomId:room.id});
       else for(const sign of [-1,1])level.walls.push({x:edge.x+(isX?0:sign*(length+width)/4),z:edge.z+(isX?sign*(length+width)/4:0),w:isX?t:(length-width)/2,d:isX?(length-width)/2:t,h:.85,roomId:room.id});
     }
   }
@@ -46,6 +47,12 @@ export function generateBigLevel(seed,area='bunker'){
       level.lootBoxes.push({id:'big-vault-key',key:'big-vault-key',item:'keycard',x:room.x,z:room.z-2,roomId:room.id,requiresNode:node.id,revealed:true,collected:false,source:'VAULT KEY: ACTIVATE THIS ROOM TERMINAL; OPENS KEY EXTRACT'});
     }else poi.description='GENERATOR: destroy the generator to drop the terminal shield';
   }
+  // Only ordinary material opportunities change. Topology, positions, specials and prices stay intact.
+  if(area==='bunker')applyBunkerLootBands(level,{
+    tables:[1,2,3].map(n=>areaTable(area,n,'world')),
+    items:Object.fromEntries(globalThis.DATA.items.map(item=>[item.id,item])),
+    distances:graphDistances(graph),randomFromSeed,pickWeighted
+  });
   return level;
 }
 export function extractAvailable(extract,round){

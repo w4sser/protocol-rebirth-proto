@@ -1,0 +1,71 @@
+name: Verify PR206 public preview
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/pr206-preview-link-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify HTTP files and browser entry points
+        run: |
+          mkdir -p preview-check
+          cd preview-check
+          npm init -y >/dev/null
+          npm install puppeteer >/dev/null
+          cat > check.mjs <<'JS'
+          import puppeteer from 'puppeteer';
+          import {writeFile} from 'node:fs/promises';
+          const root='https://rawcdn.githack.com/w4sser/protocol-rebirth-proto/fc6bb1986e637f05adb3df0dbffb13d6c6ad5147/';
+          const paths=['index.html','app.js','nodspel/','nodspel/index.html','nodspel/big-loot.js'];
+          const report={root,http:[],pages:[]};
+          for(const path of paths){
+            try{const r=await fetch(root+path,{signal:AbortSignal.timeout(25000)});const text=await r.text();
+              const result={path,status:r.status,type:r.headers.get('content-type'),bytes:text.length,lootBands:text.includes('applyBunkerLootBands'),title:text.match(/<title>([^<]*)/i)?.[1]??null};
+              report.http.push(result);console.log('HTTP_CHECK',JSON.stringify(result));
+            }catch(e){report.http.push({path,error:String(e)});console.log('HTTP_ERROR',path,String(e));}
+          }
+          if(!report.http.some(r=>r.path==='index.html'&&r.status===200)){await writeFile('report.json',JSON.stringify(report,null,2));throw Error('Pinned preview HTML unavailable');}
+          const browser=await puppeteer.launch({headless:true,args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+          try{
+            for(const [name,path] of [['ftue','index.html'],['bunker','nodspel/index.html?area=bunker&levels=big&q=low&debug=1']]){
+              const page=await browser.newPage(),errors=[];
+              page.on('pageerror',e=>errors.push(String(e)));
+              await page.setViewport({width:844,height:390,deviceScaleFactor:1,isMobile:true,hasTouch:true});
+              await page.setCookie({name:'__Http-phish',value:'1',domain:'rawcdn.githack.com',path:'/',secure:true,httpOnly:true});
+              const item={name,requested:root+path};
+              try{
+                const response=await page.goto(root+path,{waitUntil:'domcontentloaded',timeout:60000});item.http=response.status();
+                if(name==='ftue'){
+                  await page.waitForSelector('#splash-play',{visible:true,timeout:45000});
+                  await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded',timeout:45000}),page.tap('#splash-play')]);
+                  item.afterPlayUrl=page.url();
+                }else{
+                  await page.waitForSelector('#tutorial-start',{visible:true,timeout:45000});await page.tap('#tutorial-start');
+                }
+                await page.waitForFunction(()=>!!document.querySelector('canvas')&&!document.getElementById('boot-loader'),{timeout:60000});
+                item.canvas=await page.$eval('canvas',c=>({width:c.width,height:c.height}));
+                item.big=await page.evaluate(()=>window.__NR?.state?.().level?.big??null);
+                item.pass=true;
+              }catch(e){item.pass=false;item.error=String(e);}
+              item.url=page.url();item.errors=errors;
+              await page.screenshot({path:name+'.png'}).catch(()=>{});report.pages.push(item);console.log('PAGE_CHECK',JSON.stringify(item));await page.close();
+            }
+          }finally{await browser.close();await writeFile('report.json',JSON.stringify(report,null,2));}
+          JS
+          node check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr206-public-preview-check
+          path: |
+            preview-check/report.json
+            preview-check/*.png
+          retention-days: 7
