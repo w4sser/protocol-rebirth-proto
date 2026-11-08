@@ -84,12 +84,13 @@ try {
         seed:'groundshot',debug:'1',q:mode==='low'?'low':'high',area,return:'../index.html',
       });
       if (mode !== 'off') {params.set('ground','2');params.set('groundProfile',mode);}
-      // The dedicated coastal smoke must exercise the actual default launch,
-      // not silently opt into the preview using URL flags. Other ground-only
-      // captures disable external dressing to keep their render baselines stable.
+      // The coastal comparison smoke explicitly selects the former coastal mode.
+      // The military smoke now exercises the REAL Archipelago default without
+      // polyforkMode. Other ground captures disable dressing for stable baselines.
       if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
+      if (process.env.COASTAL_FOCUS==='1') params.set('polyforkMode','coastal');
       if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
-      if (process.env.MILITARY_FOCUS==='1') {params.set('polyfork','1');params.set('polyforkMode','military');params.set('seed','military-qa-01');}
+      if (process.env.MILITARY_FOCUS==='1') {params.set('polyfork','1');params.delete('polyforkMode');params.set('seed','military-qa-01');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
