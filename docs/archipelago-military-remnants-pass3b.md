@@ -14,14 +14,16 @@ Separate future work: **a large sealed/cut-into-rock aircraft hangar with a dere
 2. **Overgrown foundations** — low orthogonal and zigzag concrete strips with open sky, weathering and pale moss, taking inspiration from the maze-like first reference.
 3. **Sealed rock-cut portal** — closed dark steel door framed by concrete and granite rubble; not an accessible area, door, loot object or game promise.
 
-The geometry is **generated locally** from instanced low-poly boxes, angular granite, a 10-sided rounded pillbox roof and restrained moss/grime. No new GLB model, remote licensing or player-facing images required. On LOW, preserve primary silhouettes and remove decorative detail. On HIGH, use additional scattered rock and roof lichen but remain mobile-conscious. The form varies deterministically with the seed; at most one coherent fortification per multi-island raid.
+The geometry is **generated locally** from instanced low-poly boxes, angular granite, a 10-sided rounded pillbox roof and restrained moss/grime. No new GLB model, remote licensing or player-facing images required. On LOW, preserve primary silhouettes and remove decorative detail. On HIGH, use additional scattered rock and roof lichen but remain mobile-conscious. The forms vary deterministically with the seed. Following a mobile playtest in which the first ruin was missed, we now target up to **two distinct fortifications in standard multi-island raids or three in BIG MAP**, prioritize the starting island and require the first ruin to have a recognizable pillbox/portal silhouette.
 
 ## Safety / scope
 
 - Opt-in only: `polyforkMode=military`; `coastal` remains the default and `profiles`, `scatter`, `polyfork=0` are unaffected.
 - Choose safe exterior **seaward cliff shelves**, beside but beyond the authored walkable island rectangles. Buildings extend *away* from the island into the existing rocky coast and are not walk-through fake cover. Reject locations crossing any room, bridge, landward approach, prop reservation, exit, pickup or enemy spawn.
 - Bury the supports in surrounding granite; avoid hovering and z-fighting. Rocky shoreline colliders are intentional headland material, not blockers in the non-playable strip.
-- No additions to gameplay collision, navigation, projectile blockers, AI, missions, camera, terrain, water or weather in this pass.
+- The Bungenäs ruins remain **visual-only** outside playable floor rectangles: no new ruin collision, projectile blockers, AI, missions, camera, terrain, water or weather.
+- **Separate observed Big Map bridge defect fixed in this PR:** BIG Archipelago corridors inherited 1.8 m Bunker widths. They now use 4.2 m logical corridor floors, wall mouths, bridge meshes and matching AI graph metadata. Bunker Big Map remains 1.8 m.
+- Existing collidable brown crates on islands are **reskinned, not removed**, to old mossy concrete cover only when `polyforkMode=military`. Their collision rectangles remain identical, removing distracting generic boxes without breaking gameplay.
 - Forest/Granite/Coastal Life stays as base composition with reduced density to keep item budgets HIGH ≤125 and LOW ≤40. The new architectural geometry is separately audited for instancing and draw calls.
 - No dynamic lights; details should read under the existing nordic twilight exposure.
 
@@ -29,8 +31,8 @@ The geometry is **generated locally** from instanced low-poly boxes, angular gra
 
 - [ ] Unit tests for seeded placement, hard exclusion of gameplay floors, safe reserves, LOW/HIGH identical silhouette, memory disposal and draw-call budget.
 - [ ] `ci`, `ground-v2-khronos`, `coastal-life-preview`, `military-remnants-preview` all green at the latest PR head.
-- [ ] Level 3 iPhone viewport captures show an identifiable concrete fortification in HIGH and LOW (not absent or invisible). No texture or material regressions.
-- [ ] Physical-device test confirms low structure sits *in* the headland, with no bridges blocked or floating foundations; LOW performance target remains >40 FPS.
+- [ ] Level 3 iPhone viewport captures show an identifiable concrete fortification in HIGH and LOW (not absent or invisible). Save the **unassisted first player view before teleport** as well as the close-up for both qualities. Record its position, distance from the spawn and screen projection. No texture or material regressions.
+- [ ] Physical-device test confirms a fortification is discoverable from the starting island, not merely present after a teleport; no floating foundations. Verify that the actual widened Big Map bridges accept diagonal entries and Low remains >40 FPS.
 - [ ] User visually approves the Bungenäs exterior direction before merging or enabling it by default.
 
 ## Test URL
