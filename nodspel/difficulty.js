@@ -3,7 +3,8 @@
 // default is neutral -- a no-op -- matching the knob table in docs/difficulty-bots.md §3.
 // The live game does not call this yet (it lands with the DDA PR, docs/difficulty-bots.md §5.4);
 // today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
-import {RULES,randomFromSeed} from './levels.js?v=2.28.3';
+import {RULES,randomFromSeed} from './levels.js?v=2.28.4';
+import {walkMap} from './encounters.js?v=2.28.4';
 
 export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1});
 
@@ -38,16 +39,27 @@ export function applyDifficulty(level,knobs={}){
 // cheapest (lowest health) first, never leaving a room with its shielded-node generator orphaned.
 function adjustEnemyCount(level,count){
   const rng=randomFromSeed(`${level.seed}:difficulty:count`);
-  const solids=[...level.walls,...level.boxes];
-  const clear=p=>!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6);
+  // v2.28.4: an extra must stand fully on real floor (its whole footprint), clear of walls/boxes/locked doors and
+  // other bodies, and be walkable from the start -- before this, a clone 1.4-2.8 m from its source could land
+  // behind an exterior wall (playtest 2026-11-08 "spawn outside the level").
+  const solids=[...level.walls,...level.boxes,...(level.doors??[]).filter(d=>d.locked)];
+  const R=.48,onFloor=(x,z)=>level.floors.some(f=>Math.abs(x-f.x)<=f.w/2+.02&&Math.abs(z-f.z)<=f.d/2+.02);
+  const walk=walkMap(level,'__dda');
+  const clear=p=>[[0,0],[R,R],[-R,R],[R,-R],[-R,-R]].every(([dx,dz])=>onFloor(p.x+dx,p.z+dz))
+    &&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6)
+    &&!level.enemies.some(e=>Math.hypot(p.x-e.x,p.z-e.z)<(e.r??R)+R+.1)&&walk(p);
+  // Clone a plain body, never an encounter actor: a cloned guard/shield turret kept its front shield with no
+  // flank guarantee. With no plain body in the level, no extra is added.
+  const plain=e=>e.type!=='generator'&&!e.encounter&&!e.frontShield&&!e.introGuard&&!e.node;
   if(count>0){
     for(let n=0;n<count;n++){
-      const source=level.enemies.filter(e=>e.type!=='generator').sort((a,b)=>a.health-b.health)[0];
+      const pool=level.enemies.filter(plain);
+      const source=pool.sort((a,b)=>a.health-b.health)[0]; // no plain body -> no extra (never a shieldless shield actor)
       if(!source)break;
       let placed=null;
       for(let attempt=0;attempt<50&&!placed;attempt++){
         const angle=rng()*2*Math.PI,radius=1.4+rng()*1.4;
-        const p={x:source.x+Math.cos(angle)*radius,z:source.z+Math.sin(angle)*radius};
+        const p={x:Math.round((source.x+Math.cos(angle)*radius)*100)/100,z:Math.round((source.z+Math.sin(angle)*radius)*100)/100};
         if(clear(p))placed=p;
       }
       if(!placed)continue;

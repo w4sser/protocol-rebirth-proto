@@ -1,7 +1,7 @@
 // Pass 3A: rare, curated coastal traces on the non-walkable shore band.
 // This is a visual-only planner; no Three.js, level geometry or colliders.
-import {coastlineProfile} from './coastline.mjs?v=2.28.3-bridge1';
-import {propReservations} from './props-placement.mjs?v=2.28.3';
+import {coastlineProfile} from './coastline.mjs?v=2.28.4-bridge1';
+import {propReservations} from './props-placement.mjs?v=2.28.4';
 import {planProfiledDressing,seededRandom} from './polyfork-profiles.mjs?v=profile-v1';
 
 export const COASTAL_SCENES=Object.freeze([
