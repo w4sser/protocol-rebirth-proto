@@ -32,7 +32,7 @@ test('Bungenas landmark uses built concrete architecture, no GLB tech props or V
     ['coastal-pillbox','overgrown-foundations','sealed-rock-portal']);
   const a=planMilitaryRemnantsDressing(fixture),b=planMilitaryRemnantsDressing(fixture);
   assert.deepEqual(a,b);
-  assert.ok(a.militaryLandmarks.length<=1);
+  assert.ok(a.militaryLandmarks.length<=2);
   assert.equal(a.architecture.length,a.militaryLandmarks.length);
   assert.ok(!a.items.some(x=>x.profile==='military'),'no fake military tech in asset layer');
   assert.ok(a.militaryLandmarks.every(x=>x.visualOnly));
@@ -56,7 +56,7 @@ test('fortification footprints remain beyond playable island and bridge floors',
     assert.ok(high.items.length<=125&&low.items.length<=40);
     const keys=new Set(high.items.map(key));
     assert.ok(low.items.every(item=>keys.has(key(item))));
-    assert.ok(high.militaryLandmarks.length<=1);
+    assert.ok(high.militaryLandmarks.length<=2);
     installed+=high.militaryLandmarks.length;
     plans.push(high);
     for(const site of high.militaryLandmarks){
@@ -71,10 +71,28 @@ test('fortification footprints remain beyond playable island and bridge floors',
       }
     }
   }
-  assert.ok(installed>=2,'visible ruins must actually spawn in multiple seeded archipelago raids');
+  assert.ok(installed>=6,'visible ruins must actually spawn in multiple seeded archipelago raids');
   assert.deepEqual(planMilitaryRemnantsDressing({...fixture,archipelago:false}).architecture,[]);
   assert.deepEqual(planMilitaryRemnantsDressing({...fixture,floors:fixture.floors.slice(0,1)}).architecture,[]);
   assert.deepEqual(planMilitaryRemnantsDressing(fixture,{density:0}).items,[]);
+});
+test('Big Map has several ruins and a readable early landmark',()=>{
+  let early=0,present=0;
+  for(let i=0;i<12;i++){
+    const level=generateLevel(1,'military-big-'+i,'archipelago',false,true);
+    const plan=planMilitaryRemnantsDressing(level);
+    assert.ok(plan.militaryLandmarks.length<=3);
+    assert.deepEqual(plan.architecture,plan.militaryLandmarks);
+    if(plan.militaryLandmarks.length){
+      present++;
+      const first=plan.militaryLandmarks[0];
+      if(first.islandIndex<=1)early++;
+      assert.notEqual(first.scene,'overgrown-foundations','first landmark should have a readable bunker silhouette');
+      assert.equal(new Set(plan.militaryLandmarks.map(x=>x.islandIndex)).size,plan.militaryLandmarks.length);
+    }
+  }
+  assert.ok(present>=8,'most big maps should feature a fortification');
+  assert.ok(early>=6,'most big maps need a landmark on one of the first two islands');
 });
 test('geometry is mobile-bounded, seeded, disposable and visual-only',()=>{
   const site={scene:'sealed-rock-portal',center:{x:22,z:18},ry:.3,islandIndex:1,
