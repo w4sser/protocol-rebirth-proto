@@ -1449,9 +1449,21 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 **Risk and progression integrity:** Reusability must not create continuous enemy lockout, guaranteed safety, automatic wins, kills, free extraction, lost-loot recovery or additional protection beyond D1. Meaningful downtime should preserve tough encounter and route-choice consequences (M22–M25), and the free Basic Carbine remains viable before and without BIT Bay L1. No charge items, energy currency, shop gating or new upgrade tier are introduced by this choice.
 
-**Still open:** Actual cooldown seconds and tuning per mode/difficulty, when the timer starts/resets (including raid start, transition, death and new raid), the result of attempts with no eligible target, feedback on successful/failed activation and remaining time, cooldown reduction through BIT Bond/Bay L2 if any, target eligibility, interruptions, distractions' duration and precise input/UI placement. The phrase "successful activation" denotes an ability use that actually executes against an eligible target; it does not imply the enemy must be defeated or guarantee safety.
+**M33 now approves variable susceptibility by enemy archetype (ordinary foes work, some heavy/specialists can resist or react differently). Still open:** Actual cooldown seconds and tuning per mode/difficulty, when the timer starts/resets (including raid start, transition, death and new raid), the result of attempts with no eligible target, feedback on successful/failed activation and remaining time, cooldown reduction through BIT Bond/Bay L2 if any, target eligibility, interruptions, distractions' duration and precise input/UI placement. The phrase "successful activation" denotes an ability use that actually executes against an eligible target; it does not imply the enemy must be defeated or guarantee safety.
 
 **Testable design question:** Can players successfully trigger BIT more than once in an ordinary raid, recognize cooldown availability and make meaningful tactical decisions without using the ability continuously or confusing it with a limited consumable? **Documentation only; no gameplay/UI code, assets, tests, deployment or merge authorized.**
+
+---
+
+## M33 — Enemy-Specific BIT Distraction Susceptibility (OWNER APPROVED, 8 November 2026)
+
+**Approved option A:** BIT's brief distraction **works on ordinary enemies**. **Some heavy or specialized enemy types may resist or respond differently** instead of sharing one universal reaction. Differences must be **clearly communicated and fair** through enemy tells, environmental evidence and short contextual BIT cues (M25); they must be understandable in mobile combat without requiring sound. The exact list, response types, resistances, cooldown and balance are not locked.
+
+**Preserve M29–M32:** BIT is present before the Bay and gains the distraction only after full BIT Bay L1 construction. The **player decides when** to trigger it using a simple contextual action (M30). BIT chooses the **most immediate suitable enemy threat** after activation (M31); how suitability and resistance affect target selection remains open. The skill is reusable in ordinary raids with a clear, meaningful cooldown between successful uses (M32). A distraction affects one enemy briefly and only enables an opportunity to flank, reposition or flee; no auto-kills, automatic escape, invulnerability, saved loot, insurance or second Secure Slot.
+
+**Not yet decided:** Enemy-by-enemy eligibility; whether certain resistant enemies have weaker/altered effects or are fully immune; exact response/tells, which enemy BIT targets when the greatest threat is resistant, how no suitable target and failed use work, cooldown duration/start/reset, feedback, mobile UI, BIT Bond/Bay L2 interplay and numeric balance. M33 does not silently approve immunity, automatic activation or consuming cooldown with no useful effect.
+
+**Playtest criterion:** The player should recognize which threats respond differently, understand why from readable signals and retain meaningful counterplay rather than feel arbitrarily punished. **Design documentation only; no game code, assets, tests, deploy or merge.**
 
 ---
 
@@ -1459,6 +1471,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | M33: Ordinary enemies are distractible; some heavy/specialist types can resist or react differently, with clear, fair signals | Owner approved; enemy mapping, reaction strength, immunity, cooldown and balance open |
 | 2026-11-08 | M32: BIT's distraction is reusable in normal raids with a clear, meaningful cooldown between successful activations, not a fixed per-raid charge pool | Owner approved; exact seconds, reset rules, UI and balance open |
 | 2026-11-08 | M31: After the player triggers distraction, BIT chooses the most immediately threatening enemy; player controls timing, not target | Owner approved; exact threat priority, feedback, cooldown and balance open |
 | 2026-11-08 | M30: BIT distraction requires a simple contextual player action; the player chooses activation timing, not BIT | Owner approved; exact input/placement, targeting, cooldown and balance open |
