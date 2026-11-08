@@ -1348,7 +1348,9 @@ let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
 function showSwap(){
   const toast=document.getElementById('bag-toast');if(toast)toast.hidden=true;
   const info=round?.bagFull;
-  if(!info||round.over||resultPending||!nearBlocked())return;
+  // The layout fixture can open the dialog without a nearby pickup.
+  const debugPreview=new URLSearchParams(location.search).has('debug')&&info?.at===undefined;
+  if(!info||round.over||resultPending||(!nearBlocked()&&!debugPreview))return;
   const box=round.level.lootBoxes.find(b=>b.id===info.boxId);
   if(!box||box.collected)return;
   if(!box.revealed){box.revealed=true;const v=world.lootBoxes.find(x=>x.loot===box);if(v){world.applyReveal(v);setLootText(v);}}
@@ -1360,7 +1362,7 @@ function showSwap(){
   const suggested=recommendation.dropId;
   const value=id=>globalThis.DATA.items.find(item=>item.id===id)?.sellValue??0;
   const name=id=>ITEM_NAMES[id]??id;
-  const stale=()=>round.over||resultPending||round.bagFull?.boxId!==info.boxId||!nearBlocked();
+  const stale=()=>round.over||resultPending||round.bagFull?.boxId!==info.boxId||(!nearBlocked()&&!debugPreview);
   const make=(tag,cls,content)=>{const node=document.createElement(tag);node.className=cls;if(content!==undefined)node.textContent=content;return node;};
   const tile=(id,context)=>{
     const card=make('div','swap-choice-item');
