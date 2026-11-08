@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.0';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.0';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.0';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.0';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.0-ground-v10-timber-v1';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.0-ground-v10-timber-v1-military-visual2';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.0';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.0';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.0';
@@ -827,6 +827,7 @@ let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
 const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
+const MILITARY_STYLE=POLYFORK_ACTIVE&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
 const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-pilot1-coastal-v1-military-v1'):null;
 let polyforkPreview=null,polyforkLoadToken=0;
 function refreshArchipelagoDressing(level){
@@ -864,7 +865,7 @@ function loadLevelInner(){
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
   propsPreview?.dispose();propsPreview=null;
-  world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null});
+  world=buildWorld(round.level,scene,{quality:QUALITY,town:TOWN,pine:PINE,bunker:AREA_SEL==='bunker'?BUNKER:null,militaryStyle:MILITARY_STYLE});
   refreshArchipelagoDressing(round.level);
   if(GROUND_V2){
     const previewLevel=round.level;
