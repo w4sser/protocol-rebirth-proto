@@ -10,6 +10,8 @@ const P={
   iron:'#353E40',rust:'#765541',granite:'#6F7073',graniteDark:'#595C62',
   moss:'#61704A',lichen:'#88936C',dryGrass:'#87865C',shadow:'#171D21'
 };
+// Distinct depth planes: no coplanar roofs/lichen on the bunker door.
+export const PORTAL_ROOF=Object.freeze({lintelY:1.85,lintelH:.34,capY:2.15,capH:.21,mossTop:2.255});
 export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed=''}={}){
   const group=new THREE.Group();
   group.name='military-remnants-architecture';
@@ -119,7 +121,7 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     // the player floor; no promise of a room behind the facade.
     box(P.concrete,-.94,.86,.47,.53,1.71,d*.63);
     box(P.light,.94,.87,.47,.55,1.72,d*.63);
-    box(P.concrete,0,1.85,.43,2.5,.34,d*.82);
+    box(P.concrete,0,PORTAL_ROOF.lintelY,.43,2.5,PORTAL_ROOF.lintelH,d*.82);
     box(P.shadow,0,.81,.082,1.39,1.47,.045);
     box(P.iron,0,.81,.050,1.27,1.38,.052);
     box(P.edge,0,.81,.018,.045,1.27,.021);
@@ -132,9 +134,9 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     }
     // The cap floats just 2.5cm above the lower lintel; upper faces are
     // strictly separated from each other and from moss, never coplanar.
-    box(P.concrete,0,2.15,.63,w*.91,.21,d*.74);
+    box(P.concrete,0,PORTAL_ROOF.capY,.63,w*.91,PORTAL_ROOF.capH,d*.74);
     rubble(r,w,d,high?16:8);
-    weather(r,w,d,2.255,high?5:1);
+    weather(r,w,d,PORTAL_ROOF.mossTop,high?5:1);
   }
   function reclaimedPerimeter(r,l){
     // Broken outworks, lichen and overgrown remnants stay INSIDE the coast-only
