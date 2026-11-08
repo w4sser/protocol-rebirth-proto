@@ -1,8 +1,9 @@
-// Opt-in Polyfork art test for real archipelago raids: ?polyfork=1
+// Self-hosted Polyfork low-poly decoration for Archipelago. ?polyfork=0 disables it.
 // Visual-only, deterministic and bounded. No gameplay collision, no changes to terrain/shore.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
+import {polyforkLocalUrl} from './polyfork-local-url.mjs?v=1';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
@@ -17,9 +18,10 @@ const SAMPLE_IDS=[
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){
+  if(!byId.has(id))return Promise.reject(new Error('Unknown local Polyfork asset: '+id));
   if(!assetPromises.has(id))assetPromises.set(id,Promise.race([
-    loader.loadAsync(byId.get(id).url),
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error('Polyfork CDN timeout: '+id)),9000))
+    loader.loadAsync(polyforkLocalUrl(id)),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('Local Polyfork asset timeout: '+id)),9000))
   ]).catch(error=>{assetPromises.delete(id);throw error;}));
   return assetPromises.get(id);
 }
