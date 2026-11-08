@@ -1357,10 +1357,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M26 — Visual Restoration Stages, Functional Unlock on Completion (OWNER APPROVED, 8 November 2026)
+
+**Approved design decision:** Major bunker rooms restore in **2–3 clearly visible stages**, and those stages **partition the room's already-existing total material cost**. A partial stage changes the visible room and makes progress tangible, but **provides no room functionality, gameplay stat or mechanical reward** until the final stage is completed. Upon completion, the room's full existing functional capability and gameplay unlocks arrive together as one unmistakable payoff.
+
+**Examples, not fixed art:** An unpowered workshop may gain lighting and repaired machines before its final activation. These improvements communicate ownership and progress, not working crafting, shield, storage, BIT ability, combat stats or any other interim utility. The Fabricator L1 equipment/preparation reward and material-commerce eligibility begin **only once full Fabricator L1 is earned and completed through gameplay**. Vault L1's Secure Slot remains locked until Vault L1 is fully restored; do not accidentally grant it at an intermediate stage.
+
+**Resource and extraction integrity:** The individual stage costs add up to the room's pre-existing total for each material; no additional resource sink, extra grind, premium acceleration requirement or alternate currency is added. A stage requires materials genuinely banked at home, and pressing an intermediate repair does not imply a fabricated material reward. Materials committed to a finished stage stay invested; carried loot remains subject to D1 until extraction. The player may continue choosing their own one tracked Bunker Project, with M19D's in-raid material targeting and the M4/M5 commercial restrictions unchanged.
+
+**Supersession:** This settles the open M19D contract question about intermediate mechanical utility in favor of **visual-only partial restoration**. Any older mention of early room utility is a historical **proposal**, not approved behavior. It does not supersede the separate already-approved **Core L1 FTUE restoration**, which completes its meaningful activation as specified in D3.
+
+**Open:** Which exact rooms have 2 versus 3 stages, the resource split per stage, art states, interaction timing and celebration choreography. Validate the player can perceive each physical improvement, understands the functional upgrade is still locked until the final step, and never pays more than the original total. No gameplay code or merge authorized.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | M26: 2–3 visual-only stages per major room within unchanged total resource cost; all room gameplay functionality unlocks on completion | Owner approved; art and cost partitioning open |
 | 2026-11-08 | M25: Risk is communicated mainly through environment, enemy signals and brief contextual BIT cues, not numeric risk grades or total foreknowledge | Owner approved; exact signaling and thresholds open |
 | 2026-11-07 | M24: Ordinary raid difficulty follows chosen depth/routes and legible risk, not hidden performance scaling; preserve bounded D3.8 first-normal-raid assistance | Owner approved; presentation and numeric tuning open |
 | 2026-11-07 | M23: Teach distinct enemy archetypes rapidly through play; increase difficulty through enemy/environment combinations, not long tutorials or HP inflation | Owner approved; encounter sequencing and tuning open |
