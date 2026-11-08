@@ -317,8 +317,13 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     if(rule.partition){
       // The doorway is on one side; the node is behind the solid opposite side.
       const gap=side*(w/2-1.5),gapWidth=1.8+(area==='archipelago'?.6:0),left=-w/2,right=w/2;
-      room.partition={x:x+gap,z:z-.8};
-      for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z-.8,w:hi-lo,d:t,h:1.7});
+      // v2.28.6 (playtest 2026-11-08, corridors): at z-.8 the wall-to-wall partition's end jutted into an east/west
+      // doorway mouth (door spans z±door/2), cutting its clear width to ~1.5 m -- players and enemies snagged there.
+      // With a side door, nudge it just past the door edge (minimal move: node side/gap unchanged).
+      const sideDoor=area==='bunker'&&room.doors.some(p=>p.x!==0);
+      const pz=sideDoor?Math.min(-.8,-(door/2+t/2+.02)):-.8;
+      room.partition={x:x+gap,z:z+pz};
+      for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z+pz,w:hi-lo,d:t,h:1.7});
     }
     if(!rule.nodesBeyondPassage||i===rooms.length-1){
       const count=rule.nodesBeyondPassage?rule.nodes:1;

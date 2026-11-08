@@ -85,6 +85,11 @@ export const RULES=[
      if(!/!e\.frontShield/.test(src)||!/!e\.encounter/.test(src))out.push('nodspel/difficulty.js: extras must clone only plain bodies (no frontShield/encounter actors)');
      if(/pool\.length\s*\?\s*pool\s*:/.test(src))out.push('nodspel/difficulty.js: no fallback from the plain pool to any enemy (it cloned shield actors)');
      return out;}},
+  {id:'partition-door-clearance',pr:'v2.28.6 (playtest 2026-11-08 corridors)',why:'Bunker L2 partition end jutted into the side doorway mouth; players and enemies snagged in corridors',
+   check(c={}){const out=[];const lv=c.levelsSrc??read('nodspel/levels.js');
+     if(!/const sideDoor=area==='bunker'&&room\.doors\.some\(p=>p\.x!==0\)/.test(lv)||!/-\(door\/2\+t\/2\+\.02\)/.test(lv))out.push('nodspel/levels.js: with a side door the partition must clear the doorway span (z <= -(door/2+t/2))');
+     if(!c.levelsSrc&&!read('nodspel/tests/door-clearance.test.mjs').includes('walkable starts on both sides'))out.push('nodspel/tests/door-clearance.test.mjs: keep the both-sides corridor approach sweep');
+     return out;}},
   {id:'perk-choice-touch-44',pr:'v2.28.0 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
    check(){const out=[];const css=read('nodspel/perks.css');const game=read('nodspel/game.mjs');const ui=read('nodspel/perk-ui.js');const layout=read('scripts/layout-check.mjs');
      if(!/\.perk-grid\{[^}]*minmax\(\s*44px\s*,/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-grid columns must use minmax(44px,...) so cards cannot collapse below the touch target');

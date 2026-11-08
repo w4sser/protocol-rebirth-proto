@@ -24,7 +24,9 @@ const PLAN=E.plan;
 const guardSim=(seed,opts={})=>{const S=sim(2,'bunker',seed,{...opts,only:e=>e.encounter==='guard'}),g=S.level.enemies[0],room=S.level.rooms.at(-1),inc=room.incoming;
   // start 2.5-5 m in front of the guard (clear line, on the floor), as far from its node as possible: where a player coming through the partition gap first meets it
   const F=facingVec(g.facing),solids=S.playerSolids(),node=S.level.nodes[0],ok=[];
-  for(const d of [4,3.5,4.5,3,5,2.5])for(const da of [0,.25,-.25,.5,-.5]){const a=g.facing+da,p={x:g.x+Math.sin(a)*d,z:g.z+Math.cos(a)*d};
+  // v2.28.6: if the narrow front cone has no clear spot (a partition close in front), widen to +-57 deg (still inside the
+  // fire arc) instead of the blind fallback, which could snap into a wall. Seeds with a narrow-cone spot are unchanged.
+  for(const cone of [[0,.25,-.25,.5,-.5],[.75,-.75,1,-1]])if(!ok.length)for(const d of [4,3.5,4.5,3,5,2.5])for(const da of cone){const a=g.facing+da,p={x:g.x+Math.sin(a)*d,z:g.z+Math.cos(a)*d};
     if(S.level.floors.some(f=>Math.abs(p.x-f.x)<f.w/2-.6&&Math.abs(p.z-f.z)<f.d/2-.6)&&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6)&&traceTargets(g,p,solids,[])?.kind!=='wall')ok.push(p);}
   ok.sort((a,b)=>dist(b,node)-dist(a,node));
   if(ok.length){S.P=ok[0];S.combat.visited.add(S.level.rooms.indexOf(room));return S;}
@@ -215,11 +217,32 @@ function decoySpot(S,enemy,node,{radius=3.2,avoid=[]}={}){
     if(score>bestScore){best=p;bestScore=score;}}
   return best;
 }
-function flankGuard(S,g,side){
+// v2.28.6: the greedy steer to a fixed 115 deg / 2.3 m point is incidental to the room shape (a partition or wall can sit
+// on that point). If it fails, walk a planned route to ANY reachable flank spot (outside the shield arc, clear shot) --
+// the same invariant ensureRearClearance proves at generation -- then shoot. Still a real kill, shield never bypassed.
+function flankByRoute(S,g,side){
+  const solids=S.playerSolids();
+  for(const r of [2.3,3,3.8,1.8])for(let k=0;k<24;k++){const a=g.facing+Math.PI+(k%2?1:-1)*Math.ceil(k/2)*Math.PI/12;
+    if(Math.abs(angleDiff(g.facing,a))<=95*Math.PI/180)continue;
+    const p={x:g.x+Math.sin(a)*r,z:g.z+Math.cos(a)*r};
+    if(traceTargets(p,g,solids,[])?.kind==='wall')continue;
+    if(!walkRoute(S,p,{tol:.35,maxMs:12000,enemies:false}))continue;
+    // from the reachable flank keep circling the slowly turning guard exactly like the greedy flank does
+    if(flankGreedy(S,g,side))return true;
+    if(S.round.over)return false;}
+  return false;
+}
+function flankGuard(S,g,side){return flankGreedy(S,g,side)||(g.health>0&&!S.round.over&&flankByRoute(S,g,side));}
+function flankGreedy(S,g,side){
   for(let t=0;t<14000&&g.health>0&&!S.round.over;t+=DT*1000){
     const rel=angleDiff(g.facing,angleTo(g,S.P));
     if(rel>85*Math.PI/180&&dist(S.P,g)<6){S.round.shooter=S.P;fireAimedWeapon(S.weapon,S.round,S.P,{x:g.x-S.P.x,z:g.z-S.P.z},S.now,S.playerSolids());S.round.shooter=null;tick(S);continue;}
-    const a=g.facing+side*115*Math.PI/180;tick(S,{x:g.x+Math.sin(a)*2.3-S.P.x,z:g.z+Math.cos(a)*2.3-S.P.z});
+    // v2.28.6: circle to the 115 deg / 2.3 m flank point; if a wall or partition sits on it, take the nearest free point on the
+    // same ring (further round, never into the front arc) instead of pushing into the wall.
+    const sol=S.playerSolids(),freeAt=q=>S.level.floors.some(f=>Math.abs(q.x-f.x)<f.w/2-.4&&Math.abs(q.z-f.z)<f.d/2-.4)&&!sol.some(o=>Math.abs(q.x-o.x)<o.w/2+.45&&Math.abs(q.z-o.z)<o.d/2+.45);
+    let tgt=null;for(const deg of [115,130,145,160,175,100])for(const rr of [2.3,2.8,1.9]){if(tgt)break;const a=g.facing+side*deg*Math.PI/180,q={x:g.x+Math.sin(a)*rr,z:g.z+Math.cos(a)*rr};if(freeAt(q))tgt=q;}
+    tgt??={x:g.x+Math.sin(g.facing+side*115*Math.PI/180)*2.3,z:g.z+Math.cos(g.facing+side*115*Math.PI/180)*2.3};
+    tick(S,{x:tgt.x-S.P.x,z:tgt.z-S.P.z});
   }
   return g.health<=0;
 }
