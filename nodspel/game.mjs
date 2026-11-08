@@ -1372,6 +1372,9 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
   bagDemo(items=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor']){const known=new Set(globalThis.DATA.items.map(i=>i.id));for(const id of items)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;updateHUD();},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
+  // Playtest 2026-11-08 QA: light every node and step into the exit through the real enterExit path, so the
+  // mid-raid result (Continue raid / Extract) opens deterministically without fighting. Debug-only hook.
+  pendingResultDemo(){if(round.level.big)return null;for(const n of round.level.nodes)activateNode(round,n.id,gameClock());const r=enterExit(round,{x:round.level.exit.x,z:round.level.exit.z},gameClock());if(r&&r!=='perk')finishRound('extraction');return r;},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
   async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.2');round.level=generateLevel(n,round.seed);loadLevel();}});
 
