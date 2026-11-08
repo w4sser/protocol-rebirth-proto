@@ -34,7 +34,8 @@ function safeAnchorage(level,res,coast,center,normal,tangent,width,depth){
     if(d>outerRadius(coast,x,z)-.045)return false;
     if((level.floors??[]).some(floor=>floorContains(floor,x,z,.055)))return false;
     if(res.blocked(x,z,.14))return false;
-    if((level.walls??[]).some(w=>rectNear(x,z,w,.12)))return false;
+    // Shoreline rock colliders form the headland; bury concrete into them rather
+    // than rejecting every military wall site. All samples remain off playable floors.
     if((level.boxes??[]).some(b=>rectNear(x,z,b,.12)))return false;
   }
   // Visual footprint touches no gameplay corridor, enemy or interaction space.
