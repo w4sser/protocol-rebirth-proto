@@ -63,6 +63,13 @@ export const RULES=[
      if(!/showLevelIntro\(\);/.test(game))out.push('nodspel/game.mjs: loadLevel must call showLevelIntro()');
      if(!/raidGoalCompactRun\(vp\)/.test(layout))out.push('scripts/layout-check.mjs: the compact bag/NEED panel check must run');
      return out;}},
+  {id:'fullscreen-detail',pr:'v2.28.2 (playtest 2026-11-08)',why:'room/quest/weapon detail screens were floating modals under the currency bar with the close badge on the right',
+   check(ctx){const out=[];const app=ctx?.app??read('app.js'),html=ctx?.html??read('index.html');
+     if(!/qlogov fsdetail/.test(app))out.push('app.js: quest log must open with the fsdetail class');
+     if((app.match(/"sheet fsdetail"/g)||[]).length<3)out.push('app.js: room/module detail overlays must use "sheet fsdetail"');
+     if(!/'<button type="button" class="wpn-close"[^\n]*?'<div class="wpn-r">'/.test(app))out.push('app.js: weapon close must sit before .wpn-r (top-left), not inside the stats column');
+     if(!/#overlay\.fsdetail \.pop-card>\.pop-x\{[^}]*left:8px/.test(html))out.push('index.html: fsdetail close badge must be top-left');
+     return out;}},
   {id:'artillery-fx-prewarm',pr:'#196',why:'first artillery shell + landing ring compiled mid-fight and hitching on iPhone',
    check(ctx){const src=ctx?.gameSrc??read('nodspel/game.mjs');const out=[];
      if(!/function makeArtilleryShell\b/.test(src))out.push('nodspel/game.mjs: makeArtilleryShell() missing (pooled shell factory)');

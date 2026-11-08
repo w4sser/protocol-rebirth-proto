@@ -3940,7 +3940,7 @@ function weaponScreenHtml(id){
     : '<span class="wpn-art t' + tier + '" aria-hidden="true">' + IC(ITEMS[id].icon) + Object.keys(ATT_ITEM).filter(k => at[k]).map(k => '<i class="watt watt-' + k + '">' + IC(ITEMS[ATT_ITEM[k]].icon) + '</i>').join("") + '</span>';
   setTimeout(drawLeaders, 30);
   return '<div class="bpop stashpop gearpop wpnscreen tier' + tier + ' r-' + tierRarity(id) + '" data-gear="' + id + '" data-tier="' + tier + '"><div class="wpn-l"><div class="wpn-bench">' + art + '<span class="wpn-mk" aria-hidden="true">' + tierLabel(id) + '</span></div>' + wpnSlotsHtml(id) + '</div>' +
-    '<div class="wpn-r">' + (ownedWeapons().length > 1 ? '<div class="wpn-switch" role="tablist" aria-label="Your weapons">' + ownedWeapons().map(w => '<button type="button" role="tab" class="' + (w === id ? 'on' : '') + '" aria-selected="' + (w === id) + '" onclick="closeAllPopups();A.openWeapon(\'' + w + '\')" title="' + esc(ITEMS[w].name) + '">' + itemIcon(w) + '</button>').join("") + '</div>' : '') + (WART.sets[it.art] && WART.sets[it.art].placeholder ? '<div class="wpn-ph">Placeholder art</div>' : '') + '<button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button><div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier rar-' + tierRarity(id) + '">' + tierLabel(id) + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
+    '<button type="button" class="wpn-close" aria-label="Close" onclick="closeAllPopups()">' + IC("close") + '</button>' + '<div class="wpn-r">' + (ownedWeapons().length > 1 ? '<div class="wpn-switch" role="tablist" aria-label="Your weapons">' + ownedWeapons().map(w => '<button type="button" role="tab" class="' + (w === id ? 'on' : '') + '" aria-selected="' + (w === id) + '" onclick="closeAllPopups();A.openWeapon(\'' + w + '\')" title="' + esc(ITEMS[w].name) + '">' + itemIcon(w) + '</button>').join("") + '</div>' : '') + (WART.sets[it.art] && WART.sets[it.art].placeholder ? '<div class="wpn-ph">Placeholder art</div>' : '') + '<div class="wpn-name"><h1>' + esc(it.name) + '</h1><span class="wtier rar-' + tierRarity(id) + '">' + tierLabel(id) + '</span><em>' + (isFree(id) ? IC("infinity") : '×' + have(id)) + '</em></div>' +
     '<div class="gu-lvl" aria-label="Upgrade level ' + lvl + ' of ' + max + '"><b>LEVEL ' + lvl + '/' + max + '</b><span class="gu-pips">' + Array.from({ length:max }, (_, i) => '<span class="gu-pip' + (i < lvl ? ' on' : '') + '"></span>').join("") + '</span></div>' +
     wpnBarsHtml(id) + mastery + mergeRow +
     (canMerge ? '<button class="primary big merge" onclick="A.gearMerge(\'' + id + '\')">' + (free ? 'REBUILD TO ' : 'MERGE TO ') + nextName + '</button>' : '') +
@@ -4773,7 +4773,7 @@ window.A = {
     if(!tab) tab = open ? open.dataset.tab : (trackedQuest() || {}).chain;
     if(tab && tab !== "daily" && sel == null && chainReady(tab) && handInShow(tab, "log")) return;
     const ov = document.getElementById("overlay"); if(ov) ov.remove();
-    overlay(questLogHtml(tab, sel), () => refresh(), "qlogov");
+    overlay(questLogHtml(tab, sel), () => refresh(), "qlogov fsdetail");
   },
   // Toggle: a second press on the tracked quest switches tracking off (the goal card goes back to the upgrade goal).
   powerTap(){
@@ -4991,7 +4991,7 @@ window.A = {
         (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>'
           : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">ACTIVATE ROOM</button>') :
         '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
-      '</div>', clearMapFocus, "sheet");
+      '</div>', clearMapFocus, "sheet fsdetail");
   },
   // v1.82 T2: Living Quarters (room-only, no module): Rest = +bunker power and a next-raid buff (once per raid).
   openQuarters(){
@@ -5006,7 +5006,7 @@ window.A = {
     const meter = pv == null ? '' : '<div class="idlecard"><i aria-hidden="true">' + IC("power") + '</i><span><b>Bunker power ' + pv + '/100</b><span class="ibar"><span style="width:' + pv + '%"></span></span></span></div>';
     overlay('<div class="bpop" data-module="living_quarters"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + ROOM_ICONS.living_quarters + '</span><h1>' + esc(room.label) + '</h1></div>' +
       roomExplainHtml("living_quarters") + status + meter +
-      '<button class="primary big" ' + (c.ok ? 'onclick="A.rest()"' : 'disabled') + '>' + (c.ok ? 'REST' : 'RESTED · DEPLOY TO USE IT') + '</button></div>', clearMapFocus, "sheet");
+      '<button class="primary big" ' + (c.ok ? 'onclick="A.rest()"' : 'disabled') + '>' + (c.ok ? 'REST' : 'RESTED · DEPLOY TO USE IT') + '</button></div>', clearMapFocus, "sheet fsdetail");
     if(session.screen === "base") focusMapOn("living_quarters");
   },
   rest(){
@@ -5046,7 +5046,7 @@ window.A = {
       '<em>L' + lvl + (next ? ' ' + IC("arrow-right") + ' L' + next.level : '') + '</em>' +
       '<button type="button" class="iconbtn" onclick="A.buildingInfo(\'' + modId + '\')" aria-label="Details and story">' + IC("info") + '</button>' +
       '</div>' + roomExplainHtml(modId) + (modId === "fabricator" ? '<div class="fabcols"><div class="fabl">' + fabQueueHtml() + fabCraftHtml() + '</div><div class="fabr">' + body + cta + '</div></div>'
-      : (modId === "rebirth_core" ? genCardHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta) + '</div>', clearMapFocus, modId === "fabricator" ? "sheet fabroom fabov" : "sheet");
+      : (modId === "rebirth_core" ? genCardHtml() : modId === "bit_bay" ? scavCardHtml() : "") + body + cta) + '</div>', clearMapFocus, modId === "fabricator" ? "sheet fabroom fabov" : "sheet fsdetail");
     if(session.screen === "base") focusMapOn(modId);
   },
   back(){

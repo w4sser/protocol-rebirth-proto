@@ -1649,6 +1649,18 @@ img.pr-bit-art{display:block;width:100%;height:100%;object-fit:contain}
 .badge-pulse{animation:bitBadgePulse 1s ease-in-out 3;outline:2px solid var(--ad-cyan);outline-offset:-2px;scroll-margin:12px}
 @keyframes bitBadgePulse{50%{box-shadow:inset 0 0 14px var(--ad-cyan)}}
 @media(prefers-reduced-motion:reduce){.badge-pulse{animation:none}}
+  /* Playtest 2026-11-08: room / quest detail screens fill the app viewport (not the browser Fullscreen API), cover the
+     currency top bar (each panel carries its own have/need cost context), close badge always top-left inside the safe area. */
+  #overlay.fsdetail,#overlay.sheet.fsdetail{position:fixed!important;inset:0!important;height:calc(var(--vh,1vh) * 100)!important;z-index:60!important;padding:var(--st) var(--sr) var(--sb) var(--sl)!important;align-items:stretch!important;justify-content:stretch!important;background:var(--ad-night)!important;box-sizing:border-box}
+  #overlay.fsdetail .inner,#overlay.fsdetail .inner.pop-host{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible}
+  #overlay.fsdetail .pop-card{position:relative;margin:0!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;border-radius:0!important;box-sizing:border-box;overflow-y:auto!important;padding:10px 16px 14px 16px!important}
+  #overlay.fsdetail .pop-card>.pop-x{position:absolute!important;top:8px!important;left:8px!important;right:auto!important}
+  #overlay.fsdetail .pop-card>.pop-x+.bpop-head,#overlay.fsdetail .pop-card>.pop-x+*{padding-left:56px!important;min-height:44px}
+  /* Weapon screen: same rule, close badge top-left over the art column. */
+  .wpnscreen{position:relative}
+  .wpnscreen>.wpn-close{left:calc(8px + var(--sl,0px))!important;right:auto!important;top:calc(8px + var(--st,0px))!important;width:44px;height:44px;z-index:3}
+  #overlay.wpnov .wpn-name{padding-right:0!important}
+  .wpnscreen .wpn-l{padding-top:58px!important}
 </style>
 <link rel="stylesheet" href="ui/audio.css?v=2.28.2">
 </head>
