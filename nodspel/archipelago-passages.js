@@ -33,6 +33,20 @@ export function archipelagoPassages(level){
       }
       if(hi-lo<.8)continue;
       const p=axis==='x'?{x:(lo+hi)/2,z:center,w:hi-lo,d:depth}:{x:center,z:(lo+hi)/2,w:depth,d:hi-lo};
+      // Timber bridge mouths are wider than the water-side floor. The recessed
+      // rails no longer constrain this wall-gap scan, so clamp its clearance
+      // to the supported bridge center rather than discarding a valid opening
+      // when the 3x3 ground sample falls on the overhanging mouth shoulders.
+      if(level.archipelago){
+        const branches=[...(level.corridors??[]),...(level.deadEnds??[]),...(level.closet?[level.closet]:[])];
+        const bridge=branches.find(c=>axis==='x'&&c.dir?.z&&Math.abs(c.x-p.x)<.05&&Math.abs(c.z-p.z)<=c.d/2+1
+          ||axis==='z'&&c.dir?.x&&Math.abs(c.z-p.z)<.05&&Math.abs(c.x-p.x)<=c.w/2+1);
+        if(bridge){
+          const supportedWidth=Math.max(.8,bridge.width-1.0); // .5m safe shoulder for bot radius
+          if(axis==='x')p.w=Math.min(p.w,supportedWidth);
+          else p.d=Math.min(p.d,supportedWidth);
+        }
+      }
       // Require continuous ground on both sides, not an unrelated gap between islands.
       let grounded=true;
       for(const s of [-1,0,1])for(const t of [-1,0,1]){
