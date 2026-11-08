@@ -3,8 +3,8 @@
 // default is neutral -- a no-op -- matching the knob table in docs/difficulty-bots.md §3.
 // The live game does not call this yet (it lands with the DDA PR, docs/difficulty-bots.md §5.4);
 // today it is the hook tools/difficulty-bots/tune.mjs sweeps to measure the baseline curve.
-import {RULES,randomFromSeed} from './levels.js?v=2.28.5';
-import {walkMap} from './encounters.js?v=2.28.5';
+import {RULES,randomFromSeed} from './levels.js?v=2.28.6';
+import {walkMap} from './encounters.js?v=2.28.6';
 
 export const NEUTRAL_KNOBS=Object.freeze({hp:1,dmg:1,count:0,aggro:1,cadence:1});
 
@@ -39,7 +39,7 @@ export function applyDifficulty(level,knobs={}){
 // cheapest (lowest health) first, never leaving a room with its shielded-node generator orphaned.
 function adjustEnemyCount(level,count){
   const rng=randomFromSeed(`${level.seed}:difficulty:count`);
-  // v2.28.5: an extra must stand fully on real floor (its whole footprint), clear of walls/boxes/locked doors and
+  // v2.28.6: an extra must stand fully on real floor (its whole footprint), clear of walls/boxes/locked doors and
   // other bodies, and be walkable from the start -- before this, a clone 1.4-2.8 m from its source could land
   // behind an exterior wall (playtest 2026-11-08 "spawn outside the level").
   const solids=[...level.walls,...level.boxes,...(level.doors??[]).filter(d=>d.locked)];

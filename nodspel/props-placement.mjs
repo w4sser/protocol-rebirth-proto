@@ -1,9 +1,9 @@
 // Props preview (?props=1): deterministic, visual-only placement for the
 // archipelago asset kits from PRs #184 (ground cover), #185 (shore), #186 (rocks).
 // Pure data: no THREE, no collisions. Gameplay floors/walls/colliders untouched.
-import {coastlineProfile} from './coastline.mjs?v=2.28.5-bridge1';
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.5-bridge1';
-import {archipelagoPassages} from './archipelago-passages.js?v=2.28.5';
+import {coastlineProfile} from './coastline.mjs?v=2.28.6-bridge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.6-bridge1';
+import {archipelagoPassages} from './archipelago-passages.js?v=2.28.6';
 
 export const GROUND_KIT=Object.freeze([
   ['grass_tuft_a',5],['grass_tuft_b',5],['grass_tuft_c',4],['moss_clump_a',4],['lichen_patch_a',3],

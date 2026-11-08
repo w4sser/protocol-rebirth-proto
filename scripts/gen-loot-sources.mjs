@@ -1,4 +1,4 @@
-// v2.28.5: derives data/loot-sources.js (where each item can drop in raid crates) from the ACTIVE raid loot
+// v2.28.6: derives data/loot-sources.js (where each item can drop in raid crates) from the ACTIVE raid loot
 // tables (nodspel/levels.js areaTable 'world', weight > 0). Archipelago lootNext blending is deliberately left out
 // until verified. Run: node scripts/gen-loot-sources.mjs  (test/loot-sources.test.js fails if the file is stale).
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';

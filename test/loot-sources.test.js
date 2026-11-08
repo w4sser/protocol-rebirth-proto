@@ -9,7 +9,7 @@ function boot(save){
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, stashCapacity, stashSlotsUsed, stashWarnings, quickCleanList, firHave, stashGroup, have, addItem, removeItem, armorySlotsUsed, armoryCapacity, isArmoryItem, SV:SAVE_VERSION };");
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
-// v2.28.5: missing Core parts say where they drop, from data/loot-sources.js (generated from the raid loot tables).
+// v2.28.6: missing Core parts say where they drop, from data/loot-sources.js (generated from the raid loot tables).
 (async () => {
   const gen = await import("../scripts/gen-loot-sources.mjs");
   assert.strictEqual(fs.readFileSync(path + "/data/loot-sources.js", "utf8"), gen.fileText(), "data/loot-sources.js is stale: run node scripts/gen-loot-sources.mjs");

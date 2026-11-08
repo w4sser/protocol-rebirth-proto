@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.5';
-import {generateBigLevel} from './big-level.js?v=2.28.5';
-import '../data/items.js?v=2.28.5';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.5';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.5-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.5';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.5';
-import '../data/raid-combat.js?v=2.28.5';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.6';
+import {generateBigLevel} from './big-level.js?v=2.28.6';
+import '../data/items.js?v=2.28.6';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.6';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.6-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.6';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.6';
+import '../data/raid-combat.js?v=2.28.6';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -201,7 +201,7 @@ export function houseItem(kind,number,roll,area='town'){if(kind==='medicine_cabi
 export const AREA_LOOT={archipelago:{world:[{},{tidal_coil:5},{tidal_coil:10}]},town:{house:[{},{frost_glass:8},{frost_glass:10}]}};
 export function areaTable(area,number,where){return{...RULES.loot.weights[number-1],...AREA_LOOT[area]?.[where]?.[number-1]};}
 let QUEST_LOOT=null;
-// v2.28.5 (playtest t352u): an already-scouted area's chart/survey no longer drops; the crate keeps its normal loot.
+// v2.28.6 (playtest t352u): an already-scouted area's chart/survey no longer drops; the crate keeps its normal loot.
 let SCOUTED=new Set();
 export function setScouted(list){SCOUTED=new Set(Array.isArray(list)?list:[]);}
 export const scoutTarget=item=>globalThis.DATA.items.find(i=>i.id===item)?.scouts;
@@ -321,8 +321,13 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     if(rule.partition){
       // The doorway is on one side; the node is behind the solid opposite side.
       const gap=side*(w/2-1.5),gapWidth=1.8+(area==='archipelago'?.6:0),left=-w/2,right=w/2;
-      room.partition={x:x+gap,z:z-.8};
-      for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z-.8,w:hi-lo,d:t,h:1.7});
+      // v2.28.6 (playtest 2026-11-08, corridors): at z-.8 the wall-to-wall partition's end jutted into an east/west
+      // doorway mouth (door spans z±door/2), cutting its clear width to ~1.5 m -- players and enemies snagged there.
+      // With a side door, nudge it just past the door edge (minimal move: node side/gap unchanged). Town mirrors bunker geometry.
+      const sideDoor=area!=='archipelago'&&room.doors.some(p=>p.x!==0);
+      const pz=sideDoor?Math.min(-.8,-(door/2+t/2+.02)):-.8;
+      room.partition={x:x+gap,z:z+pz};
+      for(const [lo,hi] of [[left,gap-gapWidth/2],[gap+gapWidth/2,right]])walls.push({x:x+(lo+hi)/2,z:z+pz,w:hi-lo,d:t,h:1.7});
     }
     if(!rule.nodesBeyondPassage||i===rooms.length-1){
       const count=rule.nodesBeyondPassage?rule.nodes:1;

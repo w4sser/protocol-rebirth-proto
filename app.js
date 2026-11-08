@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.5"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.6"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -392,7 +392,7 @@ function advanceBaseState(reason){
   }
   return changed;
 }
-// v2.28.5 (playtest 2026-11-08): where a missing part drops -- from DATA.lootSources, generated from the raid's
+// v2.28.6 (playtest 2026-11-08): where a missing part drops -- from DATA.lootSources, generated from the raid's
 // active loot tables (scripts/gen-loot-sources.mjs). Crate drops are a chance, so the hint says "Loot crates".
 function lootHint(id){
   const L = D.lootSources; if(!L) return "";
@@ -3677,7 +3677,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (Number.isFinite(opts.armorShield) ? "&armorShield=" + encodeURIComponent(opts.armorShield) : "") +
     (opts.weapon ? "&w=" + encodeURIComponent(weaponParam(opts.weapon)) : "") +
     (opts.bag ? "&bag=" + encodeURIComponent(opts.bag) : "") +
-    (opts.scouted && opts.scouted.length ? "&scouted=" + encodeURIComponent(opts.scouted.join(",")) : "") + // v2.28.5: areas already scouted -> raid drops no redundant chart/survey
+    (opts.scouted && opts.scouted.length ? "&scouted=" + encodeURIComponent(opts.scouted.join(",")) : "") + // v2.28.6: areas already scouted -> raid drops no redundant chart/survey
     (opts.kit && opts.kit.medkit ? "&kit=" + encodeURIComponent("medkit:" + opts.kit.medkit) : "") +
     (opts.tool ? "&tool=" + encodeURIComponent(opts.tool.id + ":" + opts.tool.n) : "") +
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
