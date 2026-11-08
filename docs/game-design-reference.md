@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.27 - D1-A one-unit Secure Slot protection|
+| Document status | Living design reference, v4.28 - D1-B Secure Slot eligible item categories|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -31,7 +31,7 @@ This is a consolidated explanation of the game, not a claim that every design id
 
 Where these differ, both are recorded rather than quietly rewriting history. Numerical values below are a snapshot, not permanent balance commitments. Follow the linked sources when changing them.
 
-**Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. D1-A now fixes the Secure Slot to one item unit (not a stack) with no additional bag capacity; D1-B/C item eligibility and selection/settlement and D1-D interruptions remain open. [D01]
+**Approved after the inspected code baseline:** D1 establishes full risk for carried and equipped gear, one Secure Slot at Vault L1, removal of BIT's automatic item rescue, removal of insurance and paid bag recovery from the core loop, and an always-available free retry. D1-A fixes Secure Slot protection to one item unit (not a stack) with no additional bag capacity; **D1-B now locks eligibility to ordinary materials/valuables only**, excluding weapons, armor (including found/unequipped), tools, consumables and dedicated scouting/mission keys. Exact item taxonomy, D1-C selection/settlement and D1-D interruptions remain open. [D01]
 
 **D2.1-D2.3 are also approved for the current quick PvE mode:** At least one return extraction is available from the beginning, and the player may extract successfully with an incomplete personal objective. Extraction starts deliberately and uses a short, cancellable countdown while the player can move, aim, and fire. Five seconds is the approved initial test value, not permanent tuning. Nodes, return topology, timer/interruption edge cases, and existing-variant mapping still require review. These approvals do not change the running game by themselves. [D01]
 
@@ -141,7 +141,7 @@ Introduce a system when it helps the player make a meaningful decision. Explain 
 
 PvE remains the current quick-mode focus. M1 allows later exploration of PvP and longer co-op sessions; it does not insert them into the current implementation scope. Do not add currencies casually. BIT may perform one active assignment at a time. Design proposals that change systems, economy, or player-facing scope require an explicit decision; documenting them does not approve them. [S01] [D01]
 
-**APPROVED D1:** Carried and equipped valuable gear is at risk. One Secure Slot unlocks at Vault L1. BIT does not automatically return lost items, and insurance/paid bag recovery are not part of the target core loop. The player can always retry with the free Basic Carbine. D1-A approves one protected item unit, not a stack, occupying ordinary bag capacity; item eligibility (D1-B), in-raid selection/settlement (D1-C), and interrupted-session handling (D1-D) remain open. [D01]
+**APPROVED D1:** Carried and equipped valuable gear is at risk. One Secure Slot unlocks at Vault L1. BIT does not automatically return lost items, and insurance/paid bag recovery are not part of the target core loop. The player can always retry with the free Basic Carbine. D1-A approves one protected item unit, not a stack, occupying ordinary bag capacity; **D1-B allows only ordinary materials/valuables**, excluding weapons/armor (also found or unequipped), tools, consumables and dedicated scouting/mission keys. Exact taxonomy, in-raid selection/settlement (D1-C), and interruption handling (D1-D) remain open. [D01]
 
 **APPROVED D2.1/D2.2:** Ordinary quick raids provide at least one return extraction available from the start. Personal-objective completion does not gate that return. The player must still get there and complete extraction; successful extraction does not automatically complete a quest or clear a depth. [D01]
 
@@ -367,7 +367,7 @@ A full bag creates a comparison: keep the parts for today's goal, replace them w
 
 Vault / Storage L1 unlocks **one Secure Slot** as the single item-protection mechanism. BIT's automatic item rescue is removed from the intended design. Insurance and paid bag recovery are removed from the core loop. A free Basic Carbine retry must always remain possible; this does not restore the previous bag or grant free replacement armor, tools, or medkits. [D01]
 
-**APPROVED D1-A — one unit, ordinary bag capacity:** Vault L1's one Secure Slot protects **exactly one eligible item unit**, **not an entire stack**, and the protected unit still occupies **normal bag capacity**. It adds no cargo space or ability to protect additional units in the same stack. **Still open (not a reopening of D1):** D1-B item eligibility (materials/ordinary valuables versus wider carried loot), D1-C in-raid selection/replacement and loss-settlement rules, and D1-D interrupted-session behavior. Earlier recommendations excluding equipment and mission/scouting keys remain **D1-B proposals**, not owner approvals. This is design intent, not evidence of implemented behavior. [D01]
+**APPROVED D1-A — one unit, ordinary bag capacity:** Vault L1's one Secure Slot protects **exactly one eligible item unit**, **not an entire stack**, and the protected unit still occupies **normal bag capacity**. It adds no cargo space or ability to protect additional units in the same stack. **APPROVED D1-B:** Eligible units are limited to **ordinary materials and ordinary valuables**. All weapons and armor, even found or unequipped, plus tools, consumables and dedicated mission/scouting keys, are **ineligible**. **Still open (not a reopening of D1):** exact item taxonomy/edge cases, D1-C in-raid selection/replacement and loss-settlement rules, and D1-D interrupted-session behavior. This is design intent, not evidence of implemented behavior. [D01]
 
 **IMPLEMENTATION ALIGNMENT:** Baseline data and historical documents still contain Storage secure-slot copy, BIT Bond rescue, Guardian Safe Return, insurance, and post-death bag recovery. Audit and align their active and legacy paths with D1. Their continued presence is not an alternative approved design. No runtime removal or full end-to-end verification is claimed by this documentation change. [S07] [S11] [S13] [S14] [D01]
 
@@ -1010,7 +1010,7 @@ This is a review register, not permission to implement every item. Explicit appr
 
 | Priority | Topic | Status / evidence | Required outcome |
 | --- | --- | --- | --- |
-| P0 | Death and protection | D1 direction APPROVED; D1-A also APPROVED: Vault L1's one Secure Slot protects one item unit (not a stack), using normal bag capacity; no BIT rescue, insurance or paid recovery; free retry | Finalize **open D1-B/C/D** and align runtime paths, migration, and UI with approved D1-A. Do not reopen approved rules by treating old code as design authority |
+| P0 | Death and protection | D1 and D1-A/D1-B APPROVED: one Vault L1 Secure Slot, one ordinary material/valuable unit (not a stack) within normal bag capacity; excludes equipment, tools, consumables and dedicated keys; no BIT rescue/insurance/paid recovery; free retry | Finalize **open D1-C/D** and exact taxonomy, then align runtime paths/migration/UI to approved D1-A/B. Do not reopen approved rules by treating old code as design authority |
 | P0 | Mission purpose and exits | D2.1-D2.3 APPROVED for quick PvE: return available from start, incomplete goals allowed, deliberate cancellable extraction; five seconds is initial test tuning | Align the old node-gated/automatic-entry implementation; resolve timer/interruption edges and D2.4-D2.7 nodes, topology, communication, and existing-variant mapping |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly and reconcile it with the approved quick-mode extraction |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
@@ -1085,7 +1085,7 @@ The prototype contains local FTUE timestamps and an event log, including a `ONE_
 | Area | Bunker, Archipelago, or Town on the world map |
 | Node | A control objective involved in opening exits in the inspected baseline; its quick-mode role is under D2.4 review and cannot block the guaranteed ordinary return route; not universal to future modes |
 | Extraction | The successful act that banks the exposed carried haul; not automatic personal-objective or depth completion |
-| Secure Slot | One item-protection mechanism at completed Vault L1; **D1-A approves protecting one unit, not a stack, within ordinary bag capacity**. Eligibility and selection/settlement remain open in D1-B/C |
+| Secure Slot | One item-protection mechanism at completed Vault L1. **D1-A: one unit, not a stack, within ordinary bag capacity. D1-B: only ordinary materials/valuables; no weapons/armor, tools, consumables or dedicated scouting/mission keys.** Exact item taxonomy and D1-C selection/settlement remain open |
 | HOME | Already secured persistent possessions |
 | BAG | Exposed raid cargo except any explicitly protected item |
 | Stash | Home storage for materials |
@@ -1166,6 +1166,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.28, 8 November 2026:** Owner approved D1-B: Secure Slot may protect one ordinary material or valuable unit only; weapons/armor (including found/unequipped), tools, consumables and dedicated scouting/mission keys excluded. D1-A one-unit/no-extra-capacity remains; exact item taxonomy, D1-C selection and D1-D interruptions remain open. Documentation only, no gameplay code.
 - **v4.27, 8 November 2026:** Owner approved D1-A: completed Vault L1 grants exactly one Secure Slot protecting one eligible item unit rather than a stack, within ordinary bag capacity and without extra carrying space. D1-B categories, D1-C selection/settlement and D1-D interruptions remain open. Design only; no gameplay code.
 - **v4.26, 8 November 2026:** Owner approved M37: each restoration step requires its full ingredient cost in the home stash, followed by a deliberate completion action that consumes those materials and delivers the visual stage. No partial deposits or automatic construction; M26 unchanged total costs and final functionality, M36 free switching intact. Exact steps, cost splits and UX remain open. Design only.
 - **v4.25, 8 November 2026:** Owner approved M36: freely switch the one tracked Bunker Project among accessible rooms, preserving completed stages and invested materials in their original rooms with no refund, transfer or switching cost. Exact UX and partial-stage contribution rules remain open. Documentation only.
