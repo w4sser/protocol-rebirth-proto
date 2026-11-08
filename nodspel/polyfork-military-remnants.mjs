@@ -69,7 +69,12 @@ export function militarySites(level,excludeIsland=-1){
         };
         if(!safeAnchorage(level,res,coast,center,side.normal,side.tangent,maxW,maxD))continue;
         // Prefer other islands than the fishing gear, but never require one.
-        const score=r()+(islandIndex!==excludeIsland?1.8:0)+Math.min(.35,side.span/80);
+        // A remote island landmark can pass a screenshot test while remaining
+        // unseen for almost the entire raid. Prioritize the START island first.
+        const fromStart=level.start?Math.hypot(center.x-level.start.x,center.z-level.start.z):0;
+        const startPriority=islandIndex===0?10:islandIndex===1?5:Math.max(0,3-islandIndex);
+        const score=startPriority+r()*.3-fromStart*.006+
+          (islandIndex!==excludeIsland?.12:0);
         candidates.push({islandIndex,center,ry:Math.atan2(side.normal.x,side.normal.z),
           normal:side.normal,score});
       }
@@ -84,14 +89,24 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
   const unchanged={regions:base.regions,items:base.items,landmarks:base.landmarks,
     militaryLandmarks:[],architecture:[]};
   if(!level?.archipelago||bounded<.5)return unchanged;
-  const site=militarySites(level,base.landmarks[0]?.islandIndex??-1)[0];
-  if(!site)return unchanged;
-  const rand=seededRandom(level.seed+':bungenas-form-v2:'+site.islandIndex);
-  const form=MILITARY_FORMS[Math.floor(rand()*MILITARY_FORMS.length)];
-  const landmark={type:'military',scene:form.id,islandIndex:site.islandIndex,
-    center:site.center,ry:site.ry,width:form.width,depth:form.depth,
-    height:form.height,visualOnly:true};
+  const sites=militarySites(level,base.landmarks[0]?.islandIndex??-1);
+  const selected=[],used=new Set();
+  const limit=level.big?3:2;
+  for(const site of sites){
+    if(used.has(site.islandIndex))continue;
+    const r=seededRandom(level.seed+':bungenas-form-v3:'+site.islandIndex);
+    // The first nearby fortification must have a tall, unmistakable silhouette.
+    // Foundations remain in rotation farther into the archipelago.
+    const form=selected.length===0
+      ?(r()<.5?MILITARY_FORMS[0]:MILITARY_FORMS[2])
+      :MILITARY_FORMS[Math.floor(r()*MILITARY_FORMS.length)];
+    selected.push({type:'military',scene:form.id,islandIndex:site.islandIndex,
+      center:site.center,ry:site.ry,width:form.width,depth:form.depth,
+      height:form.height,visualOnly:true});
+    used.add(site.islandIndex);
+    if(selected.length>=limit)break;
+  }
   return {regions:base.regions,items:base.items,
-    landmarks:[...base.landmarks,landmark],militaryLandmarks:[landmark],
-    architecture:[landmark]};
+    landmarks:[...base.landmarks,...selected],militaryLandmarks:selected,
+    architecture:selected};
 }
