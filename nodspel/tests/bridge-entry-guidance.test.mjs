@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {movePlayer,describeMoveBlock} from '../physics.mjs';
 import {guideBridgeApproach} from '../bridge-flow.mjs';
+import * as THREE from '../vendor/three.module.js';
+import {generateLevel} from '../levels.js';
+import {generateBigLevel} from '../big-level.js';
+import {buildArchipelago} from '../archipelago.js';
 
 const mk=(axis='x')=>{
   const vertical=axis==='z',roomA={x:0,z:0,w:12,d:12};
@@ -51,4 +55,45 @@ test('diagnostics identify floor, shoreline, granite rock and rails',()=>{
   assert.equal(describeMoveBlock(from,{x:1,z:0},[{x:1,z:0,w:.4,d:1,shore:true}],floors,.36).kind,'shore');
   assert.equal(describeMoveBlock(from,{x:1,z:0},[{x:1,z:0,r:.7,rock:true}],floors,.36).kind,'rock');
   assert.equal(describeMoveBlock(from,{x:1,z:0},[{x:1,z:0,w:.4,d:1,bridgeRail:true}],floors,.36).kind,'rail');
+});
+
+test('real seeded archipelago bridges allow an off-center run past the shoreline collider',()=>{
+  for(const big of [false,true])for(let seed=0;seed<3;seed++){
+    const level=big?generateBigLevel('guide-real-big-'+seed,'archipelago')
+      :generateLevel(2,'guide-real-'+seed,'archipelago');
+    const group=new THREE.Group();
+    const box=(x,y,z,w,h,d,color,parent=group)=>{
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color}));
+      mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+    };
+    buildArchipelago(level,group,box,{quality:{props:0}});
+    for(const [i,c] of level.corridors.slice(0,4).entries()){
+      const axis=c.dir.x?'x':'z',sideAxis=c.dir.x?'z':'x';
+      const adjacent=c.roomIds?c.roomIds.map(id=>level.rooms.find(r=>r.id===id))
+        :[level.rooms[i],level.rooms[i+1]];
+      for(const room of adjacent.filter(Boolean)){
+        const direction=Math.sign(c[axis]-room[axis])||1;
+        const distanceToCenter=Math.abs(c[axis]-(room[axis]+direction*(room[c.dir.x?'w':'d']/2-1.4)));
+        // When a bridge is very long, check only its first half; other room
+        // geometry is not part of this landing test.
+        const minProgress=Math.max(1.8,distanceToCenter-1);
+        for(const radius of [.36,.48])for(const side of [-1,1]){
+          const pos={x:room.x,z:room.z};
+          pos[axis]+=direction*(room[c.dir.x?'w':'d']/2-1.4);
+          pos[sideAxis]=c[sideAxis]+side*((c.dir.x?c.d:c.w)/2+.35);
+          const start={...pos},raw={x:0,z:0};
+          raw[axis]=direction*.1;
+          for(let step=0;step<170;step++){
+            const delta=guideBridgeApproach(level,pos,raw,radius,{x:0,z:0});
+            const next=movePlayer(pos,delta,[...level.walls,...level.boxes],level.floors,radius);
+            pos.x=next.x;pos.z=next.z;
+            if(direction*(pos[axis]-start[axis])>=minProgress)break;
+          }
+          assert.ok(direction*(pos[axis]-start[axis])>=minProgress-.1,
+            'real bridge entry blocked: '+JSON.stringify({big,seed,axis,side,radius,room:room.id,
+              start,pos,bridge:c,progress:direction*(pos[axis]-start[axis]),minProgress}));
+        }
+      }
+    }
+  }
 });
