@@ -17,7 +17,7 @@ inte ut; (3) systemfriktion — perk-valet mitt i en raid kommer för tidigt och
 timer utan att kännas meningsfullt, och "Lämna in" är otydligt för en spelare som redan är
 överväldigad av skärmar och text.
 
-Status vid skrivande (2026-11-08): **inget av detta är mergat ännu.** Små buggfixar går som egna PR:er
+Status 2026-11-08: vaktfixen (#219) är mergad och live i v2.28.1; övriga småfixar är **inte** mergade ännu. Små buggfixar går som egna PR:er
 mot `main` och räknas som levererade först när de är mergade och live; övriga punkter (A–F) är förslag.
 
 | Småfix (egen PR, status uppdateras vid merge) | Förslag – kräver Roberts beslut |
