@@ -17,11 +17,10 @@ export function bridgeRailLength(walkwayLength){
   return Math.max(.30,walkwayLength-2*BRIDGE_LAND_RAIL_RECESS);
 }
 
-// The first metres on either side form a wide, walkable funnel into the
-// unchanged central combat lane. Match the rendered planks to this same taper.
-// A very short pier must retain an unflared center over water.
-export const BRIDGE_ENTRY_FLARE_DEPTH=2.4;
-export const BRIDGE_ENTRY_FLARE_EXTRA=2.4;
+// Keep a small, forgiving physical overlap at landfall. The wooden bridge
+// stays at its original visual width; the shoreline stub caused the snag.
+export const BRIDGE_ENTRY_FLARE_DEPTH=.85;
+export const BRIDGE_ENTRY_FLARE_EXTRA=.9;
 export function bridgeEntryFlare(f,along){
   const length=f.dir?.x?f.w:f.d;
   const fromEnd=length/2-Math.abs(along);

@@ -84,11 +84,11 @@ test('full bridge entry accepts angled movement from both banks and sides, on bo
   }
 });
 
-test('visual timber funnel and collision use the same width, on HIGH and LOW',()=>{
+test('narrow original timber deck remains while landfall collision is forgiving, on HIGH and LOW',()=>{
   for(const vertical of [false,true]){
     const bridge=simpleLevel(vertical).bridge;
-    assert.ok(bridgeEntrySupports(bridge,vertical?2.9:6.1,vertical?6.1:2.9),
-      'wide early landing supports running close to outer planks');
+    assert.ok(bridgeEntrySupports(bridge,vertical?2.18:6.1,vertical?6.1:2.18),
+      'small physical landfall tolerance remains available');
     assert.ok(BRIDGE_SIDE_BUFFER>=2,'rock-free margin covers flared approach');
     for(const quality of ['high','low']){
       const plan=planBridgeDeck(bridge,'angled-bridge',{quality});
@@ -97,8 +97,8 @@ test('visual timber funnel and collision use the same width, on HIGH and LOW',()
       const near=deck.filter(p=>Math.abs(p.t)>plan.length/2-.45);
       const land=plan.planks.filter(p=>p.landing);
       assert.ok(middle.length>0&&middle.every(p=>p.width<plan.width),'over-water width unchanged');
-      assert.ok(near.some(p=>p.width>plan.width+BRIDGE_ENTRY_FLARE_EXTRA*.6));
-      assert.ok(land.every(p=>p.width>=plan.width+BRIDGE_ENTRY_FLARE_EXTRA),'approach plank matches playable funnel');
+      assert.ok(near.every(p=>p.width<plan.width),'no visible plank flare');
+      assert.ok(land.every(p=>p.width<=plan.width+.81),'landfall boards retain original modest apron');
     }
   }
 });

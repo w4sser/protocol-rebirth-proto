@@ -291,8 +291,20 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true,bridgeRail:!!w.bridgeRail});shore.push(w);}
-    else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+    if(islands.filter(f=>onRim(w,f)).length===1){
+      // Some narrow doorway remnants are still classified as shoreline
+      // walls, even though they sit *inside* a bridge landing. The player's
+      // nine-point floor test already stops them leaving land / the pier.
+      // Drop only these tiny (<.65m) seam colliders near a bridge approach;
+      // retain every normal shoreline wall elsewhere around the island.
+      const tinyMouthStub=w.bridgeMouthStub||(w.w<=.65&&w.d<=.65);
+      const touchesLanding=piers.some(p=>
+        Math.abs(w.x-p.x)<=(w.w+p.w)/2+.15&&
+        Math.abs(w.z-p.z)<=(w.d+p.d)/2+.15);
+      if(tinyMouthStub&&touchesLanding)continue;
+      colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true,bridgeRail:!!w.bridgeRail});
+      shore.push(w);
+    }else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
   out.shoreProps=terrainPreview
     ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)

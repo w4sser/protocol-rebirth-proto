@@ -1,6 +1,5 @@
 // Deterministic visual plan for Nordic timber footbridges.
-import {bridgeEntryFlare,BRIDGE_ENTRY_FLARE_EXTRA} from './bridge-flow.mjs?v=2.28.1';
-// Uses the same tapered landfall profile as collision; the middle remains full-width.
+// Navigation floors, collision and AI paths are deliberately untouched.
 function seededRandom(seed){
   let s=2166136261;
   for(const char of String(seed))s=Math.imul(s^char.charCodeAt(0),16777619);
@@ -19,7 +18,7 @@ export function planBridgeDeck(floor,levelSeed,{quality='high'}={}){
     planks.push({
       t:-length/2+(i+.5)*pitch,
       length:Math.max(.10,pitch-(isLow?.07:.04)),
-      width:Math.max(.1,width+bridgeEntryFlare(floor,-length/2+(i+.5)*pitch)-.10-r()*.09),
+      width:Math.max(.1,width-.10-r()*.09),
       cross:(r()-.5)*.035,
       tone:Math.floor(r()*4),landing:false,
     });
@@ -31,7 +30,7 @@ export function planBridgeDeck(floor,levelSeed,{quality='high'}={}){
     planks.push({
       t:end*(length/2+(i+.5)*apronDepth/rows),
       length:apronDepth/rows-.035,
-      width:width+BRIDGE_ENTRY_FLARE_EXTRA+.12+.45*(i+1)/rows,
+      width:width+.15+.65*(i+1)/rows,
       cross:0,
       tone:Math.floor(r()*4),landing:true,
     });

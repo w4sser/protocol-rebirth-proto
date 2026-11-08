@@ -29,7 +29,7 @@ test('bridge funnel is supported only under visibly widened landfall planks',()=
   const plan=planBridgeDeck(f,'funnel',{quality:'high'});
   const edge=plan.planks.filter(p=>!p.landing&&Math.abs(p.t)>plan.length/2-BRIDGE_ENTRY_FLARE_DEPTH);
   const middle=plan.planks.filter(p=>!p.landing&&Math.abs(p.t)<1);
-  assert.ok(edge.some(p=>p.width>4.15),'land-side boards flare outward');
+  assert.ok(edge.every(p=>p.width<4),'original narrow plank width restored at landfall');
   assert.ok(middle.every(p=>p.width<4),'open-water boards remain narrow');
   const ground=[{x:-6,z:0,w:12,d:12},f,{x:16,z:0,w:12,d:12}];
   for(const radius of [.36,.48]){

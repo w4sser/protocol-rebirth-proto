@@ -34,7 +34,8 @@ export function generateBigLevel(seed,area='bunker'){
           x:edge.x+(isX?0:sign*(length+mouth)/4),
           z:edge.z+(isX?sign*(length+mouth)/4:0),
           w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,
-          h:.85,roomId:room.id});
+          h:.85,roomId:room.id,
+          bridgeMouthStub:area==='archipelago'&&(length-mouth)/2<=.65});
       }
     }
   }

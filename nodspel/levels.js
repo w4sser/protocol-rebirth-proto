@@ -312,7 +312,8 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
         const mouth=area==='archipelago'?bridgeMouthWidth(door,length,t):door;
         for(const sign of [-1,1])walls.push({x:edge.x+(isX?0:sign*(length+mouth)/4),
           z:edge.z+(isX?sign*(length+mouth)/4:0),
-          w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,h:.85});
+          w:isX?t:(length-mouth)/2,d:isX?(length-mouth)/2:t,h:.85,
+          bridgeMouthStub:area==='archipelago'&&(length-mouth)/2<=.65});
       }
     }
     const side=rng()<.5?1:-1;
