@@ -23,9 +23,9 @@ export function suggestSwap(goal,bag,incoming){
     // Protect each requirement individually: gaining one resource never cancels
     // losing another required resource. Rarity breaks equally safe ties.
     const losses=after.map((p,i)=>Math.max(0,p.remaining-before[i].remaining));
-    return {id,regressions:losses.filter(n=>n>0).length,loss:losses.reduce((sum,n,i)=>sum+n/before[i].need,0),rarity:RARITY_ORDER.indexOf(rarityOf(id))};
+    return {id,regressions:losses.filter(n=>n>0).length,loss:losses.reduce((sum,n,i)=>sum+n/before[i].need,0),rarity:RARITY_ORDER.indexOf(rarityOf(id)),protectedItem:Number(!!(itemDef(id)?.scouts||itemDef(id)?.protocolTarget)),value:itemDef(id)?.sellValue??0};
   });
-  options.sort((a,b)=>a.regressions-b.regressions||a.loss-b.loss||a.rarity-b.rarity);
+  options.sort((a,b)=>a.regressions-b.regressions||a.loss-b.loss||a.protectedItem-b.protectedItem||a.value-b.value||a.rarity-b.rarity);
   return options[0]?.id??null;
 }
 // Advice is conservative: never recommend an action that increases any tracked
