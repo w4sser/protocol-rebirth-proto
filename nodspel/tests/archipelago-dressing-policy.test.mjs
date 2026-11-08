@@ -19,13 +19,18 @@ test('normal Archipelago enables composed forest/granite and Coastal Life withou
   assert.ok(plan.regions.every(p=>['forest','granite'].includes(p.profile)));
 });
 
-test('weak mobile and medium use deterministic, capped LOW dressing',()=>{
+test('weak mobile and medium retain a deterministic subset of HIGH dressing',()=>{
   const low=archipelagoDressingConfig({area:'archipelago',quality:'low'});
   const medium=archipelagoDressingConfig({area:'archipelago',quality:'medium'});
   assert.deepEqual(medium,low);
-  assert.equal(low.density,.85);
+  assert.equal(low.density,1);
+  const high=planCoastalLifeDressing(fixture,archipelagoDressingConfig({area:'archipelago',quality:'high'}));
   const plan=planCoastalLifeDressing(fixture,low);
   assert.ok(plan.items.length<=40,'LOW stays inside mobile budget');
+  assert.ok(plan.items.length<=high.items.length,'LOW must never produce more instances than HIGH');
+  const key=p=>[p.id,p.x,p.z,p.h].join('/');
+  const highItems=new Set(high.items.map(key));
+  assert.ok(plan.items.every(item=>highItems.has(key(item))),'LOW is a real subset of HIGH');
   assert.deepEqual(plan,planCoastalLifeDressing(fixture,low));
 });
 
