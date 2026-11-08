@@ -7,5 +7,7 @@ export function archipelagoDressingConfig({area,search='',quality='high'}={}){
   const mode=['scatter','profiles','coastal'].includes(requestedMode)?requestedMode:'coastal';
   // MEDIUM is a high-renderer setting today; keep its dressing budget mobile-safe.
   const visualQuality=quality==='high'?'high':'low';
-  return {enabled,mode,quality:visualQuality,density:enabled?(visualQuality==='high'?1:.85):0};
+  // Keep density at the reference value for both tiers: the LOW planner picks
+  // a deterministic subset of HIGH and enforces its own 40-instance ceiling.
+  return {enabled,mode,quality:visualQuality,density:enabled?1:0};
 }
