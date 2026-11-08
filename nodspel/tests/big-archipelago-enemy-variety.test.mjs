@@ -27,10 +27,11 @@ test('Big Archipelago has seeded early visual contrast with depth-gated threats'
     const a=generateBigLevel(seed,'archipelago');
     const b=generateBigLevel(seed,'archipelago');
     assert.deepEqual(a,b,'fixed seed must rebuild exactly the same enemy mix');
-    const bunker=generateBigLevel(seed,'bunker');
-    const before=new Map(bunker.enemies.map(e=>[e.id,e]));
+    const baseline=generateBigLevel(seed,'archipelago',{enemyVariety:false});
+    const before=new Map(baseline.enemies.map(e=>[e.id,e]));
     const distances=graphDistances(a.graph),bases=baseOf(a);
-    assert.equal(a.enemies.length,bunker.enemies.length,'no extra enemy bodies added');
+    assert.equal(a.enemies.length,baseline.enemies.length,'no extra enemy bodies added');
+    assert.deepEqual(a.graph,baseline.graph,'graph, routes and POI distribution unchanged');
     const start=bases.find(e=>e.roomId===a.graph.spawn.roomId);
     assert.ok(start&&start.type==='grunt'&&!start.encounter,'spawn room stays gentle');
     let special=0;
@@ -71,11 +72,9 @@ test('Big Archipelago has seeded early visual contrast with depth-gated threats'
   assert.ok(diverse>=18,'most seeded archipelago raids should show 3+ base silhouettes');
   assert.ok(multiple>=24,'most maps should have at least 2 different non-POI threats');
 });
-test('encounter-owned enemies and existing graphed rooms are immutable to repeat application',()=>{
+test('encounter-owned enemies remain intact and IDs remain unique',()=>{
   const level=generateBigLevel('big-enemy-idempotent','archipelago');
   const before=structuredClone(level.enemies);
-  // Calling twice should not further change enemies (only untouched grunts may
-  // get another type, so we do not call twice at runtime; ensure the game calls once).
   assert.ok(level.rooms.length>=6);
   assert.ok(level.graph.pois.length===3);
   assert.ok(level.enemies.some(e=>e.encounter));
