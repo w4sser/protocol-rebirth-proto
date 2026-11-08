@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-test('v2.28.0: ground pass is default-on, ?ground=0 disables, profile follows quality',async()=>{
+test('v2.28.1: ground pass is default-on, ?ground=0 disables, profile follows quality',async()=>{
   const game=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
   assert.match(game,/const GROUND_V2=GROUND_V2_PARAMS\.get\('ground'\)!=='0';/);
   assert.match(game,/QUALITY==='low'\?'low':'high'/);

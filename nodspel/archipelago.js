@@ -2,14 +2,14 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.28.0';
+import {rngFrom} from './art.js?v=2.28.1';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.0';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.28.0';
-import {createWaterMesh} from './water-shader.js?v=2.28.0-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.0-bridge1';
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.0-bridge1';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.1';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.28.1';
+import {createWaterMesh} from './water-shader.js?v=2.28.1-coast9';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.1-bridge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.1-bridge1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -142,7 +142,7 @@ function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
 export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
-  // Ground pass (default-on since v2.28.0, ?ground=0 disables) shifts its legacy grass backup away from the new
+  // Ground pass (default-on since v2.28.1, ?ground=0 disables) shifts its legacy grass backup away from the new
   // textured surface. On iOS, the old 4mm gap + positive polygon offset allowed
   // Safari to depth-test the flat green base in front of the textured overlay.
   const terrainPreview=typeof location!=='undefined' && new URLSearchParams(location.search).get('ground')!=='0';
