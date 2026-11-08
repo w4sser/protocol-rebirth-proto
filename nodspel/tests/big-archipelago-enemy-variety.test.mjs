@@ -6,7 +6,7 @@ import {RULES,generateLevel} from '../levels.js';
 import {visualFor} from '../enemies.js';
 
 const seeds=Array.from({length:32},(_,i)=>'big-enemy-variety-'+i);
-const baseOf=level=>level.enemies.filter(e=>/^big-enemy-\\d+$/.test(e.id));
+const baseOf=level=>level.enemies.filter(e=>/^big-enemy-\d+$/.test(e.id));
 const regularOf=level=>baseOf(level).filter(e=>!e.encounter);
 test('Bunker and non-big levels do not receive Archipelago enemy variation',()=>{
   for(const seed of seeds.slice(0,12)){
@@ -44,7 +44,7 @@ test('Big Archipelago has seeded early visual contrast with depth-gated threats'
         assert.deepEqual([e.type,e.encounter],[old.type,old.encounter],'authored POI actors unchanged');
         continue;
       }
-      if(!/^big-enemy-\\d+$/.test(e.id))continue;
+      if(!/^big-enemy-\d+$/.test(e.id))continue;
       assert.ok(['grunt','sentry','rusher','thrower'].includes(e.type));
       assert.ok(visualFor(e)?.archetype,'every non-generator type maps to an existing GLB');
       const d=distances[e.roomId]??99;
