@@ -18,6 +18,7 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     box:new THREE.BoxGeometry(1,1,1),
     rock:new THREE.IcosahedronGeometry(1,0),
     roof:new THREE.CylinderGeometry(1,1,1,10,1),
+    tuft:new THREE.ConeGeometry(1,1,5),
   };
   const materials=new Map(),batches=new Map(),stats={structures:0,parts:0,meshes:0,rocks:0,drawCalls:0};
   function material(color){
@@ -26,21 +27,28 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     }));
     return materials.get(color);
   }
+  // Per-fragment world transform means all fortifications share each material's
+  // instanced batch. Adding more sites does not linearly multiply draw calls.
+  let activeSite=null;
   function instance(kind,color,part){
+    const c=Math.cos(activeSite.ry),s=Math.sin(activeSite.ry);
+    const world={...part,x:activeSite.center.x+c*part.x+s*part.z,
+      z:activeSite.center.z-s*part.x+c*part.z,rot:part.rot+activeSite.ry};
     const key=kind+':'+color;
     if(!batches.has(key))batches.set(key,{kind,color,parts:[]});
-    batches.get(key).parts.push(part);
+    batches.get(key).parts.push(world);
     stats.parts++;
     if(kind==='rock')stats.rocks++;
   }
   const box=(c,x,y,z,w,h,d,rot=0)=>instance('box',c,{x,y,z,w,h,d,rot});
   const rock=(c,x,y,z,w,h,d,rot=0)=>instance('rock',c,{x,y,z,w,h,d,rot});
   const roof=(c,x,y,z,w,h,d)=>instance('roof',c,{x,y,z,w,h,d,rot:0});
+  const tuft=(c,x,y,z,w,h,d,rot=0)=>instance('tuft',c,{x,y,z,w,h,d,rot});
   function weather(r,w,d,top,amount){
     // Faded lichen and damp streaks: placed on CONCRETE, not as glowing decals.
     if(high){
       for(let i=0;i<amount;i++){
-        const x=(r()-.5)*w*.78,z=.25+r()*d*.72;
+        const x=(r()-.5)*w*.73,z=.20+r()*d*.54;
         box(i%3===0?P.lichen:P.moss,x,top+.022,z,.3+r()*.45,.033,.17+r()*.30,r()*.8);
       }
       for(let i=0;i<4;i++){
@@ -53,12 +61,12 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
   function rubble(r,w,depth,amount){
     // Stone-embedded seaward footing: the ruin reads as grown into the headland.
     for(let i=0;i<amount;i++){
-      const side=i%2?-1:1,near=.15+r()*depth*.9;
-      rock(i%3===0?P.graniteDark:P.granite,side*(w*.38+r()*.37),.10+r()*.14,near,
-        .35+r()*.32,.25+r()*.24,.32+r()*.35,r()*2.5);
+      const side=i%2?-1:1,near=.12+r()*depth*.51;
+      rock(i%3===0?P.graniteDark:P.granite,side*(w*.27+r()*w*.13),.10+r()*.14,near,
+        .24+r()*.22,.25+r()*.24,.30+r()*.30,r()*2.5);
     }
     if(high)for(let i=0;i<6;i++){
-      const x=(r()-.5)*w*1.05,z=.18+r()*depth;
+      const x=(r()-.5)*w*.85,z=.18+r()*depth*.56;
       box(i%2?P.dryGrass:P.moss,x,.035,z,.18,.055,.27,r()*2.0);
     }
   }
@@ -120,36 +128,59 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     rubble(r,w,d,high?16:8);
     weather(r,w,d,2.2,high?5:1);
   }
+  function reclaimedPerimeter(r,l){
+    // Broken outworks, lichen and overgrown remnants stay INSIDE the coast-only
+    // site footprint already checked by the placement planner.
+    const w=l.width,d=l.depth,side=r()<.5?-1:1,x=side*w*.32;
+    box(P.concrete,x,.18,d*.70,w*.22,.33,.15,(r()-.5)*.24);
+    box(P.edge,-x,.12,d*.80,w*.17,.24,.18,(r()-.5)*.35);
+    box(P.moss,x,.36,d*.70,w*.19,.035,.14);
+    if(high){
+      box(P.lichen,-x,.26,d*.80,w*.15,.03,.17);
+      box(P.stain,x,.09,d*.57,.09,.18,.025);
+    }
+    // Tiny procedural grass/heather pushes through concrete, readable up close.
+    // No GLB/texture loads and no extra draw call per plant.
+    for(let i=0;i<(high?7:3);i++){
+      const h=.16+r()*.31,xx=(r()-.5)*w*.82,zz=.20+r()*d*.57;
+      tuft(i%3===0?P.dryGrass:i%3===1?P.moss:P.lichen,
+        xx,h*.48,zz,.10+r()*.15,h,.10+r()*.15,r()*6.28);
+    }
+    if(high&&r()<.65){
+      const sx=(r()<.5?-1:1)*w*.36,sz=d*.70;
+      box(P.rust,sx,.30,sz,.065,.60,.065);
+      tuft(P.moss,sx,.83,sz,.35,.88,.35,r()*6.28);
+    }
+  }
   let disposed=false;
-  const roots=[];
+  const root=new THREE.Group();
+  root.name='military-batched-coastal-complexes';
+  root.userData.visualOnly=true;
+  group.add(root);
   for(const l of landmarks??[]){
-    const r=seededRandom(seed+':bung-geometry-v2:'+l.scene+':'+l.islandIndex);
-    const root=new THREE.Group();
-    root.name='military-'+l.scene;
-    root.userData.visualOnly=true;
-    root.position.set(l.center.x,0,l.center.z);
-    root.rotation.y=l.ry;
-    group.add(root);roots.push(root);stats.structures++;
-    // Batches must be per root because each landmark has its own rotation.
+    activeSite=l;
+    const r=seededRandom(seed+':bung-geometry-v3:'+l.scene+':'+l.islandIndex+':'+
+      l.center.x.toFixed(2)+':'+l.center.z.toFixed(2));
+    stats.structures++;
     if(l.scene==='coastal-pillbox')pillbox(r,l);
     else if(l.scene==='overgrown-foundations')foundations(r,l);
     else if(l.scene==='sealed-rock-portal')portal(r,l);
-    for(const batch of batches.values()){
-      const mesh=new THREE.InstancedMesh(geometries[batch.kind],material(batch.color),batch.parts.length);
-      const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scale=new THREE.Vector3();
-      const axis=new THREE.Vector3(0,1,0);
-      batch.parts.forEach((p,i)=>{
-        pos.set(p.x,p.y,p.z);quat.setFromAxisAngle(axis,p.rot);
-        scale.set(p.w,p.h,p.d);
-        mesh.setMatrixAt(i,matrix.compose(pos,quat,scale));
-      });
-      mesh.instanceMatrix.needsUpdate=true;
-      mesh.computeBoundingSphere();
-      mesh.castShadow=high;mesh.receiveShadow=true;
-      mesh.userData.visualOnly=true;mesh.name='military-concrete-'+batch.kind;
-      root.add(mesh);stats.meshes++;stats.drawCalls++;
-    }
-    batches.clear();
+    reclaimedPerimeter(r,l);
+  }
+  for(const batch of batches.values()){
+    const mesh=new THREE.InstancedMesh(geometries[batch.kind],material(batch.color),batch.parts.length);
+    const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scale=new THREE.Vector3();
+    const axis=new THREE.Vector3(0,1,0);
+    batch.parts.forEach((p,i)=>{
+      pos.set(p.x,p.y,p.z);quat.setFromAxisAngle(axis,p.rot);
+      scale.set(p.w,p.h,p.d);
+      mesh.setMatrixAt(i,matrix.compose(pos,quat,scale));
+    });
+    mesh.instanceMatrix.needsUpdate=true;
+    mesh.computeBoundingSphere();
+    mesh.castShadow=high;mesh.receiveShadow=true;
+    mesh.userData.visualOnly=true;mesh.name='military-concrete-'+batch.kind;
+    root.add(mesh);stats.meshes++;stats.drawCalls++;
   }
   return {group,stats,dispose(){
     if(disposed)return;disposed=true;
