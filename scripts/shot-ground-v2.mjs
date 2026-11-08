@@ -164,8 +164,11 @@ try {
         });
         console.log('[military-unassisted-first-view]',area,mode,JSON.stringify(initial));
         await page.screenshot({path:join(OUT,area+'-L'+(process.env.LEVEL||1)+'-'+mode+'-initial.png')});
-        const audit=await page.evaluate(()=>{
-          const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
+        const audit=await page.evaluate(preferPortal=>{
+          const st=window.__polyforkPreview.stats;
+          const record=preferPortal?
+            st.militaryLandmarks?.find(x=>x.scene==='sealed-rock-portal')??st.militaryLandmarks?.[0]:
+            st.militaryLandmarks?.[0];
           if(record){
             const level=window.__NR?.state?.()?.level;
             const island=level?.floors.filter(f=>!f.dir)[record.islandIndex];
@@ -174,14 +177,31 @@ try {
               window.__NR.teleport(island.x+dx*.74,island.z+dz*.74);
             }
           }
-          return {mode:st.mode,landmarks:st.militaryLandmarks,architecture:st.militaryGeometry,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
-        });
+          return {mode:st.mode,landmarks:st.militaryLandmarks,architecture:st.militaryGeometry,
+            glacial:st.glacialGeometry,cliffs:st.glacialLandmarks,
+            portalLandmarks:st.militaryLandmarks?.filter(x=>x.scene==='sealed-rock-portal'),
+            planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
+        },process.env.GLACIAL_FOCUS==='1');
         console.log('[military-remnants-preview]',area,mode,JSON.stringify(audit));
         if(!audit.landmarks?.length||audit.architecture?.structures!==audit.landmarks.length||
           audit.architecture?.parts<audit.landmarks.length*8||audit.architecture?.drawCalls>45||
           !audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
           throw new Error('Military Remnants vignette absent/invalid: '+JSON.stringify(audit));
+        if(process.env.GLACIAL_FOCUS==='1'){
+          if(!audit.cliffs?.length||audit.glacial?.loaded!==audit.glacial?.planned||
+            audit.glacial?.meshes<1||audit.glacial?.drawCalls>2||
+            audit.glacial?.failed?.length||!audit.portalLandmarks?.length||
+            !audit.portalLandmarks.every(p=>p.cliffBacked&&audit.cliffs.some(c=>c.kind==='portal'&&
+              Math.hypot(p.center.x-c.center.x,p.center.z-c.center.z)<.02))){
+            throw new Error('Glacial rock backing missing from a real bunker door: '+JSON.stringify(audit));
+          }
+          const maxTris=mode==='low'?282:900;
+          if(audit.glacial.triangles>audit.glacial.planned*maxTris)
+            throw new Error('Glacial cliff LOD budget exceeded: '+JSON.stringify(audit.glacial));
+        }
         await sleep(1800);
+        if(process.env.GLACIAL_FOCUS==='1')
+          await page.screenshot({path:join(OUT,area+'-glacial-'+mode+'-portal.png')});
       }
       let ground=null;
       if (mode !== 'off') {
