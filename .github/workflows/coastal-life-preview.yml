@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
       - run: npm i --no-save puppeteer
-      - name: Verify default Coastal Life HIGH and LOW from iPhone raid camera
+      - name: Verify explicit Coastal Life comparison HIGH and LOW from iPhone raid camera
         run: node scripts/shot-ground-v2.mjs
         env:
           SMOKE_CAPTURE: '1'

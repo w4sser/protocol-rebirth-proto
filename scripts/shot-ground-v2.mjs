@@ -36,10 +36,14 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
-    for (const mode of (process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
+    for (const mode of (process.env.MILITARY_FOCUS==='1'||process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
+      const externalModelRequests=[];
+      page.on('request', req => {
+        if (/^https?:\/\/polyfork\.dev\/cdn\//.test(req.url())) externalModelRequests.push(req.url());
+      });
       page.on('console', m => {
         if (/ground-preview-v2/.test(m.text())) console.log(area,mode,m.text());
         if (m.type()==='error' && /WebGLProgram|shader error|ERROR: 0:|ground-preview/i.test(m.text()))
@@ -80,11 +84,13 @@ try {
         seed:'groundshot',debug:'1',q:mode==='low'?'low':'high',area,return:'../index.html',
       });
       if (mode !== 'off') {params.set('ground','2');params.set('groundProfile',mode);}
-      // The dedicated coastal smoke must exercise the actual default launch,
-      // not silently opt into the preview using URL flags. Other ground-only
-      // captures disable external dressing to keep their render baselines stable.
+      // The coastal comparison smoke explicitly selects the former coastal mode.
+      // The military smoke now exercises the REAL Archipelago default without
+      // polyforkMode. Other ground captures disable dressing for stable baselines.
       if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
+      if (process.env.COASTAL_FOCUS==='1') params.set('polyforkMode','coastal');
       if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
+      if (process.env.MILITARY_FOCUS==='1') {params.delete('polyfork');params.delete('polyforkMode');params.set('seed','military-qa-01');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
@@ -137,8 +143,44 @@ try {
           return {mode:st.mode,landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned,meshes:st.meshes};
         });
         console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
+        if(externalModelRequests.length)throw new Error('External Polyfork CDN usage in default raid: '+externalModelRequests.join(', '));
         if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length||life.planned>(mode==='low'?40:125))
           throw new Error('Default Archipelago dressing failed to render: '+JSON.stringify(life));
+        await sleep(1800);
+      }
+      if (process.env.MILITARY_FOCUS==='1') {
+        await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "military" && window.__polyforkPreview.stats.ready',{polling:250,timeout:45000});
+        // Capture the ACTUAL first player view before any debug teleport.
+        // Previous tests falsely passed by teleporting straight to a tiny remote ruin.
+        const initial=await page.evaluate(()=>{
+          const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
+          const level=window.__NR?.state?.()?.level;
+          const cameraPoint=record&&window.__NR?.project(record.center.x,record.center.z);
+          const nearest=record&&level?.start?
+            Math.hypot(record.center.x-level.start.x,record.center.z-level.start.z):null;
+          return {position:window.__NR?.state?.()?.position,landmarks:st.militaryLandmarks?.length??0,
+            firstIsland:record?.islandIndex??null,nearest,point:cameraPoint,viewport:[innerWidth,innerHeight],
+            inFrame:!!cameraPoint&&cameraPoint.x>=0&&cameraPoint.x<=innerWidth&&cameraPoint.y>=0&&cameraPoint.y<=innerHeight};
+        });
+        console.log('[military-unassisted-first-view]',area,mode,JSON.stringify(initial));
+        await page.screenshot({path:join(OUT,area+'-L'+(process.env.LEVEL||1)+'-'+mode+'-initial.png')});
+        const audit=await page.evaluate(()=>{
+          const st=window.__polyforkPreview.stats,record=st.militaryLandmarks?.[0];
+          if(record){
+            const level=window.__NR?.state?.()?.level;
+            const island=level?.floors.filter(f=>!f.dir)[record.islandIndex];
+            if(island){
+              const dx=record.center.x-island.x,dz=record.center.z-island.z;
+              window.__NR.teleport(island.x+dx*.74,island.z+dz*.74);
+            }
+          }
+          return {mode:st.mode,landmarks:st.militaryLandmarks,architecture:st.militaryGeometry,planned:st.planned,loaded:st.loaded,meshes:st.meshes,failed:st.failed};
+        });
+        console.log('[military-remnants-preview]',area,mode,JSON.stringify(audit));
+        if(!audit.landmarks?.length||audit.architecture?.structures!==audit.landmarks.length||
+          audit.architecture?.parts<audit.landmarks.length*8||audit.architecture?.drawCalls>45||
+          !audit.loaded||audit.failed?.length||audit.planned>(mode==='low'?40:125))
+          throw new Error('Military Remnants vignette absent/invalid: '+JSON.stringify(audit));
         await sleep(1800);
       }
       let ground=null;

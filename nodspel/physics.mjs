@@ -1,5 +1,5 @@
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
-import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.1';
+import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.0';
 
 // Diagnostic-only explanation of a rejected movement step. The ordinary
 // physics path never calls this unless a bridgeDebug observer is attached.

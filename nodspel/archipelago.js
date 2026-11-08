@@ -2,14 +2,14 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.28.1';
+import {rngFrom} from './art.js?v=2.28.0';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.1';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.28.1';
-import {createWaterMesh} from './water-shader.js?v=2.28.1-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.1-bridge1';
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.1-bridge1';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.0';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.28.0';
+import {createWaterMesh} from './water-shader.js?v=2.28.0-coast9';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.0-bridge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.0-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
@@ -196,7 +196,7 @@ function coastRocks(profiles,rng,reservations,rockGeo,rockMat,group){
   }
   return count;
 }
-export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={}){
+export function buildArchipelago(level,group,box,{pine=null,quality={props:1},militaryStyle=false}={}){
   const source=rockSource(level);
   const P=ARCH_PALETTE,rng=rngFrom(`${level.seed}:arch`),out={rocks:0,piers:0,boats:0,trees:0,passages:archipelagoPassages(level),rockColliders:level.walls};
   // Ground pass (default-on since v2.28.0, ?ground=0 disables) shifts its legacy grass backup away from the new
@@ -315,7 +315,22 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1}}={
   }
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
-  for(const c of level.boxes){const g=new THREE.Group();g.name='archipelago-crate';g.userData.collider=c;box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);group.add(g);}
+  for(const c of level.boxes){
+    const g=new THREE.Group();g.userData.collider=c;
+    g.name=militaryStyle?'archipelago-derelict-concrete-cover':'archipelago-crate';
+    if(militaryStyle){
+      // Re-use the existing gameplay cover volumes; swap only the "brown crate"
+      // look for abandoned coastal-defence concrete with lichen and damp seams.
+      box(c.x,c.h/2,c.z,c.w,c.h,c.d,'#747770',g);
+      box(c.x,c.h+.012,c.z,c.w*.86,.025,c.d*.82,'#687459',g);
+      box(c.x,c.h*.69,c.z-c.d/2-.009,c.w*.76,.043,.025,'#545A55',g);
+      box(c.x+c.w*.17,c.h*.21,c.z-c.d/2-.013,c.w*.12,c.h*.35,.021,'#626960',g);
+    }else{
+      box(c.x,c.h/2,c.z,c.w,c.h,c.d,P.crate,g);
+      box(c.x,c.h+.02,c.z,c.w*.9,.04,c.d*.9,'#a07a50',g);
+    }
+    group.add(g);
+  }
   // boats offshore (visual only, never collidable)
   for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
     g.position.set(cx+Math.cos(a)*r,-.3,cz+Math.sin(a)*r);g.rotation.y=rng()*6.3;

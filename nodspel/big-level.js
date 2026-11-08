@@ -1,16 +1,23 @@
 // @hot updateBigCulling
-import '../data/raid-perks.js?v=2.28.1';
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.1';
+import '../data/raid-perks.js?v=2.28.0';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.0';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.1';
-import {applyEncounters} from './encounters.js?v=2.28.1';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.1';
-import {BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.1-bridge1-timber-v2';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.0';
+import {applyEncounters} from './encounters.js?v=2.28.0';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.0';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.0-bridge1-timber-v2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
+  // BIG MAP graph still used 1.8 m bunker corridors in the Archipelago.
+  // Widen the REAL graph/collision/floor corridors, not just the visible planks.
+  // This also keeps graphRoomAt and bridge waypoint reservations in sync.
+  if(area==='archipelago')for(const edge of graph.edges){
+    const c=edge.corridor,w=Math.max(BRIDGE_MIN_WIDTH,c.width,4.2);
+    edge.corridor={...c,width:w,w:c.dir.x?c.w:w,d:c.dir.z?c.d:w};
+  }
   const level={number:1,seed:String(seed),big:true,area,archipelago:area==='archipelago',graph,title:'Node Network',choiceSide:1,layoutId:'big',rooms,floors:rooms.map(r=>({...r})),walls:[],boxes:[],nodes:[],enemies:[],lootBoxes:[],hazards:[],encounters:[],spawners:[],doors:[],corridors:graph.edges.map(e=>({...e.corridor,roomIds:[e.a,e.b]})),deadEnds:[],routeChoices:[],start:{x:graph.spawn.x,z:graph.spawn.z},exit:graph.extracts[0],extracts:graph.extracts,theme:RULES.variety[0].theme};
-  const t=RULES.wallThickness,width=RULES.levels[1].passage;
+  const t=RULES.wallThickness,width=area==='archipelago'?4.2:RULES.levels[1].passage;
   for(const room of rooms){
     // Spread authored cover and objectives across the larger footprint; model sizes stay fixed.
     const template=generateLevel(room.id===0?1:3,`${seed}:room:${room.id}`,'bunker',false,false,RULES.layouts[2].find(l=>l.id===room.layoutId)),source=template.rooms[room.id===0?0:room.templateIndex];
@@ -65,6 +72,31 @@ export function generateBigLevel(seed,area='bunker'){
       const box=level.lootBoxes.find(b=>b.roomId===room.id);box.item=Object.keys(RULES.loot.weights[2]).sort((a,b)=>RARITY_ORDER.indexOf(rarityOf(b))-RARITY_ORDER.indexOf(rarityOf(a)))[0];box.requiresNode=node.id;box.source='VAULT: ACTIVATE THIS ROOM TERMINAL';
       level.lootBoxes.push({id:'big-vault-key',key:'big-vault-key',item:'keycard',x:room.x,z:room.z-2,roomId:room.id,requiresNode:node.id,revealed:true,collected:false,source:'VAULT KEY: ACTIVATE THIS ROOM TERMINAL; OPENS KEY EXTRACT'});
     }else poi.description='GENERATOR: destroy the generator to drop the terminal shield';
+  }
+  if(area==='archipelago'){
+    // Protect generous diagonal approaches against inherited bunker cover.
+    // Those crates were authored for 1.8m passages. In a 4.2m bridge landing
+    // some become invisible pinch points, particularly for .48m enemy radii.
+    const protectedMouths=[];
+    for(const c of level.corridors){
+      const alongX=!!c.dir.x,cross=alongX?c.d:c.w;
+      for(const roomId of c.roomIds){
+        const room=level.rooms[roomId];
+        if(!room)continue;
+        const along=alongX?'x':'z';
+        const sign=Math.sign(c[along]-room[along])||Math.sign(c.dir[along])||1;
+        const edge=room[along]+sign*room[alongX?'w':'d']/2;
+        const reach=3.6,intoBridge=.5;
+        protectedMouths.push({
+          x:alongX?edge-sign*(reach-intoBridge)/2:c.x,
+          z:alongX?c.z:edge-sign*(reach-intoBridge)/2,
+          w:alongX?reach+intoBridge:cross+2.8,
+          d:alongX?cross+2.8:reach+intoBridge,
+        });
+      }
+    }
+    const overlap=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.z-b.z)<(a.d+b.d)/2;
+    level.boxes=level.boxes.filter(b=>!protectedMouths.some(m=>overlap(b,m)));
   }
   return level;
 }

@@ -19,7 +19,7 @@ export function bridgeRailLength(walkwayLength){
 
 // Keep a small, forgiving physical overlap at landfall. The wooden bridge
 // stays at its original visual width; the shoreline stub caused the snag.
-export const BRIDGE_ENTRY_FLARE_DEPTH=.85;
+export const BRIDGE_ENTRY_FLARE_DEPTH=1.6;
 export const BRIDGE_ENTRY_FLARE_EXTRA=.9;
 export function bridgeEntryFlare(f,along){
   const length=f.dir?.x?f.w:f.d;
