@@ -1190,7 +1190,7 @@ Core L1 / discover BIT (approved FTUE)
   -> optionally coordinate operator + BIT + bunker in themed store collections
 ```
 
-**Next design review:** Specify the operator's exact customization categories and first-week free outfit reward **together with** each bunker's customizable rooms and BIT skins. Do not prioritize room furnishings alone at the expense of player identity.
+**M38 later locks the architectural choice:** one shared mechanical Operator and responsive animation/control foundation with visually different cosmetic identities; no unique cosmetic classes, combat stats or hitbox advantages; Operator and BIT cosmetics persist through raid loss, with BIT's active help still gated by completed Bay L1. **Still proposed:** exact customization categories, starter reward and first-week unlock cadence alongside bunker-room and BIT skins. Prioritize animated feel before a large skin catalogue.
 
 ---
 
@@ -1726,6 +1726,22 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M38 — One Gameplay Operator, Multiple Cosmetic Identities and Expressive BIT (OWNER APPROVED, 8 November 2026)
+
+**Approved owner choice (option A):** Protocol Rebirth has **one shared gameplay Operator foundation** across different-looking playable character appearances, outfits and skins. Cosmetic variants share the **same responsive character-animation and control system**, rather than becoming distinct mechanical Operator classes. A different look does **not** change combat abilities, stats, movement mechanics, collision/hitboxes, gameplay reach, threat readability, or any tactical/competitive advantage. **Gameplay style still comes from P1 Operator progression, actual at-risk equipment and learned tactical decisions**. This is a firm design choice against a new mandatory class roster, not a decision to remove existing Operator or equipment progression.
+
+**Permanent visual ownership:** Earned and purchased **Operator and BIT cosmetic skins/looks are permanently owned across raid death**; equipping a cosmetic never makes a physical weapon, armor piece or carried loot safe from D1 loss. All cosmetic identities must retain the same gameplay capability independently of price and avoid misleading silhouettes, camouflage advantages or hidden hitbox changes. Existing M4/M5 cosmetic and commerce boundaries, D3.9 onboarding and no purchase interrupts during active raids remain binding. Free starter expression should be tested before expanding a paid catalog; the exact free item and unlock cadence remain undecided.
+
+**Prioritize lived gameplay over catalogue size:** The highest-value early investment is a **responsive, animated Operator who visibly reacts to player input and combat**, rather than shipping many static skins or separate animation systems. Different looks should **reuse a compatible animation/control foundation** and remain readable from the actual landscape-mobile camera. **BIT also supports distinct visual skins and more expressive on-screen reactions** in raids and at home, so the relationship feels present without adding a separate gameplay class or progression tree. These are high-level priorities, not approval of exact animation clips, character models, skeleton technology, gestures, skin counts, categories or production scope.
+
+**Preserve BIT unlock integrity:** BIT's basic presence, companionship, contextual guidance and visual expression exist before BIT Bay L1; different shells, CRT faces and other cosmetic variants are appearance only. **M28–M35 still govern the first active combat ability**, unlocked only after completing BIT Bay L1 and player-triggered, with limited distraction and its existing target/cooldown rules. A skin, cosmetic reaction, facial expression or emote **cannot auto-trigger combat support, grant a new ability, rescue loot, extract the player, increase combat effectiveness or bypass the Bay unlock**.
+
+**Still open for separate design, art and playtests:** Exact character identities/outfits/skins, free versus earned versus paid cosmetics, selection UI, visual silhouettes and colors, animation priorities, motion/aim/shoot/hit reaction detail, BIT expression vocabulary, rig/asset setup, performance and quality budgets. M39 should next decide the **high-level target game feel of Operator animation/control**, not detailed frame timings or technical implementation. D1-D.13 and further interruption packet minutiae remain **unapproved/deferred** rather than silently locked.
+
+**Validation for later implementation:** Two visually distinct Operators produce the **same movement/shooting outcomes and hit/collision behavior**, with differences only in appearance, and both animate clearly on phone. Operator/BIT looks persist after legitimate raid loss while deployed gear does not. BIT reactions are characterful but **do not use Bay-L1 distraction without its actual player-triggered unlock**. Improve actual play feel before growing the skin catalogue. **Documentation only; no new game code, UI, art/animation assets, tests, deployment or PR merge authorized.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
@@ -1748,6 +1764,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 | 2026-11-08 | D1-C: Player explicitly selects, replaces or clears protection of one eligible item unit during raid; replaced unit immediately becomes unprotected, no auto-selection | Owner approved; interaction timing, mobile UX and post-raid settlement remain open |
 | 2026-11-08 | D1-B: Only ordinary material or ordinary valuable units eligible; weapons/armor (including found or unequipped), tools, consumables and dedicated scouting/mission keys excluded | Owner approved; exact item taxonomy and D1-C/D1-D remain open |
 | 2026-11-08 | D1-A: Secure Slot protects exactly one eligible item unit, not a stack, while occupying normal bag capacity and adding no carrying space | Owner approved; D1-B item eligibility, D1-C selection/settlement and D1-D interruptions open |
+| 2026-11-08 | M38: One shared mechanical Operator with multiple cosmetic looks/skins and common responsive animations; no class powers or hitbox advantages. Permanent Operator/BIT skins, expressive BIT behavior without bypassing BIT Bay L1; play-feel-first priority | Owner approved option A; exact identities, skin catalog, animations, art, performance, controls and UX open; no code |
 | 2026-11-08 | M37: Require full material cost in home stash and one explicit completion action per visual restoration stage; no partial deposits, no automatic construction | Owner approved; stage cost splits, UX and art open |
 | 2026-11-08 | M36: Switch the one tracked Bunker Project freely between accessible rooms; completed steps and invested resources persist in original room, with no refund or switching cost | Owner approved; exact UX and handling of unfinished partial stages open |
 | 2026-11-08 | M35: Player activation without a reachable BIT target consumes the use and starts cooldown with clear failure feedback | Owner approved; reachability, cooldown duration/reset, UI and balance open |
