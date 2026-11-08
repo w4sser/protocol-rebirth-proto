@@ -2,14 +2,14 @@
 // These are based on *logical* corridor rectangles, not visual coast shells.
 // The same full-width clearance applies to props, rocks and enemy waypoints.
 export const BRIDGE_MIN_WIDTH = 4.0;
-export const BRIDGE_LANDING = 2.2;
-export const BRIDGE_SIDE_BUFFER = 1.1;
+export const BRIDGE_LANDING = 3.0;
+export const BRIDGE_SIDE_BUFFER = 2.35;
 
 // A broad, walkable mouth on the island lets a player cut diagonally onto a pier.
 // The bridge remains its original width over open water: widening the entire
 // corridor would create unsupported walking space and change combat lanes.
-export const BRIDGE_LAND_MOUTH_EXTRA = 2.0; // total extra width, split evenly on each side
-export const BRIDGE_LAND_RAIL_RECESS = 1.0; // land-side clearance for .36m players and .48m bots
+export const BRIDGE_LAND_MOUTH_EXTRA = 3.0; // total extra width, split evenly on each side
+export const BRIDGE_LAND_RAIL_RECESS = 2.4; // land-side clearance for .36m players and .48m bots
 export function bridgeMouthWidth(walkwayWidth,roomSpan,wallThickness=.4){
   return Math.max(walkwayWidth,Math.min(roomSpan-2*wallThickness-.2,walkwayWidth+BRIDGE_LAND_MOUTH_EXTRA));
 }
@@ -17,16 +17,17 @@ export function bridgeRailLength(walkwayLength){
   return Math.max(.30,walkwayLength-2*BRIDGE_LAND_RAIL_RECESS);
 }
 
-// The visible deck widens only for the first 0.85 m at each landfall.
-// Reuse the exact taper for footstep support: no invisible walkable water
-// outside the rendered planks, and no changes to the center combat lane.
-export const BRIDGE_ENTRY_FLARE_DEPTH=.85;
-export const BRIDGE_ENTRY_FLARE_EXTRA=.9;
+// The first metres on either side form a wide, walkable funnel into the
+// unchanged central combat lane. Match the rendered planks to this same taper.
+// A very short pier must retain an unflared center over water.
+export const BRIDGE_ENTRY_FLARE_DEPTH=2.4;
+export const BRIDGE_ENTRY_FLARE_EXTRA=2.4;
 export function bridgeEntryFlare(f,along){
   const length=f.dir?.x?f.w:f.d;
   const fromEnd=length/2-Math.abs(along);
-  return fromEnd>=0&&fromEnd<BRIDGE_ENTRY_FLARE_DEPTH
-    ?BRIDGE_ENTRY_FLARE_EXTRA*(1-fromEnd/BRIDGE_ENTRY_FLARE_DEPTH):0;
+  const depth=Math.min(BRIDGE_ENTRY_FLARE_DEPTH,length/3);
+  return depth>0&&fromEnd>=0&&fromEnd<depth
+    ?BRIDGE_ENTRY_FLARE_EXTRA*(1-fromEnd/depth):0;
 }
 export function bridgeEntrySupports(f,x,z){
   if(!f.bridgeFunnel||!f.dir)return false;

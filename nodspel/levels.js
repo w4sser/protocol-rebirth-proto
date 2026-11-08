@@ -286,16 +286,18 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
     // Extend the room end(s) by `t` to close it. A corridor joins a room at both ends; a branch
     // (dead end / closet, identified by its `end` field) only at its room end - the far end is
     // already sealed by its own cap wall in addBranch, so padding it further would poke past the cap.
-    // Invisible side walls used to reach the shoreline and catch angled movement.
-    // Recess them ONLY at the land entrance(s). The existing narrow logical
-    // corridor floor still stops actors from stepping into water.
+    // The old Archipelago rails sat INSIDE the visible plank edges: with a .4 m
+    // wall and .36/.48 m actors they shrank a 4 m bridge to roughly 2.5 m.
+    // Put the rails outside the floor, and recess them through the tapered entry.
+    // The logical bridge floor still prevents walking into open water.
     const trim=islandPier?BRIDGE_LAND_RAIL_RECESS:0;
     const pad=islandPier?0:(corridor.end?t:2*t);
     const shift=islandPier?(corridor.end?trim/2:0):(corridor.end?-t/2:0);
     const cx=corridor.x+corridor.dir.x*shift,cz=corridor.z+corridor.dir.z*shift;
     const shorten=islandPier?trim*(corridor.end?1:2):0;
-    for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*(door/2-t/2):0),
-      z:cz+(corridor.dir.x?sign*(door/2-t/2):0),
+    const railOffset=door/2+(islandPier?t/2:-t/2);
+    for(const sign of [-1,1])walls.push({x:cx+(corridor.dir.z?sign*railOffset:0),
+      z:cz+(corridor.dir.x?sign*railOffset:0),
       w:corridor.dir.x?Math.max(.3,corridor.w+pad-shorten):t,
       d:corridor.dir.z?Math.max(.3,corridor.d+pad-shorten):t,h:.85});
   }
