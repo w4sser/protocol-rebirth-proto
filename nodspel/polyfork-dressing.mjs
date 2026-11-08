@@ -6,8 +6,9 @@ import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
 import {polyforkLocalUrl} from './polyfork-local-url.mjs?v=2.28.0';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
-import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v3';
-import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v2';
+import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v4-glacial';
+import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v3-glacial';
+import {renderGlacialBedrock} from './glacial-bedrock.mjs?v=glacial-bedrock-v1';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
@@ -99,9 +100,12 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
   const items=composition?composition.items:planPolyforkDressing(level,{quality,density}),groups=new Map();
   const fortifications=composition?.architecture?.length?
     renderMilitaryArchitecture(composition.architecture,group,{quality,seed:level.seed}):null;
+  const glacial=composition?.cliffs?.length?
+    renderGlacialBedrock(composition.cliffs,group,{quality}):null;
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}
   const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],landmarks:composition?.landmarks??[],militaryLandmarks:composition?.militaryLandmarks??[],planned:items.length,loaded:0,meshes:0,triangles:0,
     militaryGeometry:fortifications?.stats??{structures:0,parts:0,meshes:0,drawCalls:0},
+    glacialLandmarks:composition?.cliffs??[],glacialGeometry:glacial?.stats??{planned:0,loaded:0,meshes:0,triangles:0,failed:[],ready:true},
     failed:[],ready:false};
   const q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),m=new THREE.Matrix4(),up=new THREE.Vector3(0,1,0);
   let alive=true;
@@ -125,6 +129,10 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
       stats.loaded+=list.length;
     }catch(error){stats.failed.push({id,error:String(error?.message??error)});console.warn('[polyfork]',id,error);}
   });
-  const ready=Promise.all(jobs).then(()=>{stats.ready=true;console.info('[polyfork-test]',JSON.stringify(stats));});
-  return {group,stats,ready,dispose(){alive=false;fortifications?.dispose();scene.remove(group);group.clear();}};
+  // A raid is visually ready only when local bedrock meshes have loaded too.
+  // A missing rock asset must never pass CI and leave a door facing the sea.
+  const ready=Promise.all([...jobs,...(glacial?[glacial.ready]:[])]).then(()=>{
+    stats.ready=true;console.info('[polyfork-test]',JSON.stringify(stats));
+  });
+  return {group,stats,ready,dispose(){alive=false;glacial?.dispose();fortifications?.dispose();scene.remove(group);group.clear();}};
 }
