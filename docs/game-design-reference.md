@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.14 - M25 environmental risk and BIT signaling|
+| Document status | Living design reference, v4.15 - M26 visual restoration with final functional unlock|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -770,6 +770,8 @@ The game varies through seeded layouts, area identity, depth, encounter combinat
 
 The intended encounter contract preserves warnings and alternative tactical responses. More enemies, stronger combinations, and reduced time can create pressure without making cues unreliable. Preparation should help, but the player should still understand how to respond after an imperfect loadout choice.
 
+**APPROVED M26 — Visual-only restoration stages:** For each major bunker room, break the **existing total construction materials** into 2–3 stage costs (never add them to the original total). The room becomes **visibly more restored after every stage**, but **no new gameplay function, stat, equipment reward, Secure Slot, or meta utility is granted until the entire room is complete**. The final step must deliver a clearly felt functional payoff. Do not activate Fabricator L1's crafting/commissioning reward or unlock material commerce until full Fabricator L1 is earned and built; Vault L1's Secure Slot likewise waits until its full completion. Earlier proposals for intermediate utility are superseded by M26; exact cost split, art and timings remain unapproved. D3's actual Core L1 FTUE activation remains intact. [D01]
+
 **APPROVED M25 — Read risk in the world:** Signal route and enemy danger primarily through **environmental evidence, visible threat behaviors/telegraphs and short, situational BIT cues**, rather than numeric danger ratings or exhaustive advance disclosure. A player should be able to *suspect* which approach is riskier and choose intelligently while retaining discovery. Warnings must be readable at mobile scale and comprehensible with audio muted; surprise is fine, untelegraphed unavoidable punishment is not. BIT remains contextual and non-blocking (D3.7). Exact cue art, trigger timing and any accessibility alternatives require test-based design, not default new HUD elements. This is the presentation contract for M24's player-chosen risk; D1/D2 extraction rules remain. [D01]
 
 ### Adaptive difficulty
@@ -1140,6 +1142,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.15, 8 November 2026:** Owner approved M26: major rooms gain 2–3 meaningful visual-only restoration stages within their unchanged total resource cost; all functional perks/room rewards unlock at full completion, including Fabricator material-commerce eligibility and Vault Secure Slot. Detailed stages/cost splits remain open. Documentation only.
 - **v4.14, 8 November 2026:** Owner approved M25: players read route/encounter risk from environment, enemy tells and concise contextual BIT cues, without explicit numerical risk tiers or total foreknowledge; preserve mobile accessibility, fair counterplay and voluntary extraction. Documentation only.
 - **v4.13, 7 November 2026:** Owner approved M24: standard raid difficulty follows chosen depth/routes, readable risks and tactical threats, rather than invisible player-performance scaling. The D3.8 bounded first-normal-raid failure assistance is explicitly retained; inspected adaptive code remains historical baseline only. Docs only.
 - **v4.12, 7 November 2026:** Approved M23: introduce distinct enemy archetypes quickly through playable encounters and build subsequent tactical difficulty through combinations, terrain and positioning, not long tutorials or HP inflation. No game code changed.
