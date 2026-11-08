@@ -1,5 +1,5 @@
 // Deterministic visual plan for Nordic timber footbridges.
-import {bridgeEntryFlare} from './bridge-flow.mjs?v=2.28.0';
+import {bridgeEntryFlare} from './bridge-flow.mjs?v=2.28.1';
 // Navigation floors, collision and AI paths are deliberately untouched.
 function seededRandom(seed){
   let s=2166136261;

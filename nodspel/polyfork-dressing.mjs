@@ -5,7 +5,7 @@ import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
-import {propReservations} from './props-placement.mjs?v=2.28.0';
+import {propReservations} from './props-placement.mjs?v=2.28.1';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
   'fern-plant-1559b8','grass-tuft-a40a08','round-bush-cd2ac0',

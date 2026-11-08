@@ -1,5 +1,5 @@
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
-import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.0';
+import {bridgeEntrySupports} from './bridge-flow.mjs?v=2.28.1';
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
   const steps = Math.max(1, Math.ceil(Math.hypot(delta.x, delta.z) / .08));
