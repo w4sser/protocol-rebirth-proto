@@ -64,6 +64,7 @@ import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './pro
 import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.0';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.0';
 import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.0';
+import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.0';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
@@ -74,6 +75,7 @@ const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
 */
 let resultPending=false;
+let levelIntroTimer=null;
 const TOTAL_NODES=totalNodes();
 
 const $=s=>document.querySelector(s),viewport=$('#viewport');
@@ -919,6 +921,23 @@ function loadLevelInner(){
   updateHUD();
   $('#level-corner').hidden=false;
   prewarmShaders();
+  showLevelIntro();
+}
+// Blocking title card ("BUNKER LEVEL N") before a freshly loaded bunker level is interactive; the
+// raid clock is paused (pausePick, same mechanism as the perk picker) so it can't tick underneath it.
+function showLevelIntro(){
+  const title=levelIntroTitle(round.level);
+  if(!title)return;
+  if(levelIntroTimer!=null)clearTimeout(levelIntroTimer);
+  const forRound=round;
+  pausePick(forRound,Date.now());
+  $('#level-intro-text').textContent=title;
+  $('#level-intro').hidden=false;
+  levelIntroTimer=setTimeout(()=>{
+    levelIntroTimer=null;
+    $('#level-intro').hidden=true;
+    resumePick(forRound,Date.now());
+  },LEVEL_INTRO_MS);
 }
 // Per-player adaptive difficulty (docs/difficulty-bots.md §3). Loaded once; applied at raid
 // generation only (never mid-fight) and never during FTUE/intro -- see ddaEligible() below.
@@ -1348,6 +1367,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   // v2.0 screenshot hooks: weapon-found compare (ground box moved next to the player) and backpack compare.
   weaponOfferDemo(item='shotgun_breach'){const b=round.level.lootBoxes.find(x=>!x.collected);if(!b)return false;b.item=item;b.gearNotified=true;b.x=position.x;b.z=position.z;round.weaponOffer={boxId:b.id,item,at:0};showWeaponOffer();return true;},
   backpackDemo(items=['shotgun_breach','smg_vector']){round.backpack=[...items];renderBackpackHUD();showBackpackWeapon(0);return true;},
+  bagDemo(items=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor']){const known=new Set(globalThis.DATA.items.map(i=>i.id));for(const id of items)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;updateHUD();},
   pickup(item){pickupToast(item);},pickupDemo(items=['cable','power_cell','servo','ai_fragment']){items.forEach((id,i)=>setTimeout(()=>pickupToast(id),i*350));},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
   async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.0');round.level=generateLevel(n,round.seed);loadLevel();}});

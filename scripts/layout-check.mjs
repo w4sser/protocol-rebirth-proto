@@ -345,6 +345,30 @@ async function introGoalRun([w,h]){
   await shot(page,`raid-intro-goal-${w}x${h}`);
   await page.close();
 }
+// Playtest 2026-11-08 item 2: the top-left bag/NEED-materials panel (backpack count, tool slots, upgrade material
+// chips) grew so tall on a short phone screen it ate close to half the viewport. A 4-part goal is the worst case
+// (base screenshots show up to 4 room-upgrade materials tracked at once); cap the whole panel's height and keep
+// its own tap target (#open-bag) at the 44px floor.
+async function raidGoalCompactRun([w,h]){
+  const tag=`raid goal-compact ${w}x${h}`;console.log(tag);
+  const goal={module:'rebirth_core',level:3,name:'Rebirth Core',parts:[
+    {id:'power_relay',need:2,secured:2},{id:'memory_module',need:2,secured:0},
+    {id:'encrypted_drive',need:1,secured:1},{id:'circuit_board',need:2,secured:0}]};
+  const page=await newPage(w,h);
+  await page.goto(`${BASE}/nodspel/?seed=goal-compact&area=bunker&debug=1&q=high&bag=6&goal=${encodeURIComponent(JSON.stringify(goal))}`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1200);
+  await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
+  const m=await page.evaluate(()=>{
+    const panel=document.querySelector('.bag-panel').getBoundingClientRect(),open=document.querySelector('#open-bag').getBoundingClientRect();
+    return {panelH:panel.height,panelW:panel.width,openW:open.width,openH:open.height,vh:innerHeight};
+  });
+  const budget=m.vh*.4;
+  if(m.panelH>budget)fail(tag,`bag/NEED panel is ${Math.round(m.panelH)}px tall, over ${Math.round(budget)}px (40% of the ${m.vh}px viewport) -- make it compact on phone`);
+  if(m.openW<44||m.openH<44)fail(tag,`bag button hit target ${Math.round(m.openW)}x${Math.round(m.openH)} is under 44px`);
+  await shot(page,`raid-goal-compact-${w}x${h}`);
+  await page.close();
+}
 // v1.67: first-upgrade payoff raid (bunker, bag cache near spawn + BIT notice) must not overlap HUD, timer or world labels.
 async function payoffRun([w,h]){
   const tag=`raid payoff ${w}x${h}`;console.log(tag);
@@ -699,6 +723,7 @@ try{
   await iphoneSafeAreaRun();
   for(const vp of VIEWPORTS)await raidLoadingRun(vp);
   for(const vp of VIEWPORTS)await introGoalRun(vp);
+  for(const vp of VIEWPORTS)await raidGoalCompactRun(vp);
   for(const vp of VIEWPORTS)await payoffRun(vp);
   }
   if(group('base')){

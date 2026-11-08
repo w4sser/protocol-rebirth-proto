@@ -196,6 +196,7 @@ body:has(#swap-row[data-kind=bag]:not([hidden])) .area-notice{visibility:hidden}
 #round-over .result-actions{flex:none;flex-wrap:nowrap;gap:8px}
 #round-over .result-actions button{min-height:44px;padding:10px 13px;border:1px solid var(--ad-primary);background:var(--ad-primary);color:var(--ad-night);font:700 11px 'IBM Plex Sans',sans-serif;text-transform:uppercase;white-space:nowrap}
 #round-over .result-actions .result-secondary{background:transparent;color:var(--ad-bone);border-color:var(--ad-bit)}
+#round-over .result-actions .result-continue{background:var(--ad-continue);border-color:var(--ad-continue-edge);color:var(--ad-night)}
 .result-detail-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .result-all-loot{display:flex;flex-direction:column;gap:3px;font-size:11px}
 .result-item.compact{padding:3px 0;background:none;font-size:10px;border-radius:0}
@@ -267,6 +268,9 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .level-corner #seed-label{position:absolute;top:100%;right:calc(-1*var(--lc-r,22px));width:max-content;flex-basis:auto;margin-top:2px;font-size:7px;opacity:.55;white-space:nowrap;letter-spacing:0;text-align:right;max-width:calc(100vw - var(--sl) - var(--sr) - 24px)}
 .room-obj{min-height:22px;padding:2px 6px}.room-obj .pr-ic{width:16px;height:16px}
 @media(max-width:650px){.level-corner{--lc-r:16px}}
+/* Blocking title card shown before a new bunker level becomes interactive; see level-intro.mjs. */
+.level-intro-card{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:var(--st,0px) var(--sr,0px) var(--sb,0px) var(--sl,0px);background:var(--ad-night);pointer-events:none}
+.level-intro-card span{font:800 clamp(22px,5vw,34px) 'Archivo',sans-serif;letter-spacing:3px;text-transform:uppercase;color:var(--ad-bone)}
 /* v1.77.0: result popup fits short landscape viewports. Header/footer are pinned; only the body scrolls, so the primary button never leaves the screen. */
 #round-over .result-card{display:flex;flex-direction:column;max-height:calc(100dvh - 32px - var(--sb,0px))}
 #round-over .result-brand,#round-over .result-footer{flex:none}
@@ -376,3 +380,18 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#tool-btn,#us
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer, queued perk and both sticks. */
 #extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:min(240px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px));white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
+/* Playtest 2026-11-08 item 2: on a short phone screen the bag/NEED panel (backpack count, tool slots, upgrade
+   material chips) stacked tall enough to eat close to half the viewport. Landscape phones have width to spare,
+   so trade it for height: a wider panel holds more chips per row instead of wrapping into more rows. */
+@media(max-height:500px){
+  .bag-panel{max-width:172px}
+  .bag-row{gap:3px}
+  .bag-tiles{max-width:138px;gap:2px}
+  .item-tile{min-width:19px;height:18px;padding:0 2px;gap:1px}
+  .item-tile .pr-ic{width:11px;height:11px}
+  .item-tile b{font-size:8px}
+  .need-tiles{gap:2px}
+  #raid-goal{margin-top:2px;padding-top:2px;gap:1px}
+  #raid-goal>b{font-size:7px}
+  #raid-goal small{display:none}
+}
