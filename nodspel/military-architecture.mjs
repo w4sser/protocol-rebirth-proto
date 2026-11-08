@@ -22,7 +22,7 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
   const materials=new Map(),batches=new Map(),stats={structures:0,parts:0,meshes:0,rocks:0,drawCalls:0};
   function material(color){
     if(!materials.has(color))materials.set(color,new THREE.MeshStandardMaterial({
-      color,roughness:.95,metalness:color===P.iron?.15:0,flatShading:true
+      color,roughness:.95,metalness:color===P.iron?0.15:0,flatShading:true
     }));
     return materials.get(color);
   }
@@ -131,7 +131,6 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
     root.rotation.y=l.ry;
     group.add(root);roots.push(root);stats.structures++;
     // Batches must be per root because each landmark has its own rotation.
-    const previous=batches; // not mutated; local batches flushed at each root.
     if(l.scene==='coastal-pillbox')pillbox(r,l);
     else if(l.scene==='overgrown-foundations')foundations(r,l);
     else if(l.scene==='sealed-rock-portal')portal(r,l);
