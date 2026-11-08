@@ -156,7 +156,8 @@ export function aimConePoints(position,direction,range,halfAngle,obstacles){
       const dx=box.x-position.x,dz=box.z-position.z,distance=Math.hypot(dx,dz);
       if(distance<=box.r){angles.push(-halfAngle,halfAngle);continue;}
       const center=Math.atan2(dz,dx)-heading,spread=Math.asin(Math.min(1,box.r/distance));
-      for(const side of [-1,1])for(const offset of [-1e-5,0,1e-5]){
+      for(let side=-1;side<=1;side+=2)for(let k=-1;k<=1;k++){
+        const offset=k*1e-5;
         const angle=center+side*spread+offset,wrapped=Math.atan2(Math.sin(angle),Math.cos(angle));
         if(wrapped>-halfAngle&&wrapped<halfAngle)angles.push(wrapped);
       }
