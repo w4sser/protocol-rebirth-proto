@@ -1385,10 +1385,25 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M28 — BIT Bay L1 Grants Limited Active Combat Support (OWNER APPROVED, 8 November 2026)
+
+**Approved owner choice (option B):** On **full completion of BIT Bay L1**, BIT gains a **noticeable but strictly limited active combat-support capability**, rather than enhanced scanning/intelligence being the primary L1 completion reward. Possible behaviors include briefly **distracting an enemy** or **providing short-lived defensive support** during a real tactical encounter. These are examples of the allowed capability family, **not approval to ship both**, nor a final ability definition. Decide the first concrete ability, activation model and duration separately.
+
+**Keep BIT present before the Bay:** BIT is **found in the bunker during the approved FTUE**, talks to the operator and accompanies ordinary raids **before BIT Bay L1 exists**. It already provides approved contextual guidance and can mention optional living-world leads under M20–M20C. Building BIT Bay L1 must not be presented as meeting, activating or obtaining BIT for the first time. Existing intelligence/scanning descriptions are retained as earlier *proposals* or later capability possibilities, not the approved first L1 payoff.
+
+**Combat and risk integrity:** Combat support must create a useful tactical window without solving the fight for the player. It must not cause automatic wins or automatic kills, make survival/extraction certain, revive or save the operator after death, recover exposed lost loot, grant insurance or a second Secure Slot, or override D1/D2 player-controlled extraction. Bound its effectiveness through a legible constraint such as duration/cooldown, but exact timing and mechanics remain open. Enemies/terrain/positioning are the primary combat depth (M22–M25), and the free Basic Carbine stays viable without the upgrade. Support should be clear on small phones and not create a complicated set of mandatory buttons.
+
+**Meta/commerce integrity:** M27's choice between accessible Vault L1 and BIT Bay L1 remains genuine: Vault provides the approved one Secure Slot **on full room completion**, while BIT Bay L1 provides limited in-fight assistance **on full room completion**. Under M26, 2–3 prior restoration stages have visual payoff only, and their costs sum to the room's unchanged total. BIT Bay's capability is earnable through play; approved post-Fabricator material purchases may accelerate eligible resource collection but cannot buy a completed raid, bypass room gates or preserve lost gear.
+
+**Supersession and still-open details:** M27's statement that BIT Bay L1's exact first effect was undecided is **resolved only at the capability-family level**. Earlier P1.2 `BIT Bay L1 = improved scanning/loot intelligence` and prototype descriptions do **not** override the approved active-combat-support direction. Open: first ability choice (enemy distraction vs brief defense or a bounded equivalent), whether it is player-triggered or autonomously contextual, activation feedback, telegraphs/counterplay, cooldown, balance, progression interplay with BIT Bond and Bay L2, and accessibility. **Documentation only; no gameplay code, deploy or merge authorized.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-08 | M28: Fully restored BIT Bay L1 unlocks limited active combat support (e.g. distraction or brief defense), not first-time BIT activation or scanning as primary L1 reward | Owner approved; exact effect, input, frequency and balance open |
 | 2026-11-08 | M27: After earned Fabricator L1, choose accessible Vault L1 or BIT Bay L1; BIT can advise, only one main Project tracked, each room's full benefit on completion | Owner approved; exact Bay ability and choice UX open |
 | 2026-11-08 | M26: 2–3 visual-only stages per major room within unchanged total resource cost; all room gameplay functionality unlocks on completion | Owner approved; art and cost partitioning open |
 | 2026-11-08 | M25: Risk is communicated mainly through environment, enemy signals and brief contextual BIT cues, not numeric risk grades or total foreknowledge | Owner approved; exact signaling and thresholds open |
