@@ -8,7 +8,7 @@
 
 | Document control | Value |
 | --- | --- |
-| Document status | Living design reference, v4.47 - M40 contextual BIT expression in ordinary raids|
+| Document status | Living design reference, v4.48 - M41 rewarding and readable enemy-hit feedback|
 | Prepared / updated | 8 November 2026 |
 | Design owner | Robert Wasser |
 | Audience | Game design, UX, art, engineering, production, and AI-assisted analysis |
@@ -336,6 +336,14 @@ Their job is to add variation within a run. Their presentation must make their l
 Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery windows communicate the rules. Difficulty should come from responding to a readable problem, not from invisible attacks or contradictory cues. Existing combat data supports flanking/unaware bonuses and explicit warning behavior. [S09] [S10]
 
 ---
+
+### 5.7 M41 — Rewarding, legible enemy-hit and defeat feedback (owner approved)
+
+**APPROVED M41, option A (8 November 2026):** A **validated hit or confirmed enemy defeat** must have **clear, satisfying mobile-readable feedback**: suitable enemy reactions, concise visual and audio impact signals, and an unmistakable defeat outcome. This should complete M39's responsive Operator gunplay and M40's expressive BIT companionship, making the **Basic Carbine feel fun in an ordinary raid**. Roles may vary in presentation strength, but their response must remain understandable and the combat must not depend on purchasing or equipping advanced gear.
+
+**No unapproved combat effects:** This approval concerns **presentation**, not new weapon mechanics or target state changes. It grants **no new stun, stagger, forced attack interruption, extra damage, loot, invulnerability or automatic reward**. Keep any separately established existing weapon and enemy mechanics intact; valid impact and defeat feedback must be driven by genuine hit/outcome state. Enemy attack telegraphs, visual aim cues, player movement, cover, route reading and extraction must not be obscured by effects. Key confirmation needs to work **with sound muted** on a small phone.
+
+**Open for playtest and implementation:** Exact hit/defeat clips, enemy variety, impact shaders/particles, sound mix, hit marker treatments, timing/intensity, source-of-truth integration, art production and real-device performance. These are not additional high-level votes. **Next priority is a playable proof-of-fun slice** combining common animated Operator + Basic Carbine + a couple of existing distinct enemy threats + verified hit/defeat feedback + meaningful in-raid BIT reactions + a genuine loot/extraction choice. Suggested test scope does not authorize code or assets in this documentation PR. [D01]
 
 ## 6. Loot, inventory, extraction, and loss
 
@@ -1042,7 +1050,7 @@ This is a review register, not permission to implement every item. Explicit appr
 | P0 | Mission purpose and exits | D2.1-D2.3 APPROVED for quick PvE: return available from start, incomplete goals allowed, deliberate cancellable extraction; five seconds is initial test tuning | Align the old node-gated/automatic-entry implementation; resolve timer/interruption edges and D2.4-D2.7 nodes, topology, communication, and existing-variant mapping |
 | P0 | Current onboarding | Base-first playtest guide vs later direct-raid FTUE and newer assist/clutch code | One canonical fresh-save journey; label the older route explicitly and reconcile it with the approved quick-mode extraction |
 | P0 | Competing goals | Nodes, tracked build, quests, and extraction can all demand attention | One visible objective hierarchy; distinguish purpose from mandatory exit conditions |
-| P0 | Animated Operator and BIT identity | **M38/M39/M40 APPROVED:** permanent Operator/BIT looks on one mechanical Operator, responsive action-first movement/shooting and **subtle contextual BIT CRT/hover reactions during normal raids** | Validate Operator/BIT responsiveness and in-raid personality in one Basic-Carbine mobile playtest; next choose the high-level enemy-hit feedback target (M41), then build and tune a playable proof-of-fun slice rather than more technical A/B rules |
+| P0 | Operator, gunplay and BIT fun | **M38–M41 APPROVED:** permanent cosmetic identities on one Operator gameplay foundation, responsive action-first animation, contextual BIT reactions and **strong, verified, mobile-readable enemy hit/defeat feedback without new combat power** | **Next is a playable Operator + Basic Carbine + existing-enemy + BIT proof-of-fun slice**. Test immediate control feel, real hit/defeat comprehension, tactical legibility, BIT presence and mobile performance; scope production through a separate implementation PR, not more strategic micro-decisions |
 | P0 | First upgrade payoff | Existing Fabricator/Vest reward vs multiple simultaneous systems | Show what changed and make it useful in the next raid |
 | P1 | BIT system overlap | Older single-active-skill copy vs passive talent tree vs one active assignment; rescue conflicts resolved in direction by D1 | Explain Bond, hardware, talents, and assignments separately; remove/refactor item-rescue effects without adding a second protection route |
 | P1 | Equipment persistence | Older per-item upgrade descriptions vs built-copy save semantics; D1 confirms deployed valuable gear is risked | Clearly state what is lost with a particular item |
@@ -1195,6 +1203,7 @@ Useful questions include: "What must a new player understand before their first 
 
 ### Document change log
 
+- **v4.48, 8 November 2026:** Owner approved M41 option A: clear satisfying enemy impact and defeat feedback for validated hits through appropriately varied target, visual and audio responses, while preserving Basic Carbine fun, readable threats, M39 Operator and M40 BIT. No new stun/stagger/forced interrupt, extra damage/loot or immunity; existing weapon mechanics remain unchanged. Stop detailed design voting and validate a playable mobile Operator/Basic-Carbine/enemy/BIT proof-of-fun slice next, requiring separate code/asset authorization. Docs only.
 - **v4.47, 8 November 2026:** Owner approved M40 option A: BIT is a contextually expressive companion during ordinary raids, reacting through restrained hovering and CRT/face animation to actual exploration, enemy danger, player damage, valuable discoveries, decisions, extraction and failure. Reactions must stay non-blocking, mobile-readable and selective without new HUD or progression systems. M28–M35 combat help still requires completed BIT Bay L1 and player action. M41 enemy-hit feedback direction is next; then playable fun validation instead of strategic minutiae. No code or assets.
 - **v4.46, 8 November 2026:** Owner approved M39 option A: responsive, action-first Operator movement, direction changes, aim and fire, with rewarding weapon/hit/interact/extract animation feedback. Animation must not needlessly block valid inputs or change timing/hitboxes across M38 skins. BIT expression may reinforce play without new powers. Detailed clips, transition rules, technical pipelines and phone performance remain open for production/playtests. M40 contextual BIT presence is next; D1-D.13 still deferred. Documentation only; no code/assets.
 - **v4.45, 8 November 2026:** Owner approved M38 option A: multiple cosmetic Operator looks share one gameplay/controls/animation foundation, without class-specific abilities, hitbox/stat advantages or variation in tactical power. Operator/BIT cosmetics are permanently owned through raid death while deployed gear remains at risk. Prioritize expressive Operator animation and BIT reactions before a large skin collection; BIT Bay L1 combat support remains separately gated. M39 animation feel is next; D1-D.13 reconnection details deferred. Docs only, no gameplay/art changes.
