@@ -28,7 +28,7 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **Preserved D1 contract:** All other exposed loot and risked equipment follow the ordinary death/extraction outcome. No BIT loot rescue, insurance, paid bag recovery, additional paid slot, automatic extraction or guarantee of survival is introduced. D1-A governs **one unit and ordinary bag occupancy**; D1-B locks the eligible categories; **D1-C later locks player selection, switching and clearing**, not the exact selection interface or reconciliation.
 
-**Explicitly still open:** Item-category edge cases within the **approved D1-B** restrictions; **D1-C** exact mobile interaction, when a player may select/switch/clear, and how to reconcile the selected unit after a raid (the ability to choose, replace and clear is approved); **D1-D** interruptions. Exact inventory UI/implementation are not approved, and current code is not claimed to implement D1-A.
+**Explicitly still open:** Item-category edge cases within the **approved D1-B** restrictions; **D1-C** exact mobile/inventory interaction and how to reconcile the selected unit after a raid. **D1-C.1 now approves select/switch/clear whenever the bag is accessible, even under active danger, without a pause or safety benefit**; **D1-D** interruptions remain open. Exact inventory UI/implementation are not approved, and current code is not claimed to implement D1-A.
 
 ## Approved Secure Slot item eligibility (D1-B)
 
@@ -36,7 +36,7 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **Preserve D1-A/D1:** One eligible **unit**, never a stack, occupies normal bag capacity; the Slot becomes functional only after full Vault L1 completion. All other possessions remain exposed under D1 until real extraction. No extra slot, insurance, BIT rescue, paid recovery, guaranteed extraction or credit for completing a separate objective is created.
 
-**Still unapproved:** Exact category-specific item IDs and classification edge cases (ordinary materials versus dedicated quest/scouting keys), **D1-C** exact timing, touch interaction and loss reconciliation (player selection/replacement/clearing is now approved), **D1-D** interruption handling and all concrete UX. No gameplay implementation.
+**Still unapproved:** Exact category-specific item IDs and classification edge cases (ordinary materials versus dedicated quest/scouting keys), **D1-C** exact touch/inventory interaction and loss reconciliation (**D1-C.1 approves timing whenever the bag is accessible, even near enemies, without a pause or immunity**), **D1-D** interruption handling and all concrete UX. No gameplay implementation.
 
 ## Approved Secure Slot player selection and switching (D1-C)
 
@@ -44,7 +44,13 @@ The no-guaranteed-item rule concerns ordinary material hunting. Preserve D3's au
 
 **Keep D1-A/B and extraction risk intact:** Fully completed Vault L1 grants one Secure Slot, never a second slot, stack-wide protection or extra bag capacity. Only ordinary materials and valuables are eligible, not equipment, tools, consumables or dedicated keys. Clear player-facing feedback must distinguish protected from exposed items without promising that selection fulfills a mission, grants extraction success, restores a lost bag or duplicates an item.
 
-**Still open:** Exact mobile interaction, **when** the player can access selection/switch/clear actions, handling when a selected item is used or removed, and **post-raid settlement/reconciliation** for each outcome (including one-time credit and no duplicate loot); D1-D interruptions are a separate open rule. No specific inventory gesture, pause behavior, protected-item reconciliation, HUD redesign or runtime implementation is approved here.
+**D1-C.1 later approves when the player may act:** whenever the raid bag can be accessed, including under threat, without pausing the raid, invulnerability or guaranteed safety. **Still open:** exact mobile/inventory interaction and other bag-access restrictions, handling when a protected item is used/removed, and **post-raid settlement/reconciliation** (including one-time credit and no duplicate loot); D1-D interruptions remain separate. No particular inventory gesture, HUD redesign or runtime implementation is approved.
+
+## Approved Secure Slot combat-availability timing (D1-C.1)
+
+**Owner-approved, 8 November 2026:** The player may **select, switch or clear** the protected unit whenever the inventory/bag is **accessible during a raid**, including with enemies in the vicinity or an active threat. **Combat does not introduce a safe-only lockout.** The action **does not pause the world, stop enemy attacks, confer invulnerability or guarantee safety**. Managing loot under danger is a deliberate risk, not an automatic defensive effect.
+
+D1-A protects one unit within ordinary bag capacity; D1-B permits ordinary materials/valuables only; D1-C requires player-driven selection, with the former unit losing protection when changed. **Still open:** exact touch controls/UX and bag availability in other states, handling removal/consumption of a selected item, after-raid reconciliation, and D1-D interrupted-session rules. No code/GUI implementation authorized.
 
 ## Commerce structure retained
 
@@ -152,8 +158,8 @@ The player chooses the activation moment (M30) while BIT selects the most immedi
 
 Unapproved: exact loot probabilities and route hints, stage resource splits, room-specific art, first-ten-extraction cadence, paid acceleration limits and commercial values. **Intermediate room utility is no longer open:** M26 locks it to *none* until final completion. **Vault vs BIT Bay build order is no longer open:** M27 lets the player choose where both are accessible. **Switching the tracked Project is also resolved by M36:** free switching preserves room-specific investment with no fee or refund. **Stage payments are resolved by M37:** every stage needs its full cost and a deliberate player action; no partial deposits or auto-building. **BIT Bay L1's benefit is no longer open:** M28 locks limited combat support, M29 locks its first ability to brief enemy distraction, M30 locks player-controlled contextual activation, M31 locks BIT's post-activation choice of the most immediate threat, M32 locks reuse with a meaningful cooldown between successful uses, M33 locks enemy-dependent susceptibility with readable/fair differences, M34 rules out full immunity while permitting weaker, shorter or different responses, and M35 requires cooldown and failure feedback after a no-reachable-target activation. Historical M6/M7 simulations must be recalibrated for the Fabricator gate before supporting balance claims.
 
-**Next single decision — when may the player choose or switch the Secure Slot item during a raid? (D1-C follow-up)**
-- **A — Whenever the bag can be opened (recommended).** The player can select/switch/clear protection from their inventory during a raid, including when danger is nearby. Using the bag need not pause or protect the operator; exact touch interaction and inventory safety rules remain open.
-- **B — Only during safe moments.** Selection/switching/clearing is disabled during active threats or combat. This reduces risky inventory interactions but adds a potentially unclear eligibility rule and limits meaningful emergency loot choices. The definition of safe and its cues remain open.
+**Next single decision — how is the one protected unit credited after a failed raid? (D1-C settlement)**
+- **A — Automatically return it to the home stash once, visibly in the result (recommended).** On a failed raid, the protected eligible unit is secured in the safe stash in one authoritative settlement, with a clearly labeled recovered-item line. No claim button or extra home step. It never turns failure into extraction or awards extract-only objectives.
+- **B — Hold it in a persistent, explicit claim until collected.** On a failed raid, the protected unit is saved into a separate non-expiring pending claim. The player manually accepts it at the bunker before it becomes usable; the claim cannot be lost or duplicated. This is more ceremonious but adds friction and an extra reward state.
 
-**Neither timing policy is approved yet.** D1-C already locks player ownership of selection and switching, D1-A/B lock one ordinary material/valuable unit within normal carrying capacity, and result settlement/D1-D interruption handling are still separate decisions. Do not infer a pause, damage immunity or extra protected units.
+**Neither settlement flow is approved yet.** D1 already says the protected unit survives failed outcomes; D1-A/B/C/C.1 govern quantity, category, player selection and when changes are permitted. Both alternatives preserve the item exactly once, with no extra reward, automatic extraction or quest-completion bypass. D1-D crash/disconnect resolution and exact result UI remain separate open questions.
