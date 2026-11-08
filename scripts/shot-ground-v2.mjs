@@ -40,6 +40,10 @@ try {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
+      const externalModelRequests=[];
+      page.on('request', req => {
+        if (/^https?:\/\/polyfork\.dev\/cdn\//.test(req.url())) externalModelRequests.push(req.url());
+      });
       page.on('console', m => {
         if (/ground-preview-v2/.test(m.text())) console.log(area,mode,m.text());
         if (m.type()==='error' && /WebGLProgram|shader error|ERROR: 0:|ground-preview/i.test(m.text()))
@@ -137,6 +141,7 @@ try {
           return {mode:st.mode,landmarks:st.landmarks,loaded:st.loaded,failed:st.failed,planned:st.planned,meshes:st.meshes};
         });
         console.log('[coastal-life-preview]',area,mode,JSON.stringify(life));
+        if(externalModelRequests.length)throw new Error('External Polyfork CDN usage in default raid: '+externalModelRequests.join(', '));
         if(life.mode!=='coastal'||!life.landmarks?.length||!life.planned||!life.loaded||!life.meshes||life.failed?.length||life.planned>(mode==='low'?40:125))
           throw new Error('Default Archipelago dressing failed to render: '+JSON.stringify(life));
         await sleep(1800);
