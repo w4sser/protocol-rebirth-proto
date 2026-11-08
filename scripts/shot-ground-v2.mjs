@@ -36,7 +36,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const results = [];
 try {
   for (const area of (process.env.AREAS||'bunker,archipelago').split(',')) {
-    for (const mode of (process.env.MILITARY_FOCUS==='1'||process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
+    for (const mode of (process.env.ENEMY_FOCUS==='1'?['high']:process.env.MILITARY_FOCUS==='1'||process.env.COASTAL_FOCUS==='1'?['high','low']:['off','high','low'])) {
       console.log('Capture starting:',area,mode);
       const page = await browser.newPage(), errors = [];
       page.on('pageerror', e => errors.push(String(e)));
@@ -90,6 +90,7 @@ try {
       if (process.env.COASTAL_FOCUS!=='1') params.set('polyfork','0');
       if (process.env.POLYFORK_OVERRIDE==='1') {params.set('polyfork','1');params.set('polyforkMode','coastal');}
       if (process.env.MILITARY_FOCUS==='1') {params.set('polyfork','1');params.set('polyforkMode','military');params.set('seed','military-qa-01');}
+      if (process.env.ENEMY_FOCUS==='1') {params.set('levels','big');params.set('polyfork','1');params.set('polyforkMode','military');params.set('seed','big-enemy-variety-7');}
       await page.goto(BASE+'/nodspel/?'+params,{waitUntil:'load'});
       await sleep(2200);
       await page.evaluate(()=>{
@@ -124,6 +125,30 @@ try {
         console.log('[timber-bridge-meshes]',area,mode,JSON.stringify(audit));
         if(audit.meshes===0||audit.instances<5||!audit.allVisualOnly)
           throw new Error('Timber bridge render missing or invalid: '+JSON.stringify(audit));
+      }
+      if (process.env.ENEMY_FOCUS==='1') {
+        const enemyAudit=await page.evaluate(()=>{
+          const level=window.__NR?.state?.()?.level;
+          if(!level?.big)return {error:'Big Map not active'};
+          const actors=level.enemies.filter(e=>/^big-enemy-\\d+$/.test(e.id)&&!e.encounter);
+          const types=Object.fromEntries([...new Set(actors.map(e=>e.type))].map(t=>[t,actors.filter(e=>e.type===t).length]));
+          return {seed:level.seed,rooms:level.rooms.length,types,
+            chosen:['sentry','rusher','thrower'].map(t=>{
+              const actor=actors.find(e=>e.type===t);
+              const room=actor&&level.rooms.find(r=>r.id===actor.roomId);
+              return actor&&room?{type:t,roomId:actor.roomId,x:room.x,z:room.z}:null;
+            }).filter(Boolean)};
+        });
+        console.log('[big-enemy-mobile-audit]',area,mode,JSON.stringify(enemyAudit));
+        if(enemyAudit.error||enemyAudit.rooms<6||!enemyAudit.types.sentry||
+          !enemyAudit.types.rusher||!enemyAudit.chosen.length)
+          throw new Error('Big enemy variety is not visible in seeded Big Map: '+JSON.stringify(enemyAudit));
+        await page.screenshot({path:join(OUT,'big-enemies-high-spawn.png')});
+        for(const choice of enemyAudit.chosen.slice(0,3)){
+          await page.evaluate(pos=>window.__NR.teleport(pos.x,pos.z+2.4),choice);
+          await sleep(1100);
+          await page.screenshot({path:join(OUT,'big-enemies-high-'+choice.type+'.png')});
+        }
       }
       if (process.env.COASTAL_FOCUS==='1') {
         await page.waitForFunction('window.__polyforkPreview?.stats?.mode === "coastal" && window.__polyforkPreview.stats.ready', {polling:250,timeout:45000});
