@@ -5,8 +5,8 @@ import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
-import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v2';
-import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v1';
+import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v3';
+import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v2';
 import {propReservations} from './props-placement.mjs?v=2.28.0';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
