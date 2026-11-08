@@ -14,7 +14,7 @@ import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridg
 export function applyBigArchipelagoEnemyVariety(level){
   if(!level?.big||level.area!=='archipelago')return level;
   const depth=graphDistances(level.graph);
-  const candidates=level.enemies.filter(e=>/^big-enemy-\\d+$/.test(e.id)&&
+  const candidates=level.enemies.filter(e=>/^big-enemy-\d+$/.test(e.id)&&
     e.type==='grunt'&&!e.encounter&&e.health>0&&e.active!==false)
     .sort((a,b)=>(depth[a.roomId]??99)-(depth[b.roomId]??99)||a.roomId-b.roomId);
   const reserve=candidates.filter(e=>(depth[e.roomId]??99)>0);
