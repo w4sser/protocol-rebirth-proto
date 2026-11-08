@@ -72,15 +72,15 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
   }
   function pillbox(r,l){
     const w=l.width,d=l.depth;
-    box(P.graniteDark,0,-.21,d*.55,w+.45,.35,d+ .25);
-    box(P.concrete,0,.55,d*.69,w*.91,1.1,d*.78);
+    box(P.graniteDark,0,-.21,d*.50,w+.45,.35,d*.94);
+    box(P.concrete,0,.55,d*.58,w*.91,1.1,d*.70);
     // Black horizontal firing slit recessed under the roof, with broken concrete lintel.
     box(P.shadow,0,.95,.082,w*.64,.19,.045);
     box(P.light,0,1.18,.075,w*.83,.18,.16);
     box(P.edge,-w*.40,.80,.12,.20,.77,.23);
     box(P.edge,w*.40,.80,.12,.20,.77,.23);
-    roof(P.concrete,0,1.43,d*.61,w*.54,.25,d*.72);
-    box(P.light,0,1.48,d*.61,w*.70,.09,d*.69);
+    roof(P.concrete,0,1.43,d*.51,w*.54,.25,d*.43);
+    box(P.light,0,1.48,d*.55,w*.70,.09,d*.64);
     rubble(r,w,d,high?11:6);
     weather(r,w,d,1.54,high?7:2);
   }
@@ -108,7 +108,7 @@ export function renderMilitaryArchitecture(landmarks,parent,{quality='high',seed
   }
   function portal(r,l){
     const w=l.width,d=l.depth;
-    box(P.graniteDark,0,-.18,d*.53,w+.2,.27,d+.12);
+    box(P.graniteDark,0,-.18,d*.49,w+.2,.27,d*.98);
     // Rock-cut, sealed doorway. Intentionally non-interactive and physically outside
     // the player floor; no promise of a room behind the facade.
     box(P.concrete,-.94,.86,.47,.53,1.71,d*.63);
