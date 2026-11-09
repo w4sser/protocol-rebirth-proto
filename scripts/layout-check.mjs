@@ -125,7 +125,7 @@ function worldOverlaps(){
   const L=sel('#world-labels>*:not(.enemy-damage):not(.enemy-hit-flash)').map(e=>box(e,'label'))
     .concat(sel('#world-labels .enemy-health-bar,#world-labels .node-meter').map(e=>box(e,'bar',`${e.closest('.node-label')?.textContent.trim().slice(0,16)||e.id} ${e.className}`)))
     .concat(sel('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,.pickup-toast,#level-toast,#extract-toast').map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2&&r.b-r.tp>1);
-  const H=sel('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.stick').map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
+  const H=sel('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,.stick').map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
   const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
   const out=[];
   for(let i=0;i<L.length;i++){
@@ -378,7 +378,7 @@ async function payoffRun([w,h]){
   await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1200);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
-  const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
+  const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
     return {sp,n:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).length,pts:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};});
   const vis=pay.pts.filter(p=>p.x>10&&p.x<pay.w-10&&p.y>10&&p.y<pay.h-10&&Math.hypot(p.x-pay.sp.x,p.y-pay.sp.y)>34&&!pay.hud.some(r=>p.x>r.left-4&&p.x<r.right+4&&p.y>r.top-4&&p.y<r.bottom+4));
   if(!pay.n||vis.length<Math.min(pay.n,5))fail(tag,`payoff cluster not clearly visible at start (${vis.length}/${pay.n} clear of edges, player and HUD)`);
@@ -404,7 +404,7 @@ async function raidRun([w,h],area){
     await settle(300);
     const exitLit=await page.$eval('.exit-label',el=>el.classList.contains('done'));
     if(!exitLit)fail(ctx,'exit label is not marked done once every node is active');
-    await report(page,`${ctx} exit lit`,'.exit-label,.stick,#dash,#tool-btn,#ammo-hud,#use-kit');
+    await report(page,`${ctx} exit lit`,'.exit-label,.stick,#dash,#bit-distract,#tool-btn,#ammo-hud,#use-kit');
     await page.evaluate(()=>{const p=window.__NR.state().level.start;window.__NR.teleport(p.x,p.z);});
 
     const dashPlacement=await page.evaluate(()=>{
@@ -427,7 +427,7 @@ async function raidRun([w,h],area){
       const box=(e,k)=>{const r=e.getBoundingClientRect();return {k,t:e.textContent.trim().replace(/\s+/g,' ').slice(0,28)||e.id,l:r.left,tp:r.top,r:r.right,b:r.bottom};};
       // world labels + transient notices must not overlap each other, nor the HUD (timer, bag, dash, sticks ...)
       const L=[...document.querySelectorAll('#world-labels>*:not(.enemy-damage)')].filter(vis).map(e=>box(e,'label')).concat([...document.querySelectorAll('.area-notice,#encounter-hint,#kit-toast,#bag-toast,#gear-toast,#goal-pickup,.pickup-toast,#level-toast,#extract-toast')].filter(vis).map(e=>box(e,'notice'))).filter(r=>r.r-r.l>2);
-      const H=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(vis).map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
+      const H=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(vis).map(e=>box(e,'hud')).filter(r=>r.r-r.l>2);
       const hit=(a,o)=>Math.min(a.r,o.r)-Math.max(a.l,o.l)>2&&Math.min(a.b,o.b)-Math.max(a.tp,o.tp)>2;
       const out=[];
       for(let i=0;i<L.length;i++){for(let j=i+1;j<L.length;j++)if(hit(L[i],L[j]))out.push(`${L[i].k} "${L[i].t}" overlaps ${L[j].k} "${L[j].t}"`);
@@ -620,8 +620,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.8');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.8');
+    const {createRound}=await import('./round.js?v=2.28.9');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.9');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];

@@ -1,15 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.8';
-import {audioEvent} from './audio.js?v=2.28.8';
-import {ownRooms} from './perks.js?v=2.28.8';
-import {RULES,hazardState} from './levels.js?v=2.28.8';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.8';
-import {takeDamage,tickRound} from './round.js?v=2.28.8';
-import {houseWaypoint} from './house.js?v=2.28.8';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.8';
-import {detectionMultiplier} from './stakes.js?v=2.28.8';
-import {dashInvulnerable} from './dash.js?v=2.28.8';
-import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.8-bridge1';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.9';
+import {audioEvent} from './audio.js?v=2.28.9';
+import {ownRooms} from './perks.js?v=2.28.9';
+import {RULES,hazardState} from './levels.js?v=2.28.9';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.9';
+import {takeDamage,tickRound} from './round.js?v=2.28.9';
+import {houseWaypoint} from './house.js?v=2.28.9';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.9';
+import {detectionMultiplier} from './stakes.js?v=2.28.9';
+import {dashInvulnerable} from './dash.js?v=2.28.9';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.9-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
@@ -48,15 +48,19 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
     if(enemy.attackWakeAt!=null){combat.nextFire.set(enemy.id,Math.min(combat.nextFire.get(enemy.id)??now,now));enemy.attackWakeAt=null;}
     // EMP: a stunned enemy neither moves nor fires; its wind-up and salvo are cancelled (a fresh telegraph follows).
     if(now<(enemy.stunnedUntil??0)){enemy.windupAt=null;enemy.attackPhase=null;enemy.attackTarget=null;enemy.alertAt=null;continue;}
-    // Decoy: a lured mover heads for the lure instead of the player and holds fire until it ends.
-    if(enemy.lureTarget&&enemy.speed>0&&now<(enemy.lureUntil??Infinity)){
+    // Decoy/BIT distract (M42): a lured enemy heads for the lure instead of the player and holds fire
+    // until it ends -- even a stationary turret/sentry (speed 0) can't walk to it, but it still turns
+    // to face it and holds fire, which is the whole point of distracting one.
+    if(enemy.lureTarget&&now<(enemy.lureUntil??Infinity)){
       enemy.windupAt=null;enemy.attackPhase=null;enemy.alertAt=null;
-      const lx=enemy.lureTarget.x-enemy.x,lz=enemy.lureTarget.z-enemy.z,ld=Math.hypot(lx,lz);
-      if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt){
-        stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z}, // hot-ok: only while lured by a decoy
+      if(enemy.speed>0){
+        const lx=enemy.lureTarget.x-enemy.x,lz=enemy.lureTarget.z-enemy.z,ld=Math.hypot(lx,lz);
+        if(enemy.health>0&&ld>RULES.tools.lureStopDistance&&now>=combat.moveAt){
+          stepEnemy(round,enemy,{x:enemy.lureTarget.x,z:enemy.lureTarget.z}, // hot-ok: only while lured
 ld,obstacles,player,dt);
-        if(enemy.facing!==undefined)enemy.facing=turnToward(enemy.facing,angleTo(enemy,enemy.lureTarget),6*dt);
+        }
       }
+      if(enemy.facing!==undefined)enemy.facing=turnToward(enemy.facing,angleTo(enemy,enemy.lureTarget),6*dt);
       continue;
     }
     // Patrol: unaware until the sight cone catches the player (a 1 s "!" first) or it is shot.
