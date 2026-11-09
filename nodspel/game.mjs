@@ -1,76 +1,77 @@
-// @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset
-import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.28.7';
-import {artilleryFlight} from './artillery-flight.mjs?v=2.28.7-bridge1';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.7';
-import {animateEnemyModel} from './enemy-animation.js?v=2.28.7';
-import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.7';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.7';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.7';
-import {createRobotPresence} from './robot-operator.js?v=2.28.7';
-import {createOperatorFX} from './operator-fx.js?v=2.28.7';
-import {createAudioSettings} from './audio-settings.js?v=2.28.7';
-import {createPixelFX} from './fx-pixel.js?v=2.28.7';
-import {createPixelFeedback} from './fx-feedback.js?v=2.28.7';
-import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.7';
-import {audio,audioEvent} from './audio.js?v=2.28.7';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.7';
-import {createPerkUI} from './perk-ui.js?v=2.28.7';
-import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.7';
+// @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
+import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.28.8';
+import {artilleryFlight} from './artillery-flight.mjs?v=2.28.8-bridge1';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.8';
+import {animateEnemyModel} from './enemy-animation.js?v=2.28.8';
+import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.8';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.8';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.8';
+import {createRobotPresence} from './robot-operator.js?v=2.28.8';
+import {createOperatorFX} from './operator-fx.js?v=2.28.8';
+import {createAudioSettings} from './audio-settings.js?v=2.28.8';
+import {createPixelFX} from './fx-pixel.js?v=2.28.8';
+import {createPixelFeedback} from './fx-feedback.js?v=2.28.8';
+import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.8';
+import {audio,audioEvent} from './audio.js?v=2.28.8';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.8';
+import {createPerkUI} from './perk-ui.js?v=2.28.8';
+import {perkState,updateClears,pickReady,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,choosePerk,autoPickPerks,roomAt,roomKey,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.8';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.7';
-import {loadBunkerAssets} from './bunker.js?v=2.28.7';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted} from './levels.js?v=2.28.7';
-import {applyDifficulty} from './difficulty.js?v=2.28.7';
-import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.7';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.28.7';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.7';
-import {createRobotSocket} from './operator-gear.js?v=2.28.7';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.8';
+import {loadBunkerAssets} from './bunker.js?v=2.28.8';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted} from './levels.js?v=2.28.8';
+import {applyDifficulty} from './difficulty.js?v=2.28.8';
+import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.8';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.28.8';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.8';
+import {createRobotSocket} from './operator-gear.js?v=2.28.8';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.28.7';import '../data/recipes.js?v=2.28.7';import '../data/vendors.js?v=2.28.7';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.7';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.7';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.7';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.7';
-import {safeSpawn} from './spawn.js?v=2.28.7';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.7';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.7';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.7';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.7';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.7';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.7-ground-v10-timber-v1-military-visual2';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.7';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.7';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.7';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.7';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.7';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.7';
-// import {stepScavenging} from './scavenging.js?v=2.28.7';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.7';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.7';
-import {routeComplete} from './objectives.js?v=2.28.7';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.7';
-import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.7';
-import {createBIT,stepBIT} from './bit.js?v=2.28.7';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.7';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.7';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.7';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.7';
-import {applyEnvironmentLight} from './environment-look.js?v=2.28.7';
-import {createRaidProfiler} from './raid-profiler.js?v=2.28.7';
-import {createPostFX} from './postfx.js?v=2.28.7';
-import {createDustField} from './dust.js?v=2.28.7';
-import {createQualityUI} from './quality-ui.js?v=2.28.7';
+import '../data/modules.js?v=2.28.8';import '../data/recipes.js?v=2.28.8';import '../data/vendors.js?v=2.28.8';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.8';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.8';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.8';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.8';
+import {safeSpawn} from './spawn.js?v=2.28.8';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.8';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.8';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.8';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.8';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.8';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.8-ground-v10-timber-v1-military-visual2';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.8';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.8';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.8';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.8';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.8';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.8';
+// import {stepScavenging} from './scavenging.js?v=2.28.8';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.8';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.8';
+import {routeComplete} from './objectives.js?v=2.28.8';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.8';
+import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.8';
+import {createBIT,stepBIT} from './bit.js?v=2.28.8';
+import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.8';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.8';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.8';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.8';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.8';
+import {applyEnvironmentLight} from './environment-look.js?v=2.28.8';
+import {createRaidProfiler} from './raid-profiler.js?v=2.28.8';
+import {createPostFX} from './postfx.js?v=2.28.8';
+import {createDustField} from './dust.js?v=2.28.8';
+import {createQualityUI} from './quality-ui.js?v=2.28.8';
 import {archipelagoDressingConfig} from './archipelago-dressing-policy.mjs?v=default-military-v2';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.7';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.7';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.7';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.7';
-import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.7';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.8';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.8';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.8';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.8';
+import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.8';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.28.7');
+const orderResponse=await fetch('./order.json?v=2.28.8');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -207,7 +208,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.7',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.8',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -267,10 +268,18 @@ playerRing.rotation.x=-Math.PI/2;scene.add(playerRing);
 const bitModel=new THREE.Group();scene.add(bitModel);bitModel.rotation.y=Math.PI/4;
 box(0,.7,0,.78,.62,.48,'#0d1a20',bitModel);box(0,.4,0,.42,.12,.32,'#596771',bitModel);
 const bitScreen=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'}));bitScreen.scale.set(.62,.44,.02);bitScreen.position.set(0,.72,.25);bitModel.add(bitScreen);
-box(-.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);box(.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);
-const smilePoints=[];for(let i=0;i<=16;i++){const t=i/16;smilePoints.push(new THREE.Vector3(-.14+.28*t,.65-.065*Math.sin(t*Math.PI),.278));}
-bitModel.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(smilePoints),new THREE.LineBasicMaterial({color:'#0d1a20'})));
-box(0,1.1,0,.035,.18,.035,'#596771',bitModel);box(0,1.2,0,.09,.09,.09,'#75cfcc',bitModel);
+// M40: calm/bright are the same two hues already used for the heal-screen cue; expression brightness
+// only lerps/dims between them, it never introduces a new colour or glow strip.
+const bitCalmColor=new THREE.Color('#75cfcc'),bitBrightColor=new THREE.Color('#3FE0D0'),bitScreenColor=new THREE.Color();
+const bitEyeL=box(-.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel),bitEyeR=box(.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);
+// M42: the mouth's position buffer is written in place every frame from bitExpressionFace's mouth kind
+// (nodspel/bit-expression.js) -- no per-frame Vector3/array allocation. x/z are fixed; only y moves.
+const bitMouthPositions=new Float32Array(17*3);
+for(let i=0;i<=16;i++){const t=i/16;bitMouthPositions[i*3]=-.14+.28*t;bitMouthPositions[i*3+1]=.65-.065*Math.sin(t*Math.PI);bitMouthPositions[i*3+2]=.278;}
+const bitMouthGeometry=new THREE.BufferGeometry();bitMouthGeometry.setAttribute('position',new THREE.BufferAttribute(bitMouthPositions,3));
+const bitMouthLine=new THREE.Line(bitMouthGeometry,new THREE.LineBasicMaterial({color:'#0d1a20'}));bitModel.add(bitMouthLine);
+const bitAntenna=new THREE.Group();bitAntenna.position.set(0,1.02,0);bitModel.add(bitAntenna);
+box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna);
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
 const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.frustumCulled=false;healBeam.renderOrder=4;scene.add(healBeam);
 const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
@@ -298,7 +307,33 @@ let hazardLabels=[];
 let playerMoving=false;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
-let bit,bitLabel;
+let bit,bitLabel,bitExpr=createBitExpression();
+const hotBitThreat={near:false,aggroCount:0,telegraphNear:false};
+const BIT_THREAT_RANGE2=RULES.bit.threatRange*RULES.bit.threatRange;
+// M40 event detection (presentation only -- never mutates enemy/round/loot state).
+function computeBitThreat(enemies,px,pz,range2){
+  hotBitThreat.near=false;hotBitThreat.aggroCount=0;hotBitThreat.telegraphNear=false;
+  for(let i=0;i<enemies.length;i++){
+    const e=enemies[i];if(e.health<=0)continue;
+    const dx=e.x-px,dz=e.z-pz;if(dx*dx+dz*dz>range2)continue;
+    if(e.aggro){hotBitThreat.aggroCount++;hotBitThreat.near=true;}
+    else if(e.alertAt!=null)hotBitThreat.near=true;
+    if(e.windupAt!=null||e.attackPhase==='warning'||e.attackPhase==='charge'||e.attackPhase==='burst')hotBitThreat.telegraphNear=true;
+  }
+}
+function bitNearExtract(round,position,range){
+  if(!exitIsOpen(round))return false;
+  if(round.level.big){for(const e of round.level.extracts)if(Math.hypot(position.x-e.x,position.z-e.z)<=range)return true;return false;}
+  return Math.hypot(position.x-round.level.exit.x,position.z-round.level.exit.z)<=range;
+}
+// M40 valuable-loot heuristic (playtest default, not a new design vote): rarity above common, a
+// protocol-target item, or an item the active raid goal still needs. Scrap/cable stays silent.
+function isValuableLoot(item){
+  if(!item)return false;
+  if(rarityOf(item)!=='common')return true;
+  if(globalThis.DATA.items.find(i=>i.id===item)?.protocolTarget)return true;
+  return neededItem(item);
+}
 function gameClock(){const wall=Date.now();advanceHitstop(round,wall);return gameTime(round,wall);}
 function requestDash(){
   if(!round||round.over||inputPaused(round)||resultPending||tutorialOpen||!$('#inventory').hidden)return;
@@ -828,7 +863,7 @@ function groundStatus(message){
 let groundPreviewV2=null;
 // Preview of asset PRs #184-#186: ?props=1 (archipelago only, visual-only, no colliders).
 const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
-const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.7'):null;
+const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.8'):null;
 let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
@@ -896,7 +931,7 @@ function loadLevelInner(){
   $('#world-labels').replaceChildren();labels=[];routeLabels=[];encounterLabels=[];
   dash.remaining=0;
   const spawn=moveWithActors(position,{x:1.13,z:1.13},[],round.level.walls,round.level.floors,RULES.bit.radius);
-  bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];
+  bit=createBIT(spawn);bit.lastPlayer={...position};bit.trail=[{...position}];bitExpr=createBitExpression();
   bitLabel=makeLabel('BIT',new THREE.Vector3(bit.x,1.5,bit.z),'bit-label','bit','BIT');
   for(const v of world.nodes){
     v.label=makeLabel('',new THREE.Vector3(v.node.x,1.9,v.node.z),'objective-node','node','GATE CONTROL');if(v.node.shielded)setIconText(v.label.shortEl,'stat-shield','GATE CONTROL');
@@ -1380,7 +1415,10 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   // mid-raid result (Continue raid / Extract) opens deterministically without fighting. Debug-only hook.
   pendingResultDemo(){if(round.level.big)return null;for(const n of round.level.nodes)activateNode(round,n.id,gameClock());const r=enterExit(round,{x:round.level.exit.x,z:round.level.exit.z},gameClock());if(r&&r!=='perk')finishRound('extraction');return r;},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.7');round.level=generateLevel(n,round.seed);loadLevel();}});
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.8');round.level=generateLevel(n,round.seed);loadLevel();},
+  // M40 QA: force a BIT expression state (or 'idle') for 844x390 screenshots without playing a full raid.
+  bitExpress(id){return forceBitExpression(bitExpr,id,gameClock());},
+  bitExpression(){const clock=gameClock();return {state:currentBitExpression(bitExpr,clock),...bitExpressionPresentation(bitExpr,clock),...bitExpressionFace(currentBitExpression(bitExpr,clock))};}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1606,6 +1644,11 @@ function frameInner(now){
   if(resultPending)$('#result-clock').textContent=$('#summary-time').textContent;
   $('.timer').classList.toggle('warn',seconds<=120&&seconds>60);$('.timer').classList.toggle('urgent',seconds<=60);
   if(round.over){perkUI.close();perkResume.hidden=true;finishRound();}
+  // Timeout flips round.over above (tickRound); death flips it inside the block below (stepCombat) and
+  // is caught there instead. Extract/complete flips it at the bottom of the block (enterExit), so this
+  // is the first point afterwards (next frame) where it's visible -- a harmless one-frame lag.
+  if(round.over&&(round.reason==='death'||round.reason==='timeout'))triggerBitFailure(bitExpr,clock);
+  if(round.over&&(round.reason==='extract'||round.reason==='complete'))triggerBitExtract(bitExpr,clock,false);
   if(!frozen&&!round.over&&!resultPending){
     const positionBefore=copyXZ(hotPosBefore,position),dashing=dash.remaining>0;
     let sx=movement.x,sy=movement.y;
@@ -1631,7 +1674,10 @@ function frameInner(now){
     for(const shot of weapon.projectiles)if(shot.ricochet&&!renderedShots.has(shot.id))addBulletVisual(shot);
     const activeShots=hotActiveShots;activeShots.clear();for(let i=0;i<weapon.projectiles.length;i++)activeShots.add(weapon.projectiles[i].id);
     for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];if(!activeShots.has(b.shot.id)){releaseBullet(b.mesh);bullets.splice(i,1);}else b.mesh.position.set(b.shot.x,.65,b.shot.z);}
+    computeBitThreat(round.level.enemies,position.x,position.z,BIT_THREAT_RANGE2);
+    const bitQuiet=combatIsHot(hotBitThreat.aggroCount,hotBitThreat.telegraphNear);
     if(collectLoot(round,position,clock,weapon)){updateHUD();if(round.lastBagPickup?.at===clock)pickupToast(round.lastBagPickup.item);{const h=nextPickupHint(round.bag);const t=h&&hintText(h);if(t)notice(t,6000);}renderKitHUD();if(round.bagFull&&round.bagFull.at===clock)notifyBagFull();if(round.kitFull&&round.kitFull.at===clock)notifyKitFull();if(round.lastEquip&&round.lastEquip.at===clock)onEquip();if(round.gearOffer&&round.gearOffer.at===clock)notifyGearOffer();if(round.weaponOffer&&round.weaponOffer.at===clock)notifyWeaponOffer();if(round.lastPickup?.item==='keycard'&&round.lastPickup.at===clock)notice('KEYCARD · WALK UP TO THE LOCKED DOOR');}
+    if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
     if(round.gearOffer&&!nearOffer())clearGearOffer();
@@ -1656,6 +1702,7 @@ function frameInner(now){
       if(round.health+(round.shield??0)<combatBefore.health+(combatBefore.shield??0)||round.ftueHitSerial!==ftueHitBefore){
         human?.hit();if(!human)robotPresence.hit();operatorFX.sparks(position.x,position.z,QUALITY==='low');
         pixelFeedback.playerHit(position.x,position.z);
+        triggerBitDamage(bitExpr,clock);
         const s=RULES.feedback.cameraShake.playerDamage;addShake(s.distance,s.ms,now);
       }
     }
@@ -1671,6 +1718,9 @@ function frameInner(now){
     const moving=magnitude>.12||dashing||Math.hypot(position.x-positionBefore.x,position.z-positionBefore.z)>.001;
     hotCountdown.remainingMs=round.remainingMs;audioEvent('countdown',hotCountdown);
     if(stepBIT(bit,round,position,dt,moving,playerSolids,round.level.floors))updateHUD();
+    if(hotBitThreat.near||hotBitThreat.telegraphNear)triggerBitThreat(bitExpr,clock);
+    if(bitNearExtract(round,position,RULES.bit.extractRange))triggerBitExtract(bitExpr,clock,bitQuiet);
+    if(round.over&&round.reason==='death')triggerBitFailure(bitExpr,clock);
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
@@ -1690,8 +1740,20 @@ function frameInner(now){
   viewport.classList.toggle('damaged',clock<hitUntil);
   const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);{const t=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';if(shieldIcon.title!==t)shieldIcon.title=t;}}
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
+  // M42 presentation (docs/design-decisions.md "M42" Q4): BIT's hover is always the single pre-M40 bob --
+  // no grow, recoil, hop, scale or tilt. Reactions are a well-drawn face (two pill eyes + a line mouth)
+  // built from bitExpressionFace's absolute recipe; only screen brightness still varies by state.
+  const bitExpress=bitExpressionPresentation(bitExpr,clock);
+  const bitFace=bitExpressionFace(currentBitExpression(bitExpr,clock));
   bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
-  bitScreen.material.color.set(bit.healing?'#3FE0D0':'#75cfcc');
+  bitEyeL.position.set(-bitFace.eyeX,bitFace.eyeY,.268);bitEyeL.scale.set(bitFace.eyeW,bitFace.eyeH,.02);
+  bitEyeR.position.set(bitFace.eyeX,bitFace.eyeY,.268);bitEyeR.scale.set(bitFace.eyeW,bitFace.eyeH,.02);
+  {const depth=mouthDepth(bitFace.mouth),pos=bitMouthPositions;
+  for(let i=0;i<=16;i++)pos[i*3+1]=.65-depth*Math.sin(i/16*Math.PI);
+  bitMouthLine.geometry.attributes.position.needsUpdate=true;}
+  if(bit.healing){bitScreen.material.color.set('#3FE0D0');}
+  else if(bitExpress.brightness>=.5){bitScreenColor.copy(bitCalmColor).lerp(bitBrightColor,(bitExpress.brightness-.5)*2);bitScreen.material.color.copy(bitScreenColor);}
+  else{bitScreenColor.copy(bitCalmColor).multiplyScalar(.4+bitExpress.brightness*1.2);bitScreen.material.color.copy(bitScreenColor);}
   bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?bitHealText(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond):'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}

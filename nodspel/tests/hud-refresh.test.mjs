@@ -67,6 +67,7 @@ test('the frame combat path actually refreshes the HUD after shield-only rig con
     human:null,robotPresence:{hit(){}},operatorFX:{sparks(){}},pixelFeedback:{playerHit(){}},QUALITY:'low',
     addShake(){},hitstop(){},hapticPulse(){},spawnKillMarker(){},lastHitFeelSerial:0,
     hotPosCombat:{x:0,z:0},copyXZ:(out,p)=>{out.x=p.x;out.z=p.z;return out;},
+    triggerBitDamage(){},bitExpr:{},
   });
   const start=source.indexOf('const combatBefore=combatSnapshot(round);');
   const end=source.indexOf('const moving=magnitude',start);

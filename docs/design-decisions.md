@@ -5,7 +5,7 @@
 | Document control | Value |
 | --- | --- |
 | Decision owner | Robert Wasser |
-| Last updated | 8 November 2026 |
+| Last updated | 9 November 2026 |
 | Review branch | `docs/game-design-reference-2026-11-06` |
 | Review PR | [PR #201](https://github.com/w4sser/protocol-rebirth-proto/pull/201) - do not merge until the design review is complete |
 | Companion document | [Game Design & Loop Reference](game-design-reference.md) |
@@ -1790,10 +1790,33 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M42 — BIT Distract + Zap Playtest Contract and Face-Only Expressions (OWNER APPROVED, 9 November 2026)
+
+**Approved owner choices (9 November 2026, 21:13 Europe/Stockholm):** Robert locked the open M29–M35 / M40 playtest details below after rejecting grow/recoil/hop/scale body motions on the M40 preview. Treat these as requirements. This entry **clarifies and supersedes** earlier open wording on activation feedback, distract presentation, cooldown/duration numbers, the M29 "distraction-only" example (a light never-lethal zap is now included), and M40 body-motion vocabulary. It does **not** reopen M30 (player chooses when), M31 (BIT chooses whom), M32 (cooldown reuse, not a charge pool), M33–M34 (ordinary vs shorter/weaker resistant reactions, never full immunity), M35 (no-target taps still spend cooldown), or M40's rule that expression is not an ability.
+
+**Q1 — Activation (clarifies M30/M31):** The player taps a **simple contextual action** (an in-raid BIT ability button, with an optional desktop key). BIT then selects the **most immediately threatening reachable enemy**. BIT must not auto-fire the ability when danger appears.
+
+**Q2 — Behaviour (clarifies M29):** On a successful activation BIT **flies visibly** to that one enemy and **holds its attention for 2.5 seconds** (the enemy looks at / walks toward BIT and does not keep attacking the Operator while distracted). A **readable spark** chips **about 1 HP** and **must never deliver the killing blow** (if the target is at 1 HP, show the spark only). BIT has no health pool and **cannot be killed**. Other enemies keep their existing aggro/hunting towards the Operator. When the window ends, the distracted enemy re-acquires the Operator if it is still aware. This remains an opportunity to flank, reposition or flee — not an auto-kill, loot rescue, shield, guaranteed escape or extraction.
+
+**Q3 — Timing (closes M32/M35 numbers for this playtest):** Successful distract lasts **2.5 s** and then cools down for **18 s**. A ready tap with **no reachable target** distracts nobody and cools down for **8 s**, with clear failure feedback (including muted mobile). Resistant heavy/specialist types still react (M34) but for a **shorter 1.2 s** window; they receive the same never-lethal spark.
+
+**Q4 — Expression (clarifies M40):** Drop **grow, recoil, hop and scale** body motions entirely. Event reactions use **well-drawn face expressions in the original style**: eyes and mouth drawn **inside the CRT screen**, nothing stretched. The original idle hover bob and `assets/bit-face-master.svg` remain the identity masters and must not be overwritten.
+
+**Playtest unlock:** For the 10–11 November 2026 playtest the ability is **available in ordinary raids without grinding BIT Bay L1** (`RULES.bit.distract.playtestUnlocked`, default on). Production remains gated on fully completed BIT Bay L1 (M26–M28). `?bayL1=0` disables the playtest unlock so the gate can still be checked. Document any URL/flag next to the tunable.
+
+**Readability bar:** The button must show a clear ready cue and cooldown; BIT's flight must be visible; the chosen enemy must visibly switch focus to BIT; the zap spark must be understandable with sound off.
+
+**Playtest defaults (not further owner votes):** "Most immediate threat" ranks telegraphing/attacking enemies first, then aggro, then nearest alive non-generator within range. Resistant types/encounters for the shorter window: `guard`, `turret`, `shield_turret`, `sentry`. Threat range 14 m. BIT hover offset ~1.2 m so it stays readable beside the target.
+
+**Still open for later playtests:** Production Bay L1 gating UX, Bond/Bay L2 synergy, exact resistant mapping beyond the playtest list, zap VFX polish, and whether the never-lethal 1 HP chip should stay after the playtest. **This entry authorizes the playtest implementation described here.**
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-09 | M42: Player-tapped BIT distract (BIT picks the most immediate threat) flies to one enemy for 2.5 s, chips ~1 HP with a readable never-lethal spark, 18 s cooldown (8 s on no-target); resistant foes 1.2 s; playtest-unlocked without Bay L1 grind; M40 expressions are original-style CRT faces only (no grow/recoil/hop/scale) | Owner approved 21:13 Europe/Stockholm; playtest unlock and resistant mapping are temporary defaults; production Bay L1 gate remains the long-term rule |
 | 2026-11-08 | D1-D.12: Genuinely pre-interruption input in transit may execute once only if origin, validity and authoritative sequence are proven; late packets cannot duplicate/extend holds or change a final raid, and client timestamps alone are insufficient | Owner approved option A; event-order proof, time/tie races, anti-replay, fairness, technical validation and UX open |
 | 2026-11-08 | D1-D.11: Detect actual loss of live control from trustworthy authoritative app/connectivity/input-update signals with bounded tolerance for short ordinary network jitter; then neutralize held commands under D1-D.10 with no safety/extra time | Owner approved option A; exact signals, millisecond thresholds, delayed commands, fairness and UX open |
 | 2026-11-08 | D1-D.10: After authoritative interruption/input-loss detection, neutralize previously held move, aim/fire and interaction without repetition; do not rollback prior legitimate actions or eliminate valid threats | Owner approved option A; detection, in-flight ordering, momentum, reconnection, fairness and UX open |
