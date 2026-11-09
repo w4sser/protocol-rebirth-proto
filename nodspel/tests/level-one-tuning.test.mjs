@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=2.28.8';
-import {RULES,totalNodes} from '../levels.js?v=2.28.8';
-import * as combat from '../combat.js?v=2.28.8';
+import {createRound} from '../round.js?v=2.28.9';
+import {RULES,totalNodes} from '../levels.js?v=2.28.9';
+import * as combat from '../combat.js?v=2.28.9';
 const setup=()=>{const r=createRound('tuning',0);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];return r;};
 test('level one uses gentler enemy tuning',()=>{
   const l=createRound('tuning',0).level;

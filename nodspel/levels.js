@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.8';
-import {generateBigLevel} from './big-level.js?v=2.28.8';
-import '../data/items.js?v=2.28.8';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.8';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.8-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.8';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.8';
-import '../data/raid-combat.js?v=2.28.8';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.9';
+import {generateBigLevel} from './big-level.js?v=2.28.9';
+import '../data/items.js?v=2.28.9';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.9';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.9-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.9';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.9';
+import '../data/raid-combat.js?v=2.28.9';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -186,7 +186,19 @@ export const RULES=Object.freeze({
         extract:{brightness:.95},
         failure:{brightness:.08},
       },
-    },},
+    },
+    // M42 (docs/design-decisions.md "M42" Q1-Q3): BIT distract playtest tuning. playtestUnlocked is a
+    // temporary bypass of the BIT Bay L1 grind for the 10-11 November 2026 playtest; `?bayL1=0` forces it
+    // off so the real unlock gate can still be exercised. zapDamage is applied only if the target survives
+    // it (never-lethal), see chipNeverLethal() in bit-distract.js.
+    distract:{
+      playtestUnlocked:true,
+      durationMs:2500,resistantDurationMs:1200,
+      cooldownMs:18000,noTargetCooldownMs:8000,
+      range:14,zapDamage:1,flySpeed:16,hoverDistance:1.2,
+      resistantTypes:['turret','shield_turret','sentry'],
+      resistantEncounters:['guard','turret','shield_turret'],
+    }},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:20,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
