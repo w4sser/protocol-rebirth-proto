@@ -6,6 +6,8 @@ import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from '../characters.js';
 import {createRobotSocket} from '../operator-gear.js';
 import {createHumanOperator} from '../operator.js';
+import {RULES} from '../levels.js';
+import {createRound} from '../round.js';
 
 async function load(character){
   const bytes=await readFile(new URL(character.model.split('?')[0],new URL('../',import.meta.url)));
@@ -48,6 +50,20 @@ test('game consumes the named muzzle for every skin',async()=>{
   assert(game.includes('createRobotSocket(robotGun,CHARACTERS.robot)'));
 });
 
+// M38: a look (operator/punk/robot) must never change hitboxes, movement speed, dash timing or fire
+// cadence - those are owned by RULES/round.stats, never by the character registry, and createRound takes
+// no skin at all. This guards the registry structurally rather than scraping game.mjs for call sites.
+test('M38 mechanical parity: player radius, movement speed source, dash timing and fire validation are shared, not per-skin',()=>{
+  const mechanicalKeys=['radius','speed','dash','dashDuration','dashCooldownMs','cooldown','cooldownMs','fireRate','damage','range','hitbox'];
+  for(const c of Object.values(CHARACTERS))for(const key of mechanicalKeys)assert.equal(Object.hasOwn(c,key),false,`${c.id} must not carry its own ${key}`);
+  assert.equal(typeof RULES.playerRadius,'number','a single shared collision radius, not one per character');
+  assert.equal(typeof RULES.dash.distance,'number');assert.equal(typeof RULES.dash.durationSeconds,'number');
+  assert.equal(typeof RULES.playerStats.base.speed,'number');
+  // createRound's stats come from progression/gear (readStats in raid-result.js), never from the skin:
+  // the function takes no character/skin parameter, and its default is RULES.playerStats.base verbatim.
+  assert.equal(createRound.length,2,'createRound(seed, now, stats=...) - no skin/character parameter exists to diverge per look');
+  assert.deepEqual(createRound('parity-check',0).stats,RULES.playerStats.base);
+});
 test('legacy robot keeps a named gun socket and barrel-tip muzzle',()=>{
   const gun=new THREE.Mesh(new THREE.BoxGeometry(1,1,1));gun.scale.set(.16,.16,.67);
   const muzzle=createRobotSocket(gun,CHARACTERS.robot);

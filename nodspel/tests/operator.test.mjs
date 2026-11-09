@@ -20,6 +20,16 @@ test('animation priority and exact source clip names',()=>{
   assert.equal(animationState({dead:true,hit:true}),'death');
   assert.deepEqual(['idle','run','shoot','dash','hit','death'].map(clipForState),['Idle_Gun','Run','Gun_Shoot','Roll','HitRecieve','Death']);
 });
+// M39: node-hold interaction joins the same priority vocabulary, below firing (a hold must never read as
+// blocking a shot) but above plain idle/run (a hold is more informative than doing nothing in particular).
+test('interact joins the animation priority below shoot/dash/hit and above run/idle',()=>{
+  assert.equal(animationState({interacting:true}),'interact');
+  assert.equal(animationState({interacting:true,moving:true}),'interact');
+  assert.equal(animationState({interacting:true,shooting:true}),'shoot');
+  assert.equal(animationState({interacting:true,dashing:true}),'dash');
+  assert.equal(animationState({interacting:true,hit:true}),'hit');
+  assert.equal(clipForState('interact'),clipForState('idle'),'no dedicated clip exists yet; falls back cleanly, not undefined');
+});
 async function operator(){
   const bytes=await readFile(new URL('../assets/human-operator.glb',import.meta.url));
   return createHumanOperator(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),''),{character:CHARACTERS.punk});
@@ -36,6 +46,39 @@ test('shipped rig animates legs while firing and resets after clamped death',asy
   human.reset();assert.equal(human.update(.1,{}),'idle');assert(human.actions.lower.idle.isRunning());
   const bounds=new THREE.Box3().setFromObject(human.root);
   assert(bounds.max.y>1.5&&bounds.max.y<1.8);assert(Math.abs(bounds.min.y)<.1);
+});
+// M39 (game feel review): a hit reaction must stay visible but must not steal legs that are actually
+// mid-stride for the clip's full duration - that read as an input steal even though the real position kept
+// moving underneath it. The upper body still plays the hit react; only a stationary hit freezes the legs.
+test('a hit while moving keeps the legs running/back; a hit while stationary still freezes the lower body',async()=>{
+  const human=await operator(),moveStep={moving:true,aiming:true,walkYaw:0,aimYaw:0};
+  human.update(.1,moveStep);assert(human.actions.lower.run.isRunning());
+  human.hit();
+  assert.equal(human.update(.1,moveStep),'hit','the reported state still leads with the hit, for HUD/robot parity');
+  assert(human.actions.lower.run.isRunning(),'legs keep running under an active hit reaction');
+  assert(human.actions.upper.hit.isRunning(),'the hit reaction remains visible on the upper body');
+  human.reset();human.update(.1,{});human.hit();human.update(.1,{});
+  assert(human.actions.lower.hit.isRunning(),'a stationary hit still freezes the lower body (no conflicting locomotion signal)');
+  assert(human.actions.upper.hit.isRunning());
+});
+test('a dash still owns both layers outright even if a hit lands mid-roll',async()=>{
+  const human=await operator();
+  human.update(.1,{dashing:true});human.hit();human.update(.1,{dashing:true});
+  assert(human.actions.lower.dash.isRunning(),'dash is a canned, fixed-duration roll and is not interrupted by a hit flinch');
+  assert(human.actions.upper.dash.isRunning());
+});
+// M39: a node hold (round.nodeInteraction) reads as a distinct, readable state without blocking fire, and
+// releasing/leaving the node returns cleanly to idle/run.
+test('a node hold selects interact on the upper body without blocking fire, and releasing returns to idle/run',async()=>{
+  const human=await operator();
+  assert.equal(human.update(.1,{interacting:true}),'interact');
+  assert(human.actions.upper.aim.isRunning(),'no dedicated clip exists; reuses the existing aim pose for readability');
+  human.shoot();assert.equal(human.update(.1,{interacting:true}),'shoot');
+  assert(human.actions.upper.shoot.isRunning(),'firing still reads as firing while a node hold is active');
+  human.reset();
+  assert.equal(human.update(.1,{}),'idle','leaving the node (interacting:false) returns to idle');
+  assert(human.actions.lower.idle.isRunning());
+  assert.equal(human.update(.1,{moving:true}),'run','or to run, if the player walked away while moving');
 });
 test('aim yaw stays finite and does not accumulate; backwards fire uses running legs',async()=>{
   const human=await operator(),state={moving:true,aiming:true,walkYaw:0,aimYaw:Math.PI};
