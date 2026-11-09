@@ -51,7 +51,7 @@ import {routeComplete} from './objectives.js?v=2.28.8';
 import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.8';
 import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.8';
 import {createBIT,stepBIT} from './bit.js?v=2.28.8';
-import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionPunch,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.8';
+import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.8';
 import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.8';
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.8';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.8';
@@ -272,10 +272,12 @@ const bitScreen=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:'#75cfcc'
 // only lerps/dims between them, it never introduces a new colour or glow strip.
 const bitCalmColor=new THREE.Color('#75cfcc'),bitBrightColor=new THREE.Color('#3FE0D0'),bitScreenColor=new THREE.Color();
 const bitEyeL=box(-.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel),bitEyeR=box(.14,.76,.268,.047,.09,.02,'#0d1a20',bitModel);
-const smilePoints=[];for(let i=0;i<=16;i++){const t=i/16;smilePoints.push(new THREE.Vector3(-.14+.28*t,.65-.065*Math.sin(t*Math.PI),.278));}
-bitModel.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(smilePoints),new THREE.LineBasicMaterial({color:'#0d1a20'})));
-// Antenna lives in its own pivot group (near its base) so M40 "antenna motion" can tilt it without
-// touching bitModel's own body tilt.
+// M42: the mouth's position buffer is written in place every frame from bitExpressionFace's mouth kind
+// (nodspel/bit-expression.js) -- no per-frame Vector3/array allocation. x/z are fixed; only y moves.
+const bitMouthPositions=new Float32Array(17*3);
+for(let i=0;i<=16;i++){const t=i/16;bitMouthPositions[i*3]=-.14+.28*t;bitMouthPositions[i*3+1]=.65-.065*Math.sin(t*Math.PI);bitMouthPositions[i*3+2]=.278;}
+const bitMouthGeometry=new THREE.BufferGeometry();bitMouthGeometry.setAttribute('position',new THREE.BufferAttribute(bitMouthPositions,3));
+const bitMouthLine=new THREE.Line(bitMouthGeometry,new THREE.LineBasicMaterial({color:'#0d1a20'}));bitModel.add(bitMouthLine);
 const bitAntenna=new THREE.Group();bitAntenna.position.set(0,1.02,0);bitModel.add(bitAntenna);
 box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna);
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
@@ -1416,7 +1418,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.8');round.level=generateLevel(n,round.seed);loadLevel();},
   // M40 QA: force a BIT expression state (or 'idle') for 844x390 screenshots without playing a full raid.
   bitExpress(id){return forceBitExpression(bitExpr,id,gameClock());},
-  bitExpression(){const clock=gameClock();return {state:currentBitExpression(bitExpr,clock),...bitExpressionPresentation(bitExpr,clock)};}});
+  bitExpression(){const clock=gameClock();return {state:currentBitExpression(bitExpr,clock),...bitExpressionPresentation(bitExpr,clock),...bitExpressionFace(currentBitExpression(bitExpr,clock))};}});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
@@ -1738,19 +1740,20 @@ function frameInner(now){
   viewport.classList.toggle('damaged',clock<hitUntil);
   const shieldIcon=document.querySelector('.perk-hud [data-perk=shield]');if(shieldIcon){const active=clock<(round.perks?.shieldUntil??0);shieldIcon.classList.toggle('perk-shield-active',active);{const t=active?'Emergency Shield active: 50% damage reduction':'Emergency Shield';if(shieldIcon.title!==t)shieldIcon.title=t;}}
   if(round.over||resultPending||!$('#inventory').hidden)bit.healing=false;
-  // M40 presentation: hover rhythm/altitude/tilt/antenna/eye-squint/screen-brightness all come from the
-  // current expression state (nodspel/bit-expression.js); idle's numbers match the old fixed bob exactly.
+  // M42 presentation (docs/design-decisions.md "M42" Q4): BIT's hover is always the single pre-M40 bob --
+  // no grow, recoil, hop, scale or tilt. Reactions are a well-drawn face (two pill eyes + a line mouth)
+  // built from bitExpressionFace's absolute recipe; only screen brightness still varies by state.
   const bitExpress=bitExpressionPresentation(bitExpr,clock);
-  const punch=bitExpressionPunch(bitExpr,clock);
-  bitModel.position.set(bit.x,bitExpress.altitude+(bitExpress.punchAltitude||0)*punch+Math.sin(elapsed*bitExpress.hoverSpeed)*bitExpress.hoverAmplitude*(1+0.45*punch),bit.z);
-  bitModel.rotation.x=bitExpress.tiltX;bitModel.rotation.z=bitExpress.tiltZ;
-  bitModel.scale.setScalar(bitExpress.scale*(1+RULES.bit.expression.punchScale*punch));
-  bitAntenna.rotation.z=bitExpress.antennaTilt;
-  bitEyeL.scale.y=bitEyeR.scale.y=1-bitExpress.eyeSquint;
+  const bitFace=bitExpressionFace(currentBitExpression(bitExpr,clock));
+  bitModel.position.set(bit.x,Math.sin(elapsed*3)*.06,bit.z);
+  bitEyeL.position.set(-bitFace.eyeX,bitFace.eyeY,.268);bitEyeL.scale.set(bitFace.eyeW,bitFace.eyeH,.02);
+  bitEyeR.position.set(bitFace.eyeX,bitFace.eyeY,.268);bitEyeR.scale.set(bitFace.eyeW,bitFace.eyeH,.02);
+  {const depth=mouthDepth(bitFace.mouth),pos=bitMouthPositions;
+  for(let i=0;i<=16;i++)pos[i*3+1]=.65-depth*Math.sin(i/16*Math.PI);
+  bitMouthLine.geometry.attributes.position.needsUpdate=true;}
   if(bit.healing){bitScreen.material.color.set('#3FE0D0');}
   else if(bitExpress.brightness>=.5){bitScreenColor.copy(bitCalmColor).lerp(bitBrightColor,(bitExpress.brightness-.5)*2);bitScreen.material.color.copy(bitScreenColor);}
   else{bitScreenColor.copy(bitCalmColor).multiplyScalar(.4+bitExpress.brightness*1.2);bitScreen.material.color.copy(bitScreenColor);}
-  const screenGlow=0.7+bitExpress.brightness*0.6;bitScreen.scale.set(.62*screenGlow,.44*screenGlow,.02);
   bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?bitHealText(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond):'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}

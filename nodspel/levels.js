@@ -172,19 +172,21 @@ export const RULES=Object.freeze({
     // detection radii fed into bit-expression.js; hotAggroCount is the "intense firefight" threshold
     // that makes loot/extract flourishes yield to combat readability (see combatIsHot()).
     threatRange:9,extractRange:4,hotAggroCount:2,
+    // M42 (docs/design-decisions.md "M42" Q4): Robert rejected grow/recoil/hop/scale -- reactions are
+    // face-only now (eye/mouth recipes authored in bit-expression.js). Only screen brightness stays tunable
+    // here; hover is always the single pre-M40 bob (see game.mjs frameInner).
     expression:{
       durationMs:{threat:900,damage:650,loot:1100,extract:1300,failure:2500},
       cooldownMs:{threat:2000,damage:350,loot:2800,extract:4000,failure:60000},
-      attackMs:280,punchScale:.22,
       presentation:{
-        idle:   {hoverAmplitude:.06,hoverSpeed:3,  altitude:0,   punchAltitude:0,  tiltX:0,   tiltZ:0,  antennaTilt:0,  brightness:.5, eyeSquint:0,  scale:1},
-        threat: {hoverAmplitude:.10,hoverSpeed:9,  altitude:.04, punchAltitude:.06,tiltX:-.32,tiltZ:0,  antennaTilt:.35,brightness:.95,eyeSquint:.55,scale:1.28},
-        damage: {hoverAmplitude:.16,hoverSpeed:14, altitude:-.10,punchAltitude:-.08,tiltX:.05,tiltZ:.38, antennaTilt:-.28,brightness:1, eyeSquint:.25,scale:1.22},
-        loot:   {hoverAmplitude:.12,hoverSpeed:6,  altitude:.22, punchAltitude:.10,tiltX:.18, tiltZ:0,  antennaTilt:.22,brightness:1, eyeSquint:-.35,scale:1.32},
-        extract:{hoverAmplitude:.08,hoverSpeed:5,  altitude:.16, punchAltitude:.06,tiltX:.22, tiltZ:0,  antennaTilt:.12,brightness:.95,eyeSquint:0,  scale:1.24},
-        failure:{hoverAmplitude:.03,hoverSpeed:1.2,altitude:-.22,punchAltitude:-.06,tiltX:.42,tiltZ:0,  antennaTilt:-.35,brightness:.08,eyeSquint:.2,scale:.82},
+        idle:   {brightness:.5},
+        threat: {brightness:.95},
+        damage: {brightness:1},
+        loot:   {brightness:1},
+        extract:{brightness:.95},
+        failure:{brightness:.08},
       },
-    }},
+    },},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:20,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},

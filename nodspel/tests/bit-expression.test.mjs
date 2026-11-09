@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {
-  createBitExpression,currentBitExpression,bitExpressionPresentation,bitExpressionPunch,
+  createBitExpression,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,
   triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,
   combatIsHot,forceBitExpression,BIT_EXPRESSIONS,
 } from '../bit-expression.js';
@@ -80,35 +80,36 @@ test('presentation params are distinct per state, not a shared no-op table',()=>
   const failure=bitExpressionPresentation(e,now);
   assert.notEqual(idle,failure);
   assert.notEqual(idle.brightness,failure.brightness);
-  assert.notEqual(idle.altitude,failure.altitude);
-  assert.notEqual(idle.scale,failure.scale);
-  // Every declared state has its own fully-populated recipe (hover/tilt/antenna/brightness/eye/scale).
+  // Every declared state has its own brightness number (screen colour lerp input).
   for(const id of BIT_EXPRESSIONS){
     const p=RULES.bit.expression.presentation[id];
     assert.ok(p,`missing presentation for ${id}`);
-    for(const key of ['hoverAmplitude','hoverSpeed','altitude','punchAltitude','tiltX','tiltZ','antennaTilt','brightness','eyeSquint','scale'])
-      assert.equal(typeof p[key],'number',`${id}.${key} should be a tunable number`);
+    assert.equal(typeof p.brightness,'number',`${id}.brightness should be a tunable number`);
   }
 });
 
-test('M40 amplify: idle scale is 1 and every non-idle state scales noticeably away from it',()=>{
-  assert.equal(RULES.bit.expression.presentation.idle.scale,1);
+test('M42 faces-only: every state has its own absolute eye/mouth recipe, idle matches the pre-M40 eye size',()=>{
+  assert.equal(bitExpressionFace('idle').eyeH,.09);
+  assert.equal(bitExpressionFace('idle').eyeW,.047);
+  const seen=new Set();
   for(const id of BIT_EXPRESSIONS){
-    if(id==='idle')continue;
-    const scale=RULES.bit.expression.presentation[id].scale;
-    assert.ok(Math.abs(scale-1)>=0.15,`${id}.scale=${scale} should be noticeably different from 1`);
+    const f=bitExpressionFace(id);
+    assert.equal(typeof f.eyeX,'number');assert.equal(typeof f.eyeY,'number');
+    assert.equal(typeof f.eyeW,'number');assert.equal(typeof f.eyeH,'number');
+    assert.equal(typeof f.mouth,'string');
+    assert.equal(typeof mouthDepth(f.mouth),'number',`${id}.mouth '${f.mouth}' should have a mouthDepth`);
+    const key=`${f.eyeX},${f.eyeY},${f.eyeW},${f.eyeH},${f.mouth}`;
+    assert.ok(!seen.has(key),`${id}'s face recipe duplicates another state's`);
+    seen.add(key);
   }
 });
 
-test('M40 amplify: bitExpressionPunch is 1 right after a trigger, decays to 0 by attackMs, and is always 0 at idle',()=>{
-  const e=createBitExpression();
-  assert.equal(bitExpressionPunch(e,0),0);
-  triggerBitDamage(e,0);
-  assert.equal(bitExpressionPunch(e,0),1);
-  const attackMs=RULES.bit.expression.attackMs;
-  assert.ok(Math.abs(bitExpressionPunch(e,attackMs/2)-0.5)<1e-9);
-  assert.equal(bitExpressionPunch(e,attackMs),0);
-  assert.equal(bitExpressionPunch(e,attackMs+1),0);
+test('M42 guard: the face recipe is absolute, never a stretch multiplier on a previous frame',()=>{
+  const idle=bitExpressionFace('idle'),threat=bitExpressionFace('threat');
+  // eyeH differs by state because each recipe is authored separately, not because one state scales idle's.
+  assert.notEqual(idle.eyeH,threat.eyeH);
+  assert.notEqual(idle.mouth,threat.mouth);
+  assert.equal(bitExpressionFace('not-a-real-state'),bitExpressionFace('idle'),'unknown state falls back to idle, not undefined');
 });
 
 test('bitExpress debug helper forces any state (or idle) bypassing priority and cooldown',()=>{
@@ -119,6 +120,15 @@ test('bitExpress debug helper forces any state (or idle) bypassing priority and 
   assert.equal(forceBitExpression(e,'idle',1),true);
   assert.equal(currentBitExpression(e,1),'idle');
   assert.equal(forceBitExpression(e,'not-a-real-state',1),false);
+});
+
+test('forced debug expression holds against a live higher-priority trigger until it expires',()=>{
+  const e=createBitExpression();
+  assert.equal(forceBitExpression(e,'loot',0,4000),true);
+  assert.equal(triggerBitThreat(e,10),false,'QA force must not be overwritten mid-screenshot');
+  assert.equal(currentBitExpression(e,10),'loot');
+  assert.equal(triggerBitThreat(e,4000),true);
+  assert.equal(currentBitExpression(e,4000),'threat');
 });
 
 test('M40 guard: expression is presentation-only -- the module never imports combat/heal/loot code',()=>{
