@@ -51,7 +51,7 @@ import {routeComplete} from './objectives.js?v=2.28.8';
 import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.8';
 import {createDashAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.8';
 import {createBIT,stepBIT} from './bit.js?v=2.28.8';
-import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.8';
+import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionPunch,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.8';
 import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.8';
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.8';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.8';
@@ -1741,13 +1741,16 @@ function frameInner(now){
   // M40 presentation: hover rhythm/altitude/tilt/antenna/eye-squint/screen-brightness all come from the
   // current expression state (nodspel/bit-expression.js); idle's numbers match the old fixed bob exactly.
   const bitExpress=bitExpressionPresentation(bitExpr,clock);
-  bitModel.position.set(bit.x,bitExpress.altitude+Math.sin(elapsed*bitExpress.hoverSpeed)*bitExpress.hoverAmplitude,bit.z);
+  const punch=bitExpressionPunch(bitExpr,clock);
+  bitModel.position.set(bit.x,bitExpress.altitude+(bitExpress.punchAltitude||0)*punch+Math.sin(elapsed*bitExpress.hoverSpeed)*bitExpress.hoverAmplitude*(1+0.45*punch),bit.z);
   bitModel.rotation.x=bitExpress.tiltX;bitModel.rotation.z=bitExpress.tiltZ;
+  bitModel.scale.setScalar(bitExpress.scale*(1+RULES.bit.expression.punchScale*punch));
   bitAntenna.rotation.z=bitExpress.antennaTilt;
   bitEyeL.scale.y=bitEyeR.scale.y=1-bitExpress.eyeSquint;
   if(bit.healing){bitScreen.material.color.set('#3FE0D0');}
   else if(bitExpress.brightness>=.5){bitScreenColor.copy(bitCalmColor).lerp(bitBrightColor,(bitExpress.brightness-.5)*2);bitScreen.material.color.copy(bitScreenColor);}
   else{bitScreenColor.copy(bitCalmColor).multiplyScalar(.4+bitExpress.brightness*1.2);bitScreen.material.color.copy(bitScreenColor);}
+  const screenGlow=0.7+bitExpress.brightness*0.6;bitScreen.scale.set(.62*screenGlow,.44*screenGlow,.02);
   bitLabel.point.set(bit.x,1.5,bit.z);setText(bitLabel.caption,gameClock()<bitHintUntil?'BIT · Drop junk for better loot':bit.healing?bitHealText(hasPerk(round,'medic')?PERKS.medicRate:RULES.bit.healPerSecond):'BIT');bitLabel.el.classList.toggle('healing',bit.healing);
   healBeam.visible=healHalo.visible=bit.healing;
   if(bit.healing){const vertices=healBeamGeometry.attributes.position;vertices.setXYZ(0,bit.x,.8,bit.z);vertices.setXYZ(1,position.x,.65,position.z);vertices.needsUpdate=true;healHalo.position.set(position.x,.04,position.z);healHalo.scale.setScalar(1+Math.sin(elapsed*7)*.14);}

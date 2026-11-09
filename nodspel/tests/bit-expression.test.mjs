@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {
-  createBitExpression,currentBitExpression,bitExpressionPresentation,
+  createBitExpression,currentBitExpression,bitExpressionPresentation,bitExpressionPunch,
   triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,
   combatIsHot,forceBitExpression,BIT_EXPRESSIONS,
 } from '../bit-expression.js';
@@ -81,13 +81,34 @@ test('presentation params are distinct per state, not a shared no-op table',()=>
   assert.notEqual(idle,failure);
   assert.notEqual(idle.brightness,failure.brightness);
   assert.notEqual(idle.altitude,failure.altitude);
-  // Every declared state has its own fully-populated recipe (hover/tilt/antenna/brightness/eye).
+  assert.notEqual(idle.scale,failure.scale);
+  // Every declared state has its own fully-populated recipe (hover/tilt/antenna/brightness/eye/scale).
   for(const id of BIT_EXPRESSIONS){
     const p=RULES.bit.expression.presentation[id];
     assert.ok(p,`missing presentation for ${id}`);
-    for(const key of ['hoverAmplitude','hoverSpeed','altitude','tiltX','tiltZ','antennaTilt','brightness','eyeSquint'])
+    for(const key of ['hoverAmplitude','hoverSpeed','altitude','punchAltitude','tiltX','tiltZ','antennaTilt','brightness','eyeSquint','scale'])
       assert.equal(typeof p[key],'number',`${id}.${key} should be a tunable number`);
   }
+});
+
+test('M40 amplify: idle scale is 1 and every non-idle state scales noticeably away from it',()=>{
+  assert.equal(RULES.bit.expression.presentation.idle.scale,1);
+  for(const id of BIT_EXPRESSIONS){
+    if(id==='idle')continue;
+    const scale=RULES.bit.expression.presentation[id].scale;
+    assert.ok(Math.abs(scale-1)>=0.15,`${id}.scale=${scale} should be noticeably different from 1`);
+  }
+});
+
+test('M40 amplify: bitExpressionPunch is 1 right after a trigger, decays to 0 by attackMs, and is always 0 at idle',()=>{
+  const e=createBitExpression();
+  assert.equal(bitExpressionPunch(e,0),0);
+  triggerBitDamage(e,0);
+  assert.equal(bitExpressionPunch(e,0),1);
+  const attackMs=RULES.bit.expression.attackMs;
+  assert.ok(Math.abs(bitExpressionPunch(e,attackMs/2)-0.5)<1e-9);
+  assert.equal(bitExpressionPunch(e,attackMs),0);
+  assert.equal(bitExpressionPunch(e,attackMs+1),0);
 });
 
 test('bitExpress debug helper forces any state (or idle) bypassing priority and cooldown',()=>{
