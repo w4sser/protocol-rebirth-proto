@@ -993,7 +993,7 @@ Bunker Power is a separate urgency/maintenance meter. It drains mildly, has a ca
 
 The contrast is **soft nature and hard engineering**: asymmetrical vegetation and rock against deliberate Cold War concrete and machinery. Swedish identity should come through the landscape and built environment, not national flags.
 
-The operator is an adult, slender, hooded figure rather than a cute/chibi hero. BIT's friendly CRT face and distinctive body are locked visual assets, not invitations to invent a different smile for each use. [S03]
+**Art Direction v07** keeps OP-01's adult, slender, hooded design as the visual anchor, **not the only playable Operator appearance**. M38 approves visually distinct cosmetic identities sharing the same gameplay and responsive animation foundation, without hitbox, timing, or tactical advantages. BIT's original CRT face and body remain the identity masters; M40 permits selective, event-driven hover and CRT expression within that recognizable design, without changing the original master assets or creating abilities. M39/M41 add readable action-first Operator and honest enemy hit/block/defeat presentation at phone scale. See [Art Direction v07](art-direction.md) and [M38–M41 decisions](design-decisions.md). [S03] [D01]
 
 ### 16.2 Readability and color
 
