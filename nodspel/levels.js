@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.7';
-import {generateBigLevel} from './big-level.js?v=2.28.7';
-import '../data/items.js?v=2.28.7';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.7';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.7-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.7';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.7';
-import '../data/raid-combat.js?v=2.28.7';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.8';
+import {generateBigLevel} from './big-level.js?v=2.28.8';
+import '../data/items.js?v=2.28.8';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.8';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.8-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.8';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.8';
+import '../data/raid-combat.js?v=2.28.8';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -167,7 +167,23 @@ export const RULES=Object.freeze({
   // Hitstop: a brief freeze of the paused game clock (perks.js hitstop()), not a second clock. Kill confirmation.
   hitstop:{hitMs:40,killMs:90,lastKillMs:140},
   dash:{distance:4.8,durationSeconds:.22,cooldownMs:2500,iframeMs:150},
-  bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18},
+  bit:{healPerSecond:5,followDistance:1.6,followSpeed:7,radius:.18,
+    // M40 expressive-companion tuning (docs/art-direction.md "M40"): threatRange/extractRange are the
+    // detection radii fed into bit-expression.js; hotAggroCount is the "intense firefight" threshold
+    // that makes loot/extract flourishes yield to combat readability (see combatIsHot()).
+    threatRange:9,extractRange:4,hotAggroCount:2,
+    expression:{
+      durationMs:{threat:900,damage:650,loot:1100,extract:1300,failure:2500},
+      cooldownMs:{threat:2000,damage:350,loot:2800,extract:4000,failure:60000},
+      presentation:{
+        idle:   {hoverAmplitude:.06,hoverSpeed:3,  altitude:0,   tiltX:0,   tiltZ:0,  antennaTilt:0,  brightness:.5, eyeSquint:0},
+        threat: {hoverAmplitude:.045,hoverSpeed:7, altitude:0,   tiltX:-.1, tiltZ:0,  antennaTilt:.18,brightness:.72,eyeSquint:.3},
+        damage: {hoverAmplitude:.1, hoverSpeed:10, altitude:-.04,tiltX:0,   tiltZ:.14,antennaTilt:-.15,brightness:1, eyeSquint:.15},
+        loot:   {hoverAmplitude:.09,hoverSpeed:5,  altitude:.06, tiltX:.06, tiltZ:0,  antennaTilt:.12,brightness:.88,eyeSquint:-.15},
+        extract:{hoverAmplitude:.05,hoverSpeed:4,  altitude:.03, tiltX:.09, tiltZ:0,  antennaTilt:.05,brightness:.82,eyeSquint:0},
+        failure:{hoverAmplitude:.02,hoverSpeed:1.4,altitude:-.16,tiltX:.22, tiltZ:0,  antennaTilt:-.22,brightness:.18,eyeSquint:.12},
+      },
+    }},
   killReward:{ammo:1,health:12},enemyHealth:3,combat:{detectRange:10,range:7,cooldownMs:1400,damage:22,bulletSpeed:9,graceMs:3000,standoff:3.5},
   aimControls:{deadZonePx:20,responseSeconds:.06,maxTurnRadiansPerSecond:12,stickRadiusPx:48,tapMs:200,zoneFraction:.45},
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
