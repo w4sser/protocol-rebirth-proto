@@ -1,14 +1,14 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.6';
-import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.6';
+import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.7';
+import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.7';
 
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
 export function selectSkin(search=''){
   return characterFor(search).id;
 }
-export function animationState({dead=false,hit=false,dashing=false,moving=false,shooting=false}={}){
-  return dead?'death':hit?'hit':dashing?'dash':shooting?'shoot':moving?'run':'idle';
+export function animationState({dead=false,hit=false,dashing=false,moving=false,shooting=false,interacting=false}={}){
+  return dead?'death':hit?'hit':dashing?'dash':shooting?'shoot':interacting?'interact':moving?'run':'idle';
 }
 export function clipForState(state){return OPERATOR_CLIPS[state]??OPERATOR_CLIPS.idle;}
 const angleDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -85,15 +85,18 @@ export function createHumanOperator(gltf,{dashDuration=null,character=CHARACTERS
   }
   function shoot(){shotLeft=clips.get(character.clips.shoot).duration;const a=actions.upper.shoot;if(current.upper===a)a.reset().play();}
   function hit(){hitLeft=clips.get(character.clips.hit).duration;for(const layer of ['lower','upper'])if(current[layer]===actions[layer].hit)current[layer].reset().play();}
-  function update(dt,{moving=false,dashing=false,dead=false,aiming=false,walkYaw=0,aimYaw=walkYaw}={}){
+  function update(dt,{moving=false,dashing=false,dead=false,aiming=false,interacting=false,walkYaw=0,aimYaw=walkYaw}={}){
     shotLeft=Math.max(0,shotLeft-dt);hitLeft=Math.max(0,hitLeft-dt);
-    const state=animationState({dead,hit:hitLeft>0,dashing,moving});
+    const state=animationState({dead,hit:hitLeft>0,dashing,moving,shooting:shotLeft>0,interacting});
     let bodyYaw=moving?walkYaw:aimYaw,back=false;
     if(moving&&aiming&&Math.abs(angleDelta(aimYaw,bodyYaw))>Math.PI/2){bodyYaw+=Math.PI;back=true;}
     root.rotation.y=bodyYaw-(root.parent?.rotation.y??0);
-    const special=['death','hit','dash'].includes(state);
-    change('lower',state==='run'&&back?'back':state);
-    change('upper',special?state:shotLeft>0?'shoot':aiming?'aim':state);
+    // Hit owns the arms (upper) outright like dash/death, but must stay visible without stealing legs
+    // that are actually mid-stride: only freeze the lower body into the hit pose while truly stationary.
+    const special=dead||dashing||hitLeft>0,bodyMoving=moving?(back?'back':'run'):'idle';
+    const lowerState=dead?'death':dashing?'dash':(hitLeft>0&&!moving)?'hit':bodyMoving;
+    change('lower',lowerState);
+    change('upper',dead?'death':dashing?'dash':hitLeft>0?'hit':shotLeft>0?'shoot':(aiming||interacting)?'aim':(moving?'run':'idle'));
     // Restore the animation pose before advancing; procedural yaw must never accumulate.
     spine.quaternion.copy(spinePose);supportBones.forEach((b,i)=>b.quaternion.copy(supportPose[i]));mixer.update(dt);spinePose.copy(spine.quaternion);supportPose=supportBones.map(b=>b.quaternion.clone());
     if(!special&&(aiming||shotLeft>0)){
