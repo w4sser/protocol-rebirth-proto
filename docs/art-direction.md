@@ -1,19 +1,21 @@
-# Art Direction v07 – gameplay expression och mobil läsbarhet
+# Art Direction v07 — Gameplay Expression and Mobile Readability
 
-**Status (9 november 2026):** v07 kompletterar den etablerade AD06-identiteten med gameplay-art direction som följer de ägargodkända besluten [M38–M41](design-decisions.md). Den är **inte en ny visuell stil**, en ny spelmekanik eller en beställning på komplett artproduktion. Exakta modeller, ansiktsuttryck, klipp, shaders, tider, teknik och kvalitetsnivåer avgörs i spelbara mobila tester.
+**Status (9 November 2026):** v07 extends the established AD06 visual identity with gameplay art direction aligned to the owner-approved [M38–M41 design decisions](design-decisions.md). It is **not a new visual style**, a new gameplay mechanic, or approval for full-scale asset production. Exact models, facial expressions, animation clips, shaders, timings, technical solutions, and quality budgets remain subject to playable mobile tests.
 
-**Historisk källa:** `ad06.pdf` (30 sidor, ägaren 14 okt). Nyckelsidor har tidigare renderats i `/workspace/art-direction/pages/` (p01, p07 palett, p08 läsbarhet, p22–23 BIT, p28 låst/öppet, p30 karta). AD06 låste ton, palett, OP-01 och BIT:s originalidentitet och betecknade UI/HUD, vapen, combat-VFX, fiender och biomer som ännu inte färdigdesignade.
+**Historical source:** `ad06.pdf` (30 pages; owner review, 14 October). Key pages were previously rendered in `/workspace/art-direction/pages/` (p01, p07 palette, p08 readability, p22–23 BIT, p28 locked/open, p30 map). AD06 locked the tone, palette, OP-01, and BIT's original visual identity, while describing UI/HUD, weapons, combat VFX, enemies, and biomes as not yet fully designed.
 
-**Företräde:** AD06:s ton, miljö, palett, typografi, produktionsåterhållsamhet och originalmaster gäller fortsatt. **v07 ersätter enbart tolkningen att OP-01 är den enda tillåtna spelbara looken och att BIT endast får visa ett statiskt standarduttryck**, samt tillför riktlinjer för rörelse, fiendereaktioner och visuell hierarki. Grundansiktets master och tidigare godkända referensassets skrivs inte över. Godkända M38–M41-regler gäller före äldre, motstridiga förslag (bland annat hitstop/slow motion i `design-combat-feel-oct28.md`).
+**Precedence:** AD06's tone, environments, palette, typography, production restraint, and original master assets remain in effect. **v07 changes only the interpretation that OP-01 is the sole permitted playable appearance and that BIT may display only one static default expression**, and adds guidance for motion, enemy reactions, and visual hierarchy. The original BIT face master and previously approved reference assets must not be overwritten. Approved M38–M41 decisions take precedence over older conflicting proposals, including hitstop/slow-motion ideas in `design-combat-feel-oct28.md`.
 
-## Ton
-- "Dark, but never hopeless": skadat men levande och värt att bygga upp. Blå timme, blek persikohorisont, frisk vegetation. Ingen stormhimmel, döda skogar, giftdimma eller ruin-skräck. Aldrig generisk dystopisk sci-fi.
-- Pelare: Stylized clarity (stora former som läses på mobil) · Nordic melancholy · Production restraint (skönhet från form, färg, ljus – inte tätheten av assets) · Human warmth (BIT).
-- "Soft nature, hard engineering": natur asymmetrisk och vindformad; konstruktion rak, tjocka horisontella plattor, modulär kallakrigsbetong. Svensk identitet genom ingenjörskonst, **aldrig symboler**.
+## Tone
 
-## Palett (samplad från sid 7)
-| Roll | Namn | Hex |
-|---|---|---|
+- **"Dark, but never hopeless."** The world is damaged but alive and worth rebuilding. Blue-hour light, a pale peach horizon, and healthy vegetation. No stormy apocalyptic skies, dead forests, toxic fog, or horror-ruin aesthetic. Never generic dystopian science fiction.
+- **Pillars:** Stylized clarity (large forms that read on a phone); Nordic melancholy; production restraint (beauty through shape, color, and lighting rather than asset density); and human warmth (BIT).
+- **"Soft nature, hard engineering."** Nature is asymmetrical and wind-shaped; built structures are straight, with thick horizontal slabs and modular Cold War concrete. Express Swedish identity through landscape and engineering, **never national symbols**.
+
+## Palette (sampled from AD06, page 7)
+
+| Role | Name | Hex |
+| --- | --- | --- |
 | World | Deep Navy | `#1B2740` |
 | World | Muted Teal | `#2E5C63` |
 | World | Violet Granite | `#7C7E97` |
@@ -21,103 +23,107 @@
 | Hope | Amber Utility | `#FF9D4D` |
 | Hope | Coral Horizon | `#E4705F` |
 | Hope | Lavender Air | `#B0A0C6` |
-| Signal | BIT Cyan | `#3FE0D0` (swatch) / `#75CFCC` (BIT-ansiktets master, sid 23) |
+| Signal | BIT Cyan | `#3FE0D0` (swatch) / `#75CFCC` (BIT face master, page 23) |
 | Signal | Warning | `#D9552F` |
-| UI-bakgrund / text i dokumentet | | `#070F14` / `#F2E9D6` |
+| UI background / document text | | `#070F14` / `#F2E9D6` |
 
-Färgsemantik (låst): **Cyan** = BIT, strömförande system, extraction · **Amber** = loot, mänsklig värme, högre risk/belöning · **Coral red** = fientliga sensorer och bekräftad fara · **Neutral** = operatörens separation och gångbar mark. Varmt ljus är sällsynt och därför meningsfullt – varje starkt ljus ska kommunicera rutt, belöning, hot, extraction eller karaktärsläsbarhet.
+**Locked color semantics:** **Cyan** = BIT, powered systems, extraction; **amber** = loot, human warmth, higher risk/reward; **coral red** = hostile sensors and confirmed danger; **neutral contrast** = Operator separation and walkable terrain. Warm light is rare and therefore meaningful. Every strong light source should communicate a route, reward, threat, extraction, or character readability.
 
-## Typografi (från PDF:ens inbäddade typsnitt)
-- Rubriker: **Archivo** Black/ExtraBold, versaler, tight.
-- Brödtext: **IBM Plex Sans** (Regular/Medium).
-- Etiketter, kickers, data: **IBM Plex Mono**, versaler med bred spärrning.
+## Typography (from the embedded fonts in the AD06 PDF)
 
-## Ikonografi / UI-principer (mobil riktning, ej färdig HUD-layout)
-1. "Read the game before the detail": om något bara fungerar i närbild bär det inte AD → ikoner = stora, läsbara siluetter i fysisk mobilstorlek, minimalt med fina detaljer.
-2. Färg är semantik, inte dekor: cyan för system/BIT/extraction, amber för loot/belöning, coral för fara, neutral för resten.
-3. Inga emoji, generiska smileys eller nationella symboler. BIT:s **originalansikte är identitetsmaster** (vertikala piller-ögon, fylld U-smile med avsmalnande bredd 32→64→32, originalmaster 1000×875). M40 tillåter **kontrollerad animerad variation i spelet**, inte att byta ut eller skriva över originalmaster. Se uttrycksreglerna nedan.
-4. Rutter kommuniceras med landmärken, ljuspooler och materialkontrast – inte glödande stigar eller UI-pilar (gäller världen; UI-pilar i menyer ok).
-5. Grundprioritet: läsbar Operator, BIT och omedelbara hot → rutter/gränser → skydd/landmärken/mål → atmosfär. **I aktiv strid har fiendesiluetter, inkommande attacker, telegrafer, siktlinje och kontroller alltid företräde framför BIT-emotes, kosmetik och dekorativa effekter.**
+- **Headings:** Archivo Black/ExtraBold; uppercase, tight spacing.
+- **Body:** IBM Plex Sans, Regular/Medium.
+- **Labels, kickers, data:** IBM Plex Mono; uppercase with generous tracking.
 
-## Miljö
-- Liten kit, koherent värld: 6 materialfamiljer – granit (cover/boundary/landmark), kustpinjer (crouched/sentinel/crown), kallakrigsbetong (portal/wall/slab), boundaries & cover, lågfrekvent mark. Ingen gräsmatta, inga engångsprops. Variation genom skala, rotation, överlapp, delvis begravning, ljus.
-- Gångbar mark: plan, ljusare, kontinuerlig, låg texturbrus. Hård gräns: vertikal granit, tät vegetation, komprimerade valörer. Giltig rutt: inramat negativt rum, fri siktlinje, varmt destinationsljus.
-- Bunkern inuti: CRT-glöd, kabeldragningar, enstaka lampor – aldrig dagsljus. Amber utility light är enda värmen.
-- Kamera: pitch ≈52°, VFOV ≈38°, operatören 12–13 % av skärmhöjden (10–11 % vid vida hot, 14–15 % vid nära), fokus 2–3 m framför, övergång 0,4–0,7 s med hysteres. Förgrund tonas bara lokalt där den skymmer OP-01/hot.
+## Iconography and UI Principles (Mobile Direction, Not a Finished HUD Layout)
 
-## Karaktärer
-- **OP-01 (grundreferens, inte exklusiv spelbar kropp)**: vuxen operatör, 7,5–8 huvuden lång, smal, rörlig, långbent. Könsneutral siluett, djup huva (bara ögonregionen syns), tyg över näsa/mun/hals, raka snitt. Stiliserad men aldrig söt/chibi. "Någon som gick in i faran medvetet." Andra kosmetiska Operator-utseenden får vara tydligt olika, men följer M38:s gemensamma spelmekanik och mobilanpassade läsbarhet.
-- **BIT (identitetsmaster)**: mjuk rundad CRT-kropp, petrol-teal hölje, cyan skärm, vertikala piller-ögon, bred U-smile, kort antenn, liten sidomodul, liten amber statuslampa, lugn hover. Äldre tier 1–3-hårdvarureferenser och kosmetiska skal ska bevara en igenkännbar BIT-siluett och ansiktsfamilj; de innebär inte automatiskt nya förmågor. Personlighet: hjälpsam, lojal, fräck, galghumor. M40 tillåter selektiva uttrycksanimationer men inte att grunddesignen blir en annan figur.
-- "Leendet tillhör världen": samma smile återkommer i miljön (skyltar, skärmar) – vänligt som kan kännas olustigt.
+1. **"Read the game before the detail."** If an element only works in close-up, it does not meet the art direction. Icons should be large, legible silhouettes at actual phone size, with minimal fine detail.
+2. **Color carries meaning, not decoration:** cyan for systems/BIT/extraction, amber for loot/rewards, coral for danger, and neutral colors for everything else.
+3. **No emoji, generic smileys, or national symbols.** BIT's **original face is the identity master**: vertical pill-shaped eyes and a filled U-shaped smile with tapered width (32→64→32; 1000×875 original master). M40 permits **controlled animated variation in gameplay**, not replacement or overwriting of the original master. See the expression rules below.
+4. **Routes are conveyed through landmarks, pools of light, and material contrast**, not glowing paths or world-space UI arrows. Menu arrows remain acceptable.
+5. **Baseline visual priority:** readable Operator, BIT, and immediate threats → routes/boundaries → cover/landmarks/objectives → atmosphere. **During active combat, enemy silhouettes, incoming attacks, telegraphs, lines of fire, and controls always take precedence over BIT emotes, cosmetics, and decorative effects.**
 
+## Environment
 
-## M38 – Character art, kosmetiska identiteter
+- **Small kit, coherent world.** Reuse the AD06 material and asset families: granite for cover, boundaries, and landmarks; coastal pines in crouched/sentinel/crown forms; modular Cold War concrete portals, walls, and slabs; structural cover; and low-frequency terrain. No manicured lawns or one-off decorative props. Create variation through scale, rotation, overlap, partial burial, and light.
+- **Walkable ground:** relatively flat, lighter, continuous, and low in texture noise. Hard boundaries use vertical granite, dense vegetation, and compressed values. Valid routes are framed by negative space, clear sightlines, and warm destination light.
+- **Bunker interior:** CRT glow, wiring, and sparse practical lamps, never daylight. Amber utility lighting provides the only warmth.
+- **Camera reference:** pitch ≈52°, vertical FOV ≈38°. Operator occupies 12–13% of screen height in the nominal view (10–11% for wider threats; 14–15% for near threats); focus is 2–3 m ahead; transitions take 0.4–0.7 seconds with hysteresis. Fade foreground objects locally only when they obscure OP-01 or a relevant threat.
 
-- **En Operator-mekanik; många uttryck.** OP-01 är ett visuellt ankare, inte ett unikt spelmekaniskt val. Huvudform, kläder, material, färg och silhouette får skapa olika kosmetiska identiteter, inklusive mänskliga och mer tekniska varianter, men alla behåller **samma rörelse, räckvidd, hitbox/kollision, vapentiming och taktiska utfall**. Ingen skin får ge mer effektiv kamouflage, ett vilseledande kroppsomfång eller en spelmässig fördel.
-- **Förenlig rörelseläsning, inte nödvändigtvis identisk rigg.** Alla looks måste kunna visa samma funktionella beteenden och samma svar på input. En procedural karaktär får ha annan animationsimplementering, men får inte sakna upplevd run/aim/fire/hit/death-läsbarhet eller bete sig annorlunda mekaniskt.
-- **Läsbar från kameran.** Ansiktsdetaljer och små plaggdetaljer är sekundära. Spelaren måste snabbt kunna hitta sin Operator, uppfatta facing/vapenriktning och särskilja karaktären från fiender i mörk terräng, vid eldstrid och i tät vegetation. Den visuella nivån ska fungera i riktig landskapsmobil, inte bara som porträtt eller närbild.
-- **Kosmetik är permanent visuell äganderätt, inte skyddad utrustning.** Operator- och BIT-looks består över raiddöd; vapen, rustning och loot följer fortsatt riskreglerna D1. Skins introducerar inga klasser, aktiva skills eller nya progressionsträd. Bevisa grundupplevelsen med ett fåtal looks före en stor katalog.
+## Characters and Original Identity
 
-## M39 – Character animation och vapenrespons
+- **OP-01 (visual anchor, not the only playable appearance):** adult Operator, 7.5–8 heads tall; slender, agile, long-legged; gender-neutral silhouette; deep hood revealing only the eye area; cloth covering nose, mouth, and neck; straight clothing cuts. Stylized but never cute or chibi. **"Someone who chose to walk into danger."** Other cosmetic Operator looks may differ substantially while following M38's common gameplay foundation and phone-scale readability.
+- **BIT (identity master):** softly rounded CRT body, petrol-teal casing, cyan screen, vertical pill eyes, broad U-shaped smile, short antenna, small side module, small amber status lamp, and calm hover. Earlier tier 1–3 hardware references and cosmetic shells should retain a recognizable BIT silhouette and face family; they do not automatically confer abilities. Personality: helpful, loyal, cheeky, with gallows humor. M40 allows selective expression animation, not a redesign into another character.
+- **"The smile belongs to the world."** BIT's familiar smile may recur on environmental signs and screens, at once friendly and slightly unsettling.
 
-- **Action first.** Rörelse, riktningsbyte, sikte och skott ska visuellt följa spelarens avsikt snabbt och tydligt. Animation får ge vikt och momentum men får inte omotiverat låsa input, fördröja giltiga handlingar eller överta styrningen.
-- **Gemensamt beteendespråk för alla skins:** idle/löpning, riktningsbyte, sikte, skjutning, dash, mottagen träff, interaktion, extraction och nederlag ska ha tillräckligt tydliga visuella tillstånd för spelets faktiska handlingar. Detta är en **valideringslista**, inte ett låst antal klipp eller krav på viss rigg.
-- **Vapentyngd genom presentation.** Pose, upplevd rekyl, mynning/impact-återkoppling och återhämtning kan särskilja vapen och göra Basic Carbine tillfredsställande. Ingen animation får i sig skapa extra skada, ändra träffvalidering, flytta hitbox eller introducera ett nytt recovery-/interrupt-fönster.
-- **Isometrisk disciplin.** Viktiga poses måste synas från aktuell kameravinkel och i normal gameplay-skala. Överdrivet svängande vapen, kroppar som skymmer siktlinje och teatraliska rörelser prioriteras bort när de konkurrerar med fiendehot.
-- **Detaljer öppna för produktionstest:** antal klipp, blend/cancel-regler, root motion, rigg, timing, styrkänsla, tillgänglighet och mobilprestanda. M39 ger inte generell tillåtelse till hitstop eller slow motion.
+## M38 — Character Art and Cosmetic Identities
 
-## M40 – BIT expression utan identitetsförlust
+- **One mechanical Operator, multiple looks.** OP-01 is a visual anchor, not an exclusive gameplay choice. Head shapes, clothing, materials, colors, and silhouettes may create distinct cosmetic identities, including human and more technological appearances. All retain **identical movement, reach, hitboxes/collision, weapon timing, and tactical outcomes**. No skin may provide more effective camouflage, a misleading visible body size, or another gameplay advantage.
+- **Compatible movement language does not require identical rigs.** Every appearance must communicate the same functional actions and respond equally to input. A procedural character may use a different animation implementation, but cannot lack perceptible run/aim/fire/hit/death readability or behave differently mechanically.
+- **Readability at the actual camera angle.** Facial and tiny outfit details are secondary. Players must locate their Operator quickly, understand facing and weapon direction, and distinguish the character from enemies in dark terrain, firefights, and dense vegetation. The visual target is landscape-mobile gameplay, not portraits or close-up renders.
+- **Cosmetics are permanent visual ownership, not protected equipment.** Operator and BIT looks persist after raid death; weapons, armor, and loot remain subject to D1 risk rules. Skins introduce no classes, active skills, or separate progression trees. Prove the foundation with a few appearances before building a large catalog.
 
-- **Bevara ansiktets signatur.** Två vertikala pillerögon och den breda U-formade munnen förblir igenkännbara. Den godkända masterasseten `assets/bit-face-master.svg` är referens och ska inte skrivas över. Inga ögonbryn, tänder, pupiller, utbytbara emojiansikten eller dekorativa yttre cyanstrips. Undvik en ny figur för varje känsla.
-- **Tillåt kontrollerat uttryck i gameplay.** Förstahandsmedel är blickens/ögonens återhållsamma förändring, CRT-ljus, lutning, höjd, hover-rytm, antenn och små kroppsposer. Varsam förändring inom samma ögon- och smile-familj får undersökas i artprover, **utan att ansiktsgeometrin eller ett nytt uttrycksalfabet låses här**. Originallogotyp och statiska masterassets förblir oförändrade.
-- **Reagera på verkliga händelser, inte på ständig timer.** Undersökande förflyttning, synligt hot, skada på Operator, värdefullt fynd, ruttval, extraction och misslyckande får skapa korta, begripliga reaktioner. BIT ska kännas närvarande i vanliga raids men ska vara stillsamt när spelaren behöver sikta, undvika skott eller förstå resultatet av strid.
-- **Kroppsspråk före extra UI.** Ingen ny obligatorisk popup, reaktionsmätare, oönskad dialog, ständig blinkning eller HUD-indikator för humör. Viktig information får aldrig kräva ljud.
-- **Uttryck är inte en power.** BIT finns och får visa personlighet före BIT Bay L1. Aktivt stridsstöd följer fortsatt M28–M35 och kräver färdig BIT Bay L1 samt spelaraktivering; en animation ger inte försvar, distraktion, loot-räddning, avslöjad garanterad loot eller automatisk extraction. Kosmetiska BIT-looks påverkar inte spelmekanik.
+## M39 — Character Animation and Weapon Response
 
-## M41 – Enemy art och combat feedback
+- **Action first.** Movement, changes in direction, aiming, and firing should follow the player's intent quickly and legibly. Animation can convey weight and momentum but must not gratuitously lock input, delay otherwise valid actions, or take away player control.
+- **A shared behavior vocabulary across skins:** idle/running, turning, aiming, firing, dash, receiving damage, interacting, extracting, and defeat require readable visual states where applicable to actual actions. This is a **validation checklist**, not a fixed clip count or mandated rig.
+- **Weapon weight through presentation.** Poses, perceived recoil, muzzle/impact response, and recovery motion can differentiate weapons and make the Basic Carbine satisfying. Animation alone must not cause extra damage, change hit validation, move hitboxes, or introduce a new recovery or interruption window.
+- **Isometric discipline.** Important poses must read from the gameplay camera and at normal character scale. Excessive weapon swings, bodies blocking lines of sight, or theatrical movement should be cut when they compete with threat readability.
+- **Open for production tests:** clip counts, blending and cancel priorities, root motion, rigs, timing, control feel, accessibility, and mobile performance. M39 does **not** grant blanket approval for hitstop or slow motion.
 
-| Faktiskt utfall | Visuellt och ljudmässigt mål | Får inte misstolkas som |
+## M40 — BIT Expression Without Losing Its Identity
+
+- **Preserve the signature face.** Two vertical pill eyes and the broad U-shaped mouth must remain recognizable. The approved `assets/bit-face-master.svg` is the reference and must not be overwritten. No eyebrows, teeth, pupils, interchangeable emoji faces, or decorative external glowing cyan strips. Avoid inventing a new character for each emotion.
+- **Allow controlled gameplay expression.** Preferred tools are subtle eye/attention changes, CRT brightness, body tilt, altitude, hover rhythm, antenna motion, and small body poses. Gentle changes within the existing eye-and-smile family may be explored in art tests, **without locking new face geometry or a complete expression vocabulary here**. The original logo and static master assets remain unchanged.
+- **Respond to real events, not constant timers.** Exploration, emerging threats, Operator damage, valuable discoveries, route decisions, extraction, and failure may prompt brief, understandable reactions. BIT should feel present during ordinary raids, yet stay restrained when the player needs to aim, dodge attacks, or comprehend the result of combat.
+- **Body language before more UI.** No new mandatory popups, reaction meters, unwanted dialogue, constant flashing, or mood indicators in the HUD. Essential information must not depend on audio.
+- **Expression is not a power.** BIT exists and can show personality before BIT Bay L1. Active combat support remains governed by M28–M35, requiring completed BIT Bay L1 and deliberate player activation. An animation cannot grant defense, distract enemies, rescue loot, reveal guaranteed loot, or auto-extract. Cosmetic BIT looks do not alter mechanics.
+
+## M41 — Enemy Art and Combat Feedback
+
+| Actual gameplay outcome | Visual and audio goal | Must not imply |
 | --- | --- | --- |
-| **Validerad skadande träff** | Synlig, lokal reaktion hos rätt fiende, lämplig impact/VFX och distinkt kort ljudsignal när ljud används | En miss, blockering eller nytt stagger/stun |
-| **Sköld/armor blockerar enligt faktiska regler** | Tydligt annat material- och impact-svar än skadande träff; vid behov läsbart från sidan/ryggen | Bekräftad skada när ingen skada registrerades |
-| **Bekräftat besegrad fiende** | Ett igenkännbart avslut: pose/kollaps, kort effekt och/eller ljud som skiljer sig från vanlig träff; försvinnandet får inte se ut som en missad träff | Extra loot, ytterligare kill-registrering eller nytt mekaniskt tillstånd |
-| **Miss/icke-validerad träff** | Endast faktisk världskontakt eller projektilutfall; ingen falsk målreaktion | Skada eller eliminerad fiende |
+| **Validated damaging hit** | Visible localized response on the correct enemy, suitable impact VFX, and a distinct short audio cue when audio is enabled | A miss, a blocked shot, or newly added stagger/stun |
+| **Shield/armor block under existing rules** | Clearly different material and impact response from a damaging hit, readable from flank/rear angles where relevant | Confirmed damage when no damage was registered |
+| **Confirmed enemy defeat** | A recognizable end state: pose/collapse, brief effect, and/or audio differentiated from an ordinary hit; disappearance should not look like a missed shot | Extra loot, another kill registration, or an invented mechanical state |
+| **Miss/unvalidated hit** | Only the real world impact or projectile outcome; no false target reaction | Damage or defeated enemy |
 
-- **Event-sanning före spektakel.** Alla målreaktioner styrs av verkliga validerade spelhändelser. Visuellt ryck, deformation eller rörelse är *presentation*, inte knockback, nytt attackavbrott, stun, extra damage, immunity eller förändrad kollision. Befintliga giltiga mekaniska effekter får inte tyst tas bort.
-- **Arketyper har olika rytm, gemensamt språk.** Snabba fiender, bepansrade mål, sköldar och turrets kan reagera olika, men spelaren ska förstå skada, blockering och död utan att kunna deras animationer i förväg. Fiendens hot, frontsköld, angreppstelegraf och motspel måste vara synliga hela tiden.
-- **Basic Carbine är baslinjen.** En vanlig träff och besegrad fiende ska kännas tillfredsställande med startvapnet och utan dyra skins, avancerade vapen eller extra abilities. Feedbacken får stödja, inte dölja, positionsval och taktiska kombinationer.
-- **Återanvänd före ny teknik.** Befintligt `nodspel/fx-feedback.js` har redan impact/hit/shield/explosion-flöden; verifiera deras eventkoppling och komplettera där det brister innan ett separat effektsystem föreslås. Äldre `design-combat-feel-oct28.md` innehåller *föreslagna* hitstop-/slowmotion-värden; de är **inte** beslutade av M41 och får inte följa med automatiskt.
-- **Ljud är förstärkning.** Spelaren ska förstå träff, block och defeat även när mobilen är mutad. Effekter får inte maskera skott, projektiler, hottelegrafer, interaktionspunkter, extraction eller UI-kontroller. Ingen ny timing, partikelbudget eller teknik låses här.
+- **Event truth over spectacle.** Every target response follows an actual validated game event. Visual flinch, deformation, or motion is *presentation*, not knockback, a new forced attack interruption, stun, extra damage, invulnerability, or changed collision. Existing legitimate mechanical effects must not be silently removed.
+- **Distinct archetype rhythms, shared feedback language.** Fast enemies, armored targets, shields, and turrets may react differently, but players should understand damage, blocking, and defeat without first learning each animation. Enemy threats, front shields, attack telegraphs, and counterplay must remain visible.
+- **Basic Carbine is the baseline.** Ordinary hits and defeats should feel satisfying with the starter weapon, without expensive skins, advanced weapons, or extra abilities. Feedback supports rather than obscures positional decisions and tactical combinations.
+- **Reuse before inventing new technology.** Existing `nodspel/fx-feedback.js` already contains impact/hit/shield/explosion flows. Verify event binding and extend where needed before proposing an independent effects system. The older `design-combat-feel-oct28.md` contains *proposed* hitstop/slow-motion values; M41 did **not** approve them and they must not be included automatically.
+- **Audio reinforces, rather than enables, comprehension.** The player must distinguish damage, blocking, and defeat when the phone is muted. Effects must not mask incoming shots, projectiles, danger telegraphs, interaction points, extraction, or UI controls. No particular timings, particle budgets, or technical approach are locked here.
 
-## Mobile visual hierarchy – företräde i spelbar scen
+## Mobile Visual Hierarchy — Priority in a Playable Scene
 
-1. **Operator och direkt säkerhetskritisk information:** spelposition, riktning, omedelbara fiendehot, projektiler och hottelegrafer.
-2. **Aktuellt stridsutfall och navigering:** verkliga träff-/block-/kill-signaler, skydd, gångbar mark, valbar väg, interactables och extraction.
-3. **BIT och kontext:** BIT:s siluett, närvaro och korta meningsfulla uttryck – alltid nedtonade under aktiv eldstrid.
-4. **Världsbyggnad och dekor:** atmosfär, sekundära props, subtila partiklar och mikrodetaljer; första nivån att reducera på Low.
+1. **Operator and immediately safety-critical information:** player location, orientation, nearby enemy threats, projectiles, and attack telegraphs.
+2. **Actual combat outcome and navigation:** validated hit/block/kill cues, cover, walkable ground, navigable routes, interactables, and extraction.
+3. **BIT and context:** BIT's silhouette, presence, and brief meaningful expressions, always visually quieter during active firefights.
+4. **Worldbuilding and decoration:** atmosphere, secondary props, subtle particles, and microdetail; reduce these first on Low settings.
 
-Testa alltid på liten landskapsmobil med både ljud av/på och effektbegränsat läge. Läsbarheten ska inte bero på rim light, en liten ansiktsdetalj, avancerad shader eller exklusiva höginställningar. Föredra stora rena former och få men distinkta effekter framför hög partikel-/texturtäthet. Sikta mot spelets befintliga Low-prestandamål; nya numeriska grafikbudgetar fastställs först genom mätning.
+Always test on a real small phone in landscape, with sound on/off and limited effects. Readability must not rely on rim lighting, tiny face details, advanced shaders, or high-quality-only settings. Favor clean large forms and a few distinct effects over dense particles and high-frequency textures. Work toward the game's existing Low-mode performance target; set new numerical graphics budgets only after measuring the actual build.
 
-**Konceptbilder kontra spelproduktion:** Tidigare telefon- och miljökoncept som närmar sig fotorealism är referenser för *stämning, ljussättning, komposition och materialkänsla*. De är inte krav på detaljerad fotorealistisk geometri, högfrekventa texturer eller nya efterbearbetningseffekter. Världens stiliserade low-poly-grund och produktionsrestriktioner är oförändrade.
+**Concept art versus game production:** Earlier phone and environmental concepts approaching photorealism are references for *mood, lighting, composition, and material feel*. They are not requirements for photorealistic geometry, high-frequency textures, or extra post-processing. The world's stylized low-poly foundation and production restraint are unchanged.
 
-## Kontrollpunkter i nuvarande implementation (inte en leveransrapport)
+## Current Implementation Checkpoints (Not a Delivery Report)
 
-- `nodspel/characters.js` listar `operator`, `punk` och `robot`. De två förstnämnda delar deklarerade animationer; `robot` är procedural och deklarerar null för alla namngivna klipp. Det bevisar **inte** att roboten saknar all procedural rörelse, men M38–M39 kräver **upplevd animations- och beteendeparitet** på telefon innan den kan betraktas som likvärdig.
-- `nodspel/fx-feedback.js` innehåller flera visuella händelser. Det bevisar inte M41:s godkända kvalitet i praktiken; särskilt träff kontra block och synlig defeat behöver speltestas.
-- Källkoden ovan är en inventering vid dokumentrevisionen, inte bevis på att den spelbara versionen redan uppfyller M38–M41.
+- `nodspel/characters.js` lists `operator`, `punk`, and `robot`. The first two declare shared animation clips; `robot` is procedural and declares null for all named clips. This does **not** prove that the robot lacks procedural motion, but M38–M39 require **perceived animation and behavior parity** on a phone before treating it as equivalent.
+- `nodspel/fx-feedback.js` already includes multiple visual events. Their presence does not prove that the playable game meets M41; in particular, damage versus shield blocks and distinct visible defeats still need playtesting.
+- The code references above are an inventory at documentation revision, **not** a claim that the playable build already complies with M38–M41.
 
-## Nästa steg: mobil proof-of-fun / vertical slice (ej implementeringsorder)
+## Next Step — Mobile Proof of Fun / Vertical Slice (Not Implementation Authorization)
 
-Bygg *först efter separat kod-/assetgodkännande* en liten vanlig raidscen med en fullt responsiv Operator, Basic Carbine, ett fåtal befintliga representativa fiender, faktabunden hit/block/defeat-feedback och 2–3 meningsfulla, eventstyrda BIT-reaktioner. Testa även en andra visuellt avvikande Operator-look (gärna den procedurala roboten om användbar) för att kontrollera paritet, **inte** för att fylla ett skinutbud.
+*Only after separate approval for code and asset production*, build a small ordinary raid scene featuring one fully responsive animated Operator, Basic Carbine, a few existing representative enemies, event-accurate hit/block/defeat feedback, and 2–3 meaningful event-driven BIT reactions. Also test a visually distinct second Operator look (potentially the procedural robot if suitable) for mechanical and animation parity, **not** to pad the skin catalog.
 
-**Validera på riktig telefon i normal kamera/Low och ljud av/på:**
-- Kan spelaren förutsäga rörelse, tydligt sikta/skjuta, se sin Operator och uppfatta hits och defeats utan tvekan?
-- Skiljer spelaren mellan skada, sköldblock, miss och bekräftad död; syns fiendehot, projektiler och motspel samtidigt?
-- Märks BIT:s reaktioner som karaktär utan att konkurrera med strid eller skapa intryck av en låst/olåst förmåga?
-- Spelar skilda skins identiskt mekaniskt och känns deras rörelser lika responsiva?
-- Håller frame pacing/läsbarhet under täta möten och effektbegränsad mobilgrafik; fungerar allt med avstängt ljud?
+**Validate on a real phone with the normal gameplay camera, Low settings, and sound on/off:**
+- Can players predict movement, aim and fire clearly, locate their Operator, and recognize hits and defeats without hesitation?
+- Can they tell damaging hits, shield blocks, misses, and confirmed kills apart while still reading enemy threats, projectiles, and counterplay?
+- Does BIT's response convey character without competing with combat or suggesting a locked/unlocked power that was not actually used?
+- Do visually distinct skins behave identically mechanically, and do their movements feel equally responsive?
+- Do frame pacing and readability hold during dense encounters and reduced mobile effects, including with sound muted?
 
-**Rapportera observationer och missförstånd** (felavlästa hits/kills, upplevd orättvis skada, skymda hot, tappad kontroll och FPS/frame pacing) innan fler skins, större uttrycksbibliotek eller komplexare FX tas fram. Exakta animationer, timings, systemval och mobilbudget låses först efter denna validering.
+**Record observations and misunderstandings** (misread hits/kills, perceived unfair damage, obscured threats, lost control, FPS and frame pacing) before producing more skins, larger expression libraries, or more elaborate FX. Exact animation choices, timings, system architecture, and mobile budgets are to be settled through that validation.
 
-## Ursprunglig AD06-milstolpe (historisk referens)
-Spelbar "bunker approach slice": OP-01 identifierbar på 0,25 s, OP-01/BIT/närmaste hot skiljbara utan HUD, huvudrutt/valfri belöning/extraction läses via ljus, ingen ocklusion av OP-01, mobil-rimlig produktion, känslan mörk men hoppfull.
+## Original AD06 Milestone (Historical Reference)
+
+The playable **"bunker approach slice"** originally aimed for: OP-01 identifiable in 0.25 seconds; OP-01, BIT, and the nearest threat distinguishable without HUD; primary route, optional reward, and extraction communicated through light; no occlusion of OP-01; production feasible on mobile; and a mood that is dark but hopeful.
