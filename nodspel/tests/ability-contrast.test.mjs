@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {createDashAbility,mountAbility,renderAbilitySlot} from '../abilities.js';
+import {createDashAbility,createBitDistractAbility,mountAbility,renderAbilitySlot} from '../abilities.js';
 const require=createRequire(import.meta.url);
 const {JSDOM}=require('../../node_modules/jsdom');
 
-function setup(t){
-  const dom=new JSDOM('<button id="dash"></button>');
+function setup(t,id='dash'){
+  const dom=new JSDOM(`<button id="${id}"></button>`);
   const previous=globalThis.document;globalThis.document=dom.window.document;
   t.after(()=>{globalThis.document=previous;dom.window.close();});
   return dom.window.document.querySelector('button');
@@ -69,4 +69,32 @@ test('DASH definition can display the active perk-adjusted cooldown',t=>{
   const button=setup(t),round={stats:{dashCooldownMs:2500}},ability=createDashAbility(()=>{},()=>1500);
   mountAbility(button,ability);renderAbilitySlot(button,ability,.5,750,false,round);
   assert.equal(button.querySelector('#dash-fill').style.width,'50%');
+});
+
+test('M42: a second ability slot (#bit-distract) gets its own prefixed ids, not #dash-*, so both can share the HUD',t=>{
+  const button=setup(t,'bit-distract');
+  let activated;const ability=createBitDistractAbility(r=>{activated=r;},18000);
+  mountAbility(button,ability);
+  assert.equal(button.querySelector('use').getAttribute('href'),'ui-icons.svg#nav-bit');
+  assert.equal(button.querySelector('strong').textContent,'BIT');
+  assert.equal(button.querySelector('#bit-distract-time').textContent,'READY');
+  assert.equal(button.querySelector('#dash-time'),null,'must not reuse #dash-time');
+  ability.activate('round');assert.equal(activated,'round');
+  renderAbilitySlot(button,ability,0,9000,false);
+  assert.equal(button.querySelector('#bit-distract-time').textContent,'9.0 s');
+  assert.equal(button.querySelector('#bit-distract-fill').style.width,'50%');
+  renderAbilitySlot(button,ability,1,0,false);
+  assert.equal(button.querySelector('#bit-distract-time').textContent,'READY');
+});
+
+test('M42: #bit-distract sits above #dash with the same circular ability styling, never overlapping it',async()=>{
+  const css=await readFile(new URL('../style.css',import.meta.url),'utf8');
+  const style=css.match(/#bit-distract\{([^}]+)\}/)[1];
+  assert.match(style,/border:2px solid var\(--ad-cyan\)/);
+  assert.match(style,/border-radius:50%/);
+  const dashBottom=Number(css.match(/#dash\{[^}]*bottom:(\d+)px/)[1]);
+  const bitBottom=Number(css.match(/#bit-distract\{[^}]*bottom:(\d+)px/)[1]);
+  const dashHeight=Number(css.match(/#dash\{[^}]*height:(\d+)px/)[1]);
+  assert.ok(bitBottom>=dashBottom+dashHeight,'#bit-distract must sit above #dash, not overlap it');
+  assert.match(css,/#bit-distract-meter\{[^}]*overflow:hidden/);
 });

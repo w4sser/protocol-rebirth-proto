@@ -14,7 +14,7 @@ export function createOperatorFX(scene,{sparkColor,dustColor,tracerColor}){
     p.line.position.set(x,y,z);p.line.material.color.set(color);p.line.material.opacity=1;p.line.visible=true;
     p.line.scale.set(1,1,length/.16);p.line.quaternion.setFromUnitVectors(forward,direction.set(dx,dy,dz).normalize());
   }
-  function sparks(x,z,low=false){for(let i=0;i<(low?2:7);i++){const a=Math.random()*Math.PI*2;emit(x,.7,z,Math.cos(a)*2,Math.random()*2,Math.sin(a)*2,.16,sparkColor,.12);}}
+  function sparks(x,z,low=false,life=.16){for(let i=0;i<(low?2:7);i++){const a=Math.random()*Math.PI*2;emit(x,.7,z,Math.cos(a)*2,Math.random()*2,Math.sin(a)*2,life,sparkColor,.12);}}
   function shot(x,z,dx,dz,low=false){emit(x+dx*.8,.66,z+dz*.8,dx*16,0,dz*16,low?.045:.075,tracerColor,low?.4:.8);}
   function update(dt,{dashing=false,x=0,z=0,low=false}={}){
     dustWait-=dt;
