@@ -64,10 +64,10 @@ A.go("bit"); const ent = d.querySelector(".questentry"); assert(ent, "QUESTS ent
 // hand-in
 d.querySelector("#overlay [data-close]").click();
 A.QUEST_TRACK({ chain:"bunker" }); b.S().chains.bunker.step = 2; b.S().stash.scrap_alloy = 3; b.S().stash.polymer_plate = 1; b.S().fir = {};
-A.questLog("bunker"); log = d.querySelector("#overlay .qlog"); assert(log && ![...log.querySelectorAll(".qact button")].some(x => x.textContent.includes("HAND IN")), "plain copies: no HAND IN, the log stays open");
+A.questLog("bunker"); log = d.querySelector("#overlay .qlog"); assert(log && ![...log.querySelectorAll(".qact button")].some(x => x.textContent.includes("TURN IN")), "plain copies: no TURN IN, the log stays open");
 assert(log.querySelector(".qobj .qt.fir .firmk"), "requirement tiles carry the FIR marker"); assert(log.querySelector(".qfir"), "FIR tag on the quest");
 b.S().fir = { scrap_alloy: 3, polymer_plate: 1 };
-A.questLog("bunker"); assert(d.querySelector("#overlay .handin"), "ready quest opens the HAND IN popup"); assert.equal(d.querySelectorAll("#overlay").length, 1);
+A.questLog("bunker"); assert(d.querySelector("#overlay .handin"), "ready quest opens the TURN IN popup"); assert.equal(d.querySelectorAll("#overlay").length, 1);
 A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(T.chainActive("bunker").id, "B4");
 b.S().chains.bunker.step = 3; b.S().chains.bunker.prog = 0;
 // launch param (bunker raid, tracked fuse quest on L2)
