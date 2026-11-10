@@ -347,9 +347,11 @@ function goalTilesHtml(g){
 function progressionGoalHtml(compact){
   const g=progressionGoal();if(!g)return "";
   const missing=g.parts.filter(p=>p.secured<p.need);
-  if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="Next upgrade: '+esc(g.name)+' L'+g.level+'"><b>GOAL · '+esc(g.name).toUpperCase()+' L'+g.level+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
-  const ctaLabel = isCoreRestoreCta(g.module, g.level) ? 'RESTORE EMERGENCY POWER' : (g.ready?'ACTIVATE':'VIEW UPGRADE');
-  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
+  const restore = isCoreRestoreCta(g.module, g.level);
+  const heading = restore ? "RESTORE EMERGENCY POWER" : (g.name + " L" + g.level);
+  if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
+  const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'ACTIVATE':'VIEW UPGRADE');
+  return '<section class="progress-goal" aria-label="'+esc(heading)+'"><b>'+IC(g.ready?"check":"target")+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
