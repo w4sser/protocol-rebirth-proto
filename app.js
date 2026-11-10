@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.11"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.12"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -756,31 +756,31 @@ function loopPhase(){
   if(!ftueOver()) return null;
   tickPower();
   const v = powerState().value;
-  if(v < BP.warnAt) return { id:"protect", label:"Skydda bunkern", line:"Keep bunker power up" };
-  if(coreLevel() < 3 && chainActive("bunker")) return { id:"wake", label:"Vack Core", line:"Raise the Rebirth Core" };
+  if(v < BP.warnAt) return { id:"protect", label:"Protect the bunker", line:"Keep bunker power up" };
+  if(coreLevel() < 3 && chainActive("bunker")) return { id:"wake", label:"Wake the Core", line:"Raise the Rebirth Core" };
   const next = typeof wmNextTarget === "function" ? wmNextTarget() : null;
-  if(next){ const a = AREA_DEFS[next]; return { id:"zone", label:"Oppna nasta zon", line: a ? ("Unlock " + a.name) : "Open the next zone" }; }
-  if(chainActive("bunker") || chainActive("archipelago")) return { id:"wake", label:"Vack Core", line:"Follow the quest chain" };
-  return { id:"wake", label:"Vack Core", line:"Raise the Rebirth Core" };
+  if(next){ const a = AREA_DEFS[next]; return { id:"zone", label:"Open next zone", line: a ? ("Unlock " + a.name) : "Open the next zone" }; }
+  if(chainActive("bunker") || chainActive("archipelago")) return { id:"wake", label:"Wake the Core", line:"Follow the quest chain" };
+  return { id:"wake", label:"Wake the Core", line:"Raise the Rebirth Core" };
 }
 function powerMeterHtml(){
   if(!powerOnline()) return "";
-  const v = powerValue(), tier = powerTier(), lbl = "Bunkerstrom";
+  const v = powerValue(), tier = powerTier(), lbl = "Bunker Power";
   return '<button type="button" class="cur power-meter ' + tier + '" onclick="A.powerTap()" title="' + lbl + ' ' + v + '/100" aria-label="' + lbl + ' ' + v + ' of 100' + (tier === "warn" ? ". Warning" : tier === "crit" ? ". Critical" : "") + '">' +
     '<i aria-hidden="true">' + IC("power") + '</i><span class="pm-track" aria-hidden="true"><span class="pm-fill" style="width:' + v + '%"></span></span><b>' + v + '</b></button>';
 }
 function powerPopupHtml(){
   tickPower();
   const v = powerValue(), tier = powerTier(), R = BP.reinforce || {}, c = canReinforce(), d = maintainDef();
-  const warn = tier === "warn" ? '<p class="pwr-warn">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Strommen dippar. Forstark vaggarna.</p>' :
+  const warn = tier === "warn" ? '<p class="pwr-warn">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Power is dipping. Reinforce the walls.</p>' :
     tier === "crit" ? '<p class="pwr-warn crit">' + bitImg("bit-power-warning", "bit-power-warning") + IC("warning") + ' Rooms are dark. Core stays lit. Reinforce or hand in Cable.</p>' : "";
   const rein = '<button type="button" class="primary' + (c.ok ? '' : ' off') + '" ' + (c.ok ? 'onclick="A.reinforce()"' : 'disabled') + '>' + IC("stat-shield") + ' REINFORCE · ' + IC("cur-scrap") + ' ' + (R.scrap || 18) + ' · +' + (R.gain || 25) + '</button>' +
     (!c.ok && c.reason === "scrap" ? '<small class="sub">Need more Scrap</small>' : !c.ok && c.reason === "cooldown" ? '<small class="sub">Reinforce cooling down</small>' : !c.ok && c.reason === "full" ? '<small class="sub">Power is full</small>' : '');
   const mReady = d && d.prog >= d.n;
   const maint = d ? '<div class="card small pwr-maint"><b>' + IC("quest") + ' ' + esc(d.title) + '</b><small>' + esc(d.brief) + '</small><div class="qgrow">' +
     Object.keys(d.items).map(id => qTile(ITEMS[id].icon, Math.min(d.items[id], have(id)) + "/" + d.items[id], have(id) >= d.items[id] ? "ok" : "", ITEMS[id].name)).join("") +
-    '</div><button type="button" class="' + (mReady ? "primary" : "ghost") + '"' + (mReady ? ' onclick="A.maintainHandIn()"' : ' disabled') + '>' + (mReady ? "HAND IN · +" + d.energy + " power" : "Need parts") + '</button></div>' : "";
-  return '<div class="bpop pwrpop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("power") + '</span><h1>Bunkerstrom</h1><em>' + v + '/100</em></div>' +
+    '</div><button type="button" class="' + (mReady ? "primary" : "ghost") + '"' + (mReady ? ' onclick="A.maintainHandIn()"' : ' disabled') + '>' + (mReady ? "TURN IN · +" + d.energy + " power" : "Need parts") + '</button></div>' : "";
+  return '<div class="bpop pwrpop"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("power") + '</span><h1>Bunker Power</h1><em>' + v + '/100</em></div>' +
     '<div class="pwr-bar ' + tier + '"><span style="width:' + v + '%"></span></div>' + warn +
     '<p class="sub">Idle drain is mild. Offline almost none. RAID still works when rooms go dark.</p>' + rein + maint + '</div>';
 }
@@ -1331,7 +1331,7 @@ function questLogHtml(tab, sel){
     }).join("");
     body = '<div class="qlist">' + list + '</div><div class="qdet"><div><small>' + esc(ch.name).toUpperCase() + ' · ' + (i + 1) + '/' + ch.steps.length + '</small><h2>' + esc(def.title) + (handinFir(def) ? '<span class="qfir" title="Only items found in a raid count">' + IC("fir") + 'FIR</span>' : '') + '</h2>' + (def.brief ? '<p class="qbrief">' + esc(def.brief) + '</p>' : '') + '</div>' +
       '<div class="qtiles"><div class="qobj' + (state === "lock" ? ' dim' : '') + '">' + chainObjTiles(def, prog, n) + '</div><div class="qrw">' + chainRewardTiles(def.reward) + '</div></div>' +
-      (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + 'HAND IN</button>' : '') +
+      (state === "cur" ? '<div class="qact">' + questRaidBtn(tab, def, chainReady(tab)) + (chainReady(tab) ? '<button type="button" class="primary" onclick="A.handInOpen(\'' + tab + '\',\'log\')">' + IC("check") + turnInLabel(def.reward) + '</button>' : '') +
         '<button type="button" class="qtrack' + (tracked ? ' on' : '') + '" onclick="A.QUEST_TRACK({chain:\'' + tab + '\'})" aria-pressed="' + tracked + '">' + IC(tracked ? "track-on" : "track-off") + (tracked ? 'Tracked' : 'Track') + '</button></div>' : '') + '</div>';
   }
   return '<div class="bpop qlog" data-tab="' + (tab || "") + '"><div class="qwrap"><div class="qtabs">' + tabs + '<button type="button" class="qtabx qchips" onclick="A.chipShop()" aria-label="BIT trader: ' + (S.cur.chips || 0) + ' Contract Chips">' + IC("cur-chip") + '<i class="qn">' + (S.cur.chips || 0) + '</i></button></div>' + body + '</div></div>';
@@ -1352,6 +1352,21 @@ function unlockBits(u){
     out.push(shop ? shop.name : u.cosmetic);
   }
   return out;
+}
+function turnInRewardText(R){
+  if(!R) return "";
+  if(R.chips) return "+" + R.chips + " Chip" + (R.chips > 1 ? "s" : "");
+  if(R.scrap) return "+" + R.scrap + " Scrap";
+  if(R.dataCores) return "+" + R.dataCores + " Data Core" + (R.dataCores > 1 ? "s" : "");
+  if(R.items){ const id = Object.keys(R.items)[0]; return "+" + R.items[id] + " " + ITEMS[id].name; }
+  if(R.tools){ const id = Object.keys(R.tools)[0]; return "+" + R.tools[id] + " " + ITEMS[id].name; }
+  if(R.xp) return "+" + R.xp + " XP";
+  if(R.unlock) return "+Unlock";
+  return "";
+}
+function turnInLabel(R){
+  const extra = turnInRewardText(R);
+  return extra ? ("TURN IN · " + extra) : "TURN IN";
 }
 function questUnlocksText(chain, def){
   if(!def) return "";
@@ -1376,9 +1391,9 @@ function handInHtml(id){
     big((AREA_DEFS[def.area] || {}).iconId || "flag", o.level ? "L" + o.level : "", "area ok", (AREA_DEFS[def.area] || {}).name) + big(qObjIcon(o), o.n + "/" + o.n, "ok", def.title);
   return '<div class="bpop handin" data-chain="' + id + '" data-step="' + def.id + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + IC("quest") + '</span><h1>' + esc(def.title) + '</h1>' +
     '<span class="hi-bit" aria-hidden="true">' + IC("bit-face") + '</span></div>' +
-    '<div class="hi-body"><p class="hi-unlock"><b>UNLOCKAR:</b> ' + esc(questUnlocksText(id, def)) + '</p>' +
+    '<div class="hi-body"><p class="hi-unlock"><b>UNLOCKS:</b> ' + esc(questUnlocksText(id, def)) + '</p>' +
     '<div class="hi-stage"><span class="hi-cheer" aria-hidden="true">' + IC("bit-face") + '</span><div class="hi-req">' + req + '</div><i class="hi-arrow" aria-hidden="true">' + IC("arrow-right") + '</i><div class="hi-rw">' + chainRewardTiles(def.reward, true) + '</div></div></div>' +
-    '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">HAND IN</button></div>';
+    '<button type="button" class="primary big hi-go" onclick="A.QUEST_HANDIN({chain:\'' + id + '\'})">' + turnInLabel(def.reward) + '</button></div>';
 }
 // Opens the popup for a ready step (back = "log" returns to the quest log on close). Returns the overlay or null.
 function handInShow(id, back){

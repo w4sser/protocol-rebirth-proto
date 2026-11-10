@@ -1,4 +1,4 @@
-// v1.79 T1-A: hand-in / quest-complete shows UNLOCKAR: payoff (Wake the Core B1–B8).
+// v1.79 T1-A: hand-in / quest-complete shows UNLOCKS: payoff (Wake the Core B1–B8).
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
 const DATA_FILES = ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js"];
 function boot(save){
@@ -40,7 +40,7 @@ for(const s of bunker){
   assert(a8line.includes("Hard") || a8line.includes("recipe") || a8line.includes("next"), "A8 composed: " + a8line);
 }
 
-// hand-in popup (B3): shared overlay, X top-left, UNLOCKAR primary, chips secondary, no emoji
+// hand-in popup (B3): shared overlay, X top-left, UNLOCKS primary, chips secondary, no emoji
 {
   const b = boot(open), { A, T, d, S } = b;
   S().chains.bunker.step = 2; S().stash = { scrap_alloy:2, polymer_plate:1 }; S().fir = { scrap_alloy:2, polymer_plate:1 };
@@ -53,13 +53,13 @@ for(const s of bunker){
   assert(x, "close X");
   assert.equal(pop.firstElementChild.classList.contains("pop-x") || x === pop.querySelector(".pop-x") || ov.querySelector(".pop-frame > .pop-x"), true);
   const unlock = pop.querySelector(".hi-unlock");
-  assert(unlock, "UNLOCKAR row");
-  assert(unlock.textContent.startsWith("UNLOCKAR:"), unlock.textContent);
+  assert(unlock, "UNLOCKS row");
+  assert(unlock.textContent.startsWith("UNLOCKS:"), unlock.textContent);
   assert(unlock.textContent.includes("Contract Chip") && unlock.textContent.includes("Fuse Box"), unlock.textContent);
   assert(pop.querySelector(".hi-rw"), "chips/XP secondary tiles still present");
   assert.equal(pop.querySelector("h1").textContent, "Spare Parts");
   assert(!/\p{Extended_Pictographic}/u.test(pop.textContent), "no emoji in hand-in popup");
-  // extract-ready B1 also shows UNLOCKAR
+  // extract-ready B1 also shows UNLOCKS
   d.querySelector("#overlay .pop-x").click();
   S().chains.bunker.step = 0; S().chains.bunker.prog = 3; T.session.handInShown = {};
   assert(T.maybeShowHandIn());
@@ -68,11 +68,11 @@ for(const s of bunker){
   assert(d.querySelector("#overlay .handin[data-step='B1']"));
 }
 
-// handInDemo still works and shows UNLOCKAR
+// handInDemo still works and shows UNLOCKS
 {
   const b = boot(open); b.A.handInDemo();
   const u = b.d.querySelector("#overlay .hi-unlock");
-  assert(u && /UNLOCKAR:/.test(u.textContent) && /Fuse Box|Contract Chip/.test(u.textContent), u && u.textContent);
+  assert(u && /UNLOCKS:/.test(u.textContent) && /Fuse Box|Contract Chip/.test(u.textContent), u && u.textContent);
   b.d.querySelector("#overlay .pop-x").click();
   b.A.handInDemo("extract");
   assert(b.d.querySelector("#overlay .hi-unlock").textContent.includes("Guard Duty"));

@@ -64,8 +64,8 @@ assert(d.querySelector("#overlay .pop-x[data-close]") && pop.firstElementChild.c
 assert.equal(pop.querySelectorAll(".hi-req .qt").length, 2, "one tile per required item"); assert(pop.querySelector(".hi-req .qt.fir .firmk"), "FIR marker on requirement tiles");
 assert(pop.querySelector(".hi-req").textContent.includes("2/2") && pop.querySelector(".hi-req").textContent.includes("1/1"), "have/need counts");
 assert(pop.querySelectorAll(".hi-rw .qt").length >= 1, "reward tiles");
-assert(pop.querySelector(".hi-unlock") && pop.querySelector(".hi-unlock").textContent.includes("UNLOCKAR:"), "T1-A UNLOCKAR line");
-const go = pop.querySelector("button.primary.big.hi-go"); assert(go && go.textContent.includes("HAND IN"), "big primary HAND IN");
+assert(pop.querySelector(".hi-unlock") && pop.querySelector(".hi-unlock").textContent.includes("UNLOCKS:"), "T1-A UNLOCKS line");
+const go = pop.querySelector("button.primary.big.hi-go"); assert(go && go.textContent.includes("TURN IN"), "big primary TURN IN");
 assert(!T.maybeShowHandIn(), "not twice per session once shown");
 const chips = S().cur.chips; assert.equal(go.getAttribute("onclick"), "A.QUEST_HANDIN({chain:'bunker'})"); A.QUEST_HANDIN({ chain:"bunker" });
 assert(pop.classList.contains("consuming"), "item tiles animate out"); assert(!pop.classList.contains("paid"));
@@ -86,7 +86,7 @@ assert(S().log.filter(e => e.action === "QUEST_CHAIN_STEP" && e.payload.step ===
   d.querySelector("#overlay .pop-x").click(); assert(!d.getElementById("overlay")); assert.equal(S().chains.bunker.step, 0, "closing does not hand in");
   A.questLog("bunker"); assert(d.querySelector("#overlay .handin"), "opening the quest reopens the popup"); d.querySelector("#overlay .pop-x").click();
   assert(d.querySelector("#overlay .qlog"), "X from the log-opened popup returns to the log");
-  assert(d.querySelector("#overlay .qlog .qact .primary").textContent.includes("HAND IN"), "log detail offers HAND IN");
+  assert(d.querySelector("#overlay .qlog .qact .primary").textContent.includes("TURN IN"), "log detail offers TURN IN");
   A.handInOpen("bunker", "log"); assert(d.querySelector("#overlay .hi-go")); A.QUEST_HANDIN({ chain:"bunker" }); assert.equal(S().chains.bunker.step, 1);
   await sleep(T.HANDIN_MS + 80); d.querySelector("#overlay .hi-go").click();
 
