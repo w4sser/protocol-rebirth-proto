@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.9';
-import {generateBigLevel} from './big-level.js?v=2.28.9';
-import '../data/items.js?v=2.28.9';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.9';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.9-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.9';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.9';
-import '../data/raid-combat.js?v=2.28.9';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.10';
+import {generateBigLevel} from './big-level.js?v=2.28.10';
+import '../data/items.js?v=2.28.10';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.10';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.10-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.10';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.10';
+import '../data/raid-combat.js?v=2.28.10';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,

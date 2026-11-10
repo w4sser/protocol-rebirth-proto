@@ -29,7 +29,10 @@ window.DATA.progression = {
   },
   start:{
     currencies:{ scrap:20, dataCores:0, signals:0, chips:0 },   // Salvage merged into Scrap (v1.35, 1 Salvage = 2 Scrap)
-    stash:{ scrap_alloy:3, medkit:1 }   // Supplied Scrap Alloy powers Core; Cable enters through the first raid. Existing saves keep all items.
+    // D3.10 homecoming: a new profile starts with 1 spare Scrap Alloy; the Core L1 cost (2) is covered by the
+    // guaranteed world pickups in the first FTUE raid (nodspel/ftue.js), not by a bigger starting stash.
+    // Existing saves are never migrated down -- this only shapes freshState() for brand-new profiles.
+    stash:{ scrap_alloy:1, medkit:1 }
   },
   // Operator level: overall player level from total raid XP (core Node Raid + simulated raids).
   // XP to go from level n to n+1 = xpBase + xpStep*(n-1)  ->  L2 at 50, L3 at 125, L4 at 225, L5 at 350, L10 at 1350.
@@ -38,7 +41,7 @@ window.DATA.progression = {
     { id:"tutorial", type:"intro",
       goalText:"Return to the facility",
       introTitle:"PROTOCOL REBIRTH",
-      introText:"You made it out. A damaged drone — BIT — followed you home to a dead facility.\n\nBIT says it doesn't have to stay dead." },
+      introText:"You're late, but you're back.\n\nSomewhere past the dark, the Rebirth Core is still waiting." },
     { id:"core_l1", type:"build", module:"rebirth_core", level:1,
       goalText:"Restore the Rebirth Core — 2× Scrap Alloy (already secured)" },
     { id:"raid_1", type:"raid",
