@@ -89,8 +89,8 @@ def main():
            'All synthesis is local and free. No downloaded samples or sound packs are used.',
            'Original procedural SFX and music are dedicated to the public domain under CC0-1.0 by the project owner.',
            'Generator: `tools/audio/gen-sfx.py`, numpy seed 20261028 with SHA256 per-file seeds.',
-           'The eight existing F1 BIT recordings are preserved; AAC copies use ffmpeg locally.',
-           'BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 16 BIT voice files (eight recordings in Ogg and AAC formats) are our own generated outputs. Copyright © 2026 Robert Wasser. All rights reserved; not licensed for reuse. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.',
+           'The existing F1 BIT recordings are preserved; AAC copies use ffmpeg locally.',
+           'BIT source: `tools/audio/gen-bit-voice.py`, original project text, Kokoro-82M am_fenrir (Apache-2.0 model/voice), kokoro-onnx (MIT runtime). All 18 BIT voice files (nine recordings in Ogg and AAC formats) are our own generated outputs. Copyright © 2026 Robert Wasser. All rights reserved; not licensed for reuse. Apache-2.0 and MIT describe upstream model and runtime provenance, not the license of these recordings.',
            'Provenance: https://huggingface.co/hexgrad/Kokoro-82M and https://github.com/thewh1teagle/kokoro-onnx . See `docs/audio-pipeline.md` for the exact F1 processing.',
            'CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper audition clips ship.','',
            '| File | Source | License/provenance |','|---|---|---|']

@@ -1,5 +1,5 @@
-import '../data/items.js?v=2.28.13';
-import {RULES} from './levels.js?v=2.28.13';
+import '../data/items.js?v=2.28.14';
+import {RULES} from './levels.js?v=2.28.14';
 export const MATERIALS={...globalThis.DATA.currencies,...Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,{name:i.name,icon:i.icon,source:i.source}]))};
 export function readGoal(value){
   if(typeof value!=='string'||value.length>4000)return null;

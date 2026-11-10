@@ -25,7 +25,11 @@
   const greet=()=>{if(!welcome)return;void audio.unlock().then(async ok=>{
     if(!ok||!welcome)return;welcome=false;
     const success=outcome==='extract';void audio.play(success?'extract-success':'death');
-    if(success){void audio.voice('welcome-back');return;}
+    if(success){
+      const intro=(typeof S!=='undefined'&&S&&!S.introSeen)||(typeof session!=='undefined'&&session.screen==='intro');
+      if(intro)void audio.requestVoice('youre-back');else void audio.voice('welcome-back');
+      return;
+    }
     // Integrated raids navigate immediately. Carry their failure cue onto the
     // result screen so navigation cannot cut off BIT's death line.
     await audio.voice('signal-lost');

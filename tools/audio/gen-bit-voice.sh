@@ -13,4 +13,4 @@ fi
 # Make the selected environment available to Kokoro and ffmpeg.
 export PATH="$TTS_VENV/bin:$PATH"
 
-"$TTS_VENV/bin/python3" "$HERE/gen-bit-voice.py"
+"$TTS_VENV/bin/python3" "$HERE/gen-bit-voice.py" "$@"

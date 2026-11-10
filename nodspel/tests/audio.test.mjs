@@ -108,6 +108,64 @@ test('muting during pending VO suppresses it; retry is allowed',async()=>{
   release({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});assert.equal(await voice,false);assert.equal(a.voiceBusy,false);assert.equal(a.context.sources.length,0);
   a.set('muted',false);assert.equal(await a.voice('nice-shot'),true);
 });
+test('requested voices play immediately once, including concurrent renders and later requests',async()=>{
+  const f=fixture(),a=f.audio;await a.unlock();
+  assert.deepEqual(await Promise.all([a.requestVoice('youre-back'),a.requestVoice('youre-back')]),[true,true]);
+  assert.equal(a.context.sources.length,1);
+  a.context.sources[0].stop();f.advance(60000);
+  assert.equal(await a.requestVoice('youre-back'),false);
+  await a.unlock();assert.equal(a.context.sources.length,1);
+});
+
+test('locked voice requests survive to unlock and flush once across concurrent unlocks',async()=>{
+  const a=fixture().audio;
+  assert.equal(await a.requestVoice('youre-back'),false);
+  assert.equal(await a.requestVoice('youre-back'),false);
+  assert.equal(a.context,null);
+  await Promise.all([a.unlock(),a.unlock()]);
+  assert.equal(a.context.sources.length,1);
+  assert.equal(a.pendingVoices.size,0);
+  await a.unlock();await a.requestVoice('youre-back');
+  assert.equal(a.context.sources.length,1);
+});
+
+test('muted requests are consumed without surprise playback after settings change or unlock',async()=>{
+  for(const [key,value] of [['muted',true],['voiceMuted',true],['voice',0],['master',0]]){
+    for(const unlocked of [false,true]){
+      const a=fixture().audio;if(unlocked)await a.unlock();
+      a.set(key,value);assert.equal(await a.requestVoice('youre-back'),false);
+      a.set(key,typeof value==='boolean'?false:1);await a.unlock();
+      assert.equal(await a.requestVoice('youre-back'),false);
+      assert.equal(a.context.sources.length,0);
+    }
+    const a=fixture().audio;await a.requestVoice('youre-back');
+    a.set(key,value);await a.unlock();a.set(key,typeof value==='boolean'?false:1);
+    await a.unlock();assert.equal(await a.requestVoice('youre-back'),false);
+    assert.equal(a.context.sources.length,0);
+  }
+});
+
+test('first homecoming and return gesture share one greeting while ordinary returns keep welcome-back',async()=>{
+  const {JSDOM}=require('../../node_modules/jsdom');
+  for(const intro of [true,false]){
+    const dom=new JSDOM('',{runScripts:'outside-only',url:'http://game/index.html'}),w=dom.window;
+    w.AudioContext=FakeContext;w.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
+    w.eval(`const S={introSeen:${!intro}};const session={screen:'${intro?'intro':'base'}'};`);
+    for(const file of ['data/audio.js','ui/audio.js','ui/base-audio.js'])w.eval(await readFile(new URL('../../'+file,import.meta.url),'utf8'));
+    const a=w.PR_AUDIO;
+    if(intro)await a.requestVoice('youre-back');
+    w.PR_AUDIO_BASE_RETURN('extract');
+    w.document.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));
+    w.document.dispatchEvent(new w.Event('touchend',{bubbles:true}));
+    await new Promise(r=>setTimeout(r,0));
+    assert.equal(a.lastVoice.has(intro?'youre-back':'welcome-back'),true);
+    assert.equal(a.lastVoice.has(intro?'welcome-back':'youre-back'),false);
+    assert.equal(a.lastSfx.has('extract-success'),true);
+    assert.equal(a.context.sources.filter(s=>s.destination.destination===a.buses.voice).length,1);
+    w.dispatchEvent(new w.Event('pagehide'));dom.window.close();
+  }
+});
+
 test('all registered assets have both formats, licensing entries and fit the shipping budget',async()=>{
   const base=new URL('../../assets/audio/',import.meta.url),licenses=(await readFile(new URL('LICENSES.md',base),'utf8'))+'\n'+(await readFile(new URL('../../docs/bunker-theme-audio.md',import.meta.url),'utf8'));
   const files=[...Object.values(config.sfx).map(x=>x.file),...Object.values(config.loops).map(x=>x.file),...config.voices.map(x=>'bit/'+x)];
@@ -125,7 +183,7 @@ test('all registered assets have both formats, licensing entries and fit the shi
   assert.ok(licenses.includes(`Total shipping audio: ${bytes.toLocaleString('en-US')} bytes, ${count} files`));
   assert.match(licenses,/dedicated to the public domain under CC0-1\.0 by the project owner/);
   const bitRows=licenses.split('\n').filter(line=>line.startsWith('| `bit/'));
-  assert.equal(bitRows.length,16);
+  assert.equal(bitRows.length,18);
   for(const row of bitRows)assert.match(row,/\| All rights reserved © Robert Wasser \|$/);
 });
 

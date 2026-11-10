@@ -3,7 +3,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ASSET_DIR="${1:-$HERE/../../assets/audio/bit}"
-LINES=(hunters-inbound scrap-detected heal-budget-low extraction-marked bag-heavy nice-shot signal-lost welcome-back)
+LINES=(hunters-inbound scrap-detected heal-budget-low extraction-marked bag-heavy nice-shot signal-lost welcome-back youre-back)
 rms_db() {
   ffmpeg -hide_banner -nostdin -i "$1" -af "$2,astats" -f null - 2>&1 \
     | awk '/RMS level dB/ {value=$NF} END {if(value == "") exit 1; print value}'

@@ -5,6 +5,7 @@
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
       this.context=null;this.buses={};this.cache=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
+      this.pendingVoices=new Set();this.consumedVoices=new Set();this.requestedVoices=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
       try{this.storage=env.storage===undefined?root.localStorage:env.storage;const saved=JSON.parse(this.storage?.getItem(config.storageKey)||'null');if(saved&&typeof saved==='object')for(const key of Object.keys(this.settings)){if(typeof this.settings[key]==='boolean'){if(typeof saved[key]==='boolean')this.settings[key]=saved[key];}else if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))this.settings[key]=Math.max(0,Math.min(1,saved[key]));}}catch(_){/* Private browsing and bad settings are harmless. */}
       const probe=env.probe; // Web Audio decoding only; no media element is created.
@@ -21,6 +22,7 @@
     async unlock(){
       if(!this.init())return false;
       if(!await this.resume())return false;
+      for(const name of [...this.pendingVoices])await this.requestVoice(name);
       if(this.desiredMusic)await this.loop('music',this.musicName||'pulse',this.musicFade||0);return this.unlocked;
     }
     // Keep prior permission separate: WebKit clears unlocked during interruptions.
@@ -107,6 +109,21 @@
         return true;}catch(_){return false;}
       }
       try{const buffer=await this.load(cue.file);if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return false;const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;}catch(_){return false;}
+    }
+    // One-shot presentation cues survive autoplay lock and deduplicate concurrent renders.
+    async requestVoice(name){
+      if(!this.config.voices.includes(name)||this.consumedVoices.has(name))return false;
+      if(this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0){
+        this.pendingVoices.delete(name);this.consumedVoices.add(name);return false;
+      }
+      if(this.requestedVoices.has(name))return this.requestedVoices.get(name);
+      if(!this.unlocked||this.context?.state!=='running'){this.pendingVoices.add(name);return false;}
+      this.pendingVoices.delete(name);
+      const request=this.voice(name).then(played=>{
+        if(played||this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0)this.consumedVoices.add(name);
+        return played;
+      }).finally(()=>this.requestedVoices.delete(name));
+      this.requestedVoices.set(name,request);return request;
     }
     async voice(name){
       if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked))await this.resume();

@@ -2,8 +2,10 @@
 """Shipping BIT F1 generator: Kokoro am_fenrir only, never an engine fallback.
 
 Run tools/audio/gen-bit-voice.sh. See docs/audio-pipeline.md.
-All eight outputs are staged before publishing to assets/audio/bit.
+Outputs are staged before publishing to assets/audio/bit.
+Pass --only SLUG (or BIT_VOICE_ONLY) to render just that line without touching the others.
 """
+import argparse
 import importlib
 import json
 import os
@@ -29,6 +31,7 @@ LINES = {
     "nice-shot": "Nice shot. | Almost competent. | Keep doing that.",
     "signal-lost": "Signal lost. | A moment of peace. | Stay there. | I am coming.",
     "welcome-back": "Welcome back. | Still alive. | Statistically surprising.",
+    "youre-back": "You're back! | You're late, but you're back!",
 }
 F1 = dict(wet=0.15, delay=0.003, comb=0.10)
 LOUDNORM = "loudnorm=I=-16:TP=-1.5:LRA=11"
@@ -178,7 +181,28 @@ def render(audio, sr, slug, tmp):
     return destination
 
 
+def selected_lines():
+    parser = argparse.ArgumentParser(description="Render shipping BIT F1 voice lines.")
+    parser.add_argument("--only", metavar="SLUG", help="Render only this slug; leave every other clip untouched.")
+    args, _unknown = parser.parse_known_args()
+    only = args.only or os.environ.get("BIT_VOICE_ONLY")
+    if not only:
+        return dict(LINES)
+    if only not in LINES:
+        raise SystemExit(f"unknown BIT voice slug: {only}")
+    return {only: LINES[only]}
+
+
+def encode_m4a(ogg_path):
+    """AAC fallback matching gen-sfx.py's BIT copies (32 kbps, 22050 Hz)."""
+    dest = ogg_path.with_suffix(".m4a")
+    ffmpeg("-i", ogg_path, "-ac", "1", "-ar", "22050", "-c:a", "aac", "-b:a", "32k",
+           "-movflags", "+faststart", dest)
+    return dest
+
+
 def main():
+    lines = selected_lines()
     # Validate imports, models and engine before creating any asset directory.
     if not MODEL.is_file() or not VOICES.is_file():
         raise RuntimeError(f"Kokoro model/voices missing under {MODEL.parent}; refusing to write assets")
@@ -190,7 +214,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="bit-f1-") as directory:
         tmp = Path(directory)
         staged = []
-        for slug, text in LINES.items():
+        for slug, text in lines.items():
             print(f"{slug}: {text}", flush=True)
             parts, sr = [], None
             for phrase in text.split("|"):
@@ -205,11 +229,17 @@ def main():
                 parts.append(phrase_audio)
             audio = np.concatenate(parts)
             staged.append(render(audio, sr, slug, tmp))
-        # No production assets change unless all eight syntheses/encodes succeed.
+        # No production assets change unless every requested synthesis/encode succeeds.
         OUT_DIR.mkdir(parents=True, exist_ok=True)
+        published = []
         for output in staged:
-            shutil.copyfile(output, OUT_DIR / output.name)
-    print("Done: 8 files; speed 0.9; phrase gaps 150 ms; loudnorm -16 LUFS.", flush=True)
+            dest = OUT_DIR / output.name
+            shutil.copyfile(output, dest)
+            published.append(dest)
+            published.append(encode_m4a(dest))
+    print(f"Done: {len(lines)} line(s); speed 0.9; phrase gaps 150 ms; loudnorm -16 LUFS.", flush=True)
+    for path in published:
+        print(path, flush=True)
 
 
 if __name__ == "__main__":

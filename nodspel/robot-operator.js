@@ -1,4 +1,4 @@
-import {animationState} from './operator.js?v=2.28.13';
+import {animationState} from './operator.js?v=2.28.14';
 
 // Procedural presentation for the box-rig robot skin (M38: perceived animation/behavior parity with the
 // human rig, without a shared mesh/rig - "a procedural character may use a different implementation, but
