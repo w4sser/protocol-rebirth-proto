@@ -188,7 +188,7 @@ assert.equal(firstDeploy.routeId, window.DATA.progression.starterRaid.routeId, "
 assert.equal(firstDeploy.riskId, "standard", "first risk stays standard");
 assert(firstDeploy.loadout.includes(window.DATA.progression.starterRaid.loadout.weapon), "first loadout retains its weapon");
 assert(text().includes("EXTRACTED") && text().includes("RAID SECURED"), "result");
-assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card");
+assert(text().includes("READY BACK HOME") || text().includes("CLOSEST UPGRADE") || text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "honest Fabricator progress after first ordinary extract");
 A.backToBase();
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "extract funds but does not auto-activate the room");
 
@@ -196,7 +196,7 @@ A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
 
 assert(doc.querySelector('.room-spot.goal-target[data-room="storage"]'), "Fabricator completion highlights Vault");
-assert(text().includes("Storage / Vault"), "base names the next room goal");
+assert(/Vault/.test((doc.querySelector('.room-spot[data-room="storage"]') || {}).textContent || ""), "base names the next room Vault after Fabricator");
 A.raidForRoom("storage");
 assert(text().includes("Gather repair materials for Storage / Vault"), "raid goal follows the chosen next room instead of the scripted BIT goal");
 A.go("base"); A.track("bit_bay",1);
@@ -207,7 +207,7 @@ assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("pla
 
 // raid_2 + insurance
 A.go("prep");
-assert(text().includes("Insurance") && !text().includes('need 1× Optical Sensor'), "insurance unlocked; completed BIT target is not stale");
+assert(!text().includes("Insurance") && !text().includes('need 1× Optical Sensor'), "insurance removed from prep; completed BIT target is not stale");
 assert.equal(doc.querySelectorAll("#app .lslot:not([disabled])").length, 5, "Fabricator unlocks customizable loadout slots (weapon, armor, 2 items, tool)");
 assert(doc.querySelector("#app .operator-stats .ostats") && doc.querySelector("#app .riskbar"), "compact operator row + gear risk line");
 assert.equal(doc.querySelectorAll("#app .node-raid-launch").length, 1, "one deploy button");
@@ -321,7 +321,7 @@ A.devForce("death");
 A.go("prep"); A.prepSet("insuranceId","premium");
 A.deploy(); A.raidStep();
 assert(text().includes("KIA") && text().includes("RAID LOST"), "death keeps progress");
-assert(text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "one-more-raid card on death");
+assert(text().includes("READY BACK HOME") || text().includes("CLOSEST UPGRADE") || text().includes("NEXT UPGRADE") || text().includes("READY TO BUILD"), "honest next-upgrade card on death");
 A.backToBase();
 
 // --- Agency v0.7: staged checkpoints on a live raid ---

@@ -56,15 +56,17 @@ assert(died > 10, "aggressive can fail: " + died);
 S.beat = 6; S.trackedStreak = 1;
 for(let i=0;i<50;i++) assert(app.resolveRaid({zoneId:"industrial", riskId:"standard", insuranceId:"none", loadout:[], trackedItemId:"optical_sensor"}).loot.includes("optical_sensor"), "pity");
 
-// death economics: insurance, secure slot, never-regress
+// death economics: insurance removed from the core loop (D1.2/D3.10 Decision 2) -- no tier ever
+// recovers an equipped item; only the secure slot and (bond 3+) BIT rescue still apply.
 S = app.freshState(); app._setState(S);
 S.beat = 6; S.modules.rebirth_core = 1; S.modules.storage = 1; S.secureItem = "medkit";
 S.cur.scrap = 50; S.bondXp = 10; S.modules.bit_bay = 1;
-const R = { cfg:{zoneId:"industrial", riskId:"standard", insuranceId:"basic",
+const R = { cfg:{zoneId:"industrial", riskId:"standard", insuranceId:"premium",
   loadout:["basic_carbine","scavenger_vest","medkit"], trackedItemId:null},
   zone:"industrial", outcome:"death", loot:["cable","fuse"], scrap:20, dataCores:3, trackedFound:false };
 app.applyRaidResult(R);
-assert.equal(R.saved.insured.length, 1); assert.equal(R.saved.insured[0], "scavenger_vest", "insurance never wastes a slot on the free carbine");
+assert.equal(R.saved.insured.length, 0, "no tier recovers an equipped item, even premium");
+assert.equal(app.have("basic_carbine"), Infinity, "free carbine retry is never affected by death");
 assert.equal(S.opXp, 4, "death still gives operator XP");
 assert.equal(R.saved.secure, "medkit"); assert.equal(S.cur.scrap, 60, "death keeps half the scrap haul"); assert.equal(S.bondXp, 15);
 assert(S.modules.rebirth_core === 1 && R.progress.length >= 2);

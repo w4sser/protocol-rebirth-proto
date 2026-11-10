@@ -1,10 +1,10 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.28.10';
-import {resultReaction} from './result-bit.js?v=2.28.10';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.10';
-import {extractScrapBonus} from './levels.js?v=2.28.10';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.10';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.10';
+import '../data/bit.js?v=2.28.11';
+import {resultReaction} from './result-bit.js?v=2.28.11';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.11';
+import {extractScrapBonus} from './levels.js?v=2.28.11';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.11';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.11';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
