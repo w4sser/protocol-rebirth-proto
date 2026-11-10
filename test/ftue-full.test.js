@@ -36,7 +36,7 @@ assert.equal(sv().fuel, 4, "raid consumed 1 fuel");
 A.openRoom("fabricator"); A.unlockRoom("fabricator");
 A.go("module","fabricator"); A.build("fabricator");
 let ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? ov.querySelector("[data-close]").click() : doc.defaultView.A.back());
-A.go("prep"); A.devCur(); A.go("prep"); A.prepSet("insuranceId","basic");
+A.go("prep"); A.devCur(); A.go("prep");
 A.deploy(); A.raidStep(); A.backToBase();
 for(const id of ['storage','bit_bay']){const s=window.__TEST_STATE(),m=window.DATA.modules.find(m=>m.id===id),cost=m.levels[0].cost;for(const [key,n] of Object.entries(cost.items||{}))s.stash[key]=Math.max(n,s.stash[key]||0);s.cur.scrap=Math.max(s.cur.scrap,cost.scrap||0);A.openRoom(id);A.unlockRoom(id);}
 A.go("module","bit_bay"); A.build("bit_bay");
@@ -44,7 +44,7 @@ ov = doc.getElementById("overlay"); if(ov) (ov.querySelector("[data-close]") ? o
 A.go("bit");
 assert(doc.querySelector("#overlay .bitpop .bitbond").textContent.includes("Bond LV"), "BIT online");
 A.devForce("extract");
-A.go("prep"); A.prepSet("insuranceId","none"); A.deploy(); A.raidStep();
+A.go("prep"); A.deploy(); A.raidStep();
 if(text().includes("DECISION POINT")) A.extractNow();
 A.backToBase();
 if(sv().beat >= 7){

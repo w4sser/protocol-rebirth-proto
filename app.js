@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.10"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.11"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -436,7 +436,7 @@ function advanceBeat(){
     S.beat++;
     act("BEAT_ADVANCED", { beat: curBeat().id });
     const b = curBeat();
-    if(b.autoTrack){ S.tracked = { module:b.autoTrack.module, level:b.autoTrack.level }; act("TRACK_SET", S.tracked); }
+    if(b.autoTrack && !ftueOver()){ S.tracked = { module:b.autoTrack.module, level:b.autoTrack.level }; act("TRACK_SET", S.tracked); }
   }
 }
 
@@ -1735,11 +1735,8 @@ function applyRaidResult(R){
     act("EXTRACT_COMPLETE", { zone:R.zone, loot:R.loot, scrap:R.scrap, dataCores:R.dataCores, tracked:R.trackedFound });
   } else {
     S.deaths++;
-    // survivors
+    // survivors — insurance removed (D1.2): no equipped item is recovered here regardless of R.cfg.insuranceId.
     R.saved = { insured:[], secure:null, bitRescue:null };
-    const ins = PROG.insurance.tiers.find(t => t.id === R.cfg.insuranceId) || PROG.insurance.tiers[0];
-    const sorted = R.cfg.loadout.filter(id => !isFree(id)).sort((a,b)=>(ITEMS[b].sellValue)-(ITEMS[a].sellValue));
-    for(let i=0;i<ins.recovers && i<sorted.length;i++){ R.saved.insured.push(sorted[i]); addItem(sorted[i],1); }
     if(S.secureItem && R.cfg.loadout.includes(S.secureItem) && !R.saved.insured.includes(S.secureItem)){
       R.saved.secure = S.secureItem; addItem(S.secureItem,1);
     }
@@ -2005,7 +2002,7 @@ const CUR_CONTEXT = { dataCores:["base","module","vendor","craft"], signals:["pr
 const CUR_INFO = {
   scrap:{ name:"Scrap", what:"Main currency: builds, upgrades, crafting and trader buys.", where:"Extract from raids and sell spare loot.", go:"vendor" },
   dataCores:{ name:"Data Cores", what:"Rare build currency for higher module levels.", where:"Data Core loot on deeper levels (L2/L3) and BIT hauls.", go:"base" },
-  signals:{ name:"Signals", what:"Pays for raid insurance in Raid Prep.", where:"Rewards and optional ads.", go:"prep" },
+  signals:{ name:"Signals", what:"Earned from optional ads in Raid Prep.", where:"Rewards and optional ads.", go:"prep" },
   chips:{ name:"Contract Chips", what:"Trade at BIT's chip shop for materials and unlocks.", where:"Finish quest steps.", go:"bit" },
   fuel:{ name:"Fuel", what:"One fuel per deploy.", where:"Refills over time.", go:"prep" }
 };
@@ -2267,11 +2264,12 @@ function closestUpgrade(){
   return best;
 }
 function partName(p){ return p.kind === "item" ? ITEMS[p.id].name : (p.id === "dataCores" ? "Data Cores" : "Scrap"); }
-// FTUE ends once the scripted spine hands the player their first free choice.
-// Before that we teach with strong guidance; after, we stop deciding for them.
+// FTUE ends once the player comes home from their first successful raid (D3.10 Decision 2:
+// shortened from the old choice_upgrade boundary). Before that we teach with strong guidance;
+// after, we stop deciding for them. Dying in raid_1 does not advance S.beat, so it stays false.
 function ftueOver(){
-  const i = PROG.beats.findIndex(b => b.id === "choice_upgrade");
-  return i < 0 || S.beat >= i;
+  const i = PROG.beats.findIndex(b => b.id === "raid_1");
+  return i < 0 || S.beat > i;
 }
 // D3.10: Core L1 is the single homecoming action -- every CTA that would otherwise say BUILD/UPGRADE
 // for it reads RESTORE EMERGENCY POWER instead. Still performs the real build (A.build/openBuilding).
@@ -2827,7 +2825,6 @@ function restoreSavedLoadout(p){
   p.loadoutTouched = true;
 }
 SCREENS.prep = function(){
-  const beat = curBeat();
   ensurePrep();
   if(guidedRaid()) applyStarterRaid();
   const p = session.prep;
@@ -2841,9 +2838,6 @@ SCREENS.prep = function(){
     if(lead) log("TRACKED_ROUTE_RECOMMENDED", { item:miss.itemId, zone:lead.zone.id, route:lead.route.id, chance:lead.label });
     session.routeLogged = true; save();
   }
-  // D3.10: insurance stays hidden in raid prep during early homecoming, before Fabricator L1 exists
-  // (not a core-loop removal -- that's a later PR). raid_2 onward keeps its existing beat-scripted offer.
-  const insOffered = (S.modules.fabricator || 0) >= 1 && (beat.type !== "raid" || beat.insuranceOffered !== false);
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
   const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">' + IC("close") + '</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>' + IC("mission") + ' Mission</h1></div>' +
@@ -2932,19 +2926,8 @@ SCREENS.prep = function(){
   }
   html += '</div>';
 
-  if(insOffered){
-    revealCurrency("signals");
-    html += '<h2>Insurance</h2><div class="radio">';
-    for(const t of PROG.insurance.tiers){
-      html += '<div class="card tap ' + (p.insuranceId===t.id?"selected":"") + '" onclick="A.prepSet(\'insuranceId\',\'' + t.id + '\')"><b>' + t.name + '</b><br>' +
-        '<span class="small">' + (t.cost ? t.desc + "<br>" + t.cost + " Signals" : "free") + '</span></div>';
-    }
-    html += '</div>';
-    const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
-    if(tier.cost > S.cur.signals){
-      html += '<button class="ad" onclick="A.adSignals()">' + IC("play") + ' WATCH AD — +' + PROG.insurance.adSignalsGrant + ' SIGNALS</button>';
-    }
-  }
+  revealCurrency("signals");
+  html += '<button class="ad" onclick="A.adSignals()">' + IC("play") + ' WATCH AD — +' + PROG.insurance.adSignalsGrant + ' SIGNALS</button>';
   const fg = fuelGate();
   if(retMode() === "full"){
     html += '<h2>Fuel</h2><div class="card"><div class="row"><b>' + S.fuel + ' / ' + D.retention.fuel.max + '</b>' +
@@ -3387,7 +3370,6 @@ SCREENS.result = function(){
   } else {
     if(retMode() === "full"){
       if(!R.adRecovered) html += '<button class="ad" onclick="A.adRecover()">' + IC("play") + ' WATCH AD - RECOVER 1 ITEM</button>';
-      if(!R.bagRestored) html += '<button class="ghost" onclick="A.restoreBag()">RESTORE BAG - ' + PROG.recovery.restoreBagSignals + ' SIGNALS (have ' + S.cur.signals + ')</button>';
     }
     if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT - ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
@@ -4601,8 +4583,6 @@ window.A = {
     if(guidedRaid()) applyStarterRaid();
     const p = session.prep;
     if(!p.loadout.weapon) return;
-    const tier = PROG.insurance.tiers.find(t=>t.id===p.insuranceId);
-    if(tier.cost > S.cur.signals) return;
     const fg = fuelGate();
     if(!fg.ok) return;
     if(retMode() === "full"){
@@ -4610,7 +4590,6 @@ window.A = {
       else log("FUEL_SIPHON", {});
     }
     if(session.resultAt){ log("RESULT_TO_DEPLOY", { ms: Date.now() - session.resultAt }); session.resultAt = null; }
-    S.cur.signals -= tier.cost;
     const loadout = ["weapon","armor","c1","c2"].map(k=>p.loadout[k]).filter(Boolean);
     loadout.forEach(id => removeItem(id,1)); // gear leaves the stash
     const miss = trackedMissingItem();
@@ -4690,17 +4669,9 @@ window.A = {
       SCREENS.result();
     });
   },
-  restoreBag(){
-    const R = session.pendingRaid;
-    if(S.cur.signals < PROG.recovery.restoreBagSignals){ toast("Not enough Signals"); return; }
-    S.cur.signals -= PROG.recovery.restoreBagSignals;
-    R.cfg.loadout.forEach(id => { if(!R.saved.insured.includes(id) && id !== R.saved.secure) addItem(id,1); });
-    R.loot.forEach(id => addItem(id,1));
-    R.bagRestored = true; R.adRecovered = true;
-    act("BAG_RESTORED", {}); save();
-    toast("Bag restored");
-    SCREENS.result(); renderCurrencies();
-  },
+  // D1.2: paid bag recovery removed from the core loop. Kept as a no-op (not deleted) so any stale
+  // onclick or save state referencing it cannot spend Signals or restore a lost bag.
+  restoreBag(){ toast("Bag recovery is gone — BIT can't buy it back."); },
   emergencyLoadout(){
     const cost = Math.min(PROG.recovery.cheapLoadoutScrap, S.cur.scrap);
     S.cur.scrap -= cost;
