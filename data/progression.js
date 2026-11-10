@@ -41,7 +41,7 @@ window.DATA.progression = {
     { id:"tutorial", type:"intro",
       goalText:"Return to the facility",
       introTitle:"PROTOCOL REBIRTH",
-      introText:"You're late, but you're back.\n\nSomewhere past the dark, the Rebirth Core is still waiting." },
+      introText:"You're back!\n\nYou're late, but you're back!\n\nSomewhere past the dark, the Rebirth Core is still waiting." },
     { id:"core_l1", type:"build", module:"rebirth_core", level:1,
       goalText:"Restore the Rebirth Core — 2× Scrap Alloy (already secured)" },
     { id:"raid_1", type:"raid",

@@ -23,13 +23,13 @@
       compressor:{threshold:-10,knee:12,ratio:4,attack:.002,release:.08},
       weapons:{carbine:{pitch:1,gain:1},smg:{pitch:1.17,gain:.86},shotgun:{pitch:.78,gain:1.18},rifle:{pitch:.9,gain:1.08}}
     },
-    voiceCooldownMs:60000,voiceCooldowns:{'nice-shot':90000,'signal-lost':15000,'welcome-back':15000},
+    voiceCooldownMs:60000,voiceCooldowns:{'nice-shot':90000,'signal-lost':15000,'welcome-back':15000,'youre-back':15000},
     voiceGain:0.95,killStreak:5,extractCountdownSeconds:10,
     rareTiers:['rare','epic','legendary'],
     weaponClasses:{basic_carbine:'carbine',smg_vector:'smg',shotgun_breach:'shotgun',rifle_marksman:'rifle'},
     enemyTypes:{grunt:'grunt',rusher:'rusher',thrower:'thrower',tank:'tank',turret:'turret',generator:'generator',guard:'tank',sentry:'turret'},
     startTheme:'bunker-theme', // Start screen plays the bunker theme and carries it into the base without restart.
     loops:{pulse:{file:'music/pulse',bus:'music',gain:0.3},'bunker-theme':{file:'music/bunker-theme',bus:'music',gain:0.5}},
-    voices:['hunters-inbound','scrap-detected','heal-budget-low','extraction-marked','bag-heavy','nice-shot','signal-lost','welcome-back'],sfx
+    voices:['hunters-inbound','scrap-detected','heal-budget-low','extraction-marked','bag-heavy','nice-shot','signal-lost','welcome-back','youre-back'],sfx
   };
 })(typeof window!=='undefined'?window:globalThis);

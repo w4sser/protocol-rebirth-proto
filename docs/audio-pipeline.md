@@ -10,7 +10,7 @@ See `docs/design-audio-oct28.md` for layers, VO policy, settings and mixing.
 `/workspace/rostprov/make_f.py`. Kokoro `am_fenrir` at speed `0.9` is the
 only shipping engine/voice. No Piper or Ryan fallback exists in the
 shipping generator or its wrapper. Model files, imports and engine startup
-must succeed before output; all eight clips are staged in a temporary
+must succeed before output; all nine clips are staged in a temporary
 directory and copied to `assets/audio/bit/` only after every render succeeds.
 A missing or broken Kokoro install therefore fails before changing assets.
 
@@ -93,6 +93,11 @@ Cold, deadpan and sarcastic, with care underneath. Slugs stay unchanged;
 | `nice-shot` | Nice shot. \| Almost competent. \| Keep doing that. |
 | `signal-lost` | Signal lost. \| A moment of peace. \| Stay there. \| I am coming. |
 | `welcome-back` | Welcome back. \| Still alive. \| Statistically surprising. |
+| `youre-back` | You're back! \| You're late, but you're back! |
+
+To render only the homecoming greeting without replacing the other recordings:
+`tools/audio/gen-bit-voice.sh --only youre-back` (or `BIT_VOICE_ONLY=youre-back`).
+This stages only that slug and writes its Ogg and AAC copies.
 
 ## Local auditions: non-shipping
 

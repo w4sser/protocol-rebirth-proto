@@ -59,8 +59,15 @@ const html = w => w.document.getElementById("app").innerHTML;
     outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
     extracted:["scrap_alloy","scrap_alloy"], lost:[], endedAt:Date.now(), kitLeft:{ medkit:1 } };
   w.T.ingestRaidResult(result);
+  const voices=[];
+  w.PR_AUDIO={requestVoice:name=>voices.push(name)};
   w.A.go("base");
-  assert(text(w).includes("You're late, but you're back."), "owner's exact greeting line is shown");
+  assert(text(w).includes("You're back!"), "owner's opening greeting is shown");
+  assert(text(w).includes("You're late, but you're back!"), "owner's exact second greeting line is shown");
+  assert.deepEqual([...w.document.querySelectorAll('.intro-lines p')].map(p=>p.textContent),[
+    "You're back!", "You're late, but you're back!", "Somewhere past the dark, the Rebirth Core is still waiting."
+  ], "two spoken lines precede the Core narrative");
+  assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip");
   assert(!text(w).includes("followed you home"), "old 'followed you home' copy is gone");
 
   w.A.dismissIntro();
