@@ -19,7 +19,9 @@ for(const sel of [".hubstate"]){
   const el = doc.querySelector(sel); assert(el, sel + " exists"); assert.equal(pe(el), "none", sel + " must not take taps");
 }
 assert(doc.querySelector('.progress-goal'),'recipe-backed goal visible');
-const spots = [...doc.querySelectorAll(".mapspot")]; assert(spots.length >= 5);
+// D3.10: before Fabricator L1, only Core + raid gate + the Fabricator plate are presented (Bay/Vault/Living
+// Quarters stay hidden so they don't compete as destinations) -- 3 spots, not the post-Fabricator 6.
+const spots = [...doc.querySelectorAll(".mapspot")]; assert(spots.length >= 3);
 for(const s of spots) assert.notEqual(pe(s), "none", "map spots stay tappable");
 const z = el => Number(w.getComputedStyle(el).zIndex);
 assert(z(spots[0]) > z(doc.querySelector(".hubstate")), "map spots sit above the state label");

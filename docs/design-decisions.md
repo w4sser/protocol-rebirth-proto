@@ -5,7 +5,7 @@
 | Document control | Value |
 | --- | --- |
 | Decision owner | Robert Wasser |
-| Last updated | 9 November 2026 |
+| Last updated | 10 November 2026 |
 | Review branch | `docs/game-design-reference-2026-11-06` |
 | Review PR | [PR #201](https://github.com/w4sser/protocol-rebirth-proto/pull/201) - do not merge until the design review is complete |
 | Companion document | [Game Design & Loop Reference](game-design-reference.md) |
@@ -600,6 +600,18 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 **Deferred to tuning/test rather than new strategic votes:** exact first-shot/bunker discovery durations; damage/HP/speed assistance multipliers; helper bark cooldowns; exact staging and wording beyond “You're late, but you're back”; spawn placement and encounter intensity; animations/FX; and action button placement. Validate first-run completion, fail/retry, no-Cable extraction, and full-clear paths on phone.
 
 **Boundary:** All six rules were explicitly approved by Robert on 7 November 2026. Exact pacing, UI, combat values and dialogue beyond the owner's original BIT greeting remain to be implemented and validated. FTUE design is considered closed at the behavioral-contract level; no gameplay code changed as part of the documentation approval.
+
+### D3.10 — Homecoming sequencing, forced-FTUE end point, and hand-in label (OWNER APPROVED, 10 November 2026)
+
+**Owner approved three choices, 10 November 2026, 14:16 Europe/Stockholm.** This entry records all three; only Decision 1 is implemented in this PR (`feat/d3-homecoming`, v2.28.10). Decisions 2 and 3 are approved direction for later PRs — documentation only here, no gameplay/UI code for them lands in this change.
+
+**Decision 1 — Build order (approved option B): homecoming first.** This PR implements the BIT greeting, the earned Core L1 restore, and Fabricator-only next goal (D3.9 rule 3). The **outdoor fight-to-bunker approach** that precedes the cold open (D3.9 rules 1–2: the short authored linear combat approach and the one-door bunker entry) is the next big slice, built in a later PR, not this one. Nothing in this PR assumes the outdoor approach already exists; the cold open still fires the same way it always has (after the first FTUE raid's extraction), it just now says the right thing and spends earned materials.
+
+**Decision 2 — Forced-FTUE end point (approved option A): ends after the first ordinary successful extraction.** Per D3.9 rule 6, compulsory onboarding ends after the **first ordinary successful extraction** plus honest Fabricator-progress/next-goal presentation — not after Fabricator L1, not after every depth is cleared. Per D1.2, insurance and paid bag recovery are removed from the core loop entirely (not just hidden during FTUE). **Implementation is a later PR.** This PR only hides the insurance picker during early homecoming (before Fabricator L1), which is a presentational stopgap, not the D1.2 removal — insurance still exists in the data and reappears from raid_2 onward exactly as before. Do not read the stopgap as satisfying this decision.
+
+**Decision 3 — Hand-in label (approved option B): `TURN IN · +[reward]` with cost/reward preview tiles.** Replace the existing `HAND IN` button label (e.g. `app.js`'s quest hand-in button and the Wall Charge maintain hand-in button, which already reads `HAND IN · +<power> power`) with `TURN IN · +[reward]`, and show tiles previewing both the cost (consumed items) and the reward before the player commits. Also clean up mixed English/Swedish copy in the same popups — e.g. `app.js`'s hand-in popup currently labels unlocked benefits `UNLOCKAR:` (Swedish for "unlocks") — to plain English (`UNLOCKS:`). **Implementation is a later PR.** This PR does not touch HAND IN, TURN IN, or any hand-in copy.
+
+**Boundary:** Decision 1 is implemented and tested in this PR. Decisions 2 and 3 are owner-approved direction, recorded here for the next PRs to implement against; approval of direction is not evidence that the current build already reads `TURN IN` or has removed insurance, and is not authorization to merge those changes under this entry — each still needs its own implementation PR.
 
 ### D3.4 — Validation questions (OPEN)
 
@@ -1816,6 +1828,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-10 | D3.10: Three-part homecoming decision — (1) build homecoming (BIT greeting, earned Core L1, Fabricator-only next goal) before the outdoor fight-to-bunker approach; (2) forced FTUE ends after the first ordinary successful extraction, insurance removed from the core loop per D1; (3) hand-in label becomes `TURN IN · +[reward]` with cost/reward tiles, mixed EN/SV copy cleaned to English | Owner approved 14:16 Europe/Stockholm; Decision 1 implemented in `feat/d3-homecoming` (v2.28.10); Decisions 2 and 3 are approved direction, implementation deferred to later PRs |
 | 2026-11-09 | M42: Player-tapped BIT distract (BIT picks the most immediate threat) flies to one enemy for 2.5 s, chips ~1 HP with a readable never-lethal spark, 18 s cooldown (8 s on no-target); resistant foes 1.2 s; playtest-unlocked without Bay L1 grind; M40 expressions are original-style CRT faces only (no grow/recoil/hop/scale) | Owner approved 21:13 Europe/Stockholm; playtest unlock and resistant mapping are temporary defaults; production Bay L1 gate remains the long-term rule |
 | 2026-11-08 | D1-D.12: Genuinely pre-interruption input in transit may execute once only if origin, validity and authoritative sequence are proven; late packets cannot duplicate/extend holds or change a final raid, and client timestamps alone are insufficient | Owner approved option A; event-order proof, time/tie races, anti-replay, fairness, technical validation and UX open |
 | 2026-11-08 | D1-D.11: Detect actual loss of live control from trustworthy authoritative app/connectivity/input-update signals with bounded tolerance for short ordinary network jitter; then neutralize held commands under D1-D.10 with no safety/extra time | Owner approved option A; exact signals, millisecond thresholds, delayed commands, fairness and UX open |

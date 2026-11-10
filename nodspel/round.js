@@ -1,15 +1,15 @@
-import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.28.9';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.9';
-import {extractAvailable} from './big-level.js?v=2.28.9';
-import {rarityOf} from './rarity.js?v=2.28.9';
-import {audioEvent} from './audio.js?v=2.28.9';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.9';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.28.9';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.9';
-import {emptyBag,bagItems} from './raid.js?v=2.28.9';
-import {traceTargets} from './physics.mjs?v=2.28.9';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.28.9';
-import {createStakesState,heal} from './stakes.js?v=2.28.9';
+import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.28.10';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.10';
+import {extractAvailable} from './big-level.js?v=2.28.10';
+import {rarityOf} from './rarity.js?v=2.28.10';
+import {audioEvent} from './audio.js?v=2.28.10';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.10';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.28.10';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.10';
+import {emptyBag,bagItems} from './raid.js?v=2.28.10';
+import {traceTargets} from './physics.mjs?v=2.28.10';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.28.10';
+import {createStakesState,heal} from './stakes.js?v=2.28.10';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

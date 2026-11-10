@@ -9,7 +9,11 @@ const launchOf=w=>new URL(w.launchURL,'http://localhost/').searchParams;
 const deploy=w=>{w.launchURL=null;w.A.go('prep');w.A.deployNodeRaid();return launchOf(w);};
 
 // (a) goal card tiles
-{const w=boot(),A=w.A,T=w.T,d=w.document;A.dismissIntro();A.build('rebirth_core');A.go('base');
+{const w=boot(),A=w.A,T=w.T,d=w.document;A.dismissIntro();
+ // D3.10: a fresh profile starts with only 1 spare Scrap Alloy; the first FTUE raid (not run by this
+ // walkthrough) is where the other guaranteed Alloy would come from, so Core L1 reads affordable here.
+ T.state().stash.scrap_alloy=(T.state().stash.scrap_alloy||0)+2;
+ A.build('rebirth_core');A.go('base');
  const g=T.progressionGoal(),all=w.DATA.upgradeRewardTiles(g.module,g.level),tiles=T.goalEffectTiles(g);
  assert.equal(g.module,'fabricator');assert(tiles.length>=1&&tiles.length<=3,'max 3 tiles');
  for(const t of tiles)assert(all.some(a=>a.source===t.source&&a.value===t.value&&a.label===t.label&&a.icon===t.icon),'tile comes from upgradeRewardTiles: '+t.source);
@@ -25,7 +29,7 @@ const deploy=w=>{w.launchURL=null;w.A.go('prep');w.A.deployNodeRaid();return lau
 
 // (b) first upgrade payoff
 const key='fabricator:1';
-function toFabricator1(){const w=boot(),A=w.A,T=w.T;A.dismissIntro();A.build('rebirth_core');A.go('base');return w;}
+function toFabricator1(){const w=boot(),A=w.A,T=w.T;A.dismissIntro();T.state().stash.scrap_alloy=(T.state().stash.scrap_alloy||0)+2;A.build('rebirth_core');A.go('base');return w;}
 function fundAndBuild(w,mod){const T=w.T,S=T.state();const next=w.DATA.modules.find(m=>m.id===mod).levels.find(l=>l.level===(S.modules[mod]||0)+1);
   S.cur.scrap+=next.cost.scrap||0;S.cur.dataCores+=next.cost.dataCores||0;for(const id in next.cost.items||{})w.eval(`addItem(${JSON.stringify(id)},${next.cost.items[id]})`);
   w.A.unlockRoom?w.A.unlockRoom(mod):0;if((S.modules[mod]||0)<next.level)w.A.build(mod);}

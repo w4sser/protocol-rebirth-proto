@@ -4,7 +4,11 @@ function boot(save){const w=new JSDOM(fs.readFileSync(root+'/index.html','utf8')
   for(const f of files)w.eval(fs.readFileSync(root+'/data/'+f+'.js','utf8'));
   if(save)w.localStorage.setItem('pr_meta_save',JSON.stringify(save));w.PR_NAVIGATE=u=>w.launchURL=u;
   w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,progressionGoal,finishModuleLevel,ingestRaidResult,session:()=>session};');return w;}
-const w=boot(),A=w.A,T=w.T;A.dismissIntro();A.build('rebirth_core');A.go('base');
+const w=boot(),A=w.A,T=w.T;A.dismissIntro();
+// D3.10: a fresh profile starts with only 1 spare Scrap Alloy; the first FTUE raid (not run by this
+// walkthrough) is where the other guaranteed Alloy would come from, so Core L1 reads affordable here.
+T.state().stash.scrap_alloy=(T.state().stash.scrap_alloy||0)+2;
+A.build('rebirth_core');A.go('base');
 let goal=T.progressionGoal();assert.equal(goal.module,'fabricator');
 assert.deepEqual(Array.from(goal.parts,p=>p.id).sort(),['cable','scrap_alloy']);
 assert(goal.benefit.includes('Vest'),'first funded upgrade previews usable gear');

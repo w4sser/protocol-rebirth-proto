@@ -23,6 +23,9 @@ A.go("dev"); doc.getElementById("devret").value = "full"; A.devRetMode();
 A.go("base");
 assert(!text().includes("Daily contracts"), "contracts hidden during FTUE even in full mode");
 
+// D3.10: a fresh profile starts with only 1 spare Scrap Alloy; the stubbed-out first FTUE raid
+// would have guaranteed 2 more as world pickups, same as production.
+window.__TEST_STATE().stash.scrap_alloy = (window.__TEST_STATE().stash.scrap_alloy || 0) + 2;
 A.go("module","rebirth_core"); A.build("rebirth_core");
 await sleep(5400); (doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
 assert.equal(sv().fuel, 5, "full fuel at start");

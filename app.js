@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.9"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.10"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -348,7 +348,8 @@ function progressionGoalHtml(compact){
   const g=progressionGoal();if(!g)return "";
   const missing=g.parts.filter(p=>p.secured<p.need);
   if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="Next upgrade: '+esc(g.name)+' L'+g.level+'"><b>GOAL · '+esc(g.name).toUpperCase()+' L'+g.level+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
-  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+(g.ready?'ACTIVATE':'VIEW UPGRADE')+'</button></section>';
+  const ctaLabel = isCoreRestoreCta(g.module, g.level) ? 'RESTORE EMERGENCY POWER' : (g.ready?'ACTIVATE':'VIEW UPGRADE');
+  return '<section class="progress-goal" aria-label="Next upgrade"><b>'+IC(g.ready?"check":"target")+' '+esc(g.name)+' L'+g.level+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
@@ -2034,7 +2035,14 @@ function renderCurrencies(){
   // v1.88: BIT Bond moved off the top bar into a level badge on the BIT nav button (renderTabs).
   document.getElementById("currencies").innerHTML = h;
 }
-function navAllowed(id){ return id === "bit" ? bitOnline() : id === "arms" ? baseAllows("navigation", "stash") : baseAllows("navigation", id); }
+// D3.10: Vendor/Shop and Weapons stay hidden until Fabricator L1 -- right after Core, the only
+// reachable tabs are Base, Stash and RAID/prep (plus BIT once Bay L1 is built, unchanged).
+function navAllowed(id){
+  if(id === "bit") return bitOnline();
+  if(id === "vendor") return (S.modules.fabricator || 0) >= 1 && baseAllows("navigation", "vendor");
+  if(id === "arms") return (S.modules.fabricator || 0) >= 1 && baseAllows("navigation", "stash");
+  return baseAllows("navigation", id);
+}
 // v1.94: WEAPONS nav opens the upgrade bench for the weapon you last equipped (free carbine otherwise).
 function armsWeapon(){ const w = S.loadout && S.loadout.weapon; return w && ITEMS[w] && (isFree(w) || have(w) > 0) ? w : PROG.freeWeapon; }
 function ownedWeapons(){ return Object.keys(ITEMS).filter(id => gearKind(id) === "weapon" && (isFree(id) || have(id) > 0)); }
@@ -2263,6 +2271,9 @@ function ftueOver(){
   const i = PROG.beats.findIndex(b => b.id === "choice_upgrade");
   return i < 0 || S.beat >= i;
 }
+// D3.10: Core L1 is the single homecoming action -- every CTA that would otherwise say BUILD/UPGRADE
+// for it reads RESTORE EMERGENCY POWER instead. Still performs the real build (A.build/openBuilding).
+function isCoreRestoreCta(modId, level){ return modId === "rebirth_core" && level === 1; }
 function buildableCount(){
   return D.modules.filter(m => {
     if(!moduleVisible(m.id)) return false;
@@ -2428,7 +2439,10 @@ function goalPillHtml(nextRoom){
     if(!ftueOver() && miss && S.tracked){
       return pill("need", IC("target"), "NEXT UPGRADE · " + esc(MODS[S.tracked.module].name), (miss.need - miss.have) + "× " + ITEMS[miss.itemId].name, "A.go('prep')");
     }
-    if(!ftueOver() && S.tracked && MODS[S.tracked.module]) return pill("ready", IC("build"), "ALL PARTS FOUND", "BUILD " + MODS[S.tracked.module].name.toUpperCase(), "A.openBuilding('" + S.tracked.module + "')");
+    if(!ftueOver() && S.tracked && MODS[S.tracked.module]){
+      const body = isCoreRestoreCta(S.tracked.module, S.tracked.level) ? "RESTORE EMERGENCY POWER" : "BUILD " + MODS[S.tracked.module].name.toUpperCase();
+      return pill("ready", IC("build"), "ALL PARTS FOUND", body, "A.openBuilding('" + S.tracked.module + "')");
+    }
     const ready = ftueOver() ? buildableCount() : 0;
     if(ready > 0) return pill("ready", IC("build"), ready + " UPGRADE" + (ready > 1 ? "S" : "") + " READY", "Tap a glowing room", null);
   }
@@ -2463,10 +2477,10 @@ function baseSheetHtml(spot){
   acts += btn("ghost", IC("chevron-right") + (unlocked ? " OPEN" : " VIEW"), "A.baseAct('open')", (unlocked ? "Open " : "View ") + title);
   const next = mod && unlocked && !bip && nextLevelDef(mod);
   if(next && next.level <= moduleCap(mod) && baseAllows("interactions", mod)){
-    const ok = canAfford(next.cost);
+    const ok = canAfford(next.cost), ctaLabel = isCoreRestoreCta(mod, next.level) ? 'RESTORE EMERGENCY POWER' : 'UPGRADE';
     cost = '<span class="rs-cost' + (ok ? ' ok' : '') + '">' + IC("build") + ' Lv ' + next.level + ': ' + esc(costShort(next.cost)) + '</span>'; // v2.26.1: cost lives in the text column (wraps), never inside a button
-    acts += ok ? btn("primary build-ready", IC("build") + " UPGRADE", "A.build('" + mod + "')", "Upgrade " + title + " to level " + next.level + ": " + costShort(next.cost))
-      : '<button type="button" class="ghost" disabled aria-label="Upgrade needs ' + esc(costShort(next.cost)) + '">' + IC("lock") + ' UPGRADE</button>';
+    acts += ok ? btn("primary build-ready", IC("build") + " " + ctaLabel, "A.build('" + mod + "')", "Upgrade " + title + " to level " + next.level + ": " + costShort(next.cost))
+      : '<button type="button" class="ghost" disabled aria-label="Upgrade needs ' + esc(costShort(next.cost)) + '">' + IC("lock") + ' ' + ctaLabel + '</button>';
   }
   if(mod === "rebirth_core"){ const st = genStored(idleNow()); if(st >= IDLE.generator.minCollect) acts += btn("ghost", IC("cur-scrap") + " COLLECT +" + st, "A.collectScrap()", "Collect " + st + " scrap"); }
   return { title, sub, acts, cost };
@@ -2517,6 +2531,9 @@ SCREENS.base = function(){
   for(const room of BM.rooms){
     const unlocked = roomUnlocked(room.id), previewUnlocked = session.devPlateStage !== null && room.stage <= stage;
     const shownOpen = unlocked || previewUnlocked;
+    // D3.10: before Fabricator L1, only the Fabricator plate is presented as the next destination --
+    // Bay/Vault/Living Quarters don't compete as locked plates on the map until it's built.
+    if(!shownOpen && room.id !== "fabricator" && (S.modules.fabricator || 0) < 1) continue;
     const next=room.destination&&nextLevelDef(room.destination);
     const ready = !shownOpen && roomRequirementMet(room) && (!next||canAfford(next.cost));
     const selectedStyle = S.styles[room.id] && (D.styleOptions[room.id] || []).find(o => o.id === S.styles[room.id]);
@@ -2822,7 +2839,9 @@ SCREENS.prep = function(){
     if(lead) log("TRACKED_ROUTE_RECOMMENDED", { item:miss.itemId, zone:lead.zone.id, route:lead.route.id, chance:lead.label });
     session.routeLogged = true; save();
   }
-  const insOffered = beat.type !== "raid" || beat.insuranceOffered !== false;
+  // D3.10: insurance stays hidden in raid prep during early homecoming, before Fabricator L1 exists
+  // (not a core-loop removal -- that's a later PR). raid_2 onward keeps its existing beat-scripted offer.
+  const insOffered = (S.modules.fabricator || 0) >= 1 && (beat.type !== "raid" || beat.insuranceOffered !== false);
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
   const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">' + IC("close") + '</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>' + IC("mission") + ' Mission</h1></div>' +
@@ -3585,6 +3604,19 @@ function ingestRaidResult(r){
   const stashBefore = Object.assign({}, S.stash);
   const extracted = r.outcome === "extract";
   const added = extracted ? r.extracted.slice() : [];
+  // D3.10 softlock guard: the first FTUE raid guarantees the Core L1 materials as world pickups
+  // (nodspel/ftue.js). If somehow fewer than Core L1 needs came home in THIS raid's own extracted
+  // list, top up the missing count once, as found-in-raid -- never by pulling from or reducing the
+  // existing stash, and never on a later or non-FTUE raid (S.coreLaunch.ftue is set only by
+  // A.startFtueDirect()). Reads the need from the Core L1 def itself, not a hardcoded item id.
+  const ftueLaunch = !!(S.coreLaunch && S.coreLaunch.raidId === r.raidId && S.coreLaunch.ftue);
+  if(extracted && ftueLaunch){
+    const coreL1Items = (MODS.rebirth_core.levels.find(l => l.level === 1).cost.items) || {};
+    for(const id in coreL1Items){
+      const short = coreL1Items[id] - added.filter(x => x === id).length;
+      for(let i = 0; i < short; i++) added.push(id);
+    }
+  }
   if(extracted) markSeenItems(added);
   const currency = {};
   // Currency-sourcing loot (salvage_crate, data_core) converts on the way in; everything else goes to the stash.
@@ -4551,7 +4583,7 @@ window.A = {
     if(kit.medkit) removeItem(PROG.kitItem, kit.medkit);
     if(tool) removeItem(tool.id, tool.n);
     const hard = !intro && hardOn();
-    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea(), hard }; // a free payoff tool is launch-only: never in coreLaunch.tool, so nothing returns to the stash
+    S.coreLaunch = { raidId:l.raidId, gear, stats, weapon, kit, tool, area: raidArea(), hard, ftue }; // a free payoff tool is launch-only: never in coreLaunch.tool, so nothing returns to the stash
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
@@ -5054,7 +5086,7 @@ window.A = {
       }).join("") + '</div>';
       const miss = parts.find(p => p.have < p.need);
       if(next.level > moduleCap(modId)) cta = '<button class="primary big" onclick="A.openBuilding(\'rebirth_core\')">UPGRADE CORE FIRST</button>';
-      else if(!miss) cta = '<button class="primary big" onclick="A.build(\'' + modId + '\')">' + (lvl ? 'UPGRADE' : 'BUILD') + '</button>';
+      else if(!miss) cta = '<button class="primary big" onclick="A.build(\'' + modId + '\')">' + (isCoreRestoreCta(modId, next.level) ? 'RESTORE EMERGENCY POWER' : (lvl ? 'UPGRADE' : 'BUILD')) + '</button>';
       else cta = '<button class="primary big raidcta" onclick="A.raidForModule(\'' + modId + '\')">RAID FOR ' + partIcon(miss) + ' ' + esc(partName(miss)).toUpperCase() + '</button>';
     }
     overlay('<div class="bpop' + (modId === "fabricator" ? ' fabpop' : '') + '" data-module="' + modId + '"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (ROOM_ICONS[modId] || IC("item-crate")) + '</span><h1>' + esc(m.name) + '</h1>' +

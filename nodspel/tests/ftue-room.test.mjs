@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
-import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.9';
-import {RULES} from '../levels.js?v=2.28.9';
-import {applyIntroEncounter} from '../progression-goal.js?v=2.28.9';
-import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.9';
-import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.9';
-import {createCombat,stepCombat} from '../combat.js?v=2.28.9';
-import {traceTargets} from '../physics.mjs?v=2.28.9';
+import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.10';
+import {RULES} from '../levels.js?v=2.28.10';
+import {applyIntroEncounter} from '../progression-goal.js?v=2.28.10';
+import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.10';
+import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.10';
+import {createCombat,stepCombat} from '../combat.js?v=2.28.10';
+import {traceTargets} from '../physics.mjs?v=2.28.10';
 import '../../data/raid-camera.js';
 
 const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
@@ -119,6 +119,35 @@ test('reset wiring reads fresh attempts on every retry and displays the assisted
   for(const n of [0,1,2]){
     const r=createRound('retry',0);initFtueRound(r,{ftue:true},store);assert.equal(r.ftue,FTUE.attempts[n]);
     runInNewContext(bump+';ftueBumpAttempt();',{localStorage:store,FTUE_KEY:'pr_ftue_v1'});
+  }
+});
+
+// D3.10: the first FTUE raid always carries home AT LEAST 2 Scrap Alloy as world pickups, regardless
+// of how much the player already has secured at home (the softlock top-up in app.js only covers the
+// case where the raid itself came up short) and regardless of the guided intro overlay running first.
+// The guided overlay's own optional-cache slot can coincidentally also roll Scrap Alloy -- that's a
+// tolerated bonus (D3.10 #4: extra finds are fine), never fewer than 2.
+test('D3.10: level 1 FTUE guarantees at least 2 collectible Scrap Alloy pickups, any secured amount, intro on or off',()=>{
+  for(const seed of seeds)for(const secured of [0,1,2,3])for(const intro of [false,true]){
+    const r=createRound(seed,0);
+    if(intro)applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
+    initFtueRound(r,{ftue:true},storage(0));
+    const alloy=r.level.lootBoxes.filter(b=>b.item==='scrap_alloy');
+    assert.ok(alloy.length>=2,`${seed} secured=${secured} intro=${intro}: at least 2 alloy pickups, got ${alloy.length}`);
+    for(const b of alloy){
+      assert.equal(b.collected,false,'pickup starts uncollected');
+      assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.z),'pickup has a real position');
+    }
+  }
+});
+// The forced slots (indices 0 and 1) are always Scrap Alloy -- the part this PR's softlock guard relies on.
+test('D3.10: the two forced lootBox slots are always Scrap Alloy',()=>{
+  for(const seed of seeds)for(const secured of [0,1,2,3]){
+    const r=createRound(seed,0);
+    applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
+    initFtueRound(r,{ftue:true},storage(0));
+    assert.equal(r.level.lootBoxes[0].item,'scrap_alloy',`${seed} secured=${secured} slot 0`);
+    assert.equal(r.level.lootBoxes[1].item,'scrap_alloy',`${seed} secured=${secured} slot 1`);
   }
 });
 

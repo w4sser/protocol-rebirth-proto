@@ -60,12 +60,14 @@ assert.equal(doc.getElementById("combat-ammo").textContent, "17 / 18", "firing s
 A.endCombatDemo();
 assert(!doc.querySelector(".combat-launch"), "v2.21.1: no Live Fire entry point in raid prep");
 A.go("base");
-assert(doc.querySelectorAll(".room-spot").length === 4, "four side-room hotspots");
+// D3.10: before Fabricator L1, only the Fabricator plate is presented as the next destination --
+// Bay/Vault/Living Quarters don't compete as locked plates on the map until it's built.
+assert.equal(doc.querySelectorAll(".room-spot").length, 1, "only the Fabricator hotspot before Fabricator L1");
 assert(doc.querySelector(".baseviewer") && doc.querySelector(".baseworld") && doc.querySelector(".baseplate"), "panoramic base viewer");
 assert.equal(doc.querySelector(".baseplate").getAttribute("src"), "assets/production/bunker_plate_00_found.webp", "dormant plate 00 loaded");
 const hs0 = doc.querySelector(".mapspot");
 assert(hs0 && hs0.style.left.includes("%") && hs0.style.top.includes("%"), "hotspots use percent positioning");
-assert.equal(doc.querySelectorAll(".room-spot.locked").length, 4, "four rock-covered rooms start locked");
+assert.equal(doc.querySelectorAll(".room-spot.locked").length, 1, "the one visible room (Fabricator) starts locked");
 const dragTarget = doc.querySelector(".core-spot"), viewer0 = doc.querySelector(".baseviewer");
 let captures = 0;
 viewer0.setPointerCapture = () => { captures++; };
@@ -118,7 +120,9 @@ assert(doc.querySelector(".core-spot .tag em"), "building plate shows its level"
 A.buildingInfo("rebirth_core");
 assert(!doc.getElementById("overlay"), "info closes the popup");
 assert.equal(doc.getElementById("app").className, "s-module", "ⓘ opens Core details");
-// Core L1 boot
+// Core L1 boot -- D3.10: a fresh profile starts with only 1 spare Scrap Alloy; the first FTUE raid
+// (stubbed out above via A.startFtueDirect) guarantees 2 more as world pickups, same as production.
+window.__TEST_STATE().stash.scrap_alloy = (window.__TEST_STATE().stash.scrap_alloy || 0) + 2;
 A.build("rebirth_core");
 await sleep(5400);
 {

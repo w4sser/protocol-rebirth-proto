@@ -5,8 +5,11 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const w = dom.window;
 w.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 for(const s of ["items","modules","bit","raid_zones","recipes","vendors","retention","progression","combat"]) w.eval(fs.readFileSync(path + "/data/" + s + ".js", "utf8"));
-w.eval(fs.readFileSync(path + "/app.js", "utf8"));
+w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.__TEST_STATE=()=>S;");
 w.A.dismissIntro();
+// D3.10: a fresh profile starts with only 1 spare Scrap Alloy; the first FTUE raid (not run by this
+// walkthrough) is where the other guaranteed Alloy would come from, so Core L1 reads affordable here.
+w.__TEST_STATE().stash.scrap_alloy = (w.__TEST_STATE().stash.scrap_alloy || 0) + 2;
 const op = w.document.querySelector("#currencies .oplvl");
 assert(op && op.tagName === "BUTTON", "operator level pill opens the panel");
 assert(/A.go\('operator'\)/.test(op.getAttribute("onclick"))); w.A.go("operator");
