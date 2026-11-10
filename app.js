@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.12"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.13"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -3375,6 +3375,7 @@ SCREENS.checkpoint = function(){
 };
 
 SCREENS.result = function(){
+  document.body.dataset.screen = "result";
   const R = session.pendingRaid;
   $app().setAttribute("class", "s-result " + (R.outcome === "extract" ? "res-ok" : "res-fail"));
   const ledger = simulatedRaidLedger(R);

@@ -3,12 +3,12 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {POLYFORK_CANDIDATES} from './polyfork-catalog.mjs?v=polyfork-catalog1';
-import {polyforkLocalUrl} from './polyfork-local-url.mjs?v=2.28.12';
+import {polyforkLocalUrl} from './polyfork-local-url.mjs?v=2.28.13';
 import {planProfiledDressing} from './polyfork-profiles.mjs?v=profile-v1';
 import {planCoastalLifeDressing} from './polyfork-coastal-life.mjs?v=coastal-life-v1';
 import {planMilitaryRemnantsDressing} from './polyfork-military-remnants.mjs?v=military-remnants-v3';
 import {renderMilitaryArchitecture} from './military-architecture.mjs?v=military-architecture-v2';
-import {propReservations} from './props-placement.mjs?v=2.28.12';
+import {propReservations} from './props-placement.mjs?v=2.28.13';
 const SAMPLE_IDS=[
   'young-pine-0d7695','birch-tree-181b33','tall-pine-tree-ab4108',
   'fern-plant-1559b8','grass-tuft-a40a08','round-bush-cd2ac0',

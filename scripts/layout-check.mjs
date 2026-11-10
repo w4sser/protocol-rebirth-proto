@@ -610,6 +610,56 @@ async function raidSummaryRun([w,h],outcome='extract'){
   await page.close();
 }
 
+// Simulated ordinary extraction after raid_1: distinct from the Node Raid overlay.
+async function metaResultExtractRun([w,h]){
+  const tag=`meta-result-extract ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html',{waitUntil:'load'});await loaderGone(page);
+  await page.evaluate(()=>{A.startFtueDirect=()=>{};(document.getElementById('splash-play')||document.getElementById('splash'))?.click();});
+  await page.waitForFunction(()=>!document.getElementById('splash'));
+  await page.evaluate(()=>{
+    S.introSeen=true;S.raids=1;S.modules.rebirth_core=1;S.baseState='core_habitable';
+    S.beat=PROG.beats.findIndex(b=>b.id==='raid_1');S.tracked={module:'fabricator',level:1};
+    S.stash.scrap_alloy=Math.max(S.stash.scrap_alloy||0,1);
+    A.go('prep');A.deploy();A.raidStep();
+  });
+  await page.waitForSelector('#app.s-result .actionbar button',{visible:true});await settle(800);
+  const issues=await page.evaluate(insets=>{
+    const issues=[],app=document.querySelector('#app.s-result'),summary=app.querySelector('.raid-summary');
+    const rect=el=>el.getBoundingClientRect();
+    const intersects=(a,b)=>a.left<b.right-1&&a.right>b.left+1&&a.top<b.bottom-1&&a.bottom>b.top+1;
+    const visible=el=>{const r=rect(el);return r.width>0&&r.height>0&&r.left>=insets.left-1&&r.right<=innerWidth-insets.right+1&&r.top>=insets.top-1&&r.bottom<=innerHeight-insets.bottom+1;};
+    const uncovered=el=>{const r=rect(el);return [[.1,.1],[.5,.5],[.9,.9]].every(([x,y])=>el.contains(document.elementFromPoint(r.left+r.width*x,r.top+r.height*y)));};
+    const button=app.querySelector('.actionbar button'),br=rect(button);
+    if(!visible(button)||!button.contains(document.elementFromPoint(br.left+br.width/2,br.top+br.height/2)))issues.push('RETURN TO BASE is outside the viewport or covered');
+    const selectors=['.rs-bubble','.rs-xp','.rs-quest','.nextup','.rs-note'];
+    for(const selector of selectors){
+      const el=app.querySelector(selector);
+      if(!el){issues.push(selector+' missing from crowded result');continue;}
+      if(!visible(el)||!uncovered(el))issues.push(selector+' is clipped, outside the safe area or covered');
+      if(intersects(br,rect(el)))issues.push('RETURN TO BASE overlaps '+selector);
+    }
+    const bubble=app.querySelector('.rs-bubble p');
+    if(bubble.scrollHeight>bubble.clientHeight+1)issues.push('BIT speech text is clipped');
+    if(!/Fabricator|READY BACK HOME|CLOSEST UPGRADE/.test(app.querySelector('.nextup')?.textContent||''))issues.push('next upgrade progress text missing');
+    const note=rect(app.querySelector('.rs-note')),sr=rect(summary);
+    if(note.left<sr.left||note.right>sr.right||note.top<sr.top||note.bottom>sr.bottom)issues.push('loot secured note stranded outside summary');
+    const tabs=document.querySelector('#tabs');
+    if(tabs.getClientRects().length&&getComputedStyle(tabs).visibility!=='hidden'){
+      for(const el of [summary,button,...selectors.map(s=>app.querySelector(s)).filter(Boolean)])if(intersects(rect(tabs),rect(el)))issues.push('#tabs overlaps '+el.className);
+    }
+    if(app.scrollHeight>app.clientHeight+1)issues.push('meta result scrolls instead of fitting the viewport');
+    if(document.body.dataset.screen!=='result')issues.push('body screen is stale');
+    return issues;
+  },INSETS);
+  for(const issue of issues)fail(tag,issue);
+  await shot(page,`meta-result-extract-${w}x${h}`);
+  await page.click('#app.s-result .actionbar button');
+  await page.waitForSelector('#app.s-base',{visible:true});
+  if(!await page.$eval('#tabs',el=>el.getClientRects().length>0))fail(tag,'navigation stays hidden after returning to base');
+  await page.close();
+}
+
 // Post-raid EXTRACTED popup: the panel fits the viewport and the primary button is fully visible, even with a long loot list.
 async function extractPopupRun([w,h]){
   const tag=`extract-popup ${w}x${h}`;console.log(tag);
@@ -620,8 +670,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.12');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.12');
+    const {createRound}=await import('./round.js?v=2.28.13');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.13');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -715,6 +765,7 @@ if(!['all','popups','base','raid-bunker','raid-town'].includes(layoutGroup))thro
 const group=name=>layoutGroup==='all'||layoutGroup===name;
 try{
   if(group('popups')){
+  for(const vp of [[844,390],[667,375]])await metaResultExtractRun(vp);
   for(const vp of VIEWPORTS)await pauseMapRun(vp);
   for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
   for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
