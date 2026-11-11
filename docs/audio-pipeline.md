@@ -93,11 +93,47 @@ Cold, deadpan and sarcastic, with care underneath. Slugs stay unchanged;
 | `nice-shot` | Nice shot. \| Almost competent. \| Keep doing that. |
 | `signal-lost` | Signal lost. \| A moment of peace. \| Stay there. \| I am coming. |
 | `welcome-back` | Welcome back. \| Still alive. \| Statistically surprising. |
-| `youre-back` | You're back! \| You're late, but you're back! |
+| `youre-back` | "You're... back?" \| "You're late..." \| "But you're back." |
+
+The on-screen greeting text is unchanged from v2.28.14
+("You're back! You're late, but you're back!"); the three phrases above are
+the performed VO take, not the display copy.
 
 To render only the homecoming greeting without replacing the other recordings:
 `tools/audio/gen-bit-voice.sh --only youre-back` (or `BIT_VOICE_ONLY=youre-back`).
 This stages only that slug and writes its Ogg and AAC copies.
+
+### `youre-back`: special greeting recipe
+
+This slug does not use the `|`-split speed-0.9 pipeline above. It is Robert's
+approved take A with the phrase-1 /k/ fix (both "back"s fully released), and
+`tools/audio/gen-bit-voice.py` special-cases it:
+
+- Three Kokoro `am_fenrir` phrases, `trim=False`: "You're... back?" at speed
+  `0.72` with a +5.0 semitone question-rise over the last 0.34 s of the
+  voiced vowel only (not the /k/ burst); "You're late..." at speed `0.73`,
+  gain −2.0 dB; "But you're back." at speed `0.79`.
+- Phrases 1 and 3 are synthesized with a trailing dummy word ("... Home.")
+  and cut after the 2–4 kHz /k/ burst peak + 85 ms (capped before the dummy
+  word's onset − 55 ms), so the stop release of "back" survives instead of
+  being trimmed away with the dummy word.
+- `keep_release` extends the kept audio through a nearby unvoiced burst (up
+  to ~380 ms past voiced end) instead of snapping back to voiced-end + 70 ms.
+- Perceived pauses are 600 ms then 350 ms, measured speech-body to
+  speech-body (not raw silence between the padded phrases).
+- Same F1 colour (robot pass + C2 resample/highpass/lowpass/tremolo/lowpass
+  chain) but a relaxed gate,
+  `agate=threshold=0.02:ratio=4:attack=8:release=250:range=0.30`. After
+  gating, the final ~400 ms before each of phrase 1 and phrase 3's speech
+  end, and the final ~400 ms of the whole take, are copied back from the
+  ungated signal so the /k/ releases are never clipped by the gate.
+- 100 ms pre-roll, 250 ms clean-zero tail, 50 ms fades inside those pads;
+  25 ms lead, then voice, 20 ms gap, the usual −40 dB 90 ms 560→380 Hz BIT
+  blip, and a 500 ms end pad (vs. 300 ms for the other eight lines). The
+  50 ms tail fade sits inside that end pad, not on the last word.
+- Two-pass `loudnorm=I=-16:TP=-1.5:LRA=11`, four cascaded 3300 Hz lowpasses,
+  mono Vorbis quality 5 at 24000 Hz, then the shared AAC encode. Pitch
+  flattening is skipped for this slug (the rise above is applied manually).
 
 ## Local auditions: non-shipping
 

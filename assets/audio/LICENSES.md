@@ -121,4 +121,4 @@ CC0 dedication: https://creativecommons.org/publicdomain/zero/1.0/ . No Piper au
 | `sfx/ui-tap.m4a` | Original seeded numpy procedural synthesis | CC0-1.0 |
 | `sfx/ui-tap.ogg` | Original seeded numpy procedural synthesis | CC0-1.0 |
 
-Total shipping audio: 693,909 bytes, 110 files (both formats included).
+Total shipping audio: 704,593 bytes, 110 files (both formats included).
