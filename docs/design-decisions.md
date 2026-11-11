@@ -476,9 +476,9 @@ D2.4 is now approved for the quick mode: nodes consistently unlock the forward r
 
 The owner supplied BIT's first greeting, in its slightly sardonic voice:
 
-> **"You're back! You're late, but you're back!"**
+> **"You're… back? You're late… but you're back."**
 
-Robert updated this wording on 2026-11-10.
+Robert updated this wording on 2026-11-10. The on-screen display copy was aligned to match the shipped `youre-back` VO (two lines, typographic ellipsis) on 2026-11-11 (v2.28.16); the spoken performance and the Core narrative line are unchanged.
 
 This line strongly suggests a pre-existing history without requiring a lore dump. The encounter should feel like finding a person/companion and the place to which the operator belongs. The damaged bunker and its restoration stakes can then be introduced naturally.
 
@@ -486,7 +486,7 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 ### D3.2 — Intro mission concludes at the bunker entrance (APPROVED)
 
-**OWNER APPROVAL (6 November 2026):** Reaching and entering the bunker **completes the introductory playable mission and serves as its first successful extraction**. The player then discovers BIT **inside the bunker**, where BIT first speaks: **"You're back! You're late, but you're back!"** (wording updated by Robert on 2026-11-10). The damaged bunker establishes why later raids matter. The **first ordinary raid after this meeting is the first raid undertaken together with BIT**, and is where the regular node-based depth progression, risk/loot choices, and optional return extraction can be taught.
+**OWNER APPROVAL (6 November 2026):** Reaching and entering the bunker **completes the introductory playable mission and serves as its first successful extraction**. The player then discovers BIT **inside the bunker**, where BIT first speaks: **"You're… back? You're late… but you're back."** (wording updated by Robert on 2026-11-10; on-screen display copy aligned to the shipped VO on 2026-11-11, v2.28.16). The damaged bunker establishes why later raids matter. The **first ordinary raid after this meeting is the first raid undertaken together with BIT**, and is where the regular node-based depth progression, risk/loot choices, and optional return extraction can be taught.
 
 **FTUE-specific onboarding exception:** Bunker entry is the intro's bespoke extraction endpoint. It should not automatically be treated as requiring the five-second player-started ordinary extraction procedure (D2.3), or as requiring completion of ordinary node gates. This is a distinct introductory mission flow, not a change to ordinary quick-raids. The precise interaction with the bunker entrance, any intro loot/result settlement, and death/retry behavior remain to be specified explicitly.
 
@@ -509,7 +509,7 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 **Owner-approved sequence (6 November 2026):**
 
 1. During the introductory approach, guarantee **two Scrap Alloy** pickups on the mandatory path, showing their use without requiring a full inventory tutorial. The introduction ends as a special extraction when entering the bunker (D3.2); the two items settle once.
-2. BIT first greets the player inside: **"You're back! You're late, but you're back!"** (wording updated by Robert on 2026-11-10). A short visual beat focuses attention on the damaged Rebirth Core.
+2. BIT first greets the player inside: **"You're… back? You're late… but you're back."** (wording updated by Robert on 2026-11-10; on-screen display copy aligned to the shipped VO on 2026-11-11, v2.28.16). A short visual beat focuses attention on the damaged Rebirth Core.
 3. Offer exactly one contextual action: **RESTORE EMERGENCY POWER — Rebirth Core L1**. Consume the two carried-home Scrap Alloy. This matches the currently configured Core L1 cost: **0 Scrap + 2 Scrap Alloy** (`data/modules.js`).
 4. Show the Core activating, emergency lights starting up, and access to other rooms becoming visibly possible. Avoid forcing the player through a full crafting/menu tutorial.
 5. BIT identifies the **Fabricator** as the next meaningful objective. Its existing L1 requirements are **20 Scrap, 2 Cable, 2 Scrap Alloy**, and its first commissioning reward is a **Scavenger Vest (+25 shield, +1 raid bag slot)** along with basic crafting/preparation. Present Cable as the immediate, legible reason to venture out again, while other requirements can be collected naturally.
@@ -599,7 +599,7 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Implementation and playtest acceptance criteria (derived from approved contract):** After starting, the player can move/shoot without any required explanatory card. The two pickups cannot be permanently missed or duplicated. The player recognizes the bunker entrance, gets an uninterrupted first BIT greeting, spends exactly the earned two alloy, sees an unmistakable change in the home, can explain the first post-home objective, can identify node-forward vs extraction-home separately, and sees accurate banked vs lost inventory after the first regular raid. Every key cue works with audio muted on a small phone viewport.
 
-**Deferred to tuning/test rather than new strategic votes:** exact first-shot/bunker discovery durations; damage/HP/speed assistance multipliers; helper bark cooldowns; exact staging and wording beyond the canonical greeting (updated by Robert on 2026-11-10: “You're back! You're late, but you're back!”); spawn placement and encounter intensity; animations/FX; and action button placement. Validate first-run completion, fail/retry, no-Cable extraction, and full-clear paths on phone.
+**Deferred to tuning/test rather than new strategic votes:** exact first-shot/bunker discovery durations; damage/HP/speed assistance multipliers; helper bark cooldowns; exact staging and wording beyond the canonical greeting (updated by Robert on 2026-11-10: “You're… back? You're late… but you're back.”; on-screen display copy aligned to the shipped VO on 2026-11-11, v2.28.16); spawn placement and encounter intensity; animations/FX; and action button placement. Validate first-run completion, fail/retry, no-Cable extraction, and full-clear paths on phone.
 
 **Boundary:** All six rules were explicitly approved by Robert on 7 November 2026. Exact pacing, UI, combat values and dialogue beyond the owner's original BIT greeting remain to be implemented and validated. FTUE design is considered closed at the behavioral-contract level; no gameplay code changed as part of the documentation approval.
 
@@ -607,7 +607,7 @@ This line strongly suggests a pre-existing history without requiring a lore dump
 
 **Owner approved three choices, 10 November 2026, 14:16 Europe/Stockholm.** This entry records all three. Decision 1 shipped in `feat/d3-homecoming` (v2.28.10). Decision 2 shipped in `feat/d3-ftue-end` (v2.28.11). Decision 3 is implemented in this PR (`feat/d3-turn-in`, v2.28.12).
 
-**Decision 1 — Build order (approved option B): homecoming first.** The BIT greeting wording was updated by Robert on 2026-11-10 to **"You're back! You're late, but you're back!"**, voiced as `youre-back`. This PR implements the BIT greeting, the earned Core L1 restore, and Fabricator-only next goal (D3.9 rule 3). The **outdoor fight-to-bunker approach** that precedes the cold open (D3.9 rules 1–2: the short authored linear combat approach and the one-door bunker entry) is the next big slice, built in a later PR, not this one. Nothing in this PR assumes the outdoor approach already exists; the cold open still fires the same way it always has (after the first FTUE raid's extraction), it just now says the right thing and spends earned materials.
+**Decision 1 — Build order (approved option B): homecoming first.** The BIT greeting wording was updated by Robert on 2026-11-10 to **"You're… back? You're late… but you're back."**, voiced as `youre-back`. The on-screen display copy was aligned to match the shipped VO on 2026-11-11 (v2.28.16). This PR implements the BIT greeting, the earned Core L1 restore, and Fabricator-only next goal (D3.9 rule 3). The **outdoor fight-to-bunker approach** that precedes the cold open (D3.9 rules 1–2: the short authored linear combat approach and the one-door bunker entry) is the next big slice, built in a later PR, not this one. Nothing in this PR assumes the outdoor approach already exists; the cold open still fires the same way it always has (after the first FTUE raid's extraction), it just now says the right thing and spends earned materials.
 
 **Decision 2 — Forced-FTUE end point (approved option A): ends after the first ordinary successful extraction.** Per D3.9 rule 6, compulsory onboarding ends after the **first ordinary successful extraction** plus honest Fabricator-progress/next-goal presentation — not after Fabricator L1, not after every depth is cleared. `ftueOver()` is now true once the beat advances past `raid_1` (the first ordinary extract calls `advanceBeat()` before the result screen, so that screen already uses the honest post-FTUE Fabricator card). The intro/FTUE raid and a death on `raid_1` leave forced FTUE on. Per D1.2, insurance and paid bag recovery are removed from the core loop entirely: the raid-prep Insurance picker is gone, death settlement never recovers equipped items via an insurance tier (the Vault Secure Slot is unchanged), and RESTORE BAG is a no-op. WATCH AD → Signals stays as a standalone control on full raid prep. Existing stashes are never reduced; players already past `raid_1` become `ftueOver` immediately. **Implemented in this PR (`feat/d3-ftue-end`, v2.28.11).**
 
@@ -1830,6 +1830,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-11 | On-screen D3 greeting display copy aligned with the youre-back VO: "You're… back?" / "You're late… but you're back." (typographic ellipsis); teal Core narrative and ENTER THE FACILITY unchanged | Robert approved; v2.28.16 |
 | 2026-11-11 | Warmer `youre-back` greeting VO (take A) with both "back"s fully released; generator special-cases the greeting recipe; display copy unchanged from v2.28.14 | Robert approved take A + phrase-1 /k/ fix; v2.28.15 |
 | 2026-11-10 | D3 greeting wording updated to "You're back! You're late, but you're back!"; dedicated `youre-back` VO, preserving the Core narrative | Robert's wording update; v2.28.14 |
 | 2026-11-10 | D3.10: Three-part homecoming decision — (1) build homecoming (BIT greeting, earned Core L1, Fabricator-only next goal) before the outdoor fight-to-bunker approach; (2) forced FTUE ends after the first ordinary successful extraction, insurance removed from the core loop per D1; (3) hand-in label becomes `TURN IN · +[reward]` with cost/reward tiles, mixed EN/SV copy cleaned to English | Owner approved 14:16 Europe/Stockholm; Decision 1 shipped in `feat/d3-homecoming` (v2.28.10); Decision 2 implemented in `feat/d3-ftue-end` (v2.28.11); Decision 3 implemented in `feat/d3-turn-in` (v2.28.12) |

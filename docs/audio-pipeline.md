@@ -95,9 +95,11 @@ Cold, deadpan and sarcastic, with care underneath. Slugs stay unchanged;
 | `welcome-back` | Welcome back. \| Still alive. \| Statistically surprising. |
 | `youre-back` | "You're... back?" \| "You're late..." \| "But you're back." |
 
-The on-screen greeting text is unchanged from v2.28.14
-("You're back! You're late, but you're back!"); the three phrases above are
-the performed VO take, not the display copy.
+As of v2.28.16, the on-screen greeting text matches the VO in two display
+lines: "You're… back?" then "You're late… but you're back." (VO phrases 2+3
+combined, with lowercase "but" and a period, typographic ellipsis). The three
+phrases above remain the performed VO take/recipe; only the display copy
+changed to track it.
 
 To render only the homecoming greeting without replacing the other recordings:
 `tools/audio/gen-bit-voice.sh --only youre-back` (or `BIT_VOICE_ONLY=youre-back`).
