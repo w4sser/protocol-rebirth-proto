@@ -1,13 +1,13 @@
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.18';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.18';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.19';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.19';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.18';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.18';
-import {buildTown} from './town.js?v=2.28.18';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.18';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.18-coast-v10-timber-v1-military-visual2';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.18';
-import {controlCablePath} from './control-cables.js?v=2.28.18';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.19';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.19';
+import {buildTown} from './town.js?v=2.28.19';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.19';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.19-coast-v10-timber-v1-military-visual2';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.19';
+import {controlCablePath} from './control-cables.js?v=2.28.19';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));

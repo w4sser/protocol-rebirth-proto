@@ -1830,6 +1830,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-12 | Core L1 restore is one tap from the goal chip (`A.build`), with a visible CSS lighting-up of the bunker (existing filters/overlays only; plate_00 art is unchanged) and a compact payoff (POWER RESTORED / NEW BENEFIT / ENTER) that fits 844×390 and 667×375 | Playtest fix for v2.28.16; v2.28.19 |
 | 2026-11-12 | Loud, always-visible **READY TO BUILD** primary button on the Node Raid / simulated result screen and on the collapsed base goal chip when Fabricator L1 is affordable; click opens the Fabricator building sheet and does not auto-spend. The collapsed-chip CSS (`#app.s-base .progress-goal:not(.open)`) no longer hides this CTA. | Playtest fix for v2.28.16; v2.28.18 |
 | 2026-11-12 | Fabricator remains the only goal until built, past `ftueOver()`: no Power Trace swap-in before Fabricator L1 exists; the Node Raid and simulated result screens show honest Fabricator part progress instead; Power Trace (Wake the Core B1) now opens only after Fabricator L1 is built, not at FTUE end | Playtest fix for v2.28.16; v2.28.17 |
 | 2026-11-11 | On-screen D3 greeting display copy aligned with the youre-back VO: "You're… back?" / "You're late… but you're back." (typographic ellipsis); teal Core narrative and ENTER THE FACILITY unchanged | Robert approved; v2.28.16 |

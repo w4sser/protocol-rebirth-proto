@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.18"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.19"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -349,12 +349,14 @@ function progressionGoalHtml(compact){
   const missing=g.parts.filter(p=>p.secured<p.need);
   const restore = isCoreRestoreCta(g.module, g.level);
   const heading = restore ? "RESTORE EMERGENCY POWER" : (g.name + " L" + g.level);
-  if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
-  // v2.28.18: a ready (non-restore) goal gets a loud READY TO BUILD button that stays visible
-  // even while the chip is collapsed (.rtb is the CSS escape hatch -- see #app.s-base .progress-goal:not(.open)).
+  // v2.28.19: Core L1 restore is one tap (A.build), and the chip must not show a check icon before the
+  // restore is committed. Other ready goals still use the v2.28.18 READY TO BUILD chip.
+  const ctaFn = (restore && g.ready) ? 'A.build' : 'A.openBuilding';
+  if(compact) return '<button type="button" class="progress-goal compact" onclick="'+ctaFn+'(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+(restore?IC("power")+' RESTORE':IC("check")+' READY')+'</span>')+'</div></button>';
   const loud = g.ready && !restore;
   const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'READY TO BUILD':'VIEW UPGRADE');
-  return '<section class="progress-goal'+(loud?' rtb-goal':'')+'" aria-label="'+esc(heading)+'"><b>'+IC(g.ready?"check":"target")+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+(loud?' rtb':'')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
+  const icon = restore ? 'power' : (g.ready?'check':'target');
+  return '<section class="progress-goal'+(loud?' rtb-goal':'')+(restore?' core-restore':'')+'" aria-label="'+esc(heading)+'"><b>'+IC(icon)+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+((loud||(restore&&g.ready))?' rtb':'')+'" onclick="'+ctaFn+'(\''+g.module+'\')">'+ctaLabel+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
@@ -1909,30 +1911,21 @@ if(typeof window !== "undefined" && window.addEventListener){
 }
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
 function bootSequence(next, done){
-  const lines = ["> emergency power detected",
-                 "> rerouting grid . . .",
-                 "> core temperature nominal",
-                 "> lighting: sector A . . . ok",
-                 "> CORE ONLINE"];
-  const o = overlay('<div class="boot" id="bootseq"></div>', done, null, { noClose:true });
-  lines.forEach((l,i)=> setTimeout(()=>{
-    const el = document.getElementById("bootseq");
-    if(el) el.innerHTML += '<div>' + esc(l) + '</div>';
-  }, 500 + i*750));
-  setTimeout(()=>{
-    const el = document.getElementById("bootseq");
-    if(!el) return;
-    document.body.classList.remove("base-dark");
-    let dust = '<div class="dustwrap">';
-    for(let i=0;i<10;i++) dust += '<i style="left:' + (5+Math.random()*90) + '%;animation-delay:' + (Math.random()*0.9) + 's"></i>';
-    dust += '</div>';
-    el.innerHTML += '<div class="bootflash">' + IC("power") + ' POWER RESTORED</div>' + dust +
-      '<p style="margin:12px 0;font-size:13px;color:var(--txt)">' + esc(next.unlockText) + '</p>' +
-      '<p class="small" style="margin-bottom:8px">BIT: lights. i missed lights.</p>' +
-      '<div class="card" style="text-align:left"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
-      '<div class="card" style="text-align:left"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal) + '</div>' +
-      '<button class="primary" data-close>ENTER THE FACILITY</button>';
-  }, 500 + lines.length*750 + 300);
+  // v2.28.19: compact semi-transparent payoff over the bunker so the CSS lighting-up is visible
+  // and POWER RESTORED / NEW BENEFIT / NEW GOAL / ENTER all fit at 844x390 and 667x375.
+  document.body.classList.remove("base-dark");
+  const o = overlay(
+    '<div class="boot boot-compact" id="bootseq">' +
+      '<div class="bootflash">' + IC("power") + ' POWER RESTORED</div>' +
+      '<p class="boot-unlock">' + esc(next.unlockText || "") + '</p>' +
+      '<p class="small boot-bit">BIT: lights. i missed lights.</p>' +
+      '<div class="boot-pay">' +
+        '<div class="card"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
+        '<div class="card"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal || "") + '</div>' +
+      '</div>' +
+      '<button class="primary" data-close>ENTER THE FACILITY</button>' +
+    '</div>',
+    done, "boot-ov", { noClose:true });
   return o;
 }
 
@@ -4451,7 +4444,11 @@ window.A = {
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
     if(isLightsOn){
       save();
-      bootSequence(next, finish);
+      // v2.28.19: show the habitable bunker and play the wake lighting before the payoff,
+      // so the player sees the room light up under the compact overlay (not after ENTER).
+      session.wake = true;
+      A.go("base");
+      bootSequence(next, () => { bitDock("module_built"); });
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }

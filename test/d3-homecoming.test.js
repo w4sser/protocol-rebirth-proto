@@ -75,10 +75,19 @@ const html = w => w.document.getElementById("app").innerHTML;
   assert.equal(w.T.state().stash.scrap_alloy, 3, "1 start + 2 guaranteed FTUE finds = enough for Core L1");
   w.A.go("base");
   assert(html(w).includes("RESTORE EMERGENCY POWER"), "CTA reads RESTORE EMERGENCY POWER, not generic BUILD/ACTIVATE");
+  const restoreBtn = [...w.document.querySelectorAll(".progress-goal button")].find(b => /RESTORE EMERGENCY POWER/.test(b.textContent));
+  assert(restoreBtn, "RESTORE EMERGENCY POWER is a button on the goal chip");
+  assert(/A\.build\(/.test(restoreBtn.getAttribute("onclick") || ""), "v2.28.19: one tap calls A.build, not A.openBuilding: " + restoreBtn.getAttribute("onclick"));
+  assert(!/A\.openBuilding/.test(restoreBtn.getAttribute("onclick") || ""), "goal chip does not detour through the building popup");
+  const restoreHead = w.document.querySelector(".progress-goal > b");
+  assert(restoreHead && !/#check/.test(restoreHead.innerHTML) && !/✓/.test(restoreHead.textContent || ""),
+    "goal chip does not show a check before Core L1 is committed: " + (restoreHead && restoreHead.innerHTML));
 
   // 4) After building Core L1: Fabricator is the only next goal, Bay/Vault plates are not in the DOM,
   // and Vendor/Weapons are not offered as nav yet.
   w.A.build("rebirth_core");
+  assert.equal(w.T.state().modules.rebirth_core, 1, "one A.build commits Core L1");
+  assert.equal(w.T.state().baseState, "core_habitable", "base state becomes core_habitable on that same call");
   w.A.go("base");
   assert.equal(w.T.progressionGoal().module, "fabricator", "Fabricator is the only next goal after Core");
   assert(!/data-room="storage"/.test(html(w)), "Vault plate hidden until Fabricator L1");
