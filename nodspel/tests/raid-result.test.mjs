@@ -91,3 +91,13 @@ test('armor launch durability is clamped separately from other shield sources',(
   assert.equal(readLaunch('?armorShield=Infinity').armorShield,null);
   assert.equal(readLaunch('?armorShield=999').armorShield,100);
 });
+
+test('FTUE intro raids persist launch.ftue on the stored result so the base can greet first',()=>{
+  const r=createRound('rr-ftue',0);
+  assert.equal(extractLevel(r,'scrap_alloy',1),'next');
+  assert.ok(extractRound(r,5));
+  const withFtue=buildRaidResult(r,{launch:{seed:'rr-ftue',raidId:'meta-ftue',ftue:true}});
+  assert.equal(withFtue.ftue,true);
+  const without=buildRaidResult(r,{launch:{seed:'rr-ftue',raidId:'meta-ftue'}});
+  assert.equal(without.ftue,undefined,'ordinary launches do not grow a ftue field');
+});

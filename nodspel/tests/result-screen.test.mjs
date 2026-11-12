@@ -119,3 +119,19 @@ test('BIT follows context priorities and avoids repeating the previous line acro
     const close=raid();close.bag={cable:2};close.health=1;extractRound(close,10000);assert.equal(resultView(close).reaction.trigger,'close');
   }finally{if(previous)Object.defineProperty(globalThis,'localStorage',previous);else delete globalThis.localStorage;}
 });
+
+test('D3.1: FTUE intro extract has no BIT result-screen comment; ordinary extracts still do',()=>{
+  const r=raid();extractRound(r,10000);
+  const ftue=resultView(r,{launch:{...launch,ftue:true}});
+  assert.equal(ftue.reaction,null,'BIT is silent until the bunker greeting');
+  const ordinary=resultView(r,{launch});
+  assert.ok(ordinary.reaction && ordinary.reaction.line,'ordinary raids still get a BIT reaction');
+  const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));
+  const previous=globalThis.document;globalThis.document=dom.window.document;
+  try{
+    const root=document.querySelector('#round-over');
+    renderResult(root,ftue);
+    assert(root.querySelector('#result-bit-line').hidden,'#result-bit-line stays hidden on the FTUE result');
+    assert.equal(root.querySelector('#result-bit-line').textContent,'');
+  }finally{globalThis.document=previous;dom.window.close();}
+});

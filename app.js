@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.19"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.20"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -4074,6 +4074,8 @@ function simulatedRaidLedger(R){
     lost, areaNotes:R.progress || [], stashBefore:R.stashBefore || {} };
 }
 function pickRaidReaction(r, res){
+  // D3.1 / D3.10: BIT does not comment on the FTUE intro-raid result. The first speech is the bunker greeting.
+  if(r && r.ftue) return null;
   const B = D.bitSummary;
   // Older isolated test harnesses may load only the original data tables.
   if(!B) return { trigger:"generic", mood:"sarcastic", line:"Inventory updated." };
@@ -4195,9 +4197,12 @@ function raidSummaryHtml(r, res, reaction, label, opts){
 
   const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
 
-  return '<section class="raid-summary" data-trigger="' + reaction.trigger + '" data-outcome="' + esc(r.outcome) + '">' +
+  const bitBlock = reaction
+    ? '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div>'
+    : '';
+  return '<section class="raid-summary" data-trigger="' + (reaction ? reaction.trigger : 'silent') + '" data-outcome="' + esc(r.outcome) + '">' +
     '<div class="rs-left"><header class="rs-title"><h1 class="' + (ext ? 'ok' : 'bad') + '">' + titleWord + '</h1><p class="rs-sub">' + sub + '</p></header>' +
-      '<div class="rs-bit">' + bitImg('bit-summary-' + reaction.mood,'summary-portrait') + '<div class="rs-bubble"><p>' + esc(reaction.line) + '</p></div></div></div>' +
+      bitBlock + '</div>' +
     '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
       '<div class="loot-grid" tabindex="0" role="region" aria-label="Raid loot, scroll for all items">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
       gearHtml + xpHtml + questHtml + hintHtml + '</div>' +
@@ -4258,6 +4263,13 @@ function finishRaid(){
       '<p class="small">BIT: ' + esc(bitLine("bond_up")) + '</p>' +
       '<button class="primary" data-close>NICE</button>');
   }
+}
+
+function showHomecomingSummary(ingest){
+  if(!ingest || !ingest.ok) return;
+  window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome);
+  overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
 }
 
 /* ---------- actions ---------- */
@@ -4412,6 +4424,12 @@ window.A = {
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
     A.go("base");
+    // Greeting first (D3.1): the deferred FTUE extract summary lands after "You're late…".
+    if(session.pendingHomecomingSummary){
+      const ing = session.pendingHomecomingSummary;
+      session.pendingHomecomingSummary = null;
+      showHomecomingSummary(ing);
+    }
   },
   track(modId, level){
     if(S.tracked && S.tracked.module === modId && S.tracked.level === level){ S.tracked = null; act("TRACK_CLEARED",{}); }
@@ -5612,9 +5630,10 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.ok){
-    window.PR_AUDIO_BASE_RETURN?.(coreIngest.raid.outcome);
-    overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(coreIngest.raid, coreIngest, coreIngest.reaction, "Node Raid") +
-      '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
+    // D3.1: on the FTUE intro return the greeting is the first BIT speech. Defer the Node Raid
+    // summary (and any BIT comment — already stripped when raid.ftue) until the greeting is dismissed.
+    if(S.introSeen || !coreIngest.raid.ftue) showHomecomingSummary(coreIngest);
+    else session.pendingHomecomingSummary = coreIngest;
   }
   if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();
   if(S.introSeen){
