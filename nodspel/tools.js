@@ -1,8 +1,8 @@
 // Toolkit (grenade / EMP / decoy): pure logic on round + level state, no DOM. Config lives in RULES.tools (levels.js).
 // One tool per raid (?tool=id:n). Throws land instantly (no bounce); the grenade then waits out its fuse.
-import {RULES} from './levels.js?v=2.28.18';
-import {aimEndpoint} from './physics.mjs?v=2.28.18';
-import {hitEnemy} from './round.js?v=2.28.18';
+import {RULES} from './levels.js?v=2.28.19';
+import {aimEndpoint} from './physics.mjs?v=2.28.19';
+import {hitEnemy} from './round.js?v=2.28.19';
 
 const PULSE_SHOW_MS=600;
 const alive=e=>e.health>0&&e.active!==false;
