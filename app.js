@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.16"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.17"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -325,7 +325,7 @@ function nextAccessRoom(){
 // One recipe-backed target. Existing post-onboarding manual tracking is retained.
 function progressionGoal(){
   let id = coreLevel() < 1 ? "rebirth_core" : (D.baseMap.rooms.find(r => r.destination && !(S.modules[r.destination] > 0)) || {}).destination;
-  if(ftueOver() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
+  if(ftueOver() && !fabricatorPending() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
   const m=MODS[id], next=m && nextLevelDef(id); if(!next) return null;
   const parts=costParts(next.cost).filter(p=>p.kind==='item'||p.have<p.need).map(p=>({id:p.id,kind:p.kind==='cur'?'currency':'item',name:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).name,icon:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).icon,need:p.need,secured:p.have}));
   const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
@@ -1168,7 +1168,7 @@ function questsOpen(){ return !!QD && bitOnline() && ftueOver(); }
 function dailyReadyCount(){ return questsOpen() ? questState().list.filter(q => q.done && !q.claimed).length : 0; }
 // ---- quest chains (v1.70): data in DATA.questChains, state S.chains[id] = { step, prog } ----
 const QC = D.questChains || {};
-function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() : areaUnlocked(id)); }
+function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() && !fabricatorPending() : areaUnlocked(id)); }
 function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.chains[id] = { step:0, prog:0 }); }
 function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
 function chainStepN(def){ return def.objective.n; }
@@ -1421,9 +1421,10 @@ function handInPlay(pop){
     bitDock("quest_handin");
   }, HANDIN_MS);
 }
-// Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE.
+// Tracked quest replaces the upgrade goal card on the base screen (same slot / component); never during the FTUE,
+// and never while the Fabricator is unbuilt -- it stays the only goal (D3.9 rules 3/6, v2.28.17).
 function trackedGoalHtml(){
-  if(!ftueOver()) return "";
+  if(!ftueOver() || fabricatorPending()) return "";
   const t = trackedQuest(); if(!t) return "";
   const o = t.step.objective, phase = loopPhase(), ready = t.maintain ? maintainReady() : chainReady(t.chain);
   const click = t.maintain ? 'A.powerTap()' : 'A.questLog(\'' + t.chain + '\')';
@@ -2287,6 +2288,14 @@ function ftueOver(){
   const i = PROG.beats.findIndex(b => b.id === "raid_1");
   return i < 0 || S.beat > i;
 }
+// v2.28.17: D3.9 rules 3/6 -- the Fabricator stays the only goal, past ftueOver(), until it is actually built.
+function fabricatorPending(){ return (S.modules.fabricator || 0) < 1; }
+function fabricatorNextDef(){ return nextLevelDef("fabricator"); }
+function fabricatorReady(){ const next = fabricatorNextDef(); return !!next && canAfford(next.cost); }
+function fabricatorPartsHtml(){
+  const next = fabricatorNextDef(); if(!next) return "";
+  return '<div class="chips">' + costParts(next.cost).map(p => '<span class="chip ' + (p.have >= p.need ? 'ok' : 'need') + '">' + partIcon(p) + esc(partName(p)) + ' ' + Math.min(p.have, p.need) + '/' + p.need + '</span>').join('') + '</div>';
+}
 // D3.10: Core L1 is the single homecoming action -- every CTA that would otherwise say BUILD/UPGRADE
 // for it reads RESTORE EMERGENCY POWER instead. Still performs the real build (A.build/openBuilding).
 function isCoreRestoreCta(modId, level){ return modId === "rebirth_core" && level === 1; }
@@ -2298,6 +2307,13 @@ function buildableCount(){
   }).length;
 }
 function nextUpgradeHtml(){
+  // D3.9 rules 3/6: the Fabricator stays the one named goal, even past ftueOver(), until it is built --
+  // honest part progress or "ready back home", never the generic closest-upgrade card that hides its name.
+  if(ftueOver() && fabricatorPending()){
+    const ready = fabricatorReady();
+    return '<div class="nextup"><div class="nu-head">' + (ready ? IC("check") + ' FABRICATOR L1 READY BACK HOME' : 'FABRICATOR L1 PROGRESS') + '</div>' +
+      '<b>Fabricator</b>' + fabricatorPartsHtml() + '</div>';
+  }
   const c = closestUpgrade();
   if(!c) return "";
   // Post-FTUE: report progress, but don't hand-pick the upgrade or offer the
@@ -4163,8 +4179,11 @@ function raidSummaryHtml(r, res, reaction, label){
     '<span class="qbar"><i style="width:' + Math.min(100, Math.round(tq.prog / tq.n * 100)) + '%"></i></span></div>' +
     '<b class="rs-quest-n">' + tq.prog + '/' + tq.n + '</b></div>' : '';
 
-  const fabNext = roomUnlocked("fabricator") ? nextLevelDef("fabricator") : null;
-  const hintHtml = fabNext && canAfford(fabNext.cost) ? '<div class="rs-hint">' + IC("build") + ' Fabricator upgrade available</div>' : '';
+  // D3.9 rules 3/6: while Fabricator L1 is unbuilt, the result screen shows its honest part
+  // progress instead of Power Trace / a generic hint -- not gated on roomUnlocked("fabricator").
+  const hintHtml = fabricatorPending() ? '<div class="rs-quest">' + IC("build") +
+    '<div class="rs-quest-body"><b>Fabricator L1</b>' + fabricatorPartsHtml() + '</div>' +
+    (fabricatorReady() ? '<b class="rs-quest-n">' + IC("check") + ' Ready</b>' : '') + '</div>' : '';
 
   const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
 

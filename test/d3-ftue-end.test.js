@@ -14,7 +14,7 @@ function boot(seedSave){
   if(seedSave) w.localStorage.setItem("pr_meta_save", JSON.stringify(seedSave));
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
-  w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,ftueOver,ingestRaidResult,applyRaidResult,nextUpgradeHtml,have};");
+  w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,ftueOver,ingestRaidResult,applyRaidResult,nextUpgradeHtml,have,fabricatorPending,chainActive,chainState,trackedQuest,trackedGoalHtml,progressionGoalHtml,raidSummaryHtml,pickRaidReaction};");
   w.A.startFtueDirect = () => {};
   return w;
 }
@@ -86,7 +86,8 @@ function afterCoreOnRaid1(w){
   assert.equal(w.T.ftueOver(), true, "any successful raid_1 extract ends FTUE");
   assert.equal(S.modules.fabricator, 0);
   const card = w.T.nextUpgradeHtml();
-  assert(card.includes("CLOSEST UPGRADE"), "missing Fabricator parts show closest-upgrade progress");
+  assert(card.includes("FABRICATOR"), "missing Fabricator parts still name the Fabricator, not a generic closest-upgrade card");
+  assert(!card.includes("READY BACK HOME"), "does not claim Fabricator L1 is complete when parts are short");
   assert(!card.includes("READY TO BUILD"), "does not claim Fabricator L1 is complete when parts are short");
   assert(!card.includes("ONE MORE RAID"), "does not force another scripted raid");
 }
@@ -163,6 +164,79 @@ function afterCoreOnRaid1(w){
   w.A.raidStep();
   assert(!text(w).includes("RESTORE BAG"), "paid bag recovery is gone from the death result");
   assert.equal(w.T.ftueOver(), false, "forced death on raid_1 still leaves FTUE on");
+}
+
+// 9) v2.28.17: after the first ordinary extract, Fabricator still unbuilt -- the Fabricator stays
+//    the only goal (D3.9 rules 3/6, D3.10 Decision 2). Power Trace does not open or count the cable.
+{
+  const w = boot(null);
+  const S = afterCoreOnRaid1(w);
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"fab-short", outcome:"extract",
+    area:"bunker", levelsCleared:1, extracted:["cable"], lost:[], killsByType:{} };
+  const res = w.T.ingestRaidResult(r);
+  assert.equal(w.T.ftueOver(), true, "first ordinary extract ends forced FTUE");
+  assert.equal(w.T.fabricatorPending(), true, "Fabricator L1 is still unbuilt");
+  assert.equal(w.T.chainActive("bunker"), null, "Power Trace is not available before Fabricator L1");
+  assert.equal(w.T.chainState("bunker").prog, 0, "the raid's cable is not credited to Power Trace");
+  assert.equal(w.T.trackedGoalHtml(), "", "no tracked-quest card replaces the Fabricator goal");
+  const goalHtml = w.T.progressionGoalHtml();
+  assert(/Fabricator/.test(goalHtml) && /L1/.test(goalHtml), "goal card names Fabricator L1: " + goalHtml);
+  assert(!/Power Trace/.test(goalHtml), "goal card never promotes Power Trace: " + goalHtml);
+  // short on parts: the result screen is honest about it, no READY / complete claim
+  const reaction = w.T.pickRaidReaction(r, res);
+  const summary = w.T.raidSummaryHtml(r, res, reaction, "Node Raid");
+  assert(/Fabricator/.test(summary), "result screen names Fabricator L1: " + summary);
+  assert(!/Power Trace/.test(summary), "result screen never shows Power Trace before Fabricator L1: " + summary);
+  assert(!/READY/.test(summary.toUpperCase().replace(/ALREADY/g, "")), "short parts are not shown as ready: " + summary);
+}
+
+// 10) When guaranteed raid_1 drops cover the full Fabricator L1 cost, the result screen may say so
+//     honestly -- but Fabricator L1 is never auto-built.
+{
+  const w = boot(null);
+  const S = afterCoreOnRaid1(w);
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"fab-ready", outcome:"extract",
+    area:"bunker", levelsCleared:1, extracted:["cable","cable","scrap_alloy"], lost:[], killsByType:{} };
+  const res = w.T.ingestRaidResult(r);
+  assert.equal(S.modules.fabricator, 0, "Fabricator L1 is not auto-built even when parts are covered");
+  assert.equal(w.T.have("cable"), 2); assert.equal(w.T.have("scrap_alloy"), 2);
+  const reaction = w.T.pickRaidReaction(r, res);
+  const summary = w.T.raidSummaryHtml(r, res, reaction, "Node Raid");
+  assert(/Fabricator/.test(summary), "ready result still names Fabricator: " + summary);
+  assert(!/Power Trace/.test(summary), "ready result still never shows Power Trace: " + summary);
+  assert(/Ready/i.test(summary), "parts fully secured reads as ready: " + summary);
+
+  // Building Fabricator L1 now opens Power Trace -- but does not retroactively count the earlier cable.
+  w.A.build("fabricator");
+  assert.equal(S.modules.fabricator, 1, "Fabricator L1 builds normally once parts are secured");
+  assert(w.T.chainActive("bunker"), "Power Trace opens once Fabricator L1 exists");
+  assert.equal(w.T.chainState("bunker").prog, 0, "cable extracted before Fabricator existed is not retroactively counted");
+  const tq = w.T.trackedQuest();
+  assert(tq && tq.chain === "bunker" && tq.step.id === "B1", "Power Trace becomes the tracked quest after Fabricator L1");
+}
+
+// 11) Existing save: ftueOver, Fabricator unbuilt, stash already holds items -- stash is never
+//     reduced and the goal stays Fabricator (not Power Trace), consistent with test 6 above.
+{
+  const seed = boot(null);
+  const S0 = seed.T.state();
+  S0.introSeen = true;
+  S0.stash.scrap_alloy = 5;
+  S0.stash.cable = 3;
+  S0.modules.rebirth_core = 1;
+  S0.modules.fabricator = 0;
+  S0.baseState = "core_habitable";
+  S0.beat = beatOf(seed, "fabricator_l1");
+  const w = boot(JSON.parse(JSON.stringify(S0)));
+  assert.equal(w.T.ftueOver(), true);
+  assert.equal(w.T.fabricatorPending(), true);
+  assert.equal(w.T.state().stash.scrap_alloy, 5, "stash is never reduced just by viewing the goal");
+  assert.equal(w.T.state().stash.cable, 3);
+  assert.equal(w.T.trackedGoalHtml(), "");
+  const goalHtml = w.T.progressionGoalHtml();
+  assert(/Fabricator/.test(goalHtml), "existing ftueOver save still shows Fabricator as the goal: " + goalHtml);
+  assert(!/Power Trace/.test(goalHtml));
+  assert.equal(w.T.chainActive("bunker"), null, "Power Trace stays closed until Fabricator L1 is built");
 }
 
 console.log("D3.10 FTUE-END TEST PASSED");
