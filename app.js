@@ -3401,7 +3401,7 @@ SCREENS.result = function(){
   $app().setAttribute("class", "s-result " + (R.outcome === "extract" ? "res-ok" : "res-fail"));
   const ledger = simulatedRaidLedger(R);
   R.reaction = R.reaction || pickRaidReaction(R, ledger);
-  let html = raidSummaryHtml(R, ledger, R.reaction, ZONES[R.zone].name);
+  let html = raidSummaryHtml(R, ledger, R.reaction, ZONES[R.zone].name, {omitCta:true});
   if(R.outcome === "extract"){
     if(!R.doubled && retMode() === "full") html += '<button class="ad" onclick="A.adDouble()">' + IC("play") + ' WATCH AD - 2x HAUL</button>';
   } else {
@@ -3411,9 +3411,10 @@ SCREENS.result = function(){
     if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT - ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
   // PRB-10/46 (owner 14 Oct): RETURN TO BASE is the pinned primary; the base itself shows what can be built.
-  // v2.28.18: while Fabricator L1 is unbuilt, raidSummaryHtml already carries part progress and the
-  // READY TO BUILD button -- skip the duplicate nextup card so the result still fits 844x390 / 667x375.
-  if(!fabricatorPending()) html += nextUpgradeHtml();
+  // v2.28.18: the simulated result keeps .nextup (layout-check) with the loud READY TO BUILD when
+  // Fabricator is ready. The Node Raid overlay uses raidSummaryHtml's trailing CTA instead; omitCta
+  // above avoids stacking both.
+  html += nextUpgradeHtml();
   html += '<div class="actionbar"><button class="primary" onclick="A.backToBase()">RETURN TO BASE</button></div>';
   $app().innerHTML = html;
 };
@@ -4124,7 +4125,7 @@ function raidLootGridHtml(entries, emptyLabel){
     (e.cls === 'saved' ? '<span class="saved-tag">SAVED</span>' : e.rare ? '<span class="rare-tag">RARE FIND</span>' : (e.gear ? '<span class="gear-tag">GEAR RETURNED</span>' : '')) + e.icon +
     '<div class="loot-card-row"><span>' + esc(e.name) + '</span><b>x' + e.qty + '</b></div></div>').join('');
 }
-function raidSummaryHtml(r, res, reaction, label){
+function raidSummaryHtml(r, res, reaction, label, opts){
   const ext = r.outcome === "extract", gained = {}, lost = {};
   const count = (map, id, n) => { if(ITEMS[id] && n > 0 && !isFree(id)) map[id] = (map[id] || 0) + n; };
   (res.added || []).forEach(id => { if(ITEMS[id] && !ITEMS[id].grantsCurrency && !ITEMS[id].scouts) count(gained,id,1); });
@@ -4207,7 +4208,7 @@ function raidSummaryHtml(r, res, reaction, label){
     '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
       '<div class="loot-grid" tabindex="0" role="region" aria-label="Raid loot, scroll for all items">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
       gearHtml + xpHtml + questHtml + hintHtml + '</div>' +
-    noteHtml + '</section>' + rtbHtml;
+    noteHtml + '</section>' + ((opts && opts.omitCta) ? '' : rtbHtml);
 }
 
 function coreResultSummary(r, res){
