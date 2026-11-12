@@ -72,7 +72,7 @@ function afterCoreOnRaid1(w){
   assert.equal(w.T.ftueOver(), true, "first ordinary extract ends forced FTUE");
   assert.equal(S.modules.fabricator, 0, "Fabricator L1 is not required / not auto-built");
   const body = text(w);
-  assert(body.includes("READY BACK HOME") || body.includes("CLOSEST UPGRADE"), "result uses honest post-FTUE Fabricator progress, not the forced ONE MORE RAID card");
+  assert(body.includes("READY TO BUILD") || body.includes("READY BACK HOME") || body.includes("FABRICATOR") || body.includes("CLOSEST UPGRADE"), "result uses honest post-FTUE Fabricator progress, not the forced ONE MORE RAID card");
   assert(!body.includes("ONE MORE RAID"), "post-FTUE result does not force another raid");
 }
 
@@ -188,6 +188,8 @@ function afterCoreOnRaid1(w){
   assert(/Fabricator/.test(summary), "result screen names Fabricator L1: " + summary);
   assert(!/Power Trace/.test(summary), "result screen never shows Power Trace before Fabricator L1: " + summary);
   assert(!/READY/.test(summary.toUpperCase().replace(/ALREADY/g, "")), "short parts are not shown as ready: " + summary);
+  assert(!/READY TO BUILD/.test(summary), "short parts result has no READY TO BUILD button: " + summary);
+  assert(!/<button[^>]*rtb[^>]*>/.test(goalHtml), "short parts goal chip has no loud READY TO BUILD CTA: " + goalHtml);
 }
 
 // 10) When guaranteed raid_1 drops cover the full Fabricator L1 cost, the result screen may say so
@@ -205,6 +207,14 @@ function afterCoreOnRaid1(w){
   assert(/Fabricator/.test(summary), "ready result still names Fabricator: " + summary);
   assert(!/Power Trace/.test(summary), "ready result still never shows Power Trace: " + summary);
   assert(/Ready/i.test(summary), "parts fully secured reads as ready: " + summary);
+  assert(/<button[^>]*>(?:(?!<\/button>)[\s\S])*READY TO BUILD(?:(?!<\/button>)[\s\S])*<\/button>/.test(summary),
+    "ready result shows a loud READY TO BUILD button, not just quiet text: " + summary);
+
+  // The base goal chip is equally loud while collapsed: a READY TO BUILD button with a class
+  // that survives #app.s-base .progress-goal:not(.open) (v2.28.18).
+  const goalHtml = w.T.progressionGoalHtml();
+  assert(/READY TO BUILD/.test(goalHtml), "ready goal chip shows READY TO BUILD: " + goalHtml);
+  assert(/<button[^>]*\brtb\b[^>]*>/.test(goalHtml), "ready CTA carries the .rtb class that stays visible collapsed: " + goalHtml);
 
   // Building Fabricator L1 now opens Power Trace -- but does not retroactively count the earlier cable.
   w.A.build("fabricator");

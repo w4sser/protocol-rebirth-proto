@@ -3,7 +3,7 @@
 // never-lethal spark. Presentation/state only -- it never imports combat.js/weapon.js; it reuses the
 // same enemy.lureTarget/lureUntil fields combat.js already walks for tool decoys (nodspel/tools.js), so
 // a distracted enemy turns, stops firing and its existing visor/label feedback just works.
-import {RULES} from './levels.js?v=2.28.17';
+import {RULES} from './levels.js?v=2.28.18';
 // Fire the zap once BIT is this close to its target, or this long after activation -- whichever first.
 // Small presentation constants, not raid tuning, so they live here rather than in RULES.bit.distract.
 const ZAP_RANGE=2.2,ZAP_DELAY_MS=350;

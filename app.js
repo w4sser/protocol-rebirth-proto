@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.17"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.18"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -350,8 +350,11 @@ function progressionGoalHtml(compact){
   const restore = isCoreRestoreCta(g.module, g.level);
   const heading = restore ? "RESTORE EMERGENCY POWER" : (g.name + " L" + g.level);
   if(compact) return '<button type="button" class="progress-goal compact" onclick="A.openBuilding(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+IC("check")+' READY</span>')+'</div></button>';
-  const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'ACTIVATE':'VIEW UPGRADE');
-  return '<section class="progress-goal" aria-label="'+esc(heading)+'"><b>'+IC(g.ready?"check":"target")+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
+  // v2.28.18: a ready (non-restore) goal gets a loud READY TO BUILD button that stays visible
+  // even while the chip is collapsed (.rtb is the CSS escape hatch -- see #app.s-base .progress-goal:not(.open)).
+  const loud = g.ready && !restore;
+  const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'READY TO BUILD':'VIEW UPGRADE');
+  return '<section class="progress-goal'+(loud?' rtb-goal':'')+'" aria-label="'+esc(heading)+'"><b>'+IC(g.ready?"check":"target")+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+(loud?' rtb':'')+'" onclick="A.openBuilding(\''+g.module+'\')">'+ctaLabel+'</button></section>';
 }
 function guidedRaid(){ return (S.modules[PROG.raidPrepUnlockModule] || 0) < 1; }
 function applyStarterRaid(){
@@ -2311,8 +2314,9 @@ function nextUpgradeHtml(){
   // honest part progress or "ready back home", never the generic closest-upgrade card that hides its name.
   if(ftueOver() && fabricatorPending()){
     const ready = fabricatorReady();
-    return '<div class="nextup"><div class="nu-head">' + (ready ? IC("check") + ' FABRICATOR L1 READY BACK HOME' : 'FABRICATOR L1 PROGRESS') + '</div>' +
-      '<b>Fabricator</b>' + fabricatorPartsHtml() + '</div>';
+    return '<div class="nextup' + (ready ? ' nextup-rtb' : '') + '"><div class="nu-head">' + (ready ? IC("check") + ' FABRICATOR L1 READY BACK HOME' : 'FABRICATOR L1 PROGRESS') + '</div>' +
+      '<b>Fabricator</b>' + fabricatorPartsHtml() +
+      (ready ? '<button type="button" class="primary rtb-btn" onclick="A.goReadyToBuild(\'fabricator\')">' + IC("build") + ' READY TO BUILD</button>' : '') + '</div>';
   }
   const c = closestUpgrade();
   if(!c) return "";
@@ -3407,7 +3411,9 @@ SCREENS.result = function(){
     if(!have(PROG.freeWeapon)) html += '<button class="ghost" onclick="A.cheapLoadout()">CHEAP RECOVERY LOADOUT - ' + PROG.recovery.cheapLoadoutScrap + ' SCRAP</button>';
   }
   // PRB-10/46 (owner 14 Oct): RETURN TO BASE is the pinned primary; the base itself shows what can be built.
-  html += nextUpgradeHtml();
+  // v2.28.18: while Fabricator L1 is unbuilt, raidSummaryHtml already carries part progress and the
+  // READY TO BUILD button -- skip the duplicate nextup card so the result still fits 844x390 / 667x375.
+  if(!fabricatorPending()) html += nextUpgradeHtml();
   html += '<div class="actionbar"><button class="primary" onclick="A.backToBase()">RETURN TO BASE</button></div>';
   $app().innerHTML = html;
 };
@@ -4181,9 +4187,17 @@ function raidSummaryHtml(r, res, reaction, label){
 
   // D3.9 rules 3/6: while Fabricator L1 is unbuilt, the result screen shows its honest part
   // progress instead of Power Trace / a generic hint -- not gated on roomUnlocked("fabricator").
+  // v2.28.18: once affordable, the quiet "Ready" label becomes a loud READY TO BUILD button --
+  // playtest found the quiet state left players unsure anything was actionable.
   const hintHtml = fabricatorPending() ? '<div class="rs-quest">' + IC("build") +
-    '<div class="rs-quest-body"><b>Fabricator L1</b>' + fabricatorPartsHtml() + '</div>' +
-    (fabricatorReady() ? '<b class="rs-quest-n">' + IC("check") + ' Ready</b>' : '') + '</div>' : '';
+    '<div class="rs-quest-body"><b>Fabricator L1</b>' + fabricatorPartsHtml() + '</div></div>' : '';
+
+  // v2.28.18: loud READY TO BUILD sits AFTER the summary section, not inside overflow:hidden
+  // .rs-right, so the Node Raid overlay (the live extract path) and SCREENS.result both
+  // keep the button on-screen next to RETURN TO BASE.
+  const rtbHtml = (fabricatorPending() && fabricatorReady())
+    ? '<button type="button" class="primary rtb-btn" onclick="A.goReadyToBuild(\'fabricator\')">' + IC("build") + ' READY TO BUILD</button>'
+    : '';
 
   const noteHtml = '<p class="rs-note">' + IC("check") + ' ' + (ext ? 'All loot secured' : 'Gear lost in the field') + '</p>';
 
@@ -4193,7 +4207,7 @@ function raidSummaryHtml(r, res, reaction, label){
     '<div class="rs-right"><h2 class="rs-right-head">' + (ext ? 'RAID SECURED' : 'RAID LOST') + '</h2>' +
       '<div class="loot-grid" tabindex="0" role="region" aria-label="Raid loot, scroll for all items">' + raidLootGridHtml(lootEntries, ext ? 'No loot secured' : 'Nothing lost or recovered') + '</div>' +
       gearHtml + xpHtml + questHtml + hintHtml + '</div>' +
-    noteHtml + '</section>';
+    noteHtml + '</section>' + rtbHtml;
 }
 
 function coreResultSummary(r, res){
@@ -4729,6 +4743,13 @@ window.A = {
     session.pendingRaid = null;
     A.go("base");
     bitDock(S.deaths && S.log[S.log.length-2] && S.log.some(e=>e.action==="PLAYER_DIED" && Date.now()-e.t < 60000) ? "player_died" : "extracted");
+  },
+  // v2.28.18: READY TO BUILD on the result screen -- closes the result (overlay or full-screen),
+  // returns to base, and opens the building sheet one confirm away from A.build. Never spends on its own.
+  goReadyToBuild(modId){
+    session.pendingRaid = null;
+    A.go("base");
+    A.openBuilding(modId);
   },
   exchange(xid){
     const x = (D.vendors[0].exchange || []).find(e => e.id === xid); if(!x) return;
