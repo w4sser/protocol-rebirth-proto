@@ -1,10 +1,11 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.28.19';
-import {resultReaction} from './result-bit.js?v=2.28.19';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.19';
-import {extractScrapBonus} from './levels.js?v=2.28.19';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.19';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.19';
+import '../data/bit.js?v=2.28.20';
+import {resultReaction} from './result-bit.js?v=2.28.20';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.20';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.20';
+import {extractScrapBonus} from './levels.js?v=2.28.20';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.20';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.20';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -47,7 +48,8 @@ export function resultView(round,{launch={},home=null,pending=false}={}){
   const deathCause=kind==='death'?(hit?`Last hit: ${hit.source} ${hit.attack} - you were ${hit.moving?'moving':'stationary'}.`:'No damage event recorded.') : '';
   const description=kind==='death'?(recovered.length?'Recovery is listed below. Your base is safe.':rows.length||gear.length?baseDescription:'No carried items were lost.'):baseDescription;
   const level=checkpoint?(round.exitLevel??round.level):round.level;
-  const reaction=safe?resultReaction(round,{rows,gear,home}):null;
+  // D3.1 / D3.10: BIT stays silent through the FTUE intro raid; the first speech is the bunker greeting.
+  const reaction=safe&&bitAccompaniesRaid(launch)?resultReaction(round,{rows,gear,home}):null;
   return {reaction,kind,checkpoint,safe,integrated,eyebrow,title,deathCause,description:safe&&!integrated?'Your loot is secured for this run.':description,icon,rows,gear:count(Object.fromEntries(gear.map(id=>[id,1]))),recovered,bonus,goalTitle,goalText,goalReady,
     lootTitle:checkpoint?'CARRIED · NOT SECURED':safe?'SECURED LOOT':'LOST FROM BAG',empty:checkpoint?'Your bag is empty.':safe?'No loot carried out.':'No items lost from your bag.',
     retained:!checkpoint&&integrated?'XP and supplies kept':'',
