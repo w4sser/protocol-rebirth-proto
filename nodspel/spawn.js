@@ -1,6 +1,6 @@
 // v2.25.1 (Robert: "player spawns outside the level"): the raid spawn must stand on a floor rect (rooms/floors/corridors),
 // fully inside it by the player radius and clear of walls/crates. If not, snap to the nearest valid point.
-import {RULES} from './levels.js?v=2.28.22';
+import {RULES} from './levels.js?v=2.28.23';
 const rectsOf=L=>[...(L.floors?.length?L.floors:L.rooms??[]),...(L.corridors??[])].filter(r=>r&&r.w>0&&r.d>0);
 export function spawnProblem(level,p=level?.start,R=RULES.playerRadius){
   if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.z))return 'no spawn';

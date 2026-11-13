@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.22"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.23"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -3970,7 +3970,7 @@ function gearPopHtml(id){
     (nxt ? '<div class="gu-cost" aria-label="Cost">' + cost + '</div>' : '') +
     '<button class="primary big" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
     (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
-    (isFree(id) ? '' : '<button type="button" class="ghost merge"' + (mergeBlock(id) ? ' disabled' : ' onclick="A.gearMerge(\'' + id + '\')"') + '>MERGE ' + Math.min(have(id), 3) + '/3' + (gearTier(id) < 3 ? ' · MK ' + TIER_NAMES[gearTier(id)] : ' · MAX') + '</button>') +
+    (isFree(id) ? '' : '<button type="button" class="' + (mergeBlock(id) ? 'ghost' : 'primary') + ' merge"' + (mergeBlock(id) ? ' disabled' : ' onclick="A.gearMerge(\'' + id + '\')"') + '>MERGE ' + Math.min(have(id), 3) + '/3' + (gearTier(id) < 3 ? ' · MK ' + TIER_NAMES[gearTier(id)] : ' · MAX') + '</button>') +
     (isFree(id) ? '' : '<button type="button" class="linkbtn" onclick="A.stashSellView()">SELL OR RECYCLE</button>') + '</div></div></div>';
 }
 // ---- v1.90 fullscreen weapon screen (docs/design-armory.md c) ----
@@ -4023,7 +4023,7 @@ function weaponScreenHtml(id){
     wpnBarsHtml(id) + mastery + mergeRow +
     (canMerge ? '<button class="primary big merge" onclick="A.gearMerge(\'' + id + '\')">' + (free ? 'REBUILD TO ' : 'MERGE TO ') + nextName + '</button>' : '') +
     (nxt ? '<div class="gu-cost" aria-label="Cost">' + cost + '</div>' : '') +
-    '<button class="' + (canMerge ? 'ghost' : 'primary big') + ' upg" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
+    '<button class="primary big upg" onclick="A.gearUpgrade(\'' + id + '\')"' + (why ? ' disabled' : '') + '>' + (nxt ? 'UPGRADE TO L' + nxt : 'MAX LEVEL') + '</button>' +
     (why && nxt ? '<div class="sp-why">' + esc(why) + '</div>' : '') +
     (isFree(id) ? '' : '<button type="button" class="linkbtn" onclick="A.stashSellView()">SELL OR RECYCLE</button>') + '</div></div>';
 }
