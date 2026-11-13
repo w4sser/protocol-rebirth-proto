@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {JSDOM} from 'jsdom';
 import {createRound,initEquip,extractRound,takeDamage,tickRound,abandonRound} from '../round.js';
-import {readLaunch,handoffRaidResult,RAID_RESULT_KEY} from '../raid-result.js';
+import {readLaunch,handoffRaidResult,buildRaidResult,RAID_RESULT_KEY} from '../raid-result.js';
 
 const html=await readFile(new URL('../../index.html',import.meta.url),'utf8');
 const shell=new JSDOM(html,{runScripts:'outside-only',url:'http://localhost/'});
@@ -49,6 +49,32 @@ for(const outcome of ['extract','death','timeout','abandon'])test(`${outcome}: e
       assert.equal(cards[0].querySelector('.loot-card-row>b').textContent,`x${n}`,`${id}: quantity survives aggregation`);
       assert(cards[0].classList.contains(outcome==='extract'?'gain':'loss'),`${id}: correct outcome styling`);
       if(outcome==='extract')assert.equal(w.__TEST_STATE().stash[id],(seed.stash[id]||0)+n,`${id}: actually returned to stash`);
+    }
+  }finally{w.close();}
+});
+
+// v2.28.24: death/timeout/abandon now show their own in-raid loss screen before Return to base writes
+// the ledger with acknowledged:true. The base must still ingest that ledger completely (deaths counted,
+// storage consumed) but must not show a second full summary for a loss the player already saw -- extract
+// never sets acknowledged on its normal (automatic) path, so its summary is unaffected.
+for(const outcome of ['death','extract'])test(`${outcome}: an acknowledged result ingests completely, and only a non-extract outcome skips the second base overlay`,()=>{
+  const round=createRound(launch.seed,0);initEquip(round,{weapon:'smg_vector',gear:['scout_rig']});
+  round.bag={...bag};round.levelsCleared=1;
+  if(outcome==='extract')extractRound(round,10);else takeDamage(round,10000,10);
+  const result=buildRaidResult(round,{launch,acknowledged:true});
+  assert.equal(result.acknowledged,true,'the written result carries the acknowledged flag');
+  const dom=new JSDOM(html,{runScripts:'outside-only',url:'http://localhost/'}),w=dom.window;
+  try{
+    w.localStorage.setItem('pr_meta_save',JSON.stringify({...seed,coreLaunch:{...launch,area:'bunker'}}));
+    w.localStorage.setItem(RAID_RESULT_KEY,JSON.stringify(result));
+    boot(w);
+    assert.equal(w.localStorage.getItem(RAID_RESULT_KEY),null,'base consumes an acknowledged result exactly like any other');
+    const overlay=w.document.querySelector('#overlay.raid-summary-ov');
+    if(outcome==='extract')assert(overlay,'extract still opens the shared summary even when acknowledged');
+    else{
+      assert.equal(overlay,null,'an acknowledged death does not show a second full loss summary');
+      assert.equal(w.__TEST_STATE().deaths,1,'the death is still recorded even though the overlay stays silent');
+      for(const [id,n] of Object.entries(bag))assert.equal(w.__TEST_STATE().stash[id]||0,seed.stash[id]||0,`${id}: a death still loses the carried bag`);
     }
   }finally{w.close();}
 });

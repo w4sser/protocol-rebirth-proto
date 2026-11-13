@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.23"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.24"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -5647,9 +5647,13 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const rows = tickIdle(); idleState().away = null; idleState().lastSeen = idleNow();
     if(rows.length){ for(const r of rows) toast(r.txt); save(); refresh(); } }, 15000);
   if(coreIngest && coreIngest.ok){
+    // v2.28.24: death/timeout/abandon now show their loss screen in the raid itself before Return
+    // to base; `acknowledged` marks that, so the base ingests silently instead of showing the same
+    // losses again. Extract never sets `acknowledged` on the normal path, so its summary is unchanged.
+    const silent = coreIngest.raid.acknowledged && coreIngest.raid.outcome !== "extract";
     // D3.1: on the FTUE intro return the greeting is the first BIT speech. Defer the Node Raid
     // summary (and any BIT comment — already stripped when raid.ftue) until the greeting is dismissed.
-    if(S.introSeen || !coreIngest.raid.ftue) showHomecomingSummary(coreIngest);
+    if(S.introSeen || !coreIngest.raid.ftue){ if(silent) toast(coreIngest.summary); else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
   if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();

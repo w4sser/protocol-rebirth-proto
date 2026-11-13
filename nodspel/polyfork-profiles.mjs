@@ -1,6 +1,6 @@
 // Pass 1-2: reproducible, visual-only island identities and environmental composition.
 // No Three.js. Do not change floors, walls, coast profiles, bridge routing or colliders.
-import {propReservations} from './props-placement.mjs?v=2.28.23';
+import {propReservations} from './props-placement.mjs?v=2.28.24';
 
 export const PROFILE_WEIGHTS=Object.freeze([
   {id:'forest',weight:40,label:'Dense coastal forest'},

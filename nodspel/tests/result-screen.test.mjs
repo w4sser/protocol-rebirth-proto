@@ -44,7 +44,7 @@ test('known BIT recovery and protected gear are separated from permanent losses 
   assert.deepEqual(r,before);
   assert.equal(resultView(r,{launch,home:{bondXp:xp-1}}).recovered.length,0);
 });
-test('renderer replaces checkpoint content on final loss, caps preview but preserves the full list, and toggles details locally',()=>{
+test('renderer replaces checkpoint content on final loss, caps the checkpoint preview but shows every lost item type, and toggles details locally',()=>{
   const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));const previous=globalThis.document;globalThis.document=dom.window.document;
   try{
     const root=document.querySelector('#round-over'),r=raid();
@@ -57,9 +57,11 @@ test('renderer replaces checkpoint content on final loss, caps preview but prese
     takeDamage(r,1000,10000);renderResult(root,resultView(r,{launch,pending:true}));
     assert.equal(root.dataset.outcome,'death');assert.equal(root.querySelector('#round-over-title').textContent,'YOU DIED');
     assert(root.querySelector('#result-details').hidden);assert(!root.querySelector('#result-report').hidden);assert(root.querySelector('#result-bonus').hidden);
-    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,8,'losses keep the capped preview');
-    assert(root.querySelector('#result-loot .result-tile-more'));
-    assert.equal(root.querySelectorAll('#result-all-loot .result-item').length,Object.values(r.lost).filter(n=>n>0).length);
+    // v2.28.24: death shows every item type lost, not the checkpoint's capped preview.
+    const lostTypes=Object.values(r.lost).filter(n=>n>0).length;
+    assert.equal(root.querySelectorAll('#result-loot .result-tile').length,lostTypes,'death shows every lost item type, uncapped');
+    assert(!root.querySelector('#result-loot .result-tile-more'),'death no longer uses the +N marker');
+    assert.equal(root.querySelectorAll('#result-all-loot .result-item').length,lostTypes);
   }finally{globalThis.document=previous;dom.window.close();}
 });
 
@@ -133,5 +135,57 @@ test('D3.1: FTUE intro extract has no BIT result-screen comment; ordinary extrac
     renderResult(root,ftue);
     assert(root.querySelector('#result-bit-line').hidden,'#result-bit-line stays hidden on the FTUE result');
     assert.equal(root.querySelector('#result-bit-line').textContent,'');
+  }finally{globalThis.document=previous;dom.window.close();}
+});
+
+// v2.28.24: the in-raid death/timeout/abandon screen must show what you lost -- every bag item AND
+// every lost gear piece, as the same full tile extract uses, not the old 8-tile compact chip preview.
+test('death tiles: every bag item type and every lost gear piece render as the same full tile extract uses, uncapped even after a full clear',()=>{
+  const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));const previous=globalThis.document;globalThis.document=dom.window.document;
+  try{
+    const root=document.querySelector('#round-over'),r=raid();
+    r.equip={weapon:'smg_vector',armor:'scout_rig'};r.backpack=['shotgun_breach'];
+    // Nine distinct material types -- more than the old MAX_TILES=8 cap -- to prove death no longer
+    // truncates the loss grid. (Unlike the extract stress test elsewhere, gear-slot item ids are kept
+    // out of the bag here: a raid bag only ever carries materials, never weapons/armor.)
+    for(const id of ['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box'])r.bag[id]=1;
+    r.levelsCleared=3;
+    takeDamage(r,1000,10000);
+    const view=resultView(r,{launch:{...launch,gear:[]}});renderResult(root,view);
+    assert.equal(root.dataset.outcome,'death');
+    const lostTypes=Object.values(r.lost).filter(n=>n>0).length;
+    assert.equal(lostTypes,9);
+    const lootTiles=[...root.querySelectorAll('#result-loot .result-tile')];
+    assert.equal(lootTiles.length,lostTypes,'every lost bag item type shows as a tile, uncapped even after levelsCleared=3');
+    assert(!root.querySelector('#result-loot .result-tile-more'),'death no longer hides losses behind a +N marker');
+    const gearTiles=[...root.querySelectorAll('#result-gear .result-tile')];
+    assert.equal(gearTiles.length,3,'weapon, armor and the backpack piece all render as lost gear tiles');
+    for(const id of ['smg_vector','scout_rig','shotgun_breach'])assert(gearTiles.some(t=>t.dataset.item===id),`${id} missing from the lost gear tiles`);
+    assert(!root.querySelector('#result-gear .result-chip'),'lost gear uses the same tile as lost loot, not the tiny returned-gear chip');
+    assert(!lootTiles.some(t=>t.dataset.item==='basic_carbine'),'the free Basic Carbine is never listed as lost');
+  }finally{globalThis.document=previous;dom.window.close();}
+});
+test('death: a BIT-recovered unit is excluded from its tile count and a fully protected gear piece never renders as lost',()=>{
+  const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));const previous=globalThis.document;globalThis.document=dom.window.document;
+  try{
+    const root=document.querySelector('#round-over'),r=raid();takeDamage(r,1000,10000);
+    const xp=globalThis.DATA.bit.bondLevels.find(l=>l.level===3).xp;
+    const view=resultView(r,{launch,home:{bondXp:xp,secureItem:'scavenger_vest'}});renderResult(root,view);
+    const cableTile=root.querySelector('#result-loot [data-item="cable"]');
+    assert(cableTile,'the unit still carried after recovery is still shown');
+    assert.equal(cableTile.querySelector('b').textContent,'1','the BIT-recovered unit is excluded from the lost tile count');
+    assert(root.querySelector('#result-gear').hidden,'the fully protected (and only) gear piece leaves no lost gear tiles');
+    assert.equal(root.querySelector('#result-recovery').hidden,false);
+  }finally{globalThis.document=previous;dom.window.close();}
+});
+test('death with an empty bag and only the free Basic Carbine equipped invents no losses',()=>{
+  const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'));const previous=globalThis.document;globalThis.document=dom.window.document;
+  try{
+    const root=document.querySelector('#round-over'),r=createRound('empty-death',0);r.equip={weapon:'basic_carbine',armor:null};
+    takeDamage(r,1000,10000);
+    const view=resultView(r,{launch:{...launch,gear:[]}});renderResult(root,view);
+    assert.equal(view.rows.length,0);assert.equal(view.gear.length,0);
+    assert(root.querySelector('#result-gear').hidden);
+    assert.equal(root.querySelector('#result-loot').textContent,view.empty);
   }finally{globalThis.document=previous;dom.window.close();}
 });
