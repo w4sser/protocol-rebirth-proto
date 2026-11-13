@@ -78,10 +78,13 @@ test('death -> retry (same seed) -> extract: the real handoffRaidResult (not a s
   assert.deepEqual(events,['saved','navigate:../index.html']);
 });
 
-for(const reason of ['death','timeout','abandon'])test(`a returning save's guided raid (intro=1, no ftue) ${reason} still hands off to base -- no retry-in-place`,()=>{
+// v2.28.24: death/timeout/abandon no longer auto-handoff for ANY base-launched raid, guided (intro=1)
+// included -- the player sees the in-raid loss screen first and leaves through Return to base. This
+// is still distinct from FTUE's retry-in-place: intro=1 alone never bumps an attempt counter or resets.
+for(const reason of ['death','timeout','abandon'])test(`a returning save's guided raid (intro=1, no ftue) ${reason} shows the in-raid result -- no retry-in-place, no auto-handoff`,()=>{
   const round=createRound('returning-'+reason,0);initEquip(round,{weapon:'basic_carbine',gear:[]});
   if(reason==='death')takeDamage(round,1000,10); else { round.over=true; round.reason=reason; }
   const events=[];
   runInNewContext(finish+';finishRound();',context(round,returningLaunch,events));
-  assert.deepEqual(events,['handoff'],'a returning save never retries in place -- intro=1 alone keeps the pre-v2.22.2 behaviour exactly');
+  assert.deepEqual(events,['clear'],'intro=1 alone keeps the pre-v2.22.2 behaviour of never retrying in place, but the loss now renders in-raid before the (player-initiated) handoff');
 });

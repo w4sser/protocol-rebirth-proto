@@ -1,11 +1,11 @@
 // Read-only result presentation. The existing raid handoff still owns all rewards.
-import '../data/bit.js?v=2.28.23';
-import {resultReaction} from './result-bit.js?v=2.28.23';
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.23';
-import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.23';
-import {extractScrapBonus} from './levels.js?v=2.28.23';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.23';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.23';
+import '../data/bit.js?v=2.28.24';
+import {resultReaction} from './result-bit.js?v=2.28.24';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.24';
+import {goalProgress,MATERIALS} from './progression-goal.js?v=2.28.24';
+import {extractScrapBonus} from './levels.js?v=2.28.24';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.24';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.24';
 
 const item=id=>globalThis.DATA.items.find(i=>i.id===id);
 const count=bag=>Object.entries(bag??{}).filter(([,n])=>n>0).map(([id,n])=>({id,n,name:MATERIALS[id]?.name??id,icon:MATERIALS[id]?.icon??'pickup'}));
@@ -68,17 +68,26 @@ export function renderResult(root,view){
   text('#result-clock-label',view.checkpoint?'TIME LEFT':'TIME IN RAID');text('#result-clock',view.checkpoint?view.time:view.elapsed);
   text('#result-loot-title',`${view.lootTitle} · ${view.totals.items}`);
   const list=(el,rows,compact=false)=>{el.replaceChildren();for(const row of rows){const chip=doc.createElement('div');chip.className=compact?'result-item compact':'result-item';chip.classList.toggle('result-recovered',!!row.recovered);const label=doc.createElement('span');setIconText(label,row.icon,row.name);const n=doc.createElement('b');n.textContent=`${view.safe||row.recovered?'+':''}${row.n}`;chip.append(label,n);el.append(chip);}};
-  // Extraction shows every item; losses and checkpoints retain their compact preview.
-  const tiles=(el,rows,sign='')=>{el.replaceChildren();const shown=!view.safe&&rows.length>MAX_TILES?rows.slice(0,MAX_TILES-1):rows;
+  // Extraction and every terminal outcome (death/timeout/abandon) show every item type as a full
+  // tile: only the still-active checkpoint keeps the compact preview, since the goal there is a
+  // quick glance at what is still at risk, not a receipt. v2.28.24: death/timeout/abandon used to
+  // cap at MAX_TILES too, hiding losses behind a "+N" marker -- the whole point of this screen is
+  // to show exactly what you lost, so only `checkpoint` caps now.
+  const tiles=(el,rows,sign='')=>{el.replaceChildren();const shown=view.checkpoint&&rows.length>MAX_TILES?rows.slice(0,MAX_TILES-1):rows;
     for(const row of shown){const tile=doc.createElement('div');tile.className='result-tile';tile.dataset.item=row.id;tile.title=row.name;tile.setAttribute('role','img');tile.setAttribute('aria-label',`${row.name} ${sign}${row.n}`);const n=doc.createElement('b');n.textContent=`${sign}${row.n}`;tile.append(svgIcon(row.icon),n);el.append(tile);}
     if(shown.length<rows.length){const more=doc.createElement('div');more.className='result-tile result-tile-more';more.title='More item types in Raid details';more.setAttribute('aria-label',`${rows.length-shown.length} more item types`);const n=doc.createElement('b');n.textContent=`+${rows.length-shown.length}`;more.append(n);el.append(more);}};
   tiles($('#result-loot'),view.rows,view.safe?'+':'');
-  $('#result-loot').scrollTop=0;$('#result-loot').tabIndex=view.safe&&view.rows.length?0:-1;
+  $('#result-loot').scrollTop=0;$('#result-loot').tabIndex=!view.checkpoint&&view.rows.length?0:-1;
   text('#result-bit-line',view.reaction?`BIT: ${view.reaction.line}`:'');$('#result-bit-line').hidden=!view.reaction;
   if(!view.rows.length)text('#result-loot',view.empty);
   const gearEl=$('#result-gear');gearEl.replaceChildren();gearEl.hidden=!view.gear.length;
   if(view.gear.length){const cap=doc.createElement('span');cap.textContent=view.checkpoint?'AT RISK':view.safe?'GEAR RETURNED':'LOST';gearEl.append(cap);
-    for(const g of view.gear){const chip=doc.createElement('span');chip.className='result-chip';chip.title=g.name;chip.setAttribute('role','img');chip.setAttribute('aria-label',`${g.name} ${cap.textContent.toLowerCase()}`);if(view.safe){chip.classList.add('result-gear-returned');setIconText(chip,g.icon,g.name);}else chip.append(svgIcon(g.icon));gearEl.append(chip);}}
+    // Extract keeps its named "GEAR RETURNED" chip; every other outcome gets the same tile the lost
+    // bag loot uses, so equipped gear reads as a loss exactly like bag items do, not a tiny icon-only chip.
+    for(const g of view.gear){
+      if(view.safe){const chip=doc.createElement('span');chip.className='result-chip result-gear-returned';chip.dataset.item=g.id;chip.title=g.name;chip.setAttribute('role','img');chip.setAttribute('aria-label',`${g.name} returned`);setIconText(chip,g.icon,g.name);gearEl.append(chip);}
+      else{const tile=doc.createElement('div');tile.className='result-tile';tile.dataset.item=g.id;tile.title=g.name;tile.setAttribute('role','img');tile.setAttribute('aria-label',`${g.name} ${cap.textContent.toLowerCase()}`);const n=doc.createElement('b');n.textContent=`${g.n}`;tile.append(svgIcon(g.icon),n);gearEl.append(tile);}
+    }}
   text('#result-recovery',view.recovered.length?`Recovery: ${total(view.recovered)} item${total(view.recovered)===1?'':'s'} returned at base · see Raid details`:'');$('#result-recovery').hidden=!view.recovered.length;
   text('#result-bonus',view.bonus?`${view.checkpoint?'On extraction':'Extraction bonus'}: +${view.bonus} Scrap`:'');$('#result-bonus').hidden=!view.bonus;
   text('#result-goal-title',view.goalTitle);text('#result-goal-text',view.goalText);$('#result-goal').hidden=!view.goalTitle;$('#result-goal').classList.toggle('ready',view.goalReady);

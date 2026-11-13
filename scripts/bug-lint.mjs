@@ -137,6 +137,12 @@ export const RULES=[
      else if(!/r\.ftue/.test(fn))out.push('app.js: ftueLaunch must also honor r.ftue (the result flag from ?ftue=1), not only S.coreLaunch.raidId match');
      else if(!/r\.ftue[^\n]*S\.raids/.test(fn))out.push('app.js: the r.ftue top-up fallback must be limited to a first extract (S.raids === 0) so a later raid never gets it');
      return out;}},
+  {id:'death-loss-screen-before-handoff',pr:'v2.28.24 (fix/death-loss-screen)',why:'Wild Team playtest: dying in the bunker threw the player straight back to the base with no in-raid loss screen -- finishRound auto-handed-off (wrote the ledger and navigated) for every terminal base raid, so death/timeout/abandon never rendered #round-over at all',
+   check(c={}){const out=[];const game=c.gameSrc??read('nodspel/game.mjs');
+     const finish=(game.match(/function finishRound\([^)]*\)\{[\s\S]*?\n\}\n/)||[''])[0];
+     if(!finish)out.push('nodspel/game.mjs: finishRound() not found');
+     else if(!/round\.over&&\['extract','complete'\]\.includes\(round\.reason\)&&handoffRaidResult\(/.test(finish))out.push("nodspel/game.mjs: finishRound's automatic handoffRaidResult call must be gated to ['extract','complete'].includes(round.reason) -- death/timeout/abandon must fall through to the in-raid presenter instead of auto-handing-off");
+     return out;}},
 
 ];
 

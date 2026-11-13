@@ -551,8 +551,10 @@ async function baseAfterRaidRun([w,h]){
 
 // Exercise the actual deploy URL, raid result writer, navigation and base boot
 // ingestion. Screenshots must show the v2.1.0 summary, not the standalone card.
-async function raidSummaryRun([w,h],outcome='extract'){
-  const tag=`raid-summary ${w}x${h} ${outcome}`;console.log(tag);
+// Extraction still hands off to the base immediately (v2.28.13/v1.77.0 behaviour): the shared
+// raid-summary overlay is the first and only thing the player sees.
+async function raidSummaryRun([w,h]){
+  const tag=`raid-summary ${w}x${h} extract`;console.log(tag);
   const page=await newPage(w,h);
   await page.goto(BASE+'/index.html',{waitUntil:'load'});await loaderGone(page);
   await page.evaluate(PROGRESSED);
@@ -566,17 +568,16 @@ async function raidSummaryRun([w,h],outcome='extract'){
     A.deployNodeRaid();
   })]);
   await loaderGone(page);await page.waitForFunction(()=>window.__NR&&document.querySelector('#loading').hidden,{timeout:30000});
-  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(outcome=>{
+  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(()=>{
     document.querySelector('#tutorial-start').click();window.__NR.setRoomClearsEnabled(false);
     const ids=DATA.items.filter(it=>!it.slot&&!it.free&&!it.scouts&&!it.grantsCurrency).map(it=>it.id);
     sessionStorage.setItem('layout-summary-items',JSON.stringify(ids));
-    if(outcome==='extract')window.__NR.extractDemo(ids);
-    else {const r=window.__NR.round();r.bag=Object.fromEntries(ids.map(id=>[id,1]));window.__NR.deathDemo();}
-  },outcome)]);
+    window.__NR.extractDemo(ids);
+  })]);
   await loaderGone(page);
   await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click());
   await page.waitForSelector('#overlay.raid-summary-ov .raid-summary',{visible:true});await settle(800);
-  const issues=await page.evaluate(({insets,outcome})=>{
+  const issues=await page.evaluate(insets=>{
     const issues=[],summary=document.querySelector('.raid-summary'),grid=summary.querySelector('.loot-grid'),cards=[...grid.querySelectorAll('.loot-card')];
     const expected=JSON.parse(sessionStorage.getItem('layout-summary-items'));
     const missing=expected.filter(id=>!cards.some(el=>el.dataset.item===id));
@@ -598,15 +599,78 @@ async function raidSummaryRun([w,h],outcome='extract'){
     for(const selector of ['.rs-right','.raid-summary-pop']){const el=document.querySelector(selector);if(el.scrollHeight>el.clientHeight+1)issues.push(selector+' scrolls instead of the loot grid');}
     const lineId=localStorage.getItem('pr_bit_last_raid_line'),[trigger,index]=lineId.split(':');
     if(summary.querySelector('.rs-bubble p').textContent!==DATA.bitSummary.pools[trigger].lines[Number(index)])issues.push('context BIT line missing from bubble');
-    if(outcome==='extract'){
-      const gear=summary.querySelector('.rs-gear');if(!gear||!gear.textContent.includes('Scout Rig')||!gear.textContent.includes('GEAR RETURNED'))issues.push('returned Scout Rig row missing');
-    }else if(!grid.querySelector('.loot-card.loss')||summary.querySelector('.rs-gear'))issues.push('death does not show lost items correctly');
+    const gear=summary.querySelector('.rs-gear');if(!gear||!gear.textContent.includes('Scout Rig')||!gear.textContent.includes('GEAR RETURNED'))issues.push('returned Scout Rig row missing');
     if(localStorage.getItem('pr_raid_result_v1')!==null)issues.push('base did not consume the result');
     if(!document.querySelector('#overlay.raid-summary-ov')||document.querySelectorAll('#overlay').length!==1)issues.push('summary is not the single shared overlay');
     return issues;
-  },{insets:INSETS,outcome});
+  },INSETS);
   for(const issue of issues)fail(tag,issue);
-  await shot(page,`${outcome==='extract'?'raid-summary':'raid-summary-death'}-${w}x${h}`);
+  await shot(page,`raid-summary-${w}x${h}`);
+  await page.close();
+}
+
+// v2.28.24 Wild Team playtest fix: death/timeout/abandon no longer throw the player straight back to
+// the base -- they see the in-raid loss screen (same full item tiles as extract, equipped gear included,
+// labelled lost) first, and only leave through RETURN TO BASE. This checks that screen fits 844x390 and
+// 667x375 (and 932x430/1024x471) with a representative bag + gear, then that Return to base navigates
+// and the base ingests the ledger silently -- no second full loss summary for a death already acknowledged
+// in the raid.
+async function raidDeathLossRun([w,h]){
+  const tag=`raid-death-loss ${w}x${h}`;console.log(tag);
+  const page=await newPage(w,h);
+  await page.goto(BASE+'/index.html',{waitUntil:'load'});await loaderGone(page);
+  await page.evaluate(PROGRESSED);
+  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(()=>{
+    S.retentionMode='core';S.bondXp=0;S.secureItem=null;
+    addItem('scout_rig',1);addItem('smg_vector',1);A.go('prep');
+    session.prep.loadout={weapon:'smg_vector',armor:'scout_rig'};
+    window.PR_NAVIGATE=u=>{const url=new URL(u,location.href);url.searchParams.set('debug','1');location.assign(url);};
+    A.deployNodeRaid();
+  })]);
+  await loaderGone(page);await page.waitForFunction(()=>window.__NR&&document.querySelector('#loading').hidden,{timeout:30000});
+  await page.evaluate(()=>{
+    document.querySelector('#tutorial-start').click();window.__NR.setRoomClearsEnabled(false);
+    const ids=DATA.items.filter(it=>!it.slot&&!it.free&&!it.scouts&&!it.grantsCurrency).map(it=>it.id);
+    sessionStorage.setItem('layout-summary-items',JSON.stringify(ids));
+    const r=window.__NR.round();r.bag=Object.fromEntries(ids.map(id=>[id,1]));
+    window.__NR.deathDemo();
+  });
+  await page.waitForFunction(()=>!document.getElementById('round-over').hidden,{timeout:10000}).catch(()=>fail(tag,'the in-raid death result never appeared -- it still auto-handed-off to the base'));
+  await settle(400);
+  const issues=await page.evaluate(insets=>{
+    const issues=[],card=document.querySelector('#round-over .result-card'),body=card.querySelector('.result-body');
+    const visible=el=>{const r=el.getBoundingClientRect();return r.width>0&&r.height>0&&r.left>=insets.left-1&&r.right<=innerWidth-insets.right+1&&r.top>=insets.top-1&&r.bottom<=innerHeight-insets.bottom+1;};
+    if(document.getElementById('round-over').dataset.outcome!=='death')issues.push('outcome is not death');
+    if(document.getElementById('round-over-title').textContent!=='YOU DIED')issues.push('YOU DIED title missing');
+    const expected=JSON.parse(sessionStorage.getItem('layout-summary-items'));
+    const tiles=[...document.querySelectorAll('#result-loot .result-tile')];
+    const missing=expected.filter(id=>!tiles.some(t=>t.dataset.item===id));
+    if(missing.length)issues.push('lost bag items missing from the in-raid tiles: '+missing.join(', '));
+    if(document.querySelector('#result-loot .result-tile-more'))issues.push('death still uses the old compact +N preview instead of showing every loss');
+    const gearTiles=[...document.querySelectorAll('#result-gear .result-tile')];
+    if(!gearTiles.some(t=>t.dataset.item==='scout_rig'))issues.push('lost gear tile (Scout Rig) missing');
+    if(document.querySelector('#result-gear .result-chip'))issues.push('lost gear still uses the tiny chip instead of the full loot tile');
+    const btn=document.getElementById('return-base'),br=btn.getBoundingClientRect();
+    if(btn.hidden||!visible(btn))issues.push('RETURN TO BASE is hidden or outside the viewport');
+    else if(document.elementFromPoint(br.left+br.width/2,br.top+br.height/2)!==btn&&!btn.contains(document.elementFromPoint(br.left+br.width/2,br.top+br.height/2)))issues.push('RETURN TO BASE is covered');
+    if(body.scrollHeight>body.clientHeight+1)issues.push('the result card scrolls as a whole instead of only the loss grid');
+    const grid=document.getElementById('result-loot'),gr=grid.getBoundingClientRect(),footer=document.querySelector('.result-footer').getBoundingClientRect();
+    if(gr.bottom>footer.top+1)issues.push('the loss grid overlaps the footer');
+    const overflows=grid.scrollHeight>grid.clientHeight+1;grid.scrollTop=grid.scrollHeight;if(overflows&&grid.scrollTop<=0)issues.push('a long loss grid cannot scroll');
+    return issues;
+  },INSETS);
+  for(const issue of issues)fail(tag,issue);
+  await shot(page,`raid-death-loss-${w}x${h}`);
+  await Promise.all([page.waitForNavigation({waitUntil:'load'}),page.evaluate(()=>document.getElementById('return-base').click())]);
+  await loaderGone(page);
+  const after=await page.evaluate(()=>({
+    resultConsumed:localStorage.getItem('pr_raid_result_v1')===null,
+    secondSummary:!!document.querySelector('#overlay.raid-summary-ov'),
+    deaths:S.deaths,
+  }));
+  if(!after.resultConsumed)fail(tag,'the base did not consume the raid result after Return to base');
+  if(after.secondSummary)fail(tag,'the base showed a second full loss summary for a death already acknowledged in the raid');
+  if(after.deaths<1)fail(tag,'the death was not recorded at the base');
   await page.close();
 }
 
@@ -670,8 +734,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.23');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.23');
+    const {createRound}=await import('./round.js?v=2.28.24');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.24');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -768,7 +832,8 @@ try{
   for(const vp of [[844,390],[667,375]])await metaResultExtractRun(vp);
   for(const vp of VIEWPORTS)await pauseMapRun(vp);
   for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
-  for(const vp of VIEWPORTS){await raidSummaryRun(vp);await raidSummaryRun(vp,'death');}
+  for(const vp of VIEWPORTS)await raidSummaryRun(vp);
+  for(const vp of RESULT_VIEWPORTS)await raidDeathLossRun(vp);
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
   await encShotRun([844,390]);
   await iphoneSafeAreaRun();
