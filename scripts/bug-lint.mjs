@@ -119,6 +119,16 @@ export const RULES=[
      if(!/perkForceTimeout\(\)\{act\('timeout'\);\}/.test(game))out.push('nodspel/game.mjs: perkForceTimeout() must call act(\'timeout\') for layout after measure');
      if(!/perkForceTimeout\(\)/.test(layout))out.push('scripts/layout-check.mjs: perkPopupRun must call __NR.perkForceTimeout() after the 44px assert');
      return out;}},
+  {id:'raid-tab-open-when-goal-needs-loot',pr:'v2.28.21 (fix/core-found-raid-softlock)',why:'Carlos softlock: fresh start, Core L1 still needed 1 more Scrap Alloy, but RAID was gated only on baseAllows("navigation","prep") (false in core_found) and A.go("prep") used that same check -- the orange RAID FOR SCRAP ALLOY button silently no-opped and the player could never raid for the only thing the goal needed',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(!/function goalNeedsRaidLoot\(\)/.test(app))out.push('app.js: goalNeedsRaidLoot() is missing');
+     const nav=(app.match(/function navAllowed\(id\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!nav)out.push('app.js: navAllowed(id) not found');
+     else if(!/id === "prep"[^\n]*goalNeedsRaidLoot\(\)/.test(nav))out.push('app.js: navAllowed("prep") must also allow it when goalNeedsRaidLoot() is true, not only baseAllows("navigation","prep")');
+     const go=(app.match(/go\(screen, param\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!go)out.push('app.js: A.go(screen, param) not found');
+     else if(!/screen === "prep"[^\n]*navAllowed\("prep"\)/.test(go))out.push('app.js: A.go must gate "prep" through navAllowed("prep") so raidForModule/raidForRoom actually open Raid Prep, not only baseAllows("navigation", screen)');
+     return out;}},
 
 ];
 

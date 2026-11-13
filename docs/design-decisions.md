@@ -1830,6 +1830,7 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-13 | RAID stays available whenever the current goal still needs raid-findable loot the player does not have yet, even in `core_found` before Core L1 — fixes the softlock where Core L1 needed one more Scrap Alloy but the RAID tab/`A.go("prep")` were locked until Core L1 itself | Fix for the Carlos softlock; v2.28.21 |
 | 2026-11-12 | BIT is absent from the FTUE intro raid (drone, distract button, heal tag, and lines) until the bunker meeting; the "You're late…" greeting is the first BIT speech, and the Node Raid result comment is removed on that raid and deferred (with the loot summary) until after the greeting is dismissed. Ordinary raids after the meeting still have BIT. | Playtest fix for v2.28.16; v2.28.20 |
 | 2026-11-12 | Core L1 restore is one tap from the goal chip (`A.build`), with a visible CSS lighting-up of the bunker (existing filters/overlays only; plate_00 art is unchanged) and a compact payoff (POWER RESTORED / NEW BENEFIT / ENTER) that fits 844×390 and 667×375 | Playtest fix for v2.28.16; v2.28.19 |
 | 2026-11-12 | Loud, always-visible **READY TO BUILD** primary button on the Node Raid / simulated result screen and on the collapsed base goal chip when Fabricator L1 is affordable; click opens the Fabricator building sheet and does not auto-spend. The collapsed-chip CSS (`#app.s-base .progress-goal:not(.open)`) no longer hides this CTA. | Playtest fix for v2.28.16; v2.28.18 |

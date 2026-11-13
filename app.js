@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.20"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.21"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2048,10 +2048,18 @@ function renderCurrencies(){
 }
 // D3.10: Vendor/Shop and Weapons stay hidden until Fabricator L1 -- right after Core, the only
 // reachable tabs are Base, Stash and RAID/prep (plus BIT once Bay L1 is built, unchanged).
+// v2.28.21: RAID must never be locked while the current goal still needs raid-findable loot the
+// player does not have yet -- otherwise a short-on-materials Core L1 (or any later goal) softlocks
+// the player behind a goal that can only be paid for with a raid they are not allowed to take.
+function goalNeedsRaidLoot(){
+  const g = progressionGoal();
+  return !!(g && !g.ready && g.parts.some(p => p.kind === "item" && p.secured < p.need && raidFindable(p.id)));
+}
 function navAllowed(id){
   if(id === "bit") return bitOnline();
   if(id === "vendor") return (S.modules.fabricator || 0) >= 1 && baseAllows("navigation", "vendor");
   if(id === "arms") return (S.modules.fabricator || 0) >= 1 && baseAllows("navigation", "stash");
+  if(id === "prep") return baseAllows("navigation", "prep") || goalNeedsRaidLoot();
   return baseAllows("navigation", id);
 }
 // v1.94: WEAPONS nav opens the upgrade bench for the weapon you last equipped (free carbine otherwise).
@@ -4401,7 +4409,10 @@ window.A = {
   },
   go(screen, param){
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
-    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && screen !== "worldmap" && !baseAllows("navigation", screen))) return;
+    // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
+    // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
+    // even in base states that don't otherwise list "prep" in navigation.
+    if(screen === "prep" ? !navAllowed("prep") : (screen === "bit" ? !bitOnline() : (screen !== "dev" && screen !== "module" && screen !== "operator" && screen !== "worldmap" && !baseAllows("navigation", screen)))) return;
     if(screen === "module" && (!baseAllows("interactions", param) || (param !== "rebirth_core" && roomDef(param) && !roomUnlocked(param)))) return;
     if(session.screenEnterTs && session.screen)
       log("SCREEN_TIME", { screen: session.screen, ms: Date.now() - session.screenEnterTs });
@@ -5644,4 +5655,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
