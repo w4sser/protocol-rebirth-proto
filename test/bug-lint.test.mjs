@@ -35,5 +35,9 @@ assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
 {const badCss=by('perk-choice-touch-44');
  // Smoke: rule id exists and repo currently passes (file-based check).
  assert.ok(badCss,'perk-choice-touch-44 rule present');}
+{const badApp='function navAllowed(id){\n  if(id === "bit") return bitOnline();\n  if(id === "prep") return baseAllows("navigation", "prep");\n  return baseAllows("navigation", id);\n}\n  go(screen, param){\n    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && !baseAllows("navigation", screen))) return;\n  },\n';
+ assert.equal(by('raid-tab-open-when-goal-needs-loot').check({appSrc:badApp}).length,3,'v2.28.21 fires: missing helper, navAllowed not wired, A.go not wired');}
+{const goodApp='function goalNeedsRaidLoot(){return false;}\nfunction navAllowed(id){\n  if(id === "bit") return bitOnline();\n  if(id === "prep") return baseAllows("navigation", "prep") || goalNeedsRaidLoot();\n  return baseAllows("navigation", id);\n}\n  go(screen, param){\n    if(screen === "prep" ? !navAllowed("prep") : (screen === "bit" ? !bitOnline() : (screen !== "dev" && !baseAllows("navigation", screen)))) return;\n  },\n';
+ assert.equal(by('raid-tab-open-when-goal-needs-loot').check({appSrc:goodApp}).length,0,'v2.28.21 passes once both navAllowed and A.go consult goalNeedsRaidLoot');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');

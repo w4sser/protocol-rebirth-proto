@@ -94,7 +94,10 @@ assert(doc.querySelector(".baseviewer").className.includes("hub-core_found"), "b
 assert(text().includes("CORE FOUND"), "persistent base state label");
 assert(text().includes("PLATE 00"), "dormant plate label");
 assert.equal(doc.querySelector(".baseviewer").dataset.audio, "dormant_core", "found state restores audio profile");
-assert.equal(doc.querySelectorAll("#tabs button:not([disabled]):not(.active)").length, 0, "found state locks non-base navigation");
+// v2.28.21: Core L1 still needs a raid-findable Scrap Alloy the fresh stash doesn't have yet, so
+// RAID stays reachable even in core_found -- never raid-locked while the goal needs raid loot.
+assert.equal(doc.querySelectorAll("#tabs button:not([disabled]):not(.active)").length, 1, "found state locks nav except RAID, which the Core L1 goal still needs");
+assert(doc.querySelector("#tabs .nav-prep:not([disabled])"), "RAID is specifically the one tab unlocked in found state");
 assert.equal(doc.querySelectorAll("#tabs button").length, 6, "full bottom bar incl. WEAPONS on every main screen");
 A.go("module","fabricator");
 assert.equal(doc.getElementById("app").className, "s-base", "locked room cannot open its module flow");
