@@ -109,16 +109,9 @@ export const RULES=[
      if(!/D\.lootSources/.test(app))out.push('app.js: lootHint must read DATA.lootSources (generated), not hand-written areas');
      if(!/src="data\/loot-sources\.js/.test(html))out.push('index.html: must load data/loot-sources.js');
      return out;}},
-  {id:'perk-choice-touch-44',pr:'v2.28.0 (fix/perk-touch-44)',why:'layout CI flaked "perk touch target smaller than 44px" when the 4s auto-pick closed the overlay before measure (0x0); cards must keep a 44px floor and the debug demo must not auto-close mid-check',
-   check(){const out=[];const css=read('nodspel/perks.css');const game=read('nodspel/game.mjs');const ui=read('nodspel/perk-ui.js');const layout=read('scripts/layout-check.mjs');
-     if(!/\.perk-grid\{[^}]*minmax\(\s*44px\s*,/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-grid columns must use minmax(44px,...) so cards cannot collapse below the touch target');
-     if(!/\.perk-choice\{[^}]*min-width:\s*44px/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-choice must set min-width:44px');
-     if(/\.perk-choice:active\{[^}]*scale\(/.test(css.replace(/\s+/g,' ')))out.push('nodspel/perks.css: .perk-choice:active must not scale (scale shrinks getBoundingClientRect below the 44px floor)');
-     if(!/open\(round,\s*key\s*,\s*opts/.test(ui)&&!/opts\.timeoutMs/.test(ui))out.push('nodspel/perk-ui.js: open() must accept opts.timeoutMs');
-     if(!/perkPickDemo\(\)\{[\s\S]*?openPerk\(key,\{timeoutMs:\s*0\}\)/.test(game))out.push('nodspel/game.mjs: perkPickDemo must open with {timeoutMs:0} so layout can measure before auto-pick');
-     if(!/perkForceTimeout\(\)\{act\('timeout'\);\}/.test(game))out.push('nodspel/game.mjs: perkForceTimeout() must call act(\'timeout\') for layout after measure');
-     if(!/perkForceTimeout\(\)/.test(layout))out.push('scripts/layout-check.mjs: perkPopupRun must call __NR.perkForceTimeout() after the 44px assert');
-     return out;}},
+  // perk-choice-touch-44 (v2.28.0, fix/perk-touch-44) retired: the mid-raid perk picker it guarded
+  // (nodspel/perk-ui.js, nodspel/perks.css, game.mjs perkPickDemo/perkForceTimeout) was removed in v2.28.25
+  // (PRB-146, Wild Team playtest "remove round upgrades"). See docs/bug-lint.md.
   {id:'raid-tab-open-when-goal-needs-loot',pr:'v2.28.21 (fix/core-found-raid-softlock)',why:'Carlos softlock: fresh start, Core L1 still needed 1 more Scrap Alloy, but RAID was gated only on baseAllows("navigation","prep") (false in core_found) and A.go("prep") used that same check -- the orange RAID FOR SCRAP ALLOY button silently no-opped and the player could never raid for the only thing the goal needed',
    check(c={}){const out=[];const app=c.appSrc??read('app.js');
      if(!/function goalNeedsRaidLoot\(\)/.test(app))out.push('app.js: goalNeedsRaidLoot() is missing');
@@ -143,6 +136,23 @@ export const RULES=[
      if(!finish)out.push('nodspel/game.mjs: finishRound() not found');
      else if(!/round\.over&&\['extract','complete'\]\.includes\(round\.reason\)&&handoffRaidResult\(/.test(finish))out.push("nodspel/game.mjs: finishRound's automatic handoffRaidResult call must be gated to ['extract','complete'].includes(round.reason) -- death/timeout/abandon must fall through to the in-raid presenter instead of auto-handing-off");
      return out;}},
+
+  {id:'no-mid-raid-perk-picker',pr:'v2.28.25 (PRB-146)',why:'Wild Team playtest: Robert decided 2026-11-13 to remove mid-raid round upgrades completely -- the SELECT PERK picker must not return, rooms must clear without queueing an offer, and pickReady/autoPickPerks must stay no-ops',
+   check(c={}){const out=[];
+     const game=c.gameSrc??read('nodspel/game.mjs');
+     if(/createPerkUI|function openPerk|perkPickDemo|perk-ui\.js/.test(game))out.push('nodspel/game.mjs: mid-raid perk picker must stay removed (no createPerkUI, openPerk, perkPickDemo or perk-ui.js import)');
+     const html=c.htmlSrc??read('nodspel/index.html');
+     if(/perks\.css|perk-overlay|perk-ui/.test(html))out.push('nodspel/index.html: must not include perk-ui, perks.css or a perk-overlay');
+     const perks=c.perksSrc??read('nodspel/perks.js');
+     const update=(perks.match(/export function updateClears\([^{]*\{[\s\S]*?\n\}\n/)||[''])[0];
+     if(!update)out.push('nodspel/perks.js: updateClears() not found');
+     else if(/clearPending|queue\.push/.test(update))out.push('nodspel/perks.js: updateClears must resolve a clear immediately and must not queue a perk offer (no clearPending, no queue.push)');
+     if(!/export function pickReady[\s\S]*?return null;/.test(perks))out.push('nodspel/perks.js: pickReady must be a no-op that always returns null');
+     if(!/export function autoPickPerks[\s\S]*?return \[\];/.test(perks))out.push('nodspel/perks.js: autoPickPerks must be a no-op that always returns []');
+     try{read('nodspel/perk-ui.js');out.push('nodspel/perk-ui.js: the mid-raid perk picker file must stay deleted');}catch(_){/* expected */}
+     try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
+     return out;}},
+
 
 ];
 

@@ -8,7 +8,7 @@
 // preview. Reactions are face-only now -- absolute eye/mouth recipes drawn inside the CRT screen, never
 // a multiplier on hover/tilt/scale. bitExpressionFace returns the whole recipe for one frame so game.mjs
 // never has to guess an intermediate value.
-import {RULES} from './levels.js?v=2.28.24';
+import {RULES} from './levels.js?v=2.28.25';
 export const BIT_EXPRESSIONS=['idle','threat','damage','loot','extract','failure'];
 // failure/damage outrank loot; shooting threats outrank explore (docs/art-direction.md "M40"); extract
 // sits with loot as another "yield to combat" flourish. Not a ranked design vote -- an implementation

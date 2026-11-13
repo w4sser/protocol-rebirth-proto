@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.28.24';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.24';
-import {RULES} from './levels.js?v=2.28.24';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.24';
-import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.28.24';
+import {audioEvent} from './audio.js?v=2.28.25';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.25';
+import {RULES} from './levels.js?v=2.28.25';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.25';
+import {activateNode,hitEnemy,tickRound,alertEnemy} from './round.js?v=2.28.25';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){

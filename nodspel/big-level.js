@@ -1,11 +1,10 @@
 // @hot updateBigCulling
-import '../data/raid-perks.js?v=2.28.24';
-import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.24';
+import {rarityOf,RARITY_ORDER} from './rarity.js?v=2.28.25';
 // Layout assembly only: expand authored spacing while reusing existing cover pieces.
-import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.24';
-import {applyEncounters} from './encounters.js?v=2.28.24';
-import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.24';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.24-bridge1-timber-v2';
+import {RULES,generateLevel,randomFromSeed} from './levels.js?v=2.28.25';
+import {applyEncounters} from './encounters.js?v=2.28.25';
+import {generateZoneGraph,cullingRooms,graphRoomAt} from './zone-graph.js?v=2.28.25';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.25-bridge1-timber-v2';
 
 export function generateBigLevel(seed,area='bunker'){
   const graph=generateZoneGraph(seed),rooms=graph.nodes.map(n=>({...n,doors:n.doors.map(d=>({...d}))}));
@@ -58,7 +57,7 @@ export function generateBigLevel(seed,area='bunker'){
   }
   for(const poi of graph.pois){
     const room=rooms[poi.roomId],node=level.nodes[poi.roomId];
-    if(poi.type==='bit-signal'){poi.description=`BIT SIGNAL: field upgrade every ${globalThis.DATA.raidPerks.clearsPerOffer} cleared rooms`;continue;}
+    if(poi.type==='bit-signal'){poi.description='BIT SIGNAL: a quiet room BIT flagged along the route';continue;}
     const sub={...level,number:poi.type==='vault'?2:3,rooms:[room],floors:[room],walls:level.walls.filter(w=>w.roomId===room.id),boxes:level.boxes.filter(b=>b.roomId===room.id),nodes:[node],enemies:[level.enemies[room.id]],lootBoxes:[],hazards:[],spawners:[],encounters:[],start:{x:room.x,z:room.z+room.d/2-1},exit:{x:room.x,z:room.z+2.9}};
     applyEncounters(sub,'bunker',randomFromSeed(`${seed}:${poi.type}`));
     // Prefix encounter references, retaining existing shield / guard / swarm behavior.

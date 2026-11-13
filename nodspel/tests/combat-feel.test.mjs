@@ -1,36 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,hitEnemy,tickRound} from '../round.js?v=2.28.24';
-import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.28.24';
-import {tapTarget,tapDirection} from '../weapon.js?v=2.28.24';
-import {RULES} from '../levels.js?v=2.28.24';
-import {createDash,startDash} from '../dash.js?v=2.28.24';
-import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.28.24';
+import {createRound,hitEnemy,tickRound} from '../round.js?v=2.28.25';
+import {perkState,updateClears,pickReady,gameTime,hitstop,advanceHitstop,pausePick,resumePick,inputPaused} from '../perks.js?v=2.28.25';
+import {tapTarget,tapDirection} from '../weapon.js?v=2.28.25';
+import {RULES} from '../levels.js?v=2.28.25';
+import {createDash,startDash} from '../dash.js?v=2.28.25';
+import {createCombat,stepCombat,stepHazards} from '../combat.js?v=2.28.25';
 const pos={x:0,z:0};
 const enemy=(id,x=2,z=0)=>({id,kind:'enemy',type:'grunt',x,z,r:.48,health:1,active:true});
 function arena(){
   const r=createRound('combat-feel',0);
   Object.assign(r.level,{rooms:[{x:0,z:0,w:20,d:20}],enemies:[enemy('a')],nodes:[],hazards:[],walls:[],boxes:[],floors:[{x:0,z:0,w:30,d:30}]});
-  perkState(r).clearCount=1;return r;
+  return r;
 }
 const quiet={projectiles:[],blasts:[]},off=()=> 'off';
-test('perk requires kill delay and continuous calm, timer runs throughout the delay',()=>{
-  const r=arena();updateClears(r,pos);hitEnemy(r,'a',100,1);updateClears(r,pos);
-  assert.equal(perkState(r).rooms['1:0'].clearedAt,100);
-  assert.equal(pickReady(r,quiet,pos,100,off),null);
-  assert.equal(pickReady(r,quiet,pos,1099,off),null);
-  assert.equal(pickReady(r,quiet,pos,1100,off),'1:0');
-  assert.equal(pickReady(r,{projectiles:[{}],blasts:[]},pos,1101,off),null);
-  assert.equal(pickReady(r,quiet,pos,1200,off),null);
-  assert.equal(pickReady(r,quiet,pos,1799,off),null);
-  assert.equal(pickReady(r,quiet,pos,1800,off),'1:0');
+// v2.28.25 / PRB-146: pickReady is a permanent no-op. Even a hand-seeded leftover queue never opens.
+test('pickReady never returns a key after a room clear, even with a leftover queue',()=>{
+  const r=arena(),s=perkState(r);updateClears(r,pos);hitEnemy(r,'a',100,1);updateClears(r,pos);
+  assert.equal(s.rooms['1:0'].state,'cleared');
+  s.rooms['1:0'].state='clearPending';s.rooms['1:0'].clearedAt=100;s.queue=['1:0'];
+  for(const t of [100,1099,1100,1800,10001])assert.equal(pickReady(r,quiet,pos,t,off),null);
   tickRound(r,1800);assert.equal(r.pauseAt==null,true);assert.equal(r.remainingMs,r.durationMs-1800);
 });
-test('perk last kill comes from death time even if clear detection occurs later',()=>{
+test('a late clear detection also never opens the picker',()=>{
   const r=arena();hitEnemy(r,'a',100,1);tickRound(r,900);updateClears(r,pos);
-  assert.equal(perkState(r).rooms['1:0'].clearedAt,100);
+  const s=perkState(r);assert.equal(s.rooms['1:0'].state,'cleared');
+  s.rooms['1:0'].state='clearPending';s.rooms['1:0'].clearedAt=100;s.queue=['1:0'];
   assert.equal(pickReady(r,quiet,pos,900,off),null);
-  assert.equal(pickReady(r,quiet,pos,1500,off),'1:0');
+  assert.equal(pickReady(r,quiet,pos,1500,off),null);
 });
 test('hitstop pause accounting uses exact freeze deadlines despite late animation frames',()=>{
   const r=arena();
@@ -80,17 +77,17 @@ test('simultaneous kills keep every presentation event and mark the final room k
   assert.equal(RULES.dash.cooldownMs,2500);assert.equal(RULES.playerStats.clamp.dashCooldownMs[0],1500);
 });
 
-test('a later kill in a pending room restarts the delay and calm window',()=>{
-  const r=arena();updateClears(r,pos);hitEnemy(r,'a',100,1);updateClears(r,pos);pickReady(r,quiet,pos,100,off);
+test('a later kill in a cleared room still never opens the picker',()=>{
+  const r=arena(),s=perkState(r);updateClears(r,pos);hitEnemy(r,'a',100,1);updateClears(r,pos);
+  s.rooms['1:0'].state='clearPending';s.rooms['1:0'].clearedAt=100;s.queue=['1:0'];
   r.level.enemies.push(enemy('reinforcement'));hitEnemy(r,'reinforcement',1000,1);
   assert.equal(pickReady(r,quiet,pos,1000,off),null);
-  assert.equal(pickReady(r,quiet,pos,1999,off),null);
-  assert.equal(pickReady(r,quiet,pos,2000,off),'1:0');
+  assert.equal(pickReady(r,quiet,pos,2000,off),null);
 });
 
 test('production enemy visuals flash independently, collapse, and remove their kill particles',async()=>{
   const THREE=await import('../vendor/three.module.js');
-  const {buildWorld}=await import('../world.js?v=2.28.24');
+  const {buildWorld}=await import('../world.js?v=2.28.25');
   const {readFileSync}=await import('node:fs'),{default:vm}=await import('node:vm');
   const r=createRound('feel-visuals',0),[first,second]=r.level.enemies;
   first.health=2;first.active=second.active=true;
@@ -98,7 +95,7 @@ test('production enemy visuals flash independently, collapse, and remove their k
   try{
     const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
     const start=source.indexOf('function renderEnemyFeedback(clock){'),end=source.indexOf('    if(v.beam)',start);
-    const {animateEnemyModel}=await import('../enemy-animation.js?v=2.28.24');
+    const {animateEnemyModel}=await import('../enemy-animation.js?v=2.28.25');
     const context=vm.createContext({world,position:pos,RULES,animateEnemyModel});
     vm.runInContext(source.slice(start,end)+'\n  }\n}',context);
     hitEnemy(r,first.id,100,1);context.renderEnemyFeedback(100);

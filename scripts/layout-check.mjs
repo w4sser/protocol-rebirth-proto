@@ -58,7 +58,7 @@ function collect(extraSel,ins={left:0,right:0,top:0,bottom:0}){
   const name=el=>(el.id?'#'+el.id:el.tagName.toLowerCase())+(el.className&&typeof el.className==='string'?'.'+el.className.trim().split(/\s+/).slice(0,2).join('.'):'')+((el.getAttribute('aria-label')||el.textContent||'').trim().slice(0,18)?` "${(el.getAttribute('aria-label')||el.textContent).trim().replace(/\s+/g,' ').slice(0,18)}"`:'');
   // an open modal layer (splash, popup, mission panel, settings menu) is the only thing that can be tapped
   const shown=e=>!e.hidden&&e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden';
-  const layers=[...document.querySelectorAll('#splash,#overlay,#mission-panel,#settings-menu,.pop-x.mission-x,#tutorial,#round-over,#inventory,#swap-row,#fatal,.perk-overlay,.perk-overlay .pop-card')].filter(shown);
+  const layers=[...document.querySelectorAll('#splash,#overlay,#mission-panel,#settings-menu,.pop-x.mission-x,#tutorial,#round-over,#inventory,#swap-row,#fatal')].filter(shown);
   for(const el of document.querySelectorAll(sel)){
     if(el.matches('#overlay,#splash,.pop-backdrop,#tutorial,#round-over,#inventory,#fatal'))continue;
     if(layers.length&&!layers.some(l=>l.contains(el)))continue;
@@ -397,7 +397,7 @@ async function raidRun([w,h],area){
   for(const level of [1,2,3]){
     const ctx=`${tag} L${level}`;
     await page.evaluate(n=>window.__NR.goLevel(n),level);await settle(1800);
-    if(await page.$eval('.perk-overlay',e=>!e.hidden))fail(ctx,'unexpected perk modal during gameplay layout');
+    if(await page.$('.perk-overlay'))fail(ctx,'unexpected perk modal element during gameplay layout -- the picker was removed in v2.28.25');
     await report(page,ctx,'.stick,#reset,#open-bag');
     if(await page.$eval('#pause-map',el=>el.offsetHeight>0))fail(ctx,'pause map visible in raid HUD');
     await page.evaluate(()=>{window.__NR.openExit();const e=window.__NR.state().level.exit;window.__NR.teleport(e.x,e.z-1.4);});
@@ -734,8 +734,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.24');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.24');
+    const {createRound}=await import('./round.js?v=2.28.25');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.25');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -772,38 +772,9 @@ async function extractPopupRun([w,h]){
   await page.close();
 }
 
-async function perkPopupRun([w,h]){
-  const tag=`raid perks ${w}x${h}`,page=await newPage(w,h);
-  await page.goto(`${BASE}/nodspel/?seed=perk-layout&debug=1&q=high&area=bunker`,{waitUntil:'load'});
-  await loaderGone(page);await page.waitForSelector('#tutorial-start',{visible:true});await page.click('#tutorial-start');
-  await page.waitForFunction('window.__NR');await page.evaluate(()=>window.__NR.perkPickDemo());await settle(400);
-  await report(page,tag,'.perk-choice');
-  const modalProblems=await page.evaluate(()=>{
-    const layer=document.querySelector('.perk-overlay'),panel=layer.querySelector('.perk-panel'),r=panel.getBoundingClientRect(),issues=[];
-    if(r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight||panel.scrollHeight>panel.clientHeight+1)issues.push('perk panel overflows viewport or needs scrolling');
-    for(const el of document.querySelectorAll('.hud,.controls,.bag-panel,#level-corner'))if(!el.inert||getComputedStyle(el).visibility!=='hidden')issues.push('HUD is visible or interactive while perk modal is open');
-    for(const el of panel.querySelectorAll('.perk-choice'))if(el.scrollHeight>el.clientHeight+1)issues.push('perk content is clipped');
-    return issues;
-  });
-  for(const problem of modalProblems)fail(tag,problem);
-  const before=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,first:window.__NR.round().perks.rooms[window.__NR.round().perks.queue[0]].offer[0]}));
-  await settle(1000);
-  const paused=await page.evaluate(()=>({time:window.__NR.round().remainingMs,health:window.__NR.round().health,targets:[...document.querySelectorAll('.perk-choice')].every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44;})}));
-  if(paused.time!==before.time||paused.health!==before.health)fail(tag,'raid timer or combat changed during perk pick');
-  if(!paused.targets)fail(tag,'perk touch target smaller than 44px');
-  await shot(page,`perk-pick-${w}x${h}`);
-  if(await page.$eval('.perk-panel',e=>!!e.querySelector('h2,.pop-x,.perk-recap,.perk-sub,.perk-confirm')||!e.querySelector('.perk-countdown-bar')))fail(tag,'picker must contain only cards and countdown');
-  const first=before.first;
-  // Demo opens with timeoutMs:0 so the 44px measure cannot race the live 4s auto-pick closing the overlay to 0x0.
-  await page.evaluate(()=>window.__NR.perkForceTimeout());
-  await page.waitForFunction(()=>document.querySelector('.perk-overlay').hidden,{timeout:6000});
-  if(!await page.$eval('.controls',e=>!e.inert&&getComputedStyle(e).visibility!=='hidden'))fail(tag,'HUD not restored after timeout');
-  if(!await page.evaluate(id=>window.__NR.round().perks.taken.includes(id),first))fail(tag,'timeout did not pick the first offered card');
-  const icons=await page.evaluate(()=>document.querySelectorAll('.perk-hud svg').length);if(icons!==1)fail(tag,'chosen perk missing from HUD');
-  await page.evaluate(()=>window.__NR.deathDemo());await settle(200);await report(page,`${tag} death`);
-  const death=await page.$eval('#result-death-cause',e=>{const r=e.getBoundingClientRect();return !e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&r.height>0&&r.top>=0&&r.bottom<=innerHeight?e.textContent:'';});if(!/Last hit: Sentry.*moving/.test(death))fail(tag,'death explanation missing');
-  await shot(page,`perk-death-${w}x${h}`);await page.close();
-}
+// perkPopupRun (the mid-raid perk picker's 44px/modal check) was removed in v2.28.25 (PRB-146): the picker
+// it exercised no longer exists. raidRun already asserts no .perk-overlay element appears per level, and
+// raidDeathLossRun already covers the death-cause/last-hit presentation this run used to also exercise.
 
 async function pauseMapRun([w,h]){
   const tag=`raid pause map ${w}x${h}`,page=await newPage(w,h);
@@ -831,7 +802,6 @@ try{
   if(group('popups')){
   for(const vp of [[844,390],[667,375]])await metaResultExtractRun(vp);
   for(const vp of VIEWPORTS)await pauseMapRun(vp);
-  for(const vp of [...VIEWPORTS,[1280,720]])await perkPopupRun(vp);
   for(const vp of VIEWPORTS)await raidSummaryRun(vp);
   for(const vp of RESULT_VIEWPORTS)await raidDeathLossRun(vp);
   for(const vp of RESULT_VIEWPORTS)await extractPopupRun(vp);
