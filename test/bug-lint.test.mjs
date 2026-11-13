@@ -39,5 +39,9 @@ assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
  assert.equal(by('raid-tab-open-when-goal-needs-loot').check({appSrc:badApp}).length,3,'v2.28.21 fires: missing helper, navAllowed not wired, A.go not wired');}
 {const goodApp='function goalNeedsRaidLoot(){return false;}\nfunction navAllowed(id){\n  if(id === "bit") return bitOnline();\n  if(id === "prep") return baseAllows("navigation", "prep") || goalNeedsRaidLoot();\n  return baseAllows("navigation", id);\n}\n  go(screen, param){\n    if(screen === "prep" ? !navAllowed("prep") : (screen === "bit" ? !bitOnline() : (screen !== "dev" && !baseAllows("navigation", screen)))) return;\n  },\n';
  assert.equal(by('raid-tab-open-when-goal-needs-loot').check({appSrc:goodApp}).length,0,'v2.28.21 passes once both navAllowed and A.go consult goalNeedsRaidLoot');}
+{const badApp='function ingestRaidResult(r){\n  const extracted = r.outcome === "extract";\n  const added = extracted ? r.extracted.slice() : [];\n  const ftueLaunch = !!(S.coreLaunch && S.coreLaunch.raidId === r.raidId && S.coreLaunch.ftue);\n  if(extracted && ftueLaunch){}\n}\nfunction next(){}\n';
+ assert.equal(by('ftue-extract-topup-honors-result-ftue').check({appSrc:badApp}).length,1,'v2.28.22 fires: ftueLaunch ignores r.ftue');}
+{const goodApp='function ingestRaidResult(r){\n  const extracted = r.outcome === "extract";\n  const added = extracted ? r.extracted.slice() : [];\n  const ftueLaunch = !!((S.coreLaunch && S.coreLaunch.raidId === r.raidId && S.coreLaunch.ftue) || (r.ftue && (S.raids || 0) === 0));\n  if(extracted && ftueLaunch){}\n}\nfunction next(){}\n';
+ assert.equal(by('ftue-extract-topup-honors-result-ftue').check({appSrc:goodApp}).length,0,'v2.28.22 passes once r.ftue is honored on a first extract');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');

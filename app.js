@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.21"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.22"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -3632,9 +3632,15 @@ function ingestRaidResult(r){
   // D3.10 softlock guard: the first FTUE raid guarantees the Core L1 materials as world pickups
   // (nodspel/ftue.js). If somehow fewer than Core L1 needs came home in THIS raid's own extracted
   // list, top up the missing count once, as found-in-raid -- never by pulling from or reducing the
-  // existing stash, and never on a later or non-FTUE raid (S.coreLaunch.ftue is set only by
-  // A.startFtueDirect()). Reads the need from the Core L1 def itself, not a hardcoded item id.
-  const ftueLaunch = !!(S.coreLaunch && S.coreLaunch.raidId === r.raidId && S.coreLaunch.ftue);
+  // existing stash, and never on a later or non-FTUE raid. S.coreLaunch.ftue is set only by
+  // A.startFtueDirect(); the result also carries r.ftue from ?ftue=1. Reads the need from the
+  // Core L1 def itself, not a hardcoded item id.
+  // v2.28.22: also honor r.ftue on a first extract (S.raids === 0). buildRaidResult emits
+  // raidId "nodspel:${seed}" when launch.seed !== round.seed (mid-raid reset / new-round, or a
+  // seed rewrite), and S.coreLaunch can be missing or overwritten (mid-raid reload of the base,
+  // a second startFtueDirect). Those paths used to skip the top-up and left Carlos at 1/2 Alloy.
+  const ftueLaunch = !!((S.coreLaunch && S.coreLaunch.raidId === r.raidId && S.coreLaunch.ftue) ||
+    (r.ftue && (S.raids || 0) === 0));
   if(extracted && ftueLaunch){
     const coreL1Items = (MODS.rebirth_core.levels.find(l => l.level === 1).cost.items) || {};
     for(const id in coreL1Items){

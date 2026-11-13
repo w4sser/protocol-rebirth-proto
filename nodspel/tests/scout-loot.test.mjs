@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {generateLevel,setScouted} from '../levels.js?v=2.28.21';import {generateBigLevel} from '../big-level.js';
+import {generateLevel,setScouted} from '../levels.js?v=2.28.22';import {generateBigLevel} from '../big-level.js';
 import {readLaunch} from '../raid-result.js';
 const scouts=L=>L.lootBoxes.filter(b=>b.scout);
 test('v2.28.6 t352u: a still-locked player keeps the guaranteed chart/survey drop',()=>{

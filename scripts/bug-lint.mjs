@@ -129,6 +129,14 @@ export const RULES=[
      if(!go)out.push('app.js: A.go(screen, param) not found');
      else if(!/screen === "prep"[^\n]*navAllowed\("prep"\)/.test(go))out.push('app.js: A.go must gate "prep" through navAllowed("prep") so raidForModule/raidForRoom actually open Raid Prep, not only baseAllows("navigation", screen)');
      return out;}},
+  {id:'ftue-extract-topup-honors-result-ftue',pr:'v2.28.22 (fix/ftue-topup-raidid-mismatch)',why:'Carlos 1/2 Alloy after a fresh FTUE extract: ingest top-up required S.coreLaunch.ftue && raidId match, so a result that carried r.ftue but a nodspel: raidId (seed restart) or a missing/overwritten coreLaunch skipped the Core L1 material guarantee',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     const fn=(app.match(/function ingestRaidResult\(r\)\{[\s\S]*?\nfunction /)||[''])[0];
+     if(!fn){out.push('app.js: ingestRaidResult() not found');return out;}
+     if(!/const ftueLaunch/.test(fn))out.push('app.js: ingestRaidResult must compute ftueLaunch for the D3.10 Core L1 top-up');
+     else if(!/r\.ftue/.test(fn))out.push('app.js: ftueLaunch must also honor r.ftue (the result flag from ?ftue=1), not only S.coreLaunch.raidId match');
+     else if(!/r\.ftue[^\n]*S\.raids/.test(fn))out.push('app.js: the r.ftue top-up fallback must be limited to a first extract (S.raids === 0) so a later raid never gets it');
+     return out;}},
 
 ];
 

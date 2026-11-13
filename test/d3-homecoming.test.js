@@ -145,4 +145,53 @@ const html = w => w.document.getElementById("app").innerHTML;
   assert.equal(w.T.state().stash.scrap_alloy, before, "no top-up on a non-FTUE raid");
 }
 
+// v2.28.22: Carlos 1/2 Alloy -- the result of a fresh FTUE extract can carry r.ftue but still
+// miss the S.coreLaunch.raidId match. buildRaidResult uses launch.raidId only when
+// launch.seed === round.seed; otherwise the id is "nodspel:${seed}". Mid-raid reset / new-round,
+// a seed rewrite, a mid-raid reload of the base that overwrites or drops S.coreLaunch, or a
+// second startFtueDirect all take that path. The top-up must still fire on r.ftue for a first
+// extract (S.raids === 0), and must still refuse a later or non-FTUE raid.
+{
+  const w = boot(null);
+  w.dispatchEvent(new w.Event("pr:splash-finished"));
+  const S = w.T.state();
+  const before = S.stash.scrap_alloy || 0;
+  assert.equal(S.raids, 0, "first extract has not been ingested yet");
+  // Overwritten / mismatched coreLaunch, result stamped ftue with a nodspel: restart id.
+  S.coreLaunch = { raidId:"meta-other-launch", ftue:true, gear:[] };
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:restarted", seed:"restarted",
+    outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
+    extracted:[], lost:[], endedAt:Date.now(), kitLeft:{ medkit:1 }, ftue:true };
+  const res = w.T.ingestRaidResult(r);
+  assert.equal(res.ok, true, "mismatched-id FTUE extract ingests");
+  assert.equal(S.stash.scrap_alloy, before + 2, "v2.28.22: r.ftue tops up Core L1 Alloy even when raidId does not match S.coreLaunch");
+  assert.equal(res.added.filter(id => id === "scrap_alloy").length, 2, "top-up lands in the added list");
+}
+{
+  // S.coreLaunch missing entirely (save failed, or the base was reloaded without it).
+  const w = boot(null);
+  const S = w.T.state();
+  const before = S.stash.scrap_alloy || 0;
+  S.coreLaunch = null;
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:no-launch", seed:"no-launch",
+    outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
+    extracted:[], lost:[], endedAt:Date.now(), kitLeft:{ medkit:1 }, ftue:true };
+  const res = w.T.ingestRaidResult(r);
+  assert.equal(res.ok, true, "no-coreLaunch FTUE extract ingests");
+  assert.equal(S.stash.scrap_alloy, before + 2, "v2.28.22: r.ftue tops up when S.coreLaunch is missing");
+}
+{
+  // A later extract that happens to still carry r.ftue (S.raids already advanced) must not top up again.
+  const w = boot(null);
+  const S = w.T.state();
+  S.coreLaunch = null;
+  S.raids = 1;
+  const before = S.stash.scrap_alloy || 0;
+  const r = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:later-ftue-flag", seed:"later-ftue",
+    outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
+    extracted:[], lost:[], endedAt:Date.now(), kitLeft:{ medkit:1 }, ftue:true };
+  w.T.ingestRaidResult(r);
+  assert.equal(S.stash.scrap_alloy, before, "v2.28.22: r.ftue does not top up after the first extract (S.raids > 0)");
+}
+
 console.log("D3.10 HOMECOMING TEST PASSED");
