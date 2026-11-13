@@ -7,44 +7,36 @@ import {createBIT,stepBIT} from '../bit.js';
 import {createDash} from '../dash.js';
 import {cards,perkState,ownRooms,updateClears,offer,choosePerk,safePick,recap,logCombat,deathLine,pausePick,resumePick,gameTime,dashInterval,reloadInterval} from '../perks.js';
 const point={x:0,z:0},foe=(id,x=0)=>({id,kind:'enemy',aggro:true,facing:0,type:'grunt',x,z:0,r:.48,health:2,active:true});
-function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});perkState(r).clearCount=1;return r;}
+function arena(){const r=createRound('pr2',0);Object.assign(r.level,{rooms:[{x:0,z:0,w:10,d:10},{x:20,z:0,w:10,d:10}],enemies:[foe('a'),foe('b',20)],nodes:[],hazards:[],walls:[],boxes:[],start:point,floors:[{x:10,z:0,w:40,d:20}],exit:{x:0,z:0,r:1}});return r;}
 function select(r,id,index=0){const s=perkState(r),key=`${r.level.number}:${index}`;s.rooms[key]={state:'rewardPending',level:r.level.number,index,offer:[id]};s.queue.push(key);return choosePerk(r,key,id,100,createDash());}
 
-test('room clear uses original ownership, excludes inactive reserves and generator, rewards once',()=>{
+// Round upgrades removed (v2.28.25, PRB-146): a clear resolves straight to 'cleared', never queued for an offer.
+test('room clear uses original ownership, excludes inactive reserves and generator, resolves once',()=>{
   const r=arena();r.level.enemies.push({...foe('reserve'),active:false},{...foe('generator'),type:'generator'});ownRooms(r.level);
   r.level.enemies[0].x=20;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved');
-  r.level.enemies[0].health=0;updateClears(r,point);assert.deepEqual(perkState(r).queue,['1:0']);
-  const ids=offer(r,'1:0');assert.equal(new Set(ids).size,3);assert.ok(choosePerk(r,'1:0',ids[0],100));
+  r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'cleared');assert.deepEqual(perkState(r).queue,[]);
   r.level.enemies.push(foe('late'));updateClears(r,point);r.level.enemies.at(-1).health=0;updateClears(r,point);
-  assert.deepEqual(perkState(r).queue,[]);assert.equal(perkState(r).rooms['1:1'].entered,false);
+  assert.equal(perkState(r).rooms['1:0'].state,'cleared');assert.equal(perkState(r).rooms['1:1'].entered,false);
 });
 test('activated living reserves block clear until defeated, including after ownership was assigned inactive',()=>{
   const r=arena(),reserve={...foe('reserve'),active:false};r.level.enemies.push(reserve);ownRooms(r.level);
   updateClears(r,point);reserve.active=true;r.level.enemies[0].health=0;updateClears(r,point);
   assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.deepEqual(perkState(r).queue,[]);
-  reserve.health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'clearPending');assert.deepEqual(perkState(r).queue,['1:0']);
+  reserve.health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'cleared');assert.deepEqual(perkState(r).queue,[]);
 });
-test('a dormant swarm body cannot grant a clear; branches never grant rewards',()=>{
-  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved');assert.equal(perkState(r).queue.length,0);
+test('a dormant swarm body cannot grant a clear until it activates and dies',()=>{
+  const r=arena();r.level.enemies=[{...foe('swarm'),active:false,swarm:'spawn'}];updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'unresolved');
   updateClears(r,{x:100,z:100});assert.equal(Object.keys(perkState(r).rooms).length,2);
-  r.level.enemies[0].active=true;r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).queue.length,1);
+  r.level.enemies[0].active=true;r.level.enemies[0].health=0;updateClears(r,point);assert.equal(perkState(r).rooms['1:0'].state,'cleared');assert.deepEqual(perkState(r).queue,[]);
 });
-test('safe queue waits for foreign bodies, projectiles, bombs, warnings and active hazard',()=>{
+test('a clear never queues an offer, so safePick stays null even in a quiet room',()=>{
   const r=arena(),c=createCombat(r.level,0);r.level.enemies[0].health=0;updateClears(r,point);
-  assert.equal(safePick(r,c,point,1,()=> 'off'),'1:0');
-  for(const field of ['projectiles','blasts']){c[field].push({});assert.equal(safePick(r,c,point,1,()=> 'off'),null);c[field]=[];}
-  r.level.enemies[1].x=0;assert.equal(safePick(r,c,point,1,()=> 'off'),null);r.level.enemies[1].x=20;
-  r.level.hazards=[{...point,w:2,d:2}];assert.equal(safePick(r,c,point,1,()=> 'on'),null);
-  r.level.enemies[1].windupAt=20;assert.equal(safePick(r,c,point,1,()=> 'off'),null);
+  assert.deepEqual(perkState(r).queue,[]);
+  assert.equal(safePick(r,c,point,1,()=> 'off'),null);
 });
 test('all six offers have three distinct untaken cards, stable across reopening',()=>{
   const r=arena(),s=perkState(r);assert.equal(cards.length,8);
   for(let i=0;i<6;i++){const key=`${i}:0`;s.rooms[key]={state:'clearPending',level:1,index:0};s.queue.push(key);const ids=offer(r,key);assert.equal(ids.length,3);assert.equal(new Set(ids).size,3);assert.ok(ids.every(id=>!s.taken.includes(id)));assert.deepEqual(offer(r,key),ids);assert.ok(choosePerk(r,key,ids[0],100));assert.equal(choosePerk(r,key,ids[0],100),false);}
-});
-test('a minimized presented offer cannot be invalidated by a later clear in an earlier room',()=>{
-  const r=arena();r.level.enemies[1].health=0;updateClears(r,{x:20,z:0});const before=offer(r,'1:1');perkState(r).minimized='1:1';
-  perkState(r).clearCount++;r.level.enemies[0].health=0;updateClears(r,point);assert.deepEqual(perkState(r).queue,['1:1','1:0']);assert.deepEqual(offer(r,'1:1'),before);
-  assert.ok(choosePerk(r,'1:1',before[0],100));assert.ok(offer(r,'1:0').every(id=>id!==before[0]));
 });
 test('full paused clock freezes deadline, enemies, hazards, weapon and BIT including long hidden tab',()=>{
   const r=arena(),c=createCombat(r.level,0),w=createWeapon(30),bit=createBIT(point);r.health=50;r.level.hazards=[{...point,w:2,d:2,phaseMs:0,dps:20}];
@@ -96,8 +88,7 @@ test('ordinary enemies and hazards record stable source metadata and truthful de
   const r=arena();r.bag.cable=2;r.playerMoving=true;r.health=1;r.lastHit={source:'grunt',enemyId:'enemy-7',attack:'projectile'};takeDamage(r,10,100);assert.match(deathLine(r),/grunt.*projectile.*Moving/);assert.equal(r.bag.cable,0);assert.equal(r.lost.cable,2);assert.equal(r.extracted.cable,0);assert.equal(r.lastDamageEvent.sourceId,'enemy-7');
   const h=arena();h.level.hazards=[{...point,id:'pad-1',w:2,d:2,dps:20,phaseMs:0}];stepHazards(h,point,2500,1);assert.equal(h.lastDamageEvent.sourceId,'pad-1');assert.match(deathLine(h),/Shock pad.*electric hazard.*Stationary/);
 });
-test('last clear before exit auto-picks and secures the terminal bag',()=>{
+test('last clear before exit secures the terminal bag with no perk ever taken',()=>{
   const r=arena();r.level.number=3;r.level.exitArmed=true;r.bag.cable=1;r.level.enemies[0].health=0;
-  assert.equal(enterExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,1);
-
+  assert.equal(enterExit(r,point,100),'complete');assert.equal(r.over,true);assert.equal(r.extracted.cable,1);assert.equal(perkState(r).taken.length,0);assert.equal(r.raidPerksTaken.length,0);
 });

@@ -54,7 +54,6 @@ test('review SVG includes room rectangles, corridors, POIs, spawn and extract ma
 
 import * as THREE from '../vendor/three.module.js';
 import {createRoomVisibility} from '../big-level-culling.js';
-import {safePick,perkState,roomKey} from '../perks.js';
 test('instanced room batches cull sleeping geometry without changing materials or asset transforms',()=>{
   const level=generateBigLevel('instances'),group=new THREE.Group(),geometry=new THREE.BoxGeometry(2,.1,2),material=new THREE.MeshBasicMaterial();
   const mesh=new THREE.InstancedMesh(geometry,material,level.rooms.length),matrix=new THREE.Matrix4();
@@ -66,14 +65,13 @@ test('instanced room batches cull sleeping geometry without changing materials o
   const transient=new THREE.Mesh(geometry,material);transient.position.set(far.x,0,far.z);group.add(transient);apply(awake);assert.equal(transient.parent,group);assert.equal(transient.visible,false);group.remove(transient);apply(awake);assert.equal(transient.parent,null);
   enemy.x=level.start.x;enemy.z=level.start.z;updateBigCulling(level,level.start);assert.equal(enemy.sleeping,undefined);apply(level.awakeRooms);assert.equal(enemyGroup.parent.visible,true);
 });
-test('enemies are culled by current room and frozen attacks do not block a local perk',()=>{
+test('enemies are culled by current room and frozen attacks stay frozen while sleeping',()=>{
   const round=createRound('perk-cull',0),level=round.level=generateBigLevel('perk-cull'),combat=createCombat(level,0);updateBigCulling(level,level.start,1000,combat);
   const remote=level.rooms.find(r=>!level.awakeRooms.has(r.id)),enemy=level.enemies.find(e=>e.roomId===0);enemy.x=remote.x;enemy.z=remote.z;updateBigCulling(level,remote,2000,combat);assert.equal(enemy.sleeping,false);
   updateBigCulling(level,level.start,3000,combat);enemy.windupAt=5000;assert.equal(enemy.sleeping,true);
   for(const e of level.enemies)if(e.roomId===0&&e!==enemy)e.health=0;
-  const s=perkState(round),key=roomKey(round,0);s.queue=[key];s.rooms[key]={state:'clearPending',index:0,level:1};
   combat.projectiles=[{id:'sleep-shot',x:remote.x,z:remote.z,dx:1,dz:0,life:1,releaseAt:4000}];combat.blasts=[{id:'sleep-blast',x:remote.x,z:remote.z,detonateAt:4000,at:3000,radius:2}];
-  updateBigCulling(level,level.start,3000,combat);assert.equal(safePick(round,combat,level.start,3500,()=> 'off'),key);
+  updateBigCulling(level,level.start,3000,combat);
   const shot={...combat.projectiles[0]},blast={...combat.blasts[0]};stepCombat(round,combat,level.start,10000,.04,level.walls);assert.deepEqual(combat.projectiles[0],shot);assert.deepEqual(combat.blasts[0],blast);
   updateBigCulling(level,remote,13000,combat);assert.equal(combat.projectiles[0].releaseAt,14000);assert.equal(combat.blasts[0].detonateAt,14000);
 });

@@ -70,43 +70,10 @@ try{
   await page.waitForFunction(()=>window.__NR&& !document.getElementById('boot-loader'),{timeout:30000});
   await rotateThrough(page,['#viewport','#game','#game canvas'],'raid HUD');
   await page.evaluate(()=>{const tutorial=document.querySelector('#tutorial');if(tutorial&&!tutorial.hidden)document.querySelector('#tutorial-start').click();window.__NR.setRoomClearsEnabled(false);window.__NR.round().level.enemies=[];document.querySelector('#round-over').hidden=true;});
-  // Confirm the fixture can fire before checking that modal dismissal cannot fire.
-  await page.keyboard.press('Space');await page.waitForFunction(()=>window.__NR.round().weaponState.nextId>0);
-  for(const [w,h] of sizes){
-    await resize(page,w,h);
-    const lock=await page.evaluate(async()=>{
-      const start=performance.now();
-      window.__NR.perkPickDemo();
-      let cards=[...document.querySelectorAll('.perk-choice')];
-      if(cards.length<3){await new Promise(requestAnimationFrame);cards=[...document.querySelectorAll('.perk-choice')];}
-      const disabled=cards.length===3&&cards.every(b=>b.disabled);
-      cards[0]?.click();
-      cards[0]?.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true,cancelable:true}));
-      return {disabled,taken:window.__NR.round().perks.taken.length,elapsed:performance.now()-start};
-    });
-    assert.ok(lock.disabled,`cards disabled on open (elapsed ${lock.elapsed.toFixed(1)} ms)`);
-    assert.equal(lock.taken,0,`lock ignores click and keyboard (elapsed ${lock.elapsed.toFixed(1)} ms)`);
-    await modalFits(page,`${w}x${h}`);
-    await page.waitForFunction(()=>[...document.querySelectorAll('.perk-choice')].every(b=>!b.disabled));
-    // A press already down when the modal reopens must not choose even after 600 ms.
-    const box=await page.$eval('.perk-choice',e=>{const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
-    await page.mouse.move(box.x,box.y);await page.mouse.down();
-    await page.evaluate(()=>{window.__NR.perkPickDemo();});
-    await pause(700);await page.mouse.up();
-    assert.equal(await page.evaluate(()=>window.__NR.round().perks.taken.length),0,'held pre-open pointer ignored after unlock');
-    // Touch starting during lock and held through unlock is rejected too.
-    await page.evaluate(()=>{window.__NR.perkPickDemo();});
-    const cdp=await page.createCDPSession();
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:box.x,y:box.y}]});await pause(700);
-    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();
-    assert.equal(await page.evaluate(()=>window.__NR.round().perks.taken.length),0,'touch held through lock ignored');
-    const shotsBefore=await page.evaluate(()=>window.__NR.round().weaponState.nextId);
-    await page.tap('.perk-choice');await page.waitForFunction(()=>window.__NR.round().perks.taken.length===1);
-    await pause(450);
-    assert.equal(await page.evaluate(()=>window.__NR.round().weaponState.nextId),shotsBefore,'closing perk pick does not fire');
-    // Reset only the debug fixture between independent viewport cases.
-    await page.evaluate(()=>{const r=window.__NR.round();r.perks.taken=[];});
-  }
+  // v2.28.25 / PRB-146: the mid-raid perk picker is gone -- no SELECT PERK overlay, no perkPickDemo.
+  assert.equal(await page.evaluate(()=>!!document.querySelector('.perk-overlay')),false,'no leftover perk overlay in the raid DOM');
+  assert.equal(await page.evaluate(()=>typeof window.__NR.perkPickDemo),'undefined','perkPickDemo debug hook is gone');
+
   // A real HUD tap must spend a kit. v2.25.1: medkits ignore the BIT/regen heal budget, so a spent budget still heals.
   await page.evaluate(()=>{window.__NR.setRoomClearsEnabled(false);const r=window.__NR.round();r.level.enemies=[];r.health=40;r.kit={medkit:2};r.stakes.healed=r.stakes.budget;});
   await page.waitForFunction(()=>document.querySelector('#use-kit b').textContent==='2');

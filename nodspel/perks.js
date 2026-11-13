@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.28.24';
-import {heal} from './stakes.js?v=2.28.24';
-import {RULES} from './levels.js?v=2.28.24';
+import '../data/raid-perks.js?v=2.28.25';
+import {heal} from './stakes.js?v=2.28.25';
+import {RULES} from './levels.js?v=2.28.25';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -56,15 +56,8 @@ export function updateClears(round,position){
     // Defeated enemies stay in the level: require an actual encounter before rewarding a clear.
     // Dormant reserves count only after activation, just as they do when blocking a clear.
     const roomEnemies=round.level.enemies.filter(e=>e.homeRoom===i&&e.type!=='generator'&&e.active!==false);
-    if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){
-      s.clearCount=(s.clearCount??0)+1;
-      if(s.clearCount%PERKS.clearsPerOffer){r.state='cleared';cleared.push(key);continue;}
-      r.state='clearPending';r.clearedAt=Math.max(...roomEnemies.map(e=>e.diedAt??round.gameNow??0));cleared.push(key);
-      // A presented/minimized offer keeps its place: later clears must not invalidate its three cards.
-      const presented=s.rooms[s.queue[0]]?.state==='rewardPending'?s.queue.shift():null;
-      s.queue.push(key);s.queue.sort((a,b)=>{const x=s.rooms[a],y=s.rooms[b];return x.level-y.level||x.index-y.index;});
-      if(presented)s.queue.unshift(presented);
-    }
+    // Round upgrades removed (v2.28.25, PRB-146): a clear resolves immediately and is never queued for an offer.
+    if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){r.state='cleared';cleared.push(key);}
   }
   return cleared;
 }
@@ -80,15 +73,10 @@ export function safePick(round,combat,position,now,hazardState){
 // Perk picker timing (docs/design-combat-feel-oct28.md §2.1.1): the room must be safePick()-safe continuously
 // for calmMs before opening, and killDelayMs must have elapsed since the room's last kill. The raid
 // timer keeps running throughout this wait; only openPerk() -> pausePick() actually freezes the game clock.
+// v2.28.25 / PRB-146: the mid-raid picker is gone. pickReady never returns a key, even if
+// leftover state still has a queue (a mid-session or a test that seeds one).
 export function pickReady(round,combat,position,now,hazardState,readoutVisible=false){
-  if(readoutVisible)return null;
-  const s=perkState(round),key=safePick(round,combat,position,now,hazardState);
-  if(!key){s.calmSince=null;s.calmKey=null;return null;}
-  const room=s.rooms[key],lastKillAt=Math.max(room.clearedAt??now,room.lastKillAt??0);
-  if(s.calmKey!==key||s.calmKillAt!==lastKillAt){s.calmKey=key;s.calmKillAt=lastKillAt;s.calmSince=now;}
-  if(now-lastKillAt<RULES.perkPick.killDelayMs)return null;
-  if(now-s.calmSince<RULES.perkPick.calmMs)return null;
-  return key;
+  return null;
 }
 // Hitstop: a brief freeze of the paused game clock (gameTime/pausePick/resumePick), not a second clock. The
 // real frame loop keeps rendering and reading input while paused; only the game simulation step is skipped
@@ -133,21 +121,9 @@ export function choosePerk(round,key,id,now,dash){
   logCombat(round,{kind:id==='dressing'||terminal&&['roll','recon'].includes(id)?'perk':'choice',perk:id,at:now,room:key,text});return text;
 }
 // Resolve through choosePerk so automatic choices have exactly the same effects as manual ones.
+// v2.28.25 / PRB-146: never auto-apply a leftover queued offer (round.js used to call this on extract).
 export function autoPickPerks(round,now,dash,{all=false}={}){
-  const s=perkState(round),picked=[];
-  while(!round.over&&s.queue.length){
-    const key=s.queue[0],id=offer(round,key)[0];
-    if(id&&choosePerk(round,key,id,now,dash)){
-      const text=`Auto-picked: ${cards.find(c=>c.id===id).name}`;
-      logCombat(round,{kind:'perk',perk:id,room:key,at:now,text});picked.push(text);
-    }else{
-      // Exhausted offers cannot strand a room (all unique perks may already be owned).
-      if(s.rooms[key])s.rooms[key].state='rewarded';
-      s.queue.shift();s.minimized=null;
-    }
-    if(!all)break;
-  }
-  return picked;
+  return [];
 }
 export function reloadInterval(round,ms){return hasPerk(round,'reload')?Math.max(PERKS.reloadFloorMs,ms*PERKS.reloadMultiplier):ms;}
 export function dashInterval(round,ms){return hasPerk(round,'roll')?Math.max(PERKS.dashFloorMs,ms*PERKS.dashMultiplier):ms;}

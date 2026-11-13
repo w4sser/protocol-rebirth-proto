@@ -31,10 +31,7 @@ assert.equal(by('playtest-1108-ui').check({html:'<button id="continue-raid" clas
 assert.ok(by('fullscreen-detail').check({app:'',html:''}).length>=3,'fullscreen-detail fires');
 assert.ok(by('artillery-fx-prewarm').check({gameSrc:'function prewarmShaders(){}\nprewarmShaders();'}).length>=1,'#196 fires without pre-create');
 assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtilleryShell(){}\nfunction makeToolFxRing(){}\nmakeArtilleryShell();makeToolFxRing();makeToolFxRing();\nfunction prewarmShaders(){}\nprewarmShaders();'}).length,0,'#196 passes with pre-create');
-assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
-{const badCss=by('perk-choice-touch-44');
- // Smoke: rule id exists and repo currently passes (file-based check).
- assert.ok(badCss,'perk-choice-touch-44 rule present');}
+// perk-choice-touch-44 retired in v2.28.25 along with the picker it guarded; see docs/bug-lint.md.
 {const badApp='function navAllowed(id){\n  if(id === "bit") return bitOnline();\n  if(id === "prep") return baseAllows("navigation", "prep");\n  return baseAllows("navigation", id);\n}\n  go(screen, param){\n    if(screen === "bit" ? !bitOnline() : (screen !== "dev" && !baseAllows("navigation", screen))) return;\n  },\n';
  assert.equal(by('raid-tab-open-when-goal-needs-loot').check({appSrc:badApp}).length,3,'v2.28.21 fires: missing helper, navAllowed not wired, A.go not wired');}
 {const goodApp='function goalNeedsRaidLoot(){return false;}\nfunction navAllowed(id){\n  if(id === "bit") return bitOnline();\n  if(id === "prep") return baseAllows("navigation", "prep") || goalNeedsRaidLoot();\n  return baseAllows("navigation", id);\n}\n  go(screen, param){\n    if(screen === "prep" ? !navAllowed("prep") : (screen === "bit" ? !bitOnline() : (screen !== "dev" && !baseAllows("navigation", screen)))) return;\n  },\n';
@@ -47,5 +44,11 @@ assert.ok(by('perk-choice-touch-44').check().length===0,'perk-touch-44 clean');
  assert.equal(by('death-loss-screen-before-handoff').check({gameSrc:badGame}).length,1,'v2.28.24 fires on the old blanket auto-handoff (death/timeout/abandon never saw #round-over)');}
 {const goodGame="function finishRound(outcome){\n  if(round.over&&['extract','complete'].includes(round.reason)&&handoffRaidResult(round,{launch,beforeReturn:clearInput})){\n    resultReturning=true;return;\n  }\n}\n";
  assert.equal(by('death-loss-screen-before-handoff').check({gameSrc:goodGame}).length,0,'v2.28.24 passes once death/timeout/abandon fall through to the in-raid presenter');}
+{const badGame="function openPerk(key){\n  perkUI.open(key);\n}\n";
+ assert.equal(by('no-mid-raid-perk-picker').check({gameSrc:badGame,htmlSrc:'<div></div>',perksSrc:"export function updateClears(round,position){\n  if(r.state==='unresolved'){r.state='cleared';}\n}\nexport function pickReady(){\n  return null;\n}\nexport function autoPickPerks(){\n  return [];\n}\n"}).length,1,'v2.28.25 fires if game.mjs reintroduces openPerk');}
+{const badClears="export function updateClears(round,position){\n  if(r.state==='unresolved'){r.state='clearPending';s.queue.push(key);}\n}\nexport function pickReady(){\n  return null;\n}\nexport function autoPickPerks(){\n  return [];\n}\n";
+ assert.equal(by('no-mid-raid-perk-picker').check({gameSrc:'function finishRound(){}',htmlSrc:'<div></div>',perksSrc:badClears}).length,1,'v2.28.25 fires if updateClears queues an offer again');}
+{const good="export function updateClears(round,position){\n  if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){r.state='cleared';cleared.push(key);}\n}\nexport function pickReady(round){\n  return null;\n}\nexport function autoPickPerks(){\n  return [];\n}\n";
+ assert.equal(by('no-mid-raid-perk-picker').check({gameSrc:'function finishRound(){}',htmlSrc:'<html></html>',perksSrc:good}).length,0,'v2.28.25 passes when the picker stays gone and clears never queue');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
