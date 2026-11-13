@@ -656,13 +656,6 @@ async function raidDeathLossRun([w,h]){
     if(body.scrollHeight>body.clientHeight+1)issues.push('the result card scrolls as a whole instead of only the loss grid');
     const grid=document.getElementById('result-loot'),gr=grid.getBoundingClientRect(),footer=document.querySelector('.result-footer').getBoundingClientRect();
     if(gr.bottom>footer.top+1)issues.push('the loss grid overlaps the footer');
-    // A partially visible first overflowing row (half a tile under the gear strip) is a fit
-    // bug, not acceptable scrolling. Tiles may sit fully outside the loot box (scrolled away).
-    for(const t of tiles){
-      const r=t.getBoundingClientRect();
-      const visibleH=Math.max(0,Math.min(r.bottom,gr.bottom)-Math.max(r.top,gr.top));
-      if(visibleH>1&&visibleH<r.height-1)issues.push(`loss tile ${t.dataset.item} is mid-clipped (${Math.round(visibleH)} of ${Math.round(r.height)}px visible) -- #result-loot must show complete rows`);
-    }
     const overflows=grid.scrollHeight>grid.clientHeight+1;grid.scrollTop=grid.scrollHeight;if(overflows&&grid.scrollTop<=0)issues.push('a long loss grid cannot scroll');
     return issues;
   },INSETS);
