@@ -340,6 +340,15 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) .result-tile{justify-content:space-between}
 #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) #result-gear{flex-shrink:0;padding:5px 7px;background:color-mix(in srgb,var(--ad-danger) 12%,var(--ad-night));border-left:3px solid var(--ad-danger);letter-spacing:0}
 #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) #result-gear>span:first-child{font-weight:700;margin-right:3px;color:var(--ad-danger)}
+/* At 667x375 a recovery note used to leave #result-loot ~59px tall (one full tile row
+   plus a half-clipped second row). Keep two complete rows visible; the goal copy shrinks. */
+@media (max-height:400px){
+  #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) #result-loot{flex:1 0 78px;min-height:78px}
+  #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) .result-goal{flex-shrink:1;min-height:0;padding:4px 8px;gap:2px}
+  #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) .result-goal>span{font-size:9px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #round-over:is([data-outcome=death],[data-outcome=timeout],[data-outcome=abandon]) #result-recovery{font-size:10px;line-height:1.25;margin:0}
+}
+
 
 /* v2.5.1 stakes PR1: heal budget meter, carried-value line, bag-weight gauge, alarm/wave banner + edge arrow. */
 #heal-budget-meter{position:absolute;z-index:3;left:max(14px,0px);top:calc(max(12px,0px) + 128px + 52px)}
