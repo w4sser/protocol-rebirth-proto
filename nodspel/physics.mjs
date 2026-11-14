@@ -1,4 +1,4 @@
-import {isPointOnFloor} from './archipelago-playable.mjs';
+import {isPointOnFloor} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
