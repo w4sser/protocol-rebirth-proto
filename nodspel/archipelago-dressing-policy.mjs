@@ -17,5 +17,5 @@ export function archipelagoDressingConfig({area,search='',quality='high'}={}){
   const visualQuality=quality==='high'?'high':'low';
   // Keep density at the reference value for both tiers: the LOW planner picks
   // a deterministic subset of HIGH and enforces its own 40-instance ceiling.
-  return {enabled,mode,quality:visualQuality,density:!enabled?0:nativeV2?(visualQuality==='high'?.42:.30):1};
+  return {enabled,mode,quality:visualQuality,density:!enabled?0:nativeV2?(visualQuality==='high'?.32:.24):1};
 }

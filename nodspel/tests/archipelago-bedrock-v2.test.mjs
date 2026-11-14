@@ -152,3 +152,13 @@ test('the geological ground joins the same organic coast and varies from moss to
   assert.ok(greenCenter>n*.6,'the central playfield remains mossy and readable');
   assert.ok(tonalRange>.01,'bedrock should produce nonuniform mineral variation');
 });
+
+test('target island has a visual-only shoreline shed, embedded in rock beyond the actor limit',()=>{
+  const group=new THREE.Group(),shed=art.addArchipelagoTargetShed(profile,group);
+  assert.equal(shed?.name,'arch-v2-coastal-shed');
+  assert.equal(shed?.userData.visualOnly,true);
+  assert.equal(group.children.length,1);
+  const rock=art.planArchipelagoBedrock(profile).masses[1],r=Math.hypot(shed.position.x-floor.x,shed.position.z-floor.z);
+  const idx=Math.round(((rock.angle+Math.PI*2)%(Math.PI*2))/(Math.PI*2)*profile.points.length)%profile.points.length;
+  assert.ok(r>profile.points[idx].playableRadial,'no added object on playable terrain');
+});

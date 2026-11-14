@@ -118,12 +118,11 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
       // Every raised shoulder has a visually continuous, flush granite tongue
       // extending into the island, without changing traversal height.
       const meander=.042*Math.sin(r*.37+seed*.0001);
-      const direction=Math.exp(-Math.pow((angle+meander)/.36,2));
-      fingers=Math.max(fingers,direction*softStep(.23,.66,f));
+      const direction=Math.exp(-Math.pow((angle+meander)/.20,2));
+      fingers=Math.max(fingers,direction*softStep(.58,.91,f));
     }
-    const weather=clamp((broad-.43)*.34+(grain-.48)*.12,0,.22);
-    const coastBand=softStep(.74,.96,f);
-    const exposed=clamp(fingers*.84+weather*softStep(.30,.70,f),0,.88);
+    const weather=clamp((broad-.43)*.22+(grain-.48)*.07,0,.14);
+    const exposed=clamp(fingers*.57+weather*softStep(.54,.82,f),0,.64);
     const col=moss.clone().lerp(olive,clamp(.35+broad*.60,0,1))
       .lerp(shade,.08+.18*(1-grain))
       .lerp(rock,exposed)
@@ -131,13 +130,13 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
       .lerp(sand,p.beach*softStep(.70,.97,f)*.26);
     // Match the coastal shell's first organic ring *at exactly the same
     // positions and height*: no visible green plate edge or z-fighting apron.
-    col.lerp(coastRock.clone().lerp(coastSand,p.beach),softStep(.79,1,f));
+    col.lerp(coastRock.clone().lerp(coastSand,p.beach),softStep(.87,1,f));
     colors.push(col.r,col.g,col.b);
     if(ring<rings){const a=ring*n+i,b=ring*n+(i+1)%n,c=(ring+1)*n+i,d=(ring+1)*n+(i+1)%n;indices.push(a,b,c,b,d,c);}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,groundMat);mesh.name='arch-v2-moss-bedrock-ground';mesh.receiveShadow=true;mesh.userData.visualOnly=true;group.add(mesh);
-  const blades=[],tones=[],grass=new THREE.Color('#63794b'),limit=high?80:32;
+  const blades=[],tones=[],grass=new THREE.Color('#63794b'),heatherTint=new THREE.Color('#817b85'),limit=high?80:32;
   for(let j=0,count=0;j<300&&count<limit;j++){
     const x=floor.x+(hash(seed+j*13)-.5)*floor.w*.94,z=floor.z+(hash(seed+j*17+881)-.5)*floor.d*.94;
     const radius=Math.hypot((x-floor.x)/(floor.w*.5),(z-floor.z)/(floor.d*.5));
@@ -146,7 +145,7 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
     for(let b=0;b<3;b++){
       const a=b*2.1+hash(seed+j)*TAU,dx=Math.cos(a)*.07,dz=Math.sin(a)*.07;
       blades.push(x-dx,.014,z-dz,x+dx,.014,z+dz,x+dx*.5,h,z+dz*.5);
-      for(let k=0;k<3;k++){const c=grass.clone().multiplyScalar(.8+hash(j+b+k)*.3);tones.push(c.r,c.g,c.b);}
+      for(let k=0;k<3;k++){const isHeather=radius>.66&&hash(seed+j*7)>.84;const c=grass.clone().lerp(heatherTint,isHeather?.58:0).multiplyScalar(.8+hash(j+b+k)*.3);tones.push(c.r,c.g,c.b);}
     }
     count++;
   }
@@ -182,6 +181,29 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   const front=mass.depth*.50,h=Math.min(1.28,mass.height*.66),w=Math.min(2,mass.length*.42);
   block(g,0,h*.5,front,w,h,.22,1);block(g,-w*.5-.12,h*.51,front-.10,.24,h+.12,.65,0);block(g,w*.5+.12,h*.51,front-.10,.24,h+.12,.65,0);block(g,0,h+.08,front-.10,w+.52,.20,.70,2);block(g,0,h*.5,front+.12,.045,h*.94,.02,0);group.add(g);return g;
 }
+
+const shedMaterials=['#675349','#414b4e','#77766f','#ad947b'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:.94,metalness:0});m.userData.shared=true;return m;});
+export function addArchipelagoTargetShed(profile,group,options={}){
+  if(profile?.style!=='v2')return null;
+  const plan=planArchipelagoBedrock(profile,options),mass=plan.masses[1];if(!mass)return null;
+  // A small inaccessible shoreline remnant, inset into an already cleared
+  // granite mass, not in the actor region or an authored bridge.
+  const g=new THREE.Group();g.name='arch-v2-coastal-shed';g.userData.visualOnly=true;
+  g.position.set(mass.x,mass.height*.66-.44,mass.z);g.rotation.y=mass.rotation;
+  function slab(x,y,z,w,h,d,index){
+    const mesh=new THREE.Mesh(cubeGeo,shedMaterials[index]);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;
+  }
+  const w=1.65,d=1.25,h=1.25;
+  slab(0,.055,0,w,.11,d,2);
+  slab(-w*.5,.64,0,.10,h,d,0);slab(w*.5,.64,0,.10,h,d,0);
+  slab(0,.64,-d*.5,w,h,.10,0);slab(-.50,.64,d*.5,.53,h,.09,0);slab(.52,.64,d*.5,.54,h,.09,0);
+  slab(.03,1.33,0,w+.24,.14,d+.25,1);slab(.03,1.34,0,w+.20,.025,d+.16,2);
+  slab(-.09,.69,d*.5+.065,.58,1.06,.035,1);
+  const lamp=new THREE.Mesh(new THREE.BoxGeometry(.13,.12,.08),new THREE.MeshBasicMaterial({color:'#ffc996'}));
+  lamp.position.set(.52,1.04,d*.5+.10);lamp.userData.visualOnly=true;g.add(lamp);
+  group.add(g);return g;
+}
+
 export function addArchipelagoHorizonIslets(floors,group,seed,{high=true}={}){
   const islands=floors.filter(f=>!f.dir);if(!islands.length)return [];
   const b=islands.reduce((b,f)=>({x0:Math.min(b.x0,f.x-f.w/2),x1:Math.max(b.x1,f.x+f.w/2),z0:Math.min(b.z0,f.z-f.d/2),z1:Math.max(b.z1,f.z+f.d/2)}),{x0:Infinity,x1:-Infinity,z0:Infinity,z1:-Infinity});
