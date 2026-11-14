@@ -1,9 +1,10 @@
+import {isPointOnFloor} from './archipelago-playable.mjs';
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
   const steps = Math.max(1, Math.ceil(Math.hypot(delta.x, delta.z) / .08));
   const limit = typeof floors==='number'?floors-radius:Infinity;
-  const onFloor=(x,z)=>typeof floors==='number' || [[0,0],[-radius,0],[radius,0],[0,-radius],[0,radius],[-radius*.707,-radius*.707],[radius*.707,-radius*.707],[-radius*.707,radius*.707],[radius*.707,radius*.707]].every(([dx,dz])=>floors.some(f=>Math.abs(x+dx-f.x)<=f.w/2 && Math.abs(z+dz-f.z)<=f.d/2));
+  const onFloor=(x,z)=>typeof floors==='number' || [[0,0],[-radius,0],[radius,0],[0,-radius],[0,radius],[-radius*.707,-radius*.707],[radius*.707,-radius*.707],[-radius*.707,radius*.707],[radius*.707,radius*.707]].every(([dx,dz])=>floors.some(f=>isPointOnFloor(f,x+dx,z+dz)));
   const blocked = (x, z) => boxes.some(b => {
     if(Number.isFinite(b.r)){
       const distance=Math.hypot(x-b.x,z-b.z),previous=Math.hypot(p.x-b.x,p.z-b.z);
