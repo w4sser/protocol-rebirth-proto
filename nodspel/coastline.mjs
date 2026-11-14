@@ -74,7 +74,7 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neig
       if(nearSide<=inside||nearSide-inside>14)continue;
       // Opposing islands grow toward each other, but preserve an actual water
       // channel and the authored timber bridge. No artificial land bridges.
-      outer=Math.max(inside+.85,Math.min(outer,inside+(nearSide-inside)*.43));
+      outer=Math.max(inside+.85,Math.min(outer,inside+(nearSide-inside)*.35));
     }
     const playableRadial=style==='v2'?outer-.65:inside;
     const beach=coastBeach(t,seed);
