@@ -9,8 +9,8 @@ import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archip
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
 import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2';
-import {registerWalkableCoast} from './archipelago-playable.mjs';
-import {addArchipelagoGraniteV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs';
+import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
+import {addArchipelagoGraniteV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-organic-v2';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
