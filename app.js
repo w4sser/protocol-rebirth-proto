@@ -84,6 +84,7 @@ function freshState(){
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
+    cinematicEvents: { seen:{}, world:{} },
     payoff: null, payoffDone: false, areaSeen: {},
     chains: {}, trackedQuest: null, fir: {}, gearUp: {}, loadout: null, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
@@ -108,7 +109,7 @@ function load(){
       if(st.v === 13) migrateBuilt(st);
       if(st.v === 14) migrateTalents(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; if(window.PR_CINEMATICS) window.PR_CINEMATICS.ensure(st); return st; }
     }
   }catch(e){}
   return freshState();
@@ -2600,13 +2601,15 @@ SCREENS.base = function(){
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() +
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (S.cinematicEvents?.world?.listeningStationAwake ? ' · DISTANT SIGNAL ACTIVE' : '') + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() +
     '<button type="button" class="basemenu-btn' + (session.baseMenu ? ' open' : '') + '" onclick="A.baseMenu()" aria-expanded="' + !!session.baseMenu + '" aria-label="Menu: stash, shop, BIT, weapons">' + IC("nav-stash") + (["stash","vendor","bit","arms"].some(id => navAllowed(id) && navBadge(id)) ? '<span class="dot" aria-hidden="true"></span>' : '') + '</button></div>';
   document.body.classList.toggle("basemenu-open", !!session.baseMenu);
   session.plateStage = stage;
   session.wake = false;
   $app().innerHTML = html;
   setupBaseViewer();
+  if(window.PR_CINEMATICS?.worldReady(S, Date.now()) && !document.getElementById("overlay") && !window.PR_CINEMATICS.isPlaying())
+    setTimeout(maybePlayWorldCinematic, 1700);
   if(session.baseSel){ const v = document.querySelector(".baseviewer"), sel = session.baseSel;
     const spot = v && [...v.querySelectorAll(".mapspot")].find(s => baseSpotKey(s) === sel); selectBaseSpot(spot || null); }
 };
@@ -3521,6 +3524,8 @@ SCREENS.dev = function(){
     '<button onclick="A.devReset()" style="color:var(--danger)">RESET SAVE</button>' +
     '</div>';
   html += '<h2>Panoramic bunker plates (preview only)</h2><div class="devgrid plategrid">' + D.baseMap.plates.map(p => '<button onclick="A.devPlate(' + p.stage + ')">0' + p.stage + ' · ' + esc(p.id) + '</button>').join('') + '<button onclick="A.devPlate(null)">Saved stage</button></div>';
+  html += '<h2>Cinematic preview (no story progress)</h2><div class="devgrid">' +
+    Object.keys(window.PR_CINEMATICS?.EVENTS || {}).map(id=>'<button type="button" onclick="A.previewCinematic(\''+id+'\')">'+id+'</button>').join("") + '</div>';
   html += '<h2>Grant item</h2><select id="devitem">' +
     D.items.map(i=>'<option value="' + i.id + '">' + esc(i.name) + '</option>').join("") +
     '</select><button class="ghost" onclick="A.devGrant()">Grant 1</button>';
@@ -4301,11 +4306,40 @@ function showHomecomingSummary(ingest){
   if(!ingest || !ingest.ok) return;
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); setTimeout(maybePlayWorldCinematic, 1000); }, "sheet raid-summary-ov");
 }
 
+/* Distant world stories must wait for the safe bunker, never raid result or intro. */
+function maybePlayWorldCinematic(){
+  const cine=window.PR_CINEMATICS;
+  if(!cine || session.screen!=="base" || !S.introSeen || document.hidden || cine.isPlaying() ||
+     document.getElementById("overlay") || document.getElementById("splash") ||
+     !cine.worldReady(S,Date.now()))return false;
+  return cine.play("CIN-003",{
+    onSeen:()=>{cine.markSeen(S,"CIN-003");save();},
+    onDone:()=>{if(session.screen==="base")refresh();}
+  });
+}
 /* ---------- actions ---------- */
 window.A = {
+  openCinematicArchive(){
+    if(!window.PR_CINEMATICS || window.PR_CINEMATICS.isPlaying())return;
+    const events=window.PR_CINEMATICS.listSeen(S);
+    overlay('<div class="bpop"><h1>WORLD STORIES</h1>' +
+      (events.length ? events.map(e=>'<div class="card row"><div><b>'+esc(e.title)+'</b><p class="small">'+esc(e.summary)+'</p></div><button type="button" class="ghost" onclick="A.replayCinematic(\''+e.id+'\')">REPLAY</button></div>').join("")
+      : '<p class="small">Stories you discover will appear here.</p>') +
+      '<button class="primary" data-close>BACK</button></div>',null,"cinematic-archive");
+  },
+  replayCinematic(id){
+    if(!window.PR_CINEMATICS || !window.PR_CINEMATICS.seen(S,id) || window.PR_CINEMATICS.isPlaying())return;
+    closeAllPopups();
+    window.PR_CINEMATICS.play(id,{replay:true});
+  },
+  previewCinematic(id){
+    if(!window.PR_CINEMATICS || window.PR_CINEMATICS.isPlaying())return;
+    closeAllPopups();
+    window.PR_CINEMATICS.play(id,{replay:true});
+  },
   gearMerge(id){
     if(!gearMerge(id)) return;
     const t = gearTier(id); toast(ITEMS[id].name + " merged to Mk " + TIER_NAMES[t - 1] + "!");
@@ -4465,6 +4499,7 @@ window.A = {
     // transition off there).
     document.body.classList.add("intro-leaving");
     S.introSeen = true;
+    window.PR_CINEMATICS?.markSeen(S, "CIN-001");
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
     A.go("base");
@@ -4667,6 +4702,20 @@ window.A = {
   },
   deployNodeRaid(opts){
     if(session.raidNavigating)return;
+    // First sight of the sea: before launch removes gear or starts the raid clock.
+    // Skip and natural ending continue the original deployment exactly once.
+    if(!(opts && opts.ftue) && raidArea() === "archipelago" && areaUnlocked("archipelago") &&
+       window.PR_CINEMATICS && !window.PR_CINEMATICS.seen(S,"CIN-002")){
+      if(document.getElementById("overlay") || window.PR_CINEMATICS.isPlaying())return;
+      session.raidNavigating=true;
+      const started=window.PR_CINEMATICS.play("CIN-002",{
+        onSeen:()=>{window.PR_CINEMATICS.markSeen(S,"CIN-002");save();},
+        onDone:()=>{session.raidNavigating=false;A.deployNodeRaid(opts);}
+      });
+      if(started)return;
+      session.raidNavigating=false;
+      return; // never silently bypass the cinematic gate
+    }
     session.raidNavigating=true;
     void window.PR_AUDIO?.unlock();
     const ftue = !!(opts && opts.ftue);
@@ -5687,12 +5736,14 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     else session.pendingHomecomingSummary = coreIngest;
   }
   if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();
+  if(S.introSeen && !coreIngest) setTimeout(maybePlayWorldCinematic, 1800);
   if(S.introSeen){
     tickRetention();
     const rows = morningRows();
     if(rows.length && !(coreIngest && coreIngest.ok)) A.showMorning(rows);
   }
   maybeShowHandIn();
+  if(!/jsdom/i.test(navigator.userAgent || "")) setInterval(maybePlayWorldCinematic, 15000);
 }
 /* export pure logic for headless tests */
 if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
