@@ -59,8 +59,10 @@
     cardEl.setAttribute("aria-live", "polite");
     cardEl.setAttribute("aria-label", "BIT, tap to continue");
     cardEl.hidden = true;
+    // nodspel/index.html is served from /nodspel/, one level below the asset root; index.html is
+    // served from the root. Same convention as nodspel's other ../assets/ references.
     cardEl.innerHTML =
-      '<img class="bit-card-img" alt="" aria-hidden="true" src="' + BIT_IMG + '">' +
+      '<img class="bit-card-img" alt="" aria-hidden="true" src="' + (isRaidPage() ? "../" : "") + BIT_IMG + '">' +
       '<span class="bit-card-bubble"></span>';
     cardEl.addEventListener("click", function(){ dismiss(); });
     document.body.appendChild(cardEl);
