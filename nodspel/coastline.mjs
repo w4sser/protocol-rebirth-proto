@@ -101,7 +101,7 @@ export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
 export function coastRingData(profile){
   const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
   const rock=profile.style==='v2'
-    ? ['#74805b','#7c8665','#8a8e80','#9695a1','#8c8f9b','#626b78']
+    ? ['#6b805b','#78886c','#899180','#9695a1','#8c8f9b','#626b78']
     : ['#647075','#68747A','#737A7C','#657077','#596576','#3C4756'];
   const beach=['#7F795C','#827B5D','#908064','#8A795D','#74664F','#5D5143'];
   const toLinear=h=>[1,3,5].map(i=>{
@@ -113,7 +113,10 @@ export function coastRingData(profile){
   for(let ring=0;ring<COAST_BLEND_STOPS.length;ring++)for(let i=0;i<n;i++){
     const p=points[i],c=Math.cos(p.angle),s=Math.sin(p.angle);
     const d=p.radial-p.innerRadial;
-    const radii=[
+    // Legacy feathers from a rectangular room. V2 must NEVER do that:
+    // its only visible soil-to-rock seam is the organic actor coastline.
+    const radii=profile.style==='v2'?[p.playableRadial-.045,p.playableRadial+.07,
+      p.playableRadial+.19,p.playableRadial+.38,p.radial-.055,p.radial+.22]:[
       p.innerRadial-inset,
       p.innerRadial-inset*.54,
       p.innerRadial-.015,
@@ -128,9 +131,9 @@ export function coastRingData(profile){
     // v2's traversable granite shelf stays nearly level until the true
     // physical coastline. Only its outer erosion lip drops below sea level;
     // actors and their shadows cannot appear suspended over the beach.
-    const rockY=profile.style==='v2'?[.010,.010,.010,.010,-.006,-.65]:
+    const rockY=profile.style==='v2'?[.010,.009,.007,.003,-.025,-.65]:
       [.010,.010,.0095,-.046,-.085,-.73];
-    const sandY=profile.style==='v2'?[.010,.010,.010,.005,-.025,-.54]:
+    const sandY=profile.style==='v2'?[.010,.009,.007,.001,-.045,-.54]:
       [.010,.010,.0095,-.115,-.25,-.54];
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach),z);
     blends.push(COAST_BLEND_STOPS[ring]);
