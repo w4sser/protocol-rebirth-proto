@@ -60,7 +60,7 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     const water=group.children.find(o=>o.name==='water');
-    assert.equal(water.material.uniforms.cSky.value.getHexString(),'9e879d');
+    assert.equal(water.material.uniforms.cSky.value.getHexString(),'958c9a');
     assert.ok(!level.walls.some(w=>w.shore),'obsolete rectangular shoreline collider removed');
     assert.ok(islands.every(f=>isPointOnFloor(f,f.x,f.z)));
   }finally{

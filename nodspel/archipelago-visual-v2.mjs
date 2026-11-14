@@ -14,7 +14,7 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   function landform(angle,length,depth,height){
     angle=(angle+TAU)%TAU;
     const p=points[Math.round(angle/TAU*points.length)%points.length],c=Math.cos(angle),s=Math.sin(angle);
-    let r=p.radial+depth*.52-.26,x,z,clear=false;
+    let r=p.radial+depth*.52-.43,x,z,clear=false;
     // A long rock can cross a concave shore away from its centerline. Check
     // the entire conservative ellipse, not just one radial sample.
     for(let attempt=0;attempt<7&&!clear;attempt++){
@@ -48,7 +48,7 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   for(const {i} of candidates){
     const angle=(phase+i/24*TAU)%TAU;
     if(masses.some(m=>Math.abs(Math.atan2(Math.sin(angle-m.angle),Math.cos(angle-m.angle)))<1.1))continue;
-    const m=landform(angle,clamp(size*(.38+.10*hash(seed+i)),4.5,8),clamp(size*.23,2.8,4.5),1.8+hash(seed+i+41)*.80);
+    const m=landform(angle,clamp(size*(.38+.10*hash(seed+i)),4.5,8),clamp(size*.23,2.8,4.5),1.55+hash(seed+i+41)*.75);
     if(m)masses.push(m);if(masses.length===3)break;
   }
   for(const m of masses)for(const direction of [-1,1]){
@@ -57,8 +57,8 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   return {masses,shelves};
 }
 function sculptGranite(){
-  const steps=24,levels=[0,.07,.18,.33,.53,.72,.87,.95,1],radii=[.93,1,1.03,1.02,.96,.82,.65,.40,.025],positions=[],colors=[],indices=[];
-  const base=new THREE.Color('#9696a4'),dark=new THREE.Color('#626b78'),warm=new THREE.Color('#aaa1ac');
+  const steps=24,levels=[0,.07,.18,.33,.53,.72,.87,.95,1],radii=[.93,1,1.03,1.02,.98,.87,.71,.48,.13],positions=[],colors=[],indices=[];
+  const base=new THREE.Color('#909898'),dark=new THREE.Color('#596a72'),warm=new THREE.Color('#aca5a0');
   for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,r=radii[k]*(1+.035*Math.sin(3*a+.6)+.025*Math.sin(7*a+1.2));
     positions.push(Math.cos(a)*.5*r,levels[k],Math.sin(a)*.5*r);
@@ -134,12 +134,14 @@ export function planArchipelagoPines(level,spots){
   }
   return result;
 }
-const barkMat=new THREE.MeshStandardMaterial({color:'#504c41',roughness:1}),pineMat=new THREE.MeshStandardMaterial({color:'#52795c',roughness:1,flatShading:true}),trunkGeo=new THREE.CylinderGeometry(.09,.15,1,6),crownGeo=new THREE.IcosahedronGeometry(1,1);
+const barkMat=new THREE.MeshStandardMaterial({color:'#504c41',roughness:1}),pineMat=new THREE.MeshStandardMaterial({color:'#3b6558',roughness:1,flatShading:true}),trunkGeo=new THREE.CylinderGeometry(.09,.15,1,6),crownGeo=new THREE.IcosahedronGeometry(1,0);
 for(const r of [barkMat,pineMat,trunkGeo,crownGeo])r.userData.shared=true;
 export function archipelagoCoastalPine(spot){
   const g=new THREE.Group(),r=hash(Math.round(spot.x*111+spot.z*37)),h=2.6+r*.8;g.position.set(spot.x,0,spot.z);g.rotation.y=r*TAU;g.name='arch-v2-coastal-pine';g.userData.visualOnly=true;
   const trunk=new THREE.Mesh(trunkGeo,barkMat);trunk.scale.set(1,h,1);trunk.position.set(.12,h*.5,0);trunk.rotation.z=-.07;g.add(trunk);
-  for(let i=0;i<3;i++){const crown=new THREE.Mesh(crownGeo,pineMat);crown.position.set((i-1)*.52+.25,h-.12+Math.sin(i*2)*.16,(i%2)*.33);crown.scale.set(1.05-i*.09,.34+i*.055,.78);crown.rotation.y=i*1.7;g.add(crown);}
+  // Wind-shaped, horizontally spreading Scandinavian pine crowns; avoid three rounded balls.
+  const branches=[[-.40,h-.30,-.14,1.08,.24,.62],[.25,h-.06,.13,.92,.27,.69],[.64,h-.47,-.19,.67,.20,.46],[-.12,h+.21,.04,.60,.20,.48]];
+  for(let i=0;i<branches.length;i++){const [x,y,z,sx,sy,sz]=branches[i],crown=new THREE.Mesh(crownGeo,pineMat);crown.position.set(x,y,z);crown.scale.set(sx,sy,sz);crown.rotation.y=i*.79;g.add(crown);}
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});return g;
 }
 const portalMaterials=['#747a79','#27343b','#8e8e88'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:1});m.userData.shared=true;return m;}),cubeGeo=new THREE.BoxGeometry(1,1,1);cubeGeo.userData.shared=true;
