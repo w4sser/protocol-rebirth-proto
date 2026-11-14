@@ -152,6 +152,22 @@ export const RULES=[
      try{read('nodspel/perk-ui.js');out.push('nodspel/perk-ui.js: the mid-raid perk picker file must stay deleted');}catch(_){/* expected */}
      try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
      return out;}},
+  {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
+   check(c={}){const out=[];
+     const app=c.appSrc??read('app.js');
+     const dismiss=(app.match(/dismissIntro\(\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!dismiss)out.push('app.js: A.dismissIntro() not found');
+     else{
+       const cancelAt=dismiss.search(/cancelVoice\?\.\(\s*['"]youre-back['"]\s*\)/);
+       const goAt=dismiss.search(/A\.go\(/), summaryAt=dismiss.search(/showHomecomingSummary\(/);
+       if(cancelAt<0)out.push('app.js: A.dismissIntro must cancel the pending youre-back voice (PR_AUDIO.cancelVoice)');
+       else if((goAt>=0&&cancelAt>goAt)||(summaryAt>=0&&cancelAt>summaryAt))out.push('app.js: A.dismissIntro must cancel youre-back before navigating away from the intro / opening the deferred summary');
+     }
+     const base=c.baseAudioSrc??read('ui/base-audio.js');
+     if(!/skipVoice/.test(base))out.push("ui/base-audio.js: greet() must thread a skipVoice flag from PR_AUDIO_BASE_RETURN's opts");
+     const skipAt=base.search(/if\(skip\)return;/), voiceAt=base.search(/requestVoice\(['"]youre-back['"]\)/);
+     if(skipAt<0||voiceAt<0||skipAt>voiceAt)out.push('ui/base-audio.js: greet() must return before requesting/playing any BIT voice once skipVoice is set (the deferred FTUE summary, where BIT already greeted during the intro)');
+     return out;}},
 
   {id:'cable-retro-migration-idempotent',pr:'v2.28.29 PRB-139',why:'the one-time retro Cable credit for pre-PRB-132 saves (Power Trace/bunker B1 done before the Fabricator existed) must run exactly once per save -- a load() path that forgets to call the migration leaves old saves stuck short of the Fabricator cost, and a migration that forgets to check/set cableRetro1 re-grants the Cable on every load',
    check(c={}){const out=[];const app=c.appSrc??read('app.js');

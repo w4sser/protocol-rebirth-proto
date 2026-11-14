@@ -20,12 +20,16 @@
   window.addEventListener('pagehide',()=>{clearTimeout(welcomeTimer);audio.stop();});
   window.addEventListener('pageshow',homeMusic);
   // A raid result ingestion explicitly requests this line, deferred until Safari unlock.
-  let welcome=false,outcome=null,welcomeTimer=null;
-  window.PR_AUDIO_BASE_RETURN=result=>{welcome=true;outcome=result;};
+  let welcome=false,outcome=null,welcomeTimer=null,skipVoice=false;
+  window.PR_AUDIO_BASE_RETURN=(result,opts)=>{welcome=true;outcome=result;skipVoice=!!(opts&&opts.skipVoice);};
   const greet=()=>{if(!welcome)return;void audio.unlock().then(async ok=>{
     if(!ok||!welcome)return;welcome=false;
-    const success=outcome==='extract';void audio.play(success?'extract-success':'death');
+    const success=outcome==='extract',skip=skipVoice;skipVoice=false;
+    void audio.play(success?'extract-success':'death');
     if(success){
+      // The deferred FTUE homecoming summary: BIT already greeted during the cold open he's not
+      // shown here, so only the sfx plays -- no second (or misplaced) BIT voice line.
+      if(skip)return;
       const intro=(typeof S!=='undefined'&&S&&!S.introSeen)||(typeof session!=='undefined'&&session.screen==='intro');
       if(intro)void audio.requestVoice('youre-back');else void audio.voice('welcome-back');
       return;
