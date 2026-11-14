@@ -153,6 +153,17 @@ export const RULES=[
      try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
      return out;}},
 
+  {id:'cable-retro-migration-idempotent',pr:'v2.28.29 PRB-139',why:'the one-time retro Cable credit for pre-PRB-132 saves (Power Trace/bunker B1 done before the Fabricator existed) must run exactly once per save -- a load() path that forgets to call the migration leaves old saves stuck short of the Fabricator cost, and a migration that forgets to check/set cableRetro1 re-grants the Cable on every load',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(!/function migrateCableRetro\(st\)\{/.test(app))out.push('app.js: migrateCableRetro(st) is missing');
+     const fn=(app.match(/function migrateCableRetro\(st\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(fn && !/if\s*\(\s*st\.cableRetro1\s*\)\s*return st;/.test(fn))out.push('app.js: migrateCableRetro must return early once st.cableRetro1 is already set (idempotent)');
+     if(fn && !/st\.cableRetro1\s*=\s*["']granted["']/.test(fn))out.push('app.js: migrateCableRetro must set st.cableRetro1 = "granted" on an eligible save');
+     if(fn && !/st\.cableRetro1\s*=\s*["']n\/a["']/.test(fn))out.push('app.js: migrateCableRetro must set st.cableRetro1 = "n/a" on an ineligible save');
+     const load=(app.match(/function load\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!load)out.push('app.js: load() not found');
+     else if(!/migrateCableRetro\(st\)/.test(load))out.push('app.js: load() must call migrateCableRetro(st) alongside the other additive migrations');
+     return out;}},
 
 ];
 
