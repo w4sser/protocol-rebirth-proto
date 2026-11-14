@@ -10,17 +10,19 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.28.27">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.28.27">
-<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.28.27">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.28.27">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.28.27">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.28.28">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.28.28">
+<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.28.28">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.28.28">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.28.28">
+<link rel="preload" as="image" href="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=2.28.28">
+<link rel="preload" as="image" href="assets/production/coldopen/bit-coldopen-v1.webp?v=2.28.28">
 <title>Protocol Rebirth</title>
 <!-- v2.12.1 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
      resolve the vendored Ultra Water engine's bare `import ... from 'three'` against our own
      vendored three.js build, with no build step. -->
 <script type="importmap">{"imports":{"three":"./nodspel/vendor/three.module.js"}}</script>
-<script src="ui/viewport.js?v=2.28.27"></script>
+<script src="ui/viewport.js?v=2.28.28"></script>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 @media (pointer:coarse){:root{--sl:max(env(safe-area-inset-left,0px),12px);--sr:max(env(safe-area-inset-right,0px),12px)}}
@@ -757,7 +759,7 @@
   .lobby-hero{background:radial-gradient(ellipse at 50% 92%,rgba(63,224,208,.28),transparent 55%),radial-gradient(ellipse at 50% 40%,#16323c,#0b1c24 70%);}
   @media (orientation:landscape) and (max-height:480px){ .lobby{grid-template-columns:minmax(140px,180px) 1fr minmax(140px,180px);} .lobby-hero .hero-weapon{bottom:50px;} }
   /* FTUE cold open */
-  body[data-screen=intro], body[data-screen=intro] #phone, body[data-screen=intro] #main, body[data-screen=intro] #app{background:#000!important; background-image:none!important;}
+  body[data-screen=intro], body[data-screen=intro] #phone, body[data-screen=intro] #main, body[data-screen=intro] #app{background:#07151C!important; background-image:none!important;}
   body[data-screen=intro] #topbar, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock, body[data-screen=intro] #app-version{display:none!important;}
   body[data-screen=intro] #main::before, body[data-screen=intro] #main::after, body[data-screen=intro] #app::before, body[data-screen=intro] #app::after, body[data-screen=intro] #phone::before, body[data-screen=intro] #phone::after{display:none!important;}
   /* version lives in the top bar flow so it can never cover bottom-bar buttons */
@@ -787,18 +789,37 @@
   .bpop .lore{font-size:12px; color:var(--dim); margin:4px 0 6px;}
   .bpop .lore[hidden]{display:none;}
   .sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
-  .intro{position:fixed; inset:0; z-index:50; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:16px calc(24px + var(--sr)) 16px calc(24px + var(--sl)); text-align:center; cursor:pointer;}
-  .intro-face{width:min(96px,22vh); height:auto; opacity:0; animation:introFace 3.6s ease-out .2s forwards;}
-  .intro-lines{display:flex; flex-direction:column; gap:8px; max-width:560px;}
+  .intro{position:fixed; inset:0; z-index:50; background:#07151C; overflow:hidden; cursor:pointer;}
+  /* .intro-stage always keeps the backdrop's own 1672/941 aspect (bigger than the viewport on the
+     other axis, centred, clipped by .intro) so BIT and the push-in can use % of the art, not the
+     viewport -- they land in the same spot on every phone aspect ratio. */
+  .intro-stage{position:absolute; top:50%; left:50%; width:max(100vw,177.68vh); height:max(56.28vw,100vh); transform:translate(-50%,-50%) scale(1); transform-origin:60% 45%; overflow:hidden; animation:introPushIn 7s cubic-bezier(.22,.5,.32,1) both;}
+  .intro-backdrop{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;}
+  .intro-bit{position:absolute; left:40%; bottom:43%; width:10%; height:auto; opacity:0; filter:brightness(.4) drop-shadow(0 4px 10px rgba(0,0,0,.45)); animation:introBitPower 1.2s steps(6,end) .8s forwards, introBitFloat 3.6s ease-in-out 2s infinite;}
+  .intro-scrim{position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(90deg, rgba(7,21,28,.55) 0%, rgba(7,21,28,.18) 42%, rgba(7,21,28,0) 62%), linear-gradient(0deg, rgba(7,21,28,.82), rgba(7,21,28,0) 44%);} /* darken only behind the lower-left copy; keep the pink/purple arch on the right bright */
+  .intro-copy{position:absolute; z-index:2; left:calc(22px + var(--sl)); right:calc(22px + var(--sr)); bottom:calc(18px + var(--sb,0px)); max-width:560px; display:flex; flex-direction:column; gap:10px; text-align:left;}
+  .intro-lines{display:flex; flex-direction:column; gap:8px;}
   .intro-lines p{margin:0; color:#e8f6f4; font-size:16px; line-height:1.45; letter-spacing:.01em; opacity:0; animation:introLine 1.2s ease-out forwards;}
   .intro-lines p:last-child{color:#75CFCC;}
-  .intro-go{margin-top:6px; padding:10px 22px; min-height:44px; border-radius:12px; border:1.5px solid #3FE0D0; background:rgba(63,224,207,.08); color:#bff5ee; font:700 13px/1 "Archivo Black","IBM Plex Sans",sans-serif; letter-spacing:.12em; cursor:pointer; opacity:0; pointer-events:none; animation:introBtn .9s ease-out forwards;}
-  @keyframes introFace{0%{opacity:0;filter:brightness(.4)} 12%{opacity:.35} 16%{opacity:.05} 22%{opacity:.45} 26%{opacity:.15} 100%{opacity:1;filter:brightness(1) drop-shadow(0 0 18px rgba(63,224,207,0.25))}}
+  .intro-go{align-self:flex-start; margin-top:6px; padding:10px 22px; min-height:44px; border-radius:12px; border:1.5px solid #3FE0D0; background:rgba(63,224,207,.1); color:#bff5ee; font:700 13px/1 "Archivo Black","IBM Plex Sans",sans-serif; letter-spacing:.12em; cursor:pointer; opacity:0; pointer-events:none; animation:introBtn .9s ease-out forwards;}
+  @keyframes introPushIn{from{transform:translate(-50%,-50%) scale(1)} to{transform:translate(-50%,-50%) scale(1.08)}}
+  @keyframes introBitPower{0%{opacity:0;filter:brightness(.3) drop-shadow(0 4px 10px rgba(0,0,0,.45))} 15%{opacity:.5} 22%{opacity:.08} 38%{opacity:.6} 48%{opacity:.18} 70%{opacity:.9} 100%{opacity:1;filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))}}
+  @keyframes introBitFloat{0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)}}
   @keyframes introLine{from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none}}
   @keyframes introBtn{from{opacity:0} to{opacity:1;pointer-events:auto}}
-  .intro.done .intro-face,.intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
-  .intro.done .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,0.25));}
-  @media (prefers-reduced-motion: reduce){ .intro-face,.intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;} .intro-face{filter:drop-shadow(0 0 18px rgba(63,224,207,0.25));} }
+  .intro.done .intro-stage{animation-play-state:paused;}
+  .intro.done .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
+  .intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
+  @media (prefers-reduced-motion: reduce){
+    .intro-stage{animation:none!important; transform:translate(-50%,-50%) scale(1)!important;}
+    .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))!important;}
+    .intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;}
+  }
+  /* ENTER THE FACILITY: #app starts hidden the instant dismissIntro() swaps the screen underneath,
+     then fades in over ~500ms once app.js lifts body.intro-leaving on the next paint. */
+  #app{transition:opacity .5s ease;}
+  body.intro-leaving #app{opacity:0;}
+  @media (prefers-reduced-motion: reduce){ #app{transition:none;} }
   /* Full-bleed: background art + scene run edge to edge (also under the notch / Dynamic Island);
      only UI chrome is inset by the safe area (both landscape orientations, min 12 px on touch). */
   html,body{background:var(--bg)}
@@ -925,9 +946,9 @@
   .baseviewer.has-sel .progress-goal,.baseviewer.has-sel .goalpill{display:none;}
   @media (prefers-reduced-motion:reduce){.baseviewer .mapspot.plate .badge.up,.baseviewer.ftue .mapspot.plate.goal-target .tag{animation:none;}}
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=2.28.27">
-<link rel="stylesheet" href="ui/popup.css?v=2.28.27">
-<link rel="stylesheet" href="ui/loader.css?v=2.28.27">
+<link rel="stylesheet" href="ui/tokens.css?v=2.28.28">
+<link rel="stylesheet" href="ui/popup.css?v=2.28.28">
+<link rel="stylesheet" href="ui/loader.css?v=2.28.28">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -1771,7 +1792,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
   #overlay.wpnov .wpn-name{padding-right:0!important}
   .wpnscreen .wpn-l{padding-top:58px!important}
 </style>
-<link rel="stylesheet" href="ui/audio.css?v=2.28.27">
+<link rel="stylesheet" href="ui/audio.css?v=2.28.28">
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -1779,7 +1800,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v2.28.27</div>
+    <div id="app-version">v2.28.28</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
@@ -1787,7 +1808,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
       <button id="replay-start-btn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg> Replay start screen</button>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.27</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.28</span></div>
     </div>
   </div>
   <div id="main">
@@ -1802,24 +1823,24 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
   <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><button id="splash-play" type="button" class="splash-play" aria-label="Play"><b>PLAY</b></button><small>TAP ANYWHERE TO BEGIN</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=2.28.27"></script>
-<script src="data/loot-sources.js?v=2.28.27"></script>
-<script src="data/modules.js?v=2.28.27"></script>
-<script src="data/bit-lines.js?v=2.28.27"></script>
-<script src="data/bit.js?v=2.28.27"></script>
-<script src="data/bit-talents.js?v=2.28.27"></script>
-<script src="data/raid_zones.js?v=2.28.27"></script>
-<script src="data/recipes.js?v=2.28.27"></script>
-<script src="data/vendors.js?v=2.28.27"></script>
-<script src="data/retention.js?v=2.28.27"></script>
-<script src="data/quests.js?v=2.28.27"></script>
-<script src="data/progression.js?v=2.28.27"></script>
-<script src="data/combat.js?v=2.28.27"></script>
-<script src="data/audio.js?v=2.28.27"></script>
-<script src="ui/audio.js?v=2.28.27"></script>
-<script src="ui/base-audio.js?v=2.28.27"></script>
-<script src="save-slots.js?v=2.28.27"></script>
-<script src="start-quality.js?v=2.28.27"></script>
-<script src="app.js?v=2.28.27"></script>
+<script src="data/items.js?v=2.28.28"></script>
+<script src="data/loot-sources.js?v=2.28.28"></script>
+<script src="data/modules.js?v=2.28.28"></script>
+<script src="data/bit-lines.js?v=2.28.28"></script>
+<script src="data/bit.js?v=2.28.28"></script>
+<script src="data/bit-talents.js?v=2.28.28"></script>
+<script src="data/raid_zones.js?v=2.28.28"></script>
+<script src="data/recipes.js?v=2.28.28"></script>
+<script src="data/vendors.js?v=2.28.28"></script>
+<script src="data/retention.js?v=2.28.28"></script>
+<script src="data/quests.js?v=2.28.28"></script>
+<script src="data/progression.js?v=2.28.28"></script>
+<script src="data/combat.js?v=2.28.28"></script>
+<script src="data/audio.js?v=2.28.28"></script>
+<script src="ui/audio.js?v=2.28.28"></script>
+<script src="ui/base-audio.js?v=2.28.28"></script>
+<script src="save-slots.js?v=2.28.28"></script>
+<script src="start-quality.js?v=2.28.28"></script>
+<script src="app.js?v=2.28.28"></script>
 </body>
 </html>

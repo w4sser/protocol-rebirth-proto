@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.27"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.28"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2267,16 +2267,24 @@ SCREENS.combatDemo = function(){
 SCREENS.intro = function(){
   void window.PR_AUDIO?.requestVoice('youre-back');
   const b = PROG.beats[0];
-  // Cinematic cold open: black screen, BIT's face powers on while its lines fade in one by one.
+  // Cinematic cold open: Robert's bunker-discovery backdrop pushes in slowly while BIT flickers on
+  // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
+  // art, not the viewport -- .intro-stage always keeps the backdrop's 1672/941 aspect so they hold).
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
   $app().innerHTML =
-    '<div class="intro" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : '') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
-    '<img class="intro-face" src="nodspel/icons/happy-node.svg?v=' + APP_VERSION + '" alt="BIT">' +
+    '<div class="intro-stage">' +
+    '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
+    '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    '</div>' +
+    '<div class="intro-scrim"></div>' +
+    '<div class="intro-copy">' +
     '<div class="intro-lines">' + lines.map((l, i) =>
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
-    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
+    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
+    '</div></div>';
 };
 
 function closestUpgrade(){
@@ -4443,10 +4451,19 @@ window.A = {
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
   introSkip(ev){
     if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
+    // keeps the end state instead of restarting the cold open.
+    session.introSkipped = true;
     const el = document.querySelector(".intro"); if(el) el.classList.add("done");
   },
   dismissIntro(){
     document.body.classList.remove("startup-bunker-intro");
+    // ~500ms cross-fade from the cold open into the bunker view: #app starts hidden under the
+    // .intro-leaving class, the screens swap underneath instantly (state below is unaffected and
+    // stays synchronous for callers/tests), then the class lifts on the next paint so #app's own
+    // CSS transition fades it in. No-op without rAF (jsdom) or under reduced motion (CSS turns the
+    // transition off there).
+    document.body.classList.add("intro-leaving");
     S.introSeen = true;
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
@@ -4457,6 +4474,9 @@ window.A = {
       session.pendingHomecomingSummary = null;
       showHomecomingSummary(ing);
     }
+    if(typeof requestAnimationFrame === "function")
+      requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
+    else document.body.classList.remove("intro-leaving");
   },
   track(modId, level){
     if(S.tracked && S.tracked.module === modId && S.tracked.level === level){ S.tracked = null; act("TRACK_CLEARED",{}); }
