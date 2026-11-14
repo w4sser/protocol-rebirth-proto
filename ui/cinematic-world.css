@@ -1,0 +1,19 @@
+/* Dedicated fullscreen narrative stage; not a popup or gameplay interruption in raid. */
+.pr-cinematic{position:fixed;inset:0;z-index:150;overflow:hidden;background:var(--ad-night);color:var(--ad-bone);font-family:inherit;isolation:isolate}
+.pr-cinematic .cine-frame{position:absolute;inset:0;overflow:hidden}
+.pr-cinematic .cine-shot{position:absolute;inset:0;background-position:center;background-size:cover;opacity:0;transform:scale(1.045);transition:opacity 1s ease;pointer-events:none}
+.pr-cinematic .cine-shot.is-active{opacity:1;animation:cine-camera 14s ease-out both}
+.pr-cinematic[data-shot="0"] .cine-shot.is-active{background-position:50% 53%}
+.pr-cinematic[data-shot="1"] .cine-shot.is-active{background-position:55% 40%}
+.pr-cinematic[data-shot="2"] .cine-shot.is-active{background-position:63% 50%}
+.pr-cinematic .cine-bit{position:absolute;width:auto;height:59%;bottom:4%;left:42%;object-fit:contain;filter:drop-shadow(0 9px 25px rgba(0,0,0,.35))}
+.pr-cinematic .cine-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.49),transparent 27%,transparent 56%,rgba(0,0,0,.82));pointer-events:none}
+.pr-cinematic .cine-topline{position:absolute;top:calc(max(env(safe-area-inset-top,0px),10px) + 5px);left:calc(max(env(safe-area-inset-left,0px),12px) + 12px);right:calc(max(env(safe-area-inset-right,0px),12px) + 90px);display:flex;justify-content:space-between;align-items:center;gap:16px;font:600 10px/1.2 inherit;letter-spacing:.16em;text-shadow:0 2px 6px rgba(0,0,0,.8);opacity:.85}
+.pr-cinematic .cine-topline span{color:var(--ad-bit);font-size:9px}
+.pr-cinematic .cine-subtitles{position:absolute;bottom:calc(max(env(safe-area-inset-bottom,0px),12px) + 10px);left:calc(max(env(safe-area-inset-left,0px),12px) + 8vw);right:calc(max(env(safe-area-inset-right,0px),12px) + 8vw);text-align:center;pointer-events:none}
+.pr-cinematic .cine-subtitles p{font-size:clamp(14px,2.35vw,22px);font-weight:600;line-height:1.35;letter-spacing:.012em;text-shadow:0 2px 8px rgba(0,0,0,.95),0 1px 2px rgba(0,0,0,.95);max-width:940px;margin:0 auto}
+.pr-cinematic .cine-skip{position:absolute;top:calc(max(env(safe-area-inset-top,0px),8px) + 5px);right:calc(max(env(safe-area-inset-right,0px),10px) + 5px);min-width:68px;min-height:44px;border:1px solid var(--ad-bit);border-radius:6px;padding:0 14px;background:var(--ad-ink);color:var(--ad-bone);font:700 12px/1 inherit;letter-spacing:.08em;cursor:pointer}
+.pr-cinematic .cine-skip:focus-visible{outline:3px solid var(--ad-primary);outline-offset:2px}
+@keyframes cine-camera{from{transform:scale(1.045) translate3d(-.6%,0,0)}to{transform:scale(1.115) translate3d(.4%,-.5%,0)}}
+@media(max-height:430px){.pr-cinematic .cine-topline{font-size:9px}.pr-cinematic .cine-subtitles{bottom:calc(max(env(safe-area-inset-bottom,0px),8px) + 10px)}}
+@media(prefers-reduced-motion:reduce){.pr-cinematic .cine-shot,.pr-cinematic .cine-shot.is-active{animation:none;transform:none;transition:none}}
