@@ -42,7 +42,7 @@ function roundedRadius(floor,c,s){
   const dot=ac*cx+as*cz;
   return dot+Math.sqrt(Math.max(0,dot*dot-(cx*cx+cz*cz-radius*radius)));
 }
-export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy'}={}){
+export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neighbors=[]}={}){
   if(floor.dir) return null;
   const seed=coastSeed(levelSeed,floor);
   const count=clamp(Math.floor(samples),32,160);
@@ -60,9 +60,22 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy'}={})
     // gravity/readability beyond the traversable boundary.
     const headland=.72*Math.sin(2*angle+phase*.72)+.52*Math.sin(3*angle+phase2)
       +.24*Math.sin(5*angle+phase3);
-    const outer=style==='v2'
+    let outer=style==='v2'
       ?Math.max(inside+1.4,roundedRadius(floor,c,s)+2.1+headland)
       :Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
+    if(style==='v2')for(const other of neighbors){
+      if(other===floor||other.dir)continue;
+      const dx=other.x-floor.x,dz=other.z-floor.z;
+      const projected=dx*c+dz*s;
+      const across=Math.abs(-dx*s+dz*c);
+      const perpendicularSize=other.w*.5*Math.abs(s)+other.d*.5*Math.abs(c);
+      if(projected<=inside||across>perpendicularSize+1.2)continue;
+      const nearSide=projected-(other.w*.5*Math.abs(c)+other.d*.5*Math.abs(s));
+      if(nearSide<=inside||nearSide-inside>14)continue;
+      // Opposing islands grow toward each other, but preserve an actual water
+      // channel and the authored timber bridge. No artificial land bridges.
+      outer=Math.max(inside+.85,Math.min(outer,inside+(nearSide-inside)*.43));
+    }
     const playableRadial=style==='v2'?outer-.65:inside;
     const beach=coastBeach(t,seed);
     const cliff=.5+.5*Math.sin(4*angle+phase2);
