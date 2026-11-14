@@ -10,7 +10,7 @@ export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
 import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite2';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite2';
+import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite3';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
@@ -243,7 +243,9 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
   }
-  const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
+  // Retain the authored cover mesh/collider exactly; only its material changes in v2.
+  // Cold, pale weathered granite replaces the legacy violet sci-fi boulders.
+  const rockGeo=new THREE.DodecahedronGeometry(1,0),rockColors=visualV2?['#9a9c9d','#777f87']:[P.rock,P.rockDark],rockMat=rockColors.map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
   for(const f of level.floors){
     if(f.dir){
       buildTimberPier(f,level.seed,quality,group,box);
