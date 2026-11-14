@@ -1,4 +1,4 @@
-// v2.28.29 fix/ftue-vo-summary-fullbleed (Robert, 2026-11-14): BIT's 'youre-back' cold-open
+// v2.28.30 fix/ftue-vo-summary-fullbleed (Robert, 2026-11-14): BIT's 'youre-back' cold-open
 // greeting may only ever be heard while the intro (.intro, BIT visible) is on screen. Regression
 // for the bug where it replayed on the next unlock gesture -- often ENTER THE FACILITY itself --
 // landing on the deferred FTUE homecoming summary where BIT isn't shown, and base-audio's greet()
