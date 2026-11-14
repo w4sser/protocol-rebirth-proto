@@ -112,7 +112,12 @@
     }
     // youre-back is BIT's cold-open greeting: it may only ever be heard while that screen (.intro)
     // is on screen, never replayed later onto the homecoming summary once BIT has left.
-    cancelVoice(name){this.pendingVoices.delete(name);this.consumedVoices.add(name);}
+    // It also stops an in-flight/playing line of that name (e.g. the unlock on the ENTER tap's pointerdown
+    // started it a moment before the click dismissed the intro), so it cannot carry over onto the summary.
+    cancelVoice(name){this.pendingVoices.delete(name);this.consumedVoices.add(name);
+      if(this.requestedVoices.has(name)||this.voiceName===name){this.voiceToken++;this.voiceBusy=false;
+        if(this.voiceName===name&&this.voiceSource){try{this.voiceSource.stop();}catch(_){}}
+        this.voiceSource=null;this.voiceName=null;this.duck(false);}}
     // One-shot presentation cues survive autoplay lock and deduplicate concurrent renders.
     async requestVoice(name){
       if(!this.config.voices.includes(name)||this.consumedVoices.has(name))return false;
@@ -136,9 +141,9 @@
       this.voiceBusy=true;const token=++this.voiceToken;
       try{
         const buffer=await this.load('bit/'+name);if(token!==this.voiceToken||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted))return false;
-        this.duck(true);const source=this.source(buffer,'voice',this.config.voiceGain),cleanup=source.onended;
+        this.duck(true);const source=this.source(buffer,'voice',this.config.voiceGain),cleanup=source.onended;this.voiceSource=source;this.voiceName=name;
         this.lastVoice.set(name,this.now());this.globalVoiceAt=this.now();
-        source.onended=()=>{cleanup();if(token===this.voiceToken){this.voiceBusy=false;this.duck(false);}};return true;
+        source.onended=()=>{cleanup();if(this.voiceSource===source){this.voiceSource=null;this.voiceName=null;}if(token===this.voiceToken){this.voiceBusy=false;this.duck(false);}};return true;
       }catch(_){return false;}finally{if(token===this.voiceToken&&!this.ducked)this.voiceBusy=false;}
     }
     async loop(slot,name,fade=0){

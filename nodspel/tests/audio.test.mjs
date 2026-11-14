@@ -148,7 +148,8 @@ test('muted requests are consumed without surprise playback after settings chang
 test('first homecoming and return gesture share one greeting while ordinary returns keep welcome-back',async()=>{
   const {JSDOM}=require('../../node_modules/jsdom');
   for(const intro of [true,false]){
-    const dom=new JSDOM('',{runScripts:'outside-only',url:'http://game/index.html'}),w=dom.window;
+    // v2.28.30: the greeting only plays while the cold open (.intro, BIT visible) is in the document.
+    const dom=new JSDOM(intro?'<div class="intro"></div>':'',{runScripts:'outside-only',url:'http://game/index.html'}),w=dom.window;
     w.AudioContext=FakeContext;w.fetch=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});
     w.eval(`const S={introSeen:${!intro}};const session={screen:'${intro?'intro':'base'}'};`);
     for(const file of ['data/audio.js','ui/audio.js','ui/base-audio.js'])w.eval(await readFile(new URL('../../'+file,import.meta.url),'utf8'));
@@ -425,4 +426,19 @@ test('audioSession is left unchanged and no media playback session is requested'
     a.init();a.context.state='suspended';a.unlocked=false;resumed=false;
     registrations.get(name).fn();assert.equal(resumed,true,name+' resumes in the activation stack');
   }
+});
+
+// v2.28.30 (Robert, FTUE VO on the summary): dismissing the cold open cancels BIT's greeting even when the
+// unlock on the ENTER tap's pointerdown already started it -- pending decode never plays, a playing line stops.
+test('cancelVoice drops an in-flight youre-back before it plays',async()=>{
+  let release;const a=fixture({fetch:()=>new Promise(r=>release=r)}).audio;await a.unlock();
+  const req=a.requestVoice('youre-back');a.cancelVoice('youre-back');
+  release({ok:true,arrayBuffer:async()=>new ArrayBuffer(1)});assert.equal(await req,false);
+  assert.equal(a.context.sources.length,0);assert.equal(a.voiceBusy,false);
+  assert.equal(await a.requestVoice('youre-back'),false,'cancelled greeting is consumed for good');
+});
+test('cancelVoice stops a youre-back line that is already playing',async()=>{
+  const a=fixture().audio;await a.unlock();assert.equal(await a.requestVoice('youre-back'),true);
+  const src=a.context.sources[0];a.cancelVoice('youre-back');
+  assert.equal(src.stopped,true);assert.equal(a.voiceBusy,false);
 });
