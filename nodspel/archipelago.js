@@ -203,7 +203,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const options=typeof location!=='undefined'?new URLSearchParams(location.search):new URLSearchParams();
   const visualV2=options.get('archVisual')==='v2';
   const targetIsland=visualV2&&options.get('archTarget')==='1';
-  const terrainPreview=visualV2||options.get('ground')!=='0';
+  const terrainPreview=visualV2||(typeof location!=='undefined'&&options.get('ground')!=='0');
   const coastProfiles=new Map();
   if(terrainPreview)for(const floor of level.floors){
     if(!floor.dir){
