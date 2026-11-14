@@ -4455,6 +4455,12 @@ window.A = {
   },
   dismissIntro(){
     document.body.classList.remove("startup-bunker-intro");
+    // ~500ms cross-fade from the cold open into the bunker view: #app starts hidden under the
+    // .intro-leaving class, the screens swap underneath instantly (state below is unaffected and
+    // stays synchronous for callers/tests), then the class lifts on the next paint so #app's own
+    // CSS transition fades it in. No-op without rAF (jsdom) or under reduced motion (CSS turns the
+    // transition off there).
+    document.body.classList.add("intro-leaving");
     S.introSeen = true;
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
@@ -4465,6 +4471,9 @@ window.A = {
       session.pendingHomecomingSummary = null;
       showHomecomingSummary(ing);
     }
+    if(typeof requestAnimationFrame === "function")
+      requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
+    else document.body.classList.remove("intro-leaving");
   },
   track(modId, level){
     if(S.tracked && S.tracked.module === modId && S.tracked.level === level){ S.tracked = null; act("TRACK_CLEARED",{}); }

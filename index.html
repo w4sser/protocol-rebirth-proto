@@ -15,6 +15,8 @@
 <link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.28.27">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.28.27">
 <link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.28.27">
+<link rel="preload" as="image" href="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=2.28.27">
+<link rel="preload" as="image" href="assets/production/coldopen/bit-coldopen-v1.webp?v=2.28.27">
 <title>Protocol Rebirth</title>
 <!-- v2.12.1 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
      resolve the vendored Ultra Water engine's bare `import ... from 'three'` against our own
@@ -813,6 +815,11 @@
     .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))!important;}
     .intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;}
   }
+  /* ENTER THE FACILITY: #app starts hidden the instant dismissIntro() swaps the screen underneath,
+     then fades in over ~500ms once app.js lifts body.intro-leaving on the next paint. */
+  #app{transition:opacity .5s ease;}
+  body.intro-leaving #app{opacity:0;}
+  @media (prefers-reduced-motion: reduce){ #app{transition:none;} }
   /* Full-bleed: background art + scene run edge to edge (also under the notch / Dynamic Island);
      only UI chrome is inset by the safe area (both landscape orientations, min 12 px on touch). */
   html,body{background:var(--bg)}
