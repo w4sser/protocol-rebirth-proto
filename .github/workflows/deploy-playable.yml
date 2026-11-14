@@ -55,6 +55,8 @@ jobs:
           # The existing root is only copied from the latest production main.
           cp production/index.html production/manifest.json production/.nojekyll production/app.js production/save-slots.js production/start-quality.js production/start-scene.js _site/
           cp -R production/assets production/data production/nodspel production/ui _site/
+          # Publish the standalone interactive reference alongside the actual game.
+          cp production/archipelago-visual-target.html _site/
           rm -rf _site/assets/reference _site/nodspel/node_modules _site/nodspel/tests _site/nodspel/test
           if [ -d archipelago-source ]; then
             dest=_site/previews/archipelago-v2
@@ -91,6 +93,12 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           timeout: 1200000
+      - name: Verify public visual target reference
+        env:
+          PUBLIC_PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          url="${PUBLIC_PAGES_URL%/}/archipelago-visual-target.html"
+          curl --fail --location --retry 4 --retry-delay 3 --silent --show-error "$url" | grep -q 'ARCHIPELAGO'
       - name: Install browser for public preview smoke
         if: steps.preview.outputs.available == 'true'
         run: cd production && npm i --no-save puppeteer
