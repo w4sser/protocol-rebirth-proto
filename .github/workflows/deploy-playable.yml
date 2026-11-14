@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Publish from the trusted default branch once CI completes on PR #247.
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
 permissions:
   contents: read
   pages: write
@@ -12,21 +16,73 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'feat/archipelago-visual-target-v2')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Prepare playable site only
+      - name: Checkout production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+          persist-credentials: false
+      - name: Detect Archipelago v2 preview branch
+        id: preview
+        shell: bash
         run: |
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}.git" refs/heads/feat/archipelago-visual-target-v2 >/dev/null; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Checkout Archipelago v2 PR head
+        if: steps.preview.outputs.available == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: refs/heads/feat/archipelago-visual-target-v2
+          path: archipelago-source
+          persist-credentials: false
+      - name: Assemble production site and isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
           mkdir -p _site
-          cp index.html manifest.json .nojekyll app.js save-slots.js start-quality.js start-scene.js _site/
-          cp -R assets data nodspel ui _site/
-          rm -rf _site/assets/reference
-          rm -rf _site/nodspel/node_modules _site/nodspel/tests _site/nodspel/test
+          # The existing root is only copied from the latest production main.
+          cp production/index.html production/manifest.json production/.nojekyll production/app.js production/save-slots.js production/start-quality.js production/start-scene.js _site/
+          cp -R production/assets production/data production/nodspel production/ui _site/
+          rm -rf _site/assets/reference _site/nodspel/node_modules _site/nodspel/tests _site/nodspel/test
+          if [ -d archipelago-source ]; then
+            dest=_site/previews/archipelago-v2
+            mkdir -p "$dest"
+            cp archipelago-source/index.html archipelago-source/manifest.json archipelago-source/app.js archipelago-source/save-slots.js archipelago-source/start-quality.js archipelago-source/start-scene.js "$dest/"
+            cp -R archipelago-source/assets archipelago-source/data archipelago-source/nodspel archipelago-source/ui "$dest/"
+            rm -rf "$dest/assets/reference" "$dest/nodspel/node_modules" "$dest/nodspel/tests" "$dest/nodspel/test"
+
+            # Prevent preview save/reset operations from modifying production saves.
+            cp production/scripts/preview-storage-shim.js "$dest/preview-storage-shim.js"
+            sed -i '/<head>/a <script src="preview-storage-shim.js"></script>' "$dest/index.html"
+            sed -i '/<head>/a <script src="../preview-storage-shim.js"></script>' "$dest/nodspel/index.html"
+
+            # The preview URL must never contain the older main game by mistake.
+            test -f "$dest/nodspel/archipelago-playable.mjs"
+            test -f "$dest/nodspel/archipelago-visual-v2.mjs"
+            grep -q 'organic-v2' "$dest/nodspel/index.html"
+            grep -q 'archVisual' "$dest/nodspel/archipelago.js"
+            grep -q 'preview-storage-shim.js' "$dest/index.html"
+            grep -q 'preview-storage-shim.js' "$dest/nodspel/index.html"
+            sha="$(git -C archipelago-source rev-parse HEAD)"
+            printf '{"pr":247,"branch":"feat/archipelago-visual-target-v2","commit":"%s","feature":"archVisual=v2","entry":"nodspel/?area=archipelago&archVisual=v2&archTarget=1&seed=archipelago-v2-target&q=high"}\n' "$sha" > "$dest/preview-version.json"
+            echo "Published PR #247 preview source SHA: $sha"
+          else
+            echo "No Archipelago v2 branch, deploying production only."
+          fi
           echo "Deployment payload:"
-          du -sh _site _site/assets
+          du -sh _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
