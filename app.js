@@ -2267,16 +2267,24 @@ SCREENS.combatDemo = function(){
 SCREENS.intro = function(){
   void window.PR_AUDIO?.requestVoice('youre-back');
   const b = PROG.beats[0];
-  // Cinematic cold open: black screen, BIT's face powers on while its lines fade in one by one.
+  // Cinematic cold open: Robert's bunker-discovery backdrop pushes in slowly while BIT flickers on
+  // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
+  // art, not the viewport -- .intro-stage always keeps the backdrop's 1672/941 aspect so they hold).
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
   $app().innerHTML =
     '<div class="intro" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
-    '<img class="intro-face" src="nodspel/icons/happy-node.svg?v=' + APP_VERSION + '" alt="BIT">' +
+    '<div class="intro-stage">' +
+    '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
+    '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    '</div>' +
+    '<div class="intro-scrim"></div>' +
+    '<div class="intro-copy">' +
     '<div class="intro-lines">' + lines.map((l, i) =>
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
-    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
+    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
+    '</div></div>';
 };
 
 function closestUpgrade(){

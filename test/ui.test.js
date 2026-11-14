@@ -45,7 +45,7 @@ assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-men
 // the familiar intro -> base -> build flow.
 A.go("base"); // base redirects to the cold open while !S.introSeen
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
-assert(doc.querySelector(".intro .intro-face") && doc.querySelectorAll(".intro-lines p").length >= 2 && doc.querySelector(".intro-go"), "cinematic intro: BIT face, lines, compact enter button");
+assert(doc.querySelector(".intro .intro-backdrop") && doc.querySelector(".intro .intro-bit") && doc.querySelectorAll(".intro-lines p").length >= 2 && doc.querySelector(".intro-go"), "cinematic intro: bunker backdrop, BIT, lines, compact enter button");
 A.introSkip({target: doc.querySelector(".intro")}); assert(doc.querySelector(".intro.done"), "tap skips the intro animation");
 A.dismissIntro();
 // The combat sandbox opens from prep, accepts a shot, and closes without
