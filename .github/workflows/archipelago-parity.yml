@@ -1,0 +1,44 @@
+name: Archipelago v2 parity captures
+
+on:
+  pull_request:
+    paths:
+      - 'nodspel/**'
+      - 'scripts/shot-archipelago-v2.mjs'
+      - '.github/workflows/archipelago-parity.yml'
+  push:
+    branches: [feat/archipelago-visual-target-v2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    if: github.event_name != 'pull_request' || github.event.pull_request.number == 247
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test and browser dependencies
+        run: |
+          npm ci || npm install
+          npm i --no-save puppeteer
+      - name: Guard actor coastline and visual-only geometry
+        run: node --test nodspel/tests/archipelago-bedrock-v2.test.mjs nodspel/tests/archipelago-visual-v2.test.mjs
+      - name: Capture real raid camera BEFORE and AFTER in HIGH / LOW
+        env:
+          OUT: verify-out/archipelago-v2-parity
+        run: node scripts/shot-archipelago-v2.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archipelago-v2-parity
+          path: verify-out/archipelago-v2-parity
+          if-no-files-found: warn
+          retention-days: 14
