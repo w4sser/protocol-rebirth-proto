@@ -110,9 +110,13 @@
       }
       try{const buffer=await this.load(cue.file);if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return false;const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;}catch(_){return false;}
     }
+    // youre-back is BIT's cold-open greeting: it may only ever be heard while that screen (.intro)
+    // is on screen, never replayed later onto the homecoming summary once BIT has left.
+    cancelVoice(name){this.pendingVoices.delete(name);this.consumedVoices.add(name);}
     // One-shot presentation cues survive autoplay lock and deduplicate concurrent renders.
     async requestVoice(name){
       if(!this.config.voices.includes(name)||this.consumedVoices.has(name))return false;
+      if(name==='youre-back'&&typeof document!=='undefined'&&!document.querySelector('.intro')){this.cancelVoice(name);return false;}
       if(this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0){
         this.pendingVoices.delete(name);this.consumedVoices.add(name);return false;
       }

@@ -2265,7 +2265,6 @@ SCREENS.combatDemo = function(){
 };
 
 SCREENS.intro = function(){
-  void window.PR_AUDIO?.requestVoice('youre-back');
   const b = PROG.beats[0];
   // Cinematic cold open: Robert's bunker-discovery backdrop pushes in slowly while BIT flickers on
   // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
@@ -2285,6 +2284,9 @@ SCREENS.intro = function(){
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
     '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
     '</div></div>';
+  // Requested only now that .intro is actually in the DOM: ui/audio.js guards 'youre-back' on
+  // that element being present, so BIT's greeting never replays later onto the summary.
+  void window.PR_AUDIO?.requestVoice('youre-back');
 };
 
 function closestUpgrade(){
@@ -4297,9 +4299,9 @@ function finishRaid(){
   }
 }
 
-function showHomecomingSummary(ingest){
+function showHomecomingSummary(ingest, opts){
   if(!ingest || !ingest.ok) return;
-  window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome);
+  window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
     '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
 }
@@ -4457,6 +4459,9 @@ window.A = {
     const el = document.querySelector(".intro"); if(el) el.classList.add("done");
   },
   dismissIntro(){
+    // BIT's cold-open greeting only ever plays while he's on screen -- once the intro is gone,
+    // any still-locked/queued 'youre-back' must never surface later on the homecoming summary.
+    window.PR_AUDIO?.cancelVoice?.('youre-back');
     document.body.classList.remove("startup-bunker-intro");
     // ~500ms cross-fade from the cold open into the bunker view: #app starts hidden under the
     // .intro-leaving class, the screens swap underneath instantly (state below is unaffected and
@@ -4472,7 +4477,8 @@ window.A = {
     if(session.pendingHomecomingSummary){
       const ing = session.pendingHomecomingSummary;
       session.pendingHomecomingSummary = null;
-      showHomecomingSummary(ing);
+      // BIT already greeted during the cold open he's not shown on this summary -- no second voice line.
+      showHomecomingSummary(ing, { skipVoice:true });
     }
     if(typeof requestAnimationFrame === "function")
       requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
