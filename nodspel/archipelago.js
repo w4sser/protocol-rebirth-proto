@@ -8,7 +8,7 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite7';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite9';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite8';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
@@ -204,7 +204,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const visualV2=options.get('archVisual')==='v2';
   const targetIsland=visualV2&&options.get('archTarget')==='1';
   const terrainPreview=visualV2||(typeof location!=='undefined'&&options.get('ground')!=='0');
-  const coastProfiles=new Map();
+  const coastProfiles=new Map(),bedrockPlans=new Map();
   if(terrainPreview)for(const floor of level.floors){
     if(!floor.dir){
       const profile=coastlineProfile(floor,level.seed,{samples:visualV2?72:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
@@ -238,6 +238,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
       const bedrock=addArchipelagoGraniteV2(profile,group,options);
+      bedrockPlans.set(profile.floor,bedrock?.userData.bedrockPlan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:bedrock?.userData.bedrockPlan});
       if(targetIsland&&profile.floor===firstIsland){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
     }
@@ -269,7 +270,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     if(profile){
       // One opaque, low-poly perimeter shell: rounded coves, granite shelves and
       // short sand pockets. The original rectangular playable floor remains.
-      const data=coastRingData(profile),geo=new THREE.BufferGeometry();
+      const data=coastRingData(profile,{bedrockPlan:bedrockPlans.get(f)}),geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
       geo.setAttribute('color',new THREE.BufferAttribute(data.colors,3));
       geo.setAttribute('uv',new THREE.BufferAttribute(data.uvs,2));

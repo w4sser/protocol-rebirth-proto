@@ -98,7 +98,7 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neig
 // ground texture can cover the rectangle-to-coast join, then fade progressively
 // to rock (or, occasionally, sand). No alpha sorting or collisions are added.
 export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
-export function coastRingData(profile){
+export function coastRingData(profile,{bedrockPlan=null}={}){
   const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
   const rock=profile.style==='v2'
     ? ['#6b805b','#7d897d','#8f9295','#a09ca3','#878b93','#596a76']
@@ -135,7 +135,15 @@ export function coastRingData(profile){
       [.010,.010,.0095,-.046,-.085,-.73];
     const sandY=profile.style==='v2'?[.010,.009,.007,.001,-.045,-.54]:
       [.010,.010,.0095,-.115,-.25,-.54];
-    positions.push(x,lerp(rockY[ring],sandY[ring],p.beach),z);
+    // The existing coast shell itself rises into short glacial shoulders at
+    // the big outcrops. No separate coplanar granite apron (which flickers on iOS),
+    // no height change at the traversable ground seam or the sea-level lip.
+    const aDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+    const massProximity=profile.style==='v2'&&bedrockPlan?.masses?.length
+      ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.27,2)))):0;
+    const ridgeLifts=[0,.06,.15,.26,.17,0];
+    const ridge=massProximity*(1-p.beach*.86);
+    positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+ridgeLifts[ring]*ridge,z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
     const colR=toLinear(rock[ring]),colS=toLinear(beach[ring]);

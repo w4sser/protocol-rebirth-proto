@@ -162,3 +162,16 @@ test('target island has a visual-only shoreline shed, embedded in rock beyond th
   const idx=Math.round(((rock.angle+Math.PI*2)%(Math.PI*2))/(Math.PI*2)*profile.points.length)%profile.points.length;
   assert.ok(r>profile.points[idx].playableRadial,'no added object on playable terrain');
 });
+
+test('the same coastal shell develops glacial shoulders without changing walkable seams or sea-level edge',()=>{
+  const mass=art.planArchipelagoBedrock(profile),base=coastRingData(profile),raised=coastRingData(profile,{bedrockPlan:mass}),n=profile.points.length;
+  assert.equal(base.positions.length,raised.positions.length);
+  let maxLift=0;
+  for(let i=0;i<n;i++){
+    const first=i*3+1,last=(5*n+i)*3+1;
+    assert.ok(Math.abs(raised.positions[first]-base.positions[first])<1e-6,'first actor seam unchanged');
+    assert.ok(Math.abs(raised.positions[last]-base.positions[last])<1e-6,'outer waterline unchanged');
+    maxLift=Math.max(maxLift,raised.positions[(3*n+i)*3+1]-base.positions[(3*n+i)*3+1]);
+  }
+  assert.ok(maxLift>.06,'a real raised geological shoulder is required at an outcrop');
+});
