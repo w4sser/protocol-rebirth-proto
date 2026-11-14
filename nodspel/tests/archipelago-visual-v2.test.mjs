@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import {coastlineProfile} from '../coastline.mjs';
-import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipelago-playable.mjs';
+import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago} from '../archipelago.js';
