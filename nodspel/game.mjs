@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.25';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.25';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.25';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.25';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.25-ground-v10-timber-v1-military-visual2-organic-v2';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.25-granite2';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.25';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.25';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.25';
@@ -62,7 +62,7 @@ import {createRaidProfiler} from './raid-profiler.js?v=2.28.25';
 import {createPostFX} from './postfx.js?v=2.28.25';
 import {createDustField} from './dust.js?v=2.28.25';
 import {createQualityUI} from './quality-ui.js?v=2.28.25';
-import {archipelagoDressingConfig} from './archipelago-dressing-policy.mjs?v=default-military-v2';
+import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.25-granite2';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.25';
 import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.25';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.25';
@@ -224,12 +224,12 @@ if(AREA_SEL==='archipelago'){
   scene.background.set(pink?'#706b84':'#3d5a6c');
   scene.fog.color.set(pink?'#706b84':'#3d5a6c');
   scene.fog.near=34;scene.fog.far=pink?87:72;
-  hemi.color.set(pink?'#c4accb':'#cfe3ef');
-  hemi.groundColor.set(pink?'#303c4b':'#1d3340');
-  hemi.intensity=QUALITY==='low'?1.4:1.1;
-  sun.color.set(pink?'#efa9a9':'#ffe2c0');
-  sun.intensity=pink?1.05:1.2;
-  if(pink)renderer.toneMappingExposure=1.22;
+  hemi.color.set(pink?'#cbd0e2':'#cfe3ef');
+  hemi.groundColor.set(pink?'#536153':'#1d3340');
+  hemi.intensity=pink?1.65:QUALITY==='low'?1.4:1.1;
+  sun.color.set(pink?'#efd0c2':'#ffe2c0');
+  sun.intensity=pink?.85:1.2;
+  if(pink){renderer.toneMappingExposure=1.18;sun.shadow.radius=3;}
 }
 // v2.10.0 mood pass: cheap cold-grade equivalent for areas/tiers that don't get the colour-grade shader pass
 // (Low never does; High's own ambient is nudged a touch too so the look doesn't jump when auto-downgrading).
@@ -868,7 +868,8 @@ let bigRuntime=null;
 // v2.28.0: Ground Pass 10 is on by default; ?ground=0 disables it.
 // Profile follows graphics quality (LOW on mobile/low, HIGH on desktop) unless ?groundProfile= overrides.
 const GROUND_V2_PARAMS=new URLSearchParams(location.search);
-const GROUND_V2=GROUND_V2_PARAMS.get('ground')!=='0';
+// The opt-in geological pass supplies its own quiet, vertex-colored surface.
+const GROUND_V2=useTexturedGround(AREA_SEL,location.search);
 const GROUND_V2_PROFILE=GROUND_V2_PARAMS.has('groundProfile')?(GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'high'):(QUALITY==='low'?'low':'high');
 const GROUND_DEBUG=GROUND_V2 && GROUND_V2_PARAMS.has('groundDebug');
 // Start fetching the preview module as soon as this module initializes. The
@@ -900,7 +901,7 @@ let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
 const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
-const MILITARY_STYLE=POLYFORK_ACTIVE&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
+const MILITARY_STYLE=(POLYFORK_ACTIVE||ARCH_VISUAL_V2)&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
 const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1-military-v3'):null;
 let polyforkPreview=null,polyforkLoadToken=0;
 function refreshArchipelagoDressing(level){

@@ -8,9 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite2';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-organic-v2';
+import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite2';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
@@ -207,7 +207,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const coastProfiles=new Map();
   if(terrainPreview)for(const floor of level.floors){
     if(!floor.dir){
-      const profile=coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
+      const profile=coastlineProfile(floor,level.seed,{samples:visualV2?72:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
       coastProfiles.set(floor,profile);
       if(visualV2)registerWalkableCoast(floor,profile);
     }
@@ -233,9 +233,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   if(visualV2){
     out.visualV2=true;
     const firstIsland=level.floors.find(f=>!f.dir);
+    const reservations=[...out.passages,...out.bridgeClearances,...level.floors.filter(f=>f.dir)];
+    const grassClearances=[...reservations,...[level.start,level.exit,...(level.nodes??[]),...(level.lootBoxes??[])].filter(Boolean).map(p=>({x:p.x,z:p.z,w:3.2,d:3.2}))];
     for(const profile of coastProfiles.values()){
-      addArchipelagoGraniteV2(profile,group,{high:(quality?.props??1)>=1});
-      if(targetIsland&&profile.floor===firstIsland)addArchipelagoTargetPortal(profile,group);
+      const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
+      addArchipelagoGraniteV2(profile,group,options);
+      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances});
+      if(targetIsland&&profile.floor===firstIsland)addArchipelagoTargetPortal(profile,group,options);
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
   }
@@ -248,6 +252,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     // island: grass top, sand rim, irregular shore blobs below the walkable edge
     const grass=box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
     grass.name='archipelago-grass-backup';
+    if(visualV2)grass.visible=false;
     // Move *only* the visual fallback. Gameplay floors/colliders stay at Y=0.
     // The preview terrain now has a reliable depth separation on mobile.
     if(terrainPreview){
@@ -319,7 +324,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     }
     else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
-  out.shoreProps=terrainPreview
+  out.shoreProps=visualV2?0:terrainPreview
     ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)
     : shoreRocks(shore,islands,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group);
   if(terrainPreview){

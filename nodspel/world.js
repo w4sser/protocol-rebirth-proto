@@ -5,7 +5,8 @@ import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.25';
 import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.25';
 import {buildTown} from './town.js?v=2.28.25';
 import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.25';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.25-coast-v10-timber-v1-military-visual2-organic-v2';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.25-granite2';
+import {planArchipelagoPines,archipelagoCoastalPine} from './archipelago-visual-v2.mjs?v=2.28.25-granite2';
 import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.25';
 import {controlCablePath} from './control-cables.js?v=2.28.25';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
@@ -292,7 +293,8 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
   const prng=rngFrom(`${level.seed}:props`),spots=isTown?[]:propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
-  const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);if(propInPassage(p,archInfo.passages)||propInPassage(p,archInfo.bridgeClearances))return null;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;}).filter(Boolean);
+  if(archInfo?.visualV2)spots.splice(0,spots.length,...planArchipelagoPines(level,spots));
+  const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=archInfo.visualV2?archipelagoCoastalPine(spot):pineTree(spot,box,prng,pine);if(propInPassage(p,archInfo.passages)||propInPassage(p,archInfo.bridgeClearances))return null;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;}).filter(Boolean);
   if(isArch)spots.splice(0,spots.length,...props.map(p=>({x:p.position.x,z:p.position.z})));
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
