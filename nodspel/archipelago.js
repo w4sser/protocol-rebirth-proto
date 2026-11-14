@@ -207,7 +207,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const coastProfiles=new Map();
   if(terrainPreview)for(const floor of level.floors){
     if(!floor.dir){
-      const profile=coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy'});
+      const profile=coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
       coastProfiles.set(floor,profile);
       if(visualV2)registerWalkableCoast(floor,profile);
     }
@@ -224,6 +224,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       {x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6};
   });
   const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
+  if(visualV2){
+    const U=water.material.uniforms;
+    U.cShallow.value.set('#337a79');U.cMid.value.set('#254f6e');U.cDeep.value.set('#0b1928');
+    U.cFoam.value.set('#a8bec6');U.cSky.value.set('#9e879d');
+  }
   water.name='water';group.add(water);
   if(visualV2){
     out.visualV2=true;
