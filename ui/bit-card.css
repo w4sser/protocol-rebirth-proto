@@ -1,7 +1,7 @@
 /* PRB-151 BIT narrator card (docs/bit-narrator.md). Shared by index.html and nodspel/index.html.
    BIT identity lock (docs/bit-character-spec.md): the owner-approved cold-open derivative image,
    never recoloured. Mood is body tilt (rotate), hover (translateY) and CRT brightness only --
-   never hue-rotate, never a different face. */
+   no colour-shifting filter, never a different face. */
 .bit-card{position:fixed;z-index:120;display:flex;align-items:flex-end;gap:8px;max-width:min(78vw,300px);
   padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit;pointer-events:auto;
   left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);}
