@@ -62,7 +62,7 @@ export function addArchipelagoHorizonIslets(floors,group,seed,{high=true}={}){
   const amount=high?5:3,objs=[];
   for(let i=0;i<amount;i++){
     const a=TAU*(i+.17+hash(seed+i)*.14)/amount;
-    const dist=spread+23+hash(i+seed)*14;
+    const dist=spread+11+hash(i+seed)*14;
     const rock=new THREE.Mesh(graniteGeo,graniteMat);
     rock.position.set(midX+Math.cos(a)*dist,-.42,midZ+Math.sin(a)*dist);
     rock.scale.set(3+hash(seed+i+11)*2.2,.46,2.1+hash(seed+i+27)*2);
