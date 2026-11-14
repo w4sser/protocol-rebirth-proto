@@ -5685,6 +5685,8 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   if(devBtn) devBtn.addEventListener("click", () => { setMenu(false); A.go("dev"); });
   const profilesBtn = document.getElementById("profiles-btn");
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
+  const cineBtn = document.getElementById("cinematic-archive-btn");
+  if(cineBtn) cineBtn.addEventListener("click", () => { setMenu(false); A.openCinematicArchive(); });
   { const rp = document.getElementById("replay-start-btn"); if(rp) rp.addEventListener("click", () => { setMenu(false); try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){} location.reload(); }); }
   { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
   // v2.12.1 start screen: settings/slot access from the splash itself, without triggering the
