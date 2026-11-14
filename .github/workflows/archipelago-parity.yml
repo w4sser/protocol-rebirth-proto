@@ -10,6 +10,10 @@ on:
     branches: [feat/archipelago-visual-target-v2]
   workflow_dispatch:
 
+concurrency:
+  group: archipelago-v2-parity
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
