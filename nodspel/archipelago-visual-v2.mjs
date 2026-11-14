@@ -1,6 +1,7 @@
 // Opt-in glacial landforms, adapted from archipelago-visual-target.html.
 // Raised scenery stays outside the walkable coast; shared resources survive rebuilds.
 import * as THREE from './vendor/three.module.js';
+import {archipelagoGroundColor} from './coastline.mjs';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(n){let x=(n|0)^0x9e3779b9;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return ((x^(x>>>16))>>>0)/4294967296;}
 const overlaps=(a,b,pad=.3)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+pad&&Math.abs(a.z-b.z)<(a.d+b.d)/2+pad;
@@ -91,13 +92,6 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
   // The existing sculpted masses supply the outcrops beyond the playable edge.
   return mesh;
 }
-function coastAngleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
-function softStep(a,b,v){const t=clamp((v-a)/(b-a),0,1);return t*t*(3-2*t);}
-function terrainNoise(x,z,seed){
-  const i=Math.floor(x),j=Math.floor(z),fx=softStep(0,1,x-i),fz=softStep(0,1,z-j);
-  const h=(a,b)=>hash(seed+Math.imul(a,374761393)+Math.imul(b,668265263));
-  return (h(i,j)*(1-fx)+h(i+1,j)*fx)*(1-fz)+(h(i,j+1)*(1-fx)+h(i+1,j+1)*fx)*fz;
-}
 export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],bedrockPlan=null}={}){
   if(profile?.style!=='v2')return null;
   const {floor,points,seed}=profile,n=points.length,rings=18,positions=[],colors=[],indices=[];
@@ -105,34 +99,14 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
   // Geological fingers and sheltered soil are baked into its vertex color,
   // not layered as coplanar rock or fake collision cover.
   const plan=bedrockPlan??planArchipelagoBedrock(profile);
-  const moss=new THREE.Color('#657b4e'),olive=new THREE.Color('#7d895a'),shade=new THREE.Color('#4a6752');
-  const rock=new THREE.Color('#9997a0'),rockDark=new THREE.Color('#727f86'),sand=new THREE.Color('#897f69');
-  const coastRock=new THREE.Color('#6b805b'),coastSand=new THREE.Color('#7f795c');
   for(let ring=0;ring<=rings;ring++)for(let i=0;i<n;i++){
     const p=points[i],f=ring/rings,r=Math.max(.05,p.playableRadial-.045)*f;
     const x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;
     positions.push(x,.010,z);
-    const broad=terrainNoise(x*.22+7,z*.22-5,seed),grain=terrainNoise(x*.69-11,z*.69+3,seed+817);
-    let fingers=0;
-    for(const m of plan.masses){
-      const angle=Math.abs(coastAngleDelta(p.angle,m.angle));
-      // Every raised shoulder has a visually continuous, flush granite tongue
-      // extending into the island, without changing traversal height.
-      const meander=.042*Math.sin(r*.37+seed*.0001);
-      const direction=Math.exp(-Math.pow((angle+meander)/.20,2));
-      fingers=Math.max(fingers,direction*softStep(.58,.91,f));
-    }
-    const weather=clamp((broad-.43)*.22+(grain-.48)*.07,0,.14);
-    const exposed=clamp(fingers*.57+weather*softStep(.54,.82,f),0,.64);
-    const col=moss.clone().lerp(olive,clamp(.35+broad*.60,0,1))
-      .lerp(shade,.08+.18*(1-grain))
-      .lerp(rock,exposed)
-      .lerp(rockDark,exposed*.12*(1-broad))
-      .lerp(sand,p.beach*softStep(.70,.97,f)*.26);
-    // Match the coastal shell's first organic ring *at exactly the same
-    // positions and height*: no visible green plate edge or z-fighting apron.
-    col.lerp(coastRock.clone().lerp(coastSand,p.beach),softStep(.87,1,f));
-    colors.push(col.r,col.g,col.b);
+    // The coast renderer samples this *same* geological surface at the
+    // final ring, avoiding an artificial uniformly tinted border strip.
+    const col=archipelagoGroundColor(profile,x,z,plan);
+    colors.push(col[0],col[1],col[2]);
     if(ring<rings){const a=ring*n+i,b=ring*n+(i+1)%n,c=(ring+1)*n+i,d=(ring+1)*n+(i+1)%n;indices.push(a,b,c,b,d,c);}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();

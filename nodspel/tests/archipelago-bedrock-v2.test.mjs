@@ -175,3 +175,22 @@ test('the same coastal shell develops glacial shoulders without changing walkabl
   }
   assert.ok(maxLift>.06,'a real raised geological shoulder is required at an outcrop');
 });
+
+test('the playable mineral veins join the cliff with exact linear colors',()=>{
+  const group=new THREE.Group(),mass=art.addArchipelagoGraniteV2(profile,group);
+  const plan=mass.userData.bedrockPlan,ground=art.addArchipelagoGroundV2(profile,group,{bedrockPlan:plan});
+  const coast=coastRingData(profile,{bedrockPlan:plan}),positions=ground.geometry.getAttribute('position'),colors=ground.geometry.getAttribute('color'),n=profile.points.length;
+  let visibleStone=0,interiorMoss=0;
+  for(let i=0;i<n;i++){
+    const j=positions.count-n+i;
+    for(let k=0;k<3;k++)assert.ok(Math.abs(colors.array[j*3+k]-coast.colors[i*3+k])<1e-5,
+      'the ground and rock coast must use the same material at their shared seam');
+    const edge=colors.getX(j)+colors.getZ(j);
+    if(edge>colors.getY(j)*1.6)visibleStone++;
+    if(colors.getY(i+n*2)>colors.getX(i+n*2)&&colors.getY(i+n*2)>colors.getZ(i+n*2))interiorMoss++;
+  }
+  assert.ok(visibleStone>n*.05,'some visible granite has to reach the real walkable coast');
+  assert.ok(interiorMoss>n*.70,'the central combat clearing stays natural green');
+  const lowGroup=new THREE.Group(),low=art.addArchipelagoGroundV2(profile,lowGroup,{high:false,bedrockPlan:plan});
+  assert.deepEqual([...low.geometry.getAttribute('color').array],[...colors.array],'LOW preserves the same island geology');
+});

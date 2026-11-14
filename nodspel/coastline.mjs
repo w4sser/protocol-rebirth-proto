@@ -98,6 +98,48 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neig
 // ground texture can cover the rectangle-to-coast join, then fade progressively
 // to rock (or, occasionally, sand). No alpha sorting or collisions are added.
 export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
+// Shared linear-color material model for the gameplay ground and its shore seam.
+// Broad, deterministic granite outcrops connect the island interior to the
+// coastal masses without introducing raised false cover or extra draw calls.
+const rgb=h=>[1,3,5].map(i=>{const c=parseInt(h.slice(i,i+2),16)/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
+const SOIL_MOSS=rgb('#657b4e'),SOIL_OLIVE=rgb('#7e8c5e'),SOIL_SHADE=rgb('#486550');
+const SOIL_GRANITE=rgb('#a19ba3'),SOIL_SHADOW=rgb('#737b85'),SOIL_SAND=rgb('#8f836d');
+const mix=(a,b,t)=>a+(b-a)*t;
+function tint(a,b,t){return a.map((c,i)=>mix(c,b[i],t));}
+function fieldHash(i,j,seed){return unit(seed+Math.imul(i,374761393)+Math.imul(j,668265263));}
+function fieldNoise(x,z,seed){
+  const i=Math.floor(x),j=Math.floor(z),tx=smooth(0,1,x-i),tz=smooth(0,1,z-j);
+  return mix(mix(fieldHash(i,j,seed),fieldHash(i+1,j,seed),tx),mix(fieldHash(i,j+1,seed),fieldHash(i+1,j+1,seed),tx),tz);
+}
+export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
+  if(profile?.style!=='v2')return SOIL_MOSS;
+  const {floor,seed,points}=profile,dx=x-floor.x,dz=z-floor.z;
+  const angle=(Math.atan2(dz,dx)+TAU)%TAU,scaled=angle/TAU*points.length,i=Math.floor(scaled),frac=scaled-i;
+  const radius=mix(points[i].playableRadial,points[(i+1)%points.length].playableRadial,frac)-.045;
+  const f=clamp(Math.hypot(dx,dz)/Math.max(.05,radius),0,1);
+  const broad=fieldNoise(x*.17+7,z*.17-5,seed);
+  const grain=fieldNoise(x*.53-9,z*.53+3,seed+817);
+  const channel=.5+.5*Math.sin((x*.23+z*.31)+seed*.0001);
+  const beach=coastBeach(angle/TAU,seed);
+  let glacial=0;
+  for(const mass of bedrockPlan?.masses??[]){
+    const delta=Math.atan2(Math.sin(angle-mass.angle),Math.cos(angle-mass.angle));
+    const arc=Math.exp(-Math.pow(delta/.39,2));
+    const slope=smooth(.28,.92,f);
+    glacial=Math.max(glacial,arc*slope);
+  }
+  const exposed=clamp(glacial*.80
+      +smooth(.57,.87,broad)*smooth(.40,.92,f)*(.25+.27*channel)
+      +smooth(.66,.88,f)*grain*.18
+      +smooth(.81,1,f)*(1-beach)*.22,0,.93);
+  let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.30+broad*.53,0,1));
+  col=tint(col,SOIL_SHADE,.09+.15*(1-grain));
+  col=tint(col,SOIL_GRANITE,exposed);
+  col=tint(col,SOIL_SHADOW,exposed*.13*(1-channel));
+  col=tint(col,SOIL_SAND,beach*smooth(.72,1,f)*.32);
+  return col;
+}
+
 export function coastRingData(profile,{bedrockPlan=null}={}){
   const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
   const rock=profile.style==='v2'
@@ -141,13 +183,21 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     const aDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
     const massProximity=profile.style==='v2'&&bedrockPlan?.masses?.length
       ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.27,2)))):0;
-    const ridgeLifts=[0,.06,.15,.26,.17,0];
+    const ridgeLifts=[0,.07,.22,.38,.28,0];
     const ridge=massProximity*(1-p.beach*.86);
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+ridgeLifts[ring]*ridge,z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
     const colR=toLinear(rock[ring]),colS=toLinear(beach[ring]);
-    for(let k=0;k<3;k++)colors.push(clamp(lerp(colR[k],colS[k],p.beach)*cliffShade,0,1));
+    if(profile.style==='v2'){
+      // Exact shared material at ring zero: the green-painted border vanishes.
+      // The other five bands transition to exposed weathered granite/sand.
+      const entry=archipelagoGroundColor(profile,floor.x+c*(p.playableRadial-.045),floor.z+s*(p.playableRadial-.045),bedrockPlan);
+      const transition=[0,.20,.48,.78,.97,1][ring];
+      for(let k=0;k<3;k++)colors.push(clamp(lerp(entry[k],lerp(colR[k],colS[k],p.beach)*cliffShade,transition),0,1));
+    }else{
+      for(let k=0;k<3;k++)colors.push(clamp(lerp(colR[k],colS[k],p.beach)*cliffShade,0,1));
+    }
     // LOW mode uses the green quadrant of its existing 2x2 atlas for the
     // INNER band; from here both profiles feather toward coastline colors.
     const fract=v=>v-Math.floor(v);

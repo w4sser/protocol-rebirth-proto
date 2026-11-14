@@ -8,9 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite9';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite11';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite10';
+import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite11';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
