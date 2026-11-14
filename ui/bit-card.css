@@ -3,7 +3,7 @@
   padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit;pointer-events:auto;
   left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);}
 .bit-card[hidden]{display:none;}
-.bit-card.ctx-raid{left:calc(50% + 18px);top:calc(58px + env(safe-area-inset-top,0px));bottom:auto;transform:translateX(-50%);
+.bit-card.ctx-raid{left:calc(50% + 18px);top:calc(84px + env(safe-area-inset-top,0px));bottom:auto;transform:translateX(-50%);
   max-width:min(66vw,280px);}
 .bit-card-img{--tilt:0deg;width:60px;height:60px;flex:0 0 auto;object-fit:contain;
   transform:rotate(var(--tilt)) translateY(0);animation:bitCardHover 3.4s ease-in-out infinite;}
