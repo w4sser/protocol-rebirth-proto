@@ -48,7 +48,8 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   for(const {i} of candidates){
     const angle=(phase+i/24*TAU)%TAU;
     if(masses.some(m=>Math.abs(Math.atan2(Math.sin(angle-m.angle),Math.cos(angle-m.angle)))<1.1))continue;
-    const m=landform(angle,clamp(size*(.38+.10*hash(seed+i)),4.5,8),clamp(size*.23,2.8,4.5),1.55+hash(seed+i+41)*.75);
+    const height=masses.length===0?1.72+hash(seed+i+41)*.42:1.22+hash(seed+i+41)*.28;
+    const m=landform(angle,clamp(size*(.38+.10*hash(seed+i)),4.5,8),clamp(size*.23,2.8,4.5),height);
     if(m)masses.push(m);if(masses.length===3)break;
   }
   for(const m of masses)for(const direction of [-1,1]){
@@ -59,11 +60,11 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
 function sculptGranite(){
   // Broad glacial shoulders, gently flattened crowns and muted weathering.
   // Instanced across islands: no unique rock meshes or expensive extra materials.
-  const steps=32,levels=[0,.055,.16,.31,.49,.66,.80,.91,1],radii=[1.02,1.07,1.08,1.06,1,.88,.72,.49,.16],positions=[],colors=[],indices=[];
+  const steps=32,levels=[0,.055,.16,.31,.49,.66,.80,.91,1],radii=[.93,1.04,1.11,1.09,1.05,1.02,.94,.76,.34],positions=[],colors=[],indices=[];
   const base=new THREE.Color('#989aa0'),dark=new THREE.Color('#5c6b75'),warm=new THREE.Color('#b8a5a1'),lichen=new THREE.Color('#70816e');
   for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,phase=Math.sin(3*a+.6)*.042+Math.sin(7*a+1.2)*.024+Math.sin(11*a-.3)*.011;
-    const radius=radii[k]*(1+phase),y=levels[k]+Math.sin(5*a+.5)*Math.sin(levels[k]*Math.PI)*.009;
+    const radius=radii[k]*(1+phase),y=levels[k]+Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.041+Math.sin(9*a+.25)*.012;
     positions.push(Math.cos(a)*.5*radius,y,Math.sin(a)*.5*radius);
     const c=dark.clone().lerp(base,.29+.66*Math.sqrt(levels[k]))
       .lerp(warm,.085+.10*(.5+.5*Math.sin(2*a+.7)))
@@ -179,7 +180,16 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   if(profile?.style!=='v2')return null;const mass=planArchipelagoBedrock(profile,options).masses[0];if(!mass)return null;
   const g=new THREE.Group();g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;g.position.set(mass.x,-.18,mass.z);g.rotation.y=mass.rotation;
   const front=mass.depth*.50,h=Math.min(1.28,mass.height*.66),w=Math.min(2,mass.length*.42);
-  block(g,0,h*.5,front,w,h,.22,1);block(g,-w*.5-.12,h*.51,front-.10,.24,h+.12,.65,0);block(g,w*.5+.12,h*.51,front-.10,.24,h+.12,.65,0);block(g,0,h+.08,front-.10,w+.52,.20,.70,2);block(g,0,h*.5,front+.12,.045,h*.94,.02,0);group.add(g);return g;
+  // Face the inner approach: the dark door projects ahead of the frame,
+  // rather than disappearing behind the solid glacial mesh at the coast.
+  block(g,0,h*.5,front+.15,w*.86,h,.14,1);
+  block(g,-w*.5-.12,h*.51,front-.10,.24,h+.12,.65,0);
+  block(g,w*.5+.12,h*.51,front-.10,.24,h+.12,.65,0);
+  block(g,0,h+.08,front-.10,w+.52,.20,.70,2);
+  block(g,0,h*.5,front+.235,.045,h*.94,.018,0);
+  const lamp=new THREE.Mesh(cubeGeo,new THREE.MeshBasicMaterial({color:'#ffc692'}));
+  lamp.scale.set(.28,.07,.12);lamp.position.set(0,h+.055,front+.22);lamp.userData.visualOnly=true;g.add(lamp);
+  group.add(g);return g;
 }
 
 const shedMaterials=['#675349','#414b4e','#77766f','#ad947b'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:.94,metalness:0});m.userData.shared=true;return m;});
