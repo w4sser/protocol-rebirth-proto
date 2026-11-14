@@ -26,6 +26,7 @@
   function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   function blocked(){
     var b = document.body;
+    if(window.matchMedia && window.matchMedia("(orientation: portrait)").matches) return true;
     if(!b || (b.dataset.screen && b.dataset.screen !== "base")) return true;
     if(b.classList.contains("startup-bunker-intro") || b.classList.contains("intro-leaving") || b.classList.contains("has-overlay")) return true;
     if(document.querySelector(".intro, #overlay, #splash:not(.out), #settings-menu:not([hidden])")) return true;

@@ -1,5 +1,5 @@
 /* Full-bleed narrative gate; only copy follows the safe area, as in the cold open. */
-.bit-cutscene{position:fixed;inset:0;z-index:500;overflow:hidden;background:var(--ad-night);color:var(--ad-bone);opacity:1;transition:opacity .35s ease;cursor:pointer;}
+.bit-cutscene{position:fixed;inset:0;z-index:80;overflow:hidden;background:var(--ad-night);color:var(--ad-bone);opacity:1;transition:opacity .35s ease;cursor:pointer;}
 .bit-cutscene-stage{position:absolute;inset:0;animation:bitCutscenePush 6s ease-out both;}
 .bit-cutscene-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .bit-cutscene-stage img[hidden]{display:none;}

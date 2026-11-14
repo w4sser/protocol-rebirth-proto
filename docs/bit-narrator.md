@@ -101,7 +101,7 @@ window.PRBitCutscene.dismiss();
 window.PRBitCutscene.isOpen();
 ```
 
-The helper deduplicates in-flight ids, waits for the base screen, intro/splash/popups, cards and
+The helper deduplicates in-flight ids, waits for landscape on the base screen, intro/splash/popups (including Settings), cards and
 active BIT speech, and rechecks blockers after loading. It does not persist or request VO.
 Image errors or a 3-second load timeout show the line over the dark gradient instead.
 
