@@ -30,3 +30,34 @@ Initial geometry/policy tests: 5 RED, then GREEN. Ground normal-direction assert
 Independent review found two Important issues: authored neighbor rectangles did not represent organic coasts, and the portal frame extended beyond the validated rock ellipse. Added generated-level real rendered-vertex regression (review-1, review-21 and target seed, levels 1–3), observed RED, passed full neighbor coast profiles and included the concrete portal envelope, then GREEN. Shared resources/lifecycle and import cache chain reviewed without significant findings.
 
 Local Windows limits: baseline guardrail and audio license test require LF; local checkout normalized for testing only. Unchanged polyfork-vendored-assets test assumes POSIX separators, and unchanged base loot-sources test imports a Windows absolute path as an ESM URL. Canonical Linux CI remains required. Desktop Chromium screenshots are not physical Safari/performance measurements.
+
+## Owner follow-up: parity to the original visual target (14 Nov, 17:22 CET)
+
+### Decision and review hypothesis
+The playable island still does not evoke the standalone Three.js target. Treat that as a **presentation/landform** gap, not an invitation to redesign combat, traversal rules or the camera. The standalone target's orbit view exaggerates scale and sculpted height; only equal-size screenshots from the **actual 844x390 raid camera** are valid parity evidence. Preserve the reference HTML itself.
+
+### Prioritized execution (work on this PR; never merge without owner approval)
+
+**P0 — Establish evidence before another art pass.**
+- [ ] Add a PR-scoped Actions capture job with full history (git-show baseline required) that runs v2 geometry tests and scripts/shot-archipelago-v2.mjs.
+- [ ] Save BEFORE/AFTER screenshots for HIGH/LOW at spawn, coast/portal and bridge, plus capture JSON. Publish as Actions artifact even on failure.
+- [ ] Confirm exact PR head SHA in public isolated preview; separate browser boot success from full-raid and physical-Safari verification.
+- [ ] Inspect paired screenshots for the three largest discrepancies: island-as-rock silhouette, quiet/sparse composition, Nordic summer-night light. Annotate failures before modifying geometry.
+
+**P1 — One hero island; make the target seed feel like the reference.**
+- [ ] Improve only the archipelago-v2-target island before generalising. Geometry should read as connected glacial bedrock, 1–3 dominant masses, headlands, scooped cove, soft shelf-to-waterline transition, and portal embedded in rock.
+- [ ] Same coast profile must drive walkable outline, shell and water shore-map; leave objective positions and collisions unchanged. Raised scenery MUST stay outside the actual actor boundary, bridge reservations and neighbouring organic coastlines.
+- [ ] Reject evenly spaced boulders, cliffs shaped like discs, artificial coast rings, decorative false cover and rocks obscuring enemy/bridge visibility.
+- [ ] Match subdued granite, olive/moss interiors, warm side light/cool fill and pale lavender/coral summer-night reflection; **do not** tint the entire level purple.
+- [ ] Reduce scatter. Place wind-shaped pines in clusters with open combat sight lines. Keep distant islets varied and sparse to imply open water.
+
+**P2 — Prove gameplay, mobile parity and production safety.**
+- [ ] Repeat same-seed HIGH/LOW screenshots at normal camera scale. Primary silhouette and portal must remain identifiable in LOW.
+- [ ] Regression-test bridges, island/water gap, coastline traversal, all objectives, z-fighting, no false cover or JavaScript asset failures; run complete base and raid suites in Linux CI.
+- [ ] Owner reviews paired phone screenshots and complete real-device raid before approval. Measure LOW sustained >40 FPS and worst-frame pacing on a physical iPhone; desktop emulation is **not** proof.
+
+### Non-goals and safety
+Do not edit the reference, camera, player hitboxes, AI, raid timer, weapons, economy, progression, Bunker/Town, production default or main. Keep archVisual=v2 opt-in. No broad open-world rewrite disguised as a visual change.
+
+### Current evidence and blockers
+Commit 647b84c already includes seeded bedrock, shared geometry, calm ground, v2 lighting, native pine composition and bridge/neighbor clearance tests. Public GitHub Pages smoke of that commit succeeded at desktop Chromium iPhone-size viewport on 14 November at 16:31Z. **There is no PR CI run on this commit, no inspected paired screenshots in the PR, and no physical Safari/FPS proof.** These remain explicit gates.
