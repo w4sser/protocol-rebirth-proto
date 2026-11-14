@@ -98,10 +98,16 @@ test('every raised bedrock vertex stays beyond the actual organic actor boundary
   }
 });
 
-test('quiet v2 composition prevents the legacy scatter layer from competing with bedrock',()=>{
-  assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&archTarget=1'}).enabled,false);
-  assert.equal(archipelagoDressingConfig({area:'archipelago'}).enabled,true,'default military composition is preserved');
-  assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=1'}).enabled,true,'explicit comparison remains available');
+test('quiet v2 adds a bounded coastal-life layer instead of a barren green plate',()=>{
+  const hi=archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&archTarget=1',quality:'high'});
+  const lo=archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&archTarget=1',quality:'low'});
+  assert.equal(hi.enabled,true);
+  assert.equal(hi.mode,'military');
+  assert.ok(hi.density>.2&&hi.density<.5,'sparse coastal dressing, no big military landmarks');
+  assert.ok(lo.density<hi.density,'low stays mobile safe');
+  assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=0'}).enabled,false);
+  assert.equal(archipelagoDressingConfig({area:'archipelago'}).density,1,'default remains unchanged');
+  assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=1'}).density,1,'explicit full layer comparison');
 });
 
 test('actual multi-island rocks, roots and portal clear organic neighbors and actor limits',()=>{

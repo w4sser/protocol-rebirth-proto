@@ -7,14 +7,15 @@ export function useTexturedGround(area,search=''){
 }
 export function archipelagoDressingConfig({area,search='',quality='high'}={}){
   const params=new URLSearchParams(search);
-  // v2 owns its quiet coastal composition. Keep explicit old-layer comparisons.
-  const nativeV2=params.get('archVisual')==='v2'&&params.get('polyfork')!=='1';
-  const enabled=area==='archipelago'&&params.get('polyfork')!=='0'&&!nativeV2;
+  // A little authentic coastal life prevents v2 from becoming a bare green plate.
+  // Keep the full legacy density only for explicit comparison or default live mode.
+  const nativeV2=area==='archipelago'&&params.get('archVisual')==='v2'&&params.get('polyfork')!=='1';
+  const enabled=area==='archipelago'&&params.get('polyfork')!=='0';
   const requestedMode=params.get('polyforkMode');
   const mode=['scatter','profiles','coastal','military'].includes(requestedMode)?requestedMode:'military';
   // MEDIUM is a high-renderer setting today; keep its dressing budget mobile-safe.
   const visualQuality=quality==='high'?'high':'low';
   // Keep density at the reference value for both tiers: the LOW planner picks
   // a deterministic subset of HIGH and enforces its own 40-instance ceiling.
-  return {enabled,mode,quality:visualQuality,density:enabled?1:0};
+  return {enabled,mode,quality:visualQuality,density:!enabled?0:nativeV2?(visualQuality==='high'?.42:.30):1};
 }

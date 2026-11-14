@@ -32,11 +32,14 @@ await mkdir(out,{recursive:true});
 const results=[],wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function capture(page,label,errors){
   await wait(350);
+  // Screenshots without asynchronously loaded foliage falsely present an empty island.
+  await page.waitForFunction(()=>window.__polyforkPreview?.stats?.ready===true,{timeout:45000});
   const state=await page.evaluate(()=>({
     loadingHidden:document.querySelector('#loading')?.hidden,
     canvas:[...document.querySelectorAll('canvas')].some(c=>c.width>0&&c.height>0),
     quality:window.__NR.quality(),position:window.__NR.state().position,
     info:window.__NR.info(),url:location.href,
+    coastalDressing:{...window.__polyforkPreview.stats},
     bedrock:(()=>{const plans=[];window.__NR.getScene().traverse(o=>{if(o.userData.bedrockPlan)plans.push(o.userData.bedrockPlan);});return plans;})(),
   }));
   assert.equal(state.loadingHidden,true,label+' boot');assert.ok(state.canvas,label+' canvas');assert.deepEqual(errors,[],label+' errors');
