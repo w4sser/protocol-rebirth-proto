@@ -68,9 +68,10 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert([...el.querySelectorAll("img")].every(i=>i.hidden),"no broken image icons");
     await tick(7350); assert(!api.isOpen(),"failed load still auto-ends"); w.close();
   }
-  for(const block of ["intro","splash","overlay","homecoming","screen","voice","card","startup"]){
+  for(const block of ["intro","splash","overlay","homecoming","screen","voice","card","startup","settings"]){
     const {api,doc,tick,w} = fixture();
     const el = doc.createElement("div");
+    if(block === "settings") el.id = "settings-menu";
     if(block === "intro") el.className = "intro";
     if(block === "splash") el.id = "splash";
     if(block === "overlay" || block === "homecoming") el.id = "overlay";
@@ -90,6 +91,14 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     api.dismiss(); await tick(350);
     assert.equal(doc.querySelector(".bit-cutscene").dataset.id,"second");
     assert.equal(done,1); w.close();
+  }
+  // A popup opened during slow loading must still defer presentation until it closes.
+  {
+    const {api,doc,tick,w} = fixture({stall:true});
+    api.play(beat);
+    const popup = doc.createElement("div"); popup.id = "overlay"; doc.body.append(popup);
+    await tick(3000); assert(!doc.querySelector(".bit-cutscene"));
+    popup.remove(); await tick(250); assert(doc.querySelector(".bit-cutscene")); w.close();
   }
   const app = fs.readFileSync(root + "/app.js","utf8");
   for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g)) assert(fs.existsSync(root + "/" + file[0]),file[0]);

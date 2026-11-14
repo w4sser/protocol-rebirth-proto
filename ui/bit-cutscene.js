@@ -28,7 +28,7 @@
     var b = document.body;
     if(!b || (b.dataset.screen && b.dataset.screen !== "base")) return true;
     if(b.classList.contains("startup-bunker-intro") || b.classList.contains("intro-leaving") || b.classList.contains("has-overlay")) return true;
-    if(document.querySelector(".intro, #overlay, #splash:not(.out)")) return true;
+    if(document.querySelector(".intro, #overlay, #splash:not(.out), #settings-menu:not([hidden])")) return true;
     if(window.PRBitCard && window.PRBitCard.isOpen()) return true;
     return !!(window.PR_AUDIO && window.PR_AUDIO.voiceBusy);
   }

@@ -1,8 +1,4 @@
-// PRB-151 BIT narrator card: component API (ui/bit-card.js), queueing/blocking rules, the two
-// base moments (core_restored, first_death) firing exactly once and persisting in
-// S.bitCardsSeen, and the BIT identity lock (docs/bit-character-spec.md) -- the owner-approved
-// cold-open derivative, mood via tilt/hover/brightness only, never hue-rotate.
-// Run: node test/bit-card.test.js
+// PRB-153: narrator mood busts, shared card behavior and once-only base cutscene triggers.
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const assert = require("assert");
@@ -243,7 +239,7 @@ async function bootToCoreOneTapAway(calls){
 
 (async () => {
 
-// core_restored: the live transition speaks through PRBitCard (not bitDock), exactly once, persisted.
+// core_restored: the live transition plays a cutscene (no card), exactly once, persisted.
 {
   const calls = [];
   const w = await bootToCoreOneTapAway(calls);
@@ -252,8 +248,9 @@ async function bootToCoreOneTapAway(calls){
   const closeBtn = w.document.querySelector("#overlay [data-close]");
   assert(closeBtn, "RESTORE EMERGENCY POWER shows the boot payoff overlay");
   closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
+  assert.equal(calls.length, 0, "cutscene waits for bunkerwake to finish");
   await sleep(1700); // >= the ~1.6s bunkerwake lighting the card must not land before
-  assert.equal(calls.length, 1, "core_restored card shown exactly once");
+  assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
   assert.equal(calls[0].id, "core_restored");
   assert.match(calls[0].line, /circuits again/);
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted in S.bitCardsSeen");
@@ -296,12 +293,23 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(calls.length, 0, "extract never triggers the first-death card");
   assert.equal(w.T.state().bitCardsSeen.first_death, undefined);
   w.T.maybeShowFirstDeathCard(ingestDeath);
-  assert.equal(calls.length, 1, "death ingest triggers the card");
+  assert.equal(calls.length, 1, "death ingest triggers the cutscene");
   assert.equal(calls[0].id, "first_death");
   assert.match(calls[0].line, /dragged you back/);
   assert.equal(w.T.state().bitCardsSeen.first_death, true, "persisted once");
   w.T.maybeShowFirstDeathCard(ingestDeath);
   assert.equal(calls.length, 1, "never fires a second time");
+}
+
+// Saves with the v2.28.31 seen ids never replay a cutscene, even if module/death data differs.
+{
+  const seed = boot(null, []); const st = seed.T.state();
+  st.bitCardsSeen = { core_restored:true, first_death:true };
+  const calls = []; const w = boot(JSON.parse(JSON.stringify(st)), calls);
+  w.T.maybeShowFirstDeathCard({ok:true,raid:{outcome:"death"}});
+  assert.deepEqual(calls, [], "already-seen card id suppresses the new cutscene");
+  assert.equal(w.T.state().bitCardsSeen.core_restored, true);
+  w.close(); seed.close();
 }
 
 console.log("BIT CARD BASE MOMENTS TEST PASSED");
