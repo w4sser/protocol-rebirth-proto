@@ -42,7 +42,7 @@ function roundedRadius(floor,c,s){
   const dot=ac*cx+as*cz;
   return dot+Math.sqrt(Math.max(0,dot*dot-(cx*cx+cz*cz-radius*radius)));
 }
-export function coastlineProfile(floor,levelSeed,{samples=72}={}){
+export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy'}={}){
   if(floor.dir) return null;
   const seed=coastSeed(levelSeed,floor);
   const count=clamp(Math.floor(samples),32,160);
@@ -55,12 +55,20 @@ export function coastlineProfile(floor,levelSeed,{samples=72}={}){
     const wave=.38*Math.sin(3*angle+phase)+.23*Math.sin(5*angle+phase2)+.10*Math.sin(7*angle+phase3);
     const inside=rectangleRadius(floor,c,s);
     // At least 0.45 m outside authored gameplay floors everywhere.
-    const outer=Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
+    // v2 is an actual extended walkable landform, not just a wavy rim on
+    // the rectangular gameplay floor. Reserve a narrow erosion lip for
+    // gravity/readability beyond the traversable boundary.
+    const headland=.72*Math.sin(2*angle+phase*.72)+.52*Math.sin(3*angle+phase2)
+      +.24*Math.sin(5*angle+phase3);
+    const outer=style==='v2'
+      ?Math.max(inside+1.4,roundedRadius(floor,c,s)+2.1+headland)
+      :Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
+    const playableRadial=style==='v2'?outer-.65:inside;
     const beach=coastBeach(t,seed);
     const cliff=.5+.5*Math.sin(4*angle+phase2);
     points.push({
       x:floor.x+c*outer,z:floor.z+s*outer,
-      t,angle,radial:outer,innerRadial:inside,beach,
+      t,angle,radial:outer,innerRadial:inside,playableRadial,beach,
       kind:beach>.55?'small_beach':cliff>.40?'cliff':'rocky_shore'
     });
   }
@@ -70,7 +78,7 @@ export function coastlineProfile(floor,levelSeed,{samples=72}={}){
     totalLength+=len;
     rockyLength+=len*(1-(p.beach+q.beach)*.5);
   }
-  return {floor,seed,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
+  return {floor,seed,style,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
 }
 // Six opaque rings instead of a 4-ring untextured slab.
 // The first ~1.05 m is INSET into the existing walkable rectangle: the same
