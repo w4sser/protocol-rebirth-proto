@@ -14,7 +14,8 @@ Read the [locked BIT character specification](../../../docs/bit-character-spec.m
 
 ## Preserved vector and body context
 
-- [Existing canonical face SVG](../../bit-face-master.svg): preserve unchanged. Its existing v2 geometry and the sheet's mouth-span annotation have a documented discrepancy; see the [reconciliation boundary](../../../docs/bit-character-spec.md#existing-svg-reconciliation-boundary).
+- [Current canonical face SVG v3](../../bit-face-master-v3.svg): owner-authorized new version using the sheet's 370 U mouth span and other printed dimensions; use for all new artwork.
+- [Unchanged legacy face SVG v2](../../bit-face-master.svg): historical ~387 U mouth span; preserve byte-for-byte. See [version reconciliation and measurement definitions](../../../docs/bit-character-spec.md#version-3--image-authoritative-reconciliation).
 - [Selected October body sheet](oct25/bit-master-sheet-v2.png): silhouette/material context only, subordinate to the face sheet.
 - [October handoff](../../../docs/art-oct25-handoff.md): historical asset delivery and owner correction banning external cyan side strips.
 

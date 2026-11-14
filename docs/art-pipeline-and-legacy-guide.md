@@ -38,7 +38,7 @@ test/                 logic + jsdom UI tests
 ```
 
 ## Adding new artwork (the image pipeline)
-For BIT, first read the [locked character specification](bit-character-spec.md), open the [original face sheet](../assets/reference/bit/BIT-Face-Proportion-Master-v1_A4-print_2.jpg) and [preserved vector](../assets/bit-face-master.svg), and follow its exact face geometry/color and reconciliation rules. These masters are immutable. Derive into new paths; never crop, resize or re-encode the original JPG in place. Generic image processing and older prompts do not authorize facial changes.
+For BIT, first read the [locked character specification](bit-character-spec.md), open the [original face sheet](../assets/reference/bit/BIT-Face-Proportion-Master-v1_A4-print_2.jpg) and [current v3 vector](../assets/bit-face-master-v3.svg), and follow its exact face geometry/color and v3 measurement definitions. Keep the [legacy vector](../assets/bit-face-master.svg) unchanged; use v3 for new artwork. These masters are immutable. Derive into new paths; never crop, resize or re-encode the original JPG in place. Generic image processing and older prompts do not authorize facial changes.
 
 The owner usually generates art in an external image tool (e.g. ChatGPT) and uploads the
 raw PNGs to the repo. Chat attachments can be *seen* but not saved to the repo, so the
