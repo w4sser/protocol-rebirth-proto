@@ -80,32 +80,29 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
   mesh.name='arch-v2-glacial-shelves';mesh.userData.visualOnly=true;mesh.userData.bedrockPlan=plan;
   for(let i=0;i<parts.length;i++){const m=parts[i];pos.set(m.x,-.44,m.z);rot.setFromAxisAngle(up,m.rotation);scale.set(m.length,m.height,m.depth);mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));}
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
-  // Low granite roots join each major mass to the island lip. They sit under
-  // the traversable surface, so the new geology cannot create hidden cover.
-  const vertices=[],colors=[],indices=[],color=new THREE.Color('#9293a0');
-  for(const m of plan.masses){
-    const center=m.angle/TAU*profile.points.length,half=Math.max(1,Math.floor(m.length/(m.depth+profile.floor.w)*2));
-    for(let j=-half;j<half;j++){
-      const a=profile.points[(Math.round(center)+j+profile.points.length)%profile.points.length],b=profile.points[(Math.round(center)+j+1+profile.points.length)%profile.points.length];
-      const offset=vertices.length/3;
-      for(const [p,r] of [[a,a.playableRadial-.08],[b,b.playableRadial-.08],[a,a.radial+m.depth*.70],[b,b.radial+m.depth*.70]]){
-        vertices.push(profile.floor.x+Math.cos(p.angle)*r,-.025,profile.floor.z+Math.sin(p.angle)*r);colors.push(color.r,color.g,color.b);
-      }
-      indices.push(offset,offset+1,offset+2,offset+1,offset+3,offset+2);
-    }
-  }
-  if(vertices.length){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();const apron=new THREE.Mesh(geo,groundMat);apron.name='arch-v2-bedrock-roots';apron.receiveShadow=true;apron.userData.visualOnly=true;group.add(apron);}
+  // Do not add a planar granite apron: it intersects the sloping coast shell
+  // and appears as triangular z-fighting at water and bridge landings on iOS.
+  // The existing sculpted masses supply the outcrops beyond the playable edge.
   return mesh;
 }
 export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[]}={}){
   if(profile?.style!=='v2')return null;
   const {floor,points,seed}=profile,n=points.length,rings=14,positions=[],colors=[],indices=[];
+  // Match coastRingData's first vertex ring exactly. Previously the ground ran
+  // all the way to the waterline and overlapped five coast bands at only 2 mm
+  // height difference. On iPhone that is a large, unstable depth-fighting zone.
+  const inset=Math.min(1.05,Math.max(.23,Math.min(floor.w,floor.d)*.12));
   const moss=new THREE.Color('#657b49'),olive=new THREE.Color('#7a8755'),shade=new THREE.Color('#4c6549'),rock=new THREE.Color('#99959f');
   for(let ring=0;ring<=rings;ring++)for(let i=0;i<n;i++){
-    const p=points[i],f=ring/rings,r=(p.radial-.045)*f,x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;positions.push(x,.012,z);
+    const p=points[i],f=ring/rings,r=Math.max(.05,p.innerRadial-inset)*f,x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;positions.push(x,.010,z);
     const patches=.5+.25*Math.sin(x*.28+seed%13)+.25*Math.sin(z*.34+x*.14);
     const col=moss.clone().lerp(olive,clamp(patches,0,1)).lerp(shade,.12+.12*Math.sin(x*.53-z*.31));
-    col.lerp(rock,clamp((f-.80)/.20,0,1)*.90*(1-p.beach*.35));colors.push(col.r,col.g,col.b);
+    // Two broad, low-contrast bedrock traces within the flat gameplay plane;
+    // they create geological continuity without any false cover/collision.
+    const glacialA=Math.exp(-Math.pow((x-floor.x-floor.w*.30)/(floor.w*.23),2)-Math.pow((z-floor.z+floor.d*.28)/(floor.d*.24),2));
+    const glacialB=Math.exp(-Math.pow((x-floor.x+floor.w*.32)/(floor.w*.21),2)-Math.pow((z-floor.z-floor.d*.29)/(floor.d*.22),2));
+    const rockyTint=clamp(glacialA*.43+glacialB*.30+clamp((f-.87)/.13,0,1)*.15*(1-p.beach*.5),0,.52);
+    col.lerp(rock,rockyTint);colors.push(col.r,col.g,col.b);
     if(ring<rings){const a=ring*n+i,b=ring*n+(i+1)%n,c=(ring+1)*n+i,d=(ring+1)*n+(i+1)%n;indices.push(a,b,c,b,d,c);}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
