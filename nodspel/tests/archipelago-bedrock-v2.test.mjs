@@ -74,7 +74,8 @@ test('coast has one shared seam without coplanar fill or granite root planes',()
     for(const [actual,expected] of [[pts.getX(a),coast.positions[b]],[pts.getY(a),coast.positions[b+1]],[pts.getZ(a),coast.positions[b+2]]])
       assert.ok(Math.abs(actual-expected)<1e-5,'identical world-space join, not 2-mm coplanar overlap');
     const r=Math.hypot(pts.getX(a)-floor.x,pts.getZ(a)-floor.z);
-    assert.ok(r<profile.points[i].innerRadial,'ground ends before shore transition begins');
+    assert.ok(r>profile.points[i].innerRadial+.2,'coherent ground extends beyond the old rectangular game floor');
+    assert.ok(r<profile.points[i].playableRadial,'shore lip remains outside walkable ground mesh');
   }
   const rocks=new THREE.Group();
   art.addArchipelagoGraniteV2(profile,rocks);
