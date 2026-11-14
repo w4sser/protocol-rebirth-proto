@@ -1,8 +1,4 @@
-// PRB-151 BIT narrator card: component API (ui/bit-card.js), queueing/blocking rules, the two
-// base moments (core_restored, first_death) firing exactly once and persisting in
-// S.bitCardsSeen, and the BIT identity lock (docs/bit-character-spec.md) -- the owner-approved
-// cold-open derivative, mood via tilt/hover/brightness only, never hue-rotate.
-// Run: node test/bit-card.test.js
+// PRB-153: narrator mood busts, shared card behavior and once-only base cutscene triggers.
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
 const assert = require("assert");
@@ -35,6 +31,22 @@ function bootComponent(){
   const clock = makeClock(w);
   w.eval(fs.readFileSync(path + "/ui/bit-card.js", "utf8"));
   return { w, doc: w.document, clock, PRBitCard: w.PRBitCard };
+}
+
+// Busts preload lazily on first presentation, once per page, and raid paths retain ../.
+{
+  const { w, doc, clock, PRBitCard } = bootComponent();
+  const requests = [];
+  w.Image = class { set src(src){ requests.push(src); } };
+  assert.equal(requests.length, 0);
+  const vp = doc.createElement("div"); vp.id = "viewport"; doc.body.append(vp);
+  PRBitCard.show({ id:"raid-bust", text:"new material", mood:"happy" });
+  assert.equal(requests.length, 4);
+  assert.equal(new Set(requests).size, 4);
+  assert(requests.every(src=>src.startsWith("../assets/production/bit-narrator/")));
+  assert.equal(doc.querySelector(".bit-card-img").getAttribute("src"), "../assets/production/bit-narrator/bust-tilt-happy-v1.webp");
+  PRBitCard.dismiss(); PRBitCard.show({ id:"next-bust", text:"next", mood:"sad" });
+  assert.equal(requests.length, 4, "no repeated preload");
 }
 
 // show / auto-dismiss (~duration) and the onDone callback
@@ -168,11 +180,16 @@ console.log("BIT CARD COMPONENT TESTS PASSED");
   const js = fs.readFileSync(path + "/ui/bit-card.js", "utf8");
   assert(!/hue-rotate/.test(css), "no hue-rotate anywhere in bit-card.css");
   assert(!/hue-rotate/.test(js), "no hue-rotate anywhere in bit-card.js");
-  assert(/bit-coldopen-v1\.webp/.test(js), "uses the owner-approved cold-open BIT derivative");
-  assert(!/bit-face-master|happy-node\.svg/i.test(js), "no legacy face SVGs referenced");
-  assert(/\.mood-happy \.bit-card-img\{--tilt:4deg;filter:brightness\(1\.05\)/.test(css), "happy: tilt + brightness 1.05");
-  assert(/\.mood-calm \.bit-card-img\{--tilt:0deg;filter:brightness\(1\)/.test(css), "calm: no tilt, brightness 1");
-  assert(/\.mood-worried .*\.mood-tired .*\{--tilt:-3deg;filter:brightness\(\.8\)/.test(css), "worried/tired: tilt down, brightness .8");
+  assert(!/bright-cyan|bit-coldopen-v1/.test(js), "only approved mood busts");
+  assert(!/filter:brightness/.test(css), "mood art needs no brightness filters");
+  const { PRBitCard, doc } = bootComponent();
+  for(const [mood, asset] of Object.entries({happy:"happy",sad:"sad",worried:"sad",smile:"smile",calm:"smile",skeptical:"skeptical",tired:"skeptical",unknown:"smile",constructor:"smile"})){
+    PRBitCard.show({ id:mood, text:"hello", mood });
+    const file = "assets/production/bit-narrator/bust-tilt-" + asset + "-v1.webp";
+    assert.equal(doc.querySelector(".bit-card-img").getAttribute("src"), file);
+    assert(fs.existsSync(path + "/" + file), "mapped asset exists");
+    PRBitCard.dismiss();
+  }
   assert(/prefers-reduced-motion:reduce\)\{[\s\S]*animation:none!important/.test(css), "reduced motion turns off hover/tilt animation");
 }
 
@@ -198,7 +215,8 @@ function boot(seedSave, calls){
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   // The real ui/bit-card.js is never eval'd here (runScripts:"outside-only" skips <script src>) --
   // stub it so app.js's window.PRBitCard?.show(...) calls are observable.
-  w.PRBitCard = { show: opts => calls.push(opts), dismiss(){}, isOpen(){ return false; } };
+  w.PRBitCard = { show(){ assert.fail("cutscene moments must never also show a card"); }, dismiss(){}, isOpen(){ return false; } };
+  w.PRBitCutscene = { play: opts => calls.push(opts), preload(){}, isOpen(){ return false; } };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
     ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState};");
@@ -221,7 +239,7 @@ async function bootToCoreOneTapAway(calls){
 
 (async () => {
 
-// core_restored: the live transition speaks through PRBitCard (not bitDock), exactly once, persisted.
+// core_restored: the live transition plays a cutscene (no card), exactly once, persisted.
 {
   const calls = [];
   const w = await bootToCoreOneTapAway(calls);
@@ -230,11 +248,11 @@ async function bootToCoreOneTapAway(calls){
   const closeBtn = w.document.querySelector("#overlay [data-close]");
   assert(closeBtn, "RESTORE EMERGENCY POWER shows the boot payoff overlay");
   closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
+  assert.equal(calls.length, 0, "cutscene waits for bunkerwake to finish");
   await sleep(1700); // >= the ~1.6s bunkerwake lighting the card must not land before
-  assert.equal(calls.length, 1, "core_restored card shown exactly once");
+  assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
   assert.equal(calls[0].id, "core_restored");
-  assert.equal(calls[0].mood, "happy");
-  assert.match(calls[0].text, /circuits again/);
+  assert.match(calls[0].line, /circuits again/);
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted in S.bitCardsSeen");
 }
 
@@ -275,13 +293,23 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(calls.length, 0, "extract never triggers the first-death card");
   assert.equal(w.T.state().bitCardsSeen.first_death, undefined);
   w.T.maybeShowFirstDeathCard(ingestDeath);
-  assert.equal(calls.length, 1, "death ingest triggers the card");
+  assert.equal(calls.length, 1, "death ingest triggers the cutscene");
   assert.equal(calls[0].id, "first_death");
-  assert.equal(calls[0].mood, "worried");
-  assert.match(calls[0].text, /dragged you back/);
+  assert.match(calls[0].line, /dragged you back/);
   assert.equal(w.T.state().bitCardsSeen.first_death, true, "persisted once");
   w.T.maybeShowFirstDeathCard(ingestDeath);
   assert.equal(calls.length, 1, "never fires a second time");
+}
+
+// Saves with the v2.28.31 seen ids never replay a cutscene, even if module/death data differs.
+{
+  const seed = boot(null, []); const st = seed.T.state();
+  st.bitCardsSeen = { core_restored:true, first_death:true };
+  const calls = []; const w = boot(JSON.parse(JSON.stringify(st)), calls);
+  w.T.maybeShowFirstDeathCard({ok:true,raid:{outcome:"death"}});
+  assert.deepEqual(calls, [], "already-seen card id suppresses the new cutscene");
+  assert.equal(w.T.state().bitCardsSeen.core_restored, true);
+  w.close(); seed.close();
 }
 
 console.log("BIT CARD BASE MOMENTS TEST PASSED");

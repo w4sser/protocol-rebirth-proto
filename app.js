@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.31"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.32"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -4337,15 +4337,21 @@ function showHomecomingSummary(ingest, opts){
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
     '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov");
 }
-// PRB-151: first-ever ordinary-raid death speaks through the BIT narrator card, once ever, after
+// PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
 // the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
 // raid never reaches this ingest path on a death (nodspel/game.mjs retries it in place -- see
 // finishRound's launch.ftue branch), so every death ingest here is already an ordinary one.
+// Shared ids preserve the existing seen flags and migration, without replaying older cards.
+const BIT_CUTSCENES = {
+  core_restored: { id:"core_restored", from:"assets/production/bit-narrator/cutscene-core-restore-start-v1.webp", to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp", line:"Power… I can feel my circuits again." },
+  first_death: { id:"first_death", from:"assets/production/bit-narrator/cutscene-first-death-sad-v1.webp", to:"assets/production/bit-narrator/cutscene-first-death-happy-v1.webp", line:"I dragged you back. Don't make it a habit." }
+};
 function maybeShowFirstDeathCard(ingest){
   if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
   if(S.bitCardsSeen.first_death) return;
   S.bitCardsSeen.first_death = true; save();
-  window.PRBitCard?.show({ id:"first_death", text:"I dragged you back. Don't make it a habit.", mood:"worried" });
+  window.PRBitCutscene?.preload(BIT_CUTSCENES.first_death);
+  window.PRBitCutscene?.play(BIT_CUTSCENES.first_death);
 }
 
 /* ---------- actions ---------- */
@@ -4561,15 +4567,15 @@ window.A = {
       // so the player sees the room light up under the compact overlay (not after ENTER).
       session.wake = true;
       const wakeStartedAt = Date.now();
+      if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
       bootSequence(next, () => {
-        // PRB-151: the very first Core L1 restore speaks through the BIT narrator card instead of
-        // the bitdock line, timed to never land before the ~1.6s bunkerwake lighting
-        // (.baseviewer.wake in index.html) finishes -- so the card never covers it.
+        // PRB-153: replace the narrator card with the silent cutscene after the
+        // ~1.6s bunkerwake lighting; the helper also waits for popups/intro/VO.
         if(!S.bitCardsSeen.core_restored){
           S.bitCardsSeen.core_restored = true; save();
           const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
-          setTimeout(() => window.PRBitCard?.show({ id:"core_restored", text:"Power… I can feel my circuits again.", mood:"happy" }), delay);
+          setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
         } else bitDock("module_built");
       });
     } else {

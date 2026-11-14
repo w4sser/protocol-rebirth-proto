@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=2.28.31';
-import {RULES} from '../levels.js?v=2.28.31';
-import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.31';
+import {createRound} from '../round.js?v=2.28.32';
+import {RULES} from '../levels.js?v=2.28.32';
+import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.32';
 const origin={x:0,z:0},facing={x:1,z:0};
 const foe=(id,x,z)=>({id,kind:'enemy',type:'grunt',aggro:true,active:true,x,z,r:.48,health:10,facing:0});
 function arena(enemies=[],spreadDegrees=0,rand=()=>.5){

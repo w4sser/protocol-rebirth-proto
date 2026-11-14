@@ -93,3 +93,11 @@ For a cutout, deliver genuine transparent alpha, the complete silhouette, clear 
 - Preserved legacy SVG Git blob: `d86b24c756d704d054cf0b54380ee1a7a80b9b6e` (inspected at base commit `f0d65878081a6a2c4580169a55f12d8bbee29899`).
 - Current vector: [assets/bit-face-master-v3.svg](../assets/bit-face-master-v3.svg); generator: [tools/bitface-v3.mjs](../tools/bitface-v3.mjs); checks: [test/bit-face-master-v3.test.mjs](../test/bit-face-master-v3.test.mjs).
 - [Reference provenance](../assets/reference/bit/README.md), [art direction](art-direction.md), [art pipeline](art-pipeline-and-legacy-guide.md), [October handoff](art-oct25-handoff.md).
+
+## Owner-approved narrator exception — 14 November 2026 (PRB-153)
+
+Robert approved the shipped art in `assets/production/bit-narrator/` as-is for narrator cards
+and their mini cutscenes only, including its expressions. This is an explicit exception to
+#248's single-image/face constraint for those uses. Do not recolor the busts. The face masters
+remain unchanged and authoritative everywhere else, including the cold open, HUD and 3D BIT.
+See [BIT narrator](bit-narrator.md) and the [asset provenance](../assets/production/bit-narrator/README.md).

@@ -2,9 +2,8 @@
 // page (index.html/app.js) and the raid page (nodspel/index.html + game.mjs). Classic script (no
 // module syntax) so a single <script> tag works on both pages; attaches window.PRBitCard.
 //
-// Identity lock (docs/bit-character-spec.md): always the owner-approved cold-open derivative,
-// never recoloured. Mood is conveyed only by body tilt, hover height and CRT brightness (CSS),
-// never a different face/expression.
+// PRB-153: owner-approved narrator busts are a card-only identity exception.
+// Use the shipped art unchanged; whole-body tilt/hover adds subtle motion.
 //
 // Persistence is the CALLER's job (see docs/bit-narrator.md) -- this component only dedupes a
 // single id against what is currently showing or queued, never across page loads.
@@ -12,8 +11,17 @@
   "use strict";
   if(typeof window === "undefined" || typeof document === "undefined") return;
 
-  var BIT_IMG = "assets/production/coldopen/bit-coldopen-v1.webp";
-  var MOODS = { happy:1, calm:1, worried:1, tired:1 };
+  var ART = "assets/production/bit-narrator/";
+  var MOODS = { happy:"happy", sad:"sad", worried:"sad", smile:"smile", calm:"smile",
+    skeptical:"skeptical", tired:"skeptical" };
+  var preloaded = null;
+  function bust(mood){ return (isRaidPage() ? "../" : "") + ART + "bust-tilt-" + MOODS[mood] + "-v1.webp"; }
+  function preloadBusts(){
+    if(preloaded) return;
+    preloaded = ["happy", "sad", "smile", "skeptical"].map(function(mood){
+      var img = new Image(); img.src = bust(mood); return img;
+    });
+  }
   var MAX_QUEUE = 4;
   var BLOCK_POLL_MS = 250;
   var BASE_MS = 3000, CHAR_THRESHOLD = 50, CHAR_MS = 40, CAP_MS = 6000;
@@ -34,6 +42,7 @@
     var splash = document.getElementById("splash");
     if(splash && !splash.classList.contains("out")) return true;
     if(document.getElementById("overlay")) return true;
+    if(window.PRBitCutscene && window.PRBitCutscene.isOpen()) return true;
     if(b.classList.contains("has-overlay")) return true;
     var roundOver = document.getElementById("round-over");
     if(roundOver && !roundOver.hidden) return true;
@@ -62,7 +71,7 @@
     // nodspel/index.html is served from /nodspel/, one level below the asset root; index.html is
     // served from the root. Same convention as nodspel's other ../assets/ references.
     cardEl.innerHTML =
-      '<img class="bit-card-img" alt="" aria-hidden="true" src="' + (isRaidPage() ? "../" : "") + BIT_IMG + '">' +
+      '<img class="bit-card-img" alt="" aria-hidden="true" src="' + bust("smile") + '">' +
       '<span class="bit-card-bubble"></span>';
     cardEl.addEventListener("click", function(){ dismiss(); });
     document.body.appendChild(cardEl);
@@ -76,7 +85,9 @@
   }
 
   function present(job){
+    preloadBusts();
     var el = ensureEl();
+    el.querySelector(".bit-card-img").src = bust(job.mood);
     el.className = "bit-card mood-" + job.mood + (isRaidPage() ? " ctx-raid" : "");
     el.querySelector(".bit-card-bubble").textContent = job.text;
     el.hidden = false;
@@ -115,7 +126,7 @@
     var id = opts.id, text = opts.text;
     if(!id || !text) return;
     if(isQueuedOrCurrent(id)) return;
-    var mood = MOODS[opts.mood] ? opts.mood : "calm";
+    var mood = Object.prototype.hasOwnProperty.call(MOODS, opts.mood) ? opts.mood : "smile";
     var job = { id: id, text: String(text), mood: mood,
       duration: typeof opts.duration === "number" ? opts.duration : BASE_MS,
       onDone: typeof opts.onDone === "function" ? opts.onDone : null };
