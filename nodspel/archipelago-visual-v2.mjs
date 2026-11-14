@@ -88,13 +88,13 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
 export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[]}={}){
   if(profile?.style!=='v2')return null;
   const {floor,points,seed}=profile,n=points.length,rings=14,positions=[],colors=[],indices=[];
-  // Match coastRingData's first vertex ring exactly. Previously the ground ran
-  // all the way to the waterline and overlapped five coast bands at only 2 mm
-  // height difference. On iPhone that is a large, unstable depth-fighting zone.
-  const inset=Math.min(1.05,Math.max(.23,Math.min(floor.w,floor.d)*.12));
+  // End the playable ground at the real organic walk boundary, not the
+  // original rectangular room boundary. Match coastRingData's v2 first
+  // ring exactly; the cliff begins there with no overlapping surface.
+  // Gameplay remains flat (Y=.010); actors and authored cover are unchanged.
   const moss=new THREE.Color('#657b49'),olive=new THREE.Color('#7a8755'),shade=new THREE.Color('#4c6549'),rock=new THREE.Color('#99959f');
   for(let ring=0;ring<=rings;ring++)for(let i=0;i<n;i++){
-    const p=points[i],f=ring/rings,r=Math.max(.05,p.innerRadial-inset)*f,x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;positions.push(x,.010,z);
+    const p=points[i],f=ring/rings,r=Math.max(.05,p.playableRadial-.045)*f,x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;positions.push(x,.010,z);
     const patches=.5+.25*Math.sin(x*.28+seed%13)+.25*Math.sin(z*.34+x*.14);
     const col=moss.clone().lerp(olive,clamp(patches,0,1)).lerp(shade,.12+.12*Math.sin(x*.53-z*.31));
     // Two broad, low-contrast bedrock traces within the flat gameplay plane;
