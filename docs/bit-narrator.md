@@ -77,3 +77,7 @@ policy. Each caller picks whatever persistence fits:
 | `mat:<item>` | `nodspel/game.mjs` `pickupToast` | first-ever pickup of that material (`nodspel/loot-value.js` `materialPickupBitLine`, "BIT: " prefix stripped) | happy |
 | `core_restored` | `app.js` `A.build("rebirth_core")`, first Core L1 | "Power… I can feel my circuits again." | happy |
 | `first_death` | `app.js` `maybeShowFirstDeathCard`, first ordinary-raid death ingest | "I dragged you back. Don't make it a habit." | worried |
+
+## Next (follow-up PR)
+
+Robert approved new art on 2026-11-14: BIT card busts (happy, sad, soft smile, skeptical) and two cutscene backdrop pairs, one for the first Core restore and one for the first death (sad to happy). They will be added as WebP under `assets/production/bit-narrator/`. The busts replace the corner image per mood, and `core_restored`/`first_death` get upgraded to cold-open-style mini cutscenes (full-bleed, slow push-in, tap to skip, shown once). Until then the card uses `bit-coldopen-v1.webp` and conveys mood with tilt, hover and brightness only.
