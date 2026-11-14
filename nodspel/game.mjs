@@ -28,7 +28,7 @@ import {createRobotSocket} from './operator-gear.js?v=2.28.25';
 import '../data/modules.js?v=2.28.25';import '../data/recipes.js?v=2.28.25';import '../data/vendors.js?v=2.28.25';
 import {svgIcon,setIconText} from './svg-icons.js?v=2.28.25';
 import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.25';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.25';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.25-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.25';
 import {safeSpawn} from './spawn.js?v=2.28.25';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.25';
@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.25';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.25';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.25';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.25';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.25-ground-v10-timber-v1-military-visual2';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.25-ground-v10-timber-v1-military-visual2-organic-v2';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.25';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.25';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.25';
@@ -218,7 +218,19 @@ if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b61
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
   const lowQ=QUALITY==='low';hemi.color.set('#b9d3df');hemi.groundColor.set('#344236');hemi.intensity=lowQ?1.65:1.35;sun.color.set('#ecd2a6');sun.intensity=lowQ?1.35:1.2;renderer.toneMappingExposure=lowQ?1.35:1.3;}
 // Archipelago: cool dusk over open water, longer view distance (more open area)
-if(AREA_SEL==='archipelago'){scene.background.set('#3d5a6c');scene.fog.color.set('#3d5a6c');scene.fog.near=34;scene.fog.far=72;hemi.color.set('#cfe3ef');hemi.groundColor.set('#1d3340');hemi.intensity=QUALITY==='low'?1.4:1.1;sun.color.set('#ffe2c0');sun.intensity=1.2;}
+const ARCH_VISUAL_V2=AREA_SEL==='archipelago'&&new URLSearchParams(location.search).get('archVisual')==='v2';
+if(AREA_SEL==='archipelago'){
+  const pink=ARCH_VISUAL_V2;
+  scene.background.set(pink?'#706b84':'#3d5a6c');
+  scene.fog.color.set(pink?'#706b84':'#3d5a6c');
+  scene.fog.near=34;scene.fog.far=pink?87:72;
+  hemi.color.set(pink?'#c4accb':'#cfe3ef');
+  hemi.groundColor.set(pink?'#303c4b':'#1d3340');
+  hemi.intensity=QUALITY==='low'?1.4:1.1;
+  sun.color.set(pink?'#efa9a9':'#ffe2c0');
+  sun.intensity=pink?1.05:1.2;
+  if(pink)renderer.toneMappingExposure=1.22;
+}
 // v2.10.0 mood pass: cheap cold-grade equivalent for areas/tiers that don't get the colour-grade shader pass
 // (Low never does; High's own ambient is nudged a touch too so the look doesn't jump when auto-downgrading).
 // Keeps the sun warm (lamps/sunset accents still pop) and cools only the ambient fill + background/fog.
@@ -922,7 +934,7 @@ function loadLevelInner(){
     position={x:round.level.exit.x,z:round.level.exit.z-1.4};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
     player.position.set(position.x,0,position.z);
   }
-  {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(fog.color);scene.fog.near=fog.near;scene.fog.far=fog.far;}
+  {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(ARCH_VISUAL_V2?'#706b84':fog.color);scene.fog.near=fog.near;scene.fog.far=ARCH_VISUAL_V2?Math.max(78,fog.far+15):fog.far;}
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
   propsPreview?.dispose();propsPreview=null;

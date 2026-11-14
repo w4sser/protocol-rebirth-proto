@@ -8,7 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2';
+import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
+import {addArchipelagoGraniteV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-organic-v2';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
@@ -198,10 +200,17 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   // Ground pass (default-on since v2.28.0, ?ground=0 disables) shifts its legacy grass backup away from the new
   // textured surface. On iOS, the old 4mm gap + positive polygon offset allowed
   // Safari to depth-test the flat green base in front of the textured overlay.
-  const terrainPreview=typeof location!=='undefined' && new URLSearchParams(location.search).get('ground')!=='0';
+  const options=typeof location!=='undefined'?new URLSearchParams(location.search):new URLSearchParams();
+  const visualV2=options.get('archVisual')==='v2';
+  const targetIsland=visualV2&&options.get('archTarget')==='1';
+  const terrainPreview=visualV2||(typeof location!=='undefined'&&options.get('ground')!=='0');
   const coastProfiles=new Map();
   if(terrainPreview)for(const floor of level.floors){
-    if(!floor.dir)coastProfiles.set(floor,coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72}));
+    if(!floor.dir){
+      const profile=coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
+      coastProfiles.set(floor,profile);
+      if(visualV2)registerWalkableCoast(floor,profile);
+    }
   }
   clearPassageProps(level,out.passages);
   out.bridgeClearances=bridgeClearances(level);
@@ -215,7 +224,21 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       {x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6};
   });
   const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
+  if(visualV2){
+    const U=water.material.uniforms;
+    U.cShallow.value.set('#337a79');U.cMid.value.set('#254f6e');U.cDeep.value.set('#0b1928');
+    U.cFoam.value.set('#a8bec6');U.cSky.value.set('#9e879d');
+  }
   water.name='water';group.add(water);
+  if(visualV2){
+    out.visualV2=true;
+    const firstIsland=level.floors.find(f=>!f.dir);
+    for(const profile of coastProfiles.values()){
+      addArchipelagoGraniteV2(profile,group,{high:(quality?.props??1)>=1});
+      if(targetIsland&&profile.floor===firstIsland)addArchipelagoTargetPortal(profile,group);
+    }
+    addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
+  }
   const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
   for(const f of level.floors){
     if(f.dir){
@@ -287,7 +310,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
+    if(islands.filter(f=>onRim(w,f)).length===1){
+      // In v2 the organically profiled shoreline itself is the walkable
+      // boundary. Old straight shore wall colliders must not trap the player
+      // at the legacy rectangle. Internal wall/cover collisions stay intact.
+      if(!visualV2)colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});
+      shore.push(w);
+    }
     else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
   out.shoreProps=terrainPreview

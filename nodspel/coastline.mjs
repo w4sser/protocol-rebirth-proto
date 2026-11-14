@@ -42,7 +42,7 @@ function roundedRadius(floor,c,s){
   const dot=ac*cx+as*cz;
   return dot+Math.sqrt(Math.max(0,dot*dot-(cx*cx+cz*cz-radius*radius)));
 }
-export function coastlineProfile(floor,levelSeed,{samples=72}={}){
+export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neighbors=[]}={}){
   if(floor.dir) return null;
   const seed=coastSeed(levelSeed,floor);
   const count=clamp(Math.floor(samples),32,160);
@@ -55,12 +55,33 @@ export function coastlineProfile(floor,levelSeed,{samples=72}={}){
     const wave=.38*Math.sin(3*angle+phase)+.23*Math.sin(5*angle+phase2)+.10*Math.sin(7*angle+phase3);
     const inside=rectangleRadius(floor,c,s);
     // At least 0.45 m outside authored gameplay floors everywhere.
-    const outer=Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
+    // v2 is an actual extended walkable landform, not just a wavy rim on
+    // the rectangular gameplay floor. Reserve a narrow erosion lip for
+    // gravity/readability beyond the traversable boundary.
+    const headland=.72*Math.sin(2*angle+phase*.72)+.52*Math.sin(3*angle+phase2)
+      +.24*Math.sin(5*angle+phase3);
+    let outer=style==='v2'
+      ?Math.max(inside+1.4,roundedRadius(floor,c,s)+2.1+headland)
+      :Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
+    if(style==='v2')for(const other of neighbors){
+      if(other===floor||other.dir)continue;
+      const dx=other.x-floor.x,dz=other.z-floor.z;
+      const projected=dx*c+dz*s;
+      const across=Math.abs(-dx*s+dz*c);
+      const perpendicularSize=other.w*.5*Math.abs(s)+other.d*.5*Math.abs(c);
+      if(projected<=inside||across>perpendicularSize+1.2)continue;
+      const nearSide=projected-(other.w*.5*Math.abs(c)+other.d*.5*Math.abs(s));
+      if(nearSide<=inside||nearSide-inside>14)continue;
+      // Opposing islands grow toward each other, but preserve an actual water
+      // channel and the authored timber bridge. No artificial land bridges.
+      outer=Math.max(inside+.85,Math.min(outer,inside+(nearSide-inside)*.35));
+    }
+    const playableRadial=style==='v2'?outer-.65:inside;
     const beach=coastBeach(t,seed);
     const cliff=.5+.5*Math.sin(4*angle+phase2);
     points.push({
       x:floor.x+c*outer,z:floor.z+s*outer,
-      t,angle,radial:outer,innerRadial:inside,beach,
+      t,angle,radial:outer,innerRadial:inside,playableRadial,beach,
       kind:beach>.55?'small_beach':cliff>.40?'cliff':'rocky_shore'
     });
   }
@@ -70,7 +91,7 @@ export function coastlineProfile(floor,levelSeed,{samples=72}={}){
     totalLength+=len;
     rockyLength+=len*(1-(p.beach+q.beach)*.5);
   }
-  return {floor,seed,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
+  return {floor,seed,style,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
 }
 // Six opaque rings instead of a 4-ring untextured slab.
 // The first ~1.05 m is INSET into the existing walkable rectangle: the same
@@ -102,8 +123,13 @@ export function coastRingData(profile){
     const x=floor.x+c*radius,z=floor.z+s*radius;
     // The inset feather sits ABOVE the preview terrain (+0.004 m), but BELOW
     // node-progress rings (+0.018 m). Farther out it drops into the cliff side.
-    const rockY=[.010,.010,.0095,-.046,-.085,-.73];
-    const sandY=[.010,.010,.0095,-.115,-.25,-.54];
+    // v2's traversable granite shelf stays nearly level until the true
+    // physical coastline. Only its outer erosion lip drops below sea level;
+    // actors and their shadows cannot appear suspended over the beach.
+    const rockY=profile.style==='v2'?[.010,.010,.010,.010,-.006,-.65]:
+      [.010,.010,.0095,-.046,-.085,-.73];
+    const sandY=profile.style==='v2'?[.010,.010,.010,.005,-.025,-.54]:
+      [.010,.010,.0095,-.115,-.25,-.54];
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach),z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);

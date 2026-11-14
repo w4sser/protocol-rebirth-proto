@@ -127,3 +127,16 @@ Always test on a real small phone in landscape, with sound on/off and limited ef
 ## Original AD06 Milestone (Historical Reference)
 
 The playable **"bunker approach slice"** originally aimed for: OP-01 identifiable in 0.25 seconds; OP-01, BIT, and the nearest threat distinguishable without HUD; primary route, optional reward, and extraction communicated through light; no occlusion of OP-01; production feasible on mobile; and a mood that is dark but hopeful.
+
+
+## Archipelago v2 — Approved Visual Target (14 November 2026)
+
+**Owner decision:** Replace the flat rectangular-looking Archipelago islands with organically rounded **playable** glacial coastlines, natural headlands and sheltered coves. This supersedes the old rectangular gameplay-footprint assumption for Archipelago, but does not authorize changes to enemy tuning, resource economy, weapons, FTUE, BIT identity or combat telemetry.
+
+- The island *is* the bedrock: visible shore, clifftops, waterline and playable limits must share one seeded geological contour. No floating rocks or disconnected scenic skirt masking a straight movement boundary.
+- The mood is a lavender-pink Nordic summer night: healthy olive vegetation, violet-grey granite, deep teal water and cold blue shadows, with sparse amber human light. Strong cyan and coral remain reserved for readable gameplay signals. No national symbols.
+- The world should feel wider than one combat room: irregular larger islands, varied water gaps, wind-shaped pines, sparse coastal-life and military remnants **cut into** rock. Distant skerries and open sea echo the lighthouse intro; unplayable distant silhouettes may not misrepresent accessible routes.
+- The full island shape remains deterministic for a seed. Bridges and their approaches remain functional and perceptually distinct from land; nearby headlands must not erase water channels.
+- Authoring may temporarily retain rectangular room descriptors for placement, but movement in the opt-in v2 pass follows the organic island boundary, not the rectangle. New coast boundaries require actor/collision/route tests.
+- Review at real gameplay camera zoom and on real devices. Maintain LOW >40 FPS, measured along a real encounter route; preserve clarity of operator, BIT, enemy telegraphs, loot, and extraction.
+- **Implementation contract:** [Archipelago Visual Target v2](archipelago-visual-target-v2.md). Do not enable by default before on-device review and green CI.
