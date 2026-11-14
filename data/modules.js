@@ -47,7 +47,9 @@ window.DATA.modules = [
     benefit:"Plan raids · Craft gear · Recycle junk",
     levels:[
       { level:1,
-        cost:{ scrap:20, items:{ cable:2, scrap_alloy:2 } },
+        // v2.28.27 (PRB-149): smaller second step -- scrap 20->10, cable 2->1, so the goal right after
+        // Core L1 is reachable with less grinding (still 2 Scrap Alloy, same commissioning payoff).
+        cost:{ scrap:10, items:{ cable:1, scrap_alloy:2 } },
         commissioning:{scavenger_vest:1},
         unlocks:["recipes_basic","scrap_junk"],
         unlockText:"Fabricator online. Scavenger Vest assembled: +25 shield and +1 bag slot. Equipped on your next raid. Raid planning and crafting unlocked.",

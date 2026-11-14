@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.26"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.27"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -309,6 +309,15 @@ function baseState(){
   return D.baseStates.find(st => st.id === S.baseState) || D.baseStates[0];
 }
 function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
+// v2.28.27 (PRB-149): how destroyed the bunker reads, driven by progress alone (see index.html's
+// data-ruin CSS). 3 pre-Core-L1 (emergency), 2 Core L1 restored but Fabricator not built, 1 Fabricator
+// built but not yet core_refined, 0 core_refined (unchanged from today). Pure and exported for tests.
+function ruinLevel(baseStateId, fabricatorLevel){
+  if(baseStateId === "core_found") return 3;
+  if(!fabricatorLevel) return 2;
+  if(baseStateId !== "core_refined") return 1;
+  return 0;
+}
 
 function roomDef(id){ return D.baseMap.rooms.find(r => r.id === id); }
 function roomUnlocked(id){ return !!(S.roomUnlocks && S.roomUnlocks[id]); }
@@ -2558,7 +2567,8 @@ SCREENS.base = function(){
   const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
   const plate = BM.plates[stage];
   const previous = session.plateStage !== null && session.plateStage !== stage ? BM.plates[session.plateStage] : null;
-  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + (ftueOver() ? '' : ' ftue') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
+  const ruin = ruinLevel(hub.id, S.modules.fabricator || 0);
+  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + (ftueOver() ? '' : ' ftue') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" data-ruin="' + ruin + '" aria-label="Panoramic bunker map">' +
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
@@ -5665,4 +5675,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };

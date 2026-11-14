@@ -22,7 +22,7 @@ for(const f of ["data/modules.js","data/raid_zones.js","data/retention.js","data
 { const { w, S } = boot();
   assert.equal(w.__T.ratio, 2, "1 Salvage = 2 Scrap");
   assert.equal(w.DATA.items.find(i => i.id === "salvage_crate").grantsCurrency.scrap, 24, "crate gives Scrap (v1.64: 16 -> 24)");
-  assert.equal(w.DATA.modules.find(m => m.id === "fabricator").levels[0].cost.scrap, 20, "Fabricator L1 costs 20 Scrap");
+  assert.equal(w.DATA.modules.find(m => m.id === "fabricator").levels[0].cost.scrap, 10, "Fabricator L1 costs 10 Scrap (v2.28.27: smaller second step)");
   assert(!("salvage" in S().cur), "fresh save has no Salvage"); }
 // 2) Legacy save migrates Salvage -> Scrap.
 { const a = boot(); const st = JSON.parse(JSON.stringify(a.S())); st.cur.salvage = 37; st.cur.scrap = 10; st.revealed.salvage = true;
