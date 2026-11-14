@@ -80,6 +80,10 @@ const html = w => w.document.getElementById("app").innerHTML;
   w.A.introSkip({ target: w.document.querySelector(".intro") });
   assert(w.document.querySelector(".intro.done"), "tap anywhere (not the button) skips to the end state");
   assert.equal(w.T.state().introSeen, false, "skipping only reveals the end state -- it does not dismiss the intro");
+  // v2.28.28 regression: a re-render of the intro screen after the skip (boot/resize/save re-render)
+  // must keep the end state instead of restarting the cold open with everything hidden again.
+  w.A.go("base");
+  assert(w.document.querySelector(".intro.done"), "re-rendering after a skip keeps the cold open's end state");
 
   w.A.dismissIntro();
   assert.equal(w.T.progressionGoal().module, "rebirth_core", "Core is the single next step after the greeting");

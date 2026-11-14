@@ -2273,7 +2273,7 @@ SCREENS.intro = function(){
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
   $app().innerHTML =
-    '<div class="intro" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : '') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
@@ -4451,6 +4451,9 @@ window.A = {
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
   introSkip(ev){
     if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
+    // keeps the end state instead of restarting the cold open.
+    session.introSkipped = true;
     const el = document.querySelector(".intro"); if(el) el.classList.add("done");
   },
   dismissIntro(){
