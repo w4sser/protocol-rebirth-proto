@@ -123,8 +123,13 @@ export function coastRingData(profile){
     const x=floor.x+c*radius,z=floor.z+s*radius;
     // The inset feather sits ABOVE the preview terrain (+0.004 m), but BELOW
     // node-progress rings (+0.018 m). Farther out it drops into the cliff side.
-    const rockY=[.010,.010,.0095,-.046,-.085,-.73];
-    const sandY=[.010,.010,.0095,-.115,-.25,-.54];
+    // v2's traversable granite shelf stays nearly level until the true
+    // physical coastline. Only its outer erosion lip drops below sea level;
+    // actors and their shadows cannot appear suspended over the beach.
+    const rockY=profile.style==='v2'?[.010,.010,.010,.010,-.006,-.65]:
+      [.010,.010,.0095,-.046,-.085,-.73];
+    const sandY=profile.style==='v2'?[.010,.010,.010,.005,-.025,-.54]:
+      [.010,.010,.0095,-.115,-.25,-.54];
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach),z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
