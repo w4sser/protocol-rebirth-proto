@@ -45,7 +45,15 @@ export function addArchipelagoTargetPortal(profile,group){
   g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;
   const floor=profile.floor;
   g.position.set(floor.x+Math.cos(p.angle)*(p.radial+1.10),-.05,floor.z+Math.sin(p.angle)*(p.radial-.1));
-  g.rotation.y=p.angle+Math.PI/2;
+  // An independent granite shoulder anchors the sealed portal on the
+  // non-playable headland. Its opening faces inland, not out to sea.
+  g.rotation.y=3*Math.PI/2-p.angle;
+  const shelf=new THREE.Mesh(graniteGeo,graniteMat);
+  shelf.position.set(0,-.25,-.25);shelf.scale.set(2.15,.72,1.75);
+  shelf.name='arch-v2-portal-bedrock';shelf.userData.visualOnly=true;g.add(shelf);
+  const backing=new THREE.Mesh(graniteGeo,graniteMat);
+  backing.position.set(0,.53,-.63);backing.scale.set(1.95,1.03,.72);
+  backing.name='arch-v2-portal-rock-face';backing.userData.visualOnly=true;g.add(backing);
   block(g,0,.45,-.08,1.5,1.22,.28,1);
   block(g,-.82,.53,0,.32,1.38,.52,0);
   block(g,.82,.53,0,.32,1.38,.52,0);
