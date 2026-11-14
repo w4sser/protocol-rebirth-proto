@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.30';
-import {createRound,collectLoot} from '../round.js?v=2.28.30';
-import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.30';
+import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.31';
+import {createRound,collectLoot} from '../round.js?v=2.28.31';
+import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.31';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('bag pickups are recorded for the toast; gear and full-bag skips are not',()=>{
@@ -57,4 +57,14 @@ test('the pickup toast wires in loot-value.js value/needed-for text and queues t
   assert(/neededForText\(launch\.goal,round\.bag,item\)/.test(g));
   assert(/materialPickupBitLine\(item,launch\)/.test(g));
   assert(/pt-value|pt-needed/.test(g),'value/needed-for render into the toast');
+});
+
+// PRB-151: the first-ever material pickup line now plays through the shared BIT narrator card
+// (ui/bit-card.js), not a plain notice() -- and drops the leading "BIT: " since the card already
+// shows BIT's face, so the bubble text would otherwise say it twice.
+test('first-seen material pickups go through the shared PRBitCard, not a bare notice(), with the "BIT: " prefix stripped',()=>{
+  const g=src('../game.mjs');
+  assert(!/function showBitLine/.test(g),'the old ad-hoc BIT-line queue is gone -- PRBitCard owns queueing now');
+  assert(/PRBitCard\?\.show\(\{id:'mat:'\+item,text:bitLine\.replace\(\/\^BIT:\\s\*\/,''\),mood:'happy'\}\)/.test(g),
+    'pickup fires PRBitCard.show with a stable mat:<item> id, the prefix-stripped line, and a happy mood');
 });
