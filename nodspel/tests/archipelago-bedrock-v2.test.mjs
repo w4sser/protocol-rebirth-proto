@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import * as art from '../archipelago-visual-v2.mjs';
-import {coastlineProfile} from '../coastline.mjs';
+import {coastlineProfile,coastRingData} from '../coastline.mjs';
 import {archipelagoDressingConfig} from '../archipelago-dressing-policy.mjs';
 import {generateLevel} from '../levels.js';
 import {archipelagoPassages} from '../archipelago-passages.js';
@@ -60,6 +60,25 @@ test('native v2 ground covers the coast, preserves flat actor height and healthy
   const green=Array.from({length:colors.count},(_,i)=>colors.getY(i)>colors.getX(i)&&colors.getY(i)>colors.getZ(i)).filter(Boolean).length;
   assert.ok(green/colors.count>.5,'most interior vertices read as olive/moss, not purple rock');
   assert.ok(normals.getY(profile.points.length*3)>.95,'ground faces the gameplay camera, not the seabed');
+});
+
+test('coast has one shared seam without coplanar fill or granite root planes',()=>{
+  const group=new THREE.Group();
+  const ground=art.addArchipelagoGroundV2(profile,group);
+  const pts=ground.geometry.getAttribute('position'),n=profile.points.length;
+  const coast=coastRingData(profile);
+  assert.equal(coast.positions.length/3,n*6);
+  for(let i=0;i<n;i++){
+    const a=pts.count-n+i,b=i*3;
+    // Ground's final ring and coastline's first ring must be the SAME edge.
+    for(const [actual,expected] of [[pts.getX(a),coast.positions[b]],[pts.getY(a),coast.positions[b+1]],[pts.getZ(a),coast.positions[b+2]]])
+      assert.ok(Math.abs(actual-expected)<1e-5,'identical world-space join, not 2-mm coplanar overlap');
+    const r=Math.hypot(pts.getX(a)-floor.x,pts.getZ(a)-floor.z);
+    assert.ok(r<profile.points[i].innerRadial,'ground ends before shore transition begins');
+  }
+  const rocks=new THREE.Group();
+  art.addArchipelagoGraniteV2(profile,rocks);
+  assert.ok(!rocks.children.some(x=>x.name==='arch-v2-bedrock-roots'),'planar root polygons intersected coast on mobile');
 });
 
 test('every raised bedrock vertex stays beyond the actual organic actor boundary',()=>{
