@@ -5,7 +5,7 @@ import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.25';
 import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.25';
 import {buildTown} from './town.js?v=2.28.25';
 import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.25';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.25-coast-v10-timber-v1-military-visual2';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.25-coast-v10-timber-v1-military-visual2-organic-v2';
 import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.25';
 import {controlCablePath} from './control-cables.js?v=2.28.25';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
