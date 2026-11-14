@@ -58,3 +58,13 @@ test('the pickup toast wires in loot-value.js value/needed-for text and queues t
   assert(/materialPickupBitLine\(item,launch\)/.test(g));
   assert(/pt-value|pt-needed/.test(g),'value/needed-for render into the toast');
 });
+
+// PRB-151: the first-ever material pickup line now plays through the shared BIT narrator card
+// (ui/bit-card.js), not a plain notice() -- and drops the leading "BIT: " since the card already
+// shows BIT's face, so the bubble text would otherwise say it twice.
+test('first-seen material pickups go through the shared PRBitCard, not a bare notice(), with the "BIT: " prefix stripped',()=>{
+  const g=src('../game.mjs');
+  assert(!/function showBitLine/.test(g),'the old ad-hoc BIT-line queue is gone -- PRBitCard owns queueing now');
+  assert(/PRBitCard\?\.show\(\{id:'mat:'\+item,text:bitLine\.replace\(\/\^BIT:\\s\*\/,''\),mood:'happy'\}\)/.test(g),
+    'pickup fires PRBitCard.show with a stable mat:<item> id, the prefix-stripped line, and a happy mood');
+});

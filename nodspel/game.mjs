@@ -646,17 +646,13 @@ function renderPickupToasts(){
   placePickupToasts();
   clearTimeout(renderPickupToasts.timer);renderPickupToasts.timer=setTimeout(()=>{if(pickupToasts.some(t=>gameClock()-t.at>=TOAST_MS)||c.children.length)renderPickupToasts();},TOAST_MS+40);
 }
-// Max one BIT material line on screen at a time; extra first-sees queue and show once the current one clears.
-const BIT_LINE_MS=4200;let bitLineBusyUntil=0,bitLineQueue=[];
-function showBitLine(text){
-  if(Date.now()<bitLineBusyUntil){if(bitLineQueue.length<4)bitLineQueue.push(text);return;}
-  bitLineBusyUntil=Date.now()+BIT_LINE_MS;notice(text,BIT_LINE_MS);
-  clearTimeout(showBitLine.t);showBitLine.t=setTimeout(()=>{const next=bitLineQueue.shift();if(next)showBitLine(next);},BIT_LINE_MS);
-}
 function pickupToast(item){
   const extra={value:sellValueText(item),neededFor:neededForText(launch.goal,round.bag,item)};
   pickupToasts=pushPickup(pickupToasts,item,gameClock(),extra);renderPickupToasts();
-  const bitLine=materialPickupBitLine(item,launch);if(bitLine){skipNextCarryPulse=true;showBitLine(bitLine);}
+  // PRB-151: first-ever pickup of a material speaks through the shared BIT card (ui/bit-card.js),
+  // not a plain notice -- drop the leading "BIT: " from hintText since the card already shows BIT.
+  const bitLine=materialPickupBitLine(item,launch);
+  if(bitLine){skipNextCarryPulse=true;globalThis.PRBitCard?.show({id:'mat:'+item,text:bitLine.replace(/^BIT:\s*/,''),mood:'happy'});}
 }
 // v2.4: a shield-only hit (e.g. Scout Rig soaking 10 damage) can consume the spent armor and shrink
 // bagCapacity without ever moving health, so the HUD refresh must watch all four, not just health.
