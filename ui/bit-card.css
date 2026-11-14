@@ -1,22 +1,20 @@
-/* PRB-151 BIT narrator card (docs/bit-narrator.md). Shared by index.html and nodspel/index.html.
-   BIT identity lock (docs/bit-character-spec.md): the owner-approved cold-open derivative image,
-   never recoloured. Mood is body tilt (rotate), hover (translateY) and CRT brightness only --
-   no colour-shifting filter, never a different face. */
+/* PRB-153: approved narrator busts; original colors, subtle body motion. */
 .bit-card{position:fixed;z-index:120;display:flex;align-items:flex-end;gap:8px;max-width:min(78vw,300px);
   padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit;pointer-events:auto;
   left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);}
 .bit-card[hidden]{display:none;}
 .bit-card.ctx-raid{left:50%;top:calc(58px + env(safe-area-inset-top,0px));bottom:auto;transform:translateX(-62%);
   max-width:min(66vw,280px);}
-.bit-card-img{--tilt:0deg;width:40px;height:40px;flex:0 0 auto;object-fit:contain;filter:brightness(1);
+.bit-card-img{--tilt:0deg;width:60px;height:60px;flex:0 0 auto;object-fit:contain;
   transform:rotate(var(--tilt)) translateY(0);animation:bitCardHover 3.4s ease-in-out infinite;}
 .bit-card-bubble{display:block;background:var(--ad-ink);border:1px solid var(--ad-bit);border-radius:12px;
   padding:7px 10px;font:600 13px/1.35 "IBM Plex Sans",system-ui,sans-serif;color:var(--ad-bone);
   box-shadow:0 8px 20px rgba(0,0,0,.35);}
-.bit-card.mood-happy .bit-card-img{--tilt:4deg;filter:brightness(1.05);animation-duration:2.1s;}
-.bit-card.mood-calm .bit-card-img{--tilt:0deg;filter:brightness(1);animation-duration:3.4s;}
-.bit-card.mood-worried .bit-card-img,.bit-card.mood-tired .bit-card-img{--tilt:-3deg;filter:brightness(.8);animation-duration:4.2s;}
+.bit-card.mood-happy .bit-card-img{--tilt:4deg;animation-duration:2.1s;}
+.bit-card.mood-calm .bit-card-img{--tilt:0deg;animation-duration:3.4s;}
+.bit-card.mood-worried .bit-card-img,.bit-card.mood-tired .bit-card-img{--tilt:-3deg;animation-duration:4.2s;}
 @keyframes bitCardHover{0%,100%{transform:rotate(var(--tilt)) translateY(0)}50%{transform:rotate(var(--tilt)) translateY(-4px)}}
+@media(max-width:700px){.bit-card-img{width:52px;height:52px}}
 @media(max-width:650px){.bit-card.ctx-raid{top:48px}}
 @media(max-height:500px){.bit-card.ctx-raid{top:40px}.bit-card-bubble{font-size:13px}}
 @media(prefers-reduced-motion:reduce){

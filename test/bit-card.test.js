@@ -168,11 +168,16 @@ console.log("BIT CARD COMPONENT TESTS PASSED");
   const js = fs.readFileSync(path + "/ui/bit-card.js", "utf8");
   assert(!/hue-rotate/.test(css), "no hue-rotate anywhere in bit-card.css");
   assert(!/hue-rotate/.test(js), "no hue-rotate anywhere in bit-card.js");
-  assert(/bit-coldopen-v1\.webp/.test(js), "uses the owner-approved cold-open BIT derivative");
-  assert(!/bit-face-master|happy-node\.svg/i.test(js), "no legacy face SVGs referenced");
-  assert(/\.mood-happy \.bit-card-img\{--tilt:4deg;filter:brightness\(1\.05\)/.test(css), "happy: tilt + brightness 1.05");
-  assert(/\.mood-calm \.bit-card-img\{--tilt:0deg;filter:brightness\(1\)/.test(css), "calm: no tilt, brightness 1");
-  assert(/\.mood-worried .*\.mood-tired .*\{--tilt:-3deg;filter:brightness\(\.8\)/.test(css), "worried/tired: tilt down, brightness .8");
+  assert(!/bright-cyan|bit-coldopen-v1/.test(js), "only approved mood busts");
+  assert(!/filter:brightness/.test(css), "mood art needs no brightness filters");
+  const { PRBitCard, doc } = bootComponent();
+  for(const [mood, asset] of Object.entries({happy:"happy",sad:"sad",worried:"sad",smile:"smile",calm:"smile",skeptical:"skeptical",tired:"skeptical",unknown:"smile",constructor:"smile"})){
+    PRBitCard.show({ id:mood, text:"hello", mood });
+    const file = "assets/production/bit-narrator/bust-tilt-" + asset + "-v1.webp";
+    assert.equal(doc.querySelector(".bit-card-img").getAttribute("src"), file);
+    assert(fs.existsSync(path + "/" + file), "mapped asset exists");
+    PRBitCard.dismiss();
+  }
   assert(/prefers-reduced-motion:reduce\)\{[\s\S]*animation:none!important/.test(css), "reduced motion turns off hover/tilt animation");
 }
 
