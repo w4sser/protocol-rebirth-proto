@@ -15,7 +15,7 @@ export function addArchipelagoGraniteV2(profile,group,{high=true}={}){
   stones.name='arch-v2-glacial-shelves';stones.userData.visualOnly=true;
   for(let k=0;k<count;k++){
     const i=(k*stride)%n,p=profile.points[i],theta=p.angle,random=hash(profile.seed+29*i);
-    const r=p.radial+.12;
+    const r=p.radial+1.00;
     pos.set(floor.x+Math.cos(theta)*r,-.24,floor.z+Math.sin(theta)*r);
     scale.set(.95+random*.9,.24+random*.19,.66+hash(i+profile.seed)*.72);
     rot.setFromAxisAngle(new THREE.Vector3(0,1,0),theta+.32*random);
@@ -44,7 +44,7 @@ export function addArchipelagoTargetPortal(profile,group){
   const g=new THREE.Group();
   g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;
   const floor=profile.floor;
-  g.position.set(floor.x+Math.cos(p.angle)*(p.radial-.1),-.05,floor.z+Math.sin(p.angle)*(p.radial-.1));
+  g.position.set(floor.x+Math.cos(p.angle)*(p.radial+1.10),-.05,floor.z+Math.sin(p.angle)*(p.radial-.1));
   g.rotation.y=p.angle+Math.PI/2;
   block(g,0,.45,-.08,1.5,1.22,.28,1);
   block(g,-.82,.53,0,.32,1.38,.52,0);
