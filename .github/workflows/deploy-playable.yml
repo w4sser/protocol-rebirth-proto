@@ -91,3 +91,13 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           timeout: 1200000
+      - name: Install browser for public preview smoke
+        if: steps.preview.outputs.available == 'true'
+        run: cd production && npm i --no-save puppeteer
+      - name: Verify deployed v2 assets and boot at iPhone landscape viewport
+        if: steps.preview.outputs.available == 'true'
+        env:
+          PUBLIC_PAGES_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          export EXPECTED_SHA="$(git -C archipelago-source rev-parse HEAD)"
+          node production/scripts/verify-pages-preview.mjs
