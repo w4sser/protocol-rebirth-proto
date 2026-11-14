@@ -4,7 +4,11 @@
 
 **Historical source:** `ad06.pdf` (30 pages; owner review, 14 October). Key pages were previously rendered in `/workspace/art-direction/pages/` (p01, p07 palette, p08 readability, p22–23 BIT, p28 locked/open, p30 map). AD06 locked the tone, palette, OP-01, and BIT's original visual identity, while describing UI/HUD, weapons, combat VFX, enemies, and biomes as not yet fully designed.
 
-**Precedence:** AD06's tone, environments, palette, typography, production restraint, and original master assets remain in effect. **v07 changes only the interpretation that OP-01 is the sole permitted playable appearance and that BIT may display only one static default expression**, and adds guidance for motion, enemy reactions, and visual hierarchy. The original BIT face master and previously approved reference assets must not be overwritten. Approved M38–M41 decisions take precedence over older conflicting proposals, including hitstop/slow-motion ideas in `design-combat-feel-oct28.md`.
+**Precedence:** AD06's tone, environments, palette, typography, production restraint, and original master assets remain in effect. **v07 permits multiple playable Operator appearances and contextual BIT reactions; the 14 November identity lock below restricts BIT reactions to unchanged face geometry**, and adds guidance for motion, enemy reactions, and visual hierarchy. The original BIT face master and previously approved reference assets must not be overwritten. Approved M38–M41 decisions take precedence over older conflicting proposals, including hitstop/slow-motion ideas in `design-combat-feel-oct28.md`.
+
+## BIT identity lock — owner update, 14 November 2026
+
+The [BIT character specification](bit-character-spec.md), [original proportion sheet](../assets/reference/bit/BIT-Face-Proportion-Master-v1_A4-print_2.jpg) and [preserved SVG](../assets/bit-face-master.svg) govern all BIT artwork. The sheet locks exact face proportions and #75CFCC. Preserve both masters; see the specification for the existing mouth-span discrepancy. This update supersedes earlier permission for eye/smile geometry variations, including M40's open facial vocabulary. Contextual reactions remain valid through brightness and body motion, without changing face geometry.
 
 ## Tone
 
@@ -39,7 +43,7 @@
 
 1. **"Read the game before the detail."** If an element only works in close-up, it does not meet the art direction. Icons should be large, legible silhouettes at actual phone size, with minimal fine detail.
 2. **Color carries meaning, not decoration:** cyan for systems/BIT/extraction, amber for loot/rewards, coral for danger, and neutral colors for everything else.
-3. **No emoji, generic smileys, or national symbols.** BIT's **original face is the identity master**: vertical pill-shaped eyes and a filled U-shaped smile with tapered width (32→64→32; 1000×875 original master). M40 permits **controlled animated variation in gameplay**, not replacement or overwriting of the original master. See the expression rules below.
+3. **No emoji, generic smileys, or national symbols.** BIT's **original face is the identity master**: vertical pill-shaped eyes and a filled U-shaped smile with tapered width (32→64→32; 1000×875 original master). M40 permits **controlled motion and brightness reactions in gameplay**, with face geometry locked by the [BIT specification](bit-character-spec.md). See the expression rules below.
 4. **Routes are conveyed through landmarks, pools of light, and material contrast**, not glowing paths or world-space UI arrows. Menu arrows remain acceptable.
 5. **Baseline visual priority:** readable Operator, BIT, and immediate threats → routes/boundaries → cover/landmarks/objectives → atmosphere. **During active combat, enemy silhouettes, incoming attacks, telegraphs, lines of fire, and controls always take precedence over BIT emotes, cosmetics, and decorative effects.**
 
@@ -53,7 +57,7 @@
 ## Characters and Original Identity
 
 - **OP-01 (visual anchor, not the only playable appearance):** adult Operator, 7.5–8 heads tall; slender, agile, long-legged; gender-neutral silhouette; deep hood revealing only the eye area; cloth covering nose, mouth, and neck; straight clothing cuts. Stylized but never cute or chibi. **"Someone who chose to walk into danger."** Other cosmetic Operator looks may differ substantially while following M38's common gameplay foundation and phone-scale readability.
-- **BIT (identity master):** softly rounded CRT body, petrol-teal casing, cyan screen, vertical pill eyes, broad U-shaped smile, short antenna, small side module, small amber status lamp, and calm hover. Earlier tier 1–3 hardware references and cosmetic shells should retain a recognizable BIT silhouette and face family; they do not automatically confer abilities. Personality: helpful, loyal, cheeky, with gallows humor. M40 allows selective expression animation, not a redesign into another character.
+- **BIT (identity master):** softly rounded CRT body, petrol-teal casing, cyan screen, vertical pill eyes, broad U-shaped smile, short antenna, small side module, small amber status lamp, and calm hover. Earlier tier 1–3 hardware references and cosmetic shells should retain a recognizable BIT silhouette and face family; they do not automatically confer abilities. Personality: helpful, loyal, cheeky, with gallows humor. M40 allows selective body/brightness animation; the [BIT specification](bit-character-spec.md) prohibits eye and smile geometry changes.
 - **"The smile belongs to the world."** BIT's familiar smile may recur on environmental signs and screens, at once friendly and slightly unsettling.
 
 ## M38 — Character Art and Cosmetic Identities
@@ -74,7 +78,7 @@
 ## M40 — BIT Expression Without Losing Its Identity
 
 - **Preserve the signature face.** Two vertical pill eyes and the broad U-shaped mouth must remain recognizable. The approved `assets/bit-face-master.svg` is the reference and must not be overwritten. No eyebrows, teeth, pupils, interchangeable emoji faces, or decorative external glowing cyan strips. Avoid inventing a new character for each emotion.
-- **Allow controlled gameplay expression.** Preferred tools are subtle eye/attention changes, CRT brightness, body tilt, altitude, hover rhythm, antenna motion, and small body poses. Gentle changes within the existing eye-and-smile family may be explored in art tests, **without locking new face geometry or a complete expression vocabulary here**. The original logo and static master assets remain unchanged.
+- **Allow controlled gameplay expression with a locked face.** Use CRT brightness, body tilt, orientation, altitude, hover rhythm, antenna motion and small body poses. Do not deform, reposition or replace eyes or smile, including in art tests. Preserve #75CFCC as the source face fill. The [14 November BIT specification](bit-character-spec.md) supersedes the earlier facial-variation permission. Both original masters remain unchanged.
 - **Respond to real events, not constant timers.** Exploration, emerging threats, Operator damage, valuable discoveries, route decisions, extraction, and failure may prompt brief, understandable reactions. BIT should feel present during ordinary raids, yet stay restrained when the player needs to aim, dodge attacks, or comprehend the result of combat.
 - **Body language before more UI.** No new mandatory popups, reaction meters, unwanted dialogue, constant flashing, or mood indicators in the HUD. Essential information must not depend on audio.
 - **Expression is not a power.** BIT exists and can show personality before BIT Bay L1. Active combat support remains governed by M28–M35, requiring completed BIT Bay L1 and deliberate player activation. An animation cannot grant defense, distract enemies, rescue loot, reveal guaranteed loot, or auto-extract. Cosmetic BIT looks do not alter mechanics.

@@ -15,7 +15,7 @@ BIT master sheet is 2048 square. UI cutouts are 1024 square. The store scene is 
 
 ## Owner correction
 
-BIT must have NO glowing vertical cyan strips outside the screen. This overrides the side-strip wording in `docs/art-requests-oct25.md`. Keep two vertical oval cyan eyes and the broad curved smile. Mood comes from pose, tilt and props. No eyebrows, teeth, pupils or replacement emoticons. Preserve the existing `assets/bit-face-master.svg`; generated facial geometry is visually guided by it rather than an exact SVG overlay.
+BIT must have NO glowing vertical cyan strips outside the screen. This overrides the side-strip wording in `docs/art-requests-oct25.md`. Keep two vertical oval cyan eyes and the broad curved smile. Mood comes from pose, tilt and props. No eyebrows, teeth, pupils or replacement emoticons. Preserve the existing `assets/bit-face-master.svg`; the [14 November identity lock](bit-character-spec.md) now requires exact canonical face proportions and #75CFCC, superseding this handoff's earlier visual-approximation allowance. Use the [original owner sheet](../assets/reference/bit/BIT-Face-Proportion-Master-v1_A4-print_2.jpg) and follow the documented SVG reconciliation boundary. Existing renders remain body/context references, not certified exact face masters.
 
 `bit-master-sheet-v2.png` and `bit-summary-bored-v3.png` are the selected native revisions. Rejected older renders are deliberately excluded from this Git handoff. Do not substitute them.
 
