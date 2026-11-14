@@ -37,6 +37,22 @@ function bootComponent(){
   return { w, doc: w.document, clock, PRBitCard: w.PRBitCard };
 }
 
+// Busts preload lazily on first presentation, once per page, and raid paths retain ../.
+{
+  const { w, doc, clock, PRBitCard } = bootComponent();
+  const requests = [];
+  w.Image = class { set src(src){ requests.push(src); } };
+  assert.equal(requests.length, 0);
+  const vp = doc.createElement("div"); vp.id = "viewport"; doc.body.append(vp);
+  PRBitCard.show({ id:"raid-bust", text:"new material", mood:"happy" });
+  assert.equal(requests.length, 4);
+  assert.equal(new Set(requests).size, 4);
+  assert(requests.every(src=>src.startsWith("../assets/production/bit-narrator/")));
+  assert.equal(doc.querySelector(".bit-card-img").getAttribute("src"), "../assets/production/bit-narrator/bust-tilt-happy-v1.webp");
+  PRBitCard.dismiss(); PRBitCard.show({ id:"next-bust", text:"next", mood:"sad" });
+  assert.equal(requests.length, 4, "no repeated preload");
+}
+
 // show / auto-dismiss (~duration) and the onDone callback
 {
   const { doc, clock, PRBitCard } = bootComponent();
@@ -203,7 +219,8 @@ function boot(seedSave, calls){
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   // The real ui/bit-card.js is never eval'd here (runScripts:"outside-only" skips <script src>) --
   // stub it so app.js's window.PRBitCard?.show(...) calls are observable.
-  w.PRBitCard = { show: opts => calls.push(opts), dismiss(){}, isOpen(){ return false; } };
+  w.PRBitCard = { show(){ assert.fail("cutscene moments must never also show a card"); }, dismiss(){}, isOpen(){ return false; } };
+  w.PRBitCutscene = { play: opts => calls.push(opts), preload(){}, isOpen(){ return false; } };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
     ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState};");
@@ -238,8 +255,7 @@ async function bootToCoreOneTapAway(calls){
   await sleep(1700); // >= the ~1.6s bunkerwake lighting the card must not land before
   assert.equal(calls.length, 1, "core_restored card shown exactly once");
   assert.equal(calls[0].id, "core_restored");
-  assert.equal(calls[0].mood, "happy");
-  assert.match(calls[0].text, /circuits again/);
+  assert.match(calls[0].line, /circuits again/);
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted in S.bitCardsSeen");
 }
 
@@ -282,8 +298,7 @@ async function bootToCoreOneTapAway(calls){
   w.T.maybeShowFirstDeathCard(ingestDeath);
   assert.equal(calls.length, 1, "death ingest triggers the card");
   assert.equal(calls[0].id, "first_death");
-  assert.equal(calls[0].mood, "worried");
-  assert.match(calls[0].text, /dragged you back/);
+  assert.match(calls[0].line, /dragged you back/);
   assert.equal(w.T.state().bitCardsSeen.first_death, true, "persisted once");
   w.T.maybeShowFirstDeathCard(ingestDeath);
   assert.equal(calls.length, 1, "never fires a second time");
