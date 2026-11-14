@@ -50,5 +50,11 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
  assert.equal(by('no-mid-raid-perk-picker').check({gameSrc:'function finishRound(){}',htmlSrc:'<div></div>',perksSrc:badClears}).length,1,'v2.28.25 fires if updateClears queues an offer again');}
 {const good="export function updateClears(round,position){\n  if(r.state==='unresolved'&&r.entered&&roomEnemies.length&&!roomEnemies.some(e=>e.health>0)){r.state='cleared';cleared.push(key);}\n}\nexport function pickReady(round){\n  return null;\n}\nexport function autoPickPerks(){\n  return [];\n}\n";
  assert.equal(by('no-mid-raid-perk-picker').check({gameSrc:'function finishRound(){}',htmlSrc:'<html></html>',perksSrc:good}).length,0,'v2.28.25 passes when the picker stays gone and clears never queue');}
+{const badApp='function load(){\n  return st;\n}\n';
+ assert.equal(by('cable-retro-migration-idempotent').check({appSrc:badApp}).length,2,'v2.28.29 fires: migrateCableRetro missing and load() never calls it');}
+{const badApp='function migrateCableRetro(st){\n  st.cableRetro1 = "granted";\n  return st;\n}\nfunction load(){\n  migrateCableRetro(st);\n  return st;\n}\n';
+ assert.equal(by('cable-retro-migration-idempotent').check({appSrc:badApp}).length,2,'v2.28.29 fires: not idempotent and never sets "n/a"');}
+{const goodApp='function migrateCableRetro(st){\n  if(st.cableRetro1) return st;\n  const b1Done = true;\n  const fabBuilt = false;\n  if(b1Done && !fabBuilt){\n    st.stash.cable = (st.stash.cable||0) + 1;\n    st.cableRetro1 = "granted";\n  } else {\n    st.cableRetro1 = "n/a";\n  }\n  return st;\n}\nfunction load(){\n  if(st.v === SAVE_VERSION){ migrateCableRetro(st); return st; }\n}\n';
+ assert.equal(by('cable-retro-migration-idempotent').check({appSrc:goodApp}).length,0,'v2.28.29 passes once migrateCableRetro is idempotent and load() calls it');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
