@@ -4333,7 +4333,17 @@ function showHomecomingSummary(ingest){
   if(!ingest || !ingest.ok) return;
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov");
+}
+// PRB-151: first-ever ordinary-raid death speaks through the BIT narrator card, once ever, after
+// the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
+// raid never reaches this ingest path on a death (nodspel/game.mjs retries it in place -- see
+// finishRound's launch.ftue branch), so every death ingest here is already an ordinary one.
+function maybeShowFirstDeathCard(ingest){
+  if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
+  if(S.bitCardsSeen.first_death) return;
+  S.bitCardsSeen.first_death = true; save();
+  window.PRBitCard?.show({ id:"first_death", text:"I dragged you back. Don't make it a habit.", mood:"worried" });
 }
 
 /* ---------- actions ---------- */
@@ -5725,7 +5735,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const silent = coreIngest.raid.acknowledged && coreIngest.raid.outcome !== "extract";
     // D3.1: on the FTUE intro return the greeting is the first BIT speech. Defer the Node Raid
     // summary (and any BIT comment — already stripped when raid.ftue) until the greeting is dismissed.
-    if(S.introSeen || !coreIngest.raid.ftue){ if(silent) toast(coreIngest.summary); else showHomecomingSummary(coreIngest); }
+    if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
   if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();
@@ -5737,4 +5747,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, chainState };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };
