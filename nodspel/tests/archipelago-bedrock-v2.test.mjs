@@ -135,3 +135,20 @@ test('actual multi-island rocks, roots and portal clear organic neighbors and ac
     }
   }
 });
+
+test('the geological ground joins the same organic coast and varies from moss to granite',()=>{
+  const group=new THREE.Group(),bedrock=art.addArchipelagoGraniteV2(profile,group);
+  const ground=art.addArchipelagoGroundV2(profile,group,{bedrockPlan:bedrock.userData.bedrockPlan});
+  const p=ground.geometry.getAttribute('position'),c=ground.geometry.getAttribute('color'),coast=coastRingData(profile),n=profile.points.length;
+  let tonalRange=0,greenCenter=0;
+  for(let i=0;i<n;i++){
+    const outer=p.count-n+i;
+    assert.ok(Math.abs(p.getX(outer)-coast.positions[i*3])<1e-5);
+    assert.ok(Math.abs(p.getZ(outer)-coast.positions[i*3+2])<1e-5);
+    for(let axis=0;axis<3;axis++)assert.ok(Math.abs(c.array[outer*3+axis]-coast.colors[i*3+axis])<.09,'ground and coast palette should meet without a harsh seam');
+    greenCenter+=(c.getY(i+n*4)>c.getX(i+n*4));
+    tonalRange=Math.max(tonalRange,Math.abs(c.getX(i+n*13)-c.getX(i+n*5)));
+  }
+  assert.ok(greenCenter>n*.6,'the central playfield remains mossy and readable');
+  assert.ok(tonalRange>.01,'bedrock should produce nonuniform mineral variation');
+});

@@ -101,7 +101,7 @@ export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
 export function coastRingData(profile){
   const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
   const rock=profile.style==='v2'
-    ? ['#6b805b','#78886c','#899180','#9695a1','#8c8f9b','#626b78']
+    ? ['#6b805b','#7d897d','#8f9295','#a09ca3','#878b93','#596a76']
     : ['#647075','#68747A','#737A7C','#657077','#596576','#3C4756'];
   const beach=['#7F795C','#827B5D','#908064','#8A795D','#74664F','#5D5143'];
   const toLinear=h=>[1,3,5].map(i=>{

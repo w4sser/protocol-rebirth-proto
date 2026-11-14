@@ -8,9 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite5';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite7';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite5';
+import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite7';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 // Check the transformed geometry, including rotated boats and supplied pine models.
@@ -237,8 +237,8 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     const grassClearances=[...reservations,...[level.start,level.exit,...(level.nodes??[]),...(level.lootBoxes??[])].filter(Boolean).map(p=>({x:p.x,z:p.z,w:3.2,d:3.2}))];
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
-      addArchipelagoGraniteV2(profile,group,options);
-      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances});
+      const bedrock=addArchipelagoGraniteV2(profile,group,options);
+      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:bedrock?.userData.bedrockPlan});
       if(targetIsland&&profile.floor===firstIsland)addArchipelagoTargetPortal(profile,group,options);
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});

@@ -57,15 +57,20 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   return {masses,shelves};
 }
 function sculptGranite(){
-  const steps=24,levels=[0,.07,.18,.33,.53,.72,.87,.95,1],radii=[.93,1,1.03,1.02,.98,.87,.71,.48,.13],positions=[],colors=[],indices=[];
-  const base=new THREE.Color('#909898'),dark=new THREE.Color('#596a72'),warm=new THREE.Color('#aca5a0');
+  // Broad glacial shoulders, gently flattened crowns and muted weathering.
+  // Instanced across islands: no unique rock meshes or expensive extra materials.
+  const steps=32,levels=[0,.055,.16,.31,.49,.66,.80,.91,1],radii=[1.02,1.07,1.08,1.06,1,.88,.72,.49,.16],positions=[],colors=[],indices=[];
+  const base=new THREE.Color('#989aa0'),dark=new THREE.Color('#5c6b75'),warm=new THREE.Color('#b8a5a1'),lichen=new THREE.Color('#70816e');
   for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
-    const a=j/steps*TAU,r=radii[k]*(1+.035*Math.sin(3*a+.6)+.025*Math.sin(7*a+1.2));
-    positions.push(Math.cos(a)*.5*r,levels[k],Math.sin(a)*.5*r);
-    const c=dark.clone().lerp(base,.24+.76*Math.sqrt(levels[k])).lerp(warm,.10+.08*Math.sin(a*2));colors.push(c.r,c.g,c.b);
+    const a=j/steps*TAU,phase=Math.sin(3*a+.6)*.042+Math.sin(7*a+1.2)*.024+Math.sin(11*a-.3)*.011;
+    const radius=radii[k]*(1+phase),y=levels[k]+Math.sin(5*a+.5)*Math.sin(levels[k]*Math.PI)*.009;
+    positions.push(Math.cos(a)*.5*radius,y,Math.sin(a)*.5*radius);
+    const c=dark.clone().lerp(base,.29+.66*Math.sqrt(levels[k]))
+      .lerp(warm,.085+.10*(.5+.5*Math.sin(2*a+.7)))
+      .lerp(lichen,.015+.065*Math.max(0,Math.sin(4*a+1.1))*levels[k]);
+    colors.push(c.r,c.g,c.b);
     if(k<levels.length-1&&j<steps){const n=k*(steps+1)+j,b=n+steps+1;indices.push(n,b,n+1,n+1,b,b+1);}
   }
-  // Seal the summit; an open final ring appears as a black pinhole in gameplay.
   const tip=positions.length/3,top=(levels.length-1)*(steps+1);positions.push(0,1.01,0);colors.push(base.r,base.g,base.b);
   for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();geo.userData.shared=true;return geo;
@@ -85,33 +90,58 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
   // The existing sculpted masses supply the outcrops beyond the playable edge.
   return mesh;
 }
-export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[]}={}){
+function coastAngleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
+function softStep(a,b,v){const t=clamp((v-a)/(b-a),0,1);return t*t*(3-2*t);}
+function terrainNoise(x,z,seed){
+  const i=Math.floor(x),j=Math.floor(z),fx=softStep(0,1,x-i),fz=softStep(0,1,z-j);
+  const h=(a,b)=>hash(seed+Math.imul(a,374761393)+Math.imul(b,668265263));
+  return (h(i,j)*(1-fx)+h(i+1,j)*fx)*(1-fz)+(h(i,j+1)*(1-fx)+h(i+1,j+1)*fx)*fz;
+}
+export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],bedrockPlan=null}={}){
   if(profile?.style!=='v2')return null;
-  const {floor,points,seed}=profile,n=points.length,rings=14,positions=[],colors=[],indices=[];
-  // End the playable ground at the real organic walk boundary, not the
-  // original rectangular room boundary. Match coastRingData's v2 first
-  // ring exactly; the cliff begins there with no overlapping surface.
-  // Gameplay remains flat (Y=.010); actors and authored cover are unchanged.
-  const moss=new THREE.Color('#657b49'),olive=new THREE.Color('#7a8755'),shade=new THREE.Color('#4c6549'),rock=new THREE.Color('#99959f');
+  const {floor,points,seed}=profile,n=points.length,rings=18,positions=[],colors=[],indices=[];
+  // A single continuous top surface keeps the physical flat actor plane.
+  // Geological fingers and sheltered soil are baked into its vertex color,
+  // not layered as coplanar rock or fake collision cover.
+  const plan=bedrockPlan??planArchipelagoBedrock(profile);
+  const moss=new THREE.Color('#657b4e'),olive=new THREE.Color('#7d895a'),shade=new THREE.Color('#4a6752');
+  const rock=new THREE.Color('#9997a0'),rockDark=new THREE.Color('#727f86'),sand=new THREE.Color('#897f69');
+  const coastRock=new THREE.Color('#6b805b'),coastSand=new THREE.Color('#7f795c');
   for(let ring=0;ring<=rings;ring++)for(let i=0;i<n;i++){
-    const p=points[i],f=ring/rings,r=Math.max(.05,p.playableRadial-.045)*f,x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;positions.push(x,.010,z);
-    const patches=.5+.25*Math.sin(x*.28+seed%13)+.25*Math.sin(z*.34+x*.14);
-    const col=moss.clone().lerp(olive,clamp(patches,0,1)).lerp(shade,.12+.12*Math.sin(x*.53-z*.31));
-    // Two broad, low-contrast bedrock traces within the flat gameplay plane;
-    // they create geological continuity without any false cover/collision.
-    const glacialA=Math.exp(-Math.pow((x-floor.x-floor.w*.30)/(floor.w*.23),2)-Math.pow((z-floor.z+floor.d*.28)/(floor.d*.24),2));
-    const glacialB=Math.exp(-Math.pow((x-floor.x+floor.w*.32)/(floor.w*.21),2)-Math.pow((z-floor.z-floor.d*.29)/(floor.d*.22),2));
-    const rockyTint=clamp(glacialA*.43+glacialB*.30+clamp((f-.87)/.13,0,1)*.15*(1-p.beach*.5),0,.52);
-    col.lerp(rock,rockyTint);colors.push(col.r,col.g,col.b);
+    const p=points[i],f=ring/rings,r=Math.max(.05,p.playableRadial-.045)*f;
+    const x=floor.x+Math.cos(p.angle)*r,z=floor.z+Math.sin(p.angle)*r;
+    positions.push(x,.010,z);
+    const broad=terrainNoise(x*.22+7,z*.22-5,seed),grain=terrainNoise(x*.69-11,z*.69+3,seed+817);
+    let fingers=0;
+    for(const m of plan.masses){
+      const angle=Math.abs(coastAngleDelta(p.angle,m.angle));
+      // Every raised shoulder has a visually continuous, flush granite tongue
+      // extending into the island, without changing traversal height.
+      const meander=.042*Math.sin(r*.37+seed*.0001);
+      const direction=Math.exp(-Math.pow((angle+meander)/.36,2));
+      fingers=Math.max(fingers,direction*softStep(.23,.66,f));
+    }
+    const weather=clamp((broad-.43)*.34+(grain-.48)*.12,0,.22);
+    const coastBand=softStep(.74,.96,f);
+    const exposed=clamp(fingers*.84+weather*softStep(.30,.70,f),0,.88);
+    const col=moss.clone().lerp(olive,clamp(.35+broad*.60,0,1))
+      .lerp(shade,.08+.18*(1-grain))
+      .lerp(rock,exposed)
+      .lerp(rockDark,exposed*.12*(1-broad))
+      .lerp(sand,p.beach*softStep(.70,.97,f)*.26);
+    // Match the coastal shell's first organic ring *at exactly the same
+    // positions and height*: no visible green plate edge or z-fighting apron.
+    col.lerp(coastRock.clone().lerp(coastSand,p.beach),softStep(.79,1,f));
+    colors.push(col.r,col.g,col.b);
     if(ring<rings){const a=ring*n+i,b=ring*n+(i+1)%n,c=(ring+1)*n+i,d=(ring+1)*n+(i+1)%n;indices.push(a,b,c,b,d,c);}
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,groundMat);mesh.name='arch-v2-moss-bedrock-ground';mesh.receiveShadow=true;mesh.userData.visualOnly=true;group.add(mesh);
   const blades=[],tones=[],grass=new THREE.Color('#63794b'),limit=high?80:32;
-  for(let j=0,count=0;j<240&&count<limit;j++){
+  for(let j=0,count=0;j<300&&count<limit;j++){
     const x=floor.x+(hash(seed+j*13)-.5)*floor.w*.94,z=floor.z+(hash(seed+j*17+881)-.5)*floor.d*.94;
     const radius=Math.hypot((x-floor.x)/(floor.w*.5),(z-floor.z)/(floor.d*.5));
-    if(radius<.40||Math.sin(x*.71)*Math.cos(z*.56)<.05||reservations.some(r=>overlaps({x,z,w:.3,d:.3},r,.2)))continue;
+    if(radius<.42||radius>.92||Math.sin(x*.71)*Math.cos(z*.56)<.05||reservations.some(q=>overlaps({x,z,w:.3,d:.3},q,.2)))continue;
     const h=.10+hash(seed+j*31)*.13;
     for(let b=0;b<3;b++){
       const a=b*2.1+hash(seed+j)*TAU,dx=Math.cos(a)*.07,dz=Math.sin(a)*.07;

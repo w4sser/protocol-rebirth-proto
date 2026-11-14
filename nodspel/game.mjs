@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.25';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.25';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.25';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.25';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.25-granite5';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.25-granite7';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.25';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.25';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.25';
@@ -229,7 +229,10 @@ if(AREA_SEL==='archipelago'){
   hemi.intensity=pink?1.65:QUALITY==='low'?1.4:1.1;
   sun.color.set(pink?'#efd0c2':'#ffe2c0');
   sun.intensity=pink?.85:1.2;
-  if(pink){renderer.toneMappingExposure=1.18;sun.shadow.radius=3;}
+  // Stronger warm side light + cooler ambient separation, matching the approved summer-night target.
+  // V2-only: avoid the previous even, grey-violet wash over terrain and granite.
+  if(pink){hemi.color.set('#c8cddd');hemi.groundColor.set('#344940');hemi.intensity=1.8;
+    sun.color.set('#f6c9b5');sun.intensity=1.35;renderer.toneMappingExposure=1.18;sun.shadow.radius=2.5;}
 }
 // v2.10.0 mood pass: cheap cold-grade equivalent for areas/tiers that don't get the colour-grade shader pass
 // (Low never does; High's own ambient is nudged a touch too so the look doesn't jump when auto-downgrading).
