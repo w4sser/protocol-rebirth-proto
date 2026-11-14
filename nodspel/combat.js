@@ -1,15 +1,15 @@
 // @hot stepCombat stepHazards
-import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.27';
-import {audioEvent} from './audio.js?v=2.28.27';
-import {ownRooms} from './perks.js?v=2.28.27';
-import {RULES,hazardState} from './levels.js?v=2.28.27';
-import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.27';
-import {takeDamage,tickRound} from './round.js?v=2.28.27';
-import {houseWaypoint} from './house.js?v=2.28.27';
-import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.27';
-import {detectionMultiplier} from './stakes.js?v=2.28.27';
-import {dashInvulnerable} from './dash.js?v=2.28.27';
-import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.27-bridge1';
+import {ENEMY_TUNING,isShieldTurret,rusherLungeSpeed} from './enemies.js?v=2.28.28';
+import {audioEvent} from './audio.js?v=2.28.28';
+import {ownRooms} from './perks.js?v=2.28.28';
+import {RULES,hazardState} from './levels.js?v=2.28.28';
+import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.28';
+import {takeDamage,tickRound} from './round.js?v=2.28.28';
+import {houseWaypoint} from './house.js?v=2.28.28';
+import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.28';
+import {detectionMultiplier} from './stakes.js?v=2.28.28';
+import {dashInvulnerable} from './dash.js?v=2.28.28';
+import {bridgeWaypoint} from './bridge-flow.mjs?v=2.28.28-bridge1';
 
 export function createCombat(level,now){
   ownRooms(level);
