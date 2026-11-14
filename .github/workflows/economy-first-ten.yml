@@ -1,0 +1,38 @@
+name: first-ten economy calibration
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/economy-first-ten*.mjs'
+      - '.github/workflows/economy-first-ten.yml'
+      - 'nodspel/**'
+      - 'data/items.js'
+      - 'data/modules.js'
+      - 'data/progression.js'
+      - 'data/vendors.js'
+      - 'data/recipes.js'
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and existing harness regression tests
+        run: |
+          node --check scripts/economy-first-ten.mjs
+          node --check scripts/economy-first-ten-refine.mjs
+          node --test test/economy-sim.test.mjs
+      - name: Calibrate 1000 matched seeds per refined scenario
+        run: node scripts/economy-first-ten-refine.mjs 1000
+      - name: Retain raw players and summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-ten-extraction-calibration
+          path: verify-out/first-ten-refined/
+          if-no-files-found: error
+          retention-days: 30
