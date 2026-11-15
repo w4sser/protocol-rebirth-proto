@@ -268,6 +268,15 @@ test('v2 places high granite only outside the island and preserves open bridge l
       assert.ok(propCover.every(m=>m.userData.collider
         &&['boulder','windfall'].includes(m.userData.coverKind)),
         'no man-made blocks are scattered across natural skerries');
+      for(const m of [...cover,...propCover]){
+        const collider=m.userData.collider;
+        const actual=new THREE.Box3().setFromObject(m);
+        const realW=actual.max.x-actual.min.x,realD=actual.max.z-actual.min.z;
+        assert.ok(realW>collider.w*.55&&realW<collider.w*1.25,
+          'natural cover must not visually underfill or overhang its X collision');
+        assert.ok(realD>collider.d*.55&&realD<collider.d*1.25,
+          'natural cover must not visually underfill or overhang its Z collision');
+      }
       for(const c of level.corridors??[]){
         const alongX=!!c.dir.x,axis=alongX?'x':'z',length=alongX?c.w:c.d;
         if(length<1.8)continue;
