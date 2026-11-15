@@ -152,6 +152,17 @@ export const RULES=[
      try{read('nodspel/perk-ui.js');out.push('nodspel/perk-ui.js: the mid-raid perk picker file must stay deleted');}catch(_){/* expected */}
      try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
      return out;}},
+  {id:'coldopen-vo-after-start-unlock',pr:'v2.28.3x PRB-154 start audio',why:'the first gesture must resume and prime Web Audio before async work, with decoded buffers and a greeting requested at the first visible line',
+   check(c={}){const out=[],app=c.appSrc??read('app.js'),audio=c.audioSrc??read('ui/audio.js');
+     const activate=(app.match(/const activate = \(e\) => \{[\s\S]*?\n  \};/)||[''])[0].replace(/\/\/[^\n]*/g,'');
+     const syncAt=activate.indexOf('unlockSync'),asyncAt=activate.indexOf('unlock?.');
+     if(syncAt<0||asyncAt<syncAt||/\bawait\b/.test(activate.slice(0,syncAt)))out.push('app.js: start activation must call unlockSync before awaiting or calling unlock');
+     const sync=(audio.match(/    unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!/context\.resume\(\)/.test(sync)||!/createBuffer\(1,1,/.test(sync)||!/source\.start\(0\)/.test(sync)||/\bawait\b/.test(sync))out.push('ui/audio.js: unlockSync must resume and start a silent one-sample buffer synchronously');
+     if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
+     const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
+     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
+     return out;}},
   {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
    check(c={}){const out=[];
      const app=c.appSrc??read('app.js');

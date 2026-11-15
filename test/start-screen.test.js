@@ -10,13 +10,14 @@ const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert
 const DATA_FILES = ["items", "modules", "bit", "bit-talents", "raid_zones", "recipes", "vendors", "retention", "quests", "progression", "combat"];
 const APP_SRC = fs.readFileSync(path + "/app.js", "utf8");
 
-function boot(){
+function boot(audio){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window, document = w.document;
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/data/" + s + ".js", "utf8"));
   w.eval(fs.readFileSync(path + "/save-slots.js", "utf8"));
   w.eval(fs.readFileSync(path + "/start-quality.js", "utf8"));
   w.matchMedia = () => ({ matches:false });
+  if(audio) w.PR_AUDIO = audio;
 
   // Fake timers + image loads (same approach as test/splash.test.js): override the globals
   // setupSplash() calls bare, before app.js's init block runs setupSplash() for real.
@@ -96,3 +97,21 @@ function boot(){
 }
 
 console.log("start-screen.test: ok (title/one prompt/settings/slot on the splash; tap-anywhere transition; settings/slot never skip it)");
+
+// Audio readiness must gate the prompt independently of image readiness, with a bounded wait.
+(async()=>{
+  for(const fallback of [false,true]){
+    let release;const calls=[];
+    const t=boot({preload:()=>new Promise(r=>{release=r;}),unlockSync:()=>calls.push("sync"),unlock:()=>{calls.push("async");return Promise.resolve();}});
+    try{
+      t.ready();
+      assert(!t.splash().classList.contains("prompt-ready"),"images alone cannot expose the prompt");
+      if(fallback)t.tick(2500);else{release();await Promise.resolve();await Promise.resolve();}
+      assert(t.splash().classList.contains("prompt-ready"),"decode completion or timeout exposes the prompt");
+      t.splash().dispatchEvent(new t.dom.window.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+      assert.deepEqual(calls,["sync","async"],"keyboard activation unlocks synchronously before async work");
+      assert(t.splash().classList.contains("descending"));
+      release();await Promise.resolve();
+    }finally{t.dom.window.close();}
+  }
+})().catch(error=>{console.error(error);process.exitCode=1;});
