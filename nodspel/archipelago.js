@@ -180,7 +180,7 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
     const skirtHalf=coreHalf+(.43+.33*ridge)+.14*Math.sin(phase+u*8.1)**2;
     const offsets=[-skirtHalf,-skirtHalf*.79,-coreHalf,-coreHalf*.37,
       coreHalf*.37,coreHalf,skirtHalf*.76,skirtHalf];
-    const heights=[.012,.026,h*.53,h*.92,h,h*.51,.026,.012];
+    const heights=[-.085,-.055,h*.53,h*.92,h,h*.51,-.055,-.085];
     const section=[];
     for(let k=0;k<cols;k++){
       const across=offsets[k]+center;
