@@ -123,7 +123,9 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
 }
 export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],bedrockPlan=null}={}){
   if(profile?.style!=='v2')return null;
-  const {floor,points,seed}=profile,n=points.length,rings=18,positions=[],colors=[],indices=[];
+  // Keep the visual-target's winding earth paths readable without any extra
+  // coplanar path mesh. Hero terrain has extra radial vertices in HIGH and LOW.
+  const {floor,points,seed}=profile,n=points.length,rings=profile.heroCoast?30:18,positions=[],colors=[],indices=[];
   // A single continuous top surface keeps the physical flat actor plane.
   // Geological fingers and sheltered soil are baked into its vertex color,
   // not layered as coplanar rock or fake collision cover.
