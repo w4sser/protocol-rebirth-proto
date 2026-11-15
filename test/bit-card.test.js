@@ -260,10 +260,11 @@ function boot(seedSave, calls, artMode = "success", requests = []){
     requests.push(opts.from, opts.to);
     if(artMode === "stall") return new Promise(() => {});
     return Promise.resolve(artMode === "error" ? ["", ""] : [opts.from, opts.to]);
-  }, isOpen(){ return false; } };
+  }, released:[], release(opts){ this.released.push(opts.id); }, isOpen(){ return false; } };
+  w.eval(fs.readFileSync(path + "/save-slots.js", "utf8"));
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
-    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,BIT_CUTSCENES,MODS,D,ITEMS};");
+    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,BIT_CUTSCENES,MODS,D,ITEMS};");
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -278,10 +279,24 @@ async function bootToCoreOneTapAway(calls){
   w.T.ingestRaidResult(result);
   w.A.go("base");
   w.A.dismissIntro();
+  assert.deepEqual(w.PRBitCutscene.released,["cold_open"],"cold-open dismissal releases its retained art");
   return w;
 }
 
 (async () => {
+
+// PRB-160: startup warms the next story first and skips scenes already seen.
+{
+  const requests=[], w=boot(null, [], "stall", requests);
+  assert.match(requests[0], /coldopen\/bunker-discovery-arch-v1\.webp\?v=\d+\.\d+\.\d+$/);
+  assert.match(requests[1], /coldopen\/bit-coldopen-v1\.webp\?v=\d+\.\d+\.\d+$/);
+  assert.match(requests[2], /cutscene-core-restore-start/);
+  const saved=JSON.parse(JSON.stringify(w.T.state()));
+  saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true};
+  const seenRequests=[], seen=boot(saved, [], "stall", seenRequests);
+  assert.deepEqual(seenRequests,[],"seen scenes retain no warm images on boot");
+  w.close();seen.close();
+}
 
 // core_restored: the live transition plays a cutscene (no card, no popup), exactly once, persisted.
 {
@@ -293,8 +308,7 @@ async function bootToCoreOneTapAway(calls){
   // gate) is gone for good -- the cutscene is the single screen, so there is nothing to click.
   assert(!w.document.getElementById("overlay"), "no popup shows for the Core restore");
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted synchronously with the build, no popup left to gate it");
-  assert.equal(calls.length, 0, "cutscene waits for bunkerwake to finish");
-  await sleep(1700); // >= the ~1.6s bunkerwake lighting the cutscene must not land before
+  assert.equal(calls.length, 1, "PRB-160: Core cutscene plays synchronously with the build");
   assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
   assert.equal(calls[0].id, "core_restored");
   assert.match(calls[0].line, /circuits again/);
@@ -399,8 +413,7 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(fabCalls().length, 0, "fabricator_built cutscene waits for the reward popup to close");
   closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
   assert.equal(st.bitCardsSeen.fabricator_built, true, "persisted synchronously when the popup closes");
-  assert.equal(fabCalls().length, 0, "cutscene still waits for the bunkerwake build animation");
-  await sleep(1700);
+  assert.equal(fabCalls().length, 1, "PRB-160: Fabricator cutscene plays synchronously when reward closes");
   assert.equal(fabCalls().length, 1, "fabricator_built cutscene shown exactly once");
   assert.match(fabCalls()[0].line, /Scavenger Vest/);
   assert(fabCalls()[0].info.some(row => row.label === "FIRST RECIPE" && /Scavenger Vest/.test(row.text)), "info strip names the real first recipe + cost from data/recipes.js");
@@ -409,6 +422,29 @@ async function bootToCoreOneTapAway(calls){
   w.A.build("fabricator"); // repeat call (L2): never replays the L1 moment
   await sleep(1700);
   assert.equal(fabCalls().length, 1, "never fires a second time");
+}
+
+// PRB-160: replacing a story popup preserves its beat, without replaying general callbacks.
+for(const replace of ["navigation", "profiles"]){
+  const calls=[],w=await bootToCoreOneTapAway(calls);w.A.build("rebirth_core");
+  const st=w.T.state();st.stash.cable=1;st.stash.scrap_alloy=2;st.cur.scrap=10;
+  w.A.build("fabricator");
+  const reward=w.document.querySelector('#overlay');
+  if(replace==="profiles"){
+    w.A.openProfiles();
+    assert(w.document.querySelector('#overlay.profilesov'),"replacement Profiles stays open");
+  }else w.T.closeAllPopups();
+  assert.equal(calls.filter(c=>c.id==="fabricator_built").length,1,"Fabricator survives "+replace);
+  reward.querySelector('[data-close]').click();
+  assert.equal(calls.filter(c=>c.id==="fabricator_built").length,1,"stale close cannot replay story");
+  // The summary's normal close callback does other work; cancellation preserves only the story.
+  const ingest={ok:true,raid:{outcome:"death",extracted:[],lost:[]},summary:"Returned",reaction:""};
+  // Build a real summary from the standard raid result so its rows use the production shape.
+  ingest.raid={...ingest.raid,area:"bunker",levelsCleared:1,enemiesDefeated:0,nodesLit:0,remainingMs:0};
+  w.T.closeAllPopups();w.T.showHomecomingSummary(ingest);
+  if(replace==="profiles")w.A.openProfiles();else w.T.closeAllPopups();
+  assert.equal(calls.filter(c=>c.id==="first_death").length,1,"first death survives "+replace);
+  w.close();
 }
 
 // fabricator_built: an existing save that already has Fabricator L1 built is marked seen on load

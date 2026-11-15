@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.38"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.39"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -1859,7 +1859,7 @@ function toastPump(){
 // Any screen/tab change or raid launch closes every popup, modal and menu.
 function closeAllPopups(){
   if(typeof document === "undefined") return;
-  document.querySelectorAll("#overlay, .bpop").forEach(el => (el.closest("#overlay") || el).remove());
+  document.querySelectorAll("#overlay, .bpop").forEach(el => discardOverlay(el.closest("#overlay") || el));
   const m = document.getElementById("settings-menu"); if(m) m.hidden = true;
   session.focusSpot = null;
   updateNav();
@@ -1867,10 +1867,26 @@ function closeAllPopups(){
 // Shared popup component (ui/popup.css): every boxed popup gets the top-left close X, the shared header,
 // backdrop tap-to-close and the pop-in animation. opts.noClose only for scripted FTUE/timed sequences.
 const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">' + IC("close") + '</button>';
+// Navigation may cancel a popup, but must preserve a story beat attached to its dismissal.
+function discardOverlay(o){
+  if(o._closed) return;
+  o._closed = true; o.remove();
+  const story = o._storyClose; o._storyClose = null;
+  if(story) story();
+}
+function closeOverlay(o){
+  if(o._closed) return;
+  o._closed = true; o._storyClose = null;
+  o.remove();
+  // Clear the blocker without a synchronous layout measurement before the story callback.
+  document.body.classList.toggle("has-overlay", !!document.getElementById("overlay"));
+  if(o._onClose) o._onClose();
+  window.dispatchEvent(new Event("pr:ui-clear"));
+}
 function overlay(html, onClose, cls, opts){
   opts = opts || {};
   const o = document.createElement("div");
-  o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose;
+  o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose; o._storyClose = opts.afterDiscard;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
   if(!opts.noClose){
     // v1.47: the close badge straddles the card's top-left corner, so it must live outside any scroller.
@@ -1881,7 +1897,7 @@ function overlay(html, onClose, cls, opts){
   else o.dataset.noclose = "1";
   o.addEventListener("click", e => {
     const t = e.target.closest ? e.target.closest("[data-close]") : null;
-    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ o.remove(); if(onClose) onClose(); }
+    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ closeOverlay(o); }
   });
   document.getElementById("phone").appendChild(o);
   updateNav();
@@ -1933,7 +1949,7 @@ function profilesHtml(){
     '<button type="button" class="ghost" onclick="A.profilesToggleImport()">' + (session.profilesImport ? "CANCEL IMPORT" : "IMPORT") + '</button></div>' + importHtml;
 }
 function reopenProfiles(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
 }
 function profilesReload(){
@@ -2806,7 +2822,7 @@ function stashPopHtml(){
     '<button type="button" class="linkbtn" onclick="A.openItemDetail(\'' + id + '\')">MORE OPTIONS</button></div></div></div>';
 }
 function stashPopRender(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   const html = stashPopHtml();
   overlay(html, () => { session.stashPop = null; refresh(); }, html.includes("wpnscreen") ? "sheet wpnov" : "sheet");
 }
@@ -2849,7 +2865,7 @@ function quickCleanHtml(){
     '</div><button class="primary big" onclick="A.quickCleanAsk()"' + (pick.length ? '' : ' disabled') + '>SELL SELECTED +' + gain + ' · FREES ' + freed + '</button></div>';
 }
 function quickCleanRender(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   overlay(quickCleanHtml(), () => { session.quickClean = null; refresh(); }, "sheet");
 }
 
@@ -4336,7 +4352,7 @@ function showHomecomingSummary(ingest, opts){
   if(!ingest || !ingest.ok) return;
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov");
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
 }
 // PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
 // the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
@@ -4424,6 +4440,19 @@ const BIT_CUTSCENES = {
     };
   })()
 };
+// Start requests during the splash, in story order. Seen scenes hold no decoded images.
+function warmStoryArt(){
+  const cutscene = window.PRBitCutscene;
+  if(!cutscene) return;
+  if(!S.introSeen) cutscene.preload({id:"cold_open",
+    from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
+    to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
+  for(const id of ["core_restored", "first_death", "fabricator_built"])
+    if(!S.bitCardsSeen[id]){
+      if(id === "fabricator_built") fabricatorCutsceneArtReady();
+      else cutscene.preload(BIT_CUTSCENES[id]);
+    }
+}
 // PRB-157: warm the real pair and bust through the renderer cache, once, before building.
 // Only an actual load error selects the old backdrop; a slow connection is not missing art.
 const FABRICATOR_CUTSCENE_ART = {
@@ -4581,6 +4610,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
+    if(screen === "base") warmStoryArt();
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
     // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
@@ -4617,6 +4647,7 @@ window.A = {
     // transition off there).
     document.body.classList.add("intro-leaving");
     S.introSeen = true;
+    window.PRBitCutscene?.release?.({id:"cold_open"});
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
     A.go("base");
@@ -4669,25 +4700,25 @@ window.A = {
       // FACILITY here -- the cutscene (bubble + info strip carry the old popup's benefit/next
       // text) is now the single screen; A.go already committed every state change above.
       session.wake = true;
-      const wakeStartedAt = Date.now();
       if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
       if(!S.bitCardsSeen.core_restored){
         S.bitCardsSeen.core_restored = true; save();
-        // the bunkerwake lighting (.baseviewer.wake, 1.6s) must finish before the cutscene covers it.
-        const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
-        setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
+        window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);
       } else bitDock("module_built");
     } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
       // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
       // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
+      // PRB-160: remove the lighting wait; the reward popup now closes directly into the scene.
       fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
-      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
-        finish();
+      const narrate = () => {
+        if(S.bitCardsSeen.fabricator_built) return;
         S.bitCardsSeen.fabricator_built = true; save();
-        const wakeStartedAt = Date.now();
-        fabricatorCutsceneBeat(beat => setTimeout(() => window.PRBitCutscene?.play(beat), Math.max(0, 1600 - (Date.now() - wakeStartedAt))));
-      }, "reward");
+        fabricatorCutsceneBeat(beat => window.PRBitCutscene?.play(beat));
+      };
+      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
+        finish(); narrate();
+      }, "reward", { afterDiscard:narrate });
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
@@ -5039,7 +5070,7 @@ window.A = {
     if(r.fabricatorLevel > (S.modules.fabricator || 0)) return;
     const I = idleState();
     if(I.crafted > 0 && I.fab.length >= fabSlots()) return;
-    const old = document.getElementById("overlay"); if(old) old.remove();
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);
     overlay(craftConfirmHtml(rid), () => A.openBuilding("fabricator"), "sheet");
   },
   craft(rid){
@@ -5205,7 +5236,7 @@ window.A = {
   },
   openHaul(){
     const pend = scavPending(); if(!pend) return;
-    const old = document.getElementById("overlay"); if(old) old.remove();   // BIT screen is itself an overlay now: swap, don't stack
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);   // BIT screen is itself an overlay now: swap, don't stack
     overlay(haulPopupHtml(pend), () => refresh(), "sheet");
   },
   confirmHaul(){
@@ -5365,7 +5396,7 @@ window.A = {
   },
   back(){
     const o = document.getElementById("overlay");
-    if(o){ o.remove(); if(o._onClose) o._onClose(); updateNav(); return; }
+    if(o){ closeOverlay(o); updateNav(); return; }
     const t = BACK_TARGET[session.screen] || "base";
     if(session.screen !== "base") A.go(t);
   },
@@ -5496,7 +5527,7 @@ window.A = {
     const meta = SaveSlots.ensureMigrated(localStorage, SAVE_KEY, now);
     SaveSlots.touchSlot(meta, meta.active, now, undefined, localStorage);
     session.profilesMeta = meta; session.profilesRenaming = null; session.profilesImport = false; session.profilesImportTarget = meta.active;
-    const old = document.getElementById("overlay"); if(old) old.remove();
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);
     overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
   },
   profileRenameStart(i){ session.profilesRenaming = i; reopenProfiles(); },
@@ -5778,6 +5809,7 @@ function mountLiteWater(host){
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
   S = load();
+  warmStoryArt();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   // v2.22.2 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
   // completed yet, and this isn't the return trip from that first raid) skips straight into the

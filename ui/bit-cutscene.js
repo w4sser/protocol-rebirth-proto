@@ -11,24 +11,38 @@
   // fixed-timeout auto-end; see docs/bit-narrator.md "Hold until tap".
   var CROSSFADE = 3150, INFO_DELAY = 600, FADE = 350, HOLD_MS = 1000, HINT_MS = 3000;
 
-  // Warm only the requested pair (+ optional bust pair), immediately before its story beat.
-  // Errors/timeouts resolve to an empty source (dedicated art keeps warming until load/error), so a broken connection still gives the player the
-  // line and a way out.
-  function load(src, waitForArt, retryTimeout){
+  // PRB-160: keep decoded images alive until their story beat has been dismissed.
+  // Loading is warming only; presentation never waits for these promises.
+  var owners = new Map();
+  function load(src){
     if(!src) return Promise.resolve("");
-    if(images.has(src)) return images.get(src);
-    var promise = new Promise(function(resolve){
-      var img = new Image(), settled = false;
-      var timeout = waitForArt ? null : setTimeout(function(){ if(retryTimeout) images.delete(src); finish(false); }, 3000);
-      function finish(ok){
-        if(settled) return; settled = true; clearTimeout(timeout);
-        img.onload = img.onerror = null; resolve(ok ? src : "");
-      }
-      img.onload = function(){ finish(true); };
-      img.onerror = function(){ finish(false); };
-      img.src = src;
+    if(images.has(src)) return images.get(src).promise;
+    var entry = { img:new Image(), decoded:false };
+    images.set(src, entry);
+    entry.promise = new Promise(function(resolve){
+      entry.img.onerror = function(){
+        if(images.get(src) === entry) images.delete(src); resolve(""); // a real load error can be retried by a later beat
+      };
+      entry.img.onload = function(){
+        var decoding;
+        try { decoding = entry.img.decode ? entry.img.decode() : Promise.resolve(); }
+        catch(e){ decoding = Promise.reject(e); }
+        Promise.resolve(decoding).then(function(){ entry.decoded = true; resolve(src); }, function(){
+          if(images.get(src) === entry) images.delete(src); resolve(src); // decoding failure is not a missing-art verdict
+        });
+      };
+      entry.img.src = src;
     });
-    images.set(src, promise); return promise;
+    return entry.promise;
+  }
+  function sources(opts){
+    return [opts.from, opts.to, opts.bust && opts.bust.from, opts.bust && (opts.bust.to || opts.bust.from), opts.fallback].filter(Boolean);
+  }
+  function release(opts){
+    owners.delete(opts.id);
+    var held = new Set();
+    owners.forEach(function(list){ list.forEach(function(src){ held.add(src); }); });
+    images.forEach(function(entry, src){ if(!held.has(src)) images.delete(src); });
   }
   // Normalized source-image bounds, including the whole painted BIT chassis and vest.
   var FABRICATOR_GEOMETRY = Object.freeze({
@@ -45,9 +59,13 @@
   }
   function bustIsPair(bust){ return !!(bust && bust.to && bust.to !== bust.from); }
   function preload(opts){
-    var list = [load(opts.from, opts.waitForArt), load(opts.to, opts.waitForArt)];
-    if(opts.bust){ list.push(load(opts.bust.from, false, true)); if(bustIsPair(opts.bust)) list.push(load(opts.bust.to, false, true)); }
-    return Promise.all(list);
+    var list = sources(opts);
+    if(opts.id) owners.set(opts.id, list);
+    return Promise.all(list.map(load));
+  }
+  function isWarm(id){
+    var list = owners.get(id);
+    return !!list && list.every(function(src){ return !!images.get(src)?.decoded; });
   }
   function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   function blocked(){
@@ -57,29 +75,25 @@
     if(b.classList.contains("startup-bunker-intro") || b.classList.contains("intro-leaving") || b.classList.contains("has-overlay")) return true;
     if(document.querySelector(".intro, #overlay, #splash:not(.out), #settings-menu:not([hidden])")) return true;
     if(window.PRBitCard && window.PRBitCard.isOpen()) return true;
-    return !!(window.PR_AUDIO && window.PR_AUDIO.voiceBusy);
+    return false;
   }
   function advance(){
     if(current || !queue.length) return;
     if(blocked()){
-      if(!retry) retry = setTimeout(function(){ retry = null; advance(); }, 250);
+      // Events handle normal closes immediately. rAF catches navigation/orientation/legacy
+      // removals on the next frame, with a 50ms timer when rAF is unavailable.
+      if(!retry) retry = window.requestAnimationFrame
+        ? window.requestAnimationFrame(function(){ retry = null; advance(); })
+        : setTimeout(function(){ retry = null; advance(); }, 50);
       return;
     }
     var job = queue.shift();
     current = { job:job, timers:[], el:null, previous:document.activeElement, reduced:reduced() };
-    var run = current;
-    // Dedicated shipped art paints immediately, even while the early warm-up is pending.
-    // Browser image loading continues in place; onerror below supplies the safety backdrop.
-    var ready = job.waitForArt
-      ? Promise.resolve([job.from, job.to, job.bust && job.bust.from, job.bust && job.bust.to])
-      : preload(job);
-    ready.then(function(sources){
-      if(current !== run) return;
-      // Loading may have outlasted an intervening popup/navigation. Queue again until clear.
-      if(blocked()){ current = null; queue.unshift(job); advance(); return; }
-      present(run, sources);
-    });
+    preload(job);
+    present(current, [job.from, job.to, job.bust && job.bust.from, job.bust && (job.bust.to || job.bust.from)]);
   }
+  window.addEventListener("pr:ui-clear", advance);
+  window.addEventListener("pr:splash-finished", advance);
   function later(run, fn, ms){ run.timers.push(setTimeout(fn, ms)); }
   function sparksHtml(){
     var out = "";
@@ -110,9 +124,12 @@
       '<button type="button" class="bit-cutscene-continue" aria-label="Continue to base">TAP TO CONTINUE</button></div>' + infoHtml;
     ["from", "to"].forEach(function(key, i){
       var img = el.querySelector(".bit-cutscene-" + key);
-      if(job.fallback) img.onerror = function(){
+      img.onerror = function(){
+        if(!job.fallback){ img.hidden = true; return; }
         img.onerror = null; img.src = job.fallback;
       };
+      img.onload = function(){ img.classList.remove("art-pending"); };
+      if(!images.get(sources[i])?.decoded) img.classList.add("art-pending");
       if(sources[i]) img.src = sources[i]; else img.hidden = true;
     });
     if(hasBust){
@@ -139,8 +156,8 @@
       if(e.key === "Escape"){ e.preventDefault(); tapDismiss(); }
       if(e.key === "Tab"){ e.preventDefault(); el.querySelector("button").focus(); }
     });
-    document.body.appendChild(el); el.querySelector("button").focus();
-    var missingCore = !sources[0] || !sources[1];
+    document.body.appendChild(el); el.querySelector("button").focus({preventScroll:true});
+    var missingCore = !images.get(job.from)?.decoded || !images.get(job.to)?.decoded;
     if(run.reduced || missingCore){
       el.classList.add("line-visible");
       if(job.info && job.info.length) el.classList.add("info-visible");
@@ -169,6 +186,7 @@
     var finish = function(){
       if(run.el) run.el.remove();
       current = null;
+      release(run.job);
       if(run.previous && run.previous.isConnected) run.previous.focus();
       if(run.job.onDone) try{ run.job.onDone(); }catch(e){}
       advance();
@@ -184,5 +202,5 @@
     });
     advance();
   }
-  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, dismiss:dismiss, isOpen:function(){ return !!current; } };
+  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, release:release, isWarm:isWarm, dismiss:dismiss, isOpen:function(){ return !!current; } };
 })();

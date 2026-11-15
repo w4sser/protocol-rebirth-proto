@@ -7,6 +7,9 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 function tracked(){try{return execSync('git ls-files',{cwd:root,encoding:'utf8'}).split('\n').filter(Boolean);}catch{return null;}}
 
+import {parse} from 'acorn';
+import * as walk from 'acorn-walk';
+
 export const RULES=[
   {id:'no-tracked-node-modules',pr:'#129',why:'a committed node_modules symlink broke the Pages deploy',
    check({files,gitignore}){const out=[];
@@ -209,10 +212,26 @@ export const RULES=[
      }
      return out;}},
 
+  {id:'cutscene-story-survives-popup-replacement',pr:'v2.28.3x PRB-160 story close lifecycle',why:'navigation or Profiles replacing a reward/summary must not discard the queued story beat',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     if(!/function discardOverlay\(/.test(app)||!/o\._storyClose = opts\.afterDiscard/.test(app)||!/afterDiscard:narrate/.test(app)||!/afterDiscard:\(\) => maybeShowFirstDeathCard/.test(app))out.push('story reward/summary must preserve their story callbacks on popup cancellation');
+     const profiles=(app.match(/openProfiles\(\)\{([\s\S]*?)\n  \},/)||[])[1]||'';
+     if(!/discardOverlay\(old\)/.test(profiles))out.push('Profiles replacement must preserve the old popup story');
+     return out;}},
+  {id:'cutscene-no-wait-before-show',pr:'v2.28.3x PRB-160 instant cutscenes',why:'narrator visuals must never wait for voice, loading, or a bunker lighting timer',
+   check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),app=c.appSrc??read('app.js'),out=[];
+     if(/voiceBusy/.test(js))out.push('cutscenes must not gate on voiceBusy');
+     const advance=(js.match(/function advance\(\)\{([\s\S]*?)\n  function later/)||[])[1]||'';
+     if(!/present\(/.test(advance)||/\bawait\b|\.then\s*\(/.test(advance))out.push('advance must present synchronously without awaiting preload');
+     // Inspect timer callbacks with the parser, including nested arrow callbacks.
+     const ast=parse(app,{ecmaVersion:"latest",sourceType:"script"}), calls=[];
+     if(ast) walk.simple(ast,{CallExpression(node){if(node.callee.name==='setTimeout'||node.callee.property?.name==='setTimeout')calls.push(app.slice(node.start,node.end));}});
+     if(calls.some(call => /PRBitCutscene\??\.play/.test(call)))out.push('app.js must not schedule cutscene play in setTimeout');
+     return out;}},
   {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
    check(c={}){const app=c.appSrc??read('app.js'),out=[];
      const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
-     if(!/if\(!fabricatorArtPromise && window\.PRBitCutscene\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the Fabricator art warm-up across preload and play');
+     if(!/if\(!fabricatorArtPromise && window\.PRBitCutscene\)/.test(probe))out.push('app.js: cache the Fabricator art warm-up across preload and play');
      // PRB-157 supersedes the optional-art timeout: shipped art must never gate playback.
      const beat=(app.match(/function fabricatorCutsceneBeat\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
      if(/fabricatorCutsceneArtReady\([^)]*=>/.test(beat)||!/cb\(!fabricatorArtFailed/.test(beat))out.push('app.js: select shipped Fabricator art synchronously, without awaiting its warm-up');
@@ -266,7 +285,7 @@ export const RULES=[
      for(const match of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
        if(!available.has(match[0]))out.push('missing dedicated narrator art: '+match[0]);
      const renderer=c.cutsceneSrc??read('ui/bit-cutscene.js');
-     if(!/if\(retryTimeout\) images\.delete\(src\)/.test(renderer)||!/load\(opts\.bust\.from, false, true\)/.test(renderer))out.push('early bust warming must evict timed-out shared busts so Core/death can retry');
+     if(!/images\.delete\(src\)/.test(renderer)||!/entry\.img\.decode/.test(renderer))out.push('shared bust warming must decode images and allow retries after errors');
      return [...new Set(out)];}},
 
   {id:'ios-audio-waits-for-running',pr:'v2.28.3x PRB-158 iOS audio',why:'Robert\'s iPhone playtest of v2.28.36: "the sound is still not fully loaded when I start playing" -- iOS WebKit resolves resume() (and can start decoding) while context.state is still \'suspended\', only flipping to \'running\' asynchronously, sometimes 100ms+ later; play()/voice() must wait (capped) for an in-flight unlock instead of hard-dropping the first sound, and the gesture listener must also catch touchstart/pointerdown (a joystick hold has no touchend for seconds)',

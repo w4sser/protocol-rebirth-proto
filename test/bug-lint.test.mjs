@@ -183,3 +183,25 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('display:block;pointer-events:auto','display:block;pointer-events:none')}).length);
  assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('#topbar #app-version','')}).length);
 }
+
+// PRB-160: voice, promise and timer regressions each fail independently.
+{
+ const rule=by('cutscene-no-wait-before-show');
+ const good='function advance(){ present(current, sources); }\n  function later(){}';
+ assert.equal(rule.check({cutsceneSrc:good,appSrc:'PRBitCutscene.play(beat);'}).length,0);
+ assert.equal(rule.check({cutsceneSrc:good+'; if(PR_AUDIO.voiceBusy) return;',appSrc:''}).length,1);
+ assert.equal(rule.check({cutsceneSrc:'function advance(){ preload(job).then(() => present(run)); }\n  function later(){}',appSrc:''}).length,1);
+ assert.equal(rule.check({cutsceneSrc:good,appSrc:'setTimeout(() => PRBitCutscene?.play(beat), 1600);'}).length,1);
+ assert.equal(rule.check({cutsceneSrc:good,appSrc:'setTimeout(() => fabricatorCutsceneBeat(beat => window.PRBitCutscene?.play(beat)), 1600);'}).length,1);
+ assert.equal(rule.check({cutsceneSrc:good,appSrc:'window.setTimeout(() => PRBitCutscene.play(beat), 1600);'}).length,1);
+ assert.equal(rule.check({cutsceneSrc:'async function advance(){ await preload(job); present(run); }\n  function later(){}',appSrc:''}).length,1);
+ assert.equal(rule.check().length,0);
+}
+
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const rule=by('cutscene-story-survives-popup-replacement');
+ assert.equal(rule.check().length,0);
+ assert.equal(rule.check({appSrc:app.replace('afterDiscard:narrate','afterDiscard:null')}).length,1);
+ assert.equal(rule.check({appSrc:app.replace(/if\(old\) discardOverlay\(old\);/g,'if(old) old.remove();')}).length,1);
+}

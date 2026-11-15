@@ -143,6 +143,7 @@
     if(cardEl){ cardEl.hidden = true; cardEl.classList.remove("hint-visible"); }
     current = null;
     if(job.onDone) try{ job.onDone(); }catch(e){}
+    window.dispatchEvent(new Event("pr:ui-clear"));
     advance();
   }
 

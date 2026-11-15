@@ -17,7 +17,7 @@ try{
   await new Promise(r=>setTimeout(r,9000));
   const state=await p.evaluate(()=>({url:location.href,loadingHidden:document.getElementById('loading')?.hidden,loadingText:document.getElementById('loading')?.textContent?.trim(),bootLoader:!!document.getElementById('boot-loader'),hasNR:!!window.__NR,canvases:[...document.querySelectorAll('canvas')].map(x=>[x.width,x.height]),resources:performance.getEntriesByType('resource').filter(r=>/game\.mjs|world\.js|archipelago/.test(r.name)).map(r=>({name:r.name,transferSize:r.transferSize,duration:r.duration}))}));
   console.log('DIAG',quality,'http',res.status(),'state',JSON.stringify(state,null,2));messages.forEach(m=>console.log('DIAG '+quality+' '+m));
-  if(!state.loadingHidden||!state.hasNR){broken=true;try{const details=await p.evaluate(async()=>{try{await import('./game.mjs?v=2.28.38-ground-v10-coast-feather-coastal-v1-timber-v1-dressing-default-military-v2-vendored-glbs-military-visual4-organic-v2-granite6');return 'manual import OK';}catch(e){return String(e?.stack||e)}});console.log('MANUAL IMPORT',quality,details)}catch(e){console.log('IMPORT PROBE ERROR',String(e))}}
+  if(!state.loadingHidden||!state.hasNR){broken=true;try{const details=await p.evaluate(async()=>{try{await import('./game.mjs?v=2.28.39-ground-v10-coast-feather-coastal-v1-timber-v1-dressing-default-military-v2-vendored-glbs-military-visual4-organic-v2-granite6');return 'manual import OK';}catch(e){return String(e?.stack||e)}});console.log('MANUAL IMPORT',quality,details)}catch(e){console.log('IMPORT PROBE ERROR',String(e))}}
   await p.close();
  }
 }finally{await browser.close();}

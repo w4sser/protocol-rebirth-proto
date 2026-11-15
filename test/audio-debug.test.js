@@ -7,7 +7,7 @@ const path = __dirname + "/..";
 const { JSDOM } = require("jsdom");
 
 function boot(html){
-  const dom = new JSDOM(html || '<div id="app-version">v2.28.38</div><div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.38</span></div>', { runScripts: "outside-only", url: "http://game/" });
+  const dom = new JSDOM(html || '<div id="app-version">v2.28.39</div><div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.39</span></div>', { runScripts: "outside-only", url: "http://game/" });
   const w = dom.window;
   let intervalCalls = 0, clearCalls = 0;
   const realSetInterval = w.setInterval.bind(w), realClearInterval = w.clearInterval.bind(w);
@@ -50,7 +50,7 @@ function dom_close(w){ w.PRAudioDebug.close(); }
 // 3) The raid page's #core-version (inside the settings dialog) works too, even though the
 // overlay script itself has no idea the dialog exists -- delegation needs no per-page wiring.
 {
-  const { w } = boot('<span class="version" id="core-version">v2.28.38</span>');
+  const { w } = boot('<span class="version" id="core-version">v2.28.39</span>');
   tripleTap(w, "#core-version");
   assert.equal(w.PRAudioDebug.isOpen(), true, "#core-version triple-tap-opens the overlay on the raid page too");
   w.PRAudioDebug.close();
@@ -88,7 +88,7 @@ function dom_close(w){ w.PRAudioDebug.close(); }
   const html = doc.querySelector(".audio-debug-body").innerHTML;
   for(const needle of ["suspended", "44100 Hz", "0.0125", "false / true", "m4a", "3 / 56",
     "sfx/ui-tap", "sfx/alarm", "ogg-decode-stalled", "visible", "ambient", "ui-confirm: hidden",
-    "nice-shot: voice-busy", "v2.28.38"]){
+    "nice-shot: voice-busy", doc.querySelector("#app-version").textContent.trim()]){
     assert.ok(html.includes(needle), "overlay body missing " + JSON.stringify(needle));
   }
   w.PRAudioDebug.close();

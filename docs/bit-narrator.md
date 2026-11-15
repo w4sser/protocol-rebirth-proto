@@ -237,3 +237,36 @@ It writes `fab-early-<width>x<height>.png` (dark, before crossfade),
 `fab-late-<width>x<height>.png` (powered, readable bubble and strip), and `after-results.json`
 to `/workspace/prp-fab-art-v22836-shots/`. The live transformed stage rect drives painted-BIT
 and vest overlap assertions against bubble, bust and strip at every late frame.
+
+
+### Instant presentation (PRB-160, 2026-11-15)
+
+Story triggers append the cutscene synchronously as soon as the base UI is clear. Core restore
+and the Fabricator reward close no longer wait for the 1.6-second bunker lighting animation.
+First death uses the same immediate path after its summary closes. Existing BIT voice playback
+continues; audio never blocks the visual and no audio implementation was changed.
+
+During the splash and at base entry, the warm cache requests cold-open images first (when the
+intro is unseen), then unseen Core, first-death and Fabricator backdrops and busts, including the
+Fabricator safety backdrop. Cold-open URLs include the intro's exact APP_VERSION query. Each
+image is loaded and decoded with img.decode(), and its Image object stays referenced until its
+scene is dismissed. Shared art stays retained for other unseen scenes. Seen scenes are skipped.
+
+Presentation never waits for this cache. Cold images load and fade in over the scrim and readable
+line; dedicated Fabricator art is replaced only after a real load error. Overlay and BIT-card
+closes dispatch pr:ui-clear for immediate queue advancement; a requestAnimationFrame retry
+(50ms timer fallback) catches other blockers clearing. The splash-to-intro path already paints
+the intro underneath the splash; its intentional entrance animation and line-by-line reveals stay.
+
+Run node scripts/cutscene-latency.mjs for real-trigger CPU-throttled browser measurements and
+50ms screenshots, and npm run test:bit-cutscene for deterministic loading/decoding regressions.
+
+Popup cancellation preserves the Fabricator/first-death story callback when navigation or Profiles
+replaces the reward/summary, while unrelated popup close actions remain cancelled. The cache's
+isWarm(id) query lets the benchmark observe production decoding without holding harness Images
+on AFTER. BEFORE is manually warmed to isolate the old waits. Three fresh-browser trials at each
+viewport report medians and retain raw timings; cold-open timing requires the real splash finish.
+
+Use node scripts/cutscene-latency.mjs --screenshots-only for a separate early-frame capture pass.
+It requests Core/Fabricator screenshots near 50ms without perturbing the benchmark trials,
+and records actual screenshot request times in shot-times.json beside latency.json.

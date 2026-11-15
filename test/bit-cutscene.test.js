@@ -30,7 +30,7 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     const {api,doc,tick,requests,w} = fixture(); let done = 0;
     doc.querySelector("#before").focus();
     assert.equal(requests.length,0,"no boot preloads");
-    api.preload(beat); api.play({...beat,onDone:()=>done++}); api.play(beat);
+    await api.preload(beat); api.play({...beat,onDone:()=>done++}); api.play(beat);
     await tick();
     const el = doc.querySelector(".bit-cutscene");
     assert(el); assert.equal(requests.length,2,"preload pair reused");
@@ -78,11 +78,11 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     api.play(beat); await tick(options.stall ? 3000 : 0);
     const el = doc.querySelector(".bit-cutscene");
     assert(el.classList.contains("line-visible"),"load failure immediately shows readable line");
-    assert([...el.querySelectorAll("img")].every(i=>i.hidden),"no broken image icons");
+    assert(el.querySelector(".bit-cutscene-from").src.endsWith("start.webp"),"cold art keeps loading in place");
     await tick(7350); assert(api.isOpen(),"a load failure still holds until tap -- no auto-end");
     await tick(1000); el.click(); assert(el.classList.contains("leaving"),"still dismissible by tap"); w.close();
   }
-  for(const block of ["intro","splash","overlay","homecoming","screen","voice","card","startup","settings","portrait"]){
+  for(const block of ["intro","splash","overlay","homecoming","screen","card","startup","settings","portrait"]){
     const {api,doc,tick,w} = fixture();
     const el = doc.createElement("div");
     if(block === "portrait") w.matchMedia = query => ({matches:query.includes("orientation")});
@@ -108,13 +108,12 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert.equal(doc.querySelector(".bit-cutscene").dataset.id,"second");
     assert.equal(done,1); w.close();
   }
-  // A popup opened during slow loading must still defer presentation until it closes.
+  // A popup already open at trigger still blocks a cold cutscene.
   {
     const {api,doc,tick,w} = fixture({stall:true});
-    api.play(beat);
     const popup = doc.createElement("div"); popup.id = "overlay"; doc.body.append(popup);
-    await tick(3000); assert(!doc.querySelector(".bit-cutscene"));
-    popup.remove(); await tick(250); assert(doc.querySelector(".bit-cutscene")); w.close();
+    api.play(beat); await tick(3000); assert(!doc.querySelector(".bit-cutscene"));
+    popup.remove(); await tick(50); assert(doc.querySelector(".bit-cutscene")); w.close();
   }
   // PRB-155 standard layout: BIT bust (swap pair) + speech bubble (replacing the plain line) +
   // a two-row info strip, timed off the same crossfade the backdrop already uses.
@@ -123,7 +122,7 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     const job = { id:"layout-beat", from:"start.webp", to:"end.webp", line:"Short line.",
       bust:{ from:"bust-sad.webp", to:"bust-happy.webp", side:"right" },
       info:[{ label:"NEW", text:"New thing", iconHtml:"<svg class=\"a\"></svg>" }, { label:"NEXT", text:"Next thing", iconHtml:"<svg class=\"b\"></svg>" }] };
-    api.play(job); await tick();
+    await api.preload(job); api.play(job); await tick();
     const el = doc.querySelector(".bit-cutscene");
     assert(el.querySelector(".bit-cutscene-bust.side-right"), "bust renders on the requested side");
     assert(el.querySelector(".bit-cutscene-bubble .bit-cutscene-line"), "line sits inside the speech bubble when a bust is present");
@@ -192,17 +191,14 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     await tick(3150); assert(el.classList.contains("crossfaded"));
     api.dismiss(); w.close();
   }
-  // PRB-157: early Fabricator warming must not poison Core/death's shared happy bust cache.
+  // PRB-160: pending shared bust warming never suppresses the direct image.
   {
-    const {api,doc,tick,w,imageObjects,requests} = fixture({stall:true});
+    const {api,doc,tick,w,requests} = fixture({stall:true});
     api.preload({...beat,waitForArt:true,bust:{from:"happy.webp"}});
-    await tick(3000); // startup bust timed out; dedicated backdrops keep warming
-    const core = {...beat,from:"core-dark.webp",to:"core-powered.webp",bust:{from:"happy.webp"}};
-    api.play(core);
-    assert.equal(requests.filter(src => src === "happy.webp").length,2,"timed-out bust is retried for Core");
-    imageObjects.slice(3).forEach(img => img.onload());
-    await tick();
-    assert(!doc.querySelector('.bit-cutscene-bust-from').hidden,"recovered happy bust remains visible for Core");
+    await tick(3000);
+    api.play({...beat,from:"core-dark.webp",to:"core-powered.webp",bust:{from:"happy.webp"}});
+    assert.equal(requests.filter(src => src === "happy.webp").length,1,"pending shared bust request reused");
+    assert(!doc.querySelector('.bit-cutscene-bust-from').hidden,"pending bust loads directly");
     doc.querySelector('.bit-cutscene-bust-from').dispatchEvent(new w.Event('error'));
     assert(doc.querySelector('.bit-cutscene-bust-from').hidden,"failed direct bust has no broken image icon");
     api.dismiss(); w.close();

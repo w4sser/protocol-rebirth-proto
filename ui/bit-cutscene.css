@@ -82,3 +82,8 @@
 .bit-cutscene[data-id="fabricator_built"] .bit-cutscene-copy{bottom:calc(10px + env(safe-area-inset-bottom,0px));}
 .bit-cutscene[data-id="fabricator_built"] .bit-cutscene-line{font-size:clamp(12px,1.8vw,16px);line-height:1.3;}
 .bit-cutscene[data-id="fabricator_built"] .bit-cutscene-bubble{padding:6px 10px;}
+
+/* PRB-160: a cold image arrives over the immediately visible scrim and copy. */
+.bit-cutscene-stage img.art-pending{opacity:0;}
+.bit-cutscene-from{transition:opacity .2s ease;}
+@media(prefers-reduced-motion:reduce){.bit-cutscene-from{transition:none;}}
