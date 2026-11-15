@@ -193,6 +193,38 @@ export const RULES=[
      else if(!/migrateCableRetro\(st\)/.test(load))out.push('app.js: load() must call migrateCableRetro(st) alongside the other additive migrations');
      return out;}},
 
+  {id:'core-restore-no-power-popup',pr:'v2.28.33 PRB-155 (playtest 2026-11-15, item 4)',why:'a popup used to gate the first Core restore behind an ENTER-style tap before the narrator cutscene could play; Robert decided the cutscene must be the single screen -- for a fresh build, an existing save, and after the cutscene has already played -- so the popup and its own copy must stay gone for good, not just unused',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(/function bootSequence\(/.test(app))out.push('app.js: bootSequence() (the old Core-restore payoff popup) must stay removed');
+     if(/POWER RESTORED/.test(app))out.push('app.js: "POWER RESTORED" copy must not exist anywhere -- the cutscene carries the benefit/next text instead');
+     const build=(app.match(/\bbuild\(modId\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!build)out.push('app.js: A.build(modId) not found');
+     else{
+       const lightsOn=(build.match(/if\(isLightsOn\)\{[\s\S]*?\}\s*else if\(isFabricatorOnline/)||[''])[0];
+       if(!lightsOn)out.push('app.js: A.build must still branch on isLightsOn for the Core L1 restore');
+       else{
+         if(/\boverlay\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must never open a popup -- the narrator cutscene is the single screen');
+         if(!/PRBitCutscene\?\.play\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must still play the core_restored cutscene itself (nothing else replaces the removed popup)');
+       }
+     }
+     return out;}},
+
+  {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/if\(!fabricatorArtPromise\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the optional Fabricator art probe across preload and play');
+     if(!/setTimeout\(\(\) => finish\(false\), 3000\)/.test(probe)||!/clearTimeout\(timeout\)/.test(probe))out.push('app.js: optional Fabricator art must settle on timeout and clear its timer');
+     return out;}},
+  {id:'cutscene-reduced-motion-instant',pr:'v2.28.3x PRB-155 reduced motion',why:'the bust and continue control must appear instantly along with the speech bubble and info strip under reduced motion',
+   check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),css=c.cutsceneCss??read('ui/bit-cutscene.css'),out=[];
+     if(!/if\(run\.reduced\) el\.classList\.add\("hint-visible"\)/.test(js))out.push('ui/bit-cutscene.js: reduced motion must reveal the continue hint immediately');
+     if(!/reduced \.bit-cutscene-bust,[\s\S]*?\{transition:none;\}/.test(css))out.push('ui/bit-cutscene.css: reduced motion must disable the bust fade');
+     return out;}},
+  {id:'narrator-hologram-above-copy',pr:'v2.28.3x PRB-155 Fabricator layout',why:'the assembling vest was hidden behind the speech bubble at phone landscape sizes; keep its anchor above the copy and verify actual rectangles in the screenshot harness',
+   check(c={}){const css=c.cutsceneCss??read('ui/bit-cutscene.css');
+     const rule=(css.match(/\.bit-cutscene-hologram\{([^}]+)\}/)||[])[1]||'';
+     const bottom=Number((rule.match(/bottom:([\d.]+)%/)||[])[1]);
+     return bottom>=40?[]:['ui/bit-cutscene.css: keep the hologram above the speech bubble (bottom at least 40%); run narrator-cutscene-shots.mjs for geometric checks'];}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
