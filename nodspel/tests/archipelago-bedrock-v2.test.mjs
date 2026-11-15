@@ -260,13 +260,14 @@ test('authored hero headlands grow from the SAME coastal surface without changin
   assert.ok(hero.points.every((p,i)=>p.playableRadial===base[i].playable),
     'the game still moves only on the original, perfectly flat X/Z floor');
   const shore=coastRingData(hero),n=hero.points.length;
-  assert.equal(shore.rings,10,'single hero cliff mesh has multiple deliberate erosion shoulders');
+  assert.equal(shore.rings,14,'one hero coast mesh with multiple broad irregular rock shoulders');
   assert.equal(shore.positions.length,n*10*3);
-  const elevated=Array.from({length:n},(_,i)=>shore.positions[(4*n+i)*3+1]);
-  assert.ok(Math.max(...elevated)>.72,'integrated headlands have visible cliff height');
+  const elevated=Array.from({length:n},(_,i)=>shore.positions[(6*n+i)*3+1]);
+  assert.ok(Math.max(...elevated)>1.20,'dramatic cliffs rise above the narrow existing coast');
+  assert.ok(Math.max(...elevated)-Math.min(...elevated)>.65,'coastal cliff has varied height, not a uniform grey wall');
   for(let i=0;i<n;i++){
     assert.ok(Math.abs(shore.positions[i*3+1]-.01)<1e-5,'the operator seam remains flat');
-    assert.ok(shore.positions[(9*n+i)*3+1]<-.50,'same cliff returns below water level');
+    assert.ok(shore.positions[(13*n+i)*3+1]<-.50,'same cliff returns below water level');
   }
   const group=new THREE.Group();
   const plan={masses:hero.heroHeadlands.map(h=>({angle:h.angle})),shelves:[]};
@@ -283,4 +284,20 @@ test('authored hero headlands grow from the SAME coastal surface without changin
   }
   const flat=Array.from({length:coords.count},(_,i)=>coords.getY(i));
   assert.ok(flat.every(y=>Math.abs(y-.01)<1e-5),'no false traversable mountains');
+});
+
+
+test('hero cliff elevation survives neighbors limiting offshore headland expansion',()=>{
+  const floor={x:0,z:0,w:18,d:16},hero=coastlineProfile(floor,'cliff-independent-width',{style:'v2'});
+  const target=hero.points.find(p=>p.t>.10&&p.t<.28&&p.beach<.15);
+  assert.ok(target,'exposed rock point should exist');
+  const baseline=target.radial,angle=target.angle;
+  const blockingNeighbor={floor:{x:Math.cos(angle)*12,z:Math.sin(angle)*12}};
+  authorHeroIslandCoast(hero,{rockAngles:[angle],neighborProfiles:[blockingNeighbor]});
+  const p=hero.points.find(x=>x.angle===angle);
+  assert.ok(Math.abs(p.radial-baseline)<.02,'neighbor prevents offshore cliff footprint expansion');
+  assert.ok(p.heroRelief>.15,'cliff elevation remains visible despite width constraint');
+  const shore=coastRingData(hero),i=hero.points.indexOf(p),n=hero.points.length;
+  assert.ok(shore.positions[(6*n+i)*3+1]>.34,'granite crown must rise without growing offshore');
+  assert.ok(Math.abs(shore.positions[i*3+1]-.01)<1e-5,'traversable floor seam stays flat');
 });
