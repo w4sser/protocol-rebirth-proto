@@ -35,9 +35,10 @@ jobs:
           npm i --no-save puppeteer
       - name: Guard actor coastline and visual-only geometry
         run: node --test nodspel/tests/archipelago-bedrock-v2.test.mjs nodspel/tests/archipelago-visual-v2.test.mjs
-      - name: Capture real raid camera BEFORE and AFTER in HIGH / LOW
+      - name: Capture current raid camera HIGH / LOW and the original visual target
         env:
           OUT: verify-out/archipelago-v2-parity
+          ONLY_AFTER: '1'
         run: node scripts/shot-archipelago-v2.mjs
       - uses: actions/upload-artifact@v4
         if: always()
