@@ -291,6 +291,7 @@ export function setArchipelagoPineOpacity(tree,opacity){
         faded=mesh.userData.pineOpaqueMaterial.clone();
         faded.transparent=true;
         faded.depthWrite=false;
+        faded.userData.shared=false;
         mesh.userData.pineFadeMaterial=faded;
       }
       faded.opacity=a;
