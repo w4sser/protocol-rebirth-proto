@@ -183,24 +183,24 @@ function naturalCoverV2(rect,{kind='boulder',tone=0}={}){
   g.userData.collider=rect;
   g.userData.visualHeight=h;
   if(kind==='windfall'){
-    const diameter=Math.min(rect.w,rect.d)*.38;
+    const diameter=Math.min(rect.w,rect.d)*.86;
     const length=Math.max(rect.w,rect.d)*.89;
     const trunk=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
-    trunk.position.y=diameter*.95;
+    trunk.position.y=diameter*.43;
     trunk.rotation[longX?'z':'x']=Math.PI*.5;
-    trunk.scale.set(diameter,length,diameter);
+    trunk.scale.set(diameter/.76,length,diameter/.76);
     trunk.castShadow=trunk.receiveShadow=true;
     g.add(trunk);
     const roots=new THREE.Mesh(V2_COVER_STONE,V2_ROOT_MAT);
-    roots.position.set(longX?-length*.37:0,diameter*.94,longX?0:-length*.37);
-    roots.scale.set(diameter*.98,Math.min(h*.48,diameter*1.22),diameter*.93);
+    roots.position.set(longX?-length*.30:0,diameter*.39,longX?0:-length*.30);
+    roots.scale.set(diameter*.36,Math.min(h*.46,diameter*.46),diameter*.35);
     roots.castShadow=roots.receiveShadow=true;g.add(roots);
     // A short broken branch reads as windfall rather than a cylinder crate.
     const broken=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
-    broken.position.set(longX?length*.15:diameter*.65,diameter*1.08,
-      longX?diameter*.65:length*.15);
+    broken.position.set(longX?length*.15:diameter*.14,diameter*.73,
+      longX?diameter*.14:length*.15);
     broken.rotation[longX?'x':'z']=.43;
-    broken.scale.set(diameter*.26,diameter*1.7,diameter*.26);
+    broken.scale.set(diameter*.16,diameter*.52,diameter*.16);
     broken.castShadow=true;g.add(broken);
   }else{
     const stone=new THREE.Mesh(V2_COVER_STONE,V2_COVER_STONE_MAT[tone%2]);
@@ -208,7 +208,7 @@ function naturalCoverV2(rect,{kind='boulder',tone=0}={}){
     // Horizontal scale and height are restrained: this is an isolated erratic,
     // not a mountain or a raised traversable island landform.
     stone.scale.set(rect.w*.52,h*.49,rect.d*.52);
-    stone.rotation.y=.20+tone*.71;
+    stone.rotation.y=tone%2===0?.07:-.09;
     stone.castShadow=stone.receiveShadow=true;g.add(stone);
   }
   return g;
@@ -257,8 +257,8 @@ function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
     for(let i=0;i<pieces;i++){
       const offset=low+span*(i+.5)/pieces;
       const pieceLength=Math.min(2.15,span/pieces*.76);
-      // Stagger a small pair of derelict defence blocks instead of painting
-      // another long, straight fence across the island.
+      // Stagger a small pair of natural obstacles instead of painting
+      // a straight stone or concrete barrier across the island.
       const stagger=pieces===2?(i===0?-.28:.28):0;
       const crossWidth=Math.max(.72,Math.min(1.04,(alongX?w.d:w.w)+.42));
       const rect={
