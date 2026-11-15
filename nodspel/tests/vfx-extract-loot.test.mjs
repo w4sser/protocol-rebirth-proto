@@ -66,15 +66,16 @@ test('loot burst pool: quality scales sparkle capacity; spawn fills a fixed slic
   high.dispose();low.dispose();
 });
 
-test('loot burst: sparkles launch upward with gravity, then home toward the target, finishing around the target within ~0.5s',()=>{
+test('loot burst: sparkles launch upward with gravity, then home toward the target, finishing around the target within ~0.7s',()=>{
   const fx=createLootBurstPool({quality:'high'});
   fx.spawn(0,0,0,'#ffd04a');
   fx.update(.05,5,1,0); // early: still in the gravity pop-up phase
   const earlyY=fx.positions[1];
   assert.ok(earlyY>0,'sparkle rises off the ground during the gravity phase');
-  for(let i=0;i<9;i++)fx.update(.05,5,1,0); // t=0.5s: still inside the ~0.5s homing window
+  for(let i=0;i<12;i++)fx.update(.05,5,1,0);
+  fx.update(.03,5,1,0); // t=0.68s: approaching the chest
   const o=0,px=fx.positions[o],py=fx.positions[o+1],pz=fx.positions[o+2];
-  assert.ok(Math.abs(px-5)<.1&&Math.abs(py-1)<.1&&Math.abs(pz-0)<.1,`sparkle should have homed to the target, got ${px},${py},${pz}`);
+  assert.ok(Math.abs(px-5)<.12&&Math.abs(py-1)<.2&&Math.abs(pz-0)<.12,`sparkle should have homed to the target, got ${px},${py},${pz}`);
   assert.equal(fx.alive[0],1,'still alive right at the end of its homing window');
   fx.update(.1,5,1,0); // push past the lifetime
   assert.equal(fx.alive[0],0,'sparkle deactivates once its lifetime is over');
@@ -186,4 +187,23 @@ test('extraction layers add height, taper, a core and a repeating floor pulse wi
   let disposed=0;
   for(const mesh of [fx.core,fx.fence,fx.rim])for(const resource of [mesh.geometry,mesh.material])resource.addEventListener('dispose',()=>disposed++);
   fx.dispose();fx.dispose();assert.equal(disposed,6);
+});
+
+
+test('pickup fountain clears the loot, retains its origin, and finishes with a pooled chest flash',()=>{
+  const fx=createLootBurstPool();fx.spawn(3,.5,4);
+  const slot=fx.rings[0];assert.equal(slot.pillar.visible,true);
+  assert.equal(slot.pillar.position.x,3);assert.equal(slot.pillar.position.z,4);
+  fx.update(.25,3,1,4);
+  assert.ok(fx.positions[1]>=1.4,'fountain rises about 1.2m above the pickup');
+  let spread=0;for(let i=0;i<fx.perBurst;i++)spread=Math.max(spread,Math.hypot(fx.positions[i*3]-3,fx.positions[i*3+2]-4));
+  assert.ok(spread>.8,'arc spreads clear of the player silhouette');
+  fx.update(.2,3,1,4);assert.equal(slot.pillar.visible,false);
+  assert.ok(slot.mesh.scale.x>2,'shockwave expands at the loot spot');
+  fx.update(.2,6,1.3,7);assert.equal(slot.flash.visible,true);
+  assert.deepEqual(slot.flash.position.toArray(),[6,1.3,7]);
+  fx.update(.15,6,1.3,7);assert.equal(slot.flash.visible,false);assert.equal(slot.active,false);
+  fx.spawn(0,.5,0);fx.setQuality('low');assert.ok(fx.rings.every(r=>!r.pillar.visible&&!r.flash.visible));
+  let disposed=0;for(const resource of [slot.pillar.geometry,slot.pillar.material,slot.flash.geometry,slot.flash.material])resource.addEventListener('dispose',()=>disposed++);
+  fx.dispose();fx.dispose();assert.equal(disposed,4);
 });
