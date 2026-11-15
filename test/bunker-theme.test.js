@@ -33,7 +33,15 @@ test('Web Audio only across base, engine and splash',()=>{
   }
   const audioSrc=fs.readFileSync(require.resolve('../ui/audio.js'),'utf8');
   const sync=(audioSrc.match(/unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
-  assert.match(sync,/audioSession\s*[.=]/,'unlockSync must opt into navigator.audioSession playback category');
+  assert.match(sync,/audioSession\s*[.=]/,'unlockSync must opt into navigator.audioSession');
+  // PRB-159 (Robert's report: "the music keeps playing even after the app is closed"): PRB-158
+  // set 'playback' to beat the silent switch, but 'playback' also enables background audio.
+  // unlockSync must opt into 'ambient' (respects the silent switch, no background playback) and
+  // 'playback' must never appear anywhere in this file -- background suspend is handled
+  // ourselves instead, via suspendForHidden() on hidden/pagehide/freeze.
+  assert.match(sync,/audioSession\.type\s*=\s*['"]ambient['"]/,"unlockSync must set navigator.audioSession.type = 'ambient'");
+  assert.doesNotMatch(audioSrc,/audioSession\.type\s*=\s*['"]playback['"]/,"ui/audio.js must never set audioSession.type to 'playback' (PRB-159 background-audio regression)");
+  assert.match(audioSrc,/suspendForHidden/,'ui/audio.js must suspend the context itself on hidden/pagehide/freeze (suspendForHidden)');
 });
 test('theme loads only after unlock, fades independently of the music volume, and stops at fade end',async()=>{
   const f=fixture(),a=f.audio;a.music('bunker-theme',1.5);

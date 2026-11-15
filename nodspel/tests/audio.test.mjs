@@ -32,6 +32,7 @@ class FakeContext{
   createGain(){return new Gain();}
   createBufferSource(){const s=new Source();this.sources.push(s);return s;}
   async resume(){this.state='running';}
+  suspend(){this.state='suspended';this.onstatechange?.();return Promise.resolve();}
   async decodeAudioData(){this.decodes++;return {duration:1};}
 }
 function fixture(extra={}){
@@ -408,17 +409,52 @@ test('unknown shot uses carbine and synthesis errors return false',async()=>{
   a.shotBuffer=()=>{throw Error('synthesis');};f.advance(100);assert.equal(await a.play('shoot-unknown'),false);
 });
 
-// PRB-158: iOS 17+ mutes Web Audio under the silent switch unless the session category is
-// 'playback' (default 'ambient'). unlockSync() -- the one call guaranteed to run inside the
-// trusted gesture -- opts in; feature-detected and wrapped, so its absence/failure is harmless.
-test('unlockSync opts into the playback audio session so the silent switch cannot mute the game',()=>{
-  const audioSession={type:'ambient'},a=fixture({navigator:{audioSession}}).audio;
+// PRB-158 opted into the 'playback' session category to beat the silent switch, but 'playback'
+// also enables *background* audio -- PRB-159 (Robert's iPhone playtest of v2.28.37): "the music
+// keeps playing even after the app is closed." Fixed by setting 'ambient' explicitly (iOS's own
+// default, but set here so a future platform default change can't silently reopen this) and
+// suspending the context ourselves on hidden/pagehide/freeze instead (see suspendForHidden()).
+test('unlockSync opts into the ambient audio session, never playback (PRB-159: playback kept music running in the background)',()=>{
+  const audioSession={type:'playback'},a=fixture({navigator:{audioSession}}).audio;
   assert.equal(a.unlockSync(),true);
-  assert.equal(audioSession.type,'playback');
+  assert.equal(audioSession.type,'ambient','unlockSync must actively reset the category to ambient, not just leave it alone');
   const blocked=fixture({navigator:{audioSession:{set type(value){throw Error('unsupported');}}}}).audio;
   assert.equal(blocked.unlockSync(),true,'a setter that throws is harmless');
   const none=fixture({navigator:{}}).audio;
   assert.equal(none.unlockSync(),true,'no audioSession API at all is harmless');
+});
+
+// PRB-159 regression fix: hidden/pagehide/freeze must stop any playing loop (desiredMusic stays
+// set so it restarts) and suspend the context itself, and no play()/voice()/loop() may resume or
+// start anything while hidden -- that gap (plus the 'playback' category above) is exactly how
+// music kept running after the app was closed/backgrounded.
+// play()/voice()/loop()/resume()/armUnlockWait()/drainPending() all read the real global
+// `document.visibilityState` (there is only one document per page) -- so unlike every other
+// installUnlock() test in this file, this one must install onto a target whose `.document` IS
+// the same stub this test puts on globalThis.document, not an unrelated fake object.
+test('hidden suspends the context and stops loops; visible resumes and restarts desired music; nothing plays while hidden',async()=>{
+  const fakeDocument={visibilityState:'visible',listeners:new Map(),addEventListener(name,fn){this.listeners.set(name,fn);},querySelectorAll(){return [];}};
+  const previousDocument=globalThis.document;globalThis.document=fakeDocument;
+  try{
+    const f=fixture(),a=f.audio,target={addEventListener(){},document:fakeDocument};
+    a.installUnlock(target);await a.unlock();a.music('pulse');await a.loop('music','pulse');
+    assert.equal(a.loops.get('music').name,'pulse');
+    fakeDocument.visibilityState='hidden';fakeDocument.listeners.get('visibilitychange')();
+    assert.equal(a.context.state,'suspended');assert.equal(a.loops.size,0);assert.equal(a.desiredMusic,true,'desiredMusic survives so music comes back');
+    assert.equal(await a.play('ui-tap'),false,'nothing plays while hidden');
+    assert.equal(await a.voice('nice-shot'),false,'no voice while hidden');
+    fakeDocument.visibilityState='visible';fakeDocument.listeners.get('visibilitychange')();
+    await new Promise(r=>setTimeout(r,0));
+    assert.equal(a.context.state,'running');assert.equal(a.loops.get('music')?.name,'pulse','music restarts once visible again');
+  }finally{if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument;}
+});
+test('pagehide and freeze suspend the same way as hidden, without a visibilitychange event',async()=>{
+  for(const type of ['pagehide','freeze']){
+    const f=fixture(),a=f.audio,listeners=new Map(),target={visibilityState:'visible',addEventListener:(name,fn)=>listeners.set(name,fn)};
+    a.installUnlock(target);await a.unlock();assert.equal(a.context.state,'running');
+    listeners.get(type)();
+    assert.equal(a.context.state,'suspended',type+' must suspend the context');
+  }
 });
 
  test('activation listeners capture on window and resume synchronously before handler returns',()=>{

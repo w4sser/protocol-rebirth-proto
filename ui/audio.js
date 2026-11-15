@@ -495,8 +495,8 @@
     // fails (or hangs) on most versions, so every SFX/VO fetched+decoded .ogg, failed, then
     // fetched+decoded .m4a too: double the network/decode work for every one of the ~56 files,
     // racing (and often losing to) the 2.5s raceLoad cap. Build a real probe here: a detached
-    // <audio> element's canPlayType(), never inserted into the DOM or played (Web Audio decoding
-    // only, same as every other AudioManager construction in this codebase/its tests).
+    // detached audio element's canPlayType(), never inserted into the DOM or played (Web Audio
+    // decoding only, same as every other AudioManager construction in this codebase/its tests).
     const probe=typeof document!=='undefined'&&document.createElement?document.createElement('audio'):null;
     root.PR_AUDIO=new AudioManager(root.DATA.audio,probe?{probe}:{});
     if(typeof document!=='undefined')root.PR_AUDIO.installUnlock(window);
