@@ -266,3 +266,7 @@ replaces the reward/summary, while unrelated popup close actions remain cancelle
 isWarm(id) query lets the benchmark observe production decoding without holding harness Images
 on AFTER. BEFORE is manually warmed to isolate the old waits. Three fresh-browser trials at each
 viewport report medians and retain raw timings; cold-open timing requires the real splash finish.
+
+Use node scripts/cutscene-latency.mjs --screenshots-only for a separate early-frame capture pass.
+It requests Core/Fabricator screenshots near 50ms without perturbing the benchmark trials,
+and records actual screenshot request times in shot-times.json beside latency.json.
