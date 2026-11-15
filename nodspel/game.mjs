@@ -1820,7 +1820,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
   // hot-ok: logCombat payload only on the one-time recon reveal
-  for(const v of world.lootBoxes){if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
+  for(const v of world.lootBoxes){if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.spawnLootBurst?.(v.loot.x,.5,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);
@@ -1878,7 +1878,7 @@ hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
   }
   sun.position.copy(target).add(SUN_OFFSET);sun.target.position.copy(target);
-  world.house?.update(position,dt);world.animate(elapsed);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
+  world.house?.update(position,dt);world.animate(elapsed,position);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
 }
 // Do not reveal the ordinary green fallback and switch to textured ground a
 // second later. Keep the existing boot loader over the scene until the selected

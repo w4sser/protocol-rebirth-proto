@@ -110,5 +110,6 @@ export function createExtractBeam({color='#3FE0D0',quality='high'}={}){
     pad.material.dispose();contact.material.dispose();for(const r of pulseRings)r.material.dispose();
     beamMaterial.dispose();pointsMaterial.dispose();
   }
-  return {group,update,dispose,isOpen:()=>open};
+  return {group,update,dispose,isOpen:()=>open,
+    pad,contact,pulseRings,beam,beamMaterial,points,particleCount:count,noise:tier.noise};
 }

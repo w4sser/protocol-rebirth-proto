@@ -84,5 +84,6 @@ export function createLootBurstPool({quality='high'}={}){
     pointsGeo.dispose();pointsMaterial.dispose();ringGeo.dispose();
     for(const r of rings)r.mesh.material.dispose();
   }
-  return {group,spawn,update,dispose,capacity};
+  return {group,spawn,update,dispose,capacity,points,rings,perBurst:tier.perBurst,
+    positions,alive};
 }
