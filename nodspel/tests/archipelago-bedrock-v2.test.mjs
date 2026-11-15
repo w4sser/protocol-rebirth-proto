@@ -339,3 +339,22 @@ test('Pass K has localized granite headlands, not a continuous coastal retaining
   assert.ok(shore.colors.every(c=>Number.isFinite(c)&&c>=0&&c<=1),
     'weathered stone material has valid linear vertex colors');
 });
+
+test('Pass M sculpted knuckles are distinct across shore while the actor seam remains planar',()=>{
+  const f={x:0,z:0,w:28,d:24};
+  const profile=coastlineProfile(f,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(profile,{rockAngles:[.15,2.52,4.85]});
+  const coast=coastRingData(profile),n=profile.points.length;
+  const h=Array.from({length:n},(_,i)=>coast.positions[(7*n+i)*3+1]);
+  const high=h.filter(v=>v>1.1).length,low=h.filter(v=>v<.40).length;
+  assert.ok(high>=6,'several broad granite crown sections must rise above the water');
+  assert.ok(low>=Math.ceil(n*.34),'at least a third of the coastal perimeter should remain low');
+  const peak=Math.max(...h),min=Math.min(...h);
+  assert.ok(peak-min>1.5,'separated high and low coastal forms are legible from the gameplay camera');
+  for(let i=0;i<n;i++){
+    assert.ok(Math.abs(coast.positions[i*3+1]-.01)<1e-5,'no raised playable interior');
+    const toe=(13*n+i)*3+1;
+    assert.ok(Math.abs(coast.positions[toe]+.65)<1e-5,'no disconnected seawall or new water seam');
+  }
+  assert.equal(coast.indices.length,n*(coast.rings-1)*6,'each shoreline remains a single indexed manifold');
+});
