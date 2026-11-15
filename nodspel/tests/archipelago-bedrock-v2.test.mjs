@@ -42,11 +42,12 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
   const mesh=art.addArchipelagoGraniteV2(profile,group);
   assert.equal(mesh.name,'arch-v2-glacial-shelves');
   assert.ok(mesh.geometry.getAttribute('color'),'geological color variation');
-  assert.ok(mesh.geometry.getAttribute('position').count>800,'stepped granite has broad layered shoulders');
-  const positions=mesh.geometry.getAttribute('position'),sides=41;
-  const lowerShoulder=positions.getX(7*sides)-positions.getX(8*sides);
-  const upperShoulder=positions.getX(16*sides)-positions.getX(17*sides);
-  assert.ok(lowerShoulder>.025&&upperShoulder>.025,'cliffs must have at least two visible stone terraces');
+  assert.ok(mesh.geometry.getAttribute('position').count>700,'chunky stone blocks have rounded sides and broad crowns');
+  const vertices=mesh.geometry.getAttribute('position'),heights=[.576,.804,.995];
+  for(const top of heights){
+    const count=Array.from({length:vertices.count},(_,i)=>vertices.getY(i)).filter(y=>Math.abs(y-top)<.007).length;
+    assert.ok(count>20,'each of three offset rock caps has a broad top');
+  }
   assert.ok(group.children.length<=3,'instanced major masses and shelves');
   assert.equal(mesh.geometry.userData.shared,true,'sculpted geometry survives world rebuilds');
   assert.ok(group.children.every(m=>m.material.userData.shared));
