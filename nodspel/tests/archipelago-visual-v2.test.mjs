@@ -6,6 +6,7 @@ import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipel
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago} from '../archipelago.js';
+import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
 
 const F={x:0,z:0,w:12,d:12};
 
@@ -70,6 +71,9 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     assert.equal(granite.length,islands.length);
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
+    assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
+    assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
+      'all v2 boats use the sculpted dinghy, never a rectangular placeholder');
     const water=group.children.find(o=>o.name==='water');
     assert.equal(water.material.uniforms.cSky.value.getHexString(),'958c9a');
     assert.ok(!level.walls.some(w=>w.shore),'obsolete rectangular shoreline collider removed');
@@ -87,4 +91,50 @@ test('legacy Archipelago mode retains rectangle-based physics',()=>{
   assert.ok(!isPointOnFloor(f,6.1,0));
   const moved=movePlayer({x:5.1,z:0},{x:2,z:0},[],[f],.25);
   assert.ok(moved.x<=5.9);
+});
+
+test('boat hull is an open, pointed dinghy rather than a rectangular box',()=>{
+  const boat=createArchipelagoDinghyV2({x:4,z:-3,rotation:.4});
+  assert.equal(boat.name,'arch-v2-coastal-dinghy');
+  assert.equal(boat.userData.visualOnly,true);
+  assert.equal(boat.userData.collider,undefined);
+  assert.equal(boat.children[0].name,'arch-v2-tapered-hull');
+  const geom=boat.children[0].geometry,points=geom.getAttribute('position');
+  assert.ok(points.count>40,'the boat has a shaped hull and visible open interior');
+  assert.ok(boat.children.length>=3,'a recognizable interior and wooden seats');
+  const atBow=[];
+  for(let i=0;i<11;i++)if(points.getZ(i)>1.3)atBow.push(Math.abs(points.getX(i)));
+  assert.ok(Math.max(...atBow)<.5,'the bow must taper to a point');
+  assert.equal(boat.position.y,-.35,'hull floats at the actual water plane');
+  assert.equal(geom.userData.shared,true,'reuse hull geometry without leaking on rebuild');
+});
+
+test('nearshore dinghies always float outside organic land, bridges and other boats',()=>{
+  for(const seed of ['archipelago-v2-target','review-1','review-21','bridge-water','cove-02'])
+    for(const depth of [1,2,3]){
+      const level=generateLevel(depth,seed,'archipelago');
+      const profiles=level.floors.filter(f=>!f.dir).map(f=>coastlineProfile(f,level.seed,{style:'v2',neighbors:level.floors}));
+      const high=planArchipelagoBoatsV2(profiles,level.floors,level.seed),low=planArchipelagoBoatsV2(profiles,level.floors,level.seed);
+      assert.deepEqual(high,low,'boat placement must not vary with quality, FPS or boot order');
+      assert.ok(high.length>=1&&high.length<=3,seed+'/'+depth+' should have one to three boats');
+      for(const boat of high){
+        assert.ok(Number.isFinite(boat.rotation));
+        assert.ok(boat.shoreDistance>2.30,'conservative water gap keeps hull on water');
+        for(const profile of profiles){
+          assert.ok(distanceToIsland(boat.x,boat.z,profile.points)>2.30,
+            seed+'/'+depth+' hull overlaps the true island shoreline');
+          for(let n=0;n<16;n++){
+            const a=n/16*Math.PI*2,px=boat.x+Math.cos(a)*1.82,pz=boat.z+Math.sin(a)*1.82;
+            assert.ok(distanceToIsland(px,pz,profile.points)>.25,
+              seed+'/'+depth+' hull perimeter intersects land');
+          }
+        }
+        for(const f of level.floors.filter(f=>f.dir)){
+          const dx=Math.max(Math.abs(boat.x-f.x)-f.w/2,0),dz=Math.max(Math.abs(boat.z-f.z)-f.d/2,0);
+          assert.ok(Math.hypot(dx,dz)>2.30,'boat must clear bridge and pier footprints');
+        }
+      }
+      for(let i=0;i<high.length;i++)for(let j=i+1;j<high.length;j++)
+        assert.ok(Math.hypot(high[i].x-high[j].x,high[i].z-high[j].z)>5.0,'dinghies cannot overlap');
+    }
 });
