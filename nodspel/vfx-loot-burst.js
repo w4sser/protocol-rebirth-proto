@@ -48,8 +48,8 @@ export function createLootBurstPool({quality='high'}={}){
       const slot=(cursor+k)%capacity;
       alive[slot]=1;age[slot]=0;
       ox[slot]=x;oy[slot]=y;oz[slot]=z;
-      const angle=(k/n)*Math.PI*2+Math.random()*.6,speed=1.1+Math.random()*1.3;
-      vx[slot]=Math.cos(angle)*speed;vz[slot]=Math.sin(angle)*speed;vy[slot]=2.1+Math.random()*1.1;
+      const angle=(k/n)*Math.PI*2+Math.random()*.6,speed=3.5+Math.random()*2.5;
+      vx[slot]=Math.cos(angle)*speed;vz[slot]=Math.sin(angle)*speed;vy[slot]=3.2+Math.random()*1.1;
       baseColor[slot*3]=c.r;baseColor[slot*3+1]=c.g;baseColor[slot*3+2]=c.b;
     }
     cursor=(cursor+n)%capacity;
