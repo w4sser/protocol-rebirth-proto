@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.32"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.33"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2306,9 +2306,20 @@ SCREENS.intro = function(){
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
     '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
     '</div></div>';
-  // Requested only now that .intro is actually in the DOM: ui/audio.js guards 'youre-back' on
-  // that element being present, so BIT's greeting never replays later onto the summary.
-  void window.PR_AUDIO?.requestVoice('youre-back');
+  // Start the greeting with the first line's reveal, after the splash has uncovered BIT.
+  // Animation timing remains the fallback when audio is muted, blocked or still loading.
+  const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
+  const greet = () => {
+    if(intro.isConnected && !document.body.classList.contains("splash-active"))
+      void window.PR_AUDIO?.requestVoice('youre-back');
+  };
+  firstLine?.addEventListener("animationstart", greet, { once:true });
+  intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
+  if(session.introSkipped || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    if(document.body.classList.contains("splash-active"))
+      window.addEventListener("pr:splash-finished", greet, { once:true });
+    else greet();
+  }
 };
 
 function closestUpgrade(){
@@ -5666,7 +5677,7 @@ function setupSplash(flightPending, returningFromRaid){
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");
-  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer;
+  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer, activationAudio;
   let flightActive = !!flightPending, flightCtl = null;
   const pendingImages = [];
   const reduced = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -5684,6 +5695,8 @@ function setupSplash(flightPending, returningFromRaid){
   const begin = () => {
     if(phase !== "ready") return;
     phase = "descending"; clearTimeout(autoTimer);
+    // resume() may complete after this gesture even though its call and silent prime were synchronous.
+    void Promise.resolve(activationAudio).then(() => window.PR_AUDIO?.play?.("ui-confirm"));
     void window.PR_AUDIO_PLAY?.();
     sp.setAttribute("aria-label", "Skip bunker entrance");
     if(reduced()){
@@ -5700,23 +5713,27 @@ function setupSplash(flightPending, returningFromRaid){
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
+    // v2.28.33: the pulsing "TAP ANYWHERE TO BEGIN" prompt stays invisible until the art and the
+    // SFX/VO preload (or the same ~2.5s fallback below) are both done, so it never promises sound
+    // that isn't decoded yet -- see ui/audio.js preload() and the loadTimer fallback above.
+    sp.classList.add("prompt-ready");
     if(requested) proceed();
     else if(!flightActive) autoTimer = setTimeout(begin, 1400);
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
-  // v2.21.1: the first tap on the landscape itself (not PLAY) only unlocks audio so the theme plays
-  // over the water; PLAY / keyboard / a second tap enters. Autoplay-permitted browsers start at once.
+  // v2.28.33 single start-screen prompt: PLAY is gone, so the one tap both unlocks audio
+  // (synchronously, inside this gesture -- see ui/audio.js unlockSync()) and begins/enters;
+  // there is no longer a first-tap-just-unlocks step. Keyboard (Enter/Space on #splash,
+  // which already carries role=button tabindex=0) reaches the same activate().
   const activate = (e) => {
-    const audioOn = !!window.PR_AUDIO?.unlocked;
-    void window.PR_AUDIO?.unlock();
-    if(e && e.type === "click" && !audioOn && phase !== "descending" && !(e.target && e.target.closest && e.target.closest("#splash-play")) && window.PR_AUDIO){ return; }
+    void window.PR_AUDIO?.unlockSync?.();
+    activationAudio = window.PR_AUDIO?.unlock?.();
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;
     if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
-  void window.PR_AUDIO?.unlock?.();
   document.addEventListener("visibilitychange", onVisibility);
   sp.addEventListener("click", activate);
   sp.addEventListener("keydown", e => {
@@ -5729,7 +5746,10 @@ function setupSplash(flightPending, returningFromRaid){
   });
   const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
     D.baseMap.plates[bunkerStage()].art];
-  let remaining = art.length;
+  // +1: the SFX/VO preload/decode (ui/audio.js preload()) gates "ready" alongside the artwork --
+  // both need a suspended AudioContext that unlockSync() can resume synchronously on the first
+  // tap, with no further decode work left to race against ENTER THE FACILITY on the cold open.
+  let remaining = art.length + 1;
   for(const src of art){
     const img = new Image(); pendingImages.push(img);
     let settled = false;
@@ -5739,6 +5759,10 @@ function setupSplash(flightPending, returningFromRaid){
     };
     img.src = src;
     if(img.complete) img.onload();
+  }
+  { let settled = false; const settle = () => { if(settled) return; settled = true; if(--remaining === 0) ready(); };
+    const preload = window.PR_AUDIO?.preload;
+    if(preload) void preload.call(window.PR_AUDIO).then(settle, settle); else settle();
   }
   if(phase === "loading") loadTimer = setTimeout(ready, 2500);
   return {
