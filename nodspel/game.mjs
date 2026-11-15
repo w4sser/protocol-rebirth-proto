@@ -140,6 +140,7 @@ function setGraphicsQuality(next){
   QUALITY=next;try{localStorage.setItem('nodeRaid.quality',next);}catch{}
   document.documentElement.dataset.quality=next;
   pixelFX.setQuality(next);
+  world?.setVfxQuality(next);
   // v2.22.3 perf: pixel ratio and the shadow pass are the biggest per-frame GPU costs; apply them now instead of
   // only on next boot, so a Low switch (manual or the fps watchdog) actually makes the raid lighter.
   {const s=qualitySettings(next);renderer.setPixelRatio(Math.min(devicePixelRatio,s.pixelRatio));renderer.setSize(viewWidth,viewHeight);
@@ -1043,6 +1044,7 @@ function finishRound(outcome=round.reason){
   if(resultReturning)return;
   if(!$('#round-over').hidden&&!resultPending)return;
   resultPending=outcome==='extraction'&&!round.over;
+  if(round.over)world?.disposeVfx();
   if(round.over)audioEvent('result',{success:['extract','complete'].includes(round.reason)});
   // DDA signal (docs/difficulty-bots.md §3): recorded once per finished raid, never for FTUE/intro.
   // enemiesDefeated/elapsed time stands in for the sim's per-kill TTK -- the real raid has no
@@ -1878,7 +1880,7 @@ hit=>hit.object.isMesh&&(Array.isArray(hit.object.material)?hit.object.material:
     if(cross.group.visible){const life=(elapsed/ .65+cross.phase)%1,angle=cross.phase*Math.PI*2;cross.group.position.set(position.x+Math.cos(angle)*.9,.45+life*1.25,position.z+Math.sin(angle)*.9);cross.group.quaternion.copy(camera.quaternion);cross.material.opacity=Math.sin(life*Math.PI);cross.group.scale.setScalar(.8+life*.25);}
   }
   sun.position.copy(target).add(SUN_OFFSET);sun.target.position.copy(target);
-  world.house?.update(position,dt);world.animate(elapsed,position);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
+  world.house?.update(position,dt);world.animate(elapsed,position,round);renderEncounterLabels(clock);renderLabels();renderWeaponHUD(clock);renderStakesHUD(clock);bigRuntime?.render(round,position,labels);renderFrame(dt);requestAnimationFrame(frame);
 }
 // Do not reveal the ordinary green fallback and switch to textured ground a
 // second later. Keep the existing boot loader over the scene until the selected

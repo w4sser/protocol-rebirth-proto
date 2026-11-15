@@ -19,18 +19,18 @@ test('extract beam builds a shaded volumetric cylinder, decal and rising particl
   assert.equal(low.beamMaterial.uniforms.uNoise.value,0,'low quality drops the shader noise');
   assert.ok(low.particleCount<high.particleCount,'low quality has fewer rising particles');
   assert.ok(high.particleCount>=40&&high.particleCount<=80&&low.particleCount>=40&&low.particleCount<=80);
-  assert.equal(high.points.geometry.attributes.position.count,high.particleCount);
+  assert.equal(high.points.geometry.drawRange.count,high.particleCount);
   high.dispose();low.dispose();
 });
 
 test('extract beam stays hidden while closed and intensifies with approach progress while open',()=>{
   const fx=createExtractBeam({quality:'high'});
-  fx.update(0,{open:false,progress:0});
+  fx.update(0,false,0);
   assert.equal(fx.beam.visible,false);assert.equal(fx.pad.visible,false);assert.equal(fx.contact.visible,false);assert.equal(fx.points.visible,false);
-  fx.update(1,{open:true,progress:0});
+  fx.update(1,true,0);
   assert.equal(fx.beam.visible,true);
   const lowIntensity=fx.beamMaterial.uniforms.uIntensity.value,padLow=fx.pad.material.opacity;
-  fx.update(1.001,{open:true,progress:1});
+  fx.update(1.001,true,1);
   assert.ok(fx.beamMaterial.uniforms.uIntensity.value>lowIntensity,'beam brightens as extraction progress rises');
   assert.ok(fx.pad.material.opacity>=padLow,'ground pad brightens too');
   for(let i=0;i<fx.particleCount*3;i++)assert.ok(Number.isFinite(fx.points.geometry.attributes.position.array[i]),'no NaN in particle positions');
@@ -55,11 +55,12 @@ test('extract beam shares the one procedural soft-dot texture across instances (
 
 test('loot burst pool: quality scales sparkle capacity; spawn fills a fixed slice of the pool, never growing an array',()=>{
   const high=createLootBurstPool({quality:'high'}),low=createLootBurstPool({quality:'low'});
-  assert.ok(low.capacity<high.capacity);
-  assert.equal(high.points.geometry.attributes.position.count,high.capacity);
-  const before=high.points.geometry.attributes.position.array;
+  assert.ok(low.perBurst<high.perBurst);
+  assert.ok(high.points.isInstancedMesh);
+  assert.equal(high.points.count,high.capacity);
+  const before=high.positions;
   high.spawn(1,.5,2,'#3d8bff');
-  assert.equal(high.points.geometry.attributes.position.array,before,'update/spawn reuse the same typed array (pooled, not reallocated)');
+  assert.equal(high.positions,before,'update/spawn reuse the same typed array (pooled, not reallocated)');
   let activeAfterSpawn=0;for(let i=0;i<high.capacity;i++)activeAfterSpawn+=high.alive[i];
   assert.equal(activeAfterSpawn,high.perBurst,'exactly one burst worth of sparkles went active');
   high.dispose();low.dispose();
@@ -69,10 +70,10 @@ test('loot burst: sparkles launch upward with gravity, then home toward the targ
   const fx=createLootBurstPool({quality:'high'});
   fx.spawn(0,0,0,'#ffd04a');
   fx.update(.05,5,1,0); // early: still in the gravity pop-up phase
-  const earlyY=fx.points.geometry.attributes.position.array[1];
+  const earlyY=fx.positions[1];
   assert.ok(earlyY>0,'sparkle rises off the ground during the gravity phase');
   for(let i=0;i<9;i++)fx.update(.05,5,1,0); // t=0.5s: still inside the ~0.5s homing window
-  const o=0,px=fx.points.geometry.attributes.position.array[o],py=fx.points.geometry.attributes.position.array[o+1],pz=fx.points.geometry.attributes.position.array[o+2];
+  const o=0,px=fx.positions[o],py=fx.positions[o+1],pz=fx.positions[o+2];
   assert.ok(Math.abs(px-5)<.1&&Math.abs(py-1)<.1&&Math.abs(pz-0)<.1,`sparkle should have homed to the target, got ${px},${py},${pz}`);
   assert.equal(fx.alive[0],1,'still alive right at the end of its homing window');
   fx.update(.1,5,1,0); // push past the lifetime
@@ -120,4 +121,51 @@ test('the extraction beam replaces the old flat exitBeam/exitPad cylinder+plane 
   assert.match(src,/createExtractBeam\(/);
   assert.match(src,/createLootBurstPool\(/);
   assert.doesNotMatch(src,/new THREE\.CylinderGeometry\(\.9,\s*1\.1,\s*1,\s*20,\s*1,\s*true\)/,'the old flat exitBeam cylinder must stay removed');
+});
+
+import {lintSource} from '../../scripts/hot-alloc-lint.mjs';
+import {generateBigLevel,extractAvailable} from '../big-level.js';
+import {createRoomVisibility} from '../big-level-culling.js';
+
+test('VFX update, spawn and world integration are allocation guarded',async()=>{
+  for(const file of ['vfx-extract-beam.js','vfx-loot-burst.js','world.js']){
+    const src=await readFile(new URL('../'+file,import.meta.url),'utf8');
+    assert.deepEqual(lintSource(src,file),[]);
+  }
+});
+
+test('quality changes reuse buffers, lower counts and remove noise immediately',()=>{
+  const fx=createExtractBeam(),loot=createLootBurstPool();
+  const buffer=fx.points.geometry.attributes.position.array,matrix=loot.points.instanceMatrix.array;
+  loot.spawn(0,.5,0);loot.update(.1,1,1,0);
+  fx.setQuality('low');loot.setQuality('low');
+  assert.equal(fx.particleCount,40);assert.equal(fx.beamMaterial.uniforms.uNoise.value,0);
+  assert.equal(loot.perBurst,12);assert.equal(loot.alive.reduce((a,b)=>a+b,0),0);
+  assert.equal(fx.points.geometry.attributes.position.array,buffer);assert.equal(loot.points.instanceMatrix.array,matrix);
+  assert.ok(fx.points.material.size>=2,'orthographic point sizes use visible pixel units');
+  loot.spawn(3,.5,4);assert.equal(loot.rings[0].mesh.position.y,.045,'flash is on the floor');
+  assert.equal(loot.alive.reduce((a,b)=>a+b,0),12);
+  fx.setQuality('high');loot.setQuality('high');assert.equal(fx.particleCount,72);assert.equal(loot.perBurst,22);
+  fx.group.traverse(o=>{if(o.material?.transparent&&o.material.side===THREE.DoubleSide)assert.equal(o.material.forceSinglePass,true);});
+  fx.dispose();loot.dispose();
+});
+
+test('raid-end VFX disposal is idempotent, detaches effects and does not double-dispose at world teardown',()=>{
+  const scene=new THREE.Scene(),w=buildWorld(generateLevel(1,'vfx-end'),scene);
+  let events=0;w.lootBurstFx.points.material.addEventListener('dispose',()=>events++);
+  w.spawnLootBurst(0,.5,0);w.disposeVfx();w.disposeVfx();
+  assert.equal(w.lootBurstFx.group.parent,null);assert.equal(w.extractBeamFx.group.parent,null);
+  w.animate(3,{x:0,z:0});w.dispose();w.dispose();assert.equal(events,1);assert.equal(scene.children.length,0);
+});
+
+test('all big-level exits follow their own availability, and culling preserves the mobile burst pool',()=>{
+  const level=generateBigLevel('vfx-multiple'),scene=new THREE.Scene(),w=buildWorld(level,scene);
+  const round={level,over:false,remainingMs:100000,durationMs:300000,keys:[]};
+  assert.equal(w.extractionEffects.length,level.extracts.length);
+  const cull=createRoomVisibility(level,w);cull(new Set([0]));
+  assert.equal(w.lootBurstFx.group.parent,w.group,'pool is never partitioned by its empty origin');
+  w.animate(1,level.start,round);
+  for(const record of w.extractionEffects)assert.equal(record.fx.isOpen(),extractAvailable(record.point,round));
+  w.setVfxQuality('low');for(const record of w.extractionEffects)assert.equal(record.fx.particleCount,40);
+  w.dispose();
 });

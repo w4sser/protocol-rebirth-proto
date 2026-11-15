@@ -15,6 +15,7 @@ export function createRoomVisibility(level,world){
     world.group.updateMatrixWorld(true);
     for(const child of [...world.group.children]){
       if(registered.has(child))continue;
+      if(child.name==='world-loot-vfx'){registered.add(child);continue;} // pooled sparkles follow pickups across rooms
       if(child.name==='world-light-rig'){registered.add(child);continue;} // never hidden: a fixed light count avoids shader switches
       // Bunker floors and walls are batched across the entire level. Partition instances
       // by room ownership so a visible batch cannot keep sleeping rooms on screen.
