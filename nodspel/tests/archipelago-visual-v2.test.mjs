@@ -194,15 +194,21 @@ test('v2 places high granite only outside the island and preserves open bridge l
       for(const zone of out.rockFreeLandings){
         const crosses=r=>Math.abs(r.x-zone.x)<(r.w+zone.w)/2+1e-5
           &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+1e-5;
-        assert.ok(!level.walls.some(crosses),'bridge landing has no blocking collision');
+        // Rock-free zone is deliberately larger than the hard gameplay clearance.
+        // Short, man-made interior cover may remain beyond the actual landing.
         for(const g of granite)for(const part of [...g.userData.bedrockPlan.masses,...g.userData.bedrockPlan.shelves])
           assert.ok(!crosses(part.bounds),'coastal granite must be outside the enlarged bridge approach');
       }
       // No invisible rock wall: every runtime wall collision is backed by
       // an exactly matching visible manufactured-cover mesh.
       const cover=group.children.filter(o=>o.name==='arch-v2-interior-concrete-cover');
+      for(const zone of out.bridgeClearances){
+        const crosses=r=>Math.abs(r.x-zone.x)<(r.w+zone.w)/2+.28
+          &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+.28;
+        assert.ok(!level.walls.some(crosses),'the physical bridge landing stays clear of blocking cover');
+      }
       const expectedPartitions=originals.filter(w=>isArchipelagoPartitionWallV2(w,level.rooms));
-      assert.ok(cover.length<=expectedPartitions.length*2);
+      assert.ok(cover.length<=expectedPartitions.length*4);
       if(number===2)assert.ok(cover.length>0,'the partition encounter must retain visible cover');
       assert.deepEqual(level.walls,cover.map(m=>m.userData.collider),
         'all blocking walls are exactly the built low-profile concrete cover');
@@ -210,6 +216,15 @@ test('v2 places high granite only outside the island and preserves open bridge l
         assert.ok(m.position.y+m.scale.y/2<1.5,'interior cover must not look like a tall mountain');
         assert.ok(m.children.length>=1,'cover must read as manufactured, not geological');
         assert.ok(m.userData.collider && m.userData.collider.w>0 && m.userData.collider.d>0);
+      }
+      for(const c of level.corridors??[]){
+        const alongX=!!c.dir.x,axis=alongX?'x':'z',length=alongX?c.w:c.d;
+        if(length<1.8)continue;
+        const from={x:c.x-(alongX?length*.5-.7:0),z:c.z-(alongX?0:length*.5-.7)};
+        const delta={x:alongX?length-1.4:0,z:alongX?0:length-1.4};
+        const moved=movePlayer(from,delta,[...level.walls,...level.boxes],level.floors,.36);
+        assert.ok(moved[axis]-from[axis]>length-1.9,
+          'operator must traverse the entire flat bridge deck without cover pinching the route');
       }
       // Navigation remains two dimensional; no authored vertical floor is added.
       assert.ok(level.floors.every(f=>!('y' in f)||f.y===0));

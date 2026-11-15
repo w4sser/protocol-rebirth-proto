@@ -180,37 +180,56 @@ export function archipelagoRockFreeBridgeLandingsV2(bridgeZones){
   }));
 }
 
-function buildInteriorCoverV2(w,group,colliders,rockFreeZones=[]){
+function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
   const alongX=w.w>=w.d,len=Math.max(w.w,w.d);
-  // One or two deliberate man-made obstacles, never an evenly spaced
-  // boulder chain. Keep the authored passage gap and all route clearances.
-  const pieces=len>5.5?2:1,gap=pieces===2?.42:0;
-  const segment=(len-gap)/pieces;
+  const axis=alongX?'x':'z',across=alongX?'z':'x';
+  const crossExtent=alongX?w.d:w.w;
+  // Clip each authored partition's blocking footprint against the REAL
+  // bridge landing. The earlier all-or-nothing overlap check deleted complete
+  // level-two cover runs even if only 20 cm touched the landing.
+  let safe=[[-len/2,len/2]];
+  for(const z of bridgeLandings){
+    const zoneCross=alongX?z.d:z.w;
+    const margin=.50;
+    if(Math.abs(w[across]-z[across])>=(crossExtent+zoneCross)*.5+margin)continue;
+    const mid=z[axis]-w[axis],half=(alongX?z.w:z.d)*.5+margin;
+    safe=safe.flatMap(([low,high])=>{
+      if(mid-half>=high||mid+half<=low)return [[low,high]];
+      const rest=[];
+      if(mid-half>low)rest.push([low,Math.min(high,mid-half)]);
+      if(mid+half<high)rest.push([Math.max(low,mid+half),high]);
+      return rest;
+    });
+  }
   let placed=0;
-  for(let i=0;i<pieces;i++){
-    const offset=-len*.5+segment*(i+.5)+i*gap;
-    const rect={
-      x:w.x+(alongX?offset:0),
-      z:w.z+(alongX?0:offset),
-      w:alongX?segment:Math.max(.52,w.w),
-      d:alongX?Math.max(.52,w.d):segment
-    };
-    // If an authored wall overlaps a bridge mouth, do not leave an invisible
-    // collision wall there. Both the physical and the visual cover are omitted.
-    if(rockFreeZones.some(z=>overlapsRect(rect,z,.35)))continue;
-    const h=Math.max(.95,Math.min(1.25,w.h??1.05));
-    const mesh=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_MAT);
-    mesh.name='arch-v2-interior-concrete-cover';
-    mesh.position.set(rect.x,h*.5-.07,rect.z);
-    mesh.scale.set(rect.w,h,rect.d);
-    mesh.castShadow=true;mesh.receiveShadow=true;
-    const cap=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_TOP);
-    cap.position.y=h*.47;
-    cap.scale.set(.93,.045,.93);
-    cap.castShadow=false;cap.receiveShadow=true;mesh.add(cap);
-    const collider={...rect,h};
-    mesh.userData.collider=collider;
-    colliders.push(collider);group.add(mesh);placed++;
+  for(const [low,high] of safe){
+    const span=high-low;
+    if(span<1.08)continue;
+    const pieces=span>5.5?2:1,gap=pieces===2?.42:0;
+    const segment=(span-gap)/pieces;
+    if(segment<.8)continue;
+    for(let i=0;i<pieces;i++){
+      const offset=low+segment*(i+.5)+i*gap;
+      const rect={
+        x:w.x+(alongX?offset:0),
+        z:w.z+(alongX?0:offset),
+        w:alongX?segment:Math.max(.52,w.w),
+        d:alongX?Math.max(.52,w.d):segment
+      };
+      if(bridgeLandings.some(z=>overlapsRect(rect,z,.28)))continue;
+      const h=Math.max(.95,Math.min(1.25,w.h??1.05));
+      const mesh=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_MAT);
+      mesh.name='arch-v2-interior-concrete-cover';
+      mesh.position.set(rect.x,h*.5-.07,rect.z);
+      mesh.scale.set(rect.w,h,rect.d);
+      mesh.castShadow=true;mesh.receiveShadow=true;
+      const cap=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_TOP);
+      cap.position.y=h*.47;cap.scale.set(.93,.045,.93);
+      cap.castShadow=false;cap.receiveShadow=true;mesh.add(cap);
+      const collider={...rect,h};
+      mesh.userData.collider=collider;
+      colliders.push(collider);group.add(mesh);placed++;
+    }
   }
   return placed;
 }
@@ -404,7 +423,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       // Drop rectangular shoreline/bridge-rail authoring walls entirely,
       // including their colliders. Only genuine interior partitions remain.
       if(isArchipelagoPartitionWallV2(w,level.rooms))
-        out.rocks+=buildInteriorCoverV2(w,group,colliders,rockFreeLandings);
+        out.rocks+=buildInteriorCoverV2(w,group,colliders,out.bridgeClearances);
       continue;
     }
     if(islands.filter(f=>onRim(w,f)).length===1){
