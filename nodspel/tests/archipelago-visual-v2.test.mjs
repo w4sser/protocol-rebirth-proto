@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
-import {coastlineProfile} from '../coastline.mjs';
+import {coastlineProfile,separateArchipelagoCoastProfiles} from '../coastline.mjs';
 import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
-import {buildArchipelago} from '../archipelago.js';
+import {buildArchipelago,isArchipelagoPartitionWallV2} from '../archipelago.js';
 import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
 import {planArchipelagoBedrock} from '../archipelago-visual-v2.mjs';
 import {createWaterMesh} from '../water-shader.js';
@@ -163,4 +163,60 @@ test('pink calm Baltic water is opt-in, low-cost and keeps default water unchang
   for(const sea of [calm,defaultSea]){
     sea.userData.shoreTexture.dispose();sea.material.dispose();sea.geometry.dispose();
   }
+});
+
+
+test('v2 removes linear legacy rock rows without leaving invisible boundary walls',()=>{
+  for(const number of [1,2,3]){
+    const original=globalThis.location;
+    globalThis.location={search:'?area=archipelago&archVisual=v2&archTarget=1'};
+    const level=generateLevel(number,'archipelago-v2-target','archipelago');
+    const group=new THREE.Group();
+    const box=(x,y,z,w,h,d,color,parent=group)=>{
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color}));
+      m.position.set(x,y,z);parent.add(m);return m;
+    };
+    try{
+      const oldWalls=level.walls.map(w=>({...w}));
+      buildArchipelago(level,group,box,{quality:{props:1}});
+      const rows=group.children.filter(o=>o.name==='archipelago-rock');
+      assert.equal(rows.length,0,'no individually placed linear rock rows in v2');
+      const banks=group.children.filter(o=>o.name==='arch-v2-bedrock-bank');
+      const intended=oldWalls.filter(w=>isArchipelagoPartitionWallV2(w,level.rooms));
+      assert.equal(banks.length,intended.length,'true authored partitions have coherent rock cover');
+      const represented=banks.flatMap(o=>o.userData.colliders??[]);
+      assert.equal(level.walls.length,represented.length,'no invisible legacy wall collision');
+      assert.deepEqual(level.walls,represented,'all blocking wall volumes have matching visible rock');
+      for(const bank of banks){
+        const n=bank.geometry.getAttribute('normal');
+        const upCount=Array.from({length:n.count},(_,i)=>n.getY(i)).filter(y=>y>.15).length;
+        assert.ok(upCount>n.count*.15,'visible bank top faces towards camera');
+      }
+    }finally{
+      if(original===undefined)delete globalThis.location;else globalThis.location=original;
+      group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();if(o.material&&!o.material.userData.shared)o.material.dispose();});
+    }
+  }
+});
+
+test('reconciled coastlines separate actual island surfaces and their outer erosion shells',()=>{
+  for(const seed of ['archipelago-v2-target','review-1','review-21'])
+    for(const number of [1,2,3]){
+      const level=generateLevel(number,seed,'archipelago');
+      const all=level.floors.filter(f=>!f.dir).map(f=>coastlineProfile(f,level.seed,{style:'v2',neighbors:level.floors}));
+      separateArchipelagoCoastProfiles(all);
+      const snapshot=JSON.stringify(all.map(p=>p.points));
+      separateArchipelagoCoastProfiles(all);
+      assert.equal(JSON.stringify(all.map(p=>p.points)),snapshot,'separation must be deterministic and idempotent');
+      for(const p of all){
+        assert.equal(p.separationConflicts??0,0,seed+'/'+number+' authored islands need room for a water gap');
+        for(const other of all.filter(q=>q!==p)){
+          const dx=other.floor.x-p.floor.x,dz=other.floor.z-p.floor.z,d=Math.hypot(dx,dz);
+          for(const v of p.points){
+            const signed=(v.x-(p.floor.x+other.floor.x)*.5)*dx+(v.z-(p.floor.z+other.floor.z)*.5)*dz;
+            assert.ok(signed<=-.54*d+1e-4,'entire shoreline remains on its side of shared water channel');
+          }
+        }
+      }
+    }
 });

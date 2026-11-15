@@ -8,7 +8,7 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-baltic-calm3';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite18';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles} from './coastline.mjs?v=2.28.25-coast-gap1';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-block-granite21';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
@@ -168,7 +168,7 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
     // Widely spaced asymmetry creates a natural bank silhouette, not a repeated prop cadence.
     const wave=Math.sin(u*7.3+phase)*.18+Math.sin(u*12.1+phase*.48)*.075;
     const h=Math.max(.40,(w.h??1)*(.62+wave));
-    const half=Math.max(.35,thick*.5+.23+.085*Math.sin(u*9.1+phase+.6));
+    const half=Math.max(.26,thick*.5+.075+.045*Math.sin(u*9.1+phase+.6));
     const cross=[-half,-half*.75,-half*.30,half*.30,half*.75,half];
     const heights=[.012,h*.42,h,h*.91,h*.43,.012],section=[];
     for(let k=0;k<cols;k++){
@@ -180,7 +180,8 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
       colors.push(color.r,color.g,color.b);
       if(i<steps&&k<cols-1){
         const a=i*cols+k,b=(i+1)*cols+k;
-        indices.push(a,b,a+1,a+1,b,b+1);
+        if(alongX)indices.push(a,a+1,b,a+1,b+1,b);
+        else indices.push(a,b,a+1,a+1,b,b+1);
       }
     }
     sectionBounds.push(section);
@@ -189,7 +190,8 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,bankMat);
-  mesh.name='arch-v2-bedrock-bank';mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
+  mesh.name='arch-v2-bedrock-bank';
+  mesh.userData.geologyCover=true;mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
   mesh.userData.colliders=[];
   for(let i=0;i<steps;i++){
     const section=[...sectionBounds[i],...sectionBounds[i+1]];
@@ -268,8 +270,12 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     if(!floor.dir){
       const profile=coastlineProfile(floor,level.seed,{samples:visualV2?72:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
       coastProfiles.set(floor,profile);
-      if(visualV2)registerWalkableCoast(floor,profile);
+      // Actor registration happens only after every coastline has been reconciled.
     }
+  }
+  if(visualV2){
+    separateArchipelagoCoastProfiles(coastProfiles.values());
+    for(const [floor,profile] of coastProfiles)registerWalkableCoast(floor,profile);
   }
   clearPassageProps(level,out.passages);
   out.bridgeClearances=bridgeClearances(level);
