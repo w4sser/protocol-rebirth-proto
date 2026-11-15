@@ -5,7 +5,7 @@ import {coastlineProfile,separateArchipelagoCoastProfiles} from '../coastline.mj
 import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
-import {buildArchipelago,isArchipelagoPartitionWallV2} from '../archipelago.js';
+import {buildArchipelago,isArchipelagoPartitionWallV2,archipelagoRockFreeBridgeLandingsV2} from '../archipelago.js';
 import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
 import {planArchipelagoBedrock} from '../archipelago-visual-v2.mjs';
 import {createWaterMesh} from '../water-shader.js';
@@ -166,55 +166,57 @@ test('pink calm Baltic water is opt-in, low-cost and keeps default water unchang
 });
 
 
-test('v2 removes linear legacy rock rows without leaving invisible boundary walls',()=>{
-  for(const number of [1,2,3]){
+test('v2 places high granite only outside the island and preserves open bridge landings',()=>{
+  for(const number of [1,2,3])for(const seed of ['archipelago-v2-target','review-1']){
     const original=globalThis.location;
     globalThis.location={search:'?area=archipelago&archVisual=v2&archTarget=1'};
-    const level=generateLevel(number,'archipelago-v2-target','archipelago');
+    const level=generateLevel(number,seed,'archipelago');
     const group=new THREE.Group();
     const box=(x,y,z,w,h,d,color,parent=group)=>{
-      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color}));
-      m.position.set(x,y,z);parent.add(m);return m;
+      const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color}));
+      o.position.set(x,y,z);parent.add(o);return o;
     };
     try{
-      const oldWalls=level.walls.map(w=>({...w}));
-      buildArchipelago(level,group,box,{quality:{props:1}});
-      const rows=group.children.filter(o=>o.name==='archipelago-rock');
-      assert.equal(rows.length,0,'no individually placed linear rock rows in v2');
-      const banks=group.children.filter(o=>o.name==='arch-v2-bedrock-bank');
-      const intended=oldWalls.filter(w=>isArchipelagoPartitionWallV2(w,level.rooms));
-      assert.equal(banks.length,intended.length,'true authored partitions have coherent rock cover');
-      const represented=banks.flatMap(o=>o.userData.colliders??[]);
-      assert.equal(level.walls.length,represented.length,'no invisible legacy wall collision');
-      assert.deepEqual(level.walls,represented,'all blocking wall volumes have matching visible rock');
-      for(const bank of banks){
-        assert.equal(bank.material.flatShading,true,'rocks use broad, readable facets');
-        const formations=bank.userData.outcrops;
-        assert.ok(formations.length>=1&&formations.length<=3,'few large outcrops, never a row of small rocks');
-        const count=bank.geometry.getAttribute('position').count;
-        assert.equal(count,formations.length*(7*13+1),'each outcrop is a distinct closed stone crown');
-        const profile=bank.geometry.getAttribute('position');
-        for(const part of formations){
-          assert.equal(part.colliders.length,3,'short collision slices follow the actual raised contour');
-          assert.ok(part.height>.6,'recognizable high granite silhouette');
-          assert.ok(part.halfAlong/part.halfAcross<2.7,'rock masses must be broad, not stretched into sausages');
-          assert.ok(profile.getY(part.vertexStart)<-.10,'eroded stone roots are submerged below gameplay floor');
-          const roof=part.vertexStart+5*13+5;
-          assert.ok(profile.getY(roof)>.6,'raised stone crown is visible at mobile camera');
-        }
-        if(formations.length>1){
-          const heights=formations.map(p=>p.height);
-          assert.ok(Math.max(...heights)-Math.min(...heights)>.06,'not one flat linear slab');
-          const centers=formations.map(p=>p.z);
-          assert.ok(new Set(centers.map(v=>v.toFixed(3))).size>=1,'distinct offset geologic centers');
-        }
-        const normals=bank.geometry.getAttribute('normal');
-        assert.ok(Array.from({length:normals.count},(_,i)=>normals.getY(i)).some(y=>y>.35),
-          'faceted rock crowns face towards gameplay camera');
+      const originals=level.walls.map(w=>({...w}));
+      const out=buildArchipelago(level,group,box,{quality:{props:1}});
+      assert.equal(out.visualV2,true);
+      assert.equal(group.children.filter(o=>o.name==='archipelago-rock').length,0,
+        'v2 must not retain legacy linear stone rows');
+      assert.equal(group.children.filter(o=>o.name==='arch-v2-bedrock-bank').length,0,
+        'no tall climbable-looking rocks in the interior of a planar X/Z game');
+
+      const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
+      assert.equal(granite.length,level.floors.filter(f=>!f.dir).length);
+      assert.ok(granite.every(g=>g.userData.visualOnly),'coastal granite remains visual-only outside traversable island');
+      assert.equal(out.rockFreeLandings.length,out.bridgeClearances.length);
+      const expected=archipelagoRockFreeBridgeLandingsV2(out.bridgeClearances);
+      assert.deepEqual(out.rockFreeLandings,expected,'same bridge exclusion zones used by placement and tests');
+      for(const zone of out.rockFreeLandings){
+        const crosses=r=>Math.abs(r.x-zone.x)<(r.w+zone.w)/2+1e-5
+          &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+1e-5;
+        assert.ok(!level.walls.some(crosses),'bridge landing has no blocking collision');
+        for(const g of granite)for(const part of [...g.userData.bedrockPlan.masses,...g.userData.bedrockPlan.shelves])
+          assert.ok(!crosses(part.bounds),'coastal granite must be outside the enlarged bridge approach');
       }
+      // No invisible rock wall: every runtime wall collision is backed by
+      // an exactly matching visible manufactured-cover mesh.
+      const cover=group.children.filter(o=>o.name==='arch-v2-interior-concrete-cover');
+      const expectedPartitions=originals.filter(w=>isArchipelagoPartitionWallV2(w,level.rooms));
+      assert.ok(cover.length<=expectedPartitions.length*2);
+      if(number===2)assert.ok(cover.length>0,'the partition encounter must retain visible cover');
+      assert.deepEqual(level.walls,cover.map(m=>m.userData.collider),
+        'all blocking walls are exactly the built low-profile concrete cover');
+      for(const m of cover){
+        assert.ok(m.position.y+m.scale.y/2<1.5,'interior cover must not look like a tall mountain');
+        assert.ok(m.children.length>=1,'cover must read as manufactured, not geological');
+        assert.ok(m.userData.collider && m.userData.collider.w>0 && m.userData.collider.d>0);
+      }
+      // Navigation remains two dimensional; no authored vertical floor is added.
+      assert.ok(level.floors.every(f=>!('y' in f)||f.y===0));
     }finally{
       if(original===undefined)delete globalThis.location;else globalThis.location=original;
-      group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();if(o.material&&!o.material.userData.shared)o.material.dispose();});
+      group.traverse(o=>{if(o.geometry&&!o.geometry.userData.shared)o.geometry.dispose();
+        if(o.material&&!o.material.userData.shared)o.material.dispose();});
     }
   }
 });
