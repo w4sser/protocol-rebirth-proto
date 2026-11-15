@@ -1867,6 +1867,13 @@ function closeAllPopups(){
 // Shared popup component (ui/popup.css): every boxed popup gets the top-left close X, the shared header,
 // backdrop tap-to-close and the pop-in animation. opts.noClose only for scripted FTUE/timed sequences.
 const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">' + IC("close") + '</button>';
+function closeOverlay(o){
+  o.remove();
+  // Clear the blocker without a synchronous layout measurement before the story callback.
+  document.body.classList.toggle("has-overlay", !!document.getElementById("overlay"));
+  if(o._onClose) o._onClose();
+  window.dispatchEvent(new Event("pr:ui-clear"));
+}
 function overlay(html, onClose, cls, opts){
   opts = opts || {};
   const o = document.createElement("div");
@@ -1881,7 +1888,7 @@ function overlay(html, onClose, cls, opts){
   else o.dataset.noclose = "1";
   o.addEventListener("click", e => {
     const t = e.target.closest ? e.target.closest("[data-close]") : null;
-    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ o.remove(); updateNav(); if(onClose) onClose(); window.dispatchEvent(new Event("pr:ui-clear")); }
+    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ closeOverlay(o); }
   });
   document.getElementById("phone").appendChild(o);
   updateNav();
@@ -4432,7 +4439,10 @@ function warmStoryArt(){
     from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
     to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
   for(const id of ["core_restored", "first_death", "fabricator_built"])
-    if(!S.bitCardsSeen[id]) cutscene.preload(BIT_CUTSCENES[id]);
+    if(!S.bitCardsSeen[id]){
+      if(id === "fabricator_built") fabricatorCutsceneArtReady();
+      else cutscene.preload(BIT_CUTSCENES[id]);
+    }
 }
 // PRB-157: warm the real pair and bust through the renderer cache, once, before building.
 // Only an actual load error selects the old backdrop; a slow connection is not missing art.
@@ -4688,8 +4698,9 @@ window.A = {
         window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);
       } else bitDock("module_built");
     } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
-      // PRB-160: the reward popup closes directly into the
+      // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
       // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
+      // PRB-160: remove the lighting wait; the reward popup now closes directly into the scene.
       fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
         finish();
@@ -5373,7 +5384,7 @@ window.A = {
   },
   back(){
     const o = document.getElementById("overlay");
-    if(o){ o.remove(); if(o._onClose) o._onClose(); updateNav(); return; }
+    if(o){ closeOverlay(o); updateNav(); return; }
     const t = BACK_TARGET[session.screen] || "base";
     if(session.screen !== "base") A.go(t);
   },

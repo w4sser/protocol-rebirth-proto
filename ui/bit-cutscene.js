@@ -21,14 +21,14 @@
     images.set(src, entry);
     entry.promise = new Promise(function(resolve){
       entry.img.onerror = function(){
-        images.delete(src); resolve(""); // a real load error can be retried by a later beat
+        if(images.get(src) === entry) images.delete(src); resolve(""); // a real load error can be retried by a later beat
       };
       entry.img.onload = function(){
         var decoding;
         try { decoding = entry.img.decode ? entry.img.decode() : Promise.resolve(); }
         catch(e){ decoding = Promise.reject(e); }
         Promise.resolve(decoding).then(function(){ entry.decoded = true; resolve(src); }, function(){
-          images.delete(src); resolve(src); // decoding failure is not a missing-art verdict
+          if(images.get(src) === entry) images.delete(src); resolve(src); // decoding failure is not a missing-art verdict
         });
       };
       entry.img.src = src;
@@ -152,7 +152,7 @@
       if(e.key === "Escape"){ e.preventDefault(); tapDismiss(); }
       if(e.key === "Tab"){ e.preventDefault(); el.querySelector("button").focus(); }
     });
-    document.body.appendChild(el); el.querySelector("button").focus();
+    document.body.appendChild(el); el.querySelector("button").focus({preventScroll:true});
     var missingCore = !images.get(job.from)?.decoded || !images.get(job.to)?.decoded;
     if(run.reduced || missingCore){
       el.classList.add("line-visible");

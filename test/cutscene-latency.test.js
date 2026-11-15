@@ -58,3 +58,14 @@ test('release evicts seen-only images and retains shared unseen busts',async t =
   await f.api.preload(second);assert.equal(f.images.length,count);
   f.api.preload(beat);assert.equal(f.images.length,count+2,'only seen-exclusive backdrops were evicted');
 });
+test('timer fallback resumes within 50ms without requestAnimationFrame',t => {
+  const f=fixture(t);delete f.w.requestAnimationFrame;
+  const overlay=f.w.document.createElement('div');overlay.id='overlay';f.w.document.body.append(overlay);
+  f.api.play(beat);overlay.remove();f.tick(49);assert.equal(f.w.document.querySelector('.bit-cutscene'),null);
+  f.tick(1);assert.ok(f.w.document.querySelector('.bit-cutscene'));
+});
+test('actual warm load error resolves empty and permits a new request',async t => {
+  const f=fixture(t),opts={id:'error',from:'broken.webp'};
+  const p=f.api.preload(opts);f.images[0].onerror();assert.equal((await p)[0],'');
+  f.api.preload(opts);assert.equal(f.images.length,2);
+});
