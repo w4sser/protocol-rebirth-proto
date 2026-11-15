@@ -119,6 +119,7 @@
       el.classList.add("line-visible");
       if(job.info && job.info.length) el.classList.add("info-visible");
     }
+    if(run.reduced) el.classList.add("hint-visible");
     later(run, function(){ el.classList.add("hint-visible"); }, 1500);
     later(run, function(){ el.classList.add("crossfaded", "line-visible"); }, CROSSFADE);
     if(job.info && job.info.length) later(run, function(){ el.classList.add("info-visible"); }, CROSSFADE + INFO_DELAY);

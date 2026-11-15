@@ -111,7 +111,7 @@ The scene pushes from scale 1 to 1.06 over 6 seconds, crossfades at 3.15 seconds
 strip (if any) ~0.6s later, and shows TAP TO CONTINUE after 1.5 seconds. Tap anywhere, the
 focused continue button, or Escape dismisses; otherwise it auto-ends at 7 seconds and fades back
 over 350 ms. Focus returns to the previous control. Reduced motion removes push-in and fades and
-shows the bubble, bust and info strip immediately, cutting instantly between frames at the same
+shows the bubble, bust, info strip and continue hint immediately, cutting instantly between frames at the same
 midpoint. The art covers the entire viewport; only copy respects safe insets, with at least 15 px
 text and a scrim/shadow.
 

@@ -136,6 +136,7 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     const el = doc.querySelector(".bit-cutscene");
     assert(el.classList.contains("line-visible"), "reduced motion shows the bubble instantly");
     assert(el.classList.contains("info-visible"), "reduced motion shows the info strip instantly");
+    assert(el.classList.contains("hint-visible"), "reduced motion shows the continue hint instantly");
     api.dismiss(); w.close();
   }
   // Backward compatible: a play() call without bust/info keeps rendering the plain lower-left
@@ -175,6 +176,7 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
   assert(/object-fit:cover/.test(css)); assert(/inset:0/.test(css));
   assert(/reduced \.bit-cutscene-to[^}]+transition:none/.test(css),"reduced motion instant cut");
   assert(/reduced \.bit-cutscene-stage\{animation:none/.test(css));
+  assert(/reduced \.bit-cutscene-bust,[\s\S]*?\{transition:none;\}/.test(css),"reduced motion removes the bust's opacity transition too");
   assert(!/PRBitCard\?\.show\(\{ id:"(?:core_restored|first_death)"/.test(app),"cutscene moments never also show cards");
   console.log("BIT CUTSCENE TESTS PASSED");
 })().catch(e=>{console.error(e);process.exitCode=1;});

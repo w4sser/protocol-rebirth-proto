@@ -68,10 +68,11 @@
 .bit-cutscene-hologram svg,.bit-cutscene-hologram img{width:100%;height:100%;}
 .bit-cutscene.info-visible .bit-cutscene-hologram{opacity:1;clip-path:inset(0 0 0 0);}
 
+.bit-cutscene.reduced .bit-cutscene-bust,.bit-cutscene.reduced .bit-cutscene-continue,
 .bit-cutscene.reduced .bit-cutscene-bust-to,.bit-cutscene.reduced .bit-cutscene-bubble,
 .bit-cutscene.reduced .bit-cutscene-info,.bit-cutscene.reduced .bit-cutscene-hologram{transition:none;}
 .bit-cutscene.reduced .bit-cutscene-sweep,.bit-cutscene.reduced .bit-cutscene-sparks span{animation:none;opacity:0;}
 @media(prefers-reduced-motion:reduce){
-  .bit-cutscene-bust-to,.bit-cutscene-bubble,.bit-cutscene-info,.bit-cutscene-hologram{transition:none;}
+  .bit-cutscene-bust,.bit-cutscene-bust-to,.bit-cutscene-bubble,.bit-cutscene-info,.bit-cutscene-hologram{transition:none;}
   .bit-cutscene-sweep,.bit-cutscene-sparks span{animation:none;opacity:0;}
 }
