@@ -332,23 +332,23 @@ test('v2 coastal pines alternate silhouette, height and orientation without game
   assert.ok(trees.some(p=>p.userData.pineHeight<2.5),'shoreline scrub pines stay low');
   assert.ok(trees.some(p=>p.userData.pineHeight>4.5),'tall sentinels must exist');
   assert.ok(trees.every(p=>p.userData.visualOnly&&!p.userData.collider));
-  assert.ok(low.userData.pineMeshes.length<trees[0].userData.pineMeshes.length,
+  assert.ok(low.pineMeshes.length<trees[0].pineMeshes.length,
     'LOW keeps the core silhouette but reduces branch geometry');
 });
 
 test('v2 pines fade independently and restore opaque materials and shadows',()=>{
   const a=archipelagoCoastalPine({x:1,z:2,pineVariant:2,pineSeed:120});
   const b=archipelagoCoastalPine({x:4,z:5,pineVariant:2,pineSeed:121});
-  const original=a.userData.pineMeshes.map(m=>m.material);
-  assert.equal(original[0],b.userData.pineMeshes[0].material,'opaque materials should be shared');
+  const original=a.pineMeshes.map(m=>m.material);
+  assert.equal(original[0],b.pineMeshes[0].material,'opaque materials should be shared');
   setArchipelagoPineOpacity(a,.22);
   assert.equal(a.userData.pineOpacity,.22);
-  assert.ok(a.userData.pineMeshes.every(m=>m.material.transparent&&!m.material.depthWrite
+  assert.ok(a.pineMeshes.every(m=>m.material.transparent&&!m.material.depthWrite
     &&Math.abs(m.material.opacity-.22)<1e-6&&!m.castShadow));
-  assert.ok(b.userData.pineMeshes.every(m=>!m.material.transparent&&m.castShadow),
+  assert.ok(b.pineMeshes.every(m=>!m.material.transparent&&m.castShadow),
     'fading one tree must not affect the entire forest');
-  assert.ok(a.userData.pineFadeMaterials.size<=4,'share faded mats within a tree for mobile efficiency');
+  assert.ok(a.pineFadeMaterials.size<=4,'share faded mats within a tree for mobile efficiency');
   setArchipelagoPineOpacity(a,1);
-  assert.ok(a.userData.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
+  assert.ok(a.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
     'trees must return to their original materials and shadows');
 });
