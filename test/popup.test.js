@@ -38,7 +38,9 @@ const migrated = [];
   doc.defaultView.__T.overlay('<h1>TEST</h1>'); checkX(doc.querySelector("#overlay > .pop-frame"), "payoff"); assert(doc.querySelector("#overlay > .pop-frame > .inner"), "payoff content keeps its own scroller"); doc.getElementById("overlay").remove();
   doc.defaultView.__T.overlay('<div class="boot"></div>', null, null, { noClose:true }); assert(!doc.querySelector("#overlay .pop-x"), "noClose opt-out"); doc.getElementById("overlay").remove(); }
 // every overlay() call site either gets the X or is a documented opt-out
-{ const app = fs.readFileSync(path + "/app.js", "utf8"); const optouts = (app.match(/noClose:true/g) || []).length; assert.equal(optouts, 2, "only boot sequence + timed ad opt out"); }
+// PRB-155 removed bootSequence() (the Core-restore boot payoff popup), its own noClose opt-out;
+// the timed ad is the only one left.
+{ const app = fs.readFileSync(path + "/app.js", "utf8"); const optouts = (app.match(/noClose:true/g) || []).length; assert.equal(optouts, 1, "only the timed ad opts out"); }
 // Node Raid popups
 { const html = fs.readFileSync(path + "/nodspel/index.html", "utf8"), g = fs.readFileSync(path + "/nodspel/game.mjs", "utf8");
   assert(/ui\/popup\.css/.test(html), "core loads the shared popup css");
