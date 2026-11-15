@@ -216,3 +216,23 @@ test('v2 groundcover is coastal, collision-free, and LOW is a deterministic HIGH
   assert.ok(foliage?.geometry.getAttribute('position').count>=low.length*9);
   assert.equal(foliage.userData.visualOnly,true);
 });
+
+test('shore relief is authored into one coast mesh and the old grey ring is broken up',()=>{
+  const bedrock=art.planArchipelagoBedrock(profile),coast=coastRingData(profile,{bedrockPlan:bedrock});
+  const n=profile.points.length,nearColors=[],rise=[];
+  for(let i=0;i<n;i++){
+    const y0=coast.positions[i*3+1],y5=coast.positions[(5*n+i)*3+1];
+    assert.ok(Math.abs(y0-.010)<1e-5,'the actor-ground seam stays perfectly flat');
+    assert.ok(y5<-.50,'the rock slopes below the waterline');
+    const y3=coast.positions[(3*n+i)*3+1];
+    rise.push(y3);
+    const a=(2*n+i)*3,red=coast.colors[a],green=coast.colors[a+1],blue=coast.colors[a+2];
+    nearColors.push(red+blue-green);
+    for(const c of [red,green,blue])assert.ok(Number.isFinite(c)&&c>=0&&c<=1,'finite coastal colors');
+  }
+  assert.ok(Math.max(...rise)-Math.min(...rise)>.18,'sculpted rock terraces should have discernible relief');
+  assert.ok(Math.max(...nearColors)-Math.min(...nearColors)>.025,'moss bays and granite headlands must not share one uniform grey tint');
+  const group=new THREE.Group(),mesh=art.addArchipelagoGroundV2(profile,group,{bedrockPlan:bedrock});
+  assert.ok(!group.children.some(o=>o.name==='arch-v2-bedrock-roots'),'avoid an overlapping granite apron on mobile');
+  assert.ok(mesh.geometry.getAttribute('position').array.every((_,i)=>i%3!==1||Math.abs(mesh.geometry.getAttribute('position').array[i]-.01)<1e-5),'traversable land remains flat');
+});

@@ -1,7 +1,7 @@
 // Opt-in glacial landforms, adapted from archipelago-visual-target.html.
 // Raised scenery stays outside the walkable coast; shared resources survive rebuilds.
 import * as THREE from './vendor/three.module.js';
-import {archipelagoGroundColor} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite13';
+import {archipelagoGroundColor} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite15';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(n){let x=(n|0)^0x9e3779b9;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return ((x^(x>>>16))>>>0)/4294967296;}
 const overlaps=(a,b,pad=.3)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+pad&&Math.abs(a.z-b.z)<(a.d+b.d)/2+pad;
@@ -61,14 +61,19 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
 function sculptGranite(){
   // Broad glacial shoulders, gently flattened crowns and muted weathering.
   // Instanced across islands: no unique rock meshes or expensive extra materials.
-  const steps=32,levels=[0,.055,.16,.31,.49,.66,.80,.91,1],radii=[.93,1.04,1.11,1.09,1.05,1.02,.94,.76,.34],positions=[],colors=[],indices=[];
+  const steps=40,levels=[0,.045,.12,.25,.38,.54,.68,.80,.91,1],radii=[.88,.98,1.08,1.13,1.13,1.08,.96,.83,.60,.22],positions=[],colors=[],indices=[];
   const base=new THREE.Color('#989aa0'),dark=new THREE.Color('#5c6b75'),warm=new THREE.Color('#b8a5a1'),lichen=new THREE.Color('#70816e');
   for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,phase=Math.sin(3*a+.6)*.042+Math.sin(7*a+1.2)*.024+Math.sin(11*a-.3)*.011;
     const glacialFlow=Math.sin(2*a+.47)*.07+Math.sin(6*a+1.6)*.025;
     const radius=radii[k]*(1+phase+glacialFlow*(1-.4*levels[k]));
-    const y=levels[k]+Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.038+Math.sin(9*a+.25)*.012;
-    positions.push(Math.cos(a)*.5*radius,y,Math.sin(a)*.5*radius);
+    const ripple=Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.043
+      +Math.sin(9*a+.25+levels[k]*3)*.017;
+    const y=levels[k]+ripple+.018*Math.sin(a*5.3+levels[k]*9);
+    // Subtle directional ice-polished shoulders and uneven crowns rather
+    // than an evenly scaled oval rock with the profile of a loaf.
+    const sweep=(1-levels[k])*.045*Math.sin(2*a+.8);
+    positions.push(Math.cos(a)*.5*radius+sweep,y,Math.sin(a)*.5*radius);
     // Subtle mineral striae and lichens, never uniformly colored ring slices.
     const stria=.5+.5*Math.sin(a*11+y*6+.8);
     const groove=.5+.5*Math.sin(a*17-y*9+1.4);

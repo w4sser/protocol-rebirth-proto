@@ -141,17 +141,20 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
     const meander=.045*Math.sin(f*11+seed*.00003+j);
     // Long fingers of granite visually continue from the outcrops into the
     // island clearing. They remain flush with the real walk/collision plane.
-    const arc=Math.exp(-Math.pow((delta+meander)/(.42+.09*channel),2));
-    glacial=Math.max(glacial,arc*smooth(.26,.87,f));
+    // Focus the exposed stone into uneven granite tongues rather than one
+    // continuous grey outer half of the island.
+    const fracture=.80+.20*Math.sin(angle*7+f*9+seed*.0002+j);
+    const arc=Math.exp(-Math.pow((delta+meander)/(.27+.07*channel),2));
+    glacial=Math.max(glacial,arc*smooth(.38,.91,f)*fracture);
     if(j===0){
       // A subdued, winding worn-earth route toward the buried coastal portal.
       const transverse=Math.sin(delta)*Math.hypot(dx,dz)+Math.sin(f*8+seed*.001)*.43;
       trail=Math.exp(-Math.pow(transverse/1.22,2))*smooth(.09,.29,f)*(1-smooth(.73,.94,f));
     }
   }
-  const mineralPockets=smooth(.60,.83,broad)*smooth(.42,.92,f)*(.28+.36*mid);
-  const edgeRock=smooth(.72,.98,f)*(1-beach)*(.28+.16*channel);
-  const exposed=clamp(glacial*(.61+.22*mid)+mineralPockets+edgeRock,0,.93);
+  const mineralPockets=smooth(.66,.88,broad)*smooth(.59,.94,f)*(.18+.30*mid);
+  const edgeRock=smooth(.88,.995,f)*(1-beach)*(.14+.15*channel);
+  const exposed=clamp(glacial*(.49+.20*mid)+mineralPockets+edgeRock,0,.78);
   const lichen=smooth(.62,.89,mid)*exposed*(.11+.07*grain);
   let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.20,0,1));
   col=tint(col,SOIL_SHADE,.12+.22*(1-mid));
@@ -209,18 +212,33 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
       ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.48,2)))):0;
     const shelfProximity=profile.style==='v2'&&bedrockPlan?.shelves?.length
       ?Math.max(0,...bedrockPlan.shelves.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.25,2)))):0;
-    const ridgeLifts=[0,.08,.28,.49,.32,0];
-    const ridge=clamp(massProximity*.88+shelfProximity*.18,0,1)*(1-p.beach*.86);
-    positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+ridgeLifts[ring]*ridge,z);
+    // Sculpt the SAME coastline mesh into glacial terraces. All relief is
+    // beyond the actor boundary; ring 0 remains at +0.010 and the outer water
+    // seam remains exactly unchanged. No second/copanar granite apron on iOS.
+    const channels=.5+.5*Math.sin(p.angle*11+profile.seed*.003);
+    const striation=.5+.25*Math.sin(p.angle*8+profile.seed*.0003)
+      +.25*Math.sin(p.angle*15-profile.seed*.0005);
+    const ridge=clamp(massProximity*.83+shelfProximity*.32,0,1)*(1-p.beach*.93);
+    const localLift=[0,.10,.38,.66,.45,0][ring];
+    const eroded=.70+.30*channels+.25*striation;
+    positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+localLift*ridge*eroded,z);
     blends.push(COAST_BLEND_STOPS[ring]);
-    const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
+    const cliffShade=.87+.10*striation+.06*channels;
     const colR=toLinear(rock[ring]),colS=toLinear(beach[ring]);
     if(profile.style==='v2'){
       // Exact shared material at ring zero: the green-painted border vanishes.
       // The other five bands transition to exposed weathered granite/sand.
       const entry=archipelagoGroundColor(profile,floor.x+c*(p.playableRadial-.045),floor.z+s*(p.playableRadial-.045),bedrockPlan);
-      const transition=[0,.20,.48,.78,.97,1][ring];
-      for(let k=0;k<3;k++)colors.push(clamp(lerp(entry[k],lerp(colR[k],colS[k],p.beach)*cliffShade,transition),0,1));
+      // Most of the shore is moss and weathered soil; only headlands and
+      // major outcrop connections expose broad bands of granite. The previous
+      // unconditional grey blend looked like a continuous concrete seawall.
+      const patch=fieldNoise(x*.46+17,z*.46-13,profile.seed+1209);
+      const stone=clamp(.09+massProximity*.69+shelfProximity*.20
+        +smooth(.62,.88,patch)*.20-p.beach*.36,0,1);
+      const transition=[0,.18,.42,.68,.95,1][ring];
+      const localStone=ring===5?1:transition*(.16+.84*stone);
+      const stoneColor=colR.map((v,k)=>v*(.84+.24*striation)+(colS[k]-v)*p.beach);
+      for(let k=0;k<3;k++)colors.push(clamp(lerp(entry[k],stoneColor[k]*cliffShade,localStone),0,1));
     }else{
       for(let k=0;k<3;k++)colors.push(clamp(lerp(colR[k],colS[k],p.beach)*cliffShade,0,1));
     }
