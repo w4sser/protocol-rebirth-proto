@@ -313,9 +313,10 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
       // In an orthographic camera every screen ray is parallel. A perspective
       // camera-to-player ray misses tall foreground pines at the screen edges.
       camera.getWorldDirection(pineDirection).negate();
-      pineRay.near=.08;pineRay.far=32;
+      pineRay.near=.08;
       const trace=(x,y,z)=>{
         pineOrigin.set(x,y,z);
+        pineRay.far=camera.position.distanceTo(pineOrigin)+.5;
         pineRay.set(pineOrigin,pineDirection);
         for(const hit of pineRay.intersectObjects(pineMeshes,false)){
           const tree=hit.object.parent?.pineMeshes?hit.object.parent:null;
@@ -323,17 +324,17 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
         }
       };
       trace(player.x,.86,player.z);
-      const nearby=(items,y,radius,max)=>{
+      const nearby=(items,y,radius,max,skipActive=false)=>{
         let count=0;
         for(const o of items??[]){
-          if(o.health!=null&&o.health<=0||o.collected||o.taken||o.active)continue;
+          if((o.health!=null&&o.health<=0)||o.collected||o.taken||(skipActive&&o.active))continue;
           if(Math.hypot(o.x-player.x,o.z-player.z)>radius)continue;
           trace(o.x,y,o.z);
           if(++count>=max)break;
         }
       };
       nearby(level.enemies,.85,10,4);
-      nearby(level.nodes,.8,9,3);
+      nearby(level.nodes,.8,9,3,true);
       nearby(level.lootBoxes,.45,8,3);
       if(level.exit&&Math.hypot(level.exit.x-player.x,level.exit.z-player.z)<9)
         trace(level.exit.x,.60,level.exit.z);
