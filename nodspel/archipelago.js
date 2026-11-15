@@ -396,8 +396,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     const U=water.material.uniforms;
     // Baltic summer night: slate-blue depths and pale pink sky ribbons,
     // with restrained shallows and no bright foamy wave animation.
-    U.cShallow.value.set('#477d82');U.cMid.value.set('#35576a');U.cDeep.value.set('#1f3247');
-    U.cFoam.value.set('#a8b7bd');U.cSky.value.set('#8399b1');U.cRose.value.set('#c99dae');
+    // Pass Q: darker Baltic shallows and desaturated summer-night reflections.
+    // The previous shallow cyan rendered 50–60 RGB values brighter than the
+    // approved art target at 844×390, making every island look tropical.
+    U.cShallow.value.set('#2b6268');U.cMid.value.set('#214456');U.cDeep.value.set('#142d40');
+    U.cFoam.value.set('#879ba6');U.cSky.value.set('#58788d');U.cRose.value.set('#a87b8c');
   }
   water.name='water';group.add(water);
   if(visualV2){
