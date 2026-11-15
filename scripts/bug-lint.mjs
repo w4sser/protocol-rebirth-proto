@@ -152,6 +152,18 @@ export const RULES=[
      try{read('nodspel/perk-ui.js');out.push('nodspel/perk-ui.js: the mid-raid perk picker file must stay deleted');}catch(_){/* expected */}
      try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
      return out;}},
+  {id:'coldopen-vo-after-start-unlock',pr:'v2.28.3x PRB-154 start audio',why:'the first gesture must resume and prime Web Audio before async work, with decoded buffers and a greeting requested at the first visible line',
+   check(c={}){const out=[],app=c.appSrc??read('app.js'),audio=c.audioSrc??read('ui/audio.js');
+     const activate=(app.match(/const activate = \(e\) => \{[\s\S]*?\n  \};/)||[''])[0].replace(/\/\/[^\n]*/g,'');
+     const syncAt=activate.indexOf('unlockSync'),asyncAt=activate.indexOf('unlock?.');
+     if(syncAt<0||asyncAt<syncAt||/\bawait\b/.test(activate.slice(0,syncAt)))out.push('app.js: start activation must call unlockSync before awaiting or calling unlock');
+     const sync=(audio.match(/    unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!/context\.resume\(\)/.test(sync)||!/createBuffer\(1,1,/.test(sync)||!/source\.start\(0\)/.test(sync)||/\bawait\b/.test(sync))out.push('ui/audio.js: unlockSync must resume and start a silent one-sample buffer synchronously');
+     if(!/activationAudio = window\.PR_AUDIO\?\.unlock\?\.\(\)/.test(activate)||!/Promise\.resolve\(activationAudio\)\.then/.test(app))out.push('app.js: start confirmation must wait for the gesture unlock promise');
+     if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
+     const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
+     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
+     return out;}},
   {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
    check(c={}){const out=[];
      const app=c.appSrc??read('app.js');
@@ -181,7 +193,39 @@ export const RULES=[
      else if(!/migrateCableRetro\(st\)/.test(load))out.push('app.js: load() must call migrateCableRetro(st) alongside the other additive migrations');
      return out;}},
 
-  {id:'extract-loot-3d-vfx',pr:'v2.28.33 PRB-156 (feat/vfx-3d-extract-loot)',why:'Robert playtest 2026-11-15: "the extraction point effect looks damn 2D. Same when you\'ve picked up loot." The flat MeshBasicMaterial exitBeam cylinder + plain exitPad plane, and the generic ring+billboard world.burst() reused for pickups, read as 2D decals from the isometric camera',
+  {id:'core-restore-no-power-popup',pr:'v2.28.33 PRB-155 (playtest 2026-11-15, item 4)',why:'a popup used to gate the first Core restore behind an ENTER-style tap before the narrator cutscene could play; Robert decided the cutscene must be the single screen -- for a fresh build, an existing save, and after the cutscene has already played -- so the popup and its own copy must stay gone for good, not just unused',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(/function bootSequence\(/.test(app))out.push('app.js: bootSequence() (the old Core-restore payoff popup) must stay removed');
+     if(/POWER RESTORED/.test(app))out.push('app.js: "POWER RESTORED" copy must not exist anywhere -- the cutscene carries the benefit/next text instead');
+     const build=(app.match(/\bbuild\(modId\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!build)out.push('app.js: A.build(modId) not found');
+     else{
+       const lightsOn=(build.match(/if\(isLightsOn\)\{[\s\S]*?\}\s*else if\(isFabricatorOnline/)||[''])[0];
+       if(!lightsOn)out.push('app.js: A.build must still branch on isLightsOn for the Core L1 restore');
+       else{
+         if(/\boverlay\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must never open a popup -- the narrator cutscene is the single screen');
+         if(!/PRBitCutscene\?\.play\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must still play the core_restored cutscene itself (nothing else replaces the removed popup)');
+       }
+     }
+     return out;}},
+
+  {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/if\(!fabricatorArtPromise\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the optional Fabricator art probe across preload and play');
+     if(!/setTimeout\(\(\) => finish\(false\), 3000\)/.test(probe)||!/clearTimeout\(timeout\)/.test(probe))out.push('app.js: optional Fabricator art must settle on timeout and clear its timer');
+     return out;}},
+  {id:'cutscene-reduced-motion-instant',pr:'v2.28.3x PRB-155 reduced motion',why:'the bust and continue control must appear instantly along with the speech bubble and info strip under reduced motion',
+   check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),css=c.cutsceneCss??read('ui/bit-cutscene.css'),out=[];
+     if(!/if\(run\.reduced\) el\.classList\.add\("hint-visible"\)/.test(js))out.push('ui/bit-cutscene.js: reduced motion must reveal the continue hint immediately');
+     if(!/reduced \.bit-cutscene-bust,[\s\S]*?\{transition:none;\}/.test(css))out.push('ui/bit-cutscene.css: reduced motion must disable the bust fade');
+     return out;}},
+  {id:'narrator-hologram-above-copy',pr:'v2.28.3x PRB-155 Fabricator layout',why:'the assembling vest was hidden behind the speech bubble at phone landscape sizes; keep its anchor above the copy and verify actual rectangles in the screenshot harness',
+   check(c={}){const css=c.cutsceneCss??read('ui/bit-cutscene.css');
+     const rule=(css.match(/\.bit-cutscene-hologram\{([^}]+)\}/)||[])[1]||'';
+     const bottom=Number((rule.match(/bottom:([\d.]+)%/)||[])[1]);
+     return bottom>=40?[]:['ui/bit-cutscene.css: keep the hologram above the speech bubble (bottom at least 40%); run narrator-cutscene-shots.mjs for geometric checks'];}},
+  {id:'extract-loot-3d-vfx',pr:'v2.28.35 PRB-156 (feat/vfx-3d-extract-loot)',why:'Robert playtest 2026-11-15: "the extraction point effect looks damn 2D. Same when you\'ve picked up loot." The flat MeshBasicMaterial exitBeam cylinder + plain exitPad plane, and the generic ring+billboard world.burst() reused for pickups, read as 2D decals from the isometric camera',
    check(c={}){const out=[];
      const beam=c.beamSrc??read('nodspel/vfx-extract-beam.js');
      if(!/export function createExtractBeam\(/.test(beam))out.push('nodspel/vfx-extract-beam.js: createExtractBeam() is missing');
@@ -197,7 +241,7 @@ export const RULES=[
      if(!/world\.animate\(elapsed,position,round\)/.test(game))out.push('nodspel/game.mjs: world.animate must be called with the player position so the extract beam/loot burst can read approach progress and the homing target');
      return out;}},
 
-  {id:'vfx-visible-pooled-lifecycle',pr:'v2.28.3x PRB-156 VFX lifecycle',why:'Subpixel Points were invisible with the orthographic camera, old sprites covered replacements, and quality/teardown missed the new pools',
+  {id:'vfx-visible-pooled-lifecycle',pr:'v2.28.35 PRB-156 VFX lifecycle',why:'Subpixel Points were invisible with the orthographic camera, old sprites covered replacements, and quality/teardown missed the new pools',
    check(c={}){const out=[];
      const loot=c.lootVfxSrc??read('nodspel/vfx-loot-burst.js'),feedback=c.feedbackVfxSrc??read('nodspel/fx-feedback.js'),game=c.lifecycleGameSrc??read('nodspel/game.mjs');
      if(!/new THREE\.InstancedMesh\(/.test(loot))out.push('loot sparkles must use a fixed instanced pool');
@@ -207,7 +251,7 @@ export const RULES=[
      return out;}},
 
 
-  {id:'vfx-phone-depth-layers',pr:'v2.28.3x PRB-156 pass 2',why:'Pass 1 still read flat at phone size: the extraction shell lacked a core/fence and pickup arcs disappeared behind the player',
+  {id:'vfx-phone-depth-layers',pr:'v2.28.35 PRB-156 pass 2',why:'Pass 1 still read flat at phone size: the extraction shell lacked a core/fence and pickup arcs disappeared behind the player',
    check(c={}){const out=[];
      const beam=c.phoneBeamSrc??read('nodspel/vfx-extract-beam.js'),loot=c.phoneLootSrc??read('nodspel/vfx-loot-burst.js');
      if(!/group\.add\(core\)/.test(beam)||!/group\.add\(fence\)/.test(beam))out.push('phone extraction must retain the inner core and raised floor fence');

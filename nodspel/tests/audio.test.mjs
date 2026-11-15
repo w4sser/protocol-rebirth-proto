@@ -424,8 +424,74 @@ test('audioSession is left unchanged and no media playback session is requested'
   for(const name of ['touchend','click','keydown','pointerup']){
     assert.equal(registrations.get(name).options.capture,true);
     a.init();a.context.state='suspended';a.unlocked=false;resumed=false;
+    const before=a.context.sources.length;
     registrations.get(name).fn();assert.equal(resumed,true,name+' resumes in the activation stack');
+    // iOS Safari only treats resume() as a real unlock when a sound is also actually started
+    // synchronously in the same gesture (unlockSync()) -- not just ctx.resume() on its own.
+    assert.equal(a.context.sources.length,before+1,name+' also starts a silent buffer synchronously');
+    assert.equal(a.context.sources.at(-1).started,true);
   }
+});
+
+// v2.28.33 PRB-154 (Robert's playtest): the cold-open greeting's unlock/decode race against
+// ENTER THE FACILITY -- unlockSync() is the synchronous half of the start-screen tap (iOS needs
+// ctx.resume() plus an actual sound start in the same tick, not just an awaited resume()).
+test('unlockSync resumes and starts a silent buffer synchronously, before any await',()=>{
+  const f=fixture(),a=f.audio;
+  assert.equal(a.context,null);
+  assert.equal(a.unlockSync(),true);
+  assert.equal(a.unlocked,true);
+  assert.equal(a.context.sources.length,1,'a silent buffer source was started synchronously');
+  const source=a.context.sources[0];
+  assert.equal(source.started,true);
+  assert.equal(source.buffer.length,1,'the unlock buffer is a single silent sample');
+  assert.equal(source.destination,a.context.destination,'the unlock buffer bypasses the mix buses entirely');
+});
+
+test('unlockSync is harmless with no AudioContext factory available',()=>{
+  const a=new AudioManager(config,{});
+  assert.equal(a.unlockSync(),false);
+});
+
+// preload() is the other half of the fix: decode every SFX/VO/loop buffer during the splash,
+// before any gesture, so the request at intro-mount time never has to wait on a live fetch.
+test('preload decodes every sfx/voice/loop buffer up front, before any unlock',async()=>{
+  const f=fixture(),a=f.audio;
+  assert.equal(a.context,null);
+  assert.equal(await a.preload(),true);
+  assert.equal(a.unlocked,false,'preload never resumes/unlocks the context by itself');
+  assert.equal(a.context.state,'suspended','decoding works fine on a still-suspended context');
+  const expected=[...Object.values(config.sfx).map(cue=>cue.file),...config.voices.map(name=>'bit/'+name),...Object.values(config.loops).map(cue=>cue.file)];
+  for(const file of expected)assert.ok(a.cache.has(file),file+' is pre-decoded');
+  assert.equal(f.requests,expected.length);
+});
+
+test('preload + unlockSync closes the race: a request queued while locked plays once the same tap flushes it, with no fetch at play time',async()=>{
+  const f=fixture(),a=f.audio;
+  await a.preload(); // during the splash
+  const afterPreload=f.requests;
+  assert.equal(await a.requestVoice('youre-back'),false,'queues while still locked -- same call SCREENS.intro() makes at mount');
+  assert.equal(a.pendingVoices.has('youre-back'),true);
+  a.unlockSync(); // the start-screen tap, synchronous half
+  await a.unlock(); // same tap, async decode/flush half
+  assert.equal(a.pendingVoices.has('youre-back'),false);
+  assert.equal(a.lastVoice.has('youre-back'),true,'the preloaded voice actually played once unlocked');
+  assert.equal(f.requests,afterPreload,'nothing was fetched on demand -- preload() already decoded it');
+});
+
+test('cancelVoice before any unlock permanently drops a pending request -- a later unlock cannot resurrect it',async()=>{
+  // The one race the fix does not (and cannot) close: if ENTER THE FACILITY is tapped as the
+  // player's absolute first gesture (they never engaged the start screen at all), that tap's
+  // cancelVoice always wins because it is synchronous while the matching unlock flush is not.
+  // The greeting simply never plays for that player, same as if they had skipped past it.
+  const f=fixture(),a=f.audio;
+  assert.equal(await a.requestVoice('youre-back'),false);
+  assert.equal(a.pendingVoices.has('youre-back'),true);
+  a.cancelVoice('youre-back');
+  assert.equal(a.pendingVoices.has('youre-back'),false);
+  a.unlockSync();await a.unlock();
+  assert.equal(a.lastVoice.has('youre-back'),false,'the cancelled request never plays, even once later unlocked');
+  assert.equal(await a.requestVoice('youre-back'),false,'and it cannot be re-requested either -- one-shot, for good');
 });
 
 // v2.28.30 (Robert, FTUE VO on the summary): dismissing the cold open cancels BIT's greeting even when the
@@ -441,4 +507,51 @@ test('cancelVoice stops a youre-back line that is already playing',async()=>{
   const a=fixture().audio;await a.unlock();assert.equal(await a.requestVoice('youre-back'),true);
   const src=a.context.sources[0];a.cancelVoice('youre-back');
   assert.equal(src.stopped,true);assert.equal(a.voiceBusy,false);
+});
+
+// Real app + real AudioManager: exercise the browser gesture wiring, DOM guard and dismissal,
+// rather than a stub that grants itself permission or forgets active sources.
+for(const startOnIntro of [false,true])test(`cold-open greeting after ${startOnIntro?'a first tap on the intro':'the start-screen tap'} plays once and ENTER stops it`,async()=>{
+  const {JSDOM}=await import('jsdom');
+  const dom=new JSDOM(await readFile(new URL('../../index.html',import.meta.url),'utf8'),{runScripts:'outside-only',url:'http://game/index.html'});
+  const w=dom.window;let requests=0;
+  try{
+    let timer=0;const timers=new Map(),images=[];
+    w.setTimeout=(fn,ms)=>{timers.set(++timer,{fn,ms});return timer;};w.clearTimeout=id=>timers.delete(id);
+    w.Image=class{constructor(){this.complete=false;images.push(this);}};
+    w.matchMedia=()=>({matches:false});
+    if(startOnIntro)w.sessionStorage.setItem('pr_splash_seen',String(Date.now()));
+    for(const name of ['items','modules','bit','bit-talents','raid_zones','recipes','vendors','retention','quests','progression','combat','audio'])
+      w.eval(await readFile(new URL('../../data/'+name+'.js',import.meta.url),'utf8'));
+    w.eval(await readFile(new URL('../../ui/audio.js',import.meta.url),'utf8'));
+    const audio=new w.PRAudioManager(w.DATA.audio,{AudioContext:FakeContext,fetch:async()=>{requests++;return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)};}});
+    w.PR_AUDIO=audio;audio.installUnlock(w);
+    await audio.preload();const loaded=requests;
+    w.eval(await readFile(new URL('../../app.js',import.meta.url),'utf8')+';window.TEST={intro:()=>SCREENS.intro(),dismiss:()=>A.dismissIntro()}; A.startFtueDirect=()=>{};');
+    if(!startOnIntro){
+      images.forEach(i=>i.onload?.());await new Promise(r=>setTimeout(r,0));
+      w.document.querySelector('#splash').click();
+      assert.equal(audio.context.state,'running','the start tap resumes synchronously');
+      assert.equal(audio.context.sources[0].buffer.length,1,'the same gesture starts the silent sample');
+      for(const [id,t] of [...timers])if(t.ms===1500){timers.delete(id);t.fn();}
+      assert.equal(w.document.querySelector('#splash'),null);
+    }
+    w.TEST.intro();
+    assert.equal(audio.lastVoice.has('youre-back'),false,'no VO before the first line reveal');
+    w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
+    if(startOnIntro){
+      assert.equal(audio.pendingVoices.has('youre-back'),true,'reveal queues while locked');
+      w.document.querySelector('.intro').click(); // skip text, not ENTER
+      assert.equal(audio.context.state,'running','intro tap also unlocks synchronously');
+    }
+    await new Promise(r=>setTimeout(r,0));
+    assert.equal(audio.voiceName,'youre-back');assert.equal(requests,loaded,'all buffers were preloaded');
+    const voice=audio.voiceSource,count=audio.context.sources.length;
+    w.TEST.intro();w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
+    await audio.unlock();assert.equal(audio.context.sources.length,count,'rerenders and unlocks never replay the greeting');
+    w.TEST.dismiss();assert.equal(voice.stopped,true,'ENTER stops the playing greeting');
+    assert.equal(w.document.querySelector('.intro'),null);
+    await audio.unlock();assert.equal(await audio.requestVoice('youre-back'),false,'later screens cannot revive it');
+    assert.equal(audio.context.sources.length,count);
+  }finally{dom.window.close();}
 });

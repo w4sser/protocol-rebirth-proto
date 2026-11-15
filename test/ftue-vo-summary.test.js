@@ -49,6 +49,7 @@ function boot(seedSave, seedResult){
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/ui/base-audio.js", "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,_getSession:()=>session};");
+  w.document.querySelector(".intro-lines p")?.dispatchEvent(new w.Event("animationstart"));
   return { w, audio };
 }
 

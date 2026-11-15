@@ -1,4 +1,5 @@
 // Proves each bug-lint rule actually fires on the regression it guards.
+import fs from 'node:fs';
 import assert from 'node:assert/strict';import {RULES,runAll} from '../scripts/bug-lint.mjs';
 const by=id=>RULES.find(r=>r.id===id);
 assert.ok(by('no-tracked-node-modules').check({files:['node_modules'],gitignore:'node_modules/\n'}).length===2,'#129 fires');
@@ -68,6 +69,24 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
 {const goodApp='  dismissIntro(){\n    window.PR_AUDIO?.cancelVoice?.(\'youre-back\');\n    document.body.classList.remove("startup-bunker-intro");\n    A.go("base");\n    if(session.pendingHomecomingSummary){\n      showHomecomingSummary(session.pendingHomecomingSummary, { skipVoice:true });\n    }\n  },\n';
  const goodBase="const greet=()=>{if(!welcome)return;void audio.unlock().then(async ok=>{\n  const success=true,skip=skipVoice;skipVoice=false;\n  void audio.play('extract-success');\n  if(success){\n    if(skip)return;\n    if(intro)void audio.requestVoice('youre-back');else void audio.voice('welcome-back');\n    return;\n  }\n});};\n";
  assert.equal(by('greeting-vo-only-with-bit-visible').check({appSrc:goodApp,baseAudioSrc:goodBase}).length,0,'v2.28.30 passes once dismissIntro cancels first and greet() skips before any voice');}
+{const badApp='function bootSequence(next,done){\n  return overlay("x",done);\n}\n  build(modId){\n    if(isLightsOn){\n      window.PRBitCutscene?.play(X);\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
+ assert.equal(by('core-restore-no-power-popup').check({appSrc:badApp}).length,1,'PRB-155 fires if bootSequence() still exists');}
+{const badApp='  build(modId){\n    if(isLightsOn){\n      window.PRBitCutscene?.play(X); // POWER RESTORED\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
+ assert.equal(by('core-restore-no-power-popup').check({appSrc:badApp}).length,1,'PRB-155 fires if "POWER RESTORED" copy still exists anywhere');}
+{const badApp='  build(modId){\n    if(isLightsOn){\n      overlay(bootHtml(),done);\n      window.PRBitCutscene?.play(X);\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
+ assert.equal(by('core-restore-no-power-popup').check({appSrc:badApp}).length,1,'PRB-155 fires if the isLightsOn branch opens any popup');}
+{const badApp='  build(modId){\n    if(isLightsOn){\n      save();\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
+ assert.equal(by('core-restore-no-power-popup').check({appSrc:badApp}).length,1,'PRB-155 fires if the isLightsOn branch never plays the cutscene itself');}
+{const goodApp='  build(modId){\n    if(isLightsOn){\n      save();\n      if(!S.bitCardsSeen.core_restored){\n        S.bitCardsSeen.core_restored=true;\n        window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);\n      } else bitDock("module_built");\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
+ assert.equal(by('core-restore-no-power-popup').check({appSrc:goodApp}).length,0,'PRB-155 passes once the popup is gone and the cutscene itself plays, even nested inside another if');}
+{const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app}).length,0,'cached bounded probe passes');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('if(!fabricatorArtPromise)','if(true)')}).length,1,'uncached probe fails');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('setTimeout(() => finish(false), 3000)','setTimeout(() => {}, 3000)')}).length,1,'unbounded probe fails');}
+assert.equal(by('cutscene-reduced-motion-instant').check({cutsceneSrc:'',cutsceneCss:''}).length,2,'missing instant hint and bust override fail');
+assert.equal(by('cutscene-reduced-motion-instant').check().length,0,'reduced motion reveals all copy immediately');
+assert.equal(by('narrator-hologram-above-copy').check({cutsceneCss:'.bit-cutscene-hologram{bottom:22%;}'}).length,1,'low hologram anchor fails');
+assert.equal(by('narrator-hologram-above-copy').check().length,0,'hologram stays above copy');
 {const badBeam='export function createExtractBeam(){\n  const beam=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:EXTRACT_COLOR}));\n  return {beam};\n}\n';
  assert.equal(by('extract-loot-3d-vfx').check({beamSrc:badBeam}).length,1,'PRB-156 fires when the beam is a flat MeshBasicMaterial, not a ShaderMaterial');}
 {const goodBeam='export function createExtractBeam(){\n  const beamMaterial=new THREE.ShaderMaterial({vertexShader:v,fragmentShader:f});\n  return {beamMaterial};\n}\n';
@@ -96,3 +115,13 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
 }
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
+
+{
+ const rule=by('coldopen-vo-after-start-unlock');
+ const appSrc=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const audioSrc=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ assert.equal(rule.check({appSrc,audioSrc}).length,0,'start audio wiring passes');
+ for(const [from,to] of [['void window.PR_AUDIO?.unlockSync?.();','await window.PR_AUDIO?.unlock?.();'],["requestVoice('youre-back')","voice('youre-back')"],['preload.call(window.PR_AUDIO)','Promise.resolve()'],['Promise.resolve(activationAudio).then','Promise.resolve().then'],['addEventListener("animationstart", greet','addEventListener("click", greet']])
+   assert(rule.check({appSrc:appSrc.replace(from,to),audioSrc}).length>0,'fires when removing '+from);
+ assert(rule.check({appSrc,audioSrc:audioSrc.replace('source.start(0);','Promise.resolve().then(()=>source.start());')}).length>0,'fires when priming leaves the gesture stack');
+}

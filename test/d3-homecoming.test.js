@@ -67,7 +67,13 @@ const html = w => w.document.getElementById("app").innerHTML;
   assert.deepEqual([...w.document.querySelectorAll('.intro-lines p')].map(p=>p.textContent),[
     "You're… back?", "You're late… but you're back.", "Somewhere past the dark, the Rebirth Core is still waiting."
   ], "two spoken lines precede the Core narrative");
-  assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip");
+  assert.deepEqual(voices,[], "greeting waits for its first visible line");
+  // Simulate the raid return uncovering the intro, then its first CSS line reveal (jsdom has
+  // no animation engine). Dispatching pr:splash-finished above only drives the FTUE launcher.
+  w.document.body.classList.remove("splash-active");
+  w.document.getElementById("splash")?.remove();
+  w.document.querySelector(".intro-lines p").dispatchEvent(new w.Event("animationstart"));
+  assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip at the first reveal");
   assert(!text(w).includes("followed you home"), "old 'followed you home' copy is gone");
   const backdrop = w.document.querySelector(".intro .intro-backdrop");
   const bit = w.document.querySelector(".intro .intro-bit");
