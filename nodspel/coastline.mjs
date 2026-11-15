@@ -253,7 +253,8 @@ function heroCoastRingData(profile){
     positions.push(x,y,z);
     const seam=archipelagoGroundColor(profile,
       floor.x+c*(p.playableRadial-.045),
-      floor.z+sn*(p.playableRadial-.045));
+      floor.z+sn*(p.playableRadial-.045),
+      {masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]});
     const exposed=clamp((p.heroRelief??0)*.94+.18*(1-p.beach),0,1);
     const transition=stops[k];
     const blend=k===0?0:transition*(.16+.84*exposed);
