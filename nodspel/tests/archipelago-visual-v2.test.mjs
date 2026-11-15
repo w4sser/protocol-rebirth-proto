@@ -27,6 +27,17 @@ test('v2 coast is deterministic, genuinely walkable outside the old rectangle',(
   assert.ok(moved.x<12,'player cannot move indefinitely onto water');
 });
 
+test('v2 coast has asymmetric glacial headlands and carved coves instead of a rounded rectangle',()=>{
+  const island={x:0,z:0,w:18,d:16},a=coastlineProfile(island,'archipelago-v2-target',{style:'v2'});
+  const b=coastlineProfile(island,'archipelago-v2-target',{style:'v2'});
+  assert.deepEqual(a,b,'the same seed must create the same coastline');
+  const ext=a.points.map(p=>p.radial-p.innerRadial);
+  assert.ok(Math.max(...ext)-Math.min(...ext)>2.5,'shoreline needs broad, recognizable asymmetry');
+  for(const p of a.points)assert.ok(p.playableRadial>p.innerRadial+.15,'keep authored encounters and the walkable lip safe');
+  const deltas=a.points.map((p,i)=>Math.abs(p.radial-a.points[(i+1)%a.points.length].radial));
+  assert.ok(Math.max(...deltas)<3,'coast should be sculpted rather than spiky');
+});
+
 test('connected islands preserve a water gap and an authored bridge',()=>{
   const left={x:0,z:0,w:12,d:12},right={x:16,z:0,w:12,d:12};
   const profiles=[left,right].map(f=>coastlineProfile(f,'bridge-water',{style:'v2',neighbors:[left,right]}));

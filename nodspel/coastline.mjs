@@ -58,10 +58,17 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neig
     // v2 is an actual extended walkable landform, not just a wavy rim on
     // the rectangular gameplay floor. Reserve a narrow erosion lip for
     // gravity/readability beyond the traversable boundary.
-    const headland=.72*Math.sin(2*angle+phase*.72)+.52*Math.sin(3*angle+phase2)
-      +.24*Math.sin(5*angle+phase3);
+    // Nordic glacial islands are irregular, not rounded authored rectangles.
+    // A broad oval body, asymmetric headlands and two sheltered coves are
+    // evaluated at the same deterministic angles for shore, water and physics.
+    const rx=floor.w*.5+4.6,rz=floor.d*.5+4.6;
+    const oval=1/Math.hypot(c/rx,s/rz);
+    const headland=1.48*Math.sin(2*angle+phase*.72)+1.12*Math.sin(3*angle+phase2)
+      +.56*Math.sin(5*angle+phase3)+.24*Math.sin(7*angle+phase*.32);
+    const recessed=coastCoves(seed).reduce((sum,cove)=>sum
+      +1.3*Math.exp(-Math.pow(circleDistance(t,cove.center)/.083,2)),0);
     let outer=style==='v2'
-      ?Math.max(inside+1.4,roundedRadius(floor,c,s)+2.1+headland)
+      ?Math.max(inside+1.4,oval+1.15+headland-recessed)
       :Math.max(inside+.55,roundedRadius(floor,c,s)+wave);
     if(style==='v2')for(const other of neighbors){
       if(other===floor||other.dir)continue;
