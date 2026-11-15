@@ -297,10 +297,12 @@ function heroCoastRingData(profile){
     // Interpolate broad erosion blocks: hard jumps between random angular
     // cells previously produced pointed ridge teeth in the low-poly crown.
     // Retain readable facets in shading, not jagged 3D spikes.
-    const erosion=(p.angle+.08)/.36,block=Math.floor(erosion),fade=smooth(0,1,erosion-block);
-    const rough=mix(unit(seed+block*239+97),unit(seed+(block+1)*239+97),fade);
+    const blockCount=16,erosion=(p.angle/TAU*blockCount+seed*.000041)%blockCount;
+    const block=Math.floor(erosion),next=(block+1)%blockCount;
+    const fade=smooth(0,1,erosion-block);
+    const rough=mix(unit(seed+block*239+97),unit(seed+next*239+97),fade);
     const secondary=mix(unit(seed+block*411+index*101+283),
-      unit(seed+(block+1)*411+index*101+283),fade);
+      unit(seed+next*411+index*101+283),fade);
     const local=nearest?wrap(p.angle-nearest.angle)/nearest.width:8;
     const knuckle=(.83+.21*Math.sin(local*4.4+.9)+.10*Math.sin(local*9.1-1.5));
     const fractured=clamp(.80+.18*rough+.08*secondary+.13*knuckle,.80,1.13);
