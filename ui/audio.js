@@ -30,13 +30,40 @@
       try{if(this.context.state!=='running')await this.context.resume();}catch(_){}
       this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;return this.unlocked;
     }
+    // iOS Safari only honours ctx.resume() as a real unlock when it runs synchronously inside
+    // the original gesture, together with actually starting a sound in that same tick -- an
+    // awaited resume() (this.resume()/unlock()) a microtask later is too late on that platform.
+    // Callers fire this first, then still call unlock() for the real (possibly async) decode
+    // of any voices/music queued while locked.
+    unlockSync(){
+      if(!this.init())return false;
+      try{const p=this.context.resume();if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){}
+      try{
+        const buffer=this.context.createBuffer(1,1,this.context.sampleRate),source=this.context.createBufferSource();
+        source.buffer=buffer;source.connect(this.context.destination);source.start(0);
+      }catch(_){}
+      this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;
+      return this.unlocked;
+    }
     installUnlock(target){
-      const unlock=()=>{if(this.unlocked&&this.context?.state==='running')return;void this.unlock();};
+      const unlock=()=>{if(this.unlocked&&this.context?.state==='running')return;this.unlockSync();void this.unlock();};
       // WebKit needs resume() in the original trusted activation stack.
       const gestures=target.defaultView||target;
       for(const type of ['touchend','click','keydown','pointerup'])gestures.addEventListener(type,unlock,{capture:true,passive:true});
       const visibility=gestures.document||target;
       visibility.addEventListener('visibilitychange',()=>{if(visibility.visibilityState==='visible')unlock();});
+    }
+    // Decode every SFX/VO/loop buffer up front (during the splash, before any gesture -- a
+    // suspended AudioContext still decodes fine) so the first sounds after unlockSync() never
+    // lose a race to a slow fetch+decodeAudioData. Safe to call with no AudioContext factory
+    // available (jsdom/tests without one): resolves false rather than throwing.
+    async preload(){
+      if(!this.init())return false;
+      const files=[...Object.values(this.config.sfx).map(cue=>cue.file),
+        ...this.config.voices.map(name=>'bit/'+name),
+        ...Object.values(this.config.loops).map(cue=>cue.file)];
+      await Promise.all(files.map(file=>this.load(file).catch(()=>{})));
+      return true;
     }
     set(key,value){
       if(!(key in this.settings))return;

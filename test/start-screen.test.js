@@ -1,7 +1,11 @@
 // v2.11.0 START SCREEN: PLAY/settings/slot wiring on the splash itself (jsdom, full boot).
 // Same fake-timer/fake-image technique as test/splash.test.js, applied to the whole app.js
-// (not just the sliced setupSplash() body) so PLAY's click handler -- wired in the main init
-// block, outside that slice -- is exercised for real. Run: node test/start-screen.test.js
+// (not just the sliced setupSplash() body) so the real init-block wiring -- outside that slice --
+// is exercised for real. Run: node test/start-screen.test.js
+// v2.28.33: Robert's playtest found both a PLAY button AND "TAP ANYWHERE TO BEGIN" showing at
+// once -- two prompts for one action. PLAY is gone; #splash itself (already role=button
+// tabindex=0) is the one focusable/tappable target, with a pulsing "TAP ANYWHERE TO BEGIN" as
+// the sole visual cue. This file now asserts PLAY is gone, not that it exists.
 const { JSDOM } = require("jsdom"), fs = require("fs"), assert = require("assert"), path = __dirname + "/..";
 const DATA_FILES = ["items", "modules", "bit", "bit-talents", "raid_zones", "recipes", "vendors", "retention", "quests", "progression", "combat"];
 const APP_SRC = fs.readFileSync(path + "/app.js", "utf8");
@@ -34,22 +38,24 @@ function boot(){
   return { dom, document, A:w.__T.A, tick, ready:() => images.forEach(i => i.onload?.()), splash:() => document.getElementById("splash") };
 }
 
-// 1) the splash carries a title, one minimalist PLAY control (thin outline, not the big filled
-// .playbtn used for the lobby's DEPLOY -- the landscape owns the image) and small settings/slot
-// icons -- the design's "minimal: title, PLAY, small settings/slot icons".
+// 1) the splash carries a title, exactly one tap-anywhere prompt (no PLAY button -- removing it
+// is the fix for two prompts showing at once) and small settings/slot icons.
 {
   const t = boot();
   assert(t.document.querySelector(".splash-title"), "title present");
-  const play = t.document.getElementById("splash-play");
-  assert(play && play.classList.contains("splash-play") && !play.classList.contains("playbtn"), "PLAY control exists and is not the big filled .playbtn style");
-  assert.equal(play.textContent.trim(), "PLAY", "PLAY control keeps its accessible text");
+  assert(!t.document.getElementById("splash-play"), "the PLAY button is gone -- one prompt, not two");
+  const prompt = t.document.getElementById("splash-prompt");
+  assert(prompt && prompt.classList.contains("splash-prompt"), "the tap-anywhere prompt exists");
+  assert.equal(prompt.textContent.trim(), "TAP ANYWHERE TO BEGIN", "prompt keeps its accessible text");
+  assert.equal(t.splash().getAttribute("role"), "button", "#splash itself is the one focusable/tappable target");
+  assert.equal(t.splash().getAttribute("tabindex"), "0", "#splash stays keyboard-focusable without PLAY");
   assert(t.document.getElementById("splash-settings-btn"), "settings icon present on the splash");
   assert(t.document.getElementById("splash-profiles-btn"), "save-slot icon present on the splash");
   t.dom.window.close();
   const css = fs.readFileSync(path + "/index.html", "utf8");
-  assert(/\.splash-play\{[^}]*min-width:44px;min-height:44px/.test(css), "PLAY keeps a >=44px hit area despite the minimal look");
-  assert(/\.splash-play\{[^}]*background:transparent/.test(css), "PLAY has no big filled background");
-  assert(/@media\(prefers-reduced-motion:reduce\)\{\.splash-play\{animation:none;?\}\}/.test(css), "PLAY's pulse is disabled under reduced motion");
+  assert(/\.splash-prompt\{[^}]*min-width:44px;min-height:44px/.test(css), "the prompt keeps a >=44px hit area");
+  assert(/\.splash-prompt\{[^}]*background:transparent/.test(css), "the prompt has no big filled background");
+  assert(/@media\(prefers-reduced-motion:reduce\)\{#splash\.prompt-ready \.splash-prompt\{animation:none;?\}\}/.test(css), "the prompt's pulse is disabled under reduced motion");
 }
 
 // 2) settings icon opens the settings menu but never starts the descent (stopPropagation)
@@ -73,18 +79,20 @@ function boot(){
   t.dom.window.close();
 }
 
-// 4) PLAY routes into the exact same tap-anywhere-to-enter flow as splash.test.js already
-// proves for a direct tap: waits for artwork, then descends, then hands off to the real screen.
+// 4) tapping anywhere on the splash (there is no PLAY to route through any more) waits for
+// artwork, reveals the pulsing prompt once ready, then descends on the same tap.
 {
   const t = boot();
-  t.document.getElementById("splash-play").click();
+  assert(!t.splash().classList.contains("prompt-ready"), "prompt stays hidden while artwork/audio are still loading");
+  t.splash().click();
   t.tick(100);
-  assert(!t.splash().classList.contains("descending"), "PLAY still waits for artwork, same as a direct tap");
+  assert(!t.splash().classList.contains("descending"), "a tap still waits for artwork before entering");
   t.ready();
-  assert(t.splash().classList.contains("descending"), "PLAY starts the descent once ready");
+  assert(t.splash().classList.contains("prompt-ready"), "the prompt reveals once loading finishes");
+  assert(t.splash().classList.contains("descending"), "the same tap's request now starts the descent once ready");
   t.tick(1500);
-  assert(!t.splash(), "PLAY hands control to the real base/intro screen");
+  assert(!t.splash(), "the splash hands control to the real base/intro screen");
   t.dom.window.close();
 }
 
-console.log("start-screen.test: ok (title/PLAY/settings/slot on the splash; PLAY transition; settings/slot never skip it)");
+console.log("start-screen.test: ok (title/one prompt/settings/slot on the splash; tap-anywhere transition; settings/slot never skip it)");

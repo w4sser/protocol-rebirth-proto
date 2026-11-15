@@ -2318,6 +2318,10 @@ SCREENS.intro = function(){
     '</div></div>';
   // Requested only now that .intro is actually in the DOM: ui/audio.js guards 'youre-back' on
   // that element being present, so BIT's greeting never replays later onto the summary.
+  // v2.28.33: this now reliably plays in sync with the first greeting line's own reveal (t0,
+  // see above) because the start-screen tap (item 2's unlockSync + preload) already unlocked and
+  // decoded it well before this mounts -- the splash's own ~1.5s exit transition is more than
+  // enough margin, so the request resolves long before ENTER THE FACILITY is even tappable.
   void window.PR_AUDIO?.requestVoice('youre-back');
 };
 
@@ -5592,23 +5596,27 @@ function setupSplash(flightPending, returningFromRaid){
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
+    // v2.28.33: the pulsing "TAP ANYWHERE TO BEGIN" prompt stays invisible until the art and the
+    // SFX/VO preload (or the same ~2.5s fallback below) are both done, so it never promises sound
+    // that isn't decoded yet -- see ui/audio.js preload() and the loadTimer fallback above.
+    sp.classList.add("prompt-ready");
     if(requested) proceed();
     else if(!flightActive) autoTimer = setTimeout(begin, 1400);
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
-  // v2.21.1: the first tap on the landscape itself (not PLAY) only unlocks audio so the theme plays
-  // over the water; PLAY / keyboard / a second tap enters. Autoplay-permitted browsers start at once.
+  // v2.28.33 single start-screen prompt: PLAY is gone, so the one tap both unlocks audio
+  // (synchronously, inside this gesture -- see ui/audio.js unlockSync()) and begins/enters;
+  // there is no longer a first-tap-just-unlocks step. Keyboard (Enter/Space on #splash,
+  // which already carries role=button tabindex=0) reaches the same activate().
   const activate = (e) => {
-    const audioOn = !!window.PR_AUDIO?.unlocked;
-    void window.PR_AUDIO?.unlock();
-    if(e && e.type === "click" && !audioOn && phase !== "descending" && !(e.target && e.target.closest && e.target.closest("#splash-play")) && window.PR_AUDIO){ return; }
+    void window.PR_AUDIO?.unlockSync?.();
+    void window.PR_AUDIO?.unlock?.();
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;
     if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
-  void window.PR_AUDIO?.unlock?.();
   document.addEventListener("visibilitychange", onVisibility);
   sp.addEventListener("click", activate);
   sp.addEventListener("keydown", e => {
@@ -5621,7 +5629,10 @@ function setupSplash(flightPending, returningFromRaid){
   });
   const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
     D.baseMap.plates[bunkerStage()].art];
-  let remaining = art.length;
+  // +1: the SFX/VO preload/decode (ui/audio.js preload()) gates "ready" alongside the artwork --
+  // both need a suspended AudioContext that unlockSync() can resume synchronously on the first
+  // tap, with no further decode work left to race against ENTER THE FACILITY on the cold open.
+  let remaining = art.length + 1;
   for(const src of art){
     const img = new Image(); pendingImages.push(img);
     let settled = false;
@@ -5631,6 +5642,10 @@ function setupSplash(flightPending, returningFromRaid){
     };
     img.src = src;
     if(img.complete) img.onload();
+  }
+  { let settled = false; const settle = () => { if(settled) return; settled = true; if(--remaining === 0) ready(); };
+    const preload = window.PR_AUDIO?.preload;
+    if(preload) void preload.call(window.PR_AUDIO).then(settle, settle); else settle();
   }
   if(phase === "loading") loadTimer = setTimeout(ready, 2500);
   return {
