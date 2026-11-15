@@ -15,7 +15,7 @@ function fixture(t){
   w.Image=class {
     constructor(){images.push(this);}
     set src(src){this.url=src;}
-    decode(){decodes++;return new Promise(resolve => {this.resolveDecode=resolve;});}
+    decode(){decodes++;return new Promise((resolve,reject) => {this.resolveDecode=resolve;this.rejectDecode=reject;});}
   };
   w.eval(fs.readFileSync(__dirname+'/../ui/bit-cutscene.js','utf8'));
   return {w,api:w.PRBitCutscene,images,get decodes(){return decodes;},tick(ms){
@@ -31,7 +31,9 @@ test('decoded cache warms backdrops, bust and fallback; warm play presents in th
   f.images.forEach(img=>img.onload());
   assert.equal(f.decodes,4);
   let finished=false; ready.then(()=>{finished=true;});await Promise.resolve();assert.equal(finished,false,'warm awaits decode');
+  assert.equal(f.api.isWarm(beat.id),false);
   f.images.forEach(img=>img.resolveDecode());await ready;
+  assert.equal(f.api.isWarm(beat.id),true);
   f.api.play(beat);
   assert.ok(f.w.document.querySelector('.bit-cutscene'));
   assert.equal(f.images.length,4,'no new warm image allocations');
@@ -68,4 +70,29 @@ test('actual warm load error resolves empty and permits a new request',async t =
   const f=fixture(t),opts={id:'error',from:'broken.webp'};
   const p=f.api.preload(opts);f.images[0].onerror();assert.equal((await p)[0],'');
   f.api.preload(opts);assert.equal(f.images.length,2);
+});
+
+test('dismissal automatically evicts decoded seen-only images',async t => {
+  const f=fixture(t), ready=f.api.preload(beat);
+  f.images.forEach(img=>{img.onload();img.resolveDecode();});await ready;
+  f.api.play(beat);f.api.dismiss();f.tick(350);
+  assert.equal(f.api.isWarm(beat.id),false);
+  const count=f.images.length;f.api.preload(beat);
+  assert.equal(f.images.length,count+4,'dismiss releases retained images');
+});
+test('slow warm requests retain dedicated art; displayed load error alone selects fallback',async t => {
+  const f=fixture(t);f.api.play(beat);
+  const img=f.w.document.querySelector('.bit-cutscene-from');
+  f.tick(3001);assert.ok(img.src.endsWith('start.webp'));
+  f.images[0].onerror();await Promise.resolve();
+  assert.ok(img.src.endsWith('start.webp'),'warm request failure does not replace a live image');
+  img.dispatchEvent(new f.w.Event('error'));
+  assert.ok(img.src.endsWith('safe.webp'));
+});
+test('decode rejection does not select missing-art fallback',async t => {
+  const f=fixture(t), ready=f.api.preload(beat);
+  f.images.forEach(img=>{img.onload();img.rejectDecode(new Error('decode failed'));});
+  const sources=await ready;assert.equal(sources[0],'start.webp');
+  f.api.play(beat);
+  assert.ok(f.w.document.querySelector('.bit-cutscene-from').src.endsWith('start.webp'));
 });

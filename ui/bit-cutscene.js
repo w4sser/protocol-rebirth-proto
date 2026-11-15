@@ -63,6 +63,10 @@
     if(opts.id) owners.set(opts.id, list);
     return Promise.all(list.map(load));
   }
+  function isWarm(id){
+    var list = owners.get(id);
+    return !!list && list.every(function(src){ return !!images.get(src)?.decoded; });
+  }
   function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
   function blocked(){
     var b = document.body;
@@ -198,5 +202,5 @@
     });
     advance();
   }
-  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, release:release, dismiss:dismiss, isOpen:function(){ return !!current; } };
+  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, release:release, isWarm:isWarm, dismiss:dismiss, isOpen:function(){ return !!current; } };
 })();

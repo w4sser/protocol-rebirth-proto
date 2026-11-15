@@ -260,3 +260,9 @@ the intro underneath the splash; its intentional entrance animation and line-by-
 
 Run node scripts/cutscene-latency.mjs for real-trigger CPU-throttled browser measurements and
 50ms screenshots, and npm run test:bit-cutscene for deterministic loading/decoding regressions.
+
+Popup cancellation preserves the Fabricator/first-death story callback when navigation or Profiles
+replaces the reward/summary, while unrelated popup close actions remain cancelled. The cache's
+isWarm(id) query lets the benchmark observe production decoding without holding harness Images
+on AFTER. BEFORE is manually warmed to isolate the old waits. Three fresh-browser trials at each
+viewport report medians and retain raw timings; cold-open timing requires the real splash finish.

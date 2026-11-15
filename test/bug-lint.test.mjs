@@ -197,3 +197,11 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.equal(rule.check({cutsceneSrc:'async function advance(){ await preload(job); present(run); }\n  function later(){}',appSrc:''}).length,1);
  assert.equal(rule.check().length,0);
 }
+
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const rule=by('cutscene-story-survives-popup-replacement');
+ assert.equal(rule.check().length,0);
+ assert.equal(rule.check({appSrc:app.replace('afterDiscard:narrate','afterDiscard:null')}).length,1);
+ assert.equal(rule.check({appSrc:app.replace(/if\(old\) discardOverlay\(old\);/g,'if(old) old.remove();')}).length,1);
+}

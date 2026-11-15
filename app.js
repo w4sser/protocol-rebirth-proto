@@ -1859,7 +1859,7 @@ function toastPump(){
 // Any screen/tab change or raid launch closes every popup, modal and menu.
 function closeAllPopups(){
   if(typeof document === "undefined") return;
-  document.querySelectorAll("#overlay, .bpop").forEach(el => (el.closest("#overlay") || el).remove());
+  document.querySelectorAll("#overlay, .bpop").forEach(el => discardOverlay(el.closest("#overlay") || el));
   const m = document.getElementById("settings-menu"); if(m) m.hidden = true;
   session.focusSpot = null;
   updateNav();
@@ -1867,7 +1867,16 @@ function closeAllPopups(){
 // Shared popup component (ui/popup.css): every boxed popup gets the top-left close X, the shared header,
 // backdrop tap-to-close and the pop-in animation. opts.noClose only for scripted FTUE/timed sequences.
 const POP_X = '<button type="button" class="pop-x" data-close aria-label="Close">' + IC("close") + '</button>';
+// Navigation may cancel a popup, but must preserve a story beat attached to its dismissal.
+function discardOverlay(o){
+  if(o._closed) return;
+  o._closed = true; o.remove();
+  const story = o._storyClose; o._storyClose = null;
+  if(story) story();
+}
 function closeOverlay(o){
+  if(o._closed) return;
+  o._closed = true; o._storyClose = null;
   o.remove();
   // Clear the blocker without a synchronous layout measurement before the story callback.
   document.body.classList.toggle("has-overlay", !!document.getElementById("overlay"));
@@ -1877,7 +1886,7 @@ function closeOverlay(o){
 function overlay(html, onClose, cls, opts){
   opts = opts || {};
   const o = document.createElement("div");
-  o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose;
+  o.id = "overlay"; if(cls) o.className = cls; o._onClose = onClose; o._storyClose = opts.afterDiscard;
   o.innerHTML = '<div class="inner payoff">' + html + '</div>';
   if(!opts.noClose){
     // v1.47: the close badge straddles the card's top-left corner, so it must live outside any scroller.
@@ -1940,7 +1949,7 @@ function profilesHtml(){
     '<button type="button" class="ghost" onclick="A.profilesToggleImport()">' + (session.profilesImport ? "CANCEL IMPORT" : "IMPORT") + '</button></div>' + importHtml;
 }
 function reopenProfiles(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
 }
 function profilesReload(){
@@ -2813,7 +2822,7 @@ function stashPopHtml(){
     '<button type="button" class="linkbtn" onclick="A.openItemDetail(\'' + id + '\')">MORE OPTIONS</button></div></div></div>';
 }
 function stashPopRender(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   const html = stashPopHtml();
   overlay(html, () => { session.stashPop = null; refresh(); }, html.includes("wpnscreen") ? "sheet wpnov" : "sheet");
 }
@@ -2856,7 +2865,7 @@ function quickCleanHtml(){
     '</div><button class="primary big" onclick="A.quickCleanAsk()"' + (pick.length ? '' : ' disabled') + '>SELL SELECTED +' + gain + ' · FREES ' + freed + '</button></div>';
 }
 function quickCleanRender(){
-  const old = document.getElementById("overlay"); if(old) old.remove();
+  const old = document.getElementById("overlay"); if(old) discardOverlay(old);
   overlay(quickCleanHtml(), () => { session.quickClean = null; refresh(); }, "sheet");
 }
 
@@ -4343,7 +4352,7 @@ function showHomecomingSummary(ingest, opts){
   if(!ingest || !ingest.ok) return;
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov");
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
 }
 // PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
 // the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
@@ -4702,11 +4711,14 @@ window.A = {
       // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
       // PRB-160: remove the lighting wait; the reward popup now closes directly into the scene.
       fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
-      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
-        finish();
+      const narrate = () => {
+        if(S.bitCardsSeen.fabricator_built) return;
         S.bitCardsSeen.fabricator_built = true; save();
         fabricatorCutsceneBeat(beat => window.PRBitCutscene?.play(beat));
-      }, "reward");
+      };
+      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
+        finish(); narrate();
+      }, "reward", { afterDiscard:narrate });
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
@@ -5058,7 +5070,7 @@ window.A = {
     if(r.fabricatorLevel > (S.modules.fabricator || 0)) return;
     const I = idleState();
     if(I.crafted > 0 && I.fab.length >= fabSlots()) return;
-    const old = document.getElementById("overlay"); if(old) old.remove();
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);
     overlay(craftConfirmHtml(rid), () => A.openBuilding("fabricator"), "sheet");
   },
   craft(rid){
@@ -5224,7 +5236,7 @@ window.A = {
   },
   openHaul(){
     const pend = scavPending(); if(!pend) return;
-    const old = document.getElementById("overlay"); if(old) old.remove();   // BIT screen is itself an overlay now: swap, don't stack
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);   // BIT screen is itself an overlay now: swap, don't stack
     overlay(haulPopupHtml(pend), () => refresh(), "sheet");
   },
   confirmHaul(){
@@ -5515,7 +5527,7 @@ window.A = {
     const meta = SaveSlots.ensureMigrated(localStorage, SAVE_KEY, now);
     SaveSlots.touchSlot(meta, meta.active, now, undefined, localStorage);
     session.profilesMeta = meta; session.profilesRenaming = null; session.profilesImport = false; session.profilesImportTarget = meta.active;
-    const old = document.getElementById("overlay"); if(old) old.remove();
+    const old = document.getElementById("overlay"); if(old) discardOverlay(old);
     overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
   },
   profileRenameStart(i){ session.profilesRenaming = i; reopenProfiles(); },

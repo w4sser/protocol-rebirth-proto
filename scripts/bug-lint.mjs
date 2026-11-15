@@ -212,6 +212,12 @@ export const RULES=[
      }
      return out;}},
 
+  {id:'cutscene-story-survives-popup-replacement',pr:'v2.28.3x PRB-160 story close lifecycle',why:'navigation or Profiles replacing a reward/summary must not discard the queued story beat',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     if(!/function discardOverlay\(/.test(app)||!/o\._storyClose = opts\.afterDiscard/.test(app)||!/afterDiscard:narrate/.test(app)||!/afterDiscard:\(\) => maybeShowFirstDeathCard/.test(app))out.push('story reward/summary must preserve their story callbacks on popup cancellation');
+     const profiles=(app.match(/openProfiles\(\)\{([\s\S]*?)\n  \},/)||[])[1]||'';
+     if(!/discardOverlay\(old\)/.test(profiles))out.push('Profiles replacement must preserve the old popup story');
+     return out;}},
   {id:'cutscene-no-wait-before-show',pr:'v2.28.3x PRB-160 instant cutscenes',why:'narrator visuals must never wait for voice, loading, or a bunker lighting timer',
    check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),app=c.appSrc??read('app.js'),out=[];
      if(/voiceBusy/.test(js))out.push('cutscenes must not gate on voiceBusy');
