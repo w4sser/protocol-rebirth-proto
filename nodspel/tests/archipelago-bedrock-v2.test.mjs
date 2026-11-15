@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import * as art from '../archipelago-visual-v2.mjs';
-import {coastlineProfile,coastRingData} from '../coastline.mjs';
+import {coastlineProfile,coastRingData,authorHeroIslandCoast} from '../coastline.mjs';
 import {archipelagoDressingConfig} from '../archipelago-dressing-policy.mjs';
 import {generateLevel} from '../levels.js';
 import {archipelagoPassages} from '../archipelago-passages.js';
@@ -242,4 +242,45 @@ test('shore relief is authored into one coast mesh and the old grey ring is brok
   const group=new THREE.Group(),mesh=art.addArchipelagoGroundV2(profile,group,{bedrockPlan:bedrock});
   assert.ok(!group.children.some(o=>o.name==='arch-v2-bedrock-roots'),'avoid an overlapping granite apron on mobile');
   assert.ok(mesh.geometry.getAttribute('position').array.every((_,i)=>i%3!==1||Math.abs(mesh.geometry.getAttribute('position').array[i]-.01)<1e-5),'traversable land remains flat');
+});
+
+
+test('authored hero headlands grow from the SAME coastal surface without changing actor reach',()=>{
+  const floor={x:0,z:0,w:18,d:16};
+  const hero=coastlineProfile(floor,'archipelago-v2-target',{style:'v2'});
+  const base=hero.points.map(p=>({radial:p.radial,playable:p.playableRadial}));
+  const left=hero.points.find(p=>p.t>.12&&p.t<.40&&p.beach<.16);
+  const right=hero.points.find(p=>p.t>.60&&p.t<.9&&p.beach<.16);
+  assert.ok(left&&right,'the representative island has rocky headland positions');
+  authorHeroIslandCoast(hero,{rockAngles:[left.angle,right.angle]});
+  assert.equal(hero.heroCoast,true);
+  assert.ok(hero.heroHeadlands.length>=2,'two broad authored granite headlands');
+  const raised=hero.points.filter((p,i)=>p.radial>base[i].radial+.35);
+  assert.ok(raised.length>5,'broad headlands grow the real island coastline');
+  assert.ok(hero.points.every((p,i)=>p.playableRadial===base[i].playable),
+    'the game still moves only on the original, perfectly flat X/Z floor');
+  const shore=coastRingData(hero),n=hero.points.length;
+  assert.equal(shore.rings,10,'single hero cliff mesh has multiple deliberate erosion shoulders');
+  assert.equal(shore.positions.length,n*10*3);
+  const elevated=Array.from({length:n},(_,i)=>shore.positions[(4*n+i)*3+1]);
+  assert.ok(Math.max(...elevated)>.72,'integrated headlands have visible cliff height');
+  for(let i=0;i<n;i++){
+    assert.ok(Math.abs(shore.positions[i*3+1]-.01)<1e-5,'the operator seam remains flat');
+    assert.ok(shore.positions[(9*n+i)*3+1]<-.50,'same cliff returns below water level');
+  }
+  const group=new THREE.Group();
+  const plan={masses:hero.heroHeadlands.map(h=>({angle:h.angle})),shelves:[]};
+  const ground=art.addArchipelagoGroundV2(hero,group,{bedrockPlan:plan});
+  const coords=ground.geometry.getAttribute('position'),colors=ground.geometry.getAttribute('color');
+  for(let i=0;i<n;i++){
+    const j=coords.count-n+i;
+    for(let k=0;k<3;k++){
+      assert.ok(Math.abs(coords.array[j*3+k]-shore.positions[i*3+k])<1e-5,
+        'hero ground and raised coast share exactly one geometric seam');
+      assert.ok(Math.abs(colors.array[j*3+k]-shore.colors[i*3+k])<1e-5,
+        'hero ground and raised coast have identical linear vertex colors at their seam');
+    }
+  }
+  const flat=Array.from({length:coords.count},(_,i)=>coords.getY(i));
+  assert.ok(flat.every(y=>Math.abs(y-.01)<1e-5),'no false traversable mountains');
 });
