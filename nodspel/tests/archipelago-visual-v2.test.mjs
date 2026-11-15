@@ -195,11 +195,14 @@ test('v2 places high granite only outside the island and preserves open bridge l
       assert.equal(out.heroIsland,true,'target flag authors the hero island');
       const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
       assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
-      assert.equal(heroShell[0].userData.heroRings,10);
-      assert.equal(heroShell[0].geometry.getAttribute('position').count,10*72);
+      assert.equal(heroShell[0].userData.heroRings,14);
+      assert.equal(heroShell[0].geometry.getAttribute('position').count,14*72);
       assert.ok(out.heroHeadlands?.length>0,'authored hero has a meaningful geological headland');
       if(number===1)assert.ok(out.heroHeadlands.length>=2,'hero preview composes two or more distinct rocky headlands');
       const heroVertices=heroShell[0].geometry.getAttribute('position');
+      const cliffHeights=Array.from({length:72},(_,i)=>heroVertices.getY(6*72+i));
+      assert.ok(Math.max(...cliffHeights)>1.05,'hero cliffs must be clearly visible in actual gameplay');
+      assert.ok(Math.max(...cliffHeights)-Math.min(...cliffHeights)>.7,'island coast must not be a uniform retaining wall');
       for(const zone of out.rockFreeLandings)for(let i=0;i<heroVertices.count;i++){
         if(heroVertices.getY(i)<.10)continue;
         const x=heroVertices.getX(i),z=heroVertices.getZ(i);
