@@ -7,10 +7,13 @@ import {rngFrom} from './art.js?v=2.28.38';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.38';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.38';
-import {createWaterMesh} from './water-shader.js?v=2.28.38-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.38-bridge1';
+import {createWaterMesh} from './water-shader.js?v=2.28.38-baltic-calm3';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.38-glacial-s42';
+import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.38-organic-v2';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.38-glacial-merge1';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.38-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
+import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.38-dinghy2';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -139,6 +142,143 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   }
   return boulders.length;
 }
+// V2 keeps only actual authored interior partitions as rock cover.
+// Shore walls and bridge rails are obsolete with organic actor coastlines.
+export function isArchipelagoPartitionWallV2(w,rooms=[]){
+  return rooms.some(r=>r.partition
+    &&Math.abs(w.z-r.partition.z)<.12
+    &&Math.abs(w.x-r.x)<r.w/2+.15
+    &&w.w>.65&&w.d<=.65
+    &&Math.abs(w.z-r.z)<r.d/2-.3);
+}
+// All islands remain an untouched natural archipelago. Man-made structures
+// belong only to the bunker / utility installation, not scattered as cover.
+// Small, partially buried granite erratics and fallen coastal pines provide
+// honest, low silhouettes for planar X/Z combat and retain exact cover AABBs.
+const V2_COVER_STONE=new THREE.DodecahedronGeometry(1,1);
+V2_COVER_STONE.userData.shared=true;
+const V2_COVER_STONE_MAT=[
+  new THREE.MeshStandardMaterial({color:'#858a90',roughness:.98,metalness:0,flatShading:true}),
+  new THREE.MeshStandardMaterial({color:'#99939c',roughness:.98,metalness:0,flatShading:true})
+];
+for(const mat of V2_COVER_STONE_MAT)mat.userData.shared=true;
+const V2_FALLEN_LOG=new THREE.CylinderGeometry(.32,.38,1,7,1);
+V2_FALLEN_LOG.userData.shared=true;
+const V2_BARK_MAT=new THREE.MeshStandardMaterial({color:'#665b4e',roughness:1,flatShading:true});
+V2_BARK_MAT.userData.shared=true;
+const V2_ROOT_MAT=new THREE.MeshStandardMaterial({color:'#514a40',roughness:1,flatShading:true});
+V2_ROOT_MAT.userData.shared=true;
+
+// One clearly visible natural obstacle per authored cover collider. Preserve
+// rect coordinates for gameplay; no invisible enclosing wall or new vertical
+// terrain. Returns a Group with userData.collider and organicCover metadata.
+function naturalCoverV2(rect,{kind='boulder',tone=0}={}){
+  const g=new THREE.Group();
+  const h=Math.max(.62,rect.h??.95);
+  const longX=rect.w>=rect.d;
+  g.position.set(rect.x,0,rect.z);
+  g.name=kind==='windfall'?'arch-v2-fallen-pine-cover':'arch-v2-granite-boulder-cover';
+  g.userData.naturalCover=true;
+  g.userData.coverKind=kind;
+  g.userData.collider=rect;
+  g.userData.visualHeight=h;
+  if(kind==='windfall'){
+    const diameter=Math.min(rect.w,rect.d)*.86;
+    const length=Math.max(rect.w,rect.d)*.89;
+    const trunk=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
+    trunk.position.y=diameter*.43;
+    trunk.rotation[longX?'z':'x']=Math.PI*.5;
+    trunk.scale.set(diameter/.76,length,diameter/.76);
+    trunk.castShadow=trunk.receiveShadow=true;
+    g.add(trunk);
+    const roots=new THREE.Mesh(V2_COVER_STONE,V2_ROOT_MAT);
+    roots.position.set(longX?-length*.30:0,diameter*.39,longX?0:-length*.30);
+    roots.scale.set(diameter*.36,Math.min(h*.46,diameter*.46),diameter*.35);
+    roots.castShadow=roots.receiveShadow=true;g.add(roots);
+    // A short broken branch reads as windfall rather than a cylinder crate.
+    const broken=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
+    broken.position.set(longX?length*.15:diameter*.14,diameter*.73,
+      longX?diameter*.14:length*.15);
+    broken.rotation[longX?'x':'z']=.43;
+    broken.scale.set(diameter*.16,diameter*.52,diameter*.16);
+    broken.castShadow=true;g.add(broken);
+  }else{
+    const stone=new THREE.Mesh(V2_COVER_STONE,V2_COVER_STONE_MAT[tone%2]);
+    stone.position.y=h*.44;
+    // Horizontal scale and height are restrained: this is an isolated erratic,
+    // not a mountain or a raised traversable island landform.
+    stone.scale.set(rect.w*.52,h*.49,rect.d*.52);
+    stone.rotation.y=tone%2===0?.07:-.09;
+    stone.castShadow=stone.receiveShadow=true;g.add(stone);
+  }
+  return g;
+}
+const overlapsRect=(a,b,pad=0)=>Math.abs(a.x-b.x)<(a.w+b.w)*.5+pad
+  &&Math.abs(a.z-b.z)<(a.d+b.d)*.5+pad;
+
+// The existing navigation clearance is too short for visual mountains: an
+// isometric camera should see a clear approach for several metres beyond both
+// ends of a timber bridge. Reserve that space for all large geological masses.
+export function archipelagoRockFreeBridgeLandingsV2(bridgeZones){
+  return bridgeZones.map(b=>({
+    x:b.x,z:b.z,
+    w:b.w+(b.dir?.x?8:2.2),
+    d:b.d+(b.dir?.z?8:2.2),
+    dir:b.dir
+  }));
+}
+
+function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
+  const alongX=w.w>=w.d,len=Math.max(w.w,w.d);
+  const axis=alongX?'x':'z',across=alongX?'z':'x';
+  const crossExtent=alongX?w.d:w.w;
+  // Clip each authored partition's blocking footprint against the REAL
+  // bridge landing. The earlier all-or-nothing overlap check deleted complete
+  // level-two cover runs even if only 20 cm touched the landing.
+  let safe=[[-len/2,len/2]];
+  for(const z of bridgeLandings){
+    const zoneCross=alongX?z.d:z.w;
+    const margin=.50;
+    if(Math.abs(w[across]-z[across])>=(crossExtent+zoneCross)*.5+margin)continue;
+    const mid=z[axis]-w[axis],half=(alongX?z.w:z.d)*.5+margin;
+    safe=safe.flatMap(([low,high])=>{
+      if(mid-half>=high||mid+half<=low)return [[low,high]];
+      const rest=[];
+      if(mid-half>low)rest.push([low,Math.min(high,mid-half)]);
+      if(mid+half<high)rest.push([Math.max(low,mid+half),high]);
+      return rest;
+    });
+  }
+  let placed=0;
+  for(const [low,high] of safe){
+    const span=high-low;
+    if(span<1.08)continue;
+    const pieces=span>5.7?2:1;
+    for(let i=0;i<pieces;i++){
+      const offset=low+span*(i+.5)/pieces;
+      const pieceLength=Math.min(2.15,span/pieces*.76);
+      // Stagger a small pair of natural obstacles instead of painting
+      // a straight stone or concrete barrier across the island.
+      const stagger=pieces===2?(i===0?-.28:.28):0;
+      const crossWidth=Math.max(.72,Math.min(1.04,(alongX?w.d:w.w)+.42));
+      const rect={
+        x:w.x+(alongX?offset:stagger),
+        z:w.z+(alongX?stagger:offset),
+        w:alongX?pieceLength:crossWidth,
+        d:alongX?crossWidth:pieceLength
+      };
+      if(bridgeLandings.some(z=>overlapsRect(rect,z,.28)))continue;
+      const h=Math.max(.80,Math.min(1.08,w.h??1.05));
+      const collider={...rect,h};
+      const kind=pieces===2&&i===1?'windfall':'boulder';
+      const mesh=naturalCoverV2(collider,{kind,tone:placed});
+      // This visual matches the replacement collider by construction; nothing
+      // else is left from the old straight authored partition wall.
+      colliders.push(collider);group.add(mesh);placed++;
+    }
+  }
+  return placed;
+}
 // Sparse decorative shoreline rocks (visual only, no collider): seeded, irregular, some clusters,
 // nudged outward onto the sand/water side of the edge and skipped if they touch any reservation.
 function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
@@ -198,13 +338,50 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   // Ground pass (default-on since v2.28.0, ?ground=0 disables) shifts its legacy grass backup away from the new
   // textured surface. On iOS, the old 4mm gap + positive polygon offset allowed
   // Safari to depth-test the flat green base in front of the textured overlay.
-  const terrainPreview=typeof location!=='undefined' && new URLSearchParams(location.search).get('ground')!=='0';
-  const coastProfiles=new Map();
+  const options=typeof location!=='undefined'?new URLSearchParams(location.search):new URLSearchParams();
+  const visualV2=options.get('archVisual')==='v2';
+  const targetIsland=visualV2&&options.get('archTarget')==='1';
+  const terrainPreview=visualV2||(typeof location!=='undefined'&&options.get('ground')!=='0');
+  const coastProfiles=new Map(),bedrockPlans=new Map();
   if(terrainPreview)for(const floor of level.floors){
-    if(!floor.dir)coastProfiles.set(floor,coastlineProfile(floor,level.seed,{samples:(quality?.props??1)<1?48:72}));
+    if(!floor.dir){
+      const profile=coastlineProfile(floor,level.seed,{samples:visualV2?72:(quality?.props??1)<1?48:72,style:visualV2?'v2':'legacy',neighbors:visualV2?level.floors:[]});
+      coastProfiles.set(floor,profile);
+      // Actor registration happens only after every coastline has been reconciled.
+    }
+  }
+  if(visualV2){
+    separateArchipelagoCoastProfiles(coastProfiles.values());
+    for(const [floor,profile] of coastProfiles)registerWalkableCoast(floor,profile);
   }
   clearPassageProps(level,out.passages);
   out.bridgeClearances=bridgeClearances(level);
+  const rockFreeLandings=visualV2?archipelagoRockFreeBridgeLandingsV2(out.bridgeClearances):[];
+  if(visualV2)out.rockFreeLandings=rockFreeLandings;
+  const firstIsland=targetIsland?level.floors.find(f=>!f.dir):null;
+  if(targetIsland&&firstIsland){
+    const hero=coastProfiles.get(firstIsland);
+    const reserved=[...out.passages,...out.bridgeClearances,...rockFreeLandings,...level.floors.filter(f=>f.dir)];
+    // Source angles from deterministic authored coastal mass choices, then
+    // sculpt their actual landform into the island rather than drawing detached masses.
+    const guide=planArchipelagoBedrock(hero,{
+      reservations:reserved,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]
+    });
+    authorHeroIslandCoast(hero,{
+      // Composition first: the east/foreground coastline must visibly
+      // communicate granite at the ordinary raid camera, not hide every
+      // landform behind it. Keep the deterministic guide masses as fallbacks.
+      rockAngles:[.06,2.85,4.65,.63,5.54,1.55,...guide.masses.map(m=>m.angle)],
+      bridgeZones:rockFreeLandings,
+      neighborProfiles:[...coastProfiles.values()]
+    });
+    // The broad cliff roots reclaim only surplus organic coastal ground.
+    // Re-register the final 2D actor boundary after that authored change,
+    // otherwise the player could walk invisibly through a raised granite toe.
+    registerWalkableCoast(firstIsland,hero);
+    out.heroIsland=true;
+    out.heroHeadlands=hero.heroHeadlands;
+  }
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
@@ -214,9 +391,39 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     return p?{points:p.points.map(v=>({x:v.x,z:v.z}))}:
       {x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6};
   });
-  const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
+  const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:!visualV2&&(quality?.props??1)>=1,lite:(quality?.props??1)<1,balticCalm:visualV2});
+  if(visualV2){
+    const U=water.material.uniforms;
+    // Baltic summer night: slate-blue depths and pale pink sky ribbons,
+    // with restrained shallows and no bright foamy wave animation.
+    // Pass Q: darker Baltic shallows and desaturated summer-night reflections.
+    // The previous shallow cyan rendered 50–60 RGB values brighter than the
+    // approved art target at 844×390, making every island look tropical.
+    U.cShallow.value.set('#2b6268');U.cMid.value.set('#214456');U.cDeep.value.set('#142d40');
+    U.cFoam.value.set('#879ba6');U.cSky.value.set('#58788d');U.cRose.value.set('#a87b8c');
+  }
   water.name='water';group.add(water);
-  const rockGeo=new THREE.DodecahedronGeometry(1,0),rockMat=[new THREE.MeshStandardMaterial({color:P.rock,roughness:1,flatShading:true}),new THREE.MeshStandardMaterial({color:P.rockDark,roughness:1,flatShading:true})];
+  if(visualV2){
+    out.visualV2=true;
+    const reservations=[...out.passages,...out.bridgeClearances,...rockFreeLandings,...level.floors.filter(f=>f.dir)];
+    const grassClearances=[...reservations,...[level.start,level.exit,...(level.nodes??[]),...(level.lootBoxes??[])].filter(Boolean).map(p=>({x:p.x,z:p.z,w:3.2,d:3.2}))];
+    for(const profile of coastProfiles.values()){
+      const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
+      const hero=targetIsland&&profile.floor===firstIsland;
+      const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
+      // The hero's mass angles still provide geological color fingers, but
+      // their actual height comes exclusively from the joined coast mesh.
+      const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
+        :bedrock?.userData.bedrockPlan;
+      bedrockPlans.set(profile.floor,plan);
+      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
+      if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
+    }
+    addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
+  }
+  // Retain the authored cover mesh/collider exactly; only its material changes in v2.
+  // Cold, pale weathered granite replaces the legacy violet sci-fi boulders.
+  const rockGeo=new THREE.DodecahedronGeometry(1,0),rockColors=visualV2?['#9a9c9d','#777f87']:[P.rock,P.rockDark],rockMat=rockColors.map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
   for(const f of level.floors){
     if(f.dir){
       buildTimberPier(f,level.seed,quality,group,box);
@@ -225,6 +432,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     // island: grass top, sand rim, irregular shore blobs below the walkable edge
     const grass=box(f.x,-.2,f.z,f.w,.4,f.d,P.grass);
     grass.name='archipelago-grass-backup';
+    if(visualV2)grass.visible=false;
     // Move *only* the visual fallback. Gameplay floors/colliders stay at Y=0.
     // The preview terrain now has a reliable depth separation on mobile.
     if(terrainPreview){
@@ -239,17 +447,22 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     if(profile){
       // One opaque, low-poly perimeter shell: rounded coves, granite shelves and
       // short sand pockets. The original rectangular playable floor remains.
-      const data=coastRingData(profile),geo=new THREE.BufferGeometry();
+      const data=coastRingData(profile,{bedrockPlan:bedrockPlans.get(f)}),geo=new THREE.BufferGeometry();
       geo.setAttribute('position',new THREE.BufferAttribute(data.positions,3));
       geo.setAttribute('color',new THREE.BufferAttribute(data.colors,3));
       geo.setAttribute('uv',new THREE.BufferAttribute(data.uvs,2));
       geo.setAttribute('shoreBlend',new THREE.BufferAttribute(data.blends,1));
       geo.setIndex(new THREE.BufferAttribute(data.indices,1));
       geo.computeVertexNormals();
-      const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:true});
+      // Sculpted coastal granite should have rounded, ice-worn gradients.
+      // Retain low-poly silhouette and vertex colors but interpolate normals
+      // on the hero cliff so it does not read as a wall of flat grey triangles.
+      const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:!profile.heroCoast});
       const mesh=new THREE.Mesh(geo,mat);
       mesh.name='archipelago-coast-shell';
       mesh.receiveShadow=true;
+      mesh.castShadow=Boolean(profile.heroCoast);
+      if(profile.heroCoast){mesh.userData.heroIsland=true;mesh.userData.heroRings=data.rings;}
       mesh.userData.visualOnly=true;
       group.add(mesh);
     }else{
@@ -280,17 +493,27 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...piers,...partitions,...source.placements];
   // v2.27: water is the island boundary. Shore walls (on the rim of exactly one island floor) get no
   // boulders, only an invisible collider equal to the authored wall, so actors still stop at the edge.
-  // Interior walls (partitions, shared room edges) keep their boulder clusters and their cover.
+  // Only true interior partitions retain sparse low natural cover, never artificial concrete obstacles.
   const islands=level.floors.filter(f=>!f.dir);
   const onRim=(w,f)=>{const ax=w.w>w.d,e=.6;
     return ax?Math.abs(Math.abs(w.z-f.z)-f.d/2)<e&&Math.abs(w.x-f.x)<f.w/2+e
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});shore.push(w);}
-    else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+    if(visualV2){
+      // V2's coastline and the actual deck floor already constrain movement.
+      // Drop rectangular shoreline/bridge-rail authoring walls entirely,
+      // including their colliders. Only genuine interior partitions remain.
+      if(isArchipelagoPartitionWallV2(w,level.rooms))
+        out.rocks+=buildInteriorCoverV2(w,group,colliders,out.bridgeClearances);
+      continue;
+    }
+    if(islands.filter(f=>onRim(w,f)).length===1){
+      colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});
+      shore.push(w);
+    }else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
-  out.shoreProps=terrainPreview
+  out.shoreProps=visualV2?0:terrainPreview
     ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)
     : shoreRocks(shore,islands,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group);
   if(terrainPreview){
@@ -299,12 +522,18 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   }
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
-  for(const c of level.boxes){
+  for(let i=0;i<level.boxes.length;i++){
+    const c=level.boxes[i];
+    if(visualV2){
+      // Generic authored cover objects also become organic archipelago cover,
+      // regardless of whether the military art-mode toggle was passed in.
+      const g=naturalCoverV2(c,{kind:i%3===1?'windfall':'boulder',tone:i});
+      group.add(g);
+      continue;
+    }
     const g=new THREE.Group();g.userData.collider=c;
     g.name=militaryStyle?'archipelago-derelict-concrete-cover':'archipelago-crate';
     if(militaryStyle){
-      // Re-use the existing gameplay cover volumes; swap only the "brown crate"
-      // look for abandoned coastal-defence concrete with lichen and damp seams.
       box(c.x,c.h/2,c.z,c.w,c.h,c.d,'#747770',g);
       box(c.x,c.h+.012,c.z,c.w*.86,.025,c.d*.82,'#687459',g);
       box(c.x,c.h*.69,c.z-c.d/2-.009,c.w*.76,.043,.025,'#545A55',g);
@@ -315,10 +544,22 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     }
     group.add(g);
   }
-  // boats offshore (visual only, never collidable)
-  for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
-    g.position.set(cx+Math.cos(a)*r,-.3,cz+Math.sin(a)*r);g.rotation.y=rng()*6.3;
-    box(0,.2,0,1.4,.45,3.4,P.hull,g);box(0,.47,0,1.2,.08,3.1,P.hullTop,g);box(0,.75,-.4,.8,.5,.9,'#c8c2b0',g);g.name='boat';if(!propInPassage(g,out.passages)){group.add(g);out.boats++;}}
+  // V2 boats are tapered open dinghies in checked water, not rectangular
+  // hull stand-ins placed on a radius around the global map center.
+  if(visualV2){
+    const places=planArchipelagoBoatsV2([...coastProfiles.values()],level.floors,level.seed,
+      {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},
+        // Hero granite is part of the island polygon: the boats planner must
+        // not mistake its material-angle anchors for separate rock AABBs.
+        bedrockPlans:[...bedrockPlans.values()].filter(plan=>
+          [...(plan?.masses??[]),...(plan?.shelves??[])].every(m=>m.bounds))});
+    out.boatPlacements=places;
+    for(const place of places){group.add(createArchipelagoDinghyV2(place));out.boats++;}
+  }else{
+    for(let k=0;k<3;k++){const a=rng()*Math.PI*2,r=Math.max(b.x1-b.x0,b.z1-b.z0)/2+5+rng()*5,g=new THREE.Group();
+      g.position.set(cx+Math.cos(a)*r,-.3,cz+Math.sin(a)*r);g.rotation.y=rng()*6.3;
+      box(0,.2,0,1.4,.45,3.4,P.hull,g);box(0,.47,0,1.2,.08,3.1,P.hullTop,g);box(0,.75,-.4,.8,.5,.9,'#c8c2b0',g);g.name='boat';if(!propInPassage(g,out.passages)){group.add(g);out.boats++;}}
+  }
   return out;
 }
 // Pine tree: instanced town-kit parts when available, else a stylised cone (same footprint).

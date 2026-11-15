@@ -28,7 +28,7 @@ import {createRobotSocket} from './operator-gear.js?v=2.28.38';
 import '../data/modules.js?v=2.28.38';import '../data/recipes.js?v=2.28.38';import '../data/vendors.js?v=2.28.38';
 import {svgIcon,setIconText} from './svg-icons.js?v=2.28.38';
 import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.38';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.38';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.38-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.38';
 import {safeSpawn} from './spawn.js?v=2.28.38';
 import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.38';
@@ -36,7 +36,7 @@ import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.38';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.38';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.38';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.38';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.38-ground-v10-timber-v1-military-visual2';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.38-glacial-merge1';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.38';
 import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.38';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.38';
@@ -63,7 +63,7 @@ import {createRaidProfiler} from './raid-profiler.js?v=2.28.38';
 import {createPostFX} from './postfx.js?v=2.28.38';
 import {createDustField} from './dust.js?v=2.28.38';
 import {createQualityUI} from './quality-ui.js?v=2.28.38';
-import {archipelagoDressingConfig} from './archipelago-dressing-policy.mjs?v=default-military-v2';
+import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.38-granite8';
 import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.38';
 import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.38';
 import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.38';
@@ -220,7 +220,22 @@ if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b61
   // Readable late-summer dusk. Lift the sky and fill so the red/yellow houses stay distinct from the bunker palette.
   const lowQ=QUALITY==='low';hemi.color.set('#b9d3df');hemi.groundColor.set('#344236');hemi.intensity=lowQ?1.65:1.35;sun.color.set('#ecd2a6');sun.intensity=lowQ?1.35:1.2;renderer.toneMappingExposure=lowQ?1.35:1.3;}
 // Archipelago: cool dusk over open water, longer view distance (more open area)
-if(AREA_SEL==='archipelago'){scene.background.set('#3d5a6c');scene.fog.color.set('#3d5a6c');scene.fog.near=34;scene.fog.far=72;hemi.color.set('#cfe3ef');hemi.groundColor.set('#1d3340');hemi.intensity=QUALITY==='low'?1.4:1.1;sun.color.set('#ffe2c0');sun.intensity=1.2;}
+const ARCH_VISUAL_V2=AREA_SEL==='archipelago'&&new URLSearchParams(location.search).get('archVisual')==='v2';
+if(AREA_SEL==='archipelago'){
+  const pink=ARCH_VISUAL_V2;
+  scene.background.set(pink?'#706b84':'#3d5a6c');
+  scene.fog.color.set(pink?'#706b84':'#3d5a6c');
+  scene.fog.near=34;scene.fog.far=pink?87:72;
+  hemi.color.set(pink?'#cbd0e2':'#cfe3ef');
+  hemi.groundColor.set(pink?'#536153':'#1d3340');
+  hemi.intensity=pink?1.65:QUALITY==='low'?1.4:1.1;
+  sun.color.set(pink?'#efd0c2':'#ffe2c0');
+  sun.intensity=pink?.85:1.2;
+  // Stronger warm side light + cooler ambient separation, matching the approved summer-night target.
+  // V2-only: avoid the previous even, grey-violet wash over terrain and granite.
+  if(pink){hemi.color.set('#c8cddd');hemi.groundColor.set('#344940');hemi.intensity=1.8;
+    sun.color.set('#f6c9b5');sun.intensity=1.35;renderer.toneMappingExposure=1.18;sun.shadow.radius=2.5;}
+}
 // v2.10.0 mood pass: cheap cold-grade equivalent for areas/tiers that don't get the colour-grade shader pass
 // (Low never does; High's own ambient is nudged a touch too so the look doesn't jump when auto-downgrading).
 // Keeps the sun warm (lamps/sunset accents still pop) and cools only the ambient fill + background/fog.
@@ -874,7 +889,8 @@ let bigRuntime=null;
 // v2.28.0: Ground Pass 10 is on by default; ?ground=0 disables it.
 // Profile follows graphics quality (LOW on mobile/low, HIGH on desktop) unless ?groundProfile= overrides.
 const GROUND_V2_PARAMS=new URLSearchParams(location.search);
-const GROUND_V2=GROUND_V2_PARAMS.get('ground')!=='0';
+// The opt-in geological pass supplies its own quiet, vertex-colored surface.
+const GROUND_V2=useTexturedGround(AREA_SEL,location.search);
 const GROUND_V2_PROFILE=GROUND_V2_PARAMS.has('groundProfile')?(GROUND_V2_PARAMS.get('groundProfile')==='low'?'low':'high'):(QUALITY==='low'?'low':'high');
 const GROUND_DEBUG=GROUND_V2 && GROUND_V2_PARAMS.has('groundDebug');
 // Start fetching the preview module as soon as this module initializes. The
@@ -906,8 +922,8 @@ let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
 const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
-const MILITARY_STYLE=POLYFORK_ACTIVE&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
-const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1-military-v3'):null;
+const MILITARY_STYLE=(POLYFORK_ACTIVE||ARCH_VISUAL_V2)&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
+const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1-military-v3-native-pines'):null;
 let polyforkPreview=null,polyforkLoadToken=0;
 function refreshArchipelagoDressing(level){
   const token=++polyforkLoadToken;
@@ -918,7 +934,7 @@ function refreshArchipelagoDressing(level){
     // Ignore a slow CDN/import response after a new raid or graphics change.
     if(token!==polyforkLoadToken||round.level!==level)return;
     polyforkPreview=module.addPolyforkDressing(level,scene,{
-      quality:config.quality,density:config.density,mode:config.mode});
+      quality:config.quality,density:config.density,mode:config.mode,nativePines:ARCH_VISUAL_V2});
     window.__polyforkPreview=polyforkPreview;
   }).catch(error=>console.warn('[archipelago-dressing] import failed; base environment retained',error));
 }
@@ -940,7 +956,7 @@ function loadLevelInner(){
     position={x:round.level.exit.x,z:round.level.exit.z-1.4};aim={x:0,z:-1};target.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ);
     player.position.set(position.x,0,position.z);
   }
-  {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(fog.color);scene.fog.near=fog.near;scene.fog.far=fog.far;}
+  {const fog=fogTuning(AREA_SEL,round.level.number);scene.fog.color.set(ARCH_VISUAL_V2?'#706b84':fog.color);scene.fog.near=fog.near;scene.fog.far=ARCH_VISUAL_V2?Math.max(78,fog.far+15):fog.far;}
   killMarker=null;aimMagazine=null;
   groundPreviewV2?.dispose();groundPreviewV2=null;
   propsPreview?.dispose();propsPreview=null;
@@ -1868,6 +1884,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   target.lerp(hotCamGoal.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ),1-Math.exp(-dt*RAID_CAMERA.followRate));camera.position.copy(target).add(cameraOffset);
   const shake=shakeOffset(now);if(shake){camera.position.x+=shake.x;camera.position.z+=shake.z;}
   camera.lookAt(target);camera.updateMatrixWorld();
+  world.updatePineOcclusion?.(camera,position,dt);
   if(!round.over&&clock>=visibilityCheckAt){
     visibilityCheckAt=clock+100;visibilityPoint.set(position.x,.65,position.z).sub(camera.position);
     visibilityRay.set(camera.position,hotRayDir.copy(visibilityPoint).normalize());visibilityRay.far=visibilityPoint.length()-.08;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {POLYFORK_CANDIDATES} from '../polyfork-catalog.mjs';
-import {planPolyforkDressing} from '../polyfork-dressing.mjs';
+import {planPolyforkDressing,filterDressingTrees} from '../polyfork-dressing.mjs';
 import {propReservations} from '../props-placement.mjs';
 
 const level={
@@ -38,4 +38,21 @@ test('LOW has a smaller instance budget, and other environments receive none',()
   assert.ok(planPolyforkDressing(level,{quality:'low'}).length<=40);
   assert.deepEqual(planPolyforkDressing({...level,archipelago:false}),[]);
   assert.deepEqual(planPolyforkDressing({...level,floors:[]}),[]);
+});
+
+
+test('native v2 pines remove only unfadable GLB tree species from dressing',()=>{
+  const original=[
+    {id:'young-pine-0d7695',x:1},{id:'tall-pine-tree-ab4108',x:2},
+    {id:'birch-tree-181b33',x:3},{id:'grass-tuft-a40a08',x:4},
+    {id:'fern-plant-1559b8',x:5},{id:'fallen-log-1685fb',x:6},
+    {id:'round-bush-cd2ac0',x:7}
+  ];
+  assert.deepEqual(filterDressingTrees(original),original,
+    'live and non-v2 previews continue using their existing forest assets');
+  const filtered=filterDressingTrees(original,{nativePines:true});
+  assert.deepEqual(filtered,original.slice(3),
+    'v2 only removes older pine/birch meshes that lack foreground fading');
+  assert.deepEqual(filterDressingTrees(original,{nativePines:true}),filtered,
+    'filtering must stay deterministic');
 });
