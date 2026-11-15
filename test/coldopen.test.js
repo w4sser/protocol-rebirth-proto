@@ -47,3 +47,8 @@ const read = f => fs.readFileSync(path + "/" + f, "utf8");
 // (nodspel's camera/GLB code has no cold-open hook to assert against); skipped per task note.
 
 console.log("COLD OPEN TEST PASSED");
+
+// Descendant text animations must wait behind the splash too: pausing only .intro's direct
+// children lets the first line reveal invisibly, losing its once-only animationstart VO cue.
+assert(/body\.splash-active \.intro \*\{animation-play-state:paused;\}/.test(read('index.html')),
+  'splash pauses nested greeting lines until BIT is actually visible');

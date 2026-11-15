@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 // Proves each bug-lint rule actually fires on the regression it guards.
 import assert from 'node:assert/strict';import {RULES,runAll} from '../scripts/bug-lint.mjs';
 const by=id=>RULES.find(r=>r.id===id);
@@ -70,3 +71,13 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
  assert.equal(by('greeting-vo-only-with-bit-visible').check({appSrc:goodApp,baseAudioSrc:goodBase}).length,0,'v2.28.30 passes once dismissIntro cancels first and greet() skips before any voice');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
+
+{
+ const rule=by('coldopen-vo-after-start-unlock');
+ const appSrc=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const audioSrc=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ assert.equal(rule.check({appSrc,audioSrc}).length,0,'start audio wiring passes');
+ for(const [from,to] of [['void window.PR_AUDIO?.unlockSync?.();','await window.PR_AUDIO?.unlock?.();'],["requestVoice('youre-back')","voice('youre-back')"],['preload.call(window.PR_AUDIO)','Promise.resolve()'],['Promise.resolve(activationAudio).then','Promise.resolve().then'],['addEventListener("animationstart", greet','addEventListener("click", greet']])
+   assert(rule.check({appSrc:appSrc.replace(from,to),audioSrc}).length>0,'fires when removing '+from);
+ assert(rule.check({appSrc,audioSrc:audioSrc.replace('source.start(0);','Promise.resolve().then(()=>source.start());')}).length>0,'fires when priming leaves the gesture stack');
+}
