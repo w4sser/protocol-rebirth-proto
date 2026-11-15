@@ -31,7 +31,7 @@ for(const vp of [[844,390],[820,377],[667,375],[1280,720],[1920,1080]]){
   const page = await browser.newPage();
   await page.setViewport({ width:vp[0], height:vp[1], isMobile:vp[0]<1000, hasTouch:true, deviceScaleFactor:1 });
   await page.goto(BASE + '/index.html', { waitUntil:'load' }); await settle(900);
-  await page.evaluate(()=>{if(window.A)A.startFtueDirect=()=>{};}); await page.evaluate(()=>(document.getElementById('splash-play')||document.getElementById('splash'))?.click()); await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{}); await settle(200);
+  await page.evaluate(()=>{if(window.A)A.startFtueDirect=()=>{};}); await page.evaluate(()=>document.getElementById('splash')?.click()); await page.waitForFunction(()=>!document.getElementById('splash'),{timeout:8000}).catch(()=>{}); await settle(200);
   await page.evaluate(SEED); await settle(600);
   const errs = await page.evaluate(() => { const R = e => e && e.offsetWidth ? e.getBoundingClientRect() : null, ov = (a,b) => a && b && Math.min(a.right,b.right)-Math.max(a.left,b.left) > 0 && Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top) > 0, out = [];
     const sh = R(document.querySelector('.roomsheet')); if(!sh) return ['no sheet'];

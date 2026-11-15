@@ -233,9 +233,12 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .item-tile{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:24px;height:22px;padding:0 3px;border-radius:4px;border:1px solid var(--rc,var(--ad-bone));background:color-mix(in srgb,var(--ad-ink) 80%,transparent);color:var(--rc,var(--ad-bone))}
 .item-tile .pr-ic{width:15px;height:15px;color:var(--rc,var(--ad-bone))}.item-tile b{font:700 9px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ad-bone)}.item-tile b:empty{display:none}
 .need-tiles{display:flex;flex-wrap:wrap;gap:3px}.need-tiles .item-tile.done{border-color:var(--ad-cyan);background:color-mix(in srgb,var(--ad-cyan) 14%,transparent)}.need-tiles .item-tile.done b{color:var(--ad-cyan)}
-#pickup-toasts{position:absolute;z-index:6;display:flex;flex-direction:column;gap:3px;pointer-events:none;width:132px}
-.pickup-toast{display:flex;align-items:center;gap:5px;max-width:100%;padding:3px 7px 3px 5px;border-left:3px solid var(--rc,var(--ad-bone));border-radius:4px;background:color-mix(in srgb,var(--ad-ink) 90%,transparent);color:var(--rc,var(--ad-bone));font:600 10px 'IBM Plex Mono',ui-monospace,monospace;animation:pickupToast 1.8s ease-out forwards}
+#pickup-toasts{position:absolute;z-index:6;display:flex;flex-direction:column;gap:3px;pointer-events:none;width:150px}
+.pickup-toast{display:flex;flex-direction:column;gap:1px;max-width:100%;padding:3px 7px 3px 5px;border-left:3px solid var(--rc,var(--ad-bone));border-radius:4px;background:color-mix(in srgb,var(--ad-ink) 90%,transparent);color:var(--rc,var(--ad-bone));font:600 10px 'IBM Plex Mono',ui-monospace,monospace;animation:pickupToast 1.8s ease-out forwards}
+.pickup-toast .pt-head{display:flex;align-items:center;gap:5px}
 .pickup-toast .pr-ic{width:15px;height:15px;flex:none}.pickup-toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pickup-toast .pt-value{color:var(--ad-loot);font-size:9px}
+.pickup-toast .pt-needed{color:var(--ad-bit);font-size:9px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @keyframes pickupToast{0%{opacity:0;transform:translateX(-8px)}12%{opacity:1;transform:none}72%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.pickup-toast{animation:none}}
 .round-ended #pickup-toasts{visibility:hidden}

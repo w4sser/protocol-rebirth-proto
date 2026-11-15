@@ -1,0 +1,29 @@
+name: BIT face master integrity
+on:
+  pull_request:
+    paths:
+      - 'assets/bit-face-master*.svg'
+      - 'assets/reference/bit/**'
+      - 'tools/bitface-v3.mjs'
+      - 'test/bit-face-master-v3.test.mjs'
+      - '.github/workflows/bit-face-master.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/bit-face-master*.svg'
+      - 'assets/reference/bit/**'
+      - 'tools/bitface-v3.mjs'
+      - 'test/bit-face-master-v3.test.mjs'
+      - '.github/workflows/bit-face-master.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tools/bitface-v3.mjs --check
+      - run: node test/bit-face-master-v3.test.mjs

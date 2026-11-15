@@ -152,7 +152,157 @@ export const RULES=[
      try{read('nodspel/perk-ui.js');out.push('nodspel/perk-ui.js: the mid-raid perk picker file must stay deleted');}catch(_){/* expected */}
      try{read('nodspel/perks.css');out.push('nodspel/perks.css: the mid-raid perk picker stylesheet must stay deleted');}catch(_){/* expected */}
      return out;}},
+  {id:'coldopen-vo-after-start-unlock',pr:'v2.28.3x PRB-154 start audio',why:'the first gesture must resume and prime Web Audio before async work, with decoded buffers and a greeting requested at the first visible line',
+   check(c={}){const out=[],app=c.appSrc??read('app.js'),audio=c.audioSrc??read('ui/audio.js');
+     const activate=(app.match(/const activate = \(e\) => \{[\s\S]*?\n  \};/)||[''])[0].replace(/\/\/[^\n]*/g,'');
+     const syncAt=activate.indexOf('unlockSync'),asyncAt=activate.indexOf('unlock?.');
+     if(syncAt<0||asyncAt<syncAt||/\bawait\b/.test(activate.slice(0,syncAt)))out.push('app.js: start activation must call unlockSync before awaiting or calling unlock');
+     const sync=(audio.match(/    unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!/context\.resume\(\)/.test(sync)||!/createBuffer\(1,1,/.test(sync)||!/source\.start\(0\)/.test(sync)||/\bawait\b/.test(sync))out.push('ui/audio.js: unlockSync must resume and start a silent one-sample buffer synchronously');
+     if(!/activationAudio = window\.PR_AUDIO\?\.unlock\?\.\(\)/.test(activate)||!/Promise\.resolve\(activationAudio\)\.then/.test(app))out.push('app.js: start confirmation must wait for the gesture unlock promise');
+     if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
+     const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
+     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
+     return out;}},
+  {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
+   check(c={}){const out=[];
+     const app=c.appSrc??read('app.js');
+     const dismiss=(app.match(/dismissIntro\(\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!dismiss)out.push('app.js: A.dismissIntro() not found');
+     else{
+       const cancelAt=dismiss.search(/cancelVoice\?\.\(\s*['"]youre-back['"]\s*\)/);
+       const goAt=dismiss.search(/A\.go\(/), summaryAt=dismiss.search(/showHomecomingSummary\(/);
+       if(cancelAt<0)out.push('app.js: A.dismissIntro must cancel the pending youre-back voice (PR_AUDIO.cancelVoice)');
+       else if((goAt>=0&&cancelAt>goAt)||(summaryAt>=0&&cancelAt>summaryAt))out.push('app.js: A.dismissIntro must cancel youre-back before navigating away from the intro / opening the deferred summary');
+     }
+     const base=c.baseAudioSrc??read('ui/base-audio.js');
+     if(!/skipVoice/.test(base))out.push("ui/base-audio.js: greet() must thread a skipVoice flag from PR_AUDIO_BASE_RETURN's opts");
+     const skipAt=base.search(/if\(skip\)return;/), voiceAt=base.search(/requestVoice\(['"]youre-back['"]\)/);
+     if(skipAt<0||voiceAt<0||skipAt>voiceAt)out.push('ui/base-audio.js: greet() must return before requesting/playing any BIT voice once skipVoice is set (the deferred FTUE summary, where BIT already greeted during the intro)');
+     return out;}},
 
+  {id:'cable-retro-migration-idempotent',pr:'v2.28.29 PRB-139',why:'the one-time retro Cable credit for pre-PRB-132 saves (Power Trace/bunker B1 done before the Fabricator existed) must run exactly once per save -- a load() path that forgets to call the migration leaves old saves stuck short of the Fabricator cost, and a migration that forgets to check/set cableRetro1 re-grants the Cable on every load',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(!/function migrateCableRetro\(st\)\{/.test(app))out.push('app.js: migrateCableRetro(st) is missing');
+     const fn=(app.match(/function migrateCableRetro\(st\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(fn && !/if\s*\(\s*st\.cableRetro1\s*\)\s*return st;/.test(fn))out.push('app.js: migrateCableRetro must return early once st.cableRetro1 is already set (idempotent)');
+     if(fn && !/st\.cableRetro1\s*=\s*["']granted["']/.test(fn))out.push('app.js: migrateCableRetro must set st.cableRetro1 = "granted" on an eligible save');
+     if(fn && !/st\.cableRetro1\s*=\s*["']n\/a["']/.test(fn))out.push('app.js: migrateCableRetro must set st.cableRetro1 = "n/a" on an ineligible save');
+     const load=(app.match(/function load\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!load)out.push('app.js: load() not found');
+     else if(!/migrateCableRetro\(st\)/.test(load))out.push('app.js: load() must call migrateCableRetro(st) alongside the other additive migrations');
+     return out;}},
+
+  {id:'core-restore-no-power-popup',pr:'v2.28.33 PRB-155 (playtest 2026-11-15, item 4)',why:'a popup used to gate the first Core restore behind an ENTER-style tap before the narrator cutscene could play; Robert decided the cutscene must be the single screen -- for a fresh build, an existing save, and after the cutscene has already played -- so the popup and its own copy must stay gone for good, not just unused',
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     if(/function bootSequence\(/.test(app))out.push('app.js: bootSequence() (the old Core-restore payoff popup) must stay removed');
+     if(/POWER RESTORED/.test(app))out.push('app.js: "POWER RESTORED" copy must not exist anywhere -- the cutscene carries the benefit/next text instead');
+     const build=(app.match(/\bbuild\(modId\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!build)out.push('app.js: A.build(modId) not found');
+     else{
+       const lightsOn=(build.match(/if\(isLightsOn\)\{[\s\S]*?\}\s*else if\(isFabricatorOnline/)||[''])[0];
+       if(!lightsOn)out.push('app.js: A.build must still branch on isLightsOn for the Core L1 restore');
+       else{
+         if(/\boverlay\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must never open a popup -- the narrator cutscene is the single screen');
+         if(!/PRBitCutscene\?\.play\(/.test(lightsOn))out.push('app.js: the isLightsOn branch must still play the core_restored cutscene itself (nothing else replaces the removed popup)');
+       }
+     }
+     return out;}},
+
+  {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/if\(!fabricatorArtPromise && window\.PRBitCutscene\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the Fabricator art warm-up across preload and play');
+     // PRB-157 supersedes the optional-art timeout: shipped art must never gate playback.
+     const beat=(app.match(/function fabricatorCutsceneBeat\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(/fabricatorCutsceneArtReady\([^)]*=>/.test(beat)||!/cb\(!fabricatorArtFailed/.test(beat))out.push('app.js: select shipped Fabricator art synchronously, without awaiting its warm-up');
+     return out;}},
+  {id:'cutscene-reduced-motion-instant',pr:'v2.28.3x PRB-155 reduced motion',why:'the bust and continue control must appear instantly along with the speech bubble and info strip under reduced motion',
+   check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),css=c.cutsceneCss??read('ui/bit-cutscene.css'),out=[];
+     if(!/if\(run\.reduced\) el\.classList\.add\("hint-visible"\)/.test(js))out.push('ui/bit-cutscene.js: reduced motion must reveal the continue hint immediately');
+     if(!/reduced \.bit-cutscene-bust,[\s\S]*?\{transition:none;\}/.test(css))out.push('ui/bit-cutscene.css: reduced motion must disable the bust fade');
+     return out;}},
+  {id:'narrator-hologram-above-copy',pr:'v2.28.3x PRB-155 Fabricator layout',why:'the assembling vest was hidden behind the speech bubble at phone landscape sizes; keep its anchor above the copy and verify actual rectangles in the screenshot harness',
+   check(c={}){const css=c.cutsceneCss??read('ui/bit-cutscene.css');
+     const rule=(css.match(/\.bit-cutscene-hologram\{([^}]+)\}/)||[])[1]||'';
+     const bottom=Number((rule.match(/bottom:([\d.]+)%/)||[])[1]);
+     return bottom>=40?[]:['ui/bit-cutscene.css: keep the hologram above the speech bubble (bottom at least 40%); run narrator-cutscene-shots.mjs for geometric checks'];}},
+  {id:'extract-loot-3d-vfx',pr:'v2.28.35 PRB-156 (feat/vfx-3d-extract-loot)',why:'Robert playtest 2026-11-15: "the extraction point effect looks damn 2D. Same when you\'ve picked up loot." The flat MeshBasicMaterial exitBeam cylinder + plain exitPad plane, and the generic ring+billboard world.burst() reused for pickups, read as 2D decals from the isometric camera',
+   check(c={}){const out=[];
+     const beam=c.beamSrc??read('nodspel/vfx-extract-beam.js');
+     if(!/export function createExtractBeam\(/.test(beam))out.push('nodspel/vfx-extract-beam.js: createExtractBeam() is missing');
+     if(!/THREE\.ShaderMaterial\(/.test(beam))out.push('nodspel/vfx-extract-beam.js: the beam must use a custom ShaderMaterial (fresnel rim + vertical fade + noise bands), not a flat MeshBasicMaterial cylinder');
+     const burstMod=c.burstSrc??read('nodspel/vfx-loot-burst.js');
+     if(!/export function createLootBurstPool\(/.test(burstMod))out.push('nodspel/vfx-loot-burst.js: createLootBurstPool() is missing');
+     const world=c.worldSrc??read('nodspel/world.js');
+     if(!/createExtractBeam\(\{color:EXTRACT_COLOR,quality\}\)/.test(world))out.push('nodspel/world.js: buildWorld must build the extract beam via createExtractBeam({color:EXTRACT_COLOR,quality})');
+     if(!/createLootBurstPool\(\{quality\}\)/.test(world))out.push('nodspel/world.js: buildWorld must build the loot-burst pool via createLootBurstPool({quality})');
+     if(/new THREE\.CylinderGeometry\(\.9,\s*1\.1,\s*1,\s*20,\s*1,\s*true\)/.test(world))out.push('nodspel/world.js: the old flat exitBeam cylinder must stay removed');
+     const game=c.gameSrc??read('nodspel/game.mjs');
+     if(!/world\.spawnLootBurst\?\.\(v\.loot\.x,\.5,v\.loot\.z,v\.color\)/.test(game))out.push('nodspel/game.mjs: a loot pickup must spawn the pooled 3D burst via world.spawnLootBurst, not the flat world.burst() ring');
+     if(!/world\.animate\(elapsed,position,round\)/.test(game))out.push('nodspel/game.mjs: world.animate must be called with the player position so the extract beam/loot burst can read approach progress and the homing target');
+     return out;}},
+
+  {id:'vfx-visible-pooled-lifecycle',pr:'v2.28.35 PRB-156 VFX lifecycle',why:'Subpixel Points were invisible with the orthographic camera, old sprites covered replacements, and quality/teardown missed the new pools',
+   check(c={}){const out=[];
+     const loot=c.lootVfxSrc??read('nodspel/vfx-loot-burst.js'),feedback=c.feedbackVfxSrc??read('nodspel/fx-feedback.js'),game=c.lifecycleGameSrc??read('nodspel/game.mjs');
+     if(!/new THREE\.InstancedMesh\(/.test(loot))out.push('loot sparkles must use a fixed instanced pool');
+     if(/hold\(record,'respawn'|pixel\.spawn\('collect'/.test(feedback))out.push('legacy extraction/collection sprites must stay removed');
+     if(!/world\?\.setVfxQuality\(next\)/.test(game))out.push('live quality must reach world VFX');
+     if(!/if\(round\.over\)world\?\.disposeVfx\(\)/.test(game))out.push('raid end must dispose world VFX');
+     return out;}},
+
+
+  {id:'vfx-phone-depth-layers',pr:'v2.28.35 PRB-156 pass 2',why:'Pass 1 still read flat at phone size: the extraction shell lacked a core/fence and pickup arcs disappeared behind the player',
+   check(c={}){const out=[];
+     const beam=c.phoneBeamSrc??read('nodspel/vfx-extract-beam.js'),loot=c.phoneLootSrc??read('nodspel/vfx-loot-burst.js');
+     if(!/group\.add\(core\)/.test(beam)||!/group\.add\(fence\)/.test(beam))out.push('phone extraction must retain the inner core and raised floor fence');
+     if(!/r\.pillar=new THREE\.Mesh\(/.test(loot)||!/r\.flash=new THREE\.Mesh\(/.test(loot))out.push('phone pickups must retain pooled origin pillars and arrival flashes');
+     return out;}},
+
+  {id:'dedicated-narrator-art-exists',pr:'v2.28.3x PRB-157 dedicated Fabricator art',why:'shipped narrator paths must resolve to tracked assets instead of silently using a placeholder',
+   check(c={}){const app=c.appSrc??read('app.js'),files=c.files??tracked(),out=[];
+     const available=new Set(files||[]);
+     for(const match of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
+       if(!available.has(match[0]))out.push('missing dedicated narrator art: '+match[0]);
+     const renderer=c.cutsceneSrc??read('ui/bit-cutscene.js');
+     if(!/if\(retryTimeout\) images\.delete\(src\)/.test(renderer)||!/load\(opts\.bust\.from, false, true\)/.test(renderer))out.push('early bust warming must evict timed-out shared busts so Core/death can retry');
+     return [...new Set(out)];}},
+
+  {id:'ios-audio-waits-for-running',pr:'v2.28.3x PRB-158 iOS audio',why:'Robert\'s iPhone playtest of v2.28.36: "the sound is still not fully loaded when I start playing" -- iOS WebKit resolves resume() (and can start decoding) while context.state is still \'suspended\', only flipping to \'running\' asynchronously, sometimes 100ms+ later; play()/voice() must wait (capped) for an in-flight unlock instead of hard-dropping the first sound, and the gesture listener must also catch touchstart/pointerdown (a joystick hold has no touchend for seconds)',
+   check(c={}){const src=c.audioSrc??read('ui/audio.js'),out=[];
+     const play=(src.match(/async play\(name,\{enemy=false\}=\{\}\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!play)out.push('ui/audio.js: play(name,{enemy}) not found');
+     else if(!/unlockPromise/.test(play))out.push('ui/audio.js: play() must also wait when an unlock is in-flight (this.unlockPromise), not drop just because this.unlocked/this.wasUnlocked are still false');
+     const voice=(src.match(/async voice\(name\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!voice)out.push('ui/audio.js: voice(name) not found');
+     else if(!/unlockPromise/.test(voice))out.push('ui/audio.js: voice() must also wait when an unlock is in-flight (this.unlockPromise)');
+     const install=(src.match(/installUnlock\(target\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!install)out.push('ui/audio.js: installUnlock(target) not found');
+     else if(!/touchstart/.test(install)||!/pointerdown/.test(install))out.push('ui/audio.js: installUnlock must listen on touchstart and pointerdown (a joystick-hold gesture has no matching touchend for seconds)');
+     return out;}},
+  {id:'audio-no-background-playback',pr:'v2.28.3x PRB-159 iOS background audio',why:'The playback session kept iPhone music alive after closing the app; suspend on hidden and window pagehide instead',
+   check(c={}){const src=(c.audioSrc??read('ui/audio.js')).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,''),out=[];
+     if(/audioSession(?:\s*\?\.)?\s*\.?(?:type)?[\s\S]{0,40}?=\s*['"]playback['"]/.test(src))out.push('ui/audio.js: audioSession must never request playback');
+     if(!/visibilitychange['"][\s\S]*?visibilityState\s*===?\s*['"]hidden['"][\s\S]*?this\.suspendForHidden\(\)/.test(src))out.push('ui/audio.js: hidden visibilitychange must suspendForHidden');
+     if(!/gestures\.addEventListener\(['"]pagehide['"],\s*\(\)\s*=>\s*this\.suspendForHidden\(\)/.test(src))out.push('ui/audio.js: window pagehide must suspendForHidden');
+     if(!/unlockSync\(\)\{\s*if\(this\.hidden\(\)/.test(src))out.push('ui/audio.js: synchronous gesture unlock must bail while hidden');
+     return out;}},
+  {id:'audio-debug-trigger-reachable',pr:'v2.28.3x PRB-159 iPhone diagnostics',why:'The landscape topbar hid the version and disabled pointer events, making triple-tap diagnostics unreachable',
+   check(c={}){const css=c.audioDebugCss??read('ui/audio-debug.css');
+     return /#topbar #app-version\s*\{[^}]*display:block;[^}]*pointer-events:auto/.test(css)?[]:['ui/audio-debug.css: override landscape version hiding and topbar pointer-events so triple-tap works'];}},
+  {id:'audio-format-probe-default',pr:'v2.28.3x PRB-159 iOS audio format',why:'Without the default capability probe every SFX tried Ogg first on WebKit, racing the SFX deadline; prefer playable AAC',
+   check(c={}){const src=(c.audioSrc??read('ui/audio.js')).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,''),out=[];
+     if(!/document\.createElement\(['"]audio['"]\)/.test(src)||!/root\.PR_AUDIO\s*=\s*new AudioManager\(root\.DATA\.audio,\s*probe\s*\?\s*\{probe\}\s*:\s*\{\}\)/.test(src))out.push('ui/audio.js: default construction must pass a real audio probe');
+     if(!/this\.format\s*=\s*aac\s*\?\s*['"]m4a['"]\s*:\s*['"]ogg['"]/.test(src))out.push('ui/audio.js: prefer AAC whenever the AAC probe is truthy');
+     return out;}},
+  {id:'narrator-holds-until-tap',pr:'v2.28.3x PRB-158 narrator hold',why:'Robert\'s playtest: "the Fabricator box doesn\'t stay long enough. Keep it until I want to continue." Base cutscenes/cards must never auto-advance, and a tap in the first second must be ignored so a settling animation cannot be skipped by accident',
+   check(c={}){const cutscene=c.cutsceneSrc??read('ui/bit-cutscene.js'),card=c.cardSrc??read('ui/bit-card.js'),out=[];
+     if(/\bDURATION\b/.test(cutscene))out.push('ui/bit-cutscene.js: no auto-end timer (DURATION) may exist -- the cutscene must hold until tapped');
+     if(!/run\.locked\s*=\s*true/.test(cutscene)||!/current\s*&&\s*current\.locked/.test(cutscene))out.push('ui/bit-cutscene.js: taps in the first second must be ignored (run.locked, checked before dismissing)');
+     if(!/if\(raid\)\{/.test(card))out.push('ui/bit-card.js: present() must branch base vs raid -- the raid card alone keeps a timed auto-dismiss (mid-combat, non-blocking)');
+     if(!/locked\s*:\s*true/.test(card)||!/current\s*&&\s*current\.locked/.test(card))out.push('ui/bit-card.js: base cards must ignore a tap in the first second too (current.locked)');
+     return out;}},
 
 ];
 

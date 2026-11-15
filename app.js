@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.25"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.38"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -84,7 +84,7 @@ function freshState(){
     expedition: null, decrypt: null, loreUnlocked: 0,
     contracts: {}, contractsDay: "", pendingReport: [],
     baseState: D.baseStates[0].id, roomUnlocks: {}, introSeen: false,
-    payoff: null, payoffDone: false, areaSeen: {},
+    payoff: null, payoffDone: false, areaSeen: {}, cableRetro1: "n/a", bitCardsSeen: {},
     chains: {}, trackedQuest: null, fir: {}, gearUp: {}, loadout: null, chipShop: { week:"", bought:{} }, unlocks: { recipe:{}, cosmetic:{}, hard:{} },
     log: []
   };
@@ -108,7 +108,7 @@ function load(){
       if(st.v === 13) migrateBuilt(st);
       if(st.v === 14) migrateTalents(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); migrateCableRetro(st); migrateBitCardsSeen(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
     }
   }catch(e){}
   return freshState();
@@ -137,6 +137,46 @@ function migratePower(st){
   if(st.power && typeof st.power.value === "number") return st;
   const core = (st.modules && st.modules.rebirth_core) || 0;
   st.power = { value: core >= 1 ? 100 : 0, at: 0, offlineDrained: 0, reinforceAt: 0, lastRoom: null, maintain: null };
+  return st;
+}
+// v2.28.29 PRB-139: one-time retro credit of 1 Cable (additive; no SAVE_VERSION bump). Before v2.28.17
+// (PRB-132) Power Trace (bunker B1) opened before the Fabricator existed, so a save that already
+// finished B1 but never built Fabricator L1 can only be one of those pre-PRB-132 saves -- it is short
+// the Cable the Fabricator now costs. Robert decided 2026-11-14 (PRB-139): credit it once, idempotent
+// on st.cableRetro1. Runs in load() before S is assigned, so it writes st.stash directly (the same
+// structure addItem uses) rather than via addItem/act, and never marks the grant found-in-raid (fir
+// gates handinHave, not canAfford/have, but a plain stash copy is the simplest guarantee it is never
+// treated as raid-only).
+function migrateCableRetro(st){
+  if(st.cableRetro1) return st;
+  const b1Done = !!(st.chains && st.chains.bunker && st.chains.bunker.step >= 1);
+  const fabBuilt = !!(st.modules && st.modules.fabricator);
+  if(b1Done && !fabBuilt){
+    st.stash = st.stash || {};
+    st.stash.cable = (st.stash.cable || 0) + 1;
+    st.cableRetro1 = "granted";
+  } else {
+    st.cableRetro1 = "n/a";
+  }
+  return st;
+}
+// PRB-151: S.bitCardsSeen tracks which one-time BIT narrator cards (ui/bit-card.js) have already
+// played (additive; no SAVE_VERSION bump). A save that already had Core L1 built, or had already
+// died at least once, before this field existed is marked seen retroactively for both ids -- only
+// a live transition (the first Core L1 build, the first ordinary-raid death) triggers the card.
+function migrateBitCardsSeen(st){
+  if(!st.bitCardsSeen || typeof st.bitCardsSeen !== "object"){
+    st.bitCardsSeen = {};
+    if(((st.modules && st.modules.rebirth_core) || 0) >= 1) st.bitCardsSeen.core_restored = true;
+    if((st.deaths || 0) > 0) st.bitCardsSeen.first_death = true;
+  }
+  // PRB-155: fabricator_built was added after the branch above already shipped (and already
+  // returned early for every save that had migrated once), so it gets its own idempotent check --
+  // independent of core_restored/first_death -- run every load until it is decided, then never
+  // touched again. A save with Fabricator L1 already built never gets the live cutscene (A.build's
+  // isFabricatorOnline branch only fires on the level===1 transition, impossible to repeat), but
+  // this still records the fact, matching the established migration pattern.
+  if(st.bitCardsSeen.fabricator_built === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.fabricator_built = true;
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -309,6 +349,15 @@ function baseState(){
   return D.baseStates.find(st => st.id === S.baseState) || D.baseStates[0];
 }
 function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
+// v2.28.27 (PRB-149): how destroyed the bunker reads, driven by progress alone (see index.html's
+// data-ruin CSS). 3 pre-Core-L1 (emergency), 2 Core L1 restored but Fabricator not built, 1 Fabricator
+// built but not yet core_refined, 0 core_refined (unchanged from today). Pure and exported for tests.
+function ruinLevel(baseStateId, fabricatorLevel){
+  if(baseStateId === "core_found") return 3;
+  if(!fabricatorLevel) return 2;
+  if(baseStateId !== "core_refined") return 1;
+  return 0;
+}
 
 function roomDef(id){ return D.baseMap.rooms.find(r => r.id === id); }
 function roomUnlocked(id){ return !!(S.roomUnlocks && S.roomUnlocks[id]); }
@@ -1910,24 +1959,6 @@ if(typeof window !== "undefined" && window.addEventListener){
   if(window.visualViewport) window.visualViewport.addEventListener("resize", updateNav);
 }
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
-function bootSequence(next, done){
-  // v2.28.19: compact semi-transparent payoff over the bunker so the CSS lighting-up is visible
-  // and POWER RESTORED / NEW BENEFIT / NEW GOAL / ENTER all fit at 844x390 and 667x375.
-  document.body.classList.remove("base-dark");
-  const o = overlay(
-    '<div class="boot boot-compact" id="bootseq">' +
-      '<div class="bootflash">' + IC("power") + ' POWER RESTORED</div>' +
-      '<p class="boot-unlock">' + esc(next.unlockText || "") + '</p>' +
-      '<p class="small boot-bit">BIT: lights. i missed lights.</p>' +
-      '<div class="boot-pay">' +
-        '<div class="card"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
-        '<div class="card"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal || "") + '</div>' +
-      '</div>' +
-      '<button class="primary" data-close>ENTER THE FACILITY</button>' +
-    '</div>',
-    done, "boot-ov", { noClose:true });
-  return o;
-}
 
 // v1.66 reward screen: one shared popup for every room/upgrade completion. Tiles come from DATA.upgradeRewardTiles
 // (data/modules.js), i.e. from what the level really grants. The BIT-offline line sits outside the card.
@@ -2256,18 +2287,39 @@ SCREENS.combatDemo = function(){
 };
 
 SCREENS.intro = function(){
-  void window.PR_AUDIO?.requestVoice('youre-back');
   const b = PROG.beats[0];
-  // Cinematic cold open: black screen, BIT's face powers on while its lines fade in one by one.
+  // Cinematic cold open: Robert's bunker-discovery backdrop pushes in slowly while BIT flickers on
+  // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
+  // art, not the viewport -- .intro-stage always keeps the backdrop's 1672/941 aspect so they hold).
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
   $app().innerHTML =
-    '<div class="intro" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : '') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
-    '<img class="intro-face" src="nodspel/icons/happy-node.svg?v=' + APP_VERSION + '" alt="BIT">' +
+    '<div class="intro-stage">' +
+    '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
+    '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    '</div>' +
+    '<div class="intro-scrim"></div>' +
+    '<div class="intro-copy">' +
     '<div class="intro-lines">' + lines.map((l, i) =>
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
-    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button></div>';
+    '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
+    '</div></div>';
+  // Start the greeting with the first line's reveal, after the splash has uncovered BIT.
+  // Animation timing remains the fallback when audio is muted, blocked or still loading.
+  const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
+  const greet = () => {
+    if(intro.isConnected && !document.body.classList.contains("splash-active"))
+      void window.PR_AUDIO?.requestVoice('youre-back');
+  };
+  firstLine?.addEventListener("animationstart", greet, { once:true });
+  intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
+  if(session.introSkipped || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    if(document.body.classList.contains("splash-active"))
+      window.addEventListener("pr:splash-finished", greet, { once:true });
+    else greet();
+  }
 };
 
 function closestUpgrade(){
@@ -2295,7 +2347,7 @@ function ftueOver(){
 // v2.28.17: D3.9 rules 3/6 -- the Fabricator stays the only goal, past ftueOver(), until it is actually built.
 function fabricatorPending(){ return (S.modules.fabricator || 0) < 1; }
 function fabricatorNextDef(){ return nextLevelDef("fabricator"); }
-function fabricatorReady(){ const next = fabricatorNextDef(); return !!next && canAfford(next.cost); }
+function fabricatorReady(){ const next = fabricatorNextDef(); const ready = !!next && canAfford(next.cost); if(ready) fabricatorCutsceneArtReady(); return ready; }
 function fabricatorPartsHtml(){
   const next = fabricatorNextDef(); if(!next) return "";
   return '<div class="chips">' + costParts(next.cost).map(p => '<span class="chip ' + (p.have >= p.need ? 'ok' : 'need') + '">' + partIcon(p) + esc(partName(p)) + ' ' + Math.min(p.have, p.need) + '/' + p.need + '</span>').join('') + '</div>';
@@ -2558,7 +2610,8 @@ SCREENS.base = function(){
   const stage = session.devPlateStage === null ? savedStage : session.devPlateStage;
   const plate = BM.plates[stage];
   const previous = session.plateStage !== null && session.plateStage !== stage ? BM.plates[session.plateStage] : null;
-  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + (ftueOver() ? '' : ' ftue') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" aria-label="Panoramic bunker map">' +
+  const ruin = ruinLevel(hub.id, S.modules.fabricator || 0);
+  let html = '<div class="baseviewer hub-' + hub.id + (session.wake ? ' wake' : '') + (ftueOver() ? '' : ' ftue') + '" data-lighting="' + esc(hub.lighting) + '" data-audio="' + esc(hub.audioProfile) + '" data-ruin="' + ruin + '" aria-label="Panoramic bunker map">' +
     '<div class="baseworld" style="width:' + BM.world.width + 'px;height:' + BM.world.height + 'px">' +
     (previous ? '<img class="baseplate outgoing" src="' + previous.art + '" alt="">' : '') +
     '<img class="baseplate current' + (previous ? ' revealing' : '') + '" src="' + plate.art + '" alt="Bunker restoration stage ' + stage + '">' +
@@ -4279,11 +4332,125 @@ function finishRaid(){
   }
 }
 
-function showHomecomingSummary(ingest){
+function showHomecomingSummary(ingest, opts){
   if(!ingest || !ingest.ok) return;
-  window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome);
+  window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); }, "sheet raid-summary-ov");
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov");
+}
+// PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
+// the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
+// raid never reaches this ingest path on a death (nodspel/game.mjs retries it in place -- see
+// finishRound's launch.ftue branch), so every death ingest here is already an ordinary one.
+// Shared ids preserve the existing seen flags and migration, without replaying older cards.
+// PRB-155: every narrator-cutscene info-strip row names a real cost/benefit read from data/*.js,
+// never a hand-typed number, so a balance change can't drift out of sync with the copy.
+function costStripText(cost){
+  const bits = [];
+  for(const id in (cost.items || {})) bits.push(cost.items[id] + "× " + ITEMS[id].name);
+  if(cost.scrap) bits.push(cost.scrap + "× Scrap");
+  if(cost.dataCores) bits.push(cost.dataCores + "× Data Cores");
+  return bits.join(" + ");
+}
+function costStripIcons(cost){
+  const bits = [];
+  for(const id in (cost.items || {})) bits.push(itemIcon(id));
+  if(cost.scrap) bits.push(CUR_ICONS.scrap);
+  if(cost.dataCores) bits.push(CUR_ICONS.dataCores);
+  return bits.join("");
+}
+function recipeCostText(r){
+  const bits = [];
+  for(const id in (r.inputs || {})) bits.push(r.inputs[id] + "× " + ITEMS[id].name);
+  if(r.scrapCost) bits.push(r.scrapCost + "× Scrap");
+  return bits.join(" + ");
+}
+function recipeCostIcons(r){
+  const bits = [];
+  for(const id in (r.inputs || {})) bits.push(itemIcon(id));
+  if(r.scrapCost) bits.push(CUR_ICONS.scrap);
+  return bits.join("");
+}
+// The Fabricator's commissioning gift (its L1 unlock payoff, data/modules.js) names the first
+// recipe BIT already assembled for you -- the same item the fabricator_built cutscene's FIRST
+// RECIPE row describes, so the two can never name different gear.
+function fabricatorFirstRecipe(){
+  const giftId = Object.keys(MODS.fabricator.levels[0].commissioning || {})[0];
+  return (D.recipes || []).find(r => r.output && r.output.itemId === giftId);
+}
+const BIT_CUTSCENES = {
+  core_restored: {
+    id:"core_restored",
+    from:"assets/production/bit-narrator/cutscene-core-restore-start-v1.webp",
+    to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+    line:"Power… I can feel my circuits again. Also my toes. I don't have toes.",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
+    info:[
+      { label:"NEW", text: MODS.rebirth_core.benefit, iconHtml: IC("power") },
+      { label:"NEXT", text:"Build the Fabricator: needs " + costStripText(MODS.fabricator.levels[0].cost), iconHtml: costStripIcons(MODS.fabricator.levels[0].cost) }
+    ]
+  },
+  first_death: {
+    id:"first_death",
+    from:"assets/production/bit-narrator/cutscene-first-death-sad-v1.webp",
+    to:"assets/production/bit-narrator/cutscene-first-death-happy-v1.webp",
+    line:"I dragged you back. Don't make it a habit.",
+    // Owner rule (AGENTS.md): dying in a raid loses everything currently carried -- the existing
+    // stash and buildings are untouched. Not a data lookup (it's a fixed design decision, not a
+    // tunable number), but it is the one true rule, named here instead of paraphrased elsewhere.
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-sad-v1.webp", to:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"right" },
+    info:[
+      { label:"LOST", text:"What you carried stays out there", iconHtml: IC("skull") },
+      { label:"KEPT", text:"Your stash and buildings", iconHtml: IC("item-crate") }
+    ]
+  },
+  fabricator_built: (() => {
+    const r = fabricatorFirstRecipe();
+    return {
+      id:"fabricator_built",
+      // PRB-157: the painted vest is part of the dedicated art.
+      from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+      to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
+      line:"Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest.",
+      bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
+      effect:null,
+      waitForArt:true,
+      fallback:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+      hologramIcon: r ? itemIcon(r.output.itemId) : "",
+      info:[
+        { label:"NEW", text:"Craft gear from raid materials", iconHtml: IC("build") },
+        { label:"FIRST RECIPE", text: r ? (r.name + " — " + recipeCostText(r)) : "", iconHtml: r ? recipeCostIcons(r) : "" }
+      ]
+    };
+  })()
+};
+// PRB-157: warm the real pair and bust through the renderer cache, once, before building.
+// Only an actual load error selects the old backdrop; a slow connection is not missing art.
+const FABRICATOR_CUTSCENE_ART = {
+  from:BIT_CUTSCENES.fabricator_built.from,
+  to:BIT_CUTSCENES.fabricator_built.to
+};
+let fabricatorArtPromise, fabricatorArtFailed = false;
+function fabricatorCutsceneArtReady(cb){
+  if(!fabricatorArtPromise && window.PRBitCutscene) fabricatorArtPromise = window.PRBitCutscene.preload({
+    ...BIT_CUTSCENES.fabricator_built, waitForArt:true
+  }).then(sources => { fabricatorArtFailed = !sources[0] || !sources[1]; return fabricatorArtFailed ? null : FABRICATOR_CUTSCENE_ART; });
+  if(cb && fabricatorArtPromise) fabricatorArtPromise.then(cb);
+}
+function fabricatorCutsceneBeat(cb){
+  fabricatorCutsceneArtReady();
+  cb(!fabricatorArtFailed ? BIT_CUTSCENES.fabricator_built : {
+    ...BIT_CUTSCENES.fabricator_built,
+    from:BIT_CUTSCENES.core_restored.to, to:BIT_CUTSCENES.core_restored.to,
+    effect:"fabricator", waitForArt:false
+  });
+}
+function maybeShowFirstDeathCard(ingest){
+  if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
+  if(S.bitCardsSeen.first_death) return;
+  S.bitCardsSeen.first_death = true; save();
+  window.PRBitCutscene?.preload(BIT_CUTSCENES.first_death);
+  window.PRBitCutscene?.play(BIT_CUTSCENES.first_death);
 }
 
 /* ---------- actions ---------- */
@@ -4433,10 +4600,22 @@ window.A = {
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
   introSkip(ev){
     if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
+    // keeps the end state instead of restarting the cold open.
+    session.introSkipped = true;
     const el = document.querySelector(".intro"); if(el) el.classList.add("done");
   },
   dismissIntro(){
+    // BIT's cold-open greeting only ever plays while he's on screen -- once the intro is gone,
+    // any still-locked/queued 'youre-back' must never surface later on the homecoming summary.
+    window.PR_AUDIO?.cancelVoice?.('youre-back');
     document.body.classList.remove("startup-bunker-intro");
+    // ~500ms cross-fade from the cold open into the bunker view: #app starts hidden under the
+    // .intro-leaving class, the screens swap underneath instantly (state below is unaffected and
+    // stays synchronous for callers/tests), then the class lifts on the next paint so #app's own
+    // CSS transition fades it in. No-op without rAF (jsdom) or under reduced motion (CSS turns the
+    // transition off there).
+    document.body.classList.add("intro-leaving");
     S.introSeen = true;
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
@@ -4445,8 +4624,12 @@ window.A = {
     if(session.pendingHomecomingSummary){
       const ing = session.pendingHomecomingSummary;
       session.pendingHomecomingSummary = null;
-      showHomecomingSummary(ing);
+      // BIT already greeted during the cold open he's not shown on this summary -- no second voice line.
+      showHomecomingSummary(ing, { skipVoice:true });
     }
+    if(typeof requestAnimationFrame === "function")
+      requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
+    else document.body.classList.remove("intro-leaving");
   },
   track(modId, level){
     if(S.tracked && S.tracked.module === modId && S.tracked.level === level){ S.tracked = null; act("TRACK_CLEARED",{}); }
@@ -4461,6 +4644,7 @@ window.A = {
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
     const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
+    if(modId === "fabricator" && next.level === 1) fabricatorCutsceneArtReady();
     payCost(next.cost);
     // v1.56: L2+ upgrades run on a build timer (completes offline); the very first L2+ upgrade stays instant (FTUE).
     const I = idleState(), mins = buildMinutes(modId, next.level);
@@ -4476,14 +4660,34 @@ window.A = {
     // payoffs
     const isLightsOn = modId === "rebirth_core" && next.level === 1;
     const isBitOnline = modId === "bit_bay" && next.level === 1;
+    const isFabricatorOnline = modId === "fabricator" && next.level === 1;
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
     if(isLightsOn){
       save();
-      // v2.28.19: show the habitable bunker and play the wake lighting before the payoff,
-      // so the player sees the room light up under the compact overlay (not after ENTER).
+      // v2.28.19: show the habitable bunker and play the wake lighting. PRB-155 (playtest
+      // 2026-11-15, item 4) removed the old boot-payoff popup that used to gate ENTER THE
+      // FACILITY here -- the cutscene (bubble + info strip carry the old popup's benefit/next
+      // text) is now the single screen; A.go already committed every state change above.
       session.wake = true;
+      const wakeStartedAt = Date.now();
+      if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
-      bootSequence(next, () => { bitDock("module_built"); });
+      if(!S.bitCardsSeen.core_restored){
+        S.bitCardsSeen.core_restored = true; save();
+        // the bunkerwake lighting (.baseviewer.wake, 1.6s) must finish before the cutscene covers it.
+        const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
+        setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
+      } else bitDock("module_built");
+    } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
+      // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
+      // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
+      fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
+      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
+        finish();
+        S.bitCardsSeen.fabricator_built = true; save();
+        const wakeStartedAt = Date.now();
+        fabricatorCutsceneBeat(beat => setTimeout(() => window.PRBitCutscene?.play(beat), Math.max(0, 1600 - (Date.now() - wakeStartedAt))));
+      }, "reward");
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
@@ -5464,7 +5668,7 @@ function setupSplash(flightPending, returningFromRaid){
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");
-  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer;
+  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer, activationAudio;
   let flightActive = !!flightPending, flightCtl = null;
   const pendingImages = [];
   const reduced = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -5482,6 +5686,8 @@ function setupSplash(flightPending, returningFromRaid){
   const begin = () => {
     if(phase !== "ready") return;
     phase = "descending"; clearTimeout(autoTimer);
+    // resume() may complete after this gesture even though its call and silent prime were synchronous.
+    void Promise.resolve(activationAudio).then(() => window.PR_AUDIO?.play?.("ui-confirm"));
     void window.PR_AUDIO_PLAY?.();
     sp.setAttribute("aria-label", "Skip bunker entrance");
     if(reduced()){
@@ -5498,23 +5704,27 @@ function setupSplash(flightPending, returningFromRaid){
   const ready = () => {
     if(phase !== "loading") return;
     phase = "ready"; clearTimeout(loadTimer);
+    // v2.28.33: the pulsing "TAP ANYWHERE TO BEGIN" prompt stays invisible until the art and the
+    // SFX/VO preload (or the same ~2.5s fallback below) are both done, so it never promises sound
+    // that isn't decoded yet -- see ui/audio.js preload() and the loadTimer fallback above.
+    sp.classList.add("prompt-ready");
     if(requested) proceed();
     else if(!flightActive) autoTimer = setTimeout(begin, 1400);
     // else: the flight is active -- stay on the looping start screen until the player taps.
   };
-  // v2.21.1: the first tap on the landscape itself (not PLAY) only unlocks audio so the theme plays
-  // over the water; PLAY / keyboard / a second tap enters. Autoplay-permitted browsers start at once.
+  // v2.28.33 single start-screen prompt: PLAY is gone, so the one tap both unlocks audio
+  // (synchronously, inside this gesture -- see ui/audio.js unlockSync()) and begins/enters;
+  // there is no longer a first-tap-just-unlocks step. Keyboard (Enter/Space on #splash,
+  // which already carries role=button tabindex=0) reaches the same activate().
   const activate = (e) => {
-    const audioOn = !!window.PR_AUDIO?.unlocked;
-    void window.PR_AUDIO?.unlock();
-    if(e && e.type === "click" && !audioOn && phase !== "descending" && !(e.target && e.target.closest && e.target.closest("#splash-play")) && window.PR_AUDIO){ return; }
+    void window.PR_AUDIO?.unlockSync?.();
+    activationAudio = window.PR_AUDIO?.unlock?.();
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;
     if(phase === "ready") proceed();
   };
   const onVisibility = () => { if(document.hidden) finish(); };
-  void window.PR_AUDIO?.unlock?.();
   document.addEventListener("visibilitychange", onVisibility);
   sp.addEventListener("click", activate);
   sp.addEventListener("keydown", e => {
@@ -5527,7 +5737,10 @@ function setupSplash(flightPending, returningFromRaid){
   });
   const art = ["assets/production/splash_archipelago_radar_lighthouse.webp?v=" + APP_VERSION,
     D.baseMap.plates[bunkerStage()].art];
-  let remaining = art.length;
+  // +1: the SFX/VO preload/decode (ui/audio.js preload()) gates "ready" alongside the artwork --
+  // both need a suspended AudioContext that unlockSync() can resume synchronously on the first
+  // tap, with no further decode work left to race against ENTER THE FACILITY on the cold open.
+  let remaining = art.length + 1;
   for(const src of art){
     const img = new Image(); pendingImages.push(img);
     let settled = false;
@@ -5537,6 +5750,10 @@ function setupSplash(flightPending, returningFromRaid){
     };
     img.src = src;
     if(img.complete) img.onload();
+  }
+  { let settled = false; const settle = () => { if(settled) return; settled = true; if(--remaining === 0) ready(); };
+    const preload = window.PR_AUDIO?.preload;
+    if(preload) void preload.call(window.PR_AUDIO).then(settle, settle); else settle();
   }
   if(phase === "loading") loadTimer = setTimeout(ready, 2500);
   return {
@@ -5587,6 +5804,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
       flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
+  if(fabricatorPending() && !S.bitCardsSeen.fabricator_built) fabricatorCutsceneArtReady();
   const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
@@ -5653,7 +5871,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const silent = coreIngest.raid.acknowledged && coreIngest.raid.outcome !== "extract";
     // D3.1: on the FTUE intro return the greeting is the first BIT speech. Defer the Node Raid
     // summary (and any BIT comment — already stripped when raid.ftue) until the greeting is dismissed.
-    if(S.introSeen || !coreIngest.raid.ftue){ if(silent) toast(coreIngest.summary); else showHomecomingSummary(coreIngest); }
+    if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
   if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();
@@ -5665,4 +5883,4 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp };
+if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };

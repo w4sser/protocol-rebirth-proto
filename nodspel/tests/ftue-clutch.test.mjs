@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.25';
-import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.25';
-import {RULES} from '../levels.js?v=2.28.25';
-import {STAKES} from '../stakes.js?v=2.28.25';
-import {createPixelFeedback} from '../fx-feedback.js?v=2.28.25';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.38';
+import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.38';
+import {RULES} from '../levels.js?v=2.28.38';
+import {STAKES} from '../stakes.js?v=2.28.38';
+import * as THREE from '../vendor/three.module.js';
+import {buildWorld} from '../world.js?v=2.28.38';
 
 function setup(attempt=0){
   const r=createRound('ftue-clutch',0);
@@ -74,19 +75,20 @@ test('attempt 3 remains protected after both countdown and raid deadline expire'
   assert.equal(r.reason,'extract');assert.equal(r.extracted.scrap_alloy,2);
 });
 
-test('existing extraction beam lights at the exit immediately and stays lit after countdown',()=>{
-  const r=setup(),events=[];
-  const pixel={enabled:true,clear(){},update(){},stop(slot){slot.active=false;},
-    spawn(name,x,z,options){events.push({name,x,z,options});return {active:true,serial:1,sprite:{position:{set(){}}}};}};
-  const feedback=createPixelFeedback(pixel,{}),world={lootBoxes:[]};
-  feedback.sync(r,world,r.level.start,0,.016);
-  assert.equal(events.length,0);
-  open(r);feedback.sync(r,world,r.level.start,100,.016);
-  assert.deepEqual(events,[{name:'respawn',x:r.level.exit.x,z:r.level.exit.z,options:{loop:true}}]);
-  tickRound(r,r.ftueClutch.endsAt+1000);
-  feedback.sync(r,world,r.level.start,r.gameNow,.016);
-  assert.equal(events.length,1,'beam persists without respawning');
-  assert.ok(exitIsOpen(r));
+test('3D extraction beam lights at the exit immediately and stays lit after countdown',()=>{
+  const r=setup(),world=buildWorld(r.level,new THREE.Scene());
+  try{
+    world.setExit(exitIsOpen(r));world.animate(0,r.level.start,r);
+    assert.equal(world.extractBeamFx.isOpen(),false);
+    open(r);world.setExit(exitIsOpen(r));world.animate(.1,r.level.start,r);
+    assert.equal(world.extractBeamFx.isOpen(),true);
+    assert.equal(world.extractBeamFx.group.position.x,r.level.exit.x);
+    assert.equal(world.extractBeamFx.group.position.z,r.level.exit.z);
+    tickRound(r,r.ftueClutch.endsAt+1000);
+    world.setExit(exitIsOpen(r));world.animate(1,r.level.start,r);
+    assert.equal(world.extractBeamFx.isOpen(),true,'beam persists after countdown');
+    assert.ok(exitIsOpen(r));
+  }finally{world.dispose();}
 });
 
 test('non-FTUE and intro-only raids preserve state byte for byte through clutch helpers and keep normal exit behavior',()=>{

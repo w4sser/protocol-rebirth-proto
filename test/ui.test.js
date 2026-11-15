@@ -45,7 +45,7 @@ assert(doc.querySelector("#topbar #menubtn") && doc.querySelector("#settings-men
 // the familiar intro -> base -> build flow.
 A.go("base"); // base redirects to the cold open while !S.introSeen
 assert(text().includes("PROTOCOL REBIRTH"), "intro");
-assert(doc.querySelector(".intro .intro-face") && doc.querySelectorAll(".intro-lines p").length >= 2 && doc.querySelector(".intro-go"), "cinematic intro: BIT face, lines, compact enter button");
+assert(doc.querySelector(".intro .intro-backdrop") && doc.querySelector(".intro .intro-bit") && doc.querySelectorAll(".intro-lines p").length >= 2 && doc.querySelector(".intro-go"), "cinematic intro: bunker backdrop, BIT, lines, compact enter button");
 A.introSkip({target: doc.querySelector(".intro")}); assert(doc.querySelector(".intro.done"), "tap skips the intro animation");
 A.dismissIntro();
 // The combat sandbox opens from prep, accepts a shot, and closes without
@@ -137,9 +137,10 @@ await sleep(5400);
   const after = JSON.stringify({ modules:afterSave.modules, cur:afterSave.cur, stash:afterSave.stash, baseState:afterSave.baseState });
   assert.equal(after, before, "repeating the transition cannot charge resources twice");
 }
-assert(doc.getElementById("overlay").textContent.includes("POWER RESTORED"), "boot payoff");
-assert(doc.getElementById("overlay").textContent.includes("NEW BENEFIT"), "benefit in boot payoff");
-(doc.querySelector("#overlay [data-close]") ? doc.querySelector("#overlay [data-close]").click() : doc.defaultView.A.back());
+// PRB-155 (playtest 2026-11-15, item 4): the POWER RESTORED popup is gone for good -- the Core
+// cutscene (ui/bit-cutscene.js, not loaded in this jsdom harness) is the single screen instead,
+// so A.build("rebirth_core") leaves no overlay behind at all.
+assert(!doc.getElementById("overlay"), "no POWER RESTORED popup (or any other) after the Core restore");
 assert(!doc.body.classList.contains("base-dark"), "base env lit after Core L1");
 assert(doc.querySelector(".baseviewer").className.includes("hub-core_habitable"), "bunker becomes habitable after first build");
 assert(doc.querySelector(".baseplate.current").getAttribute("src").includes("plate_00"), "powered Core retains covered plate 00");

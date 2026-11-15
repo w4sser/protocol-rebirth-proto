@@ -67,13 +67,35 @@ const html = w => w.document.getElementById("app").innerHTML;
   assert.deepEqual([...w.document.querySelectorAll('.intro-lines p')].map(p=>p.textContent),[
     "You're… back?", "You're late… but you're back.", "Somewhere past the dark, the Rebirth Core is still waiting."
   ], "two spoken lines precede the Core narrative");
-  assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip");
+  assert.deepEqual(voices,[], "greeting waits for its first visible line");
+  // Simulate the raid return uncovering the intro, then its first CSS line reveal (jsdom has
+  // no animation engine). Dispatching pr:splash-finished above only drives the FTUE launcher.
+  w.document.body.classList.remove("splash-active");
+  w.document.getElementById("splash")?.remove();
+  w.document.querySelector(".intro-lines p").dispatchEvent(new w.Event("animationstart"));
+  assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip at the first reveal");
   assert(!text(w).includes("followed you home"), "old 'followed you home' copy is gone");
+  const backdrop = w.document.querySelector(".intro .intro-backdrop");
+  const bit = w.document.querySelector(".intro .intro-bit");
+  assert(backdrop && /^assets\/production\/coldopen\/bunker-discovery-arch-v1\.webp\?v=/.test(backdrop.getAttribute("src")), "cold open shows Robert's backdrop: " + backdrop?.getAttribute("src"));
+  assert(bit && /^assets\/production\/coldopen\/bit-coldopen-v1\.webp\?v=/.test(bit.getAttribute("src")), "cold open shows the BIT-spec derivative: " + bit?.getAttribute("src"));
+  const goBtn = w.document.querySelector(".intro .intro-go");
+  assert(goBtn && goBtn.textContent === "ENTER THE FACILITY", "ENTER THE FACILITY CTA is present");
+
+  // Tap-to-skip reveals the end state (all lines + CTA) without dismissing.
+  w.A.introSkip({ target: w.document.querySelector(".intro") });
+  assert(w.document.querySelector(".intro.done"), "tap anywhere (not the button) skips to the end state");
+  assert.equal(w.T.state().introSeen, false, "skipping only reveals the end state -- it does not dismiss the intro");
+  // v2.28.28 regression: a re-render of the intro screen after the skip (boot/resize/save re-render)
+  // must keep the end state instead of restarting the cold open with everything hidden again.
+  w.A.go("base");
+  assert(w.document.querySelector(".intro.done"), "re-rendering after a skip keeps the cold open's end state");
 
   w.A.dismissIntro();
   assert.equal(w.T.progressionGoal().module, "rebirth_core", "Core is the single next step after the greeting");
   assert.equal(w.T.state().stash.scrap_alloy, 3, "1 start + 2 guaranteed FTUE finds = enough for Core L1");
   w.A.go("base");
+  assert(!w.document.querySelector(".intro"), "the cold open is shown once -- dismissing it for good means base, not the intro, next");
   assert(html(w).includes("RESTORE EMERGENCY POWER"), "CTA reads RESTORE EMERGENCY POWER, not generic BUILD/ACTIVATE");
   const restoreBtn = [...w.document.querySelectorAll(".progress-goal button")].find(b => /RESTORE EMERGENCY POWER/.test(b.textContent));
   assert(restoreBtn, "RESTORE EMERGENCY POWER is a button on the goal chip");

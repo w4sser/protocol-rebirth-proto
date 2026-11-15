@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.25';
-import {createRound,collectLoot} from '../round.js?v=2.28.25';
-import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.25';
+import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.38';
+import {createRound,collectLoot} from '../round.js?v=2.28.38';
+import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.38';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('bag pickups are recorded for the toast; gear and full-bag skips are not',()=>{
@@ -40,4 +40,31 @@ test('pickup toasts are HUD rects for world-label collision avoidance',()=>{
 });
 test('debug seed label stays inside the safe area',()=>{
   assert.match(src('../style.css'),/#seed-label\{[^}]*max-width:calc\(100vw - var\(--sl\) - var\(--sr\)/);
+});
+
+test('an extra payload (value/needed-for text, from loot-value.js) rides along on the toast and refreshes on repeat pickups',()=>{
+  let l=pushPickup([],'cable',0,{value:'≈25 Scrap',neededFor:'NEEDED FOR Fabricator'});
+  assert.deepEqual(l[0],{id:l[0].id,item:'cable',n:1,at:0,value:'≈25 Scrap',neededFor:'NEEDED FOR Fabricator'});
+  l=pushPickup(l,'cable',100,{value:'≈50 Scrap',neededFor:null});
+  assert.equal(l[0].n,2);assert.equal(l[0].value,'≈50 Scrap');assert.equal(l[0].neededFor,null,'goal was met by this pickup');
+  l=pushPickup(l,'fuse',200);
+  assert.equal(l[1].value,undefined,'omitting extra leaves the toast without value/needed-for');
+});
+
+test('the pickup toast wires in loot-value.js value/needed-for text and queues the first-seen BIT line',()=>{
+  const g=src('../game.mjs');
+  assert(/sellValueText\(item\)/.test(g));
+  assert(/neededForText\(launch\.goal,round\.bag,item\)/.test(g));
+  assert(/materialPickupBitLine\(item,launch\)/.test(g));
+  assert(/pt-value|pt-needed/.test(g),'value/needed-for render into the toast');
+});
+
+// PRB-151: the first-ever material pickup line now plays through the shared BIT narrator card
+// (ui/bit-card.js), not a plain notice() -- and drops the leading "BIT: " since the card already
+// shows BIT's face, so the bubble text would otherwise say it twice.
+test('first-seen material pickups go through the shared PRBitCard, not a bare notice(), with the "BIT: " prefix stripped',()=>{
+  const g=src('../game.mjs');
+  assert(!/function showBitLine/.test(g),'the old ad-hoc BIT-line queue is gone -- PRBitCard owns queueing now');
+  assert(/PRBitCard\?\.show\(\{id:'mat:'\+item,text:bitLine\.replace\(\/\^BIT:\\s\*\/,''\),mood:'happy'\}\)/.test(g),
+    'pickup fires PRBitCard.show with a stable mat:<item> id, the prefix-stripped line, and a happy mood');
 });

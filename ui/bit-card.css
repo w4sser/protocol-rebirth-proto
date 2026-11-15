@@ -1,0 +1,30 @@
+/* PRB-153: approved narrator busts; original colors, subtle body motion. */
+.bit-card{position:fixed;z-index:120;display:flex;align-items:flex-end;gap:8px;max-width:min(78vw,300px);
+  padding:0;border:0;background:none;text-align:left;cursor:pointer;font:inherit;pointer-events:auto;
+  left:calc(12px + var(--sl));bottom:calc(var(--nav-h,0px) + 8px);}
+.bit-card[hidden]{display:none;}
+.bit-card.ctx-raid{left:calc(50% + 18px);top:calc(84px + env(safe-area-inset-top,0px));bottom:auto;transform:translateX(-50%);
+  max-width:min(66vw,280px);}
+.bit-card-img{--tilt:0deg;width:60px;height:60px;flex:0 0 auto;object-fit:contain;
+  transform:rotate(var(--tilt)) translateY(0);animation:bitCardHover 3.4s ease-in-out infinite;}
+.bit-card-copy{display:flex;flex-direction:column;gap:4px;align-items:flex-start;}
+.bit-card-bubble{display:block;background:var(--ad-ink);border:1px solid var(--ad-bit);border-radius:12px;
+  padding:7px 10px;font:600 13px/1.35 "IBM Plex Sans",system-ui,sans-serif;color:var(--ad-bone);
+  box-shadow:0 8px 20px rgba(0,0,0,.35);}
+/* PRB-158: base cards hold until tapped; the hint fades in ~3s after presentation (ui/bit-card.js
+   HINT_MS), same 0.4s fade as the mini cutscenes. Hidden entirely on the raid card, which keeps
+   its own timed auto-dismiss instead (the player is mid-combat there). */
+.bit-card-hint{font:600 10px/1.3 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.1em;
+  color:var(--ad-bone);opacity:0;transition:opacity .4s ease;padding:0 2px;}
+.bit-card.hint-visible .bit-card-hint{opacity:1;}
+.bit-card.ctx-raid .bit-card-hint{display:none;}
+.bit-card.mood-happy .bit-card-img{--tilt:4deg;animation-duration:2.1s;}
+.bit-card.mood-calm .bit-card-img{--tilt:0deg;animation-duration:3.4s;}
+.bit-card.mood-worried .bit-card-img,.bit-card.mood-tired .bit-card-img{--tilt:-3deg;animation-duration:4.2s;}
+@keyframes bitCardHover{0%,100%{transform:rotate(var(--tilt)) translateY(0)}50%{transform:rotate(var(--tilt)) translateY(-4px)}}
+@media(max-width:700px){.bit-card-img{width:52px;height:52px}}
+@media(max-height:500px){.bit-card-bubble{font-size:13px}}
+@media(prefers-reduced-motion:reduce){
+  .bit-card-img{animation:none!important;transform:rotate(var(--tilt)) translateY(0)!important;}
+  .bit-card-hint{transition:none;}
+}

@@ -43,15 +43,16 @@ const finish=source.slice(source.indexOf('let resultReturning=false;'),source.in
 // screen first and only leaves via #return-base. storage-failure now exercises an *extract* whose
 // write fails, since that is the only reason finishRound still attempts the automatic handoff at all.
 for(const reason of ['extract','complete','death','timeout','abandon','checkpoint','storage-failure'])test(`game finishRound routes ${reason} through the correct presenter`,()=>{
-  const events=[],elements=new Map(),audio=[];
+  const events=[],elements=new Map(),audio=[];let vfxDisposals=0;
   const element=selector=>{if(!elements.has(selector))elements.set(selector,{hidden:true,setAttribute(){},focus(){}});return elements.get(selector);};
   const round=reason==='checkpoint'?createRound('eor',0):ended(reason==='storage-failure'?'extract':reason);
   const storage={setItem:()=>{if(reason==='storage-failure')throw Error('quota');events.push('saved');},getItem:()=>null};
-  const context={round,launch,resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},localStorage:storage,audioEvent:(name,detail)=>audio.push({name,success:detail.success}),
+  const context={round,launch,world:{disposeVfx(){vfxDisposals++;}},resultPending:false,$:element,weapon:{},viewport:{classList:{add(){}}},localStorage:storage,audioEvent:(name,detail)=>audio.push({name,success:detail.success}),
     handoffRaidResult:(r,opts)=>handoffRaidResult(r,{...opts,storage,navigate:()=>events.push('navigate')}),
     clearInput:()=>events.push('clear'),hideSwap(){},clearBullets(){},updateHUD(){},lastCombatFeedback:()=>'',deathTip:()=>null,setIconText(){},
     resultView:()=>({}),renderResult:()=>events.push('render'),ddaEligible:()=>false};
   runInNewContext(finish+`;finishRound(${reason==='checkpoint'?"'extraction'":''});`,context);
+  assert.equal(vfxDisposals,reason==='checkpoint'?0:1,'terminal raid releases its VFX before presentation');
   assert.deepEqual(audio,reason==='checkpoint'?[]:[{name:'result',success:['extract','complete'].includes(round.reason)}]);
   if(['extract','complete'].includes(reason)){
     assert.deepEqual(events,['saved','clear','navigate']);assert.equal(element('#round-over').hidden,true);

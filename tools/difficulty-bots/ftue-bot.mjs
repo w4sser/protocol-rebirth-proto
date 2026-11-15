@@ -1,8 +1,8 @@
-// FTUE bot: fresh profile -> PLAY -> FTUE raid (re-opened with &debug=1) -> fight, nodes, exit, until extract/complete.
+// FTUE bot: fresh profile -> tap the start screen -> FTUE raid (re-opened with &debug=1) -> fight, nodes, exit, until extract/complete.
 export default async()=>{
  const t=()=>((Date.now()-globalThis.T0)/1000).toFixed(1);const TAG=process.env.TAG||'bot';
  await pg.goto(BASE+'/?x='+Date.now(),{waitUntil:'load'});globalThis.T0=Date.now();await s(2500);
- await pg.evaluate(()=>document.querySelector('#splash-play')?.click());const tPlay=Date.now();console.log('PLAY t='+t());
+ await pg.evaluate(()=>document.querySelector('#splash')?.click());const tPlay=Date.now();console.log('PLAY t='+t());
  for(let i=0;i<40&&!pg.url().includes('nodspel');i++)await s(250);
  const raidUrl=pg.url();console.log('raid url t='+t());
  await pg.goto(raidUrl+'&debug=1',{waitUntil:'load'});await pg.waitForFunction('window.__NR&&window.__NR.state',{timeout:60000});
