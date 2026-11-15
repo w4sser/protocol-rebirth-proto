@@ -454,7 +454,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       geo.setAttribute('shoreBlend',new THREE.BufferAttribute(data.blends,1));
       geo.setIndex(new THREE.BufferAttribute(data.indices,1));
       geo.computeVertexNormals();
-      const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:true});
+      // Sculpted coastal granite should have rounded, ice-worn gradients.
+      // Retain low-poly silhouette and vertex colors but interpolate normals
+      // on the hero cliff so it does not read as a wall of flat grey triangles.
+      const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,side:THREE.DoubleSide,flatShading:!profile.heroCoast});
       const mesh=new THREE.Mesh(geo,mat);
       mesh.name='archipelago-coast-shell';
       mesh.receiveShadow=true;
