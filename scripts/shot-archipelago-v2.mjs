@@ -170,6 +170,32 @@ try{
         assert.ok(boatView,'v2 has a real floating dinghy close to a shoreline');
         await page.evaluate(p=>window.__NR.teleport(p.x,p.z),boatView);
         await capture(page,version+'-'+quality+'-boat',errors);
+        // Capture a deliberate headland view in the genuine gameplay camera:
+        // the normal coastline screenshots can miss the highest granite.
+        const headlandView=await page.evaluate(()=>{
+          const state=window.__NR.state(),scene=window.__NR.getScene();
+          let shell;scene.traverse(o=>{
+            if(o.name==='archipelago-coast-shell'&&o.userData.heroIsland)shell=o;
+          });
+          if(!shell)return null;
+          const positions=shell.geometry.getAttribute('position'),n=positions.count/14;
+          if(!Number.isInteger(n)||n<32)return null;
+          let best=null;
+          for(let i=0;i<n;i++){
+            const x=positions.getX(6*n+i),z=positions.getZ(6*n+i);
+            const y=positions.getY(6*n+i);
+            const score=y+.025*(x+z);
+            if(!best||score>best.score)best={i,x,z,y,score};
+          }
+          if(!best||best.y<.50)return null;
+          const floor=state.level.floors.find(f=>!f.dir),x=positions.getX(best.i),z=positions.getZ(best.i);
+          const dx=floor.x-x,dz=floor.z-z,len=Math.max(.001,Math.hypot(dx,dz));
+          return {x:x+dx/len*1.4,z:z+dz/len*1.4,peak:best.y};
+        });
+        assert.ok(headlandView,'sculpted hero headland must rise from a real coast shell');
+        await page.evaluate(p=>window.__NR.teleport(p.x,p.z),headlandView);
+        await capture(page,version+'-'+quality+'-headland',errors);
+        console.log('HEADLAND VIEW',quality,'peak',headlandView.peak.toFixed(2));
       }
       await page.evaluate(async()=>{
         await window.__NR.goLevel(2);const f=window.__NR.state().level.floors.find(f=>f.dir);if(!f)throw new Error('No Level 2 bridge');
