@@ -145,6 +145,8 @@ test('quality changes reuse buffers, lower counts and remove noise immediately',
   assert.ok(fx.points.material.size>=2,'orthographic point sizes use visible pixel units');
   loot.spawn(3,.5,4);assert.equal(loot.rings[0].mesh.position.y,.045,'flash is on the floor');
   assert.equal(loot.alive.reduce((a,b)=>a+b,0),12);
+  for(let i=0;i<20;i++)loot.spawn(0,.5,0);
+  assert.equal(loot.alive.reduce((a,b)=>a+b,0),36,'low caps overlapping bursts as well as per-pickup count');
   fx.setQuality('high');loot.setQuality('high');assert.equal(fx.particleCount,72);assert.equal(loot.perBurst,22);
   fx.group.traverse(o=>{if(o.material?.transparent&&o.material.side===THREE.DoubleSide)assert.equal(o.material.forceSinglePass,true);});
   fx.dispose();loot.dispose();

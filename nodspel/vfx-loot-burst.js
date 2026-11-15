@@ -43,16 +43,16 @@ export function createLootBurstPool({quality='high'}={}){
 
   function spawn(x,y,z,color='#ffd04a'){
     if(disposed)return;
-    const c=scratchColor.set(color),n=tier.perBurst;
+    const c=scratchColor.set(color),n=tier.perBurst,limit=tier.perBurst*tier.bursts;
     for(let k=0;k<n;k++){
-      const slot=(cursor+k)%capacity;
+      const slot=(cursor+k)%limit;
       alive[slot]=1;age[slot]=0;
       ox[slot]=x;oy[slot]=y;oz[slot]=z;
       const angle=(k/n)*Math.PI*2+Math.random()*.6,speed=3.5+Math.random()*2.5;
       vx[slot]=Math.cos(angle)*speed;vz[slot]=Math.sin(angle)*speed;vy[slot]=3.2+Math.random()*1.1;
       baseColor[slot*3]=c.r;baseColor[slot*3+1]=c.g;baseColor[slot*3+2]=c.b;
     }
-    cursor=(cursor+n)%capacity;
+    cursor=(cursor+n)%limit;
     const ring=rings[ringCursor];ringCursor=(ringCursor+1)%tier.rings;
     ring.mesh.position.set(x,.045,z);ring.mesh.material.color.set(color);ring.mesh.material.opacity=.85;
     ring.mesh.visible=true;ring.mesh.scale.setScalar(.4);ring.age=0;ring.active=true;
@@ -90,7 +90,7 @@ export function createLootBurstPool({quality='high'}={}){
     }
   }
   function setQuality(next){
-    tier=TIERS[next]||TIERS.high;
+    tier=TIERS[next]||TIERS.high;cursor=0;ringCursor=0;
     alive.fill(0);matrix.makeScale(0,0,0);
     for(let i=0;i<capacity;i++)points.setMatrixAt(i,matrix);
     points.instanceMatrix.needsUpdate=true;
