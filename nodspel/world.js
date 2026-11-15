@@ -270,7 +270,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   function dispose(){
     disposed=true;
     const geometries=new Set(),mats=new Set();
-    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);if(o.userData?.pineFadeMaterial)mats.add(o.userData.pineFadeMaterial);});
+    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);if(o.userData?.pineFadeMaterials)for(const m of o.userData.pineFadeMaterials.values())mats.add(m);});
     for(const g of geometries)if(!g.userData?.shared)g.dispose();for(const m of mats)if(!m.userData?.shared)m.dispose();group.clear();scene.remove(group);bursts.length=0;
   }
   const hazards=(level.hazards??[]).map(h=>{
@@ -313,7 +313,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
       // In an orthographic camera every screen ray is parallel. A perspective
       // camera-to-player ray misses tall foreground pines at the screen edges.
       camera.getWorldDirection(pineDirection).negate();
-      pineRay.near=.08;pineRay.far=18;
+      pineRay.near=.08;pineRay.far=32;
       const trace=(x,y,z)=>{
         pineOrigin.set(x,y,z);
         pineRay.set(pineOrigin,pineDirection);
