@@ -75,7 +75,18 @@ for(const [phase,root] of [['before',before],['after',after]].filter(([phase])=>
     },kind);
     if(kind==='fabricator_built')await page.evaluate(()=>A.build('fabricator'));
     if(kind==='first_death')await page.waitForSelector('#overlay.raid-summary-ov [data-close]');
-    const initial=await page.evaluate(kind=>{
+    let shotPromise;
+    if(shotsOnly){
+     shotPromise=new Promise((resolveShot,rejectShot)=>{
+      page.exposeFunction('__captureEarlyShot',async requestedMs=>{
+       const file=`${kind==='core_restored'?'core':'fab'}-50ms-${width}x${height}.png`;
+       try{await page.screenshot({path:out+'/'+file});resolveShot({kind,width,height,file,requestedMs});}
+       catch(error){rejectShot(error);}
+      }).catch(rejectShot);
+     });
+     await page.waitForFunction(()=>typeof window.__captureEarlyShot==='function');
+    }
+    const initial=await page.evaluate((kind,shotsOnly)=>{
      const splash=document.querySelector('#splash');
      if(kind==='cold_open'){
       if(!splash)throw new Error('Cold-open splash finished before timing began');
@@ -85,6 +96,7 @@ for(const [phase,root] of [['before',before],['after',after]].filter(([phase])=>
      const selector=kind==='cold_open'?'.intro':'.bit-cutscene',start=performance.now();window.__latencyStart=start;
      if(kind==='cold_open')window.addEventListener('pr:splash-finished',()=>{window.__splashFinishedMs=performance.now()-start;},{once:true});
      window.__latencyResult=null;
+     if(shotsOnly)setTimeout(()=>window.__captureEarlyShot(performance.now()-start),50);
      let decoding=false;
      const frame=()=>{
       const el=document.querySelector(selector),img=el?.querySelector(kind==='cold_open'?'.intro-backdrop':'.bit-cutscene-from');
@@ -100,14 +112,9 @@ for(const [phase,root] of [['before',before],['after',after]].filter(([phase])=>
      else if(kind==='cold_open')splash.click();
      else document.querySelector('#overlay [data-close]').click();
      return {triggerReturnMs:performance.now()-start,synchronous:!!document.querySelector(selector)};
-    },kind);
+    },kind,shotsOnly);
     if(shotsOnly){
-     // A separate pass requests the screenshot near 50ms without disturbing benchmark trials.
-     await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,Math.max(0,50-(performance.now()-window.__latencyStart)))));
-     const file=`${kind==='core_restored'?'core':'fab'}-50ms-${width}x${height}.png`;
-     const requestedMs=await page.evaluate(()=>performance.now()-window.__latencyStart);
-     await page.screenshot({path:out+'/'+file});
-     rows.push({kind,width,height,file,requestedMs});
+     rows.push(await shotPromise);
      assert.deepEqual(errors,[],'no page errors');continue;
     }
     await page.waitForFunction(()=>window.__latencyResult,{timeout:15000,polling:'raf'});
