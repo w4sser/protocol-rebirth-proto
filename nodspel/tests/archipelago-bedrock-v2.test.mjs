@@ -266,7 +266,7 @@ test('authored hero headlands grow from the SAME coastal surface without changin
     'a large granitic landform needs a visibly broad coastal root');
   const shore=coastRingData(hero),n=hero.points.length;
   assert.equal(shore.rings,14,'one hero coast mesh with multiple broad irregular rock shoulders');
-  assert.equal(shore.positions.length,n*10*3);
+  assert.equal(shore.positions.length,n*shore.rings*3,'all 14 radial cliff strips share one indexed coastline');
   const elevated=Array.from({length:n},(_,i)=>shore.positions[(6*n+i)*3+1]);
   assert.ok(Math.max(...elevated)>1.20,'dramatic cliffs rise above the narrow existing coast');
   assert.ok(Math.max(...elevated)-Math.min(...elevated)>.65,'coastal cliff has varied height, not a uniform grey wall');
