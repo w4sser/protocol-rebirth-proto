@@ -234,7 +234,9 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // gameplay rectangle, keeping at least 1.10 m of level terrain beyond
     // the old floor, and keep both bridge approaches at their full width.
     const spareInland=Math.max(0,p.playableRadial-p.innerRadial-1.10);
-    const inlandRoot=isBridge?0:Math.min(spareInland,2.85*influence);
+    // Pass Q: retain a broad, flat vegetation apron inside the coast.
+    // Tall bedrock cannot be allowed to advance deep into a planar combat zone.
+    const inlandRoot=isBridge?0:Math.min(spareInland,1.12*influence);
     p.playableRadial-=inlandRoot;
     p.heroInlandRoot=inlandRoot;
     // Height cannot be directly proportional to *coast expansion*. On a
