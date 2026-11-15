@@ -219,7 +219,7 @@ export const RULES=[
      if(!/present\(/.test(advance)||/\bawait\b|\.then\s*\(/.test(advance))out.push('advance must present synchronously without awaiting preload');
      // Inspect timer callbacks with the parser, including nested arrow callbacks.
      const ast=parse(app,{ecmaVersion:"latest",sourceType:"script"}), calls=[];
-     if(ast) walk.simple(ast,{CallExpression(node){if(node.callee.name==='setTimeout')calls.push(app.slice(node.start,node.end));}});
+     if(ast) walk.simple(ast,{CallExpression(node){if(node.callee.name==='setTimeout'||node.callee.property?.name==='setTimeout')calls.push(app.slice(node.start,node.end));}});
      if(calls.some(call => /PRBitCutscene\??\.play/.test(call)))out.push('app.js must not schedule cutscene play in setTimeout');
      return out;}},
   {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
