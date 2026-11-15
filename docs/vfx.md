@@ -8,16 +8,17 @@ quads/planes alone look 2D from that angle -- see `docs/design-decisions.md` 202
 - `nodspel/vfx-extract-beam.js` (`createExtractBeam`): the extraction point. A volumetric beam
   (open-ended `CylinderGeometry` + a custom `ShaderMaterial` -- vertical alpha fade to 0 at the top,
   a fresnel term that brightens the rim over the center, additive blending, `depthWrite:false`, and
-  an optional scrolling noise-band scroll at high quality), a ground decal (a radial-gradient glow
-  pad, a dark contact ring just outside it for grounding, two expanding pulse rings, all with
-  `polygonOffset` to avoid z-fighting with the floor), and size-attenuated `THREE.Points` spiraling
-  up inside the beam. `update(time, open, progress)` drives visibility and a cosmetic "approach
+  three wrapping energy ribbons scrolling at high quality, a tapered silhouette and a thinner bright
+  core), a ground decal (radial glow pad, dark contact ring, static rim, a 0.25m upward-fading light
+  fence and a pulse every 1.2s; floor decals use `polygonOffset` to avoid z-fighting), and `THREE.Points` spiraling
+  around and through the beam. `update(time, open, progress)` drives visibility and a cosmetic "approach
   progress" (0..1, read from the player's distance to the exit while it's open) that brightens the
   beam and speeds the particles -- purely cosmetic; the real extract radius/logic stay in
   `round.js`/`levels.js`.
 - `nodspel/vfx-loot-burst.js` (`createLootBurstPool`): the pickup burst. A fixed-capacity pool of
   sparkles (a single `THREE.InstancedMesh` of small octahedra, SoA typed arrays) that pop up with gravity, then home
-  toward a target (the player's position) over ~0.5s, plus a small pooled ground flash ring.
+  toward a target (the player's position) over ~0.7s, plus a pooled floor shockwave, a 0.3s light pillar
+  at the pickup and a small arrival flash at the chest.
   `spawn(x, y, z, color)` takes the caller's rarity colour (`rarity.js` already owns that lookup);
   `update(dt, targetX, targetY, targetZ)` advances every active sparkle in place.
 - `nodspel/vfx-textures.js`: the one procedural "soft dot" texture both modules share, built as a
@@ -45,3 +46,17 @@ for later raids.
 
 See `nodspel/tests/vfx-extract-loot.test.mjs` for the behavioural tests and `docs/bug-lint.md`
 ("Extraction/loot VFX read flat...") for the regression guard.
+
+## PRB-156 pass 2: phone visibility
+
+The outer shell now keeps a faint centre and a much brighter Fresnel edge. Three narrow slanted
+ribbons wrap around its circumference; low quality skips them. A separate thin core and the short
+fence around the floor rim add height. Five-pixel soft points retain about 2-4 pixels of visible glow
+at native phone resolution and spiral both inside and outside the shell, with world depth testing.
+The core scales with the beam height on quality changes; all added resources dispose exactly once.
+
+Pickup octahedra are larger and brighter and fan out from the actual loot position. The initial
+0.28s launch rises about 1.2m before a curved homing phase reaches the moving chest at 0.7s. Each
+existing burst slot owns its pillar and arrival flash; their geometry is shared, their materials
+are pooled, and live quality changes immediately hide all active layers. Particle counts and the
+low-quality overlap cap remain unchanged. Gameplay, extraction radius, camera and art are untouched.
