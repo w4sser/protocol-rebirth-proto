@@ -40,3 +40,18 @@ Once this one target island looks right and performs safely, extend visual profi
 ### Open-world composition note (14 Nov owner feedback)
 
 The archipelago must feel **expansive like the lighthouse intro**, not like disconnected tiny combat plates. Compose multiple scales of land: foreground playable headlands, near offshore skerries, distant muted land silhouettes and open water. Use the horizon and sea lanes to imply a wider archipelago while maintaining the camera's combat readability. Distant islands are scenery, not traversal promises. Do not use a dense ring of equal-sized rocks or symmetrical islets; favor varied mass and negative water space. The visual target must be judged from normal gameplay zoom and on the phone, not only in a pulled-back editor camera.
+
+## 15 November 2026 — Owner visual reference refinement (P0)
+
+The owner approved a new comparison image emphasizing **large stepped/sculpted stylised granite cliffs** (inspired by the clarity of Clash of Clans rock masses, not its geometry or IP) and an **almost mirror-still Baltic Sea** with small ripples and broad pink/lavender reflections of a Nordic summer-night sky.
+
+### Opt-in implementation update, awaiting visual approval
+- The major bedrock mesh now has broad, layered, gently rounded shoulders and flatter crowns, made from a single continuous indexed mesh and existing instancing. The coast/ground seams and actor boundary are unchanged. Rock color stays weathered blue-grey/lavender with soft warm highlights, not candy-pink.
+- The v2-only `WATER_BALTIC` shading path uses near-static, broad procedural sky-colour bands, pink reflection and much smaller surface-normal perturbation. Its water remains one opaque mesh, one shore-map bake and no reflection render target. HIGH and LOW share the same sky treatment. Normal Archipelago retains its existing shader.
+- Reflection is an intentionally cheap stylized **sky approximation**, not real reflected island/tree geometry. It must be visually checked on a phone before claiming it matches the owner reference.
+- Preserve the approved feature flag, gameplay collision, deterministic island profiles, bridges and camera. This is an **iteration toward parity, not approved parity**.
+
+### Remaining visual gates
+- Capture and inspect actual same-seed 844x390 raid screenshots at spawn, bunker/shore, bridge and boats, both HIGH and LOW, alongside the owner target image.
+- Confirm that major rock masses read as part of the island and that the sea reads as quiet Baltic water rather than flat plastic or an animated wave effect. Check shoreline joins, portal legibility, no false cover, low-end FPS and physical Safari behavior.
+- If terrain still reads as a flat plate, prioritize a single composed hero island and connected geological transitions over further materials or scattered props. **Do not merge PR #247 before owner approval**.

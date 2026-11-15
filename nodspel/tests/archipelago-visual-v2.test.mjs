@@ -8,6 +8,7 @@ import {generateLevel} from '../levels.js';
 import {buildArchipelago} from '../archipelago.js';
 import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
 import {planArchipelagoBedrock} from '../archipelago-visual-v2.mjs';
+import {createWaterMesh} from '../water-shader.js';
 
 const F={x:0,z:0,w:12,d:12};
 
@@ -76,7 +77,9 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
       'all v2 boats use the sculpted dinghy, never a rectangular placeholder');
     const water=group.children.find(o=>o.name==='water');
-    assert.equal(water.material.uniforms.cSky.value.getHexString(),'958c9a');
+    assert.equal(water.material.uniforms.cSky.value.getHexString(),'a0a9c0');
+    assert.equal(water.material.uniforms.cRose.value.getHexString(),'e1a5bb');
+    assert.ok(Object.hasOwn(water.material.defines,'WATER_BALTIC'),'v2 uses still-Baltic reflection shader');
     assert.ok(!level.walls.some(w=>w.shore),'obsolete rectangular shoreline collider removed');
     assert.ok(islands.every(f=>isPointOnFloor(f,f.x,f.z)));
   }finally{
@@ -144,4 +147,19 @@ test('nearshore dinghies always float outside organic land, bridges and other bo
       for(let i=0;i<high.length;i++)for(let j=i+1;j<high.length;j++)
         assert.ok(Math.hypot(high[i].x-high[j].x,high[i].z-high[j].z)>5.0,'dinghies cannot overlap');
     }
+});
+
+
+test('pink calm Baltic water is opt-in, low-cost and keeps default water unchanged',()=>{
+  const rects=[{x:0,z:0,w:3,d:3}],bounds={x0:-5,z0:-5,w:10,d:10};
+  const calm=createWaterMesh(rects,bounds,{balticCalm:true,caustics:false,lite:true});
+  const defaultSea=createWaterMesh(rects,bounds,{lite:true});
+  assert.ok(Object.hasOwn(calm.material.defines,'WATER_BALTIC'));
+  assert.ok(Object.hasOwn(calm.material.defines,'WATER_LITE'),'LOW shares the same calm look');
+  assert.equal(calm.material.uniforms.caustics.value,0,'no expensive fake caustics on still water');
+  assert.ok(!Object.hasOwn(defaultSea.material.defines,'WATER_BALTIC'),'normal Archipelago keeps legacy waves');
+  assert.equal(defaultSea.material.uniforms.cDeep.value.getHexString(),'06161f');
+  for(const sea of [calm,defaultSea]){
+    sea.userData.shoreTexture.dispose();sea.material.dispose();sea.geometry.dispose();
+  }
 });

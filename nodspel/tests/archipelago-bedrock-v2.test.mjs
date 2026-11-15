@@ -42,7 +42,11 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
   const mesh=art.addArchipelagoGraniteV2(profile,group);
   assert.equal(mesh.name,'arch-v2-glacial-shelves');
   assert.ok(mesh.geometry.getAttribute('color'),'geological color variation');
-  assert.ok(mesh.geometry.getAttribute('position').count>80,'rounded multi-ring bedrock, not a scaled platonic solid');
+  assert.ok(mesh.geometry.getAttribute('position').count>800,'stepped granite has broad layered shoulders');
+  const positions=mesh.geometry.getAttribute('position'),sides=41;
+  const lowerShoulder=positions.getX(7*sides)-positions.getX(8*sides);
+  const upperShoulder=positions.getX(16*sides)-positions.getX(17*sides);
+  assert.ok(lowerShoulder>.025&&upperShoulder>.025,'cliffs must have at least two visible stone terraces');
   assert.ok(group.children.length<=3,'instanced major masses and shelves');
   assert.equal(mesh.geometry.userData.shared,true,'sculpted geometry survives world rebuilds');
   assert.ok(group.children.every(m=>m.material.userData.shared));
