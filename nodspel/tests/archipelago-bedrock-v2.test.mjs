@@ -194,3 +194,25 @@ test('the playable mineral veins join the cliff with exact linear colors',()=>{
   const lowGroup=new THREE.Group(),low=art.addArchipelagoGroundV2(profile,lowGroup,{high:false,bedrockPlan:plan});
   assert.deepEqual([...low.geometry.getAttribute('color').array],[...colors.array],'LOW preserves the same island geology');
 });
+
+test('v2 groundcover is coastal, collision-free, and LOW is a deterministic HIGH subset',()=>{
+  const reserved=[{x:2,z:0,w:4,d:5},{x:-4,z:-3,w:3,d:4}];
+  const high=art.planArchipelagoGroundcover(profile,{high:true,reservations:reserved});
+  const low=art.planArchipelagoGroundcover(profile,{high:false,reservations:reserved});
+  const highCoords=new Set(high.map(p=>p.x.toFixed(5)+','+p.z.toFixed(5)));
+  assert.ok(high.length>low.length&&low.length>20,'HIGH contains more coastal vegetation, LOW remains populated');
+  for(const p of low)assert.ok(highCoords.has(p.x.toFixed(5)+','+p.z.toFixed(5)),'LOW must retain HIGH cluster sites');
+  for(const p of high){
+    const a=(Math.atan2(p.z-floor.z,p.x-floor.x)+Math.PI*2)%(Math.PI*2),t=a/(Math.PI*2)*profile.points.length,j=Math.floor(t),f=t-j;
+    const edge=profile.points[j].playableRadial*(1-f)+profile.points[(j+1)%profile.points.length].playableRadial*f;
+    assert.ok(Math.hypot(p.x-floor.x,p.z-floor.z)<edge-.42,'cover must not spill into water or onto raised rocks');
+    assert.ok(!reserved.some(r=>overlaps({x:p.x,z:p.z,w:.4,d:.4},r)),'groundcover must clear gameplay reservations');
+    assert.ok(p.h<.46,'plants must never visually block the Operator');
+  }
+  assert.deepEqual(high,art.planArchipelagoGroundcover(profile,{high:true,reservations:reserved}),'groundcover deterministic');
+  const group=new THREE.Group();
+  art.addArchipelagoGroundV2(profile,group,{high:false,reservations:reserved});
+  const foliage=group.children.find(c=>c.name==='arch-v2-coastal-groundcover');
+  assert.ok(foliage?.geometry.getAttribute('position').count>=low.length*9);
+  assert.equal(foliage.userData.visualOnly,true);
+});

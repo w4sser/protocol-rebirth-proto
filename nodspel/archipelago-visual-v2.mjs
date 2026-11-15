@@ -65,11 +65,16 @@ function sculptGranite(){
   const base=new THREE.Color('#989aa0'),dark=new THREE.Color('#5c6b75'),warm=new THREE.Color('#b8a5a1'),lichen=new THREE.Color('#70816e');
   for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,phase=Math.sin(3*a+.6)*.042+Math.sin(7*a+1.2)*.024+Math.sin(11*a-.3)*.011;
-    const radius=radii[k]*(1+phase),y=levels[k]+Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.041+Math.sin(9*a+.25)*.012;
+    const glacialFlow=Math.sin(2*a+.47)*.07+Math.sin(6*a+1.6)*.025;
+    const radius=radii[k]*(1+phase+glacialFlow*(1-.4*levels[k]));
+    const y=levels[k]+Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.038+Math.sin(9*a+.25)*.012;
     positions.push(Math.cos(a)*.5*radius,y,Math.sin(a)*.5*radius);
-    const c=dark.clone().lerp(base,.29+.66*Math.sqrt(levels[k]))
-      .lerp(warm,.085+.10*(.5+.5*Math.sin(2*a+.7)))
-      .lerp(lichen,.015+.065*Math.max(0,Math.sin(4*a+1.1))*levels[k]);
+    // Subtle mineral striae and lichens, never uniformly colored ring slices.
+    const stria=.5+.5*Math.sin(a*11+y*6+.8);
+    const groove=.5+.5*Math.sin(a*17-y*9+1.4);
+    const c=dark.clone().lerp(base,.23+.65*Math.sqrt(levels[k])+stria*.065)
+      .lerp(warm,.075+.10*(.5+.5*Math.sin(2*a+.7)))
+      .lerp(lichen,.018+groove*.095*Math.max(0,levels[k]-.18));
     colors.push(c.r,c.g,c.b);
     if(k<levels.length-1&&j<steps){const n=k*(steps+1)+j,b=n+steps+1;indices.push(n,b,n+1,n+1,b,b+1);}
   }
@@ -111,21 +116,46 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
   }
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,groundMat);mesh.name='arch-v2-moss-bedrock-ground';mesh.receiveShadow=true;mesh.userData.visualOnly=true;group.add(mesh);
-  const blades=[],tones=[],grass=new THREE.Color('#63794b'),heatherTint=new THREE.Color('#817b85'),limit=high?80:32;
-  for(let j=0,count=0;j<300&&count<limit;j++){
-    const x=floor.x+(hash(seed+j*13)-.5)*floor.w*.94,z=floor.z+(hash(seed+j*17+881)-.5)*floor.d*.94;
-    const radius=Math.hypot((x-floor.x)/(floor.w*.5),(z-floor.z)/(floor.d*.5));
-    if(radius<.42||radius>.92||Math.sin(x*.71)*Math.cos(z*.56)<.05||reservations.some(q=>overlaps({x,z,w:.3,d:.3},q,.2)))continue;
-    const h=.10+hash(seed+j*31)*.13;
+  // One draw call for deterministic, clustered coastal ecology. The near
+  // center stays open; heather lives near mineral patches and lee-side inlets.
+  const blades=[],tones=[],grass=new THREE.Color('#6d895c'),heather=new THREE.Color('#89778d');
+  const bracken=new THREE.Color('#526f53'),cover=planArchipelagoGroundcover(profile,{high,reservations});
+  for(const tuft of cover){
+    const {x,z,h,kind}=tuft;
+    const color=kind==='heather'?heather:kind==='bracken'?bracken:grass;
     for(let b=0;b<3;b++){
-      const a=b*2.1+hash(seed+j)*TAU,dx=Math.cos(a)*.07,dz=Math.sin(a)*.07;
-      blades.push(x-dx,.014,z-dz,x+dx,.014,z+dz,x+dx*.5,h,z+dz*.5);
-      for(let k=0;k<3;k++){const isHeather=radius>.66&&hash(seed+j*7)>.84;const c=grass.clone().lerp(heatherTint,isHeather?.58:0).multiplyScalar(.8+hash(j+b+k)*.3);tones.push(c.r,c.g,c.b);}
+      const a=b*2.1+hash(Math.round(x*31+z*67))*TAU,dx=Math.cos(a)*.072,dz=Math.sin(a)*.072;
+      blades.push(x-dx,.014,z-dz,x+dx,.014,z+dz,x+dx*.48,h,z+dz*.48);
+      for(let k=0;k<3;k++){const c=color.clone().multiplyScalar(.79+hash(Math.round(x*47+z*23+b*17+k))*.35);tones.push(c.r,c.g,c.b);}
     }
-    count++;
   }
-  if(blades.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(blades,3));g.setAttribute('color',new THREE.Float32BufferAttribute(tones,3));g.computeVertexNormals();const tufts=new THREE.Mesh(g,grassMat);tufts.name='arch-v2-sparse-grass';tufts.receiveShadow=true;tufts.userData.visualOnly=true;group.add(tufts);}
+  if(blades.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(blades,3));g.setAttribute('color',new THREE.Float32BufferAttribute(tones,3));g.computeVertexNormals();const tufts=new THREE.Mesh(g,grassMat);tufts.name='arch-v2-coastal-groundcover';tufts.receiveShadow=true;tufts.userData.visualOnly=true;group.add(tufts);}
   return mesh;
+}
+
+// Deterministic coastal clusters. LOW is a true subset of HIGH for the same
+// seed; clusters avoid authored lanes/objectives and never alter collision.
+export function planArchipelagoGroundcover(profile,{high=true,reservations=[]}={}){
+  if(profile?.style!=='v2')return [];
+  const {floor,points,seed}=profile,limit=high?12:6,result=[];
+  for(let cluster=0;cluster<12;cluster++){
+    const a=TAU*hash(seed+701+cluster*83),idx=a/TAU*points.length,j=Math.floor(idx),t=idx-j;
+    const edge=points[j].playableRadial*(1-t)+points[(j+1)%points.length].playableRadial*t;
+    const f=.52+.34*hash(seed+cluster*167+71);
+    const x0=floor.x+Math.cos(a)*edge*f,z0=floor.z+Math.sin(a)*edge*f;
+    // Natural patches, not regularly spaced individual grass blades.
+    for(let i=0;i<limit;i++){
+      const seedK=seed+cluster*1009+i*71,theta=hash(seedK+13)*TAU;
+      const radius=Math.sqrt(hash(seedK+41))*(.43+.56*hash(seedK+73));
+      const x=x0+Math.cos(theta)*radius,z=z0+Math.sin(theta)*radius;
+      const rr=Math.hypot(x-floor.x,z-floor.z);
+      if(rr>coastRadiusAt(profile,x,z,'playableRadial')-.45)continue;
+      if(reservations.some(q=>overlaps({x,z,w:.40,d:.40},q,.15)))continue;
+      const kind=cluster%4===0?'heather':cluster%3===0?'bracken':'grass';
+      result.push({x,z,h:(kind==='bracken'?.25:.14)+hash(seedK+97)*(kind==='heather'?.19:.15),kind});
+    }
+  }
+  return result;
 }
 export function planArchipelagoPines(level,spots){
   const result=[];

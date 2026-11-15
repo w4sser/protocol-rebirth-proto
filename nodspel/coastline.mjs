@@ -109,8 +109,11 @@ export const COAST_BLEND_STOPS=Object.freeze([0,0.12,0.53,0.87,1,1]);
 // Broad, deterministic granite outcrops connect the island interior to the
 // coastal masses without introducing raised false cover or extra draw calls.
 const rgb=h=>[1,3,5].map(i=>{const c=parseInt(h.slice(i,i+2),16)/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
-const SOIL_MOSS=rgb('#657b4e'),SOIL_OLIVE=rgb('#7e8c5e'),SOIL_SHADE=rgb('#486550');
-const SOIL_GRANITE=rgb('#a19ba3'),SOIL_SHADOW=rgb('#737b85'),SOIL_SAND=rgb('#8f836d');
+// Slightly darker, healthier Nordic vegetation and worn lavender-grey stone.
+// All colors are linear RGB because they feed Three.js vertexColor buffers.
+const SOIL_MOSS=rgb('#54734d'),SOIL_OLIVE=rgb('#829464'),SOIL_SHADE=rgb('#405b49');
+const SOIL_GRANITE=rgb('#a3a0a7'),SOIL_SHADOW=rgb('#6b7380'),SOIL_SAND=rgb('#968a76');
+const SOIL_HEATHER=rgb('#766e80'),SOIL_TRAIL=rgb('#807560'),SOIL_LICHEN=rgb('#82947b');
 const mix=(a,b,t)=>a+(b-a)*t;
 function tint(a,b,t){return a.map((c,i)=>mix(c,b[i],t));}
 function fieldHash(i,j,seed){return unit(seed+Math.imul(i,374761393)+Math.imul(j,668265263));}
@@ -124,26 +127,40 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
   const angle=(Math.atan2(dz,dx)+TAU)%TAU,scaled=angle/TAU*points.length,i=Math.floor(scaled),frac=scaled-i;
   const radius=mix(points[i].playableRadial,points[(i+1)%points.length].playableRadial,frac)-.045;
   const f=clamp(Math.hypot(dx,dz)/Math.max(.05,radius),0,1);
-  const broad=fieldNoise(x*.17+7,z*.17-5,seed);
-  const grain=fieldNoise(x*.53-9,z*.53+3,seed+817);
-  const channel=.5+.5*Math.sin((x*.23+z*.31)+seed*.0001);
+  // Two correlated terrain frequencies avoid either broad uniform slabs
+  // or per-vertex confetti; they have no relation to active gameplay state.
+  const broad=fieldNoise(x*.14+7,z*.14-5,seed);
+  const mid=fieldNoise(x*.37-9,z*.37+3,seed+817);
+  const grain=fieldNoise(x*.96+13,z*.96-7,seed+1901);
+  const channel=.5+.5*Math.sin(x*.31-z*.26+mid*2.5+seed*.0001);
   const beach=coastBeach(angle/TAU,seed);
-  let glacial=0;
-  for(const mass of bedrockPlan?.masses??[]){
+  let glacial=0,trail=0;
+  for(let j=0;j<(bedrockPlan?.masses?.length??0);j++){
+    const mass=bedrockPlan.masses[j];
     const delta=Math.atan2(Math.sin(angle-mass.angle),Math.cos(angle-mass.angle));
-    const arc=Math.exp(-Math.pow(delta/.39,2));
-    const slope=smooth(.28,.92,f);
-    glacial=Math.max(glacial,arc*slope);
+    const meander=.045*Math.sin(f*11+seed*.00003+j);
+    // Long fingers of granite visually continue from the outcrops into the
+    // island clearing. They remain flush with the real walk/collision plane.
+    const arc=Math.exp(-Math.pow((delta+meander)/(.42+.09*channel),2));
+    glacial=Math.max(glacial,arc*smooth(.26,.87,f));
+    if(j===0){
+      // A subdued, winding worn-earth route toward the buried coastal portal.
+      const transverse=Math.sin(delta)*Math.hypot(dx,dz)+Math.sin(f*8+seed*.001)*.43;
+      trail=Math.exp(-Math.pow(transverse/1.22,2))*smooth(.09,.29,f)*(1-smooth(.73,.94,f));
+    }
   }
-  const exposed=clamp(glacial*.80
-      +smooth(.57,.87,broad)*smooth(.40,.92,f)*(.25+.27*channel)
-      +smooth(.66,.88,f)*grain*.18
-      +smooth(.81,1,f)*(1-beach)*.22,0,.93);
-  let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.30+broad*.53,0,1));
-  col=tint(col,SOIL_SHADE,.09+.15*(1-grain));
+  const mineralPockets=smooth(.60,.83,broad)*smooth(.42,.92,f)*(.28+.36*mid);
+  const edgeRock=smooth(.72,.98,f)*(1-beach)*(.28+.16*channel);
+  const exposed=clamp(glacial*(.61+.22*mid)+mineralPockets+edgeRock,0,.93);
+  const lichen=smooth(.62,.89,mid)*exposed*(.11+.07*grain);
+  let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.20,0,1));
+  col=tint(col,SOIL_SHADE,.12+.22*(1-mid));
   col=tint(col,SOIL_GRANITE,exposed);
-  col=tint(col,SOIL_SHADOW,exposed*.13*(1-channel));
-  col=tint(col,SOIL_SAND,beach*smooth(.72,1,f)*.32);
+  col=tint(col,SOIL_SHADOW,exposed*(.06+.18*(1-channel)));
+  col=tint(col,SOIL_LICHEN,lichen);
+  col=tint(col,SOIL_HEATHER,smooth(.64,.88,f)*smooth(.71,.95,mid)*.16*(1-exposed));
+  col=tint(col,SOIL_TRAIL,trail*.58*(1-exposed*.65));
+  col=tint(col,SOIL_SAND,beach*smooth(.72,1,f)*.36);
   return col;
 }
 
@@ -189,9 +206,11 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     // no height change at the traversable ground seam or the sea-level lip.
     const aDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
     const massProximity=profile.style==='v2'&&bedrockPlan?.masses?.length
-      ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.27,2)))):0;
-    const ridgeLifts=[0,.07,.22,.38,.28,0];
-    const ridge=massProximity*(1-p.beach*.86);
+      ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.48,2)))):0;
+    const shelfProximity=profile.style==='v2'&&bedrockPlan?.shelves?.length
+      ?Math.max(0,...bedrockPlan.shelves.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.25,2)))):0;
+    const ridgeLifts=[0,.08,.28,.49,.32,0];
+    const ridge=clamp(massProximity*.88+shelfProximity*.18,0,1)*(1-p.beach*.86);
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+ridgeLifts[ring]*ridge,z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.94+.055*Math.sin(5*p.angle+profile.seed*.003);
