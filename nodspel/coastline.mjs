@@ -214,7 +214,16 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     const actualGain=Math.max(0,newRadius-base);
     p.radial=newRadius;
     p.x=floor.x+c*newRadius;p.z=floor.z+sn*newRadius;
-    p.heroRelief=isBridge?0:influence*Math.min(1,actualGain/1.9);
+    // Height cannot be directly proportional to *coast expansion*. On a
+    // crowded map, neighbors suppress the outward radius and the old formula
+    // erased every mountain, leaving a uniformly gray coastal retaining wall.
+    // The foot remains strictly outside playableRadial and is flattened
+    // anywhere the bridge clearance touches the authored cliff.
+    const band=newRadius-p.playableRadial;
+    const room=smooth(.62,1.80,band);
+    const projectedMass=influence*(.46+.54*room);
+    p.heroRelief=isBridge?0:projectedMass;
+    p.heroRockMask=isBridge?0:influence;
     // IMPORTANT: playableRadial intentionally does not change. A mountain is
     // a natural boundary, never a climbable surface or false combat cover.
   }
@@ -233,48 +242,67 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
 }
 
 function heroCoastRingData(profile){
-  // One indexed mesh: ten rings are shared by moss, sculpted granite shelves,
-  // cliff faces and the submerged waterline. No overlapping granite 'apron'
-  // and no detached topographic ovals on the representative island.
+  // One island / ONE connected shoreline mesh. Sculpt three broad, asymmetrical
+  // granite buttresses directly into the coastal landform instead of lofting a
+  // uniform contour wall or stacking separate overlapping meshes.
+  //
+  // 14 radial strips: two flat inland transition strips, an angled lower
+  // buttress, a long worn granite crown and steep seawards faces. The ring
+  // topology is shared between soil, crown and submerged rock, without
+  // coplanar aprons or any new player-height collision.
   const {floor,points}=profile,n=points.length;
-  const fractions=[-.045,.065,.14,.28,.42,.55,.70,.85,.96,1];
-  const heights=[0,0,.10,.50,1,1.03,.85,.51,.12,0];
-  const elevation=[.010,.009,.007,.002,-.012,-.025,-.05,-.083,-.13,-.65];
-  const sand=[.010,.008,.004,-.015,-.05,-.085,-.14,-.23,-.31,-.54];
-  const stops=[0,.05,.12,.31,.52,.67,.79,.88,.97,1];
-  const cliffRock=[
-    '#69796f','#7c867e','#8f9296','#a39ca6','#b6a4b0',
-    '#bca9b6','#a99eab','#9795a3','#777f90','#4f6275'
+  const fractions=[-.045,.045,.095,.16,.24,.34,.44,.54,.63,.72,.81,.89,.965,1];
+  const cap=[0,0,.03,.15,.46,.87,1,.96,.79,.56,.34,.14,.02,0];
+  const yFloor=[.010,.009,.006,.002,-.009,-.024,-.038,-.052,-.071,-.085,-.104,-.124,-.16,-.65];
+  const yCove=[.010,.008,.003,-.014,-.033,-.055,-.08,-.10,-.145,-.205,-.270,-.31,-.38,-.65];
+  const stoneColors=[
+    '#647568','#707d75','#8c918b','#9d9a9e',
+    '#b4a4af','#b9a6b5','#bdaab9','#b0a2b1',
+    '#a097a8','#8b91a2','#7b879b','#69778a','#576879','#40576d'
   ].map(rgb);
   const positions=[],colors=[],uvs=[],blends=[],indices=[];
+  const stoneRoots={masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]};
   for(let k=0;k<fractions.length;k++)for(const p of points){
     const c=Math.cos(p.angle),sn=Math.sin(p.angle);
     const band=p.radial-p.playableRadial;
+    // Broad slanted fault lines break the uniform ring silhouette into a few
+    // recognizable geological blocks. Always leave the actor seam and the
+    // underwater boundary at their exact shared coordinates.
+    const fault=.035*Math.sin(5*p.angle+profile.seed*.00013)
+      +.023*Math.sin(11*p.angle-profile.seed*.00017);
+    const f=k===0?0:k===fractions.length-1?1:
+      clamp(fractions[k]+(k>2&&k<12?fault:0),.012,.985);
     const radius=k===0?p.playableRadial-.045:
-      k===9?p.radial+.22:p.playableRadial+band*fractions[k];
+      k===fractions.length-1?p.radial+.22:p.playableRadial+band*f;
     const x=floor.x+c*radius,z=floor.z+sn*radius;
-    const rough=.80+.13*Math.sin(7*p.angle+profile.seed*.0003)
-      +.09*Math.sin(13*p.angle-profile.seed*.0006);
-    const relief=(p.heroRelief??0)*heights[k]*2.45*rough;
-    const y=mix(elevation[k],sand[k],p.beach)+relief;
+    // Angular scale makes rounded, faceted cap surfaces and intermittent
+    // creases, not thousands of tiny repeated stone ribs.
+    const facet=.87+.13*Math.cos(3*p.angle+profile.seed*.00021)
+      +.05*Math.sin(9*p.angle+profile.seed*.00043);
+    const relief=(p.heroRelief??0)*cap[k]*3.08*facet;
+    const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
+
+    // Sample precisely the same flat gameplay ground material at the seam,
+    // then expose stone locally under the massive cliff shoulders. Ordinary
+    // beach/cove stretches remain olive and sand, not one pink-gray wall.
     const seam=archipelagoGroundColor(profile,
       floor.x+c*(p.playableRadial-.045),
-      floor.z+sn*(p.playableRadial-.045),
-      {masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]});
-    const exposed=clamp((p.heroRelief??0)*.94+.18*(1-p.beach),0,1);
-    const transition=stops[k];
-    const blend=k===0?0:transition*(.16+.84*exposed);
-    const stone=cliffRock[k];
-    const shade=.88+.10*Math.sin(p.angle*9+profile.seed*.0003);
+      floor.z+sn*(p.playableRadial-.045),stoneRoots);
+    const cliff=clamp((p.heroRockMask??0)*1.12,0,1);
+    const rockBase=(1-p.beach)*(.05+.10*Math.sin(p.angle*3+profile.seed*.0002)**2);
+    const exposure=clamp(rockBase+cliff*.91,0,.98);
+    const transition=[0,.012,.055,.16,.35,.60,.79,.91,.97,.99,1,1,1,1][k];
+    const blend=k===0?0:transition*(.05+.95*exposure);
+    const stone=stoneColors[k],faceShade=.80+.12*(.5+.5*Math.cos(7*p.angle+.27*k));
     for(let channel=0;channel<3;channel++)
-      colors.push(clamp(mix(seam[channel],stone[channel]*shade,blend),0,1));
-    blends.push(stops[k]);
+      colors.push(clamp(mix(seam[channel],stone[channel]*faceShade,blend),0,1));
+    blends.push(transition);
     const fract=v=>v-Math.floor(v);
     uvs.push(.525+.45*fract(x/4),.025+.45*fract(z/4));
   }
   for(let k=0;k<fractions.length-1;k++)for(let i=0;i<n;i++){
-    const next=(i+1)%n,a=k*n+i,b=k*n+next,c=(k+1)*n+i,d=(k+1)*n+next;
+    const j=(i+1)%n,a=k*n+i,b=k*n+j,c=(k+1)*n+i,d=(k+1)*n+j;
     indices.push(a,b,c,b,d,c);
   }
   return {
