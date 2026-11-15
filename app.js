@@ -5587,6 +5587,7 @@ function setupSplash(flightPending, returningFromRaid){
   const begin = () => {
     if(phase !== "ready") return;
     phase = "descending"; clearTimeout(autoTimer);
+    void window.PR_AUDIO?.play?.("ui-confirm");
     void window.PR_AUDIO_PLAY?.();
     sp.setAttribute("aria-label", "Skip bunker entrance");
     if(reduced()){

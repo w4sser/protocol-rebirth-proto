@@ -744,6 +744,7 @@
   #splash.descending .splash-corner,#splash.descending .splash-title,#splash.descending .splash-prompt{opacity:0;transition:opacity .2s ease;}
   body.splash-active #overlay,body.splash-active #settings-menu{z-index:95;}
   body.splash-active #topbar,body.splash-active #tabs,body.splash-active #bitdock,body.splash-active #app-version,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip{opacity:0;}
+  body.splash-active .intro *{animation-play-state:paused;}
   body.splash-active .intro>*{animation-play-state:paused;opacity:0;pointer-events:none;}
   body.startup-bunker-intro .intro{background:linear-gradient(color-mix(in srgb,var(--ad-night) 78%,transparent),color-mix(in srgb,var(--ad-night) 94%,transparent)),url("assets/production/bunker_plate_00_found.webp") center/cover no-repeat;}
   /* Two sequential phases, no camera move: the art fades out to #splash's own near-black

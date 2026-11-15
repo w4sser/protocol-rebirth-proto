@@ -102,14 +102,14 @@ console.log("start-screen.test: ok (title/one prompt/settings/slot on the splash
 (async()=>{
   for(const fallback of [false,true]){
     let release;const calls=[];
-    const t=boot({preload:()=>new Promise(r=>{release=r;}),unlockSync:()=>calls.push("sync"),unlock:()=>{calls.push("async");return Promise.resolve();}});
+    const t=boot({preload:()=>new Promise(r=>{release=r;}),unlockSync:()=>calls.push("sync"),unlock:()=>{calls.push("async");return Promise.resolve();},play:name=>calls.push(name)});
     try{
       t.ready();
       assert(!t.splash().classList.contains("prompt-ready"),"images alone cannot expose the prompt");
       if(fallback)t.tick(2500);else{release();await Promise.resolve();await Promise.resolve();}
       assert(t.splash().classList.contains("prompt-ready"),"decode completion or timeout exposes the prompt");
       t.splash().dispatchEvent(new t.dom.window.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
-      assert.deepEqual(calls,["sync","async"],"keyboard activation unlocks synchronously before async work");
+      assert.deepEqual(calls,["sync","async","ui-confirm"],"keyboard activation unlocks synchronously before async work");
       assert(t.splash().classList.contains("descending"));
       release();await Promise.resolve();
     }finally{t.dom.window.close();}
