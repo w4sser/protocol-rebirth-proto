@@ -192,13 +192,14 @@ test('v2 removes linear legacy rock rows without leaving invisible boundary wall
         const formations=bank.userData.outcrops;
         assert.ok(formations.length>=1&&formations.length<=3,'few large outcrops, never a row of small rocks');
         const count=bank.geometry.getAttribute('position').count;
-        assert.equal(count,formations.length*(5*19+1),'each outcrop is a distinct closed stone crown');
+        assert.equal(count,formations.length*(7*13+1),'each outcrop is a distinct closed stone crown');
         const profile=bank.geometry.getAttribute('position');
         for(const part of formations){
           assert.equal(part.colliders.length,3,'short collision slices follow the actual raised contour');
           assert.ok(part.height>.6,'recognizable high granite silhouette');
+          assert.ok(part.halfAlong/part.halfAcross<2.7,'rock masses must be broad, not stretched into sausages');
           assert.ok(profile.getY(part.vertexStart)<-.10,'eroded stone roots are submerged below gameplay floor');
-          const roof=part.vertexStart+4*19+8;
+          const roof=part.vertexStart+5*13+5;
           assert.ok(profile.getY(roof)>.6,'raised stone crown is visible at mobile camera');
         }
         if(formations.length>1){
