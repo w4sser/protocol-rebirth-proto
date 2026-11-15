@@ -249,6 +249,7 @@ export function archipelagoCoastalPine(spot,{low=false}={}){
   g.userData.pineVariant=shape.name;
   g.userData.pineHeight=height;
   g.userData.pineMeshes=[];
+  g.userData.pineFadeMaterials=new Map();
   g.userData.pineOpacity=1;
   // Segmented, slightly bent trunk; pine crowns sit high enough to expose
   // recognisable bark. No spruce/conical Christmas-tree silhouette.
@@ -286,17 +287,19 @@ export function setArchipelagoPineOpacity(tree,opacity){
   if(Math.abs(a-tree.userData.pineOpacity)<.003)return;
   for(const mesh of tree.userData.pineMeshes){
     if(fading){
-      let faded=mesh.userData.pineFadeMaterial;
+      const original=mesh.userData.pineOpaqueMaterial;
+      let faded=tree.userData.pineFadeMaterials.get(original);
       if(!faded){
-        faded=mesh.userData.pineOpaqueMaterial.clone();
+        faded=original.clone();
         faded.transparent=true;
         faded.depthWrite=false;
         faded.userData.shared=false;
-        mesh.userData.pineFadeMaterial=faded;
+        tree.userData.pineFadeMaterials.set(original,faded);
       }
       faded.opacity=a;
       mesh.material=faded;
     }else mesh.material=mesh.userData.pineOpaqueMaterial;
+    mesh.castShadow=!fading;
   }
   tree.userData.pineOpacity=a;
 }
