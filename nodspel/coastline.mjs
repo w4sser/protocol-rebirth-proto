@@ -189,7 +189,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     const base=p.radial;
     const influence=heads.reduce((acc,h)=>{
       const t=wrap(p.angle-h.angle)/h.width;
-      return Math.max(acc,Math.exp(-t*t));
+      return Math.max(acc,Math.exp(-t*t)*(h.height/2.35));
     },0)*(1-p.beach*.96);
     const prospect=base+influence*3.6;
     let safe=prospect;
