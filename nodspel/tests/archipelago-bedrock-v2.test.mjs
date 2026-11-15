@@ -408,3 +408,23 @@ test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into p
   }
   assert.ok(tall>=2,'glacial domes still visually rise above the coast');
 });
+
+
+test('Pass R height follows the available offshore width instead of building cliffs in narrow channels',()=>{
+  const f={x:0,z:0,w:22,d:20},p=coastlineProfile(f,'hero-width-review',{style:'v2'});
+  authorHeroIslandCoast(p,{rockAngles:[.45,3.15]});
+  const i=p.points.reduce((best,q,j)=>q.heroRelief>p.points[best].heroRelief?j:best,0);
+  assert.ok(p.points[i].heroRelief>.2,'test needs a live granitic headland');
+  const point=p.points[i],original=point.radial;
+  point.radial=point.playableRadial+3.3;
+  const broad=coastRingData(p),n=p.points.length;
+  const broadPeak=broad.positions[(7*n+i)*3+1];
+  point.radial=point.playableRadial+.70;
+  const narrow=coastRingData(p),narrowPeak=narrow.positions[(7*n+i)*3+1];
+  point.radial=original;
+  assert.ok(narrowPeak<broadPeak*.62,
+    'tall cliffs must collapse into low granite shelves where the coastline is compressed');
+  assert.ok(Math.abs(narrow.positions[i*3+1]-.01)<1e-6,'player seam never rises');
+  assert.ok(Math.abs(narrow.positions[((narrow.rings-1)*n+i)*3+1]+.65)<1e-6,
+    'narrow coast still returns to the same water toe');
+});
