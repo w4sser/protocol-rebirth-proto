@@ -306,3 +306,35 @@ test('hero cliff elevation survives neighbors limiting offshore headland expansi
   assert.ok(shore.positions[(6*n+i)*3+1]>.34,'granite crown must rise without growing offshore');
   assert.ok(Math.abs(shore.positions[i*3+1]-.01)<1e-5,'traversable floor seam stays flat');
 });
+
+
+test('Pass K has localized granite headlands, not a continuous coastal retaining wall',()=>{
+  const floor={x:0,z:0,w:18,d:16};
+  const hero=coastlineProfile(floor,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(hero,{rockAngles:[.25,2.80,4.65]});
+  const shore=coastRingData(hero),n=hero.points.length,ring=6;
+  const masks=hero.points.map(p=>p.heroRockMask??0);
+  const high=masks.indexOf(Math.max(...masks));
+  const low=masks.indexOf(Math.min(...masks));
+  assert.ok(masks[high]>.55&&masks[low]<.10,'the test island needs distinct headlands and open bays');
+  // Flat traversable ground and shared water toe never change with rock sculpting.
+  for(let i=0;i<n;i++){
+    assert.ok(Math.abs(shore.positions[i*3+1]-.010)<1e-6,
+      'no fake mountain elevation on the walkable gameplay seam');
+    assert.ok(shore.positions[((shore.rings-1)*n+i)*3+1]<-.5,
+      'the same connected coast returns under the sea');
+  }
+  const exposed=(i)=>{
+    const seam=i*3,stone=(ring*n+i)*3;
+    return Math.hypot(shore.colors[stone]-shore.colors[seam],
+      shore.colors[stone+1]-shore.colors[seam+1],
+      shore.colors[stone+2]-shore.colors[seam+2]);
+  };
+  assert.ok(exposed(high)>exposed(low)*2.5,
+    'stone should concentrate in local headlands rather than a painted ring');
+  const y=i=>shore.positions[(ring*n+i)*3+1];
+  assert.ok(y(high)>y(low)+1,'headlands must rise materially above low sheltered bays');
+  assert.ok(shore.positions.every(Number.isFinite),'continuous mesh contains finite geometry');
+  assert.ok(shore.colors.every(c=>Number.isFinite(c)&&c>=0&&c<=1),
+    'weathered stone material has valid linear vertex colors');
+});
