@@ -112,6 +112,34 @@ async function checkPineVisibility(page,quality,errors){
   console.log('PINE FADE OK',quality,view.variant,'independent opacity and restoration');
 }
 
+// Also capture the original interactive 3D art target in the same phone
+// viewport. This is a *visual reference*, not a substitute for the real raid
+// camera and does not alter the approved target HTML or scene geometry.
+async function captureInteractiveVisualTarget(){
+  const page=await browser.newPage(),errors=[];
+  try{
+    await page.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.goto(base+'/archipelago-visual-target.html',{waitUntil:'domcontentloaded',timeout:60000});
+    await page.waitForFunction(()=>window.__archipelagoDemo?.state?.quality==='high',{timeout:40000});
+    await page.waitForFunction(()=>window.__archipelagoDemo?.state?.assetsDone===true,{timeout:45000});
+    await page.evaluate(()=>{
+      document.body.classList.add('clean');
+      document.getElementById('noUI').style.display='none';
+    });
+    await wait(800);
+    await page.screenshot({path:join(out,'visual-target-overview-high.png')});
+    await page.evaluate(()=>document.getElementById('btnView').click());
+    await wait(800);
+    await page.screenshot({path:join(out,'visual-target-game-camera-high.png')});
+    assert.deepEqual(errors,[],'original interactive target loads without runtime errors');
+    console.log('VISUAL TARGET CAPTURE OK',JSON.stringify(await page.evaluate(()=>{
+      const d=window.__archipelagoDemo;
+      return {view:d.state.view,assetsDone:d.state.assetsDone,assetsLoaded:d.state.loaded};
+    })));
+  }finally{await page.close();}
+}
+
 try{
   for(const version of ['after','before'])for(const quality of ['high','low']){
     if(process.env.ONLY_AFTER==='1'&&version==='before')continue;
@@ -205,5 +233,6 @@ try{
     }
     await page.close();
   }
+  await captureInteractiveVisualTarget();
   await writeFile(join(out,'capture-report.json'),JSON.stringify({baseline,results},null,2));
 }finally{await browser.close();await new Promise(ok=>server.close(ok));}
