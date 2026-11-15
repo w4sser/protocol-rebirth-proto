@@ -76,3 +76,9 @@
   .bit-cutscene-bust,.bit-cutscene-bust-to,.bit-cutscene-bubble,.bit-cutscene-info,.bit-cutscene-hologram{transition:none;}
   .bit-cutscene-sweep,.bit-cutscene-sparks span{animation:none;opacity:0;}
 }
+
+/* PRB-157: the dedicated painting carries BIT upper-left and the vest in the centre.
+   Keep the consistent narrator bust; shorter lower copy clears both painted subjects. */
+.bit-cutscene[data-id="fabricator_built"] .bit-cutscene-copy{bottom:calc(10px + env(safe-area-inset-bottom,0px));}
+.bit-cutscene[data-id="fabricator_built"] .bit-cutscene-line{font-size:clamp(12px,1.8vw,16px);line-height:1.3;}
+.bit-cutscene[data-id="fabricator_built"] .bit-cutscene-bubble{padding:6px 10px;}

@@ -27,6 +27,19 @@
     });
     images.set(src, promise); return promise;
   }
+  // Normalized source-image bounds, including the whole painted BIT chassis and vest.
+  var FABRICATOR_GEOMETRY = Object.freeze({
+    width:1600, height:720,
+    bit:Object.freeze({x:.18, y:.28, right:.30, bottom:.55}),
+    vest:Object.freeze({x:.56, y:.40, right:.68, bottom:.63})
+  });
+  // stage is the live transformed stage rect: object-fit cover crop AND push-in are included.
+  function paintedRect(stage, region){
+    var scale = Math.max(stage.width / FABRICATOR_GEOMETRY.width, stage.height / FABRICATOR_GEOMETRY.height);
+    var w = FABRICATOR_GEOMETRY.width * scale, h = FABRICATOR_GEOMETRY.height * scale;
+    var x = stage.x + (stage.width - w) / 2, y = stage.y + (stage.height - h) / 2;
+    return {x:x + region.x * w, y:y + region.y * h, right:x + region.right * w, bottom:y + region.bottom * h};
+  }
   function bustIsPair(bust){ return !!(bust && bust.to && bust.to !== bust.from); }
   function preload(opts){
     var list = [load(opts.from, opts.waitForArt), load(opts.to, opts.waitForArt)];
@@ -157,5 +170,5 @@
     });
     advance();
   }
-  window.PRBitCutscene = { play:play, preload:preload, dismiss:dismiss, isOpen:function(){ return !!current; } };
+  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, dismiss:dismiss, isOpen:function(){ return !!current; } };
 })();
