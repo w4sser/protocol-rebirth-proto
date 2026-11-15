@@ -8,9 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-baltic-calm3';
-import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.25-hero-coast26';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.25-hero-coast27';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-hero-coast26';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-hero-coast27';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.25-dinghy2';
@@ -332,6 +332,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       bridgeZones:rockFreeLandings,
       neighborProfiles:[...coastProfiles.values()]
     });
+    // The broad cliff roots reclaim only surplus organic coastal ground.
+    // Re-register the final 2D actor boundary after that authored change,
+    // otherwise the player could walk invisibly through a raised granite toe.
+    registerWalkableCoast(firstIsland,hero);
     out.heroIsland=true;
     out.heroHeadlands=hero.heroHeadlands;
   }
