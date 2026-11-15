@@ -89,5 +89,10 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
  assert.equal(rule.check({lootVfxSrc:'new THREE.Points()',feedbackVfxSrc:"hold(record,'respawn');pixel.spawn('collect');",lifecycleGameSrc:''}).length,4);
  assert.equal(rule.check({lootVfxSrc:'new THREE.InstancedMesh()',feedbackVfxSrc:'',lifecycleGameSrc:'world?.setVfxQuality(next);if(round.over)world?.disposeVfx();'}).length,0);
 }
+{
+ const rule=by('vfx-phone-depth-layers');
+ assert.equal(rule.check({phoneBeamSrc:'group.add(beam)',phoneLootSrc:'points.setMatrixAt(i,matrix)'}).length,2);
+ assert.equal(rule.check({phoneBeamSrc:'group.add(core);group.add(fence);',phoneLootSrc:'r.pillar=new THREE.Mesh(geo,mat);r.flash=new THREE.Mesh(geo,mat);'}).length,0);
+}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');

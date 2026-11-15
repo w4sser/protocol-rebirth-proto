@@ -206,6 +206,14 @@ export const RULES=[
      if(!/if\(round\.over\)world\?\.disposeVfx\(\)/.test(game))out.push('raid end must dispose world VFX');
      return out;}},
 
+
+  {id:'vfx-phone-depth-layers',pr:'v2.28.3x PRB-156 pass 2',why:'Pass 1 still read flat at phone size: the extraction shell lacked a core/fence and pickup arcs disappeared behind the player',
+   check(c={}){const out=[];
+     const beam=c.phoneBeamSrc??read('nodspel/vfx-extract-beam.js'),loot=c.phoneLootSrc??read('nodspel/vfx-loot-burst.js');
+     if(!/group\.add\(core\)/.test(beam)||!/group\.add\(fence\)/.test(beam))out.push('phone extraction must retain the inner core and raised floor fence');
+     if(!/r\.pillar=new THREE\.Mesh\(/.test(loot)||!/r\.flash=new THREE\.Mesh\(/.test(loot))out.push('phone pickups must retain pooled origin pillars and arrival flashes');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
