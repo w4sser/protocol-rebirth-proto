@@ -358,3 +358,23 @@ test('Pass M sculpted knuckles are distinct across shore while the actor seam re
   }
   assert.equal(coast.indices.length,n*(coast.rings-1)*6,'each shoreline remains a single indexed manifold');
 });
+
+
+test('Pass N leaves the traversable center green and authors two distinct cliffs',()=>{
+  const f={x:0,z:0,w:28,d:24};
+  const hero=coastlineProfile(f,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(hero,{rockAngles:[.15,2.52,4.85]});
+  assert.equal(hero.heroHeadlands.length,2,'two memorable granite headlands, not a ring of mountain peaks');
+  const group=new THREE.Group();
+  const plan={masses:hero.heroHeadlands.map(h=>({angle:h.angle})),shelves:[]};
+  const mesh=art.addArchipelagoGroundV2(hero,group,{bedrockPlan:plan});
+  const n=hero.points.length,c=mesh.geometry.getAttribute('color'),p=mesh.geometry.getAttribute('position');
+  let green=0,total=0;
+  for(let k=0;k<7;k++)for(let i=0;i<n;i++){
+    const j=k*n+i;total++;
+    if(c.getY(j)>c.getX(j)&&c.getY(j)>c.getZ(j))green++;
+    assert.ok(Math.abs(p.getY(j)-.01)<1e-5,'flat gameplay remains physically flat');
+  }
+  assert.ok(green/total>.72,
+    'the first third of the playable map should be mostly moss and vegetation, not faux mountain');
+});
