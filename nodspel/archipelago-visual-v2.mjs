@@ -59,33 +59,56 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   return {masses,shelves};
 }
 function sculptGranite(){
-  // Broad glacial shoulders, gently flattened crowns and muted weathering.
-  // Instanced across islands: no unique rock meshes or expensive extra materials.
-  const steps=40,levels=[0,.045,.12,.25,.38,.54,.68,.80,.91,1],radii=[.88,.98,1.08,1.13,1.13,1.08,.96,.83,.60,.22],positions=[],colors=[],indices=[];
-  const base=new THREE.Color('#989aa0'),dark=new THREE.Color('#5c6b75'),warm=new THREE.Color('#b8a5a1'),lichen=new THREE.Color('#70816e');
-  for(let k=0;k<levels.length;k++)for(let j=0;j<=steps;j++){
-    const a=j/steps*TAU,phase=Math.sin(3*a+.6)*.042+Math.sin(7*a+1.2)*.024+Math.sin(11*a-.3)*.011;
-    const glacialFlow=Math.sin(2*a+.47)*.07+Math.sin(6*a+1.6)*.025;
-    const radius=radii[k]*(1+phase+glacialFlow*(1-.4*levels[k]));
-    const ripple=Math.sin(3*a+.5)*Math.sin(levels[k]*Math.PI)*.043
-      +Math.sin(9*a+.25+levels[k]*3)*.017;
-    const y=levels[k]+ripple+.018*Math.sin(a*5.3+levels[k]*9);
-    // Subtle directional ice-polished shoulders and uneven crowns rather
-    // than an evenly scaled oval rock with the profile of a loaf.
-    const sweep=(1-levels[k])*.045*Math.sin(2*a+.8);
-    positions.push(Math.cos(a)*.5*radius+sweep,y,Math.sin(a)*.5*radius);
-    // Subtle mineral striae and lichens, never uniformly colored ring slices.
-    const stria=.5+.5*Math.sin(a*11+y*6+.8);
-    const groove=.5+.5*Math.sin(a*17-y*9+1.4);
-    const c=dark.clone().lerp(base,.23+.65*Math.sqrt(levels[k])+stria*.065)
-      .lerp(warm,.075+.10*(.5+.5*Math.sin(2*a+.7)))
-      .lerp(lichen,.018+groove*.095*Math.max(0,levels[k]-.18));
+  // Broad, ice-worn Scandinavian granite, with a few readable stepped shoulders.
+  // The tier transitions are part of ONE solid mesh, not overlapping slabs:
+  // no coplanar seams, fake elevated gameplay floor or extra draw calls.
+  // The large terraced profiles borrow silhouette clarity from stylised game
+  // cliffs, while the irregular faces and muted stone remain Nordic.
+  const steps=40;
+  const rings=[
+    [0,.85],[.035,1.005],[.10,1.075],[.18,1.095],[.205,1.05],
+    [.275,1.015],[.345,.96],[.382,.925],[.396,.835],
+    [.462,.815],[.525,.765],[.593,.704],[.624,.675],[.638,.593],
+    [.701,.57],[.765,.513],[.804,.487],[.818,.403],
+    [.871,.378],[.919,.33],[.944,.279]
+  ];
+  const positions=[],colors=[],indices=[];
+  const base=new THREE.Color('#a2a1a8'),dark=new THREE.Color('#626e7c');
+  const warm=new THREE.Color('#bd9eaa'),lichen=new THREE.Color('#778579');
+  for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
+    const a=j/steps*TAU,[h,nominal]=rings[k];
+    // Low-frequency asymmetry breaks up loaf-shaped / identical boulders.
+    // Cap the radius inside the conservative rock footprint so the new
+    // shoulders cannot intrude into collision, bridges or neighboring land.
+    const rough=Math.sin(3*a+.6)*.032+Math.sin(7*a+1.2)*.022
+      +Math.sin(11*a-.3)*.009+Math.sin(2*a+.47)*.029*(1-h*.45);
+    const r=Math.min(1.125,nominal*(1+rough));
+    const drift=(1-h)*.012*Math.sin(2*a+.8);
+    const rise=h+.006*Math.sin(5*a+h*9)*Math.sin(h*Math.PI);
+    positions.push(Math.cos(a)*.5*r+drift,rise,Math.sin(a)*.5*r);
+    // Soft blue-grey shadow faces, pale lavender crowns, lichen in cracks.
+    // Avoid hard horizontal colour stripes across the terraces.
+    const stria=.5+.5*Math.sin(a*10.4+h*13.1+.8);
+    const groove=.5+.5*Math.sin(a*17.2-h*8.3+1.4);
+    const crown=Math.sqrt(h),shadow=.13+.12*(1-crown);
+    const c=dark.clone().lerp(base,.25+.59*crown+stria*.065)
+      .lerp(warm,.065+.09*(.5+.5*Math.sin(2*a+.7)))
+      .lerp(lichen,(.014+groove*.072)*Math.max(0,h-.10))
+      .lerp(dark,shadow*groove*.18);
     colors.push(c.r,c.g,c.b);
-    if(k<levels.length-1&&j<steps){const n=k*(steps+1)+j,b=n+steps+1;indices.push(n,b,n+1,n+1,b,b+1);}
+    if(k<rings.length-1&&j<steps){
+      const n=k*(steps+1)+j,b=n+steps+1;
+      indices.push(n,b,n+1,n+1,b,b+1);
+    }
   }
-  const tip=positions.length/3,top=(levels.length-1)*(steps+1);positions.push(0,1.01,0);colors.push(base.r,base.g,base.b);
+  const tip=positions.length/3,top=(rings.length-1)*(steps+1);
+  positions.push(0,.944,0);colors.push(base.r,base.g,base.b);
   for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();geo.userData.shared=true;return geo;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  geo.setIndex(indices);geo.computeVertexNormals();geo.userData.shared=true;
+  return geo;
 }
 const graniteGeo=sculptGranite(),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,metalness:0}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
 graniteMat.userData.shared=true;groundMat.userData.shared=true;
