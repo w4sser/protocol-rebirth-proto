@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import {coastlineProfile,separateArchipelagoCoastProfiles} from '../coastline.mjs';
-import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast} from '../archipelago-playable.mjs?v=2.28.25-organic-v2';
+import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast,walkableBoundary} from '../archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago,isArchipelagoPartitionWallV2,archipelagoRockFreeBridgeLandingsV2} from '../archipelago.js';
@@ -200,6 +200,20 @@ test('v2 places high granite only outside the island and preserves open bridge l
       assert.ok(out.heroHeadlands?.length>0,'authored hero has a meaningful geological headland');
       if(number===1)assert.ok(out.heroHeadlands.length>=2,'hero preview composes two or more distinct rocky headlands');
       const heroVertices=heroShell[0].geometry.getAttribute('position');
+      const heroFloor=level.floors.find(f=>!f.dir);
+      const radii=walkableBoundary(heroFloor);
+      assert.equal(radii.length,72,'hero coastline is registered for X/Z player collision');
+      for(let j=0;j<72;j++){
+        const x=heroVertices.getX(j),z=heroVertices.getZ(j);
+        const seam=Math.hypot(x-heroFloor.x,z-heroFloor.z)+.045;
+        assert.ok(Math.abs(seam-radii[j])<.012,
+          'registered walkable boundary equals the actual flat edge of the raised coast');
+        const a=j*Math.PI*2/72,c=Math.cos(a),sn=Math.sin(a);
+        const inside=Math.min(heroFloor.w/2/Math.max(1e-8,Math.abs(c)),
+          heroFloor.d/2/Math.max(1e-8,Math.abs(sn)));
+        assert.ok(radii[j]>inside+1.08,
+          'the entire authored gameplay floor stays inside the granite boundary');
+      }
       const cliffHeights=Array.from({length:72},(_,i)=>heroVertices.getY(6*72+i));
       assert.ok(Math.max(...cliffHeights)>1.05,'hero cliffs must be clearly visible in actual gameplay');
       assert.ok(Math.max(...cliffHeights)-Math.min(...cliffHeights)>.7,'island coast must not be a uniform retaining wall');
