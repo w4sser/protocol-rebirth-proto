@@ -44,6 +44,7 @@ The Secure Slot is the one approved item-protection mechanism. **D1-A locks exac
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
+| 2026-11-15 | PRB-157: Fabricator L1 now uses the shipped dedicated dark/powered art as its primary cutscene, with the same crossfade and push-in as Core and no procedural overlays on the painted vest. Warm the pair early; slow loads never block playback or select a placeholder, while actual errors retain a safety backdrop. Keep the consistent happy bust and lower speech bubble, top-right info strip, and assert that both painted BIT and vest remain clear through cover cropping and push-in at all three landscape sizes. | Owner task PRB-157; implemented on feat/fabricator-art, reviewer owns version bump |
 | Ordinary materials, valuables, weapons, and armor found in the raid | Retained and reconciled at home | Exposed items are lost |
 | Valuable equipped weapon or armor taken from home | Returned | Lost |
 | Other carried equipment, unused consumables, and unused tool charges | Returned as applicable | Lost; **D1-B excludes weapons, armor, tools and consumables from Secure Slot eligibility** |

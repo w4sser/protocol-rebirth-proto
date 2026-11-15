@@ -112,8 +112,8 @@ strip (if any) ~0.6s later, and shows TAP TO CONTINUE after 1.5 seconds. Tap any
 focused continue button, or Escape dismisses; otherwise it auto-ends at 7 seconds and fades back
 over 350 ms. Focus returns to the previous control. Reduced motion removes push-in and fades and
 shows the bubble, bust, info strip and continue hint immediately, cutting instantly between frames at the same
-midpoint. The art covers the entire viewport; only copy respects safe insets, with at least 15 px
-text and a scrim/shadow.
+midpoint. The art covers the entire viewport; only copy respects safe insets, with a scrim/shadow. Standard copy starts at 15 px; Fabricator uses 12–16 px to keep its
+longer speech in the calm lower area on the smallest landscape viewport.
 
 ### Standard narrator-cutscene layout (PRB-155)
 
@@ -156,21 +156,23 @@ exactly as the original plain-line cutscene did.
   Preload/play after loss/homecoming dismissal. Bust: sad → happy, right (matches the backdrop's
   own sad → happy crossfade). Info: LOST/KEPT name the locked death rule (`AGENTS.md`: dying in a
   raid loses everything currently carried; the stash and buildings are untouched).
-- `fabricator_built`: no dedicated art pair exists yet, so it reuses
-  `cutscene-core-restore-end-v1.webp` for both frames with `effect:"fabricator"` (CSS sweep/sparks
-  + a hologram outline of the real first recipe's item icon) -- option (b) from the PRB-155 task.
-  `FABRICATOR_CUTSCENE_ART` names an optional future dedicated pair
-  (`cutscene-fabricator-dark-v1.webp` → `cutscene-fabricator-powered-v1.webp`); `app.js` probes
-  both with an `Image` `onerror` check *only when the moment actually triggers* (never a blind
-  fetch on every page load). Preload and play share one cached promise; errors or a three-second
-  timeout select the existing-art fallback. The pair is used only once both images load. Preload/play
-  after the Fabricator L1 reward popup closes (the ordinary module-build popup; unlike the Core
-  restore, Fabricator keeps it) and the bunkerwake build animation (~1.6s) finishes. Bust: happy,
-  left. Info: NEW is fixed flavor copy ("Craft gear from raid materials"); FIRST RECIPE names the
-  real recipe tied to the module's own commissioning gift (`fabricatorFirstRecipe()` --
-  `data/modules.js`'s `MODS.fabricator.levels[0].commissioning` matched against
-  `data/recipes.js`'s `output.itemId`, so the two can never name different gear) with its real
-  cost (`recipeCostText`).
+- `fabricator_built` (PRB-157): dedicated `cutscene-fabricator-dark-v1.webp` →
+  `cutscene-fabricator-powered-v1.webp`, with the same 3.15s crossfade and slow push-in as Core.
+  `effect:null` keeps the painted vest unobscured: no hologram, spark or sweep overlays.
+  The pair and happy bust warm through the renderer's shared image cache at startup while
+  Fabricator L1 is pending, with affordability/build hooks as additional entry points. Playback
+  uses the shipped URLs immediately while warming is pending (`waitForArt:true`); slow loading
+  neither holds the story behind a three-second probe nor selects the placeholder. Actual image
+  errors use the existing powered-Core safety backdrop; errors detected before the beat select
+  the older effect fallback. Each displayed image also has a non-looping error fallback.
+  Play after the ordinary Fabricator L1 reward popup closes and bunkerwake (~1.6s) finishes.
+  Bust: happy, left, retained for consistency with Core/death. A shorter lower speech bubble
+  clears the painted BIT and vest; info stays top-right. `PRBitCutscene.geometry` records their
+  normalized bounds in the 1600×720 source; `paintedRect()` projects them through centred
+  object-fit cover and the current push-in transform for screenshot assertions.
+  Info: NEW is fixed flavor copy ("Craft gear from raid materials"); FIRST RECIPE names the
+  real commissioning recipe (`fabricatorFirstRecipe()`, joining `data/modules.js`'s commissioning
+  gift to `data/recipes.js`'s output item) with its real cost (`recipeCostText`).
 
 These replace the moments' old cards. All three reuse `S.bitCardsSeen` and its existing migration
 (`migrateBitCardsSeen`): players who already saw a card, built Core L1, built Fabricator L1, or had
@@ -198,3 +200,9 @@ Core/Fabricator build and death-return triggers, and captures all three landscap
 `AFTER_ONLY=1` refreshes current captures and writes `after-results.json`. Assertions cover full
 bleed, safe copy/bust/strip bounds, no popup/card stacking, text/hologram separation, runtime
 errors, and immediately visible content without transitions under reduced motion.
+
+For PRB-157's six dedicated Fabricator captures, run the same command with `FAB_ONLY=1`.
+It writes `fab-early-<width>x<height>.png` (dark, before crossfade),
+`fab-late-<width>x<height>.png` (powered, readable bubble and strip), and `after-results.json`
+to `/workspace/prp-fab-art-v22836-shots/`. The live transformed stage rect drives painted-BIT
+and vest overlap assertions against bubble, bust and strip at every late frame.
