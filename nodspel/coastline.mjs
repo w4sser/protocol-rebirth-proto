@@ -272,10 +272,10 @@ function heroCoastRingData(profile){
   // Ring 0 is the unchanged flat gameplay seam; ring 13 is the exact water toe.
   const {floor,points,seed}=profile,n=points.length;
   const fractions=[-.045,.035,.085,.15,.235,.335,.44,.55,.66,.755,.83,.90,.965,1];
-  // Flat, untraversable rocky shelves step up to three individual crowns.
-  // The first three strips barely rise: gameplay never reads as uphill terrain.
-  // Ridges start further offshore and descend into deep, darker water.
-  const cap=[0,0,.015,.09,.31,.70,.98,1.00,.91,.64,.35,.13,.016,0];
+  // Pass P: rounded, glacially polished domes rather than stacked retaining
+  // walls. A long gentle inner shoulder rises beyond the flat actor seam,
+  // then tapers gradually over the seaward edge into the same water toe.
+  const cap=[0,.014,.075,.23,.51,.78,.95,1.00,.96,.78,.51,.25,.045,0];
   const yFloor=[.010,.008,.004,-.003,-.015,-.026,-.041,-.058,-.081,-.11,-.14,-.19,-.27,-.65];
   const yCove=[.010,.008,.002,-.012,-.036,-.057,-.081,-.11,-.155,-.218,-.28,-.345,-.44,-.65];
   const stoneColors=[
@@ -294,16 +294,20 @@ function heroCoastRingData(profile){
       const h=profile.heroHeadlands[j],d=Math.abs(wrap(p.angle-h.angle)/h.width);
       if(d<distance){nearest=h;index=j;distance=d;}
     }
-    const block=Math.floor((p.angle+.08+TAU)%TAU/.22);
-    const rough=unit(seed+block*239+97);
-    const secondary=unit(seed+block*411+index*101+283);
+    // Interpolate broad erosion blocks: hard jumps between random angular
+    // cells previously produced pointed ridge teeth in the low-poly crown.
+    // Retain readable facets in shading, not jagged 3D spikes.
+    const erosion=(p.angle+.08)/.36,block=Math.floor(erosion),fade=smooth(0,1,erosion-block);
+    const rough=mix(unit(seed+block*239+97),unit(seed+(block+1)*239+97),fade);
+    const secondary=mix(unit(seed+block*411+index*101+283),
+      unit(seed+(block+1)*411+index*101+283),fade);
     const local=nearest?wrap(p.angle-nearest.angle)/nearest.width:8;
     const knuckle=(.83+.21*Math.sin(local*4.4+.9)+.10*Math.sin(local*9.1-1.5));
-    const fractured=clamp(.76+.26*rough+.10*secondary+.18*knuckle,.72,1.18);
+    const fractured=clamp(.80+.18*rough+.08*secondary+.13*knuckle,.80,1.13);
     const rockMask=clamp(Math.pow(p.heroRockMask??0,1.45),0,1);
     // Scale individual rock blocks unevenly, breaking up the previously
     // sausage-like grey shoreline into recognizable headland silhouettes.
-    const crown=.87+.12*Math.cos(local*5.2)+.08*Math.sin(local*9.7+1.3);
+    const crown=.91+.10*Math.cos(local*4.5)+.055*Math.sin(local*8.4+1.3);
     // Match the visual target's broad 2–3 m glacial mounds rather than
     // monumental 4 m cliff walls stretched across the whole shoreline.
     const relief=(p.heroRelief??0)*2.72*fractured*crown;
@@ -325,9 +329,9 @@ function heroCoastRingData(profile){
 
     // The crown is broad and mostly level. Irregular shoulders and cool
     // fractures break it into a few visibly different geological faces.
-    const diagonal=.93+.11*Math.sin(p.angle*6.5+seed*.00023+k*.16)
-      +.075*Math.cos(p.angle*12-seed*.00039-k*.22);
-    const ledge=(k===4?.04:k===5?.15:k===6?.10:k===7?-.06:k===8?-.12:0)
+    const diagonal=.94+.075*Math.sin(p.angle*6.5+seed*.00023+k*.16)
+      +.045*Math.cos(p.angle*12-seed*.00039-k*.22);
+    const ledge=(k===4?.025:k===5?.045:k===6?.04:k===7?-.025:k===8?-.045:0)
       *section.rockMask*(section.rough-.45);
     const relief=section.relief*cap[k]*diagonal+ledge;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
