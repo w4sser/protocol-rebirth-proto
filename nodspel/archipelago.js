@@ -205,16 +205,19 @@ function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
   for(const [low,high] of safe){
     const span=high-low;
     if(span<1.08)continue;
-    const pieces=span>5.5?2:1,gap=pieces===2?.42:0;
-    const segment=(span-gap)/pieces;
-    if(segment<.8)continue;
+    const pieces=span>5.7?2:1;
     for(let i=0;i<pieces;i++){
-      const offset=low+segment*(i+.5)+i*gap;
+      const offset=low+span*(i+.5)/pieces;
+      const pieceLength=Math.min(2.15,span/pieces*.76);
+      // Stagger a small pair of derelict defence blocks instead of painting
+      // another long, straight fence across the island.
+      const stagger=pieces===2?(i===0?-.28:.28):0;
+      const crossWidth=Math.max(.72,Math.min(1.04,(alongX?w.d:w.w)+.42));
       const rect={
-        x:w.x+(alongX?offset:0),
-        z:w.z+(alongX?0:offset),
-        w:alongX?segment:Math.max(.52,w.w),
-        d:alongX?Math.max(.52,w.d):segment
+        x:w.x+(alongX?offset:stagger),
+        z:w.z+(alongX?stagger:offset),
+        w:alongX?pieceLength:crossWidth,
+        d:alongX?crossWidth:pieceLength
       };
       if(bridgeLandings.some(z=>overlapsRect(rect,z,.28)))continue;
       const h=Math.max(.95,Math.min(1.25,w.h??1.05));
@@ -224,7 +227,7 @@ function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
       mesh.scale.set(rect.w,h,rect.d);
       mesh.castShadow=true;mesh.receiveShadow=true;
       const cap=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_TOP);
-      cap.position.y=h*.47;cap.scale.set(.93,.045,.93);
+      cap.position.y=.515;cap.scale.set(.93,.045,.93);
       cap.castShadow=false;cap.receiveShadow=true;mesh.add(cap);
       const collider={...rect,h};
       mesh.userData.collider=collider;

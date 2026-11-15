@@ -214,6 +214,7 @@ test('v2 places high granite only outside the island and preserves open bridge l
         'all blocking walls are exactly the built low-profile concrete cover');
       for(const m of cover){
         assert.ok(m.position.y+m.scale.y/2<1.5,'interior cover must not look like a tall mountain');
+        assert.ok(Math.max(m.scale.x,m.scale.z)<=2.16,'cover is a compact isolated block, never a long wall');
         assert.ok(m.children.length>=1,'cover must read as manufactured, not geological');
         assert.ok(m.userData.collider && m.userData.collider.w>0 && m.userData.collider.d>0);
       }
