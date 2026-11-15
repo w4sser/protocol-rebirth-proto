@@ -50,7 +50,7 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
     const angle=(phase+i/24*TAU)%TAU;
     if(masses.some(m=>Math.abs(Math.atan2(Math.sin(angle-m.angle),Math.cos(angle-m.angle)))<1.1))continue;
     const height=masses.length===0?1.72+hash(seed+i+41)*.42:1.22+hash(seed+i+41)*.28;
-    const m=landform(angle,clamp(size*(.38+.10*hash(seed+i)),4.5,8),clamp(size*.23,2.8,4.5),height);
+    const m=landform(angle,clamp(size*(.33+.09*hash(seed+i)),4.3,6.7),clamp(size*.28,3.2,5.0),height);
     if(m)masses.push(m);if(masses.length===3)break;
   }
   for(const m of masses)for(const direction of [-1,1]){
@@ -59,51 +59,46 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   return {masses,shelves};
 }
 function sculptGranite(){
-  // Broad, ice-worn Scandinavian granite, with a few readable stepped shoulders.
-  // The tier transitions are part of ONE solid mesh, not overlapping slabs:
-  // no coplanar seams, fake elevated gameplay floor or extra draw calls.
-  // The large terraced profiles borrow silhouette clarity from stylised game
-  // cliffs, while the irregular faces and muted stone remain Nordic.
-  const steps=40;
-  const rings=[
-    [0,.85],[.035,1.005],[.10,1.075],[.18,1.095],[.205,1.05],
-    [.275,1.015],[.345,.96],[.382,.925],[.396,.835],
-    [.462,.815],[.525,.765],[.593,.704],[.624,.675],[.638,.593],
-    [.701,.57],[.765,.513],[.804,.487],[.818,.403],
-    [.871,.378],[.919,.33],[.944,.279]
-  ];
-  const positions=[],colors=[],indices=[];
-  const base=new THREE.Color('#a2a1a8'),dark=new THREE.Color('#626e7c');
-  const warm=new THREE.Color('#bd9eaa'),lichen=new THREE.Color('#778579');
-  for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
-    const a=j/steps*TAU,[h,nominal]=rings[k];
-    // Low-frequency asymmetry breaks up loaf-shaped / identical boulders.
-    // Cap the radius inside the conservative rock footprint so the new
-    // shoulders cannot intrude into collision, bridges or neighboring land.
-    const rough=Math.sin(3*a+.6)*.032+Math.sin(7*a+1.2)*.022
-      +Math.sin(11*a-.3)*.009+Math.sin(2*a+.47)*.029*(1-h*.45);
-    const r=Math.min(1.125,nominal*(1+rough));
-    const drift=(1-h)*.012*Math.sin(2*a+.8);
-    const rise=h+.006*Math.sin(5*a+h*9)*Math.sin(h*Math.PI);
-    positions.push(Math.cos(a)*.5*r+drift,rise,Math.sin(a)*.5*r);
-    // Soft blue-grey shadow faces, pale lavender crowns, lichen in cracks.
-    // Avoid hard horizontal colour stripes across the terraces.
-    const stria=.5+.5*Math.sin(a*10.4+h*13.1+.8);
-    const groove=.5+.5*Math.sin(a*17.2-h*8.3+1.4);
-    const crown=Math.sqrt(h),shadow=.13+.12*(1-crown);
-    const c=dark.clone().lerp(base,.25+.59*crown+stria*.065)
-      .lerp(warm,.065+.09*(.5+.5*Math.sin(2*a+.7)))
-      .lerp(lichen,(.014+groove*.072)*Math.max(0,h-.10))
-      .lerp(dark,shadow*groove*.18);
-    colors.push(c.r,c.g,c.b);
-    if(k<rings.length-1&&j<steps){
-      const n=k*(steps+1)+j,b=n+steps+1;
-      indices.push(n,b,n+1,n+1,b,b+1);
+  // Chunky ice-worn granite: broad rounded shoulders with just two clear
+  // step-ups, rather than evenly spaced contour ribs or a detached rock ring.
+  // Three overlapping tiers share one indexed geometry and one draw call.
+  const steps=32,positions=[],colors=[],indices=[];
+  const cool=new THREE.Color('#626e7c'),stone=new THREE.Color('#a4a2aa');
+  const pink=new THREE.Color('#baa1ac'),lichen=new THREE.Color('#748277');
+  function addTier(rings,ox,oz,rounding,phase,warmth){
+    const start=positions.length/3;
+    for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
+      const a=j/steps*TAU,[h,size]=rings[k];
+      const c=Math.cos(a),sin=Math.sin(a);
+      const xShape=Math.sign(c)*Math.pow(Math.abs(c),rounding);
+      const zShape=Math.sign(sin)*Math.pow(Math.abs(sin),rounding);
+      const rough=1+.024*Math.sin(3*a+phase)+.016*Math.sin(7*a+phase*.8)
+        +.008*Math.sin(11*a+phase*.4);
+      const r=size*rough,y=h+.004*Math.sin(5*a+phase)*Math.sin(h*Math.PI);
+      positions.push(ox+xShape*r*.5,y,oz+zShape*r*.5);
+      const stria=.5+.5*Math.sin(10.4*a+11*h+phase);
+      const grain=.5+.5*Math.sin(17*a-8*h+phase*.5);
+      const colour=cool.clone().lerp(stone,.26+.53*Math.sqrt(h)+stria*.045)
+        .lerp(pink,warmth+.04*Math.sin(2*a+phase))
+        .lerp(lichen,(.012+grain*.053)*Math.max(0,h-.10));
+      colors.push(colour.r,colour.g,colour.b);
+      if(k<rings.length-1&&j<steps){
+        const n=start+k*(steps+1)+j,b=n+steps+1;
+        indices.push(n,b,n+1,n+1,b,b+1);
+      }
     }
+    const tip=positions.length/3,top=start+(rings.length-1)*(steps+1);
+    const height=rings[rings.length-1][0];
+    positions.push(ox,height+.002,oz);colors.push(stone.r,stone.g,stone.b);
+    for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
   }
-  const tip=positions.length/3,top=(rings.length-1)*(steps+1);
-  positions.push(0,.944,0);colors.push(base.r,base.g,base.b);
-  for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
+  // One broad lower terrace, a smaller offset shoulder and a worn cap.
+  addTier([[0,.85],[.035,.965],[.13,1.065],[.265,1.07],
+    [.39,1.035],[.50,.96],[.555,.87],[.576,.81]],0,0,.92,.50,.075);
+  addTier([[.49,.675],[.515,.75],[.59,.78],[.68,.762],
+    [.755,.704],[.79,.665],[.804,.61]],-.045,.037,.84,1.22,.095);
+  addTier([[.75,.375],[.765,.445],[.835,.482],[.915,.462],
+    [.963,.423],[.985,.382],[.995,.34]],.075,-.049,.83,2.14,.12);
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
