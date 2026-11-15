@@ -337,7 +337,12 @@ function heroCoastRingData(profile){
       +.045*Math.cos(p.angle*12-seed*.00039-k*.22);
     const ledge=(k===4?.025:k===5?.045:k===6?.04:k===7?-.025:k===8?-.045:0)
       *section.rockMask*(section.rough-.45);
-    const relief=section.relief*cap[k]*diagonal+ledge;
+    // Pass R: a narrow coast band cannot physically support a tall dome.
+    // Taper elevation where another island/bridge has compressed the shore.
+    // Retain a low granite shelf even in a tight channel, but reserve the
+    // recognizable 2-3 m crowns for broad natural headlands.
+    const crownWidth=.32+.68*smooth(.65,2.45,band);
+    const relief=(section.relief*cap[k]*diagonal+ledge)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
