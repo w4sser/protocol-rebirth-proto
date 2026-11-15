@@ -9,14 +9,14 @@
   var DURATION = 7000, CROSSFADE = 3150, INFO_DELAY = 600, FADE = 350;
 
   // Warm only the requested pair (+ optional bust pair), immediately before its story beat.
-  // Errors/timeouts resolve to an empty source so a broken connection still gives the player the
+  // Errors/timeouts resolve to an empty source (dedicated art keeps warming until load/error), so a broken connection still gives the player the
   // line and a way out.
-  function load(src){
+  function load(src, waitForArt, retryTimeout){
     if(!src) return Promise.resolve("");
     if(images.has(src)) return images.get(src);
     var promise = new Promise(function(resolve){
       var img = new Image(), settled = false;
-      var timeout = setTimeout(function(){ finish(false); }, 3000);
+      var timeout = waitForArt ? null : setTimeout(function(){ if(retryTimeout) images.delete(src); finish(false); }, 3000);
       function finish(ok){
         if(settled) return; settled = true; clearTimeout(timeout);
         img.onload = img.onerror = null; resolve(ok ? src : "");
@@ -27,10 +27,23 @@
     });
     images.set(src, promise); return promise;
   }
+  // Normalized source-image bounds, including the whole painted BIT chassis and vest.
+  var FABRICATOR_GEOMETRY = Object.freeze({
+    width:1600, height:720,
+    bit:Object.freeze({x:.18, y:.28, right:.30, bottom:.55}),
+    vest:Object.freeze({x:.56, y:.40, right:.68, bottom:.63})
+  });
+  // stage is the live transformed stage rect: object-fit cover crop AND push-in are included.
+  function paintedRect(stage, region){
+    var scale = Math.max(stage.width / FABRICATOR_GEOMETRY.width, stage.height / FABRICATOR_GEOMETRY.height);
+    var w = FABRICATOR_GEOMETRY.width * scale, h = FABRICATOR_GEOMETRY.height * scale;
+    var x = stage.x + (stage.width - w) / 2, y = stage.y + (stage.height - h) / 2;
+    return {x:x + region.x * w, y:y + region.y * h, right:x + region.right * w, bottom:y + region.bottom * h};
+  }
   function bustIsPair(bust){ return !!(bust && bust.to && bust.to !== bust.from); }
   function preload(opts){
-    var list = [load(opts.from), load(opts.to)];
-    if(opts.bust){ list.push(load(opts.bust.from)); if(bustIsPair(opts.bust)) list.push(load(opts.bust.to)); }
+    var list = [load(opts.from, opts.waitForArt), load(opts.to, opts.waitForArt)];
+    if(opts.bust){ list.push(load(opts.bust.from, false, true)); if(bustIsPair(opts.bust)) list.push(load(opts.bust.to, false, true)); }
     return Promise.all(list);
   }
   function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
@@ -52,7 +65,12 @@
     var job = queue.shift();
     current = { job:job, timers:[], el:null, previous:document.activeElement, reduced:reduced() };
     var run = current;
-    preload(job).then(function(sources){
+    // Dedicated shipped art paints immediately, even while the early warm-up is pending.
+    // Browser image loading continues in place; onerror below supplies the safety backdrop.
+    var ready = job.waitForArt
+      ? Promise.resolve([job.from, job.to, job.bust && job.bust.from, job.bust && job.bust.to])
+      : preload(job);
+    ready.then(function(sources){
       if(current !== run) return;
       // Loading may have outlasted an intervening popup/navigation. Queue again until clear.
       if(blocked()){ current = null; queue.unshift(job); advance(); return; }
@@ -89,11 +107,16 @@
       '<button type="button" class="bit-cutscene-continue" aria-label="Continue to base">TAP TO CONTINUE</button></div>' + infoHtml;
     ["from", "to"].forEach(function(key, i){
       var img = el.querySelector(".bit-cutscene-" + key);
+      if(job.fallback) img.onerror = function(){
+        img.onerror = null; img.src = job.fallback;
+      };
       if(sources[i]) img.src = sources[i]; else img.hidden = true;
     });
     if(hasBust){
       var bf = el.querySelector(".bit-cutscene-bust-from"), bt = el.querySelector(".bit-cutscene-bust-to");
       var bustFromSrc = sources[2], bustToSrc = pair ? sources[3] : sources[2];
+      bf.onerror = function(){ bf.hidden = true; };
+      if(bt) bt.onerror = function(){ bt.hidden = true; };
       if(bustFromSrc) bf.src = bustFromSrc; else bf.hidden = true;
       if(bt){ if(bustToSrc) bt.src = bustToSrc; else bt.hidden = true; }
     }
@@ -144,10 +167,10 @@
     if(!opts || !opts.id || !opts.from || !opts.to || !opts.line) return;
     if(current && current.job.id === opts.id || queue.some(function(j){ return j.id === opts.id; })) return;
     queue.push({
-      id:opts.id, from:opts.from, to:opts.to, line:String(opts.line), onDone:opts.onDone,
+      waitForArt:opts.waitForArt, fallback:opts.fallback, id:opts.id, from:opts.from, to:opts.to, line:String(opts.line), onDone:opts.onDone,
       bust:opts.bust || null, info:opts.info || null, effect:opts.effect || null, hologramIcon:opts.hologramIcon || null
     });
     advance();
   }
-  window.PRBitCutscene = { play:play, preload:preload, dismiss:dismiss, isOpen:function(){ return !!current; } };
+  window.PRBitCutscene = { geometry:FABRICATOR_GEOMETRY, paintedRect:paintedRect, play:play, preload:preload, dismiss:dismiss, isOpen:function(){ return !!current; } };
 })();

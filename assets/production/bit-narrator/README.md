@@ -12,6 +12,7 @@ Source art: Robert Wasser's ChatGPT deliveries, 2026-11-14 (chat t379u, re-sent 
 | `bust-pedestal-{happy,happy-alt,sad,smile,skeptical}-v1.webp` | alternates (pedestal framing), unused for now | same |
 | `cutscene-core-restore-start-v1.webp` -> `cutscene-core-restore-end-v1.webp` | first Core restore mini cutscene (crossfade) | 1870x841 resized to 1600x720, WebP q78 |
 | `cutscene-first-death-sad-v1.webp` -> `cutscene-first-death-happy-v1.webp` | first death mini cutscene (sad -> happy crossfade) | same |
+| `cutscene-fabricator-dark-v1.webp` -> `cutscene-fabricator-powered-v1.webp` | first Fabricator built mini cutscene (dark -> powered crossfade); delivered by Robert 2026-11-15 from the ChatGPT brief, masters at `/home/box/prp-art/fabricator-2026-11-15/` | 1870x841 resized to 1600x720, WebP q78/q72 (55 KB / 71 KB) |
 
 The `bust-tilt-bright-cyan` delivery is intentionally not shipped: its bright cyan face conflicts with the #248 face color.
 

@@ -4,11 +4,11 @@ const assert = require("assert");
 const root = __dirname + "/..";
 function fixture({ reduced = false, fail = false, stall = false } = {}){
   const w = new JSDOM('<body data-screen="base"><button id="before">Before</button></body>', {runScripts:"outside-only",url:"http://localhost/"}).window;
-  let now = 0, id = 0; const jobs = new Map(), requests = [];
+  let now = 0, id = 0; const jobs = new Map(), requests = [], imageObjects = [];
   w.setTimeout = (fn, ms) => { jobs.set(++id, { at:now + ms, fn }); return id; };
   w.clearTimeout = id => jobs.delete(id);
   w.matchMedia = query => ({matches:query.includes("reduced-motion") ? reduced : false});
-  w.Image = class { set src(src){ requests.push(src); if(!stall) (fail ? this.onerror : this.onload)(); } };
+  w.Image = class { set src(src){ requests.push(src); imageObjects.push(this); if(!stall) (fail ? this.onerror : this.onload)(); } };
   w.eval(fs.readFileSync(root + "/ui/bit-cutscene.js", "utf8"));
   async function tick(ms = 0){
     const end = now + ms;
@@ -20,7 +20,7 @@ function fixture({ reduced = false, fail = false, stall = false } = {}){
     }
     now = end; await Promise.resolve(); await Promise.resolve();
   }
-  return {w, doc:w.document, api:w.PRBitCutscene, requests, tick};
+  return {w, doc:w.document, api:w.PRBitCutscene, requests, imageObjects, tick};
 }
 const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is back."};
 (async function(){
@@ -163,14 +163,60 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert(el.querySelector(".bit-cutscene-hologram svg.vest"), "hologram wraps the caller's item icon html");
     api.dismiss(); w.close();
   }
+  // PRB-157: unresolved early image warming cannot delay presentation or select placeholder fx.
+  {
+    const {api,doc,tick,w} = fixture({stall:true});
+    const painted = {...beat, id:"fabricator_built", waitForArt:true, fallback:"safe.webp", effect:null};
+    api.preload(painted); api.play(painted); await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(el, "dedicated art paints immediately while requests are unresolved");
+    assert(!el.querySelector(".bit-cutscene-fx"));
+    const img = el.querySelector(".bit-cutscene-from");
+    img.dispatchEvent(new w.Event("error"));
+    assert(img.src.endsWith("safe.webp"), "late image error uses the safety backdrop");
+    assert.equal(img.onerror,null,"fallback error cannot loop");
+    await tick(3150); assert(el.classList.contains("crossfaded"));
+    api.dismiss(); w.close();
+  }
+  // PRB-157: early Fabricator warming must not poison Core/death's shared happy bust cache.
+  {
+    const {api,doc,tick,w,imageObjects,requests} = fixture({stall:true});
+    api.preload({...beat,waitForArt:true,bust:{from:"happy.webp"}});
+    await tick(3000); // startup bust timed out; dedicated backdrops keep warming
+    const core = {...beat,from:"core-dark.webp",to:"core-powered.webp",bust:{from:"happy.webp"}};
+    api.play(core);
+    assert.equal(requests.filter(src => src === "happy.webp").length,2,"timed-out bust is retried for Core");
+    imageObjects.slice(3).forEach(img => img.onload());
+    await tick();
+    assert(!doc.querySelector('.bit-cutscene-bust-from').hidden,"recovered happy bust remains visible for Core");
+    doc.querySelector('.bit-cutscene-bust-from').dispatchEvent(new w.Event('error'));
+    assert(doc.querySelector('.bit-cutscene-bust-from').hidden,"failed direct bust has no broken image icon");
+    api.dismiss(); w.close();
+  }
+  // Source bounds project through centred cover cropping and the unchanged 1 -> 1.06 push-in.
+  {
+    const {api,w} = fixture();
+    for(const [width,height] of [[844,390],[667,375],[932,430]]) for(const push of [1,1.06]){
+      const stage = {x:width*(1-push)/2,y:height*(1-push)/2,width:width*push,height:height*push};
+      const bit = api.paintedRect(stage,api.geometry.bit), vest = api.paintedRect(stage,api.geometry.vest);
+      assert(bit.bottom < height*.70 && vest.bottom < height*.70,"subjects clear lower speech zone");
+      assert(bit.right < width-47-260,"painted BIT clears top-right strip");
+      assert(vest.y > 118,"vest clears info strip's maximum measured height");
+      const scale = Math.max(width/1600,height/720)*push;
+      assert(Math.abs((bit.right-bit.x)-.12*1600*scale)<1e-8,"uniform cover scale");
+    }
+    const full = api.paintedRect({x:0,y:0,width:1600,height:720},api.geometry.bit);
+    assert.equal(full.x,288); assert(Math.abs(full.bottom-396)<1e-8);
+    w.close();
+  }
   const app = fs.readFileSync(root + "/app.js","utf8");
-  // FABRICATOR_CUTSCENE_ART names an optional future dedicated art pair (docs/bit-narrator.md) that
-  // does not exist yet on purpose -- app.js checks it at runtime via Image onerror (never a blind
-  // assumption) and falls back to the option (b) backdrop otherwise. Every OTHER referenced asset
-  // must still exist.
+  // Dedicated narrator art is shipped, including the Fabricator pair.
   for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
-    if(!/cutscene-fabricator-(dark|powered)-v1\.webp$/.test(file[0])) assert(fs.existsSync(root + "/" + file[0]),file[0]);
-  assert(!fs.existsSync(root + "/assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp"), "test fixture assumption: the optional future pair is still undelivered");
+    assert(fs.existsSync(root + "/" + file[0]),file[0]);
+  for(const name of ["dark","powered"]){
+    const file = root + "/assets/production/bit-narrator/cutscene-fabricator-" + name + "-v1.webp";
+    assert(fs.statSync(file).size <= 90*1024,"dedicated art stays within 90 KB: " + name);
+  }
   const css = fs.readFileSync(root + "/ui/bit-cutscene.css","utf8");
   assert(/z-index:80/.test(css),"rotation prompt and splash stay above cutscenes");
   assert(/object-fit:cover/.test(css)); assert(/inset:0/.test(css));
