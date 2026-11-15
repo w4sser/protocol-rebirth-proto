@@ -77,8 +77,8 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
       'all v2 boats use the sculpted dinghy, never a rectangular placeholder');
     const water=group.children.find(o=>o.name==='water');
-    assert.equal(water.material.uniforms.cSky.value.getHexString(),'a0a9c0');
-    assert.equal(water.material.uniforms.cRose.value.getHexString(),'e1a5bb');
+    assert.equal(water.material.uniforms.cSky.value.getHexString(),'8399b1');
+    assert.equal(water.material.uniforms.cRose.value.getHexString(),'c99dae');
     assert.ok(Object.hasOwn(water.material.defines,'WATER_BALTIC'),'v2 uses still-Baltic reflection shader');
     assert.ok(!level.walls.some(w=>w.shore),'obsolete rectangular shoreline collider removed');
     assert.ok(islands.every(f=>isPointOnFloor(f,f.x,f.z)));
