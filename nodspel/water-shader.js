@@ -5,7 +5,7 @@
 // (CPU, signed rect distance) - no depth prepass, no simulation.
 import * as THREE from './vendor/three.module.js';
 
-export const WATER_COLORS={shallow:'#1d6a72',mid:'#17526b',deep:'#06161f',foam:'#9fd6e0',sky:'#5f7f92'};
+export const WATER_COLORS={shallow:'#1d6a72',mid:'#17526b',deep:'#06161f',foam:'#9fd6e0',sky:'#5f7f92',rose:'#d4a1b7'};
 const MAX_DIST=9; // world units of shore gradient encoded in the texture
 // Preview coastlines supply polygons; default levels still supply rectangles.
 // Point-to-segment distances are baked once on CPU, never in the water shader.
@@ -52,7 +52,7 @@ void main(){vUv=uv;vec4 wp=modelMatrix*vec4(position,1.);vWorld=wp.xyz;
 #include <fog_vertex>
 }`;
 const frag=`
-uniform sampler2D shoreMap;uniform float time;uniform vec3 cShallow,cMid,cDeep,cFoam,cSky;uniform float caustics;
+uniform sampler2D shoreMap;uniform float time;uniform vec3 cShallow,cMid,cDeep,cFoam,cSky,cRose;uniform float caustics;
 varying vec2 vUv;varying vec3 vWorld;
 #include <fog_pars_fragment>
 float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -62,6 +62,31 @@ vec2 grad(vec2 p){float e=.15;float c=vn(p);return vec2(vn(p+vec2(e,0))-c,vn(p+v
 void main(){
   float sd=texture2D(shoreMap,vUv).r; // 0 shore .. 1 open water
   vec2 p=vWorld.xz;
+#ifdef WATER_BALTIC
+  // V2: calm Baltic water. Broad, nearly stationary sky-colour ribbons and
+  // tiny low-amplitude ripples replace the fast procedural chop and foam.
+  // This is an inexpensive reflection approximation, not an RTT mirror.
+  vec2 drift=p*.064+vec2(time*.0012,time*.0008);
+  float cloud=.55*sin(drift.x*1.7+drift.y*.8)
+    +.27*sin(drift.y*2.2-drift.x*.75+.35*sin(drift.x*3.4));
+  float rose=smoothstep(-.16,.44,cloud);
+  vec2 slope=vec2(sin(p.x*1.15+p.z*.44+time*.18),
+    sin(p.z*1.32-p.x*.36-time*.13));
+  vec3 N=normalize(vec3(-slope.x*.018,1.,-slope.y*.018));
+  vec3 V=normalize(cameraPosition-vWorld);
+  float grazing=pow(1.-max(dot(N,V),0.),2.);
+  vec3 col=mix(cShallow,cMid,smoothstep(.02,.38,sd));
+  col=mix(col,cDeep,smoothstep(.23,.95,sd)*.66);
+  float open=smoothstep(.01,.23,sd);
+  col=mix(col,cSky,(.11+.12*grazing)*open);
+  col=mix(col,cRose,(.18+.43*rose)*open*(.9+.1*grazing));
+  float micro=sin(p.x*4.5+p.z*.72+time*.23)
+    *sin(p.z*4.1-p.x*.46-time*.19);
+  col+=vec3(.065,.053,.054)*pow(max(micro,0.),16.)*open;
+  // Sheltered Baltic shoreline: almost no white foam and no wave stripes.
+  float lap=(1.-smoothstep(.06,.60,sd*9.))*(.10+.025*sin(p.x*1.7+p.z*.9+time*.17));
+  col=mix(col,cFoam,lap);
+#else
 #ifdef WATER_LITE
   vec2 g=grad(p*.8+vec2(time*.06,time*.04));
 #else
@@ -79,6 +104,7 @@ void main(){
   float band=1.-smoothstep(.0,.45+n*.35,dw);
   float stripe=smoothstep(.55,.9,sin(dw*5.-time*1.6+n*3.)*.5+.5)*(1.-smoothstep(.4,1.6,dw));
   col=mix(col,cFoam,clamp(band*.6+stripe*.18,0.,.6));
+#endif
   gl_FragColor=vec4(col,1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
@@ -86,12 +112,12 @@ void main(){
 }`;
 
 // rects: island/pier footprints {x,z,w,d,round?}; bounds: {x0,z0,w,d}; quality: {caustics:bool}
-export function createWaterMesh(rects,bounds,{caustics=false,lite=false,y=-.35}={}){
+export function createWaterMesh(rects,bounds,{caustics=false,lite=false,balticCalm=false,y=-.35}={}){
   const shore=bakeShoreTexture(rects,bounds);
   const C=c=>new THREE.Color(c);
-  const mat=new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,fog:true,defines:lite?{WATER_LITE:''}:{},
+  const mat=new THREE.ShaderMaterial({vertexShader:vert,fragmentShader:frag,fog:true,defines:{...(lite?{WATER_LITE:''}:{}),...(balticCalm?{WATER_BALTIC:''}:{})},
     uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{time:{value:0},caustics:{value:caustics?1:0}}])});
-  Object.assign(mat.uniforms,{shoreMap:{value:shore},cShallow:{value:C(WATER_COLORS.shallow)},cMid:{value:C(WATER_COLORS.mid)},cDeep:{value:C(WATER_COLORS.deep)},cFoam:{value:C(WATER_COLORS.foam)},cSky:{value:C(WATER_COLORS.sky)}});
+  Object.assign(mat.uniforms,{shoreMap:{value:shore},cShallow:{value:C(WATER_COLORS.shallow)},cMid:{value:C(WATER_COLORS.mid)},cDeep:{value:C(WATER_COLORS.deep)},cFoam:{value:C(WATER_COLORS.foam)},cSky:{value:C(WATER_COLORS.sky)},cRose:{value:C(WATER_COLORS.rose)}});
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(bounds.w,bounds.d),mat);
   mesh.rotation.x=-Math.PI/2;mesh.position.set(bounds.x0+bounds.w/2,y,bounds.z0+bounds.d/2);
   // PlaneGeometry uv.y runs +z -> -z after the rotation; flip so uv matches bake rows (z0 at v=0).
