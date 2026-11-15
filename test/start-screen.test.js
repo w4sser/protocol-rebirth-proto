@@ -110,7 +110,9 @@ console.log("start-screen.test: ok (title/one prompt/settings/slot on the splash
       assert(t.splash().classList.contains("prompt-ready"),"decode completion or timeout exposes the prompt");
       t.splash().dispatchEvent(new t.dom.window.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
       assert.deepEqual(calls,["sync","async"],"keyboard activation unlocks synchronously before async work");
-      await Promise.resolve();await Promise.resolve();
+      // jsdom adopts the stub promise across realms; drain the event loop rather than
+      // assuming a fixed number of microtasks before the confirmation callback runs.
+      await new Promise(resolve=>setImmediate(resolve));
       assert.deepEqual(calls,["sync","async","ui-confirm"],"confirmation waits for asynchronous resume completion");
       assert(t.splash().classList.contains("descending"));
       release();await Promise.resolve();
