@@ -325,7 +325,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       reservations:reserved,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]
     });
     authorHeroIslandCoast(hero,{
-      rockAngles:guide.masses.map(m=>m.angle),
+      // Composition first: the east/foreground coastline must visibly
+      // communicate granite at the ordinary raid camera, not hide every
+      // landform behind it. Keep the deterministic guide masses as fallbacks.
+      rockAngles:[.06,2.85,4.65,.63,5.54,1.55,...guide.masses.map(m=>m.angle)],
       bridgeZones:rockFreeLandings,
       neighborProfiles:[...coastProfiles.values()]
     });
