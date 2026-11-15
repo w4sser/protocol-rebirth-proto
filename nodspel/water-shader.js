@@ -70,8 +70,8 @@ void main(){
   float cloud=.55*sin(drift.x*1.7+drift.y*.8)
     +.27*sin(drift.y*2.2-drift.x*.75+.35*sin(drift.x*3.4));
   float rose=smoothstep(-.16,.44,cloud);
-  vec2 slope=vec2(sin(p.x*1.15+p.z*.44+time*.18),
-    sin(p.z*1.32-p.x*.36-time*.13));
+  vec2 slope=vec2(sin(p.x*1.15+p.y*.44+time*.18),
+    sin(p.y*1.32-p.x*.36-time*.13));
   vec3 N=normalize(vec3(-slope.x*.018,1.,-slope.y*.018));
   vec3 V=normalize(cameraPosition-vWorld);
   float grazing=pow(1.-max(dot(N,V),0.),2.);
@@ -80,11 +80,11 @@ void main(){
   float open=smoothstep(.01,.23,sd);
   col=mix(col,cSky,(.11+.12*grazing)*open);
   col=mix(col,cRose,(.18+.43*rose)*open*(.9+.1*grazing));
-  float micro=sin(p.x*4.5+p.z*.72+time*.23)
-    *sin(p.z*4.1-p.x*.46-time*.19);
+  float micro=sin(p.x*4.5+p.y*.72+time*.23)
+    *sin(p.y*4.1-p.x*.46-time*.19);
   col+=vec3(.065,.053,.054)*pow(max(micro,0.),16.)*open;
   // Sheltered Baltic shoreline: almost no white foam and no wave stripes.
-  float lap=(1.-smoothstep(.06,.60,sd*9.))*(.10+.025*sin(p.x*1.7+p.z*.9+time*.17));
+  float lap=(1.-smoothstep(.06,.60,sd*9.))*(.10+.025*sin(p.x*1.7+p.y*.9+time*.17));
   col=mix(col,cFoam,lap);
 #else
 #ifdef WATER_LITE

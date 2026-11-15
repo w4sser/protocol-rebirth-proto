@@ -156,6 +156,7 @@ test('pink calm Baltic water is opt-in, low-cost and keeps default water unchang
   const defaultSea=createWaterMesh(rects,bounds,{lite:true});
   assert.ok(Object.hasOwn(calm.material.defines,'WATER_BALTIC'));
   assert.ok(Object.hasOwn(calm.material.defines,'WATER_LITE'),'LOW shares the same calm look');
+  assert.ok(!calm.material.fragmentShader.includes('p.z'),'a 2D water coordinate must not access a nonexistent z component');
   assert.equal(calm.material.uniforms.caustics.value,0,'no expensive fake caustics on still water');
   assert.ok(!Object.hasOwn(defaultSea.material.defines,'WATER_BALTIC'),'normal Archipelago keeps legacy waves');
   assert.equal(defaultSea.material.uniforms.cDeep.value.getHexString(),'06161f');
