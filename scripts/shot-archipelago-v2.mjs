@@ -51,7 +51,25 @@ async function capture(page,label,errors){
     assert.ok(state.pineVisuals.count>=2,label+' procedural pines present');
     assert.deepEqual(state.pineVisuals.legacy,[],label+' no undimmable GLB trees in v2');
   }
-  await page.screenshot({path:join(out,label+'.png')});results.push({label,...state,errors:[...errors],renderer:'desktop Chromium, 844x390 DPR2; no physical Safari/FPS claim'});
+  await page.screenshot({path:join(out,label+'.png')});
+  // Art-direction comparison: same REAL raid camera, scene and frame, but
+  // screenshot-only HUD masking so the approved interactive target can be
+  // compared against terrain rather than giant virtual joysticks.
+  // This is CSS-only and is reverted before the gameplay test continues.
+  if(label.startsWith('after-')&&/(spawn|coast|headland|bridge|boat)$/.test(label)){
+    await page.evaluate(()=>{
+      let style=document.getElementById('arch-parity-css');
+      if(!style){
+        style=document.createElement('style');style.id='arch-parity-css';
+        style.textContent='body.arch-parity-clean #viewport > :not(#game),body.arch-parity-clean > :not(#viewport){visibility:hidden!important}';
+        document.head.appendChild(style);
+      }
+      document.body.classList.add('arch-parity-clean');
+    });
+    await page.screenshot({path:join(out,label+'-art.png')});
+    await page.evaluate(()=>document.body.classList.remove('arch-parity-clean'));
+  }
+  results.push({label,...state,errors:[...errors],renderer:'desktop Chromium, 844x390 DPR2; no physical Safari/FPS claim'});
   console.log('CAPTURE OK',label,'quality',state.quality,'last-pass calls (not whole-frame draw count)',state.info.calls);
 }
 // Exercise the real isometric camera/player loop, not just the pine material
