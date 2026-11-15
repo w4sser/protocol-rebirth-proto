@@ -318,7 +318,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
         pineOrigin.set(x,y,z);
         pineRay.set(pineOrigin,pineDirection);
         for(const hit of pineRay.intersectObjects(pineMeshes,false)){
-          const tree=hit.object.userData.pineOwner;
+          const tree=hit.object.parent?.userData?.pineMeshes?hit.object.parent:null;
           if(tree)pineOccluded.add(tree);
         }
       };
