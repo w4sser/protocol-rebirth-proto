@@ -168,8 +168,8 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       return Math.abs(x-z.x)<z.w/2+2&&Math.abs(t-z.z)<z.d/2+2;
     });
     if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
-    heads.push({angle,width:heads.length===0?.57:heads.length===1?.43:.36,
-      height:heads.length===0?2.35:heads.length===1?1.75:1.30});
+    heads.push({angle,width:heads.length===0?.60:heads.length===1?.46:.35,
+      height:heads.length===0?2.55:heads.length===1?1.92:1.34});
     if(heads.length===3)break;
   }
   if(heads.length<3){
@@ -191,7 +191,12 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       const t=wrap(p.angle-h.angle)/h.width;
       return Math.max(acc,Math.exp(-t*t)*(h.height/2.35));
     },0)*(1-p.beach*.96);
-    const prospect=base+influence*3.6;
+    // Pass L: protruding bedrock shoulders are broad, irregular *coastline*
+    // silhouettes, never oval boulders dropped over the navigation plane.
+    // The neighbor bisector / bridge guards below still own the maximum reach.
+    const outline=.88+.17*Math.cos(4*p.angle+profile.seed*.00023)
+      +.12*Math.sin(9*p.angle-profile.seed*.00031);
+    const prospect=base+influence*(4.45*outline);
     let safe=prospect;
     for(const other of neighborProfiles){
       if(other===profile)continue;
@@ -260,7 +265,7 @@ function heroCoastRingData(profile){
   const fractions=[-.045,.045,.095,.16,.24,.34,.44,.54,.63,.72,.81,.89,.965,1];
   // Distinct worn crown, secondary shoulder and abrupt sea-facing faces.
   // The broad shelf is only high where the authored headland mask exists.
-  const cap=[0,0,.04,.19,.57,.95,1,.96,.78,.54,.28,.11,.018,0];
+  const cap=[0,0,.025,.10,.32,.87,1,1.00,.95,.71,.36,.13,.015,0];
   const yFloor=[.010,.009,.006,.002,-.009,-.024,-.038,-.052,-.071,-.085,-.104,-.124,-.16,-.65];
   const yCove=[.010,.008,.003,-.014,-.033,-.055,-.08,-.10,-.145,-.205,-.270,-.31,-.38,-.65];
   const stoneColors=[
@@ -319,6 +324,12 @@ function heroCoastRingData(profile){
       floor.x+c*(p.playableRadial-.045),
       floor.z+sn*(p.playableRadial-.045),stoneRoots);
     const rock=section.rockMask*(1-p.beach*.94);
+    // The previous continuous grey apron survived because even unraised
+    // shoreline strips inherited pale mineral-edge tones. Blend ordinary
+    // shore into dark olive vegetation; concentrate granite at headlands.
+    const calmShore=tint(SOIL_SHADE,SOIL_OLIVE,.36+.17*section.secondary);
+    const calmBlend=k===0?0:smooth(.06,.55,f)*(1-rock)*.70;
+    const shoreBase=tint(seam,calmShore,calmBlend);
     const exposure=clamp(rock*(.79+.20*section.secondary)
       +(1-p.beach)*(.025+.035*section.rough),0,.98);
     const transition=[0,.010,.045,.16,.40,.68,.85,.94,.96,.98,.99,1,1,1][k];
@@ -331,7 +342,7 @@ function heroCoastRingData(profile){
     const stone=stoneColors[k];
     for(let channel=0;channel<3;channel++){
       const mineral=stone[channel]*faceShade;
-      colors.push(clamp(mix(seam[channel],mineral,blend),0,1));
+      colors.push(clamp(mix(shoreBase[channel],mineral,blend),0,1));
     }
     blends.push(transition);
     const fract=v=>v-Math.floor(v);
