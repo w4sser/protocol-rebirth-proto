@@ -46,6 +46,64 @@ async function capture(page,label,errors){
   await page.screenshot({path:join(out,label+'.png')});results.push({label,...state,errors:[...errors],renderer:'desktop Chromium, 844x390 DPR2; no physical Safari/FPS claim'});
   console.log('CAPTURE OK',label,'quality',state.quality,'last-pass calls (not whole-frame draw count)',state.info.calls);
 }
+// Exercise the real isometric camera/player loop, not just the pine material
+// helper. The player is teleported behind an actual procedural crown so the
+// orthographic view ray must fade that tree, then restored to the spawn.
+async function checkPineVisibility(page,quality,errors){
+  const view=await page.evaluate(()=>{
+    const scene=window.__NR.getScene(),camera=window.__NR.getCamera();
+    scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
+    const spawn=window.__NR.state().position;
+    const toward=camera.getWorldDirection(camera.position.clone()).negate();
+    let trees=[];scene.traverse(o=>{if(o.name==='arch-v2-coastal-pine'&&o.pineMeshes?.length)trees.push(o);});
+    trees.sort((a,b)=>b.userData.pineHeight-a.userData.pineHeight);
+    for(const tree of trees){
+      // Prefer a tall sentinel that is not already close to the spawn.
+      if(Math.hypot(tree.position.x-spawn.x,tree.position.z-spawn.z)<5)continue;
+      for(const crown of tree.pineMeshes.filter(m=>m.geometry.type==='IcosahedronGeometry')){
+        const p=crown.getWorldPosition(crown.position.clone());
+        const t=(p.y-.86)/toward.y;
+        if(t<.8||t>16)continue;
+        const x=p.x-toward.x*t,z=p.z-toward.z*t;
+        return {x,z,treeX:tree.position.x,treeZ:tree.position.z,
+          originalX:spawn.x,originalZ:spawn.z,variant:tree.userData.pineVariant};
+      }
+    }
+    return null;
+  });
+  assert.ok(view,'v2 needs an actual tall foreground pine to test');
+  const pineOpacity=()=>page.evaluate(v=>{
+    let result=null;
+    window.__NR.getScene().traverse(o=>{
+      if(o.name==='arch-v2-coastal-pine'&&Math.abs(o.position.x-v.treeX)<.001
+        &&Math.abs(o.position.z-v.treeZ)<.001)result=o.userData.pineOpacity;
+    });
+    return result;
+  },view);
+  await page.evaluate(v=>window.__NR.teleport(v.x,v.z),view);
+  // Capture a genuine runtime fade, not a directly mutated test material.
+  await page.waitForFunction(v=>{
+    let fade=1;window.__NR.getScene().traverse(o=>{
+      if(o.name==='arch-v2-coastal-pine'&&Math.abs(o.position.x-v.treeX)<.001
+        &&Math.abs(o.position.z-v.treeZ)<.001)fade=o.userData.pineOpacity;
+    });
+    return fade<.45;
+  },{timeout:6500},view);
+  await capture(page,'after-'+quality+'-pine-faded',errors);
+  assert.ok((await pineOpacity())<.45,'foreground canopy must fade over the Operator');
+  await page.evaluate(v=>window.__NR.teleport(v.originalX,v.originalZ),view);
+  await page.waitForFunction(v=>{
+    let fade=0;window.__NR.getScene().traverse(o=>{
+      if(o.name==='arch-v2-coastal-pine'&&Math.abs(o.position.x-v.treeX)<.001
+        &&Math.abs(o.position.z-v.treeZ)<.001)fade=o.userData.pineOpacity;
+    });
+    return fade>.95;
+  },{timeout:6500},view);
+  await capture(page,'after-'+quality+'-pine-restored',errors);
+  assert.ok((await pineOpacity())>.95,'tree must restore when no longer in front of the player');
+  console.log('PINE FADE OK',quality,view.variant,'independent opacity and restoration');
+}
+
 try{
   for(const version of ['after','before'])for(const quality of ['high','low']){
     if(process.env.ONLY_AFTER==='1'&&version==='before')continue;
@@ -61,6 +119,7 @@ try{
     await page.evaluate(()=>window.__NR.setMoodAutoDowngradeEnabled(false));
     await page.click('#tutorial-start');
     await capture(page,version+'-'+quality+'-spawn',errors);
+    if(version==='after')await checkPineVisibility(page,quality,errors);
     {
       const matchingView=results.find(r=>r.label==='after-'+quality+'-coast')?.position;
       await page.evaluate(matchingView=>{
