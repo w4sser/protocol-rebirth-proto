@@ -171,3 +171,19 @@ test('all big-level exits follow their own availability, and culling preserves t
   w.setVfxQuality('low');for(const record of w.extractionEffects)assert.equal(record.fx.particleCount,40);
   w.dispose();
 });
+
+
+test('extraction layers add height, taper, a core and a repeating floor pulse without reallocating',()=>{
+  const fx=createExtractBeam();
+  assert.ok(fx.beam.geometry.parameters.radiusBottom>fx.beam.geometry.parameters.radiusTop);
+  assert.ok(fx.core.geometry.parameters.radiusBottom<fx.beam.geometry.parameters.radiusTop);
+  assert.equal(fx.fence.geometry.parameters.height,.25);
+  assert.equal(fx.points.material.depthTest,true);
+  assert.ok(fx.points.material.size>=5);
+  fx.update(.3,true);const scale=fx.pulseRings[0].scale.x;
+  fx.update(1.5,true);assert.ok(Math.abs(fx.pulseRings[0].scale.x-scale)<1e-6);
+  const height=fx.core.scale.y;fx.setQuality('low');assert.ok(fx.core.scale.y<height);
+  let disposed=0;
+  for(const mesh of [fx.core,fx.fence,fx.rim])for(const resource of [mesh.geometry,mesh.material])resource.addEventListener('dispose',()=>disposed++);
+  fx.dispose();fx.dispose();assert.equal(disposed,6);
+});
