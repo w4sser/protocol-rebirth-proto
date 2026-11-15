@@ -83,3 +83,9 @@ The first regression run for the perimeter-only rule detected unintended removal
 
 ### Screenshot-driven cover composition correction
 Actual HIGH 844x390 capture confirmed that the taller granite was removed from bridge approaches and the crossing was open, but its substitute concrete pieces looked like two straight, long walls. The cover generator now uses **one or two compact (max 2.15 m) offset concrete remnants** per unaffected partition run, rather than filling the entire wall segment. The generated collider is exactly each visible remnant's footprint and the physical bridge landing is still an exclusion zone. This intentional change opens more lateral combat movement instead of retaining the old partition as an artificial wall. Recheck enemy movement and camera readability before approval.
+
+## 15 November 2026 — Pass F: Continuous coast integration for final visual gate
+
+The opt-in v2 coast now uses one indexed ice-worn granite geometry instead of three self-intersecting terraced oval shells. Shoulder forms have deliberately low-frequency asymmetry, broad faces and a shifted crown, with no extra apron mesh. The existing coastal shell rises higher **only between the actor seam and the water edge** near major granitic headlands; the ground seam and sea-water edge remain unchanged. Its material shares a larger mineral-root gradient with the flat ground around granite concentrations, without adding vertical traversal or collision planes. Both quality modes retain the same rock geometry; LOW still uses reduced decorative dressing. This is not automatically accepted as visual parity: the actual 844×390 raid cameras (HIGH and LOW), route tests, browser errors, seam/z-fighting checks and performance determine approval.
+
+The owner has authorized merging PR #247 **only if** the next version is visually convincing and test-clean. If the screenshot or release gates fail, keep it open as a draft and document the gap.
