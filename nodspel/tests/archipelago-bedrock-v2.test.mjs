@@ -422,6 +422,12 @@ test('Pass R height follows the available offshore width instead of building cli
   point.radial=point.playableRadial+.70;
   const narrow=coastRingData(p),narrowPeak=narrow.positions[(7*n+i)*3+1];
   point.radial=original;
+  const greenBias=(data)=>{
+    const k=(7*n+i)*3;
+    return data.colors[k+1]-(data.colors[k]+data.colors[k+2])*.5;
+  };
+  assert.ok(greenBias(narrow)>greenBias(broad)+.012,
+    'a narrow-channel shelf should be visibly more olive than the exposed granite headland');
   assert.ok(narrowPeak<broadPeak*.62,
     'tall cliffs must collapse into low granite shelves where the coastline is compressed');
   assert.ok(Math.abs(narrow.positions[i*3+1]-.01)<1e-6,'player seam never rises');
