@@ -2,7 +2,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feat/archipelago-visual-target-v2]
 jobs:
   test:
     runs-on: ubuntu-latest

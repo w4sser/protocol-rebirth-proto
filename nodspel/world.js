@@ -6,7 +6,8 @@ import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.39';
 import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.39';
 import {buildTown} from './town.js?v=2.28.39';
 import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.39';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.39-coast-v10-timber-v1-military-visual2';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.39-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.39-glacial-merge1';
 import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.39';
 import {controlCablePath} from './control-cables.js?v=2.28.39';
 import {extractAvailable} from './big-level.js?v=2.28.39';
@@ -297,7 +298,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     if(disposed)return;disposed=true;
     disposeVfx();
     const geometries=new Set(),mats=new Set();
-    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
+    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);if(o.pineFadeMaterials)for(const m of o.pineFadeMaterials.values())mats.add(m);});
     for(const g of geometries)if(!g.userData?.shared)g.dispose();for(const m of mats)if(!m.userData?.shared)m.dispose();group.clear();scene.remove(group);bursts.length=0;
   }
   const hazards=(level.hazards??[]).map(h=>{
@@ -320,7 +321,60 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     else{v.mat.color.set('#e0c040');v.mat.opacity=.18;}}}
   // seed-deterministic props (visual only, never in collision data; kept off paths/objectives)
   const prng=rngFrom(`${level.seed}:props`),spots=isTown?[]:propSpots(level,prng,Math.round(level.floors.reduce((a,f)=>a+f.w*f.d,0)/24*Q.props));
-  const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=pineTree(spot,box,prng,pine);if(propInPassage(p,archInfo.passages)||propInPassage(p,archInfo.bridgeClearances))return null;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;}).filter(Boolean);
+  if(archInfo?.visualV2)spots.splice(0,spots.length,...planArchipelagoPines(level,spots));
+  const props=K?planKitProps(level,spots,prng).map(t=>{const p=kitGroup(K[t.kind]);p.position.set(t.x,0,t.z);p.rotation.y=t.ry;group.add(p);return p;}):spots.map(spot=>{if(isArch){const p=archInfo.visualV2?archipelagoCoastalPine(spot,{low:Q.props<1}):pineTree(spot,box,prng,pine);if(propInPassage(p,archInfo.passages)||propInPassage(p,archInfo.bridgeClearances))return null;group.add(p);return p;}const p=buildProp(PROP_KINDS[Math.floor(prng()*PROP_KINDS.length)],spot,box,prng);group.add(p);return p;}).filter(Boolean);
+  // Opt-in v2 pines are cosmetic, but their crowns can block the isometric
+  // camera. Check just their meshes at 10 Hz with orthographic-parallel rays,
+  // then smoothly fade only the trees hiding nearby gameplay-critical targets.
+  const pineProps=archInfo?.visualV2?props.filter(p=>p?.name==='arch-v2-coastal-pine'):[];
+  const pineMeshes=pineProps.flatMap(p=>p.pineMeshes);
+  const pineRay=new THREE.Raycaster(),pineOrigin=new THREE.Vector3(),pineDirection=new THREE.Vector3();
+  const pineOccluded=new Set();
+  let pineCheckIn=0;
+  if(pineMeshes.length)group.updateMatrixWorld(true);
+  function updatePineOcclusion(camera,player,dt=0){
+    if(!pineMeshes.length||!player||!camera)return;
+    pineCheckIn-=Math.max(0,dt);
+    if(pineCheckIn<=0){
+      pineCheckIn=.10;
+      pineOccluded.clear();
+      // In an orthographic camera every screen ray is parallel. A perspective
+      // camera-to-player ray misses tall foreground pines at the screen edges.
+      camera.getWorldDirection(pineDirection).negate();
+      pineRay.near=.08;
+      const trace=(x,y,z)=>{
+        pineOrigin.set(x,y,z);
+        pineRay.far=camera.position.distanceTo(pineOrigin)+.5;
+        pineRay.set(pineOrigin,pineDirection);
+        for(const hit of pineRay.intersectObjects(pineMeshes,false)){
+          const tree=hit.object.parent?.pineMeshes?hit.object.parent:null;
+          if(tree)pineOccluded.add(tree);
+        }
+      };
+      trace(player.x,.86,player.z);
+      const nearby=(items,y,radius,max,skipActive=false)=>{
+        let count=0;
+        for(const o of items??[]){
+          if((o.health!=null&&o.health<=0)||o.collected||o.taken||(skipActive&&o.active))continue;
+          if(Math.hypot(o.x-player.x,o.z-player.z)>radius)continue;
+          trace(o.x,y,o.z);
+          if(++count>=max)break;
+        }
+      };
+      nearby(level.enemies,.85,10,4);
+      nearby(level.nodes,.8,9,3,true);
+      nearby(level.lootBoxes,.45,8,3);
+      if(level.exit&&Math.hypot(level.exit.x-player.x,level.exit.z-player.z)<9)
+        trace(level.exit.x,.60,level.exit.z);
+    }
+    for(const tree of pineProps){
+      const opacity=tree.userData.pineOpacity;
+      const wanted=pineOccluded.has(tree)?.22:1;
+      const t=1-Math.exp(-Math.min(Math.max(dt,0),.10)*(wanted<opacity?13:7));
+      const next=opacity+(wanted-opacity)*t;
+      setArchipelagoPineOpacity(tree,wanted===1&&next>.992?1:next);
+    }
+  }
   if(isArch)spots.splice(0,spots.length,...props.map(p=>({x:p.position.x,z:p.position.z})));
   for(let k=0;k<(isArch?0:Math.min(Q.lights,spots.length));k++){const l=new THREE.PointLight(PALETTE.neon,4,6,1.8);l.position.set(spots[k].x,1.4,spots[k].z);group.add(l);}
   for(const v of nodes)if(v.node.shielded&&!K)box(0,1.6,0,.5,.08,.5,'#7c6fa8',v.group??group);
@@ -331,6 +385,6 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
   const lightRig=new THREE.Group();lightRig.name='world-light-rig';
   {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst,
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
     extractionEffects,extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn,setVfxQuality,disposeVfx};
 }
