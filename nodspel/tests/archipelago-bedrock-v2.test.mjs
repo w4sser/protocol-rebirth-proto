@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import * as art from '../archipelago-visual-v2.mjs';
-import {coastlineProfile,coastRingData,authorHeroIslandCoast} from '../coastline.mjs';
+import {coastlineProfile,coastRingData,authorHeroIslandCoast,archipelagoGroundColor} from '../coastline.mjs';
 import {archipelagoDressingConfig} from '../archipelago-dressing-policy.mjs';
 import {generateLevel} from '../levels.js';
 import {archipelagoPassages} from '../archipelago-passages.js';
@@ -427,4 +427,25 @@ test('Pass R height follows the available offshore width instead of building cli
   assert.ok(Math.abs(narrow.positions[i*3+1]-.01)<1e-6,'player seam never rises');
   assert.ok(Math.abs(narrow.positions[((narrow.rings-1)*n+i)*3+1]+.65)<1e-6,
     'narrow coast still returns to the same water toe');
+});
+
+
+test('Pass S seeded earth-path color is visible on the flat hero ground and deterministic',()=>{
+  const floor={x:0,z:0,w:25,d:24},hero=coastlineProfile(floor,'trail-target',{style:'v2'});
+  authorHeroIslandCoast(hero,{rockAngles:[.15,3.12]});
+  const a=hero.heroHeadlands[0].angle,along=4.4;
+  const bend=.42*Math.sin(along*.29+hero.seed*.00012)+.18*Math.sin(along*.63-.8);
+  const sample=side=>archipelagoGroundColor(hero,
+    floor.x+Math.cos(a)*along-Math.sin(a)*side,
+    floor.z+Math.sin(a)*along+Math.cos(a)*side);
+  const worn=sample(bend),grass=sample(bend+3.6);
+  assert.deepEqual(worn,sample(bend),'trail colors must be seed-stable');
+  assert.ok(worn[0]-worn[1]>grass[0]-grass[1]+.015,
+    'flat dirt path must read warmer and browner than adjoining healthy vegetation');
+  const ground=art.addArchipelagoGroundV2(hero,new THREE.Group(),{
+    bedrockPlan:{masses:hero.heroHeadlands.map(h=>({angle:h.angle})),shelves:[]}});
+  assert.equal(ground.geometry.getAttribute('position').count,(30+1)*hero.points.length,
+    'hero path sampling stays detailed enough in both graphics qualities');
+  const y=ground.geometry.getAttribute('position');
+  for(let i=0;i<y.count;i++)assert.ok(Math.abs(y.getY(i)-.01)<1e-5,'the worn trail cannot add traversable height');
 });
