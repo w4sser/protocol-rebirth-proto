@@ -44,6 +44,7 @@ The Secure Slot is the one approved item-protection mechanism. **D1-A locks exac
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
+| 2026-11-15 | M43: enemy attacks may damage their own side; implement real artillery-circle collateral first, preserving legible telegraphs and avoiding player-only kill bonuses | Owner-approved general principle; initial artillery slice to implement/test |
 | Ordinary materials, valuables, weapons, and armor found in the raid | Retained and reconciled at home | Exposed items are lost |
 | Valuable equipped weapon or armor taken from home | Returned | Lost |
 | Other carried equipment, unused consumables, and unused tool charges | Returned as applicable | Lost; **D1-B excludes weapons, armor, tools and consumables from Secure Slot eligibility** |
@@ -1825,6 +1826,20 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 **Playtest defaults (not further owner votes):** "Most immediate threat" ranks telegraphing/attacking enemies first, then aggro, then nearest alive non-generator within range. Resistant types/encounters for the shorter window: `guard`, `turret`, `shield_turret`, `sentry`. Threat range 14 m. BIT hover offset ~1.2 m so it stays readable beside the target.
 
 **Still open for later playtests:** Production Bay L1 gating UX, Bond/Bay L2 synergy, exact resistant mapping beyond the playtest list, zap VFX polish, and whether the never-lethal 1 HP chip should stay after the playtest. **This entry authorizes the playtest implementation described here.**
+
+---
+
+## M43 — Enemy Friendly Fire as Emergent Tactical Counterplay (OWNER APPROVED, 15 November 2026)
+
+**Locked general design principle:** Enemy attacks can hurt other enemies when their real collision shape and timing support it. Combat should reward positioning, baiting and exploiting hostile forces against each other, rather than resolving only through higher player damage or equipment stats. This is a **shared combat-system rule**, not a scripted encounter or a special ability, and should feel discoverable through ordinary play even with Basic Carbine.
+
+**First implementation — artillery/grenadier blast:** The already-telegraphed coral artillery landing circle can be deliberately pulled over hostile troops. When its actual projectile detonates, **every live active enemy inside the blast radius is eligible for damage**, including the firing unit if within range, in addition to the Operator. Enemy damage uses explicit enemy-scale tuning (separate from player-max-HP percentages); the same actual hit/health/defeat feedback path applies as for other damage. The player can dodge a committed explosion after its position is locked. There is no faction-based immunity, hidden safety adjustment, arbitrary kill script or extra HUD action. Existing warning, fuse, radius, projectile visibility, Operator damage and dash invulnerability remain unchanged.
+
+**Boundaries:** An enemy-caused kill does not trigger free Operator on-kill healing or other player-only kill benefits. Ordinary death, room-clear and defeated-enemy accounting should remain coherent; do not fabricate extra loot. Dormant wave units, generators, protected objectives and environmental structures are not included in the first artillery slice. Avoid exploding every nearby encounter by chance: the player must be able to read and intentionally create the opportunity.
+
+**Broader direction, not a blanket rollout:** Explosions and other area attacks are natural follow-ups. Heavy projectiles, ordinary bullets, charges and melee may allow collateral hits **only after validating line of sight, readable outcomes, pacing and mobile performance**. Friendly-fire AI reactions, relative damage values, loot entitlement and downstream tuning remain playtest decisions. No additional button, currency, perk, scripted baiting tutorial or automatic BIT solution is approved.
+
+**Next playable test:** In an ordinary Archipelago encounter, intentionally bait a marked artillery strike into a cluster of at least two enemies, step out before impact and observe real enemy damage/defeat at the same position and timing; verify that a miss does not hurt distant enemies, the blast fires exactly once, the Operator still takes damage when inside it, and enemy-on-enemy kills do not secretly heal the Operator. Repeat with audio muted and at normal mobile camera scale. **Direction and initial artillery implementation approved by Robert.**
 
 ---
 
