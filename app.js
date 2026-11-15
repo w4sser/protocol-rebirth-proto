@@ -4653,7 +4653,7 @@ window.A = {
     if(isLightsOn){
       save();
       // v2.28.19: show the habitable bunker and play the wake lighting. PRB-155 (playtest
-      // 2026-11-15, item 4) removed the POWER RESTORED popup that used to gate ENTER THE
+      // 2026-11-15, item 4) removed the old boot-payoff popup that used to gate ENTER THE
       // FACILITY here -- the cutscene (bubble + info strip carry the old popup's benefit/next
       // text) is now the single screen; A.go already committed every state change above.
       session.wake = true;

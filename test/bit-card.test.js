@@ -239,21 +239,22 @@ async function bootToCoreOneTapAway(calls){
 
 (async () => {
 
-// core_restored: the live transition plays a cutscene (no card), exactly once, persisted.
+// core_restored: the live transition plays a cutscene (no card, no popup), exactly once, persisted.
 {
   const calls = [];
   const w = await bootToCoreOneTapAway(calls);
   assert.equal(w.T.state().bitCardsSeen.core_restored, undefined, "not marked seen before the build");
   w.A.build("rebirth_core");
-  const closeBtn = w.document.querySelector("#overlay [data-close]");
-  assert(closeBtn, "RESTORE EMERGENCY POWER shows the boot payoff overlay");
-  closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
+  // PRB-155 (playtest 2026-11-15, item 4): the POWER RESTORED popup (and its ENTER THE FACILITY
+  // gate) is gone for good -- the cutscene is the single screen, so there is nothing to click.
+  assert(!w.document.getElementById("overlay"), "no popup shows for the Core restore");
+  assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted synchronously with the build, no popup left to gate it");
   assert.equal(calls.length, 0, "cutscene waits for bunkerwake to finish");
-  await sleep(1700); // >= the ~1.6s bunkerwake lighting the card must not land before
+  await sleep(1700); // >= the ~1.6s bunkerwake lighting the cutscene must not land before
   assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
   assert.equal(calls[0].id, "core_restored");
   assert.match(calls[0].line, /circuits again/);
-  assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted in S.bitCardsSeen");
+  assert(calls[0].bust && calls[0].info, "core_restored cutscene carries the standard bubble+info layout");
 }
 
 // core_restored: a save that already had Core L1 built before this field existed is marked seen
@@ -310,6 +311,74 @@ async function bootToCoreOneTapAway(calls){
   assert.deepEqual(calls, [], "already-seen card id suppresses the new cutscene");
   assert.equal(w.T.state().bitCardsSeen.core_restored, true);
   w.close(); seed.close();
+}
+
+// PRB-155 (playtest 2026-11-15, item 4): the Core restore never shows the removed POWER RESTORED
+// popup -- not on a fresh build, not for an existing save, and not after the cutscene has played.
+{
+  const calls = [];
+  const w = await bootToCoreOneTapAway(calls);
+  w.A.build("rebirth_core");
+  assert(!w.document.getElementById("overlay"), "first restore: no popup");
+  await sleep(1700);
+  assert(!w.document.getElementById("overlay"), "after the cutscene has fired: still no popup");
+  // A later re-render of the base (any screen change) must never resurrect it either.
+  w.A.go("base");
+  assert(!w.document.getElementById("overlay"), "re-rendering the base after the cutscene: still no popup");
+}
+{
+  const seed = boot(null, []); const st = seed.T.state();
+  st.modules.rebirth_core = 1; st.baseState = "core_habitable"; st.introSeen = true;
+  const saved = JSON.parse(JSON.stringify(st));
+  const w = boot(saved, []);
+  w.A.go("base");
+  assert(!w.document.getElementById("overlay"), "existing save with Core already built: no popup on load or render");
+}
+
+// fabricator_built: the live transition plays a cutscene exactly once, persisted, and only after
+// the Fabricator L1 reward popup (unchanged, unlike the Core restore) closes -- it never stacks.
+// The dedicated future art pair (FABRICATOR_CUTSCENE_ART) genuinely does not exist in this repo
+// yet, so stub window.Image to fail fast like a real 404 instead of hanging (jsdom never fires
+// onload/onerror for real network loads without `resources:"usable"`).
+{
+  const calls = [];
+  const w = await bootToCoreOneTapAway(calls);
+  w.Image = class { set src(_src){ setTimeout(() => { if(this.onerror) this.onerror(); }, 0); } };
+  w.A.build("rebirth_core");
+  const st = w.T.state();
+  st.stash.cable = 1; st.stash.scrap_alloy = 2; st.cur.scrap = 10;
+  assert.equal(st.bitCardsSeen.fabricator_built, undefined, "not marked seen before the build");
+  const fabCalls = () => calls.filter(c => c.id === "fabricator_built");
+  w.A.build("fabricator");
+  const closeBtn = w.document.querySelector("#overlay [data-close]");
+  assert(closeBtn, "Fabricator L1 still shows its normal reward popup (only the Core restore lost its popup)");
+  assert.equal(fabCalls().length, 0, "fabricator_built cutscene waits for the reward popup to close");
+  closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
+  assert.equal(st.bitCardsSeen.fabricator_built, true, "persisted synchronously when the popup closes");
+  assert.equal(fabCalls().length, 0, "cutscene still waits for the bunkerwake build animation");
+  await sleep(1700);
+  assert.equal(fabCalls().length, 1, "fabricator_built cutscene shown exactly once");
+  assert.match(fabCalls()[0].line, /Scavenger Vest/);
+  assert(fabCalls()[0].info.some(row => row.label === "FIRST RECIPE" && /Scavenger Vest/.test(row.text)), "info strip names the real first recipe + cost from data/recipes.js");
+  assert(fabCalls()[0].bust, "fabricator_built uses the standard bust+bubble layout");
+  st.stash.cable = 1; st.stash.scrap_alloy = 2; st.cur.scrap = 10; // Fabricator L2 cost happens to differ; fund generously
+  w.A.build("fabricator"); // repeat call (L2): never replays the L1 moment
+  await sleep(1700);
+  assert.equal(fabCalls().length, 1, "never fires a second time");
+}
+
+// fabricator_built: an existing save that already has Fabricator L1 built is marked seen on load
+// (retroactive migration) and never shown live just from loading.
+{
+  const seedWin = boot(null, []);
+  const st = seedWin.T.state();
+  st.modules.fabricator = 1;
+  delete st.bitCardsSeen;
+  const saved = JSON.parse(JSON.stringify(st));
+  const calls = [];
+  const w = boot(saved, calls);
+  assert.equal(w.T.state().bitCardsSeen.fabricator_built, true, "existing save with Fabricator already built is marked seen on load");
+  assert.equal(calls.length, 0, "loading a save never fires the cutscene by itself");
 }
 
 console.log("BIT CARD BASE MOMENTS TEST PASSED");

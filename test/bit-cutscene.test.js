@@ -102,8 +102,74 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     await tick(3000); assert(!doc.querySelector(".bit-cutscene"));
     popup.remove(); await tick(250); assert(doc.querySelector(".bit-cutscene")); w.close();
   }
+  // PRB-155 standard layout: BIT bust (swap pair) + speech bubble (replacing the plain line) +
+  // a two-row info strip, timed off the same crossfade the backdrop already uses.
+  {
+    const {api,doc,tick,w} = fixture();
+    const job = { id:"layout-beat", from:"start.webp", to:"end.webp", line:"Short line.",
+      bust:{ from:"bust-sad.webp", to:"bust-happy.webp", side:"right" },
+      info:[{ label:"NEW", text:"New thing", iconHtml:"<svg class=\"a\"></svg>" }, { label:"NEXT", text:"Next thing", iconHtml:"<svg class=\"b\"></svg>" }] };
+    api.play(job); await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(el.querySelector(".bit-cutscene-bust.side-right"), "bust renders on the requested side");
+    assert(el.querySelector(".bit-cutscene-bubble .bit-cutscene-line"), "line sits inside the speech bubble when a bust is present");
+    const rows = el.querySelectorAll(".bci-row");
+    assert.equal(rows.length, 2, "both info rows render");
+    assert.equal(rows[0].querySelector(".bci-label").textContent, "NEW");
+    assert.equal(rows[0].querySelector(".bci-text").textContent, "New thing");
+    assert(rows[0].querySelector(".bci-icon svg.a"), "info row icon html renders");
+    assert.equal(rows[1].querySelector(".bci-label").textContent, "NEXT");
+    assert(!el.classList.contains("line-visible") && !el.classList.contains("info-visible"), "bubble/bust/info stay hidden before the crossfade");
+    await tick(3150); // crossfade: bubble + bust pop in together with the line, as documented
+    assert(el.classList.contains("line-visible"));
+    assert(el.classList.contains("crossfaded"), "bust-to crossfades with the backdrop");
+    await tick(599); assert(!el.classList.contains("info-visible"));
+    await tick(1); assert(el.classList.contains("info-visible"), "info strip slides in ~0.6s after the crossfade");
+    w.close();
+  }
+  // Reduced motion: bust + bubble + info strip appear instantly, same as the plain line already did.
+  {
+    const {api,doc,tick,w} = fixture({reduced:true});
+    api.play({ id:"reduced-beat", from:"start.webp", to:"end.webp", line:"Line.",
+      bust:{ from:"bust.webp", side:"left" }, info:[{ label:"NEW", text:"x", iconHtml:"" }] });
+    await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(el.classList.contains("line-visible"), "reduced motion shows the bubble instantly");
+    assert(el.classList.contains("info-visible"), "reduced motion shows the info strip instantly");
+    api.dismiss(); w.close();
+  }
+  // Backward compatible: a play() call without bust/info keeps rendering the plain lower-left
+  // line, with no bubble/bust/info chrome -- the API extension never breaks an older caller.
+  {
+    const {api,doc,tick,w} = fixture();
+    api.play({...beat, id:"plain-beat"}); await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(!el.querySelector(".bit-cutscene-bust"), "no bust element without opts.bust");
+    assert(!el.querySelector(".bit-cutscene-bubble"), "no bubble chrome without opts.bust");
+    assert(!el.querySelector(".bit-cutscene-info"), "no info strip without opts.info");
+    assert(el.querySelector(".bit-cutscene-line"), "plain line still renders");
+    api.dismiss(); w.close();
+  }
+  // Fabricator-style fx (option (b): existing art + CSS sweep/sparks/hologram, no new art files).
+  {
+    const {api,doc,tick,w} = fixture();
+    api.play({ id:"fx-beat", from:"a.webp", to:"a.webp", line:"Humming.", effect:"fabricator", hologramIcon:"<svg class=\"vest\"></svg>" });
+    await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(el.classList.contains("effect-fabricator"));
+    assert(el.querySelector(".bit-cutscene-sweep"), "light sweep renders");
+    assert(el.querySelectorAll(".bit-cutscene-sparks span").length > 0, "spark particles render");
+    assert(el.querySelector(".bit-cutscene-hologram svg.vest"), "hologram wraps the caller's item icon html");
+    api.dismiss(); w.close();
+  }
   const app = fs.readFileSync(root + "/app.js","utf8");
-  for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g)) assert(fs.existsSync(root + "/" + file[0]),file[0]);
+  // FABRICATOR_CUTSCENE_ART names an optional future dedicated art pair (docs/bit-narrator.md) that
+  // does not exist yet on purpose -- app.js checks it at runtime via Image onerror (never a blind
+  // assumption) and falls back to the option (b) backdrop otherwise. Every OTHER referenced asset
+  // must still exist.
+  for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
+    if(!/cutscene-fabricator-(dark|powered)-v1\.webp$/.test(file[0])) assert(fs.existsSync(root + "/" + file[0]),file[0]);
+  assert(!fs.existsSync(root + "/assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp"), "test fixture assumption: the optional future pair is still undelivered");
   const css = fs.readFileSync(root + "/ui/bit-cutscene.css","utf8");
   assert(/z-index:80/.test(css),"rotation prompt and splash stay above cutscenes");
   assert(/object-fit:cover/.test(css)); assert(/inset:0/.test(css));
