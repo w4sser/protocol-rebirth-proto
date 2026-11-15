@@ -8,9 +8,9 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-baltic-calm3';
-import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles} from './coastline.mjs?v=2.28.25-joined-bedrock22';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.25-hero-coast23';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-rooted-granite22';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-hero-coast23';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.25-dinghy2';
@@ -315,6 +315,23 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   out.bridgeClearances=bridgeClearances(level);
   const rockFreeLandings=visualV2?archipelagoRockFreeBridgeLandingsV2(out.bridgeClearances):[];
   if(visualV2)out.rockFreeLandings=rockFreeLandings;
+  const firstIsland=targetIsland?level.floors.find(f=>!f.dir):null;
+  if(targetIsland&&firstIsland){
+    const hero=coastProfiles.get(firstIsland);
+    const reserved=[...out.passages,...out.bridgeClearances,...rockFreeLandings,...level.floors.filter(f=>f.dir)];
+    // Source angles from deterministic authored coastal mass choices, then
+    // sculpt their actual landform into the island rather than drawing detached masses.
+    const guide=planArchipelagoBedrock(hero,{
+      reservations:reserved,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]
+    });
+    authorHeroIslandCoast(hero,{
+      rockAngles:guide.masses.map(m=>m.angle),
+      bridgeZones:rockFreeLandings,
+      neighborProfiles:[...coastProfiles.values()]
+    });
+    out.heroIsland=true;
+    out.heroHeadlands=hero.heroHeadlands;
+  }
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
@@ -335,15 +352,19 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   water.name='water';group.add(water);
   if(visualV2){
     out.visualV2=true;
-    const firstIsland=level.floors.find(f=>!f.dir);
     const reservations=[...out.passages,...out.bridgeClearances,...rockFreeLandings,...level.floors.filter(f=>f.dir)];
     const grassClearances=[...reservations,...[level.start,level.exit,...(level.nodes??[]),...(level.lootBoxes??[])].filter(Boolean).map(p=>({x:p.x,z:p.z,w:3.2,d:3.2}))];
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
-      const bedrock=addArchipelagoGraniteV2(profile,group,options);
-      bedrockPlans.set(profile.floor,bedrock?.userData.bedrockPlan);
-      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:bedrock?.userData.bedrockPlan});
-      if(targetIsland&&profile.floor===firstIsland){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
+      const hero=targetIsland&&profile.floor===firstIsland;
+      const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
+      // The hero's mass angles still provide geological color fingers, but
+      // their actual height comes exclusively from the joined coast mesh.
+      const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
+        :bedrock?.userData.bedrockPlan;
+      bedrockPlans.set(profile.floor,plan);
+      addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
+      if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
   }
@@ -384,6 +405,8 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       const mesh=new THREE.Mesh(geo,mat);
       mesh.name='archipelago-coast-shell';
       mesh.receiveShadow=true;
+      mesh.castShadow=Boolean(profile.heroCoast);
+      if(profile.heroCoast){mesh.userData.heroIsland=true;mesh.userData.heroRings=data.rings;}
       mesh.userData.visualOnly=true;
       group.add(mesh);
     }else{
