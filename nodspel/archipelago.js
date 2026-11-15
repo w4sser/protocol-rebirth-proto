@@ -142,6 +142,64 @@ function buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders){
   }
   return boulders.length;
 }
+// V2 keeps only actual authored interior partitions as rock cover.
+// Shore walls and bridge rails are obsolete with organic actor coastlines.
+export function isArchipelagoPartitionWallV2(w,rooms=[]){
+  return rooms.some(r=>r.partition
+    &&Math.abs(w.z-r.partition.z)<.12
+    &&Math.abs(w.x-r.x)<r.w/2+.15
+    &&w.w>.65&&w.d<=.65
+    &&Math.abs(w.z-r.z)<r.d/2-.3);
+}
+const bankMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0});
+bankMat.userData.shared=true;
+
+// ONE continuous glacial bank per blocking partition segment, not a row of
+// individually displaced boulders. Its segmented AABB collision is sampled
+// from the same mesh, so players and AI never hit invisible legacy rocks.
+function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
+  const alongX=w.w>=w.d,length=Math.max(w.w,w.d),thick=Math.min(w.w,w.d);
+  const steps=Math.max(5,Math.ceil(length/.62)),cols=6,positions=[],colors=[],indices=[];
+  const phase=rng()*Math.PI*2;
+  const light=new THREE.Color('#999aa3'),dark=new THREE.Color('#586872'),lichen=new THREE.Color('#748170');
+  const sectionBounds=[];
+  for(let i=0;i<=steps;i++){
+    const u=i/steps,l=(u-.5)*length;
+    // Widely spaced asymmetry creates a natural bank silhouette, not a repeated prop cadence.
+    const wave=Math.sin(u*7.3+phase)*.18+Math.sin(u*12.1+phase*.48)*.075;
+    const h=Math.max(.40,(w.h??1)*(.62+wave));
+    const half=Math.max(.35,thick*.5+.23+.085*Math.sin(u*9.1+phase+.6));
+    const cross=[-half,-half*.75,-half*.30,half*.30,half*.75,half];
+    const heights=[.012,h*.42,h,h*.91,h*.43,.012],section=[];
+    for(let k=0;k<cols;k++){
+      const x=alongX?w.x+l:w.x+cross[k],z=alongX?w.z+cross[k]:w.z+l;
+      const y=heights[k];
+      positions.push(x,y,z);section.push({x,z});
+      const color=dark.clone().lerp(light,k===0||k===5?.35:.66)
+        .lerp(lichen,(k===0||k===5?.15:.045)+.035*Math.sin(phase+u*8+k)**2);
+      colors.push(color.r,color.g,color.b);
+      if(i<steps&&k<cols-1){
+        const a=i*cols+k,b=(i+1)*cols+k;
+        indices.push(a,b,a+1,a+1,b,b+1);
+      }
+    }
+    sectionBounds.push(section);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
+  const mesh=new THREE.Mesh(geo,bankMat);
+  mesh.name='arch-v2-bedrock-bank';mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
+  mesh.userData.colliders=[];
+  for(let i=0;i<steps;i++){
+    const section=[...sectionBounds[i],...sectionBounds[i+1]];
+    const minX=Math.min(...section.map(p=>p.x)),maxX=Math.max(...section.map(p=>p.x));
+    const minZ=Math.min(...section.map(p=>p.z)),maxZ=Math.max(...section.map(p=>p.z));
+    const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,w:maxX-minX,d:maxZ-minZ,h:w.h??1};
+    colliders.push(collider);mesh.userData.colliders.push(collider);
+  }
+  return 1;
+}
 // Sparse decorative shoreline rocks (visual only, no collider): seeded, irregular, some clusters,
 // nudged outward onto the sand/water side of the edge and skipped if they touch any reservation.
 function shoreRocks(shore,islands,rng,reservations,rockGeo,rockMat,group){
@@ -321,14 +379,18 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       :Math.abs(Math.abs(w.x-f.x)-f.w/2)<e&&Math.abs(w.z-f.z)<f.d/2+e;};
   const shore=[];
   for(const w of source.walls){
-    if(islands.filter(f=>onRim(w,f)).length===1){
-      // In v2 the organically profiled shoreline itself is the walkable
-      // boundary. Old straight shore wall colliders must not trap the player
-      // at the legacy rectangle. Internal wall/cover collisions stay intact.
-      if(!visualV2)colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});
-      shore.push(w);
+    if(visualV2){
+      // V2's coastline and the actual deck floor already constrain movement.
+      // Drop rectangular shoreline/bridge-rail authoring walls entirely,
+      // including their colliders. Only genuine interior partitions remain.
+      if(isArchipelagoPartitionWallV2(w,level.rooms))
+        out.rocks+=buildRockBankV2(w,rng,group,colliders,{high:(quality?.props??1)>=1});
+      continue;
     }
-    else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
+    if(islands.filter(f=>onRim(w,f)).length===1){
+      colliders.push({x:w.x,z:w.z,w:w.w,d:w.d,h:w.h??1,shore:true});
+      shore.push(w);
+    }else out.rocks+=buildRockWall(w,rng,reservations,rockGeo,rockMat,group,colliders);
   }
   out.shoreProps=visualV2?0:terrainPreview
     ? coastRocks(coastProfiles,rngFrom(`${level.seed}:shore`),reservations,rockGeo,rockMat,group)
