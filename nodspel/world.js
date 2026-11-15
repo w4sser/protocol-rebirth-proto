@@ -8,6 +8,8 @@ import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v
 import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.32-coast-v10-timber-v1-military-visual2';
 import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.32';
 import {controlCablePath} from './control-cables.js?v=2.28.32';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.32';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.32';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -198,9 +200,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     return {sp,group:g,ring,pad};
   });
   const exitMaterial=new THREE.MeshStandardMaterial({color:PALETTE.base,emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
-  const exitRings=[0,1].map(i=>{const m=new THREE.Mesh(new THREE.RingGeometry(1.25,1.42,48),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));m.rotation.x=-Math.PI/2;m.position.set(exit.x,.035,exit.z);group.add(m);return m;});
-  const exitBeam=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,1,20,1,true),new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
-  exitBeam.scale.y=Q.beams?6:3;exitBeam.position.set(exit.x,exitBeam.scale.y/2,exit.z);exitBeam.visible=false;group.add(exitBeam);
+  // PRB-156: the in-world 3D extraction beam/decal/particles (vfx-extract-beam.js) replace the old flat
+  // ring+cylinder pair -- same exit position, same EXTRACT_COLOR, gameplay radius/logic untouched.
+  const extractBeamFx=createExtractBeam({color:EXTRACT_COLOR,quality});
+  extractBeamFx.group.position.set(exit.x,0,exit.z);group.add(extractBeamFx.group);
   const gateProgress=nodes.map((v,i)=>{
     const perSide=nodes.length,span=2.2/perSide;
     const m=new THREE.Mesh(cube,new THREE.MeshBasicMaterial({color:EXTRACT_COLOR,transparent:true,opacity:.16,toneMapped:false}));
@@ -212,22 +215,22 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   if(K){gate.scale.set(1.6,.04,.04);gate.position.y=.02;exitKit={};
     for(const k of ['extract_hatch_locked','extract_hatch_open']){exitKit[k]=kitGroup(K[k],{sx:.9,sy:.7,sz:.9});exitKit[k].position.set(exit.x,0,exit.z);exitKit[k].visible=k.endsWith('locked');group.add(exitKit[k]);}}
   else for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
-  const exitPad=new THREE.Mesh(new THREE.PlaneGeometry(2.3,1.8),new THREE.MeshBasicMaterial({color:'#b49b64',transparent:true,opacity:.16,side:THREE.DoubleSide}));
-  exitPad.rotation.x=-Math.PI/2;exitPad.position.set(exit.x,.022,exit.z);group.add(exitPad);
   // High quality only: one static light for the active exit, never recreated per frame.
   const exitLight=Q.lights>0?new THREE.PointLight(EXTRACT_COLOR,0,7,2):null;
   if(exitLight){exitLight.position.set(exit.x,1.6,exit.z);group.add(exitLight);}
+  let exitProgress=0;
   function setExit(open){
     const justOpened=open&&!exitOpen;exitOpen=open;
     gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}
     exitMaterial.color.set(open?EXTRACT_COLOR:PALETTE.base);exitMaterial.emissiveIntensity=open?1:0;
-    exitPad.material.color.set(open?EXTRACT_COLOR:PALETTE.neonSoft);exitPad.material.opacity=open?.4:.18;
-    exitBeam.visible=open;if(exitLight)exitLight.intensity=open?14:0;
+    if(exitLight)exitLight.intensity=open?14:0;
+    if(!open)exitProgress=0;
     if(justOpened)burst(exit.x,exit.z,EXTRACT_COLOR,true);
     return justOpened;
   }
   // pickup burst: expanding ring + short flash (pooled per call; cheap)
   const bursts=[];
+  const lootBurstFx=createLootBurstPool({quality});group.add(lootBurstFx.group);
   function burst(x,z,color='#ffd04a',withParticles=false){
     const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
     const m=new THREE.Mesh(ringGeo,material);m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);
@@ -238,7 +241,8 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     bursts.push({m,t:0,x,z,particles});
   }
   let lastTime=null;
-  function animate(time){const dt=lastTime==null?0:Math.min(.1,time-lastTime);lastTime=time;
+  const LOOT_BURST_HOME_Y=1.05; // approx bag/chest height sparkles home toward
+  function animate(time,playerPos){const dt=lastTime==null?0:Math.min(.1,time-lastTime);lastTime=time;
     for(const c of controlCables){
       const active=!!c.node.active;
       if(active&&!c.wasActive)c.activatedAt=time;
@@ -254,8 +258,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       v.crate.position.y=.03;v.crate.rotation.y=0;
       const k=(time*.8+v.phase)%1;v.pulse.scale.setScalar(.8+k*.7);v.pulse.material.opacity=.6*(1-k);
       if(v.beam)v.beam.material.opacity=(v.loot.revealed?.16+RARITY_ORDER.indexOf(v.tier)*.04:.1)+Math.sin(p)*.05;}
-    if(exitOpen){for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;exitRings[i].scale.setScalar(.7+k*.9);exitRings[i].material.opacity=.85*(1-k);}
-      exitBeam.material.opacity=.2+Math.sin(time*3)*.06;exitPad.material.opacity=.32+Math.sin(time*3)*.1;}
+    if(exitOpen&&playerPos){const d=Math.hypot(playerPos.x-exit.x,playerPos.z-exit.z);exitProgress=Math.max(0,Math.min(1,1-d/(exit.r+3)));}
+    else if(!exitOpen)exitProgress=0;
+    extractBeamFx.update(time,{open:exitOpen,progress:exitProgress});
+    lootBurstFx.update(dt,playerPos?playerPos.x:0,LOOT_BURST_HOME_Y,playerPos?playerPos.z:0);
     for(let i=bursts.length-1;i>=0;i--){
       const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);
       const B=RULES.feedback.burst;
@@ -268,6 +274,9 @@ for(const d of doors){const open=!d.door.locked;d.panel.visible=!open;d.strip.vi
 for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75cfcc');v.coreMaterial.emissiveIntensity=2.5;v.light.intensity=12+Math.sin(time*2.5)*1.5;v.halo.material.opacity=.7;v.halo.scale.setScalar(1+Math.sin(time*2.5)*.035);}}}
   function dispose(){
     disposed=true;
+    // extractBeamFx/lootBurstFx own no textures (the shared soft-dot DataTexture is never touched here) and
+    // their meshes live inside `group`, so the generic sweep below already disposes their geometries/materials
+    // exactly once -- calling their own dispose() here too would double-fire 'dispose' on each material.
     const geometries=new Set(),mats=new Set();
     group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);});
     for(const g of geometries)if(!g.userData?.shared)g.dispose();for(const m of mats)if(!m.userData?.shared)m.dispose();group.clear();scene.remove(group);bursts.length=0;
@@ -303,5 +312,6 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
   const lightRig=new THREE.Group();lightRig.name='world-light-rig';
   {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst};
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,burst,
+    extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn};
 }
