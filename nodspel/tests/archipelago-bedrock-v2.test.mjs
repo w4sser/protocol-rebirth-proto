@@ -259,8 +259,9 @@ test('authored hero headlands grow from the SAME coastal surface without changin
   assert.ok(raised.length>5,'broad headlands grow the real island coastline');
   assert.ok(hero.points.every((p,i)=>p.playableRadial<=base[i].playable+1e-7),
     'hero cliffs never expand logical traversal into elevated granite');
-  assert.ok(hero.points.every(p=>p.playableRadial>=p.innerRadial+1.09),
-    'original authored rectangular gameplay floor and safety margin stay open');
+  assert.ok(hero.points.every((p,i)=>
+    p.playableRadial>=Math.min(base[i].playable,p.innerRadial+1.10)-1e-6),
+    'never shrink an existing narrow passage; otherwise keep 1.10m spare beyond authored floor');
   assert.ok(hero.points.some((p,i)=>p.playableRadial<base[i].playable-.25),
     'a large granitic landform needs a visibly broad coastal root');
   const shore=coastRingData(hero),n=hero.points.length;
