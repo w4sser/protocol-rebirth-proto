@@ -205,9 +205,24 @@ export function archipelagoCoastalPine(spot){
 const portalMaterials=['#747a79','#27343b','#8e8e88'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:1});m.userData.shared=true;return m;}),cubeGeo=new THREE.BoxGeometry(1,1,1);cubeGeo.userData.shared=true;
 function block(parent,x,y,z,w,h,d,m){const o=new THREE.Mesh(cubeGeo,portalMaterials[m]);o.position.set(x,y,z);o.scale.set(w,h,d);o.name='arch-v2-portal-concrete';o.receiveShadow=true;parent.add(o);return o;}
 export function addArchipelagoTargetPortal(profile,group,options={}){
-  if(profile?.style!=='v2')return null;const mass=planArchipelagoBedrock(profile,options).masses[0];if(!mass)return null;
-  const g=new THREE.Group();g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;g.position.set(mass.x,-.18,mass.z);g.rotation.y=mass.rotation;
-  const front=mass.depth*.50,h=Math.min(1.28,mass.height*.66),w=Math.min(2,mass.length*.42);
+  if(profile?.style!=='v2')return null;
+  const hero=profile.heroCoast,head=hero?profile.heroHeadlands?.[0]:null;
+  const mass=hero?null:planArchipelagoBedrock(profile,options).masses[0];
+  if(!mass&&!head)return null;
+  const g=new THREE.Group();g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;
+  if(hero){
+    const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
+    const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.63;
+    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,.56,
+      profile.floor.z+Math.sin(head.angle)*radius);
+    g.rotation.y=-head.angle-Math.PI/2;
+    g.userData.integratedHero=true;
+  }else{
+    g.position.set(mass.x,-.18,mass.z);g.rotation.y=mass.rotation;
+  }
+  const front=hero?.28:mass.depth*.50;
+  const h=hero?1.10:Math.min(1.28,mass.height*.66);
+  const w=hero?1.75:Math.min(2,mass.length*.42);
   // Face the inner approach: the dark door projects ahead of the frame,
   // rather than disappearing behind the solid glacial mesh at the coast.
   block(g,0,h*.5,front+.15,w*.86,h,.14,1);
@@ -223,11 +238,22 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
 const shedMaterials=['#675349','#414b4e','#77766f','#ad947b'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:.94,metalness:0});m.userData.shared=true;return m;});
 export function addArchipelagoTargetShed(profile,group,options={}){
   if(profile?.style!=='v2')return null;
-  const plan=planArchipelagoBedrock(profile,options),mass=plan.masses[1];if(!mass)return null;
-  // A small inaccessible shoreline remnant, inset into an already cleared
-  // granite mass, not in the actor region or an authored bridge.
+  const hero=profile.heroCoast,head=hero?profile.heroHeadlands?.[1]:null;
+  const mass=hero?null:planArchipelagoBedrock(profile,options).masses[1];
+  if(!head&&!mass)return null;
+  // In the hero island, the utility shed sits on the same coastal landform
+  // as the cliffs instead of floating atop an unrelated stone instance.
   const g=new THREE.Group();g.name='arch-v2-coastal-shed';g.userData.visualOnly=true;
-  g.position.set(mass.x,mass.height*.66-.44,mass.z);g.rotation.y=mass.rotation;
+  if(hero){
+    const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
+    const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.73;
+    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,.47,
+      profile.floor.z+Math.sin(head.angle)*radius);
+    g.rotation.y=-head.angle-Math.PI/2;
+    g.userData.integratedHero=true;
+  }else{
+    g.position.set(mass.x,mass.height*.66-.44,mass.z);g.rotation.y=mass.rotation;
+  }
   function slab(x,y,z,w,h,d,index){
     const mesh=new THREE.Mesh(cubeGeo,shedMaterials[index]);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;
   }
