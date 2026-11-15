@@ -170,9 +170,9 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
     heads.push({angle,width:heads.length===0?.70:heads.length===1?.56:.43,
       height:heads.length===0?2.65:heads.length===1?2.02:1.46});
-    if(heads.length===3)break;
+    if(heads.length===2)break;
   }
-  if(heads.length<3){
+  if(heads.length<2){
     // Fill missing authored sites with protected bays and irregular headlands.
     // No algorithm is allowed to drop cliffs into an actual bridge approach.
     for(const p of points.filter((p,i)=>i%4===0&&p.beach<.30)){
@@ -181,7 +181,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+2.5&&Math.abs(z-b.z)<b.d/2+2.5))continue;
       if(heads.some(h=>Math.abs(wrap(h.angle-p.angle))<1.0))continue;
       heads.push({angle:p.angle,width:.43,height:1.50});
-      if(heads.length===3)break;
+      if(heads.length===2)break;
     }
   }
   for(const p of points){
@@ -417,21 +417,28 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
     const meander=.045*Math.sin(f*11+seed*.00003+j);
     // Long fingers of granite visually continue from the outcrops into the
     // island clearing. They remain flush with the real walk/collision plane.
-    // Focus the exposed stone into uneven granite tongues rather than one
-    // continuous grey outer half of the island.
+    // Pass N: rock mass is strictly along the perimeter. The playable
+    // X/Z interior is not a broad grey mountain even where the coastal
+    // headland is tall. Keep mineral hints as FLAT ground detail only.
     const fracture=.80+.20*Math.sin(angle*7+f*9+seed*.0002+j);
-    const arc=Math.exp(-Math.pow((delta+meander)/(.27+.07*channel),2));
-    glacial=Math.max(glacial,arc*smooth(.29,.90,f)*fracture);
-    bedrockRoot=Math.max(bedrockRoot,Math.pow(arc,.78)*smooth(.58,.965,f)*(.76+.24*mid));
+    const arc=Math.exp(-Math.pow((delta+meander)/(.24+.04*channel),2));
+    const v2Hero=!!profile.heroCoast;
+    glacial=Math.max(glacial,arc*smooth(v2Hero?.74:.29,.97,f)*fracture);
+    bedrockRoot=Math.max(bedrockRoot,Math.pow(arc,.78)*smooth(v2Hero?.82:.58,.995,f)*(.76+.24*mid));
     if(j===0){
       // A subdued, winding worn-earth route toward the buried coastal portal.
       const transverse=Math.sin(delta)*Math.hypot(dx,dz)+Math.sin(f*8+seed*.001)*.43;
       trail=Math.exp(-Math.pow(transverse/1.22,2))*smooth(.09,.29,f)*(1-smooth(.73,.94,f));
     }
   }
-  const mineralPockets=smooth(.66,.88,broad)*smooth(.59,.94,f)*(.18+.30*mid);
-  const edgeRock=smooth(.88,.995,f)*(1-beach)*(.14+.15*channel);
-  const exposed=clamp(glacial*(.49+.20*mid)+bedrockRoot*(.26+.13*mid)+mineralPockets+edgeRock,0,.90);
+  const v2Hero=!!profile.heroCoast;
+  const mineralPockets=smooth(.66,.88,broad)*smooth(v2Hero?.79:.59,.94,f)*
+    (v2Hero?.045+.07*mid:.18+.30*mid);
+  const edgeRock=smooth(v2Hero?.955:.88,.995,f)*(1-beach)*
+    (v2Hero?.06+.10*channel:.14+.15*channel);
+  const exposed=clamp(glacial*(v2Hero?.17+.08*mid:.49+.20*mid)
+    +bedrockRoot*(v2Hero?.09+.05*mid:.26+.13*mid)
+    +mineralPockets+edgeRock,0,v2Hero?.38:.90);
   const lichen=smooth(.62,.89,mid)*exposed*(.11+.07*grain);
   let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.20,0,1));
   col=tint(col,SOIL_SHADE,.12+.22*(1-mid));
