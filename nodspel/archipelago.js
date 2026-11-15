@@ -7,7 +7,7 @@ import {rngFrom} from './art.js?v=2.28.25';
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
-import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
+import {createWaterMesh} from './water-shader.js?v=2.28.25-baltic-calm1';
 import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite18';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
 import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite18';
@@ -224,11 +224,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     return p?{points:p.points.map(v=>({x:v.x,z:v.z}))}:
       {x:f.x,z:f.z,w:f.w+1.2,d:f.d+1.2,round:.6};
   });
-  const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:(quality?.props??1)>=1,lite:(quality?.props??1)<1});
+  const water=createWaterMesh(shoreRects,{x0:cx-W/2,z0:cz-D/2,w:W,d:D},{caustics:!visualV2&&(quality?.props??1)>=1,lite:(quality?.props??1)<1,balticCalm:visualV2});
   if(visualV2){
     const U=water.material.uniforms;
-    U.cShallow.value.set('#336b70');U.cMid.value.set('#25495f');U.cDeep.value.set('#101d2c');
-    U.cFoam.value.set('#a6bbc0');U.cSky.value.set('#958c9a');
+    // Baltic summer night: slate-blue depths and pale pink sky ribbons,
+    // with restrained shallows and no bright foamy wave animation.
+    U.cShallow.value.set('#477d82');U.cMid.value.set('#3d6277');U.cDeep.value.set('#28394f');
+    U.cFoam.value.set('#a8b7bd');U.cSky.value.set('#a0a9c0');U.cRose.value.set('#e1a5bb');
   }
   water.name='water';group.add(water);
   if(visualV2){
