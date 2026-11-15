@@ -168,8 +168,8 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       return Math.abs(x-z.x)<z.w/2+2&&Math.abs(t-z.z)<z.d/2+2;
     });
     if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
-    heads.push({angle,width:heads.length===0?.70:heads.length===1?.56:.43,
-      height:heads.length===0?2.65:heads.length===1?2.02:1.46});
+    heads.push({angle,width:heads.length===0?.48:heads.length===1?.42:.38,
+      height:heads.length===0?2.45:heads.length===1?1.87:1.43});
     if(heads.length===2)break;
   }
   if(heads.length<2){
@@ -180,7 +180,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       const z=floor.z+Math.sin(p.angle)*(p.radial+.8);
       if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+2.5&&Math.abs(z-b.z)<b.d/2+2.5))continue;
       if(heads.some(h=>Math.abs(wrap(h.angle-p.angle))<1.0))continue;
-      heads.push({angle:p.angle,width:.43,height:1.50});
+      heads.push({angle:p.angle,width:.40,height:1.50});
       if(heads.length===2)break;
     }
   }
@@ -205,7 +205,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // The neighbor bisector / bridge guards below still own the maximum reach.
     const outline=.88+.17*Math.cos(4*p.angle+profile.seed*.00023)
       +.12*Math.sin(9*p.angle-profile.seed*.00031);
-    const prospect=base+influence*(5.20*outline);
+    const prospect=base+influence*(5.75*outline);
     let safe=prospect;
     for(const other of neighborProfiles){
       if(other===profile)continue;
@@ -275,13 +275,13 @@ function heroCoastRingData(profile){
   // Flat, untraversable rocky shelves step up to three individual crowns.
   // The first three strips barely rise: gameplay never reads as uphill terrain.
   // Ridges start further offshore and descend into deep, darker water.
-  const cap=[0,0,.016,.075,.23,.63,.94,1.07,.96,.67,.34,.12,.018,0];
+  const cap=[0,0,.015,.09,.31,.70,.98,1.00,.91,.64,.35,.13,.016,0];
   const yFloor=[.010,.008,.004,-.003,-.015,-.026,-.041,-.058,-.081,-.11,-.14,-.19,-.27,-.65];
   const yCove=[.010,.008,.002,-.012,-.036,-.057,-.081,-.11,-.155,-.218,-.28,-.345,-.44,-.65];
   const stoneColors=[
-    '#667b6e','#7c8782','#8f9592','#a39ea1',
-    '#b0a4ab','#b8abb1','#b2a4ab','#a79ea9',
-    '#9996a4','#8b91a0','#788394','#66788a','#4f6477','#394e60'
+    '#657a6a','#77877f','#8b9290','#aea5a8',
+    '#c6b5c0','#c8b8c4','#c5b4c2','#bdafbc',
+    '#ad9fae','#9696a8','#7b8798','#667787','#4d6376','#394e60'
   ].map(rgb);
   const positions=[],colors=[],uvs=[],blends=[],indices=[];
   const stoneRoots={masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]};
@@ -304,7 +304,9 @@ function heroCoastRingData(profile){
     // Scale individual rock blocks unevenly, breaking up the previously
     // sausage-like grey shoreline into recognizable headland silhouettes.
     const crown=.87+.12*Math.cos(local*5.2)+.08*Math.sin(local*9.7+1.3);
-    const relief=(p.heroRelief??0)*3.52*fractured*crown;
+    // Match the visual target's broad 2–3 m glacial mounds rather than
+    // monumental 4 m cliff walls stretched across the whole shoreline.
+    const relief=(p.heroRelief??0)*2.72*fractured*crown;
     return {rough,secondary,local,rockMask,relief,
       fault:.022*Math.sin(5*p.angle+seed*.00013)
         +.018*Math.sin(11*p.angle-seed*.00017)
@@ -351,8 +353,8 @@ function heroCoastRingData(profile){
     const blend=k===0?0:transition*clamp(.008+exposure*.99+wet,0,1);
     const fissure=section.rockMask*(k>=6&&k<=11?
       Math.pow(Math.max(0,Math.cos(p.angle*21.5+seed*.0002+k*.27)),12)*.20:0);
-    const faceShade=clamp(.72+.24*section.rough+.10*section.secondary
-      +.07*Math.sin(k*.83+p.angle*6.2)-fissure,.58,1.10);
+    const faceShade=clamp(.85+.15*section.rough+.09*section.secondary
+      +.06*Math.sin(k*.83+p.angle*6.2)-fissure,.70,1.12);
     const stone=stoneColors[k];
     for(let channel=0;channel<3;channel++){
       const mineral=stone[channel]*faceShade;
