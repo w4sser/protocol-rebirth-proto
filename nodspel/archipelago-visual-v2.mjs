@@ -181,26 +181,124 @@ export function planArchipelagoGroundcover(profile,{high=true,reservations=[]}={
   }
   return result;
 }
+// The four silhouette families are deliberately different at raid-camera scale:
+// low shoreline scrub, leaning wind-shaped pine, tall sparse sentinel and
+// crooked mid-height pine. Trees remain visual-only; gameplay stays planar.
+const PINE_SHAPES=[
+  {name:'shore-dwarf',h:2.0,lean:.13,crowns:[
+    [-.48,.76,.06,1.05,.25,.70],[.30,.84,-.12,.93,.25,.69],[.03,1.0,.12,.70,.19,.49]]},
+  {name:'windswept',h:3.3,lean:.22,crowns:[
+    [-.56,.76,-.04,1.17,.25,.72],[.44,.89,.12,1.12,.28,.67],[.94,.79,-.15,.68,.21,.46],[-.10,1.01,.03,.76,.22,.58]]},
+  {name:'sentinel',h:5.5,lean:.06,crowns:[
+    [-.52,.75,-.04,1.03,.27,.68],[.43,.83,.20,1.18,.26,.74],[-.27,.93,.18,.93,.25,.60],[.48,.99,-.16,.75,.20,.55],[.03,1.08,.02,.60,.19,.48]]},
+  {name:'crooked',h:4.0,lean:.30,crowns:[
+    [-.43,.69,.05,.89,.24,.63],[.50,.79,-.12,1.06,.25,.72],[.81,.94,.17,.75,.23,.53],[-.07,1.02,.03,.79,.22,.58]]}
+];
 export function planArchipelagoPines(level,spots){
-  const result=[];
-  for(const floor of level.floors.filter(f=>!f.dir)){
+  const result=[],floors=level.floors.filter(f=>!f.dir);
+  for(let floorIndex=0;floorIndex<floors.length;floorIndex++){
+    const floor=floors[floorIndex];
     const candidates=spots.filter(p=>Math.abs(p.x-floor.x)<floor.w/2&&Math.abs(p.z-floor.z)<floor.d/2)
-      .filter(p=>Math.hypot((p.x-floor.x)/(floor.w/2),(p.z-floor.z)/(floor.d/2))>.48)
+      .filter(p=>Math.hypot((p.x-floor.x)/(floor.w/2),(p.z-floor.z)/(floor.d/2))>.52)
       .sort((a,b)=>hash(Math.round(a.x*61+a.z*97))-hash(Math.round(b.x*61+b.z*97)));
     const chosen=[],limit=clamp(Math.round(floor.w*floor.d/85),2,5);
-    for(const p of candidates){if(chosen.every(q=>Math.hypot(p.x-q.x,p.z-q.z)>3))chosen.push(p);if(chosen.length>=limit)break;}result.push(...chosen);
+    const first=Math.floor(hash(Math.round(floor.x*13+floor.z*23+floorIndex*37))*PINE_SHAPES.length);
+    for(const p of candidates){
+      if(chosen.every(q=>Math.hypot(p.x-q.x,p.z-q.z)>3.2)){
+        const seed=Math.round(p.x*211+p.z*163+floorIndex*41);
+        chosen.push({...p,pineVariant:(first+chosen.length)%PINE_SHAPES.length,pineSeed:seed,
+          pineScale:.85+hash(seed+29)*.30});
+      }
+      if(chosen.length>=limit)break;
+    }
+    result.push(...chosen);
   }
   return result;
 }
-const barkMat=new THREE.MeshStandardMaterial({color:'#504c41',roughness:1}),pineMat=new THREE.MeshStandardMaterial({color:'#3b6558',roughness:1,flatShading:true}),trunkGeo=new THREE.CylinderGeometry(.09,.15,1,6),crownGeo=new THREE.IcosahedronGeometry(1,0);
-for(const r of [barkMat,pineMat,trunkGeo,crownGeo])r.userData.shared=true;
-export function archipelagoCoastalPine(spot){
-  const g=new THREE.Group(),r=hash(Math.round(spot.x*111+spot.z*37)),h=2.6+r*.8;g.position.set(spot.x,0,spot.z);g.rotation.y=r*TAU;g.name='arch-v2-coastal-pine';g.userData.visualOnly=true;
-  const trunk=new THREE.Mesh(trunkGeo,barkMat);trunk.scale.set(1,h,1);trunk.position.set(.12,h*.5,0);trunk.rotation.z=-.07;g.add(trunk);
-  // Wind-shaped, horizontally spreading Scandinavian pine crowns; avoid three rounded balls.
-  const branches=[[-.40,h-.30,-.14,1.08,.24,.62],[.25,h-.06,.13,.92,.27,.69],[.64,h-.47,-.19,.67,.20,.46],[-.12,h+.21,.04,.60,.20,.48]];
-  for(let i=0;i<branches.length;i++){const [x,y,z,sx,sy,sz]=branches[i],crown=new THREE.Mesh(crownGeo,pineMat);crown.position.set(x,y,z);crown.scale.set(sx,sy,sz);crown.rotation.y=i*.79;g.add(crown);}
-  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});return g;
+const barkMat=new THREE.MeshStandardMaterial({color:'#504c41',roughness:1,flatShading:true});
+const pineMats=['#234a42','#31594c','#436857'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+const trunkGeo=new THREE.CylinderGeometry(.082,.16,1,6);
+const twigGeo=new THREE.CylinderGeometry(.040,.077,1,5);
+const crownGeo=new THREE.IcosahedronGeometry(1,0);
+const UP=new THREE.Vector3(0,1,0);
+for(const r of [barkMat,...pineMats,trunkGeo,twigGeo,crownGeo])r.userData.shared=true;
+function pinePart(group,mesh){
+  mesh.userData.pineOwner=group;
+  mesh.userData.pineOpaqueMaterial=mesh.material;
+  mesh.castShadow=true;
+  group.userData.pineMeshes.push(mesh);
+  group.add(mesh);
+}
+function pineBranch(group,ax,ay,az,bx,by,bz,thickness){
+  const from=new THREE.Vector3(ax,ay,az),to=new THREE.Vector3(bx,by,bz),delta=to.clone().sub(from),length=delta.length();
+  const mesh=new THREE.Mesh(twigGeo,barkMat);
+  mesh.position.copy(from).add(to).multiplyScalar(.5);
+  mesh.quaternion.setFromUnitVectors(UP,delta.multiplyScalar(1/length));
+  mesh.scale.set(thickness,length,thickness);
+  pinePart(group,mesh);
+}
+export function archipelagoCoastalPine(spot,{low=false}={}){
+  const seed=spot.pineSeed??Math.round(spot.x*111+spot.z*37);
+  const variant=((spot.pineVariant??Math.floor(hash(seed+17)*4))%4+4)%4;
+  const shape=PINE_SHAPES[variant],scale=spot.pineScale??(.85+hash(seed+29)*.3);
+  const height=shape.h*scale,lean=shape.lean*(.72+hash(seed+13)*.56);
+  const g=new THREE.Group();
+  g.position.set(spot.x,-.025,spot.z);
+  g.rotation.y=hash(seed+113)*TAU;
+  g.name='arch-v2-coastal-pine';
+  g.userData.visualOnly=true;
+  g.userData.pineVariant=shape.name;
+  g.userData.pineHeight=height;
+  g.userData.pineMeshes=[];
+  g.userData.pineOpacity=1;
+  // Segmented, slightly bent trunk; pine crowns sit high enough to expose
+  // recognisable bark. No spruce/conical Christmas-tree silhouette.
+  const lower=new THREE.Mesh(trunkGeo,barkMat);
+  lower.position.set(lean*height*.09,height*.27,0);
+  lower.scale.set(scale,height*.55,scale);
+  lower.rotation.z=-lean*.34;
+  pinePart(g,lower);
+  const upper=new THREE.Mesh(trunkGeo,barkMat);
+  upper.position.set(lean*height*.29,height*.75,0);
+  upper.scale.set(scale*.68,height*.51,scale*.68);
+  upper.rotation.z=-lean*.76;
+  pinePart(g,upper);
+  const total=low?Math.min(3,shape.crowns.length):shape.crowns.length;
+  for(let i=0;i<total;i++){
+    const [x,y,z,sx,sy,sz]=shape.crowns[i],j=hash(seed+i*79+31)-.5;
+    const crown=new THREE.Mesh(crownGeo,pineMats[(i+variant)%pineMats.length]);
+    crown.position.set(x*scale+lean*height*.46+j*.14,y*height+j*.10,z*scale+j*.12);
+    crown.scale.set(sx*scale*(.91+hash(seed+i*17)*.19),sy*scale,sz*scale);
+    crown.rotation.y=hash(seed+i*37+107)*TAU;
+    crown.rotation.z=j*.14;
+    pinePart(g,crown);
+    // Visible sparse branches communicate Swedish Scots pine rather than
+    // disconnected floating canopy pads. LOW retains the silhouette only.
+    if(!low&&i<2)pineBranch(g,lean*height*.23,height*(.59+i*.11),0,
+      crown.position.x*.80,crown.position.y-.08,crown.position.z*.8,.65*scale);
+  }
+  return g;
+}
+// Each tree has its own fade material, so a pine in the foreground can become
+// translucent without fading every pine sharing its normal opaque material.
+export function setArchipelagoPineOpacity(tree,opacity){
+  if(!tree?.userData?.pineMeshes)return;
+  const a=clamp(opacity,.20,1),fading=a<.995;
+  if(Math.abs(a-tree.userData.pineOpacity)<.003)return;
+  for(const mesh of tree.userData.pineMeshes){
+    if(fading){
+      let faded=mesh.userData.pineFadeMaterial;
+      if(!faded){
+        faded=mesh.userData.pineOpaqueMaterial.clone();
+        faded.transparent=true;
+        faded.depthWrite=false;
+        mesh.userData.pineFadeMaterial=faded;
+      }
+      faded.opacity=a;
+      mesh.material=faded;
+    }else mesh.material=mesh.userData.pineOpaqueMaterial;
+  }
+  tree.userData.pineOpacity=a;
 }
 const portalMaterials=['#747a79','#27343b','#8e8e88'].map(color=>{const m=new THREE.MeshStandardMaterial({color,roughness:1});m.userData.shared=true;return m;}),cubeGeo=new THREE.BoxGeometry(1,1,1);cubeGeo.userData.shared=true;
 function block(parent,x,y,z,w,h,d,m){const o=new THREE.Mesh(cubeGeo,portalMaterials[m]);o.position.set(x,y,z);o.scale.set(w,h,d);o.name='arch-v2-portal-concrete';o.receiveShadow=true;parent.add(o);return o;}
