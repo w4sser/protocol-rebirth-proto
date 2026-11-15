@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 // Proves each bug-lint rule actually fires on the regression it guards.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';import {RULES,runAll} from '../scripts/bug-lint.mjs';
