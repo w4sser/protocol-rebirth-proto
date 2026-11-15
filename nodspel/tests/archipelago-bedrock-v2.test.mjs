@@ -42,12 +42,14 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
   const mesh=art.addArchipelagoGraniteV2(profile,group);
   assert.equal(mesh.name,'arch-v2-glacial-shelves');
   assert.ok(mesh.geometry.getAttribute('color'),'geological color variation');
-  assert.ok(mesh.geometry.getAttribute('position').count>700,'chunky stone blocks have rounded sides and broad crowns');
-  const vertices=mesh.geometry.getAttribute('position'),heights=[.576,.804,.995];
-  for(const top of heights){
-    const count=Array.from({length:vertices.count},(_,i)=>vertices.getY(i)).filter(y=>Math.abs(y-top)<.007).length;
-    assert.ok(count>20,'each of three offset rock caps has a broad top');
-  }
+  assert.ok(mesh.geometry.getAttribute('position').count>700,'rich sculpted rock silhouettes remain low-poly');
+  assert.equal(mesh.geometry.userData.continuousGlacialMass,true,
+    'one continuous granite mesh avoids intersecting tier shells and z-fighting');
+  assert.equal(mesh.material.flatShading,true,'sculpted granite uses broad, readable planes');
+  const vertices=mesh.geometry.getAttribute('position'),peak=vertices.getY(vertices.count-1);
+  assert.ok(peak>.99&&peak<1.02,'closed shifted crown finishes the continuous mass');
+  const xs=new Set(Array.from({length:vertices.count},(_,i)=>Math.round(vertices.getX(i)*100)));
+  assert.ok(xs.size>35,'ice-worn granite needs a broad irregular silhouette');
   assert.ok(group.children.length<=3,'instanced major masses and shelves');
   assert.equal(mesh.geometry.userData.shared,true,'sculpted geometry survives world rebuilds');
   assert.ok(group.children.every(m=>m.material.userData.shared));
@@ -178,7 +180,7 @@ test('the same coastal shell develops glacial shoulders without changing walkabl
     assert.ok(Math.abs(raised.positions[last]-base.positions[last])<1e-6,'outer waterline unchanged');
     maxLift=Math.max(maxLift,raised.positions[(3*n+i)*3+1]-base.positions[(3*n+i)*3+1]);
   }
-  assert.ok(maxLift>.06,'a real raised geological shoulder is required at an outcrop');
+  assert.ok(maxLift>.30,'a convincing coastal granite root rises as part of the same coast mesh');
 });
 
 test('the playable mineral veins join the cliff with exact linear colors',()=>{
