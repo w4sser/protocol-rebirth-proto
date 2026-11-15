@@ -162,7 +162,8 @@ exactly as the original plain-line cutscene did.
   `FABRICATOR_CUTSCENE_ART` names an optional future dedicated pair
   (`cutscene-fabricator-dark-v1.webp` → `cutscene-fabricator-powered-v1.webp`); `app.js` probes
   both with an `Image` `onerror` check *only when the moment actually triggers* (never a blind
-  fetch on every page load) and uses them instead of the fallback once both exist. Preload/play
+  fetch on every page load). Preload and play share one cached promise; errors or a three-second
+  timeout select the existing-art fallback. The pair is used only once both images load. Preload/play
   after the Fabricator L1 reward popup closes (the ordinary module-build popup; unlike the Core
   restore, Fabricator keeps it) and the bunkerwake build animation (~1.6s) finishes. Bust: happy,
   left. Info: NEW is fixed flavor copy ("Craft gear from raid materials"); FIRST RECIPE names the

@@ -197,6 +197,12 @@ export const RULES=[
      }
      return out;}},
 
+  {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!/if\(!fabricatorArtPromise\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the optional Fabricator art probe across preload and play');
+     if(!/setTimeout\(\(\) => finish\(false\), 3000\)/.test(probe)||!/clearTimeout\(timeout\)/.test(probe))out.push('app.js: optional Fabricator art must settle on timeout and clear its timer');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

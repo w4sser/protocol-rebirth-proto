@@ -1,4 +1,5 @@
 // Proves each bug-lint rule actually fires on the regression it guards.
+import fs from 'node:fs';
 import assert from 'node:assert/strict';import {RULES,runAll} from '../scripts/bug-lint.mjs';
 const by=id=>RULES.find(r=>r.id===id);
 assert.ok(by('no-tracked-node-modules').check({files:['node_modules'],gitignore:'node_modules/\n'}).length===2,'#129 fires');
@@ -78,5 +79,9 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
  assert.equal(by('core-restore-no-power-popup').check({appSrc:badApp}).length,1,'PRB-155 fires if the isLightsOn branch never plays the cutscene itself');}
 {const goodApp='  build(modId){\n    if(isLightsOn){\n      save();\n      if(!S.bitCardsSeen.core_restored){\n        S.bitCardsSeen.core_restored=true;\n        window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);\n      } else bitDock("module_built");\n    } else if(isFabricatorOnline){\n      overlay(upgradeRewardHtml());\n    }\n  },\n';
  assert.equal(by('core-restore-no-power-popup').check({appSrc:goodApp}).length,0,'PRB-155 passes once the popup is gone and the cutscene itself plays, even nested inside another if');}
+{const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app}).length,0,'cached bounded probe passes');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('if(!fabricatorArtPromise)','if(true)')}).length,1,'uncached probe fails');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('setTimeout(() => finish(false), 3000)','setTimeout(() => {}, 3000)')}).length,1,'unbounded probe fails');}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');

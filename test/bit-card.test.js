@@ -219,7 +219,7 @@ function boot(seedSave, calls){
   w.PRBitCutscene = { play: opts => calls.push(opts), preload(){}, isOpen(){ return false; } };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
-    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState};");
+    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,BIT_CUTSCENES,MODS,D,ITEMS};");
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -379,6 +379,44 @@ async function bootToCoreOneTapAway(calls){
   const w = boot(saved, calls);
   assert.equal(w.T.state().bitCardsSeen.fabricator_built, true, "existing save with Fabricator already built is marked seen on load");
   assert.equal(calls.length, 0, "loading a save never fires the cutscene by itself");
+}
+
+// Both callers share one bounded art probe: success uses the future pair; errors and stalled
+// loads use existing art without duplicate requests or an indefinitely blocked story beat.
+for(const mode of ["success", "error", "stall"]){
+  const w = boot(null, []), requests = [];
+  w.Image = class { set src(src){ requests.push(src); if(mode !== "stall") this[mode === "success" ? "onload" : "onerror"](); } };
+  const resolveBeat = () => new Promise(resolve => w.T.fabricatorCutsceneBeat(resolve));
+  const [a, b] = await Promise.all([resolveBeat(), resolveBeat()]);
+  assert.equal(requests.length, 2, "preload and play share a single pair of probes: " + mode);
+  assert.deepEqual(a, b, "both callers receive the cached beat: " + mode);
+  assert.equal(a.effect, mode === "success" ? null : "fabricator");
+  assert.match(a.from, mode === "success" ? /fabricator-dark/ : /core-restore-end/);
+  await resolveBeat();
+  assert.equal(requests.length, 2, "later calls never retry missing art: " + mode);
+  w.close();
+}
+
+// Existing saves from the prior narrator release already have bitCardsSeen. Fabricator must
+// migrate independently, preserving the earlier moments' flags and never replaying on load.
+{
+  const w = boot(null, []);
+  const st = w.T.freshState();
+  st.modules.fabricator = 1; st.bitCardsSeen = { core_restored:true, first_death:false };
+  w.T.migrateBitCardsSeen(st); w.T.migrateBitCardsSeen(st);
+  assert.deepEqual(JSON.parse(JSON.stringify(st.bitCardsSeen)), {core_restored:true,first_death:false,fabricator_built:true});
+  // Verify each displayed cost against data, including quantities and Scrap (not just the name).
+  const beats = w.T.BIT_CUTSCENES, fab = w.T.MODS.fabricator.levels[0].cost;
+  const next = beats.core_restored.info.find(r => r.label === "NEXT").text;
+  for(const [id, qty] of Object.entries(fab.items)) assert(next.includes(qty + "× " + w.T.ITEMS[id].name));
+  assert(next.includes(fab.scrap + "× Scrap"));
+  assert.equal(beats.core_restored.info[0].text, w.T.MODS.rebirth_core.benefit);
+  const recipe = w.T.D.recipes.find(r => r.output.itemId === "scavenger_vest");
+  const first = beats.fabricator_built.info.find(r => r.label === "FIRST RECIPE").text;
+  for(const [id, qty] of Object.entries(recipe.inputs)) assert(first.includes(qty + "× " + w.T.ITEMS[id].name));
+  assert(first.includes(recipe.scrapCost + "× Scrap"));
+  assert(beats.core_restored.line.length <= 90); assert(beats.fabricator_built.line.length <= 110);
+  w.close();
 }
 
 console.log("BIT CARD BASE MOMENTS TEST PASSED");

@@ -4419,15 +4419,25 @@ const FABRICATOR_CUTSCENE_ART = {
   from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
   to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp"
 };
+let fabricatorArtPromise;
 function fabricatorCutsceneArtReady(cb){
-  let left = 2, ok = true;
-  const settle = good => { ok = ok && good; if(--left === 0) cb(ok ? FABRICATOR_CUTSCENE_ART : null); };
-  [FABRICATOR_CUTSCENE_ART.from, FABRICATOR_CUTSCENE_ART.to].forEach(src => {
-    const img = new Image();
-    img.onload = () => settle(true);
-    img.onerror = () => settle(false);
-    img.src = src;
-  });
+  if(!fabricatorArtPromise) fabricatorArtPromise = Promise.all(
+    [FABRICATOR_CUTSCENE_ART.from, FABRICATOR_CUTSCENE_ART.to].map(src => new Promise(resolve => {
+      const img = new Image();
+      let settled = false;
+      const finish = ok => {
+        if(settled) return;
+        settled = true; clearTimeout(timeout);
+        img.onload = img.onerror = null;
+        resolve(ok);
+      };
+      const timeout = setTimeout(() => finish(false), 3000);
+      img.onload = () => finish(true);
+      img.onerror = () => finish(false);
+      img.src = src;
+    }))
+  ).then(results => results.every(Boolean) ? FABRICATOR_CUTSCENE_ART : null);
+  fabricatorArtPromise.then(cb);
 }
 // Resolves the actual beat to preload/play: the dedicated art pair once both files are confirmed
 // to exist, else the option (b) fallback (existing backdrop + CSS fx) baked into BIT_CUTSCENES.
