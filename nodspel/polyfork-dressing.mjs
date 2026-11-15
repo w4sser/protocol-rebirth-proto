@@ -18,6 +18,11 @@ const SAMPLE_IDS=[
   'sea-holly-clump-ce3bc6','net-pile-0bd489','lobster-pot-stack-d870f0'
 ];
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
+const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
+// V2 owns all camera-height trees so every canopy obeys the same occlusion rule.
+export function filterDressingTrees(items,{nativePines=false}={}){
+  return nativePines?items.filter(item=>!LEGACY_TREE_ASSETS.has(item.id)):items;
+}
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){
   if(!byId.has(id))return Promise.reject(new Error('Unknown local Polyfork asset: '+id));
@@ -91,16 +96,17 @@ function geometryParts(asset){
   if(!parts.length)throw new Error('No meshes in Polyfork GLB');
   return {size,parts};
 }
-export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='scatter'}={}){
+export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='scatter',nativePines=false}={}){
   const group=new THREE.Group();group.name='polyfork-experimental-dressing';scene.add(group);
   const composition=mode==='profiles'?planProfiledDressing(level,{quality,density}):
     mode==='coastal'?planCoastalLifeDressing(level,{quality,density}):
     mode==='military'?planMilitaryRemnantsDressing(level,{quality,density}):null;
-  const items=composition?composition.items:planPolyforkDressing(level,{quality,density}),groups=new Map();
+  const planned=composition?composition.items:planPolyforkDressing(level,{quality,density});
+  const items=filterDressingTrees(planned,{nativePines}),groups=new Map();
   const fortifications=composition?.architecture?.length?
     renderMilitaryArchitecture(composition.architecture,group,{quality,seed:level.seed}):null;
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}
-  const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],landmarks:composition?.landmarks??[],militaryLandmarks:composition?.militaryLandmarks??[],planned:items.length,loaded:0,meshes:0,triangles:0,
+  const stats={enabled:true,quality,mode,regions:composition?.regions.map(({index,profile,key})=>({index,profile,key}))??[],landmarks:composition?.landmarks??[],militaryLandmarks:composition?.militaryLandmarks??[],planned:items.length,excludedLegacyTrees:planned.length-items.length,loaded:0,meshes:0,triangles:0,
     militaryGeometry:fortifications?.stats??{structures:0,parts:0,meshes:0,drawCalls:0},
     failed:[],ready:false};
   const q=new THREE.Quaternion(),p=new THREE.Vector3(),s=new THREE.Vector3(),m=new THREE.Matrix4(),up=new THREE.Vector3(0,1,0);
