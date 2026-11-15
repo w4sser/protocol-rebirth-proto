@@ -100,6 +100,55 @@ export function coastlineProfile(floor,levelSeed,{samples=72,style='legacy',neig
   }
   return {floor,seed,style,points,rockyRatio:rockyLength/totalLength,totalLength,beachRatio:1-rockyLength/totalLength};
 }
+// Resolve all v2 coastlines together, after every island is profiled.
+// The old per-room rectangle check missed neighboring organic headlands,
+// allowing two opaque ground/coast meshes to occupy the same XZ area.
+// A shared center-bisector half-plane ensures that every coast polygon
+// stays on its own side of a real water channel (including the outer shell).
+// This never applies to legacy Archipelago or its gameplay boundaries.
+export function separateArchipelagoCoastProfiles(profiles,{halfGap=.55}={}){
+  const islands=[...profiles].filter(p=>p?.style==='v2');
+  if(islands.length<2)return islands;
+  for(const p of islands){
+    for(const v of p.points){
+      let allowed=v.radial;
+      const c=Math.cos(v.angle),sin=Math.sin(v.angle);
+      for(const other of islands){
+        if(other===p)continue;
+        const dx=other.floor.x-p.floor.x,dz=other.floor.z-p.floor.z;
+        const distance=Math.hypot(dx,dz),toward=dx*c+dz*sin;
+        if(toward<=1e-8||distance<=1e-8)continue;
+        // The outer coastline is at least halfGap inside the mid-plane.
+        // Coast shell extends another .22 m, so two shells still retain
+        // a real positive water gap, not coincident shoreline triangles.
+        allowed=Math.min(allowed,(distance*.5-halfGap)*distance/toward);
+      }
+      // Maintain existing authored room and actor/shore margin. When the
+      // supplied level is too tightly packed to contain both independent
+      // islands, record a detectable layout conflict rather than silently
+      // shifting collisions into the gameplay room.
+      const minRadius=v.innerRadial+.84;
+      if(allowed<minRadius-1e-7){
+        p.separationConflicts=(p.separationConflicts??0)+1;
+        allowed=minRadius;
+      }
+      v.radial=allowed;
+      v.playableRadial=allowed-.65;
+      v.x=p.floor.x+c*allowed;
+      v.z=p.floor.z+sin*allowed;
+    }
+    let length=0,rocky=0;
+    for(let i=0;i<p.points.length;i++){
+      const a=p.points[i],b=p.points[(i+1)%p.points.length];
+      const segment=Math.hypot(a.x-b.x,a.z-b.z);
+      length+=segment;rocky+=segment*(1-(a.beach+b.beach)*.5);
+    }
+    p.totalLength=length;
+    p.rockyRatio=length>0?rocky/length:0;
+    p.beachRatio=1-p.rockyRatio;
+  }
+  return islands;
+}
 // Six opaque rings instead of a 4-ring untextured slab.
 // The first ~1.05 m is INSET into the existing walkable rectangle: the same
 // ground texture can cover the rectangle-to-coast join, then fade progressively
