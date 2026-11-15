@@ -62,7 +62,7 @@
   box-shadow:0 0 6px 1px color-mix(in srgb,var(--ad-cyan) 70%,transparent);opacity:0;animation:bitCutsceneSpark 1.4s ease-out 1 both;}
 .bit-cutscene-sparks span:nth-child(odd){background:var(--ad-cyan);}
 @keyframes bitCutsceneSpark{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-54px) scale(1.1)}}
-.bit-cutscene-hologram{position:absolute;left:50%;bottom:22%;transform:translateX(-50%);width:76px;height:76px;
+.bit-cutscene-hologram{position:absolute;left:50%;bottom:42%;transform:translateX(-50%);width:76px;height:76px;
   display:flex;align-items:center;justify-content:center;opacity:0;clip-path:inset(100% 0 0 0);
   filter:drop-shadow(0 0 10px color-mix(in srgb,var(--ad-cyan) 70%,transparent));transition:opacity .5s ease,clip-path .9s ease;}
 .bit-cutscene-hologram svg,.bit-cutscene-hologram img{width:100%;height:100%;}

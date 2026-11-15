@@ -208,6 +208,11 @@ export const RULES=[
      if(!/if\(run\.reduced\) el\.classList\.add\("hint-visible"\)/.test(js))out.push('ui/bit-cutscene.js: reduced motion must reveal the continue hint immediately');
      if(!/reduced \.bit-cutscene-bust,[\s\S]*?\{transition:none;\}/.test(css))out.push('ui/bit-cutscene.css: reduced motion must disable the bust fade');
      return out;}},
+  {id:'narrator-hologram-above-copy',pr:'v2.28.3x PRB-155 Fabricator layout',why:'the assembling vest was hidden behind the speech bubble at phone landscape sizes; keep its anchor above the copy and verify actual rectangles in the screenshot harness',
+   check(c={}){const css=c.cutsceneCss??read('ui/bit-cutscene.css');
+     const rule=(css.match(/\.bit-cutscene-hologram\{([^}]+)\}/)||[])[1]||'';
+     const bottom=Number((rule.match(/bottom:([\d.]+)%/)||[])[1]);
+     return bottom>=40?[]:['ui/bit-cutscene.css: keep the hologram above the speech bubble (bottom at least 40%); run narrator-cutscene-shots.mjs for geometric checks'];}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
