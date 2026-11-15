@@ -905,7 +905,7 @@ let propsPreview=null;
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
 const POLYFORK_ACTIVE=archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).enabled;
 const MILITARY_STYLE=(POLYFORK_ACTIVE||ARCH_VISUAL_V2)&&archipelagoDressingConfig({area:AREA_SEL,search:location.search,quality:QUALITY}).mode==='military';
-const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1-military-v3'):null;
+const polyforkModulePromise=POLYFORK_ACTIVE?import('./polyfork-dressing.mjs?v=polyfork-local-glbs-v1-military-v3-native-pines'):null;
 let polyforkPreview=null,polyforkLoadToken=0;
 function refreshArchipelagoDressing(level){
   const token=++polyforkLoadToken;
@@ -916,7 +916,7 @@ function refreshArchipelagoDressing(level){
     // Ignore a slow CDN/import response after a new raid or graphics change.
     if(token!==polyforkLoadToken||round.level!==level)return;
     polyforkPreview=module.addPolyforkDressing(level,scene,{
-      quality:config.quality,density:config.density,mode:config.mode});
+      quality:config.quality,density:config.density,mode:config.mode,nativePines:ARCH_VISUAL_V2});
     window.__polyforkPreview=polyforkPreview;
   }).catch(error=>console.warn('[archipelago-dressing] import failed; base environment retained',error));
 }
