@@ -486,7 +486,11 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   // hull stand-ins placed on a radius around the global map center.
   if(visualV2){
     const places=planArchipelagoBoatsV2([...coastProfiles.values()],level.floors,level.seed,
-      {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},bedrockPlans:[...bedrockPlans.values()]});
+      {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},
+        // Hero granite is part of the island polygon: the boats planner must
+        // not mistake its material-angle anchors for separate rock AABBs.
+        bedrockPlans:[...bedrockPlans.values()].filter(plan=>
+          [...(plan?.masses??[]),...(plan?.shelves??[])].every(m=>m.bounds))});
     out.boatPlacements=places;
     for(const place of places){group.add(createArchipelagoDinghyV2(place));out.boats++;}
   }else{
