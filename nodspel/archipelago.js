@@ -162,9 +162,10 @@ bankMat.userData.shared=true;
 // cadence. Rock and blocking geometry share the same mid-height contour.
 function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
   const alongX=w.w>=w.d,length=Math.max(w.w,w.d),width=Math.min(w.w,w.d);
-  const count=length<3.4?1:length<7.3?2:3;
-  const spokes=18,ringSpec=[
-    [-.145,1.17],[.11,1.045],[.44,.91],[.78,.73],[1,.48]
+  const count=length<3.4?1:length<10.8?2:3;
+  const spokes=12,ringSpec=[
+    [-.145,1.22],[.06,1.17],[.32,1.12],[.45,1.02],
+    [.48,.86],[.70,.82],[.78,.62]
   ];
   const positions=[],colors=[],indices=[],outcrops=[];
   const light=new THREE.Color('#a29fa8'),dark=new THREE.Color('#64717e');
@@ -189,17 +190,17 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
   }
   for(let i=0;i<count;i++){
     const centerLong=-length/2+(i+.5)*cell+(rng()-.5)*Math.min(.14,cell*.055);
-    const centerAcross=(rng()-.5)*.47;
-    const halfAlong=cell*.50+.39,halfAcross=Math.max(.58,Math.min(.84,width*.52+.43+rng()*.17));
-    const tilt=(rng()-.5)*.44;
+    const centerAcross=(rng()-.5)*1.15;
+    const halfAlong=cell*.42+.20,halfAcross=Math.max(.68,Math.min(1.18,width*.60+.78+rng()*.23));
+    const tilt=(rng()-.5)*.83;
     const cosTilt=Math.cos(tilt),sinTilt=Math.sin(tilt);
-    const height=(w.h??1)*(.86+.40*rng())+(i%2)*.12;
+    const height=(w.h??1)*(.83+.18*rng()+(i%2)*.33);
     const wobble=phase+i*2.13+rng()*.53;
     const start=positions.length/3,core=[];
     for(let ring=0;ring<ringSpec.length;ring++)for(let j=0;j<=spokes;j++){
       const angle=j/spokes*Math.PI*2,c=Math.cos(angle),sin=Math.sin(angle);
-      const rockNoise=1+.085*Math.sin(3*angle+wobble)
-        +.041*Math.sin(5*angle-wobble*.6)+.022*Math.cos(7*angle+wobble*.37);
+      const rockNoise=1+.13*Math.sin(3*angle+wobble)
+        +.055*Math.sin(5*angle-wobble*.6)+.025*Math.cos(7*angle+wobble*.37);
       // Outer ends taper back toward the authored gap; inner shoulders may
       // overlap, so the visible partition retains its intended blocking role.
       const endBias=(i===0&&c<0)||(i===count-1&&c>0)?.83:1.10;
@@ -227,7 +228,7 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
     const tip=positions.length/3,top=start+(ringSpec.length-1)*(spokes+1);
     const tipX=alongX?w.x+centerLong:w.x+centerAcross;
     const tipZ=alongX?w.z+centerAcross:w.z+centerLong;
-    positions.push(tipX,height*1.015,tipZ);
+    positions.push(tipX,height*.80,tipZ);
     colors.push(light.r,light.g,light.b);
     for(let j=0;j<spokes;j++){
       if(alongX)indices.push(top+j,tip,top+j+1);
