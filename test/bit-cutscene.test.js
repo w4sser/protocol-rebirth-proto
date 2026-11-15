@@ -25,6 +25,8 @@ function fixture({ reduced = false, fail = false, stall = false } = {}){
 const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is back."};
 (async function(){
   {
+    // PRB-158 (Robert's playtest): no auto-advance -- the scene holds until the player taps, the
+    // first second ignores taps (no accidental skip), and TAP TO CONTINUE fades in at ~3s.
     const {api,doc,tick,requests,w} = fixture(); let done = 0;
     doc.querySelector("#before").focus();
     assert.equal(requests.length,0,"no boot preloads");
@@ -35,29 +37,40 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert.equal(el.getAttribute("role"),"dialog");
     assert.equal(doc.activeElement,el.querySelector("button"),"continue receives focus");
     assert(!el.classList.contains("line-visible"));
-    await tick(1499); assert(!el.classList.contains("hint-visible"));
-    await tick(1); assert(el.classList.contains("hint-visible"));
-    await tick(1649); assert(!el.classList.contains("crossfaded"));
-    await tick(1); assert(el.classList.contains("crossfaded")); assert(el.classList.contains("line-visible"));
-    await tick(3849); assert(!el.classList.contains("leaving"));
-    await tick(1); assert(el.classList.contains("leaving"));
-    await tick(350); assert(!api.isOpen()); assert.equal(done,1); assert.equal(doc.activeElement.id,"before");
+    el.click(); assert(api.isOpen(),"a tap in the first second is ignored");
+    await tick(999); el.click(); assert(api.isOpen(),"still ignored just under one second");
+    await tick(2000); assert(!el.classList.contains("hint-visible"),"t~3s: hint not up yet"); // t=2999
+    await tick(1); assert(el.classList.contains("hint-visible"),"hint fades in at ~3s"); // t=3000
+    await tick(149); assert(!el.classList.contains("crossfaded")); // t=3149
+    await tick(1); assert(el.classList.contains("crossfaded")); assert(el.classList.contains("line-visible")); // t=3150
+    await tick(60000); assert(api.isOpen(),"never auto-advances, however long it sits open");
+    el.click(); // a tap well after one second continues
+    assert(el.classList.contains("leaving"));
+    await tick(349); assert(api.isOpen(),"still fading out just before FADE elapses");
+    await tick(1); assert(!api.isOpen()); assert.equal(done,1); assert.equal(doc.activeElement.id,"before");
     w.close();
   }
   for(const method of ["tap","escape","button"]){
     const {api,doc,tick,w} = fixture(); let done = 0;
     api.play({...beat,onDone:()=>done++}); await tick();
     const el = doc.querySelector(".bit-cutscene");
-    if(method === "escape") el.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
-    else (method === "button" ? el.querySelector("button") : el).click();
-    api.dismiss(); await tick(8000); assert.equal(done,1,"skip completes once"); assert(!api.isOpen()); w.close();
+    const fire = () => method === "escape" ? el.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true}))
+      : (method === "button" ? el.querySelector("button") : el).click();
+    fire(); assert(api.isOpen(),method+" in the first second is ignored");
+    await tick(1000);
+    fire(); assert(el.classList.contains("leaving"),method+" after one second continues");
+    await tick(350); assert.equal(done,1,"skip completes once"); assert(!api.isOpen()); w.close();
   }
   {
     const {api,doc,tick,w} = fixture({reduced:true});
     api.play(beat); await tick();
     const el = doc.querySelector(".bit-cutscene");
     assert(el.classList.contains("reduced")); assert(el.classList.contains("line-visible"));
+    assert(el.classList.contains("hint-visible"),"reduced motion shows the continue hint instantly, not at ~3s");
+    el.click(); assert(api.isOpen(),"the one-second tap guard still applies under reduced motion");
     await tick(3150); assert(el.classList.contains("crossfaded"));
+    assert(api.isOpen(),"reduced motion still never auto-advances");
+    await tick(60000); assert(api.isOpen());
     api.dismiss(); assert(!api.isOpen(),"no closing animation for reduced motion"); w.close();
   }
   for(const options of [{fail:true},{stall:true}]){
@@ -66,7 +79,8 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     const el = doc.querySelector(".bit-cutscene");
     assert(el.classList.contains("line-visible"),"load failure immediately shows readable line");
     assert([...el.querySelectorAll("img")].every(i=>i.hidden),"no broken image icons");
-    await tick(7350); assert(!api.isOpen(),"failed load still auto-ends"); w.close();
+    await tick(7350); assert(api.isOpen(),"a load failure still holds until tap -- no auto-end");
+    await tick(1000); el.click(); assert(el.classList.contains("leaving"),"still dismissible by tap"); w.close();
   }
   for(const block of ["intro","splash","overlay","homecoming","screen","voice","card","startup","settings","portrait"]){
     const {api,doc,tick,w} = fixture();

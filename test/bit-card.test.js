@@ -49,7 +49,8 @@ function bootComponent(){
   assert.equal(requests.length, 4, "no repeated preload");
 }
 
-// show / auto-dismiss (~duration) and the onDone callback
+// PRB-158 (Robert's playtest): base cards hold until tapped -- no auto-dismiss, however long they
+// sit; a tap in the first second is ignored (no accidental skip); TAP TO CONTINUE fades in ~3s.
 {
   const { doc, clock, PRBitCard } = bootComponent();
   assert.equal(PRBitCard.isOpen(), false, "closed before any show()");
@@ -61,18 +62,57 @@ function bootComponent(){
   assert.equal(el.hidden, false);
   assert.equal(el.querySelector(".bit-card-bubble").textContent, "hello");
   assert(el.classList.contains("mood-happy"), "mood class applied");
-  clock.advance(999);
-  assert.equal(PRBitCard.isOpen(), true, "still open just before duration elapses");
-  clock.advance(2);
-  assert.equal(PRBitCard.isOpen(), false, "auto-dismissed once duration elapses");
+  el.click();
+  assert.equal(PRBitCard.isOpen(), true, "a tap in the first second is ignored");
+  clock.advance(999); el.click();
+  assert.equal(PRBitCard.isOpen(), true, "still ignored just under one second");
+  clock.advance(59000);
+  assert.equal(PRBitCard.isOpen(), true, "never auto-dismisses, however long it sits");
+  el.click();
+  assert.equal(PRBitCard.isOpen(), false, "a tap well after one second dismisses");
   assert.equal(done, 1, "onDone fires exactly once");
   assert.equal(el.hidden, true, "element hidden again after dismiss");
 }
 
-// long lines extend the auto-dismiss (~40ms/char over 50), capped at 6s
+// TAP TO CONTINUE fade-in timing, and reduced motion shows it instantly instead (same convention
+// as the mini cutscenes).
 {
-  const { clock, PRBitCard } = bootComponent();
-  PRBitCard.show({ id: "b", text: "x".repeat(130) }); // default 3000 + (130-50)*40=3200 -> capped 6000
+  const { doc, clock, PRBitCard } = bootComponent();
+  PRBitCard.show({ id: "hint", text: "hello" });
+  const el = doc.querySelector(".bit-card");
+  clock.advance(2999);
+  assert(!el.classList.contains("hint-visible"), "hint not shown yet");
+  clock.advance(1);
+  assert(el.classList.contains("hint-visible"), "hint fades in at ~3s");
+  PRBitCard.dismiss();
+}
+{
+  const { doc, w, PRBitCard } = bootComponent();
+  w.matchMedia = query => ({ matches: query.includes("reduced-motion") });
+  PRBitCard.show({ id: "reduced-hint", text: "hello" });
+  assert(doc.querySelector(".bit-card").classList.contains("hint-visible"), "reduced motion shows the hint instantly");
+  PRBitCard.dismiss();
+}
+
+// raid context keeps the old timed, non-blocking auto-dismiss (the player is mid-combat there,
+// per docs/bit-narrator.md): no tap-guard, no hint, duration (and its long-line extension/cap)
+// still governs when it clears itself.
+{
+  const { doc, clock, PRBitCard } = bootComponent();
+  const vp = doc.createElement("div"); vp.id = "viewport"; doc.body.append(vp);
+  let done = 0;
+  PRBitCard.show({ id: "raid-auto", text: "hi", duration: 1000, onDone: () => done++ });
+  assert(doc.querySelector(".bit-card.ctx-raid"), "raid placement");
+  clock.advance(999);
+  assert.equal(PRBitCard.isOpen(), true, "still open just before duration elapses");
+  clock.advance(2);
+  assert.equal(PRBitCard.isOpen(), false, "raid keeps its non-blocking auto-dismiss");
+  assert.equal(done, 1, "onDone fires exactly once");
+}
+{
+  const { doc, clock, PRBitCard } = bootComponent();
+  const vp = doc.createElement("div"); vp.id = "viewport"; doc.body.append(vp);
+  PRBitCard.show({ id: "raid-long", text: "x".repeat(130) }); // default 3000 + (130-50)*40=3200 -> capped 6000
   clock.advance(5999);
   assert.equal(PRBitCard.isOpen(), true, "not dismissed just under the 6s cap");
   clock.advance(2);
@@ -81,31 +121,31 @@ function bootComponent(){
 
 // only one card at a time; a second show() while one is open queues and plays after
 {
-  const { doc, clock, PRBitCard } = bootComponent();
-  PRBitCard.show({ id: "first", text: "one", duration: 1000 });
-  PRBitCard.show({ id: "second", text: "two", duration: 1000 });
+  const { doc, PRBitCard } = bootComponent();
+  PRBitCard.show({ id: "first", text: "one" });
+  PRBitCard.show({ id: "second", text: "two" });
   assert.equal(doc.querySelector(".bit-card-bubble").textContent, "one", "second call queues, does not replace the first");
-  clock.advance(1000);
+  PRBitCard.dismiss();
   assert.equal(doc.querySelector(".bit-card-bubble").textContent, "two", "queued card plays once the first is gone");
   assert.equal(PRBitCard.isOpen(), true);
 }
 
 // queue caps at 4; further calls beyond that are dropped
 {
-  const { clock, PRBitCard } = bootComponent();
+  const { PRBitCard } = bootComponent();
   let completed = 0;
-  for(let i = 0; i < 6; i++) PRBitCard.show({ id: "q" + i, text: "line " + i, duration: 100, onDone: () => completed++ });
-  for(let i = 0; i < 6; i++) clock.advance(100);
+  for(let i = 0; i < 6; i++) PRBitCard.show({ id: "q" + i, text: "line " + i, onDone: () => completed++ });
+  for(let i = 0; i < 6; i++) PRBitCard.dismiss();
   assert.equal(completed, 5, "the current card + 4 queued play; the 6th call is dropped");
 }
 
 // a duplicate id already current or queued is ignored, not re-queued
 {
-  const { clock, PRBitCard } = bootComponent();
+  const { PRBitCard } = bootComponent();
   let completed = 0;
-  PRBitCard.show({ id: "dup", text: "first", duration: 100, onDone: () => completed++ });
-  PRBitCard.show({ id: "dup", text: "first-again", duration: 100, onDone: () => completed++ });
-  clock.advance(100);
+  PRBitCard.show({ id: "dup", text: "first", onDone: () => completed++ });
+  PRBitCard.show({ id: "dup", text: "first-again", onDone: () => completed++ });
+  PRBitCard.dismiss();
   assert.equal(completed, 1, "a duplicate id already in flight is not re-queued");
 }
 
