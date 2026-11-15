@@ -447,6 +447,24 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
     }
   }
   const v2Hero=!!profile.heroCoast;
+  if(v2Hero&&profile.heroHeadlands?.length){
+    // Pass S: worn, flat earth paths are part of the terrain's vertex color.
+    // Two irregular branches evoke the approved reference without a new
+    // mesh, collider, depth fight or artificial raised gameplay topography.
+    const heading=profile.heroHeadlands[0].angle;
+    const along=dx*Math.cos(heading)+dz*Math.sin(heading);
+    const cross=-dx*Math.sin(heading)+dz*Math.cos(heading);
+    const bend=.42*Math.sin(along*.29+seed*.00012)+.18*Math.sin(along*.63-.8);
+    const main=Math.exp(-Math.pow((cross-bend)/1.10,2))
+      *(1-smooth(.81,.96,f));
+    const turn=heading+1.39;
+    const branchAlong=dx*Math.cos(turn)+dz*Math.sin(turn);
+    const branchCross=-dx*Math.sin(turn)+dz*Math.cos(turn);
+    const branchBend=.43*Math.sin(branchAlong*.33+seed*.00015);
+    const branch=Math.exp(-Math.pow((branchCross-branchBend)/.92,2))
+      *smooth(1.45,3.25,branchAlong)*(1-smooth(.76,.93,f));
+    trail=Math.max(trail,main,branch);
+  }
   const mineralPockets=smooth(.66,.88,broad)*smooth(v2Hero?.79:.59,.94,f)*
     (v2Hero?.045+.07*mid:.18+.30*mid);
   const edgeRock=smooth(v2Hero?.955:.88,.995,f)*(1-beach)*
@@ -461,7 +479,7 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
   col=tint(col,SOIL_SHADOW,exposed*(.06+.18*(1-channel)));
   col=tint(col,SOIL_LICHEN,lichen);
   col=tint(col,SOIL_HEATHER,smooth(.64,.88,f)*smooth(.71,.95,mid)*.16*(1-exposed));
-  col=tint(col,SOIL_TRAIL,trail*.58*(1-exposed*.65));
+  col=tint(col,SOIL_TRAIL,trail*(v2Hero?.84:.58)*(1-exposed*.65));
   col=tint(col,SOIL_SAND,beach*smooth(.72,1,f)*.36);
   return col;
 }
