@@ -337,22 +337,25 @@ function heroCoastRingData(profile){
       +.045*Math.cos(p.angle*12-seed*.00039-k*.22);
     const ledge=(k===4?.025:k===5?.045:k===6?.04:k===7?-.025:k===8?-.045:0)
       *section.rockMask*(section.rough-.45);
-    // Pass R: a narrow coast band cannot physically support a tall dome.
-    // Taper elevation where another island/bridge has compressed the shore.
-    // Retain a low granite shelf even in a tight channel, but reserve the
-    // recognizable 2-3 m crowns for broad natural headlands.
-    const crownWidth=.32+.68*smooth(.65,2.45,band);
+    // Pass T: narrow channels should read as low, vegetated shoreline rather
+    // than compressed cliffs. Leave tall glacial crowns only where the coast
+    // has at least ~2.5 m of horizontal landform. This changes no X/Z seam.
+    // A tiny residual relief keeps a natural tide-worn lip in tight gaps.
+    const crownWidth=.055+.945*smooth(.95,2.55,band);
     const relief=(section.relief*cap[k]*diagonal+ledge)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
-    // Joined ground color at ring 0; only the three actual granite masses
-    // receive bright mineral exposure. Bays remain olive/sand instead of an
-    // unbroken painted-grey seawall; sea-facing stone darkens toward the toe.
+    // Joined ground color at ring 0; only the two authored headlands
+    // receive substantial granite exposure. Narrow water channels should
+    // read as vegetated shore, not a continuous concrete-looking seawall.
     const seam=archipelagoGroundColor(profile,
       floor.x+c*(p.playableRadial-.045),
       floor.z+sn*(p.playableRadial-.045),stoneRoots);
-    const rock=section.rockMask*(1-p.beach*.94);
+    // Taper rock *color* with the same spatial constraint as rock height.
+    // Otherwise the cliff collapses but leaves an uninterrupted grey stripe.
+    const rock=section.rockMask*(1-p.beach*.94)
+      *(.06+.94*smooth(.90,2.45,band));
     // The previous continuous grey apron survived because even unraised
     // shoreline strips inherited pale mineral-edge tones. Blend ordinary
     // shore into dark olive vegetation; concentrate granite at headlands.
@@ -362,8 +365,8 @@ function heroCoastRingData(profile){
     const exposure=clamp(rock*(.89+.10*section.secondary)
       +(1-p.beach)*(.007+.009*section.rough),0,.99);
     const transition=[0,.010,.045,.16,.40,.68,.85,.94,.96,.98,.99,1,1,1][k];
-    const wet=k>=11?(1-p.beach)*.03:0;
-    const blend=k===0?0:transition*clamp(.008+exposure*.99+wet,0,1);
+    const wet=k>=11?(1-p.beach)*.025:0;
+    const blend=k===0?0:transition*clamp(.004+exposure*.99+wet,0,1);
     const fissure=section.rockMask*(k>=6&&k<=11?
       Math.pow(Math.max(0,Math.cos(p.angle*21.5+seed*.0002+k*.27)),12)*.20:0);
     const faceShade=clamp(.85+.15*section.rough+.09*section.secondary
