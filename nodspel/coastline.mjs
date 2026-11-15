@@ -159,6 +159,25 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
   if(profile?.style!=='v2')return profile;
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
   const {floor,points}=profile;
+  // Clip the complete radial coastline segment against the enlarged timber-
+  // bridge landing. Checking only the outer toe/midpoint missed the inner
+  // rocky shoulder; adjacent low-poly triangles need a little extra clearance.
+  function coastSegmentTouchesBridge(angle,start,end,zone){
+    let lo=Math.max(0,start),hi=end;
+    const c=Math.cos(angle),sn=Math.sin(angle);
+    const axes=[[floor.x,c,zone.x,zone.w*.5+1.45],
+      [floor.z,sn,zone.z,zone.d*.5+1.45]];
+    for(const [origin,dir,center,half] of axes){
+      if(Math.abs(dir)<1e-8){
+        if(Math.abs(origin-center)>half)return false;
+        continue;
+      }
+      const a=(center-half-origin)/dir,b=(center+half-origin)/dir;
+      lo=Math.max(lo,Math.min(a,b));hi=Math.min(hi,Math.max(a,b));
+      if(hi<lo)return false;
+    }
+    return hi>=lo;
+  }
   const options=rockAngles.length?rockAngles:points.filter((p,i)=>i%9===0&&p.beach<.22).map(p=>p.angle);
   const heads=[];
   for(const angle of options){
@@ -217,13 +236,8 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // Maintain the visible water gap while preserving the full original
     // walkable radius and the authored bridge landing.
     let newRadius=Math.max(base,Math.min(prospect,safe));
-    const x=floor.x+c*newRadius,z=floor.z+sn*newRadius;
-    const isBridge=bridgeZones.some(b=>{
-      const mid= p.playableRadial+(newRadius-p.playableRadial)*.55;
-      const mx=floor.x+c*mid,mz=floor.z+sn*mid;
-      return Math.abs(x-b.x)<b.w/2+1.6&&Math.abs(z-b.z)<b.d/2+1.6
-        || Math.abs(mx-b.x)<b.w/2+1.1&&Math.abs(mz-b.z)<b.d/2+1.1;
-    });
+    const isBridge=bridgeZones.some(b=>coastSegmentTouchesBridge(
+      p.angle,p.playableRadial-.9,newRadius+.22,b));
     if(isBridge)newRadius=base;
     const actualGain=Math.max(0,newRadius-base);
     p.radial=newRadius;
