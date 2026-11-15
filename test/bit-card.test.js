@@ -293,8 +293,7 @@ async function bootToCoreOneTapAway(calls){
   // gate) is gone for good -- the cutscene is the single screen, so there is nothing to click.
   assert(!w.document.getElementById("overlay"), "no popup shows for the Core restore");
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted synchronously with the build, no popup left to gate it");
-  assert.equal(calls.length, 0, "cutscene waits for bunkerwake to finish");
-  await sleep(1700); // >= the ~1.6s bunkerwake lighting the cutscene must not land before
+  assert.equal(calls.length, 1, "PRB-160: Core cutscene plays synchronously with the build");
   assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
   assert.equal(calls[0].id, "core_restored");
   assert.match(calls[0].line, /circuits again/);
@@ -399,8 +398,7 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(fabCalls().length, 0, "fabricator_built cutscene waits for the reward popup to close");
   closeBtn.dispatchEvent(new w.Event("click", { bubbles: true }));
   assert.equal(st.bitCardsSeen.fabricator_built, true, "persisted synchronously when the popup closes");
-  assert.equal(fabCalls().length, 0, "cutscene still waits for the bunkerwake build animation");
-  await sleep(1700);
+  assert.equal(fabCalls().length, 1, "PRB-160: Fabricator cutscene plays synchronously when reward closes");
   assert.equal(fabCalls().length, 1, "fabricator_built cutscene shown exactly once");
   assert.match(fabCalls()[0].line, /Scavenger Vest/);
   assert(fabCalls()[0].info.some(row => row.label === "FIRST RECIPE" && /Scavenger Vest/.test(row.text)), "info strip names the real first recipe + cost from data/recipes.js");

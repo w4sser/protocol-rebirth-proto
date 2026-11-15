@@ -1881,7 +1881,7 @@ function overlay(html, onClose, cls, opts){
   else o.dataset.noclose = "1";
   o.addEventListener("click", e => {
     const t = e.target.closest ? e.target.closest("[data-close]") : null;
-    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ o.remove(); if(onClose) onClose(); }
+    if(t || e.target.id === "ovclose" || (!opts.noClose && (e.target === o || (e.target.classList && e.target.classList.contains("pop-host"))))){ o.remove(); updateNav(); if(onClose) onClose(); window.dispatchEvent(new Event("pr:ui-clear")); }
   });
   document.getElementById("phone").appendChild(o);
   updateNav();
@@ -4424,6 +4424,16 @@ const BIT_CUTSCENES = {
     };
   })()
 };
+// Start requests during the splash, in story order. Seen scenes hold no decoded images.
+function warmStoryArt(){
+  const cutscene = window.PRBitCutscene;
+  if(!cutscene) return;
+  if(!S.introSeen) cutscene.preload({id:"cold_open",
+    from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
+    to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
+  for(const id of ["core_restored", "first_death", "fabricator_built"])
+    if(!S.bitCardsSeen[id]) cutscene.preload(BIT_CUTSCENES[id]);
+}
 // PRB-157: warm the real pair and bust through the renderer cache, once, before building.
 // Only an actual load error selects the old backdrop; a slow connection is not missing art.
 const FABRICATOR_CUTSCENE_ART = {
@@ -4581,6 +4591,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
+    if(screen === "base") warmStoryArt();
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
     // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
@@ -4617,6 +4628,7 @@ window.A = {
     // transition off there).
     document.body.classList.add("intro-leaving");
     S.introSeen = true;
+    window.PRBitCutscene?.release?.({id:"cold_open"});
     advanceBeat(); // tutorial -> core_l1
     act("INTRO_DISMISSED", {});
     A.go("base");
@@ -4669,24 +4681,20 @@ window.A = {
       // FACILITY here -- the cutscene (bubble + info strip carry the old popup's benefit/next
       // text) is now the single screen; A.go already committed every state change above.
       session.wake = true;
-      const wakeStartedAt = Date.now();
       if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
       if(!S.bitCardsSeen.core_restored){
         S.bitCardsSeen.core_restored = true; save();
-        // the bunkerwake lighting (.baseviewer.wake, 1.6s) must finish before the cutscene covers it.
-        const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
-        setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
+        window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);
       } else bitDock("module_built");
     } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
-      // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
+      // PRB-160: the reward popup closes directly into the
       // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
       fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
         finish();
         S.bitCardsSeen.fabricator_built = true; save();
-        const wakeStartedAt = Date.now();
-        fabricatorCutsceneBeat(beat => setTimeout(() => window.PRBitCutscene?.play(beat), Math.max(0, 1600 - (Date.now() - wakeStartedAt))));
+        fabricatorCutsceneBeat(beat => window.PRBitCutscene?.play(beat));
       }, "reward");
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
@@ -5778,6 +5786,7 @@ function mountLiteWater(host){
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
   S = load();
+  warmStoryArt();
   const coreIngest = ingestPendingCoreResult(window.localStorage);
   // v2.22.2 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
   // completed yet, and this isn't the return trip from that first raid) skips straight into the
