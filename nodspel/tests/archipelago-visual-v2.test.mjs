@@ -7,7 +7,7 @@ import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago,isArchipelagoPartitionWallV2,archipelagoRockFreeBridgeLandingsV2} from '../archipelago.js';
 import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
-import {planArchipelagoBedrock} from '../archipelago-visual-v2.mjs';
+import {planArchipelagoBedrock,planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from '../archipelago-visual-v2.mjs';
 import {createWaterMesh} from '../water-shader.js';
 
 const F={x:0,z:0,w:12,d:12};
@@ -316,4 +316,39 @@ test('reconciled coastlines separate actual island surfaces and their outer eros
         }
       }
     }
+});
+
+
+test('v2 coastal pines alternate silhouette, height and orientation without gameplay colliders',()=>{
+  const level={floors:[{x:0,z:0,w:20,d:20}]};
+  const spots=[{x:-8,z:-8},{x:0,z:-8},{x:8,z:-8},{x:-8,z:0},{x:8,z:0},
+    {x:-8,z:8},{x:0,z:8},{x:8,z:8},{x:5,z:5}];
+  const a=planArchipelagoPines(level,spots),b=planArchipelagoPines(level,spots);
+  assert.deepEqual(a,b,'pine variants and placements should be deterministic for a fixed seed/layout');
+  assert.equal(a.length,5,'five widely spaced pines should fit this island edge');
+  assert.ok(new Set(a.map(p=>p.pineVariant)).size>=4,'four distinctive pine silhouettes alternate across the island');
+  const trees=a.map(p=>archipelagoCoastalPine(p)),low=archipelagoCoastalPine(a[0],{low:true});
+  assert.ok(new Set(trees.map(p=>p.rotation.y.toFixed(3))).size>=4,'rotate trees independently');
+  assert.ok(trees.some(p=>p.userData.pineHeight<2.5),'shoreline scrub pines stay low');
+  assert.ok(trees.some(p=>p.userData.pineHeight>4.5),'tall sentinels must exist');
+  assert.ok(trees.every(p=>p.userData.visualOnly&&!p.userData.collider));
+  assert.ok(low.userData.pineMeshes.length<trees[0].userData.pineMeshes.length,
+    'LOW keeps the core silhouette but reduces branch geometry');
+});
+
+test('v2 pines fade independently and restore opaque materials and shadows',()=>{
+  const a=archipelagoCoastalPine({x:1,z:2,pineVariant:2,pineSeed:120});
+  const b=archipelagoCoastalPine({x:4,z:5,pineVariant:2,pineSeed:121});
+  const original=a.userData.pineMeshes.map(m=>m.material);
+  assert.equal(original[0],b.userData.pineMeshes[0].material,'opaque materials should be shared');
+  setArchipelagoPineOpacity(a,.22);
+  assert.equal(a.userData.pineOpacity,.22);
+  assert.ok(a.userData.pineMeshes.every(m=>m.material.transparent&&!m.material.depthWrite
+    &&Math.abs(m.material.opacity-.22)<1e-6&&!m.castShadow));
+  assert.ok(b.userData.pineMeshes.every(m=>!m.material.transparent&&m.castShadow),
+    'fading one tree must not affect the entire forest');
+  assert.ok(a.userData.pineFadeMaterials.size<=4,'share faded mats within a tree for mobile efficiency');
+  setArchipelagoPineOpacity(a,1);
+  assert.ok(a.userData.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
+    'trees must return to their original materials and shadows');
 });
