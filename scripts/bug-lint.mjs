@@ -225,6 +225,39 @@ export const RULES=[
      const rule=(css.match(/\.bit-cutscene-hologram\{([^}]+)\}/)||[])[1]||'';
      const bottom=Number((rule.match(/bottom:([\d.]+)%/)||[])[1]);
      return bottom>=40?[]:['ui/bit-cutscene.css: keep the hologram above the speech bubble (bottom at least 40%); run narrator-cutscene-shots.mjs for geometric checks'];}},
+  {id:'extract-loot-3d-vfx',pr:'v2.28.35 PRB-156 (feat/vfx-3d-extract-loot)',why:'Robert playtest 2026-11-15: "the extraction point effect looks damn 2D. Same when you\'ve picked up loot." The flat MeshBasicMaterial exitBeam cylinder + plain exitPad plane, and the generic ring+billboard world.burst() reused for pickups, read as 2D decals from the isometric camera',
+   check(c={}){const out=[];
+     const beam=c.beamSrc??read('nodspel/vfx-extract-beam.js');
+     if(!/export function createExtractBeam\(/.test(beam))out.push('nodspel/vfx-extract-beam.js: createExtractBeam() is missing');
+     if(!/THREE\.ShaderMaterial\(/.test(beam))out.push('nodspel/vfx-extract-beam.js: the beam must use a custom ShaderMaterial (fresnel rim + vertical fade + noise bands), not a flat MeshBasicMaterial cylinder');
+     const burstMod=c.burstSrc??read('nodspel/vfx-loot-burst.js');
+     if(!/export function createLootBurstPool\(/.test(burstMod))out.push('nodspel/vfx-loot-burst.js: createLootBurstPool() is missing');
+     const world=c.worldSrc??read('nodspel/world.js');
+     if(!/createExtractBeam\(\{color:EXTRACT_COLOR,quality\}\)/.test(world))out.push('nodspel/world.js: buildWorld must build the extract beam via createExtractBeam({color:EXTRACT_COLOR,quality})');
+     if(!/createLootBurstPool\(\{quality\}\)/.test(world))out.push('nodspel/world.js: buildWorld must build the loot-burst pool via createLootBurstPool({quality})');
+     if(/new THREE\.CylinderGeometry\(\.9,\s*1\.1,\s*1,\s*20,\s*1,\s*true\)/.test(world))out.push('nodspel/world.js: the old flat exitBeam cylinder must stay removed');
+     const game=c.gameSrc??read('nodspel/game.mjs');
+     if(!/world\.spawnLootBurst\?\.\(v\.loot\.x,\.5,v\.loot\.z,v\.color\)/.test(game))out.push('nodspel/game.mjs: a loot pickup must spawn the pooled 3D burst via world.spawnLootBurst, not the flat world.burst() ring');
+     if(!/world\.animate\(elapsed,position,round\)/.test(game))out.push('nodspel/game.mjs: world.animate must be called with the player position so the extract beam/loot burst can read approach progress and the homing target');
+     return out;}},
+
+  {id:'vfx-visible-pooled-lifecycle',pr:'v2.28.35 PRB-156 VFX lifecycle',why:'Subpixel Points were invisible with the orthographic camera, old sprites covered replacements, and quality/teardown missed the new pools',
+   check(c={}){const out=[];
+     const loot=c.lootVfxSrc??read('nodspel/vfx-loot-burst.js'),feedback=c.feedbackVfxSrc??read('nodspel/fx-feedback.js'),game=c.lifecycleGameSrc??read('nodspel/game.mjs');
+     if(!/new THREE\.InstancedMesh\(/.test(loot))out.push('loot sparkles must use a fixed instanced pool');
+     if(/hold\(record,'respawn'|pixel\.spawn\('collect'/.test(feedback))out.push('legacy extraction/collection sprites must stay removed');
+     if(!/world\?\.setVfxQuality\(next\)/.test(game))out.push('live quality must reach world VFX');
+     if(!/if\(round\.over\)world\?\.disposeVfx\(\)/.test(game))out.push('raid end must dispose world VFX');
+     return out;}},
+
+
+  {id:'vfx-phone-depth-layers',pr:'v2.28.35 PRB-156 pass 2',why:'Pass 1 still read flat at phone size: the extraction shell lacked a core/fence and pickup arcs disappeared behind the player',
+   check(c={}){const out=[];
+     const beam=c.phoneBeamSrc??read('nodspel/vfx-extract-beam.js'),loot=c.phoneLootSrc??read('nodspel/vfx-loot-burst.js');
+     if(!/group\.add\(core\)/.test(beam)||!/group\.add\(fence\)/.test(beam))out.push('phone extraction must retain the inner core and raised floor fence');
+     if(!/r\.pillar=new THREE\.Mesh\(/.test(loot)||!/r\.flash=new THREE\.Mesh\(/.test(loot))out.push('phone pickups must retain pooled origin pillars and arrival flashes');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

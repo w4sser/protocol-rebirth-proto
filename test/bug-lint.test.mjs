@@ -87,6 +87,32 @@ assert.equal(by('cutscene-reduced-motion-instant').check({cutsceneSrc:'',cutscen
 assert.equal(by('cutscene-reduced-motion-instant').check().length,0,'reduced motion reveals all copy immediately');
 assert.equal(by('narrator-hologram-above-copy').check({cutsceneCss:'.bit-cutscene-hologram{bottom:22%;}'}).length,1,'low hologram anchor fails');
 assert.equal(by('narrator-hologram-above-copy').check().length,0,'hologram stays above copy');
+{const badBeam='export function createExtractBeam(){\n  const beam=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:EXTRACT_COLOR}));\n  return {beam};\n}\n';
+ assert.equal(by('extract-loot-3d-vfx').check({beamSrc:badBeam}).length,1,'PRB-156 fires when the beam is a flat MeshBasicMaterial, not a ShaderMaterial');}
+{const goodBeam='export function createExtractBeam(){\n  const beamMaterial=new THREE.ShaderMaterial({vertexShader:v,fragmentShader:f});\n  return {beamMaterial};\n}\n';
+ assert.equal(by('extract-loot-3d-vfx').check({beamSrc:goodBeam,burstSrc:'export function createLootBurstPool(){}\n'}).length,0,'PRB-156 passes once the beam is shader-based');}
+{const badBurst='function createLootBurstPool(){}\n'; // missing "export"
+ assert.equal(by('extract-loot-3d-vfx').check({burstSrc:badBurst}).length,1,'PRB-156 fires when createLootBurstPool is not exported');}
+{const badWorld='const exitBeam=new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.1, 1, 20, 1, true),mat);\n';
+ const r=by('extract-loot-3d-vfx').check({worldSrc:badWorld});
+ assert.ok(r.length>=3,'PRB-156 fires when world.js still builds the old flat exitBeam and never wires the new VFX');}
+{const goodWorld='const extractBeamFx=createExtractBeam({color:EXTRACT_COLOR,quality});\nconst lootBurstFx=createLootBurstPool({quality});\n';
+ assert.equal(by('extract-loot-3d-vfx').check({worldSrc:goodWorld}).length,0,'PRB-156 passes once buildWorld wires both factories and drops the old cylinder');}
+{const badGame='if(v.loot.collected&&v.group.visible)world.burst?.(v.loot.x,v.loot.z,v.color);\nworld.animate(elapsed);\n';
+ assert.equal(by('extract-loot-3d-vfx').check({gameSrc:badGame}).length,2,'PRB-156 fires when the pickup still uses the flat world.burst() and animate() drops the player position');}
+{const goodGame='if(v.loot.collected&&v.group.visible)world.spawnLootBurst?.(v.loot.x,.5,v.loot.z,v.color);\nworld.animate(elapsed,position,round);\n';
+ assert.equal(by('extract-loot-3d-vfx').check({gameSrc:goodGame}).length,0,'PRB-156 passes once the pickup spawns the pooled burst and animate threads the player position');}
+
+{
+ const rule=by('vfx-visible-pooled-lifecycle');
+ assert.equal(rule.check({lootVfxSrc:'new THREE.Points()',feedbackVfxSrc:"hold(record,'respawn');pixel.spawn('collect');",lifecycleGameSrc:''}).length,4);
+ assert.equal(rule.check({lootVfxSrc:'new THREE.InstancedMesh()',feedbackVfxSrc:'',lifecycleGameSrc:'world?.setVfxQuality(next);if(round.over)world?.disposeVfx();'}).length,0);
+}
+{
+ const rule=by('vfx-phone-depth-layers');
+ assert.equal(rule.check({phoneBeamSrc:'group.add(beam)',phoneLootSrc:'points.setMatrixAt(i,matrix)'}).length,2);
+ assert.equal(rule.check({phoneBeamSrc:'group.add(core);group.add(fence);',phoneLootSrc:'r.pillar=new THREE.Mesh(geo,mat);r.flash=new THREE.Mesh(geo,mat);'}).length,0);
+}
 assert.equal(runAll({files:null,gitignore:'node_modules\n'}).length,0,'repo is clean');
 console.log('bug-lint.test: ok');
 
