@@ -252,61 +252,87 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
 }
 
 function heroCoastRingData(profile){
-  // One island / ONE connected shoreline mesh. Sculpt three broad, asymmetrical
-  // granite buttresses directly into the coastal landform instead of lofting a
-  // uniform contour wall or stacking separate overlapping meshes.
-  //
-  // 14 radial strips: two flat inland transition strips, an angled lower
-  // buttress, a long worn granite crown and steep seawards faces. The ring
-  // topology is shared between soil, crown and submerged rock, without
-  // coplanar aprons or any new player-height collision.
-  const {floor,points}=profile,n=points.length;
+  // Pass K: a single continuous glacial shore, with locally sculpted bedrock
+  // buttresses rather than a pink-grey retaining wall around the whole island.
+  // All 14 radial strips share one mesh. NO separate rock apron or overlaps.
+  // Ring 0 is the unchanged flat gameplay seam; ring 13 is the exact water toe.
+  const {floor,points,seed}=profile,n=points.length;
   const fractions=[-.045,.045,.095,.16,.24,.34,.44,.54,.63,.72,.81,.89,.965,1];
-  const cap=[0,0,.03,.15,.46,.87,1,.96,.79,.56,.34,.14,.02,0];
+  // Distinct worn crown, secondary shoulder and abrupt sea-facing faces.
+  // The broad shelf is only high where the authored headland mask exists.
+  const cap=[0,0,.04,.19,.57,.95,1,.96,.78,.54,.28,.11,.018,0];
   const yFloor=[.010,.009,.006,.002,-.009,-.024,-.038,-.052,-.071,-.085,-.104,-.124,-.16,-.65];
   const yCove=[.010,.008,.003,-.014,-.033,-.055,-.08,-.10,-.145,-.205,-.270,-.31,-.38,-.65];
   const stoneColors=[
-    '#647568','#707d75','#8c918b','#9d9a9e',
-    '#b4a4af','#b9a6b5','#bdaab9','#b0a2b1',
-    '#a097a8','#8b91a2','#7b879b','#69778a','#576879','#40576d'
+    '#667b6e','#7c8782','#8f9592','#a39ea1',
+    '#b0a4ab','#b8abb1','#b2a4ab','#a79ea9',
+    '#9996a4','#8b91a0','#788394','#66788a','#4f6477','#394e60'
   ].map(rgb);
   const positions=[],colors=[],uvs=[],blends=[],indices=[];
   const stoneRoots={masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]};
-  for(let k=0;k<fractions.length;k++)for(const p of points){
-    const c=Math.cos(p.angle),sn=Math.sin(p.angle);
+  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  // Tectonic fracture facets vary by broad angular block (not a repeated
+  // procedural rib every few degrees). Neighboring facets share vertices.
+  const sections=points.map(p=>{
+    let nearest=null,index=-1,distance=Infinity;
+    for(let j=0;j<(profile.heroHeadlands?.length??0);j++){
+      const h=profile.heroHeadlands[j],d=Math.abs(wrap(p.angle-h.angle)/h.width);
+      if(d<distance){nearest=h;index=j;distance=d;}
+    }
+    const block=Math.floor((p.angle+.08+TAU)%TAU/.22);
+    const rough=unit(seed+block*239+97);
+    const secondary=unit(seed+block*411+index*101+283);
+    const local=nearest?wrap(p.angle-nearest.angle)/nearest.width:8;
+    const knuckle=(.83+.21*Math.sin(local*4.4+.9)+.10*Math.sin(local*9.1-1.5));
+    const fractured=clamp(.76+.26*rough+.10*secondary+.18*knuckle,.72,1.18);
+    const rockMask=clamp(Math.pow(p.heroRockMask??0,1.23),0,1);
+    return {rough,secondary,local,rockMask,relief:(p.heroRelief??0)*3.12*fractured,
+      fault:.023*Math.sin(5*p.angle+seed*.00013)
+        +.019*Math.sin(11*p.angle-seed*.00017)
+        +.015*rockMask*Math.sin(17*p.angle+seed*.00029)};
+  });
+  for(let k=0;k<fractions.length;k++)for(let i=0;i<n;i++){
+    const p=points[i],section=sections[i],c=Math.cos(p.angle),sn=Math.sin(p.angle);
     const band=p.radial-p.playableRadial;
-    // Broad slanted fault lines break the uniform ring silhouette into a few
-    // recognizable geological blocks. Always leave the actor seam and the
-    // underwater boundary at their exact shared coordinates.
-    const fault=.035*Math.sin(5*p.angle+profile.seed*.00013)
-      +.023*Math.sin(11*p.angle-profile.seed*.00017);
+    // Keep radial strips ordered even in the narrowest 0.19 m water gap.
+    // Angular jointing moves intermediary rings together, never either seam.
     const f=k===0?0:k===fractions.length-1?1:
-      clamp(fractions[k]+(k>2&&k<12?fault:0),.012,.985);
+      clamp(fractions[k]+(k>=3&&k<=11?section.fault:0),.012,.985);
     const radius=k===0?p.playableRadial-.045:
       k===fractions.length-1?p.radial+.22:p.playableRadial+band*f;
     const x=floor.x+c*radius,z=floor.z+sn*radius;
-    // Angular scale makes rounded, faceted cap surfaces and intermittent
-    // creases, not thousands of tiny repeated stone ribs.
-    const facet=.87+.13*Math.cos(3*p.angle+profile.seed*.00021)
-      +.05*Math.sin(9*p.angle+profile.seed*.00043);
-    const relief=(p.heroRelief??0)*cap[k]*3.08*facet;
+
+    // The crown is broad and mostly level. Irregular shoulders and cool
+    // fractures break it into a few visibly different geological faces.
+    const diagonal=.90+.07*Math.sin(p.angle*7+seed*.00023+k*.20)
+      +.06*Math.cos(p.angle*13-seed*.00039-k*.18);
+    const ledge=(k===4?.06:k===5?.10:k===6?.08:k===7?-.04:k===8?-.10:0)
+      *section.rockMask*(section.rough-.45);
+    const relief=section.relief*cap[k]*diagonal+ledge;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
-    // Sample precisely the same flat gameplay ground material at the seam,
-    // then expose stone locally under the massive cliff shoulders. Ordinary
-    // beach/cove stretches remain olive and sand, not one pink-gray wall.
+    // Joined ground color at ring 0; only the three actual granite masses
+    // receive bright mineral exposure. Bays remain olive/sand instead of an
+    // unbroken painted-grey seawall; sea-facing stone darkens toward the toe.
     const seam=archipelagoGroundColor(profile,
       floor.x+c*(p.playableRadial-.045),
       floor.z+sn*(p.playableRadial-.045),stoneRoots);
-    const cliff=clamp((p.heroRockMask??0)*1.12,0,1);
-    const rockBase=(1-p.beach)*(.05+.10*Math.sin(p.angle*3+profile.seed*.0002)**2);
-    const exposure=clamp(rockBase+cliff*.91,0,.98);
-    const transition=[0,.012,.055,.16,.35,.60,.79,.91,.97,.99,1,1,1,1][k];
-    const blend=k===0?0:transition*(.05+.95*exposure);
-    const stone=stoneColors[k],faceShade=.80+.12*(.5+.5*Math.cos(7*p.angle+.27*k));
-    for(let channel=0;channel<3;channel++)
-      colors.push(clamp(mix(seam[channel],stone[channel]*faceShade,blend),0,1));
+    const rock=section.rockMask*(1-p.beach*.94);
+    const exposure=clamp(rock*(.79+.20*section.secondary)
+      +(1-p.beach)*(.025+.035*section.rough),0,.98);
+    const transition=[0,.010,.045,.16,.40,.68,.85,.94,.96,.98,.99,1,1,1][k];
+    const wet=k>=11?(1-p.beach)*.08:0;
+    const blend=k===0?0:transition*clamp(.018+exposure*.98+wet,0,1);
+    const fissure=section.rockMask*(k>=6&&k<=11?
+      Math.pow(Math.max(0,Math.cos(p.angle*21.5+seed*.0002+k*.27)),12)*.20:0);
+    const faceShade=clamp(.72+.24*section.rough+.10*section.secondary
+      +.07*Math.sin(k*.83+p.angle*6.2)-fissure,.58,1.10);
+    const stone=stoneColors[k];
+    for(let channel=0;channel<3;channel++){
+      const mineral=stone[channel]*faceShade;
+      colors.push(clamp(mix(seam[channel],mineral,blend),0,1));
+    }
     blends.push(transition);
     const fract=v=>v-Math.floor(v);
     uvs.push(.525+.45*fract(x/4),.025+.45*fract(z/4));
