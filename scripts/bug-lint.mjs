@@ -269,6 +269,26 @@ export const RULES=[
      if(!/if\(retryTimeout\) images\.delete\(src\)/.test(renderer)||!/load\(opts\.bust\.from, false, true\)/.test(renderer))out.push('early bust warming must evict timed-out shared busts so Core/death can retry');
      return [...new Set(out)];}},
 
+  {id:'ios-audio-waits-for-running',pr:'v2.28.3x PRB-158 iOS audio',why:'Robert\'s iPhone playtest of v2.28.36: "the sound is still not fully loaded when I start playing" -- iOS WebKit resolves resume() (and can start decoding) while context.state is still \'suspended\', only flipping to \'running\' asynchronously, sometimes 100ms+ later; play()/voice() must wait (capped) for an in-flight unlock instead of hard-dropping the first sound, and the gesture listener must also catch touchstart/pointerdown (a joystick hold has no touchend for seconds)',
+   check(c={}){const src=c.audioSrc??read('ui/audio.js'),out=[];
+     const play=(src.match(/async play\(name,\{enemy=false\}=\{\}\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!play)out.push('ui/audio.js: play(name,{enemy}) not found');
+     else if(!/unlockPromise/.test(play))out.push('ui/audio.js: play() must also wait when an unlock is in-flight (this.unlockPromise), not drop just because this.unlocked/this.wasUnlocked are still false');
+     const voice=(src.match(/async voice\(name\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!voice)out.push('ui/audio.js: voice(name) not found');
+     else if(!/unlockPromise/.test(voice))out.push('ui/audio.js: voice() must also wait when an unlock is in-flight (this.unlockPromise)');
+     const install=(src.match(/installUnlock\(target\)\{[\s\S]*?\n    \}/)||[''])[0];
+     if(!install)out.push('ui/audio.js: installUnlock(target) not found');
+     else if(!/touchstart/.test(install)||!/pointerdown/.test(install))out.push('ui/audio.js: installUnlock must listen on touchstart and pointerdown (a joystick-hold gesture has no matching touchend for seconds)');
+     return out;}},
+  {id:'narrator-holds-until-tap',pr:'v2.28.3x PRB-158 narrator hold',why:'Robert\'s playtest: "the Fabricator box doesn\'t stay long enough. Keep it until I want to continue." Base cutscenes/cards must never auto-advance, and a tap in the first second must be ignored so a settling animation cannot be skipped by accident',
+   check(c={}){const cutscene=c.cutsceneSrc??read('ui/bit-cutscene.js'),card=c.cardSrc??read('ui/bit-card.js'),out=[];
+     if(/\bDURATION\b/.test(cutscene))out.push('ui/bit-cutscene.js: no auto-end timer (DURATION) may exist -- the cutscene must hold until tapped');
+     if(!/run\.locked\s*=\s*true/.test(cutscene)||!/current\s*&&\s*current\.locked/.test(cutscene))out.push('ui/bit-cutscene.js: taps in the first second must be ignored (run.locked, checked before dismissing)');
+     if(!/if\(raid\)\{/.test(card))out.push('ui/bit-card.js: present() must branch base vs raid -- the raid card alone keeps a timed auto-dismiss (mid-combat, non-blocking)');
+     if(!/locked\s*:\s*true/.test(card)||!/current\s*&&\s*current\.locked/.test(card))out.push('ui/bit-card.js: base cards must ignore a tap in the first second too (current.locked)');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

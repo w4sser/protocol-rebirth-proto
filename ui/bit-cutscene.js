@@ -8,7 +8,7 @@
   var images = new Map();
   // PRB-158 (Robert's playtest, 2026-11-15): "the Fabricator box doesn't stay long enough. Keep
   // it until I want to continue." No auto-advance -- HOLD_MS/HINT_MS below replace the old
-  // DURATION auto-end; see docs/bit-narrator.md "Hold until tap".
+  // fixed-timeout auto-end; see docs/bit-narrator.md "Hold until tap".
   var CROSSFADE = 3150, INFO_DELAY = 600, FADE = 350, HOLD_MS = 1000, HINT_MS = 3000;
 
   // Warm only the requested pair (+ optional bust pair), immediately before its story beat.
