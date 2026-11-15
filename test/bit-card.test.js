@@ -288,8 +288,8 @@ async function bootToCoreOneTapAway(calls){
 // PRB-160: startup warms the next story first and skips scenes already seen.
 {
   const requests=[], w=boot(null, [], "stall", requests);
-  assert.match(requests[0], /coldopen\/bunker-discovery-arch-v1\.webp\?v=2\.28\.38$/);
-  assert.match(requests[1], /coldopen\/bit-coldopen-v1\.webp\?v=2\.28\.38$/);
+  assert.match(requests[0], /coldopen\/bunker-discovery-arch-v1\.webp\?v=\d+\.\d+\.\d+$/);
+  assert.match(requests[1], /coldopen\/bit-coldopen-v1\.webp\?v=\d+\.\d+\.\d+$/);
   assert.match(requests[2], /cutscene-core-restore-start/);
   const saved=JSON.parse(JSON.stringify(w.T.state()));
   saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true};

@@ -88,7 +88,7 @@ function dom_close(w){ w.PRAudioDebug.close(); }
   const html = doc.querySelector(".audio-debug-body").innerHTML;
   for(const needle of ["suspended", "44100 Hz", "0.0125", "false / true", "m4a", "3 / 56",
     "sfx/ui-tap", "sfx/alarm", "ogg-decode-stalled", "visible", "ambient", "ui-confirm: hidden",
-    "nice-shot: voice-busy", "v2.28.38"]){
+    "nice-shot: voice-busy", doc.querySelector("#app-version").textContent.trim()]){
     assert.ok(html.includes(needle), "overlay body missing " + JSON.stringify(needle));
   }
   w.PRAudioDebug.close();
