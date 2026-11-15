@@ -49,7 +49,7 @@ export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
   let tier=TIERS[quality]||TIERS.high;
   const dot=softDotTexture();
   const group=new THREE.Group();
-  const padGeo=new THREE.CircleGeometry(1.45,40);
+  const padGeo=new THREE.RingGeometry(.45,1.45,40);
   const pad=new THREE.Mesh(padGeo,new THREE.MeshBasicMaterial({map:dot,color,transparent:true,opacity:0,
     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,forceSinglePass:true,toneMapped:false,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4}));
@@ -61,7 +61,7 @@ export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
   contact.rotation.x=-Math.PI/2;contact.position.y=.02;group.add(contact);
   const pulseGeo=new THREE.RingGeometry(.9,1.12,40);
   const pulseRings=[0,1].map(()=>{
-    const m=new THREE.Mesh(pulseGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,side:THREE.DoubleSide,forceSinglePass:true,depthWrite:false,toneMapped:false}));
+    const m=new THREE.Mesh(pulseGeo,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,side:THREE.DoubleSide,forceSinglePass:true,depthWrite:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-5}));
     m.rotation.x=-Math.PI/2;m.position.y=.03;group.add(m);return m;
   });
   const beamGeo=new THREE.CylinderGeometry(.85,1.15,1,24,1,true);
@@ -99,7 +99,7 @@ export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
     contact.material.opacity=.4+progress*.1;
     for(let i=0;i<2;i++){const k=(time*.7+i*.5)%1;pulseRings[i].scale.setScalar(.7+k*.9);pulseRings[i].material.opacity=.8*(1-k);}
     beamMaterial.uniforms.uTime.value=time;beamMaterial.uniforms.uIntensity.value=warm;
-    const speed=1+progress*1.5,maxHeight=tier.height*.92;
+    const maxHeight=tier.height*.92;
     for(let i=0;i<tier.particles;i++){
       const t=(phase*rise[i]+seed[i]*maxHeight)%maxHeight,k2=t/maxHeight;
       const a=ang0[i]+phase*1.1+seed[i]*3;
