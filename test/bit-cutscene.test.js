@@ -164,13 +164,9 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     api.dismiss(); w.close();
   }
   const app = fs.readFileSync(root + "/app.js","utf8");
-  // FABRICATOR_CUTSCENE_ART names an optional future dedicated art pair (docs/bit-narrator.md) that
-  // does not exist yet on purpose -- app.js checks it at runtime via Image onerror (never a blind
-  // assumption) and falls back to the option (b) backdrop otherwise. Every OTHER referenced asset
-  // must still exist.
+  // Dedicated narrator art is shipped, including the Fabricator pair.
   for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
-    if(!/cutscene-fabricator-(dark|powered)-v1\.webp$/.test(file[0])) assert(fs.existsSync(root + "/" + file[0]),file[0]);
-  assert(!fs.existsSync(root + "/assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp"), "test fixture assumption: the optional future pair is still undelivered");
+    assert(fs.existsSync(root + "/" + file[0]),file[0]);
   const css = fs.readFileSync(root + "/ui/bit-cutscene.css","utf8");
   assert(/z-index:80/.test(css),"rotation prompt and splash stay above cutscenes");
   assert(/object-fit:cover/.test(css)); assert(/inset:0/.test(css));

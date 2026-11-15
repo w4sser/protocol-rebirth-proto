@@ -2347,7 +2347,7 @@ function ftueOver(){
 // v2.28.17: D3.9 rules 3/6 -- the Fabricator stays the only goal, past ftueOver(), until it is actually built.
 function fabricatorPending(){ return (S.modules.fabricator || 0) < 1; }
 function fabricatorNextDef(){ return nextLevelDef("fabricator"); }
-function fabricatorReady(){ const next = fabricatorNextDef(); return !!next && canAfford(next.cost); }
+function fabricatorReady(){ const next = fabricatorNextDef(); const ready = !!next && canAfford(next.cost); if(ready) fabricatorCutsceneArtReady(); return ready; }
 function fabricatorPartsHtml(){
   const next = fabricatorNextDef(); if(!next) return "";
   return '<div class="chips">' + costParts(next.cost).map(p => '<span class="chip ' + (p.have >= p.need ? 'ok' : 'need') + '">' + partIcon(p) + esc(partName(p)) + ' ' + Math.min(p.have, p.need) + '/' + p.need + '</span>').join('') + '</div>';
@@ -4408,13 +4408,14 @@ const BIT_CUTSCENES = {
     const r = fabricatorFirstRecipe();
     return {
       id:"fabricator_built",
-      // No fabricator-specific art pair exists yet (see FABRICATOR_CUTSCENE_ART below); option (b)
-      // fallback reuses the powered-Core backdrop with a CSS light sweep/sparks over it.
-      from:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
-      to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+      // PRB-157: the painted vest is part of the dedicated art.
+      from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+      to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
       line:"Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest.",
       bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
-      effect:"fabricator",
+      effect:null,
+      waitForArt:true,
+      fallback:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
       hologramIcon: r ? itemIcon(r.output.itemId) : "",
       info:[
         { label:"NEW", text:"Craft gear from raid materials", iconHtml: IC("build") },
@@ -4423,37 +4424,26 @@ const BIT_CUTSCENES = {
     };
   })()
 };
-// PRB-155: an optional future dedicated art pair for fabricator_built. If both files exist,
-// present() uses them instead of the option (b) fallback above; checked once via Image onerror
-// (never a blind fetch) so a missing pair never 404-spams. See docs/bit-narrator.md.
+// PRB-157: warm the real pair and bust through the renderer cache, once, before building.
+// Only an actual load error selects the old backdrop; a slow connection is not missing art.
 const FABRICATOR_CUTSCENE_ART = {
-  from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
-  to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp"
+  from:BIT_CUTSCENES.fabricator_built.from,
+  to:BIT_CUTSCENES.fabricator_built.to
 };
-let fabricatorArtPromise;
+let fabricatorArtPromise, fabricatorArtFailed = false;
 function fabricatorCutsceneArtReady(cb){
-  if(!fabricatorArtPromise) fabricatorArtPromise = Promise.all(
-    [FABRICATOR_CUTSCENE_ART.from, FABRICATOR_CUTSCENE_ART.to].map(src => new Promise(resolve => {
-      const img = new Image();
-      let settled = false;
-      const finish = ok => {
-        if(settled) return;
-        settled = true; clearTimeout(timeout);
-        img.onload = img.onerror = null;
-        resolve(ok);
-      };
-      const timeout = setTimeout(() => finish(false), 3000);
-      img.onload = () => finish(true);
-      img.onerror = () => finish(false);
-      img.src = src;
-    }))
-  ).then(results => results.every(Boolean) ? FABRICATOR_CUTSCENE_ART : null);
-  fabricatorArtPromise.then(cb);
+  if(!fabricatorArtPromise && window.PRBitCutscene) fabricatorArtPromise = window.PRBitCutscene.preload({
+    ...BIT_CUTSCENES.fabricator_built, waitForArt:true
+  }).then(sources => { fabricatorArtFailed = !sources[0] || !sources[1]; return fabricatorArtFailed ? null : FABRICATOR_CUTSCENE_ART; });
+  if(cb && fabricatorArtPromise) fabricatorArtPromise.then(cb);
 }
-// Resolves the actual beat to preload/play: the dedicated art pair once both files are confirmed
-// to exist, else the option (b) fallback (existing backdrop + CSS fx) baked into BIT_CUTSCENES.
 function fabricatorCutsceneBeat(cb){
-  fabricatorCutsceneArtReady(art => cb(art ? { ...BIT_CUTSCENES.fabricator_built, from:art.from, to:art.to, effect:null } : BIT_CUTSCENES.fabricator_built));
+  fabricatorCutsceneArtReady();
+  cb(!fabricatorArtFailed ? BIT_CUTSCENES.fabricator_built : {
+    ...BIT_CUTSCENES.fabricator_built,
+    from:BIT_CUTSCENES.core_restored.to, to:BIT_CUTSCENES.core_restored.to,
+    effect:"fabricator", waitForArt:false
+  });
 }
 function maybeShowFirstDeathCard(ingest){
   if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
@@ -4654,6 +4644,7 @@ window.A = {
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
     const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
+    if(modId === "fabricator" && next.level === 1) fabricatorCutsceneArtReady();
     payCost(next.cost);
     // v1.56: L2+ upgrades run on a build timer (completes offline); the very first L2+ upgrade stays instant (FTUE).
     const I = idleState(), mins = buildMinutes(modId, next.level);
@@ -5813,6 +5804,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
       flightProfile = StartQuality.waterProfile(q, StartQuality.detectWebGL2());
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
+  if(fabricatorPending() && !S.bitCardsSeen.fabricator_built) fabricatorCutsceneArtReady();
   const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
