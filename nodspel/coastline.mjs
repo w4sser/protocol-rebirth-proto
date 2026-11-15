@@ -168,8 +168,8 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       return Math.abs(x-z.x)<z.w/2+2&&Math.abs(t-z.z)<z.d/2+2;
     });
     if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
-    heads.push({angle,width:heads.length===0?.60:heads.length===1?.46:.35,
-      height:heads.length===0?2.55:heads.length===1?1.92:1.34});
+    heads.push({angle,width:heads.length===0?.70:heads.length===1?.56:.43,
+      height:heads.length===0?2.65:heads.length===1?2.02:1.46});
     if(heads.length===3)break;
   }
   if(heads.length<3){
@@ -180,23 +180,32 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       const z=floor.z+Math.sin(p.angle)*(p.radial+.8);
       if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+2.5&&Math.abs(z-b.z)<b.d/2+2.5))continue;
       if(heads.some(h=>Math.abs(wrap(h.angle-p.angle))<1.0))continue;
-      heads.push({angle:p.angle,width:.34,height:1.35});
+      heads.push({angle:p.angle,width:.43,height:1.50});
       if(heads.length===3)break;
     }
   }
   for(const p of points){
     const c=Math.cos(p.angle),sn=Math.sin(p.angle);
     const base=p.radial;
+    // Pass M: the natural shoreline is a SERIES of separated glacial knuckles,
+    // not one continuous smooth slope. Each authored headland has a main worn
+    // dome, a lower offset shoulder and an asymmetric ridge with dark clefts.
+    // The valleys between the blocks remain near sea level.
     const influence=heads.reduce((acc,h)=>{
       const t=wrap(p.angle-h.angle)/h.width;
-      return Math.max(acc,Math.exp(-t*t)*(h.height/2.35));
+      const main=Math.exp(-Math.pow((t+.26)/.40,2));
+      const shoulder=.76*Math.exp(-Math.pow((t-.44)/.36,2));
+      const spur=.42*Math.exp(-Math.pow((t+.91)/.26,2));
+      const crack=.22*Math.exp(-Math.pow((t-.06)/.19,2));
+      const shape=clamp(main+shoulder+spur-crack,0,1.18);
+      return Math.max(acc,shape*(h.height/2.35));
     },0)*(1-p.beach*.96);
     // Pass L: protruding bedrock shoulders are broad, irregular *coastline*
     // silhouettes, never oval boulders dropped over the navigation plane.
     // The neighbor bisector / bridge guards below still own the maximum reach.
     const outline=.88+.17*Math.cos(4*p.angle+profile.seed*.00023)
       +.12*Math.sin(9*p.angle-profile.seed*.00031);
-    const prospect=base+influence*(4.45*outline);
+    const prospect=base+influence*(5.20*outline);
     let safe=prospect;
     for(const other of neighborProfiles){
       if(other===profile)continue;
@@ -225,7 +234,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // gameplay rectangle, keeping at least 1.10 m of level terrain beyond
     // the old floor, and keep both bridge approaches at their full width.
     const spareInland=Math.max(0,p.playableRadial-p.innerRadial-1.10);
-    const inlandRoot=isBridge?0:Math.min(spareInland,2.50*influence);
+    const inlandRoot=isBridge?0:Math.min(spareInland,2.85*influence);
     p.playableRadial-=inlandRoot;
     p.heroInlandRoot=inlandRoot;
     // Height cannot be directly proportional to *coast expansion*. On a
@@ -235,7 +244,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // anywhere the bridge clearance touches the authored cliff.
     const band=newRadius-p.playableRadial;
     const room=smooth(.62,1.80,band);
-    const projectedMass=influence*(.46+.54*room);
+    const projectedMass=influence*(.43+.57*room);
     p.heroRelief=isBridge?0:projectedMass;
     p.heroRockMask=isBridge?0:influence;
     // The walkable coastline is updated to match this broader root in the
@@ -262,12 +271,13 @@ function heroCoastRingData(profile){
   // All 14 radial strips share one mesh. NO separate rock apron or overlaps.
   // Ring 0 is the unchanged flat gameplay seam; ring 13 is the exact water toe.
   const {floor,points,seed}=profile,n=points.length;
-  const fractions=[-.045,.045,.095,.16,.24,.34,.44,.54,.63,.72,.81,.89,.965,1];
-  // Distinct worn crown, secondary shoulder and abrupt sea-facing faces.
-  // The broad shelf is only high where the authored headland mask exists.
-  const cap=[0,0,.025,.10,.32,.87,1,1.00,.95,.71,.36,.13,.015,0];
-  const yFloor=[.010,.009,.006,.002,-.009,-.024,-.038,-.052,-.071,-.085,-.104,-.124,-.16,-.65];
-  const yCove=[.010,.008,.003,-.014,-.033,-.055,-.08,-.10,-.145,-.205,-.270,-.31,-.38,-.65];
+  const fractions=[-.045,.035,.085,.15,.235,.335,.44,.55,.66,.755,.83,.90,.965,1];
+  // Flat, untraversable rocky shelves step up to three individual crowns.
+  // The first three strips barely rise: gameplay never reads as uphill terrain.
+  // Ridges start further offshore and descend into deep, darker water.
+  const cap=[0,0,.016,.075,.23,.63,.94,1.07,.96,.67,.34,.12,.018,0];
+  const yFloor=[.010,.008,.004,-.003,-.015,-.026,-.041,-.058,-.081,-.11,-.14,-.19,-.27,-.65];
+  const yCove=[.010,.008,.002,-.012,-.036,-.057,-.081,-.11,-.155,-.218,-.28,-.345,-.44,-.65];
   const stoneColors=[
     '#667b6e','#7c8782','#8f9592','#a39ea1',
     '#b0a4ab','#b8abb1','#b2a4ab','#a79ea9',
@@ -290,11 +300,15 @@ function heroCoastRingData(profile){
     const local=nearest?wrap(p.angle-nearest.angle)/nearest.width:8;
     const knuckle=(.83+.21*Math.sin(local*4.4+.9)+.10*Math.sin(local*9.1-1.5));
     const fractured=clamp(.76+.26*rough+.10*secondary+.18*knuckle,.72,1.18);
-    const rockMask=clamp(Math.pow(p.heroRockMask??0,1.23),0,1);
-    return {rough,secondary,local,rockMask,relief:(p.heroRelief??0)*3.12*fractured,
-      fault:.023*Math.sin(5*p.angle+seed*.00013)
-        +.019*Math.sin(11*p.angle-seed*.00017)
-        +.015*rockMask*Math.sin(17*p.angle+seed*.00029)};
+    const rockMask=clamp(Math.pow(p.heroRockMask??0,1.45),0,1);
+    // Scale individual rock blocks unevenly, breaking up the previously
+    // sausage-like grey shoreline into recognizable headland silhouettes.
+    const crown=.87+.12*Math.cos(local*5.2)+.08*Math.sin(local*9.7+1.3);
+    const relief=(p.heroRelief??0)*3.52*fractured*crown;
+    return {rough,secondary,local,rockMask,relief,
+      fault:.022*Math.sin(5*p.angle+seed*.00013)
+        +.018*Math.sin(11*p.angle-seed*.00017)
+        +.017*rockMask*Math.sin(15*p.angle+seed*.00029)};
   });
   for(let k=0;k<fractions.length;k++)for(let i=0;i<n;i++){
     const p=points[i],section=sections[i],c=Math.cos(p.angle),sn=Math.sin(p.angle);
@@ -309,9 +323,9 @@ function heroCoastRingData(profile){
 
     // The crown is broad and mostly level. Irregular shoulders and cool
     // fractures break it into a few visibly different geological faces.
-    const diagonal=.90+.07*Math.sin(p.angle*7+seed*.00023+k*.20)
-      +.06*Math.cos(p.angle*13-seed*.00039-k*.18);
-    const ledge=(k===4?.06:k===5?.10:k===6?.08:k===7?-.04:k===8?-.10:0)
+    const diagonal=.93+.11*Math.sin(p.angle*6.5+seed*.00023+k*.16)
+      +.075*Math.cos(p.angle*12-seed*.00039-k*.22);
+    const ledge=(k===4?.04:k===5?.15:k===6?.10:k===7?-.06:k===8?-.12:0)
       *section.rockMask*(section.rough-.45);
     const relief=section.relief*cap[k]*diagonal+ledge;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
@@ -327,14 +341,14 @@ function heroCoastRingData(profile){
     // The previous continuous grey apron survived because even unraised
     // shoreline strips inherited pale mineral-edge tones. Blend ordinary
     // shore into dark olive vegetation; concentrate granite at headlands.
-    const calmShore=tint(SOIL_SHADE,SOIL_OLIVE,.36+.17*section.secondary);
-    const calmBlend=k===0?0:smooth(.06,.55,f)*(1-rock)*.70;
+    const calmShore=tint(SOIL_SHADE,SOIL_OLIVE,.58+.14*section.secondary);
+    const calmBlend=k===0?0:smooth(.06,.55,f)*(1-rock)*.94;
     const shoreBase=tint(seam,calmShore,calmBlend);
-    const exposure=clamp(rock*(.79+.20*section.secondary)
-      +(1-p.beach)*(.025+.035*section.rough),0,.98);
+    const exposure=clamp(rock*(.89+.10*section.secondary)
+      +(1-p.beach)*(.007+.009*section.rough),0,.99);
     const transition=[0,.010,.045,.16,.40,.68,.85,.94,.96,.98,.99,1,1,1][k];
-    const wet=k>=11?(1-p.beach)*.08:0;
-    const blend=k===0?0:transition*clamp(.018+exposure*.98+wet,0,1);
+    const wet=k>=11?(1-p.beach)*.03:0;
+    const blend=k===0?0:transition*clamp(.008+exposure*.99+wet,0,1);
     const fissure=section.rockMask*(k>=6&&k<=11?
       Math.pow(Math.max(0,Math.cos(p.angle*21.5+seed*.0002+k*.27)),12)*.20:0);
     const faceShade=clamp(.72+.24*section.rough+.10*section.secondary
