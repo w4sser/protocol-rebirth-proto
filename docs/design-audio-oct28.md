@@ -10,7 +10,7 @@ B.I.T. uses the eight existing F1 Kokoro am_fenrir recordings. Hunters inbound: 
 
 Mix: master feeds music, SFX and voice buses. Voice ducks music only by exactly -6 dB (linear gain 0.501187), restoring the current user volume afterward. Combat cues stay at their chosen volume during VO. Short gain ramps avoid clicks. SFX vary pitch/gain slightly. Both the existing base settings popup and raid pause popup expose a Master toggle and Music/SFX/Voice sliders with independent mutes. Settings persist locally without changing game saves. Legacy ambience and ambienceMuted keys are ignored and omitted on the next settings write. iOS/Safari audio starts after the first pointerdown/touchend; blocked/unsupported audio fails quietly. Assets load and decode lazily with shared promises; stopped loops cannot start from stale loads.
 
-All audio is generated free/local: numpy plus ffmpeg for original CC0 procedural assets; existing local CPU F1 TTS for BIT. BIT recordings remain All rights reserved © Robert Wasser. Every shipping file is listed in `assets/audio/LICENSES.md`. Both mono Vorbis OGG and low-bitrate AAC M4A ship, selecting OGG only when the browser reports Vorbis support. Older iOS uses AAC. Total shipping audio, including both formats, must remain below 2,000,000 bytes. No commercial services, downloaded samples, or noncommercial-only voice auditions ship.
+All audio is generated free/local: numpy plus ffmpeg for original CC0 procedural assets; existing local CPU F1 TTS for BIT. BIT recordings remain All rights reserved © Robert Wasser. Every shipping file is listed in `assets/audio/LICENSES.md`. Both mono Vorbis OGG and low-bitrate AAC M4A ship, preferring AAC whenever the browser reports AAC support; OGG is used only when AAC is unsupported. Total shipping audio, including both formats, must remain below 2,000,000 bytes. No commercial services, downloaded samples, or noncommercial-only voice auditions ship.
 
 Regenerate with `/workspace/tts-venv/bin/python tools/audio/gen-sfx.py`. Generate the 20-second audition with `python3 tools/audio/mix-demo.py`; the default output is `/workspace/rostprov/mix-demo.ogg`. The demo is outside the shipping asset budget.
 
@@ -54,12 +54,29 @@ default:
   gets its own `slice()` copy of the stored bytes. `retryDecodes()` reruns right after
   `unlockSync()`. `raceLoad()` caps how long `play()`/`voice()` wait on a single decode
   (`config.decodeWaitMs`, 2500ms) so one stalled file cannot block playback forever.
-- **Silent switch.** Web Audio on iOS follows the ringer/mute switch under the default `'ambient'`
-  session category. `unlockSync()` opts into `navigator.audioSession.type = 'playback'` (iOS
-  17+) so unlocked game audio plays even with the switch on; feature-detected and wrapped in a
-  `try`/`catch`, so its absence (or a setter that throws) is harmless everywhere else. Robert:
-  this does not affect players who leave the switch off, but means the switch no longer silences
-  the game for players who leave it on, same as most other mobile games.
+- **Session and background behavior (PRB-159).** `unlockSync()` explicitly selects
+  `navigator.audioSession.type = 'ambient'` when available. Ambient respects the silent switch,
+  mixes with other apps and does not opt into background audio. The earlier playback category
+  caused music to continue after closing/backgrounding the app. Independently, hidden
+  `visibilitychange`, window `pagehide` and document `freeze` stop music loops, pause any media
+  elements and suspend the shared context. Desired music is retained. Visible/pageshow recovery
+  only resumes a previously unlocked context; if iOS requires a gesture, the next gesture retries.
+  Playback, resume, pending drains and synchronous unlock all bail while hidden.
+- **Format selection (PRB-159).** Default construction now passes a detached audio capability
+  probe. Any truthy AAC (`audio/mp4; codecs="mp4a.40.2"`) result selects M4A, even if Ogg claims
+  probably: WebKit may advertise Ogg yet reject or stall decoding. Ogg is selected only when AAC
+  is unsupported; a failed Ogg decode switches future loads/retries to AAC. SFX/VO have decode
+  deadlines whereas music awaits load without that deadline, explaining why music could play
+  while the first effects dropped. All 56 files have both formats; 55 AAC LC files are 22.05 kHz
+  mono and the bunker theme is 44.1 kHz stereo. Web Audio resamples decoded buffers to the context.
+- **Gesture retries (PRB-159).** Touchend/click synchronously retry resume and a new silent buffer
+  whenever the context is not running, including after a failed touchstart's armed wait expires.
+- **Hidden diagnostics (PRB-159).** Triple-tap the base version label (`#app-version` or the
+  settings menu version), or the raid pause menu version, within 800 ms. The small overlay
+  refreshes every 500 ms while open and shows context state/rate/latency, unlock flags, format,
+  decoded/failed/pending files, last eight drop reasons, last error, visibility, audio session,
+  short user agent and version. Test beep synthesizes a tone through the SFX bus; Play SFX uses
+  decoded ui-confirm. Tap the panel to close it. Closed diagnostics have no polling timer.
 - **Single shared `AudioContext` per page.** `ui/audio.js` is the only place that creates an
   `AudioContext` (its module-scope `root.PR_AUDIO` singleton); nothing else creates a second
   `AudioContext`, a bare `new Audio()`/`<audio>` element, or uses `navigator.mediaSession`
