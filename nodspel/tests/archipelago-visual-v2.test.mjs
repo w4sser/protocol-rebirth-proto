@@ -70,8 +70,11 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     const coastal=group.children.filter(o=>o.name==='archipelago-coast-shell');
     const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
     assert.equal(coastal.length,islands.length);
-    assert.equal(granite.length,islands.length);
+    assert.equal(granite.length,islands.length-1,'hero coastal cliffs replace detached granite meshes');
+    assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
+    assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero),
+      'hero bunker entrance is anchored directly into the new coastal cliff');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
