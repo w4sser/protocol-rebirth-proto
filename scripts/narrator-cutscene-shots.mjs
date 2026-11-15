@@ -28,6 +28,81 @@ function seed(kind){
   return s;
 }
 const result = {schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:narrator-shot',outcome:'death',area:'bunker',levelsCleared:1,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:[],lost:['cable'],endedAt:1,kitLeft:{medkit:0}};
+
+// PRB-158: hold-until-tap proof -- no hint yet at ~2s, hint visible at ~3.6s, and (Fabricator
+// only) still on screen at 10s with no auto-dismiss. HOLD_SHOTS=1 node scripts/narrator-cutscene-shots.mjs
+if(process.env.HOLD_SHOTS){
+  const holdOut = '/workspace/prp-ios-audio-v22837-shots';
+  await mkdir(holdOut,{recursive:true});
+  const server = http.createServer(async (req,res) => {
+    const path = decodeURIComponent(new URL(req.url,'http://x').pathname);
+    const target = resolve(current,'.' + (path.endsWith('/') ? path + 'index.html' : path));
+    if(!target.startsWith(current + sep)){ res.writeHead(403); res.end(); return; }
+    try {
+      let body = await readFile(target); const ext = extname(target);
+      if(ext === '.css' || ext === '.html') body = String(body).replace(/env\(\s*safe-area-inset-(left|right|top|bottom)\s*(?:,[^()]*(?:\([^()]*\))?[^()]*)?\)/g,(_,s) => insets[s] + 'px');
+      res.writeHead(200,{'Content-Type':types[ext] || 'application/octet-stream','Cache-Control':'no-store'}); res.end(body);
+    } catch {res.writeHead(404);res.end('Not found');}
+  });
+  await new Promise(r => server.listen(0,'127.0.0.1',r));
+  const reports = [];
+  try {
+    for(const kind of ['fabricator','core']){
+      for(const [width,height] of kind === 'core' ? [[844,390]] : [[844,390],[667,375],[932,430]]){
+        const browser = await puppeteer.launch({headless:true,executablePath:process.env.CHROME_PATH || '/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+        try {
+          const page = await browser.newPage(); const errors = [];
+          page.on('pageerror',e => errors.push(String(e)));
+          await page.setViewport({width,height,isMobile:true,hasTouch:true,deviceScaleFactor:1});
+          await page.evaluateOnNewDocument(save => {
+            localStorage.setItem('pr_meta_save',JSON.stringify(save));
+            sessionStorage.setItem('pr_splash_seen',String(Date.now())); window.PR_NAVIGATE = () => {};
+          },seed(kind));
+          await page.goto('http://127.0.0.1:' + server.address().port + '/index.html',{waitUntil:'load'});
+          await page.waitForFunction(() => document.body.dataset.screen === 'base');
+          await page.evaluate(id => A.build(id),kind === 'core' ? 'rebirth_core' : 'fabricator');
+          if(kind === 'fabricator'){
+            await page.waitForSelector('#overlay [data-close]',{visible:true});
+            await page.click('#overlay [data-close]');
+          } else assert.equal(await page.$('#overlay'),null,'Core has no payoff popup');
+          await page.waitForSelector('.bit-cutscene',{visible:true,timeout:20000});
+          if(kind === 'fabricator') await page.waitForFunction(() => [...document.querySelectorAll('.bit-cutscene-stage img')].every(img => img.complete && img.naturalWidth > 0));
+          const appearedAt = Date.now();
+          const prefix = kind === 'fabricator' ? 'fab' : 'core';
+          const elapsed = () => Date.now() - appearedAt;
+
+          await sleep(Math.max(0,2000 - elapsed()));
+          let hint = await page.evaluate(() => document.querySelector('.bit-cutscene').classList.contains('hint-visible'));
+          assert.equal(hint,false,kind + ' @' + width + 'x' + height + ': TAP TO CONTINUE must not be visible yet at ~2s');
+          const noHintPath = `${holdOut}/${prefix}-nohint-${width}x${height}.png`;
+          await page.screenshot({path:noHintPath}); reports.push({kind,width,height,frame:'nohint',path:noHintPath,atMs:elapsed()});
+          console.log(noHintPath);
+
+          await sleep(Math.max(0,3600 - elapsed()));
+          hint = await page.evaluate(() => document.querySelector('.bit-cutscene').classList.contains('hint-visible'));
+          assert.equal(hint,true,kind + ' @' + width + 'x' + height + ': TAP TO CONTINUE must be visible by ~3.6s');
+          const hintPath = `${holdOut}/${prefix}-hint-${width}x${height}.png`;
+          await page.screenshot({path:hintPath}); reports.push({kind,width,height,frame:'hint',path:hintPath,atMs:elapsed()});
+          console.log(hintPath);
+
+          if(kind === 'fabricator' && width === 844){
+            await sleep(Math.max(0,10000 - elapsed()));
+            const stillOpen = await page.evaluate(() => !!document.querySelector('.bit-cutscene'));
+            assert.equal(stillOpen,true,'the cutscene must never auto-dismiss, even after 10s');
+            const tenSecPath = `${holdOut}/fab-10s-844x390.png`;
+            await page.screenshot({path:tenSecPath}); reports.push({kind,width,height,frame:'10s',path:tenSecPath,atMs:elapsed()});
+            console.log(tenSecPath);
+          }
+          assert.deepEqual(errors,[],'no runtime errors');
+        } finally { await browser.close(); }
+      }
+    }
+  } finally { await new Promise(r => server.close(r)); }
+  await writeFile(holdOut + '/results.json',JSON.stringify(reports,null,2));
+  console.log('Hold-until-tap screenshots passed:',reports.length);
+  process.exit(0);
+}
+
 const reports = [];
 await mkdir(out,{recursive:true});
 for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',current]].filter(([phase]) => !(process.env.AFTER_ONLY || process.env.FAB_ONLY) || phase === 'after')){
