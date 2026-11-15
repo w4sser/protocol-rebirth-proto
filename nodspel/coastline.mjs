@@ -183,7 +183,7 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
   const grain=fieldNoise(x*.96+13,z*.96-7,seed+1901);
   const channel=.5+.5*Math.sin(x*.31-z*.26+mid*2.5+seed*.0001);
   const beach=coastBeach(angle/TAU,seed);
-  let glacial=0,trail=0;
+  let glacial=0,bedrockRoot=0,trail=0;
   for(let j=0;j<(bedrockPlan?.masses?.length??0);j++){
     const mass=bedrockPlan.masses[j];
     const delta=Math.atan2(Math.sin(angle-mass.angle),Math.cos(angle-mass.angle));
@@ -194,7 +194,8 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
     // continuous grey outer half of the island.
     const fracture=.80+.20*Math.sin(angle*7+f*9+seed*.0002+j);
     const arc=Math.exp(-Math.pow((delta+meander)/(.27+.07*channel),2));
-    glacial=Math.max(glacial,arc*smooth(.38,.91,f)*fracture);
+    glacial=Math.max(glacial,arc*smooth(.29,.90,f)*fracture);
+    bedrockRoot=Math.max(bedrockRoot,Math.pow(arc,.78)*smooth(.58,.965,f)*(.76+.24*mid));
     if(j===0){
       // A subdued, winding worn-earth route toward the buried coastal portal.
       const transverse=Math.sin(delta)*Math.hypot(dx,dz)+Math.sin(f*8+seed*.001)*.43;
@@ -203,7 +204,7 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
   }
   const mineralPockets=smooth(.66,.88,broad)*smooth(.59,.94,f)*(.18+.30*mid);
   const edgeRock=smooth(.88,.995,f)*(1-beach)*(.14+.15*channel);
-  const exposed=clamp(glacial*(.49+.20*mid)+mineralPockets+edgeRock,0,.78);
+  const exposed=clamp(glacial*(.49+.20*mid)+bedrockRoot*(.26+.13*mid)+mineralPockets+edgeRock,0,.90);
   const lichen=smooth(.62,.89,mid)*exposed*(.11+.07*grain);
   let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.20,0,1));
   col=tint(col,SOIL_SHADE,.12+.22*(1-mid));
@@ -267,9 +268,9 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     const channels=.5+.5*Math.sin(p.angle*11+profile.seed*.003);
     const striation=.5+.25*Math.sin(p.angle*8+profile.seed*.0003)
       +.25*Math.sin(p.angle*15-profile.seed*.0005);
-    const ridge=clamp(massProximity*.83+shelfProximity*.32,0,1)*(1-p.beach*.93);
-    const localLift=[0,.10,.38,.66,.45,0][ring];
-    const eroded=.70+.30*channels+.25*striation;
+    const ridge=clamp(massProximity*.92+shelfProximity*.26,0,1)*(1-p.beach*.90);
+    const localLift=[0,.055,.28,.91,.58,0][ring];
+    const eroded=.72+.26*channels+.19*striation;
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+localLift*ridge*eroded,z);
     blends.push(COAST_BLEND_STOPS[ring]);
     const cliffShade=.87+.10*striation+.06*channels;
@@ -282,10 +283,10 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
       // major outcrop connections expose broad bands of granite. The previous
       // unconditional grey blend looked like a continuous concrete seawall.
       const patch=fieldNoise(x*.46+17,z*.46-13,profile.seed+1209);
-      const stone=clamp(.09+massProximity*.69+shelfProximity*.20
-        +smooth(.62,.88,patch)*.20-p.beach*.36,0,1);
-      const transition=[0,.18,.42,.68,.95,1][ring];
-      const localStone=ring===5?1:transition*(.16+.84*stone);
+      const stone=clamp(.11+massProximity*.78+shelfProximity*.24
+        +smooth(.62,.88,patch)*.17-p.beach*.32,0,1);
+      const transition=[0,.21,.47,.77,.97,1][ring];
+      const localStone=ring===5?1:transition*(.19+.81*stone);
       const stoneColor=colR.map((v,k)=>v*(.84+.24*striation)+(colS[k]-v)*p.beach);
       for(let k=0;k<3;k++)colors.push(clamp(lerp(entry[k],stoneColor[k]*cliffShade,localStone),0,1));
     }else{
