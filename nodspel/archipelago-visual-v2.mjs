@@ -95,7 +95,9 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
   if(profile?.style!=='v2')return null;
   const plan=planArchipelagoBedrock(profile,options),parts=[...plan.masses,...plan.shelves],mesh=new THREE.InstancedMesh(graniteGeo,graniteMat,parts.length);
   mesh.name='arch-v2-glacial-shelves';mesh.userData.visualOnly=true;mesh.userData.bedrockPlan=plan;
-  for(let i=0;i<parts.length;i++){const m=parts[i];pos.set(m.x,-.44,m.z);rot.setFromAxisAngle(up,m.rotation);scale.set(m.length,m.height,m.depth);mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));}
+  for(let i=0;i<parts.length;i++){const m=parts[i];pos.set(m.x,-.44,m.z);rot.setFromAxisAngle(up,m.rotation);// Keep sculpted mid-shoulders safely inside the same conservative clearance
+    // used by the planner, including concave shoreline seeds and bridges.
+    scale.set(m.length*.94,m.height,m.depth*.94);mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));}
   mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
   // Do not add a planar granite apron: it intersects the sloping coast shell
   // and appears as triangular z-fighting at water and bridge landings on iOS.
