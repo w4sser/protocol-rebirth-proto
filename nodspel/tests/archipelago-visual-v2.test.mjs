@@ -196,6 +196,8 @@ test('v2 places high granite only outside the island and preserves open bridge l
       const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
       assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
       assert.equal(heroShell[0].userData.heroRings,14);
+      assert.equal(heroShell[0].material.flatShading,false,
+        'the sculpted hero granite keeps smooth worn rock normals, not a faceted retaining wall');
       assert.equal(heroShell[0].geometry.getAttribute('position').count,14*72);
       assert.ok(out.heroHeadlands?.length>0,'authored hero has a meaningful geological headland');
       if(number===1)assert.ok(out.heroHeadlands.length>=2,'hero preview composes two or more distinct rocky headlands');
