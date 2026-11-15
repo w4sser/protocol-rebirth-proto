@@ -149,6 +149,136 @@ export function separateArchipelagoCoastProfiles(profiles,{halfGap=.55}={}){
   }
   return islands;
 }
+
+/**
+ * Target-island authoring only. Keep the operator's X/Z boundary fixed and
+ * grow two broad rocky headlands OUT into free water. The new landform is
+ * rendered by the existing shoreline mesh, not by offshore oval props.
+ */
+export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neighborProfiles=[]}={}){
+  if(profile?.style!=='v2')return profile;
+  const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  const {floor,points}=profile;
+  const options=rockAngles.length?rockAngles:points.filter((p,i)=>i%9===0&&p.beach<.22).map(p=>p.angle);
+  const heads=[];
+  for(const angle of options){
+    const p=points[Math.round(((angle+TAU)%TAU)/TAU*points.length)%points.length];
+    const bridgeBlocked=bridgeZones.some(z=>{
+      const x=floor.x+Math.cos(angle)*(p.radial+1),t=floor.z+Math.sin(angle)*(p.radial+1);
+      return Math.abs(x-z.x)<z.w/2+2&&Math.abs(t-z.z)<z.d/2+2;
+    });
+    if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
+    heads.push({angle,width:heads.length===0?.48:.40,height:heads.length===0?1.85:1.37});
+    if(heads.length===2)break;
+  }
+  if(!heads.length){
+    // Deterministic fallback for tight authored maps: no cliffs in a bridge
+    // landing, even when a particular seed cannot fit two prominent ridges.
+    for(const p of points.filter((p,i)=>i%6===0&&p.beach<.3)){
+      const x=floor.x+Math.cos(p.angle)*(p.radial+.8);
+      const z=floor.z+Math.sin(p.angle)*(p.radial+.8);
+      if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+2.5&&Math.abs(z-b.z)<b.d/2+2.5))continue;
+      heads.push({angle:p.angle,width:.39,height:1.4});break;
+    }
+  }
+  for(const p of points){
+    const c=Math.cos(p.angle),sn=Math.sin(p.angle);
+    const base=p.radial;
+    const influence=heads.reduce((acc,h)=>{
+      const t=wrap(p.angle-h.angle)/h.width;
+      return Math.max(acc,Math.exp(-t*t));
+    },0)*(1-p.beach*.96);
+    const prospect=base+influence*2.8;
+    let safe=prospect;
+    for(const other of neighborProfiles){
+      if(other===profile)continue;
+      const dx=other.floor.x-floor.x,dz=other.floor.z-floor.z;
+      const distance=Math.hypot(dx,dz),along=dx*c+dz*sn;
+      if(along>1e-8&&distance>1e-8)
+        safe=Math.min(safe,(distance*.5-.86)*distance/along);
+    }
+    // Maintain the visible water gap while preserving the full original
+    // walkable radius and the authored bridge landing.
+    let newRadius=Math.max(base,Math.min(prospect,safe));
+    const x=floor.x+c*newRadius,z=floor.z+sn*newRadius;
+    if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+1.6&&Math.abs(z-b.z)<b.d/2+1.6)){
+      newRadius=base;
+    }
+    const actualGain=Math.max(0,newRadius-base);
+    p.radial=newRadius;
+    p.x=floor.x+c*newRadius;p.z=floor.z+sn*newRadius;
+    p.heroRelief=influence*Math.min(1,actualGain/1.7);
+    // IMPORTANT: playableRadial intentionally does not change. A mountain is
+    // a natural boundary, never a climbable surface or false combat cover.
+  }
+  let total=0,rocky=0;
+  for(let i=0;i<points.length;i++){
+    const p=points[i],q=points[(i+1)%points.length];
+    const len=Math.hypot(q.x-p.x,q.z-p.z);
+    total+=len;rocky+=len*(1-(p.beach+q.beach)*.5);
+  }
+  profile.totalLength=total;
+  profile.rockyRatio=total?rocky/total:0;
+  profile.beachRatio=1-profile.rockyRatio;
+  profile.heroHeadlands=heads;
+  profile.heroCoast=true;
+  return profile;
+}
+
+function heroCoastRingData(profile){
+  // One indexed mesh: ten rings are shared by moss, sculpted granite shelves,
+  // cliff faces and the submerged waterline. No overlapping granite 'apron'
+  // and no detached topographic ovals on the representative island.
+  const {floor,points}=profile,n=points.length;
+  const fractions=[-.045,.065,.14,.28,.42,.55,.70,.85,.96,1];
+  const heights=[0,0,.08,.37,1,.86,.61,.30,.045,0];
+  const elevation=[.010,.009,.007,.002,-.012,-.025,-.05,-.083,-.13,-.65];
+  const sand=[.010,.008,.004,-.015,-.05,-.085,-.14,-.23,-.31,-.54];
+  const stops=[0,.05,.12,.31,.52,.67,.79,.88,.97,1];
+  const cliffRock=[
+    '#69796f','#71817d','#899091','#95949c','#a3a1a9',
+    '#aaa6ad','#9596a1','#858b97','#707989','#4f6275'
+  ].map(rgb);
+  const positions=[],colors=[],uvs=[],blends=[],indices=[];
+  for(let k=0;k<fractions.length;k++)for(const p of points){
+    const c=Math.cos(p.angle),sn=Math.sin(p.angle);
+    const band=p.radial-p.playableRadial;
+    const radius=k===0?p.playableRadial-.045:
+      k===9?p.radial+.22:p.playableRadial+band*fractions[k];
+    const x=floor.x+c*radius,z=floor.z+sn*radius;
+    const rough=.80+.13*Math.sin(7*p.angle+profile.seed*.0003)
+      +.09*Math.sin(13*p.angle-profile.seed*.0006);
+    const relief=(p.heroRelief??0)*heights[k]*1.90*rough;
+    const y=mix(elevation[k],sand[k],p.beach)+relief;
+    positions.push(x,y,z);
+    const seam=archipelagoGroundColor(profile,
+      floor.x+c*(p.playableRadial-.045),
+      floor.z+sn*(p.playableRadial-.045));
+    const exposed=clamp((p.heroRelief??0)*.94+.18*(1-p.beach),0,1);
+    const transition=stops[k];
+    const blend=k===0?0:transition*(.16+.84*exposed);
+    const stone=cliffRock[k];
+    const shade=.88+.10*Math.sin(p.angle*9+profile.seed*.0003);
+    for(let channel=0;channel<3;channel++)
+      colors.push(clamp(mix(seam[channel],stone[channel]*shade,blend),0,1));
+    blends.push(stops[k]);
+    const fract=v=>v-Math.floor(v);
+    uvs.push(.525+.45*fract(x/4),.025+.45*fract(z/4));
+  }
+  for(let k=0;k<fractions.length-1;k++)for(let i=0;i<n;i++){
+    const next=(i+1)%n,a=k*n+i,b=k*n+next,c=(k+1)*n+i,d=(k+1)*n+next;
+    indices.push(a,b,c,b,d,c);
+  }
+  return {
+    positions:new Float32Array(positions),
+    colors:new Float32Array(colors),
+    uvs:new Float32Array(uvs),
+    blends:new Float32Array(blends),
+    indices:new Uint16Array(indices),
+    rings:fractions.length
+  };
+}
+
 // Six opaque rings instead of a 4-ring untextured slab.
 // The first ~1.05 m is INSET into the existing walkable rectangle: the same
 // ground texture can cover the rectangle-to-coast join, then fade progressively
@@ -218,6 +348,7 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
 }
 
 export function coastRingData(profile,{bedrockPlan=null}={}){
+  if(profile?.heroCoast)return heroCoastRingData(profile);
   const {floor,points}=profile,n=points.length,positions=[],indices=[],colors=[],uvs=[],blends=[];
   const rock=profile.style==='v2'
     ? ['#6b805b','#7d897d','#8f9295','#a09ca3','#878b93','#596a76']
