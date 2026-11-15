@@ -8,12 +8,12 @@ export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',gr
 import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.25';
 export {archipelagoPassages} from './archipelago-passages.js?v=2.28.25';
 import {createWaterMesh} from './water-shader.js?v=2.28.25-coast9';
-import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite17';
+import {coastlineProfile,coastRingData} from './coastline.mjs?v=2.28.25-bridge1-organic-v2-granite18';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.25-organic-v2';
-import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite17';
+import {addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.25-granite18';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.25-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
-import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.25-dinghy1';
+import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.25-dinghy2';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);
@@ -357,7 +357,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   // hull stand-ins placed on a radius around the global map center.
   if(visualV2){
     const places=planArchipelagoBoatsV2([...coastProfiles.values()],level.floors,level.seed,
-      {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D}});
+      {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},bedrockPlans:[...bedrockPlans.values()]});
     out.boatPlacements=places;
     for(const place of places){group.add(createArchipelagoDinghyV2(place));out.boats++;}
   }else{

@@ -7,6 +7,7 @@ import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago} from '../archipelago.js';
 import {distanceToIsland,planArchipelagoBoatsV2,createArchipelagoDinghyV2} from '../archipelago-boats-v2.mjs';
+import {planArchipelagoBedrock} from '../archipelago-visual-v2.mjs';
 
 const F={x:0,z:0,w:12,d:12};
 
@@ -114,7 +115,9 @@ test('nearshore dinghies always float outside organic land, bridges and other bo
     for(const depth of [1,2,3]){
       const level=generateLevel(depth,seed,'archipelago');
       const profiles=level.floors.filter(f=>!f.dir).map(f=>coastlineProfile(f,level.seed,{style:'v2',neighbors:level.floors}));
-      const high=planArchipelagoBoatsV2(profiles,level.floors,level.seed),low=planArchipelagoBoatsV2(profiles,level.floors,level.seed);
+      const rockPlans=profiles.map(p=>planArchipelagoBedrock(p));
+      const high=planArchipelagoBoatsV2(profiles,level.floors,level.seed,{bedrockPlans:rockPlans});
+      const low=planArchipelagoBoatsV2(profiles,level.floors,level.seed,{bedrockPlans:rockPlans});
       assert.deepEqual(high,low,'boat placement must not vary with quality, FPS or boot order');
       assert.ok(high.length>=1&&high.length<=3,seed+'/'+depth+' should have one to three boats');
       for(const boat of high){
@@ -132,6 +135,10 @@ test('nearshore dinghies always float outside organic land, bridges and other bo
         for(const f of level.floors.filter(f=>f.dir)){
           const dx=Math.max(Math.abs(boat.x-f.x)-f.w/2,0),dz=Math.max(Math.abs(boat.z-f.z)-f.d/2,0);
           assert.ok(Math.hypot(dx,dz)>2.30,'boat must clear bridge and pier footprints');
+        }
+        for(const rock of rockPlans.flatMap(q=>[...q.masses,...q.shelves])){
+          const f=rock.bounds,dx=Math.max(Math.abs(boat.x-f.x)-f.w/2,0),dz=Math.max(Math.abs(boat.z-f.z)-f.d/2,0);
+          assert.ok(Math.hypot(dx,dz)>2.15,'boat must not sit over visible offshore granite');
         }
       }
       for(let i=0;i<high.length;i++)for(let j=i+1;j<high.length;j++)
