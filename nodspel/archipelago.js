@@ -151,20 +151,68 @@ export function isArchipelagoPartitionWallV2(w,rooms=[]){
     &&w.w>.65&&w.d<=.65
     &&Math.abs(w.z-r.z)<r.d/2-.3);
 }
-// V2 is a strictly planar X/Z game. Tall granite belongs at the island
-// perimeter, outside the registered actor boundary, not in bridge approaches.
-// Authored interior partitions remain physical cover, but now read as
-// unmistakable abandoned coastal-defence structures instead of climbable hills.
-const INTERIOR_COVER_GEO=new THREE.BoxGeometry(1,1,1);
-INTERIOR_COVER_GEO.userData.shared=true;
-const INTERIOR_COVER_MAT=new THREE.MeshStandardMaterial({
-  color:'#747b7a',roughness:1,metalness:0,flatShading:true
-});
-INTERIOR_COVER_MAT.userData.shared=true;
-const INTERIOR_COVER_TOP=new THREE.MeshStandardMaterial({
-  color:'#606d68',roughness:1,metalness:0
-});
-INTERIOR_COVER_TOP.userData.shared=true;
+// All islands remain an untouched natural archipelago. Man-made structures
+// belong only to the bunker / utility installation, not scattered as cover.
+// Small, partially buried granite erratics and fallen coastal pines provide
+// honest, low silhouettes for planar X/Z combat and retain exact cover AABBs.
+const V2_COVER_STONE=new THREE.DodecahedronGeometry(1,1);
+V2_COVER_STONE.userData.shared=true;
+const V2_COVER_STONE_MAT=[
+  new THREE.MeshStandardMaterial({color:'#858a90',roughness:.98,metalness:0,flatShading:true}),
+  new THREE.MeshStandardMaterial({color:'#99939c',roughness:.98,metalness:0,flatShading:true})
+];
+for(const mat of V2_COVER_STONE_MAT)mat.userData.shared=true;
+const V2_FALLEN_LOG=new THREE.CylinderGeometry(.32,.38,1,7,1);
+V2_FALLEN_LOG.userData.shared=true;
+const V2_BARK_MAT=new THREE.MeshStandardMaterial({color:'#665b4e',roughness:1,flatShading:true});
+V2_BARK_MAT.userData.shared=true;
+const V2_ROOT_MAT=new THREE.MeshStandardMaterial({color:'#514a40',roughness:1,flatShading:true});
+V2_ROOT_MAT.userData.shared=true;
+
+// One clearly visible natural obstacle per authored cover collider. Preserve
+// rect coordinates for gameplay; no invisible enclosing wall or new vertical
+// terrain. Returns a Group with userData.collider and organicCover metadata.
+function naturalCoverV2(rect,{kind='boulder',tone=0}={}){
+  const g=new THREE.Group();
+  const h=Math.max(.62,rect.h??.95);
+  const longX=rect.w>=rect.d;
+  g.position.set(rect.x,0,rect.z);
+  g.name=kind==='windfall'?'arch-v2-fallen-pine-cover':'arch-v2-granite-boulder-cover';
+  g.userData.naturalCover=true;
+  g.userData.coverKind=kind;
+  g.userData.collider=rect;
+  g.userData.visualHeight=h;
+  if(kind==='windfall'){
+    const diameter=Math.min(rect.w,rect.d)*.38;
+    const length=Math.max(rect.w,rect.d)*.89;
+    const trunk=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
+    trunk.position.y=diameter*.95;
+    trunk.rotation[longX?'z':'x']=Math.PI*.5;
+    trunk.scale.set(diameter,length,diameter);
+    trunk.castShadow=trunk.receiveShadow=true;
+    g.add(trunk);
+    const roots=new THREE.Mesh(V2_COVER_STONE,V2_ROOT_MAT);
+    roots.position.set(longX?-length*.37:0,diameter*.94,longX?0:-length*.37);
+    roots.scale.set(diameter*.98,Math.min(h*.48,diameter*1.22),diameter*.93);
+    roots.castShadow=roots.receiveShadow=true;g.add(roots);
+    // A short broken branch reads as windfall rather than a cylinder crate.
+    const broken=new THREE.Mesh(V2_FALLEN_LOG,V2_BARK_MAT);
+    broken.position.set(longX?length*.15:diameter*.65,diameter*1.08,
+      longX?diameter*.65:length*.15);
+    broken.rotation[longX?'x':'z']=.43;
+    broken.scale.set(diameter*.26,diameter*1.7,diameter*.26);
+    broken.castShadow=true;g.add(broken);
+  }else{
+    const stone=new THREE.Mesh(V2_COVER_STONE,V2_COVER_STONE_MAT[tone%2]);
+    stone.position.y=h*.44;
+    // Horizontal scale and height are restrained: this is an isolated erratic,
+    // not a mountain or a raised traversable island landform.
+    stone.scale.set(rect.w*.52,h*.49,rect.d*.52);
+    stone.rotation.y=.20+tone*.71;
+    stone.castShadow=stone.receiveShadow=true;g.add(stone);
+  }
+  return g;
+}
 const overlapsRect=(a,b,pad=0)=>Math.abs(a.x-b.x)<(a.w+b.w)*.5+pad
   &&Math.abs(a.z-b.z)<(a.d+b.d)*.5+pad;
 
@@ -220,17 +268,12 @@ function buildInteriorCoverV2(w,group,colliders,bridgeLandings=[]){
         d:alongX?crossWidth:pieceLength
       };
       if(bridgeLandings.some(z=>overlapsRect(rect,z,.28)))continue;
-      const h=Math.max(.95,Math.min(1.25,w.h??1.05));
-      const mesh=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_MAT);
-      mesh.name='arch-v2-interior-concrete-cover';
-      mesh.position.set(rect.x,h*.5-.07,rect.z);
-      mesh.scale.set(rect.w,h,rect.d);
-      mesh.castShadow=true;mesh.receiveShadow=true;
-      const cap=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_TOP);
-      cap.position.y=.515;cap.scale.set(.93,.045,.93);
-      cap.castShadow=false;cap.receiveShadow=true;mesh.add(cap);
+      const h=Math.max(.80,Math.min(1.08,w.h??1.05));
       const collider={...rect,h};
-      mesh.userData.collider=collider;
+      const kind=pieces===2&&i===1?'windfall':'boulder';
+      const mesh=naturalCoverV2(collider,{kind,tone:placed});
+      // This visual matches the replacement collider by construction; nothing
+      // else is left from the old straight authored partition wall.
       colliders.push(collider);group.add(mesh);placed++;
     }
   }
@@ -444,7 +487,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   const colliders=[],reservations=[...out.passages.map(p=>({...p,w:p.w+.96,d:p.d+.96})),...piers,...partitions,...source.placements];
   // v2.27: water is the island boundary. Shore walls (on the rim of exactly one island floor) get no
   // boulders, only an invisible collider equal to the authored wall, so actors still stop at the edge.
-  // Interior walls (partitions, shared room edges) keep their boulder clusters and their cover.
+  // Only true interior partitions retain sparse low natural cover, never artificial concrete obstacles.
   const islands=level.floors.filter(f=>!f.dir);
   const onRim=(w,f)=>{const ax=w.w>w.d,e=.6;
     return ax?Math.abs(Math.abs(w.z-f.z)-f.d/2)<e&&Math.abs(w.x-f.x)<f.w/2+e
@@ -473,12 +516,18 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   }
   // Preserve the array used by passage caching and callers, without mutating authoring walls.
   level.walls.splice(0,level.walls.length,...colliders);
-  for(const c of level.boxes){
+  for(let i=0;i<level.boxes.length;i++){
+    const c=level.boxes[i];
+    if(visualV2){
+      // Generic authored cover objects also become organic archipelago cover,
+      // regardless of whether the military art-mode toggle was passed in.
+      const g=naturalCoverV2(c,{kind:i%3===1?'windfall':'boulder',tone:i});
+      group.add(g);
+      continue;
+    }
     const g=new THREE.Group();g.userData.collider=c;
     g.name=militaryStyle?'archipelago-derelict-concrete-cover':'archipelago-crate';
     if(militaryStyle){
-      // Re-use the existing gameplay cover volumes; swap only the "brown crate"
-      // look for abandoned coastal-defence concrete with lichen and damp seams.
       box(c.x,c.h/2,c.z,c.w,c.h,c.d,'#747770',g);
       box(c.x,c.h+.012,c.z,c.w*.86,.025,c.d*.82,'#687459',g);
       box(c.x,c.h*.69,c.z-c.d/2-.009,c.w*.76,.043,.025,'#545A55',g);

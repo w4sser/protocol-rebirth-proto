@@ -238,7 +238,8 @@ test('v2 places high granite only outside the island and preserves open bridge l
       }
       // No invisible rock wall: every runtime wall collision is backed by
       // an exactly matching visible manufactured-cover mesh.
-      const cover=group.children.filter(o=>o.name==='arch-v2-interior-concrete-cover');
+      const cover=group.children.filter(o=>o.userData.naturalCover
+        &&!level.boxes.some(c=>c===o.userData.collider));
       for(const zone of out.bridgeClearances){
         const crosses=r=>Math.abs(r.x-zone.x)<(r.w+zone.w)/2+.28
           &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+.28;
@@ -246,15 +247,27 @@ test('v2 places high granite only outside the island and preserves open bridge l
       }
       const expectedPartitions=originals.filter(w=>isArchipelagoPartitionWallV2(w,level.rooms));
       assert.ok(cover.length<=expectedPartitions.length*4);
-      if(number===2)assert.ok(cover.length>0,'the partition encounter must retain visible cover');
+      if(number===2)assert.ok(cover.length>0,'partition encounters retain physically readable cover');
       assert.deepEqual(level.walls,cover.map(m=>m.userData.collider),
-        'all blocking walls are exactly the built low-profile concrete cover');
+        'every blocking partition collider maps to exactly one visible natural obstacle');
+      assert.equal(group.children.filter(o=>o.name==='arch-v2-interior-concrete-cover'
+        ||o.name==='archipelago-derelict-concrete-cover').length,0,
+        'natural island gameplay must not generate concrete cover');
       for(const m of cover){
-        assert.ok(m.position.y+m.scale.y/2<1.5,'interior cover must not look like a tall mountain');
-        assert.ok(Math.max(m.scale.x,m.scale.z)<=2.16,'cover is a compact isolated block, never a long wall');
-        assert.ok(m.children.length>=1,'cover must read as manufactured, not geological');
-        assert.ok(m.userData.collider && m.userData.collider.w>0 && m.userData.collider.d>0);
+        assert.ok(m.userData.naturalCover,'an interior obstacle must be an organic rock or fallen pine');
+        assert.ok(m.userData.visualHeight<=1.20,'cover must remain low in the strictly planar game');
+        assert.ok(Math.max(m.userData.collider.w,m.userData.collider.d)<=2.16,
+          'isolated natural cover must not form an artificial long wall');
+        assert.ok(m.children.length>=1,'each collider has readable, visible geometry');
+        assert.ok(m.userData.collider.w>0&&m.userData.collider.d>0);
       }
+      const propCover=group.children.filter(o=>o.userData.naturalCover
+        &&level.boxes.some(c=>c===o.userData.collider));
+      assert.equal(propCover.length,level.boxes.length,
+        'all preexisting cover boxes also render as small natural features in v2');
+      assert.ok(propCover.every(m=>m.userData.collider
+        &&['boulder','windfall'].includes(m.userData.coverKind)),
+        'no man-made blocks are scattered across natural skerries');
       for(const c of level.corridors??[]){
         const alongX=!!c.dir.x,axis=alongX?'x':'z',length=alongX?c.w:c.d;
         if(length<1.8)continue;
