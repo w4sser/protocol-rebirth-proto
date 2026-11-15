@@ -27,15 +27,19 @@ function distanceToPier(x,z,floor){
   const dz=Math.max(Math.abs(z-floor.z)-floor.d/2,0);
   return Math.hypot(dx,dz);
 }
-export function planArchipelagoBoatsV2(profiles,floors,levelSeed,{maxBoats=3,bounds=null}={}){
+export function planArchipelagoBoatsV2(profiles,floors,levelSeed,{maxBoats=3,bounds=null,bedrockPlans=[]}={}){
   if(!profiles?.length)return [];
   const boats=[],piers=floors.filter(f=>f.dir),seed=seedInt(levelSeed);
+  const outcrops=bedrockPlans.flatMap(plan=>[...(plan?.masses??[]),...(plan?.shelves??[])]);
   const minShore=BOAT_RADIUS+SHORE_MARGIN;
   function free(x,z){
     if(bounds&&(x<bounds.x0+minShore||x>bounds.x0+bounds.w-minShore
       ||z<bounds.z0+minShore||z>bounds.z0+bounds.d-minShore))return false;
     if(profiles.some(p=>distanceToIsland(x,z,p.points)<minShore))return false;
     if(piers.some(f=>distanceToPier(x,z,f)<minShore))return false;
+    // Large raised glacial outcrops are outside the walkable polygon. They
+    // are still visible solid land and must never intersect a floating boat.
+    if(outcrops.some(m=>distanceToPier(x,z,m.bounds)<BOAT_RADIUS+.35))return false;
     if(boats.some(b=>Math.hypot(x-b.x,z-b.z)<BOAT_RADIUS*2+1.4))return false;
     return true;
   }
