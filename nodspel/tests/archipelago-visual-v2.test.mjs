@@ -188,17 +188,28 @@ test('v2 removes linear legacy rock rows without leaving invisible boundary wall
       assert.equal(level.walls.length,represented.length,'no invisible legacy wall collision');
       assert.deepEqual(level.walls,represented,'all blocking wall volumes have matching visible rock');
       for(const bank of banks){
-        assert.equal(bank.material.flatShading,true,'rock banks should have readable faceted stone faces');
-        const vertices=bank.geometry.getAttribute('position');
-        for(let i=0;i<vertices.count;i+=8){
-          assert.ok(vertices.getY(i)<-.04&&vertices.getY(i+7)<-.04,
-            'perimeter erosion skirts must cut through ground, not z-fight above it');
+        assert.equal(bank.material.flatShading,true,'rocks use broad, readable facets');
+        const formations=bank.userData.outcrops;
+        assert.ok(formations.length>=1&&formations.length<=3,'few large outcrops, never a row of small rocks');
+        const count=bank.geometry.getAttribute('position').count;
+        assert.equal(count,formations.length*(5*19+1),'each outcrop is a distinct closed stone crown');
+        const profile=bank.geometry.getAttribute('position');
+        for(const part of formations){
+          assert.equal(part.colliders.length,3,'short collision slices follow the actual raised contour');
+          assert.ok(part.height>.6,'recognizable high granite silhouette');
+          assert.ok(profile.getY(part.vertexStart)<-.10,'eroded stone roots are submerged below gameplay floor');
+          const roof=part.vertexStart+4*19+8;
+          assert.ok(profile.getY(roof)>.6,'raised stone crown is visible at mobile camera');
         }
-        const heights=[];for(let i=4;i<vertices.count;i+=8)heights.push(vertices.getY(i));
-        assert.ok(Math.max(...heights)-Math.min(...heights)>.15,'multiple large outcrops rather than an even sausage ridge');
-        const n=bank.geometry.getAttribute('normal');
-        const upCount=Array.from({length:n.count},(_,i)=>n.getY(i)).filter(y=>y>.15).length;
-        assert.ok(upCount>n.count*.15,'visible bank top faces towards camera');
+        if(formations.length>1){
+          const heights=formations.map(p=>p.height);
+          assert.ok(Math.max(...heights)-Math.min(...heights)>.06,'not one flat linear slab');
+          const centers=formations.map(p=>p.z);
+          assert.ok(new Set(centers.map(v=>v.toFixed(3))).size>=1,'distinct offset geologic centers');
+        }
+        const normals=bank.geometry.getAttribute('normal');
+        assert.ok(Array.from({length:normals.count},(_,i)=>normals.getY(i)).some(y=>y>.35),
+          'faceted rock crowns face towards gameplay camera');
       }
     }finally{
       if(original===undefined)delete globalThis.location;else globalThis.location=original;

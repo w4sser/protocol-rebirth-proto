@@ -157,49 +157,97 @@ bankMat.userData.shared=true;
 // ONE continuous glacial bank per blocking partition segment, not a row of
 // individually displaced boulders. Its segmented AABB collision is sampled
 // from the same mesh, so players and AI never hit invisible legacy rocks.
+// A short run of DISTINCT glacial outcrops replaces each authored interior
+// partition segment. No continuous sausage/ribbon and no one-stone-per-metre
+// cadence. Rock and blocking geometry share the same mid-height contour.
 function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
-  const alongX=w.w>=w.d,length=Math.max(w.w,w.d),thick=Math.min(w.w,w.d);
-  // Two broad glacial shoulders and a lower worn saddle create one authored
-  // piece of terrain. 8-11 stations, not one repeating boulder per metre.
-  // Its near-horizontal erosion skirts are cosmetic; only the visibly
-  // raised central spine blocks players and AI.
-  const steps=Math.max(7,Math.min(12,Math.ceil(length/1.1)));
-  const cols=8,positions=[],colors=[],indices=[],sectionBounds=[];
-  const phase=rng()*Math.PI*2,light=new THREE.Color('#9b9da4');
-  const dark=new THREE.Color('#5d6b74'),lichen=new THREE.Color('#788575');
-  const peakA=.25+.045*Math.sin(phase),peakB=.73+.045*Math.cos(phase);
-  for(let i=0;i<=steps;i++){
-    const u=i/steps,l=(u-.5)*length;
-    const humpA=Math.exp(-Math.pow((u-peakA)/.20,2));
-    const humpB=Math.exp(-Math.pow((u-peakB)/.23,2));
-    const ridge=Math.max(humpA,humpB);
-    const taper=.44+.56*Math.min(1,u/.12,(1-u)/.12);
-    const h=(.20+(w.h??1)*(.22+.63*ridge))*taper;
-    const center=.11*Math.sin(phase+u*7.3)+.055*Math.sin(u*15.7+phase*.4);
-    const coreHalf=Math.max(.24,thick*.50+.045+.035*Math.sin(u*9.8+phase));
-    const skirtHalf=coreHalf+(.43+.33*ridge)+.14*Math.sin(phase+u*8.1)**2;
-    const offsets=[-skirtHalf,-skirtHalf*.79,-coreHalf,-coreHalf*.37,
-      coreHalf*.37,coreHalf,skirtHalf*.76,skirtHalf];
-    const heights=[-.085,-.055,h*.53,h*.92,h,h*.51,-.055,-.085];
-    const section=[];
-    for(let k=0;k<cols;k++){
-      const across=offsets[k]+center;
-      const x=alongX?w.x+l:w.x+across,z=alongX?w.z+across:w.z+l;
-      positions.push(x,heights[k],z);
-      section.push({x,z,y:heights[k]});
-      const face=k===0||k===7?.21:k===1||k===6?.38:.65;
-      const colour=dark.clone().lerp(light,face+.08*ridge)
-        .lerp(lichen,(k===0||k===7?.24:.025)+.055*Math.sin(phase+u*9+k)**2);
-      colors.push(colour.r,colour.g,colour.b);
-      if(i<steps&&k<cols-1){
-        const a=i*cols+k,b=(i+1)*cols+k;
-        if(alongX)indices.push(a,a+1,b,a+1,b+1,b);
-        else indices.push(a,b,a+1,a+1,b,b+1);
+  const alongX=w.w>=w.d,length=Math.max(w.w,w.d),width=Math.min(w.w,w.d);
+  const count=length<3.4?1:length<7.3?2:3;
+  const spokes=18,ringSpec=[
+    [-.145,1.17],[.11,1.045],[.44,.91],[.78,.73],[1,.48]
+  ];
+  const positions=[],colors=[],indices=[],outcrops=[];
+  const light=new THREE.Color('#a29fa8'),dark=new THREE.Color('#64717e');
+  const lavender=new THREE.Color('#a798a9'),lichen=new THREE.Color('#788478');
+  const cell=length/count,phase=rng()*Math.PI*2;
+  // Slice the real raised contour into short AABBs. A single enclosing
+  // rectangle would create invisible collision in the corners of each rock.
+  function clip(poly,axis,limit,less){
+    if(!poly.length)return [];
+    const result=[];
+    for(let i=0;i<poly.length;i++){
+      const a=poly[i],b=poly[(i+1)%poly.length];
+      const ina=less?a[axis]<=limit:a[axis]>=limit;
+      const inb=less?b[axis]<=limit:b[axis]>=limit;
+      if(ina)result.push(a);
+      if(ina!==inb){
+        const d=b[axis]-a[axis],t=Math.abs(d)>1e-8?(limit-a[axis])/d:0;
+        result.push({x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t});
       }
     }
-    // Core includes ALL elevated >0.2m vertices. The surrounding flat
-    // erosion skirt has no collider, avoiding invisible extra blocking.
-    sectionBounds.push(section.slice(2,6));
+    return result;
+  }
+  for(let i=0;i<count;i++){
+    const centerLong=-length/2+(i+.5)*cell+(rng()-.5)*Math.min(.14,cell*.055);
+    const centerAcross=(rng()-.5)*.47;
+    const halfAlong=cell*.50+.39,halfAcross=Math.max(.58,Math.min(.84,width*.52+.43+rng()*.17));
+    const tilt=(rng()-.5)*.44;
+    const cosTilt=Math.cos(tilt),sinTilt=Math.sin(tilt);
+    const height=(w.h??1)*(.86+.40*rng())+(i%2)*.12;
+    const wobble=phase+i*2.13+rng()*.53;
+    const start=positions.length/3,core=[];
+    for(let ring=0;ring<ringSpec.length;ring++)for(let j=0;j<=spokes;j++){
+      const angle=j/spokes*Math.PI*2,c=Math.cos(angle),sin=Math.sin(angle);
+      const rockNoise=1+.085*Math.sin(3*angle+wobble)
+        +.041*Math.sin(5*angle-wobble*.6)+.022*Math.cos(7*angle+wobble*.37);
+      // Outer ends taper back toward the authored gap; inner shoulders may
+      // overlap, so the visible partition retains its intended blocking role.
+      const endBias=(i===0&&c<0)||(i===count-1&&c>0)?.83:1.10;
+      const radius=ringSpec[ring][1]*rockNoise*endBias;
+      const localAlong=c*halfAlong*radius,localAcross=sin*halfAcross*radius;
+      const along=centerLong+localAlong*cosTilt-localAcross*sinTilt;
+      const across=centerAcross+localAlong*sinTilt+localAcross*cosTilt;
+      const x=alongX?w.x+along:w.x+across,z=alongX?w.z+across:w.z+along;
+      const y=ring===0?-.145:ringSpec[ring][0]*height
+        +.014*Math.sin(angle*4+wobble)*Math.sin(ring/4*Math.PI);
+      positions.push(x,y,z);
+      if(ring===2&&j<spokes)core.push({x,z});
+      const irregular=.5+.5*Math.sin(angle*6+wobble+.37*ring);
+      const shade=.27+.55*ring/4+.07*irregular;
+      const color=dark.clone().lerp(light,shade)
+        .lerp(lavender,.055+.10*Math.max(0,Math.sin(angle*2+wobble)))
+        .lerp(lichen,(ring<2?.11:.018)*irregular);
+      colors.push(color.r,color.g,color.b);
+      if(ring<ringSpec.length-1&&j<spokes){
+        const a=start+ring*(spokes+1)+j,b=a+spokes+1;
+        if(alongX)indices.push(a,b,a+1,a+1,b,b+1);
+        else indices.push(a,a+1,b,a+1,b+1,b);
+      }
+    }
+    const tip=positions.length/3,top=start+(ringSpec.length-1)*(spokes+1);
+    const tipX=alongX?w.x+centerLong:w.x+centerAcross;
+    const tipZ=alongX?w.z+centerAcross:w.z+centerLong;
+    positions.push(tipX,height*1.015,tipZ);
+    colors.push(light.r,light.g,light.b);
+    for(let j=0;j<spokes;j++){
+      if(alongX)indices.push(top+j,tip,top+j+1);
+      else indices.push(top+j,top+j+1,tip);
+    }
+    const axis=alongX?'x':'z';
+    const min=Math.min(...core.map(p=>p[axis])),max=Math.max(...core.map(p=>p[axis]));
+    const rockColliders=[];
+    for(let slice=0;slice<3;slice++){
+      const low=min+(max-min)*slice/3,high=min+(max-min)*(slice+1)/3;
+      const poly=clip(clip(core,axis,low,false),axis,high,true);
+      if(poly.length<3)continue;
+      const minX=Math.min(...poly.map(p=>p.x)),maxX=Math.max(...poly.map(p=>p.x));
+      const minZ=Math.min(...poly.map(p=>p.z)),maxZ=Math.max(...poly.map(p=>p.z));
+      const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,
+        w:maxX-minX,d:maxZ-minZ,h:height*.44};
+      colliders.push(collider);rockColliders.push(collider);
+    }
+    outcrops.push({x:tipX,z:tipZ,height,halfAlong,halfAcross,
+      vertexStart:start,vertexEnd:positions.length/3,colliders:rockColliders});
   }
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
@@ -207,17 +255,10 @@ function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
   geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,bankMat);
   mesh.name='arch-v2-bedrock-bank';mesh.castShadow=high;mesh.receiveShadow=true;
-  mesh.userData.geologyCover=true;mesh.userData.colliders=[];
+  mesh.userData.geologyCover=true;mesh.userData.outcrops=outcrops;
+  mesh.userData.colliders=outcrops.flatMap(o=>o.colliders);
   group.add(mesh);
-  for(let i=0;i<steps;i++){
-    const points=[...sectionBounds[i],...sectionBounds[i+1]];
-    const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
-    const minZ=Math.min(...points.map(p=>p.z)),maxZ=Math.max(...points.map(p=>p.z));
-    const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,
-      w:maxX-minX,d:maxZ-minZ,h:w.h??1};
-    colliders.push(collider);mesh.userData.colliders.push(collider);
-  }
-  return 1;
+  return count;
 }
 // Sparse decorative shoreline rocks (visual only, no collider): seeded, irregular, some clusters,
 // nudged outward onto the sand/water side of the edge and skipped if they touch any reservation.

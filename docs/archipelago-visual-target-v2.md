@@ -62,3 +62,9 @@ Owner reported artificial wall-length rows of stones across gameplay land and z-
 
 ### Post-capture correction: faceted geology (15 November)
 The first real gameplay-capture after removing repetitive walls passed targeted geometry tests, but showed smooth, sausage-like bank silhouettes for authored level-two partitions. Replaced the regular narrow ribbon with a wider, strongly irregular pair of faceted glacial shoulders and a lower saddle, still using one opaque vertex-colored mesh per wall segment. The raised center and its colliders are generated from the same sections; flat 2–3 cm erosion skirts blend visually into the walking ground without acting as extra blocking collision. No default-mode changes. Await same-camera comparison of HIGH and LOW before approval.
+
+## 15 November 2026 — Pass E: replace smooth partition ribbons with isolated rock masses
+
+Owner visual review of 844×390 raid screenshots found that the preceding terrain cleanup removed stone rows but still left two long, smooth, grey, sausage-shaped banks crossing the playable clearing next to the bridge. This is not the intended glacial-granite landscape.
+
+Pass E uses 1–3 large, unevenly oriented, facet-shaded stone outcrops per actual interior partition segment. Each rock is authored as a separate buried solid, but assembled into **one mesh per partition** with a single material, so it does not reproduce the continuous ridge. Rock crests differ in height and shape; broad crowns use lavender blue-grey stone and limited lichen. Generated blocking boxes are three narrow slices of the mid-height polygon per rock, avoiding one invisible bounding rectangle across the whole formation. Rock skirts start below the gameplay plane; there is no flat extra terrain overlay. Deterministic generation, existing passage openings and the `archVisual=v2` flag remain unchanged. Acceptance requires new HIGH/LOW screenshots and route checks before merge.
