@@ -159,6 +159,7 @@ export const RULES=[
      if(syncAt<0||asyncAt<syncAt||/\bawait\b/.test(activate.slice(0,syncAt)))out.push('app.js: start activation must call unlockSync before awaiting or calling unlock');
      const sync=(audio.match(/    unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
      if(!/context\.resume\(\)/.test(sync)||!/createBuffer\(1,1,/.test(sync)||!/source\.start\(0\)/.test(sync)||/\bawait\b/.test(sync))out.push('ui/audio.js: unlockSync must resume and start a silent one-sample buffer synchronously');
+     if(!/activationAudio = window\.PR_AUDIO\?\.unlock\?\.\(\)/.test(activate)||!/Promise\.resolve\(activationAudio\)\.then/.test(app))out.push('app.js: start confirmation must wait for the gesture unlock promise');
      if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
      const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
      if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');

@@ -77,7 +77,7 @@ console.log('bug-lint.test: ok');
  const appSrc=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  const audioSrc=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
  assert.equal(rule.check({appSrc,audioSrc}).length,0,'start audio wiring passes');
- for(const [from,to] of [['void window.PR_AUDIO?.unlockSync?.();','await window.PR_AUDIO?.unlock?.();'],["requestVoice('youre-back')","voice('youre-back')"],['preload.call(window.PR_AUDIO)','Promise.resolve()'],['addEventListener("animationstart", greet','addEventListener("click", greet']])
+ for(const [from,to] of [['void window.PR_AUDIO?.unlockSync?.();','await window.PR_AUDIO?.unlock?.();'],["requestVoice('youre-back')","voice('youre-back')"],['preload.call(window.PR_AUDIO)','Promise.resolve()'],['Promise.resolve(activationAudio).then','Promise.resolve().then'],['addEventListener("animationstart", greet','addEventListener("click", greet']])
    assert(rule.check({appSrc:appSrc.replace(from,to),audioSrc}).length>0,'fires when removing '+from);
  assert(rule.check({appSrc,audioSrc:audioSrc.replace('source.start(0);','Promise.resolve().then(()=>source.start());')}).length>0,'fires when priming leaves the gesture stack');
 }

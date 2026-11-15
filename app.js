@@ -5569,7 +5569,7 @@ function setupSplash(flightPending, returningFromRaid){
   const body = document.body;
   body.classList.add("splash-active");
   if(!S.introSeen) body.classList.add("startup-bunker-intro");
-  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer;
+  let phase = "loading", requested = false, autoTimer, endTimer, loadTimer, activationAudio;
   let flightActive = !!flightPending, flightCtl = null;
   const pendingImages = [];
   const reduced = () => !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -5587,7 +5587,8 @@ function setupSplash(flightPending, returningFromRaid){
   const begin = () => {
     if(phase !== "ready") return;
     phase = "descending"; clearTimeout(autoTimer);
-    void window.PR_AUDIO?.play?.("ui-confirm");
+    // resume() may complete after this gesture even though its call and silent prime were synchronous.
+    void Promise.resolve(activationAudio).then(() => window.PR_AUDIO?.play?.("ui-confirm"));
     void window.PR_AUDIO_PLAY?.();
     sp.setAttribute("aria-label", "Skip bunker entrance");
     if(reduced()){
@@ -5618,7 +5619,7 @@ function setupSplash(flightPending, returningFromRaid){
   // which already carries role=button tabindex=0) reaches the same activate().
   const activate = (e) => {
     void window.PR_AUDIO?.unlockSync?.();
-    void window.PR_AUDIO?.unlock?.();
+    activationAudio = window.PR_AUDIO?.unlock?.();
     lockLandscape();
     if(phase === "descending"){ finish(); return; }
     requested = true;

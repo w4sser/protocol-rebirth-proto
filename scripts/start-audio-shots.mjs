@@ -52,9 +52,9 @@ for(const [label,root] of [['before','/workspace/prp-before-main'],['after',curr
             const a=window.PR_AUDIO;await a.preload();
             const buffers=await Promise.all([...a.cache.values()]);
             if(buffers.some(b=>!b.length))throw Error('empty decoded buffer');
-            const evidence={decoded:buffers.length,format:a.format,beforeTap:a.context.state,voices:0};
+            const evidence={decoded:buffers.length,format:a.format,beforeTap:a.context.state,voices:0,sfx:0};
             const source=a.source.bind(a);
-            a.source=(buffer,bus,...args)=>{if(bus==='voice'){evidence.voices++;evidence.voiceAt=performance.now();}return source(buffer,bus,...args);};
+            a.source=(buffer,bus,...args)=>{if(bus==='sfx')evidence.sfx++;if(bus==='voice'){evidence.voices++;evidence.voiceAt=performance.now();}return source(buffer,bus,...args);};
             S.introSeen=false;session.screen='intro';SCREENS.intro();
             document.querySelector('.intro-lines p').addEventListener('animationstart',()=>{evidence.lineAt=performance.now();});
             window.__startAudioEvidence=evidence;return evidence;
@@ -69,7 +69,7 @@ for(const [label,root] of [['before','/workspace/prp-before-main'],['after',curr
             evidence.replay=await PR_AUDIO.requestVoice('youre-back');
             return evidence;
           });
-          if(playback.voices!==1||!playback.cancelled||playback.replay||Math.abs(playback.deltaMs)>100)throw Error('greeting timing/cancellation failed: '+JSON.stringify(playback));
+          if(playback.sfx<1||playback.voices!==1||!playback.cancelled||playback.replay||Math.abs(playback.deltaMs)>100)throw Error('greeting timing/cancellation failed: '+JSON.stringify(playback));
         }
         results.push({label,width,height,path,errors,prompt,playback});console.log(path,JSON.stringify({prompt,playback}));
         if(errors.length)throw Error(errors.join('\n'));
