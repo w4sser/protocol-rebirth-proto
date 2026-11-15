@@ -288,6 +288,9 @@ export const RULES=[
      if(!/gestures\.addEventListener\(['"]pagehide['"],\s*\(\)\s*=>\s*this\.suspendForHidden\(\)/.test(src))out.push('ui/audio.js: window pagehide must suspendForHidden');
      if(!/unlockSync\(\)\{\s*if\(this\.hidden\(\)/.test(src))out.push('ui/audio.js: synchronous gesture unlock must bail while hidden');
      return out;}},
+  {id:'audio-debug-trigger-reachable',pr:'v2.28.3x PRB-159 iPhone diagnostics',why:'The landscape topbar hid the version and disabled pointer events, making triple-tap diagnostics unreachable',
+   check(c={}){const css=c.audioDebugCss??read('ui/audio-debug.css');
+     return /#topbar #app-version\s*\{[^}]*display:block;[^}]*pointer-events:auto/.test(css)?[]:['ui/audio-debug.css: override landscape version hiding and topbar pointer-events so triple-tap works'];}},
   {id:'audio-format-probe-default',pr:'v2.28.3x PRB-159 iOS audio format',why:'Without the default capability probe every SFX tried Ogg first on WebKit, racing the SFX deadline; prefer playable AAC',
    check(c={}){const src=(c.audioSrc??read('ui/audio.js')).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,''),out=[];
      if(!/document\.createElement\(['"]audio['"]\)/.test(src)||!/root\.PR_AUDIO\s*=\s*new AudioManager\(root\.DATA\.audio,\s*probe\s*\?\s*\{probe\}\s*:\s*\{\}\)/.test(src))out.push('ui/audio.js: default construction must pass a real audio probe');

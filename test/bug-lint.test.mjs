@@ -174,3 +174,12 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.ok(format.check({audioSrc:audioSrc.replace("this.format=aac?'m4a':'ogg'", "this.format='ogg'")}).length);
  assert.ok(format.check({audioSrc:audioSrc.replace("this.format=aac?'m4a':'ogg'", "this.format=aac&&vorbis!=='probably'?'m4a':'ogg'")}).length);
 }
+
+{
+ const rule=by('audio-debug-trigger-reachable');
+ const audioDebugCss=fs.readFileSync(new URL('../ui/audio-debug.css',import.meta.url),'utf8');
+ assert.deepEqual(rule.check({audioDebugCss}),[]);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('display:block;pointer-events:auto','pointer-events:auto')}).length);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('display:block;pointer-events:auto','display:block;pointer-events:none')}).length);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('#topbar #app-version','')}).length);
+}
