@@ -75,6 +75,7 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
             } else assert.equal(await page.$('#overlay'),null,'Core has no payoff popup');
           }
           await page.waitForSelector('.bit-cutscene',{visible:true,timeout:20000});
+          if(kind === 'fabricator') await page.waitForFunction(() => [...document.querySelectorAll('.bit-cutscene-stage img')].every(img => img.complete && img.naturalWidth > 0));
           for(const frame of ['early','late']){
             if(frame === 'early' && phase === 'after' && !reduced && kind !== 'fabricator'){
               await page.waitForFunction(() => document.querySelector('.bit-cutscene')?.classList.contains('crossfaded'));
@@ -94,8 +95,13 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
               const stage = el.querySelector('.bit-cutscene-stage').getBoundingClientRect().toJSON();
               const geometry = window.PRBitCutscene.geometry;
               const painted = el.dataset.id === 'fabricator_built' ? Object.fromEntries(['bit','vest'].map(k => [k, window.PRBitCutscene.paintedRect(stage,geometry[k])])) : null;
-              return {painted,box:{x:r.x,y:r.y,width:r.width,height:r.height},copy:rect('.bit-cutscene-copy'),bubble:rect('.bit-cutscene-bubble'),bust:rect('.bit-cutscene-bust'),strip:rect('.bit-cutscene-info'),text:el.innerText,overlay:!!document.querySelector('#overlay'),card:!!document.querySelector('.bit-card:not([hidden])'),lineOpacity:getComputedStyle(el.querySelector('.bit-cutscene-line')).opacity,stripOpacity:el.querySelector('.bit-cutscene-info') && getComputedStyle(el.querySelector('.bit-cutscene-info')).opacity};
+              return {images:[...el.querySelectorAll('.bit-cutscene-stage img')].map(img => ({src:img.getAttribute('src'),width:img.naturalWidth,height:img.naturalHeight,opacity:getComputedStyle(img).opacity})),painted,box:{x:r.x,y:r.y,width:r.width,height:r.height},copy:rect('.bit-cutscene-copy'),bubble:rect('.bit-cutscene-bubble'),bust:rect('.bit-cutscene-bust'),strip:rect('.bit-cutscene-info'),text:el.innerText,overlay:!!document.querySelector('#overlay'),card:!!document.querySelector('.bit-card:not([hidden])'),lineOpacity:getComputedStyle(el.querySelector('.bit-cutscene-line')).opacity,stripOpacity:el.querySelector('.bit-cutscene-info') && getComputedStyle(el.querySelector('.bit-cutscene-info')).opacity};
             });
+            if(kind === 'fabricator'){
+              assert(info.images[0].src.endsWith('cutscene-fabricator-dark-v1.webp') && info.images[1].src.endsWith('cutscene-fabricator-powered-v1.webp'),'dedicated pair actually displayed');
+              assert(info.images.every(img => img.width === 1600 && img.height === 720),'loaded source geometry matches projection');
+              assert(frame === 'early' ? Number(info.images[1].opacity) === 0 : Number(info.images[1].opacity) >= .99,'early frame is dark and late frame is powered');
+            }
             assert.deepEqual(info.box,{x:0,y:0,width,height},'full bleed');
             for(const b of [info.copy,info.bust,info.strip].filter(Boolean)){
               assert(b.x >= insets.left && b.right <= width-insets.right && b.y >= 0 && b.bottom <= height-insets.bottom,'safe area: ' + JSON.stringify(info));

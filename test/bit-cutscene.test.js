@@ -4,11 +4,11 @@ const assert = require("assert");
 const root = __dirname + "/..";
 function fixture({ reduced = false, fail = false, stall = false } = {}){
   const w = new JSDOM('<body data-screen="base"><button id="before">Before</button></body>', {runScripts:"outside-only",url:"http://localhost/"}).window;
-  let now = 0, id = 0; const jobs = new Map(), requests = [];
+  let now = 0, id = 0; const jobs = new Map(), requests = [], imageObjects = [];
   w.setTimeout = (fn, ms) => { jobs.set(++id, { at:now + ms, fn }); return id; };
   w.clearTimeout = id => jobs.delete(id);
   w.matchMedia = query => ({matches:query.includes("reduced-motion") ? reduced : false});
-  w.Image = class { set src(src){ requests.push(src); if(!stall) (fail ? this.onerror : this.onload)(); } };
+  w.Image = class { set src(src){ requests.push(src); imageObjects.push(this); if(!stall) (fail ? this.onerror : this.onload)(); } };
   w.eval(fs.readFileSync(root + "/ui/bit-cutscene.js", "utf8"));
   async function tick(ms = 0){
     const end = now + ms;
@@ -20,7 +20,7 @@ function fixture({ reduced = false, fail = false, stall = false } = {}){
     }
     now = end; await Promise.resolve(); await Promise.resolve();
   }
-  return {w, doc:w.document, api:w.PRBitCutscene, requests, tick};
+  return {w, doc:w.document, api:w.PRBitCutscene, requests, imageObjects, tick};
 }
 const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is back."};
 (async function(){
@@ -176,6 +176,21 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert(img.src.endsWith("safe.webp"), "late image error uses the safety backdrop");
     assert.equal(img.onerror,null,"fallback error cannot loop");
     await tick(3150); assert(el.classList.contains("crossfaded"));
+    api.dismiss(); w.close();
+  }
+  // PRB-157: early Fabricator warming must not poison Core/death's shared happy bust cache.
+  {
+    const {api,doc,tick,w,imageObjects,requests} = fixture({stall:true});
+    api.preload({...beat,waitForArt:true,bust:{from:"happy.webp"}});
+    await tick(3000); // startup bust timed out; dedicated backdrops keep warming
+    const core = {...beat,from:"core-dark.webp",to:"core-powered.webp",bust:{from:"happy.webp"}};
+    api.play(core);
+    assert.equal(requests.filter(src => src === "happy.webp").length,2,"timed-out bust is retried for Core");
+    imageObjects.slice(3).forEach(img => img.onload());
+    await tick();
+    assert(!doc.querySelector('.bit-cutscene-bust-from').hidden,"recovered happy bust remains visible for Core");
+    doc.querySelector('.bit-cutscene-bust-from').dispatchEvent(new w.Event('error'));
+    assert(doc.querySelector('.bit-cutscene-bust-from').hidden,"failed direct bust has no broken image icon");
     api.dismiss(); w.close();
   }
   // Source bounds project through centred cover cropping and the unchanged 1 -> 1.06 push-in.

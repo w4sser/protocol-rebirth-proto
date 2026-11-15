@@ -16,7 +16,7 @@
     if(images.has(src)) return images.get(src);
     var promise = new Promise(function(resolve){
       var img = new Image(), settled = false;
-      var timeout = waitForArt ? null : setTimeout(function(){ finish(false); }, 3000);
+      var timeout = waitForArt ? null : setTimeout(function(){ images.delete(src); finish(false); }, 3000);
       function finish(ok){
         if(settled) return; settled = true; clearTimeout(timeout);
         img.onload = img.onerror = null; resolve(ok ? src : "");
@@ -115,6 +115,8 @@
     if(hasBust){
       var bf = el.querySelector(".bit-cutscene-bust-from"), bt = el.querySelector(".bit-cutscene-bust-to");
       var bustFromSrc = sources[2], bustToSrc = pair ? sources[3] : sources[2];
+      bf.onerror = function(){ bf.hidden = true; };
+      if(bt) bt.onerror = function(){ bt.hidden = true; };
       if(bustFromSrc) bf.src = bustFromSrc; else bf.hidden = true;
       if(bt){ if(bustToSrc) bt.src = bustToSrc; else bt.hidden = true; }
     }
