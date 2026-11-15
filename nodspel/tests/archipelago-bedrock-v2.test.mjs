@@ -303,7 +303,15 @@ test('hero cliff elevation survives neighbors limiting offshore headland expansi
   assert.ok(Math.abs(p.radial-baseline)<.02,'neighbor prevents offshore cliff footprint expansion');
   assert.ok(p.heroRelief>.15,'cliff elevation remains visible despite width constraint');
   const shore=coastRingData(hero),i=hero.points.indexOf(p),n=hero.points.length;
-  assert.ok(shore.positions[(6*n+i)*3+1]>.34,'granite crown must rise without growing offshore');
+  // A constrained coast must NOT invent a steep retaining wall. A recognizable
+  // headland may rise only where its root has sufficient horizontal width.
+  const narrowHeight=shore.positions[(6*n+i)*3+1];
+  assert.ok(narrowHeight<.34,'compressed coast stays a low tide-worn granite shelf');
+  const fullRadial=p.radial;
+  p.radial=p.playableRadial+3.0;
+  const spacious=coastRingData(hero).positions[(6*n+i)*3+1];
+  p.radial=fullRadial;
+  assert.ok(spacious>narrowHeight+.35,'same headland rises naturally when offshore space is available');
   assert.ok(Math.abs(shore.positions[i*3+1]-.01)<1e-5,'traversable floor seam stays flat');
 });
 
@@ -370,7 +378,10 @@ test('Pass N leaves the traversable center green and authors two distinct cliffs
   const mesh=art.addArchipelagoGroundV2(hero,group,{bedrockPlan:plan});
   const n=hero.points.length,c=mesh.geometry.getAttribute('color'),p=mesh.geometry.getAttribute('position');
   let green=0,total=0;
-  for(let k=0;k<7;k++)for(let i=0;i<n;i++){
+  // Ring 0 is the identical center vertex repeated for all radial wedges;
+  // including it 72 times gives one brown worn-earth point a false 1/7 vote.
+  // Count distinct spatial rings of the actual planar clearing instead.
+  for(let k=1;k<7;k++)for(let i=0;i<n;i++){
     const j=k*n+i;total++;
     if(c.getY(j)>c.getX(j)&&c.getY(j)>c.getZ(j))green++;
     assert.ok(Math.abs(p.getY(j)-.01)<1e-5,'flat gameplay remains physically flat');
