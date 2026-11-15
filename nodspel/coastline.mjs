@@ -214,6 +214,15 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     const actualGain=Math.max(0,newRadius-base);
     p.radial=newRadius;
     p.x=floor.x+c*newRadius;p.z=floor.z+sn*newRadius;
+    // A believable 3D cliff needs a broad horizontal root. On crowded
+    // archipelagos we cannot grow outwards without closing water channels.
+    // Reclaim ONLY the extra organic ground outside the original authored
+    // gameplay rectangle, keeping at least 1.10 m of level terrain beyond
+    // the old floor, and keep both bridge approaches at their full width.
+    const spareInland=Math.max(0,p.playableRadial-p.innerRadial-1.10);
+    const inlandRoot=isBridge?0:Math.min(spareInland,2.50*influence);
+    p.playableRadial-=inlandRoot;
+    p.heroInlandRoot=inlandRoot;
     // Height cannot be directly proportional to *coast expansion*. On a
     // crowded map, neighbors suppress the outward radius and the old formula
     // erased every mountain, leaving a uniformly gray coastal retaining wall.
@@ -224,8 +233,9 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     const projectedMass=influence*(.46+.54*room);
     p.heroRelief=isBridge?0:projectedMass;
     p.heroRockMask=isBridge?0:influence;
-    // IMPORTANT: playableRadial intentionally does not change. A mountain is
-    // a natural boundary, never a climbable surface or false combat cover.
+    // The walkable coastline is updated to match this broader root in the
+    // caller. It always contains the full original authored 2D gameplay
+    // rectangle; no new vertical traversal or invisible collider is added.
   }
   let total=0,rocky=0;
   for(let i=0;i<points.length;i++){
