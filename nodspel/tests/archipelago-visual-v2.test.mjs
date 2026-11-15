@@ -186,8 +186,17 @@ test('v2 places high granite only outside the island and preserves open bridge l
         'no tall climbable-looking rocks in the interior of a planar X/Z game');
 
       const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
-      assert.equal(granite.length,level.floors.filter(f=>!f.dir).length);
-      assert.ok(granite.every(g=>g.userData.visualOnly),'coastal granite remains visual-only outside traversable island');
+      assert.equal(granite.length,level.floors.filter(f=>!f.dir).length-1,
+        'hero island must have NO separate offshore granite mass');
+      assert.ok(granite.every(g=>g.userData.visualOnly),'other islands keep their existing visual-only granite');
+      assert.equal(out.heroIsland,true,'target flag authors the hero island');
+      const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
+      assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
+      assert.equal(heroShell[0].userData.heroRings,10);
+      assert.equal(heroShell[0].geometry.getAttribute('position').count,10*72);
+      assert.ok(out.heroHeadlands?.length>0,'authored hero has a meaningful geological headland');
+      assert.ok(group.children.every(o=>o.name!=='arch-v2-bedrock-roots'),
+        'no second coplanar rock skirt or false elevated gameplay floor');
       assert.equal(out.rockFreeLandings.length,out.bridgeClearances.length);
       const expected=archipelagoRockFreeBridgeLandingsV2(out.bridgeClearances);
       assert.deepEqual(out.rockFreeLandings,expected,'same bridge exclusion zones used by placement and tests');
