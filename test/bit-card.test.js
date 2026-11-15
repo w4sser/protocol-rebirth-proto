@@ -206,7 +206,7 @@ console.log("BIT CARD COMPONENT TESTS PASSED");
 
 const FILES = ["data/items.js", "data/modules.js", "data/bit.js", "data/bit-talents.js", "data/raid_zones.js",
   "data/recipes.js", "data/vendors.js", "data/retention.js", "data/quests.js", "data/progression.js", "data/combat.js"];
-function boot(seedSave, calls){
+function boot(seedSave, calls, artMode = "success", requests = []){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts: "outside-only", url: "http://localhost/" });
   const w = dom.window;
   w.localStorage = (() => { let s = {}; return { getItem: k => s[k] ?? null, setItem: (k, v) => s[k] = v, removeItem: k => delete s[k] }; })();
@@ -216,7 +216,11 @@ function boot(seedSave, calls){
   // The real ui/bit-card.js is never eval'd here (runScripts:"outside-only" skips <script src>) --
   // stub it so app.js's window.PRBitCard?.show(...) calls are observable.
   w.PRBitCard = { show(){ assert.fail("cutscene moments must never also show a card"); }, dismiss(){}, isOpen(){ return false; } };
-  w.PRBitCutscene = { play: opts => calls.push(opts), preload(){}, isOpen(){ return false; } };
+  w.PRBitCutscene = { play: opts => calls.push(opts), preload(opts){
+    requests.push(opts.from, opts.to);
+    if(artMode === "stall") return new Promise(() => {});
+    return Promise.resolve(artMode === "error" ? ["", ""] : [opts.from, opts.to]);
+  }, isOpen(){ return false; } };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
     ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,BIT_CUTSCENES,MODS,D,ITEMS};");
@@ -381,19 +385,22 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(calls.length, 0, "loading a save never fires the cutscene by itself");
 }
 
-// Both callers share one bounded art probe: success uses the future pair; errors and stalled
-// loads use existing art without duplicate requests or an indefinitely blocked story beat.
+// PRB-157: early warming shares the renderer cache; slow art never blocks beat selection.
 for(const mode of ["success", "error", "stall"]){
-  const w = boot(null, []), requests = [];
-  w.Image = class { set src(src){ requests.push(src); if(mode !== "stall") this[mode === "success" ? "onload" : "onerror"](); } };
+  const requests = [], w = boot(null, [], mode, requests);
+  assert.equal(requests.filter(src => /fabricator-(dark|powered)/.test(src)).length, 2, "pair warms at startup");
+  await Promise.resolve(); await Promise.resolve();
   const resolveBeat = () => new Promise(resolve => w.T.fabricatorCutsceneBeat(resolve));
   const [a, b] = await Promise.all([resolveBeat(), resolveBeat()]);
-  assert.equal(requests.length, 2, "preload and play share a single pair of probes: " + mode);
-  assert.deepEqual(a, b, "both callers receive the cached beat: " + mode);
-  assert.equal(a.effect, mode === "success" ? null : "fabricator");
-  assert.match(a.from, mode === "success" ? /fabricator-dark/ : /core-restore-end/);
+  assert.deepEqual(a, b, "both callers receive the same beat: " + mode);
+  assert.equal(a.effect, mode === "error" ? "fabricator" : null);
+  assert.match(a.from, mode === "error" ? /core-restore-end/ : /fabricator-dark/);
+  if(mode !== "error"){
+    assert.match(a.to, /fabricator-powered/);
+    assert.equal(a.waitForArt, true, "dedicated art paints without waiting for the probe");
+  }
   await resolveBeat();
-  assert.equal(requests.length, 2, "later calls never retry missing art: " + mode);
+  assert.equal(requests.filter(src => /fabricator-(dark|powered)/.test(src)).length, 2, "no repeated probes");
   w.close();
 }
 

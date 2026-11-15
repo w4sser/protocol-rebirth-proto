@@ -81,8 +81,8 @@ assert.equal(by('artillery-fx-prewarm').check({gameSrc:'function makeArtillerySh
  assert.equal(by('core-restore-no-power-popup').check({appSrc:goodApp}).length,0,'PRB-155 passes once the popup is gone and the cutscene itself plays, even nested inside another if');}
 {const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app}).length,0,'cached bounded probe passes');
- assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('if(!fabricatorArtPromise)','if(true)')}).length,1,'uncached probe fails');
- assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('setTimeout(() => finish(false), 3000)','setTimeout(() => {}, 3000)')}).length,1,'unbounded probe fails');}
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('if(!fabricatorArtPromise && window.PRBitCutscene)','if(true)')}).length,1,'uncached probe fails');
+ assert.equal(by('fabricator-art-bounded-cache').check({appSrc:app.replace('cb(!fabricatorArtFailed','awaitProbe(!fabricatorArtFailed')}).length,1,'probe-dependent playback fails');}
 assert.equal(by('cutscene-reduced-motion-instant').check({cutsceneSrc:'',cutsceneCss:''}).length,2,'missing instant hint and bust override fail');
 assert.equal(by('cutscene-reduced-motion-instant').check().length,0,'reduced motion reveals all copy immediately');
 assert.equal(by('narrator-hologram-above-copy').check({cutsceneCss:'.bit-cutscene-hologram{bottom:22%;}'}).length,1,'low hologram anchor fails');
@@ -124,4 +124,11 @@ console.log('bug-lint.test: ok');
  for(const [from,to] of [['void window.PR_AUDIO?.unlockSync?.();','await window.PR_AUDIO?.unlock?.();'],["requestVoice('youre-back')","voice('youre-back')"],['preload.call(window.PR_AUDIO)','Promise.resolve()'],['Promise.resolve(activationAudio).then','Promise.resolve().then'],['addEventListener("animationstart", greet','addEventListener("click", greet']])
    assert(rule.check({appSrc:appSrc.replace(from,to),audioSrc}).length>0,'fires when removing '+from);
  assert(rule.check({appSrc,audioSrc:audioSrc.replace('source.start(0);','Promise.resolve().then(()=>source.start());')}).length>0,'fires when priming leaves the gesture stack');
+}
+
+{
+ const rule=by('dedicated-narrator-art-exists');
+ const file='assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp';
+ assert.equal(rule.check({appSrc:'from:"'+file+'"',files:[file]}).length,0);
+ assert.equal(rule.check({appSrc:'from:"'+file+'"',files:[]}).length,1,'missing shipped art fails');
 }

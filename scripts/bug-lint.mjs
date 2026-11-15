@@ -212,8 +212,10 @@ export const RULES=[
   {id:'fabricator-art-bounded-cache',pr:'v2.28.3x PRB-155 optional art fallback',why:'preload and play must share the optional art probe, and a stalled image must not prevent the Fabricator fallback cutscene',
    check(c={}){const app=c.appSrc??read('app.js'),out=[];
      const probe=(app.match(/function fabricatorCutsceneArtReady\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
-     if(!/if\(!fabricatorArtPromise\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the optional Fabricator art probe across preload and play');
-     if(!/setTimeout\(\(\) => finish\(false\), 3000\)/.test(probe)||!/clearTimeout\(timeout\)/.test(probe))out.push('app.js: optional Fabricator art must settle on timeout and clear its timer');
+     if(!/if\(!fabricatorArtPromise && window\.PRBitCutscene\)/.test(probe)||!/fabricatorArtPromise\.then\(cb\)/.test(probe))out.push('app.js: cache the Fabricator art warm-up across preload and play');
+     // PRB-157 supersedes the optional-art timeout: shipped art must never gate playback.
+     const beat=(app.match(/function fabricatorCutsceneBeat\(cb\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(/fabricatorCutsceneArtReady\([^)]*=>/.test(beat)||!/cb\(!fabricatorArtFailed/.test(beat))out.push('app.js: select shipped Fabricator art synchronously, without awaiting its warm-up');
      return out;}},
   {id:'cutscene-reduced-motion-instant',pr:'v2.28.3x PRB-155 reduced motion',why:'the bust and continue control must appear instantly along with the speech bubble and info strip under reduced motion',
    check(c={}){const js=c.cutsceneSrc??read('ui/bit-cutscene.js'),css=c.cutsceneCss??read('ui/bit-cutscene.css'),out=[];
@@ -257,6 +259,13 @@ export const RULES=[
      if(!/group\.add\(core\)/.test(beam)||!/group\.add\(fence\)/.test(beam))out.push('phone extraction must retain the inner core and raised floor fence');
      if(!/r\.pillar=new THREE\.Mesh\(/.test(loot)||!/r\.flash=new THREE\.Mesh\(/.test(loot))out.push('phone pickups must retain pooled origin pillars and arrival flashes');
      return out;}},
+
+  {id:'dedicated-narrator-art-exists',pr:'v2.28.3x PRB-157 dedicated Fabricator art',why:'shipped narrator paths must resolve to tracked assets instead of silently using a placeholder',
+   check(c={}){const app=c.appSrc??read('app.js'),files=c.files??tracked(),out=[];
+     const available=new Set(files||[]);
+     for(const match of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
+       if(!available.has(match[0]))out.push('missing dedicated narrator art: '+match[0]);
+     return [...new Set(out)];}},
 
 ];
 

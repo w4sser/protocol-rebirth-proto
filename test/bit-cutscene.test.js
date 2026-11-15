@@ -163,10 +163,45 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     assert(el.querySelector(".bit-cutscene-hologram svg.vest"), "hologram wraps the caller's item icon html");
     api.dismiss(); w.close();
   }
+  // PRB-157: unresolved early image warming cannot delay presentation or select placeholder fx.
+  {
+    const {api,doc,tick,w} = fixture({stall:true});
+    const painted = {...beat, id:"fabricator_built", waitForArt:true, fallback:"safe.webp", effect:null};
+    api.preload(painted); api.play(painted); await tick();
+    const el = doc.querySelector(".bit-cutscene");
+    assert(el, "dedicated art paints immediately while requests are unresolved");
+    assert(!el.querySelector(".bit-cutscene-fx"));
+    const img = el.querySelector(".bit-cutscene-from");
+    img.dispatchEvent(new w.Event("error"));
+    assert(img.src.endsWith("safe.webp"), "late image error uses the safety backdrop");
+    assert.equal(img.onerror,null,"fallback error cannot loop");
+    await tick(3150); assert(el.classList.contains("crossfaded"));
+    api.dismiss(); w.close();
+  }
+  // Source bounds project through centred cover cropping and the unchanged 1 -> 1.06 push-in.
+  {
+    const {api,w} = fixture();
+    for(const [width,height] of [[844,390],[667,375],[932,430]]) for(const push of [1,1.06]){
+      const stage = {x:width*(1-push)/2,y:height*(1-push)/2,width:width*push,height:height*push};
+      const bit = api.paintedRect(stage,api.geometry.bit), vest = api.paintedRect(stage,api.geometry.vest);
+      assert(bit.bottom < height*.70 && vest.bottom < height*.70,"subjects clear lower speech zone");
+      assert(bit.right < width-47-260,"painted BIT clears top-right strip");
+      assert(vest.y > 118,"vest clears info strip's maximum measured height");
+      const scale = Math.max(width/1600,height/720)*push;
+      assert(Math.abs((bit.right-bit.x)-.12*1600*scale)<1e-8,"uniform cover scale");
+    }
+    const full = api.paintedRect({x:0,y:0,width:1600,height:720},api.geometry.bit);
+    assert.equal(full.x,288); assert(Math.abs(full.bottom-396)<1e-8);
+    w.close();
+  }
   const app = fs.readFileSync(root + "/app.js","utf8");
   // Dedicated narrator art is shipped, including the Fabricator pair.
   for(const file of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
     assert(fs.existsSync(root + "/" + file[0]),file[0]);
+  for(const name of ["dark","powered"]){
+    const file = root + "/assets/production/bit-narrator/cutscene-fabricator-" + name + "-v1.webp";
+    assert(fs.statSync(file).size <= 90*1024,"dedicated art stays within 90 KB: " + name);
+  }
   const css = fs.readFileSync(root + "/ui/bit-cutscene.css","utf8");
   assert(/z-index:80/.test(css),"rotation prompt and splash stay above cutscenes");
   assert(/object-fit:cover/.test(css)); assert(/inset:0/.test(css));
