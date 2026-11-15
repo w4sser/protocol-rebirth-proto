@@ -168,17 +168,20 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       return Math.abs(x-z.x)<z.w/2+2&&Math.abs(t-z.z)<z.d/2+2;
     });
     if(p.beach>.46||bridgeBlocked||heads.some(h=>Math.abs(wrap(h.angle-angle))<1.18))continue;
-    heads.push({angle,width:heads.length===0?.48:.40,height:heads.length===0?1.85:1.37});
-    if(heads.length===2)break;
+    heads.push({angle,width:heads.length===0?.57:heads.length===1?.43:.36,
+      height:heads.length===0?2.35:heads.length===1?1.75:1.30});
+    if(heads.length===3)break;
   }
-  if(!heads.length){
-    // Deterministic fallback for tight authored maps: no cliffs in a bridge
-    // landing, even when a particular seed cannot fit two prominent ridges.
-    for(const p of points.filter((p,i)=>i%6===0&&p.beach<.3)){
+  if(heads.length<3){
+    // Fill missing authored sites with protected bays and irregular headlands.
+    // No algorithm is allowed to drop cliffs into an actual bridge approach.
+    for(const p of points.filter((p,i)=>i%4===0&&p.beach<.30)){
       const x=floor.x+Math.cos(p.angle)*(p.radial+.8);
       const z=floor.z+Math.sin(p.angle)*(p.radial+.8);
       if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+2.5&&Math.abs(z-b.z)<b.d/2+2.5))continue;
-      heads.push({angle:p.angle,width:.39,height:1.4});break;
+      if(heads.some(h=>Math.abs(wrap(h.angle-p.angle))<1.0))continue;
+      heads.push({angle:p.angle,width:.34,height:1.35});
+      if(heads.length===3)break;
     }
   }
   for(const p of points){
@@ -188,7 +191,7 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
       const t=wrap(p.angle-h.angle)/h.width;
       return Math.max(acc,Math.exp(-t*t));
     },0)*(1-p.beach*.96);
-    const prospect=base+influence*2.8;
+    const prospect=base+influence*3.6;
     let safe=prospect;
     for(const other of neighborProfiles){
       if(other===profile)continue;
@@ -201,13 +204,17 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // walkable radius and the authored bridge landing.
     let newRadius=Math.max(base,Math.min(prospect,safe));
     const x=floor.x+c*newRadius,z=floor.z+sn*newRadius;
-    if(bridgeZones.some(b=>Math.abs(x-b.x)<b.w/2+1.6&&Math.abs(z-b.z)<b.d/2+1.6)){
-      newRadius=base;
-    }
+    const isBridge=bridgeZones.some(b=>{
+      const mid= p.playableRadial+(newRadius-p.playableRadial)*.55;
+      const mx=floor.x+c*mid,mz=floor.z+sn*mid;
+      return Math.abs(x-b.x)<b.w/2+1.6&&Math.abs(z-b.z)<b.d/2+1.6
+        || Math.abs(mx-b.x)<b.w/2+1.1&&Math.abs(mz-b.z)<b.d/2+1.1;
+    });
+    if(isBridge)newRadius=base;
     const actualGain=Math.max(0,newRadius-base);
     p.radial=newRadius;
     p.x=floor.x+c*newRadius;p.z=floor.z+sn*newRadius;
-    p.heroRelief=influence*Math.min(1,actualGain/1.7);
+    p.heroRelief=isBridge?0:influence*Math.min(1,actualGain/1.9);
     // IMPORTANT: playableRadial intentionally does not change. A mountain is
     // a natural boundary, never a climbable surface or false combat cover.
   }
@@ -231,13 +238,13 @@ function heroCoastRingData(profile){
   // and no detached topographic ovals on the representative island.
   const {floor,points}=profile,n=points.length;
   const fractions=[-.045,.065,.14,.28,.42,.55,.70,.85,.96,1];
-  const heights=[0,0,.08,.37,1,.86,.61,.30,.045,0];
+  const heights=[0,0,.10,.50,1,1.03,.85,.51,.12,0];
   const elevation=[.010,.009,.007,.002,-.012,-.025,-.05,-.083,-.13,-.65];
   const sand=[.010,.008,.004,-.015,-.05,-.085,-.14,-.23,-.31,-.54];
   const stops=[0,.05,.12,.31,.52,.67,.79,.88,.97,1];
   const cliffRock=[
-    '#69796f','#71817d','#899091','#95949c','#a3a1a9',
-    '#aaa6ad','#9596a1','#858b97','#707989','#4f6275'
+    '#69796f','#7c867e','#8f9296','#a39ca6','#b6a4b0',
+    '#bca9b6','#a99eab','#9795a3','#777f90','#4f6275'
   ].map(rgb);
   const positions=[],colors=[],uvs=[],blends=[],indices=[];
   for(let k=0;k<fractions.length;k++)for(const p of points){
@@ -248,7 +255,7 @@ function heroCoastRingData(profile){
     const x=floor.x+c*radius,z=floor.z+sn*radius;
     const rough=.80+.13*Math.sin(7*p.angle+profile.seed*.0003)
       +.09*Math.sin(13*p.angle-profile.seed*.0006);
-    const relief=(p.heroRelief??0)*heights[k]*1.90*rough;
+    const relief=(p.heroRelief??0)*heights[k]*2.45*rough;
     const y=mix(elevation[k],sand[k],p.beach)+relief;
     positions.push(x,y,z);
     const seam=archipelagoGroundColor(profile,
