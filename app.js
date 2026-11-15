@@ -2316,13 +2316,20 @@ SCREENS.intro = function(){
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
     '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
     '</div></div>';
-  // Requested only now that .intro is actually in the DOM: ui/audio.js guards 'youre-back' on
-  // that element being present, so BIT's greeting never replays later onto the summary.
-  // v2.28.33: this now reliably plays in sync with the first greeting line's own reveal (t0,
-  // see above) because the start-screen tap (item 2's unlockSync + preload) already unlocked and
-  // decoded it well before this mounts -- the splash's own ~1.5s exit transition is more than
-  // enough margin, so the request resolves long before ENTER THE FACILITY is even tappable.
-  void window.PR_AUDIO?.requestVoice('youre-back');
+  // Start the greeting with the first line's reveal, after the splash has uncovered BIT.
+  // Animation timing remains the fallback when audio is muted, blocked or still loading.
+  const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
+  const greet = () => {
+    if(intro.isConnected && !document.body.classList.contains("splash-active"))
+      void window.PR_AUDIO?.requestVoice('youre-back');
+  };
+  firstLine?.addEventListener("animationstart", greet, { once:true });
+  intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
+  if(session.introSkipped || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    if(document.body.classList.contains("splash-active"))
+      window.addEventListener("pr:splash-finished", greet, { once:true });
+    else greet();
+  }
 };
 
 function closestUpgrade(){

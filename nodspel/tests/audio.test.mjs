@@ -508,3 +508,50 @@ test('cancelVoice stops a youre-back line that is already playing',async()=>{
   const src=a.context.sources[0];a.cancelVoice('youre-back');
   assert.equal(src.stopped,true);assert.equal(a.voiceBusy,false);
 });
+
+// Real app + real AudioManager: exercise the browser gesture wiring, DOM guard and dismissal,
+// rather than a stub that grants itself permission or forgets active sources.
+for(const startOnIntro of [false,true])test(`cold-open greeting after ${startOnIntro?'a first tap on the intro':'the start-screen tap'} plays once and ENTER stops it`,async()=>{
+  const {JSDOM}=await import('jsdom');
+  const dom=new JSDOM(await readFile(new URL('../../index.html',import.meta.url),'utf8'),{runScripts:'outside-only',url:'http://game/index.html'});
+  const w=dom.window;let requests=0;
+  try{
+    let timer=0;const timers=new Map(),images=[];
+    w.setTimeout=(fn,ms)=>{timers.set(++timer,{fn,ms});return timer;};w.clearTimeout=id=>timers.delete(id);
+    w.Image=class{constructor(){this.complete=false;images.push(this);}};
+    w.matchMedia=()=>({matches:false});
+    if(startOnIntro)w.sessionStorage.setItem('pr_splash_seen',String(Date.now()));
+    for(const name of ['items','modules','bit','bit-talents','raid_zones','recipes','vendors','retention','quests','progression','combat','audio'])
+      w.eval(await readFile(new URL('../../data/'+name+'.js',import.meta.url),'utf8'));
+    w.eval(await readFile(new URL('../../ui/audio.js',import.meta.url),'utf8'));
+    const audio=new w.PRAudioManager(w.DATA.audio,{AudioContext:FakeContext,fetch:async()=>{requests++;return {ok:true,arrayBuffer:async()=>new ArrayBuffer(1)};}});
+    w.PR_AUDIO=audio;audio.installUnlock(w);
+    await audio.preload();const loaded=requests;
+    w.eval(await readFile(new URL('../../app.js',import.meta.url),'utf8')+';window.TEST={intro:()=>SCREENS.intro(),dismiss:()=>A.dismissIntro()}; A.startFtueDirect=()=>{};');
+    if(!startOnIntro){
+      images.forEach(i=>i.onload?.());await new Promise(r=>setTimeout(r,0));
+      w.document.querySelector('#splash').click();
+      assert.equal(audio.context.state,'running','the start tap resumes synchronously');
+      assert.equal(audio.context.sources[0].buffer.length,1,'the same gesture starts the silent sample');
+      for(const [id,t] of [...timers])if(t.ms===1500){timers.delete(id);t.fn();}
+      assert.equal(w.document.querySelector('#splash'),null);
+    }
+    w.TEST.intro();
+    assert.equal(audio.lastVoice.has('youre-back'),false,'no VO before the first line reveal');
+    w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
+    if(startOnIntro){
+      assert.equal(audio.pendingVoices.has('youre-back'),true,'reveal queues while locked');
+      w.document.querySelector('.intro').click(); // skip text, not ENTER
+      assert.equal(audio.context.state,'running','intro tap also unlocks synchronously');
+    }
+    await new Promise(r=>setTimeout(r,0));
+    assert.equal(audio.voiceName,'youre-back');assert.equal(requests,loaded,'all buffers were preloaded');
+    const voice=audio.voiceSource,count=audio.context.sources.length;
+    w.TEST.intro();w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
+    await audio.unlock();assert.equal(audio.context.sources.length,count,'rerenders and unlocks never replay the greeting');
+    w.TEST.dismiss();assert.equal(voice.stopped,true,'ENTER stops the playing greeting');
+    assert.equal(w.document.querySelector('.intro'),null);
+    await audio.unlock();assert.equal(await audio.requestVoice('youre-back'),false,'later screens cannot revive it');
+    assert.equal(audio.context.sources.length,count);
+  }finally{dom.window.close();}
+});

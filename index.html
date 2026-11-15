@@ -735,7 +735,7 @@
      anywhere" before the tap would actually have sound to unlock. */
   .splash-prompt{position:absolute;left:50%;bottom:calc(68px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;
     min-width:44px;min-height:44px;padding:13px 30px;display:flex;align-items:center;justify-content:center;
-    font:700 12px "IBM Plex Mono",monospace;letter-spacing:.2em;color:#75CFCC;
+    font:700 12px "IBM Plex Mono",monospace;letter-spacing:.2em;color:var(--ad-cyan);
     background:transparent;border:1px solid color-mix(in srgb,var(--txt) 45%,transparent);border-radius:999px;
     opacity:0;transition:opacity .4s ease;}
   #splash.prompt-ready .splash-prompt{opacity:.8;animation:splashPromptPulse 2.6s ease-in-out infinite;}
@@ -1823,7 +1823,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
     <div id="bitline"></div>
   </div>
   <div id="toast"></div>
-  <div id="splash" role="button" tabindex="0" aria-label="Protocol Rebirth — tap to enter the bunker"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><small id="splash-prompt" class="splash-prompt">TAP ANYWHERE TO BEGIN</small></div>
+  <div id="splash" role="button" tabindex="0" aria-label="Tap anywhere to begin"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><small id="splash-prompt" class="splash-prompt">TAP ANYWHERE TO BEGIN</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
 <script src="data/items.js?v=2.28.32"></script>
