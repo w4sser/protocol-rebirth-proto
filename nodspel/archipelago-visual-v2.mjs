@@ -223,7 +223,6 @@ const crownGeo=new THREE.IcosahedronGeometry(1,0);
 const UP=new THREE.Vector3(0,1,0);
 for(const r of [barkMat,...pineMats,trunkGeo,twigGeo,crownGeo])r.userData.shared=true;
 function pinePart(group,mesh){
-  mesh.userData.pineOwner=group;
   mesh.userData.pineOpaqueMaterial=mesh.material;
   mesh.castShadow=true;
   group.userData.pineMeshes.push(mesh);
