@@ -189,3 +189,12 @@ behavior and the feature's own test file for once-only persistence (see `test/bi
 -- when the moment used to carry a gating popup -- that no popup shows at all). Capture early and
 late frames at 844x390, 667x375 and 932x430; assert full viewport coverage, safe copy placement,
 and no overlap between the bubble and the info strip.
+
+PRB-155's reproducible capture harness is `scripts/narrator-cutscene-shots.mjs`. Run it with
+`NODE_PATH=/workspace/pptr/node_modules CHROME_PATH=/usr/bin/google-chrome node scripts/narrator-cutscene-shots.mjs`.
+It serves the unchanged `/workspace/prp-before-main` baseline and this worktree, drives the real
+Core/Fabricator build and death-return triggers, and captures all three landscape sizes with
+47/47/0/21 safe insets. PNGs and `results.json` go to `/workspace/prp-narrator-cs-v22834-shots/`.
+`AFTER_ONLY=1` refreshes current captures and writes `after-results.json`. Assertions cover full
+bleed, safe copy/bust/strip bounds, no popup/card stacking, text/hologram separation, runtime
+errors, and immediately visible content without transitions under reduced motion.
