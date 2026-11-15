@@ -13,9 +13,10 @@
       // the instant it opens; reading it costs nothing while the overlay stays closed.
       this.pendingFiles=new Set();this.failedFiles=new Map();this.decodedFiles=new Set();this.lastError=null;this.dropLog=[];
       try{this.storage=env.storage===undefined?root.localStorage:env.storage;const saved=JSON.parse(this.storage?.getItem(config.storageKey)||'null');if(saved&&typeof saved==='object')for(const key of Object.keys(this.settings)){if(typeof this.settings[key]==='boolean'){if(typeof saved[key]==='boolean')this.settings[key]=saved[key];}else if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))this.settings[key]=Math.max(0,Math.min(1,saved[key]));}}catch(_){/* Private browsing and bad settings are harmless. */}
-      const probe=env.probe; // Web Audio decoding only; no media element is created.
-      const vorbis=probe?.canPlayType?.('audio/ogg; codecs="vorbis"'),aac=probe?.canPlayType?.('audio/mp4; codecs="mp4a.40.2"');
-      this.format=!probe?'ogg':aac&&vorbis!=='probably'?'m4a':vorbis?'ogg':'m4a';
+      const probe=env.probe; // Capability probe only; playback uses the shared Web Audio context.
+      const aac=probe?.canPlayType?.('audio/mp4; codecs="mp4a.40.2"');
+      // Prefer AAC even when WebKit advertises probable Vorbis support: decode can still stall.
+      this.format=aac?'m4a':'ogg';
       this.baseUrl=env.baseUrl||new URL('../assets/audio/',typeof document!=='undefined'&&document.currentScript?.src?document.currentScript.src:root.location?.href||'http://localhost/ui/audio.js').href;
     }
     now(){return this.env.now?this.env.now():Date.now();}
@@ -126,7 +127,7 @@
     // Callers fire this first, then still call unlock() for the real (possibly async) decode
     // of any voices/music queued while locked.
     unlockSync(){
-      if(!this.init())return false;
+      if(this.hidden()||!this.init())return false;
       try{const p=this.context.resume();if(p&&typeof p.catch==='function')p.catch(()=>{});}catch(_){}
       try{
         const buffer=this.context.createBuffer(1,1,this.context.sampleRate),source=this.context.createBufferSource();
@@ -186,7 +187,7 @@
       gestures.addEventListener('pageshow',recover);
       const visibility=gestures.document||target;
       visibility.addEventListener('visibilitychange',()=>{if(visibility.visibilityState==='visible')recover();else if(visibility.visibilityState==='hidden')this.suspendForHidden();});
-      visibility.addEventListener('pagehide',()=>this.suspendForHidden());
+      gestures.addEventListener('pagehide',()=>this.suspendForHidden());
       visibility.addEventListener('freeze',()=>this.suspendForHidden());
     }
     // Decode every SFX/VO/loop buffer up front (during the splash, before any gesture -- a
@@ -495,7 +496,7 @@
     // fails (or hangs) on most versions, so every SFX/VO fetched+decoded .ogg, failed, then
     // fetched+decoded .m4a too: double the network/decode work for every one of the ~56 files,
     // racing (and often losing to) the 2.5s raceLoad cap. Build a real probe here: a detached
-    // detached audio element's canPlayType(), never inserted into the DOM or played (Web Audio
+    // audio element's canPlayType(), never inserted into the DOM or played (Web Audio
     // decoding only, same as every other AudioManager construction in this codebase/its tests).
     const probe=typeof document!=='undefined'&&document.createElement?document.createElement('audio'):null;
     root.PR_AUDIO=new AudioManager(root.DATA.audio,probe?{probe}:{});

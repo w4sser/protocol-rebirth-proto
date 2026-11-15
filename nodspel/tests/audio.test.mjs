@@ -59,8 +59,8 @@ test('invalid/blocked storage is harmless and saved values are validated',()=>{
   const a=fixture({storage:{getItem:()=>JSON.stringify({master:-4,voice:'loud',muted:'false',sfx:3})}}).audio;
   assert.equal(a.settings.master,0);assert.equal(a.settings.sfx,1);assert.equal(a.settings.voice,config.defaults.voice);assert.equal(a.settings.muted,false);
 });
-test('format selection uses explicit Vorbis support otherwise AAC',()=>{
-  assert.equal(fixture().audio.format,'ogg');assert.equal(fixture({probe:{canPlayType:()=>''}}).audio.format,'m4a');
+test('format selection prefers supported AAC, otherwise Ogg',()=>{
+  assert.equal(fixture().audio.format,'m4a');assert.equal(fixture({probe:{canPlayType:()=>''}}).audio.format,'ogg');
 });
 test('unlock defers quiet music until a gesture and repeated requests never duplicate it',async()=>{
   const a=fixture().audio;a.music();assert.equal(a.context,null);await a.unlock();await a.loop('music','pulse');
@@ -369,17 +369,17 @@ test('Ogg fetch or decode failure retries AAC and uses AAC for future files',asy
   for(const failure of ['fetch','decode']){
     const urls=[];
     class Context extends FakeContext{async decodeAudioData(bytes){if(bytes.byteLength===1)throw Error('bad ogg');return super.decodeAudioData();}}
-    const a=fixture({AudioContext:Context,fetch:async url=>{urls.push(url);if(url.endsWith('.ogg')&&failure==='fetch')throw Error('fetch');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(url.endsWith('.ogg')?1:2)};}}).audio;
+    const a=fixture({probe:{canPlayType:type=>type.includes('ogg')?'probably':''},AudioContext:Context,fetch:async url=>{urls.push(url);if(url.endsWith('.ogg')&&failure==='fetch')throw Error('fetch');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(url.endsWith('.ogg')?1:2)};}}).audio;
     await a.unlock();assert.equal(await a.play('reload-carbine'),true);assert.equal(a.format,'m4a');
     assert.equal(await a.play('ui-tap'),true);
     assert.deepEqual(urls.map(url=>url.split('/').at(-1)),['reload-carbine.ogg','reload-carbine.m4a','ui-tap.m4a']);
   }
 });
 
-test('AAC is preferred when supported without probable Vorbis support',()=>{
+test('AAC is preferred whenever supported, including probable Vorbis support',()=>{
   for(const vorbis of ['','maybe','probably']){
     const a=fixture({probe:{canPlayType:type=>type.includes('mp4')?'probably':vorbis}}).audio;
-    assert.equal(a.format,vorbis==='probably'?'ogg':'m4a');
+    assert.equal(a.format,'m4a');
   }
 });
 
