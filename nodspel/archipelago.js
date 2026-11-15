@@ -151,7 +151,7 @@ export function isArchipelagoPartitionWallV2(w,rooms=[]){
     &&w.w>.65&&w.d<=.65
     &&Math.abs(w.z-r.z)<r.d/2-.3);
 }
-const bankMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0});
+const bankMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true});
 bankMat.userData.shared=true;
 
 // ONE continuous glacial bank per blocking partition segment, not a row of
@@ -159,45 +159,62 @@ bankMat.userData.shared=true;
 // from the same mesh, so players and AI never hit invisible legacy rocks.
 function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
   const alongX=w.w>=w.d,length=Math.max(w.w,w.d),thick=Math.min(w.w,w.d);
-  const steps=Math.max(5,Math.ceil(length/.62)),cols=6,positions=[],colors=[],indices=[];
-  const phase=rng()*Math.PI*2;
-  const light=new THREE.Color('#999aa3'),dark=new THREE.Color('#586872'),lichen=new THREE.Color('#748170');
-  const sectionBounds=[];
+  // Two broad glacial shoulders and a lower worn saddle create one authored
+  // piece of terrain. 8-11 stations, not one repeating boulder per metre.
+  // Its near-horizontal erosion skirts are cosmetic; only the visibly
+  // raised central spine blocks players and AI.
+  const steps=Math.max(7,Math.min(12,Math.ceil(length/1.1)));
+  const cols=8,positions=[],colors=[],indices=[],sectionBounds=[];
+  const phase=rng()*Math.PI*2,light=new THREE.Color('#9b9da4');
+  const dark=new THREE.Color('#5d6b74'),lichen=new THREE.Color('#788575');
+  const peakA=.25+.045*Math.sin(phase),peakB=.73+.045*Math.cos(phase);
   for(let i=0;i<=steps;i++){
     const u=i/steps,l=(u-.5)*length;
-    // Widely spaced asymmetry creates a natural bank silhouette, not a repeated prop cadence.
-    const wave=Math.sin(u*7.3+phase)*.18+Math.sin(u*12.1+phase*.48)*.075;
-    const h=Math.max(.40,(w.h??1)*(.62+wave));
-    const half=Math.max(.26,thick*.5+.075+.045*Math.sin(u*9.1+phase+.6));
-    const cross=[-half,-half*.75,-half*.30,half*.30,half*.75,half];
-    const heights=[.012,h*.42,h,h*.91,h*.43,.012],section=[];
+    const humpA=Math.exp(-Math.pow((u-peakA)/.20,2));
+    const humpB=Math.exp(-Math.pow((u-peakB)/.23,2));
+    const ridge=Math.max(humpA,humpB);
+    const taper=.44+.56*Math.min(1,u/.12,(1-u)/.12);
+    const h=(.20+(w.h??1)*(.22+.63*ridge))*taper;
+    const center=.11*Math.sin(phase+u*7.3)+.055*Math.sin(u*15.7+phase*.4);
+    const coreHalf=Math.max(.24,thick*.50+.045+.035*Math.sin(u*9.8+phase));
+    const skirtHalf=coreHalf+(.43+.33*ridge)+.14*Math.sin(phase+u*8.1)**2;
+    const offsets=[-skirtHalf,-skirtHalf*.79,-coreHalf,-coreHalf*.37,
+      coreHalf*.37,coreHalf,skirtHalf*.76,skirtHalf];
+    const heights=[.012,.026,h*.53,h*.92,h,h*.51,.026,.012];
+    const section=[];
     for(let k=0;k<cols;k++){
-      const x=alongX?w.x+l:w.x+cross[k],z=alongX?w.z+cross[k]:w.z+l;
-      const y=heights[k];
-      positions.push(x,y,z);section.push({x,z});
-      const color=dark.clone().lerp(light,k===0||k===5?.35:.66)
-        .lerp(lichen,(k===0||k===5?.15:.045)+.035*Math.sin(phase+u*8+k)**2);
-      colors.push(color.r,color.g,color.b);
+      const across=offsets[k]+center;
+      const x=alongX?w.x+l:w.x+across,z=alongX?w.z+across:w.z+l;
+      positions.push(x,heights[k],z);
+      section.push({x,z,y:heights[k]});
+      const face=k===0||k===7?.21:k===1||k===6?.38:.65;
+      const colour=dark.clone().lerp(light,face+.08*ridge)
+        .lerp(lichen,(k===0||k===7?.24:.025)+.055*Math.sin(phase+u*9+k)**2);
+      colors.push(colour.r,colour.g,colour.b);
       if(i<steps&&k<cols-1){
         const a=i*cols+k,b=(i+1)*cols+k;
         if(alongX)indices.push(a,a+1,b,a+1,b+1,b);
         else indices.push(a,b,a+1,a+1,b,b+1);
       }
     }
-    sectionBounds.push(section);
+    // Core includes ALL elevated >0.2m vertices. The surrounding flat
+    // erosion skirt has no collider, avoiding invisible extra blocking.
+    sectionBounds.push(section.slice(2,6));
   }
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  geo.setIndex(indices);geo.computeVertexNormals();
   const mesh=new THREE.Mesh(geo,bankMat);
-  mesh.name='arch-v2-bedrock-bank';
-  mesh.userData.geologyCover=true;mesh.castShadow=high;mesh.receiveShadow=true;group.add(mesh);
-  mesh.userData.colliders=[];
+  mesh.name='arch-v2-bedrock-bank';mesh.castShadow=high;mesh.receiveShadow=true;
+  mesh.userData.geologyCover=true;mesh.userData.colliders=[];
+  group.add(mesh);
   for(let i=0;i<steps;i++){
-    const section=[...sectionBounds[i],...sectionBounds[i+1]];
-    const minX=Math.min(...section.map(p=>p.x)),maxX=Math.max(...section.map(p=>p.x));
-    const minZ=Math.min(...section.map(p=>p.z)),maxZ=Math.max(...section.map(p=>p.z));
-    const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,w:maxX-minX,d:maxZ-minZ,h:w.h??1};
+    const points=[...sectionBounds[i],...sectionBounds[i+1]];
+    const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
+    const minZ=Math.min(...points.map(p=>p.z)),maxZ=Math.max(...points.map(p=>p.z));
+    const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,
+      w:maxX-minX,d:maxZ-minZ,h:w.h??1};
     colliders.push(collider);mesh.userData.colliders.push(collider);
   }
   return 1;
