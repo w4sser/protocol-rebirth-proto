@@ -151,115 +151,68 @@ export function isArchipelagoPartitionWallV2(w,rooms=[]){
     &&w.w>.65&&w.d<=.65
     &&Math.abs(w.z-r.z)<r.d/2-.3);
 }
-const bankMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true});
-bankMat.userData.shared=true;
+// V2 is a strictly planar X/Z game. Tall granite belongs at the island
+// perimeter, outside the registered actor boundary, not in bridge approaches.
+// Authored interior partitions remain physical cover, but now read as
+// unmistakable abandoned coastal-defence structures instead of climbable hills.
+const INTERIOR_COVER_GEO=new THREE.BoxGeometry(1,1,1);
+INTERIOR_COVER_GEO.userData.shared=true;
+const INTERIOR_COVER_MAT=new THREE.MeshStandardMaterial({
+  color:'#747b7a',roughness:1,metalness:0,flatShading:true
+});
+INTERIOR_COVER_MAT.userData.shared=true;
+const INTERIOR_COVER_TOP=new THREE.MeshStandardMaterial({
+  color:'#606d68',roughness:1,metalness:0
+});
+INTERIOR_COVER_TOP.userData.shared=true;
+const overlapsRect=(a,b,pad=0)=>Math.abs(a.x-b.x)<(a.w+b.w)*.5+pad
+  &&Math.abs(a.z-b.z)<(a.d+b.d)*.5+pad;
 
-// ONE continuous glacial bank per blocking partition segment, not a row of
-// individually displaced boulders. Its segmented AABB collision is sampled
-// from the same mesh, so players and AI never hit invisible legacy rocks.
-// A short run of DISTINCT glacial outcrops replaces each authored interior
-// partition segment. No continuous sausage/ribbon and no one-stone-per-metre
-// cadence. Rock and blocking geometry share the same mid-height contour.
-function buildRockBankV2(w,rng,group,colliders,{high=true}={}){
-  const alongX=w.w>=w.d,length=Math.max(w.w,w.d),width=Math.min(w.w,w.d);
-  const count=length<3.4?1:length<10.8?2:3;
-  const spokes=12,ringSpec=[
-    [-.145,1.22],[.06,1.17],[.32,1.12],[.45,1.02],
-    [.48,.86],[.70,.82],[.78,.62]
-  ];
-  const positions=[],colors=[],indices=[],outcrops=[];
-  const light=new THREE.Color('#a29fa8'),dark=new THREE.Color('#64717e');
-  const lavender=new THREE.Color('#a798a9'),lichen=new THREE.Color('#788478');
-  const cell=length/count,phase=rng()*Math.PI*2;
-  // Slice the real raised contour into short AABBs. A single enclosing
-  // rectangle would create invisible collision in the corners of each rock.
-  function clip(poly,axis,limit,less){
-    if(!poly.length)return [];
-    const result=[];
-    for(let i=0;i<poly.length;i++){
-      const a=poly[i],b=poly[(i+1)%poly.length];
-      const ina=less?a[axis]<=limit:a[axis]>=limit;
-      const inb=less?b[axis]<=limit:b[axis]>=limit;
-      if(ina)result.push(a);
-      if(ina!==inb){
-        const d=b[axis]-a[axis],t=Math.abs(d)>1e-8?(limit-a[axis])/d:0;
-        result.push({x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t});
-      }
-    }
-    return result;
+// The existing navigation clearance is too short for visual mountains: an
+// isometric camera should see a clear approach for several metres beyond both
+// ends of a timber bridge. Reserve that space for all large geological masses.
+export function archipelagoRockFreeBridgeLandingsV2(bridgeZones){
+  return bridgeZones.map(b=>({
+    x:b.x,z:b.z,
+    w:b.w+(b.dir?.x?8:2.2),
+    d:b.d+(b.dir?.z?8:2.2),
+    dir:b.dir
+  }));
+}
+
+function buildInteriorCoverV2(w,group,colliders,rockFreeZones=[]){
+  const alongX=w.w>=w.d,len=Math.max(w.w,w.d);
+  // One or two deliberate man-made obstacles, never an evenly spaced
+  // boulder chain. Keep the authored passage gap and all route clearances.
+  const pieces=len>5.5?2:1,gap=pieces===2?.42:0;
+  const segment=(len-gap)/pieces;
+  let placed=0;
+  for(let i=0;i<pieces;i++){
+    const offset=-len*.5+segment*(i+.5)+i*gap;
+    const rect={
+      x:w.x+(alongX?offset:0),
+      z:w.z+(alongX?0:offset),
+      w:alongX?segment:Math.max(.52,w.w),
+      d:alongX?Math.max(.52,w.d):segment
+    };
+    // If an authored wall overlaps a bridge mouth, do not leave an invisible
+    // collision wall there. Both the physical and the visual cover are omitted.
+    if(rockFreeZones.some(z=>overlapsRect(rect,z,.35)))continue;
+    const h=Math.max(.95,Math.min(1.25,w.h??1.05));
+    const mesh=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_MAT);
+    mesh.name='arch-v2-interior-concrete-cover';
+    mesh.position.set(rect.x,h*.5-.07,rect.z);
+    mesh.scale.set(rect.w,h,rect.d);
+    mesh.castShadow=true;mesh.receiveShadow=true;
+    const cap=new THREE.Mesh(INTERIOR_COVER_GEO,INTERIOR_COVER_TOP);
+    cap.position.y=h*.47;
+    cap.scale.set(.93,.045,.93);
+    cap.castShadow=false;cap.receiveShadow=true;mesh.add(cap);
+    const collider={...rect,h};
+    mesh.userData.collider=collider;
+    colliders.push(collider);group.add(mesh);placed++;
   }
-  for(let i=0;i<count;i++){
-    const centerLong=-length/2+(i+.5)*cell+(rng()-.5)*Math.min(.14,cell*.055);
-    const centerAcross=(rng()-.5)*1.15;
-    const halfAlong=cell*.42+.20,halfAcross=Math.max(.68,Math.min(1.18,width*.60+.78+rng()*.23));
-    const tilt=(rng()-.5)*.83;
-    const cosTilt=Math.cos(tilt),sinTilt=Math.sin(tilt);
-    const height=(w.h??1)*(.83+.18*rng()+(i%2)*.33);
-    const wobble=phase+i*2.13+rng()*.53;
-    const start=positions.length/3,core=[];
-    for(let ring=0;ring<ringSpec.length;ring++)for(let j=0;j<=spokes;j++){
-      const angle=j/spokes*Math.PI*2,c=Math.cos(angle),sin=Math.sin(angle);
-      const rockNoise=1+.13*Math.sin(3*angle+wobble)
-        +.055*Math.sin(5*angle-wobble*.6)+.025*Math.cos(7*angle+wobble*.37);
-      // Outer ends taper back toward the authored gap; inner shoulders may
-      // overlap, so the visible partition retains its intended blocking role.
-      const endBias=(i===0&&c<0)||(i===count-1&&c>0)?.83:1.10;
-      const radius=ringSpec[ring][1]*rockNoise*endBias;
-      const localAlong=c*halfAlong*radius,localAcross=sin*halfAcross*radius;
-      const along=centerLong+localAlong*cosTilt-localAcross*sinTilt;
-      const across=centerAcross+localAlong*sinTilt+localAcross*cosTilt;
-      const x=alongX?w.x+along:w.x+across,z=alongX?w.z+across:w.z+along;
-      const y=ring===0?-.145:ringSpec[ring][0]*height
-        +.014*Math.sin(angle*4+wobble)*Math.sin(ring/4*Math.PI);
-      positions.push(x,y,z);
-      if(ring===2&&j<spokes)core.push({x,z});
-      const irregular=.5+.5*Math.sin(angle*6+wobble+.37*ring);
-      const shade=.27+.55*ring/4+.07*irregular;
-      const color=dark.clone().lerp(light,shade)
-        .lerp(lavender,.055+.10*Math.max(0,Math.sin(angle*2+wobble)))
-        .lerp(lichen,(ring<2?.11:.018)*irregular);
-      colors.push(color.r,color.g,color.b);
-      if(ring<ringSpec.length-1&&j<spokes){
-        const a=start+ring*(spokes+1)+j,b=a+spokes+1;
-        if(alongX)indices.push(a,b,a+1,a+1,b,b+1);
-        else indices.push(a,a+1,b,a+1,b+1,b);
-      }
-    }
-    const tip=positions.length/3,top=start+(ringSpec.length-1)*(spokes+1);
-    const tipX=alongX?w.x+centerLong:w.x+centerAcross;
-    const tipZ=alongX?w.z+centerAcross:w.z+centerLong;
-    positions.push(tipX,height*.80,tipZ);
-    colors.push(light.r,light.g,light.b);
-    for(let j=0;j<spokes;j++){
-      if(alongX)indices.push(top+j,tip,top+j+1);
-      else indices.push(top+j,top+j+1,tip);
-    }
-    const axis=alongX?'x':'z';
-    const min=Math.min(...core.map(p=>p[axis])),max=Math.max(...core.map(p=>p[axis]));
-    const rockColliders=[];
-    for(let slice=0;slice<3;slice++){
-      const low=min+(max-min)*slice/3,high=min+(max-min)*(slice+1)/3;
-      const poly=clip(clip(core,axis,low,false),axis,high,true);
-      if(poly.length<3)continue;
-      const minX=Math.min(...poly.map(p=>p.x)),maxX=Math.max(...poly.map(p=>p.x));
-      const minZ=Math.min(...poly.map(p=>p.z)),maxZ=Math.max(...poly.map(p=>p.z));
-      const collider={x:(minX+maxX)/2,z:(minZ+maxZ)/2,
-        w:maxX-minX,d:maxZ-minZ,h:height*.44};
-      colliders.push(collider);rockColliders.push(collider);
-    }
-    outcrops.push({x:tipX,z:tipZ,height,halfAlong,halfAcross,
-      vertexStart:start,vertexEnd:positions.length/3,colliders:rockColliders});
-  }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  geo.setIndex(indices);geo.computeVertexNormals();
-  const mesh=new THREE.Mesh(geo,bankMat);
-  mesh.name='arch-v2-bedrock-bank';mesh.castShadow=high;mesh.receiveShadow=true;
-  mesh.userData.geologyCover=true;mesh.userData.outcrops=outcrops;
-  mesh.userData.colliders=outcrops.flatMap(o=>o.colliders);
-  group.add(mesh);
-  return count;
+  return placed;
 }
 // Sparse decorative shoreline rocks (visual only, no collider): seeded, irregular, some clusters,
 // nudged outward onto the sand/water side of the edge and skipped if they touch any reservation.
@@ -338,6 +291,8 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   }
   clearPassageProps(level,out.passages);
   out.bridgeClearances=bridgeClearances(level);
+  const rockFreeLandings=visualV2?archipelagoRockFreeBridgeLandingsV2(out.bridgeClearances):[];
+  if(visualV2)out.rockFreeLandings=rockFreeLandings;
   const b=level.floors.reduce((a,f)=>({x0:Math.min(a.x0,f.x-f.w/2),x1:Math.max(a.x1,f.x+f.w/2),z0:Math.min(a.z0,f.z-f.d/2),z1:Math.max(a.z1,f.z+f.d/2)}),{x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
   const cx=(b.x0+b.x1)/2,cz=(b.z0+b.z1)/2,W=b.x1-b.x0+60,D=b.z1-b.z0+60;
   // v2.23 custom water shader: single mesh, shore distance baked once from island/pier footprints.
@@ -359,7 +314,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   if(visualV2){
     out.visualV2=true;
     const firstIsland=level.floors.find(f=>!f.dir);
-    const reservations=[...out.passages,...out.bridgeClearances,...level.floors.filter(f=>f.dir)];
+    const reservations=[...out.passages,...out.bridgeClearances,...rockFreeLandings,...level.floors.filter(f=>f.dir)];
     const grassClearances=[...reservations,...[level.start,level.exit,...(level.nodes??[]),...(level.lootBoxes??[])].filter(Boolean).map(p=>({x:p.x,z:p.z,w:3.2,d:3.2}))];
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
@@ -449,7 +404,7 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       // Drop rectangular shoreline/bridge-rail authoring walls entirely,
       // including their colliders. Only genuine interior partitions remain.
       if(isArchipelagoPartitionWallV2(w,level.rooms))
-        out.rocks+=buildRockBankV2(w,rng,group,colliders,{high:(quality?.props??1)>=1});
+        out.rocks+=buildInteriorCoverV2(w,group,colliders,rockFreeLandings);
       continue;
     }
     if(islands.filter(f=>onRim(w,f)).length===1){
