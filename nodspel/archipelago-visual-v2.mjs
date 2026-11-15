@@ -213,7 +213,8 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   if(hero){
     const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
     const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.63;
-    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,.56,
+    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
+      .25+(p.heroRelief??0)*1.67,
       profile.floor.z+Math.sin(head.angle)*radius);
     g.rotation.y=-head.angle-Math.PI/2;
     g.userData.integratedHero=true;
@@ -247,7 +248,8 @@ export function addArchipelagoTargetShed(profile,group,options={}){
   if(hero){
     const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
     const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.73;
-    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,.47,
+    g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
+      .25+(p.heroRelief??0)*1.64,
       profile.floor.z+Math.sin(head.angle)*radius);
     g.rotation.y=-head.angle-Math.PI/2;
     g.userData.integratedHero=true;
