@@ -270,7 +270,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   function dispose(){
     disposed=true;
     const geometries=new Set(),mats=new Set();
-    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);if(o.userData?.pineFadeMaterials)for(const m of o.userData.pineFadeMaterials.values())mats.add(m);});
+    group.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry)geometries.add(o.geometry);if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);if(o.pineFadeMaterials)for(const m of o.pineFadeMaterials.values())mats.add(m);});
     for(const g of geometries)if(!g.userData?.shared)g.dispose();for(const m of mats)if(!m.userData?.shared)m.dispose();group.clear();scene.remove(group);bursts.length=0;
   }
   const hazards=(level.hazards??[]).map(h=>{
@@ -299,7 +299,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // camera. Check just their meshes at 10 Hz with orthographic-parallel rays,
   // then smoothly fade only the trees hiding nearby gameplay-critical targets.
   const pineProps=archInfo?.visualV2?props.filter(p=>p?.name==='arch-v2-coastal-pine'):[];
-  const pineMeshes=pineProps.flatMap(p=>p.userData.pineMeshes);
+  const pineMeshes=pineProps.flatMap(p=>p.pineMeshes);
   const pineRay=new THREE.Raycaster(),pineOrigin=new THREE.Vector3(),pineDirection=new THREE.Vector3();
   const pineOccluded=new Set();
   let pineCheckIn=0;
@@ -318,7 +318,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
         pineOrigin.set(x,y,z);
         pineRay.set(pineOrigin,pineDirection);
         for(const hit of pineRay.intersectObjects(pineMeshes,false)){
-          const tree=hit.object.parent?.userData?.pineMeshes?hit.object.parent:null;
+          const tree=hit.object.parent?.pineMeshes?hit.object.parent:null;
           if(tree)pineOccluded.add(tree);
         }
       };
