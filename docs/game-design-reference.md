@@ -345,6 +345,12 @@ Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery
 
 **Open for playtest and implementation:** Exact hit/defeat clips, enemy variety, impact shaders/particles, sound mix, hit marker treatments, timing/intensity, source-of-truth integration, art production and real-device performance. These are not additional high-level votes. **Next priority is a playable proof-of-fun slice** combining common animated Operator + Basic Carbine + a couple of existing distinct enemy threats + verified hit/defeat feedback + meaningful in-raid BIT reactions + a genuine loot/extraction choice. Suggested test scope does not authorize code or assets in this documentation PR. [D01]
 
+### 5.8 M43 — Enemy friendly fire and tactical baiting (owner approved)
+
+**APPROVED M43 (15 November 2026):** Hostile attacks are not automatically safe for hostile allies. The Operator can redirect a telegraphed artillery landing circle onto enemy troops, escape before detonation and watch actual enemy damage or defeats. The payoff should come from reading existing warnings, understanding the locked blast position and choosing a clever route, not from a new ability or a scripted takedown. This is a general combat principle; **artillery explosions are the first tested implementation**, not proof that all firearms or melee have been converted to collateral damage.
+
+The same blast threatens the Operator under existing dash/damage rules. Ordinary enemy-hit/defeat feedback confirms real damage at mobile scale; damage against enemies is tuned to their own health scale, and enemy-caused kills do not grant free player on-kill healing. No new objective destruction, hidden immunity, guaranteed loot or special UI is implied. Extend to other attack classes only after testing readability and unwanted encounter wipes. See [M43 in the decision register](design-decisions.md#m43--enemy-friendly-fire-as-emergent-tactical-counterplay).
+
 ## 6. Loot, inventory, extraction, and loss
 
 ### 6.1 Three different places a possession can be
