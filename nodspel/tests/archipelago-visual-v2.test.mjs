@@ -190,6 +190,10 @@ test('v2 removes linear legacy rock rows without leaving invisible boundary wall
       for(const bank of banks){
         assert.equal(bank.material.flatShading,true,'rock banks should have readable faceted stone faces');
         const vertices=bank.geometry.getAttribute('position');
+        for(let i=0;i<vertices.count;i+=8){
+          assert.ok(vertices.getY(i)<-.04&&vertices.getY(i+7)<-.04,
+            'perimeter erosion skirts must cut through ground, not z-fight above it');
+        }
         const heights=[];for(let i=4;i<vertices.count;i+=8)heights.push(vertices.getY(i));
         assert.ok(Math.max(...heights)-Math.min(...heights)>.15,'multiple large outcrops rather than an even sausage ridge');
         const n=bank.geometry.getAttribute('normal');
