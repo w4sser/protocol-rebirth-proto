@@ -1,0 +1,15 @@
+/* PRB-159 hidden audio debug overlay: closed by default (display:none), so it costs nothing and
+   never blocks input to the game underneath. Small monospace panel, safe-area aware, top-right. */
+/* #app-version is deliberately pointer-events:none (a decorative corner label, index.html ~L118)
+   so it never intercepts taps meant for things under/around it; re-enable just enough for the
+   triple-tap gesture to register. Keep the label visible in the compact landscape topbar. */
+#topbar #app-version{display:block;pointer-events:auto}
+#app-version{pointer-events:auto}
+.audio-debug-ov{display:none;position:fixed;top:calc(4px + var(--st,0px));right:calc(4px + var(--sr,0px));z-index:999;max-width:min(360px,calc(100vw - 8px - var(--sl,0px) - var(--sr,0px)));max-height:calc(100% - 8px - var(--st,0px) - var(--sb,0px));overflow-y:auto;background:color-mix(in srgb,var(--ad-night) 94%,transparent);border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent);border-radius:6px;padding:6px 8px;font:10px/1.4 "IBM Plex Mono",monospace;color:var(--ad-bone);pointer-events:auto}
+.audio-debug-ov.audio-debug-open{display:block}
+.audio-debug-row{display:flex;gap:6px;justify-content:space-between;border-bottom:1px solid color-mix(in srgb,var(--ad-bone) 8%,transparent);padding:2px 0}
+.audio-debug-row span{opacity:.65;flex-shrink:0}
+.audio-debug-row b{font-weight:600;text-align:right;overflow-wrap:anywhere;word-break:break-word}
+.audio-debug-drops b{text-align:left}
+.audio-debug-actions{display:flex;gap:6px;margin-top:6px}
+.audio-debug-actions button{flex:1;min-height:28px;border:1px solid color-mix(in srgb,var(--ad-bit) 40%,transparent);border-radius:4px;background:var(--ad-ink);color:var(--ad-bone);font:10px "IBM Plex Mono",monospace}

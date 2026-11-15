@@ -158,3 +158,28 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  const noCardGuard=cardSrc.replace('locked:true, hintTimer:null };','hintTimer:null };').replace('if(current && current.locked) return;','');
  assert.equal(by('narrator-holds-until-tap').check({cutsceneSrc,cardSrc:noCardGuard}).length,1,'fires if the base card drops its one-second tap guard');
 }
+
+// PRB-159: mutate shipping source to prove each lifecycle/probe regression is rejected.
+{
+ const audioSrc=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ const background=by('audio-no-background-playback'),format=by('audio-format-probe-default');
+ assert.deepEqual(background.check({audioSrc}),[]);
+ assert.deepEqual(format.check({audioSrc}),[]);
+ assert.ok(background.check({audioSrc:audioSrc.replace("audioSession.type='ambient'", "audioSession.type='playback'")}).length);
+ assert.ok(background.check({audioSrc:audioSrc.replace("else if(visibility.visibilityState==='hidden')this.suspendForHidden();",'')}).length);
+ assert.ok(background.check({audioSrc:audioSrc.replace("gestures.addEventListener('pagehide'", "visibility.addEventListener('pagehide'")}).length);
+ assert.ok(background.check({audioSrc:audioSrc.replace('if(this.hidden()||!this.init())return false;', 'if(!this.init())return false;')}).length);
+ assert.ok(format.check({audioSrc:audioSrc.replace('new AudioManager(root.DATA.audio,probe?{probe}:{})', 'new AudioManager(root.DATA.audio)')}).length);
+ assert.ok(format.check({audioSrc:audioSrc.replace("document.createElement('audio')",'null')}).length);
+ assert.ok(format.check({audioSrc:audioSrc.replace("this.format=aac?'m4a':'ogg'", "this.format='ogg'")}).length);
+ assert.ok(format.check({audioSrc:audioSrc.replace("this.format=aac?'m4a':'ogg'", "this.format=aac&&vorbis!=='probably'?'m4a':'ogg'")}).length);
+}
+
+{
+ const rule=by('audio-debug-trigger-reachable');
+ const audioDebugCss=fs.readFileSync(new URL('../ui/audio-debug.css',import.meta.url),'utf8');
+ assert.deepEqual(rule.check({audioDebugCss}),[]);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('display:block;pointer-events:auto','pointer-events:auto')}).length);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('display:block;pointer-events:auto','display:block;pointer-events:none')}).length);
+ assert.ok(rule.check({audioDebugCss:audioDebugCss.replace('#topbar #app-version','')}).length);
+}

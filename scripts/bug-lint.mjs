@@ -281,6 +281,21 @@ export const RULES=[
      if(!install)out.push('ui/audio.js: installUnlock(target) not found');
      else if(!/touchstart/.test(install)||!/pointerdown/.test(install))out.push('ui/audio.js: installUnlock must listen on touchstart and pointerdown (a joystick-hold gesture has no matching touchend for seconds)');
      return out;}},
+  {id:'audio-no-background-playback',pr:'v2.28.3x PRB-159 iOS background audio',why:'The playback session kept iPhone music alive after closing the app; suspend on hidden and window pagehide instead',
+   check(c={}){const src=(c.audioSrc??read('ui/audio.js')).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,''),out=[];
+     if(/audioSession(?:\s*\?\.)?\s*\.?(?:type)?[\s\S]{0,40}?=\s*['"]playback['"]/.test(src))out.push('ui/audio.js: audioSession must never request playback');
+     if(!/visibilitychange['"][\s\S]*?visibilityState\s*===?\s*['"]hidden['"][\s\S]*?this\.suspendForHidden\(\)/.test(src))out.push('ui/audio.js: hidden visibilitychange must suspendForHidden');
+     if(!/gestures\.addEventListener\(['"]pagehide['"],\s*\(\)\s*=>\s*this\.suspendForHidden\(\)/.test(src))out.push('ui/audio.js: window pagehide must suspendForHidden');
+     if(!/unlockSync\(\)\{\s*if\(this\.hidden\(\)/.test(src))out.push('ui/audio.js: synchronous gesture unlock must bail while hidden');
+     return out;}},
+  {id:'audio-debug-trigger-reachable',pr:'v2.28.3x PRB-159 iPhone diagnostics',why:'The landscape topbar hid the version and disabled pointer events, making triple-tap diagnostics unreachable',
+   check(c={}){const css=c.audioDebugCss??read('ui/audio-debug.css');
+     return /#topbar #app-version\s*\{[^}]*display:block;[^}]*pointer-events:auto/.test(css)?[]:['ui/audio-debug.css: override landscape version hiding and topbar pointer-events so triple-tap works'];}},
+  {id:'audio-format-probe-default',pr:'v2.28.3x PRB-159 iOS audio format',why:'Without the default capability probe every SFX tried Ogg first on WebKit, racing the SFX deadline; prefer playable AAC',
+   check(c={}){const src=(c.audioSrc??read('ui/audio.js')).replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,''),out=[];
+     if(!/document\.createElement\(['"]audio['"]\)/.test(src)||!/root\.PR_AUDIO\s*=\s*new AudioManager\(root\.DATA\.audio,\s*probe\s*\?\s*\{probe\}\s*:\s*\{\}\)/.test(src))out.push('ui/audio.js: default construction must pass a real audio probe');
+     if(!/this\.format\s*=\s*aac\s*\?\s*['"]m4a['"]\s*:\s*['"]ogg['"]/.test(src))out.push('ui/audio.js: prefer AAC whenever the AAC probe is truthy');
+     return out;}},
   {id:'narrator-holds-until-tap',pr:'v2.28.3x PRB-158 narrator hold',why:'Robert\'s playtest: "the Fabricator box doesn\'t stay long enough. Keep it until I want to continue." Base cutscenes/cards must never auto-advance, and a tap in the first second must be ignored so a settling animation cannot be skipped by accident',
    check(c={}){const cutscene=c.cutsceneSrc??read('ui/bit-cutscene.js'),card=c.cardSrc??read('ui/bit-card.js'),out=[];
      if(/\bDURATION\b/.test(cutscene))out.push('ui/bit-cutscene.js: no auto-end timer (DURATION) may exist -- the cutscene must hold until tapped');
