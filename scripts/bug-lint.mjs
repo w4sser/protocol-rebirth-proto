@@ -265,6 +265,8 @@ export const RULES=[
      const available=new Set(files||[]);
      for(const match of app.matchAll(/assets\/production\/bit-narrator\/[^"']+\.webp/g))
        if(!available.has(match[0]))out.push('missing dedicated narrator art: '+match[0]);
+     const renderer=c.cutsceneSrc??read('ui/bit-cutscene.js');
+     if(!/if\(retryTimeout\) images\.delete\(src\)/.test(renderer)||!/load\(opts\.bust\.from, false, true\)/.test(renderer))out.push('early bust warming must evict timed-out shared busts so Core/death can retry');
      return [...new Set(out)];}},
 
 ];

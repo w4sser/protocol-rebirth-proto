@@ -11,12 +11,12 @@
   // Warm only the requested pair (+ optional bust pair), immediately before its story beat.
   // Errors/timeouts resolve to an empty source (dedicated art keeps warming until load/error), so a broken connection still gives the player the
   // line and a way out.
-  function load(src, waitForArt){
+  function load(src, waitForArt, retryTimeout){
     if(!src) return Promise.resolve("");
     if(images.has(src)) return images.get(src);
     var promise = new Promise(function(resolve){
       var img = new Image(), settled = false;
-      var timeout = waitForArt ? null : setTimeout(function(){ images.delete(src); finish(false); }, 3000);
+      var timeout = waitForArt ? null : setTimeout(function(){ if(retryTimeout) images.delete(src); finish(false); }, 3000);
       function finish(ok){
         if(settled) return; settled = true; clearTimeout(timeout);
         img.onload = img.onerror = null; resolve(ok ? src : "");
@@ -43,7 +43,7 @@
   function bustIsPair(bust){ return !!(bust && bust.to && bust.to !== bust.from); }
   function preload(opts){
     var list = [load(opts.from, opts.waitForArt), load(opts.to, opts.waitForArt)];
-    if(opts.bust){ list.push(load(opts.bust.from)); if(bustIsPair(opts.bust)) list.push(load(opts.bust.to)); }
+    if(opts.bust){ list.push(load(opts.bust.from, false, true)); if(bustIsPair(opts.bust)) list.push(load(opts.bust.to, false, true)); }
     return Promise.all(list);
   }
   function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }

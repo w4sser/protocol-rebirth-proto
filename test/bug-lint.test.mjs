@@ -132,3 +132,5 @@ console.log('bug-lint.test: ok');
  assert.equal(rule.check({appSrc:'from:"'+file+'"',files:[file]}).length,0);
  assert.equal(rule.check({appSrc:'from:"'+file+'"',files:[]}).length,1,'missing shipped art fails');
 }
+
+assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsceneSrc:''}).length,1,'poisoned shared bust cache fails');

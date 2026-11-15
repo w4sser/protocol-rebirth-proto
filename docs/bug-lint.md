@@ -60,3 +60,5 @@ arrival flash. Fixtures reject the old shell/particles-only form. Behavioural te
 sideways spread, arrival timing and exactly-once disposal; native-size captures provide visual review.
 
 PRB-157 (2026-11-15): `dedicated-narrator-art-exists` checks every production narrator WebP path in app.js against tracked files, with present/missing fixtures. The existing `fabricator-art-bounded-cache` rule keeps its historical PR attribution and now guards the shipped-art invariant: a shared early warm-up and synchronous beat selection, so a stalled probe cannot block the story. Runtime regressions cover immediate presentation during a stalled warm-up, image-error fallback, the dedicated dark/powered pair with no effects, file budgets, and cover/push-in geometry.
+
+PRB-157 review follow-up: dedicated narrator lint also guards timeout eviction for shared bust images. Early Fabricator warming must not permanently cache a missing happy bust for Core/death; the focused cutscene regression times out startup warming, then recovers and displays the same bust during Core.
