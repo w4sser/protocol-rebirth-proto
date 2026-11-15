@@ -317,7 +317,7 @@
       if(!this.config.voices.includes(name)||!this.unlocked||this.context?.state!=='running'||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted)||this.voiceBusy||now-this.globalVoiceAt<this.config.globalVoiceCooldownMs||now-(this.lastVoice.get(name)??-Infinity)<cooldown)return false;
       this.voiceBusy=true;const token=++this.voiceToken;
       try{
-        const buffer=await this.raceLoad('bit/'+name);if(token!==this.voiceToken||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted))return false;
+        const buffer=await this.raceLoad('bit/'+name,this.config.voiceDecodeWaitMs??6000);if(name==='youre-back'&&typeof document!=='undefined'&&!document.querySelector('.intro'))return false;if(token!==this.voiceToken||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted))return false;
         this.duck(true);const source=this.source(buffer,'voice',this.config.voiceGain),cleanup=source.onended;this.voiceSource=source;this.voiceName=name;
         this.lastVoice.set(name,this.now());this.globalVoiceAt=this.now();
         source.onended=()=>{cleanup();if(this.voiceSource===source){this.voiceSource=null;this.voiceName=null;}if(token===this.voiceToken){this.voiceBusy=false;this.duck(false);}};return true;

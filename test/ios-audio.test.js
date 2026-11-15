@@ -117,6 +117,25 @@ function fixture(installTarget){
     } finally { delete global.document; }
   }
 
+  // 3b) Slow decode (iOS decodes after unlock): the intro leaves while the youre-back buffer is
+  // still decoding. The play-time guard after decode must stop it -- never heard after ENTER.
+  {
+    const dom = new JSDOM('<div class="intro"></div>');
+    global.document = dom.window.document;
+    try{
+      const { audio, ctx } = fixture();
+      ctx.decodeAudioData = () => new Promise(resolve => setTimeout(() => resolve({ duration: 1 }), 400));
+      ctx.gestureOpen = true;
+      audio.unlockSync();
+      ctx.gestureOpen = false;
+      const requested = audio.requestVoice("youre-back");
+      await sleep(200); // running now, buffer still decoding
+      dom.window.document.querySelector(".intro").remove();
+      assert.equal(await requested, false, "intro gone before decode finished -- must not start");
+      assert.equal(audio.lastVoice.has("youre-back"), false);
+    } finally { delete global.document; }
+  }
+
   // 4) 'interrupted' (phone call, Siri, app switch, lock screen) behaves like 'suspended' and
   // recovers on the next visibilitychange -> visible, with no fresh gesture required (WebKit
   // already granted this context once); sounds play again afterwards.
