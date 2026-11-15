@@ -25,6 +25,12 @@
   var MAX_QUEUE = 4;
   var BLOCK_POLL_MS = 250;
   var BASE_MS = 3000, CHAR_THRESHOLD = 50, CHAR_MS = 40, CAP_MS = 6000;
+  // PRB-158 (Robert's playtest): base cards hold until the player taps, same as the mini
+  // cutscenes -- HOLD_MS ignores an accidental tap in the first second, HINT_MS fades in TAP TO
+  // CONTINUE at ~3s. The raid card keeps its old timed auto-dismiss (computeDuration above):
+  // the player is mid-combat, so a non-blocking, self-clearing card stays the right call there
+  // (see docs/bit-narrator.md "Hold until tap").
+  var HOLD_MS = 1000, HINT_MS = 3000;
 
   var cardEl = null, current = null, queue = [], retryTimer = null;
 
@@ -59,6 +65,8 @@
     return Math.min(CAP_MS, base + extra);
   }
 
+  function reduced(){ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+
   function ensureEl(){
     if(cardEl) return cardEl;
     cardEl = document.createElement("button");
@@ -72,8 +80,8 @@
     // served from the root. Same convention as nodspel's other ../assets/ references.
     cardEl.innerHTML =
       '<img class="bit-card-img" alt="" aria-hidden="true" src="' + bust("smile") + '">' +
-      '<span class="bit-card-bubble"></span>';
-    cardEl.addEventListener("click", function(){ dismiss(); });
+      '<span class="bit-card-copy"><span class="bit-card-bubble"></span><span class="bit-card-hint">TAP TO CONTINUE</span></span>';
+    cardEl.addEventListener("click", function(){ tapDismiss(); });
     document.body.appendChild(cardEl);
     return cardEl;
   }
@@ -87,12 +95,24 @@
   function present(job){
     preloadBusts();
     var el = ensureEl();
+    var raid = isRaidPage();
     el.querySelector(".bit-card-img").src = bust(job.mood);
-    el.className = "bit-card mood-" + job.mood + (isRaidPage() ? " ctx-raid" : "");
+    el.className = "bit-card mood-" + job.mood + (raid ? " ctx-raid" : "");
     el.querySelector(".bit-card-bubble").textContent = job.text;
     el.hidden = false;
-    var ms = computeDuration(job.text, job.duration);
-    current = { job: job, timer: setTimeout(dismiss, ms) };
+    if(raid){
+      // Non-blocking, self-clearing: the player is mid-combat (docs/bit-narrator.md).
+      var ms = computeDuration(job.text, job.duration);
+      current = { job: job, timer: setTimeout(dismiss, ms), locked:false, hintTimer:null };
+      return;
+    }
+    // Base: hold until tapped. No auto-dismiss timer; a tap in the first HOLD_MS is ignored,
+    // and the hint fades in at HINT_MS (immediately, no fade, under reduced motion).
+    current = { job: job, timer: null, locked:true, hintTimer:null };
+    var run = current;
+    setTimeout(function(){ if(current === run) run.locked = false; }, HOLD_MS);
+    if(reduced()) el.classList.add("hint-visible");
+    else run.hintTimer = setTimeout(function(){ if(current === run) el.classList.add("hint-visible"); }, HINT_MS);
   }
 
   function scheduleRetry(){
@@ -111,11 +131,16 @@
     present(queue.shift());
   }
 
+  function tapDismiss(){
+    if(current && current.locked) return;
+    dismiss();
+  }
+
   function dismiss(){
     if(!current) return;
-    clearTimeout(current.timer);
+    clearTimeout(current.timer); clearTimeout(current.hintTimer);
     var job = current.job;
-    if(cardEl) cardEl.hidden = true;
+    if(cardEl){ cardEl.hidden = true; cardEl.classList.remove("hint-visible"); }
     current = null;
     if(job.onDone) try{ job.onDone(); }catch(e){}
     advance();

@@ -36,8 +36,9 @@ window.PRBitCard.isOpen();    // true while a card is visible
 - `text` (required): one line, ideally under ~90 characters so it fits 2 lines at 667×375 and
   13px+ type.
 - `mood`: see the map above; default `"smile"`.
-- `duration`: base auto-dismiss time in ms, default 3000. The component extends this by 40ms per
-  character over 50, capped at 6000ms total, so longer lines stay readable.
+- `duration`: base auto-dismiss time in ms, default 3000, extended by 40ms per character over 50
+  and capped at 6000ms total. **Raid only** (PRB-158): the base card ignores `duration` entirely
+  and holds until tapped -- see "Hold until tap" below.
 - `onDone`: called once the card is dismissed (auto or manual), before the next queued card plays.
 
 Only one card shows at a time. Further `show()` calls while one is up queue (max 4) and play in
@@ -106,14 +107,44 @@ The helper deduplicates in-flight ids, waits for landscape on the base screen, i
 active BIT speech, and rechecks blockers after loading. It does not persist or request VO.
 Image errors or a 3-second load timeout show the line over the dark gradient instead.
 
-The scene pushes from scale 1 to 1.06 over 6 seconds, crossfades at 3.15 seconds (45% of its
-7-second duration), pops in the bubble (+ bust, if any) with the crossfade, slides in the info
-strip (if any) ~0.6s later, and shows TAP TO CONTINUE after 1.5 seconds. Tap anywhere, the
-focused continue button, or Escape dismisses; otherwise it auto-ends at 7 seconds and fades back
-over 350 ms. Focus returns to the previous control. Reduced motion removes push-in and fades and
-shows the bubble, bust, info strip and continue hint immediately, cutting instantly between frames at the same
-midpoint. The art covers the entire viewport; only copy respects safe insets, with a scrim/shadow. Standard copy starts at 15 px; Fabricator uses 12–16 px to keep its
-longer speech in the calm lower area on the smallest landscape viewport.
+The scene pushes from scale 1 to 1.06 over 6 seconds and crossfades at 3.15 seconds, popping in
+the bubble (+ bust, if any) with the crossfade and sliding in the info strip (if any) ~0.6s
+later. It holds until the player dismisses it -- see "Hold until tap" below -- and fades back
+over 350 ms when they do. Focus returns to the previous control. Reduced motion removes push-in
+and fades and shows the bubble, bust and info strip immediately, cutting instantly between
+frames at the same midpoint. The art covers the entire viewport; only copy respects safe insets,
+with a scrim/shadow. Standard copy starts at 15 px; Fabricator uses 12–16 px to keep its longer
+speech in the calm lower area on the smallest landscape viewport.
+
+### Hold until tap (PRB-158)
+
+Robert's playtest of the Fabricator cutscene: "the Fabricator box doesn't stay long enough. Keep
+it until I want to continue, and TAP TO CONTINUE can appear after ~3 s." Both components now
+hold until the player dismisses them, with no fixed-timeout auto-end:
+
+- **Mini cutscenes** (`ui/bit-cutscene.js`): no auto-end timer exists at all. TAP TO CONTINUE
+  fades in (0.4s) at ~3 seconds (was 1.5s). A tap anywhere, Escape, or the continue button
+  (including its native Enter/Space keyboard activation, since focus lands there on open)
+  dismisses -- but only after a one-second guard (`run.locked`) first: anything in that first
+  second is ignored, so a reflexive tap right as the scene opens cannot skip it by accident.
+- **Base cards** (`ui/bit-card.js`): the same change, the same way -- no auto-dismiss `timer`,
+  the same one-second guard (`current.locked`), and a TAP TO CONTINUE hint (`.bit-card-hint`)
+  that fades in at ~3 seconds.
+- **Raid cards are the one deliberate exception.** `present()` branches on `isRaidPage()`
+  (presence of nodspel's `#viewport`): the raid card keeps its old timed, non-blocking
+  auto-dismiss (`duration`/`computeDuration()`) with no tap guard and no hint. Rationale: the
+  player is mid-combat when a raid card appears (e.g. a first-seen material pickup); a card that
+  could only be cleared by a dedicated tap would compete with movement/aim input for attention,
+  while the existing self-clearing behavior never blocks anything. This is a deliberate
+  product/UX decision, not an oversight -- see `docs/design-decisions.md` (2026-11-15, PRB-158).
+- **Reduced motion** shows the hint immediately rather than fading it in at ~3s (the existing
+  convention this component already used for the bubble/bust/info strip) but still observes the
+  one-second tap guard and still never auto-advances.
+
+Guarded by `narrator-holds-until-tap` in `scripts/bug-lint.mjs` (no auto-end timer for the base
+moments, the one-second guard present in both components) plus the updated hold-timing/tap-guard
+regressions in `test/bit-cutscene.test.js` and `test/bit-card.test.js` (including the
+base/raid split).
 
 ### Standard narrator-cutscene layout (PRB-155)
 

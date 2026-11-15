@@ -23,10 +23,17 @@ test('theme config and optional start hook',()=>{
   assert.ok(config.loops.pulse);assert.equal(config.startTheme,'bunker-theme');
 });
 test('Web Audio only across base, engine and splash',()=>{
+  // navigator.audioSession (PRB-158 item e, iOS 17+ silent-switch fix) is the one approved
+  // exception, confined to AudioManager.unlockSync() -- still no stray <audio>, new Audio() or
+  // navigator.mediaSession anywhere, and no other file may touch audioSession either.
   for(const file of ['ui/audio.js','ui/base-audio.js','app.js','index.html']){
     const source=fs.readFileSync(require.resolve('../'+file),'utf8');
-    assert.doesNotMatch(source,/<audio\b|new\s+(?:root\.|window\.)?Audio\s*\(|navigator\.mediaSession|audioSession\s*[.=]/i,file);
+    assert.doesNotMatch(source,/<audio\b|new\s+(?:root\.|window\.)?Audio\s*\(|navigator\.mediaSession/i,file);
+    if(file!=='ui/audio.js')assert.doesNotMatch(source,/audioSession\s*[.=]/i,file+' must not touch navigator.audioSession -- only AudioManager.unlockSync() does');
   }
+  const audioSrc=fs.readFileSync(require.resolve('../ui/audio.js'),'utf8');
+  const sync=(audioSrc.match(/unlockSync\(\)\{[\s\S]*?\n    \}/)||[''])[0];
+  assert.match(sync,/audioSession\s*[.=]/,'unlockSync must opt into navigator.audioSession playback category');
 });
 test('theme loads only after unlock, fades independently of the music volume, and stops at fade end',async()=>{
   const f=fixture(),a=f.audio;a.music('bunker-theme',1.5);

@@ -4,9 +4,10 @@
   class AudioManager {
     constructor(config,env={}){
       this.config=config;this.env=env;this.settings={...config.defaults};
-      this.context=null;this.buses={};this.cache=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
+      this.context=null;this.buses={};this.cache=new Map();this.buffers=new Map();this.shotCache=new Map();this.shotLimiter=null;this.active=new Set();this.loops=new Map();this.loopTokens=new Map();this.fadingMusic=null;
       this.pendingVoices=new Set();this.consumedVoices=new Set();this.requestedVoices=new Map();
       this.lastSfx=new Map();this.lastVoice=new Map();this.globalVoiceAt=-Infinity;this.voiceBusy=false;this.voiceToken=0;this.epoch=0;this.ducked=false;this.unlocked=false;this.wasUnlocked=false;this.desiredMusic=false;
+      this.unlockPromise=null;this.stateWaiters=new Set();this.pendingDrain=null;
       try{this.storage=env.storage===undefined?root.localStorage:env.storage;const saved=JSON.parse(this.storage?.getItem(config.storageKey)||'null');if(saved&&typeof saved==='object')for(const key of Object.keys(this.settings)){if(typeof this.settings[key]==='boolean'){if(typeof saved[key]==='boolean')this.settings[key]=saved[key];}else if(typeof saved[key]==='number'&&Number.isFinite(saved[key]))this.settings[key]=Math.max(0,Math.min(1,saved[key]));}}catch(_){/* Private browsing and bad settings are harmless. */}
       const probe=env.probe; // Web Audio decoding only; no media element is created.
       const vorbis=probe?.canPlayType?.('audio/ogg; codecs="vorbis"'),aac=probe?.canPlayType?.('audio/mp4; codecs="mp4a.40.2"');
@@ -17,18 +18,84 @@
     init(){
       if(this.context)return true;
       const Factory=this.env.AudioContext||root.AudioContext||root.webkitAudioContext;if(!Factory)return false;
-      try{this.context=new Factory();this.context.onstatechange=()=>{this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;};this.context.onstatechange();for(const key of ['master','music','sfx','voice'])this.buses[key]=this.context.createGain();this.buses.master.connect(this.context.destination);for(const key of ['music','sfx','voice'])this.buses[key].connect(this.buses.master);this.applyVolumes();return true;}catch(_){this.context=null;this.unlocked=false;return false;}
+      try{
+        this.context=new Factory();
+        // The real statechange event; iOS can leave state 'interrupted' (or just 'suspended')
+        // for a while after resume() resolves, and this is the only reliable notice of the
+        // eventual (possibly much later) transition to 'running'.
+        this.context.onstatechange=()=>{this.markUnlocked(this.context.state==='running');};
+        this.context.onstatechange();
+        for(const key of ['master','music','sfx','voice'])this.buses[key]=this.context.createGain();this.buses.master.connect(this.context.destination);for(const key of ['music','sfx','voice'])this.buses[key].connect(this.buses.master);this.applyVolumes();return true;
+      }catch(_){this.context=null;this.unlocked=false;return false;}
     }
     async unlock(){
       if(!this.init())return false;
       if(!await this.resume())return false;
-      for(const name of [...this.pendingVoices])await this.requestVoice(name);
-      if(this.desiredMusic)await this.loop('music',this.musicName||'pulse',this.musicFade||0);return this.unlocked;
+      await this.drainPending();
+      return this.unlocked;
     }
-    // Keep prior permission separate: WebKit clears unlocked during interruptions.
+    // Replay whatever queued while locked (voices) or desired (music) once the context is
+    // actually running -- called both from unlock() (explicit gesture flush) and from
+    // markUnlocked() below (the async 'running' transition itself, which can land with no
+    // further gesture in between on iOS). Shares one in-flight promise: a concurrent/later
+    // caller (e.g. unlock()'s own explicit call, racing a markUnlocked()-triggered one from a
+    // resume() that lands on the same tick) joins the same drain instead of a second, empty one.
+    drainPending(){
+      if(!this.pendingDrain)this.pendingDrain=this.runDrainPending().finally(()=>{this.pendingDrain=null;});
+      return this.pendingDrain;
+    }
+    async runDrainPending(){
+      for(const name of [...this.pendingVoices])await this.requestVoice(name);
+      if(this.desiredMusic)await this.loop('music',this.musicName||'pulse',this.musicFade||0);
+    }
+    // The single place this.unlocked actually changes. Every caller that determines the context
+    // is (or is not) running funnels through here -- the real statechange event (init()), a
+    // direct post-resume() state check (resume() below), or armUnlockWait()'s own cap timeout --
+    // so an in-flight armUnlockWait()/stateWaiters promise always resolves the instant ANY of
+    // those paths discovers 'running', not only the one that happened to arm it.
+    markUnlocked(running){
+      const becameRunning=running&&!this.unlocked;
+      this.unlocked=running;if(running)this.wasUnlocked=true;
+      for(const waiter of [...this.stateWaiters])waiter(running);
+      if(becameRunning)void this.drainPending();
+    }
+    // Keep prior permission separate: WebKit clears unlocked during interruptions. iOS can also
+    // leave context.state 'suspended'/'interrupted' for a while after resume() resolves -- once
+    // resume() itself has not thrown, wait (capped) for the real 'running' transition instead of
+    // trusting the resolved promise alone.
     async resume(){
-      try{if(this.context.state!=='running')await this.context.resume();}catch(_){}
-      this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;return this.unlocked;
+      if(this.context.state==='running'){this.markUnlocked(true);return true;}
+      let resumed=false;
+      try{this.armUnlockWait();await this.context.resume();resumed=true;}catch(_){}
+      this.markUnlocked(this.context.state==='running');
+      if(!this.unlocked&&resumed&&this.unlockPromise)this.markUnlocked(await this.unlockPromise);
+      return this.unlocked;
+    }
+    // iOS WebKit: context.state can stay 'suspended' (or 'interrupted') synchronously after
+    // resume() runs, flipping to 'running' asynchronously, sometimes 100ms+ later. Arm a capped
+    // wait for that transition so play()/voice()/requestVoice() can hold for it (treating any
+    // resume issued inside/after a gesture as "unlocking in progress") instead of hard-dropping
+    // the sound. Resolves true the instant state is already running, false past the cap.
+    armUnlockWait(capMs){
+      const cap=capMs??(this.config.unlockWaitMs??1500);
+      const promise=new Promise(resolve=>{
+        if(!this.context){resolve(false);return;}
+        if(this.context.state==='running'){resolve(true);return;}
+        if(this.context.state==='closed'){resolve(false);return;}
+        let settled=false,timer;
+        const waiter=running=>{
+          if(settled||!running)return;
+          settled=true;this.stateWaiters.delete(waiter);clearTimeout(timer);resolve(true);
+        };
+        this.stateWaiters.add(waiter);
+        timer=(this.env.setTimeout||root.setTimeout||setTimeout)(()=>{
+          if(settled)return;
+          settled=true;this.stateWaiters.delete(waiter);resolve(this.context.state==='running');
+        },cap);
+        if(timer&&typeof timer.unref==='function')timer.unref();
+      });
+      this.unlockPromise=promise;
+      return promise;
     }
     // iOS Safari only honours ctx.resume() as a real unlock when it runs synchronously inside
     // the original gesture, together with actually starting a sound in that same tick -- an
@@ -42,16 +109,36 @@
         const buffer=this.context.createBuffer(1,1,this.context.sampleRate),source=this.context.createBufferSource();
         source.buffer=buffer;source.connect(this.context.destination);source.start(0);
       }catch(_){}
-      this.unlocked=this.context.state==='running';if(this.unlocked)this.wasUnlocked=true;
+      this.markUnlocked(this.context.state==='running');
+      // iOS WebKit flips context.state to 'running' asynchronously (sometimes 100ms+ later) even
+      // though resume() ran synchronously above -- arm a capped wait so play/voice/requestVoice
+      // can hold for it instead of dropping the first sound, and retry any decode that failed or
+      // stalled while the context was still suspended (pre-gesture).
+      this.armUnlockWait();
+      this.retryDecodes();
+      // iOS 17+: Web Audio defaults to the 'ambient' session category, which the ringer/mute
+      // switch silences. Opt into 'playback' so unlocked game audio also survives the switch.
+      // Feature-detected and wrapped: harmless (a no-op) on every platform without it.
+      try{const nav=this.env.navigator||root.navigator;if(nav&&nav.audioSession)nav.audioSession.type='playback';}catch(_){}
       return this.unlocked;
     }
     installUnlock(target){
       const unlock=()=>{if(this.unlocked&&this.context?.state==='running')return;this.unlockSync();void this.unlock();};
-      // WebKit needs resume() in the original trusted activation stack.
+      // WebKit needs resume() in the original trusted activation stack. touchstart/pointerdown
+      // catch a joystick-hold gesture whose matching touchend/pointerup can be seconds away (iOS
+      // does accept resume() from touchstart/pointerdown); touchend/pointerup/click/keydown stay
+      // as a second chance for anything that slips through.
       const gestures=target.defaultView||target;
-      for(const type of ['touchend','click','keydown','pointerup'])gestures.addEventListener(type,unlock,{capture:true,passive:true});
+      for(const type of ['touchstart','pointerdown','touchend','click','keydown','pointerup'])gestures.addEventListener(type,unlock,{capture:true,passive:true});
+      // 'interrupted' (phone call, Siri, app switch, lock screen) behaves like 'suspended': retry
+      // on the next visible tick, the next pageshow (bfcache restore) and the next gesture above.
+      // Both fire on every normal page load too (pageshow always does, even outside bfcache), so
+      // gate on having unlocked at least once already -- nothing to recover before that, and
+      // resume() cannot do real work outside a trusted gesture anyway.
+      const recover=()=>{if(this.wasUnlocked)unlock();};
+      gestures.addEventListener('pageshow',recover);
       const visibility=gestures.document||target;
-      visibility.addEventListener('visibilitychange',()=>{if(visibility.visibilityState==='visible')unlock();});
+      visibility.addEventListener('visibilitychange',()=>{if(visibility.visibilityState==='visible')recover();});
     }
     // Decode every SFX/VO/loop buffer up front (during the splash, before any gesture -- a
     // suspended AudioContext still decodes fine) so the first sounds after unlockSync() never
@@ -79,16 +166,60 @@
       }
     }
     duck(value){this.ducked=value;this.applyVolumes();}
+    // Fetches each extension at most once per file and keeps the raw ArrayBuffer (`buffers`), so a
+    // decode that fails or stalls (old iOS can do this on a context created before any gesture)
+    // can be retried from the same bytes -- decodeAudioData detaches/consumes its input, so every
+    // attempt gets its own slice() copy rather than reusing the stored buffer directly.
+    async decodeFile(file){
+      const tryExtension=async extension=>{
+        const key=file+'.'+extension;
+        let buffer=this.buffers.get(key);
+        if(!buffer){
+          const fetcher=this.env.fetch||root.fetch;
+          const response=await fetcher(new URL(key,this.baseUrl).href);
+          if(!response.ok)throw new Error('Audio unavailable');
+          buffer=await response.arrayBuffer();
+          this.buffers.set(key,buffer);
+        }
+        return this.context.decodeAudioData(buffer.slice(0));
+      };
+      const format=this.format;
+      try{return await tryExtension(format);}
+      catch(error){
+        if(format!=='ogg')throw error;
+        const buffer=await tryExtension('m4a');
+        this.format='m4a';
+        return buffer;
+      }
+    }
     async load(file){
       if(!this.cache.has(file)){
-        const request=(async()=>{
-          const fetcher=this.env.fetch||root.fetch,format=this.format;
-          const decode=async extension=>{const response=await fetcher(new URL(file+'.'+extension,this.baseUrl).href);if(!response.ok)throw new Error('Audio unavailable');return this.context.decodeAudioData(await response.arrayBuffer());};
-          try{return await decode(format);}catch(error){if(format!=='ogg')throw error;const buffer=await decode('m4a');this.format='m4a';return buffer;}
-        })();
+        const request=this.decodeFile(file);
         this.cache.set(file,request);request.catch(()=>{if(this.cache.get(file)===request)this.cache.delete(file);});
       }
       return this.cache.get(file);
+    }
+    // Race load(file) against a cap so a stalled decode cannot block playback forever; the
+    // underlying load() promise keeps running/caching regardless of which side of the race wins.
+    raceLoad(file,capMs){
+      const request=this.load(file);
+      let timer;
+      const timeout=new Promise((_,reject)=>{
+        timer=(this.env.setTimeout||root.setTimeout||setTimeout)(()=>reject(new Error('decode-timeout')),capMs??(this.config.decodeWaitMs??2500));
+        if(timer&&typeof timer.unref==='function')timer.unref();
+      });
+      return Promise.race([request,timeout]).finally(()=>clearTimeout(timer));
+    }
+    // (Re)decode any file whose fetch already succeeded (bytes kept in `buffers`) but whose
+    // decode failed or never finished before the gesture -- never re-fetches, just retries the
+    // decode from the stored bytes.
+    retryDecodes(){
+      const files=new Set();
+      for(const key of this.buffers.keys()){
+        const file=key.replace(/\.(ogg|m4a)$/,'');
+        if(!this.cache.has(file))files.add(file);
+      }
+      for(const file of files)void this.load(file).catch(()=>{});
     }
     shotBuffer(weapon,enemy){
       const key=weapon+(enemy?'-enemy':'');if(this.shotCache.has(key))return this.shotCache.get(key);
@@ -125,7 +256,7 @@
     }
     async play(name,{enemy=false}={}){
       const cue=this.config.sfx[name]||(name.startsWith('shoot-')?this.config.sfx['shoot-carbine']:null);if(!cue||this.settings.muted)return false;
-      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked))await this.resume();
+      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked||this.unlockPromise))await this.resume();
       if(!this.unlocked||this.context?.state!=='running')return false;
       const now=this.now(),epoch=this.epoch,shot=name.startsWith('shoot-'),key=name+(enemy?'-enemy':'');
       if(shot&&(this.settings.sfx===0||this.settings.sfxMuted||this.settings.master===0))return false;
@@ -135,7 +266,7 @@
         this.source(this.shotBuffer(weapon,enemy),'sfx',cue.gain*W.gain*(enemy?C.enemyGain:1)*(1+(random()*2-1)*this.config.gainVariation),W.pitch*(1+(random()*2-1)*this.config.pitchVariation),false,this.shotDestination());
         return true;}catch(_){return false;}
       }
-      try{const buffer=await this.load(cue.file);if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return false;const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;}catch(_){return false;}
+      try{const buffer=await this.raceLoad(cue.file);if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return false;const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;}catch(_){return false;}
     }
     // youre-back is BIT's cold-open greeting: it may only ever be heard while that screen (.intro)
     // is on screen, never replayed later onto the homecoming summary once BIT has left.
@@ -145,7 +276,10 @@
       if(this.requestedVoices.has(name)||this.voiceName===name){this.voiceToken++;this.voiceBusy=false;
         if(this.voiceName===name&&this.voiceSource){try{this.voiceSource.stop();}catch(_){}}
         this.voiceSource=null;this.voiceName=null;this.duck(false);}}
-    // One-shot presentation cues survive autoplay lock and deduplicate concurrent renders.
+    // One-shot presentation cues survive autoplay lock and deduplicate concurrent renders. While
+    // still locked, if a gesture has already armed an unlock attempt (armUnlockWait()), wait for
+    // it (capped) instead of only queueing for a later explicit unlock() -- the intro-not-present
+    // guard and every mute/settings guard are re-checked right before play, not only here.
     async requestVoice(name){
       if(!this.config.voices.includes(name)||this.consumedVoices.has(name))return false;
       if(name==='youre-back'&&typeof document!=='undefined'&&!document.querySelector('.intro')){this.cancelVoice(name);return false;}
@@ -153,7 +287,23 @@
         this.pendingVoices.delete(name);this.consumedVoices.add(name);return false;
       }
       if(this.requestedVoices.has(name))return this.requestedVoices.get(name);
-      if(!this.unlocked||this.context?.state!=='running'){this.pendingVoices.add(name);return false;}
+      if(!this.unlocked||this.context?.state!=='running'){
+        this.pendingVoices.add(name);
+        if(!this.unlockPromise)return false;
+        const waited=this.unlockPromise;
+        const request=waited.then(async ok=>{
+          this.pendingVoices.delete(name);
+          if(!ok||this.consumedVoices.has(name))return false;
+          // Re-check at PLAY time: the intro (or mute settings) may have changed while we waited.
+          if(name==='youre-back'&&typeof document!=='undefined'&&!document.querySelector('.intro')){this.cancelVoice(name);return false;}
+          if(this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0){this.consumedVoices.add(name);return false;}
+          const played=await this.voice(name);
+          if(played||this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0)this.consumedVoices.add(name);
+          return played;
+        }).finally(()=>this.requestedVoices.delete(name));
+        this.requestedVoices.set(name,request);
+        return request;
+      }
       this.pendingVoices.delete(name);
       const request=this.voice(name).then(played=>{
         if(played||this.settings.muted||this.settings.voiceMuted||this.settings.voice===0||this.settings.master===0)this.consumedVoices.add(name);
@@ -162,12 +312,12 @@
       this.requestedVoices.set(name,request);return request;
     }
     async voice(name){
-      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked))await this.resume();
+      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked||this.unlockPromise))await this.resume();
       const now=this.now(),cooldown=this.config.voiceCooldowns[name]??this.config.voiceCooldownMs;
       if(!this.config.voices.includes(name)||!this.unlocked||this.context?.state!=='running'||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted)||this.voiceBusy||now-this.globalVoiceAt<this.config.globalVoiceCooldownMs||now-(this.lastVoice.get(name)??-Infinity)<cooldown)return false;
       this.voiceBusy=true;const token=++this.voiceToken;
       try{
-        const buffer=await this.load('bit/'+name);if(token!==this.voiceToken||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted))return false;
+        const buffer=await this.raceLoad('bit/'+name,this.config.voiceDecodeWaitMs??6000);if(name==='youre-back'&&typeof document!=='undefined'&&!document.querySelector('.intro'))return false;if(token!==this.voiceToken||this.settings.muted||(this.settings.voice===0||this.settings.voiceMuted))return false;
         this.duck(true);const source=this.source(buffer,'voice',this.config.voiceGain),cleanup=source.onended;this.voiceSource=source;this.voiceName=name;
         this.lastVoice.set(name,this.now());this.globalVoiceAt=this.now();
         source.onended=()=>{cleanup();if(this.voiceSource===source){this.voiceSource=null;this.voiceName=null;}if(token===this.voiceToken){this.voiceBusy=false;this.duck(false);}};return true;
@@ -175,7 +325,7 @@
     }
     async loop(slot,name,fade=0){
       const epoch=this.epoch,tokenBeforeResume=this.loopTokens.get(slot);
-      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked))await this.resume();
+      if(this.context?.state!=='running'&&(this.unlocked||this.wasUnlocked||this.unlockPromise))await this.resume();
       if(epoch!==this.epoch||this.loopTokens.get(slot)!==tokenBeforeResume)return;
       if(this.loops.get(slot)?.name===name)return;
       this.stopLoop(slot);const token=this.loopTokens.get(slot),cue=this.config.loops[name];if(!cue||!this.unlocked||this.context?.state!=='running')return;

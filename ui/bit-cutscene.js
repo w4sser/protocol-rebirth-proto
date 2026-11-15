@@ -6,7 +6,10 @@
   "use strict";
   var queue = [], current = null, retry = null;
   var images = new Map();
-  var DURATION = 7000, CROSSFADE = 3150, INFO_DELAY = 600, FADE = 350;
+  // PRB-158 (Robert's playtest, 2026-11-15): "the Fabricator box doesn't stay long enough. Keep
+  // it until I want to continue." No auto-advance -- HOLD_MS/HINT_MS below replace the old
+  // fixed-timeout auto-end; see docs/bit-narrator.md "Hold until tap".
+  var CROSSFADE = 3150, INFO_DELAY = 600, FADE = 350, HOLD_MS = 1000, HINT_MS = 3000;
 
   // Warm only the requested pair (+ optional bust pair), immediately before its story beat.
   // Errors/timeouts resolve to an empty source (dedicated art keeps warming until load/error), so a broken connection still gives the player the
@@ -131,9 +134,9 @@
       });
     }
     run.el = el;
-    el.addEventListener("click", dismiss);
+    el.addEventListener("click", tapDismiss);
     el.addEventListener("keydown", function(e){
-      if(e.key === "Escape"){ e.preventDefault(); dismiss(); }
+      if(e.key === "Escape"){ e.preventDefault(); tapDismiss(); }
       if(e.key === "Tab"){ e.preventDefault(); el.querySelector("button").focus(); }
     });
     document.body.appendChild(el); el.querySelector("button").focus();
@@ -142,11 +145,20 @@
       el.classList.add("line-visible");
       if(job.info && job.info.length) el.classList.add("info-visible");
     }
+    // Reduced motion: the hint (like everything else here) appears immediately, no fade -- same
+    // convention this component already used for the bubble/bust/info strip.
     if(run.reduced) el.classList.add("hint-visible");
-    later(run, function(){ el.classList.add("hint-visible"); }, 1500);
+    else later(run, function(){ el.classList.add("hint-visible"); }, HINT_MS);
     later(run, function(){ el.classList.add("crossfaded", "line-visible"); }, CROSSFADE);
     if(job.info && job.info.length) later(run, function(){ el.classList.add("info-visible"); }, CROSSFADE + INFO_DELAY);
-    later(run, dismiss, DURATION);
+    // No auto-end: the player holds this until they tap/press to continue. Taps in the first
+    // HOLD_MS are ignored (no accidental skip while the scene is still settling in).
+    run.locked = true;
+    later(run, function(){ run.locked = false; }, HOLD_MS);
+  }
+  function tapDismiss(){
+    if(current && current.locked) return;
+    dismiss();
   }
   function dismiss(){
     var run = current;

@@ -408,11 +408,17 @@ test('unknown shot uses carbine and synthesis errors return false',async()=>{
   a.shotBuffer=()=>{throw Error('synthesis');};f.advance(100);assert.equal(await a.play('shoot-unknown'),false);
 });
 
-test('audioSession is left unchanged and no media playback session is requested',async()=>{
-  const audioSession={type:'auto'},a=fixture({navigator:{audioSession}}).audio;
-  assert.equal(a.init(),true);assert.equal(audioSession.type,'auto');assert.equal(await a.unlock(),true);
+// PRB-158: iOS 17+ mutes Web Audio under the silent switch unless the session category is
+// 'playback' (default 'ambient'). unlockSync() -- the one call guaranteed to run inside the
+// trusted gesture -- opts in; feature-detected and wrapped, so its absence/failure is harmless.
+test('unlockSync opts into the playback audio session so the silent switch cannot mute the game',()=>{
+  const audioSession={type:'ambient'},a=fixture({navigator:{audioSession}}).audio;
+  assert.equal(a.unlockSync(),true);
+  assert.equal(audioSession.type,'playback');
   const blocked=fixture({navigator:{audioSession:{set type(value){throw Error('unsupported');}}}}).audio;
-  assert.equal(await blocked.unlock(),true);
+  assert.equal(blocked.unlockSync(),true,'a setter that throws is harmless');
+  const none=fixture({navigator:{}}).audio;
+  assert.equal(none.unlockSync(),true,'no audioSession API at all is harmless');
 });
 
  test('activation listeners capture on window and resume synchronously before handler returns',()=>{

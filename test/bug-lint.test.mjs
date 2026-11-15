@@ -134,3 +134,27 @@ console.log('bug-lint.test: ok');
 }
 
 assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsceneSrc:''}).length,1,'poisoned shared bust cache fails');
+
+{
+ const rule=by('ios-audio-waits-for-running');
+ const audioSrc=fs.readFileSync(new URL('../ui/audio.js',import.meta.url),'utf8');
+ assert.equal(rule.check({audioSrc}).length,0,'PRB-158 passes on the real ui/audio.js');
+ const badPlay='    async play(name,{enemy=false}={}){\n      if(this.context?.state!==\'running\'&&(this.unlocked||this.wasUnlocked))await this.resume();\n      if(!this.unlocked||this.context?.state!==\'running\')return false;\n    }\n    async voice(name){\n      if(this.context?.state!==\'running\'&&(this.unlocked||this.wasUnlocked))await this.resume();\n    }\n    installUnlock(target){\n      for(const type of [\'touchend\',\'click\',\'keydown\',\'pointerup\'])gestures.addEventListener(type,unlock,{capture:true,passive:true});\n    }\n';
+ assert.equal(rule.check({audioSrc:badPlay}).length,3,'fires when play()/voice() stop waiting for an in-flight unlock and installUnlock drops touchstart/pointerdown');
+ assert.equal(rule.check({audioSrc:''}).length,3,'fires when play/voice/installUnlock are all missing');
+}
+
+{
+ const rule=by('narrator-holds-until-tap');
+ const cutsceneSrc=fs.readFileSync(new URL('../ui/bit-cutscene.js',import.meta.url),'utf8');
+ const cardSrc=fs.readFileSync(new URL('../ui/bit-card.js',import.meta.url),'utf8');
+ assert.equal(rule.check({cutsceneSrc,cardSrc}).length,0,'PRB-158 passes on the real narrator components');
+ const autoEnd=cutsceneSrc.replace('var CROSSFADE = 3150','var DURATION = 7000, CROSSFADE = 3150').replace('run.locked = true;','later(run, dismiss, DURATION);\n    run.locked = true;');
+ assert.equal(by('narrator-holds-until-tap').check({cutsceneSrc:autoEnd,cardSrc}).length,1,'fires if an auto-end timer returns');
+ const noGuard=cutsceneSrc.replace('run.locked = true;','').replace('if(current && current.locked) return;','');
+ assert.equal(by('narrator-holds-until-tap').check({cutsceneSrc:noGuard,cardSrc}).length,1,'fires if the one-second tap guard is removed');
+ const noBaseBranch=cardSrc.replace('if(raid){','if(false){');
+ assert.equal(by('narrator-holds-until-tap').check({cutsceneSrc,cardSrc:noBaseBranch}).length,1,'fires if the card stops branching base vs raid');
+ const noCardGuard=cardSrc.replace('locked:true, hintTimer:null };','hintTimer:null };').replace('if(current && current.locked) return;','');
+ assert.equal(by('narrator-holds-until-tap').check({cutsceneSrc,cardSrc:noCardGuard}).length,1,'fires if the base card drops its one-second tap guard');
+}

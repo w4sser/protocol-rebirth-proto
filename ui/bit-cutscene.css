@@ -9,7 +9,7 @@
 .bit-cutscene-copy{position:absolute;left:calc(24px + env(safe-area-inset-left,0px));right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(22px + env(safe-area-inset-bottom,0px));}
 .bit-cutscene-line{margin:0 0 12px;max-width:560px;font:600 clamp(15px,2.2vw,20px)/1.4 "IBM Plex Sans",system-ui,sans-serif;text-shadow:0 2px 8px var(--ad-night);opacity:0;transition:opacity .7s ease;}
 .bit-cutscene.line-visible .bit-cutscene-line{opacity:1;}
-.bit-cutscene-continue{font:600 11px/1.4 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.12em;background:none;color:var(--ad-bone);border:0;padding:8px 0;opacity:0;transition:opacity .3s ease;cursor:pointer;}
+.bit-cutscene-continue{font:600 11px/1.4 "IBM Plex Sans",system-ui,sans-serif;letter-spacing:.12em;background:none;color:var(--ad-bone);border:0;padding:8px 0;opacity:0;transition:opacity .4s ease;cursor:pointer;}
 .bit-cutscene.hint-visible .bit-cutscene-continue,.bit-cutscene-continue:focus-visible{opacity:1;}
 .bit-cutscene-continue:focus-visible{outline:2px solid var(--ad-bit);outline-offset:4px;}
 .bit-cutscene.leaving{opacity:0;pointer-events:none;}
