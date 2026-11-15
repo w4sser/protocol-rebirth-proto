@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 const require = createRequire('/workspace/pptr/package.json');
 const puppeteer = require('puppeteer');
 const current = resolve(import.meta.dirname, '..');
-const out = '/workspace/prp-narrator-cs-v22834-shots';
+const out = process.env.FAB_ONLY ? '/workspace/prp-fab-art-v22836-shots' : '/workspace/prp-narrator-cs-v22834-shots';
 const insets = {left:47,right:47,top:0,bottom:21};
 const types = {'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.ogg':'audio/ogg','.m4a':'audio/mp4','.woff2':'font/woff2'};
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -30,7 +30,7 @@ function seed(kind){
 const result = {schema:'protocol-rebirth/raid-result',version:1,raidId:'nodspel:narrator-shot',outcome:'death',area:'bunker',levelsCleared:1,enemiesDefeated:0,nodesLit:0,remainingMs:0,extracted:[],lost:['cable'],endedAt:1,kitLeft:{medkit:0}};
 const reports = [];
 await mkdir(out,{recursive:true});
-for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',current]].filter(([phase]) => !process.env.AFTER_ONLY || phase === 'after')){
+for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',current]].filter(([phase]) => !(process.env.AFTER_ONLY || process.env.FAB_ONLY) || phase === 'after')){
   const server = http.createServer(async (req,res) => {
     const path = decodeURIComponent(new URL(req.url,'http://x').pathname);
     const target = resolve(root,'.' + (path.endsWith('/') ? path + 'index.html' : path));
@@ -44,7 +44,7 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
   await new Promise(r => server.listen(0,'127.0.0.1',r));
   try {
     for(const [width,height] of [[844,390],[667,375],[932,430]]){
-      for(const scenario of phase === 'before' ? ['core'] : ['core','death','fabricator','reduced']){
+      for(const scenario of process.env.FAB_ONLY ? ['fabricator'] : phase === 'before' ? ['core'] : ['core','death','fabricator','reduced']){
         const reduced = scenario === 'reduced', kind = reduced ? 'fabricator' : scenario;
         const browser = await puppeteer.launch({headless:true,executablePath:process.env.CHROME_PATH || '/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
         try {
@@ -76,7 +76,7 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
           }
           await page.waitForSelector('.bit-cutscene',{visible:true,timeout:20000});
           for(const frame of ['early','late']){
-            if(frame === 'early' && phase === 'after' && !reduced){
+            if(frame === 'early' && phase === 'after' && !reduced && kind !== 'fabricator'){
               await page.waitForFunction(() => document.querySelector('.bit-cutscene')?.classList.contains('crossfaded'));
               await sleep(250);
             }
@@ -91,7 +91,10 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
               const el = document.querySelector('.bit-cutscene');
               const rect = s => {const n = el.querySelector(s);if(!n)return null; const r=n.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
               const r = el.getBoundingClientRect();
-              return {box:{x:r.x,y:r.y,width:r.width,height:r.height},copy:rect('.bit-cutscene-copy'),bubble:rect('.bit-cutscene-bubble'),bust:rect('.bit-cutscene-bust'),strip:rect('.bit-cutscene-info'),text:el.innerText,overlay:!!document.querySelector('#overlay'),card:!!document.querySelector('.bit-card:not([hidden])'),lineOpacity:getComputedStyle(el.querySelector('.bit-cutscene-line')).opacity,stripOpacity:el.querySelector('.bit-cutscene-info') && getComputedStyle(el.querySelector('.bit-cutscene-info')).opacity};
+              const stage = el.querySelector('.bit-cutscene-stage').getBoundingClientRect().toJSON();
+              const geometry = window.PRBitCutscene.geometry;
+              const painted = el.dataset.id === 'fabricator_built' ? Object.fromEntries(['bit','vest'].map(k => [k, window.PRBitCutscene.paintedRect(stage,geometry[k])])) : null;
+              return {painted,box:{x:r.x,y:r.y,width:r.width,height:r.height},copy:rect('.bit-cutscene-copy'),bubble:rect('.bit-cutscene-bubble'),bust:rect('.bit-cutscene-bust'),strip:rect('.bit-cutscene-info'),text:el.innerText,overlay:!!document.querySelector('#overlay'),card:!!document.querySelector('.bit-card:not([hidden])'),lineOpacity:getComputedStyle(el.querySelector('.bit-cutscene-line')).opacity,stripOpacity:el.querySelector('.bit-cutscene-info') && getComputedStyle(el.querySelector('.bit-cutscene-info')).opacity};
             });
             assert.deepEqual(info.box,{x:0,y:0,width,height},'full bleed');
             for(const b of [info.copy,info.bust,info.strip].filter(Boolean)){
@@ -103,21 +106,23 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
               const a=info.bubble,b=info.strip;
               assert(!(a.x < b.right && a.right > b.x && a.y < b.bottom && a.bottom > b.y),'bubble and strip do not overlap');
               if(kind === 'fabricator'){
-                const hologram = await page.$eval('.bit-cutscene-hologram',n => {const r=n.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom};});
-                for(const b of [info.bubble,info.strip]) assert(!(hologram.x < b.right && hologram.right > b.x && hologram.y < b.bottom && hologram.bottom > b.y),'hologram is clear of text');
+                assert.equal(await page.$('.bit-cutscene-fx'),null,'dedicated art has no procedural overlay');
+                for(const subject of Object.values(info.painted)) for(const b of [info.bubble,info.bust,info.strip]){
+                  assert(!(subject.x < b.right && subject.right > b.x && subject.y < b.bottom && subject.bottom > b.y),'painted subject is clear of UI: ' + JSON.stringify({subject,b}));
+                }
               }
               assert(Number(info.lineOpacity) >= .99 && Number(info.stripOpacity) >= .99,'readable late frame');
             }
             if(reduced){
               const styles = await page.evaluate(() => {
                 const el = document.querySelector('.bit-cutscene');
-                return {hint:el.classList.contains('hint-visible'),opacity:['.bit-cutscene-bust','.bit-cutscene-bubble','.bit-cutscene-info','.bit-cutscene-continue','.bit-cutscene-hologram'].map(s => getComputedStyle(el.querySelector(s)).opacity),transitions:['.bit-cutscene-bust','.bit-cutscene-bubble','.bit-cutscene-info','.bit-cutscene-continue'].map(s => getComputedStyle(el.querySelector(s)).transitionDuration),animation:getComputedStyle(el.querySelector('.bit-cutscene-stage')).animationName};
+                return {hint:el.classList.contains('hint-visible'),opacity:['.bit-cutscene-bust','.bit-cutscene-bubble','.bit-cutscene-info','.bit-cutscene-continue','.bit-cutscene-hologram'].map(s => el.querySelector(s) ? getComputedStyle(el.querySelector(s)).opacity : '1'),transitions:['.bit-cutscene-bust','.bit-cutscene-bubble','.bit-cutscene-info','.bit-cutscene-continue'].map(s => getComputedStyle(el.querySelector(s)).transitionDuration),animation:getComputedStyle(el.querySelector('.bit-cutscene-stage')).animationName};
               });
               assert(styles.hint && styles.opacity.every(o => Number(o) === 1),'all reduced-motion content appears immediately');
               assert(styles.transitions.every(t => t === '0s') && styles.animation === 'none','no reduced-motion animation');
               info.reducedStyles = styles;
             }
-            const path = `${out}/${phase}-${scenario}-${frame}-${width}x${height}.png`;
+            const path = process.env.FAB_ONLY ? `${out}/fab-${frame}-${width}x${height}.png` : `${out}/${phase}-${scenario}-${frame}-${width}x${height}.png`;
             await page.screenshot({path}); reports.push({phase,kind,frame,width,height,path,info,errors});
             assert.deepEqual(errors,[],'no runtime errors'); console.log(path);
           }
@@ -126,5 +131,5 @@ for(const [phase, root] of [['before','/workspace/prp-before-main'],['after',cur
     }
   } finally {await new Promise(r => server.close(r));}
 }
-await writeFile(out + (process.env.AFTER_ONLY ? '/after-results.json' : '/results.json'),JSON.stringify(reports,null,2));
+await writeFile(out + ((process.env.AFTER_ONLY || process.env.FAB_ONLY) ? '/after-results.json' : '/results.json'),JSON.stringify(reports,null,2));
 console.log('Narrator screenshots passed:',reports.length);
