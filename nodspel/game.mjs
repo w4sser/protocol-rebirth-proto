@@ -1863,6 +1863,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   target.lerp(hotCamGoal.set(position.x,0,position.z+RAID_CAMERA.targetOffsetZ),1-Math.exp(-dt*RAID_CAMERA.followRate));camera.position.copy(target).add(cameraOffset);
   const shake=shakeOffset(now);if(shake){camera.position.x+=shake.x;camera.position.z+=shake.z;}
   camera.lookAt(target);camera.updateMatrixWorld();
+  world.updatePineOcclusion?.(camera,position,dt);
   if(!round.over&&clock>=visibilityCheckAt){
     visibilityCheckAt=clock+100;visibilityPoint.set(position.x,.65,position.z).sub(camera.position);
     visibilityRay.set(camera.position,hotRayDir.copy(visibilityPoint).normalize());visibilityRay.far=visibilityPoint.length()-.08;
