@@ -378,3 +378,33 @@ test('Pass N leaves the traversable center green and authors two distinct cliffs
   assert.ok(green/total>.72,
     'the first third of the playable map should be mostly moss and vegetation, not faux mountain');
 });
+
+
+test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into planar meadow',()=>{
+  const f={x:0,z:0,w:28,d:24};
+  const hero=coastlineProfile(f,'archipelago-v2-target',{style:'v2'});
+  const before=hero.points.map(p=>p.playableRadial);
+  authorHeroIslandCoast(hero,{rockAngles:[.15,2.52,4.85]});
+  assert.equal(hero.heroHeadlands.length,2);
+  let active=0,low=0;
+  for(let i=0;i<hero.points.length;i++){
+    const p=hero.points[i];
+    const root=before[i]-p.playableRadial;
+    assert.ok(root<=1.6,'large granite roots must not consume the flat vegetation edge');
+    assert.ok(p.playableRadial>=p.innerRadial+1.10-1e-6,
+      'preserve original gameplay and minimum apron at each authored floor edge');
+    if((p.heroRockMask??0)<.045)low++;
+    if((p.heroRockMask??0)>.55)active++;
+  }
+  assert.ok(low>=hero.points.length*.45,'at least 45% of the shoreline should be low, natural bays');
+  assert.ok(active>=4,'a few readable but compact rock domes remain');
+  const coast=coastRingData(hero),n=hero.points.length;
+  let tall=0;
+  for(let i=0;i<n;i++){
+    if(coast.positions[(7*n+i)*3+1]>1.1)tall++;
+    assert.ok(Math.abs(coast.positions[i*3+1]-.01)<1e-6,'flat actor edge remains exactly unchanged');
+    assert.ok(Math.abs(coast.positions[(13*n+i)*3+1]+.65)<1e-5,
+      'seaward cliff toe remains identical, preventing shoreline gaps');
+  }
+  assert.ok(tall>=2,'glacial domes still visually rise above the coast');
+});
