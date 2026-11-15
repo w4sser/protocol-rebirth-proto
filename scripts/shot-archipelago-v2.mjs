@@ -70,6 +70,40 @@ try{
         if(portal)window.__NR.teleport(floor.x+(portal.position.x-floor.x)*.62,floor.z+(portal.position.z-floor.z)*.62);
       },matchingView);
       await capture(page,version+'-'+quality+'-coast',errors);
+      if(version==='after'){
+        // A dedicated actual gameplay-camera view of the new floating boat.
+        // Pick the boat closest to the operator, then stand safely inshore
+        // from its nearest coast-shell point. No camera hacks/scene injection.
+        const boatView=await page.evaluate(()=>{
+          const scene=window.__NR.getScene(),boats=[],shores=[];
+          scene.traverse(o=>{
+            if(o.name==='arch-v2-coastal-dinghy')boats.push(o);
+            if(o.name==='archipelago-coast-shell')shores.push(o);
+          });
+          if(!boats.length||!shores.length)return null;
+          const player=window.__NR.state().position;
+          const boat=boats.sort((a,b)=>Math.hypot(a.position.x-player.x,a.position.z-player.z)
+            -Math.hypot(b.position.x-player.x,b.position.z-player.z))[0];
+          let best=null;
+          for(const shell of shores){
+            const attr=shell.geometry.getAttribute('position'),count=Math.floor(attr.count/6);
+            if(!count)continue;
+            let cx=0,cz=0;
+            for(let i=0;i<count;i++){cx+=attr.getX(i);cz+=attr.getZ(i);}
+            cx/=count;cz/=count;
+            for(let i=0;i<count;i++){
+              const x=attr.getX(i),z=attr.getZ(i),d=Math.hypot(x-boat.position.x,z-boat.position.z);
+              if(!best||d<best.d)best={x,z,cx,cz,d};
+            }
+          }
+          if(!best)return null;
+          const dx=best.cx-best.x,dz=best.cz-best.z,len=Math.max(.001,Math.hypot(dx,dz));
+          return {x:best.x+dx/len*1.30,z:best.z+dz/len*1.30};
+        });
+        assert.ok(boatView,'v2 has a real floating dinghy close to a shoreline');
+        await page.evaluate(p=>window.__NR.teleport(p.x,p.z),boatView);
+        await capture(page,version+'-'+quality+'-boat',errors);
+      }
       await page.evaluate(async()=>{
         await window.__NR.goLevel(2);const f=window.__NR.state().level.floors.find(f=>f.dir);if(!f)throw new Error('No Level 2 bridge');
         window.__NR.teleport(f.x-(f.dir.x?Math.min(2.7,f.w*.25):0),f.z-(f.dir.x?0:Math.min(2.7,f.d*.25)));
