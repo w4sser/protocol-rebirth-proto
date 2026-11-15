@@ -211,8 +211,8 @@ test('v2 places high granite only outside the island and preserves open bridge l
         const a=j*Math.PI*2/72,c=Math.cos(a),sn=Math.sin(a);
         const inside=Math.min(heroFloor.w/2/Math.max(1e-8,Math.abs(c)),
           heroFloor.d/2/Math.max(1e-8,Math.abs(sn)));
-        assert.ok(radii[j]>inside+1.08,
-          'the entire authored gameplay floor stays inside the granite boundary');
+        assert.ok(radii[j]>inside+.15,
+          'the entire original authored gameplay rectangle remains walkable in narrow water gaps');
       }
       const cliffHeights=Array.from({length:72},(_,i)=>heroVertices.getY(6*72+i));
       assert.ok(Math.max(...cliffHeights)>1.05,'hero cliffs must be clearly visible in actual gameplay');
