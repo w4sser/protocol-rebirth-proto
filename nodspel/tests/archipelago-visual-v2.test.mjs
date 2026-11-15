@@ -198,6 +198,14 @@ test('v2 places high granite only outside the island and preserves open bridge l
       assert.equal(heroShell[0].userData.heroRings,10);
       assert.equal(heroShell[0].geometry.getAttribute('position').count,10*72);
       assert.ok(out.heroHeadlands?.length>0,'authored hero has a meaningful geological headland');
+      if(number===1)assert.ok(out.heroHeadlands.length>=2,'hero preview composes two or more distinct rocky headlands');
+      const heroVertices=heroShell[0].geometry.getAttribute('position');
+      for(const zone of out.rockFreeLandings)for(let i=0;i<heroVertices.count;i++){
+        if(heroVertices.getY(i)<.10)continue;
+        const x=heroVertices.getX(i),z=heroVertices.getZ(i);
+        assert.ok(Math.abs(x-zone.x)>=zone.w/2-.04||Math.abs(z-zone.z)>=zone.d/2-.04,
+          'sculpted hero cliff must not rise into the protected bridge approach');
+      }
       assert.ok(group.children.every(o=>o.name!=='arch-v2-bedrock-roots'),
         'no second coplanar rock skirt or false elevated gameplay floor');
       assert.equal(out.rockFreeLandings.length,out.bridgeClearances.length);
