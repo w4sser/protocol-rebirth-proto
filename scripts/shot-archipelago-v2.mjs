@@ -41,8 +41,16 @@ async function capture(page,label,errors){
     info:window.__NR.info(),url:location.href,
     coastalDressing:{...window.__polyforkPreview.stats},
     bedrock:(()=>{const plans=[];window.__NR.getScene().traverse(o=>{if(o.userData.bedrockPlan)plans.push(o.userData.bedrockPlan);});return plans;})(),
+    pineVisuals:(()=>{const trees=[],legacy=[];window.__NR.getScene().traverse(o=>{
+      if(o.name==='arch-v2-coastal-pine')trees.push({variant:o.userData.pineVariant,height:o.userData.pineHeight,opacity:o.userData.pineOpacity});
+      if(/^polyfork-(young-pine-|tall-pine-tree-|birch-tree-)/.test(o.name))legacy.push(o.name);
+    });return {count:trees.length,variants:[...new Set(trees.map(t=>t.variant))],legacy,transparent:trees.filter(t=>t.opacity<.9).length};})(),
   }));
   assert.equal(state.loadingHidden,true,label+' boot');assert.ok(state.canvas,label+' canvas');assert.deepEqual(errors,[],label+' errors');
+  if(label.startsWith('after-')){
+    assert.ok(state.pineVisuals.count>=2,label+' procedural pines present');
+    assert.deepEqual(state.pineVisuals.legacy,[],label+' no undimmable GLB trees in v2');
+  }
   await page.screenshot({path:join(out,label+'.png')});results.push({label,...state,errors:[...errors],renderer:'desktop Chromium, 844x390 DPR2; no physical Safari/FPS claim'});
   console.log('CAPTURE OK',label,'quality',state.quality,'last-pass calls (not whole-frame draw count)',state.info.calls);
 }
