@@ -165,10 +165,18 @@ function migrateCableRetro(st){
 // died at least once, before this field existed is marked seen retroactively for both ids -- only
 // a live transition (the first Core L1 build, the first ordinary-raid death) triggers the card.
 function migrateBitCardsSeen(st){
-  if(st.bitCardsSeen && typeof st.bitCardsSeen === "object") return st;
-  st.bitCardsSeen = {};
-  if(((st.modules && st.modules.rebirth_core) || 0) >= 1) st.bitCardsSeen.core_restored = true;
-  if((st.deaths || 0) > 0) st.bitCardsSeen.first_death = true;
+  if(!st.bitCardsSeen || typeof st.bitCardsSeen !== "object"){
+    st.bitCardsSeen = {};
+    if(((st.modules && st.modules.rebirth_core) || 0) >= 1) st.bitCardsSeen.core_restored = true;
+    if((st.deaths || 0) > 0) st.bitCardsSeen.first_death = true;
+  }
+  // PRB-155: fabricator_built was added after the branch above already shipped (and already
+  // returned early for every save that had migrated once), so it gets its own idempotent check --
+  // independent of core_restored/first_death -- run every load until it is decided, then never
+  // touched again. A save with Fabricator L1 already built never gets the live cutscene (A.build's
+  // isFabricatorOnline branch only fires on the level===1 transition, impossible to repeat), but
+  // this still records the fact, matching the established migration pattern.
+  if(st.bitCardsSeen.fabricator_built === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.fabricator_built = true;
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -1951,24 +1959,6 @@ if(typeof window !== "undefined" && window.addEventListener){
   if(window.visualViewport) window.visualViewport.addEventListener("resize", updateNav);
 }
 function closeBuildingPopup(){ if(typeof document === "undefined") return; const o = document.getElementById("overlay"); if(o && o.querySelector(".bpop")) o.remove(); session.focusSpot = null; }
-function bootSequence(next, done){
-  // v2.28.19: compact semi-transparent payoff over the bunker so the CSS lighting-up is visible
-  // and POWER RESTORED / NEW BENEFIT / NEW GOAL / ENTER all fit at 844x390 and 667x375.
-  document.body.classList.remove("base-dark");
-  const o = overlay(
-    '<div class="boot boot-compact" id="bootseq">' +
-      '<div class="bootflash">' + IC("power") + ' POWER RESTORED</div>' +
-      '<p class="boot-unlock">' + esc(next.unlockText || "") + '</p>' +
-      '<p class="small boot-bit">BIT: lights. i missed lights.</p>' +
-      '<div class="boot-pay">' +
-        '<div class="card"><span class="ok">NEW BENEFIT</span><br>' + esc(next.benefitText || "") + '</div>' +
-        '<div class="card"><span class="trackc">NEW GOAL</span><br>' + esc(next.newGoal || "") + '</div>' +
-      '</div>' +
-      '<button class="primary" data-close>ENTER THE FACILITY</button>' +
-    '</div>',
-    done, "boot-ov", { noClose:true });
-  return o;
-}
 
 // v1.66 reward screen: one shared popup for every room/upgrade completion. Tiles come from DATA.upgradeRewardTiles
 // (data/modules.js), i.e. from what the level really grants. The BIT-offline line sits outside the card.
@@ -4342,10 +4332,108 @@ function showHomecomingSummary(ingest, opts){
 // raid never reaches this ingest path on a death (nodspel/game.mjs retries it in place -- see
 // finishRound's launch.ftue branch), so every death ingest here is already an ordinary one.
 // Shared ids preserve the existing seen flags and migration, without replaying older cards.
+// PRB-155: every narrator-cutscene info-strip row names a real cost/benefit read from data/*.js,
+// never a hand-typed number, so a balance change can't drift out of sync with the copy.
+function costStripText(cost){
+  const bits = [];
+  for(const id in (cost.items || {})) bits.push(cost.items[id] + "× " + ITEMS[id].name);
+  if(cost.scrap) bits.push(cost.scrap + "× Scrap");
+  if(cost.dataCores) bits.push(cost.dataCores + "× Data Cores");
+  return bits.join(" + ");
+}
+function costStripIcons(cost){
+  const bits = [];
+  for(const id in (cost.items || {})) bits.push(itemIcon(id));
+  if(cost.scrap) bits.push(CUR_ICONS.scrap);
+  if(cost.dataCores) bits.push(CUR_ICONS.dataCores);
+  return bits.join("");
+}
+function recipeCostText(r){
+  const bits = [];
+  for(const id in (r.inputs || {})) bits.push(r.inputs[id] + "× " + ITEMS[id].name);
+  if(r.scrapCost) bits.push(r.scrapCost + "× Scrap");
+  return bits.join(" + ");
+}
+function recipeCostIcons(r){
+  const bits = [];
+  for(const id in (r.inputs || {})) bits.push(itemIcon(id));
+  if(r.scrapCost) bits.push(CUR_ICONS.scrap);
+  return bits.join("");
+}
+// The Fabricator's commissioning gift (its L1 unlock payoff, data/modules.js) names the first
+// recipe BIT already assembled for you -- the same item the fabricator_built cutscene's FIRST
+// RECIPE row describes, so the two can never name different gear.
+function fabricatorFirstRecipe(){
+  const giftId = Object.keys(MODS.fabricator.levels[0].commissioning || {})[0];
+  return (D.recipes || []).find(r => r.output && r.output.itemId === giftId);
+}
 const BIT_CUTSCENES = {
-  core_restored: { id:"core_restored", from:"assets/production/bit-narrator/cutscene-core-restore-start-v1.webp", to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp", line:"Power… I can feel my circuits again." },
-  first_death: { id:"first_death", from:"assets/production/bit-narrator/cutscene-first-death-sad-v1.webp", to:"assets/production/bit-narrator/cutscene-first-death-happy-v1.webp", line:"I dragged you back. Don't make it a habit." }
+  core_restored: {
+    id:"core_restored",
+    from:"assets/production/bit-narrator/cutscene-core-restore-start-v1.webp",
+    to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+    line:"Power… I can feel my circuits again. Also my toes. I don't have toes.",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
+    info:[
+      { label:"NEW", text: MODS.rebirth_core.benefit, iconHtml: IC("power") },
+      { label:"NEXT", text:"Build the Fabricator: needs " + costStripText(MODS.fabricator.levels[0].cost), iconHtml: costStripIcons(MODS.fabricator.levels[0].cost) }
+    ]
+  },
+  first_death: {
+    id:"first_death",
+    from:"assets/production/bit-narrator/cutscene-first-death-sad-v1.webp",
+    to:"assets/production/bit-narrator/cutscene-first-death-happy-v1.webp",
+    line:"I dragged you back. Don't make it a habit.",
+    // Owner rule (AGENTS.md): dying in a raid loses everything currently carried -- the existing
+    // stash and buildings are untouched. Not a data lookup (it's a fixed design decision, not a
+    // tunable number), but it is the one true rule, named here instead of paraphrased elsewhere.
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-sad-v1.webp", to:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"right" },
+    info:[
+      { label:"LOST", text:"What you carried stays out there", iconHtml: IC("skull") },
+      { label:"KEPT", text:"Your stash and buildings", iconHtml: IC("item-crate") }
+    ]
+  },
+  fabricator_built: (() => {
+    const r = fabricatorFirstRecipe();
+    return {
+      id:"fabricator_built",
+      // No fabricator-specific art pair exists yet (see FABRICATOR_CUTSCENE_ART below); option (b)
+      // fallback reuses the powered-Core backdrop with a CSS light sweep/sparks over it.
+      from:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+      to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+      line:"Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest.",
+      bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
+      effect:"fabricator",
+      hologramIcon: r ? itemIcon(r.output.itemId) : "",
+      info:[
+        { label:"NEW", text:"Craft gear from raid materials", iconHtml: IC("build") },
+        { label:"FIRST RECIPE", text: r ? (r.name + " — " + recipeCostText(r)) : "", iconHtml: r ? recipeCostIcons(r) : "" }
+      ]
+    };
+  })()
 };
+// PRB-155: an optional future dedicated art pair for fabricator_built. If both files exist,
+// present() uses them instead of the option (b) fallback above; checked once via Image onerror
+// (never a blind fetch) so a missing pair never 404-spams. See docs/bit-narrator.md.
+const FABRICATOR_CUTSCENE_ART = {
+  from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+  to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp"
+};
+function fabricatorCutsceneArtReady(cb){
+  let left = 2, ok = true;
+  const settle = good => { ok = ok && good; if(--left === 0) cb(ok ? FABRICATOR_CUTSCENE_ART : null); };
+  [FABRICATOR_CUTSCENE_ART.from, FABRICATOR_CUTSCENE_ART.to].forEach(src => {
+    const img = new Image();
+    img.onload = () => settle(true);
+    img.onerror = () => settle(false);
+    img.src = src;
+  });
+}
+// Resolves the actual beat to preload/play: the dedicated art pair once both files are confirmed
+// to exist, else the option (b) fallback (existing backdrop + CSS fx) baked into BIT_CUTSCENES.
+function fabricatorCutsceneBeat(cb){
+  fabricatorCutsceneArtReady(art => cb(art ? { ...BIT_CUTSCENES.fabricator_built, from:art.from, to:art.to, effect:null } : BIT_CUTSCENES.fabricator_built));
+}
 function maybeShowFirstDeathCard(ingest){
   if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
   if(S.bitCardsSeen.first_death) return;
@@ -4560,24 +4648,34 @@ window.A = {
     // payoffs
     const isLightsOn = modId === "rebirth_core" && next.level === 1;
     const isBitOnline = modId === "bit_bay" && next.level === 1;
+    const isFabricatorOnline = modId === "fabricator" && next.level === 1;
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
     if(isLightsOn){
       save();
-      // v2.28.19: show the habitable bunker and play the wake lighting before the payoff,
-      // so the player sees the room light up under the compact overlay (not after ENTER).
+      // v2.28.19: show the habitable bunker and play the wake lighting. PRB-155 (playtest
+      // 2026-11-15, item 4) removed the POWER RESTORED popup that used to gate ENTER THE
+      // FACILITY here -- the cutscene (bubble + info strip carry the old popup's benefit/next
+      // text) is now the single screen; A.go already committed every state change above.
       session.wake = true;
       const wakeStartedAt = Date.now();
       if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
-      bootSequence(next, () => {
-        // PRB-153: replace the narrator card with the silent cutscene after the
-        // ~1.6s bunkerwake lighting; the helper also waits for popups/intro/VO.
-        if(!S.bitCardsSeen.core_restored){
-          S.bitCardsSeen.core_restored = true; save();
-          const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
-          setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
-        } else bitDock("module_built");
-      });
+      if(!S.bitCardsSeen.core_restored){
+        S.bitCardsSeen.core_restored = true; save();
+        // the bunkerwake lighting (.baseviewer.wake, 1.6s) must finish before the cutscene covers it.
+        const delay = Math.max(0, 1600 - (Date.now() - wakeStartedAt));
+        setTimeout(() => window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored), delay);
+      } else bitDock("module_built");
+    } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
+      // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
+      // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
+      fabricatorCutsceneBeat(beat => window.PRBitCutscene?.preload(beat));
+      overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
+        finish();
+        S.bitCardsSeen.fabricator_built = true; save();
+        const wakeStartedAt = Date.now();
+        fabricatorCutsceneBeat(beat => setTimeout(() => window.PRBitCutscene?.play(beat), Math.max(0, 1600 - (Date.now() - wakeStartedAt))));
+      }, "reward");
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
