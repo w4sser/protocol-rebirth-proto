@@ -223,9 +223,9 @@ const crownGeo=new THREE.IcosahedronGeometry(1,0);
 const UP=new THREE.Vector3(0,1,0);
 for(const r of [barkMat,...pineMats,trunkGeo,twigGeo,crownGeo])r.userData.shared=true;
 function pinePart(group,mesh){
-  mesh.userData.pineOpaqueMaterial=mesh.material;
+  mesh.pineOpaqueMaterial=mesh.material;
   mesh.castShadow=true;
-  group.userData.pineMeshes.push(mesh);
+  group.pineMeshes.push(mesh);
   group.add(mesh);
 }
 function pineBranch(group,ax,ay,az,bx,by,bz,thickness){
@@ -248,8 +248,8 @@ export function archipelagoCoastalPine(spot,{low=false}={}){
   g.userData.visualOnly=true;
   g.userData.pineVariant=shape.name;
   g.userData.pineHeight=height;
-  g.userData.pineMeshes=[];
-  g.userData.pineFadeMaterials=new Map();
+  g.pineMeshes=[];
+  g.pineFadeMaterials=new Map();
   g.userData.pineOpacity=1;
   // Segmented, slightly bent trunk; pine crowns sit high enough to expose
   // recognisable bark. No spruce/conical Christmas-tree silhouette.
@@ -282,23 +282,23 @@ export function archipelagoCoastalPine(spot,{low=false}={}){
 // Each tree has its own fade material, so a pine in the foreground can become
 // translucent without fading every pine sharing its normal opaque material.
 export function setArchipelagoPineOpacity(tree,opacity){
-  if(!tree?.userData?.pineMeshes)return;
+  if(!tree?.pineMeshes)return;
   const a=clamp(opacity,.20,1),fading=a<.995;
   if(Math.abs(a-tree.userData.pineOpacity)<.003)return;
-  for(const mesh of tree.userData.pineMeshes){
+  for(const mesh of tree.pineMeshes){
     if(fading){
-      const original=mesh.userData.pineOpaqueMaterial;
-      let faded=tree.userData.pineFadeMaterials.get(original);
+      const original=mesh.pineOpaqueMaterial;
+      let faded=tree.pineFadeMaterials.get(original);
       if(!faded){
         faded=original.clone();
         faded.transparent=true;
         faded.depthWrite=false;
         faded.userData.shared=false;
-        tree.userData.pineFadeMaterials.set(original,faded);
+        tree.pineFadeMaterials.set(original,faded);
       }
       faded.opacity=a;
       mesh.material=faded;
-    }else mesh.material=mesh.userData.pineOpaqueMaterial;
+    }else mesh.material=mesh.pineOpaqueMaterial;
     mesh.castShadow=!fading;
   }
   tree.userData.pineOpacity=a;
