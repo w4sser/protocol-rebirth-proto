@@ -59,53 +59,52 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   return {masses,shelves};
 }
 function sculptGranite(){
-  // Chunky ice-worn granite: broad rounded shoulders with just two clear
-  // step-ups, rather than evenly spaced contour ribs or a detached rock ring.
-  // Three overlapping tiers share one indexed geometry and one draw call.
-  const steps=32,positions=[],colors=[],indices=[];
-  const cool=new THREE.Color('#626e7c'),stone=new THREE.Color('#a4a2aa');
-  const pink=new THREE.Color('#baa1ac'),lichen=new THREE.Color('#748277');
-  function addTier(rings,ox,oz,rounding,phase,warmth){
-    const start=positions.length/3;
-    for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
-      const a=j/steps*TAU,[h,size]=rings[k];
-      const c=Math.cos(a),sin=Math.sin(a);
-      const xShape=Math.sign(c)*Math.pow(Math.abs(c),rounding);
-      const zShape=Math.sign(sin)*Math.pow(Math.abs(sin),rounding);
-      const rough=1+.024*Math.sin(3*a+phase)+.016*Math.sin(7*a+phase*.8)
-        +.008*Math.sin(11*a+phase*.4);
-      const r=size*rough,y=h+.004*Math.sin(5*a+phase)*Math.sin(h*Math.PI);
-      positions.push(ox+xShape*r*.5,y,oz+zShape*r*.5);
-      const stria=.5+.5*Math.sin(10.4*a+11*h+phase);
-      const grain=.5+.5*Math.sin(17*a-8*h+phase*.5);
-      const colour=cool.clone().lerp(stone,.26+.53*Math.sqrt(h)+stria*.045)
-        .lerp(pink,warmth+.04*Math.sin(2*a+phase))
-        .lerp(lichen,(.012+grain*.053)*Math.max(0,h-.10));
-      colors.push(colour.r,colour.g,colour.b);
-      if(k<rings.length-1&&j<steps){
-        const n=start+k*(steps+1)+j,b=n+steps+1;
-        indices.push(n,b,n+1,n+1,b,b+1);
-      }
+  // One continuous indexed bedrock surface rather than three overlapping
+  // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
+  // The low root rests inside the existing shore without a coplanar apron.
+  const steps=34;
+  const rings=[
+    [0,1.04],[.027,1.12],[.09,1.16],[.15,1.16],
+    [.23,1.13],[.31,1.10],[.38,1.075],[.43,1.055],
+    [.464,1.018],[.477,.935],[.502,.908],[.56,.89],
+    [.625,.851],[.674,.808],[.711,.770],[.729,.682],
+    [.765,.665],[.806,.625],[.857,.594],[.897,.551],
+    [.923,.544],[.94,.465],[.974,.448],[1,.413]
+  ];
+  const positions=[],colors=[],indices=[];
+  const shadow=new THREE.Color('#60717d'),weathered=new THREE.Color('#a2a3ac');
+  const twilight=new THREE.Color('#b0a0ad'),moss=new THREE.Color('#788674');
+  for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
+    const a=j/steps*TAU,[h,nominal]=rings[k];
+    const cs=Math.cos(a),sn=Math.sin(a);
+    const r=nominal*(1+.068*Math.sin(3*a+.38)+.049*Math.cos(2*a+1.18)
+      +.019*Math.sin(7*a-.48));
+    const x=Math.sign(cs)*Math.pow(Math.abs(cs),.86)*r*.5+h*.068*Math.sin(1.1);
+    const z=Math.sign(sn)*Math.pow(Math.abs(sn),.90)*r*.5-h*.083;
+    const y=h+.005*Math.sin(5*a+h*8)*Math.sin(h*Math.PI);
+    positions.push(x,y,z);
+    const strata=.5+.5*Math.sin(9*a+8*h+.5),crack=.5+.5*Math.sin(17*a-7*h);
+    const color=shadow.clone().lerp(weathered,.32+.53*Math.sqrt(h)+.048*strata)
+      .lerp(twilight,.045+.09*(.5+.5*Math.sin(2*a+1.3)))
+      .lerp(moss,(.015+.06*crack)*(1-h*.4));
+    colors.push(color.r,color.g,color.b);
+    if(k<rings.length-1&&j<steps){
+      const n=k*(steps+1)+j,q=n+steps+1;
+      indices.push(n,q,n+1,n+1,q,q+1);
     }
-    const tip=positions.length/3,top=start+(rings.length-1)*(steps+1);
-    const height=rings[rings.length-1][0];
-    positions.push(ox,height+.002,oz);colors.push(stone.r,stone.g,stone.b);
-    for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
   }
-  // One broad lower terrace, a smaller offset shoulder and a worn cap.
-  addTier([[0,.85],[.035,.965],[.13,1.065],[.265,1.07],
-    [.39,1.035],[.50,.96],[.555,.87],[.576,.81]],0,0,.92,.50,.075);
-  addTier([[.49,.675],[.515,.75],[.59,.78],[.68,.762],
-    [.755,.704],[.79,.665],[.804,.61]],-.045,.037,.84,1.22,.095);
-  addTier([[.75,.375],[.765,.445],[.835,.482],[.915,.462],
-    [.963,.423],[.985,.382],[.995,.34]],.075,-.049,.83,2.14,.12);
+  const top=(rings.length-1)*(steps+1),tip=positions.length/3;
+  positions.push(.06,1.004,-.075);
+  colors.push(weathered.r,weathered.g,weathered.b);
+  for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
-  geo.setIndex(indices);geo.computeVertexNormals();geo.userData.shared=true;
+  geo.setIndex(indices);geo.computeVertexNormals();
+  geo.userData.shared=true;geo.userData.continuousGlacialMass=true;
   return geo;
 }
-const graniteGeo=sculptGranite(),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,metalness:0}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
+const graniteGeo=sculptGranite(),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
 graniteMat.userData.shared=true;groundMat.userData.shared=true;
 const grassMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});grassMat.userData.shared=true;
 const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),rot=new THREE.Quaternion(),scale=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
