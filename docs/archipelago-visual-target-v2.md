@@ -6,6 +6,26 @@
 
 **Reference:** [Interactive Three.js visual target](../archipelago-visual-target.html); use its actual 844 × 390 camera composition as the art-direction comparison. See [Art Direction v07](art-direction.md) and [Archipelago Environment Variety v1](archipelago-environment-variety-v1.md). This visual contract applies to Archipelago only, not Bunker or Town.
 
+## Pass Z — Quiet Nordic Ground & Rose-Lit Pines (16 Nov 2026)
+
+**Status:** Implemented in [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269); **not merged and not approved as visual parity**. The changes are independent of P0 granite-composition work in draft PR #267. All visual effects are opt-in behind `archVisual=v2`; default Archipelago, Bunker and Town keep the current look.
+
+**Problem observed:** The actual 844 × 390 raid screenshots contain bright white-looking soil flecks, many tiny pale vegetation/rock props, and large bleached-looking fallen logs. They compete with combat readability and create an artificial, noisy island floor. The vegetation also needs to sit in the same restrained rose/lilac summer-night ambient light as the sea without becoming pink or fluorescent.
+
+**Implementation / commit brief:**
+- **Terrain colors:** Darken the nearly white granite/lichen ground colors; reduce the amplitude of high-frequency soil grain, scattered mineral pockets and lichen highlights. Preserve subdued green/moss flat ground and natural shore gradients (`nodspel/coastline.mjs`).
+- **Ground cover:** Keep deterministic, spatially clustered grass, heather and bracken but halve HIGH cover per cluster (12→6) and reduce LOW (6→4). Keep existing gameplay reservations, shader/draw-call model and LOW as a true HIGH subset (`nodspel/archipelago-visual-v2.mjs`).
+- **Small prop dressing:** On v2 only, eliminate roughly 70% of bright small rocks, flowers and pale sea-holly props using deterministic seeded filtering. After reviewing the first HIGH/LOW capture, remove the *separate* bleached Polyfork fallen-log and driftwood assets in v2; preserve dark built-in collision-matched windfall cover, moss, grass and major rocks. The non-v2 decoration inventory is unchanged (`nodspel/polyfork-dressing.mjs`).
+- **Sky-lit pine crowns:** Shared, vertex-colored crown meshes blend their **upward-facing foliage** toward muted `#b59caf` at at most **11%**. Trunks and lower foliage stay dark. No glow, pink outline, extra lights, transparent overlays or per-tree materials. Keep individual camera occlusion fade/restore (`nodspel/archipelago-visual-v2.mjs`).
+
+**Acceptance checks before merge:**
+1. Compare original target with the actual raid camera at spawn, bridge, coast, foreground trees and objectives, in **844 × 390 HIGH and LOW**. The white ground debris must no longer dominate; surfaces should read as moss, heather, mineral and realistic dark wood.
+2. Trees remain identifiably green Scots pines with a soft rose-lilac top-light, without pink glow or an entire-tree wash. The fade/restore behavior must still work on both tiers.
+3. Check deterministic HIGH/LOW dressing subsets, objective and bridge clearances, all target/geology tests, full CI, and capture startup. Do not use one desktop Chromium render to claim physical iPhone Safari performance.
+4. **Merge policy:** A clean opt-in milestone may merge without visual parity only after reviewing its real gameplay capture; do not enable v2 by default or mark visual target as achieved on green CI alone.
+
+**Evidence:** [PR #269 and its checks](https://github.com/w4sser/protocol-rebirth-proto/pull/269). Focused tests, main CI and screenshot flow passed on the initial ground/rose pass; the bleached-log cleanup is a follow-up commit and requires its own successful runs. The original full scene still differs from reference, especially in geology and military remnant composition. Continue that separately under P0.
+
 ## Current scorecard — code health is not art approval
 
 | Area | What has worked / is implemented | What still fails or remains unverified | Status |
