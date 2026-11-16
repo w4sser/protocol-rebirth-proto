@@ -1,7 +1,7 @@
 // Opt-in glacial landforms, adapted from archipelago-visual-target.html.
 // Raised scenery stays outside the walkable coast; shared resources survive rebuilds.
 import * as THREE from './vendor/three.module.js';
-import {archipelagoGroundColor} from './coastline.mjs?v=2.28.41-glacial-s42';
+import {archipelagoGroundColor,coastRingData} from './coastline.mjs?v=2.28.41-glacial-s42';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(n){let x=(n|0)^0x9e3779b9;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return ((x^(x>>>16))>>>0)/4294967296;}
 const overlaps=(a,b,pad=.3)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+pad&&Math.abs(a.z-b.z)<(a.d+b.d)/2+pad;
@@ -418,13 +418,20 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
     g.userData.integratedHero=true;
     g.userData.embeddedInRock=true;
   }else if(hero){
+    // A dark sealed doorway on the INNER face of the shared granite coast,
+    // not a broad L-shaped concrete frame balanced on a detached boulder.
     const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
-    const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.76;
+    const p=profile.points[index],band=p.radial-p.playableRadial;
+    const radius=p.playableRadial+band*.68;
+    const rings=coastRingData(profile);
+    const faceY=rings.positions[(8*profile.points.length+index)*3+1];
     g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
-      -.22+(p.heroRelief??0)*.60,
+      Math.max(.06,Math.min(2.2,faceY-.48)),
       profile.floor.z+Math.sin(head.angle)*radius);
     g.rotation.y=-head.angle-Math.PI/2;
     g.userData.integratedHero=true;
+    g.userData.embeddedInRock=true;
+    g.userData.coastFaceHeight=faceY;
   }else{
     g.position.set(mass.x,-.18,mass.z);g.rotation.y=mass.rotation;
   }

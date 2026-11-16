@@ -71,53 +71,27 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
     assert.equal(coastal.length,islands.length);
     assert.equal(granite.length,islands.length-1,'hero does not use offshore legacy granite placement');
+    // Hero granite must live in the SAME indexed coastline, never another
+    // dome laid over the waterline: there is now no separate hero rock mesh.
     const anchored=group.children.filter(o=>o.name==='arch-v2-integrated-hero-granite');
-    assert.equal(anchored.length,out.heroGraniteMasses>0?1:0,
-      'large hero rock volumes are integrated at coastline only when a safe footprint exists');
-    assert.ok(out.heroGraniteMasses>=1,
-      'the canonical hero preview must contain real sculpted coastline rock volumes, not just a gray shore strip');
-    for(const rock of anchored)for(const mass of rock.userData.bedrockPlan.masses){
-      assert.ok(mass.shoreInset>=-.08&&mass.shoreInset<=mass.depth*.67+.28,
-        'rounded granite must overlap the real coastline, not float outside in the water');
-      assert.ok(mass.depth<=3.21&&mass.length>=4.8,
-        'shore-parallel low-poly glacial outcrop may not become an offshore round bubble');
-    }
-    assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
-      &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
-    for(const rock of anchored){
-      const positions=rock.geometry.getAttribute('position');
-      const steps=rock.geometry.userData.angularSteps+1;
-      const rings=rock.geometry.userData.ringCount;
-      const radius=i=>Math.hypot(positions.getX(i*steps),positions.getZ(i*steps));
-      assert.equal(rock.geometry.userData.heroLowPoly,true);
-      assert.ok(steps<=23&&rings<=17,'the hero rock uses broad readable glacial facets at mobile zoom');
-      assert.ok(positions.count<400,'reduced hero rock triangulation avoids a smooth pink sphere');
-      for(let ring=3;ring<rings-2;ring++){
-        const dy=Math.abs(positions.getY((ring+1)*steps)-positions.getY(ring*steps));
-        assert.ok(Math.abs(radius(ring+1)-radius(ring))<dy*3.2+.025,
-          'granite forms one continuous rounded slope, never stepped stacked terraces');
-      }
-    }
+    assert.equal(anchored.length,0,'hero island has no detached rock instance or depth overlap');
+    assert.equal(out.heroGraniteMasses,0);
+    const heroCoast=coastal.find(o=>o.userData.heroIsland);
+    const y=heroCoast.geometry.getAttribute('position'),n=72;
+    const peaks=Array.from({length:n},(_,i)=>y.getY(7*n+i)).filter(h=>h>1.1);
+    assert.ok(peaks.length>=3,'multiple actual granite crowns rise from the connected coast');
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
     assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero
       &&o.userData.embeddedInRock),
       'hero bunker entrance is physically positioned in the sculpted granite volume, not left as a freestanding concrete L');
     const entrance=group.children.find(o=>o.name==='arch-v2-rock-cut-portal');
-    const rockPosition=anchored[0].userData.bedrockPlan.masses[0];
-    assert.ok(entrance.position.y>=.08&&entrance.position.y<.20,
-      'the door should read against the granite flank, not be buried below the coast');
-    assert.ok(Math.abs(Math.hypot(entrance.position.x-rockPosition.x,
-      entrance.position.z-rockPosition.z)-rockPosition.depth*.49)<.01,
-      'door sits at the inward edge of the actual granite mass');
+    assert.ok(entrance.position.y>=.06&&entrance.position.y<=2.2,
+      'dark bunker doorway stays at the actual glacial cliff elevation');
+    assert.ok(entrance.position.y<=entrance.userData.coastFaceHeight,
+      'the doorway must be inset into the physical rock face, not floating above it');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
-    for(const boat of out.boatPlacements)for(const rock of anchored)
-      for(const m of rock.userData.bedrockPlan.masses){
-        const dx=Math.max(Math.abs(boat.x-m.bounds.x)-m.bounds.w/2,0);
-        const dz=Math.max(Math.abs(boat.z-m.bounds.z)-m.bounds.d/2,0);
-        assert.ok(Math.hypot(dx,dz)>2.19,'dinghy must clear actual hero granite volume');
-      }
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
       'all v2 boats use the sculpted dinghy, never a rectangular placeholder');
     const water=group.children.find(o=>o.name==='water');
@@ -235,10 +209,8 @@ test('v2 places high granite only outside the island and preserves open bridge l
       assert.ok(granite.every(g=>g.userData.visualOnly),'other islands keep their existing visual-only granite');
       assert.equal(out.heroIsland,true,'target flag authors the hero island');
       const anchored=group.children.filter(o=>o.name==='arch-v2-integrated-hero-granite');
-      assert.ok(anchored.length<=1,'one shared instanced mesh for hero rock mounds, never a prop row');
-      assert.equal(out.heroGraniteMasses??0,anchored[0]?.count??0);
-      assert.ok(anchored.every(o=>o.userData.visualOnly&&o.userData.anchoredHero),
-        'hero granite is visual only, outside 2D gameplay');
+      assert.equal(anchored.length,0,'hero geology must be sculpted into joined shore, not layered onto it');
+      assert.equal(out.heroGraniteMasses,0);
       const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
       assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
       assert.equal(heroShell[0].userData.heroRings,14);

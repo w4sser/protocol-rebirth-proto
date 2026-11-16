@@ -378,8 +378,12 @@ function heroCoastRingData(profile){
       *Math.exp(-Math.pow((f-.41)/.23,2));
     // Make the isolated domes prominent enough at 844x390 while leaving
     // the valleys low. Boost LOCAL peaks, not the uniform coastal base.
-    const volume=.48+1.02*mainDome+.52*offsetShoulder;
-    const relief=(section.relief*cap[k]*diagonal*volume+ledge)*crownWidth;
+    // Pass AC: remove the detached offshore hero boulder. Two compact rock
+    // volumes rise from THIS watertight indexed coast shell instead: a
+    // dominant weathered dome and an offset smaller shoulder. The broad low
+    // background prevents a grey continuous wall around the whole island.
+    const volume=.12+1.95*mainDome+1.00*offsetShoulder;
+    const relief=clamp(section.relief*cap[k]*diagonal*volume+ledge,0,3.05)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
@@ -391,8 +395,9 @@ function heroCoastRingData(profile){
       floor.z+sn*(p.playableRadial-.045),stoneRoots);
     // Taper rock *color* with the same spatial constraint as rock height.
     // Otherwise the cliff collapses but leaves an uninterrupted grey stripe.
+    const localized=Math.max(mainDome,offsetShoulder*.75);
     const rock=section.rockMask*(1-p.beach*.94)
-      *(.06+.94*smooth(.90,2.45,band));
+      *(.06+.94*smooth(.90,2.45,band))*(.15+.85*localized);
     // The previous continuous grey apron survived because even unraised
     // shoreline strips inherited pale mineral-edge tones. Blend ordinary
     // shore into dark olive vegetation; concentrate granite at headlands.

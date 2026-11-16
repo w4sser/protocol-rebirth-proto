@@ -410,20 +410,17 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
       const hero=targetIsland&&profile.floor===firstIsland;
-      const bedrock=hero?addArchipelagoHeroGraniteV2(profile,group,options)
-        :addArchipelagoGraniteV2(profile,group,options);
-      // Broad landscape masses are now attached to the same sculpted shoulder,
-      // remain outside actor space and use real collision-safe bounds for boats.
-      const plan=hero?{masses:[...(bedrock?.userData.bedrockPlan.masses??[]),
-          ...(profile.heroHeadlands??[]).map(h=>({angle:h.angle}))],shelves:[]}
+      // Pass AC: do not add a separate offshore oval to the hero island.
+      // Raise the existing shared coast shell instead (coastline.mjs), so
+      // the rock/ground/water boundaries remain one joined shape.
+      const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
+      const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
         :bedrock?.userData.bedrockPlan;
-      if(hero)out.heroGraniteMasses=bedrock?.count??0;
+      if(hero)out.heroGraniteMasses=0;
       bedrockPlans.set(profile.floor,plan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
       if(hero){
-        addArchipelagoTargetPortal(profile,group,{
-          ...options,heroRock:bedrock?.userData.bedrockPlan.masses[0]??null
-        });
+        addArchipelagoTargetPortal(profile,group,options);
         addArchipelagoTargetShed(profile,group,options);
       }
     }
