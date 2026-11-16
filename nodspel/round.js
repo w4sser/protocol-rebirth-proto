@@ -285,7 +285,8 @@ export function alertEnemy(enemy,now){
 }
 // `from` = where the hit comes from. Player weapon hits default to round.shooter (set by the game around weapon
 // calls); blasts and anything without an origin skip the guard's front shield.
-export function hitEnemy(round,id,now,damage=1,from=round.shooter){
+// grantKillHeal:false allows enemy-caused kills without awarding Operator healing.
+export function hitEnemy(round,id,now,damage=1,from=round.shooter,options={}){
   tickRound(round,now);
   const enemy=round.level.enemies.find(e=>e.id===id);
   if(round.over || round.pauseAt!=null || !enemy || enemy.health<=0 || (enemy.active===false&&enemy.swarm) || !Number.isFinite(damage) || damage<=0)return false;
@@ -308,7 +309,7 @@ export function hitEnemy(round,id,now,damage=1,from=round.shooter){
   }
   enemy.lastDamage=Math.min(enemy.health,damage);enemy.lastHitAt=now;enemy.hitSerial=(enemy.hitSerial??0)+1;enemy.health=Math.max(0,enemy.health-damage);
   if(enemy.health===0){
-    audioEvent('kill',{type:enemy.type});round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};heal(round,now,RULES.killReward.health);
+    audioEvent('kill',{type:enemy.type});round.enemiesDefeated++;const kt=enemy.type??'grunt';round.killsByType={...(round.killsByType??{}),[kt]:(round.killsByType?.[kt]??0)+1};if(options.grantKillHeal!==false)heal(round,now,RULES.killReward.health);
     // Combat feel (docs/design-combat-feel-oct28.md §2.1.2/2.1.3): hitstop/camera shake/haptics/particles are real-time
     // presentation effects, driven from game.mjs's frame loop off this event — never from here (hitEnemy runs the same
     // way in dozens of synchronous unit tests with synthetic clocks, which must stay unaffected by real wall-clock pausing).
