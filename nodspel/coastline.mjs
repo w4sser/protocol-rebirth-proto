@@ -376,7 +376,9 @@ function heroCoastRingData(profile){
       *Math.exp(-Math.pow((f-.67)/.29,2));
     const offsetShoulder=Math.exp(-Math.pow((section.local-.46)/.32,2))
       *Math.exp(-Math.pow((f-.41)/.23,2));
-    const volume=.53+.57*mainDome+.31*offsetShoulder;
+    // Make the isolated domes prominent enough at 844x390 while leaving
+    // the valleys low. Boost LOCAL peaks, not the uniform coastal base.
+    const volume=.48+1.02*mainDome+.52*offsetShoulder;
     const relief=(section.relief*cap[k]*diagonal*volume+ledge)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
