@@ -37,10 +37,15 @@ try{
   await page.goto(base+'?q=low',{waitUntil:'networkidle0'});
   await page.waitForFunction(()=>window.A);
   await page.evaluate(()=>{document.getElementById('splash')?.remove();window.A.go('dev');});
-  const normal=await page.evaluate(()=>localStorage.getItem('pr_meta_save'));
+  const before=await page.evaluate(()=>localStorage.getItem('pr_meta_save'));
+  // devUnlock saves pending normal progress once on the way out (only the idle clock moves);
+  // from then on the normal save must stay byte-identical.
+  const sansClock=raw=>{const st=JSON.parse(raw);if(st.idle){delete st.idle.clock;delete st.idle.lastSeen;}return st;};
+  let normal=null;
   for(const mode of ['worlds','all']){
     await Promise.all([page.waitForNavigation({waitUntil:'networkidle0'}),page.evaluate(mode=>A.devUnlock(mode),mode)]);
     assert.equal(await page.evaluate(()=>PR_DEBUG.mode),mode);
+    if(normal===null){normal=await page.evaluate(()=>PR_DEBUG.normalSave());assert.deepEqual(sansClock(normal),sansClock(before),'entering the sandbox kept the normal save');}
     assert.equal(await page.evaluate(()=>PR_DEBUG.normalSave()),normal);
     for(const area of ['bunker','archipelago','town']){
       const url=await page.evaluate(area=>{
