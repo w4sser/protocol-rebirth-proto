@@ -56,7 +56,7 @@ async function capture(page,label,errors){
   // screenshot-only HUD masking so the approved interactive target can be
   // compared against terrain rather than giant virtual joysticks.
   // This is CSS-only and is reverted before the gameplay test continues.
-  if(label.startsWith('after-')&&/(spawn|coast|headland|bridge|boat)$/.test(label)){
+  if(label.startsWith('after-')&&/(spawn|coast|headland|bridge|boat|fractured-shelf)$/.test(label)){
     await page.evaluate(()=>{
       let style=document.getElementById('arch-parity-css');
       if(!style){
@@ -248,6 +248,50 @@ try{
         window.__NR.teleport(f.x-(f.dir.x?Math.min(2.7,f.w*.25):0),f.z-(f.dir.x?0:Math.min(2.7,f.d*.25)));
       });
       await capture(page,version+'-'+quality+'-bridge',errors);
+      if(version==='after'){
+        // Pass ZC: a real normal-camera screenshot of the NON-HERO granite.
+        // Prior captures centered the hero island, where this rock mesh is
+        // intentionally omitted; they could not verify the ugly round stone.
+        const shelfView=await page.evaluate(()=>{
+          const scene=window.__NR.getScene(),level=window.__NR.state().level;
+          const floors=level.floors.filter(f=>!f.dir),rocks=[],shells=[];
+          scene.updateMatrixWorld(true);
+          scene.traverse(o=>{
+            if(o.name==='arch-v2-glacial-shelves'&&o.count>0)rocks.push(o);
+            if(o.name==='archipelago-coast-shell'&&!o.userData.heroIsland)shells.push(o);
+          });
+          if(!rocks.length||!shells.length)return null;
+          const matrix=new THREE.Matrix4(),point=new THREE.Vector3(),candidates=[];
+          for(const rock of rocks)for(let i=0;i<rock.count;i++){
+            rock.getMatrixAt(i,matrix);
+            point.setFromMatrixPosition(matrix).applyMatrix4(rock.matrixWorld);
+            candidates.push({x:point.x,z:point.z});
+          }
+          let best=null;
+          for(const candidate of candidates)for(const shell of shells){
+            const positions=shell.geometry.getAttribute('position'),
+              n=Math.floor(positions.count/6);
+            if(n<32)continue;
+            let cx=0,cz=0;
+            for(let i=0;i<n;i++){cx+=positions.getX(i);cz+=positions.getZ(i);}
+            cx/=n;cz/=n;
+            for(let i=0;i<n;i++){
+              const x=positions.getX(i),z=positions.getZ(i);
+              const d=Math.hypot(x-candidate.x,z-candidate.z);
+              if(!best||d<best.d)best={x,z,cx,cz,d};
+            }
+          }
+          if(!best)return null;
+          const dx=best.cx-best.x,dz=best.cz-best.z;
+          const len=Math.max(.001,Math.hypot(dx,dz));
+          return {x:best.x+dx/len*1.45,z:best.z+dz/len*1.45,
+            rockDistance:Number(best.d.toFixed(2)),islands:floors.length};
+        });
+        assert.ok(shelfView,'the second island must expose a genuine fractured coastal shelf');
+        await page.evaluate(p=>window.__NR.teleport(p.x,p.z),shelfView);
+        await capture(page,version+'-'+quality+'-fractured-shelf',errors);
+        console.log('FRACTURED_SHELF_REAL_CAMERA',quality,JSON.stringify(shelfView));
+      }
     }
     await page.close();
   }
