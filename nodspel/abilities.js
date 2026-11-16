@@ -1,5 +1,5 @@
 // One data-driven ability slot next to the aim stick: icon, label, status and charge bar.
-import {svgIcon} from './svg-icons.js?v=2.28.41';
+import {svgIcon} from './svg-icons.js?v=2.28.42';
 
 export function createDashAbility(requestDash,cooldownMs=round=>round.stats.dashCooldownMs){
   return {
@@ -44,3 +44,4 @@ export function renderAbilitySlot(button,ability,charge,remainingMs,unavailable,
   button.querySelector(`#${prefix}-fill`).style.width=`${fill*100}%`;
   button.setAttribute('aria-label',remainingMs>0?`${ability.label} cooldown ${(remainingMs/1000).toFixed(1)} seconds`:`${ability.label} ${ability.readyText}`);
 }
+

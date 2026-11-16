@@ -2,8 +2,8 @@
 // no sim/browser -- exercises nodspel/dda.js's pure state machine directly.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {freshState,loadState,saveState,recordRaid,checkLapse,lootMultiplier,DDA_KEY} from '../dda.js?v=2.28.41';
-import {NEUTRAL_KNOBS,KNOB_BOUNDS} from '../difficulty.js?v=2.28.41';
+import {freshState,loadState,saveState,recordRaid,checkLapse,lootMultiplier,DDA_KEY} from '../dda.js?v=2.28.42';
+import {NEUTRAL_KNOBS,KNOB_BOUNDS} from '../difficulty.js?v=2.28.42';
 
 function memStorage(initial=null){
   let raw=initial;
@@ -155,3 +155,4 @@ test('loot multiplier is 1.0-1.2, only above neutral for a struggling (negative 
 test('DDA_KEY is the documented flat localStorage key',()=>{
   assert.equal(DDA_KEY,'pr_dda_v1');
 });
+

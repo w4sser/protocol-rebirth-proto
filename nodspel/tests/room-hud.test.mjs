@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {roomPips,roomProgress,bagTiles} from '../hud.js?v=2.28.41';
-import {createRound,activateNode} from '../round.js?v=2.28.41';
+import {roomPips,roomProgress,bagTiles} from '../hud.js?v=2.28.42';
+import {createRound,activateNode} from '../round.js?v=2.28.42';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('three pips: done, current, next',()=>{
@@ -21,3 +21,4 @@ test('markup: icon room box, seed hidden unless debug, no text-only gate line',(
   assert(/sl\.hidden=!SEED_LABEL/.test(g)&&/SEED_LABEL=DEBUG&&[^\n]*'seed-label'/.test(g),'seed only with ?debug=1&seed-label=1');assert(/id="seed-label" hidden/.test(html));
   assert(/class="item-tile|item-tile/.test(g)&&/need-tiles/.test(g),'bag + NEED rows are item tiles');
 });
+

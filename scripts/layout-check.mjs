@@ -735,8 +735,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.41');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.41');
+    const {createRound}=await import('./round.js?v=2.28.42');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.42');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -859,3 +859,4 @@ for(const f of failures){const m=f.match(/^(\w+(?: \w+)?) (\d+x\d+)(.*)$/);const
 const uniq=[...grouped].map(([k,v])=>`${k}  [${[...new Set(v)].join(', ')}]`);
 if(uniq.length){console.error(`\nlayout-check: ${uniq.length} failure(s)\n - `+uniq.join('\n - '));console.error(`screenshots: ${OUT}`);process.exit(1);}
 console.log(`layout-check: ok (screenshots in ${OUT})`);
+

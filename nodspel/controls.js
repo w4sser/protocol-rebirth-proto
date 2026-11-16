@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=2.28.41';
+import {RULES} from './levels.js?v=2.28.42';
 export function beginAim(x,y){return {origin:{x,y},direction:null,target:null};}
 export function facingDirection(aiming,walking,aim){return aiming?aim:walking;}
 export function dragAim(gesture,x,y){
@@ -70,3 +70,4 @@ export function finishGesture(gesture,x,y,elapsed,dragged,cancelled=false){
   if(!gesture.target)return !dragged&&elapsed<RULES.aimControls.tapMs?'tap':null;
   return gesture.target;
 }
+

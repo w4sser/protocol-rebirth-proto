@@ -1,4 +1,4 @@
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.41-bridge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.42-bridge1';
 const overlaps=(a,b)=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-6&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-6;
 // Discover openings from the final wall layout, including partitions and encounter-cut side routes.
 // A strip spans the wall and both approaches; narrow it to the actual clear corridor footprint.
@@ -92,3 +92,4 @@ export function clearPassageProps(level,passages=archipelagoPassages(level)){
   const zones=level.archipelago?[...passages,...bridgeClearances(level)]:passages;
   for(let i=level.boxes.length-1;i>=0;i--)if(inPassageClearance(level.boxes[i],zones))level.boxes.splice(i,1);
 }
+

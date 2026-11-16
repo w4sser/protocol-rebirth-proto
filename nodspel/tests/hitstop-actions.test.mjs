@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createRound,useHealthKit,healthKitBlock} from '../round.js?v=2.28.41';
-import {hitstop,advanceHitstop,gameTime,inputPaused,pausePick} from '../perks.js?v=2.28.41';
-import {initTool,canUseTool,toolCharges,throwTool,autoThrowPoint} from '../tools.js?v=2.28.41';
+import {createRound,useHealthKit,healthKitBlock} from '../round.js?v=2.28.42';
+import {hitstop,advanceHitstop,gameTime,inputPaused,pausePick} from '../perks.js?v=2.28.42';
+import {initTool,canUseTool,toolCharges,throwTool,autoThrowPoint} from '../tools.js?v=2.28.42';
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function fn(name){
   const start=source.indexOf(`function ${name}(`);let i=source.indexOf('{',start),depth=0;
@@ -48,3 +48,4 @@ test('perk pick rejects fresh actions and never replays buffers while paused',()
   h.ctx.toolTap();h.ctx.useKit();h.resume();
   assert.equal(h.round.tool.thrown,0);assert.equal(h.round.kit.medkit,2);
 });
+

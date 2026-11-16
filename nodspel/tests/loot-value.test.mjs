@@ -2,8 +2,8 @@ import test from 'node:test';import assert from 'node:assert/strict';
 // data/modules.js, data/recipes.js and data/vendors.js (loaded transitively for DATA.itemInfo) assume a
 // browser `window`; a dynamic import after this shim lets the pure module run under plain node:test too.
 if(typeof globalThis.window==='undefined')globalThis.window=globalThis;
-const {hintText}=await import('../item-hints.js?v=2.28.41');
-const {sellValueText,neededForText,hasSeenMaterial,markMaterialSeen,materialPickupBitLine}=await import('../loot-value.js?v=2.28.41');
+const {hintText}=await import('../item-hints.js?v=2.28.42');
+const {sellValueText,neededForText,hasSeenMaterial,markMaterialSeen,materialPickupBitLine}=await import('../loot-value.js?v=2.28.42');
 
 function memoryStorage(){
   const m=new Map();
@@ -68,3 +68,4 @@ test('the FTUE and the guided intro raid never show the BIT line and never mark 
   const line=materialPickupBitLine('cable',{},storage);
   assert.match(line,/^BIT: Cable\./,'an ordinary raid afterwards still introduces it');
 });
+

@@ -1,5 +1,5 @@
-import '../data/audio.js?v=2.28.41';
-import '../ui/audio.js?v=2.28.41';
+import '../data/audio.js?v=2.28.42';
+import '../ui/audio.js?v=2.28.42';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
@@ -37,3 +37,4 @@ if(typeof document!=='undefined'){
   window.addEventListener('pagehide',e=>{cachedMusic=e.persisted&&audio.desiredMusic;audio.stop();});
   window.addEventListener('pageshow',e=>{if(e.persisted&&cachedMusic)audio.music();cachedMusic=false;});
 }
+

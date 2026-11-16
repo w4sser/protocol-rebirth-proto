@@ -1,4 +1,4 @@
-import {isPointOnFloor} from './archipelago-playable.mjs?v=2.28.41-organic-v2';
+import {isPointOnFloor} from './archipelago-playable.mjs?v=2.28.42-organic-v2';
 // @hot boxHit nodeHit traceTargets aimEndpoint aimConePoints
 export function movePlayer(position, delta, boxes, floors, radius) {
   const p = {...position};
@@ -161,3 +161,4 @@ export function aimConePoints(position,direction,range,halfAngle,obstacles){
   for(const angle of angles){dir.x=Math.cos(heading+angle);dir.z=Math.sin(heading+angle);out.push(aimEndpoint(position,dir,range,obstacles));}
   return out;
 }
+

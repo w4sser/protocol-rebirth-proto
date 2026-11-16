@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {generateLevel,setScouted} from '../levels.js?v=2.28.41';import {generateBigLevel} from '../big-level.js';
+import {generateLevel,setScouted} from '../levels.js?v=2.28.42';import {generateBigLevel} from '../big-level.js';
 import {readLaunch} from '../raid-result.js';
 const scouts=L=>L.lootBoxes.filter(b=>b.scout);
 test('v2.28.6 t352u: a still-locked player keeps the guaranteed chart/survey drop',()=>{
@@ -24,3 +24,4 @@ test('v2.28.6: launch param scouted is parsed and sanitised',()=>{
   assert.deepEqual(readLaunch('?scouted=archipelago,town,%3Cx%3E').scouted,['archipelago','town']);
   assert.deepEqual(readLaunch('').scouted,[]);
 });
+

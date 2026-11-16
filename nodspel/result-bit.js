@@ -1,6 +1,6 @@
 // Same context priority and persistent no-repeat protocol as the base summary.
-import '../data/bit-lines.js?v=2.28.41';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.41';
+import '../data/bit-lines.js?v=2.28.42';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.42';
 
 const reactions=new WeakMap();
 export function resultReaction(round,{rows,gear,home}){
@@ -45,3 +45,4 @@ function selectReaction(r,res,storage){
   try{storage?.setItem('pr_bit_last_raid_line',selected.id);if(ext&&(r.raidId||r.cfg))storage?.setItem('pr_bit_first_extract','1');}catch(e){}
   return { trigger, mood:pool.mood, id:selected.id, line:selected.line };
 }
+

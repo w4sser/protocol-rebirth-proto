@@ -1,7 +1,7 @@
 // ?props=1 preview renderer: one InstancedMesh per asset, no colliders, no shadows on LOW.
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {placeArchipelagoProps} from './props-placement.mjs?v=2.28.41';
+import {placeArchipelagoProps} from './props-placement.mjs?v=2.28.42';
 const BASE=new URL('../assets/env/',import.meta.url);
 const DIRS={ground:'nature/',shore:'shore/',foam:'shore/',rock:'nature/rocks/'};
 const cache=new Map();
@@ -59,3 +59,4 @@ export function addPropsPreview(level,scene,{profile='high'}={}){
     .catch(e=>{stats.error=String(e);console.error('[props-preview] failed',e);});
   return {group,stats,ready,dispose(){scene.remove(group);group.clear();}};
 }
+

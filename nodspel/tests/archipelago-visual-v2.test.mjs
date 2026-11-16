@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../vendor/three.module.js';
 import {coastlineProfile,separateArchipelagoCoastProfiles} from '../coastline.mjs';
-import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast,walkableBoundary} from '../archipelago-playable.mjs?v=2.28.41-organic-v2';
+import {registerWalkableCoast,isPointOnFloor,hasWalkableCoast,walkableBoundary} from '../archipelago-playable.mjs?v=2.28.42-organic-v2';
 import {movePlayer} from '../physics.mjs';
 import {generateLevel} from '../levels.js';
 import {buildArchipelago,isArchipelagoPartitionWallV2,archipelagoRockFreeBridgeLandingsV2} from '../archipelago.js';
@@ -354,3 +354,4 @@ test('v2 pines fade independently and restore opaque materials and shadows',()=>
   assert.ok(a.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
     'trees must return to their original materials and shadows');
 });
+

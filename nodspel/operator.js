@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
-import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.41';
-import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.41';
+import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.42';
+import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.42';
 
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
 export function selectSkin(search=''){
@@ -121,3 +121,4 @@ export async function loadHumanOperator(options={}){
   const character=CHARACTERS[options.characterId]??CHARACTERS[DEFAULT_CHARACTER];
   return createHumanOperator(await new GLTFLoader().loadAsync(new URL(character.model,import.meta.url).href),{...options,character});
 }
+

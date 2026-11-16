@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
-import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.41';
-import {RULES} from '../levels.js?v=2.28.41';
-import {applyIntroEncounter} from '../progression-goal.js?v=2.28.41';
-import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.41';
-import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.41';
-import {createCombat,stepCombat} from '../combat.js?v=2.28.41';
-import {traceTargets} from '../physics.mjs?v=2.28.41';
+import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.42';
+import {RULES} from '../levels.js?v=2.28.42';
+import {applyIntroEncounter} from '../progression-goal.js?v=2.28.42';
+import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.42';
+import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.42';
+import {createCombat,stepCombat} from '../combat.js?v=2.28.42';
+import {traceTargets} from '../physics.mjs?v=2.28.42';
 import '../../data/raid-camera.js';
 
 const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
@@ -165,3 +165,4 @@ test('both FTUE grunts fit the unchanged default orthographic camera at both lan
     }
   }
 });
+

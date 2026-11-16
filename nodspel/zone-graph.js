@@ -1,6 +1,6 @@
 // Pure graph construction. BIG MAP expands the existing authored room pool.
-import {RULES,randomFromSeed} from './levels.js?v=2.28.41';
-import '../data/raid-big-layout.js?v=2.28.41';
+import {RULES,randomFromSeed} from './levels.js?v=2.28.42';
+import '../data/raid-big-layout.js?v=2.28.42';
 const BIG=globalThis.DATA.raidBigLayout;
 
 export function graphDistances(graph,from=graph.spawn.roomId){
@@ -42,3 +42,4 @@ export function generateZoneGraph(seed){
   graph.extracts=['open','timed','key'].map((type,i)=>({id:`extract-${type}`,type,roomId:far[i].id,x:far[i].x,z:far[i].z+RULES.exit.z,r:RULES.exit.r,...type==='timed'?{opensAtMs:60000,closesAtMs:240000}:{},...type==='key'?{key:'big-vault-key'}:{}}));
   return graph;
 }
+

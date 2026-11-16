@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=2.28.41';
-import {RULES,totalNodes} from '../levels.js?v=2.28.41';
-import * as combat from '../combat.js?v=2.28.41';
+import {createRound} from '../round.js?v=2.28.42';
+import {RULES,totalNodes} from '../levels.js?v=2.28.42';
+import * as combat from '../combat.js?v=2.28.42';
 const setup=()=>{const r=createRound('tuning',0);r.level.enemies=[{id:'foe',kind:'enemy',x:0,z:0,r:.48,health:2}];return r;};
 test('level one uses gentler enemy tuning',()=>{
   const l=createRound('tuning',0).level;
@@ -29,3 +29,4 @@ test('enemies stop approaching at the stand-off distance',()=>{
   const d=8-r.level.enemies[0].z;assert.ok(d>=3.4&&d<=3.6,`distance ${d}`);
 });
 test('total node count is computed from level rules',()=>{assert.equal(totalNodes(),6);});
+

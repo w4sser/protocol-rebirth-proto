@@ -1,6 +1,6 @@
-import '../data/raid-perks.js?v=2.28.41';
-import {heal} from './stakes.js?v=2.28.41';
-import {RULES} from './levels.js?v=2.28.41';
+import '../data/raid-perks.js?v=2.28.42';
+import {heal} from './stakes.js?v=2.28.42';
+import {RULES} from './levels.js?v=2.28.42';
 export const PERKS=globalThis.DATA.raidPerks;
 export const cards=PERKS.cards;
 export function perkState(round){return round.perks??= {taken:[],rooms:{},queue:[],events:[],summaries:{},chain:false,shieldRooms:[],shieldUntil:0};}
@@ -128,3 +128,4 @@ export function autoPickPerks(round,now,dash,{all=false}={}){
 export function reloadInterval(round,ms){return hasPerk(round,'reload')?Math.max(PERKS.reloadFloorMs,ms*PERKS.reloadMultiplier):ms;}
 export function dashInterval(round,ms){return hasPerk(round,'roll')?Math.max(PERKS.dashFloorMs,ms*PERKS.dashMultiplier):ms;}
 export function resetPerks(round){if(round.perks){round.raidPerksTaken=[...new Set([...(round.raidPerksTaken??[]),...round.perks.taken])];round.perks.taken=[];round.perks.queue=[];round.perks.chain=false;round.perks.shieldUntil=0;round.perks.revealAll=false;round.perks.terminalCards=[];round.perks.selectedEffects={};}}
+

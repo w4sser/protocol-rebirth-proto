@@ -1,11 +1,11 @@
-import {audioEvent} from './audio.js?v=2.28.41';
+import {audioEvent} from './audio.js?v=2.28.42';
 // v2.7.0 stakes PR1 (docs/design-stakes-perks-oct27.md section 4): heal budget, alarm + hunter waves, bag
 // weight. No heat mechanic - waves run on a fixed clock. All tuning lives in data/raid-stakes.js.
-import {traceTargets} from './physics.mjs?v=2.28.41';
-import {RULES,randomFromSeed} from './levels.js?v=2.28.41';
-import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.28.41';
-import '../data/raid-stakes.js?v=2.28.41';
-import '../data/raid-camera.js?v=2.28.41';
+import {traceTargets} from './physics.mjs?v=2.28.42';
+import {RULES,randomFromSeed} from './levels.js?v=2.28.42';
+import {bagItems,bagValue,ITEM_SELL} from './raid.js?v=2.28.42';
+import '../data/raid-stakes.js?v=2.28.42';
+import '../data/raid-camera.js?v=2.28.42';
 export const RAID_CAMERA = globalThis.DATA.raidCamera;
 export const STAKES = globalThis.DATA.raidStakes;
 
@@ -217,3 +217,4 @@ export function hunterArrowScreenPoint(dir, viewWidth, viewHeight, margin = 20) 
   const scale = Math.min(nx ? halfW / Math.abs(nx) : Infinity, ny ? halfH / Math.abs(ny) : Infinity);
   return { x: cx + nx * scale, y: cy + ny * scale, angleDeg: Math.atan2(ny, nx) * 180 / Math.PI };
 }
+

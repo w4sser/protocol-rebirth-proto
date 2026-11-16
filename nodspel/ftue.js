@@ -1,7 +1,7 @@
-import '../data/raid-ftue.js?v=2.28.41';
-import {RULES} from './levels.js?v=2.28.41';
-import {STAKES} from './stakes.js?v=2.28.41';
-import {audioEvent} from './audio.js?v=2.28.41';
+import '../data/raid-ftue.js?v=2.28.42';
+import {RULES} from './levels.js?v=2.28.42';
+import {STAKES} from './stakes.js?v=2.28.42';
+import {audioEvent} from './audio.js?v=2.28.42';
 
 export const FTUE=globalThis.DATA.raidFtue;
 // The countdown is pressure only. It never closes the beam or ends a raid.
@@ -71,3 +71,4 @@ function ftueGuaranteeAlloy(level){
     }
   }
 }
+

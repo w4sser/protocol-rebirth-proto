@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,hitEnemy,activateNode,enterExit} from '../round.js';
-import {setArea} from '../levels.js?v=2.28.41';
+import {setArea} from '../levels.js?v=2.28.42';
 import {perkState,updateClears,ownRooms,safePick,pickReady} from '../perks.js';
 
 const point={x:0,z:0};
@@ -89,3 +89,4 @@ for(const area of ['bunker','archipelago'])test(`${area}: normal round loading a
   assert.equal(pickAt(r,p),null);
   }finally{setArea('bunker');}
 });
+

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.41';
-import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.41';
-import {RULES} from '../levels.js?v=2.28.41';
-import {STAKES} from '../stakes.js?v=2.28.41';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.42';
+import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.42';
+import {RULES} from '../levels.js?v=2.28.42';
+import {STAKES} from '../stakes.js?v=2.28.42';
 import * as THREE from '../vendor/three.module.js';
-import {buildWorld} from '../world.js?v=2.28.41';
+import {buildWorld} from '../world.js?v=2.28.42';
 
 function setup(attempt=0){
   const r=createRound('ftue-clutch',0);
@@ -121,3 +121,4 @@ test('game presents countdown through existing notice and renders spawned hunter
   assert.match(src,/EXTRACT IN \$\{seconds\}/);
   assert.match(src,/EXTRACT OPEN - Reach the beam to secure your loot\./);
 });
+

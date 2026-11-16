@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.41';
-import {createRound,collectLoot} from '../round.js?v=2.28.41';
-import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.41';
+import {pushPickup,liveToasts,TOAST_MAX,TOAST_MS} from '../pickup-toast.js?v=2.28.42';
+import {createRound,collectLoot} from '../round.js?v=2.28.42';
+import {rarityOf,RARITY_COLORS} from '../rarity.js?v=2.28.42';
 const src=f=>readFileSync(new URL(f,import.meta.url),'utf8');
 
 test('bag pickups are recorded for the toast; gear and full-bag skips are not',()=>{
@@ -68,3 +68,4 @@ test('first-seen material pickups go through the shared PRBitCard, not a bare no
   assert(/PRBitCard\?\.show\(\{id:'mat:'\+item,text:bitLine\.replace\(\/\^BIT:\\s\*\/,''\),mood:'happy'\}\)/.test(g),
     'pickup fires PRBitCard.show with a stable mat:<item> id, the prefix-stripped line, and a happy mood');
 });
+

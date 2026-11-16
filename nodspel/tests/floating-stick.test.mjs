@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {JSDOM} from 'jsdom';
-import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.41';
-import {RULES} from '../levels.js?v=2.28.41';
+import {beginAim,dragAim,releaseAim,stickOffset,finishGesture} from '../controls.js?v=2.28.42';
+import {RULES} from '../levels.js?v=2.28.42';
 
 const source=readFileSync(new URL('../game.mjs',import.meta.url),'utf8');
 function extractFn(name){
@@ -165,3 +165,4 @@ for(const [width,height] of [[844,390],[932,430],[667,375]])for(const mode of ['
   assert.equal(s.context.sticks[0].state.pointer,null);
   assert.equal(down(mode==='move'?safe.left+50:safe.right-50,safe.bottom-60),true,'open playfield still activates its stick');
 });
+

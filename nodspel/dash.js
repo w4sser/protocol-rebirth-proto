@@ -1,6 +1,6 @@
-import {audioEvent} from './audio.js?v=2.28.41';
-import {RULES} from './levels.js?v=2.28.41';
-import {moveWithActors} from './physics.mjs?v=2.28.41';
+import {audioEvent} from './audio.js?v=2.28.42';
+import {RULES} from './levels.js?v=2.28.42';
+import {moveWithActors} from './physics.mjs?v=2.28.42';
 export function createDash(){return {readyAt:0,remaining:0,direction:null,startedAt:-Infinity};}
 export function dashCharge(state,now){return Math.max(0,Math.min(1,1-(state.readyAt-now)/(state.cooldownMs??RULES.dash.cooldownMs)));}
 export function startDash(state,direction,now,cooldownMs=RULES.dash.cooldownMs){
@@ -17,3 +17,4 @@ export function stepDash(state,position,dt,enemies,solids,floors){
   state.remaining=Math.max(0,state.remaining-distance);
   return moveWithActors(position,{x:state.direction.x*distance,z:state.direction.z*distance},enemies,solids,floors,RULES.playerRadius);
 }
+

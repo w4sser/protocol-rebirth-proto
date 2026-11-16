@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RULES,AREAS,AREA_RULES,generateLevel,ruleSet} from '../levels.js';
 // the Hard flag lives in the module instance round.js imports (it carries the ?v= tag), so flip it there
-import {setHard,isHard} from '../levels.js?v=2.28.41';
+import {setHard,isHard} from '../levels.js?v=2.28.42';
 import {createRound,ROUND_DURATION_MS,hitEnemy} from '../round.js';
 import {createCombat,stepCombat} from '../combat.js';
 import {readLaunch,buildRaidResult} from '../raid-result.js';
@@ -148,3 +148,4 @@ test('?hard=1 sets the Hard clock (-20 %), tags the round and the raid result; d
   });
   assert.equal(isHard(),false);const done=createRound('t',0);done.over=true;done.reason='death';assert.equal('hard' in buildRaidResult(done),false);
 });
+

@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.41"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.42"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -92,6 +92,54 @@ function freshState(){
   return st;
 }
 function save(){ if(typeof resetting !== "undefined" && resetting) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+// Grants only run after the separate storage namespace has been installed.
+function debugMode(){ return window.PR_DEBUG && window.PR_DEBUG.mode; }
+function prepareDebugState(st){
+  const mode = debugMode();
+  if(!mode || st.debugUnlockMode === mode) return st;
+  const cfg = D.debugUnlocks;
+  st.debugUnlockMode = mode; st.debugAreas = true;
+  st.introSeen = true; st.surveyDone = true;
+  st.beat = PROG.beats.findIndex(b => b.id === "choice_upgrade");
+  st.tracked = null; st.trackedQuest = null; st.coreLaunch = null;
+  st.payoff = null; st.payoffDone = true;
+  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true};
+  st.areaScouted = st.areaScouted || {}; st.areaSeen = st.areaSeen || {};
+  st.modules.rebirth_core = Math.max(st.modules.rebirth_core || 0, ...D.worldMap.areas.map(a => a.requires ? a.requires.core : 1));
+  st.modules[PROG.raidPrepUnlockModule] = Math.max(st.modules[PROG.raidPrepUnlockModule] || 0, 1);
+  st.roomUnlocks[PROG.raidPrepUnlockModule] = true;
+  st.baseState = "core_refined";
+  st.power = {value:100, at:Date.now(), offlineDrained:0, reinforceAt:0, lastRoom:null, maintain:null};
+  for(const a of D.worldMap.areas){
+    st.areaScouted[a.id] = true; st.areaSeen[a.id] = true; st.unlocks.hard[a.id] = true;
+  }
+  if(mode === "all"){
+    for(const m of D.modules) st.modules[m.id] = Math.max(...m.levels.map(l => l.level));
+    for(const r of D.baseMap.rooms) st.roomUnlocks[r.id] = true;
+    for(const id of Object.keys(st.cur)) st.cur[id] = Math.max(st.cur[id] || 0, cfg.currency);
+    for(const item of D.items){
+      if(!item.free){
+        const inv = isArmoryItem(item.id) ? st.armory : st.stash;
+        inv[item.id] = Math.max(inv[item.id] || 0, cfg.items);
+      }
+      if(item.weapon || item.slot === "armor"){
+        st.gearTier[item.id] = PROG.gearMerge.copies.length + 1;
+        st.gearUp[item.id] = (PROG.gearUpgrade.byId[item.id]?.maxLevel ?? PROG.gearUpgrade.maxLevel) + PROG.gearMerge.copies.length;
+      }
+    }
+    for(const r of D.recipes) st.unlocks.recipe[r.id] = true;
+    for(const item of (D.chipShop && D.chipShop.items) || []) if(st.unlocks[item.kind]) st.unlocks[item.kind][item.ref] = true;
+    st.bondXp = Math.max(...D.bit.bondLevels.map(b => b.xp));
+    const o = PROG.operator, n = o.maxLevel - 1;
+    st.opXp = n * o.xpBase + o.xpStep * n * (n - 1) / 2;
+    st.skills = st.skills || {};
+    for(const [id, skill] of Object.entries(PROG.playerStats.skills)) st.skills[id] = skill.xpPerLevel * skill.maxLevel * (skill.maxLevel + 1) / 2;
+    st.mastery = st.mastery || {};
+    for(const item of D.items) if(item.weapon) st.mastery[item.id] = Math.max(...PROG.playerStats.weaponMastery.killsForStar);
+    st.fuel = D.retention.fuel.max; st.fuelAt = Date.now();
+  }
+  return st;
+}
 function load(){
   try{
     const raw = localStorage.getItem(SAVE_KEY);
@@ -108,10 +156,10 @@ function load(){
       if(st.v === 13) migrateBuilt(st);
       if(st.v === 14) migrateTalents(st);
       if(was >= 6 && was < SAVE_VERSION) localStorage.setItem(SAVE_KEY, JSON.stringify(st));
-      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); migrateCableRetro(st); migrateBitCardsSeen(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return st; }
+      if(st.v === SAVE_VERSION){ st.roomUnlocks = st.roomUnlocks || {}; migrateSalvage(st); migrateSkills(st); migratePayoff(st); migrateAreaSeen(st); migratePower(st); migrateCableRetro(st); migrateBitCardsSeen(st); splitArmory(st); if(!st.gearTier) st.gearTier = {}; if(!st.attach) st.attach = {}; if(!st.talents || typeof st.talents !== "object") st.talents = { spent:{}, respecs:0 }; if(st.guardianMaterial === undefined) st.guardianMaterial = null; return prepareDebugState(st); }
     }
   }catch(e){}
-  return freshState();
+  return prepareDebugState(freshState());
 }
 // v1.67: first-upgrade payoff (PROG.firstUpgradePayoff). Saves that already own a payoff upgrade never get a late one.
 function migratePayoff(st){
@@ -938,10 +986,10 @@ function talentRank(id){ return (S.talents && S.talents.spent && S.talents.spent
 function talentLearned(id){ return talentRank(id) > 0; }
 function branchSpent(branchId){ if(!TAL) return 0; const b = TAL.branches.find(b => b.id === branchId); return b ? b.nodes.reduce((s, n) => s + talentRank(n.id), 0) : 0; }
 function talentSpentTotal(){ return TAL ? TAL.branches.reduce((s, b) => s + branchSpent(b.id), 0) : 0; }
-function talentPoints(){ return Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
+function talentPoints(){ return debugMode() === "all" && TAL ? TAL.branches.reduce((sum, b) => sum + b.nodes.reduce((n, node) => n + node.ranks, 0), 0) : Math.max(0, bondLevel() - 1); } // 1 point per Bond level from Bond 2 (Bond 1 = 0)
 function talentPointsAvailable(){ return talentPoints() - talentSpentTotal(); }
 function talentRowReq(row){ return ((TAL && TAL.rowGateStep) || 0) * (row - 1); }
-function talentRowUnlocked(branch, row){ return branchSpent(branch.id) >= talentRowReq(row); }
+function talentRowUnlocked(branch, row){ return debugMode() === "all" || branchSpent(branch.id) >= talentRowReq(row); }
 function talentChoiceTaken(branch, group){ return branch.nodes.find(n => n.choiceGroup === group && talentLearned(n.id)) || null; }
 function talentCanLearn(id){
   const t = talentNodeDef(id); if(!t || talentPointsAvailable() < 1) return false;
@@ -3636,7 +3684,11 @@ SCREENS.vendor = function(){
 SCREENS.dev = function(){
   let html = ''+
     '<h1>Dev Panel</h1><div class="sub">beat: ' + curBeat().id + ' · raids: ' + S.raids + ' · deaths: ' + S.deaths + '</div>';
+  html += '<p class="small">' + (debugMode() ? 'DEBUG SANDBOX: ' + (debugMode() === 'all' ? 'Everything' : 'All worlds') + '. Progress is separate from your normal save.' : 'Unlocks start a separate debug sandbox. Your normal save is preserved.') + '</p>';
   html += '<div class="devgrid">' +
+    '<button onclick="A.devUnlock(\'worlds\')">Unlock All Worlds</button>' +
+    '<button onclick="A.devUnlock(\'all\')">Unlock Everything</button>' +
+    (debugMode() ? '<button onclick="A.devExitSandbox()">Return to Normal Save</button>' : '') +
     '<button onclick="A.devForce(\'extract\')">Force next: SUCCESS</button>' +
     '<button onclick="A.devForce(\'death\')">Force next: FAILURE</button>' +
     '<button onclick="A.devCur()">+100 all currencies</button>' +
@@ -3877,8 +3929,10 @@ function bigMapOn(){ try{ if(new URLSearchParams(location.search).get("levels") 
 function setBigMap(on){ try{ localStorage.setItem("pr.bigMap", on ? "1" : "0"); }catch(e){} }
 function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
+  if(debugMode()) returnPath = window.PR_DEBUG.withMode(returnPath);
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
     "&return=" + encodeURIComponent(returnPath) +
+    (debugMode() ? "&debugMode=" + encodeURIComponent(debugMode()) : "") +
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +
     (Number.isFinite(opts.armorShield) ? "&armorShield=" + encodeURIComponent(opts.armorShield) : "") +
@@ -4947,7 +5001,22 @@ window.A = {
   toggleHard(){ if(!hardAvailable(raidArea())) return; session.hard = !hardOn(); act("HARD_TOGGLED", { area:raidArea(), on:session.hard }); refresh(); },
   toggleBigMap(){ const on = !bigMapOn(); setBigMap(on); act("BIGMAP_TOGGLED", { on }); refresh(); },
   setArea(id){ if(!AREA_DEFS[id] || !areaUnlocked(id)) return; S.area = id; if(!AREA_DEFS[id].requires || areaEarned(id)){ S.areaSeen = S.areaSeen || {}; S.areaSeen[id] = true; } act("AREA_SELECTED", { area:id }); refresh(); },
-  debugUnlockAreas(on){ S.debugAreas = on !== false; save(); refresh(); },
+  debugUnlockAreas(on){ if(on === false){ if(debugMode()) A.devExitSandbox(); } else A.devUnlock('worlds'); },
+  devUnlock(mode){
+    if(!window.PR_DEBUG || !['worlds','all'].includes(mode) || inRaid() || session.raidNavigating) return;
+    try{
+      const source = debugMode() ? (window.PR_DEBUG.normalSave() || JSON.stringify(freshState())) : JSON.stringify(S);
+      window.PR_DEBUG.seed(mode, source);
+      resetting = true; // the departing ordinary page must not write over its saved profile
+      const target = window.PR_DEBUG.withMode(location.pathname + location.search, mode);
+      (window.PR_NAVIGATE || (url => location.assign(url)))(target);
+    }catch(e){ resetting = false; toast('Could not start debug sandbox. Your normal save is unchanged.'); }
+  },
+  devExitSandbox(){
+    if(!debugMode() || inRaid() || session.raidNavigating) return;
+    save(); resetting = true;
+    (window.PR_NAVIGATE || (url => location.assign(url)))(window.PR_DEBUG.withMode(location.pathname + location.search, null));
+  },
   // v2.22.2 direct path (docs/ftue-design.md): a fresh profile's splash PLAY lands here instead of
   // the cold open / Core popup / loadout screen. Core stays unbuilt on purpose -- it's the single
   // next step base shows once the player returns from this raid (progressionGoal() already prefers
@@ -5605,7 +5674,7 @@ window.A = {
   },
   devReset(){
     localStorage.removeItem(SAVE_KEY);
-    S = freshState();
+    S = prepareDebugState(freshState());
     session = { pendingRaid:null, prep:null, screen:"base", screenParam:null, devForce:null, camera:null, plateStage:null, cameraResize:null, devPlateStage:null, cameraLayout:null,
       profilesMeta:null, profilesRenaming:null, profilesImport:false, profilesImportTarget:0 };
     refresh();
@@ -5952,7 +6021,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   const profilesBtn = document.getElementById("profiles-btn");
   if(profilesBtn) profilesBtn.addEventListener("click", () => { setMenu(false); A.openProfiles(); });
   { const rp = document.getElementById("replay-start-btn"); if(rp) rp.addEventListener("click", () => { setMenu(false); try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){} location.reload(); }); }
-  { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION; }
+  { const mv = document.getElementById("menu-version"); if(mv) mv.textContent = "v" + APP_VERSION + (debugMode() ? " | DEBUG " + debugMode().toUpperCase() : ""); }
   // v2.12.1 start screen: settings/slot access from the splash itself, without triggering the
   // tap-anywhere-to-enter flow (stopPropagation keeps #splash's own click listener from firing).
   { const sb = document.getElementById("splash-settings-btn"); if(sb) sb.addEventListener("click", e => { e.stopPropagation(); setMenu(true); }); }
@@ -6010,4 +6079,5 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   maybeShowHandIn();
 }
 /* export pure logic for headless tests */
-if(typeof module !== "undefined") module.exports = { goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };
+if(typeof module !== "undefined") module.exports = { prepareDebugState, goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };
+

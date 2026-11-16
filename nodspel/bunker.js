@@ -2,10 +2,10 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.41';
-import {loadKit,instance} from './town.js?v=2.28.41';
-import {rngFrom} from './art.js?v=2.28.41';
-import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.41';
+import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.42';
+import {loadKit,instance} from './town.js?v=2.28.42';
+import {rngFrom} from './art.js?v=2.28.42';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.42';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -99,7 +99,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.41`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.42`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
@@ -237,3 +237,4 @@ export function buildBunker(level,group,assets,Q){
   for(const a of [...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights)){const l=new THREE.PointLight(a.color,5,7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
   return {instancedKinds:[...by.keys()],anchors,floorTiles};
 }
+

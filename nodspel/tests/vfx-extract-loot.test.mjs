@@ -10,7 +10,7 @@ import {createLootBurstPool} from '../vfx-loot-burst.js';
 // Same specifier (incl. the ?v= query) the VFX modules themselves use -- Node's ESM loader caches
 // by exact specifier string, so importing the unversioned path here would resolve to a *different*
 // module instance (and a second DataTexture) than the one vfx-extract-beam.js/vfx-loot-burst.js share.
-import {softDotTexture} from '../vfx-textures.js?v=2.28.41';
+import {softDotTexture} from '../vfx-textures.js?v=2.28.42';
 
 test('extract beam builds a shaded volumetric cylinder, decal and rising particles; quality scales particle count and drops noise',()=>{
   const high=createExtractBeam({quality:'high'}),low=createExtractBeam({quality:'low'});
@@ -207,3 +207,4 @@ test('pickup fountain clears the loot, retains its origin, and finishes with a p
   let disposed=0;for(const resource of [slot.pillar.geometry,slot.pillar.material,slot.flash.geometry,slot.flash.material])resource.addEventListener('dispose',()=>disposed++);
   fx.dispose();fx.dispose();assert.equal(disposed,4);
 });
+

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=2.28.41';
-import {RULES} from '../levels.js?v=2.28.41';
-import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.41';
+import {createRound} from '../round.js?v=2.28.42';
+import {RULES} from '../levels.js?v=2.28.42';
+import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.42';
 const origin={x:0,z:0},facing={x:1,z:0};
 const foe=(id,x,z)=>({id,kind:'enemy',type:'grunt',aggro:true,active:true,x,z,r:.48,health:10,facing:0});
 function arena(enemies=[],spreadDegrees=0,rand=()=>.5){
@@ -88,3 +88,4 @@ test('real fire path buffers tap mode and selects its target when hitstop ends',
   ctx.gameClock=()=>300;ctx.fire();assert.equal(shots[1].tap,false);
   close(shots[1].remaining,a.weapon.rule.range);
 });
+

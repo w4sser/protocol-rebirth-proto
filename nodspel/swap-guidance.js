@@ -1,5 +1,5 @@
-import {goalProgress} from './progression-goal.js?v=2.28.41';
-import {RARITY_ORDER,rarityOf} from './rarity.js?v=2.28.41';
+import {goalProgress} from './progression-goal.js?v=2.28.42';
+import {RARITY_ORDER,rarityOf} from './rarity.js?v=2.28.42';
 
 const itemDef=id=>globalThis.DATA.items.find(item=>item.id===id);
 const relates=(part,id)=>part.kind==='currency'?!!itemDef(id)?.grantsCurrency?.[part.id]:part.id===id;
@@ -28,3 +28,4 @@ export function suggestSwap(goal,bag,incoming){
   options.sort((a,b)=>a.regressions-b.regressions||a.loss-b.loss||a.rarity-b.rarity);
   return options[0]?.id??null;
 }
+

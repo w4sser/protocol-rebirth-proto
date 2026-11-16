@@ -1,4 +1,4 @@
-import {inputPaused} from '../perks.js?v=2.28.41';
+import {inputPaused} from '../perks.js?v=2.28.42';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -91,3 +91,4 @@ test('full-budget touch HUD pointer tap heals at 40 HP, spends one kit and repor
   r.stakes.healed=0;pointer('pointerdown');pointer('pointerup');assert.equal(feedback,'No medkits carried');
   dom.window.close();
 });
+

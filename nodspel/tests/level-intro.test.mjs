@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
-import {createRound,tickRound} from '../round.js?v=2.28.41';
-import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.41';
-import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.41';
+import {createRound,tickRound} from '../round.js?v=2.28.42';
+import {pausePick,resumePick,gameTime,inputPaused} from '../perks.js?v=2.28.42';
+import {levelIntroTitle,LEVEL_INTRO_MS} from '../level-intro.mjs?v=2.28.42';
 
 test('levelIntroTitle names only discrete bunker levels, not big/continuous areas',()=>{
   assert.equal(levelIntroTitle({number:1,big:false}),'BUNKER LEVEL 1');
@@ -68,3 +68,4 @@ test('debug harness URLs skip the card unless they opt in with levelIntro=1',()=
   const opt=harness({number:1,big:false},'?debug=1&levelIntro=1');opt.ctx.showLevelIntro();
   assert.equal(opt.dom.introText,'BUNKER LEVEL 1');assert.equal(opt.round.pauseAt!=null,true);
 });
+
