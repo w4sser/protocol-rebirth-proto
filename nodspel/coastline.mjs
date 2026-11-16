@@ -366,7 +366,18 @@ function heroCoastRingData(profile){
     // has at least ~2.5 m of horizontal landform. This changes no X/Z seam.
     // A tiny residual relief keeps a natural tide-worn lip in tight gaps.
     const crownWidth=.055+.945*smooth(.95,2.55,band);
-    const relief=(section.relief*cap[k]*diagonal+ledge)*crownWidth;
+    // Pass W: a true rounded ROCK VOLUME within the same coastline mesh.
+    // The old cap[k] raised each angular wedge by the same cross-section and
+    // looked like a long embankment. Give the primary dome and its offset
+    // shoulder DIFFERENT positions in both radius and angle so the crown has
+    // a two-dimensional mound silhouette with lower saddles in between.
+    // The original ground seam (k=0) and underwater toe (last k) stay fixed.
+    const mainDome=Math.exp(-Math.pow((section.local+.22)/.39,2))
+      *Math.exp(-Math.pow((f-.67)/.29,2));
+    const offsetShoulder=Math.exp(-Math.pow((section.local-.46)/.32,2))
+      *Math.exp(-Math.pow((f-.41)/.23,2));
+    const volume=.53+.57*mainDome+.31*offsetShoulder;
+    const relief=(section.relief*cap[k]*diagonal*volume+ledge)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
