@@ -110,8 +110,13 @@ test('Pass ZA: residual bright detail is shoreline-only and clears player, POIs 
   assert.ok(kept.length>1,'some sparse coastal detail is still present');
   assert.ok(kept.length<coast.length*.35,'remaining pale coastal plants stay sparse');
   assert.ok(kept.every(item=>coast.includes(item)),'only shoreline pockets retain pale detail');
-  assert.deepEqual(filterDressingTrees([sample(-f.w/2+.5,5,'marram-grass-tuft-8c7a99')],
-    {nativePines:true,level}),[],'no white tuft survives even at the shoreline');
+  assert.deepEqual(filterDressingTrees([
+    sample(-f.w/2+.5,5,'marram-grass-tuft-8c7a99'),
+    sample(-7.319,1.086,'sea-holly-clump-ce3bc6')
+  ],{nativePines:true,level}),[],
+    'real-camera-confirmed white beach tufts and white sea-holly are entirely excluded from v2');
+  assert.equal(filterDressingTrees([sample(-7.319,1.086,'sea-holly-clump-ce3bc6')]).length,1,
+    'legacy non-v2 sea-holly dressing remains untouched');
   const dark=[sample(0,0,'grass-tuft-a40a08'),sample(-4,2,'round-bush-cd2ac0'),
     sample(0,2,'medium-rock-e08405')];
   assert.deepEqual(filterDressingTrees(dark,{nativePines:true,level}),dark,
