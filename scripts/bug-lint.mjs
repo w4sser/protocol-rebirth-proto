@@ -397,13 +397,29 @@ export const RULES=[
      if(vaultFn && !/progressionGoal\(\)/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must check progressionGoal() so it plays the instant the Vault becomes the next goal, not only once already built');
      const queue=(app.match(/function queueSystemIntro\(beat, after\)\{[\s\S]*?\n\}/)||[''])[0];
      if(!queue.includes('onDone:() =>') || !queue.includes('S.bitCardsSeen[beat.id] = false') || !queue.includes('pendingSystemIntros.has(beat.id)'))out.push('app.js: system intros must deduplicate pending scenes and persist completion on dismissal');
-     for(const id of ['raid_briefing','quest_intro','vault_intro'])
-       if(!app.includes('queueSystemIntro(BIT_CUTSCENES.'+id))out.push('app.js: '+id+' must use the completion-gated intro queue');
-     if(!app.includes('if(modId === "storage" && !S.bitCardsSeen.vault_intro)'))out.push('app.js: Vault build must wait for its intro dismissal');
+     if(!app.includes('queueSystemIntro(BIT_CUTSCENES.quest_intro') || !app.includes('queueSystemIntro(roomUnlockStages("fabricator").teaser') || !app.includes('queueSystemIntro(roomUnlockStages("storage").teaser'))out.push('app.js: system teasers must use the completion-gated intro queue');
      const migrate=(app.match(/function migrateBitCardsSeen\(st\)\{[\s\S]*?\n\}/)||[''])[0];
      if(!migrate)out.push('app.js: migrateBitCardsSeen(st) not found');
      else for(const id of ['raid_briefing','quest_intro','vault_intro'])
        if(!new RegExp('st\\.bitCardsSeen\\.'+id+'\\s*===\\s*undefined').test(migrate))out.push('app.js: migrateBitCardsSeen must back-fill st.bitCardsSeen.'+id+' for saves already past its live trigger');
+     return out;}},
+  {id:'new-find-highlights-goal',pr:'v2.28.4x new find clarity',why:'New finds need one BIT explanation and a compact current-use priority',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const popup=(app.match(/function maybeShowItemInfo\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     for(const token of ['!S.bitCardsSeen.new_find','S.bitCardsSeen.new_find = true','newfind-bit','newFindUsesHtml(id)','PRBitCutscene?.isOpen()']) if(!popup.includes(token))out.push('NEW FIND missing '+token);
+     const rank=(app.match(/function newFindUses\(id\)\{[\s\S]*?\n\}/)||[''])[0];
+     for(const token of ['progressionGoal()','trackedQuest()','u.module === goal.module','u.level === goal.level','canAfford']) if(!rank.includes(token))out.push('NEW FIND priority missing '+token);
+     if(!app.includes('<details><summary>+') || !app.includes('more uses</summary>'))out.push('NEW FIND must collapse other uses');
+     if(!app.includes('Object.keys(st.seenItems || {})'))out.push('old finds must migrate the explanation flag');
+     return out;}},
+  {id:'room-unlock-two-stage',pr:'v2.28.4x room unlock stages',why:'Room teasers must stay dark and builds must show their powered payoff without an intro gate',
+   check(c={}){const app=c.appSrc??read('app.js'),data=c.bitSrc??read('data/bit.js'),out=[];
+     for(const id of ['fabricator','storage']) if(!data.includes(id+':{') || !app.includes('roomUnlockStages("'+id+'").teaser') || !app.includes('roomUnlockStages("'+id+'").unlock'))out.push(id+': both room stages must use roomUnlockStages');
+     for(const id of ['raid_briefing','fabricator_built','vault_intro','vault_unlocked']) if(!data.includes('id:"'+id+'"'))out.push(id+': missing stage data');
+     if(!app.includes('to:powered ? def.powered : def.dark'))out.push('teasers must use dark art only');
+     const build=(app.match(/  build\(modId\)\{[\s\S]*?\n  sell\(/)||[''])[0];
+     if(/if\(modId === "storage" && !S\.bitCardsSeen\.vault_intro\)/.test(build))out.push('Vault build must not be gated by an intro');
+     if(!app.includes('st.bitCardsSeen.vault_unlocked = true'))out.push('built saves must migrate both stages');
      return out;}},
   {id:'vest-guarantee-existing-caches',pr:'v2.28.4x vest materials',why:'Missing vest materials must be actionable without exceeding the early-room crate cap or replacing a quest supply',
    check(c={}){const levels=c.levelsSrc??read('nodspel/levels.js'),game=c.gameSrc??read('nodspel/game.mjs'),app=c.appSrc??read('app.js');const out=[];

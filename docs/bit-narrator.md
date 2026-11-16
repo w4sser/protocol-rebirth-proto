@@ -333,3 +333,28 @@ Each real raid launch recalculates the shortage, including Scrap represented by 
 crates. Units are grouped in ordinary level-one caches using `quantity` / `contents`; no extra
 cache, no replacement of a quest/key/scout supply, and no free stash grant. A death leaves the
 shortage to be guaranteed again; extracting enough stops the guarantee.
+
+
+## Two-stage room unlock standard
+
+Every room introduction has two distinct stages, supplied by `DATA.roomUnlockStages` and
+`roomUnlockStages(id)`. The teaser plays when the room becomes the next goal: hold the dark
+image, give BIT a short introduction, and show NEXT with the real module cost plus missing
+part sources. A teaser never blocks a valid build. On the first actual build, the unlock
+uses that same dark image and morphs to the powered/open image; BIT explains the payoff and
+NEW names the real L1 benefits. Never show the powered room at the teaser stage.
+
+Each room requires a matched dark/powered art pair, teaser/unlock scene IDs, BIT lines, and
+strips derived from module/recipe data. Fabricator (`raid_briefing`, `fabricator_built`) and
+Vault (`vault_intro`, `vault_unlocked`) implement this pattern. Other rooms are backlog.
+Fabricator keeps its existing lines and live vest HAVE/NEED strip. Vault builds immediately;
+if its teaser was missed, the unlock is sufficient. Any already queued teaser stays ahead
+of the unlock in the single held narrator queue. No stacked popups. Existing built Vaults
+migrate both stages as seen; an old `vault_intro` on an unbuilt Vault counts only as teaser.
+Art still warms through the shared cache; each scene holds until tap and hints at 3 seconds.
+
+The first NEW FIND popup includes BIT's bust and speech bubble inside the shared overlay,
+explaining Used for once. Later finds use the compact item card alone. The next progression
+goal leads, then a tracked quest or affordable recipe, then general uses; additional uses
+start collapsed. Sell/Recycle values remain visible. Old saves with an already seen find
+skip the explanation; items still queued for their first popup do not count as seen.

@@ -264,7 +264,7 @@ function boot(seedSave, calls, artMode = "success", requests = []){
   w.eval(fs.readFileSync(path + "/save-slots.js", "utf8"));
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
-    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,fabCraftHtml,craftConfirmHtml,vestGuaranteeNeed,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml};");
+    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,fabCraftHtml,craftConfirmHtml,vestGuaranteeNeed,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml,maybeShowItemInfo,newFindUses,newFindUsesHtml,pendingSystemIntros};");
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -294,7 +294,7 @@ async function bootToCoreOneTapAway(calls){
   assert(requests.some(src=>/cutscene-vault-dark/.test(src)), "Vault pair warms through the renderer cache");
   assert(requests.some(src=>/cutscene-vault-powered/.test(src)));
   const saved=JSON.parse(JSON.stringify(w.T.state()));
-  saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};
+  saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true,vault_unlocked:true};
   const seenRequests=[], seen=boot(saved, [], "stall", seenRequests);
   assert.deepEqual(seenRequests,[],"seen scenes retain no warm images on boot");
   w.close();seen.close();
@@ -566,16 +566,25 @@ async function bootPastFabricator(calls){
   assert.equal(vaultCalls.length, 1, "vault_intro fires the instant the Vault becomes the next goal");
   assert.equal(calls.findIndex(c => c.id === "vault_intro") > calls.findIndex(c => c.id === "quest_intro"), true, "queued after quest_intro");
   assert.match(vaultCalls[0].line, /Vault/);
-  assert(vaultCalls[0].info.some(r => r.label === "NEW" && r.text === w.T.MODS.storage.levels[0].benefitText), "names the real Storage/Vault benefit from data/modules.js");
+  assert.equal(vaultCalls[0].from, vaultCalls[0].to, "teaser stays dark");
+  assert(!vaultCalls[0].info.some(r => r.label === "NEW"), "benefits belong to unlock");
   assert(vaultCalls[0].info.some(r => r.label === "NEXT" && /Vault/.test(r.text)), "names the Vault's own build cost");
   assert.equal(w.T.state().bitCardsSeen.vault_intro, false, "queued Vault intro is not completed");
   const st=w.T.state();st.stash.polymer_plate=2;st.stash.scrap_alloy=2;st.cur.scrap=50;
   w.A.build("storage");
-  assert.equal(st.modules.storage,0,"cannot build or spend before the Vault explanation");
-  assert.equal(st.cur.scrap,50);
+  assert.equal(st.modules.storage,1,"build never waits for teaser dismissal");
+  assert.equal(st.cur.scrap,0);
+  const unlock = calls.find(c => c.id === "vault_unlocked");
+  assert(unlock, "actual build queues the unlock");
+  assert.notEqual(unlock.from, unlock.to, "unlock morphs dark to powered");
+  assert(unlock.info.some(r => r.label === "NEW" && r.text === w.T.MODS.storage.levels[0].benefitText));
+  assert.match(unlock.line, /I used to store feelings here. Now it's scrap/);
+  unlock.onDone();
+  assert.equal(st.bitCardsSeen.vault_unlocked,true);
   vaultCalls[0].onDone();
   assert.equal(st.bitCardsSeen.vault_intro,true);
-  w.A.build("storage");assert.equal(st.modules.storage,1,"build works after intro");
+  assert.equal(st.modules.storage,1,"only one build");
+  w.close();
 }
 
 // vault_intro: fires once, even across repeated base visits once the Vault is the named goal.
@@ -678,6 +687,47 @@ for(const mode of ["success", "error", "stall"]){
   }
   await resolveBeat();
   assert.equal(requests.filter(src => /fabricator-powered/.test(src)).length, 1, "no repeated probes");
+  w.close();
+}
+
+// NEW FIND: the explanation shares the first popup, current need leads, other uses collapse.
+{
+  const w=boot(null,[]),st=w.T.state();
+  st.modules.rebirth_core=1;st.modules.fabricator=1;st.modules.storage=0;
+  st.ftueComplete=true;st.introSeen=true;st.tracked=null;
+  st.bitCardsSeen={core_restored:true,fabricator_built:true,quest_intro:true,vault_intro:true};
+  w.T.pendingSystemIntros.clear();w.A.go("base");w.T.pendingSystemIntros.clear();w.T.closeAllPopups();
+  st.itemInfoQueue=["polymer_plate","scrap_alloy"];
+  w.T.maybeShowItemInfo();
+  let ov=w.document.getElementById("overlay");
+  assert(ov.querySelector(".newfind-bit .bit-card-bubble"),"first find has BIT bust and bubble inside the shared popup");
+  assert.match(ov.textContent,/New junk! Correction: new treasure/);
+  assert.match(ov.querySelector(".newfind-needed").textContent,/Vault.*next goal/);
+  assert(ov.querySelector("details:not([open]) summary").textContent.includes("more uses"));
+  assert(!ov.querySelector("details").open,"long list starts collapsed");
+  assert.match(ov.textContent,/Sell.*Recycle/);
+  assert.equal(st.bitCardsSeen.new_find,true);
+  w.T.closeAllPopups();w.T.maybeShowItemInfo();
+  ov=w.document.getElementById("overlay");
+  assert(ov && !ov.querySelector(".newfind-bit"),"later finds have no narrator explanation");
+  const raw=JSON.parse(JSON.stringify(st));
+  delete raw.bitCardsSeen.new_find;raw.seenItems={polymer_plate:1};raw.itemInfoQueue=[];
+  w.T.migrateBitCardsSeen(raw);assert.equal(raw.bitCardsSeen.new_find,true,"past finds suppress the new explanation");
+  const pending={modules:{},bitCardsSeen:{},seenItems:{polymer_plate:1},itemInfoQueue:["polymer_plate"]};
+  w.T.migrateBitCardsSeen(pending);assert.equal(pending.bitCardsSeen.new_find,undefined,"queued but unseen item still gets explanation");
+  w.close();
+}
+
+// Two-stage Vault migration preserves a seen teaser without granting a future unlock.
+{
+  const w=boot(null,[]);
+  for(const built of [0,1]) for(const seen of [undefined,false,true]){
+    const st={modules:{storage:built},bitCardsSeen:{vault_intro:seen}};
+    w.T.migrateBitCardsSeen(st);
+    assert.equal(st.bitCardsSeen.vault_unlocked,built ? true : undefined);
+    assert.equal(st.bitCardsSeen.vault_intro,built ? true : seen);
+    const once=JSON.stringify(st);w.T.migrateBitCardsSeen(st);assert.equal(JSON.stringify(st),once);
+  }
   w.close();
 }
 

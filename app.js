@@ -103,7 +103,7 @@ function prepareDebugState(st){
   st.beat = PROG.beats.findIndex(b => b.id === "choice_upgrade");
   st.tracked = null; st.trackedQuest = null; st.coreLaunch = null;
   st.payoff = null; st.payoffDone = true;
-  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true, raid_briefing:true, quest_intro:true, vault_intro:true};
+  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true, raid_briefing:true, quest_intro:true, vault_intro:true, vault_unlocked:true, new_find:true};
   st.areaScouted = st.areaScouted || {}; st.areaSeen = st.areaSeen || {};
   st.modules.rebirth_core = Math.max(st.modules.rebirth_core || 0, ...D.worldMap.areas.map(a => a.requires ? a.requires.core : 1));
   st.modules[PROG.raidPrepUnlockModule] = Math.max(st.modules[PROG.raidPrepUnlockModule] || 0, 1);
@@ -233,6 +233,13 @@ function migrateBitCardsSeen(st){
   if(st.bitCardsSeen.raid_briefing === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.raid_briefing = true;
   if(st.bitCardsSeen.quest_intro === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.quest_intro = true;
   if(st.bitCardsSeen.vault_intro === undefined && ((st.modules && st.modules.storage) || 0) >= 1) st.bitCardsSeen.vault_intro = true;
+  // Additive stages: old vault_intro means teaser only until the room is actually built.
+  if(((st.modules && st.modules.storage) || 0) >= 1){
+    st.bitCardsSeen.vault_intro = true;
+    st.bitCardsSeen.vault_unlocked = true;
+  }
+  if(st.bitCardsSeen.new_find === undefined && Object.keys(st.seenItems || {}).some(id =>
+    st.seenItems[id] && !(st.itemInfoQueue || []).includes(id))) st.bitCardsSeen.new_find = true;
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -3854,6 +3861,37 @@ function usedForHtml(id){
   const list = parts.length ? parts.join(", ") : "nothing at the base yet. Sell it or keep it for a quest.";
   return '<div class="card small usedfor"><b>Used for:</b> ' + list + '</div>';
 }
+// Rank live needs before general uses; do not change the item catalog's full detail view.
+function newFindUses(id){
+  const info = D.itemInfo(id), goal = progressionGoal(), quest = trackedQuest();
+  const uses = info.uses.map(u => ({...u}));
+  let first;
+  if(goal) first = uses.find(u => u.kind === "upgrade" && u.module === goal.module && u.level === goal.level);
+  if(first){ uses.splice(uses.indexOf(first),1); first = {...first,label:goal.name + " (next goal)"}; }
+  const obj = quest && quest.step.objective;
+  if(obj && ((obj.items && obj.items[id]) || obj.item === id)){
+    const q = {label:quest.step.title + " (tracked quest)"};
+    if(first) uses.unshift(q); else first = q;
+  }
+  if(!first){
+    first = uses.find(u => u.kind === "recipe" && (S.modules.fabricator || 0) >= 1 && (() => {
+      const r = D.recipes.find(r => r.id === u.recipe);
+      return r && canAfford({items:r.inputs,scrap:craftCost(r)});
+    })());
+    if(first) uses.splice(uses.indexOf(first),1);
+  }
+  if(!first){ first = uses.shift(); }
+  if(info.item.slot || info.item.weapon || info.item.tool || (info.item.uses || []).includes("loadout")){
+    const gear={label:"Raid loadout (equip in Raid Prep)"};
+    if(first) uses.unshift(gear); else first=gear;
+  }
+  return {first,rest:uses};
+}
+function newFindUsesHtml(id){
+  const {first,rest} = newFindUses(id);
+  return '<div class="usedfor"><b>Used for:</b> ' + (first ? '<span class="newfind-needed">Needed for: ' + esc(first.label) + '</span>' : 'Sell it or keep it for a quest.') +
+    (rest.length ? '<details><summary>+' + rest.length + ' more uses</summary><div>' + rest.map(u => esc(u.label)).join(', ') + '</div></details>' : '') + '</div>';
+}
 function isInfoItem(id){ const it = ITEMS[id]; return !!it && !it.grantsCurrency && !it.scouts && !isFree(id); }
 // First time an item type comes home: one info card (shared popup) at the base, never mid-raid. Old saves seed
 // "seen" from the stash so returning players are not flooded; the FTUE keeps its own scripted cards.
@@ -3865,13 +3903,16 @@ function markSeenItems(ids){
   return fresh;
 }
 function maybeShowItemInfo(){
-  if(typeof document === "undefined" || !S.itemInfoQueue || !S.itemInfoQueue.length || document.getElementById("overlay") || session.screen !== "base") return;
-  const ids = S.itemInfoQueue.splice(0, 3).filter(id => ITEMS[id]);
+  if(typeof document === "undefined" || !S.itemInfoQueue || !S.itemInfoQueue.length || document.getElementById("overlay") || window.PRBitCutscene?.isOpen() || window.PRBitCard?.isOpen() || pendingSystemIntros.size || session.screen !== "base") return;
+  const ids = S.itemInfoQueue.splice(0, 1).filter(id => ITEMS[id]);
   if(!ids.length) return;
+  const firstFind = !S.bitCardsSeen.new_find;
+  S.bitCardsSeen.new_find = true;
   save();
-  overlay('<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + ids.map(id => { const info = D.itemInfo(id), it = info.item;
+  const narrator = firstFind ? '<div class="newfind-bit"><img class="bit-card-img" src="assets/production/bit-narrator/bust-tilt-smile-v1.webp" alt="BIT"><span class="bit-card-bubble">' + esc(D.newFindIntro) + '</span></div>' : '';
+  overlay(narrator + '<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + ids.map(id => { const info = D.itemInfo(id), it = info.item;
     return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemImg(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
-      usedForHtml(id).replace('card small usedfor', 'usedfor') +
+      newFindUsesHtml(id) +
       '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
     '<button class="primary" data-close>GOT IT</button>', () => setTimeout(() => { maybeShowItemInfo(); maybeShowHandIn(); }, 0));
 }
@@ -4711,21 +4752,40 @@ const BIT_CUTSCENES = {
       { label:"FIRST", text: (QC.bunker && QC.bunker.steps[0]) ? (QC.bunker.steps[0].title + " — " + QC.bunker.steps[0].brief) : "", iconHtml: IC("quest") }
     ]
   },
-  // 4. Vault unlock (Robert's art, 2026-11-16): plays before the Vault is ever the build target or
-  // built, whichever comes first (see maybeShowVaultIntro). Explains the real mechanic (data/modules.js
-  // storage L1: +8 stash slots, one secure slot that survives death) -- not an invented one.
   vault_intro:{
     id:"vault_intro",
-    from:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
-    to:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
-    line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap.",
-    bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" },
-    info:[
-      { label:"NEW", text: MODS.storage.levels[0].benefitText, iconHtml: IC("item-crate") },
-      { label:"NEXT", text:"Vault — " + costStripText(MODS.storage.levels[0].cost), iconHtml: costStripIcons(MODS.storage.levels[0].cost) }
-    ]
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" }
+  },
+  vault_unlocked:{
+    id:"vault_unlocked",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" }
   }
 };
+// Every room uses the same two stages; costs/benefits stay in module data.
+function roomUnlockStages(id){
+  const def = D.roomUnlockStages[id];
+  if(!def) return null;
+  const make = (stage, powered) => ({
+    ...BIT_CUTSCENES[stage.id], ...stage,
+    from:def.dark, to:powered ? def.powered : def.dark
+  });
+  const teaser = make(def.teaser, false), unlock = make(def.unlock, true);
+  if(id === "storage"){
+    const cost = MODS[id].levels[0].cost;
+    const missing = S ? costParts(cost).filter(p => p.have < p.need) : [];
+    teaser.info = [
+      { label:"NEXT", text:"Vault — " + costStripText(cost), iconHtml:costStripIcons(cost) },
+      { label:"HAVE/NEED", text:missing.length ? missing.map(p => partName(p) + " " + p.have + "/" + p.need + " (" + craftPartSource(p) + ")").join("; ") : "All parts ready", iconHtml:"" }
+    ];
+    unlock.info = [{ label:"NEW", text:MODS[id].levels[0].benefitText, iconHtml:IC("item-crate") }];
+  }
+  return {teaser, unlock};
+}
+for(const id of Object.keys(D.roomUnlockStages)){
+  const stages = roomUnlockStages(id);
+  BIT_CUTSCENES[stages.teaser.id] = stages.teaser;
+  BIT_CUTSCENES[stages.unlock.id] = stages.unlock;
+}
 // Start requests during the splash, in story order. Seen scenes hold no decoded images.
 function warmStoryArt(){
   const cutscene = window.PRBitCutscene;
@@ -4733,7 +4793,7 @@ function warmStoryArt(){
   if(!S.introSeen) cutscene.preload({id:"cold_open",
     from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
     to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
-  for(const id of ["core_restored", "raid_briefing", "fabricator_built", "quest_intro", "vault_intro", "first_death"])
+  for(const id of ["core_restored", "raid_briefing", "fabricator_built", "quest_intro", "vault_intro", "vault_unlocked", "first_death"])
     if(!S.bitCardsSeen[id]){
       if(id === "fabricator_built") fabricatorCutsceneArtReady();
       else cutscene.preload(BIT_CUTSCENES[id]);
@@ -4763,8 +4823,8 @@ function withVestShortage(beat){
 }
 function fabricatorCutsceneBeat(cb){
   fabricatorCutsceneArtReady();
-  cb(!fabricatorArtFailed ? withVestShortage(BIT_CUTSCENES.fabricator_built) : withVestShortage({
-    ...BIT_CUTSCENES.fabricator_built,
+  cb(!fabricatorArtFailed ? withVestShortage(roomUnlockStages("fabricator").unlock) : withVestShortage({
+    ...roomUnlockStages("fabricator").unlock,
     from:BIT_CUTSCENES.core_restored.to, to:BIT_CUTSCENES.core_restored.to,
     effect:"fabricator", waitForArt:false
   }));
@@ -4798,7 +4858,7 @@ function queueSystemIntro(beat, after){
 function maybeShowRaidBriefing(){
   if(S.bitCardsSeen.raid_briefing || !S.bitCardsSeen.core_restored) return;
   if((S.modules.fabricator || 0) >= 1) return;
-  queueSystemIntro(BIT_CUTSCENES.raid_briefing, () => { session.pulseRaidButton = true; });
+  queueSystemIntro(roomUnlockStages("fabricator").teaser, () => { session.pulseRaidButton = true; });
 }
 // PRB-162 moment 3: before the tracked-quest chip (trackedGoalHtml) can ever render, BIT explains
 // what quests are. The chain becomes trackable the instant the Fabricator is built (chainAvailable
@@ -4827,8 +4887,8 @@ function maybeShowVaultIntro(){
   // Same ordering guard as maybeShowQuestIntro: never queue ahead of fabricator_built.
   if(!S.bitCardsSeen.fabricator_built) return;
   const g = progressionGoal();
-  if(!session.vaultRequested && (S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;
-  queueSystemIntro(BIT_CUTSCENES.vault_intro, () => { session.vaultRequested = false; });
+  if((S.modules.storage || 0) >= 1 || !(g && g.module === "storage")) return;
+  queueSystemIntro(roomUnlockStages("storage").teaser);
 }
 
 /* ---------- actions ---------- */
@@ -5036,9 +5096,6 @@ window.A = {
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
-    if(modId === "storage" && !S.bitCardsSeen.vault_intro){
-      session.vaultRequested = true; maybeShowVaultIntro(); return;
-    }
     const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
     if(modId === "fabricator" && next.level === 1) fabricatorCutsceneArtReady();
     payCost(next.cost);
@@ -5088,6 +5145,11 @@ window.A = {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
         finish(); narrate();
       }, "reward", { afterDiscard:narrate });
+    } else if(modId === "storage" && next.level === 1){
+      // The scene itself carries the reward. Missing teasers never block a valid build.
+      S.bitCardsSeen.vault_intro = true;
+      finish();
+      if(!S.bitCardsSeen.vault_unlocked) queueSystemIntro(roomUnlockStages("storage").unlock);
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }

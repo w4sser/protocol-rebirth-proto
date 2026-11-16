@@ -280,7 +280,7 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
    'const g = progressionGoal();'
  )}).length,'fires if maybeShowVaultIntro stops gating on its own seen flag (would replay every base visit)');
  assert.ok(rule.check({appSrc:app.replace(
-   'const g = progressionGoal();\n  if(!session.vaultRequested && (S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;',
+   'const g = progressionGoal();\n  if((S.modules.storage || 0) >= 1 || !(g && g.module === "storage")) return;',
    'if((S.modules.storage || 0) < 1) return;'
  )}).length,'fires if maybeShowVaultIntro stops checking progressionGoal() (would only ever fire once already built, not the instant it becomes the goal)');
  assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.vault_intro === undefined','st.bitCardsSeen.vault_intro_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling vault_intro for already-past saves');
@@ -301,7 +301,7 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  const intro=by('bit-introduces-systems-first');
  assert.ok(intro.check({appSrc:app.replace('pendingSystemIntros.has(beat.id)','false')}).length);
- assert.ok(intro.check({appSrc:app.replace('if(modId === "storage" && !S.bitCardsSeen.vault_intro)','if(false)')}).length);
+ assert.ok(by('room-unlock-two-stage').check({appSrc:app.replace('    closeBuildingPopup();', '    if(modId === "storage" && !S.bitCardsSeen.vault_intro) return;')} ).length);
  const rule=by('vest-guarantee-existing-caches');
  assert.equal(rule.check().length,0);
  const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
@@ -313,4 +313,22 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  const appSource=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  assert.ok(rule.check({appSrc:appSource.replace('craftPartSource({ kind:"cur", id:"scrap" })','""')}).length);
  assert.ok(rule.check({appSrc:''}).length);
+}
+
+{
+ const rule=by('room-unlock-two-stage');
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const bit=fs.readFileSync(new URL('../data/bit.js',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0);
+ for(const stage of ['teaser','unlock']) for(const id of ['fabricator','storage'])
+   assert.ok(rule.check({appSrc:app.replaceAll('roomUnlockStages("'+id+'").'+stage,'missingStage()')}).length);
+ assert.ok(rule.check({appSrc:app.replace('to:powered ? def.powered : def.dark','to:def.powered')}).length);
+ assert.ok(rule.check({bitSrc:bit.replace('id:"vault_unlocked"','id:"missing"')}).length);
+}
+
+{
+ const rule=by('new-find-highlights-goal'),app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0);
+ for(const token of ['!S.bitCardsSeen.new_find','newFindUsesHtml(id)','u.module === goal.module','<details><summary>+','Object.keys(st.seenItems || {})'])
+   assert.ok(rule.check({appSrc:app.replaceAll(token,'removed')}).length,'detects missing '+token);
 }

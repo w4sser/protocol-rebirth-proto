@@ -111,3 +111,19 @@ BIT_DATA_ROOT.DATA.bit = {
     ]
   }
 };
+
+// Room story stages share one renderer/queue. Every new room needs a dark/powered art pair.
+BIT_DATA_ROOT.DATA.roomUnlockStages = {
+  fabricator:{
+    dark:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+    powered:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
+    teaser:{id:"raid_briefing"}, unlock:{id:"fabricator_built"}
+  },
+  storage:{
+    dark:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
+    powered:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
+    teaser:{id:"vault_intro", line:"Vault's next. Bring the parts below; I'll bring my excellent supervision."},
+    unlock:{id:"vault_unlocked", line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap."}
+  }
+};
+BIT_DATA_ROOT.DATA.newFindIntro = "New junk! Correction: new treasure. 'Used for' tells you where it fits — the top one is what we need next.";
