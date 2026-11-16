@@ -275,6 +275,37 @@ try{
     }
     await page.close();
   }
+  // Pass ZB: real-phone-sized screenshots for two unrelated deterministic
+  // 3-island levels in both quality modes. This samples how dressing reads in
+  // full game conditions beyond the single canonical art target island.
+  if(process.env.ARCH_MULTI_SEED_DRESSING==='1'){
+    for(const seed of ['arch-dressing-audit-02','arch-dressing-audit-09'])
+    for(const quality of ['high','low']){
+      const page=await browser.newPage(),errors=[];
+      try{
+        await page.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});
+        page.on('pageerror',e=>errors.push(String(e)));
+        page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))
+          errors.push('HTTP '+r.status()+' '+r.url());});
+        const query='?area=archipelago&archVisual=v2&seed='+seed+'&q='+quality+'&debug=1';
+        await page.goto(base+'/after/nodspel/'+query,{waitUntil:'domcontentloaded',timeout:60000});
+        await page.waitForFunction(()=>!document.querySelector('#boot-loader')&&window.__NR?.state,{timeout:60000});
+        await page.evaluate(()=>window.__NR.setMoodAutoDowngradeEnabled(false));
+        await page.click('#tutorial-start');
+        await page.evaluate(async()=>window.__NR.goLevel(3));
+        await page.waitForFunction(()=>window.__NR.state().level.number===3
+          &&window.__polyforkPreview?.stats?.ready===true,{timeout:60000});
+        const floors=await page.evaluate(()=>window.__NR.state().level.floors.filter(f=>!f.dir)
+          .map(f=>({x:f.x,z:f.z})));
+        assert.ok(floors.length>=2,seed+' must contain multiple playable islands');
+        await capture(page,'after-'+quality+'-'+seed+'-level3-spawn',errors);
+        await page.evaluate(p=>window.__NR.teleport(p.x,p.z),floors[1]);
+        await capture(page,'after-'+quality+'-'+seed+'-level3-island2-coast',errors);
+        console.log('MULTI_SEED_CAMERA_OK',seed,quality,'islands',floors.length,
+          'real camera, HIGH/LOW, 844x390 DPR2');
+      }finally{await page.close();}
+    }
+  }
   await captureInteractiveVisualTarget();
   await writeFile(join(out,'capture-report.json'),JSON.stringify({baseline,results},null,2));
 }finally{await browser.close();await new Promise(ok=>server.close(ok));}
