@@ -20,6 +20,8 @@ Save lives in `localStorage` (`pr_meta_save`, v6). Old save versions are discard
 
 ## Design docs
 
+**Visual guide:** [Art Direction — Visual North Star (Rev 06, 30-page PDF)](docs/reference/protocol-rebirth-art-direction-rev06.pdf). Start with the [visual guide index](docs/visual-north-star.md) for chapter navigation, locked-vs-direction status, and the BIT v2/v3 reconciliation. [Art Direction v07](docs/art-direction.md) is the living production extension; it does not replace the visual north star.
+
 **Start here: [Game Design & Loop Reference](docs/game-design-reference.md).** A consolidated English reference for the game's vision, connected loops, combat, extraction, bunker restoration, economy, equipment, BIT, world progression, FTUE, and UX. It distinguishes current implementation from design direction, proposals, and unresolved questions, with sources pinned to the inspected code revision.
 
 For onboarding reviews, use its [first-time player experience](docs/game-design-reference.md#13-first-time-player-experience) and [decision register](docs/game-design-reference.md#18-decisions-contradictions-and-scope-boundaries). Some earlier descriptions above and in separate design notes reflect historical prototype behavior; the reference explicitly records those differences rather than treating every older note as current.
