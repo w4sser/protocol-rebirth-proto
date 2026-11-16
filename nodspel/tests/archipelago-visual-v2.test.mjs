@@ -76,6 +76,9 @@ test('the real Archipelago build connects terrain, water and walkable coast with
       'large hero rock volumes are integrated at coastline only when a safe footprint exists');
     assert.ok(out.heroGraniteMasses>=1,
       'the canonical hero preview must contain real sculpted coastline rock volumes, not just a gray shore strip');
+    for(const rock of anchored)for(const mass of rock.userData.bedrockPlan.masses)
+      assert.ok(mass.shoreInset>=-.08&&mass.shoreInset<=mass.depth*.67+.28,
+        'rounded granite must overlap the real coastline, not float outside in the water');
     assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
       &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
     for(const rock of anchored){
@@ -92,6 +95,13 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero
       &&o.userData.embeddedInRock),
       'hero bunker entrance is physically positioned in the sculpted granite volume, not left as a freestanding concrete L');
+    const entrance=group.children.find(o=>o.name==='arch-v2-rock-cut-portal');
+    const rockPosition=anchored[0].userData.bedrockPlan.masses[0];
+    assert.ok(entrance.position.y>=.08&&entrance.position.y<.20,
+      'the door should read against the granite flank, not be buried below the coast');
+    assert.ok(Math.abs(Math.hypot(entrance.position.x-rockPosition.x,
+      entrance.position.z-rockPosition.z)-rockPosition.depth*.49)<.01,
+      'door sits at the inward edge of the actual granite mass');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
     for(const boat of out.boatPlacements)for(const rock of anchored)
