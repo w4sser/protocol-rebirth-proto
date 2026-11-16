@@ -57,6 +57,8 @@ test('tap targets nearest visible enemy in the full circle, respecting range and
 for(const kind of ['projectile','blast','hazard'])test(`dash blocks ${kind} in first 150 ms, damage returns at boundary`,()=>{
   for(const offset of [149,150]){
     const r=arena();r.level.enemies=[];const c=createCombat(r.level,0);c.graceUntil=0;
+    // Each attack simulation owns its player position: blasts now physically push the Operator.
+    const player={...pos};
     const d=createDash();startDash(d,{x:1,z:0},1000);const now=1000+offset;
     if(kind==='projectile')c.projectiles.push({id:1,x:-1,z:0,dx:1,dz:0,life:2,damage:10});
     if(kind==='blast')c.blasts.push({x:0,z:0,radius:2,detonateAt:now,source:'grenadier'});
@@ -64,8 +66,8 @@ for(const kind of ['projectile','blast','hazard'])test(`dash blocks ${kind} in f
       r.level.hazards=[{x:0,z:0,w:2,d:2,phaseMs:0,dps:1000}];
       // Find an active hazard instant without relying on its tuning phase.
       r.level.hazards[0].phaseMs=RULES.hazard.offMs-now;
-      stepHazards(r,pos,now,.04,d);
-    }else stepCombat(r,c,pos,now,.2,[],d);
+      stepHazards(r,player,now,.04,d);
+    }else stepCombat(r,c,player,now,.2,[],d);
     if(offset===149)assert.equal(r.health,r.stats.maxHealth);
     else assert.ok(r.health<r.stats.maxHealth,`${kind} damage resumes at iframe boundary`);
   }
