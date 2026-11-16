@@ -70,7 +70,12 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     const coastal=group.children.filter(o=>o.name==='archipelago-coast-shell');
     const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
     assert.equal(coastal.length,islands.length);
-    assert.equal(granite.length,islands.length-1,'hero coastal cliffs replace detached granite meshes');
+    assert.equal(granite.length,islands.length-1,'hero does not use offshore legacy granite placement');
+    const anchored=group.children.filter(o=>o.name==='arch-v2-integrated-hero-granite');
+    assert.equal(anchored.length,out.heroGraniteMasses>0?1:0,
+      'large hero rock volumes are integrated at coastline only when a safe footprint exists');
+    assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
+      &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
     assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero),
@@ -193,6 +198,11 @@ test('v2 places high granite only outside the island and preserves open bridge l
         'hero island must have NO separate offshore granite mass');
       assert.ok(granite.every(g=>g.userData.visualOnly),'other islands keep their existing visual-only granite');
       assert.equal(out.heroIsland,true,'target flag authors the hero island');
+      const anchored=group.children.filter(o=>o.name==='arch-v2-integrated-hero-granite');
+      assert.ok(anchored.length<=1,'one shared instanced mesh for hero rock mounds, never a prop row');
+      assert.equal(out.heroGraniteMasses??0,anchored[0]?.count??0);
+      assert.ok(anchored.every(o=>o.userData.visualOnly&&o.userData.anchoredHero),
+        'hero granite is visual only, outside 2D gameplay');
       const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
       assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
       assert.equal(heroShell[0].userData.heroRings,14);
@@ -204,6 +214,21 @@ test('v2 places high granite only outside the island and preserves open bridge l
       const heroVertices=heroShell[0].geometry.getAttribute('position');
       const heroFloor=level.floors.find(f=>!f.dir);
       const radii=walkableBoundary(heroFloor);
+      for(const rock of anchored){
+        const matrix=new THREE.Matrix4(),point=new THREE.Vector3(),verts=rock.geometry.getAttribute('position');
+        for(let instance=0;instance<rock.count;instance++){
+          rock.getMatrixAt(instance,matrix);
+          for(let j=0;j<verts.count;j++){
+            point.fromBufferAttribute(verts,j).applyMatrix4(matrix);
+            if(point.y<.10)continue;
+            const t=((Math.atan2(point.z-heroFloor.z,point.x-heroFloor.x)+Math.PI*2)%(Math.PI*2))
+              / (Math.PI*2)*radii.length,index=Math.floor(t),mix=t-index;
+            const edge=radii[index]*(1-mix)+radii[(index+1)%radii.length]*mix;
+            assert.ok(Math.hypot(point.x-heroFloor.x,point.z-heroFloor.z)>edge+.10,
+              'raised hero rock cannot fake walkable cover');
+          }
+        }
+      }
       assert.equal(radii.length,72,'hero coastline is registered for X/Z player collision');
       for(let j=0;j<72;j++){
         const x=heroVertices.getX(j),z=heroVertices.getZ(j);
@@ -235,7 +260,7 @@ test('v2 places high granite only outside the island and preserves open bridge l
           &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+1e-5;
         // Rock-free zone is deliberately larger than the hard gameplay clearance.
         // Short, man-made interior cover may remain beyond the actual landing.
-        for(const g of granite)for(const part of [...g.userData.bedrockPlan.masses,...g.userData.bedrockPlan.shelves])
+        for(const g of [...granite,...anchored])for(const part of [...g.userData.bedrockPlan.masses,...g.userData.bedrockPlan.shelves])
           assert.ok(!crosses(part.bounds),'coastal granite must be outside the enlarged bridge approach');
       }
       // No invisible rock wall: every runtime wall collision is backed by

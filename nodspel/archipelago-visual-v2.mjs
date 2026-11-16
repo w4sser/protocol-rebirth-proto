@@ -58,6 +58,53 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   }
   return {masses,shelves};
 }
+// Pass X: a few large, buried, ice-worn granite volumes at the *actual*
+// hero shoreline. Unlike the old offshore rock scatter, these sit in the
+// coast's sculpted shoulder. Their raised vertices are never on walkable
+// X/Z land; a conservative elliptical footprint also respects neighboring
+// islands and the full bridge-clearance reservations. They reuse the single
+// shared glacial geometry/material, with no extra planar rock apron.
+export function planArchipelagoHeroGraniteV2(profile,{reservations=[],neighborProfiles=[]}={}){
+  if(profile?.style!=='v2'||!profile.heroCoast)return {masses:[],shelves:[]};
+  const {floor,points,seed}=profile,masses=[],wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  for(const [hi,head] of (profile.heroHeadlands??[]).slice(0,2).entries()){
+    const candidates=points.filter(p=>Math.abs(wrap(p.angle-head.angle))<head.width*.72
+      &&(p.heroRockMask??0)>.48&&p.radial-p.playableRadial>2.05)
+      .sort((a,b)=>b.heroRockMask-a.heroRockMask||a.angle-b.angle);
+    for(const p of candidates){
+      const a=p.angle,c=Math.cos(a),s=Math.sin(a),band=p.radial-p.playableRadial;
+      const depth=clamp(band*.94,2.35,4.10);
+      const length=clamp(4.8+hash(seed+hi*127+47)*1.4,4.8,6.2);
+      const height=hi===0?2.70:2.20;
+      let found=null;
+      for(let step=0;step<5&&!found;step++){
+        const radial=Math.max(p.playableRadial+depth*.56+.26,p.radial-depth*.38)+step*.18;
+        const x=floor.x+c*radial,z=floor.z+s*radial;
+        const bounds={x,z,w:Math.abs(s)*length*1.1+Math.abs(c)*depth*1.1,
+          d:Math.abs(c)*length*1.1+Math.abs(s)*depth*1.1};
+        if(reservations.some(q=>overlaps(bounds,q,.18)))continue;
+        // Complete conservative footprint; the rendered mesh lies inside it.
+        let safe=true;
+        for(let j=0;j<32;j++){
+          const t=j/32*TAU,tx=length*.56*Math.cos(t),tz=depth*.56*Math.sin(t);
+          const px=x-s*tx-c*tz,pz=z+c*tx-s*tz;
+          if(Math.hypot(px-floor.x,pz-floor.z)<coastRadiusAt(profile,px,pz,'playableRadial')+.22
+            ||neighborProfiles.some(other=>other!==profile&&
+              Math.hypot(px-other.floor.x,pz-other.floor.z)<coastRadiusAt(other,px,pz,'radial')+.60)){
+            safe=false;break;
+          }
+        }
+        // Keep a substantial shoulder buried inside the actual coastline,
+        // not a floating offshore oval or a peak detached from the island.
+        if(!safe||Math.abs(radial-p.radial)>depth*.55+.30)continue;
+        found={x,z,angle:a,rotation:-a-Math.PI/2,length,depth,height,bounds};
+      }
+      if(found){masses.push(found);break;}
+    }
+  }
+  return {masses,shelves:[]};
+}
+
 function sculptGranite(){
   // One continuous indexed bedrock surface rather than three overlapping
   // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
@@ -121,6 +168,29 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
   // The existing sculpted masses supply the outcrops beyond the playable edge.
   return mesh;
 }
+export function addArchipelagoHeroGraniteV2(profile,group,{high=true,...options}={}){
+  const plan=planArchipelagoHeroGraniteV2(profile,options);
+  if(!plan.masses.length)return null;
+  const mesh=new THREE.InstancedMesh(graniteGeo,graniteMat,plan.masses.length);
+  mesh.name='arch-v2-integrated-hero-granite';
+  mesh.userData.visualOnly=true;
+  mesh.userData.anchoredHero=true;
+  mesh.userData.bedrockPlan=plan;
+  for(let i=0;i<plan.masses.length;i++){
+    const m=plan.masses[i];
+    pos.set(m.x,-.14,m.z);
+    rot.setFromAxisAngle(up,m.rotation);
+    scale.set(m.length*.94,m.height,m.depth*.94);
+    mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));
+  }
+  mesh.instanceMatrix.needsUpdate=true;
+  mesh.computeBoundingSphere();
+  mesh.castShadow=high;
+  mesh.receiveShadow=true;
+  group.add(mesh);
+  return mesh;
+}
+
 export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],bedrockPlan=null}={}){
   if(profile?.style!=='v2')return null;
   // Keep the visual-target's winding earth paths readable without any extra

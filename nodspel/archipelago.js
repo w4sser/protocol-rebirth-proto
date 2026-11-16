@@ -10,7 +10,7 @@ export {archipelagoPassages} from './archipelago-passages.js?v=2.28.39';
 import {createWaterMesh} from './water-shader.js?v=2.28.39-baltic-calm3';
 import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.39-glacial-s42';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.39-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.39-glacial-merge1';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoHeroGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.39-glacial-merge1';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.39-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.39-dinghy2';
@@ -410,11 +410,14 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
       const hero=targetIsland&&profile.floor===firstIsland;
-      const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
-      // The hero's mass angles still provide geological color fingers, but
-      // their actual height comes exclusively from the joined coast mesh.
-      const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
+      const bedrock=hero?addArchipelagoHeroGraniteV2(profile,group,options)
+        :addArchipelagoGraniteV2(profile,group,options);
+      // Broad landscape masses are now attached to the same sculpted shoulder,
+      // remain outside actor space and use real collision-safe bounds for boats.
+      const plan=hero?{masses:[...(bedrock?.userData.bedrockPlan.masses??[]),
+          ...(profile.heroHeadlands??[]).map(h=>({angle:h.angle}))],shelves:[]}
         :bedrock?.userData.bedrockPlan;
+      if(hero)out.heroGraniteMasses=bedrock?.count??0;
       bedrockPlans.set(profile.floor,plan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
       if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
