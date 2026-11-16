@@ -301,7 +301,9 @@ function heroCoastRingData(profile){
   // Pass P: rounded, glacially polished domes rather than stacked retaining
   // walls. A long gentle inner shoulder rises beyond the flat actor seam,
   // then tapers gradually over the seaward edge into the same water toe.
-  const cap=[0,.014,.075,.23,.51,.78,.95,1.00,.96,.78,.51,.25,.045,0];
+  // Pass AD: a broad ice-worn shoulder, without a cliff-like narrow crest.
+  // Both actor edge and underwater toe stay exactly where they were.
+  const cap=[0,.025,.10,.28,.55,.80,.94,1.00,.98,.84,.64,.35,.07,0];
   const yFloor=[.010,.008,.004,-.003,-.015,-.026,-.041,-.058,-.081,-.11,-.14,-.19,-.27,-.65];
   const yCove=[.010,.008,.002,-.012,-.036,-.057,-.081,-.11,-.155,-.218,-.28,-.345,-.44,-.65];
   const stoneColors=[
@@ -383,7 +385,7 @@ function heroCoastRingData(profile){
     // dominant weathered dome and an offset smaller shoulder. The broad low
     // background prevents a grey continuous wall around the whole island.
     const volume=.12+1.95*mainDome+1.00*offsetShoulder;
-    const relief=clamp(section.relief*cap[k]*diagonal*volume+ledge,0,3.05)*crownWidth;
+    const relief=clamp(section.relief*cap[k]*diagonal*volume+ledge,0,2.72)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 

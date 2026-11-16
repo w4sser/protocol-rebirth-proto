@@ -426,9 +426,13 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
     const rings=coastRingData(profile);
     const faceY=rings.positions[(8*profile.points.length+index)*3+1];
     g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
-      Math.max(.06,Math.min(2.2,faceY-.48)),
+      Math.max(.06,Math.min(2.2,faceY-.30)),
       profile.floor.z+Math.sin(head.angle)*radius);
-    g.rotation.y=-head.angle-Math.PI/2;
+    // The old door was nearly edge-on from the locked raid camera. Angle the
+    // sealed entrance slightly across the natural rock face so its dark
+    // doorway reads, without changing collision or introducing a freestanding
+    // concrete L-block.
+    g.rotation.y=-head.angle-Math.PI/2+.52;
     g.userData.integratedHero=true;
     g.userData.embeddedInRock=true;
     g.userData.coastFaceHeight=faceY;

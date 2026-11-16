@@ -90,6 +90,8 @@ test('the real Archipelago build connects terrain, water and walkable coast with
       'dark bunker doorway stays at the actual glacial cliff elevation');
     assert.ok(entrance.position.y<=entrance.userData.coastFaceHeight,
       'the doorway must be inset into the physical rock face, not floating above it');
+    assert.ok(Math.abs(entrance.rotation.y+out.heroHeadlands[0].angle+
+      Math.PI/2-.52)<.001,'sealed entrance faces inward and remains readable from raid camera');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
