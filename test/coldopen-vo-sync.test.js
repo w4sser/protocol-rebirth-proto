@@ -207,10 +207,11 @@ const AUDIO_SETTINGS_KEY = "pr-audio-v1";
 function seedRaidReturnResult(){
   return { schema: "protocol-rebirth/raid-result", version: 1, raidId: "test-ftue-raid-1", outcome: "extract", extracted: [], lost: [], ftue: true };
 }
-function bootAppReturningFromRaid(ctxOverrides, audioSettings){
+function bootAppReturningFromRaid(ctxOverrides, audioSettings, reducedMotion = false){
   const dom = new JSDOM(html, { runScripts: "outside-only", url: "http://game.example/index.html", pretendToBeVisual: true });
   const w = dom.window, doc = w.document;
   w.localStorage.setItem(SAVE_KEY, JSON.stringify(seedPastFtue()));
+  w.matchMedia = () => ({ matches: reducedMotion });
   w.localStorage.setItem(RAID_RESULT_KEY, JSON.stringify(seedRaidReturnResult()));
   if(audioSettings) w.localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(audioSettings));
   class FakeImage{ set src(v){ this._src = v; w.setTimeout(() => { this.onload && this.onload(); }, 0); } get src(){ return this._src || ""; } get complete(){ return false; } }
@@ -348,6 +349,7 @@ function fireIntroSkip(w, intro){
     assert.equal(ctx.state, "suspended", "this document's AudioContext starts fully suspended -- no gesture has happened on it");
     assert.ok(intro.classList.contains("vo-wait"), "the line/button reveal stays held");
     assert.ok(intro.classList.contains("vo-wait-tap"), "the wake prompt shows: no gesture, no unlock in flight, not muted");
+    assert.ok(intro.classList.contains("bit-hibernating"), "BIT sleeps throughout the gesture gate");
     await sleep(5000);
     assert.ok(intro.classList.contains("vo-wait"), "unlike the capped gate, this one never releases on its own -- still held after 5s");
     assert.ok(intro.classList.contains("vo-wait-tap"), "the prompt is still showing after 5s");
@@ -365,7 +367,13 @@ function fireIntroSkip(w, intro){
     assert.equal(calledSync, true, "the gate tap calls PR_AUDIO.unlockSync() synchronously");
     assert.equal(intro.classList.contains("vo-wait-tap"), false, "the prompt is dismissed the instant the tap lands");
     assert.ok(intro.classList.contains("vo-wait"), "the line reveal itself is still held -- not yet running/decoded");
+    assert.ok(!intro.classList.contains("bit-hibernating"));
+    assert.ok(intro.classList.contains("bit-waking"));
     await sleep(250);
+    assert.ok(intro.classList.contains("vo-wait"), "line 1 waits for the wake transition even when audio is ready");
+    assert.equal(w.PR_AUDIO.lastVoice.has("youre-back"), false, "gate click never greets early");
+    await sleep(350);
+    assert.ok(!intro.classList.contains("bit-waking"));
     assert.equal(ctx.state, "running", "context is running well within reach of the tap");
     assert.equal(intro.classList.contains("vo-wait"), false, "the gate clears once running + bit/youre-back is decoded");
     const firstLine = intro.querySelector(".intro-lines p");
@@ -420,6 +428,7 @@ function fireIntroSkip(w, intro){
   {
     const { w, doc } = bootAppReturningFromRaid({ state: "running" });
     const intro = doc.querySelector(".intro");
+    assert.ok(!intro.classList.contains("bit-hibernating"), "no hibernation without the gesture gate");
     assert.ok(!intro.classList.contains("vo-wait-tap"), "no prompt when the context is already running");
     await sleep(100);
     assert.ok(!intro.classList.contains("vo-wait"), "the line reveal clears once decode catches up, with no gesture needed");
@@ -432,6 +441,7 @@ function fireIntroSkip(w, intro){
     const { w, doc } = bootAppReturningFromRaid(null, { voiceMuted: true });
     const intro = doc.querySelector(".intro");
     assert.equal(w.PR_AUDIO.settings.voiceMuted, true, "voice is muted in settings");
+    assert.ok(!intro.classList.contains("bit-hibernating"), "no hibernation without the gesture gate");
     assert.ok(!intro.classList.contains("vo-wait-tap"), "no prompt when audio is muted -- nothing to wait for");
     await sleep(100);
     assert.ok(!intro.classList.contains("vo-wait"), "the text still starts even though no voice will ever play");
@@ -440,6 +450,20 @@ function fireIntroSkip(w, intro){
   }
   console.log("part C.5 (muted: no prompt) PASSED");
 
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid(null, null, true);
+    const intro = doc.querySelector(".intro");
+    assert.ok(intro.classList.contains("bit-hibernating"));
+    tapIntroGate(w, doc, ctx, "touchend");
+    await sleep(250);
+    assert.ok(intro.classList.contains("vo-wait"));
+    assert.equal(w.PR_AUDIO.lastVoice.has("youre-back"), false);
+    await sleep(350);
+    assert.ok(!intro.classList.contains("vo-wait"));
+    assert.ok(w.PR_AUDIO.lastVoice.has("youre-back"), "reduced motion greets with visible line 1 after the fade");
+    assert.match(html, /introWakeFade .55s ease-out both!important/);
+    dom_close(w);
+  }
   console.log("COLD OPEN VO SYNC TEST PASSED");
 })().catch(e => { console.error(e); process.exitCode = 1; });
 

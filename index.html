@@ -820,6 +820,17 @@
      rule -- only the lines/button (already paused by that rule) and the backdrop's push-in
      (harmlessly paused at its own first frame, scale(1)) stay held. */
   .intro.vo-wait-tap .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
+  /* Hibernation dims the existing cutout; the immutable face/art stays intact. */
+  .intro.bit-hibernating .intro-bit{animation:none;opacity:1;filter:brightness(.12) saturate(.35);}
+  .intro-standby{position:absolute;left:40%;bottom:40%;display:flex;align-items:center;gap:6px;color:var(--ad-cyan);font:600 8px "IBM Plex Mono",monospace;letter-spacing:.12em;opacity:0;pointer-events:none;}
+  .intro-standby i{width:4px;height:4px;border-radius:50%;background:var(--ad-amber);box-shadow:0 0 7px var(--ad-amber);}
+  .intro.bit-hibernating .intro-standby{opacity:.75;}
+  .intro.bit-hibernating .intro-standby i{animation:introStandby 3s ease-in-out infinite;animation-play-state:running;}
+  @keyframes introStandby{50%{opacity:.3;}}
+  .intro.bit-awake .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite;opacity:1;filter:brightness(1);}
+  .intro.bit-waking .intro-bit{animation:introWake .55s ease-out both;animation-play-state:running;}
+  @keyframes introWake{0%{filter:brightness(.12)}35%{filter:brightness(.5)}48%{filter:brightness(.3)}100%{filter:brightness(1)}}
+  @keyframes introWakeFade{from{filter:brightness(.12)}to{filter:brightness(1)}}
   /* Styled like #splash's own "TAP ANYWHERE TO BEGIN" prompt (same tokens/pill/pulse), low-center
      and safe-area aware, clear of BIT (who sits centred higher up, left:40% bottom:43% of the
      stage) and of .intro-copy's lines/button (bottom-left, hidden via .vo-wait while this shows). */
@@ -831,12 +842,16 @@
   .intro.vo-wait-tap .intro-wake{opacity:.8; animation:splashPromptPulse 2.6s ease-in-out infinite;}
   @media (prefers-reduced-motion: reduce){
     .intro-stage{animation:none!important; transform:translate(-50%,-50%) scale(1)!important;}
-    .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))!important;}
+    .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
     .intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;}
     /* Reduced motion otherwise forces the lines/button fully visible above -- the gesture gate
        must still hide them while it's waiting for the tap (see armVoiceGate() in app.js). */
     .intro.vo-wait-tap .intro-lines p,.intro.vo-wait-tap .intro-go{opacity:0!important; pointer-events:none!important;}
     .intro.vo-wait-tap .intro-wake{animation:none!important;}
+    .intro.bit-hibernating .intro-bit{filter:brightness(.12) saturate(.35)!important;}
+    .intro.bit-hibernating .intro-standby i{animation:none!important;}
+    .intro.bit-waking .intro-bit{animation:introWakeFade .55s ease-out both!important;}
+    .intro.vo-wait .intro-lines p,.intro.vo-wait .intro-go{opacity:0!important;pointer-events:none!important;}
   }
   /* ENTER THE FACILITY: #app starts hidden the instant dismissIntro() swaps the screen underneath,
      then fades in over ~500ms once app.js lifts body.intro-leaving on the next paint. */

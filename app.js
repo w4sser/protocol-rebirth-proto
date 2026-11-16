@@ -2379,6 +2379,7 @@ SCREENS.intro = function(){
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
     '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    '<small class="intro-standby" aria-hidden="true"><i></i>HIBERNATING</small>' +
     '</div>' +
     '<div class="intro-scrim"></div>' +
     '<div class="intro-copy">' +
@@ -2392,7 +2393,7 @@ SCREENS.intro = function(){
   // Animation timing remains the fallback when audio is muted, blocked or still loading.
   const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
   const greet = () => {
-    if(intro.isConnected && !document.body.classList.contains("splash-active"))
+    if(intro.isConnected && !intro.classList.contains("vo-wait") && !document.body.classList.contains("splash-active"))
       void window.PR_AUDIO?.requestVoice('youre-back');
   };
   firstLine?.addEventListener("animationstart", greet, { once:true });
@@ -2417,8 +2418,11 @@ SCREENS.intro = function(){
     // Reduced motion never fires the first line's own animationstart (its CSS disables that
     // animation outright -- see the @media(prefers-reduced-motion:reduce) block below), so once
     // the gate clears here, fire greet() directly instead of relying on that hook.
-    const clear = () => {
-      intro.classList.remove("vo-wait", "vo-wait-tap");
+    let wakeFinished = Promise.resolve();
+    const clear = async () => {
+      await wakeFinished;
+      if(!intro.isConnected) return;
+      intro.classList.remove("vo-wait", "vo-wait-tap", "bit-waking");
       if(reducedMotion) greet();
     };
     const waitForVoice = () => {
@@ -2454,10 +2458,16 @@ SCREENS.intro = function(){
       const running = audio.context?.state === "running";
       if(running || audio.unlockPromise || muted){ waitForVoice(); return; }
       intro.classList.add("vo-wait-tap");
+      intro.classList.add("bit-hibernating");
       let tapped = false;
       const onGestureTap = ev => {
         if(tapped) return; tapped = true;
-        intro.classList.remove("vo-wait-tap");
+        intro.classList.remove("vo-wait-tap", "bit-hibernating");
+        intro.classList.add("bit-waking", "bit-awake");
+        // The whole CRT fades up without changing BIT's locked face geometry.
+        wakeFinished = new Promise(resolve => setTimeout(resolve, 550));
+        intro.querySelectorAll(".intro-lines p").forEach((line, i) => { line.style.animationDelay = (i * step) + "s"; });
+        intro.querySelector(".intro-go").style.animationDelay = (lines.length * step + .2) + "s";
         // iOS fires touchend first, then a SEPARATE synthesized click a beat later -- by the time
         // that click reaches A.introSkip, .vo-wait-tap is already gone (removed right above), so
         // stamp the moment here too; introSkip's own guard checks this timestamp as well as the

@@ -314,3 +314,6 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  assert.ok(rule.check({appSrc:appSource.replace('craftPartSource({ kind:"cur", id:"scrap" })','""')}).length);
  assert.ok(rule.check({appSrc:''}).length);
 }
+
+assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:'',htmlSrc:''}).length,2,'sleep regression fires');
+assert.equal(by('coldopen-bit-hibernates-until-wake').check().length,0);
