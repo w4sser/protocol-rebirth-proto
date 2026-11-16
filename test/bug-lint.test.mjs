@@ -317,3 +317,6 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
 
 assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:'',htmlSrc:''}).length,2,'sleep regression fires');
 assert.equal(by('coldopen-bit-hibernates-until-wake').check().length,0);
+
+assert.equal(by('raid-waits-for-combat-sfx').check({gameSrc:'',raidAudioSrc:'',readySrc:''}).length,2,'unawaited combat decode regression fires');
+assert.equal(by('raid-waits-for-combat-sfx').check().length,0);

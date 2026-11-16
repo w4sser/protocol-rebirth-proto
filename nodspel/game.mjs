@@ -12,7 +12,7 @@ import {createAudioSettings} from './audio-settings.js?v=2.28.44';
 import {createPixelFX} from './fx-pixel.js?v=2.28.44';
 import {createPixelFeedback} from './fx-feedback.js?v=2.28.44';
 import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.44';
-import {audio,audioEvent} from './audio.js?v=2.28.44';
+import {audio,audioEvent,waitForRaidAudio} from './audio.js?v=2.28.44';
 import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.44';
 import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,roomAt,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.44';
 import * as THREE from './vendor/three.module.js';
@@ -112,6 +112,12 @@ if(earlyStart)completeTutorial(tutorialStorage);
 let tutorialOpen=!earlyStart&&tutorialNeeded(tutorialStorage);
 $('#tutorial').hidden=!tutorialOpen;
 let gameReady=false,queuedStart=null,ftueShotMarked=false,ftueKillMarked=false,ftueMoveMarked=false;
+// Block gameplay during calibration, including keyboard input and joystick holds. The shared
+// window capture listener runs first, so these same touches still unlock WebKit synchronously.
+for(const type of ['pointerdown','touchstart','keydown'])window.addEventListener(type,event=>{
+  if(gameReady)return;
+  event.stopImmediatePropagation();
+},{capture:true,passive:true});
 $('#tutorial-start').onclick=()=>{void audio.unlock();const go=()=>{completeTutorial(tutorialStorage);tutorialOpen=false;$('#tutorial').hidden=true;clearInput();reset(new URLSearchParams(location.search).get('seed'));};if(gameReady)go();else queuedStart=go;};
 const stage=$('#game');let viewWidth=stage.clientWidth,viewHeight=stage.clientHeight;
 let QUALITY=pickQuality({search:location.search,storage:localStorage,nav:navigator,screen});const QS=qualitySettings(QUALITY);document.documentElement.dataset.quality=QUALITY;
@@ -1042,6 +1048,7 @@ function showLevelIntro(){
 let ddaState=loadDdaState(localStorage);
 const ddaEligible=()=>!launch.ftue&&!launch.intro;
 function reset(requestedSeed){
+  if(!gameReady)return;
   human?.reset();if(!human)robotPresence.reset();operatorFX.reset();
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
@@ -1920,6 +1927,12 @@ if(GROUND_V2){
     groundStatus('Ground PRELOAD ERROR: '+String(error));
   }finally{clearTimeout(bootTimeout);}
 }
+// Keep the existing full-screen boot loader until combat audio is decoded (bounded at 5s).
+const audioLoadingLabel=document.createElement('p');
+audioLoadingLabel.textContent='BIT is calibrating audio...';
+document.getElementById('boot-loader')?.append(audioLoadingLabel);
+await waitForRaidAudio();
+gameReady=true;clearInput();
 reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(target).add(cameraOffset);camera.lookAt(target);camera.updateMatrixWorld();$('#loading').hidden=true;requestAnimationFrame(frame);
 // Boot loader stays up until the first frame has been rendered and painted, then fades out.
 {const bl=document.getElementById('boot-loader');if(bl)requestAnimationFrame(()=>requestAnimationFrame(()=>{bl.classList.add('out');setTimeout(()=>bl.remove(),260);}));}

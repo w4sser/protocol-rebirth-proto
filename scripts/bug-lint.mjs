@@ -11,6 +11,11 @@ import {parse} from 'acorn';
 import * as walk from 'acorn-walk';
 
 export const RULES=[
+  {id:'raid-waits-for-combat-sfx',pr:'v2.28.4x raid audio readiness',why:'the first fight raced unawaited combat buffer decoding',
+   check(c={}){const game=c.gameSrc??read('nodspel/game.mjs'),audio=c.raidAudioSrc??read('nodspel/audio.js'),ready=c.readySrc??read('nodspel/audio-ready.js');const out=[];
+     const wait=game.indexOf('await waitForRaidAudio();'),start=game.indexOf("reset(new URLSearchParams(location.search).get('seed'));camera");
+     if(wait<0||start<wait||!game.includes('event.stopImmediatePropagation()'))out.push('raid must block input and wait for combat decoding before initial reset');
+     if(!audio.includes('prepareCombatAudio(audio)')||!audio.includes('audio.sfxWaitMs=config.raidSfxWaitMs')||!ready.includes('Promise.race([ready,')||!ready.includes('while(!audio.decodedFiles.has(file))'))out.push('combat readiness needs a cap, continuing retries and a bounded pending SFX queue');return out;}},
   {id:'coldopen-bit-hibernates-until-wake',pr:'v2.28.4x BIT hibernation',why:'BIT must sleep while the cold-open waits for its wake gesture',
    check(c={}){const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');const out=[];
      if(!app.includes('classList.add("bit-hibernating")')||!app.includes('classList.remove("vo-wait-tap", "bit-hibernating")')||!app.includes('await wakeFinished'))out.push('cold-open must hibernate until tapped and await its wake before line 1');
