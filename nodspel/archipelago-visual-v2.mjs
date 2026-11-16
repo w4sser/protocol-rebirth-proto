@@ -232,7 +232,7 @@ function skyTintedPineCrown(color){
   for(let i=0;i<vertices.count;i++){
     const upward=clamp(((normals?.getY(i)??vertices.getY(i))+.12)/.95,0,1);
     const height=clamp((vertices.getY(i)+.12)/1.12,0,1);
-    const rose=.11*Math.max(upward*.80,height*.65);
+    const rose=PINE_SKY_STRENGTH*Math.max(upward*.80,height*.65);
     mixed.copy(base).lerp(PINE_SKY_ROSE,rose);
     rgb.push(mixed.r,mixed.g,mixed.b);
   }
