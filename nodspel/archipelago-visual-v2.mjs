@@ -409,13 +409,22 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   const front=hero?.08:mass.depth*.50;
   const h=hero?1.02:Math.min(1.28,mass.height*.66);
   const w=hero?1.35:Math.min(2,mass.length*.42);
-  // A narrow frame and mostly dark recessed steel door. The previous broad
-  // lintel and 0.65m side pillars created an exposed freestanding L-shape.
-  block(g,0,h*.48,front+.14,w*.85,h*.90,.12,1);
-  block(g,-w*.50,h*.5,front+.03,hero?.13:.24,h,hero?.22:.65,0);
-  block(g,w*.50,h*.5,front+.03,hero?.13:.24,h,hero?.22:.65,0);
-  block(g,0,h+.045,front+.03,w+(hero?.14:.52),hero?.14:.20,hero?.22:.70,2);
-  block(g,0,h*.5,front+.215,.035,h*.87,.015,0);
+  if(hero){
+    // A narrow frame and mostly dark recessed steel door. Restrict the new
+    // treatment to the hero preview: existing non-hero portal placements
+    // have already passed collision and neighbor regressions.
+    block(g,0,h*.48,front+.14,w*.85,h*.90,.12,1);
+    block(g,-w*.50,h*.5,front+.03,.13,h,.22,0);
+    block(g,w*.50,h*.5,front+.03,.13,h,.22,0);
+    block(g,0,h+.045,front+.03,w+.14,.14,.22,2);
+    block(g,0,h*.5,front+.215,.035,h*.87,.015,0);
+  }else{
+    block(g,0,h*.5,front+.15,w*.86,h,.14,1);
+    block(g,-w*.5-.12,h*.51,front-.10,.24,h+.12,.65,0);
+    block(g,w*.5+.12,h*.51,front-.10,.24,h+.12,.65,0);
+    block(g,0,h+.08,front-.10,w+.52,.20,.70,2);
+    block(g,0,h*.5,front+.235,.045,h*.94,.018,0);
+  }
   const lamp=new THREE.Mesh(cubeGeo,new THREE.MeshBasicMaterial({color:'#ffc692'}));
   lamp.scale.set(.28,.07,.12);lamp.position.set(0,h+.055,front+.22);lamp.userData.visualOnly=true;g.add(lamp);
   group.add(g);return g;
