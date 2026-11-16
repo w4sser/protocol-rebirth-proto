@@ -34,6 +34,16 @@
 
 **Current state:** implemented in [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269); image acceptance pending. This cosmetic pass is independent of the major coastline redesign in draft PR #267.
 
+### Pass AA — Coast-rooted asymmetric granite and readable portal (16 November, PR #267)
+
+**Image diagnosis of Pass Y:** 844×390 HIGH/LOW from [capture run](https://github.com/w4sser/protocol-rebirth-proto/actions/runs/43815731891) still reads as a pale near-spherical detached oval at the shore, not weathered granite physically belonging to the island. The portal is nearly invisible at the normal gameplay camera despite the green test suite.
+
+**Hypothesis and implementation:** Move each hero granite mass inward toward the actual sculpted shoreline but continue enforcing the entire conservative 32-sample footprint outside the actor's X/Z walking boundary, bridge reservations, and neighboring islands. Reject any mass whose center remains beyond the water-side shoreline edge. Give *only the hero geology* subtle asymmetry with two broad low-poly lobes, sloping shoulders, and a colder grey/lavender stone palette; retain the joined rock mesh, no intersecting extra apron. Raise the small dark Cold War door slightly on the inward flank rather than creating a large freestanding frame. This is a sculptural/compositional pass, not an overall pink-tint change.
+
+**QA:** Added guardrails for coastline overlap and inward portal placement in the actual game build test. The preceding Pass Y full CI, targeted geometry test, and HIGH/LOW captures succeeded, **not** evidence of art parity for Pass AA. **Pass AA itself must pass CI and HIGH/LOW screenshots before any merge.** Review actual rock/shore seams, possible water clipping, boats, neighboring islands, bridge clearance, target silhouette, and portal readability. Mobile Safari remains a separate gate.
+
+**Isolation:** This P0 geology pass stays on [draft PR #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267) and must not overwrite the separate P1 ground/pine art pass [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269).
+
 ### What we tried and rejected — do not recreate
 
 1. **Rectangular playable grass plates and perimeter rock rows:** artificial island silhouettes; organic shared coastal profiles replaced them.
