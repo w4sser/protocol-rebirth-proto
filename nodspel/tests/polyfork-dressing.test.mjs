@@ -118,7 +118,7 @@ test('Pass ZA: residual bright detail is shoreline-only and clears player, POIs 
     'normal non-v2 scene is completely unchanged');
 });
 
-test('Pass ZA: filtering preserves a genuine LOW subset and stays away from bridge landings',()=>{
+test('Pass ZA: filtering preserves a genuine LOW subset and stays away from bridge landings',async()=>{
   const {planMilitaryRemnantsDressing}=await import('../polyfork-military-remnants.mjs');
   const high=planMilitaryRemnantsDressing(level,{quality:'high'}).items;
   const low=planMilitaryRemnantsDressing(level,{quality:'low'}).items;
