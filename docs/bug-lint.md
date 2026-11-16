@@ -125,7 +125,7 @@ just on the base screen. Because `#app-version` is always a child of `#topbar` (
 descendant) -- the fix hides `#topbar`'s OTHER children individually
 (`#navback`/`.title`/`#currencies`/`#menubtn`) and instead raises `#topbar`'s own z-index to 94
 (above `#splash`'s 90 and `.intro`'s 50, below the settings-menu/overlay's 95) during both
-states, which the rule also checks for.
+states, which the rule also checks for. CI follow-up: while raised over the splash/cold open, `#topbar` is `pointer-events:none` (its hidden siblings use `visibility:hidden`), and `#app-version` is pinned bottom-right, so neither can cover `#splash-profiles-btn`/`#splash-settings-btn` (caught by layout/base).
 
 Guarded by `splash-no-autoadvance-before-coldopen` and `version-label-visible-on-start` in
 bug-lint, plus `test/coldopen-vo-sync.test.js` (jsdom + a `FakeIOSAudioContext` modeling the same

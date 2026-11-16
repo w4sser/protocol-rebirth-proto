@@ -727,7 +727,12 @@
      hidden individually, leaving #topbar as the inert/backgroundless strip it already is in the
      landscape layout (~L879). #topbar is raised above #splash (z-index 90) and .intro (z-index 50),
      but below the settings menu/overlay (95) so a real popup still wins. */
-  body.splash-active #topbar>#navback,body.splash-active #topbar>.title,body.splash-active #topbar>#currencies,body.splash-active #topbar>#menubtn{opacity:0;}
+  body.splash-active #topbar>#navback,body.splash-active #topbar>.title,body.splash-active #topbar>#currencies,body.splash-active #topbar>#menubtn{opacity:0;visibility:hidden;pointer-events:none;}
+  /* PRB-161: only the version label is interactive while #topbar is raised over the splash/cold open -- the hidden siblings must not cover splash controls (layout-check: #splash-profiles-btn). */
+  body.splash-active #topbar,body[data-screen=intro] #topbar{pointer-events:none;}
+  body.splash-active #topbar>#app-version,body[data-screen=intro] #topbar>#app-version{pointer-events:auto;}
+  /* Bottom-right while the splash/cold open is up, so it never covers the splash corner buttons (settings/profiles, top-right). */
+  body.splash-active #topbar>#app-version,body[data-screen=intro] #topbar>#app-version{position:fixed!important;inset:auto calc(8px + env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) auto!important;margin:0!important;z-index:94;}
   body.splash-active #topbar,body[data-screen=intro] #topbar{z-index:94;}
   body.splash-active .intro *{animation-play-state:paused;}
   /* PRB-161: holds the line/button reveal paused (behind a subtle fade) until BIT's greeting is
