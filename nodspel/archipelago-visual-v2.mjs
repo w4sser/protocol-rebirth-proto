@@ -78,7 +78,11 @@ export function planArchipelagoHeroGraniteV2(profile,{reservations=[],neighborPr
       const height=hi===0?2.70:2.20;
       let found=null;
       for(let step=0;step<5&&!found;step++){
-        const radial=Math.max(p.playableRadial+depth*.56+.26,p.radial-depth*.38)+step*.18;
+        // Pass AA: root the sculpted dome IN the real glacial shoreline.
+        // The previous seaward-biased placement left a pink oval floating
+        // outside the island; approach the actor margin while respecting
+        // the 32-point footprint and all bridge/neighbour safeguards.
+        const radial=Math.max(p.playableRadial+depth*.56+.24,p.radial-depth*.62)+step*.16;
         const x=floor.x+c*radial,z=floor.z+s*radial;
         const bounds={x,z,w:Math.abs(s)*length*1.1+Math.abs(c)*depth*1.1,
           d:Math.abs(c)*length*1.1+Math.abs(s)*depth*1.1};
@@ -96,8 +100,10 @@ export function planArchipelagoHeroGraniteV2(profile,{reservations=[],neighborPr
         }
         // Keep a substantial shoulder buried inside the actual coastline,
         // not a floating offshore oval or a peak detached from the island.
-        if(!safe||Math.abs(radial-p.radial)>depth*.55+.30)continue;
-        found={x,z,angle:a,rotation:-a-Math.PI/2,length,depth,height,bounds};
+        if(!safe||Math.abs(radial-p.radial)>depth*.67+.28
+          ||radial>p.radial+.08)continue;
+        found={x,z,angle:a,rotation:-a-Math.PI/2,length,depth,height,bounds,
+          shoreInset:p.radial-radial};
       }
       if(found){masses.push(found);break;}
     }
@@ -105,7 +111,7 @@ export function planArchipelagoHeroGraniteV2(profile,{reservations=[],neighborPr
   return {masses,shelves:[]};
 }
 
-function sculptGranite(){
+function sculptGranite({hero=false}={}){
   // One continuous indexed bedrock surface rather than three overlapping
   // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
   // The low root rests inside the existing shore without a coplanar apron.
@@ -119,16 +125,24 @@ function sculptGranite(){
     return [h,.035+1.055*Math.sqrt(Math.max(0,1-h*h))];
   });
   const positions=[],colors=[],indices=[];
-  const shadow=new THREE.Color('#60717d'),weathered=new THREE.Color('#aaa5b1');
-  const twilight=new THREE.Color('#b9a6b8'),moss=new THREE.Color('#788674');
+  const shadow=new THREE.Color('#60717d');
+  // The hero rock is glacial grey with soft lavender skylight, rather than
+  // an isolated bright pink egg. Other islands keep their existing palette.
+  const weathered=new THREE.Color(hero?'#9698a1':'#aaa5b1');
+  const twilight=new THREE.Color(hero?'#aaa0ad':'#b9a6b8');
+  const moss=new THREE.Color('#788674');
   for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,[h,nominal]=rings[k];
     const cs=Math.cos(a),sn=Math.sin(a);
-    const r=nominal*(1+.068*Math.sin(3*a+.38)+.049*Math.cos(2*a+1.18)
+    // One continuous irregular glacial surface, with a broad leaning
+    // shoulder and asymmetric side lobes instead of a symmetrical egg.
+    // No separate coplanar rock apron or interior false-height terrain.
+    const lobes=hero?1+(.16*Math.sin(2*a-.45)+.095*Math.cos(3*a+.81))*(1-h*.55):1;
+    const r=nominal*lobes*(1+.068*Math.sin(3*a+.38)+.049*Math.cos(2*a+1.18)
       +.019*Math.sin(7*a-.48));
-    const x=Math.sign(cs)*Math.pow(Math.abs(cs),.86)*r*.5+h*.068*Math.sin(1.1);
-    const z=Math.sign(sn)*Math.pow(Math.abs(sn),.90)*r*.5-h*.083;
-    const y=h+.005*Math.sin(5*a+h*8)*Math.sin(h*Math.PI);
+    const x=Math.sign(cs)*Math.pow(Math.abs(cs),.86)*r*.5+h*(hero?.14:.068);
+    const z=Math.sign(sn)*Math.pow(Math.abs(sn),.90)*r*.5-h*(hero?.14:.083);
+    const y=h+(hero?.075:.005)*Math.sin(2*a+.3)*h*(1-h);
     positions.push(x,y,z);
     const strata=.5+.5*Math.sin(9*a+8*h+.5),crack=.5+.5*Math.sin(17*a-7*h);
     const color=shadow.clone().lerp(weathered,.32+.53*Math.sqrt(h)+.048*strata)
@@ -151,7 +165,7 @@ function sculptGranite(){
   geo.userData.shared=true;geo.userData.continuousGlacialMass=true;
   return geo;
 }
-const graniteGeo=sculptGranite(),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
+const graniteGeo=sculptGranite(),heroGraniteGeo=sculptGranite({hero:true}),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
 graniteMat.userData.shared=true;groundMat.userData.shared=true;
 const grassMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,side:THREE.DoubleSide});grassMat.userData.shared=true;
 const matrix=new THREE.Matrix4(),pos=new THREE.Vector3(),rot=new THREE.Quaternion(),scale=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);
@@ -171,7 +185,7 @@ export function addArchipelagoGraniteV2(profile,group,{high=true,...options}={})
 export function addArchipelagoHeroGraniteV2(profile,group,{high=true,...options}={}){
   const plan=planArchipelagoHeroGraniteV2(profile,options);
   if(!plan.masses.length)return null;
-  const mesh=new THREE.InstancedMesh(graniteGeo,graniteMat,plan.masses.length);
+  const mesh=new THREE.InstancedMesh(heroGraniteGeo,graniteMat,plan.masses.length);
   mesh.name='arch-v2-integrated-hero-granite';
   mesh.userData.visualOnly=true;
   mesh.userData.anchoredHero=true;
@@ -180,7 +194,7 @@ export function addArchipelagoHeroGraniteV2(profile,group,{high=true,...options}
     const m=plan.masses[i];
     // Sink the wide base under the real shore rather than leave a visible
     // circular pedestal in the water next to the island.
-    pos.set(m.x,-.54,m.z);
+    pos.set(m.x,-.67,m.z);
     rot.setFromAxisAngle(up,m.rotation);
     scale.set(m.length*.94,m.height,m.depth*.94);
     mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));
@@ -390,8 +404,10 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
     // The entrance faces land and is visibly cut into the innermost flank
     // of the real granite volume, not sitting as a concrete L on bare coast.
     const a=heroRock.angle;
-    g.position.set(heroRock.x-Math.cos(a)*heroRock.depth*.43,-.14,
-      heroRock.z-Math.sin(a)*heroRock.depth*.43);
+    // Place the narrow dark doorway near the landward granite flank.
+    // Previously the door was buried under the dome and unreadable.
+    g.position.set(heroRock.x-Math.cos(a)*heroRock.depth*.49,.10,
+      heroRock.z-Math.sin(a)*heroRock.depth*.49);
     g.rotation.y=-a-Math.PI/2;
     g.userData.integratedHero=true;
     g.userData.embeddedInRock=true;
