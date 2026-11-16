@@ -21,6 +21,17 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
 function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 
+// Static check (jsdom cannot run real CSS animations -- see the Puppeteer shot harness for the
+// behavioral proof): a CSS animation's fill-mode:forwards only locks in the value each property
+// had at ITS OWN last keyframe. introBtn set pointer-events:auto at 60% but not 100%, so once the
+// 0.5s fade actually finished, the button silently went back to pointer-events:none even though
+// it read as fully opaque -- caught via the coldopen-enter-844x390.png screenshot.
+{
+  const start = html.indexOf("@keyframes introBtn{");
+  const rule = html.slice(start, html.indexOf("\n", start));
+  assert.match(rule, /100%\{[^}]*pointer-events:auto/, "introBtn's 100% keyframe must set pointer-events:auto explicitly, or fill-mode:forwards reverts it to none once the fade finishes");
+}
+
 // ---------------------------------------------------------------------------
 // FakeIOSAudioContext (trimmed from test/ios-audio.test.js): resume() resolves only inside a
 // gesture (ctx.gestureOpen) and the state flip to 'running' lands ~120ms later via a real timer,
