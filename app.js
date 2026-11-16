@@ -3554,7 +3554,7 @@ function lobbyHtml(gear, miss, locked){
   const toolOk = !(locked && !ownedForSlot("tool"));
   const loadout = slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
     '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' +
-    (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '<div class="lslot locked" aria-disabled="true"><i aria-hidden="true">' + IC("tool-grenade") + '</i><b>Tool locked</b></div>');
+    (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '<div class="pr-tool-unavailable" aria-disabled="true"><i aria-hidden="true">' + IC("tool-grenade") + '</i><b>Tool locked</b></div>');
   const sceneAttrs = ' data-weapon="' + esc(nodeRaidWeaponId()) + '" data-armor="' + esc((session.prep && session.prep.loadout.armor) || '') + '"';
   return '<div class="lobby pr-cinematic">' +
     '<div class="lobby-top"><span class="pr-brand">PROTOCOL REBIRTH</span><span class="pr-slash" aria-hidden="true">//</span><h1 class="pr-title">RAID PREPARATION</h1></div>' +
