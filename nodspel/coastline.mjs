@@ -206,17 +206,20 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
   for(const p of points){
     const c=Math.cos(p.angle),sn=Math.sin(p.angle);
     const base=p.radial;
-    // Pass M: the natural shoreline is a SERIES of separated glacial knuckles,
-    // not one continuous smooth slope. Each authored headland has a main worn
-    // dome, a lower offset shoulder and an asymmetric ridge with dark clefts.
-    // The valleys between the blocks remain near sea level.
+    // Pass U: compact, independently readable weathered granite knuckles.
+    // Wide overlapping Gaussians previously painted almost an entire arc as
+    // a continuous pale cliff. Keep a dominant dome, an offset lower shoulder
+    // and a short uneven spur, but fade the entire mass to ZERO before the
+    // neighboring cove. The shape still lives in the one joined coast mesh:
+    // no extra rock geometry, collision or seam is introduced.
     const influence=heads.reduce((acc,h)=>{
       const t=wrap(p.angle-h.angle)/h.width;
-      const main=Math.exp(-Math.pow((t+.26)/.40,2));
-      const shoulder=.76*Math.exp(-Math.pow((t-.44)/.36,2));
-      const spur=.42*Math.exp(-Math.pow((t+.91)/.26,2));
-      const crack=.22*Math.exp(-Math.pow((t-.06)/.19,2));
-      const shape=clamp(main+shoulder+spur-crack,0,1.18);
+      const core=Math.exp(-Math.pow((t+.22)/.31,2));
+      const shoulder=.62*Math.exp(-Math.pow((t-.43)/.27,2));
+      const spur=.27*Math.exp(-Math.pow((t+.82)/.20,2));
+      const cleft=.15*Math.exp(-Math.pow((t-.10)/.17,2));
+      const envelope=1-smooth(.92,1.32,Math.abs(t));
+      const shape=clamp(core+shoulder+spur-cleft,0,1.14)*envelope;
       return Math.max(acc,shape*(h.height/2.35));
     },0)*(1-p.beach*.96);
     // Pass L: protruding bedrock shoulders are broad, irregular *coastline*
