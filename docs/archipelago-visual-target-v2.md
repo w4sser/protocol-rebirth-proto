@@ -1,8 +1,69 @@
 # Archipelago Visual Target v2 — Nordic Summer Night / Glacial Islands
 
-**Decision (14 November 2026):** Approved visual direction by product owner, followed by an explicit decision to stop using rectangular **playable boundaries** in Archipelago. Authored rectangular rooms are retained solely as temporary seed/encounter data; player and enemy movement must be constrained by the organic island profiles, not by the old room boxes. Combat, progression and bridge rules remain unchanged. This is the visual target for Archipelago only; Bunker and Town retain their own looks.
+> **LIVING SPEC — updated 16 November 2026.** This is the **single source of truth** for the Archipelago v2 visual target, implementation status, rejected approaches and next steps. The reference is approved; **visual parity is not**. The v2 rendering remains opt-in behind `archVisual=v2`. The historical iteration log below documents learning, not current instructions.
 
-**Reference:** [Interactive Three.js visual target](../archipelago-visual-target.html) on main; its atmosphere and geological language are targets, not a pixel-perfect mobile promise. See [Art Direction v07](art-direction.md) and [Archipelago Environment Variety v1](archipelago-environment-variety-v1.md).
+**Verified baseline:** PR [#247](https://github.com/w4sser/protocol-rebirth-proto/pull/247) was squash-merged into `main` on 15 November 2026 (commit `da6a5ec470b3497da7dc7cab83ad9e1f9c8aaa53`). Later commits have also landed on main. GitHub Actions reported a successful `ci` and a successful `Deploy playable site` for `main` at `7faff57a5e44efc34c4b918437249b9f365bb07f` on 15 November. **Successful deployment is not a claim of visual parity or a physical-phone validation.** The 934/934 gameplay-test result was reported at the #247 merge; this documentation update does not claim a fresh local rerun.
+
+**Reference:** [Interactive Three.js visual target](../archipelago-visual-target.html); use its actual 844 × 390 camera composition as the art-direction comparison. See [Art Direction v07](art-direction.md) and [Archipelago Environment Variety v1](archipelago-environment-variety-v1.md). This visual contract applies to Archipelago only, not Bunker or Town.
+
+## Current scorecard — code health is not art approval
+
+| Area | What has worked / is implemented | What still fails or remains unverified | Status |
+| --- | --- | --- | --- |
+| Safe rollout | #247 merged, standard game and newer main features retained; `archVisual=v2` stays opt-in; current-main CI and deploy workflows green | Do not enable v2 by default until visual and mobile gates pass | **Working milestone** |
+| Island shape and movement | Seeded organic coast, actor boundary, neighboring water separation and bridge clearance have regression coverage | Normal-game-camera silhouette still has not earned visual-target approval; only the `archTarget=1` hero island uses the integrated 14-ring headland composition | **Functional, visual P0** |
+| Granite and shoreline | Hero headlands now share one indexed coastline mesh, with a common flat ground seam; no detached hero rock apron. Interior tall rock ridges removed | Successive K–Q passes still need convincing before/after proof: avoid continuous pale seawalls, rock sausages, detached-looking knuckles and narrow false cliffs | **Not visually accepted** |
+| Interior cover / bridge | Big granite moved outside the traversable floor; no freestanding concrete blocks; surviving natural cover has matching collisions; approaches are protected | Confirm actual camera readability, objective reachability and physical bridge passage after each geometry change | **Code regression covered; field QA pending** |
+| Scots pines | Four seeded silhouette families, different heights/yaw, individual occlusion fade and restore implemented | Must verify silhouette quality, transparency and performance from real mobile gameplay camera | **Implemented, visual QA pending** |
+| Dinghies | Tapered open hull and deterministic water-only placement; tests reject intersections with islands, bridges and existing bedrock | Inspect against live HIGH/LOW screenshots to ensure they read as boats and never appear grounded | **Implemented, visual QA pending** |
+| Baltic sea / atmosphere | Separate calm-water shader, restrained waves, muted pink/lavender reflection, archipelago-specific night rig | Need target-to-game comparison and physical-device quality/performance; no real world-space reflections are claimed | **Implemented, parity pending** |
+| Sense of place / world scale | Distant skerries, mixed coastal vegetation, bunker remnant and shoreline utility shed exist | The full scene may still read as small flat gameplay plates rather than a coherent expansive Swedish archipelago | **Art composition P1** |
+| HIGH / LOW performance | Shared main landforms, reduced dressing in LOW, deterministic screenshot workflow and geometry tests | Actual iPhone/Safari sustained FPS, frame pacing, thermal behavior, depth seams and fade occlusion are not yet verified as accepted | **Open release gate** |
+
+### What we tried and rejected — do not recreate
+
+1. **Rectangular playable grass plates and perimeter rock rows:** artificial island silhouettes; organic shared coastal profiles replaced them.
+2. **Wall-length stone arrangements and smooth geological banks across the island:** became obvious parallel rows or long gray sausages, not Swedish granite.
+3. **Tall mountains, berms and faux climbable terrain inside combat space:** operator/AI navigation is X/Z-planar. High rock belongs at the **outer visual boundary**, not on a flat gameplay floor.
+4. **Freestanding concrete slabs used as natural cover:** wrong visual language. Concrete belongs only to believable military/utility structures.
+5. **Intersecting terrace shells, granite aprons and coplanar transition meshes:** caused or risked z-fighting, especially by shoreline and bridges. Prefer coherent indexed geometry and exact shared seams.
+6. **Tweaking only gray/pink tint or repeating radial ridges to hide a weak silhouette:** the recurring retaining-wall problem is primarily **composition and geometry**, not just a material problem.
+7. **Rectangular boat placeholders or boats chosen from old rectangular room bounds:** replaced by sculpted hulls and coast-aware water placement; never reintroduce these shortcuts.
+
+These were **unsuccessful visual approaches**, even when their intermediate tests were green. They are not future TODOs.
+
+### Visual contract: locked decisions to preserve
+
+- **The island is the rock.** Natural, low-poly glacial granite is integral to the coast, in asymmetrical, rounded masses separated by actual moss/grass and small sheltered coves. Avoid an uninterrupted gray perimeter retaining wall.
+- **Gameplay stays planar.** No new climbable mountains, fake elevated floors or invisible visual cover. Tall rocks may be small or large, with different orientations and heights, but stay beyond the walkable coast. Keep bridge landings clear.
+- **A calm Nordic summer night, dark but never hopeless.** Cold blue-gray granite, pale lavender/coral sky reflections, healthy muted green vegetation, quiet Baltic water. No neon and no tropical cyan.
+- **Distinct windswept Scots pines** in varied height/silhouette/rotation. An individual tree fades when it blocks the operator, enemy, loot, objective or extraction, then restores. No competitive legacy tall-pine dressing in v2.
+- **Open sightlines for combat.** Environment can frame danger, but must not conceal actor movement, bullets, loot cues or artillery telegraphs.
+- **No concrete blocks scattered in nature.** Structures are embedded or plausibly placed, not procedural substitutes for stone.
+
+### Next iteration queue (priority order)
+
+| Priority | Action / deliverable | Evidence required to call it done |
+| --- | --- | --- |
+| **P0-1** | Make the **hero island's coast** read as 2–3 distinct rounded granite masses (different size/height) with green/rocky gaps, not as a continuous raised wall. Solve the geological silhouette before another color-only pass. | HIGH and LOW 844 × 390 side-by-side with the original HTML target; obvious visible improvement at normal raid zoom |
+| **P0-2** | Lock shore continuity: ground-to-granite, underwater toe, water mask, bridge channel and nearby skerries must agree. No detached rock skirts, island intersections or z-fighting. | Geometry and reachability regression tests, bridge/shore/boats screenshots, in-motion Safari check |
+| **P1-1** | Balance still Baltic sea, distant land layers, mist and muted summer-night light to match reference at normal camera. | Same seed, framing and color comparison against target on phone |
+| **P1-2** | Refine pine distribution/individual fade and dinghy staging only where real captures show they hurt readability or believability. | Operator/enemy crossing foreground trees, fade/restore, bridge and boat captures in HIGH and LOW |
+| **P2** | Once the hero composition is approved, extend the **integrated** geology standard to all playable islands; vary landform families by seed without changing gameplay/nav invariants. | Multi-seed, multi-island gameplay captures and performance, including LOW hardware |
+
+### Repeatable visual review and merge policy
+
+1. Compare `archipelago-visual-target.html` with `?area=archipelago&archVisual=v2&archTarget=1&seed=archipelago-v2-target&q=high` and `q=low`. Use **844 × 390 actual gameplay camera**, same seed, similar location, no editor zoom shortcuts.
+2. Capture **spawn/open center**, **bridge and landing**, **granite headland/coast**, **boat/shore**, and **foreground tree occlusion**. Keep explicit before/after pairs for every visually relevant PR.
+3. Run geometry/actor/collision/bridge/boat tests plus the full game and layout suites. Inspect HIGH/LOW images and console errors. Test iOS Safari directly before any default rollout; initial LOW criterion remains **sustained >40 FPS**, with frame pacing and thermal checks.
+4. **Small tested, compatible changes may be merged as milestones without parity** (as #247 was). Keep `archVisual=v2` opt-in. **Do not declare visual parity or switch v2 on by default** until the owner accepts real gameplay comparisons and phone gates pass.
+5. Update this document after each visual iteration with: **hypothesis → code changed → screenshots/tests → worked / did not work → next decision**. Never mark a visual pass successful based solely on a green CI run.
+
+### Latest outcome and next experiment
+
+- **Kept:** Pass P's single joined rounded hero coastline and Pass Q's wider flat vegetation apron; these are **implemented hypotheses**, not accepted reference parity.
+- **Still the chief visual risk:** broad low-poly granite may look like a long pale shore embankment at isometric game scale rather than a handful of memorable compact rocks.
+- **Next change:** tune **the shape of the hero headland composition and negative space** without altering X/Z physics or adding overlapping rock objects. Validate the appearance with real HIGH/LOW captures *before* making additional material-only revisions.
 
 ## Visual contract (locked direction)
 
@@ -31,7 +92,7 @@
 - [ ] Player and enemies can traverse the organic shore beyond their old rectangle, cannot enter open water, do not get stuck at bridge landings, and remain able to reach all objectives. No false visual cover near routes, obscured telegraphs, new gameplay objects or changed economy.
 - [ ] Deterministic profiles and identical important silhouettes across HIGH and LOW for the same seed; visual scene leaves authored floors unchanged.
 - [ ] HIGH and LOW are measured on actual phones, including sustained FPS, worst-frame pacing, draw calls, GPU memory, thermal throttling, and visual readability. Existing LOW >40 FPS minimum remains the initial gate.
-- [ ] Team reviews the real gameplay screenshot before merging or enabling default v2.
+- [ ] Team reviews the real gameplay screenshot before **declaring visual parity or enabling default v2**. Individual test-clean opt-in milestones may merge earlier.
 
 ## Follow-up after approval
 
@@ -40,6 +101,10 @@ Once this one target island looks right and performs safely, extend visual profi
 ### Open-world composition note (14 Nov owner feedback)
 
 The archipelago must feel **expansive like the lighthouse intro**, not like disconnected tiny combat plates. Compose multiple scales of land: foreground playable headlands, near offshore skerries, distant muted land silhouettes and open water. Use the horizon and sea lanes to imply a wider archipelago while maintaining the camera's combat readability. Distant islands are scenery, not traversal promises. Do not use a dense ring of equal-sized rocks or symmetrical islets; favor varied mass and negative water space. The visual target must be judged from normal gameplay zoom and on the phone, not only in a pulled-back editor camera.
+
+## Historical iteration log — 14–15 November 2026 (archive, not active merge instructions)
+
+**Reading note (16 Nov):** The entries below record what was attempted, observed and learned while #247 was being built. Any sentence saying "do not merge PR #247" or "PR #247 is not approved for merge" is **superseded by its verified merge on 15 November 2026**. The active status, prioritization and release gates are above. Retain these notes to avoid repeating unsuccessful passes.
 
 ## 15 November 2026 — Owner visual reference refinement (P0)
 
