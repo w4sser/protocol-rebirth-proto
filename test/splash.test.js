@@ -7,7 +7,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const setup = app.slice(app.indexOf("function setupSplash("), app.indexOf("/* ---------- init ---------- */"));
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, returning=false}={}){
+function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, returning=false, ftueDirect=false}={}){
   const dom = new JSDOM(html, {url:"https://game.example/"});
   const { window } = dom, { document } = window;
   if(seen) window.sessionStorage.setItem("pr_splash_seen", seen === "stale" ? "1" : String(Date.now()));
@@ -17,10 +17,10 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, 
   const tasks=new Map(), images=[];
   const later=(fn,delay) => {const key=++id;tasks.set(key,{fn,at:now+delay});return key;};
   class Picture{ constructor(){this.complete=false;images.push(this);} }
-  new Function("document","window","sessionStorage","S","D","bunkerStage","Image","setTimeout","clearTimeout","lockLandscape","APP_VERSION","returning",
-    setup + ";setupSplash(false,returning);")(
+  new Function("document","window","sessionStorage","S","D","bunkerStage","Image","setTimeout","clearTimeout","lockLandscape","APP_VERSION","returning","ftueDirect",
+    setup + ";setupSplash(false,returning,ftueDirect);")(
     document, window, storage, {introSeen}, {baseMap:{plates:[{art:"saved-stage.webp"}]}}, () => 0,
-    Picture, later, key=>tasks.delete(key), ()=>{}, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version, returning);
+    Picture, later, key=>tasks.delete(key), ()=>{}, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version, returning, ftueDirect);
   const tick = ms => {
     const until=now+ms;
     while(true){
@@ -47,11 +47,29 @@ function boot({seen=false, introSeen=true, reduced=false, blockedStorage=false, 
   t.dom.window.close();
 }
 {
-  const t=boot({introSeen:false});t.ready();t.tick(1400);
-  assert(t.splash().classList.contains("descending"),"automatic entry");
-  assert(t.document.body.classList.contains("startup-bunker-intro"),"new player keeps BIT intro");
+  // v2.28.3x PRB-161 (Robert, iPhone): a first launch (cold-open next) must NEVER auto-advance --
+  // the tap is the only gesture that unlocks audio before the greeting needs it. Returning players
+  // (introSeen) keep the old gesture-free auto-advance since no VO depends on it.
+  const t=boot({introSeen:true});t.ready();t.tick(1400);
+  assert(t.splash().classList.contains("descending"),"returning player: automatic entry");
   t.click();assert(!t.splash(),"second tap skips movement immediately");
   t.tick(10000);assert(!t.document.body.classList.contains("splash-active"));
+  t.dom.window.close();
+}
+{
+  const t=boot({introSeen:false});t.ready();t.tick(10000);
+  assert(!!t.splash() && !t.splash().classList.contains("descending"),"first launch: never auto-advances, even after a long wait");
+  assert(t.document.body.classList.contains("startup-bunker-intro"),"new player keeps BIT intro");
+  t.click();
+  assert(t.splash().classList.contains("descending"),"the tap itself still starts the descent");
+  t.tick(10000);assert(!t.document.body.classList.contains("splash-active"));
+  t.dom.window.close();
+}
+{
+  // ftueDirect (fresh profile, no cold open coming -- straight to the FTUE raid) keeps the
+  // gesture-free auto-advance too: nothing on that path needs audio unlocked by a tap.
+  const t=boot({introSeen:false, ftueDirect:true});t.ready();t.tick(1400);
+  assert(t.splash().classList.contains("descending"),"ftueDirect: automatic entry");
   t.dom.window.close();
 }
 {

@@ -2308,9 +2308,12 @@ SCREENS.intro = function(){
   // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
   // art, not the viewport -- .intro-stage always keeps the backdrop's 1672/941 aspect so they hold).
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
-  const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
+  // v2.28.3x PRB-161: the button used to wait 0.4s past the last line's own 1.2s reveal (a ~0.8s
+  // gap) then fade over 0.9s -- Robert's screenshot caught it mid-fade, reading as stuck/disabled.
+  // A shorter gap + a quicker fade (see .intro-go/introBtn in index.html) fixes that.
+  const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.2;
   $app().innerHTML =
-    '<div class="intro' + (session.introSkipped ? ' done' : '') + '" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
@@ -2335,6 +2338,33 @@ SCREENS.intro = function(){
     if(document.body.classList.contains("splash-active"))
       window.addEventListener("pr:splash-finished", greet, { once:true });
     else greet();
+  } else {
+    // v2.28.3x PRB-161: the line/button reveal (CSS, paused by .vo-wait -- see index.html) stays
+    // held, invisible, until BIT's greeting is decoded and the AudioContext is really 'running'
+    // (capped at 1.5s total), so line 1 and the VO start together instead of racing whatever
+    // gesture happens to finish the unlock. Past the cap, the text starts anyway -- requestVoice()
+    // (called from the animationstart -> greet() hook once unpaused) still queues and plays the
+    // VO as soon as it's ready, as long as .intro is still mounted.
+    const VO_WAIT_CAP_MS = 1500;
+    const voiceReady = () => {
+      const audio = window.PR_AUDIO;
+      return !!(audio && audio.unlocked && audio.context?.state === "running" && audio.decodedFiles?.has("bit/youre-back"));
+    };
+    const armVoiceGate = () => {
+      if(!intro.isConnected) return;
+      if(document.body.classList.contains("splash-active")){
+        window.addEventListener("pr:splash-finished", armVoiceGate, { once:true });
+        return;
+      }
+      const clear = () => intro.classList.remove("vo-wait");
+      const audio = window.PR_AUDIO;
+      if(!audio || voiceReady()){ clear(); return; }
+      let settled = false;
+      const finish = () => { if(settled) return; settled = true; clear(); };
+      setTimeout(finish, VO_WAIT_CAP_MS);
+      Promise.all([audio.load?.("bit/youre-back")?.catch(() => {}), audio.unlockPromise || Promise.resolve()]).then(finish, finish);
+    };
+    armVoiceGate();
   }
 };
 
@@ -5681,11 +5711,17 @@ function showBaseLoader(){
 // Returns null if there's no #splash or it's already been shown this session; otherwise an
 // object the caller uses to report the flight's async outcome (flightMounted once
 // start-scene.js loads, flightFailed if it never does or later errors out).
-function setupSplash(flightPending, returningFromRaid){
+function setupSplash(flightPending, returningFromRaid, ftueDirect){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
+  // PRB-161 (Robert, iPhone, v2.28.39): the cold open's VO only unlocks audio on whatever gesture
+  // happens to land first -- if the splash auto-advances to the cold open with no tap at all
+  // (Low quality / no WebGL2 / a failed flight -- common on iPhone), unlockSync() never runs and
+  // 'youre-back' plays late, once the player eventually taps something. ftueDirect also skips the
+  // cold open outright (straight to the FTUE raid), so it keeps the old gesture-free auto-advance.
+  const coldOpenNext = !S.introSeen && !ftueDirect;
   // v2.12.1: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
   // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
   // v2.21.1: a raid result waiting to be shown (returningFromRaid) always skips the splash -- a
@@ -5740,8 +5776,9 @@ function setupSplash(flightPending, returningFromRaid){
     // that isn't decoded yet -- see ui/audio.js preload() and the loadTimer fallback above.
     sp.classList.add("prompt-ready");
     if(requested) proceed();
-    else if(!flightActive) autoTimer = setTimeout(begin, 1400);
-    // else: the flight is active -- stay on the looping start screen until the player taps.
+    else if(!flightActive && !coldOpenNext) autoTimer = setTimeout(begin, 1400);
+    // else: the flight is active, or the cold open is next and needs the tap's gesture to
+    // unlock audio -- stay on the looping/static start screen until the player taps.
   };
   // v2.28.33 single start-screen prompt: PLAY is gone, so the one tap both unlocks audio
   // (synchronously, inside this gesture -- see ui/audio.js unlockSync()) and begins/enters;
@@ -5795,7 +5832,7 @@ function setupSplash(flightPending, returningFromRaid){
     flightFailed(){
       if(!flightActive) return;
       flightActive = false; flightCtl = null;
-      if(phase === "ready"){ if(requested) begin(); else autoTimer = setTimeout(begin, 1400); }
+      if(phase === "ready"){ if(requested) begin(); else if(!coldOpenNext) autoTimer = setTimeout(begin, 1400); }
     },
   };
 }
@@ -5837,7 +5874,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
   if(fabricatorPending() && !S.bitCardsSeen.fabricator_built) fabricatorCutsceneArtReady();
-  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
+  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok), ftueDirect);
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
