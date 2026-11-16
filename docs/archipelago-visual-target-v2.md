@@ -23,7 +23,9 @@
 - [ ] Full game CI, current preview startup and scene-layout checks pass; physical-device Safari performance and owner visual comparison are still separate gates.
 - [ ] Record the visual verdict after viewing the actual screenshots. A passing test is **not** art acceptance. This branch must not silently overwrite P1 ground/pine changes in [draft #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269) or the ongoing hero integrated-geology work in [draft #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267).
 
-**Status at creation:** Implemented on focused branch `feat/archipelago-v2-fractured-granite-zc-20261116` (commit `4a2f56a7`; CI-enable commit `4be7669c`). PR #275 stays **draft** pending captured-image review, geometry tests and full CI. No visual-target parity claim.
+**Pass ZC initial verdict — functional but visually rejected:** [Actual HIGH/LOW mobile-camera capture](https://github.com/w4sser/protocol-rebirth-proto/actions/runs/43917123168) passed, including the **new non-hero coastal shelf viewpoint** on level 2. The round egg is gone, and small natural cover is flatter, but the large offshore shelf still displays a conspicuous radial *triangular fan/umbrella* silhouette. This is not acceptable Swedish granite; **do not merge the initial ZC geometry** or mistake a successful automated capture for art acceptance.
+
+**Pass ZC2 (active experiment, commit `ae4155f1`):** Break the aligned concentric spokes by **staggering adjacent angular rings**, create an uneven sloping crown/saddle instead of a single radial peak, and bring the low rock foot slightly closer to the actual island coastline. Keep the one continuous indexed mesh and the existing full-footprint checks against walkable X/Z, boats, bridges and neighboring islands. No separate overlapping aprons or new colliders. Rerun focused geometry tests, actual non-hero HIGH/LOW screenshots and full CI; judge whether the fan is eliminated without creating new detached slabs. PR #275 remains **draft** until visual owner acceptance and CI.
 
 ## Pass Z — Ground Cleanup & Subtle Sky Tint on Pines (Updated 16 Nov 2026)
 
