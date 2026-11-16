@@ -63,7 +63,7 @@ These were **unsuccessful visual approaches**, even when their intermediate test
 
 - **Kept:** Pass P's single joined rounded hero coastline and Pass Q's wider flat vegetation apron; these are **implemented hypotheses**, not accepted reference parity.
 - **Still the chief visual risk:** broad low-poly granite may look like a long pale shore embankment at isometric game scale rather than a handful of memorable compact rocks.
-- **Next change:** tune **the shape of the hero headland composition and negative space** without altering X/Z physics or adding overlapping rock objects. Validate the appearance with real HIGH/LOW captures *before* making additional material-only revisions.
+- **Current experiment (16 Nov, awaiting QA):** [Pass U draft PR #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267) narrows the two hero headlands into a dominant dome, a smaller offset shoulder and an irregular spur, with a hard falloff into green coves. It changes only the existing coast influence function, keeps all geometry and movement seams intact and adds a test rejecting long raised seawall runs. **Implemented is not visually accepted:** HIGH/LOW captures, full CI, mobile performance and owner review must be recorded here before labeling this 'worked' or 'failed'.
 
 ## Visual contract (locked direction)
 
