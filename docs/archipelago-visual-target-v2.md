@@ -20,6 +20,20 @@
 | Sense of place / world scale | Distant skerries, mixed coastal vegetation, bunker remnant and shoreline utility shed exist | The full scene may still read as small flat gameplay plates rather than a coherent expansive Swedish archipelago | **Art composition P1** |
 | HIGH / LOW performance | Shared main landforms, reduced dressing in LOW, deterministic screenshot workflow and geometry tests | Actual iPhone/Safari sustained FPS, frame pacing, thermal behavior, depth seams and fade occlusion are not yet verified as accepted | **Open release gate** |
 
+### Pass Z — ground cleanup and rose-lit pines (16 November, draft PR #269)
+
+**Owner decision:** remove bright, near-white ground speckle and try a very restrained pink/lilac *sky reflection* on wind-shaped pines. **This is not a request for full-pink trees, glow, a thick vignette, or a new postprocess pass.**
+
+**Commit-ready implementation brief**
+- **Ground color:** lower contrast of tiny exposed mineral/lichen flecks in the existing v2 terrain vertex colors. Keep wide weathered granite masses and muted moss/olive/heather, and preserve the exact ground/coast shared seam.
+- **Scattered vegetation:** halve native groundcover per cluster (HIGH 12→6, LOW 6→4), keep seeded groups and reservation exclusions; retain LOW as a deterministic subset of HIGH. Reduce white-looking tiny props (small stones, wildflowers, sea-holly) by roughly **70% in v2 only**; preserve grass, established large stones and the normal game's dressing.
+- **Pine lighting:** crown-only, upward-facing **rose-lilac sky tint ≤0.11** over the existing dark-green base, baked into a few shared crown vertex-color geometries. No emission, extra lights, full-tree recolor or outline. Trunks and shadows stay dark; individual foreground fade/restore works identically in HIGH/LOW.
+- **Technical acceptance:** default mode unchanged; no new collider; no extra draw call per pine, no per-tree materials; preserve seeded layouts, gameplay readability and the `archVisual=v2` flag.
+
+**Before labeling it worked:** compare the same 844×390 real gameplay camera at spawn, shore and foreground pines in HIGH and LOW to the original visual target. Ensure ground speckles no longer attract attention, the pines remain predominantly dark green, and their rose tint reads as ambient sky light. Run full CI, coastal geometry/seed checks and the occlusion fade/restore test. Physical iPhone/Safari review is still required for default rollout. **No merge or visual-parity claim solely from code/tests.**
+
+**Current state:** implemented in [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269); image acceptance pending. This cosmetic pass is independent of the major coastline redesign in draft PR #267.
+
 ### What we tried and rejected — do not recreate
 
 1. **Rectangular playable grass plates and perimeter rock rows:** artificial island silhouettes; organic shared coastal profiles replaced them.
