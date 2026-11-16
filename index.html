@@ -10,19 +10,19 @@
 <meta name="apple-mobile-web-app-title" content="Protocol Rebirth">
 <meta name="application-name" content="Protocol Rebirth">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.28.39">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.28.39">
-<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.28.39">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.28.39">
-<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.28.39">
-<link rel="preload" as="image" href="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=2.28.39">
-<link rel="preload" as="image" href="assets/production/coldopen/bit-coldopen-v1.webp?v=2.28.39">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/app/icon-32.png?v=2.28.41">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/app/icon-16.png?v=2.28.41">
+<link rel="shortcut icon" href="assets/icons/app/favicon.ico?v=2.28.41">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/app/icon-180.png?v=2.28.41">
+<link rel="preload" as="image" href="assets/production/splash_archipelago_radar_lighthouse.webp?v=2.28.41">
+<link rel="preload" as="image" href="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=2.28.41">
+<link rel="preload" as="image" href="assets/production/coldopen/bit-coldopen-v1.webp?v=2.28.41">
 <title>Protocol Rebirth</title>
 <!-- v2.12.1 start screen: lets start-scene.js (dynamically imported, Medium/High quality only)
      resolve the vendored Ultra Water engine's bare `import ... from 'three'` against our own
      vendored three.js build, with no build step. -->
 <script type="importmap">{"imports":{"three":"./nodspel/vendor/three.module.js"}}</script>
-<script src="ui/viewport.js?v=2.28.39"></script>
+<script src="ui/viewport.js?v=2.28.41"></script>
 <style>
 :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
 @media (pointer:coarse){:root{--sl:max(env(safe-area-inset-left,0px),12px);--sr:max(env(safe-area-inset-right,0px),12px)}}
@@ -716,8 +716,29 @@
   @media(prefers-reduced-motion:reduce){#splash.prompt-ready .splash-prompt{animation:none;}}
   #splash.descending .splash-corner,#splash.descending .splash-title,#splash.descending .splash-prompt{opacity:0;transition:opacity .2s ease;}
   body.splash-active #overlay,body.splash-active #settings-menu{z-index:95;}
-  body.splash-active #topbar,body.splash-active #tabs,body.splash-active #bitdock,body.splash-active #app-version,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip{opacity:0;}
+  body.splash-active #tabs,body.splash-active #bitdock,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip{opacity:0;}
+  /* PRB-161: the version label stays visible (and triple-tappable -- ui/audio-debug.css already
+     makes it pointer-events:auto) over the splash and the cold open, not just the base screen --
+     Robert's iPhone diagnostics are useless if he can't reach them before either screen is gone.
+     #topbar itself is no longer hidden here (opacity/display on an ancestor cannot be undone by a
+     descendant's own opacity/z-index -- #app-version lives inside #topbar, see ~L1791, and the
+     `#topbar #app-version{position:static}` rule below means #app-version's own z-index does
+     nothing; #topbar's z-index is what must clear #splash/.intro); instead its OTHER children are
+     hidden individually, leaving #topbar as the inert/backgroundless strip it already is in the
+     landscape layout (~L879). #topbar is raised above #splash (z-index 90) and .intro (z-index 50),
+     but below the settings menu/overlay (95) so a real popup still wins. */
+  body.splash-active #topbar>#navback,body.splash-active #topbar>.title,body.splash-active #topbar>#currencies,body.splash-active #topbar>#menubtn{opacity:0;visibility:hidden;pointer-events:none;}
+  /* PRB-161: only the version label is interactive while #topbar is raised over the splash/cold open -- the hidden siblings must not cover splash controls (layout-check: #splash-profiles-btn). */
+  body.splash-active #topbar,body[data-screen=intro] #topbar{pointer-events:none;}
+  body.splash-active #topbar>#app-version,body[data-screen=intro] #topbar>#app-version{pointer-events:auto;}
+  /* Bottom-right while the splash/cold open is up, so it never covers the splash corner buttons (settings/profiles, top-right). */
+  body.splash-active #topbar>#app-version,body[data-screen=intro] #topbar>#app-version{position:fixed!important;inset:auto calc(8px + env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) auto!important;margin:0!important;z-index:94;}
+  body.splash-active #topbar,body[data-screen=intro] #topbar{z-index:94;}
   body.splash-active .intro *{animation-play-state:paused;}
+  /* PRB-161: holds the line/button reveal paused (behind a subtle fade) until BIT's greeting is
+     decoded and the AudioContext is actually running, or a 1.5s cap elapses -- see SCREENS.intro's
+     armVoiceGate() in app.js. Removed once ready so the normal animation-delay timers take over. */
+  .intro.vo-wait *{animation-play-state:paused;}
   body.splash-active .intro>*{animation-play-state:paused;opacity:0;pointer-events:none;}
   body.startup-bunker-intro .intro{background:linear-gradient(color-mix(in srgb,var(--ad-night) 78%,transparent),color-mix(in srgb,var(--ad-night) 94%,transparent)),url("assets/production/bunker_plate_00_found.webp") center/cover no-repeat;}
   /* Two sequential phases, no camera move: the art fades out to #splash's own near-black
@@ -735,7 +756,9 @@
   @media (orientation:landscape) and (max-height:480px){ .lobby{grid-template-columns:minmax(140px,180px) 1fr minmax(140px,180px);} .lobby-hero .hero-weapon{bottom:50px;} }
   /* FTUE cold open */
   body[data-screen=intro], body[data-screen=intro] #phone, body[data-screen=intro] #main, body[data-screen=intro] #app{background:#07151C!important; background-image:none!important;}
-  body[data-screen=intro] #topbar, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock, body[data-screen=intro] #app-version{display:none!important;}
+  /* PRB-161: #topbar itself stays rendered (see the splash-active comment above -- display:none
+     on an ancestor cannot be undone by #app-version's own styles); only its other children hide. */
+  body[data-screen=intro] #topbar>#navback, body[data-screen=intro] #topbar>.title, body[data-screen=intro] #topbar>#currencies, body[data-screen=intro] #topbar>#menubtn, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock{display:none!important;}
   body[data-screen=intro] #main::before, body[data-screen=intro] #main::after, body[data-screen=intro] #app::before, body[data-screen=intro] #app::after, body[data-screen=intro] #phone::before, body[data-screen=intro] #phone::after{display:none!important;}
   /* version lives in the top bar flow so it can never cover bottom-bar buttons */
   #topbar #app-version{position:static!important; inset:auto!important; margin:0 6px 0 auto; flex:none; align-self:center; pointer-events:none; white-space:nowrap;}
@@ -776,19 +799,42 @@
   .intro-lines{display:flex; flex-direction:column; gap:8px;}
   .intro-lines p{margin:0; color:#e8f6f4; font-size:16px; line-height:1.45; letter-spacing:.01em; opacity:0; animation:introLine 1.2s ease-out forwards;}
   .intro-lines p:last-child{color:#75CFCC;}
-  .intro-go{align-self:flex-start; margin-top:6px; padding:10px 22px; min-height:44px; border-radius:12px; border:1.5px solid #3FE0D0; background:rgba(63,224,207,.1); color:#bff5ee; font:700 13px/1 "Archivo Black","IBM Plex Sans",sans-serif; letter-spacing:.12em; cursor:pointer; opacity:0; pointer-events:none; animation:introBtn .9s ease-out forwards;}
+  .intro-go{align-self:flex-start; margin-top:6px; padding:10px 22px; min-height:44px; border-radius:12px; border:1.5px solid #3FE0D0; background:rgba(63,224,207,.1); color:#bff5ee; font:700 13px/1 "Archivo Black","IBM Plex Sans",sans-serif; letter-spacing:.12em; cursor:pointer; opacity:0; pointer-events:none; animation:introBtn .5s ease-out forwards;}
   @keyframes introPushIn{from{transform:translate(-50%,-50%) scale(1)} to{transform:translate(-50%,-50%) scale(1.08)}}
   @keyframes introBitPower{0%{opacity:0;filter:brightness(.3) drop-shadow(0 4px 10px rgba(0,0,0,.45))} 15%{opacity:.5} 22%{opacity:.08} 38%{opacity:.6} 48%{opacity:.18} 70%{opacity:.9} 100%{opacity:1;filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))}}
   @keyframes introBitFloat{0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)}}
   @keyframes introLine{from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none}}
-  @keyframes introBtn{from{opacity:0} to{opacity:1;pointer-events:auto}}
+  /* PRB-161: pointer-events flips to auto at 60% (already .85 opaque), not only at 100% -- the
+     button must never be tappable while it still reads as invisible, and never look disabled
+     (clearly mid-fade) once it IS tappable. */
+  @keyframes introBtn{0%{opacity:0;pointer-events:none} 60%{opacity:.85;pointer-events:auto} 100%{opacity:1;pointer-events:auto}}
   .intro.done .intro-stage{animation-play-state:paused;}
   .intro.done .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
   .intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
+  /* PRB-161 follow-up (raid-return gesture gate): while armVoiceGate() in app.js is holding for
+     the tap it's an explicit choice, not the ordinary "text still catching up to BIT" wait, so
+     BIT himself stays visible/idle (same end state as .intro.done above) instead of frozen
+     invisible mid-power-on under the blanket `.intro.vo-wait *{animation-play-state:paused}`
+     rule -- only the lines/button (already paused by that rule) and the backdrop's push-in
+     (harmlessly paused at its own first frame, scale(1)) stay held. */
+  .intro.vo-wait-tap .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
+  /* Styled like #splash's own "TAP ANYWHERE TO BEGIN" prompt (same tokens/pill/pulse), low-center
+     and safe-area aware, clear of BIT (who sits centred higher up, left:40% bottom:43% of the
+     stage) and of .intro-copy's lines/button (bottom-left, hidden via .vo-wait while this shows). */
+  .intro-wake{position:absolute; left:50%; bottom:calc(20px + var(--sb,0px)); transform:translateX(-50%); z-index:3;
+    min-width:44px; min-height:44px; padding:13px 30px; display:flex; align-items:center; justify-content:center;
+    font:700 12px "IBM Plex Mono",monospace; letter-spacing:.2em; color:var(--ad-cyan);
+    background:transparent; border:1px solid color-mix(in srgb,var(--txt) 45%,transparent); border-radius:999px;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;}
+  .intro.vo-wait-tap .intro-wake{opacity:.8; animation:splashPromptPulse 2.6s ease-in-out infinite;}
   @media (prefers-reduced-motion: reduce){
     .intro-stage{animation:none!important; transform:translate(-50%,-50%) scale(1)!important;}
     .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))!important;}
     .intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;}
+    /* Reduced motion otherwise forces the lines/button fully visible above -- the gesture gate
+       must still hide them while it's waiting for the tap (see armVoiceGate() in app.js). */
+    .intro.vo-wait-tap .intro-lines p,.intro.vo-wait-tap .intro-go{opacity:0!important; pointer-events:none!important;}
+    .intro.vo-wait-tap .intro-wake{animation:none!important;}
   }
   /* ENTER THE FACILITY: #app starts hidden the instant dismissIntro() swaps the screen underneath,
      then fades in over ~500ms once app.js lifts body.intro-leaving on the next paint. */
@@ -921,9 +967,9 @@
   .baseviewer.has-sel .progress-goal,.baseviewer.has-sel .goalpill{display:none;}
   @media (prefers-reduced-motion:reduce){.baseviewer .mapspot.plate .badge.up,.baseviewer.ftue .mapspot.plate.goal-target .tag{animation:none;}}
 </style>
-<link rel="stylesheet" href="ui/tokens.css?v=2.28.39">
-<link rel="stylesheet" href="ui/popup.css?v=2.28.39">
-<link rel="stylesheet" href="ui/loader.css?v=2.28.39">
+<link rel="stylesheet" href="ui/tokens.css?v=2.28.41">
+<link rel="stylesheet" href="ui/popup.css?v=2.28.41">
+<link rel="stylesheet" href="ui/loader.css?v=2.28.41">
 <style>/* PROPOSAL bespoke icons */ .pr-ic{width:1.25em;height:1.25em;vertical-align:-.25em;color:#75CFCC;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 1.5px rgba(63,224,208,.25));overflow:visible} .ni .pr-ic{width:22px;height:22px} .wm-lock .pr-ic{width:30px;height:30px;color:#cfe7dd} .locked .ni .pr-ic{color:#6f8488;filter:none} .active .ni .pr-ic{color:#fff}</style>
 <style id="lobby2">/* v1.53 lobby (RAID tab) landscape layout: balanced 3-column grid filling the height above the nav.
    left = weapon/armor + prominent Area/map entry, centre = operator (unobstructed) with a stats column,
@@ -1767,10 +1813,10 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
   #overlay.wpnov .wpn-name{padding-right:0!important}
   .wpnscreen .wpn-l{padding-top:58px!important}
 </style>
-<link rel="stylesheet" href="ui/audio.css?v=2.28.39">
-<link rel="stylesheet" href="ui/bit-card.css?v=2.28.39">
-<link rel="stylesheet" href="ui/bit-cutscene.css?v=2.28.39">
-<link rel="stylesheet" href="ui/audio-debug.css?v=2.28.39">
+<link rel="stylesheet" href="ui/audio.css?v=2.28.41">
+<link rel="stylesheet" href="ui/bit-card.css?v=2.28.41">
+<link rel="stylesheet" href="ui/bit-cutscene.css?v=2.28.41">
+<link rel="stylesheet" href="ui/audio-debug.css?v=2.28.41">
 </head>
 <body class="base-dark">
 <div id="phone">
@@ -1778,7 +1824,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
     <button id="navback" class="iconbtn navback" type="button" aria-label="Back" hidden onclick="A.back()"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#nav-back"/></svg></button>
     <span class="title">Protocol Rebirth</span>
     <div id="currencies"></div>
-    <div id="app-version">v2.28.39</div>
+    <div id="app-version">v2.28.41</div>
     <button id="menubtn" class="iconbtn" type="button" aria-label="Settings" aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button>
     <div id="settings-menu" class="menu pop-card" role="menu" hidden><button type="button" class="pop-x" id="settings-close" aria-label="Close settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#close"/></svg></button>
       <div class="menu-head">Settings</div>
@@ -1786,7 +1832,7 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
       <button id="replay-start-btn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg> Replay start screen</button>
       <button id="reset-progress" class="reset-progress" type="button" role="menuitem" title="Reset all progress on this device"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#reset"/></svg> Reset progress</button>
       <button id="devbtn" type="button" role="menuitem"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#dev"/></svg> Dev panel</button>
-      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.39</span></div>
+      <div class="menu-ver">Protocol Rebirth <span id="menu-version">v2.28.41</span></div>
     </div>
   </div>
   <div id="main">
@@ -1801,27 +1847,27 @@ body #app.s-result{display:flex;flex-direction:column;gap:6px;overflow:hidden;
   <div id="splash" role="button" tabindex="0" aria-label="Tap anywhere to begin"><div class="splash-track" aria-hidden="true"><div class="splash-surface"></div><div class="splash-rock"></div><div id="splash-flight" class="splash-flight" aria-hidden="true"></div></div><div class="splash-corner"><button id="splash-settings-btn" type="button" class="splash-icon" aria-label="Settings"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#settings"/></svg></button><button id="splash-profiles-btn" type="button" class="splash-icon" aria-label="Save slots"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#player"/></svg></button></div><h1 class="splash-title">PROTOCOL REBIRTH</h1><small id="splash-prompt" class="splash-prompt">TAP ANYWHERE TO BEGIN</small></div>
   <div id="rotate" role="status"><div class="phoneicon"><svg class="pr-ic" aria-hidden="true"><use href="assets/icons/sprite.svg#phone-rotate"/></svg></div><b>ROTATE YOUR DEVICE</b><span>Protocol Rebirth plays in landscape</span></div>
  </div>
-<script src="data/items.js?v=2.28.39"></script>
-<script src="data/loot-sources.js?v=2.28.39"></script>
-<script src="data/modules.js?v=2.28.39"></script>
-<script src="data/bit-lines.js?v=2.28.39"></script>
-<script src="data/bit.js?v=2.28.39"></script>
-<script src="data/bit-talents.js?v=2.28.39"></script>
-<script src="data/raid_zones.js?v=2.28.39"></script>
-<script src="data/recipes.js?v=2.28.39"></script>
-<script src="data/vendors.js?v=2.28.39"></script>
-<script src="data/retention.js?v=2.28.39"></script>
-<script src="data/quests.js?v=2.28.39"></script>
-<script src="data/progression.js?v=2.28.39"></script>
-<script src="data/combat.js?v=2.28.39"></script>
-<script src="data/audio.js?v=2.28.39"></script>
-<script src="ui/audio.js?v=2.28.39"></script>
-<script src="ui/base-audio.js?v=2.28.39"></script>
-<script src="save-slots.js?v=2.28.39"></script>
-<script src="start-quality.js?v=2.28.39"></script>
-<script src="ui/bit-card.js?v=2.28.39"></script>
-<script src="ui/bit-cutscene.js?v=2.28.39"></script>
-<script src="ui/audio-debug.js?v=2.28.39"></script>
-<script src="app.js?v=2.28.39"></script>
+<script src="data/items.js?v=2.28.41"></script>
+<script src="data/loot-sources.js?v=2.28.41"></script>
+<script src="data/modules.js?v=2.28.41"></script>
+<script src="data/bit-lines.js?v=2.28.41"></script>
+<script src="data/bit.js?v=2.28.41"></script>
+<script src="data/bit-talents.js?v=2.28.41"></script>
+<script src="data/raid_zones.js?v=2.28.41"></script>
+<script src="data/recipes.js?v=2.28.41"></script>
+<script src="data/vendors.js?v=2.28.41"></script>
+<script src="data/retention.js?v=2.28.41"></script>
+<script src="data/quests.js?v=2.28.41"></script>
+<script src="data/progression.js?v=2.28.41"></script>
+<script src="data/combat.js?v=2.28.41"></script>
+<script src="data/audio.js?v=2.28.41"></script>
+<script src="ui/audio.js?v=2.28.41"></script>
+<script src="ui/base-audio.js?v=2.28.41"></script>
+<script src="save-slots.js?v=2.28.41"></script>
+<script src="start-quality.js?v=2.28.41"></script>
+<script src="ui/bit-card.js?v=2.28.41"></script>
+<script src="ui/bit-cutscene.js?v=2.28.41"></script>
+<script src="ui/audio-debug.js?v=2.28.41"></script>
+<script src="app.js?v=2.28.41"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
-import '../data/raid-ftue.js?v=2.28.39';
-import {RULES} from './levels.js?v=2.28.39';
-import {STAKES} from './stakes.js?v=2.28.39';
-import {audioEvent} from './audio.js?v=2.28.39';
+import '../data/raid-ftue.js?v=2.28.41';
+import {RULES} from './levels.js?v=2.28.41';
+import {STAKES} from './stakes.js?v=2.28.41';
+import {audioEvent} from './audio.js?v=2.28.41';
 
 export const FTUE=globalThis.DATA.raidFtue;
 // The countdown is pressure only. It never closes the beam or ends a raid.

@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.39"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.41"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2308,9 +2308,12 @@ SCREENS.intro = function(){
   // under the workbench lamp and the greeting lines fade in one by one (coordinates are % of the
   // art, not the viewport -- .intro-stage always keeps the backdrop's 1672/941 aspect so they hold).
   const lines = String(b.introText).split(/\n+|(?<=\.)\s+(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
-  const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.4;
+  // v2.28.3x PRB-161: the button used to wait 0.4s past the last line's own 1.2s reveal (a ~0.8s
+  // gap) then fade over 0.9s -- Robert's screenshot caught it mid-fade, reading as stuck/disabled.
+  // A shorter gap + a quicker fade (see .intro-go/introBtn in index.html) fixes that.
+  const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.2;
   $app().innerHTML =
-    '<div class="intro' + (session.introSkipped ? ' done' : '') + '" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
@@ -2321,7 +2324,9 @@ SCREENS.intro = function(){
     '<div class="intro-lines">' + lines.map((l, i) =>
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
     '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
-    '</div></div>';
+    '</div>' +
+    '<small class="intro-wake">TAP TO WAKE BIT</small>' +
+    '</div>';
   // Start the greeting with the first line's reveal, after the splash has uncovered BIT.
   // Animation timing remains the fallback when audio is muted, blocked or still loading.
   const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
@@ -2331,10 +2336,80 @@ SCREENS.intro = function(){
   };
   firstLine?.addEventListener("animationstart", greet, { once:true });
   intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
-  if(session.introSkipped || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+  if(session.introSkipped){
     if(document.body.classList.contains("splash-active"))
       window.addEventListener("pr:splash-finished", greet, { once:true });
     else greet();
+  } else {
+    // v2.28.3x PRB-161: the line/button reveal (CSS, paused by .vo-wait -- see index.html) stays
+    // held, invisible, until BIT's greeting is decoded and the AudioContext is really 'running'
+    // (capped at 1.5s total), so line 1 and the VO start together instead of racing whatever
+    // gesture happens to finish the unlock. Past the cap, the text starts anyway -- requestVoice()
+    // (called from the animationstart -> greet() hook once unpaused) still queues and plays the
+    // VO as soon as it's ready, as long as .intro is still mounted.
+    const VO_WAIT_CAP_MS = 1500;
+    const reducedMotion = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const voiceReady = () => {
+      const audio = window.PR_AUDIO;
+      return !!(audio && audio.unlocked && audio.context?.state === "running" && audio.decodedFiles?.has("bit/youre-back"));
+    };
+    // Reduced motion never fires the first line's own animationstart (its CSS disables that
+    // animation outright -- see the @media(prefers-reduced-motion:reduce) block below), so once
+    // the gate clears here, fire greet() directly instead of relying on that hook.
+    const clear = () => {
+      intro.classList.remove("vo-wait", "vo-wait-tap");
+      if(reducedMotion) greet();
+    };
+    const waitForVoice = () => {
+      const audio = window.PR_AUDIO;
+      if(!audio || voiceReady()){ clear(); return; }
+      let settled = false;
+      const finish = () => { if(settled) return; settled = true; clear(); };
+      setTimeout(finish, VO_WAIT_CAP_MS);
+      Promise.all([audio.load?.("bit/youre-back")?.catch(() => {}), audio.unlockPromise || Promise.resolve()]).then(finish, finish);
+    };
+    const armVoiceGate = () => {
+      if(!intro.isConnected) return;
+      if(document.body.classList.contains("splash-active")){
+        window.addEventListener("pr:splash-finished", armVoiceGate, { once:true });
+        return;
+      }
+      const audio = window.PR_AUDIO;
+      if(!audio || voiceReady()){ clear(); return; }
+      // PRB-161 follow-up: a raid return (coreIngest.ok) skips the splash outright (see
+      // setupSplash's returningFromRaid branch), so THIS document's AudioContext can still be
+      // fully suspended with no gesture at all behind it -- unlike the splash-shown path, where
+      // the start tap already called unlockSync(). Reusing the 1.5s cap here would silently start
+      // line 1 with no VO on every raid return on iOS, exactly the bug this gate exists to close.
+      // Hold with no cap until an explicit tap, unless a gesture/unlock is already in flight
+      // (context running, or armUnlockWait() already armed an unlockPromise) or audio is muted in
+      // settings (nothing to wait for either way). init() only builds the context/gain graph (no
+      // resume, no gesture needed) -- the splash-shown path already did this via preload(), but a
+      // raid return skips that too, so without this call `context` would still read null here and
+      // a platform that genuinely runs with no gesture (desktop autoplay allowed) would wrongly
+      // get the prompt.
+      audio.init?.();
+      const muted = !!(audio.settings?.muted || audio.settings?.voiceMuted || audio.settings?.voice === 0 || audio.settings?.master === 0);
+      const running = audio.context?.state === "running";
+      if(running || audio.unlockPromise || muted){ waitForVoice(); return; }
+      intro.classList.add("vo-wait-tap");
+      let tapped = false;
+      const onGestureTap = ev => {
+        if(tapped) return; tapped = true;
+        intro.classList.remove("vo-wait-tap");
+        // iOS fires touchend first, then a SEPARATE synthesized click a beat later -- by the time
+        // that click reaches A.introSkip, .vo-wait-tap is already gone (removed right above), so
+        // stamp the moment here too; introSkip's own guard checks this timestamp as well as the
+        // class, since the class alone can no longer tell the two events apart.
+        intro.dataset.gateTapAt = String(Date.now());
+        ev?.stopPropagation?.();
+        window.PR_AUDIO?.unlockSync?.();
+        waitForVoice();
+      };
+      intro.addEventListener("click", onGestureTap);
+      intro.addEventListener("touchend", onGestureTap);
+    };
+    armVoiceGate();
   }
 };
 
@@ -4630,10 +4705,23 @@ window.A = {
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
   introSkip(ev){
     if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    const el = document.querySelector(".intro");
+    // PRB-161 follow-up: the gesture gate's own first tap (unlocking audio after a raid return
+    // with no prior gesture on this document) must never register as a skip -- stopPropagation
+    // also keeps it from reaching any ancestor click handler. iOS fires touchend THEN a separate
+    // synthesized click ~shortly after: onGestureTap (SCREENS.intro) already removed
+    // .vo-wait-tap on the touchend, so by the time that synthesized click arrives here the class
+    // alone can no longer tell it apart from a real post-gate tap. onGestureTap also stamps
+    // gateTapAt (Date.now()) the instant it fires, so fall back to that: ignore any click within
+    // GATE_TAP_SKIP_GUARD_MS of the gate tap, real synthesized-click delays are well under 300ms.
+    const GATE_TAP_SKIP_GUARD_MS = 800;
+    const gateTapAt = el && Number(el.dataset.gateTapAt || 0);
+    const withinGateTapGuard = !!gateTapAt && (Date.now() - gateTapAt) < GATE_TAP_SKIP_GUARD_MS;
+    if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }
     // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
     // keeps the end state instead of restarting the cold open.
     session.introSkipped = true;
-    const el = document.querySelector(".intro"); if(el) el.classList.add("done");
+    if(el) el.classList.add("done");
   },
   dismissIntro(){
     // BIT's cold-open greeting only ever plays while he's on screen -- once the intro is gone,
@@ -5681,11 +5769,17 @@ function showBaseLoader(){
 // Returns null if there's no #splash or it's already been shown this session; otherwise an
 // object the caller uses to report the flight's async outcome (flightMounted once
 // start-scene.js loads, flightFailed if it never does or later errors out).
-function setupSplash(flightPending, returningFromRaid){
+function setupSplash(flightPending, returningFromRaid, ftueDirect){
   const sp = document.getElementById("splash");
   const once = () => { document.removeEventListener("pointerdown", once, true); lockLandscape(); };
   document.addEventListener("pointerdown", once, true);
   if(!sp) return null;
+  // PRB-161 (Robert, iPhone, v2.28.39): the cold open's VO only unlocks audio on whatever gesture
+  // happens to land first -- if the splash auto-advances to the cold open with no tap at all
+  // (Low quality / no WebGL2 / a failed flight -- common on iPhone), unlockSync() never runs and
+  // 'youre-back' plays late, once the player eventually taps something. ftueDirect also skips the
+  // cold open outright (straight to the FTUE raid), so it keeps the old gesture-free auto-advance.
+  const coldOpenNext = !S.introSeen && !ftueDirect;
   // v2.12.1: the skip only covers an immediate in-session reload (< 5 min, e.g. after a raid return); a fresh open
   // always shows the start screen. ?splash=1 forces it; Settings > Replay start screen clears the mark.
   // v2.21.1: a raid result waiting to be shown (returningFromRaid) always skips the splash -- a
@@ -5740,8 +5834,9 @@ function setupSplash(flightPending, returningFromRaid){
     // that isn't decoded yet -- see ui/audio.js preload() and the loadTimer fallback above.
     sp.classList.add("prompt-ready");
     if(requested) proceed();
-    else if(!flightActive) autoTimer = setTimeout(begin, 1400);
-    // else: the flight is active -- stay on the looping start screen until the player taps.
+    else if(!flightActive && !coldOpenNext) autoTimer = setTimeout(begin, 1400);
+    // else: the flight is active, or the cold open is next and needs the tap's gesture to
+    // unlock audio -- stay on the looping/static start screen until the player taps.
   };
   // v2.28.33 single start-screen prompt: PLAY is gone, so the one tap both unlocks audio
   // (synchronously, inside this gesture -- see ui/audio.js unlockSync()) and begins/enters;
@@ -5795,7 +5890,7 @@ function setupSplash(flightPending, returningFromRaid){
     flightFailed(){
       if(!flightActive) return;
       flightActive = false; flightCtl = null;
-      if(phase === "ready"){ if(requested) begin(); else autoTimer = setTimeout(begin, 1400); }
+      if(phase === "ready"){ if(requested) begin(); else if(!coldOpenNext) autoTimer = setTimeout(begin, 1400); }
     },
   };
 }
@@ -5837,7 +5932,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
   if(fabricatorPending() && !S.bitCardsSeen.fabricator_built) fabricatorCutsceneArtReady();
-  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok));
+  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok), ftueDirect);
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
