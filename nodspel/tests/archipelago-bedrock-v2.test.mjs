@@ -447,6 +447,27 @@ test('Pass U keeps compact granite crowns separated by real low green coves',()=
     'the offshore toe stays a single shared geometry seam');
 });
 
+
+test('Pass W sculpts an offset rounded rock crown without moving either shared seam',()=>{
+  const f={x:0,z:0,w:28,d:24},p=coastlineProfile(f,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(p,{rockAngles:[.15,2.52,4.85]});
+  const data=coastRingData(p),n=p.points.length;
+  const pick=p.points.reduce((i,a,j)=>a.heroRockMask>(p.points[i].heroRockMask??0)?j:i,0);
+  // A natural 3D rock dome cannot keep exactly the same flat profile over
+  // all radii and neighboring angular slices.
+  const h=(ring,index)=>data.positions[(ring*n+(index+n)%n)*3+1];
+  assert.ok(h(7,pick)>h(2,pick)+.45,'rock crown rises over its inland weathered shoulder');
+  assert.ok(h(7,pick)>h(12,pick)+.35,'rounded mass falls toward the sea instead of ending as a wall');
+  let changing=0;
+  for(let i=0;i<n;i++){
+    const height=h(7,i),inner=h(3,i);
+    if(height>inner+.6)changing++;
+    assert.ok(Math.abs(h(0,i)-.01)<1e-6,'flat gameplay seam remains fixed');
+    assert.ok(Math.abs(h(13,i)+.65)<1e-5,'underwater toe still joins the water shader');
+  }
+  assert.ok(changing>=3&&changing<n*.30,'a few compact volumes, not a uniform coast-length rise');
+});
+
 test('Pass R height follows the available offshore width instead of building cliffs in narrow channels',()=>{
   const f={x:0,z:0,w:22,d:20},p=coastlineProfile(f,'hero-width-review',{style:'v2'});
   authorHeroIslandCoast(p,{rockAngles:[.45,3.15]});
