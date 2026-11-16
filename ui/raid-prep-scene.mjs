@@ -73,15 +73,18 @@ export async function mountRaidPrepScene(host){
     host.removeEventListener('pointercancel',endDrag);
     host.removeEventListener('keydown',onKey);
     host.closest('.lobby-hero')?.classList.remove('has-3d');
-    if(operator){operator.model?.traverse(n=>{
-      // GLTF scene resources belong to this viewer instance. Disposing these
-      // GLTF material/geometry instances is safe: Node Raid loads its own scene.
-      if(n.isMesh){
-        if(n.geometry)n.geometry.dispose();
-        for(const m of Array.isArray(n.material)?n.material:[n.material])m?.dispose?.();
-      }
-    });}
-    if(scene)scene.traverse(n=>{if(n.geometry&&!operator?.model?.getObjectById?.(n.id))n.geometry.dispose?.();});
+    // Each viewer loads its own GLB; release its geometry plus the procedural
+    // BIT/floor assets when the screen closes. Shared resources dispose once.
+    if(scene){
+      const geometries=new Set(),materials=new Set();
+      scene.traverse(n=>{
+        if(!n.isMesh)return;
+        if(n.geometry)geometries.add(n.geometry);
+        for(const m of Array.isArray(n.material)?n.material:[n.material])if(m)materials.add(m);
+      });
+      geometries.forEach(g=>g.dispose());
+      materials.forEach(m=>m.dispose());
+    }
     if(renderer){renderer.dispose();renderer.forceContextLoss?.();renderer.domElement.remove();}
   };
   let drag=null,yaw=-.18;
@@ -131,7 +134,15 @@ export async function mountRaidPrepScene(host){
     // A light wrap on the face, attached to the Head rig, prevents source skin showing.
     const head=operator.model.getObjectByName('Head');
     if(head){
-      const mask=part(head,'face wrap',new THREE.SphereGeometry(.17,10,8),mat(0x161e22,.04,.96),0,-.07,.12);
+      operator.model.updateMatrixWorld(true);
+      // Bone-space in the source GLB is centimetres with a scaled armature.
+      // Mirror operator-gear's inverse-bone-scale mounting to keep the scarf
+      // proportional to the character instead of 100x too large.
+      const wrap=new THREE.Group();
+      wrap.name='face-covering';
+      wrap.scale.set(1,1,1).divide(head.getWorldScale(new THREE.Vector3()));
+      head.add(wrap);
+      const mask=part(wrap,'face wrap',new THREE.SphereGeometry(.17,10,8),mat(0x161e22,.04,.96),0,-.07,.12);
       mask.scale.set(1.05,.65,.52);
     }
     host.addEventListener('pointerdown',startDrag);
