@@ -21,22 +21,73 @@ const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
 const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6','marram-grass-tuft-8c7a99']);
 const BLEACHED_WOOD_DETAIL=new Set(['fallen-log-1685fb','driftwood-log-89a68f','seaweed-drift-line-6566c3']);
-// V2 owns camera-height trees and deliberately removes ~70% of high-contrast
-// tiny scatter. Hash existing placements so LOW remains a stable HIGH subset.
+// V2 removes all bleached driftwood/white seaweed and retains only sparse,
+// near-shore light vegetation. Existing seeded choices are filtered in place,
+// never re-rolled: LOW remains a stable subset of HIGH.
 function keepSparseGroundDetail(item){
   const x=Math.round(item.x*100),z=Math.round(item.z*100);
   const seed=Math.imul(x,73856093)^Math.imul(z,19349663);
   return (seed>>>0)%10<3;
 }
-export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines}={}){
+function inFloor(p,f,pad=0){
+  return Math.abs(p.x-f.x)<=f.w/2+pad&&Math.abs(p.z-f.z)<=f.d/2+pad;
+}
+function distanceToSegment(p,a,b){
+  const dx=b.x-a.x,dz=b.z-a.z,den=dx*dx+dz*dz;
+  const t=den?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/den)):0;
+  return Math.hypot(p.x-a.x-dx*t,p.z-a.z-dz*t);
+}
+// Only used for the small pale/high-contrast detail. Dark grass, larger rocks
+// and military/collision-matched cover preserve their authored placements.
+function keepLightDetailAtShore(item,level){
+  if(!level?.archipelago)return true; // old filtering API/legacy tests
+  const p={x:item.x,z:item.z};
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+  const islands=(level.floors??[]).filter(f=>!f.dir);
+  const floor=islands.find(f=>inFloor(p,f));
+  if(floor){
+    const edge=Math.min(floor.w/2-Math.abs(p.x-floor.x),
+      floor.d/2-Math.abs(p.z-floor.z));
+    if(edge>1.9)return false; // no white scatter across central combat meadow
+  }else if(!islands.some(f=>inFloor(p,f,3.5))){
+    return false; // only attached shoreline pockets, not unrelated white props
+  }
+  // Wider-than-collider visual clearance around active play/interactions.
+  const sites=[
+    ...[level.start,level.exit].filter(Boolean).map(p=>({p,r:4.0})),
+    ...(level.nodes??[]).map(p=>({p,r:3.4})),
+    ...(level.lootBoxes??[]).map(p=>({p,r:3.3})),
+    ...(level.enemies??[]).map(p=>({p,r:2.4}))
+  ];
+  if(sites.some(({p:target,r})=>Math.hypot(p.x-target.x,p.z-target.z)<r))
+    return false;
+  // Clear the main readable approach on each island, never an imaginary path
+  // through water between unrelated floors. No pathfinding or physics changes.
+  const anchors=[level.start,...(level.nodes??[]),...(level.lootBoxes??[]),level.exit]
+    .filter(Boolean);
+  if(islands.some(f=>{
+    if(!inFloor(p,f,1))return false;
+    const relevant=anchors.filter(a=>inFloor(a,f));
+    if(relevant.length<2)return false;
+    const origin=inFloor(level.start??{x:Infinity,z:Infinity},f)
+      ?level.start:relevant[0];
+    return relevant.some(target=>target!==origin
+      &&Math.hypot(target.x-origin.x,target.z-origin.z)<28
+      &&distanceToSegment(p,origin,target)<2.5);
+  }))return false;
+  return true;
+}
+export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines,level=null}={}){
   if(!nativePines&&!quietGround)return items;
-  return items.filter(item=>!(nativePines&&LEGACY_TREE_ASSETS.has(item.id))
-    &&!(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id)&&!keepSparseGroundDetail(item))
-    // Actual 844x390 screen-ray QA traced white twig clusters to
-    // seaweed-drift-line and pale tufts to marram-grass. Remove the former
-    // (and bleached decorative logs) and thin the latter, only in native v2.
-    // Hand-authored dark windfall combat cover is a separate mesh.
-    &&!(quietGround&&BLEACHED_WOOD_DETAIL.has(item.id)));
+  return items.filter(item=>{
+    if(nativePines&&LEGACY_TREE_ASSETS.has(item.id))return false;
+    // 844x390 screen-ray QA identified white twig/seaweed piles as Polyfork
+    // scene props, not the approved dark windfall cover mesh.
+    if(quietGround&&BLEACHED_WOOD_DETAIL.has(item.id))return false;
+    if(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id))
+      return keepSparseGroundDetail(item)&&keepLightDetailAtShore(item,level);
+    return true;
+  });
 }
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){
@@ -117,7 +168,7 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
     mode==='coastal'?planCoastalLifeDressing(level,{quality,density}):
     mode==='military'?planMilitaryRemnantsDressing(level,{quality,density}):null;
   const planned=composition?composition.items:planPolyforkDressing(level,{quality,density});
-  const items=filterDressingTrees(planned,{nativePines}),groups=new Map();
+  const items=filterDressingTrees(planned,{nativePines,level}),groups=new Map();
   const fortifications=composition?.architecture?.length?
     renderMilitaryArchitecture(composition.architecture,group,{quality,seed:level.seed}):null;
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}

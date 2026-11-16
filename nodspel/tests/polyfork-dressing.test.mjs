@@ -51,8 +51,8 @@ test('native v2 pines remove only unfadable GLB tree species from dressing',()=>
   assert.deepEqual(filterDressingTrees(original),original,
     'live and non-v2 previews continue using their existing forest assets');
   const filtered=filterDressingTrees(original,{nativePines:true});
-  assert.deepEqual(filtered,original.slice(3),
-    'v2 only removes older pine/birch meshes that lack foreground fading');
+  assert.deepEqual(filtered,[original[3],original[4],original[6]],
+    'v2 removes old trees AND bleached decorative logs while preserving dark dressing');
   assert.deepEqual(filterDressingTrees(original,{nativePines:true}),filtered,
     'filtering must stay deterministic');
 });
@@ -89,4 +89,51 @@ test('native v2 thins bright white-looking detail without affecting legacy or LO
     'marram thinning preserves original deterministic locations');
   assert.deepEqual(filterDressingTrees(driftwood,{nativePines:true}),[driftwood[3]],
     'native v2 removes bleached logs and ray-identified white seaweed drift line, while keeping gameplay cover');
+});
+
+test('Pass ZA: residual bright detail is shoreline-only and clears player, POIs and approach routes',()=>{
+  const f=level.floors[0];
+  const sample=(x,z,id='marram-grass-tuft-8c7a99')=>({id,x,z,h:.4});
+  const interior=Array.from({length:20},(_,i)=>sample(f.x-4+i*.35,4.5));
+  const spawn=Array.from({length:20},(_,i)=>sample(level.start.x+i*.18,level.start.z));
+  const objective=Array.from({length:20},(_,i)=>sample(level.nodes[0].x+i*.11,level.nodes[0].z));
+  const route=Array.from({length:20},(_,i)=>sample(-6+i*.35,.5));
+  const coast=Array.from({length:120},(_,i)=>sample(-f.w/2+.55,
+    -f.d/2+2.4+i*.16));
+  const outside=[sample(999,999)];
+  const candidates=[...interior,...spawn,...objective,...route,...coast,...outside];
+  const kept=filterDressingTrees(candidates,{nativePines:true,level});
+  assert.deepEqual(kept,filterDressingTrees(candidates,{nativePines:true,level}),
+    'spatial filter keeps the same seeded candidates every time');
+  for(const item of [...interior,...spawn,...objective,...route,...outside])
+    assert.ok(!kept.includes(item),'bright detail cannot distract the central playable read');
+  assert.ok(kept.length>1,'some sparse coastal detail is still present');
+  assert.ok(kept.length<coast.length*.35,'remaining pale coastal plants stay sparse');
+  assert.ok(kept.every(item=>coast.includes(item)),'only shoreline pockets retain pale detail');
+  const dark=[sample(0,0,'grass-tuft-a40a08'),sample(-4,2,'round-bush-cd2ac0'),
+    sample(0,2,'medium-rock-e08405')];
+  assert.deepEqual(filterDressingTrees(dark,{nativePines:true,level}),dark,
+    'dark, collision-safe vegetation and major rocks keep their existing placements');
+  assert.deepEqual(filterDressingTrees(candidates,{level,quietGround:false}),candidates,
+    'normal non-v2 scene is completely unchanged');
+});
+
+test('Pass ZA: filtering preserves a genuine LOW subset and stays away from bridge landings',()=>{
+  const {planMilitaryRemnantsDressing}=await import('../polyfork-military-remnants.mjs');
+  const high=planMilitaryRemnantsDressing(level,{quality:'high'}).items;
+  const low=planMilitaryRemnantsDressing(level,{quality:'low'}).items;
+  const highFiltered=filterDressingTrees(high,{nativePines:true,level});
+  const lowFiltered=filterDressingTrees(low,{nativePines:true,level});
+  const key=p=>[p.id,p.x,p.z,p.h].join('/');
+  const highKeys=new Set(highFiltered.map(key));
+  assert.ok(lowFiltered.every(item=>highKeys.has(key(item))),
+    'LOW survivors must all exist in the exact same HIGH positions');
+  assert.ok(highFiltered.length<=high.length&&lowFiltered.length<=low.length);
+  const res=propReservations(level);
+  for(const item of highFiltered){
+    if(!['marram-grass-tuft-8c7a99','small-rock-db33a7',
+      'wildflower-68d3a1','sea-holly-clump-ce3bc6'].includes(item.id))continue;
+    assert.equal(res.blocked(item.x,item.z,1.4),false,
+      'pale details may not crowd bridge landings or gameplay objectives');
+  }
 });
