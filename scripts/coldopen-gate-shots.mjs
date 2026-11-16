@@ -21,8 +21,7 @@ const launchOpts = {
   executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome",
   // Deliberately NO --autoplay-policy=no-user-gesture-required: the AudioContext must start (and
   // stay) suspended, with no gesture on this document at all -- the exact condition the gate
-  // exists for. If a future Chrome build ever grants autoplay by default anyway, stubbing
-  // PR_AUDIO.context.state (see forceSuspended() below) is the fallback.
+  // exists for.
   args: ["--no-sandbox", "--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
 };
 const types = { ".html": "text/html", ".js": "application/javascript", ".mjs": "application/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".ogg": "audio/ogg", ".m4a": "audio/mp4", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json" };
@@ -70,14 +69,7 @@ async function gatedColdOpenPage(page) {
     localStorage.setItem("pr_raid_result_v1", JSON.stringify(raidResult));
   }, SEED_SAVE, SEED_RAID_RESULT);
   await page.goto(BASE + "/index.html", { waitUntil: "load" });
-  // No #splash to wait for on this path -- straight onto .intro. Belt-and-suspenders fallback if
-  // Chrome ever grants autoplay here anyway: force the context back to 'suspended' the instant it
-  // exists, before armVoiceGate() reads it (evaluateOnNewDocument runs before any app script).
-  await page.evaluateOnNewDocument(() => {
-    const poll = setInterval(() => {
-      if (window.PR_AUDIO?.context) { try { Object.defineProperty(window.PR_AUDIO.context, "state", { get: () => "suspended" }); } catch (_) {} clearInterval(poll); }
-    }, 1);
-  });
+  // No #splash to wait for on this path -- straight onto .intro.
   await page.waitForSelector(".intro", { timeout: 20000 });
   await page.waitForSelector(".intro.vo-wait-tap", { timeout: 20000 });
 }
