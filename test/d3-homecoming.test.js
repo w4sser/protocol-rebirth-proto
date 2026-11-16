@@ -72,6 +72,9 @@ const html = w => w.document.getElementById("app").innerHTML;
   // no animation engine). Dispatching pr:splash-finished above only drives the FTUE launcher.
   w.document.body.classList.remove("splash-active");
   w.document.getElementById("splash")?.remove();
+  // v2.28.45: this mock has no running AudioContext, so the TAP TO WAKE BIT gate holds (BIT
+  // hibernating). The reveal can only start once that gate clears; stand in for the cleared gate.
+  w.document.querySelector(".intro").classList.remove("vo-wait", "vo-wait-tap", "bit-hibernating");
   w.document.querySelector(".intro-lines p").dispatchEvent(new w.Event("animationstart"));
   assert.deepEqual(voices,['youre-back'], "greeting requests its own voice clip at the first reveal");
   assert(!text(w).includes("followed you home"), "old 'followed you home' copy is gone");

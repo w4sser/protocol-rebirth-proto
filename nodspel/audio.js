@@ -1,5 +1,6 @@
-import '../data/audio.js?v=2.28.44';
-import '../ui/audio.js?v=2.28.44';
+import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.45';
+import '../data/audio.js?v=2.28.45';
+import '../ui/audio.js?v=2.28.45';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
@@ -7,8 +8,11 @@ audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
 // fix as the base splash (PRB-154): a suspended AudioContext still decodes fine, so the first
 // shots/VO after 'start' (ui/audio.js installUnlock already resumes synchronously on that tap)
 // never race a live fetch+decode.
+export const combatAudioReady=prepareCombatAudio(audio);
+export const waitForRaidAudio=()=>waitForCombatAudio(combatAudioReady,{capMs:audio.config.raidReadyWaitMs});
 void audio.preload();
 const config=globalThis.DATA.audio;
+audio.sfxWaitMs=config.raidSfxWaitMs;
 let rarePicked=false,kills=0,lastCountdown=null;
 export function audioEvent(name,detail={}){
   const weapon=config.weaponClasses[detail.weapon]||'carbine',type=config.enemyTypes[detail.type]||'grunt';

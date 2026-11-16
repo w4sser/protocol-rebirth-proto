@@ -11,6 +11,15 @@ import {parse} from 'acorn';
 import * as walk from 'acorn-walk';
 
 export const RULES=[
+  {id:'raid-waits-for-combat-sfx',pr:'v2.28.4x raid audio readiness',why:'the first fight raced unawaited combat buffer decoding',
+   check(c={}){const game=c.gameSrc??read('nodspel/game.mjs'),audio=c.raidAudioSrc??read('nodspel/audio.js'),ready=c.readySrc??read('nodspel/audio-ready.js');const out=[];
+     const wait=game.indexOf('await waitForRaidAudio();'),start=game.indexOf("reset(new URLSearchParams(location.search).get('seed'));camera");
+     if(wait<0||start<wait||!game.includes('event.stopImmediatePropagation()'))out.push('raid must block input and wait for combat decoding before initial reset');
+     if(!audio.includes('prepareCombatAudio(audio)')||!audio.includes('audio.sfxWaitMs=config.raidSfxWaitMs')||!ready.includes('Promise.race([ready,')||!ready.includes('while(!audio.decodedFiles.has(file))'))out.push('combat readiness needs a cap, continuing retries and a bounded pending SFX queue');return out;}},
+  {id:'coldopen-bit-hibernates-until-wake',pr:'v2.28.4x BIT hibernation',why:'BIT must sleep while the cold-open waits for its wake gesture',
+   check(c={}){const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');const out=[];
+     if(!app.includes('classList.add("bit-hibernating")')||!app.includes('classList.remove("vo-wait-tap", "bit-hibernating")')||!app.includes('await wakeFinished'))out.push('cold-open must hibernate until tapped and await its wake before line 1');
+     if(!app.includes('if(reducedMotion || firstLineStarted) greet();'))out.push('an animationstart during the wake must not swallow the greeting VO');if(!app.includes('intro-zzz')||!html.includes('.intro.bit-hibernating .intro-zzz b{animation:introZzz'))out.push('sleeping BIT needs the drifting z indicator');if(!html.includes('.intro.bit-hibernating .intro-bit')||!html.includes('introWakeFade .55s'))out.push('sleep needs a dim cutout and reduced-motion fade');return out;}},
   {id:'no-tracked-node-modules',pr:'#129',why:'a committed node_modules symlink broke the Pages deploy',
    check({files,gitignore}){const out=[];
      if(files&&files.some(f=>f==='node_modules'||f.startsWith('node_modules/')))out.push('node_modules is tracked by git');
@@ -165,7 +174,7 @@ export const RULES=[
      if(!/activationAudio = window\.PR_AUDIO\?\.unlock\?\.\(\)/.test(activate)||!/Promise\.resolve\(activationAudio\)\.then/.test(app))out.push('app.js: start confirmation must wait for the gesture unlock promise');
      if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
      const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
-     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
+     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", (?:greet|\(\) => \{ firstLineStarted = true; greet\(\);)/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
      return out;}},
   {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
    check(c={}){const out=[];
