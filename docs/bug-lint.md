@@ -7,7 +7,7 @@ Convention (since v2.22.5): a PR that fixes a bug also adds a guard that would h
 - Per-frame allocation regressions belong in `scripts/hot-alloc-lint.mjs` (`// @hot` headers).
 - Add a fixture case in `test/bug-lint.test.mjs` so the rule is proven to fire.
 
-Current rules: no tracked node_modules (#129), ogg/m4a audio pairs (#162), cache-busted local imports (#154), CI scripts stub FTUE direct launch (#173), transparent DoubleSide single-pass (#178), single APP_VERSION (#69), medkits independent of the BIT/regen heal budget (v2.25.1; plus nodspel/tests/stakes.test.mjs regression), raid spawn validated via nodspel/spawn.js safeSpawn (v2.25.1; plus nodspel/tests/spawn.test.mjs over areas x hard x depths x seeds), RAID tab/A.go("prep") stay open whenever goalNeedsRaidLoot() is true (v2.28.21), FTUE extract top-up honors r.ftue on a first extract even when S.coreLaunch.raidId does not match (v2.28.22), death/timeout/abandon render the in-raid loss screen before any automatic handoff to base (v2.28.24), mid-raid perk picker stays removed: game.mjs has no openPerk/createPerkUI/perkPickDemo, updateClears never queues an offer, pickReady and autoPickPerks are no-ops, perk-ui.js/perks.css stay deleted (v2.28.25), the one-time Cable retro migration stays idempotent: migrateCableRetro() returns early once st.cableRetro1 is set, sets it to "granted" or "n/a" on every other path, and load() calls it (v2.28.29 PRB-139), BIT's youre-back greeting only ever plays with the intro on screen -- A.dismissIntro cancels it first and base-audio's greet() skips any voice once skipVoice is set (v2.28.30), start activation synchronously resumes and primes Web Audio, preloads during the splash and requests cold-open VO at the first line reveal (v2.28.3x PRB-154), the Core restore never shows a popup: bootSequence() stays removed, no "POWER RESTORED" copy exists anywhere, A.build's isLightsOn branch never opens a popup, and it still plays the core_restored cutscene itself (v2.28.33 PRB-155), optional Fabricator cutscene art probes share a cached result and time out to the existing-art fallback (v2.28.3x PRB-155), narrator reduced motion reveals the continue hint immediately and disables the bust fade (v2.28.3x PRB-155), the Fabricator hologram stays above speech copy (v2.28.3x PRB-155), the extraction beam stays a shader-based volumetric effect (not a flat MeshBasicMaterial cylinder) and loot pickups spawn the pooled 3D burst instead of the old flat ring (v2.28.33 PRB-156). PRB-156 also guards visible instanced loot, removal of the replaced sprites, runtime quality and terminal VFX disposal (v2.28.3x); phone-scale core/fence and pooled pillar/arrival-flash layers stay present (v2.28.3x pass 2). Dedicated narrator art references must exist as tracked assets (v2.28.3x PRB-157); shipped Fabricator art warms once and playback never awaits the probe, superseding PRB-155's optional-art timeout. iOS audio waits for the real 'running' transition instead of dropping the first sound, and the unlock gesture also catches touchstart/pointerdown (v2.28.3x PRB-158, `ios-audio-waits-for-running`). Narrator cutscenes and base cards hold until tapped, with no auto-end timer and a one-second tap guard (v2.28.3x PRB-158, `narrator-holds-until-tap`). PRB-159 forbids background playback sessions and requires hidden/window-pagehide suspension (`audio-no-background-playback`); the default singleton passes a real probe and prefers any supported AAC (`audio-format-probe-default`); the landscape version label remains visible and tappable (`audio-debug-trigger-reachable`).; `cutscene-no-wait-before-show` (PRB-160).; `cutscene-story-survives-popup-replacement` (PRB-160).
+Current rules: no tracked node_modules (#129), ogg/m4a audio pairs (#162), cache-busted local imports (#154), CI scripts stub FTUE direct launch (#173), transparent DoubleSide single-pass (#178), single APP_VERSION (#69), medkits independent of the BIT/regen heal budget (v2.25.1; plus nodspel/tests/stakes.test.mjs regression), raid spawn validated via nodspel/spawn.js safeSpawn (v2.25.1; plus nodspel/tests/spawn.test.mjs over areas x hard x depths x seeds), RAID tab/A.go("prep") stay open whenever goalNeedsRaidLoot() is true (v2.28.21), FTUE extract top-up honors r.ftue on a first extract even when S.coreLaunch.raidId does not match (v2.28.22), death/timeout/abandon render the in-raid loss screen before any automatic handoff to base (v2.28.24), mid-raid perk picker stays removed: game.mjs has no openPerk/createPerkUI/perkPickDemo, updateClears never queues an offer, pickReady and autoPickPerks are no-ops, perk-ui.js/perks.css stay deleted (v2.28.25), the one-time Cable retro migration stays idempotent: migrateCableRetro() returns early once st.cableRetro1 is set, sets it to "granted" or "n/a" on every other path, and load() calls it (v2.28.29 PRB-139), BIT's youre-back greeting only ever plays with the intro on screen -- A.dismissIntro cancels it first and base-audio's greet() skips any voice once skipVoice is set (v2.28.30), start activation synchronously resumes and primes Web Audio, preloads during the splash and requests cold-open VO at the first line reveal (v2.28.3x PRB-154), the Core restore never shows a popup: bootSequence() stays removed, no "POWER RESTORED" copy exists anywhere, A.build's isLightsOn branch never opens a popup, and it still plays the core_restored cutscene itself (v2.28.33 PRB-155), optional Fabricator cutscene art probes share a cached result and time out to the existing-art fallback (v2.28.3x PRB-155), narrator reduced motion reveals the continue hint immediately and disables the bust fade (v2.28.3x PRB-155), the Fabricator hologram stays above speech copy (v2.28.3x PRB-155), the extraction beam stays a shader-based volumetric effect (not a flat MeshBasicMaterial cylinder) and loot pickups spawn the pooled 3D burst instead of the old flat ring (v2.28.33 PRB-156). PRB-156 also guards visible instanced loot, removal of the replaced sprites, runtime quality and terminal VFX disposal (v2.28.3x); phone-scale core/fence and pooled pillar/arrival-flash layers stay present (v2.28.3x pass 2). Dedicated narrator art references must exist as tracked assets (v2.28.3x PRB-157); shipped Fabricator art warms once and playback never awaits the probe, superseding PRB-155's optional-art timeout. iOS audio waits for the real 'running' transition instead of dropping the first sound, and the unlock gesture also catches touchstart/pointerdown (v2.28.3x PRB-158, `ios-audio-waits-for-running`). Narrator cutscenes and base cards hold until tapped, with no auto-end timer and a one-second tap guard (v2.28.3x PRB-158, `narrator-holds-until-tap`). PRB-159 forbids background playback sessions and requires hidden/window-pagehide suspension (`audio-no-background-playback`); the default singleton passes a real probe and prefers any supported AAC (`audio-format-probe-default`); the landscape version label remains visible and tappable (`audio-debug-trigger-reachable`).; `cutscene-no-wait-before-show` (PRB-160).; `cutscene-story-survives-popup-replacement` (PRB-160).; the splash never auto-advances to the cold open without a tap (`splash-no-autoadvance-before-coldopen`, PRB-161).; the version label stays visible (not hidden by CSS) during the splash and the cold open (`version-label-visible-on-start`, PRB-161).; a raid return (no splash, no gesture) gates the cold open on a real tap with no cap, and `A.introSkip` ignores that tap even once `.vo-wait-tap` is gone (`coldopen-gesture-gate-after-raid-return`, PRB-161 follow-up).
 
 One-time Cable retro credit (v2.28.29, PRB-139, fix/powertrace-cable-retro-v2.28.29): before v2.28.17 (PRB-132) Power Trace (bunker chain step B1, "bring 3 Cable home") opened before the Fabricator existed; since PRB-132 it only opens after Fabricator L1, which (v2.28.27, PRB-149) now costs `{scrap:10, items:{cable:1, scrap_alloy:2}}`. A save that already finished B1 (`S.chains.bunker.step >= 1`) but never built Fabricator L1 (`!S.modules.fabricator`) can only be one of those pre-PRB-132 saves, and would otherwise be stuck 1 Cable short of a cost that didn't exist when it finished B1. Robert decided 2026-11-14 (PRB-139): credit it once. `migrateCableRetro(st)` runs in `load()`'s existing-save path alongside `migratePower`/`migratePayoff` (additive field, no SAVE_VERSION bump, same as those) -- not in `freshState()`, which always starts `cableRetro1: "n/a"` so new players never get it. It is idempotent on `st.cableRetro1` ("granted" once credited, "n/a" once evaluated and found ineligible, either way never re-evaluated). It writes `st.stash.cable` directly (same structure `addItem` uses) rather than calling `addItem`/`act`, since `load()` runs before `S` is assigned; the credited Cable is a plain stash copy, not found-in-raid, so it is never blocked from counting toward the Fabricator cost (`canAfford`/`have` read `S.stash` directly -- only quest hand-ins of raid-findable items gate on `S.fir`). Guarded by `cable-retro-migration-idempotent` in bug-lint plus `test/cable-retro.test.js` (eligible grant, idempotent re-load, Fabricator-already-built, B1-not-done, fresh profile, and a post-grant `canAfford` check for Fabricator L1).
 
@@ -88,3 +88,95 @@ popup cancellation. Normal Close/Back runs the once-only shared close lifecycle;
 Profiles replacement preserves only the story callback, without running unrelated popup actions.
 Fixtures cover a lost Fabricator callback and direct Profiles removal, with integration tests for
 both story beats and stale double closes.
+
+PRB-161 (v2.28.40, Robert's iPhone playtest of v2.28.39): "I see no version number. But now the
+VO played after I'd been clicking on the screen for a while. It should play when the text
+shows." `setupSplash()`'s old gesture-free auto-advance (`else if(!flightActive) autoTimer =
+setTimeout(begin, 1400)`) fired on Low quality/no WebGL2/a failed flight regardless of whether
+the cold open was coming up next, so `unlockSync()` never ran from an actual tap and BIT's
+`youre-back` greeting only played once some later gesture happened to unlock audio.
+`splash-no-autoadvance-before-coldopen` requires `setupSplash` to compute `coldOpenNext =
+!S.introSeen && !ftueDirect` and to gate both the `ready()` and `flightFailed()` auto-advance
+call sites on `!coldOpenNext`; a returning player (`S.introSeen`) or a fresh-profile FTUE-direct
+launch (no cold open coming) keep the old gesture-free auto-advance, since neither path depends
+on a tap to unlock audio.
+
+`SCREENS.intro` now holds the line/button reveal behind a `.vo-wait` class (paused, same
+mechanism as the existing `body.splash-active .intro *` pause) until BIT's greeting is both
+decoded (`PR_AUDIO.decodedFiles.has('bit/youre-back')`) and the AudioContext is `'running'`,
+capped at 1.5s total (`armVoiceGate()`); past the cap the text starts anyway and the VO still
+joins once ready, through the existing `requestVoice`/`pendingVoices` queueing -- never after
+`A.dismissIntro()` has already cancelled it (the v2.28.3x `cancelVoice` guard). The first line's
+existing `animationstart` -> `greet()` hook is unchanged, so the VO request lands in the same
+tick the line actually starts revealing.
+
+`ENTER THE FACILITY`'s fade (`introBtn`) was a 0.9s animation with `pointer-events` only
+flipping to `auto` at the very end -- a screenshot taken mid-fade (plausible given how long
+Robert had been waiting for the splash to ever advance) reads as "faded/stuck". The fade is now
+0.5s with `pointer-events:auto` kicking in at 60% (already .85 opaque), so it is never tappable
+while it still reads as invisible and never looks disabled once it is tappable.
+
+`version-label-visible-on-start` requires `#app-version` to stay out of the `body.splash-active`
+opacity:0 list and the `body[data-screen=intro]` display:none list, so Robert's on-device
+diagnostics (triple-tap, `ui/audio-debug.js`) are reachable before and during the cold open, not
+just on the base screen. Because `#app-version` is always a child of `#topbar` (and
+`#topbar #app-version{position:static}` means the label's own z-index does nothing), hiding
+`#topbar` itself would hide the label too (opacity/display on an ancestor cannot be undone by a
+descendant) -- the fix hides `#topbar`'s OTHER children individually
+(`#navback`/`.title`/`#currencies`/`#menubtn`) and instead raises `#topbar`'s own z-index to 94
+(above `#splash`'s 90 and `.intro`'s 50, below the settings-menu/overlay's 95) during both
+states, which the rule also checks for. CI follow-up: while raised over the splash/cold open, `#topbar` is `pointer-events:none` (its hidden siblings use `visibility:hidden`), and `#app-version` is pinned bottom-right, so neither can cover `#splash-profiles-btn`/`#splash-settings-btn` (caught by layout/base).
+
+Guarded by `splash-no-autoadvance-before-coldopen` and `version-label-visible-on-start` in
+bug-lint, plus `test/coldopen-vo-sync.test.js` (jsdom + a `FakeIOSAudioContext` modeling the same
+asynchronous `resume()`/`decodeAudioData` lag as `test/ios-audio.test.js`): first-launch
+auto-advance for `flightActive` false and true (and after a later `flightFailed()`), the
+returning-player/ftueDirect control cases, a synchronous `unlockSync()` call on the start tap,
+the `.vo-wait` gate holding then clearing within the cap, the cap's own fallback with the VO
+queued but never played after ENTER, and triple-tapping the version label on the splash/cold
+open opening the debug overlay without starting or skipping anything. `test/splash.test.js` was
+updated in place (the old assertion exercised exactly the behavior this PR removes).
+
+PRB-161 follow-up (same bug report, a second path Robert's actual playthrough hits): a
+brand-new profile goes splash tap -> `A.startFtueDirect()` -> the FTUE raid on the separate
+`nodspel/` page -> back to `index.html` with a raid result (`coreIngest.ok`). On that return
+load, `setupSplash(..., returningFromRaid=true, ...)` skips the splash outright (`shown =
+!!returningFromRaid`) and returns `null` *before* it ever reaches its own
+`PR_AUDIO.preload()` call -- so with `!S.introSeen`, `SCREENS.intro()` renders the cold open
+immediately on a brand-new document whose `AudioContext` is still fully suspended, with
+`bit/youre-back` not even decoding yet, and absolutely no gesture behind it. The original
+`splash-no-autoadvance-before-coldopen` fix above only closes the gap on the splash-shown path
+(where the start tap already called `unlockSync()`); reusing its 1.5s `.vo-wait` cap here would
+silently start line 1 with no VO on every raid return on iOS, which is exactly "the VO played
+after I'd been clicking on the screen for a while" again.
+
+`armVoiceGate()` now calls `audio.init?.()` first (so `audio.context` actually exists -- a raid
+return never ran `preload()`, which is the only other thing that builds it before a gesture),
+then only shows the gesture prompt (`.vo-wait-tap`, a pulsing "TAP TO WAKE BIT" styled like the
+splash's own prompt, BIT forced to his idle float state so he's not invisible mid power-on while
+held) when the context genuinely isn't running, no unlock is already in flight
+(`audio.unlockPromise`), and audio isn't muted in settings -- in every other case (already
+running, e.g. desktop autoplay; a gesture already unlocking; or muted, nothing to wait for
+either way) it falls straight through to the ordinary capped `waitForVoice()`. Unlike the
+capped gate, `.vo-wait-tap` has **no timeout at all**: it only clears on an explicit tap.
+
+The first tap/touchend on `.intro` (`onGestureTap`) calls `PR_AUDIO.unlockSync()` explicitly and
+must never register as a cold-open skip. iOS fires `touchend` first, then a **separate**
+synthesized `click` a beat later: the original cut of this fix had `onGestureTap` only remove
+`.vo-wait-tap` on `touchend`, so by the time the later `click` reached the inline
+`onclick="A.introSkip(event)"`, the class was already gone and nothing was left to check --
+`introSkip` fell through and skipped the cold open on every iOS raid return. `onGestureTap` now
+also stamps `intro.dataset.gateTapAt = String(Date.now())` the instant it fires;
+`A.introSkip` ignores a click while `.vo-wait-tap` is still present (the ordinary, same-event
+case) **or** within `GATE_TAP_SKIP_GUARD_MS` (800ms, well past any real synthesized-click delay)
+of that timestamp.
+
+Guarded by `coldopen-gesture-gate-after-raid-return` in bug-lint, plus
+`test/coldopen-vo-sync.test.js`'s Part C (`bootAppReturningFromRaid()`, which seeds
+`pr_raid_result_v1` so `coreIngest.ok` is true and the splash is skipped the same way a real raid
+return skips it): no gesture at all holds the prompt with no release even after 5s; a tap calls
+`unlockSync()` synchronously and, once running + decoded, clears the gate with
+`requestVoice('youre-back')` landing in the same tick as the first line's `animationstart`; the
+gate tap never counts as a skip for a plain click or for touchend-then-a-separate-synthesized-
+click (the latter verified to actually fail without the `gateTapAt` fallback); and both
+already-running and muted-in-settings skip the prompt entirely.

@@ -323,6 +323,50 @@ export const RULES=[
      if(!/locked\s*:\s*true/.test(card)||!/current\s*&&\s*current\.locked/.test(card))out.push('ui/bit-card.js: base cards must ignore a tap in the first second too (current.locked)');
      return out;}},
 
+  {id:'splash-no-autoadvance-before-coldopen',pr:'v2.28.3x PRB-161 splash gesture gate',why:'Robert\'s iPhone, v2.28.39: "I see no version number. But now the VO played after I\'d been clicking on the screen for a while." The splash auto-advanced to the cold open with no tap at all (Low quality/no WebGL2/a failed flight), so unlockSync() never ran and \'youre-back\' only played on whatever later gesture happened to unlock audio -- a first launch (the cold open coming next) must wait on the tap instead',
+   check(c={}){const out=[],app=c.appSrc??read('app.js');
+     const setup=(app.match(/function setupSplash\([^)]*\)\{[\s\S]*?\n\}\n/)||[''])[0];
+     if(!setup){out.push('app.js: function setupSplash(...) not found');return out;}
+     if(!/const coldOpenNext\s*=\s*!S\.introSeen\s*&&\s*!ftueDirect;/.test(setup))out.push('app.js: setupSplash must compute coldOpenNext = !S.introSeen && !ftueDirect');
+     const readyFn=(setup.match(/const ready = \(\) => \{[\s\S]*?\n  \};/)||[''])[0];
+     if(!readyFn)out.push('app.js: setupSplash\'s ready() not found');
+     else if(!/else if\(!flightActive\s*&&\s*!coldOpenNext\)\s*autoTimer\s*=\s*setTimeout\(begin,\s*1400\)/.test(readyFn))out.push('app.js: ready() must not arm the gesture-free autoTimer when coldOpenNext is true (no setTimeout(begin...) path when the cold open is next)');
+     if(!/flightFailed\(\)\{[\s\S]*?else if\(!coldOpenNext\)\s*autoTimer\s*=\s*setTimeout\(begin,\s*1400\)/.test(setup))out.push('app.js: flightFailed() must not fall back to the gesture-free autoTimer when coldOpenNext is true');
+     return out;}},
+
+  {id:'version-label-visible-on-start',pr:'v2.28.3x PRB-161 on-device diagnostics',why:'Robert\'s iPhone, v2.28.39: "I see no version number" -- #app-version (triple-tap opens the hidden audio debug overlay, ui/audio-debug.js) was hidden by CSS during the splash and the cold open, exactly when Robert needed to screenshot it',
+   check(c={}){const out=[],html=c.indexHtml??read('index.html');
+     const splashRule=(html.match(/body\.splash-active #tabs,body\.splash-active #bitdock[^{]*\{opacity:0;\}/)||[''])[0];
+     if(!splashRule)out.push('index.html: the body.splash-active opacity:0 rule for #tabs/#bitdock/.mapspot was not found in its expected form');
+     else if(/#app-version/.test(splashRule))out.push('index.html: #app-version must not be in the body.splash-active opacity:0 list (it must stay visible for on-device diagnostics)');
+     const topbarChildRule=(html.match(/body\.splash-active #topbar>#navback[^{]*\{opacity:0;visibility:hidden;pointer-events:none;\}/)||[''])[0];
+     if(!topbarChildRule)out.push('index.html: #topbar must stay rendered during splash-active -- its OTHER children (navback/.title/#currencies/#menubtn) should be hidden individually instead, since display/opacity on #topbar itself would also hide the nested #app-version');
+     if(/body\.splash-active #topbar,body\.splash-active #tabs[^{]*\{opacity:0/.test(html))out.push('index.html: #topbar must not be hidden (opacity:0) during body.splash-active -- that also hides #app-version, which lives inside it');
+     if(!/body\[data-screen=intro\] #topbar>#navback,\s*body\[data-screen=intro\] #topbar>\.title,\s*body\[data-screen=intro\] #topbar>#currencies,\s*body\[data-screen=intro\] #topbar>#menubtn,\s*body\[data-screen=intro\] #tabs,\s*body\[data-screen=intro\] #bitdock\{display:none!important;\}/.test(html))
+       out.push('index.html: body[data-screen=intro] must hide #topbar\'s OTHER children individually (#navback/.title/#currencies/#menubtn), not #topbar itself -- #topbar must stay rendered or the nested #app-version is hidden too');
+     if(/body\[data-screen=intro\] #topbar, body\[data-screen=intro\] #tabs[^{]*\{display:none/.test(html))out.push('index.html: #topbar must not be hidden (display:none) during body[data-screen=intro] -- that also hides #app-version, which lives inside it');
+     if(!/body\.splash-active #topbar,body\[data-screen=intro\] #topbar\{z-index:94;\}/.test(html))out.push('index.html: #topbar needs a raised z-index during splash-active/intro, or #app-version (position:static inside #topbar) stays visually covered by #splash/.intro even though it is no longer hidden');
+     // PRB-161 CI layout fix: the raised #topbar must not let its hidden siblings (or the label itself) cover splash controls (#splash-profiles-btn/#splash-settings-btn).
+     if(!/body\.splash-active #topbar,body\[data-screen=intro\] #topbar\{pointer-events:none;\}/.test(html))out.push('index.html: #topbar must be pointer-events:none during splash-active/intro so its hidden children never cover splash buttons');
+     if(!/body\.splash-active #topbar>#app-version,body\[data-screen=intro\] #topbar>#app-version\{position:fixed!important;inset:auto [^}]*\}/.test(html))out.push('index.html: #app-version must be pinned bottom-right (position:fixed) during splash-active/intro so it never covers the splash corner buttons');
+     return out;}},
+
+  {id:'coldopen-gesture-gate-after-raid-return',pr:'v2.28.3x PRB-161 follow-up (raid-return gesture gate)',why:'setupSplash\'s returningFromRaid branch skips the splash -- and its PR_AUDIO.preload() call -- outright, so a raid return (e.g. after the FTUE raid) renders SCREENS.intro on a brand-new document with no gesture behind it at all; reusing the 1.5s vo-wait cap there would silently start line 1 with no VO on every such return. A tap must also never be mistaken for a cold-open skip, including iOS\'s touchend-then-a-separate-synthesized-click: onGestureTap used to only clear the .vo-wait-tap class, so by the time the later click reached A.introSkip there was nothing left for it to check',
+   check(c={}){const out=[],app=c.appSrc??read('app.js');
+     const gateFn=(app.match(/const armVoiceGate = \(\) => \{[\s\S]*?\n    \};/)||[''])[0];
+     if(!gateFn){out.push('app.js: SCREENS.intro\'s armVoiceGate() was not found in its expected form');return out;}
+     if(!/audio\.init\?\.\(\);/.test(gateFn))out.push('app.js: armVoiceGate() must call audio.init?.() before reading audio.context -- a raid return never ran preload(), so context would otherwise still be null');
+     if(!/const running = audio\.context\?\.state === "running";/.test(gateFn))out.push('app.js: armVoiceGate() must check whether the AudioContext is already running before gating on a tap');
+     if(!/if\(running \|\| audio\.unlockPromise \|\| muted\)\{ waitForVoice\(\); return; \}/.test(gateFn))out.push('app.js: armVoiceGate() must skip the gesture prompt when already running, an unlock is in flight, or audio is muted');
+     if(!/intro\.classList\.add\("vo-wait-tap"\);/.test(gateFn))out.push('app.js: armVoiceGate() must show the "TAP TO WAKE BIT" gate (.vo-wait-tap) when none of the above hold');
+     if(!/intro\.dataset\.gateTapAt = String\(Date\.now\(\)\);/.test(gateFn))out.push('app.js: onGestureTap must stamp intro.dataset.gateTapAt the instant it fires -- introSkip needs this once the class itself is gone (see below)');
+     const skipFn=(app.match(/introSkip\(ev\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!skipFn){out.push('app.js: window.A.introSkip was not found in its expected form');return out;}
+     const hasSkipGuard=skipFn.includes('if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }');
+     if(!hasSkipGuard)out.push('app.js: A.introSkip\'s final skip guard must ignore a click while .vo-wait-tap is still present OR within the gateTapAt guard window -- iOS fires touchend then a SEPARATE synthesized click, by which point onGestureTap has already removed .vo-wait-tap, so the class check alone is not enough');
+     if(!/const withinGateTapGuard = !!gateTapAt && \(Date\.now\(\) - gateTapAt\) < GATE_TAP_SKIP_GUARD_MS;/.test(skipFn))out.push('app.js: A.introSkip must compute withinGateTapGuard from dataset.gateTapAt against a time window (GATE_TAP_SKIP_GUARD_MS)');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
