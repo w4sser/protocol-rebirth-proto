@@ -78,10 +78,20 @@ test('the real Archipelago build connects terrain, water and walkable coast with
       'the canonical hero preview must contain real sculpted coastline rock volumes, not just a gray shore strip');
     assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
       &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
+    for(const rock of anchored){
+      const positions=rock.geometry.getAttribute('position'),steps=35;
+      const radius=i=>Math.hypot(positions.getX(i*steps),positions.getZ(i*steps));
+      for(let ring=5;ring<17;ring++){
+        const dy=Math.abs(positions.getY((ring+1)*steps)-positions.getY(ring*steps));
+        assert.ok(Math.abs(radius(ring+1)-radius(ring))<dy*2.6+.015,
+          'granite has a smoothly rounded profile, never stacked horizontal tier shelves');
+      }
+    }
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
-    assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero),
-      'hero bunker entrance is anchored directly into the new coastal cliff');
+    assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero
+      &&o.userData.embeddedInRock),
+      'hero bunker entrance is physically positioned in the sculpted granite volume, not left as a freestanding concrete L');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
     for(const boat of out.boatPlacements)for(const rock of anchored)

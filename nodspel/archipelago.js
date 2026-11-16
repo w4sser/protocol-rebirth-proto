@@ -420,7 +420,12 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       if(hero)out.heroGraniteMasses=bedrock?.count??0;
       bedrockPlans.set(profile.floor,plan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
-      if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
+      if(hero){
+        addArchipelagoTargetPortal(profile,group,{
+          ...options,heroRock:bedrock?.userData.bedrockPlan.masses[0]??null
+        });
+        addArchipelagoTargetShed(profile,group,options);
+      }
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
   }

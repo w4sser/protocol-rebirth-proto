@@ -110,17 +110,17 @@ function sculptGranite(){
   // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
   // The low root rests inside the existing shore without a coplanar apron.
   const steps=34;
-  const rings=[
-    [0,1.04],[.027,1.12],[.09,1.16],[.15,1.16],
-    [.23,1.13],[.31,1.10],[.38,1.075],[.43,1.055],
-    [.464,1.018],[.477,.935],[.502,.908],[.56,.89],
-    [.625,.851],[.674,.808],[.711,.770],[.729,.682],
-    [.765,.665],[.806,.625],[.857,.594],[.897,.551],
-    [.923,.544],[.94,.465],[.974,.448],[1,.413]
-  ];
+  // Pass Y: the original discontinuous width jumps at nearly identical
+  // elevations made offshore granite read like a pile of flat concentric
+  // plates. Sample a single smooth, broad ice-rounded dome instead. The
+  // low-poly silhouette remains asymmetric and the geometry stays indexed.
+  const rings=Array.from({length:24},(_,i)=>{
+    const h=i/23;
+    return [h,.035+1.055*Math.sqrt(Math.max(0,1-h*h))];
+  });
   const positions=[],colors=[],indices=[];
-  const shadow=new THREE.Color('#60717d'),weathered=new THREE.Color('#a2a3ac');
-  const twilight=new THREE.Color('#b0a0ad'),moss=new THREE.Color('#788674');
+  const shadow=new THREE.Color('#60717d'),weathered=new THREE.Color('#aaa5b1');
+  const twilight=new THREE.Color('#b9a6b8'),moss=new THREE.Color('#788674');
   for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
     const a=j/steps*TAU,[h,nominal]=rings[k];
     const cs=Math.cos(a),sn=Math.sin(a);
@@ -178,7 +178,9 @@ export function addArchipelagoHeroGraniteV2(profile,group,{high=true,...options}
   mesh.userData.bedrockPlan=plan;
   for(let i=0;i<plan.masses.length;i++){
     const m=plan.masses[i];
-    pos.set(m.x,-.14,m.z);
+    // Sink the wide base under the real shore rather than leave a visible
+    // circular pedestal in the water next to the island.
+    pos.set(m.x,-.54,m.z);
     rot.setFromAxisAngle(up,m.rotation);
     scale.set(m.length*.94,m.height,m.depth*.94);
     mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));
@@ -383,12 +385,19 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   const mass=hero?null:planArchipelagoBedrock(profile,options).masses[0];
   if(!mass&&!head)return null;
   const g=new THREE.Group();g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;
-  if(hero){
+  const heroRock=hero?options.heroRock:null;
+  if(heroRock){
+    // The entrance faces land and is visibly cut into the innermost flank
+    // of the real granite volume, not sitting as a concrete L on bare coast.
+    const a=heroRock.angle;
+    g.position.set(heroRock.x-Math.cos(a)*heroRock.depth*.43,-.14,
+      heroRock.z-Math.sin(a)*heroRock.depth*.43);
+    g.rotation.y=-a-Math.PI/2;
+    g.userData.integratedHero=true;
+    g.userData.embeddedInRock=true;
+  }else if(hero){
     const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
     const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.76;
-    // Set the door LOW into the actual sculpted granite shoulder. Placing the
-    // frame atop the rock silhouette made it read as a freestanding concrete
-    // L-block in 844x390 gameplay screenshots, not a buried Cold War portal.
     g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
       -.22+(p.heroRelief??0)*.60,
       profile.floor.z+Math.sin(head.angle)*radius);
@@ -397,16 +406,16 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   }else{
     g.position.set(mass.x,-.18,mass.z);g.rotation.y=mass.rotation;
   }
-  const front=hero?.28:mass.depth*.50;
-  const h=hero?1.10:Math.min(1.28,mass.height*.66);
-  const w=hero?1.75:Math.min(2,mass.length*.42);
-  // Face the inner approach: the dark door projects ahead of the frame,
-  // rather than disappearing behind the solid glacial mesh at the coast.
-  block(g,0,h*.5,front+.15,w*.86,h,.14,1);
-  block(g,-w*.5-.12,h*.51,front-.10,.24,h+.12,.65,0);
-  block(g,w*.5+.12,h*.51,front-.10,.24,h+.12,.65,0);
-  block(g,0,h+.08,front-.10,w+.52,.20,.70,2);
-  block(g,0,h*.5,front+.235,.045,h*.94,.018,0);
+  const front=hero?.08:mass.depth*.50;
+  const h=hero?1.02:Math.min(1.28,mass.height*.66);
+  const w=hero?1.35:Math.min(2,mass.length*.42);
+  // A narrow frame and mostly dark recessed steel door. The previous broad
+  // lintel and 0.65m side pillars created an exposed freestanding L-shape.
+  block(g,0,h*.48,front+.14,w*.85,h*.90,.12,1);
+  block(g,-w*.50,h*.5,front+.03,hero?.13:.24,h,hero?.22:.65,0);
+  block(g,w*.50,h*.5,front+.03,hero?.13:.24,h,hero?.22:.65,0);
+  block(g,0,h+.045,front+.03,w+(hero?.14:.52),hero?.14:.20,hero?.22:.70,2);
+  block(g,0,h*.5,front+.215,.035,h*.87,.015,0);
   const lamp=new THREE.Mesh(cubeGeo,new THREE.MeshBasicMaterial({color:'#ffc692'}));
   lamp.scale.set(.28,.07,.12);lamp.position.set(0,h+.055,front+.22);lamp.userData.visualOnly=true;g.add(lamp);
   group.add(g);return g;
