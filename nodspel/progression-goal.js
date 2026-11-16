@@ -9,6 +9,18 @@ export function readGoal(value){
     return {module:g.module,level:g.level,name:String(g.name||g.module).slice(0,60),benefit:String(g.benefit||'').slice(0,250),parts};
   }catch{return null;}
 }
+// PRB-162: the craft-material guarantee (?vestGuarantee=, see levels.js setGuaranteeLoot). A short
+// list of {id,count}, validated against real items the same way readGoal validates cost parts.
+export function readVestGuarantee(value){
+  if(typeof value!=='string'||value.length>500)return null;
+  try{
+    const list=JSON.parse(value);
+    if(!Array.isArray(list)||!list.length||list.length>6)return null;
+    const out=list.map(n=>{if(!n||!globalThis.DATA.items.find(i=>i.id===n.id)||!Number.isInteger(n.count)||n.count<1||n.count>20)throw Error();return {item:n.id,count:n.count};});
+    if(new Set(out.map(n=>n.item)).size!==out.length)return null;
+    return out;
+  }catch{return null;}
+}
 export function goalProgress(goal,bag={}){
   const parts=goal.parts.map(p=>{const carried=p.kind==='currency'?globalThis.DATA.items.reduce((sum,item)=>sum+(item.grantsCurrency?.[p.id]||0)*Math.max(0,Math.floor(bag[item.id]||0)),0):Math.max(0,Math.floor(bag[p.id]||0));return {...p,carried,remaining:Math.max(0,p.need-p.secured-carried)};});
   return {parts,secured:parts.every(p=>p.secured>=p.need),enoughCarried:parts.every(p=>p.remaining===0)};

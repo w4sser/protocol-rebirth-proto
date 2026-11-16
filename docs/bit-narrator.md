@@ -1,5 +1,16 @@
 # BIT narrator card
 
+## Design rule (PRB-162, Robert's playtest 2026-11-16): BIT introduces every system first
+
+**BIT ALWAYS introduces every new system/concept (rooms, quests, crafting, vault, power, materials)
+before it is shown or unlocked. No UI element appears unexplained.** Any new unlockable room, chip,
+badge or mechanic must play (or have already played) a BIT narrator moment -- the shared layout below,
+not an invented one-off -- before the player can see or use it. See
+[docs/ftue-design.md](ftue-design.md) §0 for the standing rule and
+[the systems-first backlog](#systems-first-backlog-prb-162-audit-2026-11-16) below for the current
+audit. Guarded by bug-lint rule `bit-introduces-systems-first` (`scripts/bug-lint.mjs`,
+[docs/bug-lint.md](bug-lint.md)).
+
 PRB-151 (2026-11-14, Robert): BIT narrates everywhere, like the Villager in Clash of Clans. One
 shared component — `ui/bit-card.js` + `ui/bit-card.css` — is reused by both the base page
 (`index.html`/`app.js`) and the raid page (`nodspel/index.html` + `game.mjs`). It is NOT a toast and
@@ -88,7 +99,10 @@ policy. Each caller picks whatever persistence fits:
 | `mat:<item>` | `nodspel/game.mjs` `pickupToast` | first-ever pickup of that material (`nodspel/loot-value.js` `materialPickupBitLine`, "BIT: " prefix stripped) | happy |
 | `core_restored` (cutscene) | `app.js` `A.build("rebirth_core")`, first Core L1 | "Power… I can feel my circuits again. Also my toes. I don't have toes." | happy |
 | `first_death` (cutscene) | `app.js` `maybeShowFirstDeathCard`, first ordinary-raid death ingest | "I dragged you back. Don't make it a habit." | sad → happy |
-| `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." | happy |
+| `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." (+ a live shortage clause and a MISSING info row when the Vest recipe is short, PRB-162) | happy |
+| `raid_briefing` (cutscene, PRB-162) | `app.js` `maybeShowRaidBriefing`, first base visit with the Fabricator still locked, after `core_restored` | "Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs." | skeptical |
+| `quest_intro` (cutscene, PRB-162) | `app.js` `maybeShowQuestIntro`, before the tracked-quest chip (`trackedGoalHtml`) can ever render | "Quests: little jobs, real rewards. Finish one, I pay up. That chip up top tracks it — tap it any time for the fine print." | smile |
+| `vault_intro` (cutscene, PRB-162) | `app.js` `maybeShowVaultIntro`, before the Vault is ever the build target or built | "This is the Vault. What you store here stays here, even if you don't make it back. I used to keep feelings in here. Now it's scrap." | smile |
 
 ## Mini cutscenes
 
@@ -270,3 +284,41 @@ viewport report medians and retain raw timings; cold-open timing requires the re
 Use node scripts/cutscene-latency.mjs --screenshots-only for a separate early-frame capture pass.
 It requests Core/Fabricator screenshots near 50ms without perturbing the benchmark trials,
 and records actual screenshot request times in shot-times.json beside latency.json.
+
+## Systems-first backlog (PRB-162 audit, 2026-11-16)
+
+Audit against the design rule above, current as of this PR. Not a build list -- most gaps below
+are intentionally left open; pick them up as their own small PRs when the system matters enough to
+explain, following "Adding a new BIT card moment" above.
+
+**Already had a BIT intro before this PR:**
+
+| System | Moment |
+| --- | --- |
+| Rebirth Core / emergency power | `core_restored` cutscene |
+| Fabricator / crafting | `fabricator_built` cutscene |
+| Death consequence (what you lose/keep) | `first_death` cutscene |
+| Raid materials (first-ever pickup of each) | `mat:<item>` card (`nodspel/loot-value.js`) |
+
+**Added in this PR (PRB-162):**
+
+| System | Moment |
+| --- | --- |
+| Raid / the RAID button, while the Fabricator is still locked | `raid_briefing` cutscene |
+| Quests (what they are, why, the tracked chip) | `quest_intro` cutscene, gates the chip (`trackedGoalHtml`) |
+| Vault / Storage (stash expansion, the secure slot) | `vault_intro` cutscene, gates "next goal"/build |
+| Scavenger Vest craft shortage (materials you don't have yet) | shortage clause + MISSING row on `fabricator_built`, live from the stash |
+
+**Remaining gaps (backlog, not built here):**
+
+| System | Where it currently appears unexplained | Priority note |
+| --- | --- | --- |
+| BIT Bay coming online | Reward popup + `bitDock("bond_up")` line only, no narrator moment | High -- next FTUE beat after the Vault/quests |
+| World map areas (Archipelago, Town) + scouting charts | World map unlock badge only | Medium -- bigger than a one-liner, needs its own design pass |
+| Contract Chips / BIT trader catalog | Chip shop UI, no intro | Medium |
+| BIT Talents (Bond tree) | Talents tab, no intro | Medium |
+| Gear merge / upgrade / mastery | Gear popups explain themselves inline, no BIT framing | Low |
+| Bunker power as its own concept (brownouts, `roomPowered`) | Contextual `bitDock("energy_critical")` line only, not a one-time explainer | Low -- already has a contextual line, just not a first-time card |
+| Idle scavenging / expeditions while away | Scavenge popup, no intro | Low |
+| Daily quests | Quest log "daily" tab, no intro | Low |
+| Living Quarters / rest buff | Room unlock only | Low -- late-game room, not yet reachable in the scripted spine |

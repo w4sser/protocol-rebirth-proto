@@ -237,6 +237,16 @@ let SCOUTED=new Set();
 export function setScouted(list){SCOUTED=new Set(Array.isArray(list)?list:[]);}
 export const scoutTarget=item=>globalThis.DATA.items.find(i=>i.id===item)?.scouts;
 export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level,source:globalThis.DATA.items.find(i=>i.id===q.item)?.raidSource}:null;}
+// PRB-162: craft-material guarantee (e.g. the Scavenger Vest recipe's missing Polymer Plate/Scrap
+// Alloy, once the Fabricator is built). Generalizes QUEST_LOOT from one tracked item to a short
+// list, overwriting existing level-1 crates the same way -- never adding new ones, so it never
+// conflicts with the early-room crate-count budget. Mutated in place as boxes get claimed, so a
+// raid spanning multiple bunker levels (none of this ships past level 1 today) never double-grants;
+// whatever is left unmet just waits for the next raid, which recomputes the need from live stash.
+let GUARANTEE_LOOT=null;
+export function setGuaranteeLoot(list){
+  GUARANTEE_LOOT=Array.isArray(list)?list.filter(n=>n&&RULES.loot.types.includes(n.item)&&Number.isInteger(n.count)&&n.count>0).map(n=>({item:n.item,count:n.count})):null;
+}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
 // v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
@@ -460,6 +470,19 @@ export function applyAreaRules(level,AR){
   if(QUEST_LOOT&&QUEST_LOOT.level===n&&(!QUEST_LOOT.source||QUEST_LOOT.source.area===level.area)){
     const b=level.lootBoxes.find(x=>x.item===QUEST_LOOT.item)||level.lootBoxes.find(x=>!x.scout&&!x.key);
     if(b){b.item=QUEST_LOOT.item;b.quest=true;if(QUEST_LOOT.source){b.source=QUEST_LOOT.source.label;b.revealed=true;b.marked=true;}}
+  }
+  // PRB-162: craft-material guarantee, level 1 only (see setGuaranteeLoot above). Claims existing
+  // crates in call order; whatever this level's crate count can't fit stays in GUARANTEE_LOOT for
+  // meta to recompute (and re-send) on the player's next raid.
+  if(GUARANTEE_LOOT&&GUARANTEE_LOOT.length&&n===1){
+    for(const need of GUARANTEE_LOOT){
+      while(need.count>0){
+        const b=level.lootBoxes.find(x=>!x.scout&&!x.quest&&!x.key&&!x.guarantee);
+        if(!b)break;
+        b.item=need.item;b.guarantee=true;need.count--;
+      }
+    }
+    GUARANTEE_LOOT=GUARANTEE_LOOT.filter(need=>need.count>0);
   }
 }
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.

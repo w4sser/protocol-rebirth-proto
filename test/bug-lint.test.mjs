@@ -267,3 +267,23 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.ok(rule.check({smokeSrc:smoke.replace('Promise.race([handoff,button])','button')}).length,'fires if the smoke only waits for the #return-base click');
  assert.ok(rule.check({layoutSrc:layout.replace("'scripts/debug-unlocks-smoke.mjs'","'scripts/other.mjs'")}).length,'fires if the smoke is unhooked from required CI');
 }
+// PRB-162: the quest chip and the Vault must each stay gated behind their own BIT intro moment.
+{
+ const rule=by('bit-introduces-systems-first');
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0,'passes on the real app.js');
+ assert.ok(rule.check({appSrc:app.replace('if(!S.bitCardsSeen.quest_intro) return "";\n','')}).length,'fires if the quest chip stops checking its intro-seen flag');
+ assert.ok(rule.check({appSrc:app.replace('vault_intro:{','vault_intro_renamed:{')}).length,'fires if BIT_CUTSCENES.vault_intro is renamed/removed');
+ assert.ok(rule.check({appSrc:app.replace('function maybeShowVaultIntro(){','function vaultIntroTrigger(){')}).length,'fires if the maybeShowVaultIntro trigger function is renamed/removed');
+ assert.ok(rule.check({appSrc:app.replace(
+   'if(S.bitCardsSeen.vault_intro) return;\n  // Same ordering guard as maybeShowQuestIntro: never queue ahead of fabricator_built.\n  if(!S.bitCardsSeen.fabricator_built) return;\n  const g = progressionGoal();',
+   'const g = progressionGoal();'
+ )}).length,'fires if maybeShowVaultIntro stops gating on its own seen flag (would replay every base visit)');
+ assert.ok(rule.check({appSrc:app.replace(
+   'const g = progressionGoal();\n  if((S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;',
+   'if((S.modules.storage || 0) < 1) return;'
+ )}).length,'fires if maybeShowVaultIntro stops checking progressionGoal() (would only ever fire once already built, not the instant it becomes the goal)');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.vault_intro === undefined','st.bitCardsSeen.vault_intro_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling vault_intro for already-past saves');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.quest_intro === undefined','st.bitCardsSeen.quest_intro_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling quest_intro');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.raid_briefing === undefined','st.bitCardsSeen.raid_briefing_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling raid_briefing');
+}

@@ -382,6 +382,24 @@ export const RULES=[
      if(!/const withinGateTapGuard = !!gateTapAt && \(Date\.now\(\) - gateTapAt\) < GATE_TAP_SKIP_GUARD_MS;/.test(skipFn))out.push('app.js: A.introSkip must compute withinGateTapGuard from dataset.gateTapAt against a time window (GATE_TAP_SKIP_GUARD_MS)');
      return out;}},
 
+
+  {id:'bit-introduces-systems-first',pr:'v2.28.4x bit-introduces-systems-first',why:"Robert's playtest 2026-11-16: the quest chip and the Vault both reached the player unexplained -- the design rule (docs/ftue-design.md, docs/bit-narrator.md) is BIT ALWAYS introduces a new system before it is shown or unlocked, so every gate below must stay wired: the quest chip's render path must check its intro-seen flag, and the Vault cutscene must be registered and actually gate the Vault becoming the goal/being built",
+   check(c={}){const out=[];const app=c.appSrc??read('app.js');
+     const tracked=(app.match(/function trackedGoalHtml\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!tracked)out.push('app.js: trackedGoalHtml() not found');
+     else if(!/if\(!S\.bitCardsSeen\.quest_intro\) return "";/.test(tracked))out.push('app.js: trackedGoalHtml() must return "" until S.bitCardsSeen.quest_intro is true -- the tracked-quest chip must never render before BIT\'s quest intro has played');
+     for(const id of ['raid_briefing','quest_intro','vault_intro']){
+       if(!new RegExp('\\b'+id+'\\s*:\\s*\\{').test(app))out.push('app.js: BIT_CUTSCENES.'+id+' is not registered');
+       if(!new RegExp('function maybeShow'+id.replace(/(^|_)([a-z])/g,(_,p,c)=>c.toUpperCase())+'\\(\\)\\{').test(app))out.push('app.js: maybeShow'+id+' trigger function not found in its expected form');
+     }
+     const vaultFn=(app.match(/function maybeShowVaultIntro\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(vaultFn && !/if\(S\.bitCardsSeen\.vault_intro\) return;/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must gate on S.bitCardsSeen.vault_intro so it only ever plays once');
+     if(vaultFn && !/progressionGoal\(\)/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must check progressionGoal() so it plays the instant the Vault becomes the next goal, not only once already built');
+     const migrate=(app.match(/function migrateBitCardsSeen\(st\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!migrate)out.push('app.js: migrateBitCardsSeen(st) not found');
+     else for(const id of ['raid_briefing','quest_intro','vault_intro'])
+       if(!new RegExp('st\\.bitCardsSeen\\.'+id+'\\s*===\\s*undefined').test(migrate))out.push('app.js: migrateBitCardsSeen must back-fill st.bitCardsSeen.'+id+' for saves already past its live trigger');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

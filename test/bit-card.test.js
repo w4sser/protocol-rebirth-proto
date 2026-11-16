@@ -264,7 +264,7 @@ function boot(seedSave, calls, artMode = "success", requests = []){
   w.eval(fs.readFileSync(path + "/save-slots.js", "utf8"));
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
-    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,BIT_CUTSCENES,MODS,D,ITEMS};");
+    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml};");
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -299,6 +299,8 @@ async function bootToCoreOneTapAway(calls){
 }
 
 // core_restored: the live transition plays a cutscene (no card, no popup), exactly once, persisted.
+// PRB-162: raid_briefing (Fabricator still locked) queues immediately behind it -- never stacked,
+// just the next call in order, exactly as docs/bit-narrator.md's queueing model describes.
 {
   const calls = [];
   const w = await bootToCoreOneTapAway(calls);
@@ -308,11 +310,57 @@ async function bootToCoreOneTapAway(calls){
   // gate) is gone for good -- the cutscene is the single screen, so there is nothing to click.
   assert(!w.document.getElementById("overlay"), "no popup shows for the Core restore");
   assert.equal(w.T.state().bitCardsSeen.core_restored, true, "persisted synchronously with the build, no popup left to gate it");
-  assert.equal(calls.length, 1, "PRB-160: Core cutscene plays synchronously with the build");
-  assert.equal(calls.length, 1, "core_restored cutscene shown exactly once");
+  assert.equal(calls.length, 2, "PRB-162: raid_briefing queues right behind core_restored");
   assert.equal(calls[0].id, "core_restored");
   assert.match(calls[0].line, /circuits again/);
   assert(calls[0].bust && calls[0].info, "core_restored cutscene carries the standard bubble+info layout");
+  assert.equal(calls[1].id, "raid_briefing", "raid_briefing is queued next, never shown on top of core_restored");
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, true, "persisted synchronously too");
+  assert(calls[1].info.some(r => r.label === "NEXT" && /Fabricator/.test(r.text)), "raid_briefing names the real Fabricator cost");
+}
+
+// raid_briefing: never fires once the Fabricator is already built, even on a fresh base visit.
+{
+  const calls = [];
+  const w = await bootToCoreOneTapAway(calls);
+  w.A.build("rebirth_core");
+  const st = w.T.state();
+  st.modules.fabricator = 1; st.bitCardsSeen.raid_briefing = false; // force the live-trigger path, not migration
+  calls.length = 0;
+  w.A.go("base");
+  assert.equal(calls.filter(c => c.id === "raid_briefing").length, 0, "no raid_briefing once the Fabricator is already built");
+}
+
+// raid_briefing: a save that already saw core_restored live (an earlier session) and is still
+// Fabricator-locked gets the cutscene on the next base visit -- not retroactively from loading.
+{
+  const seedWin = boot(null, []);
+  const st = seedWin.T.state();
+  st.modules.rebirth_core = 1; st.baseState = "core_habitable"; st.introSeen = true;
+  st.bitCardsSeen = { core_restored:true, first_death:true, fabricator_built:false };
+  const saved = JSON.parse(JSON.stringify(st));
+  const calls = [];
+  const w = boot(saved, calls);
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, undefined, "loading alone never marks it seen (Fabricator still locked)");
+  w.A.go("base");
+  assert.equal(calls.filter(c => c.id === "raid_briefing").length, 1, "fires live on the next base visit");
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, true);
+  w.A.go("base");
+  assert.equal(calls.filter(c => c.id === "raid_briefing").length, 1, "never fires a second time");
+}
+
+// raid_briefing: an existing save that already built the Fabricator is marked seen on load
+// (retroactive migration) -- the window already closed for it.
+{
+  const seedWin = boot(null, []);
+  const st = seedWin.T.state();
+  st.modules.fabricator = 1;
+  delete st.bitCardsSeen;
+  const saved = JSON.parse(JSON.stringify(st));
+  const calls = [];
+  const w = boot(saved, calls);
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, true, "existing save with Fabricator already built is marked seen on load");
+  assert.equal(calls.length, 0, "loading a save never fires a cutscene by itself");
 }
 
 // core_restored: a save that already had Core L1 built before this field existed is marked seen
@@ -404,7 +452,10 @@ async function bootToCoreOneTapAway(calls){
   w.Image = class { set src(_src){ setTimeout(() => { if(this.onerror) this.onerror(); }, 0); } };
   w.A.build("rebirth_core");
   const st = w.T.state();
-  st.stash.cable = 1; st.stash.scrap_alloy = 2; st.cur.scrap = 10;
+  // PRB-162: fund the Fabricator's own cost (consumed by payCost before the cutscene fires) AND,
+  // independently, the Vest recipe's cost left over afterward, so this general fabricator_built
+  // test exercises the non-shortage info strip -- the shortage variant has its own tests below.
+  st.stash.cable = 1; st.stash.scrap_alloy = 3; st.stash.polymer_plate = 2; st.cur.scrap = 25;
   assert.equal(st.bitCardsSeen.fabricator_built, undefined, "not marked seen before the build");
   const fabCalls = () => calls.filter(c => c.id === "fabricator_built");
   w.A.build("fabricator");
@@ -461,6 +512,109 @@ for(const replace of ["navigation", "profiles"]){
   assert.equal(calls.length, 0, "loading a save never fires the cutscene by itself");
 }
 
+// Shared setup for PRB-162 moments 3/4: Core built, then raid_1 extracted (ftueOver() true), then
+// the Fabricator built -- the exact live sequence where quest_intro and vault_intro both open up.
+async function bootPastFabricator(calls){
+  const w = await bootToCoreOneTapAway(calls);
+  w.A.build("rebirth_core");
+  w.T.ingestRaidResult({ schema:"protocol-rebirth/raid-result", version:1, raidId:"raid-1-extract", seed:"s2",
+    outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
+    extracted:["cable","cable","scrap_alloy"], lost:[], endedAt:Date.now(), kitLeft:{medkit:1} });
+  const st = w.T.state();
+  st.stash.cable = 1; st.stash.scrap_alloy = 2; st.cur.scrap = 10;
+  w.A.build("fabricator");
+  w.document.querySelector("#overlay [data-close]").dispatchEvent(new w.Event("click", { bubbles:true }));
+  return w;
+}
+
+// quest_intro: queues right behind fabricator_built (ftueOver() + Fabricator built both land on
+// the same build), and the tracked-quest chip must not render before it has played.
+{
+  const calls = [];
+  const w = await bootPastFabricator(calls);
+  assert.equal(calls.filter(c => c.id === "fabricator_built").length, 1);
+  const questCalls = calls.filter(c => c.id === "quest_intro");
+  assert.equal(questCalls.length, 1, "quest_intro fires the instant the chain opens up");
+  assert.equal(calls.findIndex(c => c.id === "quest_intro") > calls.findIndex(c => c.id === "fabricator_built"), true, "queued after fabricator_built, never on top of it");
+  assert.match(questCalls[0].line, /little jobs/);
+  assert(questCalls[0].info.some(r => r.label === "FIRST"), "names the real first quest from data/quests.js");
+  assert.equal(w.T.state().bitCardsSeen.quest_intro, true);
+  // trackedGoalHtml is the chip itself -- confirm it only starts rendering once the flag is set.
+  const st = w.T.state();
+  st.bitCardsSeen.quest_intro = false;
+  assert.equal(w.T.trackedGoalHtml(), "", "chip stays hidden if quest_intro is ever unset");
+  st.bitCardsSeen.quest_intro = true;
+  assert.notEqual(w.T.trackedGoalHtml(), "", "chip renders once quest_intro has played and a quest is tracked");
+}
+
+// vault_intro: queues behind quest_intro (progressionGoal() names Storage next, room order after
+// Fabricator), before the Vault is ever built or buildable.
+{
+  const calls = [];
+  const w = await bootPastFabricator(calls);
+  const vaultCalls = calls.filter(c => c.id === "vault_intro");
+  assert.equal(vaultCalls.length, 1, "vault_intro fires the instant the Vault becomes the next goal");
+  assert.equal(calls.findIndex(c => c.id === "vault_intro") > calls.findIndex(c => c.id === "quest_intro"), true, "queued after quest_intro");
+  assert.match(vaultCalls[0].line, /Vault/);
+  assert(vaultCalls[0].info.some(r => r.label === "NEW" && r.text === w.T.MODS.storage.benefit), "names the real Storage/Vault benefit from data/modules.js");
+  assert(vaultCalls[0].info.some(r => r.label === "NEXT" && /Vault/.test(r.text)), "names the Vault's own build cost");
+  assert.equal(w.T.state().bitCardsSeen.vault_intro, true);
+}
+
+// vault_intro: fires once, even across repeated base visits once the Vault is the named goal.
+{
+  const calls = [];
+  const w = await bootPastFabricator(calls);
+  w.A.go("base"); w.A.go("base");
+  assert.equal(calls.filter(c => c.id === "vault_intro").length, 1, "never replays");
+}
+
+// vault_intro: an existing save that already built Storage is marked seen on load (retroactive
+// migration) -- the window to explain it before it was used already closed.
+{
+  const seedWin = boot(null, []);
+  const st = seedWin.T.state();
+  st.modules.storage = 1;
+  delete st.bitCardsSeen;
+  const saved = JSON.parse(JSON.stringify(st));
+  const calls = [];
+  const w = boot(saved, calls);
+  assert.equal(w.T.state().bitCardsSeen.vault_intro, true, "existing save with Storage already built is marked seen on load");
+  assert.equal(calls.length, 0, "loading a save never fires a cutscene by itself");
+}
+
+// Scavenger Vest shortage (PRB-162 moment 2): fabricator_built's line/info acknowledge missing
+// materials, read live from the stash, and stop once the recipe is actually affordable.
+{
+  const calls = [];
+  const w = await bootToCoreOneTapAway(calls);
+  w.A.build("rebirth_core");
+  const st = w.T.state();
+  st.stash.cable = 1; st.stash.scrap_alloy = 2; st.cur.scrap = 10; // enough for the Fabricator, nothing left for the Vest (0 Polymer Plate)
+  w.A.build("fabricator");
+  w.document.querySelector("#overlay [data-close]").dispatchEvent(new w.Event("click", { bubbles:true }));
+  const built = calls.find(c => c.id === "fabricator_built");
+  assert.match(built.line, /short/, "BIT's offer line acknowledges the shortage");
+  assert.match(built.line, /polymer_plate|Polymer Plate/i);
+  const missing = built.info.find(r => r.label === "MISSING");
+  assert(missing, "FIRST RECIPE is swapped for a MISSING row when short");
+  assert(!built.info.some(r => r.label === "FIRST RECIPE"), "never both rows at once");
+  assert.match(missing.text, /Polymer Plate/);
+}
+{
+  // Fully stocked: the offer line/info stay the plain, non-shortage version.
+  const calls = [];
+  const w = await bootToCoreOneTapAway(calls);
+  w.A.build("rebirth_core");
+  const st = w.T.state();
+  st.stash.cable = 1; st.stash.scrap_alloy = 4; st.stash.polymer_plate = 2; st.cur.scrap = 30;
+  w.A.build("fabricator");
+  w.document.querySelector("#overlay [data-close]").dispatchEvent(new w.Event("click", { bubbles:true }));
+  const built = calls.find(c => c.id === "fabricator_built");
+  assert(!/short/.test(built.line), "no shortage clause when the Vest recipe is already affordable");
+  assert(built.info.some(r => r.label === "FIRST RECIPE"), "FIRST RECIPE row stays when nothing is missing");
+}
+
 // PRB-157: early warming shares the renderer cache; slow art never blocks beat selection.
 for(const mode of ["success", "error", "stall"]){
   const requests = [], w = boot(null, [], mode, requests);
@@ -482,12 +636,14 @@ for(const mode of ["success", "error", "stall"]){
 
 // Existing saves from the prior narrator release already have bitCardsSeen. Fabricator must
 // migrate independently, preserving the earlier moments' flags and never replaying on load.
+// PRB-162: raid_briefing/quest_intro back-fill alongside fabricator_built (same fabricator>=1
+// signal: the window for all three already closed for a save this far along).
 {
   const w = boot(null, []);
   const st = w.T.freshState();
   st.modules.fabricator = 1; st.bitCardsSeen = { core_restored:true, first_death:false };
   w.T.migrateBitCardsSeen(st); w.T.migrateBitCardsSeen(st);
-  assert.deepEqual(JSON.parse(JSON.stringify(st.bitCardsSeen)), {core_restored:true,first_death:false,fabricator_built:true});
+  assert.deepEqual(JSON.parse(JSON.stringify(st.bitCardsSeen)), {core_restored:true,first_death:false,fabricator_built:true,raid_briefing:true,quest_intro:true});
   // Verify each displayed cost against data, including quantities and Scrap (not just the name).
   const beats = w.T.BIT_CUTSCENES, fab = w.T.MODS.fabricator.levels[0].cost;
   const next = beats.core_restored.info.find(r => r.label === "NEXT").text;

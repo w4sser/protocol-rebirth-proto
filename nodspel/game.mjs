@@ -18,7 +18,7 @@ import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputP
 import * as THREE from './vendor/three.module.js';
 import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.42';
 import {loadBunkerAssets} from './bunker.js?v=2.28.42';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted} from './levels.js?v=2.28.42';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted,setGuaranteeLoot} from './levels.js?v=2.28.42';
 import {applyDifficulty} from './difficulty.js?v=2.28.42';
 import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.42';
 import {nextPickupHint,hintText} from './item-hints.js?v=2.28.42';
@@ -323,6 +323,7 @@ const bullets=[],movement={x:0,y:0},shooting={x:0,y:0};
 const enemyBulletMaterial=new THREE.MeshBasicMaterial({color:'#E4705F'}),enemyMeshes=new Map();
 setScouted(launch.scouted);
 if(launch.quest?.type==='extract'&&launch.quest.prog<launch.quest.n)setQuestLoot({item:launch.quest.target,level:launch.quest.level||1});
+setGuaranteeLoot(launch.vestGuarantee);
 let hazardLabels=[];
 let playerMoving=false;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
