@@ -19,9 +19,18 @@ const SAMPLE_IDS=[
 ];
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
-// V2 owns all camera-height trees so every canopy obeys the same occlusion rule.
-export function filterDressingTrees(items,{nativePines=false}={}){
-  return nativePines?items.filter(item=>!LEGACY_TREE_ASSETS.has(item.id)):items;
+const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6']);
+// V2 owns camera-height trees and deliberately removes ~70% of high-contrast
+// tiny scatter. Hash existing placements so LOW remains a stable HIGH subset.
+function keepSparseGroundDetail(item){
+  const x=Math.round(item.x*100),z=Math.round(item.z*100);
+  const seed=Math.imul(x,73856093)^Math.imul(z,19349663);
+  return (seed>>>0)%10<3;
+}
+export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines}={}){
+  if(!nativePines&&!quietGround)return items;
+  return items.filter(item=>!(nativePines&&LEGACY_TREE_ASSETS.has(item.id))
+    &&!(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id)&&!keepSparseGroundDetail(item)));
 }
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){

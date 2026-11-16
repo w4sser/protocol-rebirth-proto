@@ -420,8 +420,9 @@ const rgb=h=>[1,3,5].map(i=>{const c=parseInt(h.slice(i,i+2),16)/255;return c<=.
 // Slightly darker, healthier Nordic vegetation and worn lavender-grey stone.
 // All colors are linear RGB because they feed Three.js vertexColor buffers.
 const SOIL_MOSS=rgb('#54734d'),SOIL_OLIVE=rgb('#829464'),SOIL_SHADE=rgb('#405b49');
-const SOIL_GRANITE=rgb('#a3a0a7'),SOIL_SHADOW=rgb('#6b7380'),SOIL_SAND=rgb('#968a76');
-const SOIL_HEATHER=rgb('#766e80'),SOIL_TRAIL=rgb('#807560'),SOIL_LICHEN=rgb('#82947b');
+// Pass Z: lower bright pebble/lichen contrast without washing out the moss.
+const SOIL_GRANITE=rgb('#929097'),SOIL_SHADOW=rgb('#6b7380'),SOIL_SAND=rgb('#968a76');
+const SOIL_HEATHER=rgb('#766e80'),SOIL_TRAIL=rgb('#807560'),SOIL_LICHEN=rgb('#71836e');
 const mix=(a,b,t)=>a+(b-a)*t;
 function tint(a,b,t){return a.map((c,i)=>mix(c,b[i],t));}
 function fieldHash(i,j,seed){return unit(seed+Math.imul(i,374761393)+Math.imul(j,668265263));}
@@ -482,15 +483,17 @@ export function archipelagoGroundColor(profile,x,z,bedrockPlan=null){
       *smooth(1.45,3.25,branchAlong)*(1-smooth(.76,.93,f));
     trail=Math.max(trail,main,branch);
   }
-  const mineralPockets=smooth(.66,.88,broad)*smooth(v2Hero?.79:.59,.94,f)*
-    (v2Hero?.045+.07*mid:.18+.30*mid);
+  // Remove high-contrast mineral flecks across the playable meadow.
+  // Keep broad geology near the headlands, not white speckle everywhere.
+  const mineralPockets=smooth(.72,.91,broad)*smooth(v2Hero?.82:.65,.96,f)*
+    (v2Hero?.025+.04*mid:.09+.15*mid);
   const edgeRock=smooth(v2Hero?.955:.88,.995,f)*(1-beach)*
     (v2Hero?.06+.10*channel:.14+.15*channel);
   const exposed=clamp(glacial*(v2Hero?.17+.08*mid:.49+.20*mid)
     +bedrockRoot*(v2Hero?.09+.05*mid:.26+.13*mid)
     +mineralPockets+edgeRock,0,v2Hero?.38:.90);
-  const lichen=smooth(.62,.89,mid)*exposed*(.11+.07*grain);
-  let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.20,0,1));
+  const lichen=smooth(.68,.90,mid)*exposed*(.05+.04*grain);
+  let col=tint(SOIL_MOSS,SOIL_OLIVE,clamp(.23+broad*.51+grain*.12,0,1));
   col=tint(col,SOIL_SHADE,.12+.22*(1-mid));
   col=tint(col,SOIL_GRANITE,exposed);
   col=tint(col,SOIL_SHADOW,exposed*(.06+.18*(1-channel)));

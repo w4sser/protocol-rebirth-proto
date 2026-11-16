@@ -354,3 +354,34 @@ test('v2 pines fade independently and restore opaque materials and shadows',()=>
   assert.ok(a.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
     'trees must return to their original materials and shadows');
 });
+
+test('v2 sky light is a subtle crown-only rose/lilac tint, not glow or a global tree wash',()=>{
+  const tree=archipelagoCoastalPine({x:2,z:-4,pineVariant:2,pineSeed:501});
+  const crowns=tree.pineMeshes.filter(m=>m.userData.pineSkyLit);
+  const trunks=tree.pineMeshes.filter(m=>!m.userData.pineSkyLit);
+  assert.ok(crowns.length>=3,'multiple sculpted Scots pine crowns remain');
+  assert.ok(trunks.length>=2,'tree keeps natural dark bark');
+  for(const mesh of crowns){
+    const colors=mesh.geometry.getAttribute('color');
+    const positions=mesh.geometry.getAttribute('position');
+    assert.ok(colors?.count===positions.count,'sky tint is baked without a new shader pass');
+    assert.equal(mesh.material.vertexColors,true);
+    assert.equal(mesh.material.emissiveIntensity,1,'no artificial pink glow or bloom');
+    const high=[],low=[];
+    for(let i=0;i<positions.count;i++){
+      const rose=colors.getX(i)/Math.max(.001,colors.getY(i));
+      (positions.getY(i)>.5?high:low).push(rose);
+    }
+    const mean=a=>a.reduce((sum,n)=>sum+n,0)/a.length;
+    assert.ok(mean(high)>mean(low),'upper canopy facets have slightly more rose than lower facets');
+    assert.ok(Math.max(...colors.array)<.35,'pine crown never becomes candy-pink or near-white');
+  }
+  assert.ok(trunks.every(m=>!m.geometry.getAttribute('color')),'bark retains its original coloration');
+  const lowTree=archipelagoCoastalPine({x:2,z:-4,pineVariant:2,pineSeed:501},{low:true});
+  assert.ok(lowTree.pineMeshes.some(m=>m.userData.pineSkyLit),
+    'LOW receives the same atmospheric tint without extra geometry');
+  setArchipelagoPineOpacity(tree,.22);
+  setArchipelagoPineOpacity(tree,1);
+  assert.ok(crowns.every(m=>m.material.vertexColors),
+    'foreground fade/restore retains the new crown vertex colors');
+});

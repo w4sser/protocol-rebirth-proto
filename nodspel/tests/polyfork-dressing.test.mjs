@@ -56,3 +56,21 @@ test('native v2 pines remove only unfadable GLB tree species from dressing',()=>
   assert.deepEqual(filterDressingTrees(original,{nativePines:true}),filtered,
     'filtering must stay deterministic');
 });
+
+test('native v2 thins bright white-looking detail without affecting legacy or LOW subset',()=>{
+  const ids=['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6'];
+  const clutter=Array.from({length:100},(_,i)=>({
+    id:ids[i%3],x:(i*13.7)%31,z:(i*9.3)%26,h:.4
+  }));
+  const safe=[{id:'grass-tuft-a40a08',x:1,z:2},{id:'medium-rock-e08405',x:4,z:8}];
+  const mixed=[...clutter,...safe];
+  assert.equal(filterDressingTrees(mixed),mixed,'legacy mode keeps all authored decoration');
+  const filtered=filterDressingTrees(mixed,{nativePines:true});
+  assert.deepEqual(filtered,filterDressingTrees(mixed,{nativePines:true}),
+    'quiet v2 filtering is deterministic');
+  const kept=filtered.filter(item=>ids.includes(item.id)).length;
+  assert.ok(kept>=15&&kept<=45,'roughly 55–85% of tiny bright details are reduced');
+  assert.ok(safe.every(item=>filtered.includes(item)),'moss, grass and major rocks remain');
+  const low=filterDressingTrees(mixed.filter((_,i)=>i%2===0),{nativePines:true});
+  assert.ok(low.every(item=>filtered.includes(item)),'LOW retains a subset of HIGH placements');
+});

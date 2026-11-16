@@ -144,15 +144,17 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
   const mesh=new THREE.Mesh(geo,groundMat);mesh.name='arch-v2-moss-bedrock-ground';mesh.receiveShadow=true;mesh.userData.visualOnly=true;group.add(mesh);
   // One draw call for deterministic, clustered coastal ecology. The near
   // center stays open; heather lives near mineral patches and lee-side inlets.
-  const blades=[],tones=[],grass=new THREE.Color('#6d895c'),heather=new THREE.Color('#89778d');
-  const bracken=new THREE.Color('#526f53'),cover=planArchipelagoGroundcover(profile,{high,reservations});
+  // Pass Z: sparse, dark coastal ecology. Bright busy ground dressing competes
+  // with the granite silhouettes and the player's objectives at phone scale.
+  const blades=[],tones=[],grass=new THREE.Color('#5e795a'),heather=new THREE.Color('#776a79');
+  const bracken=new THREE.Color('#4b6752'),cover=planArchipelagoGroundcover(profile,{high,reservations});
   for(const tuft of cover){
     const {x,z,h,kind}=tuft;
     const color=kind==='heather'?heather:kind==='bracken'?bracken:grass;
     for(let b=0;b<3;b++){
       const a=b*2.1+hash(Math.round(x*31+z*67))*TAU,dx=Math.cos(a)*.072,dz=Math.sin(a)*.072;
       blades.push(x-dx,.014,z-dz,x+dx,.014,z+dz,x+dx*.48,h,z+dz*.48);
-      for(let k=0;k<3;k++){const c=color.clone().multiplyScalar(.79+hash(Math.round(x*47+z*23+b*17+k))*.35);tones.push(c.r,c.g,c.b);}
+      for(let k=0;k<3;k++){const c=color.clone().multiplyScalar(.78+hash(Math.round(x*47+z*23+b*17+k))*.23);tones.push(c.r,c.g,c.b);}
     }
   }
   if(blades.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(blades,3));g.setAttribute('color',new THREE.Float32BufferAttribute(tones,3));g.computeVertexNormals();const tufts=new THREE.Mesh(g,grassMat);tufts.name='arch-v2-coastal-groundcover';tufts.receiveShadow=true;tufts.userData.visualOnly=true;group.add(tufts);}
@@ -163,7 +165,7 @@ export function addArchipelagoGroundV2(profile,group,{high=true,reservations=[],
 // seed; clusters avoid authored lanes/objectives and never alter collision.
 export function planArchipelagoGroundcover(profile,{high=true,reservations=[]}={}){
   if(profile?.style!=='v2')return [];
-  const {floor,points,seed}=profile,limit=high?12:6,result=[];
+  const {floor,points,seed}=profile,limit=high?6:4,result=[];
   for(let cluster=0;cluster<12;cluster++){
     const a=TAU*hash(seed+701+cluster*83),idx=a/TAU*points.length,j=Math.floor(idx),t=idx-j;
     const edge=points[j].playableRadial*(1-t)+points[(j+1)%points.length].playableRadial*t;
@@ -218,12 +220,31 @@ export function planArchipelagoPines(level,spots){
   return result;
 }
 const barkMat=new THREE.MeshStandardMaterial({color:'#504c41',roughness:1,flatShading:true});
-const pineMats=['#234a42','#31594c','#436857'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}));
+// Pass Z: subtle Nordic-summer-night sky reflection, BAKED in shared crown
+// vertex colors. No glow, outline, extra lights, or material per tree. The
+// underlying pine remains dark green, and only up-facing facets get rose.
+const PINE_TONES=['#234a42','#31594c','#436857'];
+const PINE_SKY_ROSE=new THREE.Color('#b59caf'),PINE_SKY_STRENGTH=.11;
+const crownMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true});
+function skyTintedPineCrown(color){
+  const geo=new THREE.IcosahedronGeometry(1,0),vertices=geo.getAttribute('position');
+  const normals=geo.getAttribute('normal'),base=new THREE.Color(color),mixed=new THREE.Color(),rgb=[];
+  for(let i=0;i<vertices.count;i++){
+    const upward=clamp(((normals?.getY(i)??vertices.getY(i))+.12)/.95,0,1);
+    const height=clamp((vertices.getY(i)+.12)/1.12,0,1);
+    const rose=.11*Math.max(upward*.80,height*.65);
+    mixed.copy(base).lerp(PINE_SKY_ROSE,rose);
+    rgb.push(mixed.r,mixed.g,mixed.b);
+  }
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(rgb,3));
+  geo.userData.shared=true;
+  return geo;
+}
+const crownGeos=PINE_TONES.map(skyTintedPineCrown);
 const trunkGeo=new THREE.CylinderGeometry(.082,.16,1,6);
 const twigGeo=new THREE.CylinderGeometry(.040,.077,1,5);
-const crownGeo=new THREE.IcosahedronGeometry(1,0);
 const UP=new THREE.Vector3(0,1,0);
-for(const r of [barkMat,...pineMats,trunkGeo,twigGeo,crownGeo])r.userData.shared=true;
+for(const r of [barkMat,crownMat,trunkGeo,twigGeo,...crownGeos])r.userData.shared=true;
 function pinePart(group,mesh){
   mesh.pineOpaqueMaterial=mesh.material;
   mesh.castShadow=true;
@@ -268,7 +289,8 @@ export function archipelagoCoastalPine(spot,{low=false}={}){
   const total=low?Math.min(3,shape.crowns.length):shape.crowns.length;
   for(let i=0;i<total;i++){
     const [x,y,z,sx,sy,sz]=shape.crowns[i],j=hash(seed+i*79+31)-.5;
-    const crown=new THREE.Mesh(crownGeo,pineMats[(i+variant)%pineMats.length]);
+    const crown=new THREE.Mesh(crownGeos[(i+variant)%crownGeos.length],crownMat);
+    crown.userData.pineSkyLit=true;
     crown.position.set(x*scale+lean*height*.46+j*.14,y*height+j*.10,z*scale+j*.12);
     crown.scale.set(sx*scale*(.91+hash(seed+i*17)*.19),sy*scale,sz*scale);
     crown.rotation.y=hash(seed+i*37+107)*TAU;
