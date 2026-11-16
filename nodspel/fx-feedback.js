@@ -3,7 +3,7 @@
 // observes persistent visuals without changing simulation or save data.
 export function createPixelFeedback(pixel,haptics,{reducedFx=()=>true,demo=false}={}){
   let level=null,shields=[],demoAt=-Infinity,lastHealth=null,demoClock=0;
-  const demoNames=['respawn','impact','hit','explosion','emp','shield','chest','collect','heal'];
+  const demoNames=['respawn','impact','hit','explosion','emp','shield','collect','heal'];
   function hold(record,name,visible){
     if(!pixel.enabled){record.slot=null;return;}
     const live=record.slot?.active&&record.slot.serial===record.serial;
@@ -22,10 +22,6 @@ export function createPixelFeedback(pixel,haptics,{reducedFx=()=>true,demo=false
       const playing=!round.over;
       // Extraction and collection are world-space 3D VFX owned by buildWorld (PRB-156).
       for(const record of shields){const e=record.item;hold(record,'shield',playing&&!e.sleeping&&e.active!==false&&e.health>0&&clock>=(e.shieldDownUntil??0));}
-      for(const v of world.lootBoxes){
-        if(v.loot.revealed&&!v.pixelRevealed)pixel.spawn('chest',v.loot.x,v.loot.z);
-        v.pixelRevealed=!!v.loot.revealed;v.pixelCollected=!!v.loot.collected;
-      }
       if(lastHealth!=null&&round.health>lastHealth)pixel.spawn('heal',position.x,position.z,{y:.7});
       lastHealth=round.health;
       demoClock+=dt*1000;

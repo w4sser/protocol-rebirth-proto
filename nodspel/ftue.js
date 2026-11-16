@@ -1,7 +1,7 @@
-import '../data/raid-ftue.js?v=2.28.42';
-import {RULES} from './levels.js?v=2.28.42';
-import {STAKES} from './stakes.js?v=2.28.42';
-import {audioEvent} from './audio.js?v=2.28.42';
+import '../data/raid-ftue.js?v=2.28.43';
+import {RULES} from './levels.js?v=2.28.43';
+import {STAKES} from './stakes.js?v=2.28.43';
+import {audioEvent} from './audio.js?v=2.28.43';
 
 export const FTUE=globalThis.DATA.raidFtue;
 // The countdown is pressure only. It never closes the beam or ends a raid.
@@ -57,17 +57,14 @@ export function applyFtueLevel(round){
 // formula (same spot applyIntroEncounter already uses for goal parts) when clear; otherwise the pickup
 // keeps whatever position it already had.
 function ftueGuaranteeAlloy(level){
-  const want=2,cfg=RULES.intro,r=level.rooms[0],s=level.choiceSide||1;
-  const solids=[...level.walls,...level.boxes];
-  const blocked=p=>solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.6&&Math.abs(p.z-o.z)<o.d/2+.6);
-  for(let i=0;i<want;i++){
-    const spot={x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing};
-    const box=level.lootBoxes[i];
-    if(box){
-      box.item='scrap_alloy';box.marked=true;box.revealed=true;
-      if(!blocked(spot)){box.x=spot.x;box.z=spot.z;}
-    } else {
-      level.lootBoxes.push({id:`ftue-alloy-${i+1}`,...spot,item:'scrap_alloy',marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});
-    }
-  }
+  const r=level.rooms[0],s=level.choiceSide||1;
+  // Three readable caches hold all repair supplies. Four material units fit the
+  // starting bag; Salvage becomes Scrap on extract using the existing item data.
+  level.lootBoxes=RULES.earlyLoot.supplies.map((supply,i)=>({
+    id:`ftue-supply-${i}`,x:r.x+s*RULES.earlyLoot.spots[i].x,
+    z:r.z+RULES.earlyLoot.spots[i].z,
+    ...supply,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES',
+  }));
+  // These caches are in the open room; an optional closet key is no longer needed.
+  for(const door of level.doors??[])door.locked=false;
 }

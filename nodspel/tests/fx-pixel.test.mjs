@@ -32,13 +32,13 @@ test('Low allocates nothing; Medium/High enable and switching Low clears all loo
   fx.setQuality('high');assert.ok(fx.spawn('hit',0,0));assert.equal(stats().bakes,1);assert.equal(stats().canvases,2);
   assert.equal(pickQuality({search:'?q=medium'}),'medium');assert.equal(pickQuality({storage:{getItem:()=> 'medium'}}),'medium');
 });
-test('feedback tracks shield and reveal once without flat extraction or collection sprites',()=>{
+test('feedback tracks shield without chest reveal, extraction or collection sprites',()=>{
   const {fx}=harness('high',16),haptics={explosion(){},hit(){}},feedback=createPixelFeedback(fx,haptics);
   const level={exit:{x:5,z:6},nodes:[{active:false}],enemies:[{encounter:'shield_turret',health:2,x:1,z:1}]},round={level,health:100};
   const loot={loot:{x:2,z:3,revealed:false,collected:false}},world={lootBoxes:[loot]},player={x:0,z:0};
   feedback.reset(level);feedback.sync(round,world,player,0,0);assert.equal(fx.slots.filter(s=>s.active).length,1);
-  level.nodes[0].active=true;loot.loot.revealed=true;feedback.sync(round,world,player,1,0);assert.equal(fx.slots.filter(s=>s.active).length,2);
-  feedback.sync(round,world,player,2,0);assert.equal(fx.slots.filter(s=>s.active).length,2);
+  level.nodes[0].active=true;loot.loot.revealed=true;feedback.sync(round,world,player,1,0);assert.equal(fx.slots.filter(s=>s.active).length,1);
+  feedback.sync(round,world,player,2,0);assert.equal(fx.slots.filter(s=>s.active).length,1);
   level.enemies[0].shieldDownUntil=100;loot.loot.collected=true;feedback.sync(round,world,player,3,0);
   assert.equal(fx.slots.filter(s=>s.active&&s.clip.def===PIXEL_EFFECTS.shield).length,0);
   assert.equal(fx.slots.filter(s=>s.active&&s.clip.def===PIXEL_EFFECTS.collect).length,0);
