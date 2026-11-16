@@ -163,7 +163,7 @@ function bootApp(ctxOverrides, seedSave){
   if(seedSave) w.localStorage.setItem(SAVE_KEY, JSON.stringify(seedSave));
   // jsdom never actually loads <img>/<audio> resources -- fire onload on the next tick so the
   // splash's art-preload counters resolve the way a real (fast, cached) image load would.
-  class FakeImage{ set src(v){ this._src = v; setTimeout(() => { this.onload && this.onload(); }, 0); } get src(){ return this._src || ""; } get complete(){ return false; } }
+  class FakeImage{ set src(v){ this._src = v; w.setTimeout(() => { this.onload && this.onload(); }, 0); } get src(){ return this._src || ""; } get complete(){ return false; } }
   w.Image = FakeImage;
   const ctx = Object.assign(new FakeIOSAudioContext(), ctxOverrides || {});
   w.AudioContext = function(){ return ctx; };
@@ -194,6 +194,59 @@ function tapSplash(w, doc, ctx){
   const ev = new w.Event("animationend"); Object.defineProperty(ev, "animationName", { value: "splashBlackout" });
   doc.getElementById("splash")?.dispatchEvent(ev);
   return sync.length > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Part C helpers: the raid-return cold open (PRB-161 follow-up) -- setupSplash's
+// returningFromRaid branch (coreIngest.ok) skips the splash outright and returns null BEFORE
+// ever reaching its own PR_AUDIO.preload() call, so this is a brand-new document with no
+// gesture behind it at all AND bit/youre-back isn't even decoding yet when SCREENS.intro()
+// mounts -- unlike Part B's start-tap path, which always goes through the splash first.
+const RAID_RESULT_KEY = "pr_raid_result_v1";
+const AUDIO_SETTINGS_KEY = "pr-audio-v1";
+function seedRaidReturnResult(){
+  return { schema: "protocol-rebirth/raid-result", version: 1, raidId: "test-ftue-raid-1", outcome: "extract", extracted: [], lost: [], ftue: true };
+}
+function bootAppReturningFromRaid(ctxOverrides, audioSettings){
+  const dom = new JSDOM(html, { runScripts: "outside-only", url: "http://game.example/index.html", pretendToBeVisual: true });
+  const w = dom.window, doc = w.document;
+  w.localStorage.setItem(SAVE_KEY, JSON.stringify(seedPastFtue()));
+  w.localStorage.setItem(RAID_RESULT_KEY, JSON.stringify(seedRaidReturnResult()));
+  if(audioSettings) w.localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(audioSettings));
+  class FakeImage{ set src(v){ this._src = v; w.setTimeout(() => { this.onload && this.onload(); }, 0); } get src(){ return this._src || ""; } get complete(){ return false; } }
+  w.Image = FakeImage;
+  const ctx = Object.assign(new FakeIOSAudioContext(), ctxOverrides || {});
+  w.AudioContext = function(){ return ctx; };
+  w.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(2) });
+  for(const f of [...DATA_FILES, "ui/audio.js", "ui/audio-debug.js"]) w.eval(fs.readFileSync(path.join(root, f), "utf8"));
+  w.eval(appSrc);
+  return { dom, w, doc, ctx };
+}
+// Dispatches `type` directly on .intro -- this fires its real addEventListener-registered
+// listeners (onGestureTap, the click->greet hook), the same way a real tap would -- and reports
+// whether it drove PR_AUDIO.unlockSync() synchronously, same technique as tapSplash() above.
+// NOTE: it does NOT fire the inline onclick="A.introSkip(event)" attribute -- jsdom's
+// runScripts:"outside-only" (required so app.js's own <script> tags don't double-execute) never
+// evaluates inline event-handler attributes at all, only real addEventListener calls made by
+// already-running script. Use fireIntroSkip() below to stand in for that inline handler.
+function tapIntroGate(w, doc, ctx, type){
+  ctx.gestureOpen = true;
+  const sync = [];
+  const original = w.PR_AUDIO.unlockSync.bind(w.PR_AUDIO);
+  w.PR_AUDIO.unlockSync = (...a) => { sync.push(true); return original(...a); };
+  doc.querySelector(".intro").dispatchEvent(new w.Event(type, { bubbles: true }));
+  ctx.gestureOpen = false;
+  return sync.length > 0;
+}
+// Stands in for the inline onclick="A.introSkip(event)" attribute on .intro, which jsdom never
+// executes under runScripts:"outside-only" (see tapIntroGate above) -- calls the real A.introSkip
+// directly, with a target that answers .closest() the same way a real click inside .intro (but
+// not on .intro-go) would. Returns whether it stopped propagation (true = it recognized the gate
+// tap and bailed; false = it fell through to the ordinary skip logic).
+function fireIntroSkip(w, intro){
+  let stopped = false;
+  w.A.introSkip({ target: intro, stopPropagation(){ stopped = true; } });
+  return stopped;
 }
 
 (async function(){
@@ -282,6 +335,110 @@ function tapSplash(w, doc, ctx){
     dom_close(w);
   }
   console.log("part B.3 (triple-tap never starts/skips) PASSED");
+
+  // 5) PRB-161 follow-up (raid return, no splash, no gesture at all on this document): the gate
+  // holds the line/button reveal behind the "TAP TO WAKE BIT" prompt with NO cap -- unlike the
+  // 1.5s cap elsewhere in this file, waiting 5s must not release it.
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid();
+    assert.equal(doc.getElementById("splash"), null, "a raid return skips the splash entirely");
+    assert.equal(w.document.body.dataset.screen, "intro", "lands directly on the cold open");
+    const intro = doc.querySelector(".intro");
+    assert.ok(intro, "the cold open is mounted");
+    assert.equal(ctx.state, "suspended", "this document's AudioContext starts fully suspended -- no gesture has happened on it");
+    assert.ok(intro.classList.contains("vo-wait"), "the line/button reveal stays held");
+    assert.ok(intro.classList.contains("vo-wait-tap"), "the wake prompt shows: no gesture, no unlock in flight, not muted");
+    await sleep(5000);
+    assert.ok(intro.classList.contains("vo-wait"), "unlike the capped gate, this one never releases on its own -- still held after 5s");
+    assert.ok(intro.classList.contains("vo-wait-tap"), "the prompt is still showing after 5s");
+    assert.equal(w.PR_AUDIO.lastVoice.has("youre-back"), false, "no voice ever played without a gesture");
+    dom_close(w);
+  }
+  console.log("part C.1 (raid return: no gesture, no cap, prompt stays) PASSED");
+
+  // 6) The gate tap calls unlockSync synchronously; once running + decoded, the gate clears and
+  // youre-back is requested in the same tick as the first line's reveal (animationstart).
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid();
+    const intro = doc.querySelector(".intro");
+    const calledSync = tapIntroGate(w, doc, ctx, "click");
+    assert.equal(calledSync, true, "the gate tap calls PR_AUDIO.unlockSync() synchronously");
+    assert.equal(intro.classList.contains("vo-wait-tap"), false, "the prompt is dismissed the instant the tap lands");
+    assert.ok(intro.classList.contains("vo-wait"), "the line reveal itself is still held -- not yet running/decoded");
+    await sleep(250);
+    assert.equal(ctx.state, "running", "context is running well within reach of the tap");
+    assert.equal(intro.classList.contains("vo-wait"), false, "the gate clears once running + bit/youre-back is decoded");
+    const firstLine = intro.querySelector(".intro-lines p");
+    firstLine.dispatchEvent(new w.Event("animationstart"));
+    assert.ok(w.PR_AUDIO.requestedVoices.has("youre-back") || w.PR_AUDIO.lastVoice.has("youre-back"),
+      "requestVoice('youre-back') lands in the same tick as the first line's reveal");
+    await sleep(10);
+    assert.equal(w.PR_AUDIO.lastVoice.has("youre-back"), true, "the greeting actually plays");
+    dom_close(w);
+  }
+  console.log("part C.2 (gate tap -> running+decode -> VO/text sync) PASSED");
+
+  // 7) The gate tap never counts as A.introSkip's skip -- neither a plain click (introSkip fires
+  // on the SAME click, while .vo-wait-tap is still present -- the ordinary case) nor the iOS
+  // touchend-then-a-separate-synthesized-click sequence (the actual bug: onGestureTap's touchend
+  // handler already removes .vo-wait-tap, so by the time the LATER click's inline
+  // onclick="A.introSkip(event)" runs, the class is gone -- introSkip must fall back to the
+  // gateTapAt timestamp onGestureTap stamps). fireIntroSkip() stands in for that inline handler,
+  // which jsdom's runScripts:"outside-only" never executes on its own (see tapIntroGate above).
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid();
+    const intro = doc.querySelector(".intro");
+    // A single click fires introSkip (inline onclick, first in handler order) and onGestureTap
+    // (addEventListener, added after) off the SAME event -- call them in that order.
+    assert.ok(intro.classList.contains("vo-wait-tap"), "prompt still showing, nothing tapped yet");
+    const stoppedEarly = fireIntroSkip(w, intro);
+    assert.equal(stoppedEarly, true, "introSkip recognizes the live .vo-wait-tap and stops propagation");
+    assert.ok(!intro.classList.contains("done"), "a click-only gate tap never marks the intro done/skipped");
+    tapIntroGate(w, doc, ctx, "click");
+    assert.equal(intro.classList.contains("vo-wait-tap"), false, "the same click still runs onGestureTap and unlocks normally");
+    dom_close(w);
+  }
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid();
+    const intro = doc.querySelector(".intro");
+    tapIntroGate(w, doc, ctx, "touchend");
+    assert.equal(intro.classList.contains("vo-wait-tap"), false, "touchend already cleared the prompt and ran unlockSync");
+    // iOS fires the synthesized click afterwards, reaching the inline onclick -- well inside the
+    // 800ms skip guard, with .vo-wait-tap already gone (the exact repro of the bug this PR fixes).
+    const stoppedLate = fireIntroSkip(w, intro);
+    assert.equal(stoppedLate, true, "introSkip still recognizes the gate tap via the gateTapAt timestamp, even with the class already gone");
+    assert.ok(!intro.classList.contains("done"), "the delayed synthesized click after touchend must not be treated as a skip");
+    await sleep(250);
+    assert.equal(ctx.state, "running", "the touchend's unlockSync still unlocked the context");
+    assert.ok(!intro.classList.contains("done"), "still not skipped once the gate finishes clearing and the line/VO are live");
+    dom_close(w);
+  }
+  console.log("part C.3 (gate tap never skips: click-only and touchend+click) PASSED");
+
+  // 8) Context already running (e.g. desktop autoplay allowed, or a gesture already happened):
+  // no prompt at all, just the ordinary capped wait.
+  {
+    const { w, doc } = bootAppReturningFromRaid({ state: "running" });
+    const intro = doc.querySelector(".intro");
+    assert.ok(!intro.classList.contains("vo-wait-tap"), "no prompt when the context is already running");
+    await sleep(100);
+    assert.ok(!intro.classList.contains("vo-wait"), "the line reveal clears once decode catches up, with no gesture needed");
+    dom_close(w);
+  }
+  console.log("part C.4 (already running: no prompt) PASSED");
+
+  // 9) Audio muted in settings: no prompt either -- nothing worth waiting on a gesture for.
+  {
+    const { w, doc } = bootAppReturningFromRaid(null, { voiceMuted: true });
+    const intro = doc.querySelector(".intro");
+    assert.equal(w.PR_AUDIO.settings.voiceMuted, true, "voice is muted in settings");
+    assert.ok(!intro.classList.contains("vo-wait-tap"), "no prompt when audio is muted -- nothing to wait for");
+    await sleep(100);
+    assert.ok(!intro.classList.contains("vo-wait"), "the text still starts even though no voice will ever play");
+    assert.equal(w.PR_AUDIO.lastVoice.has("youre-back"), false, "voice never plays while muted");
+    dom_close(w);
+  }
+  console.log("part C.5 (muted: no prompt) PASSED");
 
   console.log("COLD OPEN VO SYNC TEST PASSED");
 })().catch(e => { console.error(e); process.exitCode = 1; });
