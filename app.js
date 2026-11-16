@@ -2253,6 +2253,7 @@ function refresh(bitTrigger, bitVars){
   document.body.classList.toggle("base-dark", profile.lighting === "emergency");
   document.body.dataset.lighting = profile.lighting;
   document.body.dataset.audioProfile = profile.audioProfile;
+  if(session.screen !== "prep" && cinematicScene){cinematicScene.dispose();cinematicScene=null;}
   SCREENS[session.screen](session.screenParam);
   bitDock(bitTrigger, bitVars);
 }
@@ -3131,6 +3132,9 @@ SCREENS.prep = function(){
   const gear = nodeRaidGear();
   let html = lobbyHtml(gear, miss, guidedRaid());
   const missionOpen = (session.planOpen ? '<div class="pop-backdrop" onclick="A.planToggle(false)" aria-hidden="true"></div><button type="button" class="pop-x mission-x" onclick="A.planToggle(false)" aria-label="Close mission settings">' + IC("close") + '</button>' : '') + '<section id="mission-panel" class="mission-panel pop-card" role="dialog"' + (session.planOpen ? '' : ' hidden') + ' aria-label="Mission settings"><div class="mp-head pop-head"><h1>' + IC("mission") + ' Mission</h1></div>' +
+    '<div class="pr-raid-options">' +
+    (hardAvailable(raidArea()) ? '<button type="button" class="hard-btn' + (hardOn() ? ' on' : '') + '" onclick="A.toggleHard()" aria-pressed="' + hardOn() + '"><span>HARD</span><small>' + (hardOn() ? 'ON' : 'OFF') + '</small></button>' : '') +
+    '<button type="button" class="bigmap-btn' + (bigMapOn() ? ' on' : '') + '" onclick="A.toggleBigMap()" aria-pressed="' + bigMapOn() + '"><span>BIG MAP</span><small>' + (bigMapOn() ? 'ON' : 'BETA') + '</small></button></div>' +
     (S.tracked ? '<div class="goalbar">RAID GOAL<br><b>Gather repair materials for ' + esc(MODS[S.tracked.module].name) + '</b></div>' : goalBarHtml());
 
   if(guidedRaid()){
@@ -3146,7 +3150,7 @@ SCREENS.prep = function(){
     if(retMode() === "full") html += '<div class="card small">Fuel ' + S.fuel + ' / ' + D.retention.fuel.max + (!fg.ok ? '<button class="ad" onclick="A.adFuel()">REFILL FUEL</button>' : '') + '</div>';
     if(!p.loadout.weapon) html += '<button class="ghost" onclick="A.emergencyLoadout()">GET RECOVERY LOADOUT</button>';
     html += '</section>';
-    $app().innerHTML = html; return;
+    $app().innerHTML = html; mountRaidPrep3D(); return;
   }
   html += missionOpen + '<div class="prepgrid"><div class="pcol"><div class="kv"><span>Value at risk</span><span class="warn">' + prepRiskValue() + ' Scrap</span></div></div></div>';
   const ownsWeapon = invIds().some(id => ITEMS[id].slot === "weapon");
@@ -3228,6 +3232,7 @@ SCREENS.prep = function(){
   }
   html += '</section>';
   $app().innerHTML = html;
+  mountRaidPrep3D();
 };
 const SLOT_DEFS = [["weapon","weapon","Weapon",IC("item-carbine")],["armor","armor","Armor",IC("item-vest")],["c1","consumable","Item 1",IC("item-medkit")],["c2","consumable","Item 2",IC("item-medkit")],["tool","tool","Tool",IC("tool-grenade")]];
 function ownedForSlot(slot){ return invIds().filter(x => ITEMS[x].slot === slot).length; }
@@ -3521,20 +3526,52 @@ function wmFogSvg(){
     '<g mask="url(#wmFogMask)"><rect class="fog" x="-60" y="-60" width="220" height="' + (H + 120) + '" fill="' + (F.color || "#0b1526") + '" fill-opacity="' + (F.opacity || 0.93) + '"/>' +
     (hq ? '<rect class="fog-noise" x="-60" y="-60" width="220" height="' + (H + 120) + '" filter="url(#wmNoise)" opacity=".22"/>' : '') + '</g></svg>';
 }
+// A low-cost 3D viewer is loaded only while Raid Prep is visible. The actual
+// raid and save-state code never waits for graphics. If WebGL is unavailable,
+// the existing operator art stays visible as an accessible fallback.
+let cinematicScene = null;
+function mountRaidPrep3D(){
+  if(cinematicScene){cinematicScene.dispose();cinematicScene=null;}
+  const host=document.getElementById("pr-operator-stage");
+  if(!host || typeof window === "undefined" || !window.WebGLRenderingContext ||
+      /jsdom/i.test(navigator.userAgent || "") || new URLSearchParams(location.search).get("q")==="low") return;
+  import("./ui/raid-prep-scene.mjs?v=2.28.44")
+    .then(async mod=>{
+      if(session.screen!=="prep" || !host.isConnected)return;
+      const view=await mod.mountRaidPrepScene(host);
+      if(view && session.screen==="prep" && host.isConnected)cinematicScene=view;
+      else view?.dispose?.();
+    })
+    .catch(e=>console.warn("Raid Prep 3D disabled:",e?.message||e));
+}
+
 function lobbyHtml(gear, miss, locked){
-  const medSlot = slotTileHtml(SLOT_DEFS[2], locked), toolOk = !(locked && !ownedForSlot("tool"));
-  return '<div class="lobby">' +
-    '<div class="lobby-top"><h1>Raid Prep</h1>' + gearRiskHtml(gear) +
-      (hardAvailable(raidArea()) ? '<button type="button" class="hard-btn' + (hardOn() ? ' on' : '') + '" onclick="A.toggleHard()" aria-pressed="' + hardOn() + '" aria-label="Hard variant ' + (hardOn() ? 'on' : 'off') + '"><span>HARD</span><small>' + (hardOn() ? 'ON' : 'OFF') + '</small></button>' : '') +
-      '<button type="button" class="bigmap-btn' + (bigMapOn() ? ' on' : '') + '" onclick="A.toggleBigMap()" aria-pressed="' + bigMapOn() + '" aria-label="Big map beta ' + (bigMapOn() ? 'on' : 'off') + '"><span>BIG MAP</span><small>' + (bigMapOn() ? 'ON' : 'BETA') + '</small></button>' +
-      '<button type="button" class="mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' + IC("mission") + ' <span>MISSION</span></button></div>' +
-    '<div class="lobby-side left"><div class="slotgrid">' + slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
-      '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' + (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '') + '</div></div>' +
-    '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your operator"></div>' +
-      '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' + operatorRowHtml(gear) + '</div>' +
-    '<div class="lobby-side right"><div class="lobby-bottom">' + areaPickerHtml() + progressionGoalHtml(true) +
-      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button></div></div>' +
-    '</div>';
+  // Cinematic Raid Preparation: four useful loadout tiles, the actual operator
+  // model on a transparent Three.js canvas, and mission/destination on the right.
+  // Existing selection/launch functions remain the single source of truth.
+  const area = AREA_DEFS[raidArea()];
+  const medSlot = slotTileHtml(SLOT_DEFS[2], locked);
+  const toolOk = !(locked && !ownedForSlot("tool"));
+  const loadout = slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
+    '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' +
+    (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '<div class="lslot locked" aria-disabled="true"><i aria-hidden="true">' + IC("tool-grenade") + '</i><b>Tool locked</b></div>');
+  const sceneAttrs = ' data-weapon="' + esc(nodeRaidWeaponId()) + '" data-armor="' + esc((session.prep && session.prep.loadout.armor) || '') + '"';
+  return '<div class="lobby pr-cinematic">' +
+    '<div class="lobby-top"><span class="pr-brand">PROTOCOL REBIRTH</span><span class="pr-slash" aria-hidden="true">//</span><h1 class="pr-title">RAID PREPARATION</h1></div>' +
+    '<div class="lobby-side left"><h2 class="pr-panel-title">LOADOUT</h2><div class="slotgrid">' + loadout + '</div></div>' +
+    '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your hooded operator"></div>' +
+      '<div id="pr-operator-stage" class="pr-operator-stage" tabindex="0" role="group" aria-label="3D operator: drag or use arrow keys to rotate"' + sceneAttrs + '></div>' +
+      '<span class="pr-rotate-tip" aria-hidden="true">DRAG TO ROTATE</span>' +
+      operatorRowHtml(gear) + '</div>' +
+    '<div class="lobby-side right"><div class="lobby-bottom">' +
+      '<div class="pr-destination"><span class="pr-overline">DESTINATION</span>' +
+        areaPickerHtml() + '<div class="pr-dest-preview" data-area="' + esc(area.id) + '" aria-hidden="true"></div></div>' +
+      '<button type="button" class="mission-btn pr-mission-btn" onclick="A.planToggle(true)" aria-controls="mission-panel">' +
+        '<i aria-hidden="true">' + IC("mission") + '</i><span><small>MISSION · TAP TO PLAN</small><b>NODE RAID</b></span></button>' +
+      progressionGoalHtml(true) +
+      '<div class="pr-risk-card">' + gearRiskHtml(gear) + '</div>' +
+      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button>' +
+    '</div></div></div>';
 }
 function loadoutSlotsHtml(locked){
   const p = session.prep;
