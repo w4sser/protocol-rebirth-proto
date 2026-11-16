@@ -291,8 +291,10 @@ async function bootToCoreOneTapAway(calls){
   assert.match(requests[0], /coldopen\/bunker-discovery-arch-v1\.webp\?v=\d+\.\d+\.\d+$/);
   assert.match(requests[1], /coldopen\/bit-coldopen-v1\.webp\?v=\d+\.\d+\.\d+$/);
   assert.match(requests[2], /cutscene-core-restore-start/);
+  assert(requests.some(src=>/cutscene-vault-dark/.test(src)), "Vault pair warms through the renderer cache");
+  assert(requests.some(src=>/cutscene-vault-powered/.test(src)));
   const saved=JSON.parse(JSON.stringify(w.T.state()));
-  saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true};
+  saved.introSeen=true;saved.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};
   const seenRequests=[], seen=boot(saved, [], "stall", seenRequests);
   assert.deepEqual(seenRequests,[],"seen scenes retain no warm images on boot");
   w.close();seen.close();
@@ -541,7 +543,7 @@ async function bootPastFabricator(calls){
   assert.equal(questCalls.length, 1, "quest_intro fires the instant the chain opens up");
   assert.equal(calls.findIndex(c => c.id === "quest_intro") > calls.findIndex(c => c.id === "fabricator_built"), true, "queued after fabricator_built, never on top of it");
   assert.match(questCalls[0].line, /little jobs/);
-  assert(questCalls[0].info.some(r => r.label === "FIRST"), "names the real first quest from data/quests.js");
+  assert(questCalls[0].info.some(r => r.label === "TRACKING"), "names the real first quest from data/quests.js");
   assert.equal(w.T.state().bitCardsSeen.quest_intro, false, "queued intro does not reveal chip");
   assert.equal(w.T.trackedGoalHtml(), "");
   questCalls[0].onDone();
@@ -598,6 +600,22 @@ async function bootPastFabricator(calls){
   assert.equal(calls.length, 0, "loading a save never fires a cutscene by itself");
 }
 
+// PRB-162: an interrupted queued intro remains explicitly unseen across migration/reload.
+{
+  const calls=[],w=await bootPastFabricator(calls);
+  const saved=JSON.parse(JSON.stringify(w.T.state()));
+  assert.equal(saved.bitCardsSeen.quest_intro,false);
+  assert.equal(saved.bitCardsSeen.vault_intro,false);
+  const replay=[],loaded=boot(saved,replay);
+  assert.equal(loaded.T.state().bitCardsSeen.quest_intro,false);
+  assert.equal(loaded.T.state().bitCardsSeen.vault_intro,false);
+  loaded.A.go('base');loaded.A.go('base');
+  assert.equal(replay.filter(b=>b.id==='quest_intro').length,1,'pending scene deduplicated');
+  assert.equal(replay.filter(b=>b.id==='vault_intro').length,1);
+  assert.equal(loaded.T.trackedGoalHtml(),'');
+  loaded.close();w.close();
+}
+
 // Scavenger Vest shortage (PRB-162 moment 2): fabricator_built's line/info acknowledge missing
 // materials, read live from the stash, and stop once the recipe is actually affordable.
 {
@@ -621,7 +639,7 @@ async function bootPastFabricator(calls){
   assert.match(w.T.fabCraftHtml(), /0\/2 Polymer Plate/);
   assert.match(w.T.fabCraftHtml(), /Loot crates/);
   assert.match(w.T.craftConfirmHtml('armor_patch'), /0\/2/);
-  assert.match(w.T.craftConfirmHtml('armor_patch'), /Loot crates/);
+  assert.match(w.T.craftConfirmHtml('armor_patch'), /Bunker 1 caches/);
   const need = w.T.vestGuaranteeNeed();
   assert(need.some(n=>n.id==='polymer_plate'&&n.count===2));
   assert(need.some(n=>n.id==='scrap_alloy'&&n.count===1));
@@ -646,7 +664,7 @@ async function bootPastFabricator(calls){
 // PRB-157: early warming shares the renderer cache; slow art never blocks beat selection.
 for(const mode of ["success", "error", "stall"]){
   const requests = [], w = boot(null, [], mode, requests);
-  assert.equal(requests.filter(src => /fabricator-(dark|powered)/.test(src)).length, 2, "pair warms at startup");
+  assert.equal(requests.filter(src => /fabricator-powered/.test(src)).length, 1, "pair warms at startup");
   await Promise.resolve(); await Promise.resolve();
   const resolveBeat = () => new Promise(resolve => w.T.fabricatorCutsceneBeat(resolve));
   const [a, b] = await Promise.all([resolveBeat(), resolveBeat()]);
@@ -658,7 +676,7 @@ for(const mode of ["success", "error", "stall"]){
     assert.equal(a.waitForArt, true, "dedicated art paints without waiting for the probe");
   }
   await resolveBeat();
-  assert.equal(requests.filter(src => /fabricator-(dark|powered)/.test(src)).length, 2, "no repeated probes");
+  assert.equal(requests.filter(src => /fabricator-powered/.test(src)).length, 1, "no repeated probes");
   w.close();
 }
 

@@ -50,6 +50,23 @@ const beat = {id:"core_restored",from:"start.webp",to:"end.webp",line:"Power is 
     await tick(1); assert(!api.isOpen()); assert.equal(done,1); assert.equal(doc.activeElement.id,"before");
     w.close();
   }
+  // PRB-162: the three new systems share the same held queue, including each next scene's
+  // own tap guard. One dismissal must never dismiss the scene that follows it.
+  {
+    const {api,doc,tick,w}=fixture();const completed=[];
+    const ids=['raid_briefing','quest_intro','vault_intro'];
+    for(const id of ids)api.play({...beat,id,onDone:()=>completed.push(id)});
+    for(const [i,id] of ids.entries()){
+      assert.equal(doc.querySelectorAll('.bit-cutscene').length,1,'one narrator moment');
+      const el=doc.querySelector('.bit-cutscene');assert.equal(el.dataset.id,id);
+      el.click();await tick(999);el.click();
+      assert.equal(completed.length,i,'each queued scene ignores early taps');
+      await tick(60000);assert.equal(el.isConnected,true,'each scene holds indefinitely');
+      el.click();await tick(350);
+      assert.deepEqual(completed,ids.slice(0,i+1),'one completion per deliberate tap');
+    }
+    assert.equal(doc.querySelector('.bit-cutscene'),null);w.close();
+  }
   for(const method of ["tap","escape","button"]){
     const {api,doc,tick,w} = fixture(); let done = 0;
     api.play({...beat,onDone:()=>done++}); await tick();

@@ -234,4 +234,4 @@ use quantities and mixed contents in existing non-quest caches, preserving the e
 Mutation fixtures remove the quantity grouping, quest protection or launch wiring; behavioral
 regressions exercise 200 seeds with a concurrent quest, normal pickups and extraction.
 `bit-introduces-systems-first` also requires the pending-intro queue and Vault construction gate:
-a queued moment cannot count as seen before its dismissal callback.
+a queued moment cannot count as seen before its dismissal callback. The vest rule also pins the craft confirmation action row; the base layout group opens the missing-material vest confirmation at all three phone sizes to verify both actions remain reachable.

@@ -92,3 +92,15 @@ test('setGuaranteeLoot rejects malformed/unknown entries the same way readVestGu
   assert.equal(level.lootBoxes.filter(b => b.item === 'scrap_alloy' && b.guarantee).length, 1, 'the valid entry still applies');
   setGuaranteeLoot(null);
 });
+
+test('Big Map launches carry the same missing vest materials in existing caches', () => {
+ setArea('bunker');
+ for(let seed=0;seed<20;seed++){
+  setGuaranteeLoot(null);const before=generateLevel(1,'vest-big-'+seed,'bunker',false,true);
+  setGuaranteeLoot([{item:'polymer_plate',count:2},{item:'scrap_alloy',count:1},{item:'salvage_crate',count:1}]);
+  const level=generateLevel(1,'vest-big-'+seed,'bunker',false,true);
+  assert.equal(level.lootBoxes.length,before.lootBoxes.length);
+  assert.ok(units(level,'polymer_plate')>=2);assert.ok(units(level,'scrap_alloy')>=1);assert.ok(units(level,'salvage_crate')>=1);
+ }
+ setGuaranteeLoot(null);
+});

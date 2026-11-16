@@ -268,7 +268,7 @@ export function ruleSet(area,hard){const AR=AREA_RULES[area]??AREA_RULES.bunker;
 let BIG_LEVELS=false;
 export function setLevelMode(mode){BIG_LEVELS=mode==='big';}
 export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVELS,layoutOverride=null){
-  if(big)return generateBigLevel(roundSeed,area);
+  if(big){const level=generateBigLevel(roundSeed,area);applyGuaranteeLoot(level);return level;}
   const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');
   const AR=ruleSet(area,hard),sm=AR.sizeMul??1;
   if(hard)roundSeed=`hard^${roundSeed}`;
@@ -470,10 +470,13 @@ export function applyAreaRules(level,AR){
     const b=level.lootBoxes.find(x=>x.item===QUEST_LOOT.item)||level.lootBoxes.find(x=>!x.scout&&!x.key);
     if(b){b.item=QUEST_LOOT.item;b.quest=true;if(QUEST_LOOT.source){b.source=QUEST_LOOT.source.label;b.revealed=true;b.marked=true;}}
   }
+  applyGuaranteeLoot(level);
+}
+function applyGuaranteeLoot(level){
   // Guaranteed recipe units occupy existing caches, never another physical crate. Prefer
   // ordinary caches; mixed contents allow every shortage even when a quest reserves a cache.
-  if(GUARANTEE_LOOT?.length&&n===1){
-    const caches=level.lootBoxes.filter(b=>!b.scout&&!b.quest&&!b.key&&!b.requiresNode&&!['medkit','ammo_pack'].includes(b.item));
+  if(GUARANTEE_LOOT?.length&&level.number===1){
+    const caches=level.lootBoxes.filter(b=>!b.scout&&!b.quest&&!b.key&&!b.requiresNode);
     for(const [i,need] of GUARANTEE_LOOT.entries()){
       const b=caches[i%caches.length];if(!b)continue;
       if(!b.guarantee){b.item=need.item;b.quantity=need.count;delete b.contents;}

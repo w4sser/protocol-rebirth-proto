@@ -973,7 +973,7 @@ function craftConfirmHtml(rid){
   return '<div class="bpop craftconfirm" data-module="fabricator"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</span><h1>Build ' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '?</h1></div>' +
     '<div class="costs">' + parts.map(p => {
       const ok = p.have >= p.need;
-      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + lootHintHtml(p) + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
+      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + (p.kind === "item" && !ok ? '<span class="lhint">' + esc(craftSource(p.id)) + '</span>' : '') + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
     }).join("") + '</div>' +
     '<div class="cfmeta"><i aria-hidden="true">' + IC("timer") + '</i>' + esc(buildTime) + '</div>' +
     '<div class="sp-act"><button type="button" class="primary big" ' + (can ? 'onclick="A.craft(\'' + rid + '\')"' : 'disabled') + '>BUILD</button><button type="button" class="ghost" onclick="A.back()">CANCEL</button></div></div>';
@@ -4605,7 +4605,8 @@ function craftSource(id){
 }
 function vestShortageLine(){
   const miss = vestMissingParts(); if(!miss.length) return "";
-  return " We're short " + miss.map(partName).join(" and ") + "; next raid should turn some up.";
+  const names = miss.map(partName);
+  return " We're short " + (names.length > 1 ? names.slice(0,-1).join(", ") + " and " + names.at(-1) : names[0]) + "; next raid should turn some up.";
 }
 function vestShortageInfoRow(){
   const parts = costParts({ items:vestRecipe().inputs, scrap:vestRecipe().scrapCost });
@@ -4699,7 +4700,7 @@ const BIT_CUTSCENES = {
   quest_intro:{
     id:"quest_intro",
     from:QUEST_INTRO_ART.from, to:QUEST_INTRO_ART.to,
-    line:"Quests: little jobs, real rewards. Finish one, I pay up. That chip up top tracks it — tap it any time for the fine print.",
+    line:"Quests: little jobs, real rewards. Finish one, I pay up. The quest chip tracks progress — tap it any time for the fine print.",
     bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" },
     info:[
       { label:"NEW", text:"Quests: tap the chip for objective + reward", iconHtml: IC("quest") },
@@ -4728,7 +4729,7 @@ function warmStoryArt(){
   if(!S.introSeen) cutscene.preload({id:"cold_open",
     from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
     to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
-  for(const id of ["core_restored", "first_death", "fabricator_built"])
+  for(const id of ["core_restored", "raid_briefing", "fabricator_built", "quest_intro", "vault_intro", "first_death"])
     if(!S.bitCardsSeen[id]){
       if(id === "fabricator_built") fabricatorCutsceneArtReady();
       else cutscene.preload(BIT_CUTSCENES[id]);
@@ -4747,7 +4748,7 @@ function fabricatorCutsceneArtReady(cb){
   }).then(sources => { fabricatorArtFailed = !sources[0] || !sources[1]; return fabricatorArtFailed ? null : FABRICATOR_CUTSCENE_ART; });
   if(cb && fabricatorArtPromise) fabricatorArtPromise.then(cb);
 }
-// PRB-162: swaps the FIRST RECIPE row for a MISSING row (never both -- the info strip stays two
+// PRB-162: swaps the FIRST RECIPE row for a HAVE/NEED row (never both -- the info strip stays two
 // rows) and appends the shortage clause to BIT's line, read live from the stash at call time.
 function withVestShortage(beat){
   const missingRow = vestShortageInfoRow();
@@ -4804,7 +4805,12 @@ function maybeShowQuestIntro(){
   // calls A.go("base") -- which calls this -- before narrate() has queued fabricator_built itself.
   if(!S.bitCardsSeen.fabricator_built) return;
   if(!ftueOver() || fabricatorPending() || !trackedQuest()) return;
-  queueSystemIntro(BIT_CUTSCENES.quest_intro);
+  const t = trackedQuest();
+  queueSystemIntro(BIT_CUTSCENES.quest_intro && {
+    ...BIT_CUTSCENES.quest_intro,
+    info:BIT_CUTSCENES.quest_intro.info.map(row => row.label === "FIRST"
+      ? { ...row, label:"TRACKING", text:t.step.title + " — " + t.step.brief } : row)
+  });
 }
 // PRB-162 moment 4: the Vault unlock cutscene, gated to play before the Vault is ever the build
 // target or already built -- whichever the current progression reaches first. `progressionGoal()`
@@ -6263,6 +6269,9 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
         .catch(e => { console.warn("start screen flight disabled:", e); splashCtl.flightFailed(); });
     } else splashCtl.flightFailed();
   }
+  if(S.introSeen && splashCtl) window.addEventListener("pr:splash-finished", () => {
+    if(session.screen === "base"){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+  }, { once:true });
   if(ftueDirect){
     if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
     else A.startFtueDirect();
