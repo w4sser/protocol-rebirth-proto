@@ -111,3 +111,34 @@ BIT_DATA_ROOT.DATA.bit = {
     ]
   }
 };
+
+// Room story stages share one renderer/queue. Every new room needs a dark/powered art pair.
+BIT_DATA_ROOT.DATA.roomUnlockStages = {
+  fabricator:{
+    dark:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+    powered:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
+    teaser:{
+      id:"raid_briefing",
+      line:"Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs.",
+      info:[{label:"NEXT",kind:"cost"},{label:"FIND IT",text:"Raid for the parts",icon:"nav-raid"}]
+    },
+    unlock:{
+      id:"fabricator_built",
+      line:"Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest.",
+      info:[{label:"NEW",text:"Craft gear from raid materials",icon:"build"},{label:"FIRST RECIPE",kind:"recipe"}]
+    }
+  },
+  storage:{
+    dark:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
+    powered:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
+    teaser:{
+      id:"vault_intro", line:"Vault's next. Bring these parts; I'll bring my excellent supervision.",
+      info:[{label:"NEXT",kind:"cost"},{label:"HAVE/NEED",kind:"missing"}]
+    },
+    unlock:{
+      id:"vault_unlocked", line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap.",
+      info:[{label:"NEW",kind:"benefit",icon:"item-crate"}]
+    }
+  }
+};
+BIT_DATA_ROOT.DATA.newFindIntro = "New junk! Correction: new treasure. 'Used for' tells you where it fits — the top one is what we need next.";

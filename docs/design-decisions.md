@@ -44,6 +44,7 @@ The Secure Slot is the one approved item-protection mechanism. **D1-A locks exac
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
+| 2026-11-16 | Room unlocks use a dark teaser with real costs/sources, then a dark-to-powered build payoff with real benefits; Fabricator and Vault share the pattern and builds never wait for an intro. First NEW FIND gets one BIT explanation; every find prioritizes the current goal and collapses other uses. | Implemented |
 | Ordinary materials, valuables, weapons, and armor found in the raid | Retained and reconciled at home | Exposed items are lost |
 | Valuable equipped weapon or armor taken from home | Returned | Lost |
 | Other carried equipment, unused consumables, and unused tool charges | Returned as applicable | Lost; **D1-B excludes weapons, armor, tools and consumables from Secure Slot eligibility** |
