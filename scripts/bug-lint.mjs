@@ -351,6 +351,21 @@ export const RULES=[
      if(!/body\.splash-active #topbar>#app-version,body\[data-screen=intro\] #topbar>#app-version\{position:fixed!important;inset:auto [^}]*\}/.test(html))out.push('index.html: #app-version must be pinned bottom-right (position:fixed) during splash-active/intro so it never covers the splash corner buttons');
      return out;}},
 
+  {id:'debug-sandbox-isolated',pr:'v2.28.42 debug unlocks (ChatGPT patch review)',why:'The Dev Panel\'s Unlock All Worlds / Unlock Everything run in a separate storage namespace (ui/debug-sandbox.js) so a debug session can never write Robert\'s normal save, slots or a pending raid result. That only holds if the sandbox patches Storage before any other script runs on BOTH pages, seeding only ever writes a prefixed key, and devUnlock persists pending normal progress before it stops saving. Its browser smoke first shipped red: it read level.area (unset for bunker levels) and waited for a #return-base click although an extract hands off automatically -- and it must stay wired into required CI (layout/base)',
+   check(c={}){const out=[],app=c.appSrc??read('app.js'),sb=c.sandboxSrc??read('ui/debug-sandbox.js'),smoke=c.smokeSrc??read('scripts/debug-unlocks-smoke.mjs'),layout=c.layoutSrc??read('scripts/layout-check.mjs');
+     const pages={'index.html':c.indexSrc??read('index.html'),'nodspel/index.html':c.raidHtmlSrc??read('nodspel/index.html')};
+     for(const [name,html] of Object.entries(pages)){const first=(html.match(/<script\b[^>]*>/)||[''])[0];if(!/src="(\.\.\/)?ui\/debug-sandbox\.js/.test(first))out.push(name+': ui/debug-sandbox.js must be the FIRST <script> -- anything earlier could read or write storage outside the debug namespace');}
+     for(const m of ['getItem','setItem','removeItem','key','clear'])if(!new RegExp('proto\\.'+m+' = function').test(sb))out.push('ui/debug-sandbox.js: Storage.prototype.'+m+' must be namespaced in debug mode');
+     const seedFn=(sb.match(/function seed\([\s\S]*?\n  \}/)||[''])[0];
+     if(!seedFn)out.push('ui/debug-sandbox.js: seed() not found in its expected form');
+     else{const writes=seedFn.match(/native\.setItem\.call\([^;]*\)/g)||[];if(!writes.length||writes.some(w=>!/,\s*prefix \+ /.test(w)))out.push('ui/debug-sandbox.js: seed() may only write prefixed debug keys, never the normal save');}
+     const unlockFn=(app.match(/devUnlock\(mode\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!unlockFn)out.push('app.js: A.devUnlock not found in its expected form');
+     else{const si=unlockFn.indexOf('if(!debugMode()) save();'),ri=unlockFn.indexOf('resetting = true;');if(si<0||ri<0||si>ri)out.push('app.js: devUnlock must save() pending normal progress before setting resetting = true');}
+     if(/level\.area\)\s*,\s*area\)/.test(smoke)||!smoke.includes("level.area??'bunker'"))out.push("scripts/debug-unlocks-smoke.mjs: compare level.area??'bunker' -- bunker levels carry no area field");
+     if(!/Promise\.race\(\[handoff,button\]\)/.test(smoke))out.push('scripts/debug-unlocks-smoke.mjs: an extract returns to base automatically (handoffRaidResult); accept that handoff, with #return-base only as the fallback');
+     if(!/group\('base'\)[^\n]*\n[^\n]*debug-unlocks-smoke\.mjs/.test(layout))out.push('scripts/layout-check.mjs: the base group must run scripts/debug-unlocks-smoke.mjs so the smoke stays in required CI');
+     return out;}},
   {id:'coldopen-gesture-gate-after-raid-return',pr:'v2.28.3x PRB-161 follow-up (raid-return gesture gate)',why:'setupSplash\'s returningFromRaid branch skips the splash -- and its PR_AUDIO.preload() call -- outright, so a raid return (e.g. after the FTUE raid) renders SCREENS.intro on a brand-new document with no gesture behind it at all; reusing the 1.5s vo-wait cap there would silently start line 1 with no VO on every such return. A tap must also never be mistaken for a cold-open skip, including iOS\'s touchend-then-a-separate-synthesized-click: onGestureTap used to only clear the .vo-wait-tap class, so by the time the later click reached A.introSkip there was nothing left for it to check',
    check(c={}){const out=[],app=c.appSrc??read('app.js');
      const gateFn=(app.match(/const armVoiceGate = \(\) => \{[\s\S]*?\n    \};/)||[''])[0];

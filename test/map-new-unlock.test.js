@@ -4,6 +4,8 @@ const files = ["items","modules","bit","bit-talents","raid_zones","recipes","ven
 function boot(save, url){
   const dom = new JSDOM(fs.readFileSync(root + "/index.html", "utf8"), { runScripts:"outside-only", url:url || "http://localhost/index.html" });
   const w = dom.window, raf = []; w.requestAnimationFrame = f => (raf.push(f), raf.length); w.cancelAnimationFrame = () => {};
+  w.eval(fs.readFileSync(root + '/ui/debug-sandbox.js', 'utf8'));
+  w.eval(fs.readFileSync(root + '/data/debug-unlocks.js', 'utf8'));
   for(const f of files) w.eval(fs.readFileSync(root + "/data/" + f + ".js", "utf8"));
   if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
   w.PR_NAVIGATE = () => {};
@@ -47,7 +49,7 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   const half = JSON.parse(JSON.stringify(old)); half.areaScouted = {}; const re2 = boot(half); re2.T.S().areaScouted = { archipelago:true };
   assert.equal(re2.T.wmNewUnlockTarget(), "archipelago", "unlocked after load still shows NEW"); }
 { // debug areas never badge
-  const b = boot(); prime(b); b.A.debugUnlockAreas(true); b.A.go("prep"); assert.equal(b.T.wmNewUnlockTarget(), null); assert(!tabAlert(b));
+  const b = boot(null, 'http://localhost/index.html?debugMode=worlds'); prime(b); b.A.go("prep"); assert.equal(b.T.wmNewUnlockTarget(), null); assert(!tabAlert(b));
   b.A.go("worldmap"); assert(!b.d.querySelector(".wm-new"));
   const q = boot(null, "http://localhost/index.html?debug"); q.A.go("worldmap"); assert.equal(q.T.wmNewUnlockTarget(), null); assert(!q.d.querySelector(".wm-new")); }
 { // zoom-in: starts at the selected area, glides to the new area once, then settles; pan afterwards is free

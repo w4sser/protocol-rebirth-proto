@@ -735,8 +735,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.41');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.41');
+    const {createRound}=await import('./round.js?v=2.28.42');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.42');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -853,6 +853,12 @@ try{
   if(group('raid-bunker'))for(const vp of VIEWPORTS)await raidRun(vp,'bunker');
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
+// Debug-unlock sandbox smoke (both modes x every world, normal save untouched) rides on the
+// required layout/base job; the token that ships PRs cannot add a dedicated workflow file.
+if(group('base')&&process.env.DEBUG_UNLOCKS_SMOKE!=='0'){
+  const smoke=spawnSync(process.execPath,[join(root,'scripts/debug-unlocks-smoke.mjs')],{cwd:root,stdio:'inherit'});
+  if(smoke.status!==0)failures.push(`debug-unlocks smoke failed (exit ${smoke.status}) -- run node scripts/debug-unlocks-smoke.mjs`);
+}
 // one line per problem, listing the viewports it happens at
 const grouped=new Map();
 for(const f of failures){const m=f.match(/^(\w+(?: \w+)?) (\d+x\d+)(.*)$/);const k=m?m[1]+m[3]:f;grouped.set(k,[...(grouped.get(k)||[]),m?m[2]:'']);}

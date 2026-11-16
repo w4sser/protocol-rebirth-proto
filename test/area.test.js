@@ -3,6 +3,7 @@ const { JSDOM } = require("jsdom");const fs = require("fs");const assert = requi
 function boot(save){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts:"outside-only", url:"http://localhost/index.html" });
   const w = dom.window;if(save) w.localStorage.setItem("pr_meta_save", JSON.stringify(save));
+  w.eval(fs.readFileSync(path + '/ui/debug-sandbox.js', 'utf8'));
   for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/progression.js","data/combat.js"]) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   const urls=[];w.PR_NAVIGATE=u=>urls.push(u);
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, areaUnlocked, applyAreaProgress, areaReqs };");
@@ -56,7 +57,9 @@ function boot(save){
   assert.equal((html.match(/<i class="wm-zone/g) || []).length, 6, "zones shown for the 2 open areas");
   c.A.setArea("archipelago"); assert.equal(c.S().area, "archipelago");
   // debug unlock
-  const d = boot(); d.A.debugUnlockAreas(); assert.equal(d.w.__T.areaUnlocked('town'), true, "debug unlock");
+  const d = boot(); d.A.debugUnlockAreas();
+  assert.match(d.urls.at(-1), /debugMode=worlds/, 'legacy debug hook enters isolated sandbox');
+  assert.equal(d.w.__T.areaUnlocked('town'), false, 'departing ordinary profile remains locked');
   // scouting items are consumed on extract, not stashed
   const items = fs.readFileSync(path + "/data/items.js", "utf8"); assert(/scouts:"archipelago"/.test(items) && /scouts:"town"/.test(items)); }
 // v1.49: locked labels are anchored outside their own region (no crowding over the fog/lock)
