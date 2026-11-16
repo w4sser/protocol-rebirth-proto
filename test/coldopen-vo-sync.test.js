@@ -350,6 +350,8 @@ function fireIntroSkip(w, intro){
     assert.ok(intro.classList.contains("vo-wait"), "the line/button reveal stays held");
     assert.ok(intro.classList.contains("vo-wait-tap"), "the wake prompt shows: no gesture, no unlock in flight, not muted");
     assert.ok(intro.classList.contains("bit-hibernating"), "BIT sleeps throughout the gesture gate");
+    assert.equal(intro.querySelectorAll(".intro-zzz b").length, 3, "sleeping z's drift above BIT");
+    assert.ok(intro.querySelector(".intro-standby"), "HIBERNATING standby label is rendered");
     await sleep(5000);
     assert.ok(intro.classList.contains("vo-wait"), "unlike the capped gate, this one never releases on its own -- still held after 5s");
     assert.ok(intro.classList.contains("vo-wait-tap"), "the prompt is still showing after 5s");

@@ -10,7 +10,7 @@ await mkdir(out,{recursive:true});
 const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.m4a':'audio/mp4','.ogg':'audio/ogg','.woff2':'font/woff2'};
 const insets={left:47,right:47,top:0,bottom:21};
 const results=[];
-for(const [phase,root] of [['before','/workspace/prp-before-v22844'],['after',resolve('.')]]){
+for(const [phase,root] of [['before','/workspace/prp-before-v22844'],['after',resolve('.')]].filter(([p])=>!process.env.PHASE||p===process.env.PHASE)){
   const server=http.createServer(async(req,res)=>{
     const pathname=decodeURIComponent(new URL(req.url,'http://x').pathname);
     const file=resolve(root,'.'+(pathname.endsWith('/')?pathname+'index.html':pathname));
@@ -37,6 +37,10 @@ for(const [phase,root] of [['before','/workspace/prp-before-v22844'],['after',re
             const original=AudioContext.prototype.decodeAudioData;
             AudioContext.prototype.decodeAudioData=function(...args){const decoded=original.apply(this,args);return new Promise((resolve,reject)=>setTimeout(()=>decoded.then(resolve,reject),7000));};
           }else{
+            // Headless Chrome lets the context run; model iOS: suspended until the first touch on this page.
+            const desc=Object.getOwnPropertyDescriptor(BaseAudioContext.prototype,'state');
+            let gestured=false;for(const t of ['touchstart','pointerdown','touchend','click'])addEventListener(t,()=>{gestured=true;},{capture:true});
+            Object.defineProperty(BaseAudioContext.prototype,'state',{configurable:true,get(){return gestured?desc.get.call(this):'suspended';}});
             localStorage.setItem('pr_meta_save',JSON.stringify({v:1}));
             localStorage.setItem('pr_raid_result_v1',JSON.stringify({schema:'protocol-rebirth/raid-result',version:1,raidId:'shot-ftue',outcome:'extract',extracted:[],lost:[],ftue:true}));
           }
@@ -48,6 +52,7 @@ for(const [phase,root] of [['before','/workspace/prp-before-v22844'],['after',re
         }else{
           await page.waitForSelector('.intro.vo-wait-tap',{timeout:20000}).catch(async e=>{console.log('GATE FAILURE',phase,errors,await page.evaluate(()=>({screen:document.body.dataset.screen,body:document.body.className,text:document.body.innerText.slice(-1600),ctx:window.PR_AUDIO?.context?.state,settings:window.PR_AUDIO?.settings})));await page.screenshot({path:out+'/gate-failure.png'});throw e;});
           await page.waitForFunction(()=>[...document.querySelectorAll('.intro-stage img')].every(i=>i.complete&&i.naturalWidth));
+          await page.waitForFunction(()=>!document.getElementById('boot-loader'),{timeout:6000}).catch(()=>{});
           if(state!=='asleep'){
             await page.touchscreen.tap(width/2,height-65);
             if(state==='mid-wake')await new Promise(r=>setTimeout(r,250));

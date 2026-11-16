@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.44"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.45"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2237,6 +2237,8 @@ function checkBeatAutoAdvance(){
     if(done) advanceBeat();
   }
 }
+// Optional sleeping-BIT art for the cold-open TAP TO WAKE BIT gate; empty = CSS dimming only.
+const COLDOPEN_BIT_SLEEP_ART = "";
 function refresh(bitTrigger, bitVars){
   tickRetention();
   { const I = idleState(), now = idleNow();
@@ -2374,12 +2376,17 @@ SCREENS.intro = function(){
   // A shorter gap + a quicker fade (see .intro-go/introBtn in index.html) fixes that.
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.2;
   $app().innerHTML =
-    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + '" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + (COLDOPEN_BIT_SLEEP_ART ? ' has-sleep-art' : '') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
     '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    // Swap hook (brief: /home/box/prp-art/chatgpt-brief-bit-sleep-2026-11-16.md): set
+    // COLDOPEN_BIT_SLEEP_ART to a same-framed sleeping-BIT WebP and it replaces the CSS-dimmed BIT
+    // while hibernating, cross-fading to the awake art on the wake tap.
+    (COLDOPEN_BIT_SLEEP_ART ? '<img class="intro-bit-sleep" src="' + COLDOPEN_BIT_SLEEP_ART + '?v=' + APP_VERSION + '" alt="">' : '') +
     '<small class="intro-standby" aria-hidden="true"><i></i>HIBERNATING</small>' +
+    '<span class="intro-zzz" aria-hidden="true"><b>z</b><b>z</b><b>z</b></span>' +
     '</div>' +
     '<div class="intro-scrim"></div>' +
     '<div class="intro-copy">' +

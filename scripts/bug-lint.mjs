@@ -19,7 +19,7 @@ export const RULES=[
   {id:'coldopen-bit-hibernates-until-wake',pr:'v2.28.4x BIT hibernation',why:'BIT must sleep while the cold-open waits for its wake gesture',
    check(c={}){const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');const out=[];
      if(!app.includes('classList.add("bit-hibernating")')||!app.includes('classList.remove("vo-wait-tap", "bit-hibernating")')||!app.includes('await wakeFinished'))out.push('cold-open must hibernate until tapped and await its wake before line 1');
-     if(!html.includes('.intro.bit-hibernating .intro-bit')||!html.includes('introWakeFade .55s'))out.push('sleep needs a dim cutout and reduced-motion fade');return out;}},
+     if(!app.includes('intro-zzz')||!html.includes('.intro.bit-hibernating .intro-zzz b{animation:introZzz'))out.push('sleeping BIT needs the drifting z indicator');if(!html.includes('.intro.bit-hibernating .intro-bit')||!html.includes('introWakeFade .55s'))out.push('sleep needs a dim cutout and reduced-motion fade');return out;}},
   {id:'no-tracked-node-modules',pr:'#129',why:'a committed node_modules symlink broke the Pages deploy',
    check({files,gitignore}){const out=[];
      if(files&&files.some(f=>f==='node_modules'||f.startsWith('node_modules/')))out.push('node_modules is tracked by git');

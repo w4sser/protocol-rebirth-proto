@@ -315,7 +315,10 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  assert.ok(rule.check({appSrc:''}).length);
 }
 
-assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:'',htmlSrc:''}).length,2,'sleep regression fires');
+assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:'',htmlSrc:''}).length,3,'sleep regression fires');
+{const a=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8'),h=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:a,htmlSrc:h}).length,0);
+ assert.equal(by('coldopen-bit-hibernates-until-wake').check({appSrc:a.replaceAll('intro-zzz','intro-x'),htmlSrc:h}).length,1,'missing z indicator fires');}
 assert.equal(by('coldopen-bit-hibernates-until-wake').check().length,0);
 
 assert.equal(by('raid-waits-for-combat-sfx').check({gameSrc:'',raidAudioSrc:'',readySrc:''}).length,2,'unawaited combat decode regression fires');
