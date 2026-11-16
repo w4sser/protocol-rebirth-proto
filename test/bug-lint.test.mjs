@@ -309,5 +309,7 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  assert.ok(rule.check({levelsSrc:levels.replaceAll('!b.scout&&!b.quest&&!b.key','!b.scout&&!b.key')}).length);
  assert.ok(rule.check({gameSrc:''}).length);
  assert.ok(rule.check({cssSrc:''}).length);
+ const appSource=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.ok(rule.check({appSrc:appSource.replace('craftPartSource({ kind:"cur", id:"scrap" })','""')}).length);
  assert.ok(rule.check({appSrc:''}).length);
 }

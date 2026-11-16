@@ -640,6 +640,7 @@ async function bootPastFabricator(calls){
   assert.match(w.T.fabCraftHtml(), /Loot crates/);
   assert.match(w.T.craftConfirmHtml('armor_patch'), /0\/2/);
   assert.match(w.T.craftConfirmHtml('armor_patch'), /Bunker 1 caches/);
+  assert.match(w.T.craftConfirmHtml('armor_patch'), /Scrap<\/span><span class="lhint">Bunker 1 caches/);
   const need = w.T.vestGuaranteeNeed();
   assert(need.some(n=>n.id==='polymer_plate'&&n.count===2));
   assert(need.some(n=>n.id==='scrap_alloy'&&n.count===1));

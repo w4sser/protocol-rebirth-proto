@@ -955,7 +955,7 @@ function fabCraftHtml(){
     const gated = r.fabricatorLevel > lvl, cost = craftCost(r), buildTime = first ? "Instant" : fabMinutes(r.id) + " min";
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
     const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + have(id) + '/' + q + ' ' + esc(ITEMS[id].name) + (have(id) < q ? lootHintHtml({ kind:"item", id, have:have(id), need:q }) : '') + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + S.cur.scrap + '/' + cost + ' Scrap</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + S.cur.scrap + '/' + cost + ' Scrap' + (S.cur.scrap < cost ? '<span class="lhint">' + esc(craftPartSource({ kind:"cur", id:"scrap" })) + '</span>' : '') + '</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
         : full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" onclick="A.craftConfirm(\'' + r.id + '\')">BUILD</button>') + '</div>';
@@ -973,7 +973,7 @@ function craftConfirmHtml(rid){
   return '<div class="bpop craftconfirm" data-module="fabricator"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</span><h1>Build ' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '?</h1></div>' +
     '<div class="costs">' + parts.map(p => {
       const ok = p.have >= p.need;
-      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + (p.kind === "item" && !ok ? '<span class="lhint">' + esc(craftSource(p.id)) + '</span>' : '') + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
+      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + (!ok && craftPartSource(p) ? '<span class="lhint">' + esc(craftPartSource(p)) + '</span>' : '') + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
     }).join("") + '</div>' +
     '<div class="cfmeta"><i aria-hidden="true">' + IC("timer") + '</i>' + esc(buildTime) + '</div>' +
     '<div class="sp-act"><button type="button" class="primary big" ' + (can ? 'onclick="A.craft(\'' + rid + '\')"' : 'disabled') + '>BUILD</button><button type="button" class="ghost" onclick="A.back()">CANCEL</button></div></div>';
@@ -4594,7 +4594,7 @@ function fabricatorFirstRecipe(){
 function vestRecipe(){ return fabricatorFirstRecipe(); }
 function vestMissingParts(){
   const r = vestRecipe(); if(!r) return [];
-  return costParts({ items:r.inputs, scrap:r.scrapCost }).filter(p => p.have < p.need);
+  return costParts({ items:r.inputs, scrap:craftCost(r) }).filter(p => p.have < p.need);
 }
 // A compact source label from the same generated loot-source data as the full craft hints.
 function craftSource(id){
@@ -4603,17 +4603,21 @@ function craftSource(id){
   const first = src[0];
   return (AREA_DEFS[first.area] ? AREA_DEFS[first.area].name : first.area) + " " + first.level + " caches";
 }
+function craftPartSource(p){
+  const item = p.kind === "item" ? ITEMS[p.id] : D.items.find(i => i.grantsCurrency?.[p.id]);
+  return item ? craftSource(item.id) : "";
+}
 function vestShortageLine(){
   const miss = vestMissingParts(); if(!miss.length) return "";
   const names = miss.map(partName);
   return " We're short " + (names.length > 1 ? names.slice(0,-1).join(", ") + " and " + names.at(-1) : names[0]) + "; next raid should turn some up.";
 }
 function vestShortageInfoRow(){
-  const parts = costParts({ items:vestRecipe().inputs, scrap:vestRecipe().scrapCost });
+  const parts = costParts({ items:vestRecipe().inputs, scrap:craftCost(vestRecipe()) });
   if(!parts.some(p => p.have < p.need)) return null;
   return { label:"HAVE/NEED", text:parts.map(p => {
-    const source = p.kind === "item" ? p.id : (D.items.find(i => i.grantsCurrency?.[p.id]) || {}).id;
-    return partName(p) + " " + p.have + "/" + p.need + (p.have < p.need && source ? " (" + craftSource(source) + ")" : "");
+    const source = craftPartSource(p);
+    return partName(p) + " " + p.have + "/" + p.need + (p.have < p.need && source ? " (" + source + ")" : "");
   }).join("; "), iconHtml:"" };
 }
 // Recompute from live stash each launch. Currency shortages use the existing salvage item

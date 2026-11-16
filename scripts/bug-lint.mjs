@@ -412,6 +412,7 @@ export const RULES=[
      const css=c.cssSrc??read('index.html');
      if(!css.includes('.craftconfirm .sp-act{display:grid;grid-template-columns:1fr 1fr;'))out.push('index.html: craft confirmation actions must share a row so source hints fit landscape');
      if(!game.includes('setGuaranteeLoot(launch.vestGuarantee)'))out.push('nodspel/game.mjs: launch must apply or clear the vest guarantee');
+     if(!app.includes('craftPartSource({ kind:"cur", id:"scrap" })'))out.push('app.js: missing Scrap needs the salvage cache source in the craft UI');
      if(!app.includes('vestGuarantee:vestGuaranteeNeed()'))out.push('app.js: launch must recompute missing recipe materials');
      return out;}},
   {id:'quest-chip-never-covers-rooms',pr:'v2.28.4x FTUE chip',why:'screen-space quest chips covered map labels and swallowed room taps',
