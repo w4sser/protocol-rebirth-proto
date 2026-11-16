@@ -2403,7 +2403,11 @@ SCREENS.intro = function(){
     if(intro.isConnected && !intro.classList.contains("vo-wait") && !document.body.classList.contains("splash-active"))
       void window.PR_AUDIO?.requestVoice('youre-back');
   };
-  firstLine?.addEventListener("animationstart", greet, { once:true });
+  // The wake tap zeroes line 1's delay while .vo-wait still pauses everything for the 550ms wake,
+  // so Chrome can fire animationstart while greet() is still blocked. Remember it and let clear()
+  // re-fire greet() once the gate lifts instead of losing the greeting VO.
+  let firstLineStarted = false;
+  firstLine?.addEventListener("animationstart", () => { firstLineStarted = true; greet(); }, { once:true });
   intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
   if(session.introSkipped){
     if(document.body.classList.contains("splash-active"))
@@ -2430,7 +2434,7 @@ SCREENS.intro = function(){
       await wakeFinished;
       if(!intro.isConnected) return;
       intro.classList.remove("vo-wait", "vo-wait-tap", "bit-waking");
-      if(reducedMotion) greet();
+      if(reducedMotion || firstLineStarted) greet();
     };
     const waitForVoice = () => {
       const audio = window.PR_AUDIO;

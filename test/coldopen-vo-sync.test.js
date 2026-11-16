@@ -438,6 +438,26 @@ function fireIntroSkip(w, intro){
   }
   console.log("part C.4 (already running: no prompt) PASSED");
 
+  // 8b) v2.28.45 regression: the wake tap zeroes line 1's delay while .vo-wait still pauses the
+  // intro for the 550ms wake, so a real browser can fire line 1's animationstart BEFORE the gate
+  // lifts. That early event must not swallow the greeting -- clear() re-fires it.
+  {
+    const { w, doc, ctx } = bootAppReturningFromRaid();
+    const intro = doc.querySelector(".intro");
+    const asked = [];
+    const realRequest = w.PR_AUDIO.requestVoice.bind(w.PR_AUDIO);
+    w.PR_AUDIO.requestVoice = name => { asked.push(name); return realRequest(name); };
+    tapIntroGate(w, doc, ctx, "touchend");
+    assert.ok(intro.classList.contains("vo-wait"), "still waking: the reveal is held for the wake transition");
+    intro.querySelector(".intro-lines p").dispatchEvent(new w.Event("animationstart"));
+    assert.equal(asked.includes("youre-back"), false, "no greeting while BIT is still waking");
+    await sleep(900);
+    assert.ok(!intro.classList.contains("vo-wait"), "the gate lifted after the wake");
+    assert.ok(asked.includes("youre-back"), "the early animationstart did not swallow the greeting VO");
+    dom_close(w);
+  }
+  console.log("part C.6 (early line-1 animationstart during wake keeps the VO) PASSED");
+
   // 9) Audio muted in settings: no prompt either -- nothing worth waiting on a gesture for.
   {
     const { w, doc } = bootAppReturningFromRaid(null, { voiceMuted: true });
