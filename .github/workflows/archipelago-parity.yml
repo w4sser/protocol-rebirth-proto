@@ -36,6 +36,7 @@ jobs:
         env:
           OUT: verify-out/archipelago-v2-parity
           ONLY_AFTER: '1'
+          ARCH_CLUTTER_RAYCAST: '1'
         run: node scripts/shot-archipelago-v2.mjs
       - uses: actions/upload-artifact@v4
         if: always()
