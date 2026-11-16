@@ -486,3 +486,30 @@ test('Pass S seeded earth-path color is visible on the flat hero ground and dete
   const y=ground.geometry.getAttribute('position');
   for(let i=0;i<y.count;i++)assert.ok(Math.abs(y.getY(i)-.01)<1e-5,'the worn trail cannot add traversable height');
 });
+
+test('Pass ZC4: joined nonhero shoreline forms isolated low granite headlands, not a continuous seawall',()=>{
+  const seeds=['archipelago-v2-target','glacial-01','bridge-water','review-21'];
+  for(const seed of seeds){
+    const p=coastlineProfile(floor,seed,{style:'v2'}),plan=art.planArchipelagoBedrock(p);
+    const coast=coastRingData(p,{bedrockPlan:plan}),n=p.points.length;
+    const ring=3;
+    const heights=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]);
+    const raised=heights.filter(y=>y>.30).length,low=heights.filter(y=>y<.10).length;
+    assert.ok(low>=n*.45,seed+' retains real vegetated/low coves between the bedrock shelves');
+    assert.ok(raised<=n*.40,seed+' cannot form a ring of uniform raised retaining wall');
+    assert.ok(Math.max(...heights)>.20,seed+' still has visible integrated geological relief');
+    const actorHeights=Array.from({length:n},(_,i)=>coast.positions[i*3+1]);
+    assert.ok(actorHeights.every(y=>Math.abs(y-.01)<1e-5),
+      seed+' keeps identical flat X/Z operator-edge height');
+    const toe=Array.from({length:n},(_,i)=>coast.positions[(5*n+i)*3+1]);
+    assert.ok(toe.every((y,i)=>Math.abs(y-(-.65+(p.points[i].beach*.11)))<1e-5),
+      seed+' keeps the exact underwater toe heights and water separation');
+    for(let i=0;i<n;i++){
+      const radial=Array.from({length:6},(_,ring)=>Math.hypot(
+        coast.positions[(ring*n+i)*3]-floor.x,
+        coast.positions[(ring*n+i)*3+2]-floor.z));
+      assert.ok(radial.every((r,j)=>j===0||r>radial[j-1]+1e-4),
+        seed+' coast radial strips must never reverse or z-fight');
+    }
+  }
+});

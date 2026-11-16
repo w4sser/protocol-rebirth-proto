@@ -519,8 +519,16 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     const d=p.radial-p.innerRadial;
     // Legacy feathers from a rectangular room. V2 must NEVER do that:
     // its only visible soil-to-rock seam is the organic actor coastline.
-    const radii=profile.style==='v2'?[p.playableRadial-.045,p.playableRadial+.07,
-      p.playableRadial+.19,p.playableRadial+.38,p.radial-.055,p.radial+.22]:[
+    // Pass ZC4: a gradual, coherent glacial shoulder, not a vertical grey
+    // retaining wall. Fractional samples stay ordered even when a nearby
+    // island squeezes the coast to a very narrow navigable water channel.
+    const band=Math.max(.15,p.radial-p.playableRadial);
+    const radii=profile.style==='v2'?[p.playableRadial-.045,
+      p.playableRadial+band*.15,
+      p.playableRadial+band*.33,
+      p.playableRadial+band*.60,
+      p.playableRadial+band*.86,
+      p.radial+.22]:[
       p.innerRadial-inset,
       p.innerRadial-inset*.54,
       p.innerRadial-.015,
@@ -535,18 +543,18 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     // v2's traversable granite shelf stays nearly level until the true
     // physical coastline. Only its outer erosion lip drops below sea level;
     // actors and their shadows cannot appear suspended over the beach.
-    const rockY=profile.style==='v2'?[.010,.009,.007,.003,-.025,-.65]:
+    const rockY=profile.style==='v2'?[.010,.009,.004,-.050,-.255,-.65]:
       [.010,.010,.0095,-.046,-.085,-.73];
-    const sandY=profile.style==='v2'?[.010,.009,.007,.001,-.045,-.54]:
+    const sandY=profile.style==='v2'?[.010,.009,.004,-.065,-.265,-.54]:
       [.010,.010,.0095,-.115,-.25,-.54];
     // The existing coast shell itself rises into short glacial shoulders at
     // the big outcrops. No separate coplanar granite apron (which flickers on iOS),
     // no height change at the traversable ground seam or the sea-level lip.
     const aDelta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
     const massProximity=profile.style==='v2'&&bedrockPlan?.masses?.length
-      ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.48,2)))):0;
+      ?Math.max(0,...bedrockPlan.masses.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.30,2)))):0;
     const shelfProximity=profile.style==='v2'&&bedrockPlan?.shelves?.length
-      ?Math.max(0,...bedrockPlan.shelves.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.25,2)))):0;
+      ?Math.max(0,...bedrockPlan.shelves.map(m=>Math.exp(-Math.pow(aDelta(p.angle,m.angle)/.18,2)))):0;
     // Sculpt the SAME coastline mesh into glacial terraces. All relief is
     // beyond the actor boundary; ring 0 remains at +0.010 and the outer water
     // seam remains exactly unchanged. No second/copanar granite apron on iOS.
@@ -554,7 +562,8 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
     const striation=.5+.25*Math.sin(p.angle*8+profile.seed*.0003)
       +.25*Math.sin(p.angle*15-profile.seed*.0005);
     const ridge=clamp(massProximity*.92+shelfProximity*.26,0,1)*(1-p.beach*.90);
-    const localLift=[0,.055,.28,.91,.58,0][ring];
+    // Only compact headlands rise; the rest drops back to dark, low shoreline.
+    const localLift=[0,.035,.18,.88,.52,0][ring];
     const eroded=.72+.26*channels+.19*striation;
     positions.push(x,lerp(rockY[ring],sandY[ring],p.beach)+localLift*ridge*eroded,z);
     blends.push(COAST_BLEND_STOPS[ring]);
@@ -568,10 +577,12 @@ export function coastRingData(profile,{bedrockPlan=null}={}){
       // major outcrop connections expose broad bands of granite. The previous
       // unconditional grey blend looked like a continuous concrete seawall.
       const patch=fieldNoise(x*.46+17,z*.46-13,profile.seed+1209);
-      const stone=clamp(.11+massProximity*.78+shelfProximity*.24
-        +smooth(.62,.88,patch)*.17-p.beach*.32,0,1);
-      const transition=[0,.21,.47,.77,.97,1][ring];
-      const localStone=ring===5?1:transition*(.19+.81*stone);
+      const stone=clamp(.015+massProximity*.88+shelfProximity*.20
+        +smooth(.68,.91,patch)*.075-p.beach*.28,0,1);
+      const transition=[0,.17,.38,.72,.96,1][ring];
+      // The old ring-5 hard-coded 100% granite around the ENTIRE island,
+      // even across green bays: a continuous grey concrete retaining wall.
+      const localStone=ring===5?.15+.77*stone:transition*(.09+.91*stone);
       const stoneColor=colR.map((v,k)=>v*(.84+.24*striation)+(colS[k]-v)*p.beach);
       for(let k=0;k<3;k++)colors.push(clamp(lerp(entry[k],stoneColor[k]*cliffShade,localStone),0,1));
     }else{
