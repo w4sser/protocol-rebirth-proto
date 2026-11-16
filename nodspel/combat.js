@@ -4,7 +4,7 @@ import {audioEvent} from './audio.js?v=2.28.40';
 import {ownRooms} from './perks.js?v=2.28.40';
 import {RULES,hazardState} from './levels.js?v=2.28.40';
 import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.40';
-import {takeDamage,tickRound} from './round.js?v=2.28.40';
+import {takeDamage,tickRound,hitEnemy} from './round.js?v=2.28.40';
 import {houseWaypoint} from './house.js?v=2.28.40';
 import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.40';
 import {detectionMultiplier} from './stakes.js?v=2.28.40';
@@ -38,7 +38,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   // Encounters that run on their own clock: patrols keep walking and spawn points keep counting through the arrival grace.
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
-  stepBlasts(round,combat,player,now,dash);
+  stepBlasts(round,combat,player,now,dash,obstacles);
   if(now<combat.graceUntil&&!anyNearMissAggro(round.level.enemies))return;
   const rule=RULES.combat,target=hotPlayerTarget;target.x=player.x;target.z=player.z;
   for(const enemy of round.level.enemies){
@@ -166,12 +166,40 @@ function lobGrenade(round,combat,enemy,now){
   if(at)combat.blasts.push({id:++combat.nextId,x:at.x,z:at.z,fromX:enemy.x,fromZ:enemy.z,radius:G.radius,at:now,detonateAt:now+G.fuseMs,source:enemy.encounter??enemy.type??'thrower',enemyId:enemy.id});
   combat.nextFire.set(enemy.id,now+G.cooldownMs);
 }
-function stepBlasts(round,combat,player,now,dash=null){
+// Modest radial impulse using existing swept collision and floor restrictions.
+// At the exact blast centre the incoming shell direction is a stable fallback.
+function pushFromBlast(target,blast,strength,blockers,floors,radius){
+  const dx=target.x-blast.x,dz=target.z-blast.z,dist=Math.hypot(dx,dz);
+  const fromX=blast.x-(blast.fromX??blast.x-1),fromZ=blast.z-(blast.fromZ??blast.z);
+  const fallback=Math.hypot(fromX,fromZ)||1;
+  const nx=dist>1e-6?dx/dist:fromX/fallback,nz=dist>1e-6?dz/dist:fromZ/fallback;
+  const travel=strength*(1-.5*Math.min(1,dist/blast.radius));
+  const next=movePlayer(target,{x:nx*travel,z:nz*travel},blockers,floors,radius);
+  target.x=next.x;target.z=next.z;
+}
+function stepBlasts(round,combat,player,now,dash=null,obstacles=[]){
   for(let i=combat.blasts.length-1;i>=0;i--){
     const b=combat.blasts[i];if(b.sleeping)continue;if(now<b.detonateAt)continue;
-    combat.blasts.splice(i,1);
+    combat.blasts.splice(i,1); // a committed shell detonates once, even if its thrower died
     round.feedback?.explosion(b.x,b.z,b.radius);
-    if(Math.hypot(player.x-b.x,player.z-b.z)<=b.radius){round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};if(!dashInvulnerable(dash,now))takeDamage(round,encounterDamage(round,'grenadier'),now);}
+    const G=RULES.encounters.grenadier,actors=round.level.enemies;
+    // Snapshot eligibility before pushing anyone: the original ring defines all hits.
+    const targets=actors.filter(e=>e.health>0&&e.active!==false&&!e.sleeping&&e.type!=='generator'&&Math.hypot(e.x-b.x,e.z-b.z)<=b.radius);
+    const playerHit=Math.hypot(player.x-b.x,player.z-b.z)<=b.radius;
+    for(const enemy of targets){
+      const blockers=[...obstacles,{x:player.x,z:player.z,r:RULES.playerRadius},
+        ...actors.filter(e=>e!==enemy&&e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
+      pushFromBlast(enemy,b,G.knockback,blockers,round.level.floors,enemy.r??.48);
+      // Use actual damage/death feedback, without the Operator's on-kill heal.
+      // Null origin permits AoE to bypass directional front shields.
+      hitEnemy(round,enemy.id,now,G.enemyDamage,null,{grantKillHeal:false});
+    }
+    if(playerHit&&!dashInvulnerable(dash,now)){
+      const blockers=[...obstacles,...actors.filter(e=>e.health>0&&e.active!==false).map(e=>({x:e.x,z:e.z,r:e.r??.48}))];
+      pushFromBlast(player,b,G.knockback,blockers,round.level.floors,RULES.playerRadius);
+      round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};
+      takeDamage(round,encounterDamage(round,'grenadier'),now);
+    }
     (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
   }
   if(combat.booms)combat.booms=combat.booms.filter(b=>now-b.at<600);
