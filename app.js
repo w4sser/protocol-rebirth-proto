@@ -3588,6 +3588,7 @@ function lobbyHtml(gear, miss, locked){
     '<div class="lobby-top"><span class="pr-brand">PROTOCOL REBIRTH</span><span class="pr-slash" aria-hidden="true">//</span><h1 class="pr-title">RAID PREPARATION</h1></div>' +
     '<div class="lobby-side left"><h2 class="pr-panel-title">LOADOUT</h2><div class="slotgrid">' + loadout + '</div></div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your hooded operator"></div>' +
+      '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' +
       '<div id="pr-operator-stage" class="pr-operator-stage" tabindex="0" role="group" aria-label="3D operator: drag or use arrow keys to rotate"' + sceneAttrs + '></div>' +
       '<span class="pr-rotate-tip" aria-hidden="true">DRAG TO ROTATE</span>' +
       operatorRowHtml(gear) + '</div>' +
