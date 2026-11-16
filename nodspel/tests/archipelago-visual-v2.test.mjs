@@ -74,6 +74,8 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     const anchored=group.children.filter(o=>o.name==='arch-v2-integrated-hero-granite');
     assert.equal(anchored.length,out.heroGraniteMasses>0?1:0,
       'large hero rock volumes are integrated at coastline only when a safe footprint exists');
+    assert.ok(out.heroGraniteMasses>=1,
+      'the canonical hero preview must contain real sculpted coastline rock volumes, not just a gray shore strip');
     assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
       &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
