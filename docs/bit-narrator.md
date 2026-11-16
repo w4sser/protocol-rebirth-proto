@@ -102,7 +102,8 @@ policy. Each caller picks whatever persistence fits:
 | `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." (+ a live shortage clause and a HAVE/NEED info row when the Vest recipe is short, PRB-162) | happy |
 | `raid_briefing` (cutscene, PRB-162) | `app.js` `maybeShowRaidBriefing`, first base visit with the Fabricator still locked, after `core_restored` | "Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs." | skeptical |
 | `quest_intro` (cutscene, PRB-162) | `app.js` `maybeShowQuestIntro`, before the tracked-quest chip (`trackedGoalHtml`) can ever render | "Quests: little jobs, real rewards. Finish one, I pay up. The quest chip tracks progress — tap it any time for the fine print." | smile |
-| `vault_intro` (cutscene, PRB-162) | `app.js` `maybeShowVaultIntro`, before the Vault is ever the build target or built | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
+| `vault_intro` (teaser) | `app.js` `maybeShowVaultIntro`, when Vault becomes the next goal | "Vault's next. Bring these parts; I'll bring my excellent supervision." | smile |
+| `vault_unlocked` (build payoff) | `app.js` `A.build`, first Vault build | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
 
 ## Mini cutscenes
 
@@ -306,7 +307,7 @@ explain, following "Adding a new BIT card moment" above.
 | --- | --- |
 | Raid / the RAID button, while the Fabricator is still locked | `raid_briefing` cutscene |
 | Quests (what they are, why, the tracked chip) | `quest_intro` cutscene, gates the chip (`trackedGoalHtml`) |
-| Vault / Storage (stash expansion, the secure slot) | `vault_intro` cutscene, gates "next goal"/build |
+| Vault / Storage (stash expansion, the secure slot) | `vault_intro` dark teaser, then `vault_unlocked` powered build payoff |
 | Scavenger Vest craft shortage (materials you don't have yet) | shortage clause + HAVE/NEED row on `fabricator_built`, live from the stash |
 
 **Remaining gaps (backlog, not built here):**
@@ -325,8 +326,9 @@ explain, following "Adding a new BIT card moment" above.
 
 PRB-162 completion details: `queueSystemIntro` deduplicates pending intros and saves `false` until
 its dismissal callback marks the scene seen. Reloading a queued intro does not migrate it away.
-The quest dismissal refreshes the chip immediately; a Vault build cannot spend materials before
-its intro has been dismissed. All three use the existing one-second guard and three-second hint.
+The quest dismissal refreshes the chip immediately. The two-stage room pattern below supersedes
+the original Vault build gate: building never waits for its teaser. All scenes use the existing
+one-second guard and three-second hint.
 The vest offer's HAVE/NEED row includes every recipe cost and a compact generated cache location
 for each missing material. Craft list shows full generated loot-source hints; confirmation uses compact generated cache labels so its actions fit landscape.
 Each real raid launch recalculates the shortage, including Scrap represented by existing salvage

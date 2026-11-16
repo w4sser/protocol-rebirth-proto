@@ -3876,7 +3876,7 @@ function newFindUses(id){
   if(!first){
     first = uses.find(u => u.kind === "recipe" && (S.modules.fabricator || 0) >= 1 && (() => {
       const r = D.recipes.find(r => r.id === u.recipe);
-      return r && canAfford({items:r.inputs,scrap:craftCost(r)});
+      return r && r.fabricatorLevel <= S.modules.fabricator && canAfford({items:r.inputs,scrap:craftCost(r)});
     })());
     if(first) uses.splice(uses.indexOf(first),1);
   }
@@ -3910,7 +3910,7 @@ function maybeShowItemInfo(){
   S.bitCardsSeen.new_find = true;
   save();
   const narrator = firstFind ? '<div class="newfind-bit"><img class="bit-card-img" src="assets/production/bit-narrator/bust-tilt-smile-v1.webp" alt="BIT"><span class="bit-card-bubble">' + esc(D.newFindIntro) + '</span></div>' : '';
-  overlay(narrator + '<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + ids.map(id => { const info = D.itemInfo(id), it = info.item;
+  overlay('<h1>New find' + (ids.length > 1 ? 's' : '') + '</h1>' + narrator + ids.map(id => { const info = D.itemInfo(id), it = info.item;
     return '<div class="card small infocard"><div class="ic-head"><span class="sicon" aria-hidden="true">' + itemImg(id) + '</span><b>' + esc(it.name) + '</b> <span class="rar-' + it.rarity + '">' + esc(it.rarity) + '</span></div>' +
       newFindUsesHtml(id) +
       '<div class="small">Sell ' + info.sell + ' Scrap' + (info.recycle ? ' · Recycle ' + info.recycle + ' Scrap' : '') + '</div></div>'; }).join('') +
@@ -4709,36 +4709,17 @@ const BIT_CUTSCENES = {
       { label:"KEPT", text:"Your stash and buildings", iconHtml: IC("item-crate") }
     ]
   },
-  fabricator_built: (() => {
-    const r = fabricatorFirstRecipe();
-    return {
-      id:"fabricator_built",
-      // PRB-157: the painted vest is part of the dedicated art.
-      from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
-      to:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
-      line:"Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest.",
-      bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
-      effect:null,
-      waitForArt:true,
-      fallback:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
-      hologramIcon: r ? itemIcon(r.output.itemId) : "",
-      info:[
-        { label:"NEW", text:"Craft gear from raid materials", iconHtml: IC("build") },
-        { label:"FIRST RECIPE", text: r ? (r.name + " — " + recipeCostText(r)) : "", iconHtml: r ? recipeCostIcons(r) : "" }
-      ]
-    };
-  })(),
+  fabricator_built:{
+    id:"fabricator_built",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-happy-v1.webp", side:"left" },
+    effect:null, waitForArt:true,
+    fallback:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp"
+  },
   // 1. First base visit, Fabricator still locked (Robert's playtest, 2026-11-16, item 1): BIT explains
   // the bunker needs power back and sends the player out to raid for the Fabricator's own materials.
   raid_briefing:{
     id:"raid_briefing",
-    from:RAID_BRIEFING_ART.from, to:RAID_BRIEFING_ART.to,
-    line:"Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs.",
-    bust:{ from:"assets/production/bit-narrator/bust-tilt-skeptical-v1.webp", side:"left" },
-    info:[
-      { label:"NEXT", text:"Fabricator — " + costStripText(MODS.fabricator.levels[0].cost), iconHtml: costStripIcons(MODS.fabricator.levels[0].cost) },
-      { label:"FIND IT", text:"Raid for the parts", iconHtml: IC("nav-raid") }
-    ]
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-skeptical-v1.webp", side:"left" }
   },
   // 3. Quests (item 3): before the first quest chip can appear, BIT explains what quests are, why
   // they're worth doing, and that the chip tracks progress. Gates trackedGoalHtml() below.
@@ -4765,20 +4746,28 @@ const BIT_CUTSCENES = {
 function roomUnlockStages(id){
   const def = D.roomUnlockStages[id];
   if(!def) return null;
+  const level = MODS[id].levels[0], cost = level.cost, recipe = fabricatorFirstRecipe();
+  const strip = row => {
+    let text = row.text || "", iconHtml = row.icon ? IC(row.icon) : "";
+    if(row.kind === "cost"){
+      text = (id === "storage" ? "Vault" : MODS[id].name) + " — " + costStripText(cost);
+      iconHtml = costStripIcons(cost);
+    } else if(row.kind === "benefit") text = level.benefitText;
+    else if(row.kind === "recipe" && recipe){
+      text = recipe.name + " — " + recipeCostText(recipe); iconHtml = recipeCostIcons(recipe);
+    } else if(row.kind === "missing"){
+      const missing = S ? costParts(cost).filter(p => p.have < p.need) : [];
+      text = missing.length ? missing.map(p => partName(p) + " " + p.have + "/" + p.need + " (" + craftPartSource(p) + ")").join("; ") : "All parts ready";
+    }
+    return {label:row.label,text,iconHtml};
+  };
   const make = (stage, powered) => ({
     ...BIT_CUTSCENES[stage.id], ...stage,
-    from:def.dark, to:powered ? def.powered : def.dark
+    from:def.dark, to:powered ? def.powered : def.dark,
+    info:stage.info.map(strip),
+    ...(powered && id === "fabricator" ? {hologramIcon:recipe ? itemIcon(recipe.output.itemId) : ""} : {})
   });
   const teaser = make(def.teaser, false), unlock = make(def.unlock, true);
-  if(id === "storage"){
-    const cost = MODS[id].levels[0].cost;
-    const missing = S ? costParts(cost).filter(p => p.have < p.need) : [];
-    teaser.info = [
-      { label:"NEXT", text:"Vault — " + costStripText(cost), iconHtml:costStripIcons(cost) },
-      { label:"HAVE/NEED", text:missing.length ? missing.map(p => partName(p) + " " + p.have + "/" + p.need + " (" + craftPartSource(p) + ")").join("; ") : "All parts ready", iconHtml:"" }
-    ];
-    unlock.info = [{ label:"NEW", text:MODS[id].levels[0].benefitText, iconHtml:IC("item-crate") }];
-  }
   return {teaser, unlock};
 }
 for(const id of Object.keys(D.roomUnlockStages)){
