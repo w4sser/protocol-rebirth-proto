@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
-import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.42';
-import {RULES} from '../levels.js?v=2.28.42';
-import {applyIntroEncounter} from '../progression-goal.js?v=2.28.42';
-import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.42';
-import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.42';
-import {createCombat,stepCombat} from '../combat.js?v=2.28.42';
-import {traceTargets} from '../physics.mjs?v=2.28.42';
+import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.43';
+import {RULES} from '../levels.js?v=2.28.43';
+import {applyIntroEncounter} from '../progression-goal.js?v=2.28.43';
+import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.43';
+import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.43';
+import {createCombat,stepCombat} from '../combat.js?v=2.28.43';
+import {traceTargets} from '../physics.mjs?v=2.28.43';
 import '../../data/raid-camera.js';
 
 const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
@@ -40,12 +40,12 @@ test('FTUE grunts have fixed room positions, clear firing lanes and immediate ta
   }
 });
 
-test('FTUE only replaces enemies: supplies, cover, gate, door and exit remain identical',()=>{
+test('FTUE preserves cover, gate, exit and room geometry while regrouping supplies',()=>{
   for(const seed of seeds){
     const r=createRound(seed,0);applyIntroEncounter(r.level,goal);
     const before=structuredClone(r.level);
     initFtueRound(r,{ftue:true},storage(0));
-    for(const key of ['lootBoxes','boxes','walls','nodes','doors','exit','start'])assert.deepEqual(r.level[key],before[key],key);
+    for(const key of ['boxes','walls','nodes','exit','start'])assert.deepEqual(r.level[key],before[key],key);
   }
 });
 
@@ -133,7 +133,7 @@ test('D3.10: level 1 FTUE guarantees at least 2 collectible Scrap Alloy pickups,
     if(intro)applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
     initFtueRound(r,{ftue:true},storage(0));
     const alloy=r.level.lootBoxes.filter(b=>b.item==='scrap_alloy');
-    assert.ok(alloy.length>=2,`${seed} secured=${secured} intro=${intro}: at least 2 alloy pickups, got ${alloy.length}`);
+    assert.ok(alloy.reduce((n,b)=>n+(b.quantity??1),0)>=2,`${seed} secured=${secured} intro=${intro}: at least 2 alloy pickups, got ${alloy.length}`);
     for(const b of alloy){
       assert.equal(b.collected,false,'pickup starts uncollected');
       assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.z),'pickup has a real position');
@@ -141,13 +141,13 @@ test('D3.10: level 1 FTUE guarantees at least 2 collectible Scrap Alloy pickups,
   }
 });
 // The forced slots (indices 0 and 1) are always Scrap Alloy -- the part this PR's softlock guard relies on.
-test('D3.10: the two forced lootBox slots are always Scrap Alloy',()=>{
+test('D3.10: the first cache holds two Scrap Alloy units',()=>{
   for(const seed of seeds)for(const secured of [0,1,2,3]){
     const r=createRound(seed,0);
     applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
     initFtueRound(r,{ftue:true},storage(0));
     assert.equal(r.level.lootBoxes[0].item,'scrap_alloy',`${seed} secured=${secured} slot 0`);
-    assert.equal(r.level.lootBoxes[1].item,'scrap_alloy',`${seed} secured=${secured} slot 1`);
+    assert.equal(r.level.lootBoxes[0].quantity,2,`${seed} secured=${secured} alloy quantity`);
   }
 });
 

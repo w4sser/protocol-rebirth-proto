@@ -267,3 +267,11 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.ok(rule.check({smokeSrc:smoke.replace('Promise.race([handoff,button])','button')}).length,'fires if the smoke only waits for the #return-base click');
  assert.ok(rule.check({layoutSrc:layout.replace("'scripts/debug-unlocks-smoke.mjs'","'scripts/other.mjs'")}).length,'fires if the smoke is unhooked from required CI');
 }
+
+// v2.28.4x owner playtest regressions: each fixture removes its actual guard.
+assert.ok(by('quest-chip-never-covers-rooms').check({appSrc:'function setupBaseViewer(){}',layoutSrc:''}).length===2);
+assert.equal(by('quest-chip-never-covers-rooms').check({appSrc:'function placeBaseGoal(viewer){} placeBaseGoal(viewer); .mapspot,.mapspot .tag',layoutSrc:'questChipRoomOverlaps chip-fabricator-locked chip-guard-duty'}).length,0);
+assert.ok(by('early-raid-crate-cap').check({goalSrc:'level.lootBoxes.push({id:`payoff-${i}`});',ftueSrc:'',dataSrc:'maxCratesPerRoom:7'}).length===3);
+assert.equal(by('early-raid-crate-cap').check({goalSrc:'quantity;level.lootBoxes.length<RULES.earlyLoot.maxCratesPerRoom',ftueSrc:'level.lootBoxes=RULES.earlyLoot.supplies.map',dataSrc:'maxCratesPerRoom:3'}).length,0);
+assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('chest',1,2)",gameSrc:''}).length,2);
+assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield',1,2)",gameSrc:'world.spawnLootBurst?.();pickupToast(round.lastBagPickup.item)'}).length,0);

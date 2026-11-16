@@ -1,13 +1,15 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.42';
-import {generateBigLevel} from './big-level.js?v=2.28.42';
-import '../data/items.js?v=2.28.42';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.42';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.42-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.42';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.42';
-import '../data/raid-combat.js?v=2.28.42';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.43';
+import {generateBigLevel} from './big-level.js?v=2.28.43';
+import '../data/items.js?v=2.28.43';
+import '../data/raid-ftue.js?v=2.28.43';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.43';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.43-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.43';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.43';
+import '../data/raid-combat.js?v=2.28.43';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
+  earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
   shooting:globalThis.DATA.raidCombat,
   intro:{tip:'BIT: Aim at the cache guard and fire. Then grab the supplies and extract.',warningMs:1000,burstShots:3,burstIntervalMs:180,recoveryMs:1600,counterOnHit:false,graceMs:0,lane:2,startZ:3.2,coverZ:.7,coverSize:1.2,guardZ:-1.8,nodeX:1.8,nodeZ:.7,supplyX:1.3,supplyZ:-2.2,supplySpacing:.85,optionalX:3.6,optionalZ:-3.4,optionalItems:['cable','scrap_alloy']},
   // v1.67 first-upgrade payoff (meta sends ?payoff=kind once). loot_cluster: >= bag capacity pickups on free floor near spawn

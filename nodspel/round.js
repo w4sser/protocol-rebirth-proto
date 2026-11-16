@@ -1,15 +1,15 @@
-import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.28.42';
-import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.42';
-import {extractAvailable} from './big-level.js?v=2.28.42';
-import {rarityOf} from './rarity.js?v=2.28.42';
-import {audioEvent} from './audio.js?v=2.28.42';
-import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.42';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.28.42';
-// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.42';
-import {emptyBag,bagItems} from './raid.js?v=2.28.42';
-import {traceTargets} from './physics.mjs?v=2.28.42';
-import {shieldBlocks,weakSide} from './encounters.js?v=2.28.42';
-import {createStakesState,heal} from './stakes.js?v=2.28.42';
+import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.28.43';
+import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.43';
+import {extractAvailable} from './big-level.js?v=2.28.43';
+import {rarityOf} from './rarity.js?v=2.28.43';
+import {audioEvent} from './audio.js?v=2.28.43';
+import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.43';
+import {generateLevel,RULES,isHard} from './levels.js?v=2.28.43';
+// import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.43';
+import {emptyBag,bagItems} from './raid.js?v=2.28.43';
+import {traceTargets} from './physics.mjs?v=2.28.43';
+import {shieldBlocks,weakSide} from './encounters.js?v=2.28.43';
+import {createStakesState,heal} from './stakes.js?v=2.28.43';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.
@@ -77,10 +77,17 @@ export function collectLoot(round,position,now,weapon){
           if(round.lootBonusCarry>=1){round.lootBonusCarry--;round.bag[box.item]++;}
         }
       }
-      box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};changed=true;
+      audioEvent('pickup',{rarity:rarityOf(box.item)});round.lastPickup={item:box.item,at:now};
+      consumeLootUnit(box);changed=true;
     }
   }
   return changed;
+}
+// A full bag leaves all remaining units in this same physical cache.
+function consumeLootUnit(box){
+  box.quantity=Math.max(0,(box.quantity??1)-1);
+  if(box.quantity===0&&box.contents?.length){box.item=box.contents.shift();box.quantity=1;}
+  box.collected=box.quantity===0;
 }
 // Loot label action: health kits read SLOT FULL (dimmed) while the kit slot is at its max (v1.47).
 export function kitSlotFull(round){return (round?.kit?.medkit??0)>=RULES.kitMax.medkit;}
@@ -96,7 +103,7 @@ export function swapLoot(round,boxId,dropId,now){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
   const box=round.level.lootBoxes.find(b=>b.id===boxId);
   if(!box||box.collected||!round.bag[dropId]||box.item==='ammo_pack')return null;
-  round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;box.collected=true;audioEvent('pickup',{rarity:rarityOf(box.item)});
+  round.bag[dropId]--;round.bag[box.item]=(round.bag[box.item]??0)+1;audioEvent('pickup',{rarity:rarityOf(box.item)});consumeLootUnit(box);
   const dropped={id:`drop-${round.level.lootBoxes.length}-${now}`,x:box.x,z:box.z,item:dropId,collected:false,blockedUntilLeft:true,revealed:true};
   round.level.lootBoxes.push(dropped);round.bagFull=null;return dropped;
 }
