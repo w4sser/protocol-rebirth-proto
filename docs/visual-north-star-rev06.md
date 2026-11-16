@@ -3,7 +3,7 @@
 **Visual reference:** *Protocol Rebirth — Art Direction — Visual North Star*, Wild Labs, Rev 06 (30 pages, 14 October 2026).  
 **Status:** Adopted as the **visual north star**, not a claim that all depicted assets are final or implemented.  
 **Source PDF (owner-held, private):** [Rev 06 — compressed reference copy](https://drive.google.com/file/d/1BRwbdB9-AtmcOW1sX8ygbRfK983Ohd98/view?usp=drivesdk). Access requires the owner's permission; this link does not make the PDF publicly available. The original 30-page source is held separately.  
-**Reference integrity:** Original PDF SHA-256 `99d0766ecb5983babc093712192e5410d684c31bee883c5329165211aa904bd0`; 30 pages; approximately 75 MB. The linked reduced-size derivative has SHA-256 `59122c327f0785b005ba1fc0ba0155ad10323d3aece387e371a04c740abf2d81` (PDF recompressed for reference; not byte-identical to the original).
+**Reference integrity:** Original PDF SHA-256 `99d0766ecb5983babc093712192e5410d684c31bee883c5329165211aa904bd0`; 30 pages; approximately 75 MB. The linked reduced-size derivative has SHA-256 `199b6ac5fad186e21dd9572294c0d3881959cb96ff5911b680a2fd40543201a7` (PDF recompressed for reference; not byte-identical to the original).
 
 This document is the searchable, code-reviewable entry point to Rev 06, not a substitute for seeing its art. Read it together with [Art Direction v07](art-direction.md), which extends the visual north star with subsequently approved gameplay art decisions, [BIT's locked character specification](bit-character-spec.md), and the [Archipelago v2 visual target](archipelago-visual-target-v2.md).
 
