@@ -6,25 +6,38 @@
 
 **Reference:** [Interactive Three.js visual target](../archipelago-visual-target.html); use its actual 844 × 390 camera composition as the art-direction comparison. See [Art Direction v07](art-direction.md) and [Archipelago Environment Variety v1](archipelago-environment-variety-v1.md). This visual contract applies to Archipelago only, not Bunker or Town.
 
-## Pass Z — Quiet Nordic Ground & Rose-Lit Pines (16 Nov 2026)
+## Pass Z — Ground Cleanup & Subtle Sky Tint on Pines (Updated 16 Nov 2026)
 
-**Status:** Implemented in [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269); **not merged and not approved as visual parity**. The changes are independent of P0 granite-composition work in draft PR #267. All visual effects are opt-in behind `archVisual=v2`; default Archipelago, Bunker and Town keep the current look.
+**Purpose:** Remove distracting bright/white-looking ground clutter from actual Archipelago v2 gameplay views and restore a calm, readable Nordic summer-night palette. This is a **subtractive art pass**, not a coastline redesign. Pine sky reflection is secondary to ground cleanup.
 
-**Problem observed:** The actual 844 × 390 raid screenshots contain bright white-looking soil flecks, many tiny pale vegetation/rock props, and large bleached-looking fallen logs. They compete with combat readability and create an artificial, noisy island floor. The vegetation also needs to sit in the same restrained rose/lilac summer-night ambient light as the sea without becoming pink or fluorescent.
+**Status:** The initial terrain/noise reduction and crown vertex tint are implemented in [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269). The stronger *spatial cleanup* below is the **updated owner brief**, not evidence that those additional placement constraints are already implemented or accepted. Keep this independent from [P0 integrated granite work in draft PR #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267). All changes must remain opt-in behind `archVisual=v2`, with default Archipelago, Bunker and Town unchanged.
 
-**Implementation / commit brief:**
-- **Terrain colors:** Darken the nearly white granite/lichen ground colors; reduce the amplitude of high-frequency soil grain, scattered mineral pockets and lichen highlights. Preserve subdued green/moss flat ground and natural shore gradients (`nodspel/coastline.mjs`).
-- **Ground cover:** Keep deterministic, spatially clustered grass, heather and bracken but halve HIGH cover per cluster (12→6) and reduce LOW (6→4). Keep existing gameplay reservations, shader/draw-call model and LOW as a true HIGH subset (`nodspel/archipelago-visual-v2.mjs`).
-- **Small prop dressing:** On v2 only, eliminate roughly 70% of bright small rocks, flowers and pale sea-holly props using deterministic seeded filtering. **Real-camera raycast identification:** the two prominent white branch piles were `polyfork-seaweed-drift-line-6566c3` instances; pale white tufts were `polyfork-marram-grass-tuft-8c7a99`. Remove the seaweed drift-line model, bleached fallen-log/driftwood models and thin the marram clumps by ~70%. Preserve dark built-in collision-matched windfall cover, moss, grass and major rocks. The non-v2 decoration inventory is unchanged (`nodspel/polyfork-dressing.mjs`).
-- **Sky-lit pine crowns:** Shared, vertex-colored crown meshes blend their **upward-facing foliage** toward muted `#b59caf` at at most **11%**. Trunks and lower foliage stay dark. No glow, pink outline, extra lights, transparent overlays or per-tree materials. Keep individual camera occlusion fade/restore (`nodspel/archipelago-visual-v2.mjs`).
+### Visual problem and priority
 
-**Acceptance checks before merge:**
-1. Compare original target with the actual raid camera at spawn, bridge, coast, foreground trees and objectives, in **844 × 390 HIGH and LOW**. The white ground debris must no longer dominate; surfaces should read as moss, heather, mineral and realistic dark wood.
-2. Trees remain identifiably green Scots pines with a soft rose-lilac top-light, without pink glow or an entire-tree wash. The fade/restore behavior must still work on both tiers.
-3. Check deterministic HIGH/LOW dressing subsets, objective and bridge clearances, all target/geology tests, full CI, and capture startup. Do not use one desktop Chromium render to claim physical iPhone Safari performance.
-4. **Merge policy:** A clean opt-in milestone may merge without visual parity only after reviewing its real gameplay capture; do not enable v2 by default or mark visual target as achieved on green CI alone.
+The actual **844 × 390 raid-camera** views show small bright white/light props and accents scattered through the playable space, often near the operator, combat cones, paths and important objects. The result reads as artificial visual noise rather than moss, heather and weathered Swedish coastal terrain. The eye should go to the island silhouette, shoreline, pines and gameplay-critical objects, **not to pale speckles**.
 
-**Evidence:** [PR #269 and its checks](https://github.com/w4sser/protocol-rebirth-proto/pull/269). Focused tests, main CI and screenshot flow passed on the initial ground/rose pass; the bleached-log cleanup is a follow-up commit and requires its own successful runs. The original full scene still differs from reference, especially in geology and military remnant composition. Continue that separately under P0.
+The high-contrast culprits identified from real-camera captures include `polyfork-seaweed-drift-line-6566c3` (two large bleached branch piles), `polyfork-marram-grass-tuft-8c7a99` (pale white tufts), some bleached fallen-log/driftwood models, tiny light stones, pale flowers and overly bright lichen/mineral patches.
+
+### Required art and implementation changes — in order
+
+1. **Remove bright clutter from the primary play space.** Eliminate nearly all near-white/tiny high-contrast detail in the **central gameplay read**, on main traversal paths, around spawn, combat telegraphs, interactables, objectives, pickups and major POIs. The specific bleached branch/seaweed model and conspicuously pale windfalls should be removed or replaced in v2 rather than simply made slightly darker.
+2. **Reduce and localize the remaining scatter.** Maintain sparse, intentional clusters along shoreline edges, secondary coves and non-critical pockets, not uniformly sprinkled across the island. Treat ~**70% reduction** of small bright decorative props as a *minimum starting point*, not a uniform quota: central paths should be nearly clear, and even shoreline groups must not form repeated pale patches. Thin marram tufts and tiny light stone/floral accents substantially.
+3. **Restore natural tonal variation.** Replace incidental bright speckle with quiet muted grass, moss, dark coastal scrub, bracken, restrained heather/lilac, and occasional low-contrast granite-gray stones or natural dark driftwood where credible. Reduce white/lichen/mineral peaks and high-frequency vertex-color grain, but **retain healthy green ground** and meaningful broader rock/vegetation separation. Do not make the scene uniformly flat, gray or empty.
+4. **Preserve deterministic and gameplay-safe placement.** Apply the new location-based exclusions only in v2. Reuse existing seeded placement, clustered distributions, objective/bridge/corridor reservations and the HIGH/LOW stable-subset rule. Keep all scenery visual-only; do not introduce collision, cover, opacity or actor-traversal changes. The initial native cover reduction (HIGH 12→6, LOW 6→4 per cluster) may stay, but the final density must be judged by real shots.
+5. **Keep pine sky lighting extremely subtle.** Existing shared crown vertex colors may blend upward- and outward-facing foliage toward muted **rose-lilac `#b59caf` at no more than 11%**. Pine crowns remain predominantly dark green, lower branches and trunks darker/cooler, with normal individual foreground fade/restore. The rose must read as *ambient evening skylight*, not a visible effect.
+
+**Explicit non-goals:** No coastline or island-shape changes; no new large props; no white confetti, neon, glowing outline, bloom, global pink vignette, full-tree pink recolor, increased contrast, or extra per-tree draw calls/materials. Do not compensate for fewer props by adding a different layer of distracting detail.
+
+### Acceptance criteria / review gate
+
+- [ ] In the **actual gameplay camera at 844 × 390**, HIGH and LOW screenshots from **spawn, central path, combat/objective area, coast and foreground pines** show no prominent pale branch piles or white scatter fields. The central gameplay space is clearly calmer and readable.
+- [ ] Any retained tiny scenery sits in deliberate, sparse edge/shore clusters; paths and critical POIs are visually clear. Moss, dark grass and restrained heather remain natural rather than sterile.
+- [ ] Swedish coastal pines still look dark green with only subtle rose/lilac skylight on upper foliage; no pink outline, glow, candy coloration or washed-out trunks. Individual tree fade and restore are verified.
+- [ ] Seeded placements, LOW ⊆ HIGH composition, gameplay reservations, collision/bridge/boat safety and the **legacy non-v2 appearance** remain unchanged.
+- [ ] Target-versus-game comparison shows improved visual hierarchy without making the island flatter or more generic. Record **what worked / what failed** and before/after evidence here; green tests alone are not visual sign-off.
+- [ ] Run focused dressing/geometry tests, full CI and HIGH/LOW capture startup. Physical iPhone/Safari sustained performance remains a separate gate before switching the visual flag on by default.
+
+**Working files:** `nodspel/polyfork-dressing.mjs` (small prop selection, filtering and spatial rules), `nodspel/coastline.mjs` (subtle terrain material variation), `nodspel/archipelago-visual-v2.mjs` (native groundcover and pine crown tint). **Source evidence:** [PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269), its CI and actual image artifacts. Track follow-up implementation against these updated checks before claiming the cleanup is finished.
 
 ## Current scorecard — code health is not art approval
 
@@ -40,7 +53,9 @@
 | Sense of place / world scale | Distant skerries, mixed coastal vegetation, bunker remnant and shoreline utility shed exist | The full scene may still read as small flat gameplay plates rather than a coherent expansive Swedish archipelago | **Art composition P1** |
 | HIGH / LOW performance | Shared main landforms, reduced dressing in LOW, deterministic screenshot workflow and geometry tests | Actual iPhone/Safari sustained FPS, frame pacing, thermal behavior, depth seams and fade occlusion are not yet verified as accepted | **Open release gate** |
 
-### Pass Z — ground cleanup and rose-lit pines (16 November, draft PR #269)
+### Pass Z — original implementation log (historical; superseded by updated brief above)
+
+The top-level **Pass Z — Ground Cleanup & Subtle Sky Tint on Pines** is the active visual direction and acceptance checklist. The note below records the initial implementation scope, not the final approved art result.
 
 **Owner decision:** remove bright, near-white ground speckle and try a very restrained pink/lilac *sky reflection* on wind-shaped pines. **This is not a request for full-pink trees, glow, a thick vignette, or a new postprocess pass.**
 
