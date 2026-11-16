@@ -44,6 +44,13 @@
 
 **Isolation:** This P0 geology pass stays on [draft PR #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267) and must not overwrite the separate P1 ground/pine art pass [draft PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269).
 
+### Pass AB — faceted glacial shoulders, not detached ovals (16 November, in PR #267)
+
+- **Baseline integration:** Pass AA now includes the latest `main` through merge commit `4fb5bc5b9d214619b5e1251ff6e051bb7f8a2482`. The previous merge conflict was only versioned import references in three files; no new main gameplay functionality was dropped.
+- **Pass AA outcome — functional, visually not accepted:** [GitHub HIGH/LOW capture](https://github.com/w4sser/protocol-rebirth-proto/actions/runs/43850660331) passed, and actual 844×390 gameplay images show the separate low-poly oval still protruding into water beside the integrated coastline, rather than a naturally joined granite shore. The portal remains hard to read. A successful capture is not visual acceptance.
+- **Pass AB hypothesis and code (awaiting validation):** retain seed/multi-island/bridge/boat restrictions but compress the offshore root (2.35–4.1 m old footprint → 1.85–3.2 m), leave the broad shoreline-parallel dimension, and sink the visual instance slightly more into the coast. Rebuild **only hero** granite from fewer radial rings and fewer angular segments so broad, asymmetrical glacial facets replace the pink spherical silhouette; softly mix moss into the low root. Keep other islands' tested rock mesh unchanged, including collision boundaries, ground/water seams, and any gameplay mechanics.
+- **Acceptance:** original HTML target vs current actual-game HIGH and LOW views (spawn/headland/coast/bridge/boat). The granite must visually belong to the island, with no floating boulder, white seam, z-fighting, unwalkable false path or water-only boat overlap. Require geometry, full CI, startup and phone checks before merging or declaring parity. [PR #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269) ground/pine tint remains independent.
+
 ### What we tried and rejected — do not recreate
 
 1. **Rectangular playable grass plates and perimeter rock rows:** artificial island silhouettes; organic shared coastal profiles replaced them.
