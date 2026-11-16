@@ -53,10 +53,18 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
     'broad faceted rock avoids closely spaced terrace-ring silhouettes');
   const edge=mesh.geometry.getAttribute('position'),seg=mesh.geometry.userData.angularSegments+1;
   const radial=[];
-  for(let ring=0;ring<mesh.geometry.userData.radialRings;ring++)
-    radial.push(Math.hypot(edge.getX(ring*seg),edge.getZ(ring*seg)));
+  for(let ring=0;ring<mesh.geometry.userData.radialRings;ring++){
+    let mean=0;
+    for(let j=0;j<mesh.geometry.userData.angularSegments;j++)
+      mean+=Math.hypot(edge.getX(ring*seg+j),edge.getZ(ring*seg+j));
+    radial.push(mean/mesh.geometry.userData.angularSegments);
+  }
   assert.ok(radial.every((r,i)=>i===0||radial[i-1]-r>.045),
-    'all shoreline shelf rings narrow steadily, with no stacked radius plateaus');
+    'mean radius narrows through irregular staggered slabs, without horizontal stacked shells');
+  assert.equal(mesh.geometry.userData.noRadialFan,true);
+  const first=mesh.geometry.getAttribute('position'),segments=mesh.geometry.userData.angularSegments+1;
+  assert.ok(Math.abs(first.getX(segments)-first.getX(0))>.01,
+    'alternating rings are offset rather than aligned into a visible radial fan');
   assert.equal(mesh.material.flatShading,true,'sculpted granite uses broad, readable planes');
   const vertices=mesh.geometry.getAttribute('position'),peak=vertices.getY(vertices.count-1);
   assert.ok(peak>.55&&peak<.68,'closed low slate-granite cap without a rounded dome');

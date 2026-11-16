@@ -15,7 +15,10 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   function landform(angle,length,depth,height){
     angle=(angle+TAU)%TAU;
     const p=points[Math.round(angle/TAU*points.length)%points.length],c=Math.cos(angle),s=Math.sin(angle);
-    let r=p.radial+depth*.52-.43,x,z,clear=false;
+    // Pass ZC2: bury the shallow rock foot into the existing shoreline.
+    // The conservative 32-point footprint validator below still prevents
+    // intrusion into actor navigation, neighboring islands or bridge zones.
+    let r=p.radial+depth*.52-.65,x,z,clear=false;
     // A long rock can cross a concave shore away from its centerline. Check
     // the entire conservative ellipse, not just one radial sample.
     for(let attempt=0;attempt<7&&!clear;attempt++){
@@ -65,28 +68,32 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
 // eroded bedrock ledges with a broken, wind-worn shoreline silhouette.
 function sculptGranite(){
   const segments=20;
+  // A broad glacial slab rises in uneven, gently leaning planes. Staggered
+  // angular segments break the radial-star/umbrella triangulation seen in
+  // real game-camera review of the first Pass ZC attempt.
   const rings=[
-    {radius:1.00,height:-.10},
-    {radius:.90,height:.02},
-    {radius:.77,height:.17},
-    {radius:.62,height:.34},
-    {radius:.46,height:.49},
-    {radius:.29,height:.59},
-    {radius:.12,height:.62}
+    {radius:1.00,height:-.13},
+    {radius:.90,height:.00},
+    {radius:.76,height:.18},
+    {radius:.61,height:.35},
+    {radius:.45,height:.50},
+    {radius:.28,height:.59},
+    {radius:.12,height:.60}
   ];
   const positions=[],colors=[],indices=[];
   const shadow=new THREE.Color('#68747e'),weathered=new THREE.Color('#949aa0');
   const sky=new THREE.Color('#a399a7'),moss=new THREE.Color('#74857a');
   for(let k=0;k<rings.length;k++)for(let j=0;j<=segments;j++){
-    const a=j/segments*TAU,{radius,height}=rings[k],cs=Math.cos(a),sn=Math.sin(a);
+    const a=(j+(k%2?.43:0))/segments*TAU,
+      {radius,height}=rings[k],cs=Math.cos(a),sn=Math.sin(a);
     const breakline=Math.pow(Math.max(0,Math.cos(4*a+.71)),8);
     const outline=(1+.105*Math.sin(3*a+.48)+.065*Math.cos(5*a-1.12)-.065*breakline);
     const r=radius*outline;
     const x=.5*Math.sign(cs)*Math.pow(Math.abs(cs),.82)*r+.060*(1-radius);
     const z=.5*Math.sign(sn)*Math.pow(Math.abs(sn),.88)*r-.038*(1-radius);
     // Gently sloped, asymmetrical stone face; never a hemisphere or a staircase.
-    const y=height*(.94+.09*Math.cos(2*a+.45)+.045*Math.sin(5*a-.72))
-      +.020*Math.sin(3*a+.43)*(1-radius);
+    const y=height*(.91+.12*Math.cos(2*a+.45)+.045*Math.sin(5*a-.72))
+      +.045*Math.sin(a+.68)*(1-radius);
     positions.push(x,y,z);
     const weather=.29+.47*Math.sqrt(Math.max(0,height+.10));
     const crack=.14*breakline*(.70+.30*radius);
@@ -101,7 +108,7 @@ function sculptGranite(){
     }
   }
   const top=(rings.length-1)*(segments+1),tip=positions.length/3;
-  positions.push(.065,.61,-.038);
+  positions.push(.065,.565,-.038);
   colors.push(weathered.r,weathered.g,weathered.b);
   for(let j=0;j<segments;j++)indices.push(top+j,tip,top+j+1);
   const geo=new THREE.BufferGeometry();
@@ -109,7 +116,8 @@ function sculptGranite(){
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   geo.setIndex(indices);geo.computeVertexNormals();
   geo.userData.shared=true;geo.userData.continuousGlacialMass=true;
-  geo.userData.fracturedShelf=true;geo.userData.radialRings=rings.length;
+  geo.userData.fracturedShelf=true;geo.userData.noRadialFan=true;
+  geo.userData.radialRings=rings.length;
   geo.userData.angularSegments=segments;
   return geo;
 }
