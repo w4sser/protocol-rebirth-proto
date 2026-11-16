@@ -6,6 +6,25 @@
 
 **Reference:** [Interactive Three.js visual target](../archipelago-visual-target.html); use its actual 844 × 390 camera composition as the art-direction comparison. See [Art Direction v07](art-direction.md) and [Archipelago Environment Variety v1](archipelago-environment-variety-v1.md). This visual contract applies to Archipelago only, not Bunker or Town.
 
+## Pass ZC — Replace Rounded Boulders with Fractured Coastal Granite (16 November 2026)
+
+**Owner art rejection:** The large smooth, oval/purple 'stone ball' and smaller rounded natural-cover rocks in Archipelago v2 do **not** match the approved Swedish skerry visual target. They read as generic decorative props instead of broad glacially eroded granite. **Do not bring these spherical forms back via seed or fallback.**
+
+**Root cause:** On playable non-hero islands, `sculptGranite()` used 24 concentric height/radius bands with multiple near-identical radial widths, forming a tall, rounded, tiered outcrop (`arch-v2-glacial-shelves`). Interior boulder cover used `DodecahedronGeometry(1,1)`, a subdivided near-sphere. Both could be visible in actual raid-camera shore/cover views. The separate hero-island joined-coast design remains an independent, not-yet-accepted P0 task in PR #267.
+
+**Implementation, [draft PR #275](https://github.com/w4sser/protocol-rebirth-proto/pull/275) based on current main:** Replace the external concentric globe with **one continuous indexed low granite-shelf mesh**, seven narrowing radial rings and twenty coarse angular segments. An asymmetric broken outline, a sloped flatter crown, subdued granite gray/lavender with moss in fissures and low shoreline burial should read as rock shelves, not eggs, white pebbles or stacked shells. Use the same shared geometry for distant skerries, adjusting waterline placement for the lower silhouette. Replace the subdivided interior stone with a small fractured slab geometry that continues to match its actual authored `level.boxes` and partition colliders. **Never invent climbable interior mountains or new collider geometry.** Keep v2 opt-in; do not change normal/non-v2 visuals.
+
+**Composition rules (locked):** Flat and wide rather than round and tall; broken silhouette, not repeated circular ribs; mostly at natural outer coast, headlands and believable shoreline boundaries; any interior rock is only the low, physically backed cover already present in gameplay. Avoid pink balloons, floating offshore boulders, rock rows, standalone concrete blocks, overlapping coplanar aprons and z-fighting. Rock colors may catch subtle Nordic summer-night sky reflection but may not become pink neon.
+
+**QA and merge gate:**
+- [ ] Geometry test demonstrates one continuous low, fractured shelf; the old 24-ring concentric dome and subdivided dodecahedron no longer render in v2.
+- [ ] Physical actor X/Z boundaries, visible authored cover collider dimensions, bridge landings, boat clearance and water/island separation remain unchanged across multiple seeds and levels.
+- [ ] Actual **844 × 390 HIGH and LOW** raid-camera captures for spawn, coast, headland and secondary islands visibly remove the rounded stone silhouette and do **not** introduce flattened generic slabs or ugly floating/coplanar seams.
+- [ ] Full game CI, current preview startup and scene-layout checks pass; physical-device Safari performance and owner visual comparison are still separate gates.
+- [ ] Record the visual verdict after viewing the actual screenshots. A passing test is **not** art acceptance. This branch must not silently overwrite P1 ground/pine changes in [draft #269](https://github.com/w4sser/protocol-rebirth-proto/pull/269) or the ongoing hero integrated-geology work in [draft #267](https://github.com/w4sser/protocol-rebirth-proto/pull/267).
+
+**Status at creation:** Implemented on focused branch `feat/archipelago-v2-fractured-granite-zc-20261116` (commit `4a2f56a7`; CI-enable commit `4be7669c`). PR #275 stays **draft** pending captured-image review, geometry tests and full CI. No visual-target parity claim.
+
 ## Pass Z — Ground Cleanup & Subtle Sky Tint on Pines (Updated 16 Nov 2026)
 
 **Purpose:** Remove distracting bright/white-looking ground clutter from actual Archipelago v2 gameplay views and restore a calm, readable Nordic summer-night palette. This is a **subtractive art pass**, not a coastline redesign. Pine sky reflection is secondary to ground cleanup.
