@@ -255,7 +255,12 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // non-playable fringe to become deep rounded rock volumes instead of a
     // steep, paper-thin grey coastal ribbon. The original rectangular floor
     // plus 1.10 m of actor clearance stays flat and walkable everywhere.
-    const inlandRoot=isBridge?0:Math.min(spareInland,2.35*influence);
+    // Do not steal inland room to fake a wide cliff when a neighbor or
+    // bridge already blocks its seaward root. This preserves low rocky
+    // shelves in narrow channels even where the authored island has spare
+    // outer walking ground.
+    const offshoreRoom=smooth(.25,1.50,actualGain);
+    const inlandRoot=isBridge?0:Math.min(spareInland,2.35*influence*offshoreRoom);
     p.playableRadial-=inlandRoot;
     p.heroInlandRoot=inlandRoot;
     // Height cannot be directly proportional to *coast expansion*. On a
