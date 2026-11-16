@@ -301,6 +301,7 @@ test('hero cliff elevation survives neighbors limiting offshore headland expansi
   authorHeroIslandCoast(hero,{rockAngles:[angle],neighborProfiles:[blockingNeighbor]});
   const p=hero.points.find(x=>x.angle===angle);
   assert.ok(Math.abs(p.radial-baseline)<.02,'neighbor prevents offshore cliff footprint expansion');
+  assert.ok((p.heroInlandRoot??0)<.05,'neighbor-clipped headland cannot reclaim walking space to fake offshore width');
   assert.ok(p.heroRelief>.15,'cliff elevation remains visible despite width constraint');
   const shore=coastRingData(hero),i=hero.points.indexOf(p),n=hero.points.length;
   // A constrained coast must NOT invent a steep retaining wall. A recognizable
