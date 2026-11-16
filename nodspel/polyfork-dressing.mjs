@@ -19,7 +19,8 @@ const SAMPLE_IDS=[
 ];
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
-const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6','marram-grass-tuft-8c7a99']);
+const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6']);
+const PALE_BEACH_TUFT='marram-grass-tuft-8c7a99';
 const BLEACHED_WOOD_DETAIL=new Set(['fallen-log-1685fb','driftwood-log-89a68f','seaweed-drift-line-6566c3']);
 // V2 removes all bleached driftwood/white seaweed and retains only sparse,
 // near-shore light vegetation. Existing seeded choices are filtered in place,
@@ -85,7 +86,8 @@ export function filterDressingTrees(items,{nativePines=false,quietGround=nativeP
     if(nativePines&&LEGACY_TREE_ASSETS.has(item.id))return false;
     // 844x390 screen-ray QA identified white twig/seaweed piles as Polyfork
     // scene props, not the approved dark windfall cover mesh.
-    if(quietGround&&BLEACHED_WOOD_DETAIL.has(item.id))return false;
+    if(quietGround&&(BLEACHED_WOOD_DETAIL.has(item.id)||item.id===PALE_BEACH_TUFT))
+      return false; // 844x390 capture shows even leftover marram as white confetti
     if(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id))
       return keepSparseGroundDetail(item)&&keepLightDetailAtShore(item,level,blocked);
     return true;

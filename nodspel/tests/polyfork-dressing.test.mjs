@@ -83,17 +83,17 @@ test('native v2 thins bright white-looking detail without affecting legacy or LO
     'normal live Archipelago keeps its original driftwood and log props');
   const paleTufts=Array.from({length:100},(_,i)=>({id:'marram-grass-tuft-8c7a99',x:i*1.31,z:i*0.71}));
   const surviving=filterDressingTrees(paleTufts,{nativePines:true});
-  assert.ok(surviving.length>=15&&surviving.length<=45,
-    'pale beach-grass speckles are reduced by roughly 70% without total removal');
-  assert.ok(surviving.every(item=>paleTufts.includes(item)),
-    'marram thinning preserves original deterministic locations');
+  assert.deepEqual(surviving,[],
+    'pale beach-grass tufts still read as white confetti at 844x390, so v2 removes them');
+  assert.equal(filterDressingTrees(paleTufts).length,100,
+    'default/non-v2 beach grass remains unchanged');
   assert.deepEqual(filterDressingTrees(driftwood,{nativePines:true}),[driftwood[3]],
     'native v2 removes bleached logs and ray-identified white seaweed drift line, while keeping gameplay cover');
 });
 
 test('Pass ZA: residual bright detail is shoreline-only and clears player, POIs and approach routes',()=>{
   const f=level.floors[0];
-  const sample=(x,z,id='marram-grass-tuft-8c7a99')=>({id,x,z,h:.4});
+  const sample=(x,z,id='wildflower-68d3a1')=>({id,x,z,h:.4});
   const interior=Array.from({length:20},(_,i)=>sample(f.x-4+i*.35,4.5));
   const spawn=Array.from({length:20},(_,i)=>sample(level.start.x+i*.18,level.start.z));
   const objective=Array.from({length:20},(_,i)=>sample(level.nodes[0].x+i*.11,level.nodes[0].z));
@@ -110,6 +110,8 @@ test('Pass ZA: residual bright detail is shoreline-only and clears player, POIs 
   assert.ok(kept.length>1,'some sparse coastal detail is still present');
   assert.ok(kept.length<coast.length*.35,'remaining pale coastal plants stay sparse');
   assert.ok(kept.every(item=>coast.includes(item)),'only shoreline pockets retain pale detail');
+  assert.deepEqual(filterDressingTrees([sample(-f.w/2+.5,5,'marram-grass-tuft-8c7a99')],
+    {nativePines:true,level}),[],'no white tuft survives even at the shoreline');
   const dark=[sample(0,0,'grass-tuft-a40a08'),sample(-4,2,'round-bush-cd2ac0'),
     sample(0,2,'medium-rock-e08405')];
   assert.deepEqual(filterDressingTrees(dark,{nativePines:true,level}),dark,
