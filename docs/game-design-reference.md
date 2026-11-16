@@ -345,6 +345,12 @@ Telegraphs, projectile visibility, impact areas, enemy orientation, and recovery
 
 **Open for playtest and implementation:** Exact hit/defeat clips, enemy variety, impact shaders/particles, sound mix, hit marker treatments, timing/intensity, source-of-truth integration, art production and real-device performance. These are not additional high-level votes. **Next priority is a playable proof-of-fun slice** combining common animated Operator + Basic Carbine + a couple of existing distinct enemy threats + verified hit/defeat feedback + meaningful in-raid BIT reactions + a genuine loot/extraction choice. Suggested test scope does not authorize code or assets in this documentation PR. [D01]
 
+### 5.8 M43 — Enemy friendly fire and artillery knockback (owner approved)
+
+**APPROVED M43 (15 November 2026):** The world does not automatically protect hostile allies from their own attacks. A skilled Operator can bait a telegraphed artillery circle onto other enemies and dodge the committed explosion. It deals real damage and knocks living targets a short distance outward, subject to existing walls, occupied spaces and island-floor boundaries. The same explosion remains dangerous to the Operator; active dash invulnerability prevents both damage and push.
+
+The first playable slice covers grenadier/artillery area blasts only (2 HP against enemies and 1.05 m maximum radial push as initial test tuning), not all bullets or charges. Enemy deaths remain real and readable but do not award player on-kill healing. No new button, loot grant, automatic stun or scripted defeat is implied. See [M43](design-decisions.md#m43--enemy-friendly-fire-as-emergent-tactical-counterplay).
+
 ## 6. Loot, inventory, extraction, and loss
 
 ### 6.1 Three different places a possession can be
