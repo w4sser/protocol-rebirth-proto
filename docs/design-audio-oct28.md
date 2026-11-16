@@ -156,3 +156,68 @@ until much later.
 Guarded by `splash-no-autoadvance-before-coldopen` and `version-label-visible-on-start` in
 `scripts/bug-lint.mjs` plus `test/coldopen-vo-sync.test.js` (the same `FakeIOSAudioContext`
 pattern as above) -- see `docs/bug-lint.md` PRB-161 for the full scenario list.
+
+### Second cause: the raid-return cold open has no splash and no gesture at all
+
+The fix above only covers the path where the splash is shown (a first launch, cold open coming
+next) -- the start tap already calls `unlockSync()` before any of it matters. Robert's actual
+playthrough takes a different path to the same symptom: a brand-new profile goes splash tap ->
+`A.startFtueDirect()` -> the FTUE raid on the separate `nodspel/` page -> back to `index.html`
+with a raid result (`coreIngest.ok`). On that return load, `setupSplash(...,
+returningFromRaid=true, ...)` skips the splash outright (`shown = !!returningFromRaid`, see
+"a raid result waiting ... always skips the splash" in `setupSplash`) and returns `null` --
+*before* it ever reaches its own `PR_AUDIO.preload()` call. With `!S.introSeen`, `session.screen
+= "intro"` then renders the cold open immediately: this is a brand-new document, so its
+`AudioContext` is still fully suspended, `bit/youre-back` isn't even decoding yet, and no gesture
+has happened on this document at all. Reusing the first fix's 1.5s `.vo-wait` cap here would
+silently start line 1 with no VO on every raid return on iOS, once the cap simply expired --
+exactly the same symptom, through a second route.
+
+- **`armVoiceGate()` gates on a real gesture, with no cap, whenever one hasn't happened yet on
+  this document.** It calls `audio.init?.()` first (building the context/gain graph with no
+  resume and no gesture needed -- the splash-shown path already does this via `preload()`, but a
+  raid return skips that too, so without this call `audio.context` would still read `null` and a
+  platform that genuinely runs with no gesture, e.g. desktop autoplay, would wrongly get the
+  prompt). It then shows the gesture prompt only when the context truly isn't running, no unlock
+  is already in flight (`audio.unlockPromise`, e.g. `armUnlockWait()` armed by some earlier path),
+  and audio isn't muted in settings -- any of those three bypass straight to the ordinary capped
+  `waitForVoice()`, same as the first fix. The prompt itself is `.vo-wait-tap`: a pulsing "TAP TO
+  WAKE BIT" label styled like the splash's own "TAP ANYWHERE TO BEGIN" prompt (same tokens/pill/
+  pulse), low-center and safe-area aware, clear of BIT and of the lines/button (hidden behind
+  `.vo-wait` while this shows). BIT himself is forced to his idle float state (`.intro.vo-wait-tap
+  .intro-bit`) instead of staying invisible mid power-on under the blanket `.intro.vo-wait *`
+  pause rule, so he's not just a blank backdrop while the player is asked to tap. Unlike
+  `.vo-wait`'s 1.5s cap, `.vo-wait-tap` has **no timeout at all** -- it only clears on an
+  explicit tap, since there is nothing else (no earlier gesture, no splash tap) that could ever
+  unlock audio on this document otherwise.
+- **The first tap/touchend unlocks explicitly and must never read as a cold-open skip.**
+  `onGestureTap` calls `PR_AUDIO.unlockSync()` directly (in addition to `installUnlock`'s own
+  capture listeners) and clears `.vo-wait-tap`, then proceeds through the same `waitForVoice()`
+  gate as the capped path. The tricky part is iOS: it fires `touchend` first, then a **separate**
+  synthesized `click` a beat later. The first cut of this fix had `onGestureTap` only remove
+  `.vo-wait-tap` on `touchend` and relied on `A.introSkip` checking that class -- by the time the
+  later `click` reached the inline `onclick="A.introSkip(event)"` (which fires before any
+  `addEventListener`-registered handler added by script, since it was set when `.intro`'s markup
+  was parsed), the class was already gone and `introSkip` had nothing left to check, so it fell
+  through and skipped the cold open on every iOS raid return -- precisely the kind of regression
+  this whole gate exists to prevent. `onGestureTap` now also stamps
+  `intro.dataset.gateTapAt = String(Date.now())` the instant it fires; `A.introSkip` ignores a
+  click while `.vo-wait-tap` is still present (the ordinary case, a single click/keyboard
+  activation) **or** within `GATE_TAP_SKIP_GUARD_MS` (800ms -- real synthesized-click delays are
+  well under 300ms) of that timestamp, `stopPropagation`ing either way so the tap never bubbles
+  into some unrelated ancestor handler either.
+- **Reduced motion gets the same gate, no pulse.** The prompt's pulsing animation is suppressed
+  (`@media (prefers-reduced-motion: reduce)` already forces the lines/button to full opacity
+  elsewhere in this file's CSS; the gate's own rule re-hides them under `.vo-wait-tap` so the
+  gesture requirement still holds even though the ordinary reveal animation is disabled).
+
+Guarded by `coldopen-gesture-gate-after-raid-return` in `scripts/bug-lint.mjs` plus
+`test/coldopen-vo-sync.test.js`'s Part C (`bootAppReturningFromRaid()`, seeding
+`pr_raid_result_v1` so `coreIngest.ok` is true the same way a real raid return sets it): no
+gesture at all holds the prompt with no release even after 5s; a tap calls `unlockSync()`
+synchronously and, once running + decoded, clears the gate with `requestVoice('youre-back')`
+landing in the same tick as the first line's `animationstart`; the gate tap never counts as a
+skip for a plain click or for touchend-then-a-separate-synthesized-click (the latter verified to
+actually fail without the `gateTapAt` fallback, proving the regression test catches the real
+bug); and both already-running (e.g. desktop autoplay) and muted-in-settings skip the prompt
+entirely -- see `docs/bug-lint.md` PRB-161 follow-up for the full scenario list.

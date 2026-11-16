@@ -348,6 +348,22 @@ export const RULES=[
      if(!/body\.splash-active #topbar,body\[data-screen=intro\] #topbar\{z-index:94;\}/.test(html))out.push('index.html: #topbar needs a raised z-index during splash-active/intro, or #app-version (position:static inside #topbar) stays visually covered by #splash/.intro even though it is no longer hidden');
      return out;}},
 
+  {id:'coldopen-gesture-gate-after-raid-return',pr:'v2.28.3x PRB-161 follow-up (raid-return gesture gate)',why:'setupSplash\'s returningFromRaid branch skips the splash -- and its PR_AUDIO.preload() call -- outright, so a raid return (e.g. after the FTUE raid) renders SCREENS.intro on a brand-new document with no gesture behind it at all; reusing the 1.5s vo-wait cap there would silently start line 1 with no VO on every such return. A tap must also never be mistaken for a cold-open skip, including iOS\'s touchend-then-a-separate-synthesized-click: onGestureTap used to only clear the .vo-wait-tap class, so by the time the later click reached A.introSkip there was nothing left for it to check',
+   check(c={}){const out=[],app=c.appSrc??read('app.js');
+     const gateFn=(app.match(/const armVoiceGate = \(\) => \{[\s\S]*?\n    \};/)||[''])[0];
+     if(!gateFn){out.push('app.js: SCREENS.intro\'s armVoiceGate() was not found in its expected form');return out;}
+     if(!/audio\.init\?\.\(\);/.test(gateFn))out.push('app.js: armVoiceGate() must call audio.init?.() before reading audio.context -- a raid return never ran preload(), so context would otherwise still be null');
+     if(!/const running = audio\.context\?\.state === "running";/.test(gateFn))out.push('app.js: armVoiceGate() must check whether the AudioContext is already running before gating on a tap');
+     if(!/if\(running \|\| audio\.unlockPromise \|\| muted\)\{ waitForVoice\(\); return; \}/.test(gateFn))out.push('app.js: armVoiceGate() must skip the gesture prompt when already running, an unlock is in flight, or audio is muted');
+     if(!/intro\.classList\.add\("vo-wait-tap"\);/.test(gateFn))out.push('app.js: armVoiceGate() must show the "TAP TO WAKE BIT" gate (.vo-wait-tap) when none of the above hold');
+     if(!/intro\.dataset\.gateTapAt = String\(Date\.now\(\)\);/.test(gateFn))out.push('app.js: onGestureTap must stamp intro.dataset.gateTapAt the instant it fires -- introSkip needs this once the class itself is gone (see below)');
+     const skipFn=(app.match(/introSkip\(ev\)\{[\s\S]*?\n  \},/)||[''])[0];
+     if(!skipFn){out.push('app.js: window.A.introSkip was not found in its expected form');return out;}
+     const hasSkipGuard=skipFn.includes('if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }');
+     if(!hasSkipGuard)out.push('app.js: A.introSkip\'s final skip guard must ignore a click while .vo-wait-tap is still present OR within the gateTapAt guard window -- iOS fires touchend then a SEPARATE synthesized click, by which point onGestureTap has already removed .vo-wait-tap, so the class check alone is not enough');
+     if(!/const withinGateTapGuard = !!gateTapAt && \(Date\.now\(\) - gateTapAt\) < GATE_TAP_SKIP_GUARD_MS;/.test(skipFn))out.push('app.js: A.introSkip must compute withinGateTapGuard from dataset.gateTapAt against a time window (GATE_TAP_SKIP_GUARD_MS)');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

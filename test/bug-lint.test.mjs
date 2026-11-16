@@ -232,3 +232,24 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  )}).length,'fires if #topbar itself (not just its other children) is hidden during the cold open again');
  assert.ok(rule.check({indexHtml:html.replace('body.splash-active #topbar,body[data-screen=intro] #topbar{z-index:94;}','')}).length,'fires if #topbar loses the z-index bump that clears #splash/.intro');
 }
+
+// PRB-161 follow-up: the raid-return cold open (no splash, no gesture at all on this document)
+// must gate on a tap instead of reusing the capped vo-wait, and A.introSkip must ignore that
+// tap even once .vo-wait-tap is already gone (iOS touchend-then-a-separate-synthesized-click).
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const rule=by('coldopen-gesture-gate-after-raid-return');
+ assert.equal(rule.check().length,0,'passes on the real app.js');
+ assert.ok(rule.check({appSrc:app.replace('audio.init?.();\n      const muted','const muted')}).length,'fires if armVoiceGate stops calling audio.init() first (context would read null on a raid return, which never ran preload())');
+ assert.ok(rule.check({appSrc:app.replace('if(running || audio.unlockPromise || muted){ waitForVoice(); return; }\n      intro.classList.add("vo-wait-tap");','intro.classList.add("vo-wait-tap");')}).length,'fires if the already-running/unlocking/muted bypass is dropped (the prompt would then show even when nothing needs a gesture)');
+ assert.ok(rule.check({appSrc:app.replace('intro.classList.add("vo-wait-tap");','')}).length,'fires if the gesture prompt itself is removed');
+ assert.ok(rule.check({appSrc:app.replace('intro.dataset.gateTapAt = String(Date.now());\n        ','')}).length,'fires if onGestureTap stops stamping gateTapAt (introSkip would have nothing to fall back on once the class is gone)');
+ assert.ok(rule.check({appSrc:app.replace(
+   'if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }',
+   'if(el && el.classList.contains("vo-wait-tap")){ if(ev) ev.stopPropagation(); return; }'
+ )}).length,'fires if introSkip drops the gateTapAt fallback and only checks the class (the original bug: touchend already removed it by the time the synthesized click arrives)');
+ assert.ok(rule.check({appSrc:app.replace(
+   'if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }',
+   'if(false){ if(ev) ev.stopPropagation(); return; }'
+ )}).length,'fires if introSkip stops checking .vo-wait-tap entirely');
+}
