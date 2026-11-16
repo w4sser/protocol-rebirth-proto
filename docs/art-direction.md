@@ -1,5 +1,7 @@
 # Art Direction v07 — Gameplay Expression and Mobile Readability
 
+**Visual north star:** [Art Direction Rev 06 — indexed reference and original-PDF provenance](visual-north-star-rev06.md). The original Rev 06 governs the mood, shape language, light, mobile legibility, and identity principles below. Later owner-approved decisions and this v07 remain authoritative wherever they refine or supersede the historical PDF. The source PDF is currently held privately, and this PR does not claim to include its original binary.
+
 **Status (9 November 2026):** v07 extends the established AD06 visual identity with gameplay art direction aligned to the owner-approved [M38–M41 design decisions](design-decisions.md). It is **not a new visual style**, a new gameplay mechanic, or approval for full-scale asset production. Exact models, facial expressions, animation clips, shaders, timings, technical solutions, and quality budgets remain subject to playable mobile tests.
 
 **Historical source:** `ad06.pdf` (30 pages; owner review, 14 October). Key pages were previously rendered in `/workspace/art-direction/pages/` (p01, p07 palette, p08 readability, p22–23 BIT, p28 locked/open, p30 map). AD06 locked the tone, palette, OP-01, and BIT's original visual identity, while describing UI/HUD, weapons, combat VFX, enemies, and biomes as not yet fully designed.
