@@ -104,13 +104,24 @@ const b=boot(null,originalEntries);
 b.w.A.go('dev');
 assert.match(b.w.document.getElementById('app').textContent,/Unlock All Worlds/);
 assert.match(b.w.document.getElementById('app').textContent,/Unlock Everything/);
-originalRaw=b.w.localStorage.getItem('pr_meta_save');
 b.w.A.devUnlock('worlds');
 assert.match(b.urls[0],/debugMode=worlds/);
+// devUnlock persists pending normal progress first (only idle timestamps move), then must never write again.
+originalRaw=b.w.localStorage.getItem('pr_meta_save');
+assert.equal(b.w.localStorage.getItem('protocol-rebirth:debug:worlds:pr_meta_save'),originalRaw,'sandbox seeded from the saved normal state');
 b.w.dispatchEvent(new b.w.Event('beforeunload'));
 assert.equal(b.w.localStorage.getItem('pr_meta_save'),originalRaw);
 const seeded=Object.fromEntries(Object.keys(b.w.localStorage).map(key=>[key,b.w.localStorage.getItem(key)]));
 b.close();
+{ // v2.28.42 review: entering a sandbox sets resetting=true, so unsaved normal progress must be persisted first.
+  const p=boot(null,originalEntries), st=p.w.__test.state(), cur=Object.keys(st.cur)[0];
+  assert.ok(cur,'state has a currency');
+  st.cur[cur]=(st.cur[cur]||0)+7; // in-memory only: no save() yet
+  p.w.A.devUnlock('worlds');
+  assert.equal(JSON.parse(p.w.localStorage.getItem('pr_meta_save')).cur[cur],st.cur[cur],'pending normal progress saved before entering the sandbox');
+  assert.equal(JSON.parse(p.w.localStorage.getItem('protocol-rebirth:debug:worlds:pr_meta_save')).cur[cur],st.cur[cur],'sandbox seeded from the same state');
+  p.close();
+}
 for(const mode of ['worlds','all']){
   const booted=boot(mode,seeded), {w,urls}=booted;
   assert.equal(w.PR_DEBUG.normalSave(),originalRaw);

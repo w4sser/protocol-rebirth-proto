@@ -21,4 +21,3 @@ test('markup: icon room box, seed hidden unless debug, no text-only gate line',(
   assert(/sl\.hidden=!SEED_LABEL/.test(g)&&/SEED_LABEL=DEBUG&&[^\n]*'seed-label'/.test(g),'seed only with ?debug=1&seed-label=1');assert(/id="seed-label" hidden/.test(html));
   assert(/class="item-tile|item-tile/.test(g)&&/need-tiles/.test(g),'bag + NEED rows are item tiles');
 });
-

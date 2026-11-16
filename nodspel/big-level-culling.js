@@ -44,4 +44,3 @@ export function createRoomVisibility(level,world){
     for(let i=temporary.length-1;i>=0;i--){const child=temporary[i];if(!child.parent){temporary.splice(i,1);continue;}child.getWorldPosition(point);child.visible=ownersAt(point).some(id=>awake.has(id));}
   };
 }
-

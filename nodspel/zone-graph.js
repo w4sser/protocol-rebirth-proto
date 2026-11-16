@@ -42,4 +42,3 @@ export function generateZoneGraph(seed){
   graph.extracts=['open','timed','key'].map((type,i)=>({id:`extract-${type}`,type,roomId:far[i].id,x:far[i].x,z:far[i].z+RULES.exit.z,r:RULES.exit.r,...type==='timed'?{opensAtMs:60000,closesAtMs:240000}:{},...type==='key'?{key:'big-vault-key'}:{}}));
   return graph;
 }
-

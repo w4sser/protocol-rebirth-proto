@@ -223,4 +223,3 @@ export function tapDirection(position,facing,enemies,obstacles,rule=RULES.weapon
   const dx=target?target.x-position.x:facing.x,dz=target?target.z-position.z:facing.z,length=Math.hypot(dx,dz)||1;
   return {x:dx/length,z:dz/length};
 }
-

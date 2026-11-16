@@ -113,4 +113,3 @@ function buildHouse(h,group,assets,Q){const g=new THREE.Group();group.add(g);con
   update({x:1e9,z:1e9},1);
   return {group:g,update,get inside(){return inside;},get roofOpacity(){return k;},roof,doorClosed,doorOpen,fadeWalls,fadeRoof};
 }
-

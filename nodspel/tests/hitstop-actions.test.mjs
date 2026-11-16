@@ -48,4 +48,3 @@ test('perk pick rejects fresh actions and never replays buffers while paused',()
   h.ctx.toolTap();h.ctx.useKit();h.resume();
   assert.equal(h.round.tool.thrown,0);assert.equal(h.round.kit.medkit,2);
 });
-

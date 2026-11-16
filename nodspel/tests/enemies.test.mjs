@@ -226,4 +226,3 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   await attachEnemyModel(failed,()=>false,failure);assert.equal(failed.body.visible,true);assert.equal(failed.enemyModel,undefined);
   const disposed=visual({type:'rusher'});await attachEnemyModel(disposed,()=>true,loader);assert.equal(disposed.enemyModel,undefined);
 });
-

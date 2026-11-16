@@ -121,4 +121,3 @@ test('game presents countdown through existing notice and renders spawned hunter
   assert.match(src,/EXTRACT IN \$\{seconds\}/);
   assert.match(src,/EXTRACT OPEN - Reach the beam to secure your loot\./);
 });
-

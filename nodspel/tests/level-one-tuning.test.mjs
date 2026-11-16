@@ -29,4 +29,3 @@ test('enemies stop approaching at the stand-off distance',()=>{
   const d=8-r.level.enemies[0].z;assert.ok(d>=3.4&&d<=3.6,`distance ${d}`);
 });
 test('total node count is computed from level rules',()=>{assert.equal(totalNodes(),6);});
-

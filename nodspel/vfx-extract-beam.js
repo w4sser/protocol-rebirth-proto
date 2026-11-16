@@ -145,4 +145,3 @@ export function createExtractBeam({color=EXTRACT_COLOR,quality='high'}={}){
   return {group,update,dispose,setQuality,isOpen:()=>open,
     pad,contact,pulseRings,beam,beamMaterial,points,core,fence,rim,get particleCount(){return tier.particles;},get noise(){return tier.noise;}};
 }
-

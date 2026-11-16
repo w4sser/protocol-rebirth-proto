@@ -396,4 +396,3 @@ export function enterExit(round,position,now) {
   if(round.stakes)round.stakes.pendingSpawn=null;
   return 'next';
 }
-

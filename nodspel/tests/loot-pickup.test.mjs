@@ -7,4 +7,3 @@ test('loot is collected within the widened 1.6 pickup radius',()=>{
   assert.equal(collectLoot(r,{x:1.7,z:0},0),false);
   assert.equal(collectLoot(r,{x:1.5,z:0},0),true);assert.equal(r.bag.cable,1);
 });
-

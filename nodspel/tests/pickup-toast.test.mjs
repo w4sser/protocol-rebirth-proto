@@ -68,4 +68,3 @@ test('first-seen material pickups go through the shared PRBitCard, not a bare no
   assert(/PRBitCard\?\.show\(\{id:'mat:'\+item,text:bitLine\.replace\(\/\^BIT:\\s\*\/,''\),mood:'happy'\}\)/.test(g),
     'pickup fires PRBitCard.show with a stable mat:<item> id, the prefix-stripped line, and a happy mood');
 });
-

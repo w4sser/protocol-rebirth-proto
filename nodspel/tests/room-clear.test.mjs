@@ -89,4 +89,3 @@ for(const area of ['bunker','archipelago'])test(`${area}: normal round loading a
   assert.equal(pickAt(r,p),null);
   }finally{setArea('bunker');}
 });
-

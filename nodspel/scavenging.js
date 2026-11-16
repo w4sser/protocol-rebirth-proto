@@ -15,4 +15,3 @@ export function stepScavenging(weapon,round,position,now,obstacles,{moving=false
   if(hold.progress<1)return false;
   weapon.ammo=(weapon.rule??RULES.weapon).capacity;weapon.reloadAt=null;weapon.scavenging=null;return true;
 }
-

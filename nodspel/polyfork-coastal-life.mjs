@@ -86,4 +86,3 @@ export function planCoastalLifeDressing(level,{quality='high',density=1}={}){
   }
   return {regions:base.regions,items:base.items,landmarks:[]};
 }
-

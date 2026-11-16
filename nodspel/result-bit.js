@@ -45,4 +45,3 @@ function selectReaction(r,res,storage){
   try{storage?.setItem('pr_bit_last_raid_line',selected.id);if(ext&&(r.raidId||r.cfg))storage?.setItem('pr_bit_first_extract','1');}catch(e){}
   return { trigger, mood:pool.mood, id:selected.id, line:selected.line };
 }
-

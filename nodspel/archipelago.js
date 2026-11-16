@@ -569,4 +569,3 @@ export function pineTree(spot,box,rng,pine){
   else{box(0,.4,0,.18,.8,.18,'#4a3424',g);const c=new THREE.Mesh(new THREE.ConeGeometry(.7,1.8,7),new THREE.MeshStandardMaterial({color:'#2f6b40',roughness:.9,flatShading:true}));c.position.y=1.5;c.castShadow=true;g.add(c);}
   g.scale.setScalar(s);g.rotation.y=rng()*6.3;g.name='pine';return g;
 }
-

@@ -130,4 +130,3 @@ export function planProfiledDressing(level,{quality='high',density=1}={}){
   for(let i=0;i<minor.length&&kept.length<lowLimit;i+=stride)kept.push(minor[i]);
   return {regions,items:kept.map(({radius,...item})=>item)};
 }
-

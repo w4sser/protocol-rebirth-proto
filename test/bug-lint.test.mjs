@@ -253,3 +253,17 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
    'if(false){ if(ev) ev.stopPropagation(); return; }'
  )}).length,'fires if introSkip stops checking .vo-wait-tap entirely');
 }
+{
+ const rule=by('debug-sandbox-isolated');
+ const rd=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
+ const app=rd('app.js'),sb=rd('ui/debug-sandbox.js'),smoke=rd('scripts/debug-unlocks-smoke.mjs'),layout=rd('scripts/layout-check.mjs'),index=rd('index.html'),raid=rd('nodspel/index.html');
+ assert.equal(rule.check().length,0,'passes on the real sources');
+ assert.ok(rule.check({indexSrc:index.replace('<script src="ui/debug-sandbox.js','<script src="ui/viewport.js"></script><script src="ui/debug-sandbox.js')}).length,'fires if a script runs before the sandbox on the base page');
+ assert.ok(rule.check({raidHtmlSrc:raid.replace('<script src="../ui/debug-sandbox.js','<script src="../ui/x.js')}).length,'fires if the raid page stops loading the sandbox first');
+ assert.ok(rule.check({sandboxSrc:sb.replace('proto.clear = function','proto.clearX = function')}).length,'fires if a Storage method is left un-namespaced');
+ assert.ok(rule.check({sandboxSrc:sb.replace("native.setItem.call(window.localStorage, prefix + 'pr_meta_save', raw)","native.setItem.call(window.localStorage, 'pr_meta_save', raw)")}).length,'fires if seed() writes the normal save key');
+ assert.ok(rule.check({appSrc:app.replace('if(!debugMode()) save(); ','')}).length,'fires if devUnlock stops saving pending normal progress first');
+ assert.ok(rule.check({smokeSrc:smoke.replace("level.area??'bunker'","level.area")}).length,'fires if the smoke reads level.area raw (undefined for bunker)');
+ assert.ok(rule.check({smokeSrc:smoke.replace('Promise.race([handoff,button])','button')}).length,'fires if the smoke only waits for the #return-base click');
+ assert.ok(rule.check({layoutSrc:layout.replace("'scripts/debug-unlocks-smoke.mjs'","'scripts/other.mjs'")}).length,'fires if the smoke is unhooked from required CI');
+}

@@ -201,4 +201,3 @@ export function lootMultiplier(state){
   }
   return n?1+.2*clamp(sum/n,0,1):1;
 }
-

@@ -17,4 +17,3 @@ test('a pedestal blocks player and enemy shots symmetrically',()=>{
   for(let t=1000;t<2000&&w.projectiles.length;t+=16)weapon.stepWeapon(w,r,t,.016,[pedestal]);
   assert.equal(r.level.enemies[0].health,2);
 });
-

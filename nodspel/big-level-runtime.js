@@ -37,4 +37,3 @@ export function createBigLevelRuntime(level,world,makeLabel){
     dispose(){overlay.remove();}
   };
 }
-

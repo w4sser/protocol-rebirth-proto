@@ -29,4 +29,3 @@ export function stepBIT(bit,round,position,dt,moving,solids,floors){
   if(healed>0&&hasPerk(round,'medic'))logCombat(round,{kind:'perk',perk:'medic',text:`Field Medic: healed ${healed} HP while stationary.`,seconds:dt});
   return healed>0;
 }
-

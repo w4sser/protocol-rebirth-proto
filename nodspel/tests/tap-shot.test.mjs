@@ -88,4 +88,3 @@ test('real fire path buffers tap mode and selects its target when hitstop ends',
   ctx.gameClock=()=>300;ctx.fire();assert.equal(shots[1].tap,false);
   close(shots[1].remaining,a.weapon.rule.range);
 });
-

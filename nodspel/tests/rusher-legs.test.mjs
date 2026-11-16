@@ -116,4 +116,3 @@ test('unchanged rusher GLB rests upright and grounded with independent clone pos
     assert.notEqual(a.enemyModel.parts[name].userData.restQuaternion,b.enemyModel.parts[name].userData.restQuaternion);
   }
 });
-

@@ -132,4 +132,3 @@ export function createLootBurstPool({quality='high'}={}){
   return {group,spawn,update,dispose,setQuality,capacity,points,rings,get perBurst(){return tier.perBurst;},
     positions,alive};
 }
-

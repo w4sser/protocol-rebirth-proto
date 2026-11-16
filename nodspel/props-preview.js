@@ -59,4 +59,3 @@ export function addPropsPreview(level,scene,{profile='high'}={}){
     .catch(e=>{stats.error=String(e);console.error('[props-preview] failed',e);});
   return {group,stats,ready,dispose(){scene.remove(group);group.clear();}};
 }
-

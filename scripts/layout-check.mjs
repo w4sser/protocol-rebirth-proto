@@ -853,10 +853,15 @@ try{
   if(group('raid-bunker'))for(const vp of VIEWPORTS)await raidRun(vp,'bunker');
   if(group('raid-town'))for(const vp of VIEWPORTS)await raidRun(vp,'town');
 }finally{await browser.close();server.close();}
+// Debug-unlock sandbox smoke (both modes x every world, normal save untouched) rides on the
+// required layout/base job; the token that ships PRs cannot add a dedicated workflow file.
+if(group('base')&&process.env.DEBUG_UNLOCKS_SMOKE!=='0'){
+  const smoke=spawnSync(process.execPath,[join(root,'scripts/debug-unlocks-smoke.mjs')],{cwd:root,stdio:'inherit'});
+  if(smoke.status!==0)failures.push(`debug-unlocks smoke failed (exit ${smoke.status}) -- run node scripts/debug-unlocks-smoke.mjs`);
+}
 // one line per problem, listing the viewports it happens at
 const grouped=new Map();
 for(const f of failures){const m=f.match(/^(\w+(?: \w+)?) (\d+x\d+)(.*)$/);const k=m?m[1]+m[3]:f;grouped.set(k,[...(grouped.get(k)||[]),m?m[2]:'']);}
 const uniq=[...grouped].map(([k,v])=>`${k}  [${[...new Set(v)].join(', ')}]`);
 if(uniq.length){console.error(`\nlayout-check: ${uniq.length} failure(s)\n - `+uniq.join('\n - '));console.error(`screenshots: ${OUT}`);process.exit(1);}
 console.log(`layout-check: ok (screenshots in ${OUT})`);
-

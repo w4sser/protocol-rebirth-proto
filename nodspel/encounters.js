@@ -368,4 +368,3 @@ function placeGrenadier(level,rng){
 }
 
 const PLACERS={grenadier:placeGrenadier,guard:placeGuard,turret:placeTurret,shield_turret:(level,rng)=>placeTurret(level,rng,'shield_turret'),patrol:placePatrol,swarm:placeSwarm,shield:placeShield,door:placeDoor};
-

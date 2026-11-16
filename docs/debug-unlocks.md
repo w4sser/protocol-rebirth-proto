@@ -16,3 +16,6 @@ Implementation plan and checks:
 5. Merge only after every relevant check succeeds; verify the Pages deployment and published assets.
 
 Run `npm run test:debug-unlocks` and `node scripts/debug-unlocks-smoke.mjs` (Puppeteer). Set `DEBUG_SMOKE_URL` to the published root URL to run the same smoke against Pages. Local Windows has no `/workspace/qa.sh`; the repository CI runs the base, raid, layout and end-to-end gates.
+
+CI: the smoke runs inside `node scripts/layout-check.mjs` for the `base` group (required `layout / base` check; skip locally with `DEBUG_UNLOCKS_SMOKE=0`). The patch's dedicated `.github/workflows/debug-unlocks.yml` was not added because the PR token lacks the `workflow` scope; it can be added later by hand with no other change.
+

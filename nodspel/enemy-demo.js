@@ -63,4 +63,3 @@ export function applyEnemyDemoMixed(level,search,area='bunker'){
   );
   level.enemyDemo=true;return true;
 }
-

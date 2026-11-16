@@ -499,4 +499,3 @@ export function hazardTiming(hazard,now){
   return {state:t>=H.offMs-H.warnMs?'warn':'off',msToOn:H.offMs-t};
 }
 export function hazardState(hazard,now){return hazardTiming(hazard,now).state;}
-

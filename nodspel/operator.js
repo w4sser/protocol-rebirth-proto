@@ -121,4 +121,3 @@ export async function loadHumanOperator(options={}){
   const character=CHARACTERS[options.characterId]??CHARACTERS[DEFAULT_CHARACTER];
   return createHumanOperator(await new GLTFLoader().loadAsync(new URL(character.model,import.meta.url).href),{...options,character});
 }
-

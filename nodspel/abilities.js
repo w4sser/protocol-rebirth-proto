@@ -44,4 +44,3 @@ export function renderAbilitySlot(button,ability,charge,remainingMs,unavailable,
   button.querySelector(`#${prefix}-fill`).style.width=`${fill*100}%`;
   button.setAttribute('aria-label',remainingMs>0?`${ability.label} cooldown ${(remainingMs/1000).toFixed(1)} seconds`:`${ability.label} ${ability.readyText}`);
 }
-

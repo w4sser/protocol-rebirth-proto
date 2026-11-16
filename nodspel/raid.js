@@ -29,4 +29,3 @@ export function raidResult(round,weapon,outcome){
 export const resultJSON=result=>JSON.stringify(result,null,2)+'\n';
 
 */
-

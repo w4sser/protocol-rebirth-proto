@@ -161,4 +161,3 @@ export function aimConePoints(position,direction,range,halfAngle,obstacles){
   for(const angle of angles){dir.x=Math.cos(heading+angle);dir.z=Math.sin(heading+angle);out.push(aimEndpoint(position,dir,range,obstacles));}
   return out;
 }
-

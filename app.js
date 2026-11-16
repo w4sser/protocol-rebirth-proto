@@ -5005,6 +5005,7 @@ window.A = {
   devUnlock(mode){
     if(!window.PR_DEBUG || !['worlds','all'].includes(mode) || inRaid() || session.raidNavigating) return;
     try{
+      if(!debugMode()) save(); // persist pending normal progress before this page stops saving (resetting below)
       const source = debugMode() ? (window.PR_DEBUG.normalSave() || JSON.stringify(freshState())) : JSON.stringify(S);
       window.PR_DEBUG.seed(mode, source);
       resetting = true; // the departing ordinary page must not write over its saved profile
@@ -6080,4 +6081,3 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
 }
 /* export pure logic for headless tests */
 if(typeof module !== "undefined") module.exports = { prepareDebugState, goalEffectTiles, goalTilesHtml, progressionGoalHtml, progressionGoal, navAllowed, goalNeedsRaidLoot, raidFindable, ruinLevel, areaUnlocked, wmNewUnlockTarget, applyAreaProgress, areaReqs, raidArea, hardAvailable, hardOn, _getSession: () => session, raidBagCapacity, operatorSpeedBonus, craftCost, craftDiscount, masteryStars, masteredWeapon, weaponParam, migrateSkills, migrateChips, freshState, resolveRaid, rollPushDeeper, stageCount, planStages, bestLead, effTable, trackedChanceP, chanceLabel, routeOf, baseState, transitionBaseState, advanceBaseState, _setState: st => { S = st; }, _getState: () => S, applyRaidResult, canAfford, costParts, bondLevel: () => bondLevel(), bunkerStage, roomRequirementMet, roomUnlocked, migrateState, migrateChains, load, ingestRaidResult, ingestPendingCoreResult, RAID_RESULT_KEY, coreLaunchUrl, newCoreLaunch, metaReturnPath, APP_VERSION, coreResultSummary, coreResultStripHtml, coreRaidXp, playerStats, bitShieldBurst, bitSkillOn, scoutLead, confirmScav, scavPending, rollScavenge, skillLevel, statsParam, skillXpFrom, statsCardHtml, clearProgressStorage, PR_STORAGE_KEYS, have, addItem, removeItem, chipCanBuy, chipBuy, chipExchange, grantWeeklyChips, grantUnlock, isoWeekId, stashSlotsUsed, operatorLevel, questUnlocksText, unlockBits, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, loopPhase, trackedGoalHtml, restState, restBuff, canRest, doRest, roomExplainHtml, BP, powerState, migratePower, gearLevel, gearMax, gearEffect, gearCost, gearBlock, gearUpgrade, migrateGearUp, migrateCableRetro, migrateBitCardsSeen, maybeShowFirstDeathCard, chainState };
-

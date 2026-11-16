@@ -102,4 +102,3 @@ export function toggleResultDetails(root){
   const report=root.querySelector('#result-report'),details=root.querySelector('#result-details'),button=root.querySelector('#result-details-toggle');
   const show=details.hidden;root.classList.toggle('show-details',show);report.hidden=show;details.hidden=!show;button.textContent=show?'Back to result':'Raid details';button.setAttribute('aria-expanded',String(show));
 }
-

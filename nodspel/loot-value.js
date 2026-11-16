@@ -51,4 +51,3 @@ export function materialPickupBitLine(id,launch,storage=globalThis.localStorage)
   markMaterialSeen(id,storage);
   return hintText(id);
 }
-

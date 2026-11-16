@@ -69,4 +69,3 @@ function boot(save){
 // core honours the URL param (it wins over the remembered localStorage choice)
 { const g = fs.readFileSync(path + "/nodspel/game.mjs", "utf8"); assert(/AREA_PARAM\|\|/.test(g) && /Town failed to load/.test(g), "core reads area and shows a fallback notice"); }
 console.log("WORLD MAP / AREA TEST PASSED");
-

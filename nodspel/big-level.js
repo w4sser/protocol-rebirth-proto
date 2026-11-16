@@ -116,4 +116,3 @@ export function updateBigCulling(level,position,now=0,combat=null){
   }
   level.awakeRooms=awake;return awake;
 }
-

@@ -74,4 +74,3 @@ export function placeArchipelagoProps(level,{profile='high'}={}){
   }
   return out;
 }
-

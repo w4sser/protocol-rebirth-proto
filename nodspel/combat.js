@@ -342,4 +342,3 @@ export function stepHazards(round,player,now,dt,dash=null){
   }
   return false;
 }
-

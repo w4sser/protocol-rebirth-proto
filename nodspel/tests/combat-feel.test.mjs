@@ -120,4 +120,3 @@ test('tap without a visible target fires along current facing, while a target be
   assert.deepEqual(tapDirection(pos,{x:-1,z:0},[],[]),{x:-1,z:0});
   assert.deepEqual(tapDirection(pos,{x:1,z:0},[enemy('behind',-2)],[]),{x:-1,z:0});
 });
-

@@ -59,4 +59,3 @@ export function createRobotPresence({root,body,head,visor,gun,antenna,legL,legR}
   }
   return {update,shoot,hit,reset};
 }
-

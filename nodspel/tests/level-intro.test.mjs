@@ -68,4 +68,3 @@ test('debug harness URLs skip the card unless they opt in with levelIntro=1',()=
   const opt=harness({number:1,big:false},'?debug=1&levelIntro=1');opt.ctx.showLevelIntro();
   assert.equal(opt.dom.introText,'BUNKER LEVEL 1');assert.equal(opt.round.pauseAt!=null,true);
 });
-

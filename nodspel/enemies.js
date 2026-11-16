@@ -71,4 +71,3 @@ export function patrolGruntBackBonus(e,from){
   const forwardDot=(dx*Math.sin(e.facing??0)+dz*Math.cos(e.facing??0))/dist;
   return forwardDot<-.5?{kind:'flank',multiplier:ENEMY_TUNING.patrolGrunt.backDamageMul}:null;
 }
-

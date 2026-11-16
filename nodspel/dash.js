@@ -17,4 +17,3 @@ export function stepDash(state,position,dt,enemies,solids,floors){
   state.remaining=Math.max(0,state.remaining-distance);
   return moveWithActors(position,{x:state.direction.x*distance,z:state.direction.z*distance},enemies,solids,floors,RULES.playerRadius);
 }
-

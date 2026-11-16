@@ -28,4 +28,3 @@ export function suggestSwap(goal,bag,incoming){
   options.sort((a,b)=>a.regressions-b.regressions||a.loss-b.loss||a.rarity-b.rarity);
   return options[0]?.id??null;
 }
-

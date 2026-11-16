@@ -126,4 +126,3 @@ export function readStats(value){
   out.maxHealth=Math.round(out.maxHealth);out.shield=Math.round(out.shield);out.dashCooldownMs=Math.round(out.dashCooldownMs);
   return out;
 }
-

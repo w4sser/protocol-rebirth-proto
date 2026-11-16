@@ -53,11 +53,17 @@ try{
       assert.equal(target.searchParams.get('area'),area);assert.equal(target.searchParams.get('intro'),null);
       await page.goto(target.href,{waitUntil:'networkidle0'});
       await page.waitForFunction(()=>window.__NR?.round?.(),{timeout:60000});
-      assert.equal(await page.evaluate(()=>__NR.round().level.area),area);
+      assert.equal(await page.evaluate(()=>__NR.round().level.area??'bunker'),area); // bunker levels carry no area field (levels.js)
       assert.ok(await page.evaluate(()=>document.querySelector('canvas')?.width>0));
+      // An extract hands the result off and returns automatically (raid-result.js handoffRaidResult);
+      // the explicit Return to base button is only the fallback when that handoff cannot run.
+      const handoff=page.waitForNavigation({waitUntil:'networkidle0',timeout:60000}).then(()=>'auto',()=>null);
+      const button=page.waitForSelector('#return-base',{visible:true,timeout:60000}).then(()=>'button',()=>null);
       await page.evaluate(()=>__NR.extractDemo(['cable']));
-      await page.waitForSelector('#return-base',{visible:true});
-      await Promise.all([page.waitForNavigation({waitUntil:'networkidle0'}),page.click('#return-base')]);
+      const how=await Promise.race([handoff,button]);
+      assert.ok(how,'extract neither returned to base nor offered Return to base');
+      if(how==='button')await Promise.all([page.waitForNavigation({waitUntil:'networkidle0'}),page.click('#return-base')]);
+      assert.equal(new URL(page.url()).pathname.endsWith('/nodspel/'),false,'back on the base page');
       await page.waitForFunction(()=>window.A&&window.PR_DEBUG);
       assert.equal(await page.evaluate(()=>PR_DEBUG.mode),mode);
       assert.equal(await page.evaluate(()=>PR_DEBUG.normalSave()),normal);

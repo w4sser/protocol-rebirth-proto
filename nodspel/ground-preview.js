@@ -353,4 +353,3 @@ export function addGroundPreview(level, scene, {area = 'archipelago', profile = 
     group.clear();
   }};
 }
-

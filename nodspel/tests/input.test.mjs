@@ -12,4 +12,3 @@ test('keyboard activation keeps focus for accessibility',()=>{
   releaseButtonFocus({target:button,detail:0},doc);assert.equal(blurred,0);
 });
 test('clicks outside buttons are ignored',()=>{assert.equal(releaseButtonFocus({target:{closest:()=>null},detail:1},{activeElement:null}),false);});
-

@@ -109,4 +109,3 @@ export function stepTools(round,now){
 }
 export const isStunned=(enemy,now)=>now<(enemy.stunnedUntil??0);
 export const shieldIsDown=(node,now)=>now<(node.shieldDownUntil??0);
-

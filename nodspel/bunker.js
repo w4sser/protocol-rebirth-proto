@@ -237,4 +237,3 @@ export function buildBunker(level,group,assets,Q){
   for(const a of [...anchors].sort((a,b)=>a.z-b.z).slice(0,Q.lights)){const l=new THREE.PointLight(a.color,5,7,1.8);l.position.set(a.lightX,a.y+.3,a.lightZ);group.add(l);}
   return {instancedKinds:[...by.keys()],anchors,floorTiles};
 }
-

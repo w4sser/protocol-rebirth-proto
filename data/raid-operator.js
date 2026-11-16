@@ -8,4 +8,3 @@ RAID_OPERATOR_ROOT.DATA.raidOperator = Object.freeze({
   height: 1.65,
   clips: Object.freeze({idle:'Idle_Gun',run:'Run',back:'Run_Back',shoot:'Gun_Shoot',aim:'Idle_Gun_Pointing',dash:'Roll',hit:'HitRecieve',death:'Death'}),
 });
-

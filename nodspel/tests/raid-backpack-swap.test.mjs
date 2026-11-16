@@ -412,4 +412,3 @@ test('carried-but-unequipped gear counts toward the shared bag capacity',()=>{
   assert.ok(r.bagFull,'a full-bag notice fires instead of silently accepting a 5th item');
   assert.equal(r.level.lootBoxes[0].collected,false);
 });
-

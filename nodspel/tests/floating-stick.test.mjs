@@ -165,4 +165,3 @@ for(const [width,height] of [[844,390],[932,430],[667,375]])for(const mode of ['
   assert.equal(s.context.sticks[0].state.pointer,null);
   assert.equal(down(mode==='move'?safe.left+50:safe.right-50,safe.bottom-60),true,'open playfield still activates its stick');
 });
-

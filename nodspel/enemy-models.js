@@ -24,4 +24,3 @@ export function createEnemyModelLoader({load,timeoutMs=ENEMY_TUNING.models.timeo
   };
 }
 export const loadEnemyModel=createEnemyModelLoader();
-

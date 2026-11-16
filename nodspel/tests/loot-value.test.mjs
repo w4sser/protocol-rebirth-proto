@@ -68,4 +68,3 @@ test('the FTUE and the guided intro raid never show the BIT line and never mark 
   const line=materialPickupBitLine('cable',{},storage);
   assert.match(line,/^BIT: Cable\./,'an ordinary raid afterwards still introduces it');
 });
-

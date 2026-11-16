@@ -123,4 +123,3 @@ export function planMilitaryRemnantsDressing(level,{quality='high',density=1}={}
     landmarks:[...base.landmarks,...selected],militaryLandmarks:selected,
     architecture:selected};
 }
-

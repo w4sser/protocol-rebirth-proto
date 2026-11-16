@@ -24,4 +24,3 @@ test('v2.28.6: launch param scouted is parsed and sanitised',()=>{
   assert.deepEqual(readLaunch('?scouted=archipelago,town,%3Cx%3E').scouted,['archipelago','town']);
   assert.deepEqual(readLaunch('').scouted,[]);
 });
-

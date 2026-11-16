@@ -1925,4 +1925,3 @@ reset(new URLSearchParams(location.search).get('seed'));camera.position.copy(tar
 // Landscape only: on the first tap go fullscreen and lock orientation where supported (Android). iOS shows the .rotate screen.
 {const once=()=>{document.removeEventListener('pointerdown',once,true);try{const el=document.documentElement,fs=el.requestFullscreen||el.webkitRequestFullscreen,lock=()=>{try{screen.orientation?.lock?.('landscape')?.catch?.(()=>{});}catch{}};if(fs&&!document.fullscreenElement){const p=fs.call(el,{navigationUI:'hide'});p?.then?p.then(lock,lock):lock();}else lock();}catch{}};document.addEventListener('pointerdown',once,true);}
 gameReady=true;if(queuedStart){const q=queuedStart;queuedStart=null;q();}
-

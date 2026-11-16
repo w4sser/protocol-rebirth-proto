@@ -134,4 +134,3 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
   const ready=Promise.all(jobs).then(()=>{stats.ready=true;console.info('[polyfork-test]',JSON.stringify(stats));});
   return {group,stats,ready,dispose(){alive=false;fortifications?.dispose();scene.remove(group);group.clear();}};
 }
-

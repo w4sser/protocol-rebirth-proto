@@ -75,4 +75,3 @@ function adjustEnemyCount(level,count){
     }
   }
 }
-

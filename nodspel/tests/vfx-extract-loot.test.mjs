@@ -207,4 +207,3 @@ test('pickup fountain clears the loot, retains its origin, and finishes with a p
   let disposed=0;for(const resource of [slot.pillar.geometry,slot.pillar.material,slot.flash.geometry,slot.flash.material])resource.addEventListener('dispose',()=>disposed++);
   fx.dispose();fx.dispose();assert.equal(disposed,4);
 });
-

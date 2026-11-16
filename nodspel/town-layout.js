@@ -173,4 +173,3 @@ function placeHouse(level,rng,solidsOut){const I=HOUSE.inner,S=I/2+HOUSE.wall,ca
 // nothing visual may stand inside the enterable house shell
 function dropInHouse(level,T){const h=level.house;if(!h)return;const vol={x:h.floor.x,z:h.floor.z,w:h.floor.w+.4,d:h.floor.d+.4};
   for(const it of visualItems(T)){if(!rectsHit(vol,it.r,-.02))continue;if(it.list==='busStop')T.busStop=null;else{const a=T[it.list],i=a.indexOf(it.ref);if(i>=0)a.splice(i,1);}}}
-

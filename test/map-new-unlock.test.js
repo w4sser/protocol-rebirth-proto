@@ -79,4 +79,3 @@ const tabAlert = b => { const cur = b.T.session().screen; b.A.go("worldmap"); co
   const cam = b.T.session().wmCam, T = b.w.DATA.worldMap.areas[1].region;
   assert.equal(cam.intro, null); assert(Math.abs(cam.fx - (T.x + T.w / 2) / 100) < 0.02, "jumped without animation"); }
 console.log("MAP NEW UNLOCK PASSED");
-

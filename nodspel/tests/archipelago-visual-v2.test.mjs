@@ -354,4 +354,3 @@ test('v2 pines fade independently and restore opaque materials and shadows',()=>
   assert.ok(a.pineMeshes.every((m,i)=>m.material===original[i]&&m.castShadow),
     'trees must return to their original materials and shadows');
 });
-

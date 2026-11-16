@@ -55,4 +55,3 @@ export function applyFirstPayoff(level,payoff,bag=RULES.loot.capacity){
   });
   return placed.length;
 }
-

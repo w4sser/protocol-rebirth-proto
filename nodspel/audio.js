@@ -37,4 +37,3 @@ if(typeof document!=='undefined'){
   window.addEventListener('pagehide',e=>{cachedMusic=e.persisted&&audio.desiredMusic;audio.stop();});
   window.addEventListener('pageshow',e=>{if(e.persisted&&cachedMusic)audio.music();cachedMusic=false;});
 }
-

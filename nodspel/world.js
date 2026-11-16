@@ -388,4 +388,3 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
     extractionEffects,extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn,setVfxQuality,disposeVfx};
 }
-

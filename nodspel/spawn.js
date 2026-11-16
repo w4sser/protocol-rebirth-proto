@@ -16,4 +16,3 @@ export function safeSpawn(level,p=level?.start){
     const d=(x-o.x)**2+(z-o.z)**2;if(d<bd&&!spawnProblem(level,{x,z})){bd=d;best={x,z};}}
   return best??{x:o.x,z:o.z};
 }
-

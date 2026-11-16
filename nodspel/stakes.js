@@ -217,4 +217,3 @@ export function hunterArrowScreenPoint(dir, viewWidth, viewHeight, margin = 20) 
   const scale = Math.min(nx ? halfW / Math.abs(nx) : Infinity, ny ? halfH / Math.abs(ny) : Infinity);
   return { x: cx + nx * scale, y: cy + ny * scale, angleDeg: Math.atan2(ny, nx) * 180 / Math.PI };
 }
-

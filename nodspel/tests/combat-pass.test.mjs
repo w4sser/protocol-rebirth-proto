@@ -148,4 +148,3 @@ test('?hard=1 sets the Hard clock (-20 %), tags the round and the raid result; d
   });
   assert.equal(isHard(),false);const done=createRound('t',0);done.over=true;done.reason='death';assert.equal('hard' in buildRaidResult(done),false);
 });
-

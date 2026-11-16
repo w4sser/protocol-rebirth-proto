@@ -87,4 +87,3 @@ export function stepBitDistract(state,round,bit,playerPos,enemies,now,dt){
   }
   return null;
 }
-

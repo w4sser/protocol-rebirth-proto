@@ -379,4 +379,3 @@ export function addArchipelagoHorizonIslets(floors,group,seed,{high=true}={}){
   const x=(b.x0+b.x1)/2,z=(b.z0+b.z1)/2,spread=Math.max(b.x1-b.x0,b.z1-b.z0)/2,objects=[];
   for(let i=0;i<(high?5:3);i++){const a=TAU*(i*.21+.08+hash(seed+i)*.08),dist=spread+15+hash(i+seed)*17,rock=new THREE.Mesh(graniteGeo,graniteMat);rock.position.set(x+Math.cos(a)*dist,-.44,z+Math.sin(a)*dist);rock.rotation.y=a;rock.scale.set(5+hash(seed+i+11)*4,.7,3+hash(seed+i+27)*2);rock.name='arch-v2-distant-skerry';rock.userData.visualOnly=true;group.add(rock);objects.push(rock);}return objects;
 }
-

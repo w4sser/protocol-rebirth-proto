@@ -91,4 +91,3 @@ test('full-budget touch HUD pointer tap heals at 40 HP, spends one kit and repor
   r.stakes.healed=0;pointer('pointerdown');pointer('pointerup');assert.equal(feedback,'No medkits carried');
   dom.window.close();
 });
-

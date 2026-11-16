@@ -95,4 +95,3 @@ test('production rendering draws coral aim lines and the permanent shield arc',a
   v.enemy.windupAt=null;render(v,true);assert.equal(v.aimFloor.visible,false);
  }
 });
-

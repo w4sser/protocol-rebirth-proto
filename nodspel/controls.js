@@ -70,4 +70,3 @@ export function finishGesture(gesture,x,y,elapsed,dragged,cancelled=false){
   if(!gesture.target)return !dragged&&elapsed<RULES.aimControls.tapMs?'tap':null;
   return gesture.target;
 }
-

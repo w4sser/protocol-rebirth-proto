@@ -92,4 +92,3 @@ export function clearPassageProps(level,passages=archipelagoPassages(level)){
   const zones=level.archipelago?[...passages,...bridgeClearances(level)]:passages;
   for(let i=level.boxes.length-1;i>=0;i--)if(inPassageClearance(level.boxes[i],zones))level.boxes.splice(i,1);
 }
-

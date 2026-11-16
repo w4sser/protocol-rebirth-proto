@@ -155,4 +155,3 @@ test('loot multiplier is 1.0-1.2, only above neutral for a struggling (negative 
 test('DDA_KEY is the documented flat localStorage key',()=>{
   assert.equal(DDA_KEY,'pr_dda_v1');
 });
-
