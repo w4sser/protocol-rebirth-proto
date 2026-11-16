@@ -5134,11 +5134,11 @@ window.A = {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
         finish(); narrate();
       }, "reward", { afterDiscard:narrate });
-    } else if(modId === "storage" && next.level === 1){
+    } else if(modId === "storage" && next.level === 1 && !S.bitCardsSeen.vault_unlocked){
       // The scene itself carries the reward. Missing teasers never block a valid build.
       S.bitCardsSeen.vault_intro = true;
       finish();
-      if(!S.bitCardsSeen.vault_unlocked) queueSystemIntro(roomUnlockStages("storage").unlock);
+      queueSystemIntro(roomUnlockStages("storage").unlock);
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
