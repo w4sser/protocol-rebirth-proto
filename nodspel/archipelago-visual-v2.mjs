@@ -15,7 +15,10 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   function landform(angle,length,depth,height){
     angle=(angle+TAU)%TAU;
     const p=points[Math.round(angle/TAU*points.length)%points.length],c=Math.cos(angle),s=Math.sin(angle);
-    let r=p.radial+depth*.52-.43,x,z,clear=false;
+    // Pass ZC2: bury the shallow rock foot into the existing shoreline.
+    // The conservative 32-point footprint validator below still prevents
+    // intrusion into actor navigation, neighboring islands or bridge zones.
+    let r=p.radial+depth*.52-.65,x,z,clear=false;
     // A long rock can cross a concave shore away from its centerline. Check
     // the entire conservative ellipse, not just one radial sample.
     for(let attempt=0;attempt<7&&!clear;attempt++){
@@ -58,50 +61,64 @@ export function planArchipelagoBedrock(profile,{reservations=[],neighbors=[],nei
   }
   return {masses,shelves};
 }
+// Pass ZC — broad fractured Swedish coastal granite shelves.
+// The previous 24 concentric radius steps made a smooth violet sphere/egg.
+// One indexed mesh per instance: no coplanar terrace layers or rock aprons.
+// Rounded islets remain in the coastline; standalone granite reads as flat
+// eroded bedrock ledges with a broken, wind-worn shoreline silhouette.
 function sculptGranite(){
-  // One continuous indexed bedrock surface rather than three overlapping
-  // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
-  // The low root rests inside the existing shore without a coplanar apron.
-  const steps=34;
+  const segments=20;
+  // A broad glacial slab rises in uneven, gently leaning planes. Staggered
+  // angular segments break the radial-star/umbrella triangulation seen in
+  // real game-camera review of the first Pass ZC attempt.
   const rings=[
-    [0,1.04],[.027,1.12],[.09,1.16],[.15,1.16],
-    [.23,1.13],[.31,1.10],[.38,1.075],[.43,1.055],
-    [.464,1.018],[.477,.935],[.502,.908],[.56,.89],
-    [.625,.851],[.674,.808],[.711,.770],[.729,.682],
-    [.765,.665],[.806,.625],[.857,.594],[.897,.551],
-    [.923,.544],[.94,.465],[.974,.448],[1,.413]
+    {radius:1.00,height:-.13},
+    {radius:.90,height:.00},
+    {radius:.76,height:.18},
+    {radius:.61,height:.35},
+    {radius:.45,height:.50},
+    {radius:.28,height:.59},
+    {radius:.12,height:.60}
   ];
   const positions=[],colors=[],indices=[];
-  const shadow=new THREE.Color('#60717d'),weathered=new THREE.Color('#a2a3ac');
-  const twilight=new THREE.Color('#b0a0ad'),moss=new THREE.Color('#788674');
-  for(let k=0;k<rings.length;k++)for(let j=0;j<=steps;j++){
-    const a=j/steps*TAU,[h,nominal]=rings[k];
-    const cs=Math.cos(a),sn=Math.sin(a);
-    const r=nominal*(1+.068*Math.sin(3*a+.38)+.049*Math.cos(2*a+1.18)
-      +.019*Math.sin(7*a-.48));
-    const x=Math.sign(cs)*Math.pow(Math.abs(cs),.86)*r*.5+h*.068*Math.sin(1.1);
-    const z=Math.sign(sn)*Math.pow(Math.abs(sn),.90)*r*.5-h*.083;
-    const y=h+.005*Math.sin(5*a+h*8)*Math.sin(h*Math.PI);
+  const shadow=new THREE.Color('#68747e'),weathered=new THREE.Color('#949aa0');
+  const sky=new THREE.Color('#a399a7'),moss=new THREE.Color('#74857a');
+  for(let k=0;k<rings.length;k++)for(let j=0;j<=segments;j++){
+    const a=(j+(k%2?.43:0))/segments*TAU,
+      {radius,height}=rings[k],cs=Math.cos(a),sn=Math.sin(a);
+    const breakline=Math.pow(Math.max(0,Math.cos(4*a+.71)),8);
+    const outline=(1+.105*Math.sin(3*a+.48)+.065*Math.cos(5*a-1.12)-.065*breakline);
+    const r=radius*outline;
+    const x=.5*Math.sign(cs)*Math.pow(Math.abs(cs),.82)*r+.060*(1-radius);
+    const z=.5*Math.sign(sn)*Math.pow(Math.abs(sn),.88)*r-.038*(1-radius);
+    // Gently sloped, asymmetrical stone face; never a hemisphere or a staircase.
+    const y=height*(.91+.12*Math.cos(2*a+.45)+.045*Math.sin(5*a-.72))
+      +.045*Math.sin(a+.68)*(1-radius);
     positions.push(x,y,z);
-    const strata=.5+.5*Math.sin(9*a+8*h+.5),crack=.5+.5*Math.sin(17*a-7*h);
-    const color=shadow.clone().lerp(weathered,.32+.53*Math.sqrt(h)+.048*strata)
-      .lerp(twilight,.045+.09*(.5+.5*Math.sin(2*a+1.3)))
-      .lerp(moss,(.015+.06*crack)*(1-h*.4));
+    const weather=.29+.47*Math.sqrt(Math.max(0,height+.10));
+    const crack=.14*breakline*(.70+.30*radius);
+    const color=shadow.clone().lerp(weathered,weather)
+      .lerp(sky,.045+.052*(.5+.5*Math.sin(2*a+1.05)))
+      .lerp(moss,(.065+.10*breakline)*(1-radius*.36))
+      .lerp(shadow,crack);
     colors.push(color.r,color.g,color.b);
-    if(k<rings.length-1&&j<steps){
-      const n=k*(steps+1)+j,q=n+steps+1;
-      indices.push(n,q,n+1,n+1,q,q+1);
+    if(k<rings.length-1&&j<segments){
+      const outer=k*(segments+1)+j,inner=outer+segments+1;
+      indices.push(outer,inner,outer+1,outer+1,inner,inner+1);
     }
   }
-  const top=(rings.length-1)*(steps+1),tip=positions.length/3;
-  positions.push(.06,1.004,-.075);
+  const top=(rings.length-1)*(segments+1),tip=positions.length/3;
+  positions.push(.065,.565,-.038);
   colors.push(weathered.r,weathered.g,weathered.b);
-  for(let j=0;j<steps;j++)indices.push(top+j,tip,top+j+1);
+  for(let j=0;j<segments;j++)indices.push(top+j,tip,top+j+1);
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   geo.setIndex(indices);geo.computeVertexNormals();
   geo.userData.shared=true;geo.userData.continuousGlacialMass=true;
+  geo.userData.fracturedShelf=true;geo.userData.noRadialFan=true;
+  geo.userData.radialRings=rings.length;
+  geo.userData.angularSegments=segments;
   return geo;
 }
 const graniteGeo=sculptGranite(),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
@@ -377,5 +394,5 @@ export function addArchipelagoHorizonIslets(floors,group,seed,{high=true}={}){
   const islands=floors.filter(f=>!f.dir);if(!islands.length)return [];
   const b=islands.reduce((b,f)=>({x0:Math.min(b.x0,f.x-f.w/2),x1:Math.max(b.x1,f.x+f.w/2),z0:Math.min(b.z0,f.z-f.d/2),z1:Math.max(b.z1,f.z+f.d/2)}),{x0:Infinity,x1:-Infinity,z0:Infinity,z1:-Infinity});
   const x=(b.x0+b.x1)/2,z=(b.z0+b.z1)/2,spread=Math.max(b.x1-b.x0,b.z1-b.z0)/2,objects=[];
-  for(let i=0;i<(high?5:3);i++){const a=TAU*(i*.21+.08+hash(seed+i)*.08),dist=spread+15+hash(i+seed)*17,rock=new THREE.Mesh(graniteGeo,graniteMat);rock.position.set(x+Math.cos(a)*dist,-.44,z+Math.sin(a)*dist);rock.rotation.y=a;rock.scale.set(5+hash(seed+i+11)*4,.7,3+hash(seed+i+27)*2);rock.name='arch-v2-distant-skerry';rock.userData.visualOnly=true;group.add(rock);objects.push(rock);}return objects;
+  for(let i=0;i<(high?5:3);i++){const a=TAU*(i*.21+.08+hash(seed+i)*.08),dist=spread+15+hash(i+seed)*17,rock=new THREE.Mesh(graniteGeo,graniteMat);rock.position.set(x+Math.cos(a)*dist,-.27,z+Math.sin(a)*dist);rock.rotation.y=a;rock.scale.set(5+hash(seed+i+11)*4,.92,3+hash(seed+i+27)*2);rock.name='arch-v2-distant-skerry';rock.userData.visualOnly=true;group.add(rock);objects.push(rock);}return objects;
 }

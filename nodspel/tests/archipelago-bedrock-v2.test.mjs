@@ -42,12 +42,32 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
   const mesh=art.addArchipelagoGraniteV2(profile,group);
   assert.equal(mesh.name,'arch-v2-glacial-shelves');
   assert.ok(mesh.geometry.getAttribute('color'),'geological color variation');
-  assert.ok(mesh.geometry.getAttribute('position').count>700,'rich sculpted rock silhouettes remain low-poly');
+  assert.ok(mesh.geometry.getAttribute('position').count>=120
+    &&mesh.geometry.getAttribute('position').count<=180,
+    'shelf uses a few broad, low-poly geological faces, not hundreds of spherical bands');
   assert.equal(mesh.geometry.userData.continuousGlacialMass,true,
     'one continuous granite mesh avoids intersecting tier shells and z-fighting');
+  assert.equal(mesh.geometry.userData.fracturedShelf,true,
+    'v2 uses a glacial granite shelf instead of the old spherical/concentric boulder');
+  assert.ok(mesh.geometry.userData.radialRings<=7&&mesh.geometry.userData.angularSegments<=20,
+    'broad faceted rock avoids closely spaced terrace-ring silhouettes');
+  const edge=mesh.geometry.getAttribute('position'),seg=mesh.geometry.userData.angularSegments+1;
+  const radial=[];
+  for(let ring=0;ring<mesh.geometry.userData.radialRings;ring++){
+    let mean=0;
+    for(let j=0;j<mesh.geometry.userData.angularSegments;j++)
+      mean+=Math.hypot(edge.getX(ring*seg+j),edge.getZ(ring*seg+j));
+    radial.push(mean/mesh.geometry.userData.angularSegments);
+  }
+  assert.ok(radial.every((r,i)=>i===0||radial[i-1]-r>.045),
+    'mean radius narrows through irregular staggered slabs, without horizontal stacked shells');
+  assert.equal(mesh.geometry.userData.noRadialFan,true);
+  const first=mesh.geometry.getAttribute('position'),segments=mesh.geometry.userData.angularSegments+1;
+  assert.ok(Math.abs(first.getX(segments)-first.getX(0))>.01,
+    'alternating rings are offset rather than aligned into a visible radial fan');
   assert.equal(mesh.material.flatShading,true,'sculpted granite uses broad, readable planes');
   const vertices=mesh.geometry.getAttribute('position'),peak=vertices.getY(vertices.count-1);
-  assert.ok(peak>.99&&peak<1.02,'closed shifted crown finishes the continuous mass');
+  assert.ok(peak>.55&&peak<.68,'closed low slate-granite cap without a rounded dome');
   const xs=new Set(Array.from({length:vertices.count},(_,i)=>Math.round(vertices.getX(i)*100)));
   assert.ok(xs.size>35,'ice-worn granite needs a broad irregular silhouette');
   assert.ok(group.children.length<=3,'instanced major masses and shelves');
@@ -465,4 +485,31 @@ test('Pass S seeded earth-path color is visible on the flat hero ground and dete
     'hero path sampling stays detailed enough in both graphics qualities');
   const y=ground.geometry.getAttribute('position');
   for(let i=0;i<y.count;i++)assert.ok(Math.abs(y.getY(i)-.01)<1e-5,'the worn trail cannot add traversable height');
+});
+
+test('Pass ZC4: joined nonhero shoreline forms isolated low granite headlands, not a continuous seawall',()=>{
+  const seeds=['archipelago-v2-target','glacial-01','bridge-water','review-21'];
+  for(const seed of seeds){
+    const p=coastlineProfile(floor,seed,{style:'v2'}),plan=art.planArchipelagoBedrock(p);
+    const coast=coastRingData(p,{bedrockPlan:plan}),n=p.points.length;
+    const ring=3;
+    const heights=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]);
+    const raised=heights.filter(y=>y>.30).length,low=heights.filter(y=>y<.10).length;
+    assert.ok(low>=n*.45,seed+' retains real vegetated/low coves between the bedrock shelves');
+    assert.ok(raised<=n*.40,seed+' cannot form a ring of uniform raised retaining wall');
+    assert.ok(Math.max(...heights)>.20,seed+' still has visible integrated geological relief');
+    const actorHeights=Array.from({length:n},(_,i)=>coast.positions[i*3+1]);
+    assert.ok(actorHeights.every(y=>Math.abs(y-.01)<1e-5),
+      seed+' keeps identical flat X/Z operator-edge height');
+    const toe=Array.from({length:n},(_,i)=>coast.positions[(5*n+i)*3+1]);
+    assert.ok(toe.every((y,i)=>Math.abs(y-(-.65+(p.points[i].beach*.11)))<1e-5),
+      seed+' keeps the exact underwater toe heights and water separation');
+    for(let i=0;i<n;i++){
+      const radial=Array.from({length:6},(_,ring)=>Math.hypot(
+        coast.positions[(ring*n+i)*3]-floor.x,
+        coast.positions[(ring*n+i)*3+2]-floor.z));
+      assert.ok(radial.every((r,j)=>j===0||r>radial[j-1]+1e-4),
+        seed+' coast radial strips must never reverse or z-fight');
+    }
+  }
 });
