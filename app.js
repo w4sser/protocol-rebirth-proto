@@ -3889,7 +3889,7 @@ function newFindUses(id){
 }
 function newFindUsesHtml(id){
   const {first,rest} = newFindUses(id);
-  return '<div class="usedfor"><b>Used for:</b> ' + (first ? '<span class="newfind-needed">Needed for: ' + esc(first.label) + '</span>' : 'Sell it or keep it for a quest.') +
+  return '<div class="usedfor">' + (first ? '<span class="newfind-needed">Needed for: ' + esc(first.label) + '</span>' : '<b>Used for:</b> nothing yet. Sell it or keep it for a quest.') +
     (rest.length ? '<details><summary>+' + rest.length + ' more uses</summary><div>' + rest.map(u => esc(u.label)).join(', ') + '</div></details>' : '') + '</div>';
 }
 function isInfoItem(id){ const it = ITEMS[id]; return !!it && !it.grantsCurrency && !it.scouts && !isFree(id); }
