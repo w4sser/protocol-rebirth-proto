@@ -73,4 +73,13 @@ test('native v2 thins bright white-looking detail without affecting legacy or LO
   assert.ok(safe.every(item=>filtered.includes(item)),'moss, grass and major rocks remain');
   const low=filterDressingTrees(mixed.filter((_,i)=>i%2===0),{nativePines:true});
   assert.ok(low.every(item=>filtered.includes(item)),'LOW retains a subset of HIGH placements');
+  const driftwood=[
+    {id:'fallen-log-1685fb',x:2,z:3},
+    {id:'driftwood-log-89a68f',x:7,z:5},
+    {id:'medium-rock-e08405',x:4,z:8}
+  ];
+  assert.equal(filterDressingTrees(driftwood),driftwood,
+    'normal live Archipelago keeps its original driftwood and log props');
+  assert.deepEqual(filterDressingTrees(driftwood,{nativePines:true}),[driftwood[2]],
+    'native v2 removes large white log models without hiding darker rock or altering collision');
 });

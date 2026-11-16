@@ -20,6 +20,7 @@ const SAMPLE_IDS=[
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
 const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1','sea-holly-clump-ce3bc6']);
+const BLEACHED_WOOD_DETAIL=new Set(['fallen-log-1685fb','driftwood-log-89a68f']);
 // V2 owns camera-height trees and deliberately removes ~70% of high-contrast
 // tiny scatter. Hash existing placements so LOW remains a stable HIGH subset.
 function keepSparseGroundDetail(item){
@@ -30,7 +31,11 @@ function keepSparseGroundDetail(item){
 export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines}={}){
   if(!nativePines&&!quietGround)return items;
   return items.filter(item=>!(nativePines&&LEGACY_TREE_ASSETS.has(item.id))
-    &&!(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id)&&!keepSparseGroundDetail(item)));
+    &&!(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id)&&!keepSparseGroundDetail(item))
+    // The remaining bleached Polyfork logs dominate the 844x390 screenshot.
+    // Remove these visual-only white assets in v2; hand-authored dark windfall
+    // combat cover is a separate mesh and remains unchanged.
+    &&!(quietGround&&BLEACHED_WOOD_DETAIL.has(item.id)));
 }
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){
