@@ -421,6 +421,31 @@ test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into p
 });
 
 
+
+test('Pass U keeps compact granite crowns separated by real low green coves',()=>{
+  const floor={x:0,z:0,w:28,d:24};
+  const hero=coastlineProfile(floor,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(hero,{rockAngles:[.15,2.52,4.85]});
+  const coast=coastRingData(hero),n=hero.points.length,ring=7;
+  const high=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]>.78);
+  // Count circular runs, not separate the same headland at the 0/360 seam.
+  let runs=0,longest=0,streak=0;
+  for(let i=0;i<n*2;i++){
+    const lit=high[i%n];
+    streak=lit?streak+1:0;
+    longest=Math.max(longest,streak);
+    if(i>=n&&lit&&!high[(i+n-1)%n])runs++;
+  }
+  assert.ok(runs>=2,'two distinct elevated granite silhouettes remain visible');
+  assert.ok(longest<=Math.ceil(n*.20),'no cliff may become a long continuous retaining wall');
+  const low=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]<.38).filter(Boolean).length;
+  assert.ok(low>=Math.floor(n*.45),'almost half the coast remains naturally low between rock masses');
+  assert.ok(hero.points.every((p,i)=>Math.abs(coast.positions[i*3+1]-.01)<1e-6),
+    'the operator edge stays flat and identical to the registered walkable coast');
+  assert.ok(hero.points.every((p,i)=>Math.abs(coast.positions[((coast.rings-1)*n+i)*3+1]+.65)<1e-5),
+    'the offshore toe stays a single shared geometry seam');
+});
+
 test('Pass R height follows the available offshore width instead of building cliffs in narrow channels',()=>{
   const f={x:0,z:0,w:22,d:20},p=coastlineProfile(f,'hero-width-review',{style:'v2'});
   authorHeroIslandCoast(p,{rockAngles:[.45,3.15]});
