@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.44"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.45"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -2237,6 +2237,8 @@ function checkBeatAutoAdvance(){
     if(done) advanceBeat();
   }
 }
+// Optional sleeping-BIT art for the cold-open TAP TO WAKE BIT gate; empty = CSS dimming only.
+const COLDOPEN_BIT_SLEEP_ART = "";
 function refresh(bitTrigger, bitVars){
   tickRetention();
   { const I = idleState(), now = idleNow();
@@ -2374,11 +2376,17 @@ SCREENS.intro = function(){
   // A shorter gap + a quicker fade (see .intro-go/introBtn in index.html) fixes that.
   const step = 1.6, t0 = 1.4, btnAt = t0 + lines.length * step + 0.2;
   $app().innerHTML =
-    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + '" onclick="A.introSkip(event)">' +
+    '<div class="intro' + (session.introSkipped ? ' done' : ' vo-wait') + (COLDOPEN_BIT_SLEEP_ART ? ' has-sleep-art' : '') + '" onclick="A.introSkip(event)">' +
     '<h1 class="sr-only">' + esc(b.introTitle) + '</h1>' +
     '<div class="intro-stage">' +
     '<img class="intro-backdrop" src="assets/production/coldopen/bunker-discovery-arch-v1.webp?v=' + APP_VERSION + '" alt="">' +
     '<img class="intro-bit" src="assets/production/coldopen/bit-coldopen-v1.webp?v=' + APP_VERSION + '" alt="BIT">' +
+    // Swap hook (brief: /home/box/prp-art/chatgpt-brief-bit-sleep-2026-11-16.md): set
+    // COLDOPEN_BIT_SLEEP_ART to a same-framed sleeping-BIT WebP and it replaces the CSS-dimmed BIT
+    // while hibernating, cross-fading to the awake art on the wake tap.
+    (COLDOPEN_BIT_SLEEP_ART ? '<img class="intro-bit-sleep" src="' + COLDOPEN_BIT_SLEEP_ART + '?v=' + APP_VERSION + '" alt="">' : '') +
+    '<small class="intro-standby" aria-hidden="true"><i></i>HIBERNATING</small>' +
+    '<span class="intro-zzz" aria-hidden="true"><b>z</b><b>z</b><b>z</b></span>' +
     '</div>' +
     '<div class="intro-scrim"></div>' +
     '<div class="intro-copy">' +
@@ -2392,10 +2400,14 @@ SCREENS.intro = function(){
   // Animation timing remains the fallback when audio is muted, blocked or still loading.
   const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
   const greet = () => {
-    if(intro.isConnected && !document.body.classList.contains("splash-active"))
+    if(intro.isConnected && !intro.classList.contains("vo-wait") && !document.body.classList.contains("splash-active"))
       void window.PR_AUDIO?.requestVoice('youre-back');
   };
-  firstLine?.addEventListener("animationstart", greet, { once:true });
+  // The wake tap zeroes line 1's delay while .vo-wait still pauses everything for the 550ms wake,
+  // so Chrome can fire animationstart while greet() is still blocked. Remember it and let clear()
+  // re-fire greet() once the gate lifts instead of losing the greeting VO.
+  let firstLineStarted = false;
+  firstLine?.addEventListener("animationstart", () => { firstLineStarted = true; greet(); }, { once:true });
   intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
   if(session.introSkipped){
     if(document.body.classList.contains("splash-active"))
@@ -2417,9 +2429,12 @@ SCREENS.intro = function(){
     // Reduced motion never fires the first line's own animationstart (its CSS disables that
     // animation outright -- see the @media(prefers-reduced-motion:reduce) block below), so once
     // the gate clears here, fire greet() directly instead of relying on that hook.
-    const clear = () => {
-      intro.classList.remove("vo-wait", "vo-wait-tap");
-      if(reducedMotion) greet();
+    let wakeFinished = Promise.resolve();
+    const clear = async () => {
+      await wakeFinished;
+      if(!intro.isConnected) return;
+      intro.classList.remove("vo-wait", "vo-wait-tap", "bit-waking");
+      if(reducedMotion || firstLineStarted) greet();
     };
     const waitForVoice = () => {
       const audio = window.PR_AUDIO;
@@ -2454,10 +2469,16 @@ SCREENS.intro = function(){
       const running = audio.context?.state === "running";
       if(running || audio.unlockPromise || muted){ waitForVoice(); return; }
       intro.classList.add("vo-wait-tap");
+      intro.classList.add("bit-hibernating");
       let tapped = false;
       const onGestureTap = ev => {
         if(tapped) return; tapped = true;
-        intro.classList.remove("vo-wait-tap");
+        intro.classList.remove("vo-wait-tap", "bit-hibernating");
+        intro.classList.add("bit-waking", "bit-awake");
+        // The whole CRT fades up without changing BIT's locked face geometry.
+        wakeFinished = new Promise(resolve => setTimeout(resolve, 550));
+        intro.querySelectorAll(".intro-lines p").forEach((line, i) => { line.style.animationDelay = (i * step) + "s"; });
+        intro.querySelector(".intro-go").style.animationDelay = (lines.length * step + .2) + "s";
         // iOS fires touchend first, then a SEPARATE synthesized click a beat later -- by the time
         // that click reaches A.introSkip, .vo-wait-tap is already gone (removed right above), so
         // stamp the moment here too; introSkip's own guard checks this timestamp as well as the

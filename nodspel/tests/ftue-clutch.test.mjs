@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.44';
-import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.44';
-import {RULES} from '../levels.js?v=2.28.44';
-import {STAKES} from '../stakes.js?v=2.28.44';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,takeDamage} from '../round.js?v=2.28.45';
+import {FTUE,initFtueRound,startFtueClutch,ftueClutchSeconds} from '../ftue.js?v=2.28.45';
+import {RULES} from '../levels.js?v=2.28.45';
+import {STAKES} from '../stakes.js?v=2.28.45';
 import * as THREE from '../vendor/three.module.js';
-import {buildWorld} from '../world.js?v=2.28.44';
+import {buildWorld} from '../world.js?v=2.28.45';
 
 function setup(attempt=0){
   const r=createRound('ftue-clutch',0);

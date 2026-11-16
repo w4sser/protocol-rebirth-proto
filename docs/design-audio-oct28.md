@@ -221,3 +221,41 @@ skip for a plain click or for touchend-then-a-separate-synthesized-click (the la
 actually fail without the `gateTapAt` fallback, proving the regression test catches the real
 bug); and both already-running (e.g. desktop autoplay) and muted-in-settings skip the prompt
 entirely -- see `docs/bug-lint.md` PRB-161 follow-up for the full scenario list.
+
+
+### 16 November 2026 — raid first-fight readiness (v2.28.4x)
+
+Root cause found: `nodspel/audio.js` fired `void audio.preload()` but `game.mjs`
+called its initial `reset()` and started the frame loop without awaiting any audio.
+Combat could therefore begin while files were still fetching/decoding. Non-gun SFX
+used the shared 2500 ms `raceLoad` deadline and recorded a decode-timeout drop if
+still pending. A failed pre-gesture decode was evicted from cache; unlock retried
+stored bytes, but there was no readiness barrier before play. Gun reports are
+procedural (not the matching shoot files); their player/enemy buffers were built
+on first use. Music and VO were preloaded alongside SFX but remain optional.
+
+The raid already imported the same `ui/audio.js` singleton and real audio-element
+probe as the base: AAC/m4a is preferred when supported, including WebKit advertising
+Vorbis support. This report was not another missing AAC probe. The raid document
+owns a new suspended AudioContext; the base Deploy gesture cannot unlock it.
+Shared capture listeners already resume synchronously on touchstart/pointerdown,
+including joystick holds, and retry failed decodes from retained bytes. Keep those
+listeners early; the head now also imports the raid adapter to start decoding
+before the larger game import graph finishes.
+
+`prepareCombatAudio` prewarms all eight procedural gun variants and waits for every
+non-UI SFX buffer. Failed combat loads retry at 250 ms intervals, including after
+the cap; pending promises stay cached. The existing boot loader says "BIT is
+calibrating audio..." while `game.mjs` awaits readiness before initial reset/frame
+start. Keyboard/joystick actions are blocked during that wait while the earlier
+shared unlock listener still receives their gestures. The wait caps at 5000 ms;
+remaining sounds continue loading. Raid SFX requests join a pending load for up
+to 150 ms, then record a diagnostic drop rather than playing an obsolete impact
+seconds later. No pending load is cancelled by either cap. Both timings live in
+`data/audio.js`. Voices/music keep their existing independent loading/deadlines.
+
+Regression: `nodspel/tests/audio-ready.test.mjs` uses a suspended WebKit-style fake
+context and controlled decodes to prove all-buffer waiting, capped start without
+cancelling completion/retries, AAC selection, first-pending-SFX playback and
+synchronous touchstart/pointerdown unlock. A physical iPhone playback check is
+still useful; automated tests model its activation/decode behavior.
