@@ -253,42 +253,36 @@ try{
         // Prior captures centered the hero island, where this rock mesh is
         // intentionally omitted; they could not verify the ugly round stone.
         const shelfView=await page.evaluate(async()=>{
-          const THREE=await import('./vendor/three.module.js');
           const scene=window.__NR.getScene(),level=window.__NR.state().level;
-          const floors=level.floors.filter(f=>!f.dir),rocks=[],shells=[];
+          const floors=level.floors.filter(f=>!f.dir),shells=[];
           scene.updateMatrixWorld(true);
           scene.traverse(o=>{
-            if(o.name==='arch-v2-glacial-shelves'&&o.count>0)rocks.push(o);
-            if(o.name==='archipelago-coast-shell'&&!o.userData.heroIsland)shells.push(o);
+            if(o.name==='archipelago-coast-shell'&&o.userData.integratedGraniteShelves)shells.push(o);
           });
-          if(!rocks.length||!shells.length)return null;
-          const matrix=new THREE.Matrix4(),point=new THREE.Vector3(),candidates=[];
-          for(const rock of rocks)for(let i=0;i<rock.count;i++){
-            rock.getMatrixAt(i,matrix);
-            point.setFromMatrixPosition(matrix).applyMatrix4(rock.matrixWorld);
-            candidates.push({x:point.x,z:point.z});
-          }
+          if(!shells.length)return null;
           let best=null;
-          for(const candidate of candidates)for(const shell of shells){
-            const positions=shell.geometry.getAttribute('position'),
-              n=Math.floor(positions.count/6);
+          for(const shell of shells){
+            const pos=shell.geometry.getAttribute('position'),n=Math.floor(pos.count/6);
             if(n<32)continue;
             let cx=0,cz=0;
-            for(let i=0;i<n;i++){cx+=positions.getX(i);cz+=positions.getZ(i);}
+            for(let i=0;i<n;i++){cx+=pos.getX(i);cz+=pos.getZ(i);}
             cx/=n;cz/=n;
             for(let i=0;i<n;i++){
-              const x=positions.getX(i),z=positions.getZ(i);
-              const d=Math.hypot(x-candidate.x,z-candidate.z);
-              if(!best||d<best.d)best={x,z,cx,cz,d};
+              const x=pos.getX(3*n+i),z=pos.getZ(3*n+i),y=pos.getY(3*n+i);
+              // Prefer an authored granite headland near the camera, not a
+              // blank cove. No camera override or extra geometry.
+              const score=y+.025*(x+z);
+              if(!best||score>best.score)best={x,z,cx,cz,y,score};
             }
           }
           if(!best)return null;
           const dx=best.cx-best.x,dz=best.cz-best.z;
           const len=Math.max(.001,Math.hypot(dx,dz));
           return {x:best.x+dx/len*1.45,z:best.z+dz/len*1.45,
-            rockDistance:Number(best.d.toFixed(2)),islands:floors.length};
+            peak:Number(best.y.toFixed(2)),islands:floors.length};
         });
-        assert.ok(shelfView,'the second island must expose a genuine fractured coastal shelf');
+        assert.ok(shelfView&&shelfView.peak>.20,
+          'the second island must expose actual fractured shelves sculpted into its coastline');
         await page.evaluate(p=>window.__NR.teleport(p.x,p.z),shelfView);
         await capture(page,version+'-'+quality+'-fractured-shelf',errors);
         console.log('FRACTURED_SHELF_REAL_CAMERA',quality,JSON.stringify(shelfView));

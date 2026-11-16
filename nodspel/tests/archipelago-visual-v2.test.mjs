@@ -70,7 +70,11 @@ test('the real Archipelago build connects terrain, water and walkable coast with
     const coastal=group.children.filter(o=>o.name==='archipelago-coast-shell');
     const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
     assert.equal(coastal.length,islands.length);
-    assert.equal(granite.length,islands.length-1,'hero coastal cliffs replace detached granite meshes');
+    assert.equal(granite.length,0,
+      'no playable island may render a detached rounded offshore boulder');
+    assert.ok(coastal.filter(o=>!o.userData.heroIsland).every(o=>
+      o.userData.integratedGraniteShelves===true&&o.userData.bedrockPlan),
+      'other islands sculpt the planned low granite shelves into their own coastal mesh');
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
     assert.equal(group.children.filter(o=>o.name==='arch-v2-rock-cut-portal').length,1);
     assert.ok(group.children.some(o=>o.name==='arch-v2-rock-cut-portal'&&o.userData.integratedHero),
@@ -189,9 +193,12 @@ test('v2 places high granite only outside the island and preserves open bridge l
         'no tall climbable-looking rocks in the interior of a planar X/Z game');
 
       const granite=group.children.filter(o=>o.name==='arch-v2-glacial-shelves');
-      assert.equal(granite.length,level.floors.filter(f=>!f.dir).length-1,
-        'hero island must have NO separate offshore granite mass');
-      assert.ok(granite.every(g=>g.userData.visualOnly),'other islands keep their existing visual-only granite');
+      assert.equal(granite.length,0,
+        'ALL islands must render granite from the same joined coast, never separate offshore masses');
+      const allJoined=group.children.filter(o=>o.name==='archipelago-coast-shell');
+      assert.ok(allJoined.filter(o=>!o.userData.heroIsland).every(o=>
+        o.userData.integratedGraniteShelves&&o.userData.bedrockPlan),
+        'nonhero levels use a single connected, index-coherent granite shoreline');
       assert.equal(out.heroIsland,true,'target flag authors the hero island');
       const heroShell=group.children.filter(o=>o.name==='archipelago-coast-shell'&&o.userData.heroIsland);
       assert.equal(heroShell.length,1,'hero cliffs live in one existing coast shell, not a detached rock layer');
@@ -235,8 +242,9 @@ test('v2 places high granite only outside the island and preserves open bridge l
           &&Math.abs(r.z-zone.z)<(r.d+zone.d)/2+1e-5;
         // Rock-free zone is deliberately larger than the hard gameplay clearance.
         // Short, man-made interior cover may remain beyond the actual landing.
-        for(const g of granite)for(const part of [...g.userData.bedrockPlan.masses,...g.userData.bedrockPlan.shelves])
-          assert.ok(!crosses(part.bounds),'coastal granite must be outside the enlarged bridge approach');
+        for(const shell of allJoined.filter(o=>o.userData.integratedGraniteShelves))
+          for(const part of [...shell.userData.bedrockPlan.masses,...shell.userData.bedrockPlan.shelves])
+            assert.ok(!crosses(part.bounds),'planned joined granite stays outside protected bridge approach');
       }
       // No invisible rock wall: every runtime wall collision is backed by
       // an exactly matching visible manufactured-cover mesh.

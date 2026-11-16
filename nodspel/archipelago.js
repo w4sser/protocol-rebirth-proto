@@ -436,11 +436,14 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
       const hero=targetIsland&&profile.floor===firstIsland;
-      const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
-      // The hero's mass angles still provide geological color fingers, but
-      // their actual height comes exclusively from the joined coast mesh.
-      const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
-        :bedrock?.userData.bedrockPlan;
+      // Pass ZC3: draw NO independent offshore oval/umbrella stone on any
+      // playable island. The deterministic bedrock PLAN now sculpts the
+      // existing continuous coastline surface in coastRingData instead.
+      // The shared granite primitive stays available only for far-horizon
+      // background skerries, not as a separate intersecting shoreline mesh.
+      const plan=hero
+        ?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
+        :planArchipelagoBedrock(profile,options);
       bedrockPlans.set(profile.floor,plan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
       if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
@@ -489,6 +492,10 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
       mesh.receiveShadow=true;
       mesh.castShadow=Boolean(profile.heroCoast);
       if(profile.heroCoast){mesh.userData.heroIsland=true;mesh.userData.heroRings=data.rings;}
+      if(visualV2&&!profile.heroCoast){
+        mesh.userData.integratedGraniteShelves=true;
+        mesh.userData.bedrockPlan=bedrockPlans.get(f);
+      }
       mesh.userData.visualOnly=true;
       group.add(mesh);
     }else{
