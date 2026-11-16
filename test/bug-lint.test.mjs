@@ -306,6 +306,7 @@ assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield
  assert.equal(rule.check().length,0);
  const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
  assert.ok(rule.check({levelsSrc:levels.replace('b.quantity=need.count','b.quantity=1')}).length);
+ assert.ok(rule.check({levelsSrc:levels.replace('claimed.has(b)','b.guarantee')}).length);
  assert.ok(rule.check({levelsSrc:levels.replaceAll('!b.scout&&!b.quest&&!b.key','!b.scout&&!b.key')}).length);
  assert.ok(rule.check({gameSrc:''}).length);
  assert.ok(rule.check({cssSrc:''}).length);

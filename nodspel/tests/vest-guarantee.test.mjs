@@ -100,7 +100,8 @@ test('Big Map launches carry the same missing vest materials in existing caches'
   setGuaranteeLoot([{item:'polymer_plate',count:2},{item:'scrap_alloy',count:1},{item:'salvage_crate',count:1}]);
   const level=generateLevel(1,'vest-big-'+seed,'bunker',false,true);
   assert.equal(level.lootBoxes.length,before.lootBoxes.length);
-  assert.ok(units(level,'polymer_plate')>=2);assert.ok(units(level,'scrap_alloy')>=1);assert.ok(units(level,'salvage_crate')>=1);
+  const guaranteed={lootBoxes:level.lootBoxes.filter(b=>b.guarantee)};
+  assert.equal(units(guaranteed,'polymer_plate'),2);assert.equal(units(guaranteed,'scrap_alloy'),1);assert.equal(units(guaranteed,'salvage_crate'),1);
  }
  setGuaranteeLoot(null);
 });

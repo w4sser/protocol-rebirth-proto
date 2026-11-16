@@ -408,7 +408,7 @@ export const RULES=[
   {id:'vest-guarantee-existing-caches',pr:'v2.28.4x vest materials',why:'Missing vest materials must be actionable without exceeding the early-room crate cap or replacing a quest supply',
    check(c={}){const levels=c.levelsSrc??read('nodspel/levels.js'),game=c.gameSrc??read('nodspel/game.mjs'),app=c.appSrc??read('app.js');const out=[];
      const guarantee=(levels.match(/if\(GUARANTEE_LOOT\?\.length&&level\.number===1\)\{[\s\S]*?\n  \}/)||[''])[0];
-     if(!guarantee.includes('b.quantity=need.count')||!guarantee.includes('b.contents??=[]')||!guarantee.includes('!b.quest')||guarantee.includes('lootBoxes.push'))out.push('nodspel/levels.js: vest guarantee must group units in existing non-quest caches');
+     if(!guarantee.includes('b.quantity=need.count')||!guarantee.includes('b.contents??=[]')||!guarantee.includes('!b.quest')||!guarantee.includes('claimed.has(b)')||guarantee.includes('lootBoxes.push'))out.push('nodspel/levels.js: vest guarantee must group units in existing non-quest caches');
      const css=c.cssSrc??read('index.html');
      if(!css.includes('.craftconfirm .sp-act{display:grid;grid-template-columns:1fr 1fr;'))out.push('index.html: craft confirmation actions must share a row so source hints fit landscape');
      if(!game.includes('setGuaranteeLoot(launch.vestGuarantee)'))out.push('nodspel/game.mjs: launch must apply or clear the vest guarantee');

@@ -232,6 +232,6 @@ Vest material guarantee (`vest-guarantee-existing-caches`, v2.28.4x): the launch
 recipe shortage from live inventory and applies or clears it on raid start. Level-one guarantees
 use quantities and mixed contents in existing non-quest caches, preserving the early-room cap.
 Mutation fixtures remove the quantity grouping, quest protection or launch wiring; behavioral
-regressions exercise 200 seeds with a concurrent quest, normal pickups and extraction.
+regressions exercise 200 seeds with a concurrent quest, normal pickups and extraction. Big Map assertions check exact guaranteed units; per-pass cache claims prevent inherited template metadata from appending duplicate supplies.
 `bit-introduces-systems-first` also requires the pending-intro queue and Vault construction gate:
 a queued moment cannot count as seen before its dismissal callback. The vest rule also pins the craft confirmation action row; the base layout group opens the missing-material vest confirmation at all three phone sizes to verify both actions remain reachable. Missing Scrap must show its existing salvage cache source as well as have/need; source labels and the guarantee use data, and the shortage uses the live discounted craft cost.

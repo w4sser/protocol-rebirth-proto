@@ -477,11 +477,13 @@ function applyGuaranteeLoot(level){
   // ordinary caches; mixed contents allow every shortage even when a quest reserves a cache.
   if(GUARANTEE_LOOT?.length&&level.number===1){
     const caches=level.lootBoxes.filter(b=>!b.scout&&!b.quest&&!b.key&&!b.requiresNode);
+    const claimed=new Set();
     for(const [i,need] of GUARANTEE_LOOT.entries()){
       const b=caches[i%caches.length];if(!b)continue;
-      if(!b.guarantee){b.item=need.item;b.quantity=need.count;delete b.contents;}
+      // Big Map can inherit a template's metadata. Only claims in this pass append units.
+      if(!claimed.has(b)){b.item=need.item;b.quantity=need.count;delete b.contents;}
       else (b.contents??=[]).push(...Array(need.count).fill(need.item));
-      b.guarantee=true;b.marked=true;b.revealed=true;
+      claimed.add(b);b.guarantee=true;b.marked=true;b.revealed=true;
     }
   }
 }
