@@ -205,3 +205,30 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.equal(rule.check({appSrc:app.replace('afterDiscard:narrate','afterDiscard:null')}).length,1);
  assert.equal(rule.check({appSrc:app.replace(/if\(old\) discardOverlay\(old\);/g,'if(old) old.remove();')}).length,1);
 }
+
+// PRB-161: the splash must never auto-advance to the cold open without a tap.
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const rule=by('splash-no-autoadvance-before-coldopen');
+ assert.equal(rule.check().length,0,'passes on the real app.js');
+ assert.ok(rule.check({appSrc:app.replace('const coldOpenNext = !S.introSeen && !ftueDirect;','')}).length,'fires once coldOpenNext is removed');
+ assert.ok(rule.check({appSrc:app.replace('else if(!flightActive && !coldOpenNext) autoTimer = setTimeout(begin, 1400);','else if(!flightActive) autoTimer = setTimeout(begin, 1400);')}).length,'fires when ready() drops the coldOpenNext guard (the original PRB-161 bug)');
+ assert.ok(rule.check({appSrc:app.replace('if(phase === "ready"){ if(requested) begin(); else if(!coldOpenNext) autoTimer = setTimeout(begin, 1400); }','if(phase === "ready"){ if(requested) begin(); else autoTimer = setTimeout(begin, 1400); }')}).length,'fires when flightFailed() drops the coldOpenNext guard');
+}
+
+// PRB-161: the version label (triple-tap opens the hidden audio debug overlay) must stay visible
+// -- and actually reachable above #splash/.intro -- during the splash and the cold open.
+{
+ const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const rule=by('version-label-visible-on-start');
+ assert.equal(rule.check().length,0,'passes on the real index.html');
+ assert.ok(rule.check({indexHtml:html.replace(
+   'body.splash-active #tabs,body.splash-active #bitdock,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip{opacity:0;}',
+   'body.splash-active #tabs,body.splash-active #bitdock,body.splash-active .mapspot,body.splash-active .goalpill,body.splash-active .gen-chip,body.splash-active #app-version{opacity:0;}'
+ )}).length,'fires if #app-version is added back to the splash-active hidden list');
+ assert.ok(rule.check({indexHtml:html.replace(
+   'body[data-screen=intro] #topbar>#navback, body[data-screen=intro] #topbar>.title, body[data-screen=intro] #topbar>#currencies, body[data-screen=intro] #topbar>#menubtn, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock{display:none!important;}',
+   'body[data-screen=intro] #topbar, body[data-screen=intro] #tabs, body[data-screen=intro] #bitdock{display:none!important;}'
+ )}).length,'fires if #topbar itself (not just its other children) is hidden during the cold open again');
+ assert.ok(rule.check({indexHtml:html.replace('body.splash-active #topbar,body[data-screen=intro] #topbar{z-index:94;}','')}).length,'fires if #topbar loses the z-index bump that clears #splash/.intro');
+}

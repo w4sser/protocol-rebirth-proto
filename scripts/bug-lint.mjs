@@ -323,6 +323,31 @@ export const RULES=[
      if(!/locked\s*:\s*true/.test(card)||!/current\s*&&\s*current\.locked/.test(card))out.push('ui/bit-card.js: base cards must ignore a tap in the first second too (current.locked)');
      return out;}},
 
+  {id:'splash-no-autoadvance-before-coldopen',pr:'v2.28.3x PRB-161 splash gesture gate',why:'Robert\'s iPhone, v2.28.39: "I see no version number. But now the VO played after I\'d been clicking on the screen for a while." The splash auto-advanced to the cold open with no tap at all (Low quality/no WebGL2/a failed flight), so unlockSync() never ran and \'youre-back\' only played on whatever later gesture happened to unlock audio -- a first launch (the cold open coming next) must wait on the tap instead',
+   check(c={}){const out=[],app=c.appSrc??read('app.js');
+     const setup=(app.match(/function setupSplash\([^)]*\)\{[\s\S]*?\n\}\n/)||[''])[0];
+     if(!setup){out.push('app.js: function setupSplash(...) not found');return out;}
+     if(!/const coldOpenNext\s*=\s*!S\.introSeen\s*&&\s*!ftueDirect;/.test(setup))out.push('app.js: setupSplash must compute coldOpenNext = !S.introSeen && !ftueDirect');
+     const readyFn=(setup.match(/const ready = \(\) => \{[\s\S]*?\n  \};/)||[''])[0];
+     if(!readyFn)out.push('app.js: setupSplash\'s ready() not found');
+     else if(!/else if\(!flightActive\s*&&\s*!coldOpenNext\)\s*autoTimer\s*=\s*setTimeout\(begin,\s*1400\)/.test(readyFn))out.push('app.js: ready() must not arm the gesture-free autoTimer when coldOpenNext is true (no setTimeout(begin...) path when the cold open is next)');
+     if(!/flightFailed\(\)\{[\s\S]*?else if\(!coldOpenNext\)\s*autoTimer\s*=\s*setTimeout\(begin,\s*1400\)/.test(setup))out.push('app.js: flightFailed() must not fall back to the gesture-free autoTimer when coldOpenNext is true');
+     return out;}},
+
+  {id:'version-label-visible-on-start',pr:'v2.28.3x PRB-161 on-device diagnostics',why:'Robert\'s iPhone, v2.28.39: "I see no version number" -- #app-version (triple-tap opens the hidden audio debug overlay, ui/audio-debug.js) was hidden by CSS during the splash and the cold open, exactly when Robert needed to screenshot it',
+   check(c={}){const out=[],html=c.indexHtml??read('index.html');
+     const splashRule=(html.match(/body\.splash-active #tabs,body\.splash-active #bitdock[^{]*\{opacity:0;\}/)||[''])[0];
+     if(!splashRule)out.push('index.html: the body.splash-active opacity:0 rule for #tabs/#bitdock/.mapspot was not found in its expected form');
+     else if(/#app-version/.test(splashRule))out.push('index.html: #app-version must not be in the body.splash-active opacity:0 list (it must stay visible for on-device diagnostics)');
+     const topbarChildRule=(html.match(/body\.splash-active #topbar>#navback[^{]*\{opacity:0;\}/)||[''])[0];
+     if(!topbarChildRule)out.push('index.html: #topbar must stay rendered during splash-active -- its OTHER children (navback/.title/#currencies/#menubtn) should be hidden individually instead, since display/opacity on #topbar itself would also hide the nested #app-version');
+     if(/body\.splash-active #topbar,body\.splash-active #tabs[^{]*\{opacity:0/.test(html))out.push('index.html: #topbar must not be hidden (opacity:0) during body.splash-active -- that also hides #app-version, which lives inside it');
+     if(!/body\[data-screen=intro\] #topbar>#navback,\s*body\[data-screen=intro\] #topbar>\.title,\s*body\[data-screen=intro\] #topbar>#currencies,\s*body\[data-screen=intro\] #topbar>#menubtn,\s*body\[data-screen=intro\] #tabs,\s*body\[data-screen=intro\] #bitdock\{display:none!important;\}/.test(html))
+       out.push('index.html: body[data-screen=intro] must hide #topbar\'s OTHER children individually (#navback/.title/#currencies/#menubtn), not #topbar itself -- #topbar must stay rendered or the nested #app-version is hidden too');
+     if(/body\[data-screen=intro\] #topbar, body\[data-screen=intro\] #tabs[^{]*\{display:none/.test(html))out.push('index.html: #topbar must not be hidden (display:none) during body[data-screen=intro] -- that also hides #app-version, which lives inside it');
+     if(!/body\.splash-active #topbar,body\[data-screen=intro\] #topbar\{z-index:94;\}/.test(html))out.push('index.html: #topbar needs a raised z-index during splash-active/intro, or #app-version (position:static inside #topbar) stays visually covered by #splash/.intro even though it is no longer hidden');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}
