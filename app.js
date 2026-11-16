@@ -2397,6 +2397,11 @@ SCREENS.intro = function(){
       const onGestureTap = ev => {
         if(tapped) return; tapped = true;
         intro.classList.remove("vo-wait-tap");
+        // iOS fires touchend first, then a SEPARATE synthesized click a beat later -- by the time
+        // that click reaches A.introSkip, .vo-wait-tap is already gone (removed right above), so
+        // stamp the moment here too; introSkip's own guard checks this timestamp as well as the
+        // class, since the class alone can no longer tell the two events apart.
+        intro.dataset.gateTapAt = String(Date.now());
         ev?.stopPropagation?.();
         window.PR_AUDIO?.unlockSync?.();
         waitForVoice();
@@ -4703,8 +4708,16 @@ window.A = {
     const el = document.querySelector(".intro");
     // PRB-161 follow-up: the gesture gate's own first tap (unlocking audio after a raid return
     // with no prior gesture on this document) must never register as a skip -- stopPropagation
-    // also keeps it from reaching any ancestor click handler.
-    if(el && el.classList.contains("vo-wait-tap")){ if(ev) ev.stopPropagation(); return; }
+    // also keeps it from reaching any ancestor click handler. iOS fires touchend THEN a separate
+    // synthesized click ~shortly after: onGestureTap (SCREENS.intro) already removed
+    // .vo-wait-tap on the touchend, so by the time that synthesized click arrives here the class
+    // alone can no longer tell it apart from a real post-gate tap. onGestureTap also stamps
+    // gateTapAt (Date.now()) the instant it fires, so fall back to that: ignore any click within
+    // GATE_TAP_SKIP_GUARD_MS of the gate tap, real synthesized-click delays are well under 300ms.
+    const GATE_TAP_SKIP_GUARD_MS = 800;
+    const gateTapAt = el && Number(el.dataset.gateTapAt || 0);
+    const withinGateTapGuard = !!gateTapAt && (Date.now() - gateTapAt) < GATE_TAP_SKIP_GUARD_MS;
+    if(el && (el.classList.contains("vo-wait-tap") || withinGateTapGuard)){ if(ev) ev.stopPropagation(); return; }
     // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
     // keeps the end state instead of restarting the cold open.
     session.introSkipped = true;
