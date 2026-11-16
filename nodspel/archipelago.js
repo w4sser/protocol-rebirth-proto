@@ -552,10 +552,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   if(visualV2){
     const places=planArchipelagoBoatsV2([...coastProfiles.values()],level.floors,level.seed,
       {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},
-        // Hero granite is part of the island polygon: the boats planner must
-        // not mistake its material-angle anchors for separate rock AABBs.
-        bedrockPlans:[...bedrockPlans.values()].filter(plan=>
-          [...(plan?.masses??[]),...(plan?.shelves??[])].every(m=>m.bounds))});
+        // Keep *real* granite AABBs for the boats planner. Hero material
+        // anchors are angle-only; discarding the entire mixed plan would
+        // allow a dinghy to overlap the new sculpted coastal rock volumes.
+        bedrockPlans:[...bedrockPlans.values()].map(plan=>({
+          masses:(plan?.masses??[]).filter(m=>m.bounds),
+          shelves:(plan?.shelves??[]).filter(m=>m.bounds)
+        }))});
     out.boatPlacements=places;
     for(const place of places){group.add(createArchipelagoDinghyV2(place));out.boats++;}
   }else{

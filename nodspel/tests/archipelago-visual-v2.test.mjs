@@ -84,6 +84,12 @@ test('the real Archipelago build connects terrain, water and walkable coast with
       'hero bunker entrance is anchored directly into the new coastal cliff');
     assert.ok(group.children.some(o=>o.name==='arch-v2-distant-skerry'),'distant landscape adds a sense of scale');
     assert.ok(out.boats>=1,'v2 has at least one nearshore boat');
+    for(const boat of out.boatPlacements)for(const rock of anchored)
+      for(const m of rock.userData.bedrockPlan.masses){
+        const dx=Math.max(Math.abs(boat.x-m.bounds.x)-m.bounds.w/2,0);
+        const dz=Math.max(Math.abs(boat.z-m.bounds.z)-m.bounds.d/2,0);
+        assert.ok(Math.hypot(dx,dz)>2.19,'dinghy must clear actual hero granite volume');
+      }
     assert.equal(group.children.filter(o=>o.name==='arch-v2-coastal-dinghy').length,out.boats,
       'all v2 boats use the sculpted dinghy, never a rectangular placeholder');
     const water=group.children.find(o=>o.name==='water');
