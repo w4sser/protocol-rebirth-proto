@@ -189,7 +189,7 @@ async function newPage(w,h){
 const PROGRESSED="document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
 // v1.77 stash: stuffed stash (OVERFLOW + usage icons), sell/recycle popup, quest-warning confirm, quick-clean popup.
 const STUFF='S.modules.storage=0;S.stash={cable:7,fuse:10,scrap_alloy:20,servo:10,med_gel:10,bio_sample:10,power_cell:5,polymer_plate:10,circuit_board:10,optical_sensor:5,memory_module:5,purification_filter:5,hydraulic_component:5,transmitter:3,power_relay:5,tidal_coil:5,frost_glass:5,core_ash:3,prewar_relic:5};S.fir={polymer_plate:10,scrap_alloy:4};S.chains={bunker:{step:2,prog:0}};';
-// Chip regressions also run at portrait/tall sizes: room positions vary with aspect ratio.
+// Chip regressions also run at taller/narrower landscape sizes. Portrait uses the rotate guard.
 async function baseChipRun([w,h]){
   for(const built of [false,true]){
     const state=built?'chip-guard-duty':'chip-fabricator-locked',ctx=`base ${w}x${h} ${state}`;
@@ -225,6 +225,8 @@ async function baseChipRun([w,h]){
       for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' panned',error);
     }
     await page.setViewport({width:h,height:w,isMobile:true,hasTouch:true,deviceScaleFactor:1});await settle(120);
+    const guarded=await page.evaluate(()=>!!document.getElementById('rotate')?.offsetHeight);
+    if(!guarded)fail(ctx+' rotated','portrait rotate guard is missing');
     for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' rotated',error);
     await page.close();
   }
@@ -889,7 +891,7 @@ try{
   for(const vp of VIEWPORTS)await payoffRun(vp);
   }
   if(group('base')){
-    for(const vp of [...VIEWPORTS,[390,844],[375,667],[430,932],[1024,768]])await baseChipRun(vp);
+    for(const vp of [...VIEWPORTS,[720,600],[800,600],[1024,768]])await baseChipRun(vp);
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
   }

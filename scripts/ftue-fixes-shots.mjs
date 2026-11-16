@@ -56,10 +56,10 @@ try{
    await page.waitForFunction(()=>window.__NR?.round()&&!document.getElementById('boot-loader'),{timeout:40000});
    await page.evaluate(()=>{if(!document.getElementById('tutorial').hidden)document.getElementById('tutorial-start').click();});
    await page.waitForFunction(()=>window.__NR?.round()&&!document.getElementById('boot-loader'),{timeout:40000});await delay(400);
-   // Observe the real runtime adapter and world burst, without adding production hooks.
+   // Replay the live level's reveal state through the real adapter for a deterministic sprite-event record.
    await page.evaluate(async()=>{
     const {createPixelFeedback}=await import('./fx-feedback.js?v=2.28.42');
-    window.__ftueProof={pixel:[],bursts:0};
+    window.__ftueProof={pixel:[]};
     // The adapter's behavior is separately tested; record this live level's reveal states here.
     const events=window.__ftueProof.pixel;
     const recorder=createPixelFeedback({enabled:true,clear(){},stop(){},update(){},spawn(name){events.push(name);return null;}},{});

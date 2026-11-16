@@ -10,6 +10,9 @@ export function chipSave(st,beats,built){
 }
 // Runs in the page. Return every actual intersection, even when the chip is non-interactive.
 export function questChipRoomOverlaps(){
+  // Portrait phones show the full-screen rotate guard, so the base is not interactive.
+  const rotate=document.getElementById('rotate');
+  if(rotate&&rotate.offsetHeight&&getComputedStyle(rotate).visibility!=='hidden')return [];
   const shown=e=>e.getClientRects().length&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
   const chips=[...document.querySelectorAll('.baseviewer>.progress-goal,.baseviewer>.goalpill')].filter(shown);
   const rooms=[...document.querySelectorAll('.baseviewer .mapspot,.baseviewer .mapspot .tag')].filter(shown);
