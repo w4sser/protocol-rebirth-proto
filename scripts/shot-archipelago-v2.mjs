@@ -252,7 +252,8 @@ try{
         // Pass ZC: a real normal-camera screenshot of the NON-HERO granite.
         // Prior captures centered the hero island, where this rock mesh is
         // intentionally omitted; they could not verify the ugly round stone.
-        const shelfView=await page.evaluate(()=>{
+        const shelfView=await page.evaluate(async()=>{
+          const THREE=await import('./vendor/three.module.js');
           const scene=window.__NR.getScene(),level=window.__NR.state().level;
           const floors=level.floors.filter(f=>!f.dir),rocks=[],shells=[];
           scene.updateMatrixWorld(true);
