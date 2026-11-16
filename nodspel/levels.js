@@ -1,11 +1,11 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.40';
-import {generateBigLevel} from './big-level.js?v=2.28.40';
-import '../data/items.js?v=2.28.40';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.40';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.40-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.40';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.40';
-import '../data/raid-combat.js?v=2.28.40';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.41';
+import {generateBigLevel} from './big-level.js?v=2.28.41';
+import '../data/items.js?v=2.28.41';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.41';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.41-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.41';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.41';
+import '../data/raid-combat.js?v=2.28.41';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   shooting:globalThis.DATA.raidCombat,
@@ -43,7 +43,7 @@ export const RULES=Object.freeze({
     // Grenade thrower: stops ~5 m out, shows a coral ring on the floor where it will lob (warningMs >= 1 s), then the blast
     // lands fuseMs later. Same ring / fuse / reach as the player's Grenade (RULES.tools.defs.tool_grenade; a test pins them).
     // Solutions: kill or flank it before the lob (2 hp), or step out of the ring (2.2 s from first sign to blast).
-    grenadier:{health:2,warningMs:1200,fuseMs:1000,radius:2,damagePct:.22,cooldownMs:3200,distance:6},
+    grenadier:{health:2,warningMs:1200,fuseMs:1000,radius:2,damagePct:.22,enemyDamage:2,knockback:1.05,cooldownMs:3200,distance:6},
     // Turret behind cover: a sentry with long reach; a visible salvo, then a long recovery window to move in.
     turret:{health:2,lane:4.4,side:2.2,fireHalfAngleDeg:180,turnRadPerSec:6,warningMs:1100,burstShots:3,burstIntervalMs:200,recoveryMs:2600,damagePct:.12,counterOnHit:false},
     shield_turret:ENEMY_TUNING.shieldTurret,

@@ -1828,10 +1828,29 @@ The concise [Core, Meta & Commerce Contract](core-meta-commerce.md) is authorita
 
 ---
 
+## M43 — Enemy Friendly Fire as Emergent Tactical Counterplay (OWNER APPROVED, 15 November 2026)
+
+**Locked general design principle:** Enemy attacks may harm other enemies when their physical impact and readable attack timing support it. Players should be able to win by baiting hostile troops into their allies' attacks, without needing a special ability, scripted encounter or stronger weapon. This supports M22's tactical combat with the Basic Carbine.
+
+**First implementation: artillery/grenadier explosion.** The coral landing circle already communicates where a live shell will land. The player can lure hostile troops into it and escape before detonation. On detonation, the same blast checks all **living, active** enemies inside its true radius (including the firing enemy). The blast deals 2 enemy HP damage to each valid enemy in the ring, through the existing enemy-hit/death response path. The Operator still takes ordinary, capped grenade damage according to the existing difficulty model.
+
+**Radial blast knockback (owner follow-up):** Actors hit by the explosion, including the Operator, receive a short outward movement from the blast centre. Initial tuning is **1.05 m at the centre, tapering to 0.525 m at the edge**, with swept collision and floor boundaries. No wall penetration, movement off playable islands, push through other live actors or added stun/attack interruption is authorized. Dash invulnerability prevents both player damage and knockback. For an actor at the exact blast centre, the shell's flight direction supplies a consistent push direction.
+
+**Integrity:** The blast is committed when fired and detonates exactly once even if its source dies. It cannot hit unspawned, sleeping or inactive enemies, generators or objectives. Enemy-on-enemy kills use genuine enemy death/room-clear accounting and validated hit/defeat audiovisual feedback, **without granting the Operator on-kill healing or inventing extra loot**. Keep existing warning timings, blast radius, projectile rendering, player damage, i-frames and mobile readability. No new HUD button.
+
+**Broader direction:** Other explosives and heavy projectiles may later follow this same damage principle. Ordinary bullets, charges and melee need separate playtesting for line of sight, readability and unwanted encounter wipes; this does not silently enable friendly fire for everything.
+
+**Acceptance:** A real artillery landing inside an enemy cluster damages every eligible target in its circle once, including its own launcher if close; collateral kills do not heal the Operator; remote or inactive actors remain untouched; the player is still at risk; collision and floor boundaries hold after the outward push; visual and sound-off readability are validated at landscape mobile scale.
+
+**Status:** General design principle and first artillery slice approved for implementation and playtesting. Initial numeric values are tunable, not a permanent balancing lock.
+
+---
+
 ## Decision history
 
 | Date | Decision | Status |
 | --- | --- | --- |
+| 2026-11-15 | M43: enemy friendly-fire principle; real artillery collateral damage and collision-safe radial knockback, with no enemy-caused player kill heal | Owner-approved; initial implementation and tests in progress |
 | 2026-11-16 | PRB-161 follow-up: a raid return (no splash shown, `coreIngest.ok`, e.g. after the FTUE raid) gates the cold open on a real tap instead of the capped `.vo-wait` wait -- that document's AudioContext has had no gesture at all, so the cap would otherwise silently start the text with no VO. The gate (`.vo-wait-tap`, a pulsing "TAP TO WAKE BIT" prompt) has no timeout; it bypasses straight through when audio is already running, an unlock is already in flight, or audio is muted in settings. The first tap calls `unlockSync()` explicitly and is never mistaken for a cold-open skip, including iOS's touchend-then-a-separate-synthesized-click sequence (`A.introSkip` now also checks a `gateTapAt` timestamp, not just the `.vo-wait-tap` class, since the touchend handler already clears that class before the later click arrives). | Robert's iPhone playtest (the actual FTUE-return path); no version bump in this worktree |
 | 2026-11-16 | PRB-161: a first launch (cold open coming next) never auto-advances the splash without a tap, so `unlockSync()` always runs from a real gesture before BIT's `youre-back` greeting is needed; the cold open's first line now waits (capped at 1.5s) for the greeting to be decoded and the AudioContext running before revealing, so the VO starts with the text instead of on whatever later gesture happened to unlock audio. ENTER THE FACILITY fades in faster (0.5s) with pointer-events synced to its visible opacity. The version label (triple-tap diagnostics overlay) stays visible and reachable on the start screen and the cold open, not just the base screen. | Robert's iPhone playtest of v2.28.39; no version bump in this worktree |
 | 2026-11-15 | PRB-160: Show narrator cutscenes immediately when UI clears; warm and retain decoded unseen story art during splash/base entry, never gate visuals on audio, loading or bunker lighting. Continue existing voice playback. | Implemented |
