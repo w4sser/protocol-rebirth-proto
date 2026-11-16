@@ -802,7 +802,7 @@
   /* PRB-161: pointer-events flips to auto at 60% (already .85 opaque), not only at 100% -- the
      button must never be tappable while it still reads as invisible, and never look disabled
      (clearly mid-fade) once it IS tappable. */
-  @keyframes introBtn{0%{opacity:0;pointer-events:none} 60%{opacity:.85;pointer-events:auto} 100%{opacity:1}}
+  @keyframes introBtn{0%{opacity:0;pointer-events:none} 60%{opacity:.85;pointer-events:auto} 100%{opacity:1;pointer-events:auto}}
   .intro.done .intro-stage{animation-play-state:paused;}
   .intro.done .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
   .intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
