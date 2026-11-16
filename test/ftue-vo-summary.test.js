@@ -49,6 +49,10 @@ function boot(seedSave, seedResult){
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/ui/base-audio.js", "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,_getSession:()=>session};");
+  // v2.28.45: with a locked context the TAP TO WAKE BIT gate holds and greet() is blocked while
+  // BIT hibernates. These cases are about the queued voice once the reveal starts, so stand in for
+  // the cleared gate first (test/coldopen-vo-sync.test.js covers the gate itself).
+  w.document.querySelector(".intro")?.classList.remove("vo-wait", "vo-wait-tap", "bit-hibernating");
   w.document.querySelector(".intro-lines p")?.dispatchEvent(new w.Event("animationstart"));
   return { w, audio };
 }
