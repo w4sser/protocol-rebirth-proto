@@ -2324,7 +2324,9 @@ SCREENS.intro = function(){
     '<div class="intro-lines">' + lines.map((l, i) =>
       '<p style="animation-delay:' + (t0 + i * step).toFixed(1) + 's">' + esc(l) + '</p>').join("") + '</div>' +
     '<button class="intro-go" style="animation-delay:' + btnAt.toFixed(1) + 's" onclick="A.dismissIntro()">ENTER THE FACILITY</button>' +
-    '</div></div>';
+    '</div>' +
+    '<small class="intro-wake">TAP TO WAKE BIT</small>' +
+    '</div>';
   // Start the greeting with the first line's reveal, after the splash has uncovered BIT.
   // Animation timing remains the fallback when audio is muted, blocked or still loading.
   const intro = $app().querySelector(".intro"), firstLine = intro.querySelector(".intro-lines p");
@@ -2334,7 +2336,7 @@ SCREENS.intro = function(){
   };
   firstLine?.addEventListener("animationstart", greet, { once:true });
   intro.addEventListener("click", ev => { if(!ev.target.closest(".intro-go")) greet(); });
-  if(session.introSkipped || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+  if(session.introSkipped){
     if(document.body.classList.contains("splash-active"))
       window.addEventListener("pr:splash-finished", greet, { once:true });
     else greet();
@@ -2346,9 +2348,25 @@ SCREENS.intro = function(){
     // (called from the animationstart -> greet() hook once unpaused) still queues and plays the
     // VO as soon as it's ready, as long as .intro is still mounted.
     const VO_WAIT_CAP_MS = 1500;
+    const reducedMotion = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const voiceReady = () => {
       const audio = window.PR_AUDIO;
       return !!(audio && audio.unlocked && audio.context?.state === "running" && audio.decodedFiles?.has("bit/youre-back"));
+    };
+    // Reduced motion never fires the first line's own animationstart (its CSS disables that
+    // animation outright -- see the @media(prefers-reduced-motion:reduce) block below), so once
+    // the gate clears here, fire greet() directly instead of relying on that hook.
+    const clear = () => {
+      intro.classList.remove("vo-wait", "vo-wait-tap");
+      if(reducedMotion) greet();
+    };
+    const waitForVoice = () => {
+      const audio = window.PR_AUDIO;
+      if(!audio || voiceReady()){ clear(); return; }
+      let settled = false;
+      const finish = () => { if(settled) return; settled = true; clear(); };
+      setTimeout(finish, VO_WAIT_CAP_MS);
+      Promise.all([audio.load?.("bit/youre-back")?.catch(() => {}), audio.unlockPromise || Promise.resolve()]).then(finish, finish);
     };
     const armVoiceGate = () => {
       if(!intro.isConnected) return;
@@ -2356,13 +2374,35 @@ SCREENS.intro = function(){
         window.addEventListener("pr:splash-finished", armVoiceGate, { once:true });
         return;
       }
-      const clear = () => intro.classList.remove("vo-wait");
       const audio = window.PR_AUDIO;
       if(!audio || voiceReady()){ clear(); return; }
-      let settled = false;
-      const finish = () => { if(settled) return; settled = true; clear(); };
-      setTimeout(finish, VO_WAIT_CAP_MS);
-      Promise.all([audio.load?.("bit/youre-back")?.catch(() => {}), audio.unlockPromise || Promise.resolve()]).then(finish, finish);
+      // PRB-161 follow-up: a raid return (coreIngest.ok) skips the splash outright (see
+      // setupSplash's returningFromRaid branch), so THIS document's AudioContext can still be
+      // fully suspended with no gesture at all behind it -- unlike the splash-shown path, where
+      // the start tap already called unlockSync(). Reusing the 1.5s cap here would silently start
+      // line 1 with no VO on every raid return on iOS, exactly the bug this gate exists to close.
+      // Hold with no cap until an explicit tap, unless a gesture/unlock is already in flight
+      // (context running, or armUnlockWait() already armed an unlockPromise) or audio is muted in
+      // settings (nothing to wait for either way). init() only builds the context/gain graph (no
+      // resume, no gesture needed) -- the splash-shown path already did this via preload(), but a
+      // raid return skips that too, so without this call `context` would still read null here and
+      // a platform that genuinely runs with no gesture (desktop autoplay allowed) would wrongly
+      // get the prompt.
+      audio.init?.();
+      const muted = !!(audio.settings?.muted || audio.settings?.voiceMuted || audio.settings?.voice === 0 || audio.settings?.master === 0);
+      const running = audio.context?.state === "running";
+      if(running || audio.unlockPromise || muted){ waitForVoice(); return; }
+      intro.classList.add("vo-wait-tap");
+      let tapped = false;
+      const onGestureTap = ev => {
+        if(tapped) return; tapped = true;
+        intro.classList.remove("vo-wait-tap");
+        ev?.stopPropagation?.();
+        window.PR_AUDIO?.unlockSync?.();
+        waitForVoice();
+      };
+      intro.addEventListener("click", onGestureTap);
+      intro.addEventListener("touchend", onGestureTap);
     };
     armVoiceGate();
   }
@@ -4660,10 +4700,15 @@ window.A = {
   itemDetail(id){ session.screen = "itemDetail"; session.screenParam = id; refresh(); },
   introSkip(ev){
     if(ev && ev.target && ev.target.closest && ev.target.closest(".intro-go")) return;
+    const el = document.querySelector(".intro");
+    // PRB-161 follow-up: the gesture gate's own first tap (unlocking audio after a raid return
+    // with no prior gesture on this document) must never register as a skip -- stopPropagation
+    // also keeps it from reaching any ancestor click handler.
+    if(el && el.classList.contains("vo-wait-tap")){ if(ev) ev.stopPropagation(); return; }
     // Remember the skip in session so a re-render of the intro screen (boot/resize/save re-render)
     // keeps the end state instead of restarting the cold open.
     session.introSkipped = true;
-    const el = document.querySelector(".intro"); if(el) el.classList.add("done");
+    if(el) el.classList.add("done");
   },
   dismissIntro(){
     // BIT's cold-open greeting only ever plays while he's on screen -- once the intro is gone,

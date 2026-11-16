@@ -806,10 +806,30 @@
   .intro.done .intro-stage{animation-play-state:paused;}
   .intro.done .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
   .intro.done .intro-lines p,.intro.done .intro-go{animation:none; opacity:1; transform:none; pointer-events:auto;}
+  /* PRB-161 follow-up (raid-return gesture gate): while armVoiceGate() in app.js is holding for
+     the tap it's an explicit choice, not the ordinary "text still catching up to BIT" wait, so
+     BIT himself stays visible/idle (same end state as .intro.done above) instead of frozen
+     invisible mid-power-on under the blanket `.intro.vo-wait *{animation-play-state:paused}`
+     rule -- only the lines/button (already paused by that rule) and the backdrop's push-in
+     (harmlessly paused at its own first frame, scale(1)) stay held. */
+  .intro.vo-wait-tap .intro-bit{animation:introBitFloat 3.6s ease-in-out infinite; opacity:1; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45));}
+  /* Styled like #splash's own "TAP ANYWHERE TO BEGIN" prompt (same tokens/pill/pulse), low-center
+     and safe-area aware, clear of BIT (who sits centred higher up, left:40% bottom:43% of the
+     stage) and of .intro-copy's lines/button (bottom-left, hidden via .vo-wait while this shows). */
+  .intro-wake{position:absolute; left:50%; bottom:calc(20px + var(--sb,0px)); transform:translateX(-50%); z-index:3;
+    min-width:44px; min-height:44px; padding:13px 30px; display:flex; align-items:center; justify-content:center;
+    font:700 12px "IBM Plex Mono",monospace; letter-spacing:.2em; color:var(--ad-cyan);
+    background:transparent; border:1px solid color-mix(in srgb,var(--txt) 45%,transparent); border-radius:999px;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;}
+  .intro.vo-wait-tap .intro-wake{opacity:.8; animation:splashPromptPulse 2.6s ease-in-out infinite;}
   @media (prefers-reduced-motion: reduce){
     .intro-stage{animation:none!important; transform:translate(-50%,-50%) scale(1)!important;}
     .intro-bit{animation:none!important; opacity:1!important; filter:brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,.45))!important;}
     .intro-lines p,.intro-go{animation:none!important; opacity:1!important; transform:none!important; pointer-events:auto!important;}
+    /* Reduced motion otherwise forces the lines/button fully visible above -- the gesture gate
+       must still hide them while it's waiting for the tap (see armVoiceGate() in app.js). */
+    .intro.vo-wait-tap .intro-lines p,.intro.vo-wait-tap .intro-go{opacity:0!important; pointer-events:none!important;}
+    .intro.vo-wait-tap .intro-wake{animation:none!important;}
   }
   /* ENTER THE FACILITY: #app starts hidden the instant dismissIntro() swaps the screen underneath,
      then fades in over ~500ms once app.js lifts body.intro-leaving on the next paint. */
