@@ -99,10 +99,10 @@ policy. Each caller picks whatever persistence fits:
 | `mat:<item>` | `nodspel/game.mjs` `pickupToast` | first-ever pickup of that material (`nodspel/loot-value.js` `materialPickupBitLine`, "BIT: " prefix stripped) | happy |
 | `core_restored` (cutscene) | `app.js` `A.build("rebirth_core")`, first Core L1 | "Power… I can feel my circuits again. Also my toes. I don't have toes." | happy |
 | `first_death` (cutscene) | `app.js` `maybeShowFirstDeathCard`, first ordinary-raid death ingest | "I dragged you back. Don't make it a habit." | sad → happy |
-| `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." (+ a live shortage clause and a MISSING info row when the Vest recipe is short, PRB-162) | happy |
+| `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." (+ a live shortage clause and a HAVE/NEED info row when the Vest recipe is short, PRB-162) | happy |
 | `raid_briefing` (cutscene, PRB-162) | `app.js` `maybeShowRaidBriefing`, first base visit with the Fabricator still locked, after `core_restored` | "Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs." | skeptical |
 | `quest_intro` (cutscene, PRB-162) | `app.js` `maybeShowQuestIntro`, before the tracked-quest chip (`trackedGoalHtml`) can ever render | "Quests: little jobs, real rewards. Finish one, I pay up. That chip up top tracks it — tap it any time for the fine print." | smile |
-| `vault_intro` (cutscene, PRB-162) | `app.js` `maybeShowVaultIntro`, before the Vault is ever the build target or built | "This is the Vault. What you store here stays here, even if you don't make it back. I used to keep feelings in here. Now it's scrap." | smile |
+| `vault_intro` (cutscene, PRB-162) | `app.js` `maybeShowVaultIntro`, before the Vault is ever the build target or built | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
 
 ## Mini cutscenes
 
@@ -307,7 +307,7 @@ explain, following "Adding a new BIT card moment" above.
 | Raid / the RAID button, while the Fabricator is still locked | `raid_briefing` cutscene |
 | Quests (what they are, why, the tracked chip) | `quest_intro` cutscene, gates the chip (`trackedGoalHtml`) |
 | Vault / Storage (stash expansion, the secure slot) | `vault_intro` cutscene, gates "next goal"/build |
-| Scavenger Vest craft shortage (materials you don't have yet) | shortage clause + MISSING row on `fabricator_built`, live from the stash |
+| Scavenger Vest craft shortage (materials you don't have yet) | shortage clause + HAVE/NEED row on `fabricator_built`, live from the stash |
 
 **Remaining gaps (backlog, not built here):**
 
@@ -322,3 +322,14 @@ explain, following "Adding a new BIT card moment" above.
 | Idle scavenging / expeditions while away | Scavenge popup, no intro | Low |
 | Daily quests | Quest log "daily" tab, no intro | Low |
 | Living Quarters / rest buff | Room unlock only | Low -- late-game room, not yet reachable in the scripted spine |
+
+PRB-162 completion details: `queueSystemIntro` deduplicates pending intros and saves `false` until
+its dismissal callback marks the scene seen. Reloading a queued intro does not migrate it away.
+The quest dismissal refreshes the chip immediately; a Vault build cannot spend materials before
+its intro has been dismissed. All three use the existing one-second guard and three-second hint.
+The vest offer's HAVE/NEED row includes every recipe cost and a compact generated cache location
+for each missing material. Craft list and confirmation retain full generated loot-source hints.
+Each real raid launch recalculates the shortage, including Scrap represented by existing salvage
+crates. Units are grouped in ordinary level-one caches using `quantity` / `contents`; no extra
+cache, no replacement of a quest/key/scout supply, and no free stash grant. A death leaves the
+shortage to be guaranteed again; extracting enough stops the guarantee.

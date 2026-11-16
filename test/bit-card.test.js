@@ -245,7 +245,7 @@ console.log("BIT CARD COMPONENT TESTS PASSED");
 /* ---------- d) base moments: fire once, persist in S.bitCardsSeen ---------- */
 
 const FILES = ["data/items.js", "data/modules.js", "data/bit.js", "data/bit-talents.js", "data/raid_zones.js",
-  "data/recipes.js", "data/vendors.js", "data/retention.js", "data/quests.js", "data/progression.js", "data/combat.js"];
+  "data/recipes.js", "data/loot-sources.js", "data/vendors.js", "data/retention.js", "data/quests.js", "data/progression.js", "data/combat.js"];
 function boot(seedSave, calls, artMode = "success", requests = []){
   const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScripts: "outside-only", url: "http://localhost/" });
   const w = dom.window;
@@ -264,7 +264,7 @@ function boot(seedSave, calls, artMode = "success", requests = []){
   w.eval(fs.readFileSync(path + "/save-slots.js", "utf8"));
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
-    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml};");
+    ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,fabCraftHtml,craftConfirmHtml,vestGuaranteeNeed,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml};");
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -315,7 +315,9 @@ async function bootToCoreOneTapAway(calls){
   assert.match(calls[0].line, /circuits again/);
   assert(calls[0].bust && calls[0].info, "core_restored cutscene carries the standard bubble+info layout");
   assert.equal(calls[1].id, "raid_briefing", "raid_briefing is queued next, never shown on top of core_restored");
-  assert.equal(w.T.state().bitCardsSeen.raid_briefing, true, "persisted synchronously too");
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, false, "not seen while only queued");
+  calls[1].onDone();
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, true, "persisted on dismissal");
   assert(calls[1].info.some(r => r.label === "NEXT" && /Fabricator/.test(r.text)), "raid_briefing names the real Fabricator cost");
 }
 
@@ -344,6 +346,8 @@ async function bootToCoreOneTapAway(calls){
   assert.equal(w.T.state().bitCardsSeen.raid_briefing, undefined, "loading alone never marks it seen (Fabricator still locked)");
   w.A.go("base");
   assert.equal(calls.filter(c => c.id === "raid_briefing").length, 1, "fires live on the next base visit");
+  assert.equal(w.T.state().bitCardsSeen.raid_briefing, false);
+  calls.find(c=>c.id === "raid_briefing").onDone();
   assert.equal(w.T.state().bitCardsSeen.raid_briefing, true);
   w.A.go("base");
   assert.equal(calls.filter(c => c.id === "raid_briefing").length, 1, "never fires a second time");
@@ -538,7 +542,11 @@ async function bootPastFabricator(calls){
   assert.equal(calls.findIndex(c => c.id === "quest_intro") > calls.findIndex(c => c.id === "fabricator_built"), true, "queued after fabricator_built, never on top of it");
   assert.match(questCalls[0].line, /little jobs/);
   assert(questCalls[0].info.some(r => r.label === "FIRST"), "names the real first quest from data/quests.js");
+  assert.equal(w.T.state().bitCardsSeen.quest_intro, false, "queued intro does not reveal chip");
+  assert.equal(w.T.trackedGoalHtml(), "");
+  questCalls[0].onDone();
   assert.equal(w.T.state().bitCardsSeen.quest_intro, true);
+  assert(w.document.querySelector('.qgoal'), "chip appears in DOM immediately after dismissal");
   // trackedGoalHtml is the chip itself -- confirm it only starts rendering once the flag is set.
   const st = w.T.state();
   st.bitCardsSeen.quest_intro = false;
@@ -556,9 +564,16 @@ async function bootPastFabricator(calls){
   assert.equal(vaultCalls.length, 1, "vault_intro fires the instant the Vault becomes the next goal");
   assert.equal(calls.findIndex(c => c.id === "vault_intro") > calls.findIndex(c => c.id === "quest_intro"), true, "queued after quest_intro");
   assert.match(vaultCalls[0].line, /Vault/);
-  assert(vaultCalls[0].info.some(r => r.label === "NEW" && r.text === w.T.MODS.storage.benefit), "names the real Storage/Vault benefit from data/modules.js");
+  assert(vaultCalls[0].info.some(r => r.label === "NEW" && r.text === w.T.MODS.storage.levels[0].benefitText), "names the real Storage/Vault benefit from data/modules.js");
   assert(vaultCalls[0].info.some(r => r.label === "NEXT" && /Vault/.test(r.text)), "names the Vault's own build cost");
-  assert.equal(w.T.state().bitCardsSeen.vault_intro, true);
+  assert.equal(w.T.state().bitCardsSeen.vault_intro, false, "queued Vault intro is not completed");
+  const st=w.T.state();st.stash.polymer_plate=2;st.stash.scrap_alloy=2;st.cur.scrap=50;
+  w.A.build("storage");
+  assert.equal(st.modules.storage,0,"cannot build or spend before the Vault explanation");
+  assert.equal(st.cur.scrap,50);
+  vaultCalls[0].onDone();
+  assert.equal(st.bitCardsSeen.vault_intro,true);
+  w.A.build("storage");assert.equal(st.modules.storage,1,"build works after intro");
 }
 
 // vault_intro: fires once, even across repeated base visits once the Vault is the named goal.
@@ -596,10 +611,23 @@ async function bootPastFabricator(calls){
   const built = calls.find(c => c.id === "fabricator_built");
   assert.match(built.line, /short/, "BIT's offer line acknowledges the shortage");
   assert.match(built.line, /polymer_plate|Polymer Plate/i);
-  const missing = built.info.find(r => r.label === "MISSING");
+  const missing = built.info.find(r => r.label === "HAVE/NEED");
   assert(missing, "FIRST RECIPE is swapped for a MISSING row when short");
   assert(!built.info.some(r => r.label === "FIRST RECIPE"), "never both rows at once");
-  assert.match(missing.text, /Polymer Plate/);
+  assert.match(missing.text, /Polymer Plate 0\/2/);
+  assert.match(missing.text, /Scrap Alloy 0\/1/);
+  assert.match(missing.text, /Scrap 0\/15/);
+  assert.match(missing.text, /Bunker 1 caches/);
+  assert.match(w.T.fabCraftHtml(), /0\/2 Polymer Plate/);
+  assert.match(w.T.fabCraftHtml(), /Loot crates/);
+  assert.match(w.T.craftConfirmHtml('armor_patch'), /0\/2/);
+  assert.match(w.T.craftConfirmHtml('armor_patch'), /Loot crates/);
+  const need = w.T.vestGuaranteeNeed();
+  assert(need.some(n=>n.id==='polymer_plate'&&n.count===2));
+  assert(need.some(n=>n.id==='scrap_alloy'&&n.count===1));
+  assert(need.some(n=>n.id==='salvage_crate'&&n.count===1));
+  st.stash.polymer_plate=2;st.stash.scrap_alloy=1;st.cur.scrap=15;
+  assert.equal(w.T.vestGuaranteeNeed(),null);
 }
 {
   // Fully stocked: the offer line/info stay the plain, non-shortage version.

@@ -954,8 +954,8 @@ function fabCraftHtml(){
   return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
     const gated = r.fabricatorLevel > lvl, cost = craftCost(r), buildTime = first ? "Instant" : fabMinutes(r.id) + " min";
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
-    const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + (have(id) < q ? lootHintHtml({ kind:"item", id, have:have(id), need:q }) : '') + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
+    const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + have(id) + '/' + q + ' ' + esc(ITEMS[id].name) + (have(id) < q ? lootHintHtml({ kind:"item", id, have:have(id), need:q }) : '') + '</em>').join(" ");
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + S.cur.scrap + '/' + cost + ' Scrap</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
         : full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" onclick="A.craftConfirm(\'' + r.id + '\')">BUILD</button>') + '</div>';
@@ -4596,22 +4596,33 @@ function vestMissingParts(){
   const r = vestRecipe(); if(!r) return [];
   return costParts({ items:r.inputs, scrap:r.scrapCost }).filter(p => p.have < p.need);
 }
+// A compact source label from the same generated loot-source data as the full craft hints.
+function craftSource(id){
+  const src = ((D.lootSources || {}).crates || {})[id];
+  if(!src || !src.length) return lootHint(id);
+  const first = src[0];
+  return (AREA_DEFS[first.area] ? AREA_DEFS[first.area].name : first.area) + " " + first.level + " caches";
+}
 function vestShortageLine(){
-  const miss = vestMissingParts().filter(p => p.kind === "item"); if(!miss.length) return "";
-  return " We're short " + ITEMS[miss[0].id].name + " — next raid should turn some up.";
+  const miss = vestMissingParts(); if(!miss.length) return "";
+  return " We're short " + miss.map(partName).join(" and ") + "; next raid should turn some up.";
 }
 function vestShortageInfoRow(){
-  const miss = vestMissingParts().filter(p => p.kind === "item"); if(!miss.length) return null;
-  const names = miss.map(p => (p.need - p.have) + "× " + ITEMS[p.id].name).join(" + ");
-  const where = lootHint(miss[0].id);
-  return { label:"MISSING", text: names + (where ? " — " + where : ""), iconHtml: miss.map(p => itemIcon(p.id)).join("") };
+  const parts = costParts({ items:vestRecipe().inputs, scrap:vestRecipe().scrapCost });
+  if(!parts.some(p => p.have < p.need)) return null;
+  return { label:"HAVE/NEED", text:parts.map(p => {
+    const source = p.kind === "item" ? p.id : (D.items.find(i => i.grantsCurrency?.[p.id]) || {}).id;
+    return partName(p) + " " + p.have + "/" + p.need + (p.have < p.need && source ? " (" + craftSource(source) + ")" : "");
+  }).join("; "), iconHtml:"" };
 }
-// The guarantee passed to the real Node Raid (nodspel levels.js setGuaranteeLoot via ?vestGuarantee=):
-// every material the vest recipe is still short, by how many. Recomputed fresh per launch from the
-// live stash, so it stops being sent the moment the player has enough -- no persisted flag to drift.
+// Recompute from live stash each launch. Currency shortages use the existing salvage item
+// conversion; nothing is credited until those cache units are collected and extracted.
 function vestGuaranteeNeed(){
   if((S.modules.fabricator || 0) < 1) return null;
-  const miss = vestMissingParts().filter(p => p.kind === "item").map(p => ({ id:p.id, count:p.need - p.have }));
+  const miss = vestMissingParts().map(p => {
+    const item = p.kind === "item" ? ITEMS[p.id] : D.items.find(i => i.grantsCurrency?.[p.id]);
+    return item ? { id:item.id, count:Math.ceil((p.need - p.have) / (p.kind === "item" ? 1 : item.grantsCurrency[p.id])) } : null;
+  }).filter(Boolean);
   return miss.length ? miss : null;
 }
 // PRB-162: "BIT always introduces every new system before it's shown/unlocked" (docs/ftue-design.md,
@@ -4702,10 +4713,10 @@ const BIT_CUTSCENES = {
     id:"vault_intro",
     from:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
     to:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
-    line:"This is the Vault. What you store here stays here, even if you don't make it back. I used to keep feelings in here. Now it's scrap.",
+    line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap.",
     bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" },
     info:[
-      { label:"NEW", text: MODS.storage.benefit, iconHtml: IC("item-crate") },
+      { label:"NEW", text: MODS.storage.levels[0].benefitText, iconHtml: IC("item-crate") },
       { label:"NEXT", text:"Vault — " + costStripText(MODS.storage.levels[0].cost), iconHtml: costStripIcons(MODS.storage.levels[0].cost) }
     ]
   }
@@ -4760,6 +4771,21 @@ function maybeShowFirstDeathCard(ingest){
   window.PRBitCutscene?.preload(BIT_CUTSCENES.first_death);
   window.PRBitCutscene?.play(BIT_CUTSCENES.first_death);
 }
+// Persist only completed intros. A queued scene must not reveal its UI beneath another scene;
+// false survives reload/migration, so leaving before dismissal cannot silently skip an intro.
+const pendingSystemIntros = new Set();
+function queueSystemIntro(beat, after){
+  if(pendingSystemIntros.has(beat.id)) return;
+  pendingSystemIntros.add(beat.id);
+  S.bitCardsSeen[beat.id] = false; save();
+  window.PRBitCutscene?.preload(beat);
+  window.PRBitCutscene?.play({ ...beat, onDone:() => {
+    pendingSystemIntros.delete(beat.id);
+    S.bitCardsSeen[beat.id] = true; save();
+    if(after) after();
+    refresh();
+  } });
+}
 // PRB-162 moment 1: the first base visit with the Fabricator still locked, after the cold-open
 // and Core-restore beats (never stacked on top of them -- gated on core_restored already being
 // seen, and the cutscene queue itself never shows two scenes at once). Also catches a returning
@@ -4767,9 +4793,7 @@ function maybeShowFirstDeathCard(ingest){
 function maybeShowRaidBriefing(){
   if(S.bitCardsSeen.raid_briefing || !S.bitCardsSeen.core_restored) return;
   if((S.modules.fabricator || 0) >= 1) return;
-  S.bitCardsSeen.raid_briefing = true; save();
-  window.PRBitCutscene?.preload(BIT_CUTSCENES.raid_briefing);
-  window.PRBitCutscene?.play({ ...BIT_CUTSCENES.raid_briefing, onDone:() => { session.pulseRaidButton = true; refresh(); } });
+  queueSystemIntro(BIT_CUTSCENES.raid_briefing, () => { session.pulseRaidButton = true; });
 }
 // PRB-162 moment 3: before the tracked-quest chip (trackedGoalHtml) can ever render, BIT explains
 // what quests are. The chain becomes trackable the instant the Fabricator is built (chainAvailable
@@ -4780,9 +4804,7 @@ function maybeShowQuestIntro(){
   // calls A.go("base") -- which calls this -- before narrate() has queued fabricator_built itself.
   if(!S.bitCardsSeen.fabricator_built) return;
   if(!ftueOver() || fabricatorPending() || !trackedQuest()) return;
-  S.bitCardsSeen.quest_intro = true; save();
-  window.PRBitCutscene?.preload(BIT_CUTSCENES.quest_intro);
-  window.PRBitCutscene?.play(BIT_CUTSCENES.quest_intro);
+  queueSystemIntro(BIT_CUTSCENES.quest_intro);
 }
 // PRB-162 moment 4: the Vault unlock cutscene, gated to play before the Vault is ever the build
 // target or already built -- whichever the current progression reaches first. `progressionGoal()`
@@ -4795,10 +4817,8 @@ function maybeShowVaultIntro(){
   // Same ordering guard as maybeShowQuestIntro: never queue ahead of fabricator_built.
   if(!S.bitCardsSeen.fabricator_built) return;
   const g = progressionGoal();
-  if((S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;
-  S.bitCardsSeen.vault_intro = true; save();
-  window.PRBitCutscene?.preload(BIT_CUTSCENES.vault_intro);
-  window.PRBitCutscene?.play(BIT_CUTSCENES.vault_intro);
+  if(!session.vaultRequested && (S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;
+  queueSystemIntro(BIT_CUTSCENES.vault_intro, () => { session.vaultRequested = false; });
 }
 
 /* ---------- actions ---------- */
@@ -5006,6 +5026,9 @@ window.A = {
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
+    if(modId === "storage" && !S.bitCardsSeen.vault_intro){
+      session.vaultRequested = true; maybeShowVaultIntro(); return;
+    }
     const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
     if(modId === "fabricator" && next.level === 1) fabricatorCutsceneArtReady();
     payCost(next.cost);

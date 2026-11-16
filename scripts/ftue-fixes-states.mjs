@@ -6,7 +6,7 @@ export function chipSave(st,beats,built){
   st.baseState='core_habitable';st.roomUnlocks={fabricator:built};
   st.chains={bunker:{step:1,prog:0}};st.trackedQuest='bunker';
   st.stash={};st.cur.scrap=25;st.power={value:95,at:Date.now(),offlineDrained:0,reinforceAt:0,lastRoom:null,maintain:null};
-  st.bitCardsSeen={};return st;
+  st.bitCardsSeen={core_restored:true,raid_briefing:true,fabricator_built:built,quest_intro:true,vault_intro:true};return st;
 }
 // Runs in the page. Return every actual intersection, even when the chip is non-interactive.
 export function questChipRoomOverlaps(){

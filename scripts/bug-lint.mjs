@@ -395,10 +395,22 @@ export const RULES=[
      const vaultFn=(app.match(/function maybeShowVaultIntro\(\)\{[\s\S]*?\n\}/)||[''])[0];
      if(vaultFn && !/if\(S\.bitCardsSeen\.vault_intro\) return;/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must gate on S.bitCardsSeen.vault_intro so it only ever plays once');
      if(vaultFn && !/progressionGoal\(\)/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must check progressionGoal() so it plays the instant the Vault becomes the next goal, not only once already built');
+     const queue=(app.match(/function queueSystemIntro\(beat, after\)\{[\s\S]*?\n\}/)||[''])[0];
+     if(!queue.includes('onDone:() =>') || !queue.includes('S.bitCardsSeen[beat.id] = false') || !queue.includes('pendingSystemIntros.has(beat.id)'))out.push('app.js: system intros must deduplicate pending scenes and persist completion on dismissal');
+     for(const id of ['raid_briefing','quest_intro','vault_intro'])
+       if(!app.includes('queueSystemIntro(BIT_CUTSCENES.'+id))out.push('app.js: '+id+' must use the completion-gated intro queue');
+     if(!app.includes('if(modId === "storage" && !S.bitCardsSeen.vault_intro)'))out.push('app.js: Vault build must wait for its intro dismissal');
      const migrate=(app.match(/function migrateBitCardsSeen\(st\)\{[\s\S]*?\n\}/)||[''])[0];
      if(!migrate)out.push('app.js: migrateBitCardsSeen(st) not found');
      else for(const id of ['raid_briefing','quest_intro','vault_intro'])
        if(!new RegExp('st\\.bitCardsSeen\\.'+id+'\\s*===\\s*undefined').test(migrate))out.push('app.js: migrateBitCardsSeen must back-fill st.bitCardsSeen.'+id+' for saves already past its live trigger');
+     return out;}},
+  {id:'vest-guarantee-existing-caches',pr:'v2.28.4x vest materials',why:'Missing vest materials must be actionable without exceeding the early-room crate cap or replacing a quest supply',
+   check(c={}){const levels=c.levelsSrc??read('nodspel/levels.js'),game=c.gameSrc??read('nodspel/game.mjs'),app=c.appSrc??read('app.js');const out=[];
+     const guarantee=(levels.match(/if\(GUARANTEE_LOOT\?\.length&&n===1\)\{[\s\S]*?\n  \}/)||[''])[0];
+     if(!guarantee.includes('b.quantity=need.count')||!guarantee.includes('b.contents??=[]')||!guarantee.includes('!b.quest')||guarantee.includes('lootBoxes.push'))out.push('nodspel/levels.js: vest guarantee must group units in existing non-quest caches');
+     if(!game.includes('setGuaranteeLoot(launch.vestGuarantee)'))out.push('nodspel/game.mjs: launch must apply or clear the vest guarantee');
+     if(!app.includes('vestGuarantee:vestGuaranteeNeed()'))out.push('app.js: launch must recompute missing recipe materials');
      return out;}},
   {id:'quest-chip-never-covers-rooms',pr:'v2.28.4x FTUE chip',why:'screen-space quest chips covered map labels and swallowed room taps',
    check(ctx={}){const app=ctx.appSrc??read('app.js'),layout=ctx.layoutSrc??read('scripts/layout-check.mjs');const out=[];

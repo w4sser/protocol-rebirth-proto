@@ -4,7 +4,7 @@
 // adding new ones, so it stays compatible with the early-room crate-count budget.
 import test from 'node:test'; import assert from 'node:assert/strict';
 import '../../data/items.js';
-import { generateLevel, setArea, setGuaranteeLoot } from '../levels.js';
+import { generateLevel, setArea, setGuaranteeLoot, setQuestLoot, RULES } from '../levels.js';
 import { readVestGuarantee } from '../progression-goal.js';
 import { readLaunch } from '../raid-result.js';
 
@@ -25,22 +25,47 @@ test('readVestGuarantee validates the ?vestGuarantee= payload', () => {
   assert.equal(readLaunch('?seed=a').vestGuarantee, null);
 });
 
-test('setGuaranteeLoot overwrites existing level-1 crates deterministically, never adding new ones', () => {
+const units=(level,id)=>level.lootBoxes.reduce((n,b)=>n+(b.item===id?(b.quantity??1):0)+(b.contents||[]).filter(x=>x===id).length,0);
+test('missing vest units fit existing caches with the early cap and a concurrent quest', () => {
   setArea('bunker');
-  setGuaranteeLoot([{ item:'polymer_plate', count:2 }, { item:'scrap_alloy', count:1 }]);
-  const N = 200;
-  for(let s = 0; s < N; s++){
-    const level = generateLevel(1, 'vg' + s, 'bunker');
-    const before = level.lootBoxes.length;
-    const eligible = level.lootBoxes.filter(b => !b.key).length; // a locked closet's keycard box can't be overwritten
-    const pp = level.lootBoxes.filter(b => b.item === 'polymer_plate' && b.guarantee).length;
-    const sa = level.lootBoxes.filter(b => b.item === 'scrap_alloy' && b.guarantee).length;
-    // Level 1 has 2 crates (RULES.loot.counts[0]); the need (3) exceeds that, so this single level
-    // claims as many as exist and the remainder stays pending for the next raid's recomputed need.
-    assert.equal(level.lootBoxes.length, before, 'seed ' + s + ': no crates added, only overwritten');
-    assert.equal(pp + sa, Math.min(eligible, 3), 'seed ' + s + ': claims every available crate up to the need');
-    setGuaranteeLoot([{ item:'polymer_plate', count:2 }, { item:'scrap_alloy', count:1 }]); // reset between seeds
+  for(let seed=0;seed<200;seed++){
+    setGuaranteeLoot(null);setQuestLoot({item:'cable',level:1});
+    const before=generateLevel(1,'vg'+seed,'bunker');
+    setGuaranteeLoot([{item:'polymer_plate',count:2},{item:'scrap_alloy',count:1},{item:'salvage_crate',count:1}]);
+    const level=generateLevel(1,'vg'+seed,'bunker');
+    assert.equal(level.lootBoxes.length,before.lootBoxes.length,'no added crate');
+    assert.ok(level.lootBoxes.some(b=>b.item==='cable'&&b.quest),'quest supply preserved');
+    for(const room of level.rooms){
+      const count=level.lootBoxes.filter(b=>level.rooms.reduce((a,c)=>Math.hypot(b.x-c.x,b.z-c.z)<Math.hypot(b.x-a.x,b.z-a.z)?c:a)===room).length;
+      assert.ok(count>=RULES.earlyLoot.minCratesPerRoom&&count<=RULES.earlyLoot.maxCratesPerRoom);
+    }
+    assert.ok(units(level,'polymer_plate')>=2);
+    assert.ok(units(level,'scrap_alloy')>=1);
+    assert.ok(units(level,'salvage_crate')>=1);
   }
+  setQuestLoot(null);setGuaranteeLoot(null);
+});
+
+test('grouped vest supplies can be collected and extracted through the normal pickup path', async () => {
+  const {createRound,collectLoot,extractRound}=await import('../round.js');
+  // round.js uses the versioned module instance, just as the live game does.
+  const live=await import('../levels.js?v=2.28.43');
+  live.setGuaranteeLoot([{item:'polymer_plate',count:2},{item:'scrap_alloy',count:1},{item:'salvage_crate',count:1}]);
+  const round=createRound('vest-pickups',0,{...RULES.playerStats.base,bagCapacity:20});
+  const boxes=round.level.lootBoxes.filter(b=>b.guarantee);
+  assert.ok(boxes.length);
+  for(const box of boxes){
+    for(let t=0;t<10&&!box.collected;t++)collectLoot(round,box,t);
+    assert.ok(box.collected,'all grouped units collectible');
+  }
+  assert.equal(round.bag.polymer_plate,2);
+  assert.equal(round.bag.scrap_alloy,1);
+  assert.equal(round.bag.salvage_crate,1);
+  round.levelsCleared=1;assert.ok(extractRound(round,20));
+  assert.equal(round.extracted.polymer_plate,2);
+  assert.equal(round.extracted.scrap_alloy,1);
+  assert.ok(round.extracted.salvage_crate*globalThis.DATA.items.find(i=>i.id==='salvage_crate').grantsCurrency.scrap>=15);
+  live.setGuaranteeLoot(null);
 });
 
 test('a fully satisfiable guarantee lands every item, and other levels/areas stay untouched', () => {
