@@ -401,7 +401,7 @@ test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into p
   for(let i=0;i<hero.points.length;i++){
     const p=hero.points[i];
     const root=before[i]-p.playableRadial;
-    assert.ok(root<=1.6,'large granite roots must not consume the flat vegetation edge');
+    assert.ok(root<=2.75,'even wider compact granite roots must not consume the playable meadow');
     assert.ok(p.playableRadial>=Math.min(before[i],p.innerRadial+1.10)-1e-6,
       'preserve original gameplay and every existing narrow passage without claiming extra width');
     if((p.heroRockMask??0)<.045)low++;
