@@ -1,4 +1,4 @@
-// PRB-161 (v2.28.40). Robert's iPhone, v2.28.39: "I see no version number. But now the VO played
+// PRB-161 (v2.28.41). Robert's iPhone, v2.28.39: "I see no version number. But now the VO played
 // after I'd been clicking on the screen for a while. It should play when the text shows." The
 // splash's gesture-free auto-advance (Low quality/no WebGL2/a failed flight) skipped straight to
 // the cold open with no tap, so unlockSync() never ran and 'youre-back' only played on whatever
@@ -91,7 +91,7 @@ function bootSplash({introSeen = false, flightPending = false, ftueDirect = fals
     setupSplashSrc + ";capture(setupSplash(flightPending, returning, ftueDirect));"
   )(
     document, window, window.sessionStorage, { introSeen }, { baseMap: { plates: [{ art: "x.webp" }] } }, () => 0,
-    Picture, later, key => tasks.delete(key), () => {}, "2.28.40", flightPending, false, ftueDirect, ctl => { splashCtl = ctl; }
+    Picture, later, key => tasks.delete(key), () => {}, "2.28.41", flightPending, false, ftueDirect, ctl => { splashCtl = ctl; }
   );
   const tick = ms => {
     const until = now + ms;
