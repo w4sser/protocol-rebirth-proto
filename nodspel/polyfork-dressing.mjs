@@ -39,10 +39,11 @@ function distanceToSegment(p,a,b){
 }
 // Only used for the small pale/high-contrast detail. Dark grass, larger rocks
 // and military/collision-matched cover preserve their authored placements.
-function keepLightDetailAtShore(item,level){
+function keepLightDetailAtShore(item,level,blocked){
   if(!level?.archipelago)return true; // old filtering API/legacy tests
   const p={x:item.x,z:item.z};
   if(!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+  if(blocked?.(p.x,p.z,1.4))return false; // broad visual clear zone around bridge and POIs
   const islands=(level.floors??[]).filter(f=>!f.dir);
   const floor=islands.find(f=>inFloor(p,f));
   if(floor){
@@ -79,13 +80,14 @@ function keepLightDetailAtShore(item,level){
 }
 export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines,level=null}={}){
   if(!nativePines&&!quietGround)return items;
+  const blocked=quietGround&&level?.archipelago?propReservations(level).blocked:null;
   return items.filter(item=>{
     if(nativePines&&LEGACY_TREE_ASSETS.has(item.id))return false;
     // 844x390 screen-ray QA identified white twig/seaweed piles as Polyfork
     // scene props, not the approved dark windfall cover mesh.
     if(quietGround&&BLEACHED_WOOD_DETAIL.has(item.id))return false;
     if(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id))
-      return keepSparseGroundDetail(item)&&keepLightDetailAtShore(item,level);
+      return keepSparseGroundDetail(item)&&keepLightDetailAtShore(item,level,blocked);
     return true;
   });
 }
