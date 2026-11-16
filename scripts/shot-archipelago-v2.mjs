@@ -51,27 +51,6 @@ async function capture(page,label,errors){
     assert.ok(state.pineVisuals.count>=2,label+' procedural pines present');
     assert.deepEqual(state.pineVisuals.legacy,[],label+' no undimmable GLB trees in v2');
   }
-  // Art QA: identify the source mesh of the pale twig clusters at actual
-  // 844x390 gameplay camera points, avoiding guesses about decoration IDs.
-  // This is diagnostic only and never changes the rendered scene.
-  if(label==='after-high-spawn'){
-    const picks=await page.evaluate(async()=>{
-      const {Raycaster,Vector2}=await import(new URL('./vendor/three.module.js',location.href).href);
-      const scene=window.__NR.getScene(),camera=window.__NR.getCamera(),ray=new Raycaster();
-      scene.updateMatrixWorld(true);camera.updateMatrixWorld(true);
-      const sample=(label,x,y)=>{
-        ray.setFromCamera(new Vector2(x/844*2-1,1-y/390*2),camera);
-        return {label,x,y,hits:ray.intersectObjects(scene.children,true).slice(0,6).map(hit=>{
-          const names=[];for(let o=hit.object;o;o=o.parent)if(o.name)names.push(o.name);
-          return {names,instanceId:hit.instanceId??null,distance:+hit.distance.toFixed(2),
-            point:[+hit.point.x.toFixed(2),+hit.point.z.toFixed(2)]};
-        })};
-      };
-      return [sample('bleached-NW',180,145),sample('bleached-SE',595,267),
-        sample('white-small-NW',207,110),sample('white-small-SE',586,236)];
-    });
-    console.log('WHITE CLUTTER RAY QA',JSON.stringify(picks));
-  }
   await page.screenshot({path:join(out,label+'.png')});
   // Art-direction comparison: same REAL raid camera, scene and frame, but
   // screenshot-only HUD masking so the approved interactive target can be

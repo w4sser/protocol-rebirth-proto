@@ -76,10 +76,17 @@ test('native v2 thins bright white-looking detail without affecting legacy or LO
   const driftwood=[
     {id:'fallen-log-1685fb',x:2,z:3},
     {id:'driftwood-log-89a68f',x:7,z:5},
+    {id:'seaweed-drift-line-6566c3',x:6,z:9},
     {id:'medium-rock-e08405',x:4,z:8}
   ];
   assert.equal(filterDressingTrees(driftwood),driftwood,
     'normal live Archipelago keeps its original driftwood and log props');
-  assert.deepEqual(filterDressingTrees(driftwood,{nativePines:true}),[driftwood[2]],
-    'native v2 removes large white log models without hiding darker rock or altering collision');
+  const paleTufts=Array.from({length:100},(_,i)=>({id:'marram-grass-tuft-8c7a99',x:i*1.31,z:i*0.71}));
+  const surviving=filterDressingTrees(paleTufts,{nativePines:true});
+  assert.ok(surviving.length>=15&&surviving.length<=45,
+    'pale beach-grass speckles are reduced by roughly 70% without total removal');
+  assert.ok(surviving.every(item=>paleTufts.includes(item)),
+    'marram thinning preserves original deterministic locations');
+  assert.deepEqual(filterDressingTrees(driftwood,{nativePines:true}),[driftwood[3]],
+    'native v2 removes bleached logs and ray-identified white seaweed drift line, while keeping gameplay cover');
 });
