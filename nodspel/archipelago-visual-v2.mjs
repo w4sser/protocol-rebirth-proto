@@ -73,9 +73,12 @@ export function planArchipelagoHeroGraniteV2(profile,{reservations=[],neighborPr
       .sort((a,b)=>b.heroRockMask-a.heroRockMask||a.angle-b.angle);
     for(const p of candidates){
       const a=p.angle,c=Math.cos(a),s=Math.sin(a),band=p.radial-p.playableRadial;
-      const depth=clamp(band*.94,2.35,4.10);
+      // Pass AB: a narrower offshore footprint lets the same granite root
+      // sit further inside the coast, instead of reading as a detached oval
+      // lying in the sea. Keep the long irregular axis parallel to shore.
+      const depth=clamp(band*.72,1.85,3.20);
       const length=clamp(4.8+hash(seed+hi*127+47)*1.4,4.8,6.2);
-      const height=hi===0?2.70:2.20;
+      const height=hi===0?2.60:2.14;
       let found=null;
       for(let step=0;step<5&&!found;step++){
         // Pass AA: root the sculpted dome IN the real glacial shoreline.
@@ -115,13 +118,12 @@ function sculptGranite({hero=false}={}){
   // One continuous indexed bedrock surface rather than three overlapping
   // tier shells. Ice-worn shoulders use broad asymmetrical faceted planes.
   // The low root rests inside the existing shore without a coplanar apron.
-  const steps=34;
-  // Pass Y: the original discontinuous width jumps at nearly identical
-  // elevations made offshore granite read like a pile of flat concentric
-  // plates. Sample a single smooth, broad ice-rounded dome instead. The
-  // low-poly silhouette remains asymmetric and the geometry stays indexed.
-  const rings=Array.from({length:24},(_,i)=>{
-    const h=i/23;
+  // Pass AB: hero rocks use broader, low-poly glacial faces rather than
+  // dozens of almost spherical bands. Keep the smoother, tested geometry
+  // elsewhere until the representative island is art-approved.
+  const steps=hero?20:34,ringCount=hero?16:24;
+  const rings=Array.from({length:ringCount},(_,i)=>{
+    const h=i/(ringCount-1);
     return [h,.035+1.055*Math.sqrt(Math.max(0,1-h*h))];
   });
   const positions=[],colors=[],indices=[];
@@ -147,7 +149,9 @@ function sculptGranite({hero=false}={}){
     const strata=.5+.5*Math.sin(9*a+8*h+.5),crack=.5+.5*Math.sin(17*a-7*h);
     const color=shadow.clone().lerp(weathered,.32+.53*Math.sqrt(h)+.048*strata)
       .lerp(twilight,.045+.09*(.5+.5*Math.sin(2*a+1.3)))
-      .lerp(moss,(.015+.06*crack)*(1-h*.4));
+      .lerp(moss,hero
+        ? (.19*(1-h)**2+.025+.04*crack)*(1-h*.48)
+        : (.015+.06*crack)*(1-h*.4));
     colors.push(color.r,color.g,color.b);
     if(k<rings.length-1&&j<steps){
       const n=k*(steps+1)+j,q=n+steps+1;
@@ -163,6 +167,8 @@ function sculptGranite({hero=false}={}){
   geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
   geo.setIndex(indices);geo.computeVertexNormals();
   geo.userData.shared=true;geo.userData.continuousGlacialMass=true;
+  geo.userData.angularSteps=steps;geo.userData.ringCount=ringCount;
+  geo.userData.heroLowPoly=hero;
   return geo;
 }
 const graniteGeo=sculptGranite(),heroGraniteGeo=sculptGranite({hero:true}),graniteMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.98,metalness:0,flatShading:true}),groundMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
@@ -194,7 +200,7 @@ export function addArchipelagoHeroGraniteV2(profile,group,{high=true,...options}
     const m=plan.masses[i];
     // Sink the wide base under the real shore rather than leave a visible
     // circular pedestal in the water next to the island.
-    pos.set(m.x,-.67,m.z);
+    pos.set(m.x,-.78,m.z);
     rot.setFromAxisAngle(up,m.rotation);
     scale.set(m.length*.94,m.height,m.depth*.94);
     mesh.setMatrixAt(i,matrix.compose(pos,rot,scale));
