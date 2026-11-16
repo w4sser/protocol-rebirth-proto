@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {POLYFORK_CANDIDATES} from '../polyfork-catalog.mjs';
 import {planPolyforkDressing,filterDressingTrees} from '../polyfork-dressing.mjs';
 import {propReservations} from '../props-placement.mjs';
+import {generateLevel} from '../levels.js';
+import {archipelagoDressingConfig} from '../archipelago-dressing-policy.mjs';
+import {planMilitaryRemnantsDressing} from '../polyfork-military-remnants.mjs';
 
 const level={
   archipelago:true,seed:'polyfork-qa-42',
@@ -143,4 +146,89 @@ test('Pass ZA: filtering preserves a genuine LOW subset and stays away from brid
     assert.equal(res.blocked(item.x,item.z,1.4),false,
       'pale details may not crowd bridge landings or gameplay objectives');
   }
+});
+
+test('Pass ZB: multi-seed, multi-island dressing density stays sparse and LOW is a true HIGH subset',()=>{
+  const seeds=['archipelago-v2-target',
+    ...Array.from({length:12},(_,i)=>'arch-dressing-audit-'+String(i).padStart(2,'0'))];
+  const prohibited=new Set([
+    'fallen-log-1685fb','driftwood-log-89a68f','seaweed-drift-line-6566c3',
+    'marram-grass-tuft-8c7a99','sea-holly-clump-ce3bc6',
+    'young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33'
+  ]);
+  const accents=new Set(['small-rock-db33a7','wildflower-68d3a1']);
+  const highConfig=archipelagoDressingConfig({
+    area:'archipelago',search:'?archVisual=v2&archTarget=1',quality:'high'
+  });
+  const lowConfig=archipelagoDressingConfig({
+    area:'archipelago',search:'?archVisual=v2&archTarget=1',quality:'low'
+  });
+  assert.equal(highConfig.density,lowConfig.density,'same density is required for deterministic LOW subset');
+  const budgetHigh=Math.ceil(125*highConfig.density),budgetLow=Math.ceil(40*lowConfig.density);
+  const totals={layouts:0,islands:0,high:0,low:0,accentHigh:0,accentLow:0,
+    maxPerIslandHigh:0,maxPerIslandLow:0,maxPer3mAccentCell:0,
+    levelSummary:[],seeds:seeds.length};
+  const key=p=>[p.id,p.x,p.z,p.h].join('/');
+  for(const number of [1,2,3]){
+    const byLevel={number,layouts:0,islands:0,high:0,low:0,accents:0};
+    for(const seed of seeds){
+      const generated=generateLevel(number,seed,'archipelago',false,false);
+      const saved=JSON.stringify({
+        floors:generated.floors,boxes:generated.boxes,walls:generated.walls,
+        nodes:generated.nodes,enemies:generated.enemies,start:generated.start,exit:generated.exit
+      });
+      const h=planMilitaryRemnantsDressing(generated,highConfig);
+      const l=planMilitaryRemnantsDressing(generated,lowConfig);
+      const high=filterDressingTrees(h.items,{nativePines:true,level:generated});
+      const low=filterDressingTrees(l.items,{nativePines:true,level:generated});
+      const again=filterDressingTrees(planMilitaryRemnantsDressing(generated,highConfig).items,
+        {nativePines:true,level:generated});
+      assert.deepEqual(high,again,seed+' L'+number+' must remain deterministic');
+      assert.deepEqual(filterDressingTrees(h.items),h.items,
+        seed+' L'+number+' legacy composition must remain unaltered');
+      const highKeys=new Set(high.map(key));
+      assert.ok(low.every(p=>highKeys.has(key(p))),seed+' L'+number+' LOW must be subset of HIGH');
+      assert.ok(high.length<=budgetHigh&&low.length<=budgetLow,seed+' L'+number+' respects budgets');
+      const floors=generated.floors.filter(f=>!f.dir);
+      const perHigh=new Array(floors.length).fill(0),perLow=new Array(floors.length).fill(0);
+      const accentsPerCell=new Map(),reservations=propReservations(generated);
+      for(const [collection,perIsland] of [[high,perHigh],[low,perLow]]){
+        for(const item of collection){
+          assert.ok(!prohibited.has(item.id),seed+' L'+number+' leaked pale clutter or legacy trees '+item.id);
+          const id=item.region??floors.findIndex(f=>
+            Math.abs(item.x-f.x)<=f.w/2+1&&Math.abs(item.z-f.z)<=f.d/2+1);
+          if(id>=0&&id<floors.length)perIsland[id]++;
+          if(!accents.has(item.id))continue;
+          const f=floors.find(f=>
+            Math.abs(item.x-f.x)<=f.w/2+1.1&&Math.abs(item.z-f.z)<=f.d/2+1.1);
+          assert.ok(f,seed+' L'+number+' accent belongs on an island shoreline');
+          const edge=Math.min(f.w/2-Math.abs(item.x-f.x),f.d/2-Math.abs(item.z-f.z));
+          assert.ok(edge<=1.9,seed+' L'+number+' pale accent stays out of playable interior');
+          assert.equal(reservations.blocked(item.x,item.z,1.4),false,
+            seed+' L'+number+' pale accent clear of landing/POI reservations');
+        }
+      }
+      for(const item of high.filter(p=>accents.has(p.id))){
+        const cell=[Math.floor(item.x/3),Math.floor(item.z/3)].join(',');
+        accentsPerCell.set(cell,(accentsPerCell.get(cell)??0)+1);
+      }
+      const accentHigh=high.filter(p=>accents.has(p.id)).length;
+      const accentLow=low.filter(p=>accents.has(p.id)).length;
+      totals.maxPer3mAccentCell=Math.max(totals.maxPer3mAccentCell,0,...accentsPerCell.values());
+      totals.maxPerIslandHigh=Math.max(totals.maxPerIslandHigh,0,...perHigh);
+      totals.maxPerIslandLow=Math.max(totals.maxPerIslandLow,0,...perLow);
+      assert.deepEqual(JSON.stringify({
+        floors:generated.floors,boxes:generated.boxes,walls:generated.walls,
+        nodes:generated.nodes,enemies:generated.enemies,start:generated.start,exit:generated.exit
+      }),saved,seed+' L'+number+' visual planners never modify gameplay geometry');
+      totals.layouts++;totals.islands+=floors.length;totals.high+=high.length;totals.low+=low.length;
+      totals.accentHigh+=accentHigh;totals.accentLow+=accentLow;
+      byLevel.layouts++;byLevel.islands+=floors.length;byLevel.high+=high.length;
+      byLevel.low+=low.length;byLevel.accents+=accentHigh;
+    }
+    totals.levelSummary.push(byLevel);
+  }
+  assert.ok(totals.layouts===39&&totals.islands>=39,'all 13 seeds across all three levels were audited');
+  assert.ok(totals.high>totals.low,'HIGH retains more vegetation across the seed sample');
+  console.info('ARCH_DRESSING_MULTI_SEED_AUDIT',JSON.stringify(totals));
 });

@@ -15,7 +15,9 @@ export function archipelagoDressingConfig({area,search='',quality='high'}={}){
   const mode=['scatter','profiles','coastal','military'].includes(requestedMode)?requestedMode:'military';
   // MEDIUM is a high-renderer setting today; keep its dressing budget mobile-safe.
   const visualQuality=quality==='high'?'high':'low';
-  // Keep density at the reference value for both tiers: the LOW planner picks
-  // a deterministic subset of HIGH and enforces its own 40-instance ceiling.
-  return {enabled,mode,quality:visualQuality,density:!enabled?0:nativeV2?(visualQuality==='high'?.32:.24):1};
+  // Pass ZB: HIGH/LOW must plan from the identical v2 density and seed.
+  // The LOW planner then chooses a strict, stable subset under its own
+  // instance cap instead of making a different composition at density .24.
+  // 0.30 remains a sparse layer (and keeps military props below its .5 gate).
+  return {enabled,mode,quality:visualQuality,density:!enabled?0:nativeV2?.30:1};
 }

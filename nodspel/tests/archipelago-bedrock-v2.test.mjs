@@ -111,7 +111,8 @@ test('quiet v2 adds a bounded coastal-life layer instead of a barren green plate
   assert.equal(hi.enabled,true);
   assert.equal(hi.mode,'military');
   assert.ok(hi.density>.2&&hi.density<.5,'sparse coastal dressing, no big military landmarks');
-  assert.ok(lo.density<hi.density,'low stays mobile safe');
+  assert.equal(lo.density,hi.density,'LOW and HIGH use the same seeded layout for strict subset parity');
+  assert.equal(lo.density,.30,'v2 keeps a quiet low-density dressing layer; LOW uses an independent 40-instance cap');
   assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=0'}).enabled,false);
   assert.equal(archipelagoDressingConfig({area:'archipelago'}).density,1,'default remains unchanged');
   assert.equal(archipelagoDressingConfig({area:'archipelago',search:'?archVisual=v2&polyfork=1'}).density,1,'explicit full layer comparison');
