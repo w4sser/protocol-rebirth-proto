@@ -315,9 +315,12 @@ export function addArchipelagoTargetPortal(profile,group,options={}){
   const g=new THREE.Group();g.name='arch-v2-rock-cut-portal';g.userData.visualOnly=true;
   if(hero){
     const index=Math.round(head.angle/TAU*profile.points.length)%profile.points.length;
-    const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.63;
+    const p=profile.points[index],radius=p.playableRadial+(p.radial-p.playableRadial)*.76;
+    // Set the door LOW into the actual sculpted granite shoulder. Placing the
+    // frame atop the rock silhouette made it read as a freestanding concrete
+    // L-block in 844x390 gameplay screenshots, not a buried Cold War portal.
     g.position.set(profile.floor.x+Math.cos(head.angle)*radius,
-      .25+(p.heroRelief??0)*1.67,
+      -.22+(p.heroRelief??0)*.60,
       profile.floor.z+Math.sin(head.angle)*radius);
     g.rotation.y=-head.angle-Math.PI/2;
     g.userData.integratedHero=true;
