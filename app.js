@@ -2676,26 +2676,33 @@ function placeBaseGoal(viewer){
 // right of it when that is out of view or would cover another plate. Uses the independent `translate` property,
 // so the plate's own transform is untouched.
 function clearPlatesFromCard(viewer, card, scale){
+  // v2.28.4x: clear HUD and viewport edges independently of the chip. The chip
+  // subsequently avoids these final room rectangles, so it cannot displace a room.
   const plates = [...viewer.querySelectorAll(".mapspot.plate")];
   plates.forEach(p => { p.style.translate = ""; });
-  const box = id => { const e = document.getElementById(id); return e && e.offsetHeight ? e.getBoundingClientRect() : null; };
-  const n = box("tabs"), tb = box("topbar");
-  const c = card && card.offsetHeight ? card.getBoundingClientRect() : { left:-1e4, right:-1e4, top:1e5, bottom:1e5 }, v = viewer.getBoundingClientRect(), gap = 4;
-  const hit = (a, b) => a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
-  const rects = plates.map(p => p.getBoundingClientRect());
-  const bad = m => hit(m, c) || (n && hit(m, n)) || (tb && hit(m, tb));
-  plates.forEach((p, i) => {
-    const r = rects[i];
-    // Blocked: under the card, or in the strip below the card top where the card column hides it, or under the floating nav / top chips.
-    const blocked = hit(r, c) || (r.right > c.left && r.left < c.right && r.bottom > c.top) || (n && hit(r, n)) || (tb && hit(r, tb));
-    if(!blocked) return;
-    const up = c.top - gap - r.bottom, right = c.right + gap - r.left, lift = n ? (c.top > r.top ? Math.min(c.top, n.top) : n.top) - gap - r.bottom : up, drop = tb ? tb.bottom + gap - r.top : 0;
-    const moves = [[0, up], [right, 0], [right, up], [0, lift], [right, lift], [0, drop], [right, drop]];
-    for(const [dx, dy] of moves){
-      const m = { left:r.left + dx, right:r.right + dx, top:r.top + dy, bottom:r.bottom + dy };
-      if(m.top < v.top + gap || m.right > v.right - gap || bad(m) || rects.some((o, j) => j !== i && hit(m, o))) continue;
-      p.style.translate = (dx / scale) + "px " + (dy / scale) + "px"; rects[i] = m; return;
+  const v=viewer.getBoundingClientRect(),gap=4,css=getComputedStyle(document.documentElement);
+  const inset=name=>Math.max(0,...(css.getPropertyValue(name).match(/[\d.]+(?=px)/g)||[]).map(Number));
+  const bounds={left:Math.max(v.left,inset("--sl"))+gap,right:Math.min(v.right,innerWidth-inset("--sr"))-gap,
+    top:v.top+gap,bottom:Math.min(v.bottom,innerHeight-inset("--sb"))-gap};
+  const hud=[document.getElementById("tabs"),document.getElementById("topbar"),card]
+    .filter(e=>e&&e.offsetHeight).map(e=>e.getBoundingClientRect());
+  const hit=(a,b)=>a.right>b.left-gap&&a.left<b.right+gap&&a.bottom>b.top-gap&&a.top<b.bottom+gap;
+  const rects=plates.map(p=>p.getBoundingClientRect());
+  plates.forEach((p,i)=>{
+    const r=rects[i],inside=m=>m.left>=bounds.left&&m.right<=bounds.right&&m.top>=bounds.top&&m.bottom<=bounds.bottom;
+    if(inside(r)&&!hud.some(o=>hit(r,o)))return;
+    const obstacles=hud.concat(rects.filter((o,j)=>j!==i));
+    const xs=[Math.max(bounds.left,Math.min(r.left,bounds.right-r.width)),bounds.left,bounds.right-r.width];
+    const ys=[Math.max(bounds.top,Math.min(r.top,bounds.bottom-r.height)),bounds.top,bounds.bottom-r.height];
+    for(const o of obstacles){xs.push(o.right+gap,o.left-gap-r.width);ys.push(o.bottom+gap,o.top-gap-r.height);}
+    let best=null,dist=Infinity;
+    for(const x of xs)for(const y of ys){
+      const m={left:x,right:x+r.width,top:y,bottom:y+r.height};
+      if(!inside(m)||obstacles.some(o=>hit(m,o)))continue;
+      const d=Math.hypot(x-r.left,y-r.top);
+      if(d<dist){best=m;dist=d;}
     }
+    if(best){p.style.translate=((best.left-r.left)/scale)+"px "+((best.top-r.top)/scale)+"px";rects[i]={...best,width:r.width,height:r.height};}
   });
 }
 function goalPillHtml(nextRoom){
@@ -2760,7 +2767,7 @@ function selectBaseSpot(spot){
   const old = viewer.querySelector(".roomsheet"); if(old) old.remove();
   viewer.classList.toggle("has-sel", !!spot);
   session.baseSel = baseSpotKey(spot);
-  if(!spot) return;
+  if(!spot){ placeBaseGoal(viewer); return; }
   spot.classList.add("selected"); spot.setAttribute("aria-pressed", "true");
   const h = baseSheetHtml(spot);
   viewer.insertAdjacentHTML("beforeend", '<div class="roomsheet" role="group" aria-label="' + esc(h.title) + ' actions"><div class="rs-head"><b>' + esc(h.title) + '</b><small>' + esc(h.sub) + '</small>' + (h.cost || '') + '</div><div class="rs-acts">' + h.acts + '</div>' +

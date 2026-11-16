@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,extname,join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {chipSave,questChipRoomOverlaps} from './ftue-fixes-states.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const viewportCheck=spawnSync(process.execPath,[join(root,'scripts/viewport-check.mjs')],{cwd:root,stdio:'inherit'});
@@ -188,6 +189,47 @@ async function newPage(w,h){
 const PROGRESSED="document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
 // v1.77 stash: stuffed stash (OVERFLOW + usage icons), sell/recycle popup, quest-warning confirm, quick-clean popup.
 const STUFF='S.modules.storage=0;S.stash={cable:7,fuse:10,scrap_alloy:20,servo:10,med_gel:10,bio_sample:10,power_cell:5,polymer_plate:10,circuit_board:10,optical_sensor:5,memory_module:5,purification_filter:5,hydraulic_component:5,transmitter:3,power_relay:5,tidal_coil:5,frost_glass:5,core_ash:3,prewar_relic:5};S.fir={polymer_plate:10,scrap_alloy:4};S.chains={bunker:{step:2,prog:0}};';
+// Chip regressions also run at portrait/tall sizes: room positions vary with aspect ratio.
+async function baseChipRun([w,h]){
+  for(const built of [false,true]){
+    const state=built?'chip-guard-duty':'chip-fabricator-locked',ctx=`base ${w}x${h} ${state}`;
+    console.log(ctx);
+    const page=await newPage(w,h);
+    await page.evaluateOnNewDocument(()=>{sessionStorage.setItem('pr_splash_seen',String(Date.now()));window.PR_NAVIGATE=()=>{};});
+    await page.goto(BASE+'/index.html',{waitUntil:'load'});
+    await page.waitForFunction(()=>window.A);
+    const st=await page.evaluate(()=>({st:freshState(),beats:PROG.beats}));
+    const save=chipSave(st.st,st.beats,built);
+    await page.evaluateOnNewDocument(save=>localStorage.setItem('pr_meta_save',JSON.stringify(save)),save);
+    await page.reload({waitUntil:'load'});await loaderGone(page);await settle(350);
+    await page.evaluate(()=>{A.startFtueDirect=()=>{};document.getElementById('splash')?.remove();closeAllPopups();session.screen='base';refresh();});
+    await page.evaluate(()=>document.fonts.ready);await settle(100);
+    const expected=built?'Guard Duty':'Fabricator';
+    const text=await page.$eval('.baseviewer>.progress-goal,.baseviewer>.goalpill',e=>e.textContent);
+    if(!text.includes(expected))fail(ctx,`wrong goal state: ${text}`);
+    for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx,error);
+    await shot(page,`base-${w}x${h}-${state}`);
+    if(!built){
+      await page.evaluate(()=>{const card=document.querySelector('section.progress-goal');if(card){card.classList.add('open');placeBaseGoal(document.querySelector('.baseviewer'));}});
+      for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' expanded',error);
+      await page.evaluate(()=>{document.querySelector('section.progress-goal')?.classList.remove('open');placeBaseGoal(document.querySelector('.baseviewer'));});
+    }
+    // Real room taps select a room; the chip cannot intercept them.
+    const target=await page.$eval('[data-room="fabricator"]',e=>{const b=e.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};});
+    await page.touchscreen.tap(target.x,target.y);await settle(80);
+    if(!await page.$('.baseviewer .mapspot.selected[data-room="fabricator"]'))fail(ctx,'Fabricator room tap did not select the room');
+    await page.evaluate(()=>selectBaseSpot(null));
+    // Cover map pan/zoom and orientation resize without changing the camera implementation.
+    for(const [x,y,zoom] of [[.35,.35,1],[.65,.65,1.4],[.5,.5,2]]){
+      await page.evaluate(([x,y,zoom])=>{session.camera={x,y,zoom};session.cameraLayoutFn();},[x,y,zoom]);
+      for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' panned',error);
+    }
+    await page.setViewport({width:h,height:w,isMobile:true,hasTouch:true,deviceScaleFactor:1});await settle(120);
+    for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' rotated',error);
+    await page.close();
+  }
+}
+
 async function baseRun([w,h]){
   const tag=`base ${w}x${h}`;console.log(tag);
   for(const mode of ['fresh','progressed']){
@@ -380,9 +422,9 @@ async function payoffRun([w,h]){
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
   const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
-    return {sp,n:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).length,pts:L.lootBoxes.filter(b=>b.id.startsWith('payoff-')).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};});
+    return {sp,n:L.lootBoxes.filter(b=>b.source===RULES.payoff.loot_cluster.source).length,pts:L.lootBoxes.filter(b=>b.source===RULES.payoff.loot_cluster.source).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};});
   const vis=pay.pts.filter(p=>p.x>10&&p.x<pay.w-10&&p.y>10&&p.y<pay.h-10&&Math.hypot(p.x-pay.sp.x,p.y-pay.sp.y)>34&&!pay.hud.some(r=>p.x>r.left-4&&p.x<r.right+4&&p.y>r.top-4&&p.y<r.bottom+4));
-  if(!pay.n||vis.length<Math.min(pay.n,5))fail(tag,`payoff cluster not clearly visible at start (${vis.length}/${pay.n} clear of edges, player and HUD)`);
+  if(!pay.n||pay.n>3)fail(tag,`payoff must use at most three existing caches (${pay.n})`);
   await shot(page,`raid-payoff-${w}x${h}`);
   await page.close();
 }
@@ -847,6 +889,7 @@ try{
   for(const vp of VIEWPORTS)await payoffRun(vp);
   }
   if(group('base')){
+    for(const vp of [...VIEWPORTS,[390,844],[375,667],[430,932],[1024,768]])await baseChipRun(vp);
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
   }

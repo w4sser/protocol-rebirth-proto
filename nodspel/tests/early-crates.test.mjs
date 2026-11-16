@@ -66,3 +66,10 @@ test('mixed payoff contents remain collectible through the same crate',()=>{
  assert.equal(r.bag.cable,1);assert.equal(r.bag.polymer_plate,1);assert.equal(r.bag.salvage_crate,1);
  assert.equal(r.level.lootBoxes[0].collected,true);
 });
+
+test('a guided raid with already-secured goals still has two readable caches',()=>{
+ const l=generateLevel(1,'secured-guided','bunker');
+ applyIntroEncounter(l,{parts:goal.parts.map(p=>({...p,secured:p.need}))});
+ assert.equal(l.lootBoxes.length,2);
+ assert.ok(Math.hypot(l.lootBoxes[0].x-l.lootBoxes[1].x,l.lootBoxes[0].z-l.lootBoxes[1].z)>2);
+});

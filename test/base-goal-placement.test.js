@@ -20,4 +20,15 @@ for(const [w,h] of [[844,390],[667,375],[932,430],[390,844],[375,667],[430,932]]
    assert.ok(a.left>=47&&a.right<=w-47&&a.top>=54&&a.bottom<=h-21,'safe and below HUD');
  }
 }
+// The HUD avoidance pass keeps off-screen room hitboxes reachable before the chip
+// chooses a free rectangle (portrait targets used to be outside the viewer).
+const clearance=src.slice(src.indexOf('function clearPlatesFromCard(viewer, card, scale){'),src.indexOf('function goalPillHtml('));
+{
+ const style={translate:''},original=rect(-72,94,64,64);
+ const room={style,getBoundingClientRect(){const [x=0,y=0]=style.translate.split(' ').map(parseFloat);return rect(original.left+(x||0),original.top+(y||0),64,64);}};
+ const viewer={querySelectorAll:()=>[room],getBoundingClientRect:()=>rect(0,0,390,844)};
+ const ctx={document:{documentElement:{},getElementById:()=>null},getComputedStyle:()=>({getPropertyValue:n=>n==='--sb'?'21px':'max(47px,12px)'}),innerWidth:390,innerHeight:844};
+ vm.createContext(ctx);vm.runInContext(clearance+';this.clear=clearPlatesFromCard;',ctx);ctx.clear(viewer,null,1);
+ const r=room.getBoundingClientRect();assert.ok(r.left>=47&&r.right<=343&&r.top>=0&&r.bottom<=823,'room hitbox stays inside safe bounds');
+}
 console.log('base-goal-placement: ok');

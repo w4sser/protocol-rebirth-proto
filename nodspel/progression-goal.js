@@ -30,11 +30,16 @@ export function applyIntroEncounter(level,goal){
     const currency=p.kind==='currency'&&globalThis.DATA.items.find(item=>item.grantsCurrency?.[p.id]);
     const quantity=Math.ceil(Math.max(0,p.need-p.secured)/(currency?currency.grantsCurrency[p.id]:1));
     if(!quantity)continue;
-    level.lootBoxes.push({id:`supply-${i}`,x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing,item:currency?currency.id:p.id,quantity,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});
+    const spot=RULES.earlyLoot.spots[i]??{x:cfg.supplyX+(i%2)*cfg.supplySpacing,z:cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing};
+    level.lootBoxes.push({id:`supply-${i}`,x:r.x+s*spot.x,z:r.z+spot.z,item:currency?currency.id:p.id,quantity,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});
     i++;
   }
   if(level.lootBoxes.length<RULES.earlyLoot.maxCratesPerRoom)
     level.lootBoxes.push({id:'optional-cache',x:r.x-s*cfg.optionalX,z:r.z+cfg.optionalZ,item:cfg.optionalItems[s<0?0:1],marked:true,revealed:true,collected:false,optional:true,source:'OPTIONAL · EXTRA LOOT'});
+  if(level.lootBoxes.length<RULES.earlyLoot.minCratesPerRoom){
+    const spot=RULES.earlyLoot.spots[2];
+    level.lootBoxes.push({id:'optional-cache-2',x:r.x+s*spot.x,z:r.z+spot.z,item:cfg.optionalItems[s<0?1:0],marked:true,revealed:true,collected:false,optional:true,source:'OPTIONAL · EXTRA LOOT'});
+  }
 }
 // First-upgrade payoff (RULES.payoff): level 1 only. loot_cluster seeds a dense pickup cluster near the spawn on free floor,
 // at least max(cfg.count, bag capacity) boxes so the new bag room is used. Returns the number placed (0 = nothing).

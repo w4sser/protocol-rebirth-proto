@@ -57,12 +57,12 @@ export function applyFtueLevel(round){
 // formula (same spot applyIntroEncounter already uses for goal parts) when clear; otherwise the pickup
 // keeps whatever position it already had.
 function ftueGuaranteeAlloy(level){
-  const cfg=RULES.intro,r=level.rooms[0],s=level.choiceSide||1;
+  const r=level.rooms[0],s=level.choiceSide||1;
   // Three readable caches hold all repair supplies. Four material units fit the
   // starting bag; Salvage becomes Scrap on extract using the existing item data.
   level.lootBoxes=RULES.earlyLoot.supplies.map((supply,i)=>({
-    id:`ftue-supply-${i}`,x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),
-    z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing,
+    id:`ftue-supply-${i}`,x:r.x+s*RULES.earlyLoot.spots[i].x,
+    z:r.z+RULES.earlyLoot.spots[i].z,
     ...supply,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES',
   }));
   // These caches are in the open room; an optional closet key is no longer needed.

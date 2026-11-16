@@ -2,7 +2,7 @@
 var RAID_FTUE_ROOT = typeof window !== 'undefined' ? window : globalThis;
 RAID_FTUE_ROOT.DATA = RAID_FTUE_ROOT.DATA || {};
 RAID_FTUE_ROOT.DATA.raidFtue = Object.freeze({
-  earlyLoot: {maxCratesPerRoom:3, supplies:[
+  earlyLoot: {minCratesPerRoom:2,maxCratesPerRoom:3, spots:[{x:1.3,z:-2.2},{x:3.8,z:2.8},{x:-3.8,z:0}], supplies:[
     {item:'scrap_alloy',quantity:2}, {item:'cable',quantity:1}, {item:'salvage_crate',quantity:1},
   ]},
   clutch: {hunters:2,countdownMs:10000},
