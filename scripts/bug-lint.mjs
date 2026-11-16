@@ -11,6 +11,15 @@ import {parse} from 'acorn';
 import * as walk from 'acorn-walk';
 
 export const RULES=[
+  {id:'raid-waits-for-combat-sfx',pr:'v2.28.4x raid audio readiness',why:'the first fight raced unawaited combat buffer decoding',
+   check(c={}){const game=c.gameSrc??read('nodspel/game.mjs'),audio=c.raidAudioSrc??read('nodspel/audio.js'),ready=c.readySrc??read('nodspel/audio-ready.js');const out=[];
+     const wait=game.indexOf('await waitForRaidAudio();'),start=game.indexOf("reset(new URLSearchParams(location.search).get('seed'));camera");
+     if(wait<0||start<wait||!game.includes('event.stopImmediatePropagation()'))out.push('raid must block input and wait for combat decoding before initial reset');
+     if(!audio.includes('prepareCombatAudio(audio)')||!audio.includes('audio.sfxWaitMs=config.raidSfxWaitMs')||!ready.includes('Promise.race([ready,')||!ready.includes('while(!audio.decodedFiles.has(file))'))out.push('combat readiness needs a cap, continuing retries and a bounded pending SFX queue');return out;}},
+  {id:'coldopen-bit-hibernates-until-wake',pr:'v2.28.4x BIT hibernation',why:'BIT must sleep while the cold-open waits for its wake gesture',
+   check(c={}){const app=c.appSrc??read('app.js'),html=c.htmlSrc??read('index.html');const out=[];
+     if(!app.includes('classList.add("bit-hibernating")')||!app.includes('classList.remove("vo-wait-tap", "bit-hibernating")')||!app.includes('await wakeFinished'))out.push('cold-open must hibernate until tapped and await its wake before line 1');
+     if(!app.includes('if(reducedMotion || firstLineStarted) greet();'))out.push('an animationstart during the wake must not swallow the greeting VO');if(!app.includes('intro-zzz')||!html.includes('.intro.bit-hibernating .intro-zzz b{animation:introZzz'))out.push('sleeping BIT needs the drifting z indicator');if(!html.includes('.intro.bit-hibernating .intro-bit')||!html.includes('introWakeFade .55s'))out.push('sleep needs a dim cutout and reduced-motion fade');return out;}},
   {id:'no-tracked-node-modules',pr:'#129',why:'a committed node_modules symlink broke the Pages deploy',
    check({files,gitignore}){const out=[];
      if(files&&files.some(f=>f==='node_modules'||f.startsWith('node_modules/')))out.push('node_modules is tracked by git');
@@ -165,7 +174,7 @@ export const RULES=[
      if(!/activationAudio = window\.PR_AUDIO\?\.unlock\?\.\(\)/.test(activate)||!/Promise\.resolve\(activationAudio\)\.then/.test(app))out.push('app.js: start confirmation must wait for the gesture unlock promise');
      if(!/preload\.call\(window\.PR_AUDIO\)/.test(app))out.push('app.js: splash must preload audio before exposing the prompt');
      const intro=(app.match(/SCREENS\.intro = function\(\)\{[\s\S]*?\n\};/)||[''])[0];
-     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", greet/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
+     if(!/requestVoice\(['"]youre-back['"]\)/.test(intro)||!/addEventListener\("animationstart", (?:greet|\(\) => \{ firstLineStarted = true; greet\(\);)/.test(intro))out.push('app.js: intro must request youre-back with the first line reveal');
      return out;}},
   {id:'greeting-vo-only-with-bit-visible',pr:'v2.28.30 FTUE VO on summary',why:'BIT\'s youre-back cold-open greeting queued in pendingVoices while iOS audio was locked and replayed on the next unlock gesture (often ENTER THE FACILITY itself), landing on the deferred FTUE homecoming summary after dismissIntro had already navigated away and BIT was no longer on screen; base-audio\'s greet() could also fire a second welcome-back voice there',
    check(c={}){const out=[];
@@ -397,13 +406,29 @@ export const RULES=[
      if(vaultFn && !/progressionGoal\(\)/.test(vaultFn))out.push('app.js: maybeShowVaultIntro must check progressionGoal() so it plays the instant the Vault becomes the next goal, not only once already built');
      const queue=(app.match(/function queueSystemIntro\(beat, after\)\{[\s\S]*?\n\}/)||[''])[0];
      if(!queue.includes('onDone:() =>') || !queue.includes('S.bitCardsSeen[beat.id] = false') || !queue.includes('pendingSystemIntros.has(beat.id)'))out.push('app.js: system intros must deduplicate pending scenes and persist completion on dismissal');
-     for(const id of ['raid_briefing','quest_intro','vault_intro'])
-       if(!app.includes('queueSystemIntro(BIT_CUTSCENES.'+id))out.push('app.js: '+id+' must use the completion-gated intro queue');
-     if(!app.includes('if(modId === "storage" && !S.bitCardsSeen.vault_intro)'))out.push('app.js: Vault build must wait for its intro dismissal');
+     if(!app.includes('queueSystemIntro(BIT_CUTSCENES.quest_intro') || !app.includes('queueSystemIntro(roomUnlockStages("fabricator").teaser') || !app.includes('queueSystemIntro(roomUnlockStages("storage").teaser'))out.push('app.js: system teasers must use the completion-gated intro queue');
      const migrate=(app.match(/function migrateBitCardsSeen\(st\)\{[\s\S]*?\n\}/)||[''])[0];
      if(!migrate)out.push('app.js: migrateBitCardsSeen(st) not found');
      else for(const id of ['raid_briefing','quest_intro','vault_intro'])
        if(!new RegExp('st\\.bitCardsSeen\\.'+id+'\\s*===\\s*undefined').test(migrate))out.push('app.js: migrateBitCardsSeen must back-fill st.bitCardsSeen.'+id+' for saves already past its live trigger');
+     return out;}},
+  {id:'new-find-highlights-goal',pr:'v2.28.4x new find clarity',why:'New finds need one BIT explanation and a compact current-use priority',
+   check(c={}){const app=c.appSrc??read('app.js'),out=[];
+     const popup=(app.match(/function maybeShowItemInfo\(\)\{[\s\S]*?\n\}/)||[''])[0];
+     for(const token of ['!S.bitCardsSeen.new_find','S.bitCardsSeen.new_find = true','newfind-bit','newFindUsesHtml(id)','PRBitCutscene?.isOpen()']) if(!popup.includes(token))out.push('NEW FIND missing '+token);
+     const rank=(app.match(/function newFindUses\(id\)\{[\s\S]*?\n\}/)||[''])[0];
+     for(const token of ['progressionGoal()','trackedQuest()','u.module === goal.module','u.level === goal.level','canAfford']) if(!rank.includes(token))out.push('NEW FIND priority missing '+token);
+     if(!app.includes('<details><summary>+') || !app.includes('more uses</summary>'))out.push('NEW FIND must collapse other uses');
+     if(!app.includes('Object.keys(st.seenItems || {})'))out.push('old finds must migrate the explanation flag');
+     return out;}},
+  {id:'room-unlock-two-stage',pr:'v2.28.4x room unlock stages',why:'Room teasers must stay dark and builds must show their powered payoff without an intro gate',
+   check(c={}){const app=c.appSrc??read('app.js'),data=c.bitSrc??read('data/bit.js'),out=[];
+     for(const id of ['fabricator','storage']) if(!data.includes(id+':{') || !app.includes('roomUnlockStages("'+id+'").teaser') || !app.includes('roomUnlockStages("'+id+'").unlock'))out.push(id+': both room stages must use roomUnlockStages');
+     for(const id of ['raid_briefing','fabricator_built','vault_intro','vault_unlocked']) if(!data.includes('id:"'+id+'"'))out.push(id+': missing stage data');
+     if(!app.includes('to:powered ? def.powered : def.dark'))out.push('teasers must use dark art only');
+     const build=(app.match(/  build\(modId\)\{[\s\S]*?\n  sell\(/)||[''])[0];
+     if(/if\(modId === "storage" && !S\.bitCardsSeen\.vault_intro\)/.test(build))out.push('Vault build must not be gated by an intro');
+     if(!app.includes('st.bitCardsSeen.vault_unlocked = true'))out.push('built saves must migrate both stages');
      return out;}},
   {id:'vest-guarantee-existing-caches',pr:'v2.28.4x vest materials',why:'Missing vest materials must be actionable without exceeding the early-room crate cap or replacing a quest supply',
    check(c={}){const levels=c.levelsSrc??read('nodspel/levels.js'),game=c.gameSrc??read('nodspel/game.mjs'),app=c.appSrc??read('app.js');const out=[];

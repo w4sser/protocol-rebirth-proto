@@ -340,12 +340,12 @@ test('raid shot events select the synthesized weapon and quieter enemy path; sho
   try{
     const {audioEvent}=await import('../audio.js?shot-route-test');await a.unlock();
     audioEvent('shoot',{weapon:'shotgun_breach'});
-    const first=a.context.sources.at(-1);assert.ok(first);assert.equal(a.shotCache.size,1);
+    const first=a.context.sources.at(-1);assert.ok(first);assert.equal(a.shotCache.size,8,'all shot variants prewarmed before combat');
     f.advance(100);f.env.random=()=>.8;audioEvent('shoot',{weapon:'shotgun_breach'});
     const second=a.context.sources.at(-1);assert.equal(second.buffer,first.buffer);
     assert.ok(second.playbackRate.value>first.playbackRate.value);assert.ok(second.destination.gain.value>first.destination.gain.value);
     audioEvent('shoot',{enemy:true});const enemy=a.context.sources.at(-1);
-    assert.equal(a.shotCache.size,2);assert.ok(enemy.destination.gain.value<first.destination.gain.value);
+    assert.equal(a.shotCache.size,8);assert.ok(enemy.destination.gain.value<first.destination.gain.value);
     a.set('sfx',0);f.advance(100);const count=a.context.sources.length;
     audioEvent('shoot',{weapon:'shotgun_breach'});assert.equal(a.context.sources.length,count);
     a.stop();assert.equal(a.active.size,0);
@@ -578,14 +578,17 @@ for(const startOnIntro of [false,true])test(`cold-open greeting after ${startOnI
       for(const [id,t] of [...timers])if(t.ms===1500){timers.delete(id);t.fn();}
       assert.equal(w.document.querySelector('#splash'),null);
     }
+    if(startOnIntro){ w.document.getElementById('splash')?.remove(); w.document.body.classList.remove('splash-active'); }
     w.TEST.intro();
     assert.equal(audio.lastVoice.has('youre-back'),false,'no VO before the first line reveal');
-    w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
     if(startOnIntro){
-      assert.equal(audio.pendingVoices.has('youre-back'),true,'reveal queues while locked');
-      w.document.querySelector('.intro').click(); // skip text, not ENTER
+      assert.equal(audio.pendingVoices.has('youre-back'),false,'hibernating BIT never greets before wake');
+      w.document.querySelector('.intro').click();
       assert.equal(audio.context.state,'running','intro tap also unlocks synchronously');
+      for(const [id,t] of [...timers])if(t.ms===550){timers.delete(id);t.fn();}
     }
+    await new Promise(r=>setTimeout(r,0));
+    w.document.querySelector('.intro-lines p').dispatchEvent(new w.Event('animationstart'));
     await new Promise(r=>setTimeout(r,0));
     assert.equal(audio.voiceName,'youre-back');assert.equal(requests,loaded,'all buffers were preloaded');
     const voice=audio.voiceSource,count=audio.context.sources.length;

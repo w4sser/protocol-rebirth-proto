@@ -365,7 +365,7 @@
         return true;}catch(error){return this.drop(name,'synthesis: '+(error?.message||error));}
       }
       try{
-        const buffer=await this.raceLoad(cue.file);
+        const buffer=await this.raceLoad(cue.file,this.sfxWaitMs);
         if(this.hidden())return this.drop(name,'hidden');
         if(epoch!==this.epoch||!this.unlocked||this.settings.muted)return this.drop(name,'stale-or-muted');
         const random=this.env.random||Math.random;this.source(buffer,'sfx',cue.gain*(1+(random()*2-1)*this.config.gainVariation),1+(random()*2-1)*this.config.pitchVariation);return true;

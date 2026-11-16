@@ -3,7 +3,7 @@
  * Lazy-loaded on the prep screen; no scene, WebGL context or animation remains after leaving.
  */
 import * as THREE from '../nodspel/vendor/three.module.js';
-import {loadHumanOperator} from '../nodspel/operator.js?v=2.28.44';
+import {loadHumanOperator} from '../nodspel/operator.js?v=2.28.46';
 
 const COLOR={cyan:0x75cfcc,amber:0xffb35c,rust:0x654d40,steel:0x334044,screen:0x101b22};
 const mat=(color,metalness=.18,roughness=.8)=>new THREE.MeshStandardMaterial({color,metalness,roughness});

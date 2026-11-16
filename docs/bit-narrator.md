@@ -102,7 +102,8 @@ policy. Each caller picks whatever persistence fits:
 | `fabricator_built` (cutscene) | `app.js` `A.build("fabricator")`, first Fabricator L1 | "Fabricator's humming. Bring me raid scrap and I'll make you gear — starting with a Scavenger Vest." (+ a live shortage clause and a HAVE/NEED info row when the Vest recipe is short, PRB-162) | happy |
 | `raid_briefing` (cutscene, PRB-162) | `app.js` `maybeShowRaidBriefing`, first base visit with the Fabricator still locked, after `core_restored` | "Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs." | skeptical |
 | `quest_intro` (cutscene, PRB-162) | `app.js` `maybeShowQuestIntro`, before the tracked-quest chip (`trackedGoalHtml`) can ever render | "Quests: little jobs, real rewards. Finish one, I pay up. The quest chip tracks progress — tap it any time for the fine print." | smile |
-| `vault_intro` (cutscene, PRB-162) | `app.js` `maybeShowVaultIntro`, before the Vault is ever the build target or built | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
+| `vault_intro` (teaser) | `app.js` `maybeShowVaultIntro`, when Vault becomes the next goal | "Vault's next. Bring these parts; I'll bring my excellent supervision." | smile |
+| `vault_unlocked` (build payoff) | `app.js` `A.build`, first Vault build | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
 
 ## Mini cutscenes
 
@@ -306,7 +307,7 @@ explain, following "Adding a new BIT card moment" above.
 | --- | --- |
 | Raid / the RAID button, while the Fabricator is still locked | `raid_briefing` cutscene |
 | Quests (what they are, why, the tracked chip) | `quest_intro` cutscene, gates the chip (`trackedGoalHtml`) |
-| Vault / Storage (stash expansion, the secure slot) | `vault_intro` cutscene, gates "next goal"/build |
+| Vault / Storage (stash expansion, the secure slot) | `vault_intro` dark teaser, then `vault_unlocked` powered build payoff |
 | Scavenger Vest craft shortage (materials you don't have yet) | shortage clause + HAVE/NEED row on `fabricator_built`, live from the stash |
 
 **Remaining gaps (backlog, not built here):**
@@ -325,11 +326,37 @@ explain, following "Adding a new BIT card moment" above.
 
 PRB-162 completion details: `queueSystemIntro` deduplicates pending intros and saves `false` until
 its dismissal callback marks the scene seen. Reloading a queued intro does not migrate it away.
-The quest dismissal refreshes the chip immediately; a Vault build cannot spend materials before
-its intro has been dismissed. All three use the existing one-second guard and three-second hint.
+The quest dismissal refreshes the chip immediately. The two-stage room pattern below supersedes
+the original Vault build gate: building never waits for its teaser. All scenes use the existing
+one-second guard and three-second hint.
 The vest offer's HAVE/NEED row includes every recipe cost and a compact generated cache location
 for each missing material. Craft list shows full generated loot-source hints; confirmation uses compact generated cache labels so its actions fit landscape.
 Each real raid launch recalculates the shortage, including Scrap represented by existing salvage
 crates. Units are grouped in ordinary level-one caches using `quantity` / `contents`; no extra
 cache, no replacement of a quest/key/scout supply, and no free stash grant. A death leaves the
 shortage to be guaranteed again; extracting enough stops the guarantee.
+
+
+## Two-stage room unlock standard
+
+Every room introduction has two distinct stages, supplied by `DATA.roomUnlockStages` and
+`roomUnlockStages(id)`. The teaser plays when the room becomes the next goal: hold the dark
+image, give BIT a short introduction, and show NEXT with the real module cost plus missing
+part sources. A teaser never blocks a valid build. On the first actual build, the unlock
+uses that same dark image and morphs to the powered/open image; BIT explains the payoff and
+NEW names the real L1 benefits. Never show the powered room at the teaser stage.
+
+Each room requires a matched dark/powered art pair, teaser/unlock scene IDs, BIT lines, and
+strips derived from module/recipe data. Fabricator (`raid_briefing`, `fabricator_built`) and
+Vault (`vault_intro`, `vault_unlocked`) implement this pattern. Other rooms are backlog.
+Fabricator keeps its existing lines and live vest HAVE/NEED strip. Vault builds immediately;
+if its teaser was missed, the unlock is sufficient. Any already queued teaser stays ahead
+of the unlock in the single held narrator queue. No stacked popups. Existing built Vaults
+migrate both stages as seen; an old `vault_intro` on an unbuilt Vault counts only as teaser.
+Art still warms through the shared cache; each scene holds until tap and hints at 3 seconds.
+
+The first NEW FIND popup includes BIT's bust and speech bubble inside the shared overlay,
+explaining Used for once. Later finds use the compact item card alone. The next progression
+goal leads, then a tracked quest or affordable recipe, then general uses; additional uses
+start collapsed. Sell/Recycle values remain visible. Old saves with an already seen find
+skip the explanation; items still queued for their first popup do not count as seen.
