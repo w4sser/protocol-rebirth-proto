@@ -423,8 +423,10 @@ async function payoffRun([w,h]){
   await loaderGone(page);await page.click('#tutorial-start');await page.waitForFunction('window.__NR',{timeout:30000});await page.evaluate(()=>window.__NR.setRoomClearsEnabled(false));await settle(1200);
   await report(page,`${tag} L1`,'.stick,#reset,#open-bag,#use-kit');
   await sweepLabels(page,`${tag} L1`);
-  const pay=await page.evaluate(()=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
-    return {sp,n:L.lootBoxes.filter(b=>b.source===RULES.payoff.loot_cluster.source).length,pts:L.lootBoxes.filter(b=>b.source===RULES.payoff.loot_cluster.source).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};});
+  // RULES lives in the raid page's module scope, not in this evaluate: pass the payoff source in.
+  const payoffSource=(await readFile(join(root,'nodspel/levels.js'),'utf8')).match(/loot_cluster:\{[^}]*source:'([^']+)'/)[1];
+  const pay=await page.evaluate(payoffSource=>{const st=window.__NR.state(),L=st.level,sp=window.__NR.project(st.position.x,st.position.z),hud=[...document.querySelectorAll('.round-hud,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,.stick')].filter(e=>e.offsetHeight).map(e=>e.getBoundingClientRect());
+    return {sp,n:L.lootBoxes.filter(b=>b.source===payoffSource).length,pts:L.lootBoxes.filter(b=>b.source===payoffSource).map(b=>window.__NR.project(b.x,b.z)),hud,w:innerWidth,h:innerHeight};},payoffSource);
   const vis=pay.pts.filter(p=>p.x>10&&p.x<pay.w-10&&p.y>10&&p.y<pay.h-10&&Math.hypot(p.x-pay.sp.x,p.y-pay.sp.y)>34&&!pay.hud.some(r=>p.x>r.left-4&&p.x<r.right+4&&p.y>r.top-4&&p.y<r.bottom+4));
   if(!pay.n||pay.n>3)fail(tag,`payoff must use at most three existing caches (${pay.n})`);
   await shot(page,`raid-payoff-${w}x${h}`);
