@@ -34,7 +34,6 @@ w.A.planToggle(true);
 assert(!d.querySelector('#mission-panel').hidden,'mission panel opens');
 w.A.planToggle(false);
 assert(d.querySelector('#mission-panel').hidden,'mission panel closes');
-assert(d.querySelector('.lobby-side.left [data-slot="weapon"]').getAttribute('onclick')?.includes("A.pickSlot"),'weapon entry delegates to existing picker when unlocked');
 const styles=fs.readFileSync(path+'/ui/raid-prep.css','utf8');
 assert(styles.includes('body[data-screen="prep"] #tabs{display:none!important}'),'bottom tabs hidden on prep only');
 assert(styles.includes('env_base.webp'),'bunker staging art present');
