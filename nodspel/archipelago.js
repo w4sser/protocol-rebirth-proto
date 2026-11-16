@@ -10,7 +10,7 @@ export {archipelagoPassages} from './archipelago-passages.js?v=2.28.43';
 import {createWaterMesh} from './water-shader.js?v=2.28.43-baltic-calm3';
 import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.43-glacial-s42';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.43-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.43-glacial-merge1';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.43-fractured-zc';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.43-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.43-dinghy2';
@@ -155,8 +155,34 @@ export function isArchipelagoPartitionWallV2(w,rooms=[]){
 // belong only to the bunker / utility installation, not scattered as cover.
 // Small, partially buried granite erratics and fallen coastal pines provide
 // honest, low silhouettes for planar X/Z combat and retain exact cover AABBs.
-const V2_COVER_STONE=new THREE.DodecahedronGeometry(1,1);
-V2_COVER_STONE.userData.shared=true;
+// Pass ZC: interior cover is a flat, broken granite slab, not a round
+// subdivided dodecahedron. It still fills the EXACT existing collider footprint.
+function createV2CoastalShelfCover(){
+  const sides=12,positions=[],indices=[];
+  for(let j=0;j<sides;j++){
+    const a=j/sides*Math.PI*2,cs=Math.cos(a),sn=Math.sin(a);
+    const notch=1+.055*Math.sin(3*a+.4)-.06*Math.cos(5*a-.5);
+    positions.push(cs*.91*notch,-.90,sn*.91*notch);
+  }
+  for(let j=0;j<sides;j++){
+    const a=j/sides*Math.PI*2,cs=Math.cos(a),sn=Math.sin(a);
+    const weather=1+.065*Math.sin(4*a+.8);
+    positions.push(cs*.72*weather,.30+.065*Math.cos(2*a+.5),sn*.72*weather);
+  }
+  const center=positions.length/3;
+  positions.push(.045,.37,-.035);
+  for(let j=0;j<sides;j++){
+    const next=(j+1)%sides,a=j,b=next,c=sides+j,d=sides+next;
+    indices.push(a,c,b,b,c,d);
+    indices.push(c,center,d);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setIndex(indices);geo.computeVertexNormals();
+  geo.userData.shared=true;geo.userData.fracturedShelfCover=true;
+  return geo;
+}
+const V2_COVER_STONE=createV2CoastalShelfCover();
 const V2_COVER_STONE_MAT=[
   new THREE.MeshStandardMaterial({color:'#858a90',roughness:.98,metalness:0,flatShading:true}),
   new THREE.MeshStandardMaterial({color:'#99939c',roughness:.98,metalness:0,flatShading:true})

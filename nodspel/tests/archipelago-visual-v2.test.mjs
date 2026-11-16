@@ -271,6 +271,14 @@ test('v2 places high granite only outside the island and preserves open bridge l
         &&['boulder','windfall'].includes(m.userData.coverKind)),
         'no man-made blocks are scattered across natural skerries');
       for(const m of [...cover,...propCover]){
+        if(m.userData.coverKind!=='boulder')continue;
+        const rock=m.children.find(o=>o.geometry?.userData.fracturedShelfCover);
+        assert.ok(rock,'natural cover must use broad fractured shelf, never a round dodecahedron');
+        const bounds=new THREE.Box3().setFromObject(rock),height=bounds.max.y-bounds.min.y;
+        const width=Math.max(bounds.max.x-bounds.min.x,bounds.max.z-bounds.min.z);
+        assert.ok(height<width,'low glacial rock must be wider than high at gameplay zoom');
+      }
+      for(const m of [...cover,...propCover]){
         const collider=m.userData.collider;
         const actual=new THREE.Box3().setFromObject(m);
         const realW=actual.max.x-actual.min.x,realD=actual.max.z-actual.min.z;

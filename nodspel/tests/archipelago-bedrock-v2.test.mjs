@@ -42,12 +42,24 @@ test('rendered bedrock has sculpted vertex-colored geometry and bounded draw bud
   const mesh=art.addArchipelagoGraniteV2(profile,group);
   assert.equal(mesh.name,'arch-v2-glacial-shelves');
   assert.ok(mesh.geometry.getAttribute('color'),'geological color variation');
-  assert.ok(mesh.geometry.getAttribute('position').count>700,'rich sculpted rock silhouettes remain low-poly');
+  assert.ok(mesh.geometry.getAttribute('position').count>=120
+    &&mesh.geometry.getAttribute('position').count<=180,
+    'shelf uses a few broad, low-poly geological faces, not hundreds of spherical bands');
   assert.equal(mesh.geometry.userData.continuousGlacialMass,true,
     'one continuous granite mesh avoids intersecting tier shells and z-fighting');
+  assert.equal(mesh.geometry.userData.fracturedShelf,true,
+    'v2 uses a glacial granite shelf instead of the old spherical/concentric boulder');
+  assert.ok(mesh.geometry.userData.radialRings<=7&&mesh.geometry.userData.angularSegments<=20,
+    'broad faceted rock avoids closely spaced terrace-ring silhouettes');
+  const edge=mesh.geometry.getAttribute('position'),seg=mesh.geometry.userData.angularSegments+1;
+  const radial=[];
+  for(let ring=0;ring<mesh.geometry.userData.radialRings;ring++)
+    radial.push(Math.hypot(edge.getX(ring*seg),edge.getZ(ring*seg)));
+  assert.ok(radial.every((r,i)=>i===0||radial[i-1]-r>.045),
+    'all shoreline shelf rings narrow steadily, with no stacked radius plateaus');
   assert.equal(mesh.material.flatShading,true,'sculpted granite uses broad, readable planes');
   const vertices=mesh.geometry.getAttribute('position'),peak=vertices.getY(vertices.count-1);
-  assert.ok(peak>.99&&peak<1.02,'closed shifted crown finishes the continuous mass');
+  assert.ok(peak>.55&&peak<.68,'closed low slate-granite cap without a rounded dome');
   const xs=new Set(Array.from({length:vertices.count},(_,i)=>Math.round(vertices.getX(i)*100)));
   assert.ok(xs.size>35,'ice-worn granite needs a broad irregular silhouette');
   assert.ok(group.children.length<=3,'instanced major masses and shelves');
