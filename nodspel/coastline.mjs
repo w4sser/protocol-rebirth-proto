@@ -206,17 +206,20 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
   for(const p of points){
     const c=Math.cos(p.angle),sn=Math.sin(p.angle);
     const base=p.radial;
-    // Pass M: the natural shoreline is a SERIES of separated glacial knuckles,
-    // not one continuous smooth slope. Each authored headland has a main worn
-    // dome, a lower offset shoulder and an asymmetric ridge with dark clefts.
-    // The valleys between the blocks remain near sea level.
+    // Pass U: compact, independently readable weathered granite knuckles.
+    // Wide overlapping Gaussians previously painted almost an entire arc as
+    // a continuous pale cliff. Keep a dominant dome, an offset lower shoulder
+    // and a short uneven spur, but fade the entire mass to ZERO before the
+    // neighboring cove. The shape still lives in the one joined coast mesh:
+    // no extra rock geometry, collision or seam is introduced.
     const influence=heads.reduce((acc,h)=>{
       const t=wrap(p.angle-h.angle)/h.width;
-      const main=Math.exp(-Math.pow((t+.26)/.40,2));
-      const shoulder=.76*Math.exp(-Math.pow((t-.44)/.36,2));
-      const spur=.42*Math.exp(-Math.pow((t+.91)/.26,2));
-      const crack=.22*Math.exp(-Math.pow((t-.06)/.19,2));
-      const shape=clamp(main+shoulder+spur-crack,0,1.18);
+      const core=Math.exp(-Math.pow((t+.22)/.31,2));
+      const shoulder=.62*Math.exp(-Math.pow((t-.43)/.27,2));
+      const spur=.27*Math.exp(-Math.pow((t+.82)/.20,2));
+      const cleft=.15*Math.exp(-Math.pow((t-.10)/.17,2));
+      const envelope=1-smooth(.92,1.32,Math.abs(t));
+      const shape=clamp(core+shoulder+spur-cleft,0,1.14)*envelope;
       return Math.max(acc,shape*(h.height/2.35));
     },0)*(1-p.beach*.96);
     // Pass L: protruding bedrock shoulders are broad, irregular *coastline*
@@ -248,9 +251,16 @@ export function authorHeroIslandCoast(profile,{rockAngles=[],bridgeZones=[],neig
     // gameplay rectangle, keeping at least 1.10 m of level terrain beyond
     // the old floor, and keep both bridge approaches at their full width.
     const spareInland=Math.max(0,p.playableRadial-p.innerRadial-1.10);
-    // Pass Q: retain a broad, flat vegetation apron inside the coast.
-    // Tall bedrock cannot be allowed to advance deep into a planar combat zone.
-    const inlandRoot=isBridge?0:Math.min(spareInland,1.12*influence);
+    // Pass V: only the two compact hero headlands reclaim the available
+    // non-playable fringe to become deep rounded rock volumes instead of a
+    // steep, paper-thin grey coastal ribbon. The original rectangular floor
+    // plus 1.10 m of actor clearance stays flat and walkable everywhere.
+    // Do not steal inland room to fake a wide cliff when a neighbor or
+    // bridge already blocks its seaward root. This preserves low rocky
+    // shelves in narrow channels even where the authored island has spare
+    // outer walking ground.
+    const offshoreRoom=smooth(.25,1.50,actualGain);
+    const inlandRoot=isBridge?0:Math.min(spareInland,2.35*influence*offshoreRoom);
     p.playableRadial-=inlandRoot;
     p.heroInlandRoot=inlandRoot;
     // Height cannot be directly proportional to *coast expansion*. On a
@@ -291,7 +301,9 @@ function heroCoastRingData(profile){
   // Pass P: rounded, glacially polished domes rather than stacked retaining
   // walls. A long gentle inner shoulder rises beyond the flat actor seam,
   // then tapers gradually over the seaward edge into the same water toe.
-  const cap=[0,.014,.075,.23,.51,.78,.95,1.00,.96,.78,.51,.25,.045,0];
+  // Pass AD: a broad ice-worn shoulder, without a cliff-like narrow crest.
+  // Both actor edge and underwater toe stay exactly where they were.
+  const cap=[0,.025,.10,.28,.55,.80,.94,1.00,.98,.84,.64,.35,.07,0];
   const yFloor=[.010,.008,.004,-.003,-.015,-.026,-.041,-.058,-.081,-.11,-.14,-.19,-.27,-.65];
   const yCove=[.010,.008,.002,-.012,-.036,-.057,-.081,-.11,-.155,-.218,-.28,-.345,-.44,-.65];
   const stoneColors=[
@@ -356,7 +368,24 @@ function heroCoastRingData(profile){
     // has at least ~2.5 m of horizontal landform. This changes no X/Z seam.
     // A tiny residual relief keeps a natural tide-worn lip in tight gaps.
     const crownWidth=.055+.945*smooth(.95,2.55,band);
-    const relief=(section.relief*cap[k]*diagonal+ledge)*crownWidth;
+    // Pass W: a true rounded ROCK VOLUME within the same coastline mesh.
+    // The old cap[k] raised each angular wedge by the same cross-section and
+    // looked like a long embankment. Give the primary dome and its offset
+    // shoulder DIFFERENT positions in both radius and angle so the crown has
+    // a two-dimensional mound silhouette with lower saddles in between.
+    // The original ground seam (k=0) and underwater toe (last k) stay fixed.
+    const mainDome=Math.exp(-Math.pow((section.local+.22)/.39,2))
+      *Math.exp(-Math.pow((f-.67)/.29,2));
+    const offsetShoulder=Math.exp(-Math.pow((section.local-.46)/.32,2))
+      *Math.exp(-Math.pow((f-.41)/.23,2));
+    // Make the isolated domes prominent enough at 844x390 while leaving
+    // the valleys low. Boost LOCAL peaks, not the uniform coastal base.
+    // Pass AC: remove the detached offshore hero boulder. Two compact rock
+    // volumes rise from THIS watertight indexed coast shell instead: a
+    // dominant weathered dome and an offset smaller shoulder. The broad low
+    // background prevents a grey continuous wall around the whole island.
+    const volume=.12+1.95*mainDome+1.00*offsetShoulder;
+    const relief=clamp(section.relief*cap[k]*diagonal*volume+ledge,0,2.72)*crownWidth;
     const y=mix(yFloor[k],yCove[k],p.beach)+relief;
     positions.push(x,y,z);
 
@@ -368,8 +397,9 @@ function heroCoastRingData(profile){
       floor.z+sn*(p.playableRadial-.045),stoneRoots);
     // Taper rock *color* with the same spatial constraint as rock height.
     // Otherwise the cliff collapses but leaves an uninterrupted grey stripe.
+    const localized=Math.max(mainDome,offsetShoulder*.75);
     const rock=section.rockMask*(1-p.beach*.94)
-      *(.06+.94*smooth(.90,2.45,band));
+      *(.06+.94*smooth(.90,2.45,band))*(.15+.85*localized);
     // The previous continuous grey apron survived because even unraised
     // shoreline strips inherited pale mineral-edge tones. Blend ordinary
     // shore into dark olive vegetation; concentrate granite at headlands.

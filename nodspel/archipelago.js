@@ -10,7 +10,7 @@ export {archipelagoPassages} from './archipelago-passages.js?v=2.28.41';
 import {createWaterMesh} from './water-shader.js?v=2.28.41-baltic-calm3';
 import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.41-glacial-s42';
 import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.41-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.41-glacial-merge1';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoHeroGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.41-glacial-merge1';
 import {bridgeClearances} from './bridge-flow.mjs?v=2.28.41-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
 import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.41-dinghy2';
@@ -410,14 +410,19 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
     for(const profile of coastProfiles.values()){
       const options={high:(quality?.props??1)>=1,reservations,neighbors:level.floors,neighborProfiles:[...coastProfiles.values()]};
       const hero=targetIsland&&profile.floor===firstIsland;
+      // Pass AC: do not add a separate offshore oval to the hero island.
+      // Raise the existing shared coast shell instead (coastline.mjs), so
+      // the rock/ground/water boundaries remain one joined shape.
       const bedrock=hero?null:addArchipelagoGraniteV2(profile,group,options);
-      // The hero's mass angles still provide geological color fingers, but
-      // their actual height comes exclusively from the joined coast mesh.
       const plan=hero?{masses:(profile.heroHeadlands??[]).map(h=>({angle:h.angle})),shelves:[]}
         :bedrock?.userData.bedrockPlan;
+      if(hero)out.heroGraniteMasses=0;
       bedrockPlans.set(profile.floor,plan);
       addArchipelagoGroundV2(profile,group,{high:options.high,reservations:grassClearances,bedrockPlan:plan});
-      if(hero){addArchipelagoTargetPortal(profile,group,options);addArchipelagoTargetShed(profile,group,options);}
+      if(hero){
+        addArchipelagoTargetPortal(profile,group,options);
+        addArchipelagoTargetShed(profile,group,options);
+      }
     }
     addArchipelagoHorizonIslets(level.floors,group,coastProfiles.values().next().value?.seed??0,{high:(quality?.props??1)>=1});
   }
@@ -549,10 +554,13 @@ export function buildArchipelago(level,group,box,{pine=null,quality={props:1},mi
   if(visualV2){
     const places=planArchipelagoBoatsV2([...coastProfiles.values()],level.floors,level.seed,
       {bounds:{x0:cx-W/2,z0:cz-D/2,w:W,d:D},
-        // Hero granite is part of the island polygon: the boats planner must
-        // not mistake its material-angle anchors for separate rock AABBs.
-        bedrockPlans:[...bedrockPlans.values()].filter(plan=>
-          [...(plan?.masses??[]),...(plan?.shelves??[])].every(m=>m.bounds))});
+        // Keep *real* granite AABBs for the boats planner. Hero material
+        // anchors are angle-only; discarding the entire mixed plan would
+        // allow a dinghy to overlap the new sculpted coastal rock volumes.
+        bedrockPlans:[...bedrockPlans.values()].map(plan=>({
+          masses:(plan?.masses??[]).filter(m=>m.bounds),
+          shelves:(plan?.shelves??[]).filter(m=>m.bounds)
+        }))});
     out.boatPlacements=places;
     for(const place of places){group.add(createArchipelagoDinghyV2(place));out.boats++;}
   }else{

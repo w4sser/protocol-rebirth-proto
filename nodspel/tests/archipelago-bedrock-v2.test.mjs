@@ -301,6 +301,7 @@ test('hero cliff elevation survives neighbors limiting offshore headland expansi
   authorHeroIslandCoast(hero,{rockAngles:[angle],neighborProfiles:[blockingNeighbor]});
   const p=hero.points.find(x=>x.angle===angle);
   assert.ok(Math.abs(p.radial-baseline)<.02,'neighbor prevents offshore cliff footprint expansion');
+  assert.ok((p.heroInlandRoot??0)<.05,'neighbor-clipped headland cannot reclaim walking space to fake offshore width');
   assert.ok(p.heroRelief>.15,'cliff elevation remains visible despite width constraint');
   const shore=coastRingData(hero),i=hero.points.indexOf(p),n=hero.points.length;
   // A constrained coast must NOT invent a steep retaining wall. A recognizable
@@ -401,7 +402,7 @@ test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into p
   for(let i=0;i<hero.points.length;i++){
     const p=hero.points[i];
     const root=before[i]-p.playableRadial;
-    assert.ok(root<=1.6,'large granite roots must not consume the flat vegetation edge');
+    assert.ok(root<=2.75,'even wider compact granite roots must not consume the playable meadow');
     assert.ok(p.playableRadial>=Math.min(before[i],p.innerRadial+1.10)-1e-6,
       'preserve original gameplay and every existing narrow passage without claiming extra width');
     if((p.heroRockMask??0)<.045)low++;
@@ -420,6 +421,52 @@ test('Pass P/Q keeps rounded glacial crowns offshore and avoids intruding into p
   assert.ok(tall>=2,'glacial domes still visually rise above the coast');
 });
 
+
+
+test('Pass U keeps compact granite crowns separated by real low green coves',()=>{
+  const floor={x:0,z:0,w:28,d:24};
+  const hero=coastlineProfile(floor,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(hero,{rockAngles:[.15,2.52,4.85]});
+  const coast=coastRingData(hero),n=hero.points.length,ring=7;
+  const high=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]>.78);
+  // Count circular runs, not separate the same headland at the 0/360 seam.
+  let runs=0,longest=0,streak=0;
+  for(let i=0;i<n*2;i++){
+    const lit=high[i%n];
+    streak=lit?streak+1:0;
+    longest=Math.max(longest,streak);
+    if(i>=n&&lit&&!high[(i+n-1)%n])runs++;
+  }
+  assert.ok(runs>=2,'two distinct elevated granite silhouettes remain visible');
+  assert.ok(longest<=Math.ceil(n*.20),'no cliff may become a long continuous retaining wall');
+  const low=Array.from({length:n},(_,i)=>coast.positions[(ring*n+i)*3+1]<.38).filter(Boolean).length;
+  assert.ok(low>=Math.floor(n*.45),'almost half the coast remains naturally low between rock masses');
+  assert.ok(hero.points.every((p,i)=>Math.abs(coast.positions[i*3+1]-.01)<1e-6),
+    'the operator edge stays flat and identical to the registered walkable coast');
+  assert.ok(hero.points.every((p,i)=>Math.abs(coast.positions[((coast.rings-1)*n+i)*3+1]+.65)<1e-5),
+    'the offshore toe stays a single shared geometry seam');
+});
+
+
+test('Pass W sculpts an offset rounded rock crown without moving either shared seam',()=>{
+  const f={x:0,z:0,w:28,d:24},p=coastlineProfile(f,'archipelago-v2-target',{style:'v2'});
+  authorHeroIslandCoast(p,{rockAngles:[.15,2.52,4.85]});
+  const data=coastRingData(p),n=p.points.length;
+  const pick=p.points.reduce((i,a,j)=>a.heroRockMask>(p.points[i].heroRockMask??0)?j:i,0);
+  // A natural 3D rock dome cannot keep exactly the same flat profile over
+  // all radii and neighboring angular slices.
+  const h=(ring,index)=>data.positions[(ring*n+(index+n)%n)*3+1];
+  assert.ok(h(7,pick)>h(2,pick)+.45,'rock crown rises over its inland weathered shoulder');
+  assert.ok(h(7,pick)>h(12,pick)+.35,'rounded mass falls toward the sea instead of ending as a wall');
+  let changing=0;
+  for(let i=0;i<n;i++){
+    const height=h(7,i),inner=h(3,i);
+    if(height>inner+.6)changing++;
+    assert.ok(Math.abs(h(0,i)-.01)<1e-6,'flat gameplay seam remains fixed');
+    assert.ok(Math.abs(h(13,i)+.65)<1e-5,'underwater toe still joins the water shader');
+  }
+  assert.ok(changing>=3&&changing<n*.30,'a few compact volumes, not a uniform coast-length rise');
+});
 
 test('Pass R height follows the available offshore width instead of building cliffs in narrow channels',()=>{
   const f={x:0,z:0,w:22,d:20},p=coastlineProfile(f,'hero-width-review',{style:'v2'});
