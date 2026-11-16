@@ -76,18 +76,26 @@ test('the real Archipelago build connects terrain, water and walkable coast with
       'large hero rock volumes are integrated at coastline only when a safe footprint exists');
     assert.ok(out.heroGraniteMasses>=1,
       'the canonical hero preview must contain real sculpted coastline rock volumes, not just a gray shore strip');
-    for(const rock of anchored)for(const mass of rock.userData.bedrockPlan.masses)
+    for(const rock of anchored)for(const mass of rock.userData.bedrockPlan.masses){
       assert.ok(mass.shoreInset>=-.08&&mass.shoreInset<=mass.depth*.67+.28,
         'rounded granite must overlap the real coastline, not float outside in the water');
+      assert.ok(mass.depth<=3.21&&mass.length>=4.8,
+        'shore-parallel low-poly glacial outcrop may not become an offshore round bubble');
+    }
     assert.ok(anchored.every(m=>m.userData.anchoredHero&&m.userData.visualOnly
       &&m.geometry.userData.continuousGlacialMass),'hero mounds share continuous sculpted geometry');
     for(const rock of anchored){
-      const positions=rock.geometry.getAttribute('position'),steps=35;
+      const positions=rock.geometry.getAttribute('position');
+      const steps=rock.geometry.userData.angularSteps+1;
+      const rings=rock.geometry.userData.ringCount;
       const radius=i=>Math.hypot(positions.getX(i*steps),positions.getZ(i*steps));
-      for(let ring=5;ring<17;ring++){
+      assert.equal(rock.geometry.userData.heroLowPoly,true);
+      assert.ok(steps<=23&&rings<=17,'the hero rock uses broad readable glacial facets at mobile zoom');
+      assert.ok(positions.count<400,'reduced hero rock triangulation avoids a smooth pink sphere');
+      for(let ring=3;ring<rings-2;ring++){
         const dy=Math.abs(positions.getY((ring+1)*steps)-positions.getY(ring*steps));
-        assert.ok(Math.abs(radius(ring+1)-radius(ring))<dy*2.6+.015,
-          'granite has a smoothly rounded profile, never stacked horizontal tier shelves');
+        assert.ok(Math.abs(radius(ring+1)-radius(ring))<dy*3.2+.025,
+          'granite forms one continuous rounded slope, never stepped stacked terraces');
       }
     }
     assert.equal(coastal.filter(o=>o.userData.heroIsland).length,1,'only the representative island is re-authored');
