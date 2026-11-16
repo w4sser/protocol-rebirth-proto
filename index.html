@@ -481,6 +481,7 @@
   .mapspot.plate .badge{top:-10px; right:-10px;}
   .baseviewer .hubstate{left:10px; top:10px; font-size:12px; padding:5px 10px; background:var(--solid); border-radius:10px;}
   .goalpill{position:absolute; z-index:8; left:10px; bottom:12px; max-width:min(360px,calc(100% - 20px)); min-height:52px; display:flex; align-items:center; gap:10px; text-align:left; padding:6px 14px 6px 10px; border-radius:16px; background:var(--solid); border:2px solid var(--track); color:var(--txt); font:inherit; box-shadow:0 6px 16px #000a;}
+  .baseviewer>.progress-goal>*,.baseviewer>.goalpill>*{pointer-events:none;}
   button.goalpill{cursor:pointer;} div.goalpill{pointer-events:none;}
   .goalpill i{font-style:normal; font-size:24px;} .goalpill small{display:block; font:800 12px "Archivo",sans-serif; letter-spacing:.08em; color:var(--dim);} .goalpill b{font-size:15px;}
   .goalpill.need{border-color:var(--warn2);} .goalpill.ready{border-color:var(--ok2);}

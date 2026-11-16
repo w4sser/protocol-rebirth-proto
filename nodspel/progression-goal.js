@@ -25,33 +25,31 @@ export function applyIntroEncounter(level,goal){
   level.boxes=[{x:r.x-s*cfg.lane,z:r.z+cfg.coverZ,w:cfg.coverSize,d:cfg.coverSize,h:1.4,introCover:true}];
   const enemy=level.enemies[0];for(const k of ['patrol','encounter','aggro','alertAt','facing','windupMs','frontShield'])delete enemy[k];Object.assign(enemy,{x:r.x-s*cfg.lane,z:r.z+cfg.guardZ,speed:0,introGuard:true,active:true});level.encounters=[];level.enemies=[enemy];
   level.lootBoxes=[];
-  let i=0;for(const p of goal.parts){const currency=p.kind==='currency'&&globalThis.DATA.items.find(item=>item.grantsCurrency?.[p.id]);const count=Math.ceil(Math.max(0,p.need-p.secured)/(currency?currency.grantsCurrency[p.id]:1));for(let n=0;n<count;n++,i++)level.lootBoxes.push({id:`supply-${i}`,x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing,item:currency?currency.id:p.id,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});}
-  level.lootBoxes.push({id:'optional-cache',x:r.x-s*cfg.optionalX,z:r.z+cfg.optionalZ,item:cfg.optionalItems[s<0?0:1],marked:true,revealed:true,collected:false,optional:true,source:'OPTIONAL · EXTRA LOOT'});
+  let i=0;
+  for(const p of goal.parts){
+    const currency=p.kind==='currency'&&globalThis.DATA.items.find(item=>item.grantsCurrency?.[p.id]);
+    const quantity=Math.ceil(Math.max(0,p.need-p.secured)/(currency?currency.grantsCurrency[p.id]:1));
+    if(!quantity)continue;
+    level.lootBoxes.push({id:`supply-${i}`,x:r.x+s*(cfg.supplyX+(i%2)*cfg.supplySpacing),z:r.z+cfg.supplyZ+Math.floor(i/2)*cfg.supplySpacing,item:currency?currency.id:p.id,quantity,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE · REPAIR SUPPLIES'});
+    i++;
+  }
+  if(level.lootBoxes.length<RULES.earlyLoot.maxCratesPerRoom)
+    level.lootBoxes.push({id:'optional-cache',x:r.x-s*cfg.optionalX,z:r.z+cfg.optionalZ,item:cfg.optionalItems[s<0?0:1],marked:true,revealed:true,collected:false,optional:true,source:'OPTIONAL · EXTRA LOOT'});
 }
 // First-upgrade payoff (RULES.payoff): level 1 only. loot_cluster seeds a dense pickup cluster near the spawn on free floor,
 // at least max(cfg.count, bag capacity) boxes so the new bag room is used. Returns the number placed (0 = nothing).
+// v2.28.4x supersedes the cluster placement above: the same authored reward cycle
+// is grouped into existing caches. Return value now counts added units.
 export function applyFirstPayoff(level,payoff,bag=RULES.loot.capacity){
   const cfg=level.number===1&&payoff==='loot_cluster'?RULES.payoff.loot_cluster:null;
   if(!cfg)return 0;
-  const want=Math.max(cfg.count,Math.floor(Number(bag)||0)),room=level.rooms[0],hw=room.w/2-cfg.margin,hd=room.d/2-cfg.margin;
-  const center={x:level.start.x,z:level.start.z+cfg.offsetZ},cells=[],reach=Math.ceil(Math.max(hw,hd)/cfg.spacing);
-  for(let i=-reach;i<=reach;i++)for(let j=-reach;j<=reach;j++)cells.push({x:center.x+i*cfg.spacing,z:center.z+j*cfg.spacing});
-  cells.sort((a,b)=>Math.hypot(a.x-center.x,a.z-center.z)-Math.hypot(b.x-center.x,b.z-center.z));
-  const solids=[...level.walls,...level.boxes],spots=[...level.nodes,level.exit,...level.enemies,...level.lootBoxes],placed=[];
-  for(const p of cells){
-    if(placed.length>=want)break;
-    if(Math.hypot(p.x-level.start.x,p.z-level.start.z)<RULES.loot.pickupRadius+cfg.startClear)continue;
-    if(Math.abs(p.x-room.x)>hw||Math.abs(p.z-room.z)>hd)continue;
-    if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+cfg.clear/2&&Math.abs(p.z-o.z)<o.d/2+cfg.clear/2))continue;
-    if(spots.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<cfg.clear+(o.r||0)))continue;
-    placed.push(p);
+  const want=Math.max(cfg.count,Math.floor(Number(bag)||0));
+  const boxes=level.lootBoxes.filter(b=>!b.key&&!b.collected&&!['medkit','ammo_pack'].includes(b.item));
+  if(!boxes.length)return 0;
+  for(let i=0;i<want;i++){
+    const box=boxes[i%boxes.length];
+    (box.contents??=[]).push(cfg.items[i%cfg.items.length]);
+    box.marked=true;box.revealed=true;box.source=cfg.source;
   }
-  // Pick each item from the cycle but skip kinds already on a neighbouring spot, so adjacent labels never read the same.
-  const used=[];
-  placed.forEach((p,i)=>{
-    let k=i;for(let t=0;t<cfg.items.length;t++,k++){const it=cfg.items[k%cfg.items.length];if(!used.some(u=>u.item===it&&Math.hypot(u.x-p.x,u.z-p.z)<=cfg.spacing*1.5))break;}
-    const item=cfg.items[k%cfg.items.length];used.push({x:p.x,z:p.z,item});
-    level.lootBoxes.push({id:`payoff-${i}`,x:p.x,z:p.z,item,marked:true,revealed:true,collected:false,source:cfg.source});
-  });
-  return placed.length;
+  return want;
 }

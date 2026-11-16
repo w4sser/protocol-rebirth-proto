@@ -743,7 +743,7 @@ function labelLoot(v){v.label=makeLabel('?',new THREE.Vector3(v.loot.x,.7,v.loot
 function setLootText(v){const l=v.label,r=rarityOf(v.loot.item);l.el.dataset.rarity=v.loot.revealed?r:'unknown';
   if(l.el._useEl){const info=v.loot.revealed?globalThis.DATA?.itemInfo?.(v.loot.item):null;l.el._useEl.textContent=info?.line??'';l.size=null;}
   if(!v.loot.revealed){l.caption.textContent='SUPPLY CACHE · APPROACH TO IDENTIFY';l.shortEl.textContent='SUPPLY CACHE';return;}
-  const n=ITEM_NAMES[v.loot.item]??(v.loot.item==='keycard'?'Keycard':'Ammo'),a=lootAction(round,v.loot.item),need=neededItem(v.loot.item);l.el.classList.toggle('needed-loot',need);setIconText(l.caption,lootIcon(v.loot.item),`${need?'NEEDED · ':''}${v.loot.source==='Radio crate'?'Radio crate · ':''}${n} · ${a.text}${v.loot.optional?' · OPTIONAL':''}`);setIconText(l.shortEl,lootIcon(v.loot.item),`${need?'NEEDED · ':''}${n}`);l.el.classList.toggle('slot-full',a.full);if(v.loot.source)l.el.title=v.loot.source;}
+  const n=(ITEM_NAMES[v.loot.item]??(v.loot.item==='keycard'?'Keycard':'Ammo'))+(v.loot.quantity>1?` x${v.loot.quantity}`:'')+(v.loot.contents?.length?` +${v.loot.contents.length} ITEMS`:''),a=lootAction(round,v.loot.item),need=neededItem(v.loot.item);l.el.classList.toggle('needed-loot',need);setIconText(l.caption,lootIcon(v.loot.item),`${need?'NEEDED · ':''}${v.loot.source==='Radio crate'?'Radio crate · ':''}${n} · ${a.text}${v.loot.optional?' · OPTIONAL':''}`);setIconText(l.shortEl,lootIcon(v.loot.item),`${need?'NEEDED · ':''}${n}`);l.el.classList.toggle('slot-full',a.full);if(v.loot.source)l.el.title=v.loot.source;}
 // kit count changed: refresh health kit labels (COLLECT / SLOT FULL)
 function refreshKitLabels(){for(const v of world?.lootBoxes??[])if(v.label&&v.loot.item==='medkit'&&!v.loot.collected)setLootText(v);}
 function renderInventory(){
@@ -1492,7 +1492,7 @@ function showSwap(){{const t=document.getElementById('bag-toast');if(t)t.hidden=
   };
   if(launch.goal){const goal=document.createElement('div');goal.className='swap-goal';goal.textContent=`For ${launch.goal.name} LVL ${launch.goal.level} · extract to secure supplies`;el.append(goal);}
   const carried=document.createElement('div');carried.className='swap-carried';
-  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,gameClock());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=true;}clearBagFull();updateHUD();};carried.append(b);}
+  for(const id of bagItems(round.bag)){const b=chip(id,false);b.type='button';b.onclick=()=>{const d=swapLoot(round,info.boxId,id,gameClock());if(d){labelLoot(world.addLoot(d));for(const v of world.lootBoxes)if(v.loot.id===info.boxId)v.loot.collected=round.level.lootBoxes.find(b=>b.id===info.boxId).collected;}clearBagFull();updateHUD();};carried.append(b);}
   const arrow=document.createElement('span');arrow.className='swap-arrow';arrow.append(svgIcon('swap'));row.append(carried,arrow,chip(info.item,true));el.append(row);el.hidden=false;
   const suggestedChip=carried.querySelector('.swap-suggested');if(suggestedChip)carried.scrollLeft=Math.max(0,suggestedChip.offsetLeft-carried.offsetLeft);
   clearTimeout(showSwap.t);showSwap.t=setTimeout(hideSwap,4000);
@@ -1838,7 +1838,7 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
 
   for(const v of world.routes)for(const marker of v.markers)marker.visible=!routeComplete(v.level,v.choice);
   // hot-ok: logCombat payload only on the one-time recon reveal
-  for(const v of world.lootBoxes){if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.spawnLootBurst?.(v.loot.x,.5,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
+  for(const v of world.lootBoxes){if(v.label&&(v.labelQuantity!==v.loot.quantity||v.labelItem!==v.loot.item||v.labelContents!==v.loot.contents?.length)){v.tier=rarityOf(v.loot.item);world.applyReveal(v,false);setLootText(v);v.labelQuantity=v.loot.quantity;v.labelItem=v.loot.item;v.labelContents=v.loot.contents?.length;}if(reconLootVisible(round,v.loot)){if(!v.loot.revealed){v.loot.revealed=true;world.applyReveal(v);setLootText(v);logCombat(round,{kind:'perk',perk:'recon',at:clock,text:`Recon: marked remaining loot (${v.loot.id}).`});}v.label.el.classList.add('perk-recon');}if(!v.loot.collected&&updateReveal(v.loot,position)){world.applyReveal(v);setLootText(v);}if(v.loot.collected&&v.group.visible)world.spawnLootBurst?.(v.loot.x,.5,v.loot.z,v.color);v.group.visible=!v.loot.collected;v.label.defeated=v.loot.collected;}
   const holding=!!sticks[1].state.gesture?.direction||mouseDown||keys.has('Space');
   // Desktop: a faint preview follows the mouse; holding strengthens it.
   const aiming=!round.over&&(holding||mouseKnown);

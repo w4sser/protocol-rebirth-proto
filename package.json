@@ -58,7 +58,7 @@
     "test:questlog": "node test/quest-log.test.js",
     "test:chips": "node test/chips.test.js",
     "test:oscar": "node test/oscar.test.mjs",
-    "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js && node test/map-new-unlock.test.js",
+    "test:mapzoom": "node test/mapzoom.test.js && node test/opening-loop.test.js && node test/map-new-unlock.test.js && node test/base-goal-placement.test.js",
     "test:area-materials": "node test/area-materials.test.js",
     "test:handin": "node test/handin.test.js",
     "test:t1-unlock": "node test/t1-unlock-payoff.test.js",

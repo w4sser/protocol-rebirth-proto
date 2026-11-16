@@ -382,6 +382,20 @@ export const RULES=[
      if(!/const withinGateTapGuard = !!gateTapAt && \(Date\.now\(\) - gateTapAt\) < GATE_TAP_SKIP_GUARD_MS;/.test(skipFn))out.push('app.js: A.introSkip must compute withinGateTapGuard from dataset.gateTapAt against a time window (GATE_TAP_SKIP_GUARD_MS)');
      return out;}},
 
+  {id:'quest-chip-never-covers-rooms',pr:'v2.28.4x FTUE chip',why:'screen-space quest chips covered map labels and swallowed room taps',
+   check(ctx={}){const app=ctx.appSrc??read('app.js'),layout=ctx.layoutSrc??read('scripts/layout-check.mjs');const out=[];
+     if(!/function placeBaseGoal\(viewer\)/.test(app)||!app.includes('placeBaseGoal(viewer);')||!app.includes('.mapspot,.mapspot .tag'))out.push('base goal placement must avoid measured room hitboxes and labels after map layout');
+     if(!layout.includes('questChipRoomOverlaps')||!layout.includes('chip-fabricator-locked')||!layout.includes('chip-guard-duty'))out.push('base layout must check chip/room intersections in both quest states');return out;}},
+  {id:'early-raid-crate-cap',pr:'v2.28.4x FTUE crates',why:'one crate per supply unit and the bag payoff crowded early rooms',
+   check(ctx={}){const goal=ctx.goalSrc??read('nodspel/progression-goal.js'),ftue=ctx.ftueSrc??read('nodspel/ftue.js'),data=ctx.dataSrc??read('data/raid-ftue.js');const out=[];
+     if(!/maxCratesPerRoom\s*:\s*3/.test(data))out.push('early loot data must cap rooms at three crates');
+     if(!goal.includes('quantity')||!goal.includes('level.lootBoxes.length<RULES.earlyLoot.maxCratesPerRoom')||goal.includes('level.lootBoxes.push({id:`payoff-'))out.push('intro and payoff must group supply units instead of adding excess crates');
+     if(!ftue.includes('level.lootBoxes=RULES.earlyLoot.supplies.map'))out.push('FTUE must use the guaranteed grouped supply data');return out;}},
+  {id:'no-post-pickup-chest-sprite',pr:'v2.28.4x loot feedback',why:'pixel reveal adapter spawned a treasure chest on top of the 3D pickup burst',
+   check(ctx={}){const fx=ctx.fxSrc??read('nodspel/fx-feedback.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
+     if(/pixel\.spawn\(['"]chest['"]/.test(fx)||/demoNames\s*=.*['"]chest['"]/.test(fx))out.push('loot feedback must never spawn a pixel chest');
+     if(!game.includes('world.spawnLootBurst?.(')||!game.includes('pickupToast(round.lastBagPickup.item)'))out.push('keep the 3D burst and textual pickup feedback');return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

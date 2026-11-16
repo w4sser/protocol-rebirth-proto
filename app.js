@@ -2573,7 +2573,6 @@ function setupBaseViewer(){
     const sw = cfg.width * scale, sh = cfg.height * scale;
     session.cameraLayout = { sw, sh };
     // The camera never leaves the art: no gutter below or beside the bunker at any zoom (zoom.min = 1 always covers the viewer).
-    const card = document.querySelector(".s-base .progress-goal");
     const pad = {left:0,right:0,top:0,bottom:0};
     const minX = Math.min(0, vw - sw) - pad.right, minY = Math.min(0, vh - sh) - pad.bottom;
     let x = vw/2 - session.camera.x * sw, y = vh/2 - session.camera.y * sh;
@@ -2582,7 +2581,8 @@ function setupBaseViewer(){
     world.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
     viewer.scrollLeft = 0; viewer.scrollTop = 0; // focus/scrollIntoView must never shift the HUD layer
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
-    clearPlatesFromCard(viewer, card, scale);
+    clearPlatesFromCard(viewer, null, scale);
+    placeBaseGoal(viewer);
   }
   function zoomAt(zoom,x,y){
     const vw=viewer.clientWidth||800,vh=viewer.clientHeight||420,old=session.cameraLayout;
@@ -2618,7 +2618,7 @@ function setupBaseViewer(){
   viewer.addEventListener("pointerup", finish); viewer.addEventListener("pointercancel", finish);
   viewer.addEventListener("click", e => {
     if(e.target.closest(".roomsheet, .basemenu-btn")) return;
-    const card = e.target.closest("section.progress-goal"); if(card && !e.target.closest("button")){ card.classList.toggle("open"); session.goalOpen = card.classList.contains("open"); return; }
+    const card = e.target.closest("section.progress-goal"); if(card && !e.target.closest("button")){ card.classList.toggle("open"); session.goalOpen = card.classList.contains("open"); placeBaseGoal(viewer); return; }
     const spot=e.target.closest(".mapspot"); if(!spot || (e.detail !== 0 && (suppress || moved))){ e.preventDefault(); if(!spot && !(suppress || moved) && !e.target.closest("button, .progress-goal")) selectBaseSpot(null); return; }
     // v2.28.0 Clean Base: first tap selects the room + shows its action sheet; tapping the selected room again opens it.
     if(e.detail === 0 || spot.classList.contains("selected")) return baseSpotOpen(spot); // keyboard (Enter/Space) opens directly
@@ -2627,8 +2627,49 @@ function setupBaseViewer(){
   session.cameraLayoutFn = layout;
   if(session.cameraResize) window.removeEventListener("resize", session.cameraResize);
   session.cameraResize = layout; window.addEventListener("resize", layout); layout();
+  if(session.goalResize) session.goalResize.disconnect();
+  if(typeof ResizeObserver !== "undefined"){
+    session.goalResize = new ResizeObserver(() => { if(viewer.isConnected) layout(); });
+    session.goalResize.observe(viewer);
+    const goal = viewer.querySelector(".progress-goal,.goalpill");
+    if(goal) session.goalResize.observe(goal);
+  }
+  document.fonts?.ready.then(() => { if(viewer.isConnected) layout(); });
   const shownStage=session.devPlateStage === null ? bunkerStage() : session.devPlateStage;
   const next=D.baseMap.plates[shownStage+1]; if(next){ const img=new Image(); img.src=next.art; }
+}
+
+// Quest/goal chips live in screen space while room targets pan and zoom. Measure both
+// after every map layout and choose a free rectangle, including the invisible room
+// hit areas. Obstacle edges enumerate the free spaces without viewport-specific nudges.
+function placeBaseGoal(viewer){
+  const card = viewer.querySelector(".progress-goal,.goalpill");
+  if(!card || !card.offsetHeight) return;
+  const v = viewer.getBoundingClientRect(), c = card.getBoundingClientRect();
+  const css = getComputedStyle(document.documentElement);
+  const inset = name => Math.max(0, ...(css.getPropertyValue(name).match(/[\d.]+(?=px)/g) || []).map(Number));
+  const gap = 6, left = Math.max(v.left, inset("--sl")) + gap;
+  const right = Math.min(v.right, innerWidth - inset("--sr")) - gap;
+  const topbar = document.getElementById("topbar");
+  const top = Math.max(v.top, topbar?.getBoundingClientRect().bottom || 0) + gap;
+  const bottom = Math.min(v.bottom, innerHeight - inset("--sb")) - gap;
+  const obstacles = [...viewer.querySelectorAll(".mapspot,.mapspot .tag,.gen-chip,.basemenu-btn"), document.getElementById("tabs")]
+    .filter(e => e && e.offsetHeight).map(e => e.getBoundingClientRect());
+  const xs = [left, right - c.width], ys = [top, bottom - c.height];
+  for(const r of obstacles){xs.push(r.right + gap, r.left - gap - c.width);ys.push(r.bottom + gap, r.top - gap - c.height);}
+  const candidates = [];
+  for(const x of xs) for(const y of ys){
+    if(x < left || x + c.width > right || y < top || y + c.height > bottom) continue;
+    if(obstacles.some(r => x < r.right + gap && x + c.width > r.left - gap && y < r.bottom + gap && y + c.height > r.top - gap)) continue;
+    candidates.push({x,y,score:Math.hypot(x-left,y-top)});
+  }
+  candidates.sort((a,b) => a.score-b.score);
+  const spot = candidates[0];
+  if(spot){
+    card.style.setProperty("left", (spot.x-v.left) + "px", "important");
+    card.style.top = (spot.y-v.top) + "px";
+    card.style.bottom = "auto";
+  }
 }
 
 // v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
