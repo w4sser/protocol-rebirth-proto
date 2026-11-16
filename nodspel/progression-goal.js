@@ -1,5 +1,5 @@
-import '../data/items.js?v=2.28.43';
-import {RULES} from './levels.js?v=2.28.43';
+import '../data/items.js?v=2.28.44';
+import {RULES} from './levels.js?v=2.28.44';
 export const MATERIALS={...globalThis.DATA.currencies,...Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,{name:i.name,icon:i.icon,source:i.source}]))};
 export function readGoal(value){
   if(typeof value!=='string'||value.length>4000)return null;
@@ -7,6 +7,18 @@ export function readGoal(value){
     const parts=g.parts.map(p=>{const kind=p.kind==='currency'?'currency':'item',valid=kind==='currency'?globalThis.DATA.currencies[p.id]:globalThis.DATA.items.find(i=>i.id===p.id);if(!valid||!Number.isInteger(p.need)||p.need<1||p.need>100000||!Number.isInteger(p.secured)||p.secured<0)throw Error();return {id:p.id,kind,...MATERIALS[p.id],need:p.need,secured:Math.min(p.secured,1000000)};});
     if(new Set(parts.map(p=>p.id)).size!==parts.length)return null;
     return {module:g.module,level:g.level,name:String(g.name||g.module).slice(0,60),benefit:String(g.benefit||'').slice(0,250),parts};
+  }catch{return null;}
+}
+// PRB-162: the craft-material guarantee (?vestGuarantee=, see levels.js setGuaranteeLoot). A short
+// list of {id,count}, validated against real items the same way readGoal validates cost parts.
+export function readVestGuarantee(value){
+  if(typeof value!=='string'||value.length>500)return null;
+  try{
+    const list=JSON.parse(value);
+    if(!Array.isArray(list)||!list.length||list.length>6)return null;
+    const out=list.map(n=>{if(!n||!globalThis.DATA.items.find(i=>i.id===n.id)||!Number.isInteger(n.count)||n.count<1||n.count>20)throw Error();return {item:n.id,count:n.count};});
+    if(new Set(out.map(n=>n.item)).size!==out.length)return null;
+    return out;
   }catch{return null;}
 }
 export function goalProgress(goal,bag={}){

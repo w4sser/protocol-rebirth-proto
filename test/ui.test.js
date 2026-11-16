@@ -10,6 +10,8 @@ const dom = new JSDOM(fs.readFileSync(path + "/index.html", "utf8"), { runScript
 const { window } = dom;
 window.localStorage = (() => { let s={}; return { getItem:k=>s[k]??null, setItem:(k,v)=>s[k]=v, removeItem:k=>delete s[k] }; })();
 window.URL.createObjectURL = () => "blob:fake";
+// This base walkthrough skips cinematic timing; component/bit-card tests exercise real holds.
+window.PRBitCutscene = { preload(beat){return Promise.resolve([beat.from,beat.to]);}, play(beat){ if(beat.onDone) beat.onDone(); } };
 for(const s of ["data/items.js","data/modules.js","data/bit.js","data/bit-lines.js","data/bit-talents.js","data/raid_zones.js","data/recipes.js","data/vendors.js","data/retention.js","data/quests.js","data/progression.js","data/combat.js","app.js"])
   window.eval(fs.readFileSync(path + "/" + s, "utf8")+(s==='app.js'?';window.__TEST_STATE=()=>S;':''));
 const doc = window.document, A = window.A;

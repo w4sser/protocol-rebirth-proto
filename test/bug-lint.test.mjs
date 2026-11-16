@@ -267,6 +267,26 @@ assert.equal(by('dedicated-narrator-art-exists').check({appSrc:'',files:[],cutsc
  assert.ok(rule.check({smokeSrc:smoke.replace('Promise.race([handoff,button])','button')}).length,'fires if the smoke only waits for the #return-base click');
  assert.ok(rule.check({layoutSrc:layout.replace("'scripts/debug-unlocks-smoke.mjs'","'scripts/other.mjs'")}).length,'fires if the smoke is unhooked from required CI');
 }
+// PRB-162: the quest chip and the Vault must each stay gated behind their own BIT intro moment.
+{
+ const rule=by('bit-introduces-systems-first');
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.equal(rule.check().length,0,'passes on the real app.js');
+ assert.ok(rule.check({appSrc:app.replace('if(!S.bitCardsSeen.quest_intro) return "";\n','')}).length,'fires if the quest chip stops checking its intro-seen flag');
+ assert.ok(rule.check({appSrc:app.replace('vault_intro:{','vault_intro_renamed:{')}).length,'fires if BIT_CUTSCENES.vault_intro is renamed/removed');
+ assert.ok(rule.check({appSrc:app.replace('function maybeShowVaultIntro(){','function vaultIntroTrigger(){')}).length,'fires if the maybeShowVaultIntro trigger function is renamed/removed');
+ assert.ok(rule.check({appSrc:app.replace(
+   'if(S.bitCardsSeen.vault_intro) return;\n  // Same ordering guard as maybeShowQuestIntro: never queue ahead of fabricator_built.\n  if(!S.bitCardsSeen.fabricator_built) return;\n  const g = progressionGoal();',
+   'const g = progressionGoal();'
+ )}).length,'fires if maybeShowVaultIntro stops gating on its own seen flag (would replay every base visit)');
+ assert.ok(rule.check({appSrc:app.replace(
+   'const g = progressionGoal();\n  if(!session.vaultRequested && (S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;',
+   'if((S.modules.storage || 0) < 1) return;'
+ )}).length,'fires if maybeShowVaultIntro stops checking progressionGoal() (would only ever fire once already built, not the instant it becomes the goal)');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.vault_intro === undefined','st.bitCardsSeen.vault_intro_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling vault_intro for already-past saves');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.quest_intro === undefined','st.bitCardsSeen.quest_intro_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling quest_intro');
+ assert.ok(rule.check({appSrc:app.replace('st.bitCardsSeen.raid_briefing === undefined','st.bitCardsSeen.raid_briefing_x === undefined')}).length,'fires if migrateBitCardsSeen stops back-filling raid_briefing');
+}
 
 // v2.28.4x owner playtest regressions: each fixture removes its actual guard.
 assert.ok(by('quest-chip-never-covers-rooms').check({appSrc:'function setupBaseViewer(){}',layoutSrc:''}).length===2);
@@ -275,3 +295,22 @@ assert.ok(by('early-raid-crate-cap').check({goalSrc:'level.lootBoxes.push({id:`p
 assert.equal(by('early-raid-crate-cap').check({goalSrc:'quantity;level.lootBoxes.length<RULES.earlyLoot.maxCratesPerRoom',ftueSrc:'level.lootBoxes=RULES.earlyLoot.supplies.map',dataSrc:'maxCratesPerRoom:3'}).length,0);
 assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('chest',1,2)",gameSrc:''}).length,2);
 assert.equal(by('no-post-pickup-chest-sprite').check({fxSrc:"pixel.spawn('shield',1,2)",gameSrc:'world.spawnLootBurst?.();pickupToast(round.lastBagPickup.item)'}).length,0);
+
+// v2.28.4x: queued intros cannot expose systems, and vest supplies cannot add crates.
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ const intro=by('bit-introduces-systems-first');
+ assert.ok(intro.check({appSrc:app.replace('pendingSystemIntros.has(beat.id)','false')}).length);
+ assert.ok(intro.check({appSrc:app.replace('if(modId === "storage" && !S.bitCardsSeen.vault_intro)','if(false)')}).length);
+ const rule=by('vest-guarantee-existing-caches');
+ assert.equal(rule.check().length,0);
+ const levels=fs.readFileSync(new URL('../nodspel/levels.js',import.meta.url),'utf8');
+ assert.ok(rule.check({levelsSrc:levels.replace('b.quantity=need.count','b.quantity=1')}).length);
+ assert.ok(rule.check({levelsSrc:levels.replace('claimed.has(b)','b.guarantee')}).length);
+ assert.ok(rule.check({levelsSrc:levels.replaceAll('!b.scout&&!b.quest&&!b.key','!b.scout&&!b.key')}).length);
+ assert.ok(rule.check({gameSrc:''}).length);
+ assert.ok(rule.check({cssSrc:''}).length);
+ const appSource=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.ok(rule.check({appSrc:appSource.replace('craftPartSource({ kind:"cur", id:"scrap" })','""')}).length);
+ assert.ok(rule.check({appSrc:''}).length);
+}

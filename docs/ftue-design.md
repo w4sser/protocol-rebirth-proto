@@ -2,6 +2,20 @@
 
 Mål: en ny spelare ska känna "aha" snabbt. Visa resultatet, inte en tutorial: in i en raid, känna striden, och avsluta med en clutch-extraktion i en tänd exit-stråle.
 
+## 0. Design rule (Robert, playtest 2026-11-16): BIT always introduces every system first
+
+**BIT ALWAYS introduces every new system/concept (rooms, quests, crafting, vault, power, materials)
+before it is shown or unlocked. No UI element appears unexplained.**
+
+This is a standing rule for every future FTUE/meta addition, not a one-off fix. Before shipping any
+new unlockable room, UI element, or mechanic, check: has BIT already said what this is, in his voice,
+through the shared narrator layout (`ui/bit-cutscene.js` / `ui/bit-card.js`, see
+[docs/bit-narrator.md](bit-narrator.md))? If not, the UI element must stay hidden/gated until it has.
+`docs/bit-narrator.md`'s "Current moments" and "Systems-first backlog" tables track which systems
+already have an intro, which got one in PRB-162, and what's still missing. The bug-lint rule
+`bit-introduces-systems-first` (`scripts/bug-lint.mjs`, see [docs/bug-lint.md](bug-lint.md)) checks the
+two gates added for PRB-162 (the quest chip, the Vault cutscene) so this can't silently regress.
+
 ## 1. Nuläge (audit, ny profil, 844×390, v2.21.1)
 
 | Steg | Skärm | Tryck | Tid (ca) |

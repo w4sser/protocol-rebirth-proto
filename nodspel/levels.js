@@ -1,12 +1,12 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.43';
-import {generateBigLevel} from './big-level.js?v=2.28.43';
-import '../data/items.js?v=2.28.43';
-import '../data/raid-ftue.js?v=2.28.43';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.43';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.43-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.43';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.43';
-import '../data/raid-combat.js?v=2.28.43';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.44';
+import {generateBigLevel} from './big-level.js?v=2.28.44';
+import '../data/items.js?v=2.28.44';
+import '../data/raid-ftue.js?v=2.28.44';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.44';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.44-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.44';
+import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.44';
+import '../data/raid-combat.js?v=2.28.44';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
@@ -239,6 +239,13 @@ let SCOUTED=new Set();
 export function setScouted(list){SCOUTED=new Set(Array.isArray(list)?list:[]);}
 export const scoutTarget=item=>globalThis.DATA.items.find(i=>i.id===item)?.scouts;
 export function setQuestLoot(q){QUEST_LOOT=q&&RULES.loot.types.includes(q.item)&&Number.isInteger(q.level)?{item:q.item,level:q.level,source:globalThis.DATA.items.find(i=>i.id===q.item)?.raidSource}:null;}
+// PRB-162: group the missing recipe materials into existing level-1 caches. Quantities and
+// mixed contents use the normal one-unit pickup path, preserving the early-room crate cap.
+// Quest/scout/key caches are never replaced; the launch recomputes shortages after each return.
+let GUARANTEE_LOOT=null;
+export function setGuaranteeLoot(list){
+  GUARANTEE_LOOT=Array.isArray(list)?list.filter(n=>n&&RULES.loot.types.includes(n.item)&&Number.isInteger(n.count)&&n.count>0).map(n=>({item:n.item,count:n.count})):null;
+}
 let AREA='bunker';
 export const AREAS=['bunker','archipelago','town'];
 // v1.44 area progression (docs/meta-core-integration.md §12). Order Bunker -> Archipelago -> Town.
@@ -261,7 +268,7 @@ export function ruleSet(area,hard){const AR=AREA_RULES[area]??AREA_RULES.bunker;
 let BIG_LEVELS=false;
 export function setLevelMode(mode){BIG_LEVELS=mode==='big';}
 export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVELS,layoutOverride=null){
-  if(big)return generateBigLevel(roundSeed,area);
+  if(big){const level=generateBigLevel(roundSeed,area);applyGuaranteeLoot(level);return level;}
   const base=RULES.levels[number-1];if(!base)throw new RangeError('Level must be 1, 2 or 3.');
   const AR=ruleSet(area,hard),sm=AR.sizeMul??1;
   if(hard)roundSeed=`hard^${roundSeed}`;
@@ -462,6 +469,22 @@ export function applyAreaRules(level,AR){
   if(QUEST_LOOT&&QUEST_LOOT.level===n&&(!QUEST_LOOT.source||QUEST_LOOT.source.area===level.area)){
     const b=level.lootBoxes.find(x=>x.item===QUEST_LOOT.item)||level.lootBoxes.find(x=>!x.scout&&!x.key);
     if(b){b.item=QUEST_LOOT.item;b.quest=true;if(QUEST_LOOT.source){b.source=QUEST_LOOT.source.label;b.revealed=true;b.marked=true;}}
+  }
+  applyGuaranteeLoot(level);
+}
+function applyGuaranteeLoot(level){
+  // Guaranteed recipe units occupy existing caches, never another physical crate. Prefer
+  // ordinary caches; mixed contents allow every shortage even when a quest reserves a cache.
+  if(GUARANTEE_LOOT?.length&&level.number===1){
+    const caches=level.lootBoxes.filter(b=>!b.scout&&!b.quest&&!b.key&&!b.requiresNode);
+    const claimed=new Set();
+    for(const [i,need] of GUARANTEE_LOOT.entries()){
+      const b=caches[i%caches.length];if(!b)continue;
+      // Big Map can inherit a template's metadata. Only claims in this pass append units.
+      if(!claimed.has(b)){b.item=need.item;b.quantity=need.count;delete b.contents;}
+      else (b.contents??=[]).push(...Array(need.count).fill(need.item));
+      claimed.add(b);b.guarantee=true;b.marked=true;b.revealed=true;
+    }
   }
 }
 // Seeded variety on top of the base layout: enemy types, hazards, shielded nodes and a colour theme.

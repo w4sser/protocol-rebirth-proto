@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.43"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.44"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
@@ -103,7 +103,7 @@ function prepareDebugState(st){
   st.beat = PROG.beats.findIndex(b => b.id === "choice_upgrade");
   st.tracked = null; st.trackedQuest = null; st.coreLaunch = null;
   st.payoff = null; st.payoffDone = true;
-  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true};
+  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true, raid_briefing:true, quest_intro:true, vault_intro:true};
   st.areaScouted = st.areaScouted || {}; st.areaSeen = st.areaSeen || {};
   st.modules.rebirth_core = Math.max(st.modules.rebirth_core || 0, ...D.worldMap.areas.map(a => a.requires ? a.requires.core : 1));
   st.modules[PROG.raidPrepUnlockModule] = Math.max(st.modules[PROG.raidPrepUnlockModule] || 0, 1);
@@ -225,6 +225,14 @@ function migrateBitCardsSeen(st){
   // isFabricatorOnline branch only fires on the level===1 transition, impossible to repeat), but
   // this still records the fact, matching the established migration pattern.
   if(st.bitCardsSeen.fabricator_built === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.fabricator_built = true;
+  // PRB-162: raid_briefing/quest_intro/vault_intro are each additive and independently idempotent,
+  // following the same pattern -- a save already past the live trigger (Fabricator already built,
+  // for the first two; Storage already built, for the third) is marked seen retroactively so it
+  // never replays just because this feature shipped after the player did. A save still short of
+  // that point gets the real cutscene live, the next time it actually reaches base/trigger.
+  if(st.bitCardsSeen.raid_briefing === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.raid_briefing = true;
+  if(st.bitCardsSeen.quest_intro === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.quest_intro = true;
+  if(st.bitCardsSeen.vault_intro === undefined && ((st.modules && st.modules.storage) || 0) >= 1) st.bitCardsSeen.vault_intro = true;
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -946,8 +954,8 @@ function fabCraftHtml(){
   return '<div class="fabcraft" aria-label="Craft">' + rows.map(r => {
     const gated = r.fabricatorLevel > lvl, cost = craftCost(r), buildTime = first ? "Instant" : fabMinutes(r.id) + " min";
     const ico = r.output.itemId ? ITEMS[r.output.itemId].icon : "cur-datacore";
-    const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + q + '× ' + esc(ITEMS[id].name) + '</em>').join(" ");
-    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + cost + ' Scrap</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
+    const needs = Object.entries(r.inputs).map(([id, q]) => '<em class="' + (have(id) >= q ? 'ok' : 'miss') + '">' + have(id) + '/' + q + ' ' + esc(ITEMS[id].name) + (have(id) < q ? lootHintHtml({ kind:"item", id, have:have(id), need:q }) : '') + '</em>').join(" ");
+    return '<div class="fabrow' + (gated ? ' gated' : '') + '" data-recipe="' + r.id + '"><i aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</i><span><b>' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '</b><small>' + needs + ' <em class="' + (S.cur.scrap >= cost ? 'ok' : 'miss') + '">' + S.cur.scrap + '/' + cost + ' Scrap' + (S.cur.scrap < cost ? '<span class="lhint">' + esc(craftPartSource({ kind:"cur", id:"scrap" })) + '</span>' : '') + '</em> <em class="time">' + esc(buildTime) + '</em></small></span>' +
       (gated ? '<button type="button" class="ghost inline" disabled>' + IC("lock") + ' FAB L' + r.fabricatorLevel + '</button>'
         : full ? '<button type="button" class="ghost inline" disabled>' + IC("timer") + ' QUEUE FULL</button>'
         : '<button type="button" class="ghost inline" onclick="A.craftConfirm(\'' + r.id + '\')">BUILD</button>') + '</div>';
@@ -965,7 +973,7 @@ function craftConfirmHtml(rid){
   return '<div class="bpop craftconfirm" data-module="fabricator"><div class="bpop-head"><span class="bicon" aria-hidden="true">' + (r.output.itemId ? itemImg(r.output.itemId) : IC(ico)) + '</span><h1>Build ' + esc(r.name) + (r.output.qty > 1 ? ' ×' + r.output.qty : '') + '?</h1></div>' +
     '<div class="costs">' + parts.map(p => {
       const ok = p.have >= p.need;
-      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span><span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
+      return '<div class="cost ' + (ok ? 'ok' : 'miss') + '" title="' + esc(partName(p)) + '"><i aria-hidden="true">' + partIcon(p) + '</i><b>' + Math.min(p.have, p.need) + '/' + p.need + '</b><span class="cname">' + esc(partName(p)) + '</span>' + (!ok && craftPartSource(p) ? '<span class="lhint">' + esc(craftPartSource(p)) + '</span>' : '') + '<span class="chk">' + (ok ? IC("check") : IC("warning")) + '</span></div>';
     }).join("") + '</div>' +
     '<div class="cfmeta"><i aria-hidden="true">' + IC("timer") + '</i>' + esc(buildTime) + '</div>' +
     '<div class="sp-act"><button type="button" class="primary big" ' + (can ? 'onclick="A.craft(\'' + rid + '\')"' : 'disabled') + '>BUILD</button><button type="button" class="ghost" onclick="A.back()">CANCEL</button></div></div>';
@@ -1527,6 +1535,9 @@ function handInPlay(pop){
 // and never while the Fabricator is unbuilt -- it stays the only goal (D3.9 rules 3/6, v2.28.17).
 function trackedGoalHtml(){
   if(!ftueOver() || fabricatorPending()) return "";
+  // PRB-162 moment 3: the chip must not show before BIT's quest intro has been seen (bug-lint
+  // `bit-introduces-systems-first`) -- maybeShowQuestIntro() queues it the instant the chain opens.
+  if(!S.bitCardsSeen.quest_intro) return "";
   const t = trackedQuest(); if(!t) return "";
   const o = t.step.objective, phase = loopPhase(), ready = t.maintain ? maintainReady() : chainReady(t.chain);
   const click = t.maintain ? 'A.powerTap()' : 'A.questLog(\'' + t.chain + '\')';
@@ -2206,7 +2217,9 @@ function renderTabs(){
     /* v2.0.0 */
     if(id === "prep" && session.screen === "prep") return "";
     const active = session.screen === id, gap = id === "prep" ? '<span class="nav-gap" aria-hidden="true"></span>' : "";
-    const pulse = id === "prep" && !active && navAllowed(id) && trackedQuest() ? " quest-pulse" : "";
+    // PRB-162 moment 1: reuses the existing quest-pulse affordance to "point at" RAID once BIT's
+    // raid_briefing cutscene has been dismissed; clears the first time the player actually taps it.
+    const pulse = id === "prep" && !active && navAllowed(id) && (trackedQuest() || session.pulseRaidButton) ? " quest-pulse" : "";
     const bond = ''; // v1.94: Bond level lives on the BIT screen, not as an unexplained number on the nav
     if(active) return gap + '<button type="button" class="nav-' + id + ' active" aria-current="page" aria-label="' + label + '"><span class="ni" aria-hidden="true">' + icon + '</span>' + label + bond + '</button>';
     const ok = navAllowed(id), b = ok && navBadge(id);
@@ -3992,7 +4005,8 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
     (opts.area ? "&area=" + encodeURIComponent(opts.area) : "") + (opts.hard ? "&hard=1" : "") +
     (opts.quest ? "&quest=" + encodeURIComponent(opts.quest) : "") +
     (opts.payoff ? "&payoff=" + encodeURIComponent(opts.payoff) : "") +
-    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.ftue ? "&ftue=1" : "") + (opts.bigMap ? "&levels=big" : "");
+    (opts.goal ? "&goal=" + encodeURIComponent(JSON.stringify(opts.goal)) : "") + (opts.intro ? "&intro=1" : "") + (opts.ftue ? "&ftue=1" : "") + (opts.bigMap ? "&levels=big" : "") +
+    (opts.vestGuarantee ? "&vestGuarantee=" + encodeURIComponent(JSON.stringify(opts.vestGuarantee)) : "");
 }
 /* ---------- player stats & skills (data/progression.js -> playerStats) ---------- */
 function skillXp(id){ return (S.skills && S.skills[id]) || 0; }
@@ -4571,6 +4585,63 @@ function fabricatorFirstRecipe(){
   const giftId = Object.keys(MODS.fabricator.levels[0].commissioning || {})[0];
   return (D.recipes || []).find(r => r.output && r.output.itemId === giftId);
 }
+// PRB-162 (Robert's playtest, 2026-11-16): BIT offers the Scavenger Vest recipe right as the
+// Fabricator comes online, but the player's starting materials never cover it (the free
+// commissioned vest is equipped already; this is the recipe for a spare/merge copy). Read live
+// from the stash at trigger time -- never baked into the static BIT_CUTSCENES entry -- so the
+// shortage note only appears when it is actually true.
+// The Vest is the Fabricator's commissioning gift (fabricatorFirstRecipe) -- same item, same recipe.
+function vestRecipe(){ return fabricatorFirstRecipe(); }
+function vestMissingParts(){
+  const r = vestRecipe(); if(!r) return [];
+  return costParts({ items:r.inputs, scrap:craftCost(r) }).filter(p => p.have < p.need);
+}
+// A compact source label from the same generated loot-source data as the full craft hints.
+function craftSource(id){
+  const src = ((D.lootSources || {}).crates || {})[id];
+  if(!src || !src.length) return lootHint(id);
+  const first = src[0];
+  return (AREA_DEFS[first.area] ? AREA_DEFS[first.area].name : first.area) + " " + first.level + " caches";
+}
+function craftPartSource(p){
+  const item = p.kind === "item" ? ITEMS[p.id] : D.items.find(i => i.grantsCurrency?.[p.id]);
+  return item ? craftSource(item.id) : "";
+}
+function vestShortageLine(){
+  const miss = vestMissingParts(); if(!miss.length) return "";
+  const names = miss.map(partName);
+  return " We're short " + (names.length > 1 ? names.slice(0,-1).join(", ") + " and " + names.at(-1) : names[0]) + "; next raid should turn some up.";
+}
+function vestShortageInfoRow(){
+  const parts = costParts({ items:vestRecipe().inputs, scrap:craftCost(vestRecipe()) });
+  if(!parts.some(p => p.have < p.need)) return null;
+  return { label:"HAVE/NEED", text:parts.map(p => {
+    const source = craftPartSource(p);
+    return partName(p) + " " + p.have + "/" + p.need + (p.have < p.need && source ? " (" + source + ")" : "");
+  }).join("; "), iconHtml:"" };
+}
+// Recompute from live stash each launch. Currency shortages use the existing salvage item
+// conversion; nothing is credited until those cache units are collected and extracted.
+function vestGuaranteeNeed(){
+  if((S.modules.fabricator || 0) < 1) return null;
+  const miss = vestMissingParts().map(p => {
+    const item = p.kind === "item" ? ITEMS[p.id] : D.items.find(i => i.grantsCurrency?.[p.id]);
+    return item ? { id:item.id, count:Math.ceil((p.need - p.have) / (p.kind === "item" ? 1 : item.grantsCurrency[p.id])) } : null;
+  }).filter(Boolean);
+  return miss.length ? miss : null;
+}
+// PRB-162: "BIT always introduces every new system before it's shown/unlocked" (docs/ftue-design.md,
+// docs/bit-narrator.md). raid_briefing and quest_intro have no dedicated art yet -- a static backdrop
+// (from === to, no crossfade) keeps the standard layout while staying a one-line swap once Robert
+// delivers a real pair; only these two constants need to change.
+const RAID_BRIEFING_ART = {
+  from:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp",
+  to:"assets/production/bit-narrator/cutscene-fabricator-dark-v1.webp"
+};
+const QUEST_INTRO_ART = {
+  from:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp",
+  to:"assets/production/bit-narrator/cutscene-core-restore-end-v1.webp"
+};
 const BIT_CUTSCENES = {
   core_restored: {
     id:"core_restored",
@@ -4615,7 +4686,45 @@ const BIT_CUTSCENES = {
         { label:"FIRST RECIPE", text: r ? (r.name + " — " + recipeCostText(r)) : "", iconHtml: r ? recipeCostIcons(r) : "" }
       ]
     };
-  })()
+  })(),
+  // 1. First base visit, Fabricator still locked (Robert's playtest, 2026-11-16, item 1): BIT explains
+  // the bunker needs power back and sends the player out to raid for the Fabricator's own materials.
+  raid_briefing:{
+    id:"raid_briefing",
+    from:RAID_BRIEFING_ART.from, to:RAID_BRIEFING_ART.to,
+    line:"Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs.",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-skeptical-v1.webp", side:"left" },
+    info:[
+      { label:"NEXT", text:"Fabricator — " + costStripText(MODS.fabricator.levels[0].cost), iconHtml: costStripIcons(MODS.fabricator.levels[0].cost) },
+      { label:"FIND IT", text:"Raid for the parts", iconHtml: IC("nav-raid") }
+    ]
+  },
+  // 3. Quests (item 3): before the first quest chip can appear, BIT explains what quests are, why
+  // they're worth doing, and that the chip tracks progress. Gates trackedGoalHtml() below.
+  quest_intro:{
+    id:"quest_intro",
+    from:QUEST_INTRO_ART.from, to:QUEST_INTRO_ART.to,
+    line:"Quests: little jobs, real rewards. Finish one, I pay up. The quest chip tracks progress — tap it any time for the fine print.",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" },
+    info:[
+      { label:"NEW", text:"Quests: tap the chip for objective + reward", iconHtml: IC("quest") },
+      { label:"FIRST", text: (QC.bunker && QC.bunker.steps[0]) ? (QC.bunker.steps[0].title + " — " + QC.bunker.steps[0].brief) : "", iconHtml: IC("quest") }
+    ]
+  },
+  // 4. Vault unlock (Robert's art, 2026-11-16): plays before the Vault is ever the build target or
+  // built, whichever comes first (see maybeShowVaultIntro). Explains the real mechanic (data/modules.js
+  // storage L1: +8 stash slots, one secure slot that survives death) -- not an invented one.
+  vault_intro:{
+    id:"vault_intro",
+    from:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
+    to:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
+    line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap.",
+    bust:{ from:"assets/production/bit-narrator/bust-tilt-smile-v1.webp", side:"left" },
+    info:[
+      { label:"NEW", text: MODS.storage.levels[0].benefitText, iconHtml: IC("item-crate") },
+      { label:"NEXT", text:"Vault — " + costStripText(MODS.storage.levels[0].cost), iconHtml: costStripIcons(MODS.storage.levels[0].cost) }
+    ]
+  }
 };
 // Start requests during the splash, in story order. Seen scenes hold no decoded images.
 function warmStoryArt(){
@@ -4624,7 +4733,7 @@ function warmStoryArt(){
   if(!S.introSeen) cutscene.preload({id:"cold_open",
     from:"assets/production/coldopen/bunker-discovery-arch-v1.webp?v=" + APP_VERSION,
     to:"assets/production/coldopen/bit-coldopen-v1.webp?v=" + APP_VERSION});
-  for(const id of ["core_restored", "first_death", "fabricator_built"])
+  for(const id of ["core_restored", "raid_briefing", "fabricator_built", "quest_intro", "vault_intro", "first_death"])
     if(!S.bitCardsSeen[id]){
       if(id === "fabricator_built") fabricatorCutsceneArtReady();
       else cutscene.preload(BIT_CUTSCENES[id]);
@@ -4643,13 +4752,22 @@ function fabricatorCutsceneArtReady(cb){
   }).then(sources => { fabricatorArtFailed = !sources[0] || !sources[1]; return fabricatorArtFailed ? null : FABRICATOR_CUTSCENE_ART; });
   if(cb && fabricatorArtPromise) fabricatorArtPromise.then(cb);
 }
+// PRB-162: swaps the FIRST RECIPE row for a HAVE/NEED row (never both -- the info strip stays two
+// rows) and appends the shortage clause to BIT's line, read live from the stash at call time.
+function withVestShortage(beat){
+  const missingRow = vestShortageInfoRow();
+  return !missingRow ? beat : {
+    ...beat, line: beat.line + vestShortageLine(),
+    info: beat.info.map(row => row.label === "FIRST RECIPE" ? missingRow : row)
+  };
+}
 function fabricatorCutsceneBeat(cb){
   fabricatorCutsceneArtReady();
-  cb(!fabricatorArtFailed ? BIT_CUTSCENES.fabricator_built : {
+  cb(!fabricatorArtFailed ? withVestShortage(BIT_CUTSCENES.fabricator_built) : withVestShortage({
     ...BIT_CUTSCENES.fabricator_built,
     from:BIT_CUTSCENES.core_restored.to, to:BIT_CUTSCENES.core_restored.to,
     effect:"fabricator", waitForArt:false
-  });
+  }));
 }
 function maybeShowFirstDeathCard(ingest){
   if(!ingest || !ingest.raid || ingest.raid.outcome !== "death") return;
@@ -4657,6 +4775,60 @@ function maybeShowFirstDeathCard(ingest){
   S.bitCardsSeen.first_death = true; save();
   window.PRBitCutscene?.preload(BIT_CUTSCENES.first_death);
   window.PRBitCutscene?.play(BIT_CUTSCENES.first_death);
+}
+// Persist only completed intros. A queued scene must not reveal its UI beneath another scene;
+// false survives reload/migration, so leaving before dismissal cannot silently skip an intro.
+const pendingSystemIntros = new Set();
+function queueSystemIntro(beat, after){
+  if(pendingSystemIntros.has(beat.id)) return;
+  pendingSystemIntros.add(beat.id);
+  S.bitCardsSeen[beat.id] = false; save();
+  window.PRBitCutscene?.preload(beat);
+  window.PRBitCutscene?.play({ ...beat, onDone:() => {
+    pendingSystemIntros.delete(beat.id);
+    S.bitCardsSeen[beat.id] = true; save();
+    if(after) after();
+    refresh();
+  } });
+}
+// PRB-162 moment 1: the first base visit with the Fabricator still locked, after the cold-open
+// and Core-restore beats (never stacked on top of them -- gated on core_restored already being
+// seen, and the cutscene queue itself never shows two scenes at once). Also catches a returning
+// player who already saw core_restored in an earlier session but still hasn't built the Fabricator.
+function maybeShowRaidBriefing(){
+  if(S.bitCardsSeen.raid_briefing || !S.bitCardsSeen.core_restored) return;
+  if((S.modules.fabricator || 0) >= 1) return;
+  queueSystemIntro(BIT_CUTSCENES.raid_briefing, () => { session.pulseRaidButton = true; });
+}
+// PRB-162 moment 3: before the tracked-quest chip (trackedGoalHtml) can ever render, BIT explains
+// what quests are. The chain becomes trackable the instant the Fabricator is built (chainAvailable
+// requires ftueOver() && !fabricatorPending()), so this fires right alongside fabricator_built.
+function maybeShowQuestIntro(){
+  if(S.bitCardsSeen.quest_intro) return;
+  // Never jump ahead of fabricator_built in the queue: A.build's finish() (shared by every module)
+  // calls A.go("base") -- which calls this -- before narrate() has queued fabricator_built itself.
+  if(!S.bitCardsSeen.fabricator_built) return;
+  if(!ftueOver() || fabricatorPending() || !trackedQuest()) return;
+  const t = trackedQuest();
+  queueSystemIntro(BIT_CUTSCENES.quest_intro && {
+    ...BIT_CUTSCENES.quest_intro,
+    info:BIT_CUTSCENES.quest_intro.info.map(row => row.label === "FIRST"
+      ? { ...row, label:"TRACKING", text:t.step.title + " — " + t.step.brief } : row)
+  });
+}
+// PRB-162 moment 4: the Vault unlock cutscene, gated to play before the Vault is ever the build
+// target or already built -- whichever the current progression reaches first. `progressionGoal()`
+// names it the instant the Fabricator is built (room order: fabricator, storage, bit_bay,
+// living_quarters -- storage is next unless S.tracked still overrides it), so in normal play this
+// fires alongside fabricator_built/quest_intro; the already-built check is a defensive fallback for
+// any path that reaches Storage L1 without the goal ever naming it first (e.g. a debug unlock).
+function maybeShowVaultIntro(){
+  if(S.bitCardsSeen.vault_intro) return;
+  // Same ordering guard as maybeShowQuestIntro: never queue ahead of fabricator_built.
+  if(!S.bitCardsSeen.fabricator_built) return;
+  const g = progressionGoal();
+  if(!session.vaultRequested && (S.modules.storage || 0) < 1 && !(g && g.module === "storage")) return;
+  queueSystemIntro(BIT_CUTSCENES.vault_intro, () => { session.vaultRequested = false; });
 }
 
 /* ---------- actions ---------- */
@@ -4787,7 +4959,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "base") warmStoryArt();
+    if(screen === "base"){ warmStoryArt(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
     // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
@@ -4800,7 +4972,7 @@ window.A = {
     session.screenEnterTs = Date.now();
     if(screen === "worldmap" && session.screen !== "worldmap") session.wmCam = null; // opened fresh: centre on the selected area
     session.screen = screen; session.screenParam = param;
-    if(screen === "prep"){ session.prep = null; session.routeLogged = false; }
+    if(screen === "prep"){ session.prep = null; session.routeLogged = false; session.pulseRaidButton = false; }
     act("SCREEN_VIEW", { screen, param });
     refresh(screen === "prep" ? "raid_prep" : null);
   },
@@ -4864,6 +5036,9 @@ window.A = {
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
+    if(modId === "storage" && !S.bitCardsSeen.vault_intro){
+      session.vaultRequested = true; maybeShowVaultIntro(); return;
+    }
     const access=roomDef(modId);if(access&&!roomUnlocked(modId)){if(!roomRequirementMet(access))return;S.roomUnlocks[modId]=true;act("ROOM_UNLOCKED",{room:modId,stage:access.stage});}
     if(modId === "fabricator" && next.level === 1) fabricatorCutsceneArtReady();
     payCost(next.cost);
@@ -4895,6 +5070,7 @@ window.A = {
       if(!S.bitCardsSeen.core_restored){
         S.bitCardsSeen.core_restored = true; save();
         window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);
+        maybeShowRaidBriefing();
       } else bitDock("module_built");
     } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
       // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
@@ -4905,6 +5081,9 @@ window.A = {
         if(S.bitCardsSeen.fabricator_built) return;
         S.bitCardsSeen.fabricator_built = true; save();
         fabricatorCutsceneBeat(beat => window.PRBitCutscene?.play(beat));
+        // PRB-162 moments 3/4: queued behind fabricator_built, one per tap, never stacked.
+        maybeShowQuestIntro();
+        maybeShowVaultIntro();
       };
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), () => {
         finish(); narrate();
@@ -5095,7 +5274,7 @@ window.A = {
     act("CORE_RAID_LAUNCHED", { raidId:l.raidId, seed:l.seed, gear, stats, weapon, kit, tool });
     save();
     closeAllPopups();
-    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
+    const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind, vestGuarantee:vestGuaranteeNeed() }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
     const navigate = () => {
       try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
       finally{ session.raidNavigating=false; }
@@ -6094,6 +6273,9 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
         .catch(e => { console.warn("start screen flight disabled:", e); splashCtl.flightFailed(); });
     } else splashCtl.flightFailed();
   }
+  if(S.introSeen && splashCtl) window.addEventListener("pr:splash-finished", () => {
+    if(session.screen === "base"){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+  }, { once:true });
   if(ftueDirect){
     if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
     else A.startFtueDirect();
