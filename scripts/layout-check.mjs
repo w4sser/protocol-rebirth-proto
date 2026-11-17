@@ -26,7 +26,7 @@ const SAFE_TEXT='.progress-goal,#bitdock,.bag-panel,#level-corner,#seed-label,.r
 const fail=(ctx,msg)=>{failures.push(`${ctx}: ${msg}`);};
 
 // ---- tiny static server (free port) ----
-const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.webmanifest':'application/manifest+json'};
+const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.avif':'image/avif','.png':'image/png','.webmanifest':'application/manifest+json'};
 const server=createServer(async(req,res)=>{
   const p=decodeURIComponent(new URL(req.url,'http://x').pathname);
   const target=resolve(root,'.'+(p.endsWith('/')?p+'index.html':p));
@@ -323,6 +323,42 @@ async function baseRun([w,h]){
     }
     await page.close();
   }
+}
+
+// 3D menu smoke: exercise the real Three.js preview on iPhone landscape.
+async function cinematicPrep3DRun([w,h]){
+  const tag="prep 3D "+w+"x"+h;console.log(tag);
+  const page=await newPage(w,h);
+  try{
+    await page.goto(BASE+'/index.html?preview=deploy',{waitUntil:'load'});
+    await loaderGone(page);
+    await page.waitForFunction(()=>{
+      const h=document.getElementById('pr-operator-stage');
+      return !!(h&&h.dataset.menuModel==='high'&&h.dataset.bit==='3d'&&h.querySelector('canvas'));
+    },{timeout:17000}).catch(e=>fail(tag,"real 3D menu and BIT failed to mount: "+String(e).slice(0,90)));
+    const before=await page.evaluate(()=>{
+      const h=document.getElementById('pr-operator-stage');
+      return {yaw:Number(h?.dataset.rotation),nCanvas:h?.querySelectorAll('canvas').length||0,
+        width:h?.getBoundingClientRect().width||0,height:h?.getBoundingClientRect().height||0};
+    });
+    if(before.nCanvas!==1 || before.width<80 || before.height<100)
+      fail(tag,"3D canvas not placed in hero area: "+JSON.stringify(before));
+    await page.evaluate(()=>{
+      const host=document.getElementById('pr-operator-stage');
+      if(!host)return;
+      const r=host.getBoundingClientRect(),x=r.left+r.width*.5,y=r.top+r.height*.5;
+      const ev=(type,xx)=>host.dispatchEvent(new PointerEvent(type,{
+        bubbles:true,cancelable:true,pointerId:3,pointerType:'touch',
+        button:0,clientX:xx,clientY:y
+      }));
+      ev('pointerdown',x);ev('pointermove',x+94);ev('pointerup',x+94);
+    });
+    const after=Number(await page.$eval('#pr-operator-stage',h=>h.dataset.rotation));
+    if(!Number.isFinite(after)||Math.abs(after-before.yaw)<.5)
+      fail(tag,"touch drag did not rotate 3D operator ("+before.yaw+" -> "+after+")");
+    await settle(450);
+    await shot(page,"base-"+w+"x"+h+"-cinematic-deploy-3d-rotated");
+  }finally{await page.close();}
 }
 
 // ---- raid (Node Raid) ----
@@ -893,6 +929,7 @@ try{
   for(const vp of VIEWPORTS)await payoffRun(vp);
   }
   if(group('base')){
+    await cinematicPrep3DRun([844,390]);
     for(const vp of [...VIEWPORTS,[720,600],[800,600],[1024,768]])await baseChipRun(vp);
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);
