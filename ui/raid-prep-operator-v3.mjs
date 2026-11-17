@@ -53,7 +53,6 @@ function weave(color,seed=1){
   return tex;
 }
 const fabric=(hex,seed)=>{const map=weave(hex,seed);return mk(map?0xffffff:hex,.03,.98,map?{map}:{})};
-const geoMat={};
 function add(parent,name,geometry,material,x=0,y=0,z=0){
   const mesh=new THREE.Mesh(geometry,material);mesh.name=name;
   mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
@@ -114,7 +113,8 @@ function organicLimb(parent,name,points,radii,material,{ellipse=.84,folds=6,seed
       positions.push(p2.x,p2.y,p2.z);uv.push(j/sides,t*2.5);
       if(i<rings&&j<sides){
         const n=i*(sides+1)+j,bot=n+sides+1;
-        ids.push(n,n+1,bot,n+1,bot+1,bot);
+        // Winding faces outward: otherwise FrontSide culling hides cloth from camera.
+        ids.push(n,bot,n+1,n+1,bot,bot+1);
       }
     }
   }
@@ -162,7 +162,7 @@ function seam(parent,name,points,m,r=.0035){return pathTube(parent,name,points,r
 function buckle(parent,center,m){
   const [x,y,z]=center;
   ebox(parent,'bronze buckle',center,[.045,.047,.017],m,.006);
-  ebox(parent,'recessed buckle',[x,y,z+.012],[.024,.022,.008],geoMat.webbing,.002);
+  ebox(parent,'recessed buckle',[x,y,z+.012],[.024,.022,.008],m,.002);
 }
 function boot(parent,side,M){
   const x=side*(.165+ (side>0?.035:0));
