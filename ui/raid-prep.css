@@ -17,7 +17,7 @@ body #app.s-prep{
   background:
     linear-gradient(90deg,color-mix(in srgb,var(--ad-ink) 91%,transparent) 0%,color-mix(in srgb,var(--ad-ink) 66%,transparent) 24%,color-mix(in srgb,var(--ad-ink) 13%,transparent) 51%,color-mix(in srgb,var(--ad-ink) 63%,transparent) 76%,color-mix(in srgb,var(--ad-ink) 91%,transparent) 100%),
     linear-gradient(180deg,rgba(3,9,15,0.74) 0%,color-mix(in srgb,var(--ad-ink) 5%,transparent) 35%,color-mix(in srgb,var(--ad-ink) 42%,transparent) 100%),
-    url("../assets/production/env_base.webp") center 47%/cover no-repeat;
+    url("../assets/production/raid-prep-bunker.avif") center 50%/cover no-repeat;
   filter:saturate(.9);
 }
 #app.s-prep::after{
@@ -156,7 +156,7 @@ body #app.s-prep{
   position:relative;flex:1 1 auto;min-height:0;border-radius:5px;
   border:1px solid color-mix(in srgb,var(--ad-bit) 28%,transparent);background:
   linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),
-  url("../assets/production/splash_archipelago_radar_lighthouse.webp") center/cover no-repeat;
+  url("../assets/production/raid-prep-archipelago.avif") center/cover no-repeat;
   box-shadow:inset 0 0 26px color-mix(in srgb,var(--ad-ink) 32%,transparent)
 }
 #app.s-prep .pr-cinematic .pr-dest-preview[data-area="bunker"]{background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),url("../assets/production/env_tunnel.webp")}
@@ -223,4 +223,58 @@ body #app.s-prep{
 }
 @media (prefers-reduced-motion:reduce){
   #app.s-prep .pr-cinematic *,#app.s-prep .pr-cinematic *::before,#app.s-prep .pr-cinematic *::after{transition:none!important;animation:none!important}
+}
+
+
+/* AD-06 cinematic deploy art pass: authored bunker threshold scene, not the base map. */
+#app.s-prep::before{
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb,var(--ad-night) 90%,transparent) 0%,
+      color-mix(in srgb,var(--ad-night) 63%,transparent) 24%,
+      color-mix(in srgb,var(--ad-night) 10%,transparent) 49%,
+      color-mix(in srgb,var(--ad-night) 61%,transparent) 77%,
+      color-mix(in srgb,var(--ad-night) 85%,transparent) 100%),
+    linear-gradient(180deg,color-mix(in srgb,var(--ad-night) 59%,transparent),transparent 38%,color-mix(in srgb,var(--ad-night) 54%,transparent)),
+    url("../assets/production/raid-prep-bunker.avif") center 54% / cover no-repeat;
+  filter:saturate(.9) contrast(1.04);
+}
+#app.s-prep::after{
+  background:radial-gradient(ellipse 40% 75% at 53% 45%,transparent 35%,color-mix(in srgb,var(--ad-night) 25%,transparent) 100%);
+}
+#app.s-prep .pr-cinematic .lobby-top h1.pr-title{
+  display:block!important;overflow:hidden;text-overflow:ellipsis;
+}
+#app.s-prep .pr-cinematic h2.pr-panel-title{
+  display:block!important;margin:0 0 2px!important;
+  font-size:clamp(10px,1.1vw,16px)!important;
+  letter-spacing:.2em;
+}
+#app.s-prep .pr-cinematic .lobby-hero .hero-art{
+  filter:drop-shadow(0 14px 21px color-mix(in srgb,var(--ad-night) 73%,transparent)) saturate(.72);
+}
+#app.s-prep .pr-cinematic .pr-dest-preview{
+  background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-night) 6%,transparent),transparent 50%),url("../assets/production/raid-prep-archipelago.avif");
+  background-position:center 48%;
+  background-size:cover;
+  border-radius:clamp(5px,.65vw,10px);
+  box-shadow:inset 0 0 18px color-mix(in srgb,var(--ad-ink) 25%,transparent);
+}
+#app.s-prep .pr-cinematic .pr-operator-stage{
+  inset:-6% -8% 4%;
+  filter:drop-shadow(0 12px 16px color-mix(in srgb,var(--ad-night) 75%,transparent));
+}
+#app.s-prep .pr-cinematic .lobby-side.left .lslot{
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+#app.s-prep .pr-cinematic .lobby-bottom{
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+#app.s-prep .pr-cinematic .hero-weapon{
+  /* Keep descriptive metadata for existing equipment tests without a duplicate floating panel. */
+  position:absolute!important;width:1px!important;height:1px!important;
+  clip-path:inset(50%);overflow:hidden;white-space:nowrap;
+  pointer-events:none;
 }
