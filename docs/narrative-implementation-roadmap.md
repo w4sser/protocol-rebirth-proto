@@ -1,6 +1,6 @@
 # Protocol Rebirth — Narrative Implementation Roadmap
 
-**Plan v0.1 — 16 November 2026**  
+**Plan v0.2 — 17 November 2026**  
 **Status:** Scoped implementation plan based on [High-Level Lore & Narrative Bible](world-lore-high-level.md). No game changes are approved or delivered merely by merging this document.  
 **Objective:** Prove that authored cinematics, mysterious world changes, and BIT's emotional presence make players want to return beyond loot/progression.
 
@@ -35,6 +35,8 @@ The currently established Core/death/Fabricator cinematic moments are **not new 
 - None of these events give gear, premium currency, XP or automatic extraction.
 - A missed weekly story event remains available without expiry. No forced chore loop or FOMO.
 - Existing BIT identity, the Operator's concealed face and Nordic summer-night art direction are non-negotiable.
+- **Never name the country:** No explicit national identity, recognizable real national flag, unit or agency name, identifying map, precise address, or confirming place label in any player-facing story, dialogue, collectible, subtitle, cinematic or narrative marketing copy.
+- **Approved narrative causality:** Underwater anomaly is first detected by anti-submarine hydrophones; the program grows from information reconstruction (A) into civilizational continuity and restart (C); the Incident results from a deliberately undertaken experiment known to be hazardous, with consequences the researchers did not anticipate. Resurrection of individuals (B) is not the project's official mission.
 
 ## 3. Minimum viable narrative architecture
 
@@ -92,7 +94,7 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 
 **Deliverables:** Shared pillars, mystery boundaries, first six beats, dependencies, testable acceptance criteria and clear status of provisional truth.
 
-**Done when:** Design, art and engineering can work from one narrative direction without making incompatible claims about the Incident, BIT or the anomaly.
+**Done when:** Design, art and engineering agree on the unnamed setting, hydrophone discovery, A-to-C program evolution, known-risk experimental Incident, BIT and the anomaly without inventing spoiler-critical answers.
 
 ### PR N1 — Narrative event state and safe director
 
@@ -142,7 +144,7 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 
 **Scope:** First cinematic event occurring without Operator present.
 
-**Shots:** (A) deserted island; (B) dormant dish begins to rotate and birds react; (C) empty radio room wakes, an unidentified voice breaks through static.
+**Shots:** (A) deserted island; (B) dormant dish begins to rotate and birds react; (C) an empty communications room associated with the old coastal surveillance network wakes, and an unidentified voice breaks through static. Radar and hydrophones are separate sensor systems, even if networked through a common station.
 
 **Trigger:** First appropriate quiet home moment after CIN-002 and an authored progression/content readiness rule. No real-time countdown requirement.
 
@@ -179,7 +181,7 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 | Event | Required asset direction | BIT | Reality check |
 | --- | --- | --- | --- |
 | CIN-001 | Existing dark bunker discovery and approved CRT portrait | Damaged, underplayed, emotionally present | Reuse current finished sources |
-| CIN-002 | Three cinematic compositions of the actual Swedish summer-night Archipelago, pine/granite/coastline, distant lighthouse | Existing approved BIT or off-camera line; no generic new face | New dedicated art/3D camera pass needed |
+| CIN-002 | Three cinematic compositions of the actual northern summer-night Archipelago, pine/granite/coastline, distant lighthouse | Existing approved BIT or off-camera line; no generic new face | New dedicated art/3D camera pass needed |
 | CIN-003 | Remote radar island, mechanical wake-up, deserted communications room | Absent; the scene stands without him | New art and at least one visible playable-world consequence |
 | CIN-004 | Radio equipment/evidence plus short BIT memory reaction | Existing approved narrator bust/body | Script depends on World Truth decisions |
 | CIN-005/006 | Deep sea and lighthouse behavior, coherent research infrastructure | Optional | Concept only; do not build final meaning prematurely |
@@ -226,6 +228,8 @@ Each entry is a short content brief with:
 | Scene stacking | No event starts over intro, death/result, Core/Fabricator cutscene, modal, active raid or BIT card |
 | Story loss | Long-absent player can encounter unseen scenes at safe opportunities without an autoplay marathon |
 | Visual coherence | Mobile safe areas, correct summer-night look, full-screen authored shot quality |
+| Unnamed setting | Player-facing narrative, art overlays, props, maps and captions never reveal the real nation or official identity |
+| Narrative causality | Evidence remains compatible with hydrophone discovery, information reconstruction evolving to civilizational continuity, and a deliberately risky experiment with unforeseen outcomes |
 | BIT identity | Use only locked face/body and approved narrator busts; no new facial geometry |
 | Accessibility | Readable captions with muted audio, keyboard/touch dismissal, reduced motion |
 | World consequence | After CIN-003, an ordinary later Archipelago raid exposes a visible/audible persistent state |
@@ -253,7 +257,7 @@ Observe behavior as well as answers: second raid, voluntary exploration of relev
 
 **Needs a concrete art review:** CIN-002 wide reveal; CIN-003 radar shots and world-state asset; any new BIT depictions.
 
-**Needs World Truth before writing answers:** The literal meaning of the anomalous signal, why the lighthouse functions, the radio speaker, BIT's original instruction to wait, the precise cause of the Incident, and Operator's history.
+**Needs World Truth before writing answers:** The signal's underlying origin and meaning; the mechanism, scope and unanticipated consequences of the deliberate experiment; why the lighthouse functions; the radio speaker; BIT's original instruction to wait; and Operator's history. The A-to-C purpose and known-risk decision are already settled. Keep late-game spoilers out of the public repository.
 
 **Coordination:** Grok is already developing broader BIT presence in the bunker. This roadmap must not replace that work, duplicate its cards or overwrite its art. Integrate with shipped shared components and the BIT-narrator rules.
 
@@ -261,4 +265,4 @@ Observe behavior as well as answers: second raid, voluntary exploration of relev
 
 ---
 
-**Recommended immediate next action:** Approve the high-level lore boundaries, then implement PR N1 as the technical foundation while story/AD develops the actual three-shot CIN-002/CIN-003 storyboards in parallel.
+**Recommended immediate next action:** Implement PR N1 against the latest shared cutscene system while story/AD creates the CIN-002/CIN-003 storyboards and world evidence aligned with the approved historic spine. Do not disclose the country or prematurely settle the experiment's hidden mechanism.
