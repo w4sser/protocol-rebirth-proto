@@ -278,3 +278,10 @@ body #app.s-prep{
   clip-path:inset(50%);overflow:hidden;white-space:nowrap;
   pointer-events:none;
 }
+
+/* Short landscape phone: retain the interaction hint (not the old hidden state). */
+@media (orientation:landscape) and (max-height:440px){
+  #app.s-prep .pr-cinematic .pr-rotate-tip{
+    display:block;bottom:17%;opacity:.85;letter-spacing:.10em;
+  }
+}

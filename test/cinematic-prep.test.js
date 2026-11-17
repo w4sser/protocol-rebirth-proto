@@ -70,7 +70,8 @@ assert(fs.readFileSync(path+'/assets/bit-face-master-v3.svg','utf8').includes('#
 assert(models.includes('SphereGeometry') && models.includes('CylinderGeometry') &&
        models.includes('ExtrudeGeometry'),
   'character and BIT are true volumetric geometry rather than UI billboards');
-assert(viewer.includes('destroy()'),'3D lifecycle releases resources on removal');
+assert(viewer.includes('function dispose()') && viewer.includes('renderer.forceContextLoss'),
+  '3D viewer releases resources on navigation');
 assert(fs.readFileSync(path+'/index.html','utf8').includes('ui/raid-prep.css'),'new visual rules are loaded');
 console.log('CINEMATIC RAID PREP TEST PASSED');
 dom.window.close();

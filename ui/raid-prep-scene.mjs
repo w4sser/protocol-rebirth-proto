@@ -105,7 +105,7 @@ export async function mountRaidPrepScene(host){
       if(disposed||!host.isConnected)return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
       camera.aspect=w/h;
-      const distance=clamp(3.17+Math.max(0,.95-camera.aspect)*.65,3.12,4.0);
+      const distance=clamp(3.72+Math.max(0,.95-camera.aspect)*.68,3.70,4.4);
       camera.position.set(.06,1.28,distance);camera.lookAt(0,1.075,0);
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(clamp(window.devicePixelRatio||1,1,w>850?2:2.4));

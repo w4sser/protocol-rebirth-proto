@@ -13,7 +13,7 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 - Actual physical staging scene, **never** the Base map/interactive bunker overview behind the Raid Prep UI.
 - Summer landscape, not snow or a winter palette: granite, still water, pine silhouettes, gentle maritime haze, muted dusk-pink horizon.
 - The operator's face is never visible. The close-up operator is hooded, visibly equipped, weathered, with a darker, bulkier scavenger silhouette and modest cloak.
-- BIT is a small, worn boxy CRT drone. Two oval face eyes and a neutral short mouth; cyan belongs on the CRT face only, with a restrained amber side lamp. No kawaii expression or blue thruster glow.
+- BIT is a small, worn boxy CRT drone. Two oval face eyes and the owner-approved curved smile; cyan belongs on the CRT face only, with a restrained amber side lamp. No kawaii expression or blue thruster glow.
 - The Archipelago destination tile is an **in-world view of that destination**, never a splash/promo image with a logo, game title or UI baked into the picture.
 - UI hierarchy: loadout left; operator and BIT middle; destination, mission, loss warning and one strong orange DEPLOY CTA right. No bottom navigation.
 - Existing loadout, mission, route and `A.deployNodeRaid()` logic must not change. The preview query parameter uses a demo state only, with no persistence to a real save.
@@ -24,7 +24,9 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 - `assets/production/raid-prep-archipelago.avif`: environment-only destination crop (no branding).
 - `assets/production/raid-prep-operator.avif`: hooded faceless operator portrait for low-quality/WebGL fallback.
 - `ui/raid-prep.css`: background framing, proper loadout/heading visibility, destination image and phone-landscape layout.
-- `ui/raid-prep-scene.mjs`: existing GLB and idle animation, shadowed hood and mask, close-up-only jacket/coat/armor silhouette, smaller offset BIT, controlled lighting, interactive rotation.
+- `ui/raid-prep-models.mjs`: dedicated high-detail Three.js geometry and procedural fabric for the operator (independent of the gameplay GLB); physical CRT companion BIT using `assets/bit-face-master-v3.svg` as its display texture, with a geometric face fallback.
+- `ui/raid-prep-scene.mjs`: camera, iPhone touch/pointer capture, operator yaw rotation, companion idle, high-DPR rendering, lights and resource disposal.
+- `scripts/layout-check.mjs`: real browser rotation smoke test in landscape.
 - `test/cinematic-prep.test.js`: structural and art-direction safeguards.
 
 ## Visual review checklist
