@@ -450,10 +450,10 @@ function rifle(parent,M,weaponId){
 export function createOperatorHeroV3({weaponId='',armorId=''}={}){
   const root=new THREE.Group();root.name='protocol-rebirth-operator-hero-v3';
   const operator=new THREE.Group();operator.name='operator full-body pivot';root.add(operator);
-  const coat=fabric(PALETTE.coat,7),cloak=fabric(PALETTE.coatDark,77),
+  const coat=fabric(PALETTE.coat,7),cloakMat=fabric(PALETTE.coatDark,77),
     trousers=fabric(PALETTE.trousers,29),webbing=fabric(PALETTE.webbing,35);
   const M={
-    coat,cloak,trousers,webbing,
+    coat,cloak:cloakMat,trousers,webbing,
     leather:fabric(PALETTE.leather,41),
     straps:mk(PALETTE.straps),wrap:mk(PALETTE.wrap),
     wrapEdge:mk(PALETTE.coatEdge),void:new THREE.MeshBasicMaterial({color:PALETTE.void}),
