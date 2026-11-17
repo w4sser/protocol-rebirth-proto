@@ -100,7 +100,7 @@ body #app.s-prep{
 }
 #app.s-prep .pr-cinematic .hero-art{
   position:absolute!important;inset:-2% 4% 12%!important;
-  background-image:url("../assets/production/operator_op01.webp")!important;
+  background-image:url("../assets/production/raid-prep-operator.avif")!important;
   background-size:contain!important;background-repeat:no-repeat!important;background-position:center bottom!important;
   opacity:.98;transition:opacity .25s ease;filter:drop-shadow(0 14px 16px #0009)
 }
