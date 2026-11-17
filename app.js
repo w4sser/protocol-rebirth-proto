@@ -6320,8 +6320,11 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     S.baseState = "core_refined"; S.roomUnlocks.fabricator = true;
     S.introSeen = true; S.raids = 3; S.beat = PROG.beats.length - 1;
     S.area = "archipelago"; S.areaScouted = {archipelago:true};
-    S.stash = {...S.stash, smg_vector:1, scavenger_vest:1, medkit:2};
-    S.loadout = {weapon:"smg_vector",armor:"scavenger_vest",c1:"medkit",c2:null,tool:null};
+    const demoWeapon = D.items.find(x => x.slot === "weapon" && !x.free && /smg/i.test(x.name))?.id || PROG.freeWeapon;
+    const demoArmor = PROG.defaultLoadout.armor;
+    const demoKit = PROG.kitItem;
+    S.stash = {...S.stash, [demoWeapon]:1, [demoArmor]:1, [demoKit]:2};
+    S.loadout = {weapon:demoWeapon,armor:demoArmor,c1:demoKit,c2:null,tool:null};
     S.bitCardsSeen = {core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};
   }
   warmStoryArt();
