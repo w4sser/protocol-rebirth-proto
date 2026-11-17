@@ -1,15 +1,15 @@
 # Protocol Rebirth — High-Level Lore & Narrative Bible
 
-**Working narrative canon v0.1 — 16 November 2026**  
+**Working narrative canon v0.2 — 17 November 2026**  
 **Owner:** Robert / Wild Labs  
 **Purpose:** A shared high-level story foundation for design, writing, art, audio, production and game implementation.  
-**Approval boundary:** The tone, pillars, BIT relationship and mystery-led approach represent the agreed direction. Detailed historical explanations, character identities and ultimate answers remain **proposals**, not locked canon.
+**Approval boundary:** The tone, pillars and BIT relationship remain agreed direction. The unnamed-country rule, detection through anti-submarine hydrophones, progression from information reconstruction to civilization continuity (A to C), and deliberately conducted, known-risk experiment are **owner-locked canon**. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
 
 > An endless world to explore. A mystery waiting to be understood. And a little companion who never stopped waiting for you.
 
 ## 1. The promise
 
-Protocol Rebirth is a short-session, PvE extraction shooter set in a hauntingly beautiful Swedish archipelago. The Operator risks equipment and recovered supplies in dangerous expeditions, restores a ruined coastal bunker and gradually opens a vast world of abandoned military infrastructure, intimate human traces and unresolved mysteries.
+Protocol Rebirth is a short-session, PvE extraction shooter set in a hauntingly beautiful unnamed northern archipelago. The Operator risks equipment and recovered supplies in dangerous expeditions, restores a ruined coastal bunker and gradually opens a vast world of abandoned military infrastructure, intimate human traces and unresolved mysteries.
 
 Its narrative gives players **three independent reasons to return**:
 
@@ -25,15 +25,16 @@ The third reason matters: players are not only returning to an activity or progr
 
 | Element | Status | Narrative contract |
 | --- | --- | --- |
-| Swedish island world, bunkers, sea, pine, granite and Nordic summer twilight | **Established** | Beautiful, recognizable and physically grounded; no generic frozen apocalypse, neon cyberpunk or permanent horror gloom |
+| Unnamed northern island world, bunkers, sea, pine, granite and Nordic summer twilight | **Established** | Beautiful, recognizable and physically grounded; no generic frozen apocalypse, neon cyberpunk or permanent horror gloom |
 | A ruined, once-human world with abandoned communities and Cold War-style installations | **Established direction** | Places show practical lives interrupted; not every surviving trace is sinister |
-| An important old research program tied to the name Protocol Rebirth | **Strong working premise** | The world may reveal its purpose in layers; do not claim its definitive purpose is approved |
-| A major historical incident left the region altered and dangerous | **Strong working premise** | Precise cause, date, scope, victims and aftermath need a private World Truth decision |
-| An extraordinary anomaly associated with signals, memory and consciousness | **Working hypothesis** | Useful narrative engine, but its nature, physical origin and mechanics are not settled |
+| Protocol Rebirth: information reconstruction expands into civilizational continuity | **Owner-locked** | Starts by reconstructing lost information (A), evolves toward preserving and restarting civilization (C); individual resurrection (B) is not its official purpose |
+| A deliberate, high-risk experiment causes the Incident | **Owner-locked** | Researchers knew they were taking a serious risk but did not anticipate these specific consequences. Mechanism, scope, victims and outcomes remain open |
+| An anomalous underwater signal detected by military hydrophones during anti-submarine operations | **Owner-locked discovery path** | Initially investigated as a naval security/intelligence anomaly, not as the supernatural; the signal's origin, meaning and underlying physics are not yet settled |
 | BIT has fragmentary, sometimes unreliable memories and a bond with Operator | **Established direction** | BIT is sincere but incomplete; never turn him into an expositional answer machine |
 | The lighthouse, distant installations, underwater phenomena and interrupted transmissions | **Established as candidate mystery motifs** | Individual scenes and their factual answers are proposed until accepted |
 | The supernatural/existential dimension has one definitive religious, scientific or simulation answer | **Deliberately not established** | Players can interpret the deeper meaning differently |
 | Operator identity, exact passage of time and what happened during their absence | **Open** | Preserve the unknown until the story team has a coherent internal answer |
+| The country's name and real-world national identity | **Owner-locked: never disclose** | No explicit country name, recognisable national flags, real agency names, identifying cartography or postal references in any shipped dialogue, subtitle, document, map, or cinematic |
 
 Use **Established**, **Working hypothesis**, **Open**, and **Intentionally ambiguous** in future narrative decisions. Do not silently promote a hypothesis to canon.
 
@@ -41,24 +42,30 @@ Use **Established**, **Working hypothesis**, **Open**, and **Intentionally ambig
 
 **The bunker — Home, recovery and reconnection.** It begins damaged, unpowered and quiet. The first restored room changes the feeling of home. The bunker is also where the Operator first meets BIT, whose small practical presence makes the space feel inhabited. Light, repaired machines, sound and BIT's movement provide visible progress. The original first raid happens **before** that meeting, consistent with the locked FTUE.
 
-**The archipelago — Wonder, risk and freedom.** Beyond the bunker lie windswept pines, rounded granite, narrow passages, distant islands and open sea under a calm, beautiful Swedish summer night. Its vastness is deliberately revealed through cinematic framing. A distant lighthouse becomes an emotional landmark before it becomes an objective.
+**The archipelago — Wonder, risk and freedom.** Beyond the bunker lie windswept pines, rounded granite, narrow passages, distant islands and open sea under a calm, beautiful northern summer night. Its vastness is deliberately revealed through cinematic framing. A distant lighthouse becomes an emotional landmark before it becomes an objective.
 
 **The town and deeper installations — Lives interrupted and hidden purpose.** An abandoned settlement shows evidence of ordinary people; more restricted facilities reveal what researchers and military operators tried to understand or contain. Danger comes from autonomous systems and the consequences of long-ago decisions, not necessarily a simple present-day evil mastermind.
 
 The world is not a static quest board. A distant structure can wake, a signal can return, or an old route can change while the Operator is elsewhere. Meaningful events leave visible, persistent consequences.
 
-## 4. Historical spine — authorial questions, not finished answers
+## 4. Historical spine — approved direction, unknown detailed consequences
 
-The first narrative arc should investigate a plausible chain of causes:
+This high-level sequence is **owner-approved**. It establishes institutional history without deciding the mechanics of the anomaly or the exact disaster.
 
-1. **Before:** A functioning archipelago, ordinary homes and a network of coastal military infrastructure.
-2. **Discovery:** Something unusual was observed, measured or intercepted; a restricted research effort formed.
-3. **Experiment:** The effort grew beyond observation into technology intended to understand, control or use the phenomenon.
-4. **The Incident:** Something failed, changed or crossed a boundary; the archipelago and its people were affected.
-5. **Aftermath:** Human infrastructure was abandoned, but parts of the machinery and the mystery continued to operate.
-6. **Return:** The Operator returns. BIT recognizes them. A damaged home becomes the starting point for recovering both material resources and lost knowledge.
+1. **Detection — anti-submarine hydrophones.** A coastal military underwater listening network, operated to detect suspected submarines, intercepts a recurring signal that does not fit known contacts. Intelligence analysts initially investigate it as a defense problem, not as evidence of anything supernatural.
+2. **A — reconstruct lost information.** A classified research effort attempts to recover and reconstruct otherwise inaccessible information from the phenomenon. Its first goal is practical and technical, not the resurrection of individuals. What the signal actually contains and how recovery works is not yet decided.
+3. **C — preserve civilization.** The project evolves into a much larger civilizational continuity initiative: preserving knowledge, critical systems, cultural records and the capability to rebuild society after a collapse. This expansion is gradual. **Do not insert B (bringing individual people back to life) as the official intermediate project goal.**
+4. **The deliberate experiment.** Researchers intentionally proceed with an experiment despite knowing it presents serious risks. They believe the danger is sufficiently understood or manageable to proceed, but **they do not foresee the actual kind or scale of its consequences**. They are responsible for making a risky decision; they did not intend the resulting catastrophe.
+5. **The Incident and aftermath.** The experiment causes the catastrophe and leaves the region changed and depopulated, with remnants of autonomous infrastructure still running. The physical mechanism, extent, timescale and human cost remain undecided and must live in a private World Truth before any final revelation.
+6. **Return and discovery.** The Operator eventually returns; damaged BIT recognises them after the first raid. The bunker, islands and dormant surveillance network contain partial evidence, rather than an immediate lore dump.
 
-**Not a locked revelation:** The previously discussed hypothesis of strange signals originating beneath the sea, possibly connected to memory, is a candidate explanation for stages 2–4. It must not be written into gameplay as final fact before the World Truth is approved.
+**Important boundary:** The science-fiction cause can eventually be explainable without resolving the deeper human/existential meaning of memory, death, loyalty and connection. Nothing above confirms that the technology can restore a person.
+
+### Unnamed-country rule — owner-locked
+
+**Never identify the country within the fiction.** Place and history should feel specific through natural landscapes, coastal-defense installations, hydrophone systems, old technology and local architecture, but no script, collectible, map, UI label, sign, national symbol, fictional news report or narrative marketing copy may explicitly name or conclusively identify the country. Avoid exact real-world geographic coordinates, recognizable unit insignia, official agency names and flags.
+
+This does not mean relocating the story to a named fictional nation. The landscape remains unmistakably grounded, while the national label stays absent. Art reference documents may discuss regional influences, but shipped narrative content must not.
 
 ## 5. Mystery hierarchy
 
@@ -130,14 +137,14 @@ These are narrative units, **not six required weekly quests**. The order beyond 
 
 For each mystery, maintain five fields in the later private World Truth: **what actually happened**, **what people in the world believed**, **what evidence the player can find**, **what BIT currently thinks**, and **what remains interpretively open**.
 
-Every scene also needs a useful payoff: a character shift, an answer, a discovery or a persistent change. An ominous image without development is not enough.
+Every scene also needs a useful payoff: a character shift, an answer, a discovery or a persistent change. An ominous image without development is not enough. Early clues can reveal hydrophone recordings, information-reconstruction work, an expanding continuity mandate and experiment safety warnings without spoiling what the experiment ultimately did.
 
 ## 11. Decisions required before scaling content
 
 A separate **private** writer's World Truth must settle factual causality without revealing it prematurely in the public prototype repository:
 
-1. What was the restricted program trying to do, and what does the name Protocol Rebirth refer to?
-2. What physically happened during the Incident, and who was affected?
+1. How did the approved information-recovery mission (A) expand into civilizational continuity (C), and what exact technologies were developed along the way?
+2. What did the researchers knowingly risk in their deliberate experiment, and what unforeseen consequences actually followed?
 3. What is BIT's actual origin, and what can he know or misremember?
 4. What is Operator's factual relationship to BIT, the facilities and the long absence?
 5. What technical truth explains the lighthouse, radio network and distant facilities?
