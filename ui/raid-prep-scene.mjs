@@ -225,21 +225,8 @@ export async function mountRaidPrepScene(host){
     stylizeWeapon(operator.weapon,host.dataset.weapon);
     const bit=createBit();bit.scale.setScalar(.66);bit.position.set(-.93,1.79,.22);
     orbit.add(bit);
-    // Keep the operator's visible hood in-frame and face visually obscured.
-    // A light wrap on the face, attached to the Head rig, prevents source skin showing.
-    const head=operator.model.getObjectByName('Head');
-    if(head){
-      operator.model.updateMatrixWorld(true);
-      // Bone-space in the source GLB is centimetres with a scaled armature.
-      // Mirror operator-gear's inverse-bone-scale mounting to keep the scarf
-      // proportional to the character instead of 100x too large.
-      const wrap=new THREE.Group();
-      wrap.name='face-covering';
-      wrap.scale.set(1,1,1).divide(head.getWorldScale(new THREE.Vector3()));
-      head.add(wrap);
-      const mask=part(wrap,'face wrap',new THREE.SphereGeometry(.17,10,8),mat(0x161e22,.04,.96),0,-.07,.12);
-      mask.scale.set(1.05,.65,.52);
-    }
+    // The full hood, shadowed face void and cloth mask are attached by
+    // dressCinematicOperator above, with no oversized spherical face patch.
     host.addEventListener('pointerdown',startDrag);
     host.addEventListener('pointermove',moveDrag);
     host.addEventListener('pointerup',endDrag);
