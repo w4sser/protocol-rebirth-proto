@@ -1,9 +1,9 @@
 # Protocol Rebirth — High-Level Lore & Narrative Bible
 
-**Working narrative canon v0.4 — 17 November 2026**  
+**Working narrative canon v0.5 — 17 November 2026**  
 **Owner:** Robert / Wild Labs  
 **Purpose:** A shared high-level story foundation for design, writing, art, audio, production and game implementation.  
-**Approval boundary:** The tone, pillars, BIT's eventual earned-trust relationship arc, unnamed home-country rule, anti-submarine intelligence origin, progression from impossible observation and information reconstruction to civilization continuity (A to C), deliberate known-risk experiment, and **recognizable world history as the player's discovery/anticipation engine** are **owner-approved direction**. Exact historical scenes and mechanics are proposals until selected. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
+**Approval boundary:** The tone, pillars, BIT's eventual earned-trust relationship arc, unnamed home-country rule, anti-submarine intelligence origin, progression from impossible observation and information reconstruction to civilization continuity (A to C), deliberate known-risk experiment, and **brief glimpses of recognizable historical events that researchers learn to observe as their technology advances** are **owner-approved direction**. Exact historical scenes and mechanics are proposals until selected. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
 
 > An endless world to explore. A mystery waiting to be understood. And a little companion who never stopped waiting for you.
 
@@ -30,6 +30,7 @@ The third reason matters: players are not only returning to an activity or progr
 | Protocol Rebirth: espionage and impossible observation grow into civilizational continuity | **Owner-approved direction** | Starts as an effort to detect, intercept and understand enemies; discovers apparently inaccessible historical/remote information (A); evolves toward preserving and restarting civilization (C). Resurrection of individuals (B) is not its official mission |
 | A deliberate, high-risk experiment causes the Incident | **Owner-locked** | Researchers knew they were taking a serious risk but did not anticipate these specific consequences. Mechanism, scope, victims and outcomes remain open |
 | An anomalous underwater signal detected by military hydrophones during anti-submarine operations | **Owner-locked discovery path** | Initially investigated as a naval security/intelligence anomaly, not as the supernatural; the signal's origin, meaning and underlying physics are not yet settled |
+| Observation of real historical moments as the research technology improves | **Owner-approved direction** | From military interception to brief, increasingly clear views of past events. Short, recognizable references, not explorable eras or a separate collectible history game |
 | BIT has fragmentary, sometimes unreliable memories and a bond with Operator | **Established direction** | BIT is sincere but incomplete; never turn him into an expositional answer machine |
 | BIT and Operator earn a genuine friendship through a trust crisis | **Owner-approved relationship structure** | BIT starts as protector; contradictions undermine trust; the two nearly break and must cooperate toward a shared goal; what BIT remembers versus what actually happened is central to the conflict |
 | The lighthouse, distant installations, underwater phenomena and interrupted transmissions | **Established as candidate mystery motifs** | Individual scenes and their factual answers are proposed until accepted |
@@ -54,8 +55,8 @@ The world is not a static quest board. A distant structure can wake, a signal ca
 The institutions' motivation and emotional trajectory are agreed; the literal truth of the phenomenon and the Incident is not.
 
 1. **Military intelligence.** A coastal hydrophone network is deployed to detect suspected enemy submarines. The first researchers want better surveillance: intercept communications, decode unfamiliar signals, understand an opponent's movements and intentions.
-2. **The impossible observation.** Analysis reveals more than military intelligence. The same phenomenon appears to let investigators **see or reconstruct events no available sensor could have observed** — potentially inaccessible places or moments from the distant past. The first undeniable demonstration must be grounded in a concrete, verifiable detail; do not rely solely on characters announcing that it is impossible.
-3. **A — reconstruction of lost information.** The classified project shifts from listening to opponents to recovering information presumed gone forever. Scientists begin asking whether recorded history and human knowledge could be reconstructed. They do **not yet know** whether these are genuine views of the past, extraordinary inference, fragments of memory or something else.
+2. **The impossible observation.** As the surveillance and decoding technology improves, researchers discover they can obtain glimpses of **things that already happened**, from viewpoints no contemporary camera or human witness could have provided. Early views are fragmentary, later ones more recognizable. The historical development is a steady expansion in reach and precision, not a sudden history-theme pivot.
+3. **A — reconstruction of lost information.** The project shifts from listening to opponents to recovering lost information through increasingly precise **observations of the past**. Scientists can now inspect historically recognizable events, including ones long before recording technology. The ultimate physics of the observation is still unknown; this does not mean those events are fictional or the researchers have travelled through time.
 4. **C — civilization continuity.** The wider possibility transforms the mission: preserve knowledge, cultural records, critical systems and the capacity to restore civilization after collapse. The scope of ambition is what changes; resurrection of specific individuals (B) is not the program's official intermediate goal.
 5. **The deliberate experiment.** The team chooses to attempt an active experiment with the phenomenon, despite recognizing it is dangerous. They believe the hazard is sufficiently manageable, but fail to predict the **nature and scale** of what follows. The experiment triggers the Incident; catastrophe is not what they intended.
 6. **The aftermath.** The region is radically altered and depopulated, while fragments of infrastructure persist. The precise mechanism, extent, timeline and human fate remain writer-private open decisions.
@@ -67,29 +68,36 @@ We want the player to feel the disturbing wonder of witnessing a real human mome
 
 Separate three things throughout the story:
 
-- **What the instruments visibly produce:** the phenomenon can apparently reconstruct inaccessible human events, not merely intercept current audio.
-- **What the researchers believe:** they are observing true events and can therefore recover knowledge that should be lost.
-- **What the audience can finally prove:** left open until the private World Truth is decided. The signal may be genuine history, an imperfect reconstruction or a more unsettling mechanism.
+- **What the instruments visibly produce:** brief observations of events that happened in the past, not merely intercepted audio. The level of clarity and temporal reach increases with research mastery.
+- **What the researchers believe:** these observations grant access to real history and knowledge otherwise lost forever; their ambition grows accordingly.
+- **What remains unclear:** the physical mechanism, how viewpoints are selected, whether the images can be distorted and what happens when scientists try to move beyond passive observation. The underlying physics and catastrophic experimental consequence need a private World Truth.
 
 **Important boundary:** Technological causality can become intelligible without settling existential questions about consciousness, loss and connection. Nothing here establishes that people can be resurrected. Do not expose the country's real identity in any evidence or dialogue.
 
-### Historical Echoes — recognition, anticipation, revelation
+### Historical glimpses — recognizable moments glimpsed through the research
 
-**Owner-approved creative principle:** The player should recognize familiar real historical periods and events *before the game names them*. Their existing knowledge creates anticipation and the satisfying feeling of having worked out the reveal. Think of a recognizable next era as a landmark to look forward to, **not a history lesson or quiz**.
+**Owner-approved intent:** Familiar, globally recognizable historical moments appear **subtly and briefly** in old scientific recordings as evidence of what the researchers learned to do. The player should recognize the subject without needing an explanatory caption, then wonder how researchers could have seen it. The player never visits these places or time periods. There is no Rome chapter, history progression tree, multi-fragment museum reconstruction or checklist of historical events.
 
-**Three-stage story grammar:**
+**The narrative development belongs to the researchers, not to player unlocks:**
 
-1. **Recognition:** A partial, in-world signal reconstruction shows iconic, historically accurate clues — material, architecture, sounds, clothing, engineering and practices — without captions naming the period. Players who know the subject may identify it immediately; others still see an intriguing image.
-2. **Anticipation:** A following fragment increases specificity, showing a landmark or the setup to an event. The player begins looking forward to witnessing it. A visually legible archive preview may suggest which era can be reconstructed next, but must not become a timed reward, progress currency or forced collection checklist.
-3. **Revelation:** A short, authored cinematic finally confirms the player's guess and delivers an emotionally striking view of an event or place they already know. Then it reveals a **new narrative question**: how could the early researchers have observed this, and what did they actually learn?
+1. **Surveillance:** Military hydrophones and signal processing are used to locate, intercept and understand enemy vessels and intentions.
+2. **Unexpected residual images:** A brief, poor-quality observation reveals a moment that occurred before the system existed. Researchers verify enough context to rule out conventional surveillance.
+3. **Reach into history:** Better signal manipulation lets them observe much older and farther-away events. Famous landmarks and historical situations appear for mere seconds, recognizably but imperfectly.
+4. **Mastery and ambition:** Increasing clarity, duration and targeting convince the program's leaders that lost human knowledge and perhaps civilization itself could be reconstructed. The research goes from intelligence gathering to information recovery (A) to civilizational continuity (C).
+5. **Beyond observation:** The deliberately dangerous experiment that eventually causes the Incident is not simply another historic glimpse. What the researchers tried to do beyond passive observation and why its consequences were unforeseen remain private, open decisions.
 
-**Candidate historical anchors — not locked production scenes:** Egyptian pyramid construction; Roman arches, legions, aqueducts and a fully realized Colosseum at the opening of its games (80 CE); the first human Moon landing (1969); the fall of the Berlin Wall (1989). All scenes require historical review, period-consistent art, and respectful portrayal. Do not collapse mutually incompatible centuries into one composite event. Widely recognizable historical references from different parts of the world are preferable to a narrow, exclusively European canon. Major religious or contested history requires particularly careful handling; familiar icons should never be used merely as shock value.
+**Candidate glimpses — not locked scene scripts:**
 
-**Illustrative pilot: Rome, 80 CE.** The first recovered recording reveals an arch-lined road and a legion standard. A later reconstruction adds arena sounds, gladiatorial equipment and glimpses of an enormous elliptical building. Only on the third beat does the camera reveal the Colosseum in use. A final detail of the observation suggests that no ordinary witness or contemporary instrument could have recorded this view. The precise "impossible" evidence and how it is verified must be authored, not hand-waved. This sequence is a **pitch**, not approved shipped content.
+- **Construction of the Eiffel Tower (1887–1889):** A brief grainy view of workers moving across partly assembled ironwork high above Paris. A recognizable silhouette and work in progress convey time and place without a geography lesson.
+- **The World Trade Center towers on 11 September 2001:** A restrained, human-scale fragment of the Manhattan skyline or city life that becomes unmistakably associated with that day. Avoid gratuitous impact footage, victims as spectacle, invented testimony, or sensational reuse of tragedy.
+- **Jesus at the crucifixion:** A much more distant test of the technique's temporal reach. A short, ambiguous-in-detail but culturally recognizable view with Roman soldiers and crosses could provoke extraordinary recognition. Handle religious significance respectfully; do not present the observation as proof or disproof of divinity, miracles or any theological claim. The precise image, identities and historical staging require care and further approval.
 
-**Why these glimpses exist:** They are outputs from the old observation/reconstruction research, found via the Operator's present-day raids and restored bunker equipment. **They do not imply that the player physically travels in time or fights historical soldiers.** The combat world remains the unnamed coastal setting. Every major historic reveal must advance the mystery about the research, the signal, and eventually the Incident, rather than becoming an unrelated museum montage.
+These are examples of globally recognizable **events or moments**, not playable destinations, themed maps, historical combat, interactive flashbacks, a reward track or a claim that all of history will be reconstructable on demand.
 
-**Make players feel clever without excluding them:** Let clues precede labels, allow optional contextual details after the payoff, never require outside historical knowledge to progress, and do not have BIT immediately explain the reveal. The narrative beats can be viewed on mute and replayed without resetting earned progress.
+**How they appear in the game:** A few seconds on an old instrument display, a damaged research archive, a cutaway inside a larger story cinematic, or a recovered scientist's recording. Show the apparatus, its limitations and the team's growing astonishment. The audience can infer which event it is; BIT should not explain the image at length. Some observations may be identified by an old researcher; others can be left wordless. There is no forced three-stage reveal per historical moment.
+
+**Narrative function:** Every glimpse should illustrate a new milestone in what the *researchers* could do, and lead toward their escalating ambitions and ultimate mistake. The past remains outside the playable world; the Operator's actions continue in the unnamed coastal setting. A powerful brief observation is worth more than a full reconstructed civilization.
+
 
 ### Unnamed-country rule — owner-locked
 
