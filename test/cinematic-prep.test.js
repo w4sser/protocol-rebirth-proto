@@ -36,10 +36,17 @@ w.A.planToggle(false);
 assert(d.querySelector('#mission-panel').hidden,'mission panel closes');
 const styles=fs.readFileSync(path+'/ui/raid-prep.css','utf8');
 assert(styles.includes('body[data-screen="prep"] #tabs{display:none!important}'),'bottom tabs hidden on prep only');
-assert(styles.includes('env_base.webp'),'bunker staging art present');
+assert(styles.includes('raid-prep-bunker.avif'),'authored bunker threshold background is used');
+assert(!styles.includes('env_base.webp'),'base overview map no longer appears on Deploy');
+assert(styles.includes('raid-prep-archipelago.avif'),'Archipelago card is an in-world location preview');
+assert(!styles.includes('splash_archipelago_radar_lighthouse.webp'),'destination card must not use a branded promo banner');
+for(const asset of ['raid-prep-bunker.avif','raid-prep-archipelago.avif'])
+  assert(fs.statSync(path+'/assets/production/'+asset).size>2000,asset+' exists and has image bytes');
 const viewer=fs.readFileSync(path+'/ui/raid-prep-scene.mjs','utf8');
 assert(viewer.includes('loadHumanOperator()'),'scene reuses gameplay GLB and animations');
 assert(viewer.includes('createBit()'),'scene renders procedural BIT');
+assert(viewer.includes('dressCinematicOperator(operator)'),'operator is dressed as a hooded scavenger');
+assert(viewer.includes('cinematic-hood') && viewer.includes('weathered rear cloak'),'face and cloak form the desired dark operator silhouette');
 assert(viewer.includes('destroy()'),'3D lifecycle releases resources on removal');
 assert(fs.readFileSync(path+'/index.html','utf8').includes('ui/raid-prep.css'),'new visual rules are loaded');
 console.log('CINEMATIC RAID PREP TEST PASSED');
