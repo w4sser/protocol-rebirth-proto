@@ -289,6 +289,20 @@ function hood(parent,M){
   // face opening. No donut ring: the crown is a sculpted shell that hangs over
   // a fully concealed wearer.
   ellipsoid(parent,'invisible neck base',[0,1.76,-.012],[.18,.18,.17],M.wrap,28);
+  // The cap has actual 360-degree volume, not a flat facade: sculpt the
+  // cloth dome with offset folds under the front opening/overhang.
+  const hoodGeo=new THREE.SphereGeometry(1,40,26);
+  const p=hoodGeo.attributes.position;
+  for(let i=0;i<p.count;i++){
+    const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    const folds=Math.cos(Math.atan2(z,x)*7+y*4)*.013;
+    const squash=y<0 ? (1+y*.06) : 1;
+    p.setXYZ(i,x*(.285+folds)*squash,
+      y*.302+Math.cos(x*9+z*7)*.009,
+      z*(.265+folds)+(x>0?.008:-.016));
+  }
+  hoodGeo.computeVertexNormals();
+  add(parent,'structured fabric hood volume',hoodGeo,M.coat,0,1.919,-.038);
   // Deep dark face cavity; never show skin or eyes.
   ellipsoid(parent,'shadowed face cavity',[0,1.914,.160],[.181,.213,.093],M.void,34);
   // Wrap covers lower face and overlaps the inside edge of the hood.
