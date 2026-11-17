@@ -1,10 +1,10 @@
 /*
- * Protocol Rebirth — Operator v4, lean athletic Deploy portrait.
+ * Protocol Rebirth — Operator v3, close-up Deploy portrait.
  *
  * This is a genuine fully rotatable mesh, not the reference painting or an
  * extruded flat card. Designed for the full-height menu camera only.
  *
- * Target: approved lean, athletic hooded Nordic scavenger (AD-06). Anatomical form,
+ * Target: approved faceless hooded Nordic scavenger (AD-06). Anatomical form,
  * angular layered cloth, asymmetrical torn cloak, weathered tactical rig and
  * calm ready pose. No exposed face, no toy-like cylinders or spherical knees.
  *
@@ -167,11 +167,11 @@ function buckle(parent,center,m){
 function boot(parent,side,M){
   const x=side*(.165+ (side>0?.035:0));
   const ankle=organicLimb(parent,'gaiter fabric '+side,
-    [[x,.40,-.025],[x,.30,.005],[x,.18,.045]],[.101,.108,.114],M.trousers,{ellipse:.94,seed:side+5});
+    [[x,.40,-.025],[x,.30,.005],[x,.18,.045]],[.115,.123,.131],M.trousers,{ellipse:.94,seed:side+5});
   // Shoes have broad angular toe boxes, square lugged soles, tread and laces
   // rather than small capsules poking through the character silhouette.
-  ellipsoid(parent,'boot upper',[x,.133,.112],[.127,.115,.224],M.boot,24);
-  ebox(parent,'lugged sole',[x,.059,.137],[.264,.071,.418],M.sole,.026);
+  ellipsoid(parent,'boot upper',[x,.133,.112],[.143,.131,.247],M.boot,24);
+  ebox(parent,'lugged sole',[x,.059,.137],[.302,.082,.445],M.sole,.026);
   polygon(parent,'toe reinforced cap',[[-.116,-.045],[.116,-.045],[.135,.03],[.097,.075],[-.097,.075],[-.135,.03]],.011,
     M.armorEdge,[x,.099,.299]);
   for(let i=0;i<4;i++){
@@ -179,7 +179,7 @@ function boot(parent,side,M){
     seam(parent,'lace',[ [x-.071,.181-i*.024,.261-i*.022],[x,.17-i*.024,.267-i*.022],[x+.071,.181-i*.024,.261-i*.022] ],M.webbing,.004);
   }
   for(const dz of [-.16,.0,.17])ebox(parent,'boot tread',[x,.019,.145+dz],[.29,.023,.038],M.sole,.003);
-  ebox(parent,'leather ankle strap',[x,.274,.114],[.218,.036,.043],M.webbing,.006);
+  ebox(parent,'leather ankle strap',[x,.274,.114],[.245,.043,.048],M.webbing,.006);
   buckle(parent,[x+.115,.278,.145],M.steel);
   return ankle;
 }
@@ -189,28 +189,28 @@ function leg(parent,side,M){
   // Right leg forward, weight on the back left leg: asymmetric silhouette.
   organicLimb(parent,'articulated thigh '+side,[
     [side*.18,1.012,-.016],[x,.86,.015+shifted],[x,.68,.025+shifted],[x,.574,.09+shifted]],
-    [.149,.148,.136,.117],M.trousers,{ellipse:.90,folds:7,seed:side*1.8});
+    [.17,.169,.155,.139],M.trousers,{ellipse:.90,folds:7,seed:side*1.8});
   organicLimb(parent,'wrinkled shin '+side,[
     [x,.57,.090+shifted],[x,.45,.083+shifted],[x,.28,.015+shifted]],
-    [.115,.098,.103],M.trousers,{ellipse:.92,folds:8,seed:side*3.1});
+    [.137,.115,.118],M.trousers,{ellipse:.92,folds:8,seed:side*3.1});
   // Real polygon knee armor follows the leg, not spherical cartoon buttons.
   const knee=polygon(parent,'angular kneecap '+side,[
-    [-.108,.060],[-.082,.103],[.059,.103],[.107,.053],[.083,-.052],[.013,-.086],[-.095,-.057]],
-    .028,M.armor,[x,.55,.191+shifted]);
+    [-.13,.063],[-.093,.114],[.070,.115],[.128,.057],[.101,-.062],[.015,-.101],[-.115,-.064]],
+    .039,M.armor,[x,.55,.202+shifted]);
   knee.rotation.x=-.16;
   for(const y of [.62,.48]){
-    ebox(parent,'knee strap '+side,[x,y,.149+shifted],[.250,.028,.047],M.webbing,.010);
+    ebox(parent,'knee strap '+side,[x,y,.149+shifted],[.30,.035,.056],M.webbing,.010);
   }
-  ebox(parent,'thigh utility pocket '+side,[x+side*.116,.807,.116+shifted],[.114,.16,.080],M.armor,.019);
-  ebox(parent,'utility flap '+side,[x+side*.116,.878,.164+shifted],[.114,.030,.012],M.webbing,.008);
+  ebox(parent,'thigh utility pocket '+side,[x+side*.132,.807,.123+shifted],[.145,.19,.104],M.armor,.019);
+  ebox(parent,'utility flap '+side,[x+side*.132,.888,.191+shifted],[.145,.036,.014],M.webbing,.008);
   seam(parent,'trouser folds '+side,[
     [x-.09,.723,.171+shifted],[x-.025,.747,.181+shifted],[x+.081,.706,.172+shifted]],M.edge,.0035);
   // One thigh pouch with signal marker on the left, not mirrored.
   if(side<0){
-    ebox(parent,'thigh electronics pouch',[-.272,.67,.17],[.116,.210,.096],M.armor,.025);
-    ebox(parent,'pouch display recessed',[-.272,.69,.225],[.021,.12,.009],M.steel,.003);
-    ebox(parent,'subtle recovered status strip',[-.272,.69,.231],[.012,.09,.004],M.light,.002);
-    ebox(parent,'pouch retention strap',[-.272,.775,.212],[.130,.027,.033],M.webbing,.005);
+    ebox(parent,'thigh electronics pouch',[-.30,.67,.19],[.138,.265,.13],M.armor,.025);
+    ebox(parent,'pouch display recessed',[-.30,.69,.265],[.026,.149,.012],M.steel,.003);
+    ebox(parent,'subtle recovered status strip',[-.30,.69,.274],[.015,.12,.006],M.light,.002);
+    ebox(parent,'pouch retention strap',[-.30,.81,.234],[.158,.029,.038],M.webbing,.005);
   }
   boot(parent,side,M);
 }
@@ -218,25 +218,25 @@ function coatBody(parent,M){
   // Broad shoulders, tailored waist and layered front/back jacket form.
   organicLimb(parent,'tailored torso',[
     [0,1.065,-.015],[0,1.23,-.02],[0,1.45,-.012],[0,1.675,-.035]],
-    [.213,.229,.281,.316],M.coat,{ellipse:.74,folds:4,seed:7});
-  ellipsoid(parent,'upper vest', [0,1.393,.125],[.262,.295,.132],M.armor,26);
+    [.244,.263,.302,.33],M.coat,{ellipse:.74,folds:4,seed:7});
+  ellipsoid(parent,'upper vest', [0,1.393,.125],[.291,.308,.158],M.armor,26);
   polygon(parent,'asymmetric chest shield',[
-    [-.222,-.23],[.215,-.215],[.236,.18],[.079,.26],[-.166,.25],[-.231,.095]],
+    [-.26,-.25],[.248,-.24],[.27,.19],[.09,.295],[-.19,.27],[-.27,.10]],
     .036,M.plate,[0,1.397,.281]);
-  ebox(parent,'waist webbing',[0,1.107,.145],[.435,.068,.174],M.webbing,.016);
+  ebox(parent,'waist webbing',[0,1.107,.145],[.53,.083,.21],M.webbing,.016);
   ebox(parent,'belt buckle',[.033,1.117,.28],[.096,.065,.026],M.steel,.013);
   ebox(parent,'upper harness cross strap',[-.12,1.49,.315],[.081,.62,.038],M.webbing,.011).rotation.z=-.29;
   for(const side of [-1,1]){
     const x=side*.18;
     ebox(parent,'braided vest strap',[x,1.48,.29],[.066,.40,.033],M.straps,.007).rotation.z=-side*.13;
-    const pouch=ebox(parent,'stitched front ammo pouch',[x,1.255,.36],[.143,.163,.068],M.webbing,.013);
-    ebox(parent,'pouch hood flap',[x,1.34,.414],[.146,.041,.017],M.armorEdge,.008);
+    const pouch=ebox(parent,'stitched front ammo pouch',[x,1.255,.36],[.173,.20,.087],M.webbing,.013);
+    ebox(parent,'pouch hood flap',[x,1.34,.414],[.174,.055,.020],M.armorEdge,.008);
     ebox(parent,'pouch pull tab',[x,1.288,.427],[.025,.050,.013],M.leather,.006);
     nubbins(parent,[x-.117,1.539,.327],M.webbing,2);
     for(const px of [x-.049,x+.05])ebox(parent,'vest bag zipper',[px,1.345,.422],[.006,.037,.008],M.steel,.002);
   }
-  ebox(parent,'asymmetric radio',[.23,1.567,.348],[.097,.122,.076],M.steel,.018);
-  ebox(parent,'radio display',[.23,1.586,.402],[.023,.072,.005],M.light,.003);
+  ebox(parent,'asymmetric radio',[.23,1.567,.348],[.118,.160,.095],M.steel,.018);
+  ebox(parent,'radio display',[.23,1.586,.402],[.029,.09,.005],M.light,.003);
   seam(parent,'radio aerial',[[.235,1.648,.349],[.235,1.755,.337]],M.steel,.007);
   // Side panels bridge the gap between belt and draped coat
   for(const side of [-1,1]){
@@ -361,10 +361,10 @@ function hood(parent,M){
     [.095,.102,.105],M.coat,{ellipse:.62,folds:3,seed:3});
 }
 function pack(parent,M){
-  ebox(parent,'scavenger field backpack',[0,1.42,-.325],[.421,.590,.232],M.plate,.036);
-  ebox(parent,'soft pack outer cover',[0,1.46,-.479],[.397,.476,.054],M.coat,.031);
-  ebox(parent,'pack cargo pocket',[0,1.22,-.536],[.309,.172,.063],M.webbing,.015);
-  ebox(parent,'roll-up bedding',[0,1.784,-.34],[.428,.117,.204],M.coat,.06);
+  ebox(parent,'scavenger field backpack',[0,1.42,-.325],[.50,.67,.28],M.plate,.036);
+  ebox(parent,'soft pack outer cover',[0,1.46,-.479],[.46,.53,.068],M.coat,.031);
+  ebox(parent,'pack cargo pocket',[0,1.22,-.536],[.35,.20,.077],M.webbing,.015);
+  ebox(parent,'roll-up bedding',[0,1.784,-.34],[.50,.14,.25],M.coat,.06);
   for(const x of [-.18,.18]){
     ebox(parent,'pack retaining strap',[x,1.49,-.539],[.058,.62,.020],M.webbing,.008);
     buckle(parent,[x,1.33,-.556],M.armorEdge);
@@ -380,16 +380,16 @@ function arms(parent,M){
   ];
   for(const {side,a,b,c}of pose){
     organicLimb(parent,'relaxed cloth shoulder '+side,
-      [a,[a[0]*1.04,1.49,.04],b],[.118,.118,.107],M.coat,{ellipse:.91,seed:side*4.3});
+      [a,[a[0]*1.04,1.49,.04],b],[.145,.145,.128],M.coat,{ellipse:.91,seed:side*4.3});
     organicLimb(parent,'anatomical forearm '+side,
       [b,[(b[0]+c[0])/2,(b[1]+c[1])/2,(b[2]+c[2])/2],c],
-      [.104,.093,.077],M.coat,{ellipse:.90,seed:side*7.2});
+      [.128,.114,.09],M.coat,{ellipse:.90,seed:side*7.2});
     // Angular plate armor, not a round/sphere shoulder.
     const shoulder=polygon(parent,'weathered shoulder armor '+side,
       [[-.11,-.075],[-.065,.078],[.04,.117],[.14,.062],[.113,-.095]],
       .066,M.armor,[a[0],a[1]+.02,.145]);
     shoulder.rotation.z=side*.12;
-    ebox(parent,'armor fastening strap',[b[0],b[1]+.052,b[2]+.085],[.195,.040,.044],M.webbing,.013);
+    ebox(parent,'armor fastening strap',[b[0],b[1]+.052,b[2]+.085],[.24,.047,.06],M.webbing,.013);
     for(let j=0;j<3;j++)
       seam(parent,'jacket elbow fold '+side,[
         [b[0]-.075,b[1]-.07+j*.033,b[2]+.119],
@@ -397,8 +397,8 @@ function arms(parent,M){
         [b[0]+.085,b[1]-.086+j*.033,b[2]+.115]],M.edge,.003);
     // Fingered leather gloves with knuckles. At full scale the fingers and
     // wrist guard remain visible, unlike the previous simple mitten spheres.
-    const glove=ellipsoid(parent,'closed leather glove '+side,c,[.082,.068,.073],M.leather,24);
-    ebox(parent,'reinforced glove knuckles',[c[0],c[1]+.027,c[2]+.071],[.124,.036,.022],M.armor,.009);
+    const glove=ellipsoid(parent,'closed leather glove '+side,c,[.096,.076,.084],M.leather,24);
+    ebox(parent,'reinforced glove knuckles',[c[0],c[1]+.027,c[2]+.071],[.14,.042,.024],M.armor,.009);
     for(let i=0;i<4;i++)ebox(parent,'glove finger seam',[c[0]-.063+i*.042,c[1]-.025,c[2]+.082],[.005,.050,.011],M.edge,.002);
   }
 }
@@ -448,7 +448,7 @@ function rifle(parent,M,weaponId){
   return gun;
 }
 export function createOperatorHeroV3({weaponId='',armorId=''}={}){
-  const root=new THREE.Group();root.name='protocol-rebirth-operator-hero-v4';
+  const root=new THREE.Group();root.name='protocol-rebirth-operator-hero-v3';
   const operator=new THREE.Group();operator.name='operator full-body pivot';root.add(operator);
   const coat=fabric(PALETTE.coat,7),cloakMat=fabric(PALETTE.coatDark,77),
     trousers=fabric(PALETTE.trousers,29),webbing=fabric(PALETTE.webbing,35);
@@ -466,42 +466,19 @@ export function createOperatorHeroV3({weaponId='',armorId=''}={}){
   };
   randomState=4711;
   const body=new THREE.Group();body.name='operator subtle stance';operator.add(body);
-  // Anatomical V4 hierarchy, matched to the approved *athletic* JPG:
-  // leg length +18%, leaner legs; torso raised to meet hips; narrower waist,
-  // equipment and mantle without shrinking the shoulders into a tube.
-  // Geometry is fully 3D: separate anatomical groups permit proportional
-  // adjustments without flattening the view or breaking 360-degree rotation.
-  const legs=new THREE.Group();
-  legs.name='athletic-long-legs-v4';
-  legs.scale.set(.91,1.18,.89);
-  body.add(legs);
-  leg(legs,-1,M);leg(legs,1,M);
-  ellipsoid(legs,'anatomical pelvis',[0,1.035,-.025],[.235,.161,.154],trousers,28);
-
-  const upper=new THREE.Group();
-  upper.name='lean-v-taper-upper-body-v4';
-  upper.position.y=.19;upper.scale.set(.90,1,.89);
-  body.add(upper);
-  coatBody(upper,M);
-  pack(upper,M);
-
-  // The cloak keeps an asymmetric outline but must not create a bulky skirt.
-  const mantle=new THREE.Group();
-  mantle.name='narrow-asymmetric-mantle-v4';
-  mantle.scale.set(.84,1,.90);
-  upper.add(mantle);
-  cloak(mantle,M);
-  arms(upper,M);
-
-  const head=new THREE.Group();
-  head.name='proportional-face-hidden-hood-v4';
-  head.scale.set(.90,1,.89);
-  upper.add(head);
-  hood(head,M);
-  rifle(upper,M,weaponId);
+  // Weight favors left foot, right leg advanced. Dynamic contrapposto
+  // stays readable in all yaw positions and makes the rifle a calm hold.
+  leg(body,-1,M);leg(body,1,M);
+  ellipsoid(body,'anatomical pelvis',[0,1.035,-.025],[.267,.191,.188],trousers,28);
+  coatBody(body,M);
+  pack(body,M);
+  cloak(body,M);
+  arms(body,M);
+  hood(body,M);
+  rifle(body,M,weaponId);
   // A few physical damage marks make the body lived-in rather than plastic.
-  for(const x of [-.245,.245]){
-    seam(upper,'scuffed jacket seam',[
+  for(const x of [-.27,.27]){
+    seam(body,'scuffed jacket seam',[
       [x,1.55,.052],[x*1.05,1.38,.090],[x*.86,1.19,.112]],M.wrapEdge,.004);
   }
   if(!armorId){

@@ -24,7 +24,8 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 - `assets/production/raid-prep-archipelago.avif`: environment-only destination crop (no branding).
 - `assets/production/raid-prep-operator.avif`: hooded faceless operator portrait for low-quality/WebGL fallback.
 - `ui/raid-prep.css`: background framing, proper loadout/heading visibility, destination image and phone-landscape layout.
-- `ui/raid-prep-operator-v3.mjs`: new sculpted menu-only 3D character model. Cloth-textured anatomical limbs, asymmetrical cloak, angular hood with a recessed face void, tactical rig, gloves, reinforced boots, and a modeled weapon. Independent of gameplay's low-resolution GLB.
+- `ui/raid-prep-operator-v3.mjs`: prior sculpted menu character, retained for side-by-side regression comparisons.
+- `ui/raid-prep-operator-v4.mjs`: new lean/athletic operator model used by Deploy. Cloth-textured anatomical limbs, asymmetrical cloak, angular hood with a recessed face void, tactical rig, gloves, reinforced boots, and a modeled weapon. Independent of gameplay's low-resolution GLB.
 - `ui/raid-prep-models.mjs`: physical CRT companion BIT using `assets/bit-face-master-v3.svg` as its screen texture, with a geometric face fallback.
 - `ui/raid-prep-scene.mjs`: camera, iPhone touch/pointer capture, operator yaw rotation, companion idle, high-DPR rendering, lights and resource disposal.
 - `scripts/layout-check.mjs`: real browser rotation smoke test in landscape.
@@ -55,3 +56,22 @@ The new operator:
 - uses the existing menu-only Three.js rendering system without changing Node Raid assets.
 
 Acceptance: judge the real landscape screenshot from the browser job against the approved hi-res reference, especially the hood outline, rifle hold and lower-body proportions. A green automated test confirms technical behavior but does not certify visual parity.
+
+## V4 — Lean Athletic Operator Pass (approved JPG comparison)
+
+**Reference:** owner's first screenshot (JPG, athletic masked operator) is the target; the second screenshot is the rejected previous interactive 3D model.
+
+**Problem:** the prior operator read as short, heavy and bulky with too-wide hips, short cylinder-like legs, oversized arm armor, large thigh pouches, broad backpack and heavy side cloak. This was unacceptable even though the character was functional 3D.
+
+**Geometry changes shipped in V4:**
+- Independent lower-body group scaled to **1.18× height**, **0.91× width** and **0.89× depth**; the pelvis is correspondingly narrowed
+- Anatomical thigh radius **0.17 → 0.149**, knee radius **0.139 → 0.117**; shins, gaiters and boots slimmer
+- Torso radii reduced at the lower waist to **0.213** and upper chest to **0.316** (before the separate 0.90 lateral upper-body scale)
+- Upper-body group repositioned **+0.19** to meet the elongated hips; width and depth scaled **0.90×** and **0.89×**
+- Vest, front armor, pouches, waist belt, radio, shoulder guards, forearms, gloves and backpack reduced selectively rather than shrinking the complete character
+- Mantle separately tapered **0.84× width**, while preserving asymmetric torn hem and long sidefall
+- Hood is independently scaled to remain proportional to the athletic figure; full face concealment stays mandatory
+- Menu camera now aims at a higher body center and sits farther back to keep the taller full-body pose visible at **844×390** without clipping
+- Full 3D touch rotation, BIT's owner-approved smile, Deploy UX and the gameplay model remain unchanged
+
+**Acceptance:** compare silhouette at equal pixel height from front, ¾, side and rear. Look for long legs, narrow pelvis and waist, tapered chest, realistic wrist and glove thickness, and a mantle that does not turn the figure into a rectangle. Automated tests prove function and bounds, but visual approval is still required.

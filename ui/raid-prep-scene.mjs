@@ -4,7 +4,7 @@
  */
 import * as THREE from '../nodspel/vendor/three.module.js';
 import {createMenuBit} from './raid-prep-models.mjs?v=2.28.46';
-import {createOperatorHeroV3} from './raid-prep-operator-v3.mjs?v=2.28.46';
+import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.46';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export async function mountRaidPrepScene(host){
@@ -77,7 +77,7 @@ export async function mountRaidPrepScene(host){
     host.appendChild(renderer.domElement);
     scene=new THREE.Scene();
     camera=new THREE.PerspectiveCamera(33,1,.05,30);
-    camera.position.set(.05,1.3,3.6);camera.lookAt(0,1.075,0);
+    camera.position.set(.05,1.4,4.25);camera.lookAt(0,1.215,0);
     scene.add(new THREE.HemisphereLight(0xd5d3dd,0x2d2927,2.1));
     const keyLight=new THREE.DirectionalLight(0xffc99c,2.6);
     keyLight.position.set(-2,4,4);scene.add(keyLight);
@@ -88,7 +88,7 @@ export async function mountRaidPrepScene(host){
 
     orbit=new THREE.Group();orbit.name='touch-rotatable-operator';
     orbit.rotation.y=yaw;scene.add(orbit);
-    operator=createOperatorHeroV3({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
+    operator=createOperatorHeroV4({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
     orbit.add(operator.root);
     // Genuine three-dimensional companion; its original approved smile is
     // rendered on the physical CRT face, never as a full-body billboard.
@@ -101,13 +101,13 @@ export async function mountRaidPrepScene(host){
     for(const [event,fn]of [['pointerdown',down],['pointermove',move],
       ['pointerup',up],['pointercancel',up],['keydown',key]])host.addEventListener(event,fn);
     host.style.touchAction='none';
-    host.dataset.menuModel='hero-v3';host.dataset.bit='3d';showYaw();
+    host.dataset.menuModel='hero-v4';host.dataset.bit='3d';showYaw();
     const fit=()=>{
       if(disposed||!host.isConnected)return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
       camera.aspect=w/h;
-      const distance=clamp(3.72+Math.max(0,.95-camera.aspect)*.68,3.70,4.4);
-      camera.position.set(.06,1.28,distance);camera.lookAt(0,1.075,0);
+      const distance=clamp(4.25+Math.max(0,.95-camera.aspect)*.68,4.24,4.85);
+      camera.position.set(.06,1.40,distance);camera.lookAt(0,1.215,0);
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(clamp(window.devicePixelRatio||1,1,w>850?2:2.4));
       renderer.setSize(w,h,false);
