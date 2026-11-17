@@ -59,6 +59,100 @@ function stylizeWeapon(root,weaponId){
   else if(s.includes('smg'))root.scale.set(.89,.94,.74);
   else root.scale.set(1,1,1);
 }
+
+/* Close-up outfit pass, kept separate from the small top-down gameplay rig.
+ * The existing skeletal animation and GLB remain authoritative; this only
+ * attaches cloth and armor to the existing rig for Raid Prep rendering. */
+function dressCinematicOperator(operator){
+  const model=operator.model;
+  const fabric=mat(0x343739,.02,.98),clothDark=mat(0x22292d,.02,.98),
+    armor=mat(0x404746,.24,.87),armorEdge=mat(0x222d32,.45,.76),
+    beltMat=mat(0x242a2d,.16,.87),faceBlack=mat(0x0a1014,.03,1),
+    glove=mat(0x212526,.06,.94);
+  // Dark, weathered color pass. The source model is optimized for a distant
+  // top-down player; its near-white jacket and bright skin must not dominate.
+  model.traverse(n=>{
+    if(!n.isMesh || !n.material)return;
+    const key=(n.name||'').toLowerCase();
+    const recolor=m=>{
+      const copy=m.clone();
+      if(copy.color)copy.color.multiplyScalar(key.includes('jacket')||key.includes('hood')?.42:.3);
+      if(copy.roughness!==undefined)copy.roughness=Math.max(copy.roughness,.82);
+      if(copy.metalness!==undefined)copy.metalness=Math.min(copy.metalness,.28);
+      return copy;
+    };
+    n.material=Array.isArray(n.material)?n.material.map(recolor):recolor(n.material);
+    if(key.includes('sleeve')||key.includes('jacket')||key.includes('hood'))n.material=fabric;
+    else if(key.includes('trouser')||key.includes('boot'))n.material=clothDark;
+    else if(key.includes('backpack')||key.includes('pack-'))n.material=armor;
+    else if(key.includes('strap'))n.material=beltMat;
+  });
+  const mount=(boneName,label)=>{
+    model.updateMatrixWorld(true);
+    const bone=model.getObjectByName(boneName);
+    if(!bone)return null;
+    const group=new THREE.Group();group.name=label;
+    const scale=bone.getWorldScale(new THREE.Vector3());
+    if(scale.x*scale.y*scale.z===0)return null;
+    group.scale.set(1,1,1).divide(scale);
+    bone.add(group);
+    return group;
+  };
+  const hood=mount('Head','cinematic-hood');
+  if(hood){
+    const shell=part(hood,'heavy hood',new THREE.SphereGeometry(.29,16,11),fabric,0,.075,-.048);
+    shell.scale.set(1.06,1.13,1.05);
+    const shadow=part(hood,'face void',new THREE.SphereGeometry(.225,16,10),faceBlack,0,.03,.204);
+    shadow.scale.set(1,.99,.42);
+    const mouthCover=part(hood,'scavenger mask',new THREE.BoxGeometry(.35,.16,.09),clothDark,0,-.11,.288);
+    mouthCover.rotation.x=-.11;
+    const rim=part(hood,'hood framing',new THREE.TorusGeometry(.237,.041,8,22),fabric,0,.057,.237);
+    rim.scale.set(1,1.14,1);
+    const brow=part(hood,'hood peak',new THREE.BoxGeometry(.42,.067,.22),fabric,0,.285,.13);
+    brow.rotation.x=-.22;
+    for(const side of [-1,1]){
+      const cheek=part(hood,'hood side fold',new THREE.BoxGeometry(.07,.28,.15),fabric,side*.205,-.016,.176);
+      cheek.rotation.z=side*.16;
+    }
+  }
+  const body=mount('Chest','cinematic-survival-coat');
+  if(body){
+    const front=part(body,'chest plate',new THREE.BoxGeometry(.43,.35,.095),armor,0,-.14,.215);
+    front.rotation.x=-.05;
+    for(const side of [-1,1]){
+      const shoulder=part(body,'shoulder guard',new THREE.BoxGeometry(.22,.17,.32),armorEdge,side*.32,.05,.02);
+      shoulder.rotation.z=side*.15;
+      const pouch=part(body,'utility pouch',new THREE.BoxGeometry(.16,.14,.11),armor,side*.17,-.39,.175);
+      pouch.rotation.z=side*.08;
+      const strap=part(body,'front harness strap',new THREE.BoxGeometry(.065,.54,.035),beltMat,side*.17,-.08,.274);
+      strap.rotation.z=-side*.16;
+      // Split weathered coat tail; long, angular cloth, never a full skirt.
+      const tail=part(body,'split front coat',new THREE.PlaneGeometry(.25,.78),fabric,side*.155,-.68,.14);
+      tail.material=tail.material.clone();tail.material.side=THREE.DoubleSide;
+      tail.rotation.z=side*.10;tail.rotation.x=.055;
+    }
+    part(body,'waist webbing',new THREE.BoxGeometry(.57,.11,.39),beltMat,0,-.39,0);
+    // Back cloak broadens the silhouette and folds over the existing pack.
+    const geometry=new THREE.PlaneGeometry(.82,1.03,6,8);
+    const verts=geometry.attributes.position;
+    for(let i=0;i<verts.count;i++){
+      const x=verts.getX(i),y=verts.getY(i);
+      const lower=(.515-y)/1.03;
+      verts.setXYZ(i,x*(1+.25*lower),y,-.12-.16*lower+Math.cos(x*8)*.025);
+    }
+    geometry.computeVertexNormals();
+    const mantle=new THREE.Mesh(geometry,materialWithSides(fabric,THREE.DoubleSide));
+    mantle.name='weathered rear cloak';
+    mantle.position.set(0,-.64,-.43);
+    mantle.castShadow=true;body.add(mantle);
+  }
+  for(const side of ['L','R']){
+    const wrist=mount('Wrist'+side,'cinematic-glove-'+side);
+    if(wrist)part(wrist,'gloved hand',new THREE.SphereGeometry(.105,9,7),glove,0,0,.02).scale.set(.9,1.03,1.15);
+  }
+}
+function materialWithSides(m,side){const copy=m.clone();copy.side=side;return copy;}
+
 export async function mountRaidPrepScene(host){
   if(!host || !host.isConnected)return null;
   let renderer=null,operator=null,scene=null,resize=null,raf=0,disposed=false;
@@ -87,7 +181,7 @@ export async function mountRaidPrepScene(host){
     }
     if(renderer){renderer.dispose();renderer.forceContextLoss?.();renderer.domElement.remove();}
   };
-  let drag=null,yaw=-.18;
+  let drag=null,yaw=-.27;
   const startDrag=e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
     drag={id:e.pointerId,x:e.clientX};
@@ -109,17 +203,17 @@ export async function mountRaidPrepScene(host){
     renderer.setSize(width,height,false);
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure=1.18;
+    renderer.toneMappingExposure=.98;
     renderer.domElement.setAttribute('aria-hidden','true');
     host.appendChild(renderer.domElement);
     scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(42,width/height,.05,50);
     camera.position.set(.12,1.45,4.8);
     camera.lookAt(0,1.23,0);
-    const hemi=new THREE.HemisphereLight(0xbccbd8,0x252327,2.2);scene.add(hemi);
-    const key=new THREE.DirectionalLight(0xffd6a8,2.1);
+    const hemi=new THREE.HemisphereLight(0xc1c5d2,0x171e22,1.05);scene.add(hemi);
+    const key=new THREE.DirectionalLight(0xf5be95,1.8);
     key.position.set(-2,4,4);scene.add(key);
-    const rim=new THREE.DirectionalLight(0x88b3d5,2.2);
+    const rim=new THREE.DirectionalLight(0x98adcf,1.5);
     rim.position.set(3,3,-2);scene.add(rim);
     const floor=new THREE.Mesh(new THREE.CircleGeometry(1.0,32),new THREE.MeshBasicMaterial({color:0x050a0e,transparent:true,opacity:.22,depthWrite:false}));
     floor.rotation.x=-Math.PI/2;floor.position.set(0,.004,0);scene.add(floor);
@@ -127,8 +221,9 @@ export async function mountRaidPrepScene(host){
     operator=await loadHumanOperator();
     if(!host.isConnected||disposed){destroy();return null;}
     orbit.add(operator.root);
+    dressCinematicOperator(operator);
     stylizeWeapon(operator.weapon,host.dataset.weapon);
-    const bit=createBit();bit.position.set(.9,1.73,.07);
+    const bit=createBit();bit.scale.setScalar(.66);bit.position.set(-.93,1.79,.22);
     orbit.add(bit);
     // Keep the operator's visible hood in-frame and face visually obscured.
     // A light wrap on the face, attached to the Head rig, prevents source skin showing.
@@ -155,9 +250,9 @@ export async function mountRaidPrepScene(host){
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
       camera.aspect=w/h;
       // The operator stays centered even on short landscape phone viewports.
-      camera.position.z=Math.max(3.3,Math.min(5.0, 2.7 + (h/w)*3.15));
-      camera.position.y=1.43;
-      camera.lookAt(0,1.20,0);
+      camera.position.z=Math.max(3.14,Math.min(4.05, 2.65 + (h/w)*1.15));
+      camera.position.y=1.37;
+      camera.lookAt(0,1.22,0);
       camera.updateProjectionMatrix();
       renderer.setSize(w,h,false);
     };
@@ -173,7 +268,7 @@ export async function mountRaidPrepScene(host){
       const dt=previous?Math.min(.06,(t-previous)/1000):.016;previous=t;
       if(!reduced)operator.update(dt,{aiming:false,moving:false});
       orbit.rotation.y=yaw;
-      if(!reduced)bit.position.y=1.73+Math.sin((t-shownAt)*.0017)*.035;
+      if(!reduced)bit.position.y=1.79+Math.sin((t-shownAt)*.0017)*.026;
       renderer.render(scene,camera);
     };
     host.closest('.lobby-hero')?.classList.add('has-3d');
