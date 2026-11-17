@@ -1,6 +1,6 @@
 # Protocol Rebirth — Narrative Implementation Roadmap
 
-**Plan v0.2 — 17 November 2026**  
+**Plan v0.3 — 17 November 2026**  
 **Status:** Scoped implementation plan based on [High-Level Lore & Narrative Bible](world-lore-high-level.md). No game changes are approved or delivered merely by merging this document.  
 **Objective:** Prove that authored cinematics, mysterious world changes, and BIT's emotional presence make players want to return beyond loot/progression.
 
@@ -36,7 +36,8 @@ The currently established Core/death/Fabricator cinematic moments are **not new 
 - A missed weekly story event remains available without expiry. No forced chore loop or FOMO.
 - Existing BIT identity, the Operator's concealed face and Nordic summer-night art direction are non-negotiable.
 - **Never name the country:** No explicit national identity, recognizable real national flag, unit or agency name, identifying map, precise address, or confirming place label in any player-facing story, dialogue, collectible, subtitle, cinematic or narrative marketing copy.
-- **Approved narrative causality:** Underwater anomaly is first detected by anti-submarine hydrophones; the program grows from information reconstruction (A) into civilizational continuity and restart (C); the Incident results from a deliberately undertaken experiment known to be hazardous, with consequences the researchers did not anticipate. Resurrection of individuals (B) is not the project's official mission.
+- **Approved narrative causality:** An anti-submarine hydrophone and intelligence effort first aims to surveil and understand enemies. Researchers then recover apparently impossible views of events beyond any sensor's reach, expand into information reconstruction (A) and ultimately civilization continuity/restart (C). A deliberately undertaken, known-risk experiment triggers unforeseen consequences. Resurrection of individuals (B) is not the project's official mission.
+- **Approved BIT relationship:** Protector and Operator must develop a hard-won friendship: initial dependency, contradictory memories, near-rupture, compelled cooperation toward a shared goal, and an earned choice to trust. Never treat BIT's inaccurate memories as automatic proof of malicious intent.
 
 ## 3. Minimum viable narrative architecture
 
@@ -85,6 +86,20 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 - The director presents at most one optional world event at a safe return moment; others remain queued, not expired.
 - No account/server calendar or global shared event can be claimed for the current offline/local-save prototype.
 - Content release metadata can be added later if we need season-like sequencing; it must not create a login obligation.
+
+### BIT relationship and impossible-observation evidence contract
+
+Narrative content should track **three distinct axes of BIT reliability**:
+
+1. **Intent:** BIT genuinely tries to protect and help the Operator.
+2. **Factual memory:** His confident recollections can conflict with verifiable physical evidence or with each other; this is emotionally consequential, not merely a comedic malfunction.
+3. **Protective judgment / hidden constraints:** BIT may withhold information or act on instructions he only partly understands. Why and whether this is deliberate must be set privately before a specific betrayal is scripted.
+
+Author a progression of reunion → reliance → contradiction → serious rupture → forced joint objective → earned reconciliation. A strong ending is not BIT suddenly remembering everything: it is **BIT admitting uncertainty and respecting the Operator's decision**. Mutual dependency should be materially legible in the world and gameplay, but story must not remove earned gear or disable fair combat/extraction mechanics to force the conflict.
+
+For the scientific mystery, distinguish the *recorded evidence* from the *researcher's theory*. At least one apparently impossible historical observation should be **demonstrably testable through found in-world evidence**, while whether it is literal time-viewing remains unresolved. Avoid direct imitation of a named religious or historical event from a reference novel; author an original, intimate discovery in this world.
+
+This relationship arc spans multiple story milestones **beyond the first pilot**, not a sudden CIN-004 betrayal. The specifics of BIT's source memories, any deception, and late-game revelations remain writer-private design decisions.
 
 ## 4. Implementation plan — incremental PRs
 
@@ -160,11 +175,11 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 
 **Trigger:** Player investigates an existing plausible radio/communications site during a normal raid or returns with an appropriate piece of evidence. No random drop required for mandatory narrative knowledge.
 
-**Beat:** BIT recognizes a human voice but not the source. Player learns one concrete thing (for example, that the signal is being repeated by a real installation) while the larger mystery remains.
+**Beat:** BIT recognizes a human voice or recording but offers a recollection that does not perfectly fit independent evidence. The player confirms at least one concrete fact about the recording or the installation, while the apparent impossibility of what was observed remains unresolved. This is the **first crack** in BIT's reliability, not the full trust rupture.
 
 **DoD:** One active story lead, no new quest currency, discovery and evidence readable at phone scale, no unrecoverable story loss on failed extraction, and a satisfying connection back to CIN-003.
 
-**Narrative gate:** Do not reveal the identity of the speaker until the private World Truth establishes who it is.
+**Narrative gate:** Do not reveal the identity of the speaker until the private World Truth establishes who it is. Do not assume BIT is lying, omniscient or secretly antagonistic.
 
 ### PR N7 — Story cadence, QA and content authoring pipeline
 
@@ -174,7 +189,7 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 
 **DoD:** A new scene can be added by content data, shot assets and acceptance tests, without hardcoded new modal/raid logic. No weeklies, login streaks or backend dependency introduced.
 
-**Next scene proposals:** CIN-005 Beneath the Sea and CIN-006 Someone Answers, only after the World Truth and lighthouse mechanism are coherent enough to reward investigation.
+**Next scene proposals:** CIN-005 Beneath the Sea and CIN-006 Someone Answers, used to deepen impossible observation and BIT's competing recollections. Design later relationship beats for rupture, forced cooperation and earned trust only after the private truth can make the conflict causally convincing.
 
 ## 5. Concrete shot / asset backlog
 
@@ -183,7 +198,7 @@ For the initial static GitHub Pages build, story content ships as **normal game 
 | CIN-001 | Existing dark bunker discovery and approved CRT portrait | Damaged, underplayed, emotionally present | Reuse current finished sources |
 | CIN-002 | Three cinematic compositions of the actual northern summer-night Archipelago, pine/granite/coastline, distant lighthouse | Existing approved BIT or off-camera line; no generic new face | New dedicated art/3D camera pass needed |
 | CIN-003 | Remote radar island, mechanical wake-up, deserted communications room | Absent; the scene stands without him | New art and at least one visible playable-world consequence |
-| CIN-004 | Radio equipment/evidence plus short BIT memory reaction | Existing approved narrator bust/body | Script depends on World Truth decisions |
+| CIN-004 | Radio recording plus physical verification of one fact that contradicts BIT's confident recollection | Existing approved narrator bust/body | First trust crack only; does not reveal why BIT remembers differently |
 | CIN-005/006 | Deep sea and lighthouse behavior, coherent research infrastructure | Optional | Concept only; do not build final meaning prematurely |
 
 **Reference:** Landscape 19.5:9, 2532×1170 composition with safe text/character placement for 844×390. Match the existing game's shipped compression/art pipeline. The Operator's face is always hidden; BIT follows the canonical v3 design and existing approved narrator-art exceptions. Use minimal amber and restrained cyan; avoid neon, holograms, kawaii reinterpretation and winter atmosphere.
@@ -229,7 +244,8 @@ Each entry is a short content brief with:
 | Story loss | Long-absent player can encounter unseen scenes at safe opportunities without an autoplay marathon |
 | Visual coherence | Mobile safe areas, correct summer-night look, full-screen authored shot quality |
 | Unnamed setting | Player-facing narrative, art overlays, props, maps and captions never reveal the real nation or official identity |
-| Narrative causality | Evidence remains compatible with hydrophone discovery, information reconstruction evolving to civilizational continuity, and a deliberately risky experiment with unforeseen outcomes |
+| Narrative causality | Evidence remains compatible with military espionage, a verified but apparently impossible observation, information reconstruction evolving to civilizational continuity, and a deliberately risky experiment with unforeseen outcomes |
+| BIT trust relationship | An actual contradiction supports distrust, but BIT remains sympathetic; later forced cooperation restores trust through honesty, not perfect memory or a forced combat/gear penalty |
 | BIT identity | Use only locked face/body and approved narrator busts; no new facial geometry |
 | Accessibility | Readable captions with muted audio, keyboard/touch dismissal, reduced motion |
 | World consequence | After CIN-003, an ordinary later Archipelago raid exposes a visible/audible persistent state |
@@ -245,6 +261,7 @@ In an unprompted playtest, ask after the first Archipelago visit:
 - Can the player describe the lighthouse from memory without having been given a quest marker?
 - Do they wonder what happened in the world, and can they name a specific question?
 - Does BIT feel like a companion rather than a tutorial popup?
+- Does the player trust BIT's intentions? Do they independently trust the accuracy of his memories? Can they explain the difference?
 - Did the cinematic feel like a welcome interruption or an unwanted delay?
 - After an off-screen event, did they notice an actual change in the next environment?
 - Would they voluntarily return to discover more, even without a new reward?
@@ -257,7 +274,7 @@ Observe behavior as well as answers: second raid, voluntary exploration of relev
 
 **Needs a concrete art review:** CIN-002 wide reveal; CIN-003 radar shots and world-state asset; any new BIT depictions.
 
-**Needs World Truth before writing answers:** The signal's underlying origin and meaning; the mechanism, scope and unanticipated consequences of the deliberate experiment; why the lighthouse functions; the radio speaker; BIT's original instruction to wait; and Operator's history. The A-to-C purpose and known-risk decision are already settled. Keep late-game spoilers out of the public repository.
+**Needs World Truth before writing answers:** The exact nature of impossible observations (real past, reconstruction, etc.), the signal's origin and meaning, the mechanism and unforeseen consequences of the deliberate experiment, the lighthouse and radio speaker, the reason BIT remembers contradicting events, the specific trust-rupture cause, BIT's original instruction to wait, and Operator's history. The A-to-C purpose and known-risk decision are already settled. Keep late-game spoilers out of the public repository.
 
 **Coordination:** Grok is already developing broader BIT presence in the bunker. This roadmap must not replace that work, duplicate its cards or overwrite its art. Integrate with shipped shared components and the BIT-narrator rules.
 
@@ -265,4 +282,4 @@ Observe behavior as well as answers: second raid, voluntary exploration of relev
 
 ---
 
-**Recommended immediate next action:** Implement PR N1 against the latest shared cutscene system while story/AD creates the CIN-002/CIN-003 storyboards and world evidence aligned with the approved historic spine. Do not disclose the country or prematurely settle the experiment's hidden mechanism.
+**Recommended immediate next action:** Implement PR N1 against the existing shared cutscene system while story/AD creates the CIN-002/CIN-003 storyboards and first original, verifiable impossible-observation clue. Outline BIT's trust arc separately before scripting the rupture. Do not disclose the country or prematurely settle the experiment's hidden mechanism.
