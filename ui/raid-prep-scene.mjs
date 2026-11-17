@@ -3,7 +3,8 @@
  * Drag rotates the operator; gameplay animation must never cancel this yaw.
  */
 import * as THREE from '../nodspel/vendor/three.module.js';
-import {createMenuOperator,createMenuBit} from './raid-prep-models.mjs?v=2.28.46';
+import {createMenuBit} from './raid-prep-models.mjs?v=2.28.46';
+import {createOperatorHeroV3} from './raid-prep-operator-v3.mjs?v=2.28.46';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export async function mountRaidPrepScene(host){
@@ -87,7 +88,7 @@ export async function mountRaidPrepScene(host){
 
     orbit=new THREE.Group();orbit.name='touch-rotatable-operator';
     orbit.rotation.y=yaw;scene.add(orbit);
-    operator=createMenuOperator({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
+    operator=createOperatorHeroV3({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
     orbit.add(operator.root);
     // Genuine three-dimensional companion; its original approved smile is
     // rendered on the physical CRT face, never as a full-body billboard.
@@ -100,7 +101,7 @@ export async function mountRaidPrepScene(host){
     for(const [event,fn]of [['pointerdown',down],['pointermove',move],
       ['pointerup',up],['pointercancel',up],['keydown',key]])host.addEventListener(event,fn);
     host.style.touchAction='none';
-    host.dataset.menuModel='high';host.dataset.bit='3d';showYaw();
+    host.dataset.menuModel='hero-v3';host.dataset.bit='3d';showYaw();
     const fit=()=>{
       if(disposed||!host.isConnected)return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
