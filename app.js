@@ -14,6 +14,9 @@ const PROG  = D.progression;
 const TAL   = D.bitTalents;
 const APP_VERSION = "2.28.46"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
+// Read-only, in-memory test state for sharing a live Deploy preview from a PR.
+// Normal save files and the first-time user experience are never touched.
+const DEPLOY_PREVIEW = typeof location !== "undefined" && new URLSearchParams(location.search).get("preview") === "deploy";
 // v2.22.2 FTUE metrics (docs/ftue-design.md): local-only, no network. Written once for a brand-new
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
 // (same-origin localStorage) to timestamp the raid-side milestones.
@@ -91,7 +94,7 @@ function freshState(){
   D.modules.forEach(m => st.modules[m.id] = 0);
   return st;
 }
-function save(){ if(typeof resetting !== "undefined" && resetting) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function save(){ if(DEPLOY_PREVIEW || (typeof resetting !== "undefined" && resetting)) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 // Grants only run after the separate storage namespace has been installed.
 function debugMode(){ return window.PR_DEBUG && window.PR_DEBUG.mode; }
 function prepareDebugState(st){
@@ -5635,7 +5638,7 @@ window.A = {
     toast(d.title + " · +" + d.energy + " power");
     const o = document.getElementById("overlay"); if(o) o.remove();
     refresh();
-    maybeShowHandIn();
+    if(!DEPLOY_PREVIEW) maybeShowHandIn();
   },
   QUEST_TRACK(p){
     if(p && p.chain === "maintain"){ S.trackedQuest = "maintain"; act("QUEST_TRACK", { chain:"maintain", on:true }); refresh(); return; }
@@ -6310,9 +6313,19 @@ function mountLiteWater(host){
 // ?reset=1 confirmed -> storage cleared and page reloading, so skip booting the old state.
 if(typeof document !== "undefined" && document.getElementById("app") && !handleResetParam()){
   window.addEventListener('pageshow',()=>{session.raidNavigating=false;});
-  S = load();
+  S = DEPLOY_PREVIEW ? prepareDebugState(freshState()) : load();
+  if(DEPLOY_PREVIEW){
+    // Demo-only equipment and map unlocks. Never serialized to a player's save.
+    S.modules.rebirth_core = 3; S.modules.fabricator = 1;
+    S.baseState = "core_refined"; S.roomUnlocks.fabricator = true;
+    S.introSeen = true; S.raids = 3; S.beat = PROG.beats.length - 1;
+    S.area = "archipelago"; S.areaScouted = {archipelago:true};
+    S.stash = {...S.stash, smg_vector:1, scavenger_vest:1, medkit:2};
+    S.loadout = {weapon:"smg_vector",armor:"scavenger_vest",c1:"medkit",c2:null,tool:null};
+    S.bitCardsSeen = {core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};
+  }
   warmStoryArt();
-  const coreIngest = ingestPendingCoreResult(window.localStorage);
+  const coreIngest = DEPLOY_PREVIEW ? null : ingestPendingCoreResult(window.localStorage);
   // v2.22.2 direct path (docs/ftue-design.md): a fresh profile (cold open never shown yet, no raid
   // completed yet, and this isn't the return trip from that first raid) skips straight into the
   // FTUE raid once the splash finishes -- no cold open, no Core popup, no loadout screen. Any later
@@ -6322,7 +6335,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
   // Only profiles app.js created fresh (pr_ftue_v1 written by initFtueMetrics) are FTUE-eligible; an old
   // save that never dismissed the legacy intro keeps the legacy flow.
   let ftueTracked = false; try{ ftueTracked = window.localStorage.getItem(FTUE_KEY) !== null; }catch(e){}
-  const ftueDirect = ftueTracked && !S.introSeen && S.raids === 0 && !(coreIngest && coreIngest.ok);
+  const ftueDirect = !DEPLOY_PREVIEW && ftueTracked && !S.introSeen && S.raids === 0 && !(coreIngest && coreIngest.ok);
   { const ver = document.getElementById("app-version"); if(ver) ver.textContent = "v" + APP_VERSION; }
   if(DEBUG_AREAS) renderFtueDebug();
   tryBitImage();
@@ -6339,7 +6352,8 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     }
   }catch(e){ console.warn("start screen flight disabled:", e); }
   if(fabricatorPending() && !S.bitCardsSeen.fabricator_built) fabricatorCutsceneArtReady();
-  const splashCtl = setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok), ftueDirect);
+  const splashCtl = DEPLOY_PREVIEW ? null : setupSplash(!!(flightProfile && (flightProfile.water || flightProfile.lite)), !!(coreIngest && coreIngest.ok), ftueDirect);
+  if(DEPLOY_PREVIEW) document.getElementById("splash")?.remove();
   if(!S.log.length) log("SESSION_START", {});
   window.addEventListener("beforeunload", () => {
     const cu = closestUpgrade();
@@ -6390,7 +6404,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
     else A.startFtueDirect();
   } else {
-    session.screen = S.introSeen ? "base" : "intro";
+    session.screen = DEPLOY_PREVIEW ? "prep" : (S.introSeen ? "base" : "intro");
     refresh();
   }
   // v1.56: timers that finish while the app is open surface within ~15 s (toast + re-render, never mid-drag/popup).
@@ -6411,8 +6425,8 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
-  if(!coreIngest || !coreIngest.ok) maybeShowItemInfo();
-  if(S.introSeen){
+  if(!DEPLOY_PREVIEW && (!coreIngest || !coreIngest.ok)) maybeShowItemInfo();
+  if(S.introSeen && !DEPLOY_PREVIEW){
     tickRetention();
     const rows = morningRows();
     if(rows.length && !(coreIngest && coreIngest.ok)) A.showMorning(rows);
