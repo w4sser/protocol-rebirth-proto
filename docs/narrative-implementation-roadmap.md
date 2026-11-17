@@ -1,6 +1,6 @@
 # Protocol Rebirth — Narrative Implementation Roadmap
 
-**Plan v0.3 — 17 November 2026**  
+**Plan v0.4 — 17 November 2026**  
 **Status:** Scoped implementation plan based on [High-Level Lore & Narrative Bible](world-lore-high-level.md). No game changes are approved or delivered merely by merging this document.  
 **Objective:** Prove that authored cinematics, mysterious world changes, and BIT's emotional presence make players want to return beyond loot/progression.
 
@@ -37,7 +37,8 @@ The currently established Core/death/Fabricator cinematic moments are **not new 
 - Existing BIT identity, the Operator's concealed face and Nordic summer-night art direction are non-negotiable.
 - **Never name the country:** No explicit national identity, recognizable real national flag, unit or agency name, identifying map, precise address, or confirming place label in any player-facing story, dialogue, collectible, subtitle, cinematic or narrative marketing copy.
 - **Approved narrative causality:** An anti-submarine hydrophone and intelligence effort first aims to surveil and understand enemies. Researchers then recover apparently impossible views of events beyond any sensor's reach, expand into information reconstruction (A) and ultimately civilization continuity/restart (C). A deliberately undertaken, known-risk experiment triggers unforeseen consequences. Resurrection of individuals (B) is not the project's official mission.
-- **Approved BIT relationship:** Protector and Operator must develop a hard-won friendship: initial dependency, contradictory memories, near-rupture, compelled cooperation toward a shared goal, and an earned choice to trust. Never treat BIT's inaccurate memories as automatic proof of malicious intent.
+- **Approved BIT relationship:** Protector and Operator must develop a hard-won friendship: initial dependency, contradictory memories, near-rupture, compelled cooperation toward a shared goal, and an earned choice to trust. **Reserve the major rupture and forced-cooperation sequence for a later story arc**, not the early cinematic pilot. Never treat BIT's inaccurate memories as automatic proof of malicious intent.
+- **Historical recognition/anticipation:** Use iconic, recognizable world-history markers before telling the player the era; build toward an authored historical scene that demonstrates the impossible reach of the old observation technology. The player never needs external historical knowledge to advance or physically travels to the period. The playable setting's home country remains unnamed; other historical places may be named.
 
 ## 3. Minimum viable narrative architecture
 
@@ -100,6 +101,25 @@ Author a progression of reunion → reliance → contradiction → serious ruptu
 For the scientific mystery, distinguish the *recorded evidence* from the *researcher's theory*. At least one apparently impossible historical observation should be **demonstrably testable through found in-world evidence**, while whether it is literal time-viewing remains unresolved. Avoid direct imitation of a named religious or historical event from a reference novel; author an original, intimate discovery in this world.
 
 This relationship arc spans multiple story milestones **beyond the first pilot**, not a sudden CIN-004 betrayal. The specifics of BIT's source memories, any deception, and late-game revelations remain writer-private design decisions.
+
+### Historical Echoes — first playable narrative proof
+
+**Goal:** Recreate the "I know what era is coming, and I cannot wait to see it" feeling through recognizable history. The historic scene is the payoff; the unusual observation capability is the mystery that follows it.
+
+**Initial vertical-slice pitch: Rome, 80 CE** (subject to historical and art review):
+
+- **Beat H1: Fragment.** In an ordinary raid the player finds a piece of the old signal-reconstruction project. A safe, brief visual fragment contains Roman arches and a recognizable legion standard. No date or explanatory era caption yet; no new loot currency.
+- **Beat H2: Anticipation.** In the partially restored bunker archive, a second fragment includes the sound of a crowd, gladiatorial gear and a partial elliptical amphitheater silhouette. A player with historical knowledge can infer the Colosseum; no quiz, hard gate or completion bar is required.
+- **Beat H3: Reveal.** The existing cinematic player reveals a short, period-consistent reconstruction of the Colosseum games. It was opened in 80 CE; do not accidentally show structures or technology that belong to a later century. The final shot raises the larger question of how the researchers obtained observations unavailable to any ordinary instrument.
+- **Beat H4: Consequence.** The archive preserves the reconstruction, BIT has one restrained and uncertain response, and a new historically recognizable fragment can be discovered later. The revelation is a narrative milestone, not a grant of combat buffs or rewards.
+
+A limited archive surface may show **distant, evocative silhouettes** of later periods (for example ancient Egypt, the Moon landing or the fall of the Berlin Wall), enough to generate anticipation but not a mandatory list of history quests. The point is player-driven inference, not encyclopedic exposition.
+
+**Art/audio:** three approved stylized historical reconstruction plates or authored camera shots; iconic era cues, restrained sound and clear subtitles. Use the same overarching game's cinematic art discipline. Genuine known history should be researched and accurate; do not reuse historical footage or copyrighted dialogue without rights review.
+
+**Narrative proof:** Each historic observation must also show what the researchers *believed* they were observing and one concrete reason the observation is impossible or meaningfully verifiable. Keep the ultimate nature of the phenomenon open.
+
+**Trust-arc timing:** First memory inconsistencies can appear near the historical archive; the major BIT betrayal/near-rupture, forced mutual dependence and earned reconciliation are **future story milestones** requiring a separate storyboard. Do not place the entire friendship arc in this initial historical proof-of-concept.
 
 ## 4. Implementation plan — incremental PRs
 
@@ -191,6 +211,16 @@ This relationship arc spans multiple story milestones **beyond the first pilot**
 
 **Next scene proposals:** CIN-005 Beneath the Sea and CIN-006 Someone Answers, used to deepen impossible observation and BIT's competing recollections. Design later relationship beats for rupture, forced cooperation and earned trust only after the private truth can make the conflict causally convincing.
 
+### PR N8 — Historical Echoes: first recognizable-history reveal
+
+**Scope:** A single authored three-stage historical observation, not time travel, a new combat level or a full historical era system.
+
+**Tasks:** Choose one universally legible event with source-backed art accuracy; produce one partial clue in an existing raid, one anticipation moment in the bunker, and one cinematic reveal using the shared scene player. Connect the reveal to the signal research. Integrate optional archive replay, per-profile viewed state and safe trigger policies.
+
+**DoD:** Unprompted playtesters can infer the historical era from clues before the game names it; players unfamiliar with it still understand the scene. The reveal demonstrates why the original researchers were astonished. No added currencies/mandatory collectibles, interrupted combat, historical inaccuracies, or unexpected country identification. Full QA/CI applies before merging.
+
+**Dependency:** N1/N2 cinematic infrastructure and sufficient approved historical storyboard art. Keep the later BIT trust rupture outside this slice.
+
 ## 5. Concrete shot / asset backlog
 
 | Event | Required asset direction | BIT | Reality check |
@@ -200,6 +230,7 @@ This relationship arc spans multiple story milestones **beyond the first pilot**
 | CIN-003 | Remote radar island, mechanical wake-up, deserted communications room | Absent; the scene stands without him | New art and at least one visible playable-world consequence |
 | CIN-004 | Radio recording plus physical verification of one fact that contradicts BIT's confident recollection | Existing approved narrator bust/body | First trust crack only; does not reveal why BIT remembers differently |
 | CIN-005/006 | Deep sea and lighthouse behavior, coherent research infrastructure | Optional | Concept only; do not build final meaning prematurely |
+| Historical Echo pilot (candidate: Rome, 80 CE) | Roman clues and a period-consistent Colosseum reveal, authored in the game's visual language | Short reaction only; not the trust rupture | Historical source review and final impossible-observation clue needed |
 
 **Reference:** Landscape 19.5:9, 2532×1170 composition with safe text/character placement for 844×390. Match the existing game's shipped compression/art pipeline. The Operator's face is always hidden; BIT follows the canonical v3 design and existing approved narrator-art exceptions. Use minimal amber and restrained cyan; avoid neon, holograms, kawaii reinterpretation and winter atmosphere.
 
@@ -246,6 +277,7 @@ Each entry is a short content brief with:
 | Unnamed setting | Player-facing narrative, art overlays, props, maps and captions never reveal the real nation or official identity |
 | Narrative causality | Evidence remains compatible with military espionage, a verified but apparently impossible observation, information reconstruction evolving to civilizational continuity, and a deliberately risky experiment with unforeseen outcomes |
 | BIT trust relationship | An actual contradiction supports distrust, but BIT remains sympathetic; later forced cooperation restores trust through honesty, not perfect memory or a forced combat/gear penalty |
+| Historical recognition | Players can identify the era before the reveal without being told; players without prior knowledge remain included and do not face knowledge gates or a historical-combat world switch |
 | BIT identity | Use only locked face/body and approved narrator busts; no new facial geometry |
 | Accessibility | Readable captions with muted audio, keyboard/touch dismissal, reduced motion |
 | World consequence | After CIN-003, an ordinary later Archipelago raid exposes a visible/audible persistent state |
@@ -262,6 +294,7 @@ In an unprompted playtest, ask after the first Archipelago visit:
 - Do they wonder what happened in the world, and can they name a specific question?
 - Does BIT feel like a companion rather than a tutorial popup?
 - Does the player trust BIT's intentions? Do they independently trust the accuracy of his memories? Can they explain the difference?
+- From the partial historical evidence, can players predict the next reveal? Do they feel rewarded for recognizing the period, and can unfamiliar players still enjoy it?
 - Did the cinematic feel like a welcome interruption or an unwanted delay?
 - After an off-screen event, did they notice an actual change in the next environment?
 - Would they voluntarily return to discover more, even without a new reward?
@@ -282,4 +315,4 @@ Observe behavior as well as answers: second raid, voluntary exploration of relev
 
 ---
 
-**Recommended immediate next action:** Implement PR N1 against the existing shared cutscene system while story/AD creates the CIN-002/CIN-003 storyboards and first original, verifiable impossible-observation clue. Outline BIT's trust arc separately before scripting the rupture. Do not disclose the country or prematurely settle the experiment's hidden mechanism.
+**Recommended immediate next action:** Continue N1/N2 against the existing shared cutscene system, and make a three-shot historical-reveal storyboard (candidate: Rome, 80 CE) to test recognition → anticipation → revelation. Keep the BIT near-rupture as a later arc. Do not name the playable setting's country or settle the experiment's hidden mechanism.
