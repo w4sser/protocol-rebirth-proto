@@ -1,9 +1,9 @@
 # Protocol Rebirth — High-Level Lore & Narrative Bible
 
-**Working narrative canon v0.2 — 17 November 2026**  
+**Working narrative canon v0.3 — 17 November 2026**  
 **Owner:** Robert / Wild Labs  
 **Purpose:** A shared high-level story foundation for design, writing, art, audio, production and game implementation.  
-**Approval boundary:** The tone, pillars and BIT relationship remain agreed direction. The unnamed-country rule, detection through anti-submarine hydrophones, progression from information reconstruction to civilization continuity (A to C), and deliberately conducted, known-risk experiment are **owner-locked canon**. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
+**Approval boundary:** The tone, pillars, BIT's earned-trust relationship arc, unnamed-country rule, anti-submarine intelligence origin, progression from impossible observation and information reconstruction to civilization continuity (A to C), and deliberately conducted, known-risk experiment are **owner-approved direction**. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
 
 > An endless world to explore. A mystery waiting to be understood. And a little companion who never stopped waiting for you.
 
@@ -27,10 +27,11 @@ The third reason matters: players are not only returning to an activity or progr
 | --- | --- | --- |
 | Unnamed northern island world, bunkers, sea, pine, granite and Nordic summer twilight | **Established** | Beautiful, recognizable and physically grounded; no generic frozen apocalypse, neon cyberpunk or permanent horror gloom |
 | A ruined, once-human world with abandoned communities and Cold War-style installations | **Established direction** | Places show practical lives interrupted; not every surviving trace is sinister |
-| Protocol Rebirth: information reconstruction expands into civilizational continuity | **Owner-locked** | Starts by reconstructing lost information (A), evolves toward preserving and restarting civilization (C); individual resurrection (B) is not its official purpose |
+| Protocol Rebirth: espionage and impossible observation grow into civilizational continuity | **Owner-approved direction** | Starts as an effort to detect, intercept and understand enemies; discovers apparently inaccessible historical/remote information (A); evolves toward preserving and restarting civilization (C). Resurrection of individuals (B) is not its official mission |
 | A deliberate, high-risk experiment causes the Incident | **Owner-locked** | Researchers knew they were taking a serious risk but did not anticipate these specific consequences. Mechanism, scope, victims and outcomes remain open |
 | An anomalous underwater signal detected by military hydrophones during anti-submarine operations | **Owner-locked discovery path** | Initially investigated as a naval security/intelligence anomaly, not as the supernatural; the signal's origin, meaning and underlying physics are not yet settled |
 | BIT has fragmentary, sometimes unreliable memories and a bond with Operator | **Established direction** | BIT is sincere but incomplete; never turn him into an expositional answer machine |
+| BIT and Operator earn a genuine friendship through a trust crisis | **Owner-approved relationship structure** | BIT starts as protector; contradictions undermine trust; the two nearly break and must cooperate toward a shared goal; what BIT remembers versus what actually happened is central to the conflict |
 | The lighthouse, distant installations, underwater phenomena and interrupted transmissions | **Established as candidate mystery motifs** | Individual scenes and their factual answers are proposed until accepted |
 | The supernatural/existential dimension has one definitive religious, scientific or simulation answer | **Deliberately not established** | Players can interpret the deeper meaning differently |
 | Operator identity, exact passage of time and what happened during their absence | **Open** | Preserve the unknown until the story team has a coherent internal answer |
@@ -48,18 +49,29 @@ Use **Established**, **Working hypothesis**, **Open**, and **Intentionally ambig
 
 The world is not a static quest board. A distant structure can wake, a signal can return, or an old route can change while the Operator is elsewhere. Meaningful events leave visible, persistent consequences.
 
-## 4. Historical spine — approved direction, unknown detailed consequences
+## 4. Historical spine — owner-approved intent, open mechanisms
 
-This high-level sequence is **owner-approved**. It establishes institutional history without deciding the mechanics of the anomaly or the exact disaster.
+The institutions' motivation and emotional trajectory are agreed; the literal truth of the phenomenon and the Incident is not.
 
-1. **Detection — anti-submarine hydrophones.** A coastal military underwater listening network, operated to detect suspected submarines, intercepts a recurring signal that does not fit known contacts. Intelligence analysts initially investigate it as a defense problem, not as evidence of anything supernatural.
-2. **A — reconstruct lost information.** A classified research effort attempts to recover and reconstruct otherwise inaccessible information from the phenomenon. Its first goal is practical and technical, not the resurrection of individuals. What the signal actually contains and how recovery works is not yet decided.
-3. **C — preserve civilization.** The project evolves into a much larger civilizational continuity initiative: preserving knowledge, critical systems, cultural records and the capability to rebuild society after a collapse. This expansion is gradual. **Do not insert B (bringing individual people back to life) as the official intermediate project goal.**
-4. **The deliberate experiment.** Researchers intentionally proceed with an experiment despite knowing it presents serious risks. They believe the danger is sufficiently understood or manageable to proceed, but **they do not foresee the actual kind or scale of its consequences**. They are responsible for making a risky decision; they did not intend the resulting catastrophe.
-5. **The Incident and aftermath.** The experiment causes the catastrophe and leaves the region changed and depopulated, with remnants of autonomous infrastructure still running. The physical mechanism, extent, timescale and human cost remain undecided and must live in a private World Truth before any final revelation.
-6. **Return and discovery.** The Operator eventually returns; damaged BIT recognises them after the first raid. The bunker, islands and dormant surveillance network contain partial evidence, rather than an immediate lore dump.
+1. **Military intelligence.** A coastal hydrophone network is deployed to detect suspected enemy submarines. The first researchers want better surveillance: intercept communications, decode unfamiliar signals, understand an opponent's movements and intentions.
+2. **The impossible observation.** Analysis reveals more than military intelligence. The same phenomenon appears to let investigators **see or reconstruct events no available sensor could have observed** — potentially inaccessible places or moments from the distant past. The first undeniable demonstration must be grounded in a concrete, verifiable detail; do not rely solely on characters announcing that it is impossible.
+3. **A — reconstruction of lost information.** The classified project shifts from listening to opponents to recovering information presumed gone forever. Scientists begin asking whether recorded history and human knowledge could be reconstructed. They do **not yet know** whether these are genuine views of the past, extraordinary inference, fragments of memory or something else.
+4. **C — civilization continuity.** The wider possibility transforms the mission: preserve knowledge, cultural records, critical systems and the capacity to restore civilization after collapse. The scope of ambition is what changes; resurrection of specific individuals (B) is not the program's official intermediate goal.
+5. **The deliberate experiment.** The team chooses to attempt an active experiment with the phenomenon, despite recognizing it is dangerous. They believe the hazard is sufficiently manageable, but fail to predict the **nature and scale** of what follows. The experiment triggers the Incident; catastrophe is not what they intended.
+6. **The aftermath.** The region is radically altered and depopulated, while fragments of infrastructure persist. The precise mechanism, extent, timeline and human fate remain writer-private open decisions.
+7. **The return.** The Operator eventually returns. Damaged BIT recognizes them after the first raid, but his testimony becomes less secure as the Operator finds evidence of what happened.
 
-**Important boundary:** The science-fiction cause can eventually be explainable without resolving the deeper human/existential meaning of memory, death, loyalty and connection. Nothing above confirms that the technology can restore a person.
+### The impossible observation — narrative design boundary
+
+We want the player to feel the disturbing wonder of witnessing a real human moment from a time or place that nobody should have been able to see. A mundane, verifiable detail is stronger than a vague paranormal image: for example, a recovered image shows someone hiding an object in a room before surveillance existed; the object can later be found in that place. **This is an illustrative story device, not an approved specific scene or proof of time travel.**
+
+Separate three things throughout the story:
+
+- **What the instruments visibly produce:** the phenomenon can apparently reconstruct inaccessible human events, not merely intercept current audio.
+- **What the researchers believe:** they are observing true events and can therefore recover knowledge that should be lost.
+- **What the audience can finally prove:** left open until the private World Truth is decided. The signal may be genuine history, an imperfect reconstruction or a more unsettling mechanism.
+
+**Important boundary:** Technological causality can become intelligible without settling existential questions about consciousness, loss and connection. Nothing here establishes that people can be resurrected. Do not expose the country's real identity in any evidence or dialogue.
 
 ### Unnamed-country rule — owner-locked
 
@@ -91,6 +103,24 @@ This does not mean relocating the story to a named fictional nation. The landsca
 - The Operator is an adult, hooded and visually anonymous character. Do not reveal the face in cinematics or casually settle personal identity.
 
 BIT's face and body are controlled by the approved visual master and approved narrator artwork; expressive animation uses restrained body motion and established visual assets, not novel kawaii facial geometry.
+
+### BIT and Operator — earned friendship through a rupture
+
+**Relationship promise:** BIT is the Operator's protector, but protection and trust are not synonymous. His **intentions**, **memories** and **instructions/limitations** are three separate things. Players may trust his care before they trust his facts. An unreliable recollection can put the Operator in danger even if BIT never intended harm.
+
+| Phase | Relationship beat | Player feeling |
+| --- | --- | --- |
+| **1. Reunion** | Damaged BIT remembers and cares about the returning Operator; he helps in small, consistent ways | "Someone waited for me" |
+| **2. Dependence** | Guidance and mutual survival build a bond. BIT is useful, vulnerable and more than a tutorial voice | "I need him, and he needs me" |
+| **3. Contradictions** | A confident BIT memory conflicts with physical evidence or an impossible recording. He can be sincerely wrong | "What else has he got wrong?" |
+| **4. Rupture** | An action or withheld truth meant to protect the Operator leads to a serious breach of trust. Both have understandable reasons, not a manufactured villain turn | "Can I afford to believe him?" |
+| **5. Forced cooperation** | To reach a shared, tangible objective, they must act together despite unresolved mistrust; each can do what the other cannot | "I have to rely on him even now" |
+| **6. Earned choice** | BIT accepts uncertainty, discloses what he does not know and chooses to support the Operator's informed decision even when it conflicts with a protective impulse | "He may be wrong, but he won't take my choice away" |
+
+**The conflict must be dramatized, not explained in a monologue.** Example direction only: BIT confidently remembers that a sealed route is safe; evidence points elsewhere, and the Operator realizes BIT has concealed or misinterpreted something consequential. A later joint action proves he will help even when he cannot guarantee safety. The precise betrayal, identity of the memory and cause of its unreliability are **not yet canon**.
+
+**Design guardrails:** No compulsory loss of valuable gear, untelegraphed death, unfair raid failure or permanent withdrawal of core BIT abilities merely to manufacture drama. Show the rupture in safe scenes and consequential but fair gameplay choices. Preserve player agency: the Operator may distrust BIT and still choose to collaborate. Successful resolution earns **trust in honesty and intent**, not an omniscient, error-free companion. The relationship may continue evolving after the first reconciliation.
+
 
 ## 7. Themes and interpretation
 
@@ -127,15 +157,15 @@ Unseen authored story events remain available until the player reaches a safe, e
 | **CIN-001: The Awakening** | Damaged BIT meets Operator inside the bunker after the first successful direct raid | Form the bond and pose the first personal question | Existing intro/cold-open foundation |
 | **CIN-002: The World Beyond** | First earned Archipelago deployment reveals the coastline, countless islands and distant lighthouse | Awe and the first large world question | Proposed new scene |
 | **CIN-003: The Listening Station** | On a distant island, a dormant radar installation starts without Operator present | Prove the world changes independently | Proposed new off-screen event |
-| **CIN-004: The Voice** | A fragmented human voice causes BIT to remember something but not whom | Personal mystery intersects the world mystery | Concept only |
-| **CIN-005: Beneath the Sea** | An enigmatic pattern activates under the water | Expand scale; suggest hidden infrastructure or phenomenon | Concept only; physical interpretation open |
-| **CIN-006: Someone Answers** | The lighthouse behaves in a way not explained by its known automation | Reward earlier attention; open a bigger question | Concept only |
+| **CIN-004: The Voice** | A fragmented human voice recalls an event BIT remembers differently than the physical evidence suggests | First crack in the reliability of BIT's recollection | Concept only; do not reveal why memory differs |
+| **CIN-005: Beneath the Sea** | An enigmatic pattern activates under the water, revealing traces of a system built to observe more than enemy vessels | Hint at impossible observation and the program's escalating ambition | Concept only; physical interpretation open |
+| **CIN-006: Someone Answers** | The lighthouse behaves in a way not explained by its known automation; BIT may offer a confident, contestable account | Reward earlier attention and build toward the later trust fracture | Concept only |
 
 These are narrative units, **not six required weekly quests**. The order beyond the opening is flexible; exact trigger conditions and art are implementation decisions.
 
 ## 10. Writer's evidence contract
 
-For each mystery, maintain five fields in the later private World Truth: **what actually happened**, **what people in the world believed**, **what evidence the player can find**, **what BIT currently thinks**, and **what remains interpretively open**.
+For each mystery, maintain five fields in the later private World Truth: **what actually happened**, **what people in the world believed**, **what evidence the player can find**, **what BIT currently thinks**, and **what remains interpretively open**. Separately track whether BIT's claims come from direct observation, damaged memory, an inference, or a protective decision. Do not make him knowingly deceptive simply because a plot twist needs it.
 
 Every scene also needs a useful payoff: a character shift, an answer, a discovery or a persistent change. An ominous image without development is not enough. Early clues can reveal hydrophone recordings, information-reconstruction work, an expanding continuity mandate and experiment safety warnings without spoiling what the experiment ultimately did.
 
@@ -143,9 +173,9 @@ Every scene also needs a useful payoff: a character shift, an answer, a discover
 
 A separate **private** writer's World Truth must settle factual causality without revealing it prematurely in the public prototype repository:
 
-1. How did the approved information-recovery mission (A) expand into civilizational continuity (C), and what exact technologies were developed along the way?
+1. What first impossible event did the military intelligence researchers reconstruct, how was it verified, and how did that lead from espionage through information recovery (A) to civilizational continuity (C)?
 2. What did the researchers knowingly risk in their deliberate experiment, and what unforeseen consequences actually followed?
-3. What is BIT's actual origin, and what can he know or misremember?
+3. What is BIT's actual origin, what causes his conflicting memories, and what specific event creates the serious trust rupture?
 4. What is Operator's factual relationship to BIT, the facilities and the long absence?
 5. What technical truth explains the lighthouse, radio network and distant facilities?
 6. Which layer remains intentionally ambiguous even to the ending?
