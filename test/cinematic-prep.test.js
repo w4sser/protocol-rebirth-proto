@@ -38,9 +38,10 @@ const styles=fs.readFileSync(path+'/ui/raid-prep.css','utf8');
 assert(styles.includes('body[data-screen="prep"] #tabs{display:none!important}'),'bottom tabs hidden on prep only');
 assert(styles.includes('raid-prep-bunker.avif'),'authored bunker threshold background is used');
 assert(!styles.includes('env_base.webp'),'base overview map no longer appears on Deploy');
+assert(styles.includes('raid-prep-operator.avif'),'fallback is the hooded faceless scavenger, not the gameplay placeholder');
 assert(styles.includes('raid-prep-archipelago.avif'),'Archipelago card is an in-world location preview');
 assert(!styles.includes('splash_archipelago_radar_lighthouse.webp'),'destination card must not use a branded promo banner');
-for(const asset of ['raid-prep-bunker.avif','raid-prep-archipelago.avif'])
+for(const asset of ['raid-prep-bunker.avif','raid-prep-archipelago.avif','raid-prep-operator.avif'])
   assert(fs.statSync(path+'/assets/production/'+asset).size>2000,asset+' exists and has image bytes');
 const viewer=fs.readFileSync(path+'/ui/raid-prep-scene.mjs','utf8');
 assert(viewer.includes('loadHumanOperator()'),'scene reuses gameplay GLB and animations');
