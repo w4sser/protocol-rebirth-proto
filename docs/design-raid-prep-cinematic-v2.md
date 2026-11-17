@@ -22,6 +22,7 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 
 - `assets/production/raid-prep-bunker.avif`: optimized full-bleed bunker doorway / summer archipelago backdrop (no characters, no UI).
 - `assets/production/raid-prep-archipelago.avif`: environment-only destination crop (no branding).
+- `assets/production/raid-prep-operator.avif`: hooded faceless operator portrait for low-quality/WebGL fallback.
 - `ui/raid-prep.css`: background framing, proper loadout/heading visibility, destination image and phone-landscape layout.
 - `ui/raid-prep-scene.mjs`: existing GLB and idle animation, shadowed hood and mask, close-up-only jacket/coat/armor silhouette, smaller offset BIT, controlled lighting, interactive rotation.
 - `test/cinematic-prep.test.js`: structural and art-direction safeguards.
