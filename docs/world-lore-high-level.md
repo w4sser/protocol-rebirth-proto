@@ -1,9 +1,9 @@
 # Protocol Rebirth — High-Level Lore & Narrative Bible
 
-**Working narrative canon v0.3 — 17 November 2026**  
+**Working narrative canon v0.4 — 17 November 2026**  
 **Owner:** Robert / Wild Labs  
 **Purpose:** A shared high-level story foundation for design, writing, art, audio, production and game implementation.  
-**Approval boundary:** The tone, pillars, BIT's earned-trust relationship arc, unnamed-country rule, anti-submarine intelligence origin, progression from impossible observation and information reconstruction to civilization continuity (A to C), and deliberately conducted, known-risk experiment are **owner-approved direction**. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
+**Approval boundary:** The tone, pillars, BIT's eventual earned-trust relationship arc, unnamed home-country rule, anti-submarine intelligence origin, progression from impossible observation and information reconstruction to civilization continuity (A to C), deliberate known-risk experiment, and **recognizable world history as the player's discovery/anticipation engine** are **owner-approved direction**. Exact historical scenes and mechanics are proposals until selected. Exact physics, consequences, character identities and ultimate answers remain **open**; protect late-game reveals in a private writing source.
 
 > An endless world to explore. A mystery waiting to be understood. And a little companion who never stopped waiting for you.
 
@@ -35,7 +35,7 @@ The third reason matters: players are not only returning to an activity or progr
 | The lighthouse, distant installations, underwater phenomena and interrupted transmissions | **Established as candidate mystery motifs** | Individual scenes and their factual answers are proposed until accepted |
 | The supernatural/existential dimension has one definitive religious, scientific or simulation answer | **Deliberately not established** | Players can interpret the deeper meaning differently |
 | Operator identity, exact passage of time and what happened during their absence | **Open** | Preserve the unknown until the story team has a coherent internal answer |
-| The country's name and real-world national identity | **Owner-locked: never disclose** | No explicit country name, recognisable national flags, real agency names, identifying cartography or postal references in any shipped dialogue, subtitle, document, map, or cinematic |
+| The setting's country name and real-world national identity | **Owner-locked: never disclose** | Never identify the country in which the Operator's bunker and raids take place. Other historical locations, civilizations and eras may be named in reconstructed history; they must not reveal the setting's country |
 
 Use **Established**, **Working hypothesis**, **Open**, and **Intentionally ambiguous** in future narrative decisions. Do not silently promote a hypothesis to canon.
 
@@ -73,9 +73,27 @@ Separate three things throughout the story:
 
 **Important boundary:** Technological causality can become intelligible without settling existential questions about consciousness, loss and connection. Nothing here establishes that people can be resurrected. Do not expose the country's real identity in any evidence or dialogue.
 
+### Historical Echoes — recognition, anticipation, revelation
+
+**Owner-approved creative principle:** The player should recognize familiar real historical periods and events *before the game names them*. Their existing knowledge creates anticipation and the satisfying feeling of having worked out the reveal. Think of a recognizable next era as a landmark to look forward to, **not a history lesson or quiz**.
+
+**Three-stage story grammar:**
+
+1. **Recognition:** A partial, in-world signal reconstruction shows iconic, historically accurate clues — material, architecture, sounds, clothing, engineering and practices — without captions naming the period. Players who know the subject may identify it immediately; others still see an intriguing image.
+2. **Anticipation:** A following fragment increases specificity, showing a landmark or the setup to an event. The player begins looking forward to witnessing it. A visually legible archive preview may suggest which era can be reconstructed next, but must not become a timed reward, progress currency or forced collection checklist.
+3. **Revelation:** A short, authored cinematic finally confirms the player's guess and delivers an emotionally striking view of an event or place they already know. Then it reveals a **new narrative question**: how could the early researchers have observed this, and what did they actually learn?
+
+**Candidate historical anchors — not locked production scenes:** Egyptian pyramid construction; Roman arches, legions, aqueducts and a fully realized Colosseum at the opening of its games (80 CE); the first human Moon landing (1969); the fall of the Berlin Wall (1989). All scenes require historical review, period-consistent art, and respectful portrayal. Do not collapse mutually incompatible centuries into one composite event. Widely recognizable historical references from different parts of the world are preferable to a narrow, exclusively European canon. Major religious or contested history requires particularly careful handling; familiar icons should never be used merely as shock value.
+
+**Illustrative pilot: Rome, 80 CE.** The first recovered recording reveals an arch-lined road and a legion standard. A later reconstruction adds arena sounds, gladiatorial equipment and glimpses of an enormous elliptical building. Only on the third beat does the camera reveal the Colosseum in use. A final detail of the observation suggests that no ordinary witness or contemporary instrument could have recorded this view. The precise "impossible" evidence and how it is verified must be authored, not hand-waved. This sequence is a **pitch**, not approved shipped content.
+
+**Why these glimpses exist:** They are outputs from the old observation/reconstruction research, found via the Operator's present-day raids and restored bunker equipment. **They do not imply that the player physically travels in time or fights historical soldiers.** The combat world remains the unnamed coastal setting. Every major historic reveal must advance the mystery about the research, the signal, and eventually the Incident, rather than becoming an unrelated museum montage.
+
+**Make players feel clever without excluding them:** Let clues precede labels, allow optional contextual details after the payoff, never require outside historical knowledge to progress, and do not have BIT immediately explain the reveal. The narrative beats can be viewed on mute and replayed without resetting earned progress.
+
 ### Unnamed-country rule — owner-locked
 
-**Never identify the country within the fiction.** Place and history should feel specific through natural landscapes, coastal-defense installations, hydrophone systems, old technology and local architecture, but no script, collectible, map, UI label, sign, national symbol, fictional news report or narrative marketing copy may explicitly name or conclusively identify the country. Avoid exact real-world geographic coordinates, recognizable unit insignia, official agency names and flags.
+**Never identify the country of the playable bunker/archipelago within the fiction.** Place and history should feel specific through natural landscapes, coastal-defense installations, hydrophone systems, old technology and local architecture, but no script, collectible, map, UI label, sign, national symbol, fictional news report or narrative marketing copy may explicitly name or conclusively identify **that country**. This does not prohibit naming other historical places such as Rome or events elsewhere in the world when the research technology reconstructs them. Avoid exact real-world geographic coordinates, recognizable unit insignia, official agency names and flags.
 
 This does not mean relocating the story to a named fictional nation. The landscape remains unmistakably grounded, while the national label stays absent. Art reference documents may discuss regional influences, but shipped narrative content must not.
 
@@ -116,6 +134,8 @@ BIT's face and body are controlled by the approved visual master and approved na
 | **4. Rupture** | An action or withheld truth meant to protect the Operator leads to a serious breach of trust. Both have understandable reasons, not a manufactured villain turn | "Can I afford to believe him?" |
 | **5. Forced cooperation** | To reach a shared, tangible objective, they must act together despite unresolved mistrust; each can do what the other cannot | "I have to rely on him even now" |
 | **6. Earned choice** | BIT accepts uncertainty, discloses what he does not know and chooses to support the Operator's informed decision even when it conflicts with a protective impulse | "He may be wrong, but he won't take my choice away" |
+
+**Long-term story arc, not an early pilot event:** The near-breakup and forced-cooperation scene belongs in later narrative development, after the player genuinely relies on BIT. Seed subtle, fair memory contradictions earlier; save the serious rupture and reconciliation until there is enough shared history for it to matter.
 
 **The conflict must be dramatized, not explained in a monologue.** Example direction only: BIT confidently remembers that a sealed route is safe; evidence points elsewhere, and the Operator realizes BIT has concealed or misinterpreted something consequential. A later joint action proves he will help even when he cannot guarantee safety. The precise betrayal, identity of the memory and cause of its unreliability are **not yet canon**.
 
@@ -175,7 +195,7 @@ A separate **private** writer's World Truth must settle factual causality withou
 
 1. What first impossible event did the military intelligence researchers reconstruct, how was it verified, and how did that lead from espionage through information recovery (A) to civilizational continuity (C)?
 2. What did the researchers knowingly risk in their deliberate experiment, and what unforeseen consequences actually followed?
-3. What is BIT's actual origin, what causes his conflicting memories, and what specific event creates the serious trust rupture?
+3. What is BIT's actual origin, what causes his conflicting memories, and what specific **later** event creates the serious trust rupture?
 4. What is Operator's factual relationship to BIT, the facilities and the long absence?
 5. What technical truth explains the lighthouse, radio network and distant facilities?
 6. Which layer remains intentionally ambiguous even to the ending?
