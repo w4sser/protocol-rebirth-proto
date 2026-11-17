@@ -24,7 +24,8 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 - `assets/production/raid-prep-archipelago.avif`: environment-only destination crop (no branding).
 - `assets/production/raid-prep-operator.avif`: hooded faceless operator portrait for low-quality/WebGL fallback.
 - `ui/raid-prep.css`: background framing, proper loadout/heading visibility, destination image and phone-landscape layout.
-- `ui/raid-prep-models.mjs`: dedicated high-detail Three.js geometry and procedural fabric for the operator (independent of the gameplay GLB); physical CRT companion BIT using `assets/bit-face-master-v3.svg` as its display texture, with a geometric face fallback.
+- `ui/raid-prep-operator-v3.mjs`: new sculpted menu-only 3D character model. Cloth-textured anatomical limbs, asymmetrical cloak, angular hood with a recessed face void, tactical rig, gloves, reinforced boots, and a modeled weapon. Independent of gameplay's low-resolution GLB.
+- `ui/raid-prep-models.mjs`: physical CRT companion BIT using `assets/bit-face-master-v3.svg` as its screen texture, with a geometric face fallback.
 - `ui/raid-prep-scene.mjs`: camera, iPhone touch/pointer capture, operator yaw rotation, companion idle, high-DPR rendering, lights and resource disposal.
 - `scripts/layout-check.mjs`: real browser rotation smoke test in landscape.
 - `test/cinematic-prep.test.js`: structural and art-direction safeguards.
@@ -40,3 +41,17 @@ The user-approved cinematic Deploy mockup from the Protocol Rebirth conversation
 7. Run the full existing `npm test`, `cd nodspel && npm test`, and visual layout CI before merge.
 
 **Art review is required before merging**; technical CI success alone does not establish visual parity.
+
+## Character-focused iteration (v3)
+
+Owner feedback on the first rotatable version: the mannequin-like round limbs, large tubular hood, symmetrical gear and rectangular gun still failed art direction. Fix the **character asset**, do not keep restyling the Deploy UI.
+
+The new operator:
+- is genuine 3D geometry with 360-degree rotation (not a painted card);
+- uses smooth custom volumetric clothing meshes with external-facing normals, stitched folds and fabric microtexture;
+- has an actual cloth hood crown, folded side flaps, a dark recessed face void and wrapped lower face — no head or skin;
+- has a strong asymmetrical cloak, padded load-bearing vest, weathered cargo pockets, layered leg protections, gloved hands, structured boots and a modelled diagonal rifle;
+- keeps the physical 3D BIT and the owner-approved face master as-is;
+- uses the existing menu-only Three.js rendering system without changing Node Raid assets.
+
+Acceptance: judge the real landscape screenshot from the browser job against the approved hi-res reference, especially the hood outline, rifle hold and lower-body proportions. A green automated test confirms technical behavior but does not certify visual parity.
