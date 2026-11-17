@@ -44,10 +44,32 @@ assert(!styles.includes('splash_archipelago_radar_lighthouse.webp'),'destination
 for(const asset of ['raid-prep-bunker.avif','raid-prep-archipelago.avif','raid-prep-operator.avif'])
   assert(fs.statSync(path+'/assets/production/'+asset).size>2000,asset+' exists and has image bytes');
 const viewer=fs.readFileSync(path+'/ui/raid-prep-scene.mjs','utf8');
-assert(viewer.includes('loadHumanOperator()'),'scene reuses gameplay GLB and animations');
-assert(viewer.includes('createBit()'),'scene renders procedural BIT');
-assert(viewer.includes('dressCinematicOperator(operator)'),'operator is dressed as a hooded scavenger');
-assert(viewer.includes('cinematic-hood') && viewer.includes('weathered rear cloak'),'face and cloak form the desired dark operator silhouette');
+// Character + BIT are genuine Three.js meshes, with an independent
+// high-detail MENU model; gameplay's low-cost rig must not overwrite yaw.
+const models=fs.readFileSync(path+'/ui/raid-prep-models.mjs','utf8');
+assert(viewer.includes('createMenuOperator(') && viewer.includes('createMenuBit('),
+  'Deploy mounts distinct 3D operator and BIT objects');
+assert(viewer.includes("new THREE.WebGLRenderer(") && viewer.includes('renderer.render(scene,camera)'),
+  'Deploy renders a real live 3D canvas');
+assert(!viewer.includes('loadHumanOperator()') && !viewer.includes('operator.update(dt,{'),
+  'Deploy portrait does not use the top-down raid rig that undid user rotation');
+assert(viewer.includes("host.setPointerCapture(e.pointerId)") &&
+       viewer.includes('orbit.rotation.y=yaw') &&
+       viewer.includes("host.dataset.rotation="),
+  'pointer drags rotate the visible 3D operator and expose rotation for browser verification');
+assert(models.includes('export function createMenuOperator(') &&
+       models.includes('export function createMenuBit('),
+  'dedicated high-detail 3D menu model and companion exist');
+assert(models.includes("cinematic-hood") && models.includes("face-void") &&
+       models.includes("weathered rear cloak"),
+  'operator close-up has a concealed face, real hood volume and fabric cloak');
+assert(models.includes("bit-face-master-v3.svg") && models.includes('BIT owner face master v3'),
+  'BIT uses the owner-approved smile proportions on the 3D CRT');
+assert(fs.readFileSync(path+'/assets/bit-face-master-v3.svg','utf8').includes('#75CFCC'),
+  'smile uses the approved cyan face color');
+assert(models.includes('SphereGeometry') && models.includes('CylinderGeometry') &&
+       models.includes('ExtrudeGeometry'),
+  'character and BIT are true volumetric geometry rather than UI billboards');
 assert(viewer.includes('destroy()'),'3D lifecycle releases resources on removal');
 assert(fs.readFileSync(path+'/index.html','utf8').includes('ui/raid-prep.css'),'new visual rules are loaded');
 console.log('CINEMATIC RAID PREP TEST PASSED');
