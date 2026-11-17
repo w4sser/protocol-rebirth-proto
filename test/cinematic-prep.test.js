@@ -47,7 +47,7 @@ const viewer=fs.readFileSync(path+'/ui/raid-prep-scene.mjs','utf8');
 // Character + BIT are genuine Three.js meshes, with an independent
 // high-detail MENU model; gameplay's low-cost rig must not overwrite yaw.
 const models=fs.readFileSync(path+'/ui/raid-prep-models.mjs','utf8');
-assert(viewer.includes('createMenuOperator(') && viewer.includes('createMenuBit('),
+assert(viewer.includes('createOperatorHeroV3(') && viewer.includes('createMenuBit('),
   'Deploy mounts distinct 3D operator and BIT objects');
 assert(viewer.includes("new THREE.WebGLRenderer(") && viewer.includes('renderer.render(scene,camera)'),
   'Deploy renders a real live 3D canvas');
@@ -57,12 +57,18 @@ assert(viewer.includes("host.setPointerCapture(e.pointerId)") &&
        viewer.includes('orbit.rotation.y=yaw') &&
        viewer.includes("host.dataset.rotation="),
   'pointer drags rotate the visible 3D operator and expose rotation for browser verification');
-assert(models.includes('export function createMenuOperator(') &&
+const heroV3=fs.readFileSync(path+'/ui/raid-prep-operator-v3.mjs','utf8');
+assert(heroV3.includes('export function createOperatorHeroV3(') &&
        models.includes('export function createMenuBit('),
-  'dedicated high-detail 3D menu model and companion exist');
-assert(models.includes("cinematic-hood") && models.includes("face-void") &&
-       models.includes("weathered rear cloak"),
-  'operator close-up has a concealed face, real hood volume and fabric cloak');
+  'dedicated high-detail 3D operator v3 and companion exist');
+assert(heroV3.includes('shadowed face cavity') && heroV3.includes('overhanging hood peak') &&
+       heroV3.includes('rear cloak wide drape') && heroV3.includes('articulated thigh'),
+  'sculpted operator v3 has hidden face, angular hood, non-cylindrical limbs and asymmetric cloak');
+assert(heroV3.includes('anatomical forearm') && heroV3.includes('fully modeled 3D raid weapon') &&
+       heroV3.includes('boot upper') && heroV3.includes('glove finger seam'),
+  'operator v3 replaces primitive mannequin anatomy, boots, gloves and weapons');
+assert(heroV3.includes('organicLimb(') && heroV3.includes('new THREE.BufferGeometry()'),
+  'operator v3 uses actual volume geometry rather than a static hero image');
 assert(models.includes("bit-face-master-v3.svg") && models.includes('BIT owner face master v3'),
   'BIT uses the owner-approved smile proportions on the 3D CRT');
 assert(fs.readFileSync(path+'/assets/bit-face-master-v3.svg','utf8').includes('#75CFCC'),
