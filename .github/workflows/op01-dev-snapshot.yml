@@ -12,13 +12,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Create temporary source snapshot for animation QA
         run: |
-          tar czf /tmp/op01-dev-source.tar.gz \
-            --exclude=.git --exclude=node_modules \
-            --exclude='*.mp4' --exclude='*.webm' \
-            --exclude='*.mp3' --exclude='*.ogg' \
-            --exclude='*.wav' --exclude='*.zip' \
-            --exclude='*.fbx' --exclude='*.blend' .
-          cp /tmp/op01-dev-source.tar.gz op01-dev-source.tar.gz
+          tar czf op01-dev-source.tar.gz \
+            nodspel/op01-gameplay.js nodspel/tests/op01-gameplay.test.mjs \
+            nodspel/vendor ui/raid-prep-op01.mjs \
+            assets/operators/OP01_Game_LOD0.glb \
+            assets/operators/OP01_Game_LOD1.glb \
+            assets/operators/OP01_Game_LOD2.glb
       - uses: actions/upload-artifact@v4
         with:
           name: op01-dev-source
