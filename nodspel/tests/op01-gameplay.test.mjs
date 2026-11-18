@@ -358,3 +358,21 @@ test('OP01 health anchor follows the skinned head through aim and movement',asyn
   assert(Math.abs(anchor.z-actual.z)<.0001);
   assert(anchor.y>actual.y+.2,'bar clears the hood');
 });
+
+test('OP01 visual turn uses real elapsed time while keeping a maximum frame step',()=>{
+  const north={x:0,z:1},south={x:0,z:-1};
+  const standard=createOP01FacingLatch(),slowDevice=createOP01FacingLatch();
+  for(const f of [standard,slowDevice]){
+    f.resolve(true,north,south,.016,true);
+  }
+  // The previous 40ms gameplay-step cap made returning very slow when
+  // screenshots or a weak GPU produced fewer rAF callbacks.
+  for(let i=0;i<4;i++){
+    standard.resolve(false,north,null,.04,true);
+    slowDevice.resolve(false,north,null,.2,true);
+  }
+  const gap=f=>Math.abs(Math.atan2(Math.sin(Math.atan2(f.direction.x,f.direction.z)),
+    Math.cos(Math.atan2(f.direction.x,f.direction.z))));
+  assert(gap(slowDevice)<gap(standard),'real visual delta turns farther under slow frame rates');
+  assert(gap(slowDevice)>.1,'visual heading still transitions instead of snapping');
+});

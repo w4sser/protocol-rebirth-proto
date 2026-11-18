@@ -1903,8 +1903,10 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   }
   const smoothAim=stepAim(sticks[1].state.gesture,dt);
   const selectedFacing=manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim;
+  // Character presentation turns on real frame time; gameplay dt is capped
+  // at 40 ms and can otherwise make turns take several seconds on slow phones.
   const facing=op01Facing?op01Facing.resolve(
-    holding,walkDirection,selectedFacing,dt,playerMoving&&!round.over):
+    holding,walkDirection,selectedFacing,frozen?0:realDt,playerMoving&&!round.over):
     facingDirection(holding,walkDirection,selectedFacing);
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);

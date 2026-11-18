@@ -109,7 +109,7 @@ export function createOP01FacingLatch(){
     return true;
   }
   function resolve(aiming,walking,aim,dt=1/60,moving=true){
-    const step=clamp(Number(dt)||0,0,.1);
+    const step=clamp(Number(dt)||0,0,.25);
     if(aiming&&aim&&face(aim.x,aim.z)){
       steering=true;
       return facing; // live aim is always absolute priority
