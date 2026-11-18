@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {createOP01GameplayOperator,OP01_CHARACTER} from '../op01-gameplay.js';
+import {createOP01DeployGrip} from '../../ui/raid-prep-op01.mjs';
 
 async function parse(name){
   // Node has no image decoder. Preserve the actual GLB geometry, skin and
@@ -12,15 +13,10 @@ async function parse(name){
   const bytes=await readFile(new URL('../../assets/operators/'+name,import.meta.url));
   const jsonLength=bytes.readUInt32LE(12);
   const json=JSON.parse(bytes.toString('utf8',20,20+jsonLength));
-  for(const material of json.materials||[]){
-    delete material.normalTexture;
-    delete material.occlusionTexture;
-    delete material.emissiveTexture;
-    if(material.pbrMetallicRoughness){
-      delete material.pbrMetallicRoughness.baseColorTexture;
-      delete material.pbrMetallicRoughness.metallicRoughnessTexture;
-    }
-  }
+  json.materials=(json.materials||[]).map(m=>({
+    name:m.name,
+    pbrMetallicRoughness:{baseColorFactor:[.5,.5,.5,1],metallicFactor:0,roughnessFactor:1}
+  }));
   const encoded=Buffer.from(JSON.stringify(json));
   assert(encoded.length<=jsonLength,'stripping texture bindings must fit the original GLB JSON chunk');
   const prepared=Buffer.from(bytes);
@@ -123,4 +119,32 @@ test('diagnostic: locate the authored hero-posed wrists and weapon forward axis'
     }));
   }
   assert(weapon,'weapon exists');
+});
+
+test('Deploy uses anchored lower body with a fixed upper-body rifle grip',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const pose=createOP01DeployGrip(gltf);
+  assert(pose.upperTracks>=10,'both animated shoulders and hands use the aim clip');
+  assert(pose.lowerTracks>=2,'standing legs retain the hero pose');
+  assert(pose.grip.paused && pose.stand.paused,'Deploy pose must not drift when idle');
+  const byName=name=>{
+    let found=null;
+    gltf.scene.traverse(n=>{if(!found&&(n.name===name||n.userData?.name===name))found=n;});
+    return found;
+  };
+  gltf.scene.updateMatrixWorld(true);
+  const gun=byName('OP01_Carbine'),left=byName('mixamorig:LeftHand'),right=byName('mixamorig:RightHand');
+  assert(gun && left && right);
+  const origin=gun.getWorldPosition(new THREE.Vector3());
+  const leftWorld=left.getWorldPosition(new THREE.Vector3());
+  const rightWorld=right.getWorldPosition(new THREE.Vector3());
+  const aimDir=new THREE.Vector3(0,0,-1).transformDirection(gun.matrixWorld);
+  const reach=[0,-.15,-.3,-.45,-.6].map(z=>leftWorld.distanceTo(gun.localToWorld(new THREE.Vector3(0,0,z))));
+  console.log('OP01_DEPLOY_GRIP '+JSON.stringify({
+    barrelVerticality:+Math.abs(aimDir.y).toFixed(3),
+    leftGripGap:+Math.min(...reach).toFixed(3),
+    rightSocketGap:+rightWorld.distanceTo(origin).toFixed(3),
+    upperTracks:pose.upperTracks,lowerTracks:pose.lowerTracks
+  }));
+  assert(Math.abs(aimDir.y)<.92,'rifle barrel must not point vertically in Deploy');
 });
