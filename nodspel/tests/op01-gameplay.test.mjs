@@ -277,30 +277,68 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   assert(Math.abs(diag.visualHeight-1.958)<.001);
 });
 
-test('OP01 keeps the last fired heading after aiming is released, even when moving',async()=>{
+test('OP01 aims immediately, then eases toward movement without snapping',async()=>{
   const facing=createOP01FacingLatch();
-  const walk={x:0,z:-1},east={x:1,z:0},north={x:0,z:1};
-  assert.equal(facing.resolve(false,walk,north),walk,'initial heading follows walking');
-  assert.equal(facing.resolve(true,walk,east),east);
-  assert(!facing.locked,'aim preview alone must not persist when cancelled');
-  facing.record(0,1);
-  const held=facing.resolve(false,walk,east);
-  assert.equal(held.x,0);assert.equal(held.z,1);
-  assert.equal(facing.resolve(false,east,walk),held,'movement may not snap the visual facing back');
-  const gltf=await parse('OP01_Game_LOD0.glb');
-  const op=createOP01GameplayOperator(gltf);
-  const holder=new THREE.Group();holder.add(op.root);
-  holder.rotation.y=Math.atan2(held.x,held.z);
-  for(let i=0;i<40;i++)op.update(1/60,{
-    moving:true,aiming:false,keepFacing:true,
-    walkYaw:Math.PI,aimYaw:Math.atan2(held.x,held.z)
-  });
-  assert(op.actions.upper.aim.isRunning(),'both arms stay ready after the shot');
-  assert(op.actions.lower.back.isRunning(),'backwards movement keeps the correct legs');
-  assert(Math.abs(op.root.rotation.y)<.01,'model heading stays aligned to held player direction');
+  const north={x:0,z:1},south={x:0,z:-1},east={x:1,z:0};
+  const dot=(a,b)=>a.x*b.x+a.z*b.z;
+  const copy=()=>({...facing.direction});
+  assert(dot(facing.resolve(false,north,null,1/60,true),north)>.999,
+    'initial walking direction must be used immediately');
+  assert(dot(facing.resolve(true,north,east,1/60,true),east)>.999,
+    'live aim must override running immediately');
+  assert(!facing.locked,'aim preview should not record a successful shot');
+  facing.record(0,-1);
+  assert(facing.locked);
+  const fired=copy();
+  facing.resolve(false,north,null,.04,true);
+  assert(dot(facing.direction,fired)>.999,'no immediate post-shot rotation');
+  for(let i=0;i<6;i++)facing.resolve(false,north,null,1/60,true);
+  assert(dot(facing.direction,fired)>.999,'brief shot hold prevents snap-back');
+  for(let i=0;i<8;i++)facing.resolve(false,north,null,1/60,true);
+  const turning=copy();
+  assert(dot(turning,fired)>.65,'do not snap 180 degrees to walking direction');
+  assert(dot(turning,north)>dot(fired,north),'start rotating toward walking heading');
+  assert(facing.steering,'use rifle-ready torso while turning');
+  for(let i=0;i<130;i++)facing.resolve(false,north,null,1/60,true);
+  assert(dot(facing.direction,north)>.999,'face walking after return completes');
+  assert(!facing.steering,'return to ordinary run animation when aligned');
+  assert(dot(facing.resolve(true,north,east,.016,true),east)>.999,
+    'aim always overrides the movement direction');
+  const stopped=copy();
+  for(let i=0;i<60;i++)facing.resolve(false,south,null,.016,false);
+  assert(dot(facing.direction,stopped)>.999,'stationary operator keeps its final facing');
   facing.reset();
   assert(!facing.locked);
-  assert.equal(facing.resolve(false,walk,north),walk,'new raid clears retained facing');
+  assert(dot(facing.resolve(false,north,null,.016,true),north)>.999,
+    'reset clears retained orientation');
+});
+
+test('OP01 chooses shortest turn across 180 degrees and resumes normal running',async()=>{
+  const facing=createOP01FacingLatch();
+  const nearA={x:.02,z:-1},nearB={x:-.02,z:-1};
+  facing.resolve(true,nearA,nearA,.016,true);
+  const start=Math.atan2(facing.direction.x,facing.direction.z);
+  facing.resolve(false,nearB,null,.016,true);
+  const actual=Math.atan2(facing.direction.x,facing.direction.z);
+  const angle=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
+  assert(Math.abs(angle(actual,start))<.06,'shortest yaw turn across +/- PI');
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  const holder=new THREE.Group();holder.add(op.root);
+  facing.record(0,1);
+  let heading=0;
+  for(let i=0;i<145;i++){
+    facing.resolve(false,{x:0,z:-1},null,1/60,true);
+    heading=Math.atan2(facing.direction.x,facing.direction.z);
+    holder.rotation.y=heading;
+    op.update(1/60,{
+      moving:true,aiming:false,keepFacing:facing.steering,
+      walkYaw:Math.PI,aimYaw:heading
+    });
+    if(i===15)assert(op.actions.upper.aim.isRunning(),
+      'upper body remains rifle-ready during gradual turn');
+  }
+  assert(Math.abs(angle(heading,Math.PI))<.07,'return to walking direction completes');
+  assert(op.actions.lower.run.isRunning(),'legs run normally after turning');
 });
 
 test('OP01 health anchor follows the skinned head through aim and movement',async()=>{
