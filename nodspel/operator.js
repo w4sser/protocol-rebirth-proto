@@ -5,6 +5,9 @@ import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-ge
 
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
 export function selectSkin(search=''){
+  // Explicit preview switch for the new authored/rigged OP-01. Keep the
+  // existing operator as default until OP-01 gameplay is visually approved.
+  if(new URLSearchParams(search).get('skin')==='op01')return 'op01';
   return characterFor(search).id;
 }
 export function animationState({dead=false,hit=false,dashing=false,moving=false,shooting=false,interacting=false}={}){

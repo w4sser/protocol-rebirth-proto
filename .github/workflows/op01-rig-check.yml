@@ -1,0 +1,19 @@
+name: op01-rig-check
+on:
+  pull_request:
+    paths:
+      - 'ui/raid-prep-op01.mjs'
+      - 'nodspel/op01-gameplay.js'
+      - 'nodspel/tests/op01-gameplay.test.mjs'
+      - 'assets/operators/**'
+      - '.github/workflows/op01-rig-check.yml'
+jobs:
+  rig:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test nodspel/tests/op01-gameplay.test.mjs

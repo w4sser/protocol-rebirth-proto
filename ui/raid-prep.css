@@ -1,0 +1,287 @@
+/* Protocol Rebirth — cinematic Raid Preparation.
+   Dedicated, additive styling. The rest of the meta game remains unchanged. */
+body[data-screen="prep"] #tabs{display:none!important}
+body[data-screen="prep"] #bitdock{display:none!important}
+body[data-screen="prep"] #topbar{background:linear-gradient(180deg,color-mix(in srgb,var(--ad-ink) 89%,transparent),transparent)!important}
+body[data-screen="prep"] #topbar .cur{background:color-mix(in srgb,var(--ad-ink) 72%,transparent);border:1px solid color-mix(in srgb,var(--ad-bit) 20%,transparent);border-radius:9px;box-shadow:none}
+body[data-screen="prep"] #topbar .cur.oplvl{background:transparent;border:0}
+body[data-screen="prep"] #topbar #app-version{opacity:.55}
+body #app.s-prep{
+  position:relative!important;isolation:isolate;overflow:hidden!important;
+  display:flex!important;flex-direction:column;
+  padding:calc(var(--tb-h,54px) + 6px) calc(12px + var(--sr,0px)) calc(9px + var(--sb,0px)) calc(12px + var(--sl,0px))!important;
+  background:var(--ad-night)!important;
+}
+#app.s-prep::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:-2;
+  background:
+    linear-gradient(90deg,color-mix(in srgb,var(--ad-ink) 91%,transparent) 0%,color-mix(in srgb,var(--ad-ink) 66%,transparent) 24%,color-mix(in srgb,var(--ad-ink) 13%,transparent) 51%,color-mix(in srgb,var(--ad-ink) 63%,transparent) 76%,color-mix(in srgb,var(--ad-ink) 91%,transparent) 100%),
+    linear-gradient(180deg,rgba(3,9,15,0.74) 0%,color-mix(in srgb,var(--ad-ink) 5%,transparent) 35%,color-mix(in srgb,var(--ad-ink) 42%,transparent) 100%),
+    url("../assets/production/raid-prep-bunker.avif") center 50%/cover no-repeat;
+  filter:saturate(.9);
+}
+#app.s-prep::after{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 28% 50% at 65% 47%,color-mix(in srgb,var(--ad-dusk-pink) 17%,transparent),transparent 75%),
+    radial-gradient(ellipse 40% 40% at 50% 100%,color-mix(in srgb,var(--ad-bit) 25%,transparent),transparent 75%),
+    linear-gradient(180deg,transparent 65%,color-mix(in srgb,var(--ad-ink) 36%,transparent));
+}
+#app.s-prep .lobby.pr-cinematic{
+  --prep-gutter:clamp(6px,1vw,16px);
+  position:relative;z-index:1;width:100%;flex:1 1 auto;min-width:0;min-height:0;
+  display:grid!important;gap:var(--prep-gutter);height:100%!important;max-height:100%;
+  grid-template-columns:minmax(0,29fr) minmax(0,42fr) minmax(0,29fr);
+  grid-template-rows:clamp(22px,6vh,38px) minmax(0,1fr);
+  grid-template-areas:"top top top" "left hero right";
+  padding:0!important;align-items:stretch;
+}
+#app.s-prep .pr-cinematic .lobby-top{
+  grid-area:top;display:flex;align-items:center;gap:clamp(8px,1.4vw,20px);
+  padding:0 2px;min-height:0;margin:0;border-bottom:1px solid color-mix(in srgb,var(--ad-bit) 17%,transparent)
+}
+.pr-cinematic .pr-brand{font:600 clamp(8px,.78vw,12px) "IBM Plex Mono",monospace;letter-spacing:.2em;color:color-mix(in srgb,var(--ad-bit) 36%,var(--ad-bone));white-space:nowrap}
+.pr-cinematic .pr-slash{font-size:clamp(9px,1vw,15px);letter-spacing:.2em;color:var(--ad-bit)}
+.pr-cinematic .pr-title{font:800 clamp(9px,1.1vw,16px) "Archivo",sans-serif;letter-spacing:.19em;color:color-mix(in srgb,var(--ad-bit) 75%,var(--ad-bone));white-space:nowrap}
+#app.s-prep .pr-cinematic .lobby-side.left{grid-area:left;display:flex;flex-direction:column;gap:clamp(7px,1.2vh,13px)}
+#app.s-prep .pr-cinematic .pr-panel-title{font:800 clamp(11px,1.3vw,17px) "Archivo",sans-serif;letter-spacing:.25em;color:var(--ad-bone);text-shadow:0 2px 6px var(--ad-night)}
+#app.s-prep .pr-cinematic .slotgrid{
+  flex:1 1 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));gap:clamp(5px,.8vw,12px);
+  min-height:0;height:auto;
+}
+#app.s-prep .pr-cinematic .lslot,
+#app.s-prep .pr-cinematic .slotwrap>.lslot:not(.mini){
+  position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;
+  min-height:0;min-width:0;width:100%;height:100%;border-radius:clamp(6px,.8vw,12px);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--ad-ink) 82%,transparent),color-mix(in srgb,var(--ad-ink) 78%,transparent));
+  border:1px solid color-mix(in srgb,var(--ad-bit) 45%,transparent);
+  box-shadow:inset 0 0 15px color-mix(in srgb,var(--ad-bit) 10%,transparent),0 5px 14px rgba(1,7,10,0.25);
+  color:var(--ad-bone);padding:clamp(5px,.8vw,11px);
+  gap:3px;cursor:pointer;overflow:hidden;
+}
+#app.s-prep .pr-cinematic .pr-tool-unavailable{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;
+  min-width:0;min-height:0;border:1px dashed color-mix(in srgb,var(--ad-bit) 22%,transparent);border-radius:9px;
+  background:color-mix(in srgb,var(--ad-ink) 38%,transparent);color:color-mix(in srgb,var(--ad-bit) 56%,var(--ad-night));font:600 10px "IBM Plex Sans",sans-serif;
+}
+#app.s-prep .pr-cinematic .pr-tool-unavailable i{color:color-mix(in srgb,var(--ad-bit) 56%,var(--ad-night))}
+#app.s-prep .pr-cinematic .pr-tool-unavailable i .pr-ic{width:28px;height:28px}
+#app.s-prep .pr-cinematic .lslot:focus-visible,
+#app.s-prep .pr-cinematic .lslot:hover{border-color:var(--ad-bit);outline:1px solid var(--ad-bit);box-shadow:inset 0 0 22px color-mix(in srgb,var(--ad-bit) 12%,transparent)}
+#app.s-prep .pr-cinematic .lslot:active{transform:scale(.985)}
+#app.s-prep .pr-cinematic .lslot.locked{opacity:.58;cursor:default}
+#app.s-prep .pr-cinematic .lslot:not(.filled){border-style:dashed}
+#app.s-prep .pr-cinematic .lslot>i{
+  position:absolute;inset:8% 5% 27%;display:flex;justify-content:center;align-items:center;
+  font-size:0;pointer-events:none;filter:drop-shadow(0 7px 8px #0008)
+}
+#app.s-prep .pr-cinematic .lslot>i .pr-ic{width:clamp(28px,8vh,66px);height:clamp(28px,8vh,66px);color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .lslot>i img.pr-item-art{width:100%!important;height:100%!important;max-width:none;max-height:none;object-fit:contain}
+#app.s-prep .pr-cinematic .lslot>b{position:relative;z-index:2;text-align:left;max-width:100%;
+  font:700 clamp(10px,1.12vw,17px)/1.1 "IBM Plex Sans",sans-serif;
+  padding:0;white-space:normal;overflow-wrap:anywhere;text-shadow:0 2px 5px #000;line-height:1.15}
+#app.s-prep .pr-cinematic .lslot>small{display:none}
+#app.s-prep .pr-cinematic .lslot .rdot{left:7px;top:7px;width:7px;height:7px}
+#app.s-prep .pr-cinematic .lslot .qty{z-index:2;font-size:clamp(9px,1vw,13px)}
+#app.s-prep .pr-cinematic .lslot-up{z-index:3}
+#app.s-prep .pr-cinematic .slotwrap{display:flex;gap:4px;min-width:0;min-height:0}
+#app.s-prep .pr-cinematic .slotwrap>.lslot:not(.mini){min-width:0}
+#app.s-prep .pr-cinematic .slotwrap>.lslot.mini{width:clamp(20px,2.6vw,32px);height:100%;flex:none;min-height:0;padding:0;display:grid;place-items:center;align-items:center}
+#app.s-prep .pr-cinematic .slotwrap>.lslot.mini>i{position:static;inset:auto;pointer-events:auto}
+#app.s-prep .pr-cinematic .slotwrap>.lslot.mini>i .pr-ic{width:16px;height:16px}
+#app.s-prep .pr-cinematic .lobby-hero{
+  grid-area:hero;position:relative;display:block;min-height:0;min-width:0;
+  border:0!important;border-radius:0;overflow:visible;background:transparent!important;
+}
+#app.s-prep .pr-cinematic .lobby-hero::after{
+  content:"";position:absolute;left:17%;right:17%;bottom:10%;height:11%;
+  border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,0.64),transparent 73%);pointer-events:none;z-index:0
+}
+#app.s-prep .pr-cinematic .hero-art{
+  position:absolute!important;inset:-2% 4% 12%!important;
+  background-image:url("../assets/production/raid-prep-operator.avif")!important;
+  background-size:contain!important;background-repeat:no-repeat!important;background-position:center bottom!important;
+  opacity:.98;transition:opacity .25s ease;filter:drop-shadow(0 14px 16px #0009)
+}
+#app.s-prep .pr-cinematic .lobby-hero.has-3d .hero-art{opacity:0;pointer-events:none}
+#app.s-prep .pr-cinematic .pr-operator-stage{position:absolute;inset:-3% -7% 5%;z-index:1;touch-action:none;cursor:grab}
+#app.s-prep .pr-cinematic .pr-operator-stage:active{cursor:grabbing}
+#app.s-prep .pr-cinematic .pr-operator-stage canvas{display:block;width:100%;height:100%;outline:none}
+#app.s-prep .pr-cinematic .pr-rotate-tip{
+  position:absolute;bottom:15%;left:50%;transform:translateX(-50%);
+  z-index:2;pointer-events:none;font:500 clamp(8px,.65vw,10px) "IBM Plex Mono",monospace;
+  color:color-mix(in srgb,var(--ad-bit) 42%,var(--ad-bone));letter-spacing:.18em;text-shadow:0 2px 6px #0008;opacity:.75;white-space:nowrap
+}
+#app.s-prep .pr-cinematic .lobby-hero .operator-stats.compact{
+  position:absolute!important;z-index:3;left:50%!important;bottom:1%!important;top:auto!important;right:auto!important;
+  width:max-content!important;max-width:100%!important;min-height:0;transform:translateX(-50%);
+  margin:0!important;padding:clamp(4px,.7vw,9px) clamp(5px,1vw,14px)!important;border-radius:9px;
+  border:1px solid color-mix(in srgb,var(--ad-bit) 38%,transparent);background:color-mix(in srgb,var(--ad-ink) 88%,transparent)!important;
+  box-shadow:0 5px 24px rgba(2,7,10,0.36);cursor:pointer
+}
+#app.s-prep .pr-cinematic .lobby-hero .ostats{
+  width:auto;display:flex;justify-content:center;flex-direction:row;
+  align-items:center;gap:clamp(5px,1.25vw,22px);white-space:nowrap
+}
+#app.s-prep .pr-cinematic .lobby-hero .ostat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#app.s-prep .pr-cinematic .lobby-hero .ostat i{font-size:0}
+#app.s-prep .pr-cinematic .lobby-hero .ostat i .pr-ic{width:clamp(12px,1.3vw,20px);height:clamp(12px,1.3vw,20px);color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .lobby-hero .ostat b{font:700 clamp(10px,1.15vw,18px) "IBM Plex Sans",sans-serif;color:var(--ad-bone)}
+#app.s-prep .pr-cinematic .lobby-hero .ostat small{display:block;font:500 clamp(7px,.65vw,10px) "IBM Plex Mono",monospace;color:color-mix(in srgb,var(--ad-bit) 50%,var(--ad-bone));letter-spacing:.07em;text-transform:uppercase}
+#app.s-prep .pr-cinematic .lobby-hero .ostat[data-stat="stealth"],
+#app.s-prep .pr-cinematic .lobby-hero .ostat[data-stat="dash"],#app.s-prep .pr-cinematic .lobby-hero .oskills{display:none}
+#app.s-prep .pr-cinematic .lobby-side.right{grid-area:right;display:block;min-height:0;min-width:0}
+#app.s-prep .pr-cinematic .lobby-bottom{
+  display:flex;flex-direction:column;height:100%;min-height:0;gap:clamp(5px,1vh,12px);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--ad-ink) 85%,transparent),color-mix(in srgb,var(--ad-ink) 87%,transparent));
+  border:1px solid color-mix(in srgb,var(--ad-bit) 37%,transparent);border-radius:clamp(7px,1vw,13px);
+  padding:clamp(7px,1vw,16px);box-shadow:0 9px 22px #0005
+}
+#app.s-prep .pr-cinematic .pr-destination{min-height:0;display:flex;flex-direction:column;gap:4px;flex:1 1 auto}
+#app.s-prep .pr-cinematic .pr-overline{font:600 clamp(8px,.76vw,12px) "IBM Plex Mono",monospace;letter-spacing:.17em;color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .area-pick.map-open{
+  flex:none;display:flex;min-height:0;padding:0;border:0!important;margin:0;background:none!important;
+  color:var(--ad-bone);align-items:center;justify-content:flex-start;gap:5px;box-shadow:none;cursor:pointer
+}
+#app.s-prep .pr-cinematic .area-pick.map-open i{font-size:clamp(15px,1.7vw,23px);color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .area-pick.map-open i .pr-ic{width:clamp(14px,1.8vw,25px);height:clamp(14px,1.8vw,25px)}
+#app.s-prep .pr-cinematic .area-pick.map-open span{display:flex;flex-direction:column;gap:3px}
+#app.s-prep .pr-cinematic .area-pick.map-open span small{display:none}
+#app.s-prep .pr-cinematic .area-pick.map-open span b{
+  white-space:normal;font:800 clamp(13px,1.45vw,22px)/1.05 "Archivo",sans-serif;
+  letter-spacing:.09em;overflow-wrap:anywhere;color:var(--ad-bone)
+}
+#app.s-prep .pr-cinematic .pr-dest-preview{
+  position:relative;flex:1 1 auto;min-height:0;border-radius:5px;
+  border:1px solid color-mix(in srgb,var(--ad-bit) 28%,transparent);background:
+  linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),
+  url("../assets/production/raid-prep-archipelago.avif") center/cover no-repeat;
+  box-shadow:inset 0 0 26px color-mix(in srgb,var(--ad-ink) 32%,transparent)
+}
+#app.s-prep .pr-cinematic .pr-dest-preview[data-area="bunker"]{background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),url("../assets/production/env_tunnel.webp")}
+#app.s-prep .pr-cinematic .pr-dest-preview[data-area="town"]{background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-ink) 14%,transparent),color-mix(in srgb,var(--ad-ink) 7%,transparent)),url("../assets/production/env_transit_map.webp")}
+#app.s-prep .pr-cinematic .pr-mission-btn{
+  width:100%;display:flex;gap:8px;align-items:center;justify-content:flex-start;flex:none;min-height:0;
+  padding:clamp(4px,.7vw,9px) 0;margin:0;border:0;border-bottom:1px solid color-mix(in srgb,var(--ad-bit) 20%,transparent);
+  background:transparent;color:var(--ad-bone);text-align:left;cursor:pointer;border-radius:0
+}
+#app.s-prep .pr-cinematic .pr-mission-btn>i{color:var(--ad-bit);font-style:normal}
+#app.s-prep .pr-cinematic .pr-mission-btn .pr-ic{width:clamp(16px,2vw,30px);height:clamp(16px,2vw,30px)}
+#app.s-prep .pr-cinematic .pr-mission-btn>span{display:flex;flex-direction:column;gap:3px}
+#app.s-prep .pr-cinematic .pr-mission-btn small{font:600 clamp(7px,.75vw,11px) "IBM Plex Mono",monospace;color:color-mix(in srgb,var(--ad-bit) 45%,var(--ad-bone));letter-spacing:.19em}
+#app.s-prep .pr-cinematic .pr-mission-btn b{font:800 clamp(10px,1.15vw,18px) "Archivo",sans-serif;letter-spacing:.12em}
+#app.s-prep .pr-cinematic .progress-goal.compact{
+  flex:none;max-width:none;width:100%;min-height:0;margin:0;box-sizing:border-box;
+  padding:4px 6px!important;gap:2px;background:color-mix(in srgb,var(--ad-ink) 60%,transparent);
+  border:0;border-left:2px solid color-mix(in srgb,var(--ad-primary) 65%,transparent);border-radius:3px;color:color-mix(in srgb,var(--ad-bit) 30%,var(--ad-bone));
+  font:500 clamp(8px,.8vw,11px) "IBM Plex Sans",sans-serif;
+}
+#app.s-prep .pr-cinematic .progress-goal.compact>b{font-size:clamp(8px,.85vw,12px)}
+#app.s-prep .pr-cinematic .progress-goal.compact>div{gap:2px 5px}
+#app.s-prep .pr-cinematic .progress-goal.compact .pr-ic{width:12px;height:12px}
+#app.s-prep .pr-cinematic .pr-risk-card{flex:none;border:1px solid color-mix(in srgb,var(--ad-primary) 33%,transparent);border-radius:4px;padding:clamp(4px,.6vw,8px) clamp(6px,.8vw,12px);background:color-mix(in srgb,var(--ad-primary-edge) 29%,transparent)}
+#app.s-prep .pr-cinematic .pr-risk-card .riskbar{
+  display:flex;align-items:center;justify-content:flex-start;gap:6px;min-height:0!important;
+  margin:0!important;padding:0!important;border:0;background:none;
+  font:700 clamp(8px,.87vw,13px) "IBM Plex Mono",monospace;
+  letter-spacing:.09em;text-transform:uppercase;color:color-mix(in srgb,var(--ad-primary) 84%,var(--ad-bone))
+}
+#app.s-prep .pr-cinematic .pr-risk-card .riskbar.safe{color:var(--ad-bit)}
+#app.s-prep .pr-cinematic .pr-risk-card .rdot{width:7px;height:7px;background:color-mix(in srgb,var(--ad-primary) 83%,var(--ad-bone))}
+#app.s-prep .pr-cinematic .lobby-bottom .playbtn{
+  flex:none;display:flex;align-items:center;justify-content:center;
+  width:100%;height:clamp(42px,12.6vh,96px);min-height:0;margin:0;
+  border:1px solid color-mix(in srgb,var(--ad-primary) 67%,var(--ad-bone));border-radius:clamp(6px,.8vw,12px);
+  background:linear-gradient(155deg,color-mix(in srgb,var(--ad-primary) 75%,var(--ad-bone)) 0%,var(--ad-primary) 52%,var(--ad-primary-edge) 100%);
+  box-shadow:0 4px 0 color-mix(in srgb,var(--ad-primary-edge) 94%,transparent),0 0 25px color-mix(in srgb,var(--ad-primary) 14%,transparent),inset 0 2px 0 color-mix(in srgb,var(--ad-dusk-pink) 50%,transparent);
+  color:var(--ad-ink);transform:none;cursor:pointer;transition:filter .15s,transform .15s
+}
+#app.s-prep .pr-cinematic .lobby-bottom .playbtn:hover{filter:brightness(1.09)}
+#app.s-prep .pr-cinematic .lobby-bottom .playbtn:active{transform:translateY(3px)}
+#app.s-prep .pr-cinematic .playbtn b{font:italic 900 clamp(22px,3.1vw,49px) "Archivo",sans-serif;letter-spacing:.13em}
+#app.s-prep .pr-cinematic .playbtn b::before{content:"»";font-style:normal;margin-right:.25em}
+#app.s-prep .pr-cinematic .playbtn small{display:none}
+#app.s-prep .pr-cinematic .playbtn:focus-visible,
+#app.s-prep .pr-cinematic .area-pick:focus-visible,
+#app.s-prep .pr-cinematic .pr-mission-btn:focus-visible{outline:2px solid var(--ad-bone);outline-offset:2px}
+#app.s-prep .pr-raid-options{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:5px 0 9px}
+#app.s-prep .pr-raid-options .hard-btn,
+#app.s-prep .pr-raid-options .bigmap-btn{margin:0;font-size:11px;min-height:40px}
+@media (orientation:landscape) and (max-height:440px){
+  body #app.s-prep{padding-top:calc(var(--tb-h,48px) + 1px)!important;padding-bottom:calc(4px + var(--sb,0px))!important}
+  #app.s-prep .lobby.pr-cinematic{grid-template-rows:22px minmax(0,1fr)}
+  #app.s-prep .pr-cinematic .pr-panel-title{font-size:10px;line-height:1}
+  #app.s-prep .pr-cinematic .lobby-side.left{gap:5px}
+  #app.s-prep .pr-cinematic .lobby-bottom{gap:5px;padding:6px}
+  #app.s-prep .pr-cinematic .pr-dest-preview{min-height:35px}
+  #app.s-prep .pr-cinematic .progress-goal.compact{display:none}
+  #app.s-prep .pr-cinematic .lobby-hero .operator-stats.compact{padding:3px 5px!important}
+  #app.s-prep .pr-cinematic .lobby-hero .ostats{gap:5px}
+  #app.s-prep .pr-cinematic .lobby-hero .ostat small{display:none}
+  #app.s-prep .pr-cinematic .pr-rotate-tip{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  #app.s-prep .pr-cinematic *,#app.s-prep .pr-cinematic *::before,#app.s-prep .pr-cinematic *::after{transition:none!important;animation:none!important}
+}
+
+
+/* AD-06 cinematic deploy art pass: authored bunker threshold scene, not the base map. */
+#app.s-prep::before{
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb,var(--ad-night) 90%,transparent) 0%,
+      color-mix(in srgb,var(--ad-night) 63%,transparent) 24%,
+      color-mix(in srgb,var(--ad-night) 10%,transparent) 49%,
+      color-mix(in srgb,var(--ad-night) 61%,transparent) 77%,
+      color-mix(in srgb,var(--ad-night) 85%,transparent) 100%),
+    linear-gradient(180deg,color-mix(in srgb,var(--ad-night) 59%,transparent),transparent 38%,color-mix(in srgb,var(--ad-night) 54%,transparent)),
+    url("../assets/production/raid-prep-bunker.avif") center 54% / cover no-repeat;
+  filter:saturate(.9) contrast(1.04);
+}
+#app.s-prep::after{
+  background:radial-gradient(ellipse 40% 75% at 53% 45%,transparent 35%,color-mix(in srgb,var(--ad-night) 25%,transparent) 100%);
+}
+#app.s-prep .pr-cinematic .lobby-top h1.pr-title{
+  display:block!important;overflow:hidden;text-overflow:ellipsis;
+}
+#app.s-prep .pr-cinematic h2.pr-panel-title{
+  display:block!important;margin:0 0 2px!important;
+  font-size:clamp(10px,1.1vw,16px)!important;
+  letter-spacing:.2em;
+}
+#app.s-prep .pr-cinematic .lobby-hero .hero-art{
+  filter:drop-shadow(0 14px 21px color-mix(in srgb,var(--ad-night) 73%,transparent)) saturate(.72);
+}
+#app.s-prep .pr-cinematic .pr-dest-preview{
+  background-image:linear-gradient(0deg,color-mix(in srgb,var(--ad-night) 6%,transparent),transparent 50%),url("../assets/production/raid-prep-archipelago.avif");
+  background-position:center 48%;
+  background-size:cover;
+  border-radius:clamp(5px,.65vw,10px);
+  box-shadow:inset 0 0 18px color-mix(in srgb,var(--ad-ink) 25%,transparent);
+}
+#app.s-prep .pr-cinematic .pr-operator-stage{
+  inset:-6% -8% 4%;
+  filter:drop-shadow(0 12px 16px color-mix(in srgb,var(--ad-night) 75%,transparent));
+}
+#app.s-prep .pr-cinematic .lobby-side.left .lslot{
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+#app.s-prep .pr-cinematic .lobby-bottom{
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+#app.s-prep .pr-cinematic .hero-weapon{
+  /* Keep descriptive metadata for existing equipment tests without a duplicate floating panel. */
+  position:absolute!important;width:1px!important;height:1px!important;
+  clip-path:inset(50%);overflow:hidden;white-space:nowrap;
+  pointer-events:none;
+}
+
+/* Short landscape phone: retain the interaction hint (not the old hidden state). */
+@media (orientation:landscape) and (max-height:440px){
+  #app.s-prep .pr-cinematic .pr-rotate-tip{
+    display:block;bottom:17%;opacity:.85;letter-spacing:.10em;
+  }
+}
