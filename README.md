@@ -3,7 +3,7 @@
 Playable prototype of the meta-game loop for **Protocol Rebirth** (mobile extraction shooter).
 Raid Prep's DEPLOY launches the playable Three.js raid in `nodspel/`. Extraction returns loot to the base; death loses the carried bag. The older simulated raid and isolated combat sandbox remain available to tests/dev tools.
 
-**Play:** open the root GitHub Pages site, in landscape. Start at the base, restore the Core, then use RAID → DEPLOY. See [the opening playtest guide](docs/opening-playtest.md) for a fresh-save route and verification notes.
+**Play:** open the root GitHub Pages site in landscape. A fresh profile launches directly into the first playable raid; after extraction, find BIT in the bunker, then restore the Core and build toward Fabricator. Existing profiles retain their progress. See [the opening playtest guide](docs/opening-playtest.md) for a fresh-save route and verification notes.
 
 ## Structure
 

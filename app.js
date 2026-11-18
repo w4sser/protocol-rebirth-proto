@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.46"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.47"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -21,8 +21,25 @@ const DEPLOY_PREVIEW = typeof location !== "undefined" && new URLSearchParams(lo
 // profile (never for a returning save), read by the debug overlay (?debug=1) and by nodspel directly
 // (same-origin localStorage) to timestamp the raid-side milestones.
 const FTUE_KEY = "pr_ftue_v1";
-function initFtueMetrics(){
-  try{ if(localStorage.getItem(FTUE_KEY) !== null) return; localStorage.setItem(FTUE_KEY, JSON.stringify({ step:"start", attempts:0, t:{} })); }catch(e){}
+function initFtueMetrics(reset){
+  try{ if(!reset && localStorage.getItem(FTUE_KEY) !== null) return; localStorage.setItem(FTUE_KEY, JSON.stringify({ step:"start", attempts:0, t:{} })); }catch(e){}
+}
+// FTUE tracking belongs to the active save slot, not the browser. A new game must
+// get its own raid-first onboarding, while existing/legacy slots must not inherit it.
+function ftueSlotKey(i){ return "pr_slot_" + i + "_ftue_v1"; }
+function saveFtueForSlot(i){
+  try{
+    const data = localStorage.getItem(FTUE_KEY);
+    if(data === null) localStorage.removeItem(ftueSlotKey(i));
+    else localStorage.setItem(ftueSlotKey(i), data);
+  }catch(e){}
+}
+function loadFtueForSlot(i){
+  try{
+    const data = localStorage.getItem(ftueSlotKey(i));
+    if(data === null) localStorage.removeItem(FTUE_KEY);
+    else localStorage.setItem(FTUE_KEY, data);
+  }catch(e){}
 }
 function ftueMark(key){
   try{
@@ -2022,6 +2039,9 @@ function reopenProfiles(){
   overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
 }
 function profilesReload(){
+  // The live S still belongs to the departing slot. Prevent beforeunload from
+  // overwriting the newly selected/deleted/imported pr_meta_save with old progress.
+  resetting = true;
   const url = new URL(window.location.href);
   (window.PR_NAVIGATE || (u => window.location.replace(u)))(url.pathname + url.search + url.hash);
 }
@@ -3566,7 +3586,7 @@ function mountRaidPrep3D(){
   const host=document.getElementById("pr-operator-stage");
   if(!host || typeof window === "undefined" || !window.WebGLRenderingContext ||
       /jsdom/i.test(navigator.userAgent || "") || new URLSearchParams(location.search).get("q")==="low") return;
-  import("./ui/raid-prep-scene.mjs?v=2.28.46")
+  import("./ui/raid-prep-scene.mjs?v=2.28.47")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -6046,21 +6066,28 @@ window.A = {
     const meta = session.profilesMeta; if(!meta) return;
     if(i !== meta.active && meta.slots[i] && !window.confirm('Overwrite "' + meta.slots[i].name + '" with your current progress? This cannot be undone.')) return;
     SaveSlots.touchSlot(meta, i, Date.now(), JSON.stringify(S), localStorage);
+    saveFtueForSlot(i);
     toast("Saved to " + (meta.slots[i] ? meta.slots[i].name : "Slot " + (i+1)));
     reopenProfiles();
   },
   profileLoad(i){
     if(inRaid()) return;
     const meta = session.profilesMeta; if(!meta || i === meta.active || !meta.slots[i]) return;
+    saveFtueForSlot(meta.active);
     const raw = SaveSlots.switchTo(meta, localStorage, i, JSON.stringify(S), Date.now());
     localStorage.setItem(SAVE_KEY, raw);
+    loadFtueForSlot(i);
     profilesReload();
   },
   profileNewGame(i){
     if(inRaid()) return;
     const meta = session.profilesMeta; if(!meta || meta.slots[i]) return;
+    saveFtueForSlot(meta.active);
     const raw = SaveSlots.switchTo(meta, localStorage, i, JSON.stringify(S), Date.now(), JSON.stringify(freshState()));
     localStorage.setItem(SAVE_KEY, raw);
+    initFtueMetrics(true);
+    saveFtueForSlot(i);
+    try{ sessionStorage.removeItem("pr_splash_seen"); }catch(e){}
     profilesReload();
   },
   profileDelete(i){
@@ -6068,7 +6095,8 @@ window.A = {
     if(i === meta.active && inRaid()) return;
     if(!window.confirm('Delete "' + meta.slots[i].name + '"? This cannot be undone.')) return;
     SaveSlots.deleteSlot(meta, localStorage, i);
-    if(i === meta.active){ localStorage.removeItem(SAVE_KEY); profilesReload(); return; }
+    try{ localStorage.removeItem(ftueSlotKey(i)); }catch(e){}
+    if(i === meta.active){ localStorage.removeItem(SAVE_KEY); localStorage.removeItem(FTUE_KEY); profilesReload(); return; }
     reopenProfiles();
   },
   profileExport(){
@@ -6094,7 +6122,9 @@ window.A = {
     if(target === meta.active && inRaid()){ toast("Finish or abandon the raid first"); return; }
     const json = JSON.stringify(obj);
     SaveSlots.touchSlot(meta, target, Date.now(), json, localStorage);
-    if(target === meta.active){ localStorage.setItem(SAVE_KEY, json); profilesReload(); return; }
+    // Imported saves have no matching FTUE tracking; never borrow a different slot's marker.
+    try{ localStorage.removeItem(ftueSlotKey(target)); }catch(e){}
+    if(target === meta.active){ localStorage.setItem(SAVE_KEY, json); localStorage.removeItem(FTUE_KEY); profilesReload(); return; }
     toast("Imported into " + meta.slots[target].name);
     session.profilesImport = false;
     reopenProfiles();
