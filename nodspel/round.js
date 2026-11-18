@@ -1,4 +1,4 @@
-import {applyFtueLevel} from './ftue.js?v=2.28.47';
+import {applyFtueLevel} from './ftue.js?v=2.28.47-ftue-opening-v1';
 import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.47';
 import {extractAvailable} from './big-level.js?v=2.28.47';
 import {rarityOf} from './rarity.js?v=2.28.47';
@@ -9,7 +9,7 @@ import {generateLevel,RULES,isHard} from './levels.js?v=2.28.47';
 import {emptyBag,bagItems} from './raid.js?v=2.28.47';
 import {traceTargets,movePlayer} from './physics.mjs?v=2.28.47';
 import {shieldBlocks,weakSide} from './encounters.js?v=2.28.47';
-import {createStakesState,heal} from './stakes.js?v=2.28.47';
+import {createStakesState,heal} from './stakes.js?v=2.28.47-ftue-opening-v1';
 
 export const ROUND_DURATION_MS=8*60*1000;
 // Order integration is paused; keep the old input path for later.

@@ -22,6 +22,7 @@ export function audioEvent(name,detail={}){
     case 'shoot':void audio.play(name+'-'+weapon,{enemy:!!detail.enemy});break;
     case 'reload':case 'empty':void audio.play(name+'-'+weapon);break;
     case 'impact':void audio.play('impact-'+(detail.enemy?'enemy':'wall'));break;
+    case 'barrel-explosion':void audio.play('impact-wall');void audio.play('death-tank');break;
     case 'hit':void audio.play('hit-'+type);break;
     case 'kill':void audio.play('death-'+type);void audio.play('kill');if(++kills%config.killStreak===0)void audio.voice('nice-shot');break;
     case 'pickup':{const tier=detail.rarity||'common';void audio.play('pickup-'+tier);if(!rarePicked&&config.rareTiers.includes(tier)){rarePicked=true;void audio.voice('scrap-detected');}break;}

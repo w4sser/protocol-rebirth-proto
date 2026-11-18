@@ -1,5 +1,5 @@
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
-import {initFtueRound} from './ftue.js?v=2.28.47';
+import {initFtueRound} from './ftue.js?v=2.28.47-ftue-opening-v1';
 import {artilleryFlight} from './artillery-flight.mjs?v=2.28.47-bridge1';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.47';
 import {animateEnemyModel} from './enemy-animation.js?v=2.28.47';
@@ -32,18 +32,18 @@ import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.47';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.47-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.47';
 import {safeSpawn} from './spawn.js?v=2.28.47';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.47';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.47-ftue-opening-v1';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.47';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.47';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.47-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.47';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.47';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.47-glacial-merge1';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.47-ftue-opening-v1-glacial-merge1';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.47';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.47';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.47-ftue-opening-v1';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.47';
 // import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.47';
 import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.47';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.47';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.47-ftue-opening-v1';
 // import {stepScavenging} from './scavenging.js?v=2.28.47';
 import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.47';
 import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.47';
@@ -730,7 +730,7 @@ function updateHUD(){
   viewport.classList.toggle('low-hp',round.health>0&&round.health<=25);
   renderRoomBox(level);
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.ftueClutch?'EXTRACT - WALK IN':level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.ftue?'EXTRACT - WALK IN':level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
   const justOpened=world.setExit(open);
   if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   else if(justOpened)audioEvent('extract-revealed');
@@ -1777,6 +1777,8 @@ function frameInner(now){
       const shake=RULES.feedback.cameraShake.kill;
       addShake(shake.distance*2,shake.ms*2,now);
       hapticPulse(RULES.feedback.hapticKillMs);
+      audioEvent('barrel-explosion');
+      setCollisions(); // Remove the physical drum once its blast has finished.
     }
     // Ricochets are born during simulation, after the primary fire handler.
     const renderedShots=hotRenderedShots;renderedShots.clear();for(let i=0;i<bullets.length;i++)renderedShots.add(bullets[i].shot.id);

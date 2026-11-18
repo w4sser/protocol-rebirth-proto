@@ -3,7 +3,7 @@ import {audioEvent} from './audio.js?v=2.28.47';
 import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.47';
 import {RULES} from './levels.js?v=2.28.47';
 import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.47';
-import {activateNode,hitEnemy,tickRound,alertEnemy,detonateFtueBarrel} from './round.js?v=2.28.47';
+import {activateNode,hitEnemy,tickRound,alertEnemy,detonateFtueBarrel} from './round.js?v=2.28.47-ftue-opening-v1';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
