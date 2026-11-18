@@ -6,6 +6,7 @@ import {animateEnemyModel} from './enemy-animation.js?v=2.28.46';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.46';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.46';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.46';
+import {loadOP01GameplayOperator} from './op01-gameplay.js?v=2.28.46';
 import {createRobotPresence} from './robot-operator.js?v=2.28.46';
 import {createOperatorFX} from './operator-fx.js?v=2.28.46';
 import {createAudioSettings} from './audio-settings.js?v=2.28.46';
@@ -266,8 +267,13 @@ const robotVisor=box(0,.97,.24,.32,.075,.025,'#2c4a54',robot);const robotGun=box
 const robotAntenna=box(0,.67,.88,.18,.18,.12,'#75cfcc',robot),robotLegL=box(-.23,.14,0,.19,.26,.42,'#27343d',robot),robotLegR=box(.23,.14,0,.19,.26,.42,'#27343d',robot);
 // Procedural run/aim/dash/hit/death presentation for the box rig (M38 perceived-animation parity); see robot-operator.js.
 const robotPresence=createRobotPresence({root:robot,body:robotBody,head:robotHead,visor:robotVisor,gun:robotGun,antenna:robotAntenna,legL:robotLegL,legR:robotLegR});
+let op01LodFrame=0;
 let human=null;const requestedSkin=selectSkin(location.search);
-if(requestedSkin!=='robot'){try{human=await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});player.add(human.root);robot.visible=false;}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
+if(requestedSkin!=='robot'){try{human=requestedSkin==='op01'
+  ?await loadOP01GameplayOperator({quality:QUALITY,dashDuration:RULES.dash.durationSeconds})
+  :await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});
+  player.add(human.root);robot.visible=false;
+}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
 const playerOverheadY=overheadAnchorY(human?.character??CHARACTERS.robot);
 const gun=human?human.weapon:robotGun;
@@ -1875,7 +1881,9 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
-  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human)human.update(dt,o);else robotPresence.update(dt,o);}
+  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
+    if(++op01LodFrame%12===0)human.updateLOD?.(camera,renderer.domElement.clientHeight||window.innerHeight);
+  }else robotPresence.update(dt,o);}
   if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);
   {const o=hotFxOpts;o.dashing=dash.remaining>0&&!round.over;o.x=position.x;o.z=position.z;o.low=QUALITY==='low';operatorFX.update(dt,o);}
   pixelFeedback.sync(round,world,position,clock,pixelDemo?Math.min(realDt,.1):dt);
