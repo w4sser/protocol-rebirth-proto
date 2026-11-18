@@ -52,6 +52,9 @@ try{
       const report={tag,idle,run,aim,shoot,dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
       checks.push(report);
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
+      if(Math.abs((idle.visualScale||0)-1.10)>.001 ||
+         Math.abs((idle.visualHeight||0)-1.958)>.01)
+        failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
       if(shoot.upper!=='shoot')failures.push(tag+': shot animation missing ('+shoot.upper+')');

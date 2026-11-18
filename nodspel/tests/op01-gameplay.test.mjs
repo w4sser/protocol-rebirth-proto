@@ -85,7 +85,8 @@ test('OP01 presentation does not modify core movement, collision or weapon rules
   const keys=['radius','speed','damage','hitbox','dashCooldownMs','fireRate'];
   for(const key of keys)assert(!Object.hasOwn(OP01_CHARACTER,key),
     'character art should not introduce a game mechanic '+key);
-  assert.equal(OP01_CHARACTER.height,1.78);
+  assert.equal(OP01_CHARACTER.height,1.78,'authored asset remains 1.78m');
+  assert.equal(OP01_CHARACTER.scale,1.10,'gameplay silhouette is ten percent larger');
   assert.equal(OP01_CHARACTER.weapon.muzzle,'muzzle');
 });
 
@@ -242,4 +243,36 @@ test('OP01 occlusion silhouette includes every skinned body primitive through al
   }
   op.setOccluded(false);
   assert(outline.every(x=>!x.visible));
+});
+
+
+test('OP01 gameplay grows uniformly while world physics and weapon alignment remain unchanged',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  assert.equal(op.root.scale.x,OP01_CHARACTER.scale);
+  assert.equal(op.root.scale.y,OP01_CHARACTER.scale);
+  assert.equal(op.root.scale.z,OP01_CHARACTER.scale);
+  // Compute bounds twice on the same posed GLB: the visual expansion must
+  // be uniform. Neither the character's model, skeleton nor parent moves.
+  const parent=new THREE.Group();
+  parent.add(op.root);
+  const pose=op.update(.016,{aiming:true,aimYaw:.7});
+  assert.equal(pose,'idle');
+  op.root.updateMatrixWorld(true);
+  const larger=new THREE.Box3().setFromObject(op.root).getSize(new THREE.Vector3());
+  const vfxBefore=op.muzzle.getWorldPosition(new THREE.Vector3()).clone();
+  op.root.scale.setScalar(1);
+  op.root.updateMatrixWorld(true);
+  const source=new THREE.Box3().setFromObject(op.root).getSize(new THREE.Vector3());
+  for(const axis of ['x','y','z']){
+    assert(Math.abs(larger[axis]/source[axis]-1.10)<.01,'uniform visual scale on '+axis);
+  }
+  op.root.scale.setScalar(OP01_CHARACTER.scale);
+  op.root.updateMatrixWorld(true);
+  assert(op.muzzle.getWorldPosition(new THREE.Vector3()).distanceTo(vfxBefore)<.00001,
+    'muzzle still follows the scaled weapon/hand attachment');
+  assert.equal(parent.scale.x,1,'gameplay player remains unscaled');
+  assert.equal(op.character.height,1.78,'authoring and physics contract is unchanged');
+  const diag=op.poseDiagnostics();
+  assert.equal(diag.visualScale,1.10);
+  assert(Math.abs(diag.visualHeight-1.958)<.001);
 });

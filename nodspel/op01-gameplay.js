@@ -19,7 +19,8 @@ export const OP01_GAME_PATHS=Object.freeze([
 ]);
 const REQUIRED_CLIPS=Object.freeze(['idle','run','aim','shoot','hit','dash','death','hero_pose']);
 export const OP01_CHARACTER=Object.freeze({
-  id:'op01',height:1.78,scale:1,
+  // Slightly larger silhouette in top-down gameplay; does not change physics.
+  id:'op01',height:1.78,scale:1.10,
   clips:Object.fromEntries(REQUIRED_CLIPS.map(id=>[id,id])),
   rig:{spine:'mixamorig:Spine',head:'mixamorig:Head',forearm:'mixamorig:RightForeArm',
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
@@ -88,6 +89,10 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   for(const clip of REQUIRED_CLIPS)if(!clips.has(clip))throw new Error('OP01 gameplay GLB missing '+clip);
   const model=gltf.scene,root=new THREE.Group();
   root.name='OP01-rigged-player';
+  // Scale the complete presentation hierarchy, including hands, rifle and
+  // muzzle. The enclosing gameplay player group, collision and speed stay
+  // unchanged; menu/Deploy uses a separate GLB and is unaffected.
+  root.scale.setScalar(OP01_CHARACTER.scale);
   root.add(model);
   const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
@@ -156,7 +161,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const forward=new THREE.Vector3(),spineAxis=new THREE.Vector3();
   const worldUp=new THREE.Vector3(0,1,0),gunForward=new THREE.Vector3(0,0,-1);
   const worldQ=new THREE.Quaternion(),turnQ=new THREE.Quaternion();
-  const scratch=new THREE.Vector3();
+  const scratch=new THREE.Vector3(),scratchTop=new THREE.Vector3();
 
   const lodResources=[
     {parts:skinnedParts.map(part=>({geometry:part.geometry,material:part.material}))},
@@ -180,8 +185,10 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     if(!camera||!Number.isFinite(viewportHeight)||viewportHeight<=0)return lod;
     root.updateMatrixWorld(true);
     const foot=scratch.set(0,0,0).applyMatrix4(root.matrixWorld);
-    const height=foot.clone().add(new THREE.Vector3(0,OP01_CHARACTER.height,0));
-    const b=foot.clone().project(camera),top=height.project(camera);
+    // Project the actual scaled visual height, not the unscaled source rig.
+    // This keeps LOD thresholds consistent with the larger silhouette.
+    const top=scratchTop.set(0,OP01_CHARACTER.height,0).applyMatrix4(root.matrixWorld).project(camera);
+    const b=foot.project(camera);
     const pixels=Math.abs(b.y-top.y)*viewportHeight*.5;
     // Hysteresis avoids rapid toggles around boundaries.
     let target=lod;
@@ -296,6 +303,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     const origin=weapon.getWorldPosition(new THREE.Vector3());
     const support=weapon.worldToLocal(supportHand.getWorldPosition(new THREE.Vector3()));
     return {lod,lower:currentName.lower,upper:currentName.upper,
+      visualScale:root.scale.x,visualHeight:OP01_CHARACTER.height*root.scale.y,
       muzzle:tip.toArray(),direction:tip.sub(origin).normalize().toArray(),
       supportHandLocal:support.toArray(),outlines:outlines.length,
       outlineVisible:outlines.some(o=>o.visible),mixerTime:mixer.time};
