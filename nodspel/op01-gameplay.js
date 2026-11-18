@@ -24,7 +24,7 @@ export const OP01_CHARACTER=Object.freeze({
   rig:{spine:'mixamorig:Spine',head:'mixamorig:Head',forearm:'mixamorig:RightForeArm',
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
-  rim:{color:'#75cfcc',strength:.30,power:2.4},
+  rim:{color:'#b6c4ca',strength:.16,power:2.6},
   accessories:false
 });
 
@@ -50,12 +50,33 @@ function compatibleRig(main,other){
   if(!a||!b||a.length!==41||b.length!==a.length)return false;
   return a.every((bone,i)=>(bone.userData?.name||bone.name)===(b[i].userData?.name||b[i].name));
 }
+// A neutral cool rim restores the hood/coat silhouette at the real top-down
+// gameplay scale. This is material lighting, not a cyan neon contour or an
+// extra draw call, and is shared by all three skinned LOD atlases.
+const rimmed=new WeakSet();
+function addRim(material){
+  if(rimmed.has(material)||!material?.isMeshStandardMaterial)return;
+  rimmed.add(material);
+  const rim=OP01_CHARACTER.rim;
+  material.onBeforeCompile=shader=>{
+    shader.uniforms.op01RimColor={value:new THREE.Color(rim.color)};
+    shader.vertexShader=shader.vertexShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;')
+      .replace('#include <project_vertex>','vOP01RimNormal=normalize(normalMatrix*objectNormal);vOP01RimView=-(modelViewMatrix*vec4(transformed,1.0)).xyz;\n#include <project_vertex>');
+    shader.fragmentShader=shader.fragmentShader
+      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;\nuniform vec3 op01RimColor;')
+      .replace('#include <dithering_fragment>','float op01Edge=pow(1.0-clamp(dot(normalize(vOP01RimNormal),normalize(vOP01RimView)),0.0,1.0),'+rim.power+');\n gl_FragColor.rgb+=op01RimColor*op01Edge*'+rim.strength+';\n#include <dithering_fragment>');
+  };
+  material.customProgramCacheKey=()=>"op01-neutral-rim-v1";
+  material.needsUpdate=true;
+}
 function tuneMaterials(mesh,low=false){
   mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
     if(!mat)return;
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
+    if(mesh.isSkinnedMesh)addRim(mat);
   }
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
