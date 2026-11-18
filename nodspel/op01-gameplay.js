@@ -35,14 +35,15 @@ function named(scene,rawName){
   });
   return match;
 }
-function characterMesh(scene){
-  let found=null;
-  scene.traverse(n=>{if(!found&&n.isSkinnedMesh)found=n;});
-  return found;
+function characterMeshes(scene){
+  const parts=[];
+  scene.traverse(n=>{if(n.isSkinnedMesh)parts.push(n);});
+  return parts;
 }
 function weaponMesh(scene){
-  const weapon=named(scene,'OP01_Carbine');
-  return weapon?.isMesh?weapon:null;
+  // Multi-primitive GLBs use a Group for the complete weapon. It must
+  // remain attached to RightHand with the muzzle socket on the group.
+  return named(scene,'OP01_Carbine');
 }
 function compatibleRig(main,other){
   const a=main.skeleton?.bones,b=other.skeleton?.bones;
@@ -67,16 +68,16 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const model=gltf.scene,root=new THREE.Group();
   root.name='OP01-rigged-player';
   root.add(model);
-  const mesh=characterMesh(model),weapon=weaponMesh(model);
+  const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
   const hand=named(model,'mixamorig:RightHand');
-  if(!mesh||!weapon||!spine||!hand)throw new Error('OP01 is missing its body, carbine or Mixamo bones');
+  if(skinnedParts.length!==4||!weapon||!spine||!hand)throw new Error('OP01 is missing body pieces, carbine or Mixamo bones');
   if(mesh.skeleton.bones.length!==41)throw new Error('OP01 expected a 41-bone Mixamo rig');
 
   // Source mesh and animation are 1.78m tall. No procedural hood/jacket is
   // attached: those already exist in the authored skin and would double up.
-  tuneMaterials(mesh,quality==='low');
-  tuneMaterials(weapon,quality==='low');
+  for(const part of skinnedParts)tuneMaterials(part,quality==='low');
+  weapon.traverse(n=>{if(n.isMesh)tuneMaterials(n,quality==='low');});
   model.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(model);
   const h=bounds.max.y-bounds.min.y;
@@ -127,7 +128,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const handPoint=new THREE.Vector3(),scratch=new THREE.Vector3();
 
   const lodResources=[
-    {geometry:mesh.geometry,material:mesh.material},
+    {parts:skinnedParts.map(part=>({geometry:part.geometry,material:part.material}))},
     null,null
   ];
   let lod=0,loadingLODs=null;
@@ -135,8 +136,10 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   root.userData.characterId='op01';
   function setLOD(index){
     if(index===lod||!lodResources[index])return false;
-    mesh.geometry=lodResources[index].geometry;
-    mesh.material=lodResources[index].material;
+    skinnedParts.forEach((part,i)=>{
+      part.geometry=lodResources[index].parts[i].geometry;
+      part.material=lodResources[index].parts[i].material;
+    });
     outline.geometry=mesh.geometry;
     lod=index;
     root.userData.lod=lod;
@@ -165,10 +168,11 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     loadingLODs=Promise.allSettled([1,2].map(async i=>{
       const url=new URL(OP01_GAME_PATHS[i],import.meta.url).href;
       const extra=await loader.loadAsync(url);
-      const other=characterMesh(extra.scene);
-      if(!other||!compatibleRig(mesh,other))throw new Error('OP01 LOD '+i+' incompatible skeleton');
-      tuneMaterials(other,quality==='low');
-      lodResources[i]={geometry:other.geometry,material:other.material};
+      const other=characterMeshes(extra.scene);
+      if(other.length!==skinnedParts.length||!other.every((part,j)=>compatibleRig(skinnedParts[j],part)))
+        throw new Error('OP01 LOD '+i+' incompatible skeleton or mesh layout');
+      other.forEach(part=>tuneMaterials(part,quality==='low'));
+      lodResources[i]={parts:other.map(part=>({geometry:part.geometry,material:part.material}))};
       return i;
     })).then(r=>{
       const bad=r.filter(x=>x.status==='rejected');
