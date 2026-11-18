@@ -18,8 +18,9 @@ export function applyFtueLevel(round){
   if(!round.ftue)return;
   const level=round.level,cfg=round.ftue;
   if(level.number===1){
-    const room=level.rooms[0],o=FTUE.opening;
-    const at=p=>({x:room.x+p.x,z:room.z+p.z});
+    const room=level.rooms[0],o=FTUE.opening,side=level.choiceSide||1;
+    // Mirror the authored encounter with the generated L1 approach side.
+    const at=p=>({x:room.x+side*p.x,z:room.z+p.z});
     level.start=at(o.start);
     const grunt=(id,p,health,speed)=>({id,kind:'enemy',type:'grunt',...at(p),
       r:RULES.shooting.telegraphs.enemyRadius,health,speed,active:true,aggro:false,
@@ -39,9 +40,9 @@ export function applyFtueLevel(round){
   for(const e of level.enemies){e.health=Math.max(1,e.health*cfg.healthMul);e.speed*=cfg.speedMul;}
 }
 function ftueGuaranteeAlloy(level){
-  const room=level.rooms[0];
+  const room=level.rooms[0],side=level.choiceSide||1;
   level.lootBoxes=RULES.earlyLoot.supplies.map((supply,i)=>({
-    id:'ftue-supply-'+i,x:room.x+RULES.earlyLoot.spots[i].x,
+    id:'ftue-supply-'+i,x:room.x+side*RULES.earlyLoot.spots[i].x,
     z:room.z+FTUE.earlyLoot.spots[i].z,
     ...supply,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE - REPAIR SUPPLIES',
   }));

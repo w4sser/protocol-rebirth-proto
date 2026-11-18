@@ -49,11 +49,10 @@ test('the barrel is hittable by a real bullet, killing the grouped enemies',()=>
   assert.equal(r.level.enemies[0].health,1);
 });
 test('the drum applies radial knockback, with one detonation and two credited kills',()=>{
-  const r=setup('knockback'),b=r.level.barrels[0],group=r.level.enemies.slice(1),x=group.map(e=>e.x);
+  const r=setup('knockback'),b=r.level.barrels[0],group=r.level.enemies.slice(1),distance=group.map(e=>Math.hypot(e.x-b.x,e.z-b.z));
   assert.equal(detonateFtueBarrel(r,b.id,100,solids(r)),true);
   assert.deepEqual(group.map(e=>e.health),[0,0]);
-  assert.ok(group[0].x<x[0]);
-  assert.ok(group[1].x>x[1]);
+  assert.ok(group.every((e,i)=>Math.hypot(e.x-b.x,e.z-b.z)>distance[i]),'outward pushback regardless of mirrored room side');
   assert.equal(r.enemiesDefeated,2);
   assert.equal(detonateFtueBarrel(r,b.id,200,solids(r)),false);
   assert.equal(r.ftueExplosion.serial,1);
