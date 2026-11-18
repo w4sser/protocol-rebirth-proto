@@ -140,13 +140,31 @@ test('Deploy uses anchored lower body with a fixed upper-body rifle grip',async(
   const rightWorld=right.getWorldPosition(new THREE.Vector3());
   const aimDir=new THREE.Vector3(0,0,-1).transformDirection(gun.matrixWorld);
   const reach=[0,-.15,-.3,-.45,-.6].map(z=>leftWorld.distanceTo(gun.localToWorld(new THREE.Vector3(0,0,z))));
+  // Inspect the ACTUAL gun geometry: the GLB local -Z is an assumed shot
+  // axis and cannot prove that the visible rifle is held horizontally.
+  const physicalBounds=new THREE.Box3().setFromObject(gun).getSize(new THREE.Vector3());
+  let surfaceGap=Infinity;
+  const p=new THREE.Vector3();
+  gun.traverse(mesh=>{
+    if(!mesh.isMesh||!mesh.geometry?.attributes?.position)return;
+    const a=mesh.geometry.attributes.position;
+    for(let i=0;i<a.count;i++){
+      p.fromBufferAttribute(a,i).applyMatrix4(mesh.matrixWorld);
+      surfaceGap=Math.min(surfaceGap,p.distanceTo(leftWorld));
+    }
+  });
   console.log('OP01_DEPLOY_GRIP '+JSON.stringify({
     barrelVerticality:+Math.abs(aimDir.y).toFixed(3),
     leftGripGap:+Math.min(...reach).toFixed(3),
     rightSocketGap:+rightWorld.distanceTo(origin).toFixed(3),
+    leftHandToGunSurface:+surfaceGap.toFixed(3),
+    physicalGunExtent:physicalBounds.toArray().map(n=>+n.toFixed(3)),
     upperTracks:pose.upperTracks,lowerTracks:pose.lowerTracks
   }));
   assert(Math.abs(aimDir.y)<.45,'Deploy rifle must be near horizontal, not held vertically');
+  assert(Math.max(physicalBounds.x,physicalBounds.z)>physicalBounds.y*1.1,
+    'visible carbine mesh must be more horizontal than vertical in Deploy');
+  assert(surfaceGap<.16,'support hand must reach the actual rifle geometry, not just an assumed local axis');
   assert(Math.min(...reach)<.14,'off-hand must rest on the rifle foregrip, not float in front of the chest');
   assert(rightWorld.distanceTo(origin)<.15,'trigger hand must remain at the rifle socket');
 });
