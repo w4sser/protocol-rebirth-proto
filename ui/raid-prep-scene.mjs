@@ -23,7 +23,11 @@ export async function mountRaidPrepScene(host){
   if(!host?.isConnected)return null;
   let renderer=null,scene=null,camera=null,observer=null,raf=0,disposed=false;
   let orbit=null,operator=null,bit=null,drag=null,requestedModel='mobile';
-  let yaw=-.23,clock=0,previous=0;
+  // Show the two-hand rifle diagonally across the frame at first paint. At
+  // -0.23 the barrel points almost straight into the camera in the aim grip
+  // and looks like an upright stick, despite the actual geometry being right.
+  // 0.82 matches the visually approved post-drag three-quarter capture.
+  let yaw=.82,clock=0,previous=0;
   const showYaw=()=>{host.dataset.rotation=String(Math.round(yaw*1000)/1000);};
   function down(e){
     if(e.pointerType==='mouse'&&e.button!==0)return;
