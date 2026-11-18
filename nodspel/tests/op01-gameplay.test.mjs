@@ -293,7 +293,7 @@ test('OP01 keeps the last fired heading after aiming is released, even when movi
   holder.rotation.y=Math.atan2(held.x,held.z);
   for(let i=0;i<40;i++)op.update(1/60,{
     moving:true,aiming:false,keepFacing:true,
-    walkYaw:-Math.PI/2,aimYaw:Math.atan2(held.x,held.z)
+    walkYaw:Math.PI,aimYaw:Math.atan2(held.x,held.z)
   });
   assert(op.actions.upper.aim.isRunning(),'both arms stay ready after the shot');
   assert(op.actions.lower.back.isRunning(),'backwards movement keeps the correct legs');
