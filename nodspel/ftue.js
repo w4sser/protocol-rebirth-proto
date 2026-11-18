@@ -41,7 +41,7 @@ export function applyFtueLevel(round){
 function ftueGuaranteeAlloy(level){
   const room=level.rooms[0];
   level.lootBoxes=RULES.earlyLoot.supplies.map((supply,i)=>({
-    id:'ftue-supply-'+i,x:room.x+FTUE.earlyLoot.spots[i].x,
+    id:'ftue-supply-'+i,x:room.x+FTUE.opening.lootSpots[i].x,
     z:room.z+FTUE.earlyLoot.spots[i].z,
     ...supply,marked:true,revealed:true,collected:false,source:'ELECTRICAL STORAGE - REPAIR SUPPLIES',
   }));
