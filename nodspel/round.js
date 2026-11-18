@@ -1,4 +1,4 @@
-import {applyFtueLevel,startFtueClutch} from './ftue.js?v=2.28.47';
+import {applyFtueLevel} from './ftue.js?v=2.28.47';
 import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.47';
 import {extractAvailable} from './big-level.js?v=2.28.47';
 import {rarityOf} from './rarity.js?v=2.28.47';
@@ -7,7 +7,7 @@ import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPick
 import {generateLevel,RULES,isHard} from './levels.js?v=2.28.47';
 // import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.47';
 import {emptyBag,bagItems} from './raid.js?v=2.28.47';
-import {traceTargets} from './physics.mjs?v=2.28.47';
+import {traceTargets,movePlayer} from './physics.mjs?v=2.28.47';
 import {shieldBlocks,weakSide} from './encounters.js?v=2.28.47';
 import {createStakesState,heal} from './stakes.js?v=2.28.47';
 
@@ -257,7 +257,6 @@ export function tickRound(round,now) {
   if(round.over||round.pauseAt!=null)return;
   round.gameNow=now;round.remainingMs=Math.max(round.ftue?.minTimeMs??0,Math.min(round.durationMs??ROUND_DURATION_MS,round.deadline-now));
   if(round.remainingMs===0){loseBag(round);round.over=true;round.reason='timeout';resetPerks(round);}
-  if(round.ftue)startFtueClutch(round,now);
 }
 export function takeDamage(round,amount,now){
   tickRound(round,now);
@@ -338,6 +337,30 @@ function registerHitFeel(round,enemy,now,kind){
   round.hitFeel={serial:(round.hitFeel?.serial??0)+1,enemyId:enemy.id,type:enemy.type,x:enemy.x,z:enemy.z,kind,at:now};
   (round.hitFeels??=[]).push(round.hitFeel);
 }
+// A genuine projectile impact detonates the barrel once, and normal
+// hitEnemy handles blast kills, score, loot-independent effects, and hit feels.
+export function detonateFtueBarrel(round,id,now,obstacles=[]){
+  tickRound(round,now);
+  if(!round.ftue||round.over||round.pauseAt!=null||round.level.number!==1)return false;
+  const barrel=round.level.barrels?.find(b=>b.id===id);
+  if(!barrel||barrel.active)return false;
+  barrel.active=true;barrel.explodedAt=now;
+  const before=round.enemiesDefeated;
+  for(const enemy of round.level.enemies){
+    if(enemy.health<=0||enemy.active===false||enemy.type==='generator')continue;
+    const dx=enemy.x-barrel.x,dz=enemy.z-barrel.z,d=Math.hypot(dx,dz);
+    if(d>barrel.blastRadius)continue;
+    const dir=d>1e-8?{x:dx/d,z:dz/d}:{x:1,z:0};
+    const moved=movePlayer(enemy,{x:dir.x*barrel.knockback,z:dir.z*barrel.knockback},
+      obstacles,round.level.floors,enemy.r??.48);
+    enemy.x=moved.x;enemy.z=moved.z;enemy.knockedAt=now;
+    enemy.knockSerial=(enemy.knockSerial??0)+1;
+    hitEnemy(round,enemy.id,now,barrel.damage,null);
+  }
+  round.ftueExplosion={serial:(round.ftueExplosion?.serial??0)+1,
+    x:barrel.x,z:barrel.z,kills:round.enemiesDefeated-before,at:now};
+  return true;
+}
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};
 }
@@ -363,7 +386,6 @@ export function activateNode(round,id,now) {
   if(round.nodeInteraction?.id===id)round.nodeInteraction=null;
   // Swarm rushers wait for their own spawn point, not for a node.
   for(const enemy of round.level.enemies)if(enemy.active===false&&!enemy.swarm){enemy.active=true;enemy.spawnedAt=now;}
-  if(round.ftue)startFtueClutch(round,now);
   return true;
 }
 export function enterExit(round,position,now) {
@@ -381,7 +403,7 @@ export function enterExit(round,position,now) {
   // player deliberately walks INTO the zone; being inside when it opens does not count.
   if(round.level.number===3){if(!inZone){round.level.exitArmed=true;return null;}if(!round.level.exitArmed)return null;}
   else if(!inZone)return null;
-  if(round.ftue&&round.ftueClutch){
+  if(round.ftue&&round.level.number===1){
     round.levelsCleared=Math.max(1,round.levelsCleared);round.exitLoot=bagItems(round.bag);
     if(extractRound(round,now)){round.cleared=true;return 'complete';}
     return null;

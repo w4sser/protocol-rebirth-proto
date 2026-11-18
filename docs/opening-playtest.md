@@ -4,7 +4,7 @@ Start from the root base page, not a bookmarked `nodspel/` seed. Use a private/i
 
 ## Route (current fresh-save FTUE)
 1. From a genuinely fresh profile, tap the start screen. The playable FTUE raid launches directly, with the Basic Carbine and starting medkit. There is no BIT scene, Core popup or Raid Prep before this raid.
-2. In the introductory encounter, charge the node by standing nearby or shooting it, respond to the guard's burst, then reach the extraction. Electrical Storage has the guaranteed Fabricator materials. A failed attempt retries the FTUE raid instead of revealing BIT early.
+2. Move through a calm approach, defeat an unaware lone grunt, then notice two grunts clustered beside an explosive fuel drum. Shoot the drum for a double kill with blast knockback, or defeat the enemies conventionally. Collect the guaranteed Scrap Alloy and other supplies, activate the node, and reach the extraction beam. No hunter waves spawn in this opening. Failure retries without revealing BIT.
 3. After the successful first extraction, return to the bunker. The cold-open discovery of BIT plays **now**, not before the raid. Dismiss its greeting to enter the facility.
 4. Restore emergency power at the Core. The bunker then points to Fabricator L1 as the next restoration project, using the materials carried back from the first raid.
 5. Build Fabricator L1 when the required materials are secured; do not auto-build it on extraction. Check the commissioning reward and subsequent Vault/BIT Bay choice. Subsequent raids use normal Raid Prep.

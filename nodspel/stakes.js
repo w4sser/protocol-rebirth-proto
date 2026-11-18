@@ -162,7 +162,7 @@ function spawnWave(round, now, waveNumber, zone, rng, playerPosition, cameraTarg
 // `playerPosition`/`currentRoomIndex` (round.currentRoom, kept up to date by the caller every frame) locate
 // the player without this module depending on perks.js's roomAt (would cycle back through stakes.js).
 export function stepStakes(round, now, playerPosition, currentRoomIndex, cameraTarget = null) {
-  const s = round.stakes; if (!s || round.over) return { spawned: [] };
+  const s = round.stakes; if (!s || round.over || round.ftue) return { spawned: [] };
   const elapsed = elapsedMs(round);
   if (!s.alarmTriggered) {
     if (elapsed < STAKES.alarmDelayMs) return { spawned: [] };
