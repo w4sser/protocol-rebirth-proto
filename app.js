@@ -5388,8 +5388,14 @@ window.A = {
     save();
     closeAllPopups();
     const raidUrl = coreLaunchUrl(l.raidId, l.seed, metaReturnPath(location.pathname), { stats, gear, armorShield:gear.filter(id=>gearKind(id)==="armor").reduce((n,id)=>n+gearEffect(id).shield,0), weapon, kit, tool:launchTool, bag: raidBagCapacity(gear), area: raidArea(), hard, bigMap: !intro && bigMapOn(), quest:questLaunchParam(), goal:progressionGoal(), scouted:scoutedAreas(), intro, ftue, payoff:pay && pay.kind, vestGuarantee:vestGuaranteeNeed() }); // ftue is distinct from intro: intro is the pre-existing guided-raid script (any player pre-Fabricator); ftue=1 only comes from startFtueDirect()
+    // Debug-only OP-01 preview: carry the selected art skin from Raid Prep
+    // into Node Raid without changing ordinary players' loadouts or saves.
+    const previewSkin = new URLSearchParams(location.search).get("skin");
+    const destination = previewSkin === "op01"
+      ? raidUrl + (raidUrl.includes("?") ? "&" : "?") + "skin=op01"
+      : raidUrl;
     const navigate = () => {
-      try{ (window.PR_NAVIGATE || (u => location.assign(u)))(raidUrl); }
+      try{ (window.PR_NAVIGATE || (u => location.assign(u)))(destination); }
       finally{ session.raidNavigating=false; }
     };
     if(window.PR_AUDIO_RAID_ENTRY) void window.PR_AUDIO_RAID_ENTRY().then(navigate); else navigate();
