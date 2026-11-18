@@ -282,9 +282,11 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     // A latched aim/shot owns the upper-body facing even when the move stick
     // remains pressed. Run/back legs keep their independent movement heading.
     const weaponReady=aiming||shotLeft>0||keepFacing;
-    const bodyYaw=keepFacing?aimYaw:moving?walkYaw:aimYaw;
+    const bodyYaw=weaponReady?aimYaw:moving?walkYaw:aimYaw;
     const back=moving&&weaponReady&&Math.abs(delta(aimYaw,walkYaw))>Math.PI/2;
-    root.rotation.y=(bodyYaw+(back?Math.PI:0))-(root.parent?.rotation.y??0);
+    // Reverse the *legs* while retreating, never turn the whole model around.
+    // A 180-degree root flip was the source of visible facing snap-back.
+    root.rotation.y=bodyYaw-(root.parent?.rotation.y??0);
     const special=dead||dashing||hitLeft>0;
     change('lower',dead?'death':dashing?'dash':hitLeft>0&&!moving?'hit':moving?(back?'back':'run'):'idle');
     change('upper',dead?'death':dashing?'dash':hitLeft>0?'hit':shotLeft>0?'shoot':
