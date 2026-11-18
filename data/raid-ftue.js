@@ -8,11 +8,10 @@ RAID_FTUE_ROOT.DATA.raidFtue = Object.freeze({
   opening:{
     start:{x:0,z:4},solo:{x:-1.2,z:-1.45},
     // FTUE-only positions; the legacy intro keeps its original shared spots.
-    lootSpots:[{x:-4.05,z:-3.15},{x:-4.15,z:1.1},{x:3.5,z:2.15}],
     group:[{x:1.15,z:-3.15},{x:3.65,z:-3.15}],
     barrel:{x:2.4,z:-3.15,r:.62,blastRadius:2.5,damage:5,knockback:1.5},
     node:{x:4.5,z:-.7},exit:{x:4.5,z:-4.05},
-    cover:[{x:-4.8,z:3.1,w:1,d:1,h:1},{x:4.8,z:3.1,w:1,d:1,h:1}],
+    cover:[{x:-4.8,z:3.1,w:1,d:1,h:1},{x:4.8,z:1.1,w:1,d:1,h:1}],
     graceMs:5500,detectRadius:3.2,enemyCooldownMs:3600,
     soloHealth:1,groupHealth:2,soloSpeed:.18,groupSpeed:.25,
   },
