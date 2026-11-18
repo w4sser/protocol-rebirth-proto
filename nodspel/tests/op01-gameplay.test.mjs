@@ -60,7 +60,7 @@ test('authored OP01 has weapon, 41-bone rig and all gameplay actions',async()=>{
 test('all four OP01 skinned material parts switch together using one skeleton',async()=>{
   const gltf=await parse('OP01_Game_LOD0.glb');
   const op=createOP01GameplayOperator(gltf);
-  const parts=[];op.model.traverse(n=>{if(n.isSkinnedMesh)parts.push(n);});
+  const parts=[];op.model.traverse(n=>{if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);});
   assert.equal(parts.length,4,'skinned character has four GLB material primitives');
   const original=parts.map(n=>n.geometry);
   const loader={loadAsync:async url=>parse(new URL(url).pathname.split('/').at(-1))};
@@ -146,5 +146,7 @@ test('Deploy uses anchored lower body with a fixed upper-body rifle grip',async(
     rightSocketGap:+rightWorld.distanceTo(origin).toFixed(3),
     upperTracks:pose.upperTracks,lowerTracks:pose.lowerTracks
   }));
-  assert(Math.abs(aimDir.y)<.92,'rifle barrel must not point vertically in Deploy');
+  assert(Math.abs(aimDir.y)<.45,'Deploy rifle must be near horizontal, not held vertically');
+  assert(Math.min(...reach)<.14,'off-hand must rest on the rifle foregrip, not float in front of the chest');
+  assert(rightWorld.distanceTo(origin)<.15,'trigger hand must remain at the rifle socket');
 });
