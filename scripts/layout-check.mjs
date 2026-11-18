@@ -334,7 +334,7 @@ async function cinematicPrep3DRun([w,h]){
     await loaderGone(page);
     await page.waitForFunction(()=>{
       const h=document.getElementById('pr-operator-stage');
-      return !!(h&&h.dataset.menuModel==='op01-mobile'&&h.dataset.bit==='3d'&&h.querySelector('canvas'));
+      return !!(h&&h.dataset.menuModel==='op01-menu'&&h.dataset.bit==='3d'&&h.querySelector('canvas'));
     },{timeout:17000}).catch(e=>fail(tag,"real 3D menu and BIT failed to mount: "+String(e).slice(0,90)));
     const before=await page.evaluate(()=>{
       const h=document.getElementById('pr-operator-stage');
