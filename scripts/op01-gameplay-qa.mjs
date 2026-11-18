@@ -61,6 +61,7 @@ try{
         failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
+      if(aim.faceLocked)failures.push(tag+': aim preview latched before any shot');
       if(!postShoot.faceLocked||!shoot.faceLocked)failures.push(tag+': last shot did not latch facing');
       if(Math.abs(Math.atan2(Math.sin(postShoot.rotation-shoot.rotation),Math.cos(postShoot.rotation-shoot.rotation)))>.08)
         failures.push(tag+': facing snapped back after shot');

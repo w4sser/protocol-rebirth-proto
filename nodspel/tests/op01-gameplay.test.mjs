@@ -281,8 +281,8 @@ test('OP01 keeps the last fired heading after aiming is released, even when movi
   const facing=createOP01FacingLatch();
   const walk={x:0,z:-1},east={x:1,z:0},north={x:0,z:1};
   assert.equal(facing.resolve(false,walk,north),walk,'initial heading follows walking');
-  assert.equal(facing.resolve(true,walk,east),facing.direction);
-  assert(facing.locked);
+  assert.equal(facing.resolve(true,walk,east),east);
+  assert(!facing.locked,'aim preview alone must not persist when cancelled');
   facing.record(0,1);
   const held=facing.resolve(false,walk,east);
   assert.equal(held.x,0);assert.equal(held.z,1);

@@ -99,8 +99,9 @@ export function createOP01FacingLatch(){
   return {
     record,reset(){locked=false;facing.x=0;facing.z=-1;},
     resolve(aiming,walking,aim){
-      if(aiming&&aim)record(aim.x,aim.z);
-      return locked?facing:(aiming?aim:walking);
+      // Live aim always wins, but only a successful fired shot is retained.
+      // A cancelled aim gesture must not silently change persistent facing.
+      return aiming&&aim?aim:locked?facing:walking;
     },
     get locked(){return locked;},
     get direction(){return facing;}
