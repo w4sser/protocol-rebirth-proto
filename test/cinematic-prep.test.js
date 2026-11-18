@@ -78,6 +78,21 @@ assert(heroV4.includes('athletic-long-legs-v4') && heroV4.includes('lean-v-taper
 assert(heroV4.includes('legs.scale.set(.91,1.18,.89)') &&
        heroV4.includes('upper.scale.set(.90,1,.89)'),
   'lean v4 increases apparent leg length and tapers upper-body width and depth');
+// BIT must stay subordinate to OP01: no foreground 3D portrait overlap.
+const bitLayout=viewer.match(/const BIT_DEPLOY_LAYOUT=Object.freeze\(\{([\s\S]*?)\}\);/);
+assert(bitLayout,'BIT deploy composition should be defined explicitly');
+const getLayoutNumber=k=>{
+  const m=bitLayout[1].match(new RegExp('(?:^|[,\\s])'+k+'\\s*:\\s*(-?[0-9.]+)'));
+  assert(m,'Missing BIT layout setting '+k);
+  return Number(m[1]);
+};
+assert(getLayoutNumber('scale')<=.60 && getLayoutNumber('scale')>=.4,'BIT must be smaller than foreground version');
+assert(getLayoutNumber('z')<-.3,'BIT must be behind the operator along camera +Z');
+assert(getLayoutNumber('x')<-.4,'BIT should be left of the operator torso');
+assert(getLayoutNumber('bobAmplitude')<=.02,'BIT hover must be subtle');
+assert(viewer.includes('bit.scale.setScalar(BIT_DEPLOY_LAYOUT.scale)') &&
+       viewer.includes('bit.position.set(BIT_DEPLOY_LAYOUT.x,BIT_DEPLOY_LAYOUT.y,BIT_DEPLOY_LAYOUT.z)'),
+       'BIT should use shared staging config');
 assert(models.includes("bit-face-master-v3.svg") && models.includes('BIT owner face master v3'),
   'BIT uses the owner-approved smile proportions on the 3D CRT');
 assert(fs.readFileSync(path+'/assets/bit-face-master-v3.svg','utf8').includes('#75CFCC'),
