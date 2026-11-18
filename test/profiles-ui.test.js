@@ -49,6 +49,9 @@ function boot(patch, entries){
   assert.equal(meta.active, 1, "slot 2 is now active");
   assert.equal(JSON.parse(SaveSlots.readSlotRaw(w.localStorage, 0)).cur.scrap, 999, "slot 1 snapshot captured the live scrap before leaving");
   assert.equal(JSON.parse(w.localStorage.getItem("pr_meta_save")).cur.scrap, 20, "live save is now slot 2's fresh state");
+  const selected = w.localStorage.getItem("pr_meta_save");
+  w.dispatchEvent(new w.Event("beforeunload"));
+  assert.equal(w.localStorage.getItem("pr_meta_save"), selected, "beforeunload must not overwrite the selected new game's save with the departing slot");
 }
 
 // 3) deleting a non-active slot needs no reload and clears its data

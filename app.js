@@ -2039,6 +2039,9 @@ function reopenProfiles(){
   overlay(profilesHtml(), () => { session.profilesRenaming = null; session.profilesImport = false; }, "profilesov");
 }
 function profilesReload(){
+  // The live S still belongs to the departing slot. Prevent beforeunload from
+  // overwriting the newly selected/deleted/imported pr_meta_save with old progress.
+  resetting = true;
   const url = new URL(window.location.href);
   (window.PR_NAVIGATE || (u => window.location.replace(u)))(url.pathname + url.search + url.hash);
 }
