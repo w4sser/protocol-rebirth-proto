@@ -8,6 +8,17 @@ import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.46';
 import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.46';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+// BIT belongs behind OP-01, not in the foreground. Camera is on +Z;
+// negative Z places the companion farther from the camera. Keep the face
+// slightly outside the operator's left shoulder silhouette at mobile size.
+const BIT_DEPLOY_LAYOUT=Object.freeze({
+  scale:.56,
+  x:-.74,y:1.58,z:-.70,
+  facingYaw:.14,
+  bobAmplitude:.014,bobSpeed:1.10,
+  rollAmplitude:.010,rollSpeed:.76
+});
+
 export async function mountRaidPrepScene(host){
   if(!host?.isConnected)return null;
   let renderer=null,scene=null,camera=null,observer=null,raf=0,disposed=false;
@@ -107,8 +118,11 @@ export async function mountRaidPrepScene(host){
     orbit.add(operator.root);
     // Genuine three-dimensional companion; its original approved smile is
     // rendered on the physical CRT face, never as a full-body billboard.
-    bit=createMenuBit();bit.scale.setScalar(.78);bit.position.set(-.93,1.70,.27);
-    bit.rotation.y=.14;scene.add(bit);
+    bit=createMenuBit();
+    bit.scale.setScalar(BIT_DEPLOY_LAYOUT.scale);
+    bit.position.set(BIT_DEPLOY_LAYOUT.x,BIT_DEPLOY_LAYOUT.y,BIT_DEPLOY_LAYOUT.z);
+    bit.rotation.y=BIT_DEPLOY_LAYOUT.facingYaw;
+    scene.add(bit);
     const floor=new THREE.Mesh(new THREE.CircleGeometry(.65,32),
       new THREE.MeshBasicMaterial({color:0x070e12,transparent:true,opacity:.14,depthWrite:false}));
     floor.rotation.x=-Math.PI/2;floor.position.y=.008;scene.add(floor);
@@ -144,7 +158,10 @@ export async function mountRaidPrepScene(host){
       if(document.hidden||!host.clientWidth||!host.clientHeight)return;
       const dt=previous?Math.min(.06,(t-previous)/1000):.016;previous=t;clock+=dt;
       operator.update(dt,reduced);
-      if(!reduced){bit.position.y=bitY+Math.sin(clock*1.6)*.026;bit.rotation.z=Math.sin(clock*.95)*.025;}
+      if(!reduced){
+        bit.position.y=bitY+Math.sin(clock*BIT_DEPLOY_LAYOUT.bobSpeed)*BIT_DEPLOY_LAYOUT.bobAmplitude;
+        bit.rotation.z=Math.sin(clock*BIT_DEPLOY_LAYOUT.rollSpeed)*BIT_DEPLOY_LAYOUT.rollAmplitude;
+      }
       renderer.render(scene,camera);
     };
     host.closest('.lobby-hero')?.classList.add('has-3d');
