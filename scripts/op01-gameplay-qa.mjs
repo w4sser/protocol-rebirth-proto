@@ -46,14 +46,23 @@ try{
       const aim=await snapshot();await capture('aim');
       await page.keyboard.up('Space');await pause(70);
       const shoot=await snapshot();await capture('shoot');
-      // The operator must keep its aim after both movement and fire buttons
-      // are released; restarting movement must not snap the body backwards.
-      await pause(750);
+      // Capture the fire hold, then reverse movement. The operator should
+      // rotate gradually toward the new running direction, while aiming
+      // always overrides that transition immediately.
+      await pause(110);
       const postShoot=await snapshot();await capture('post-shoot');
-      await page.keyboard.up('w');
+      await page.keyboard.up('w');await page.keyboard.down('s');
+      await pause(110);
+      const turnEarly=await snapshot();await capture('turn-early');
+      await pause(320);
+      const turnMid=await snapshot();await capture('turn-mid');
+      await pause(1050);
+      const turnLate=await snapshot();await capture('turn-late');
+      await page.keyboard.up('s');
       await page.keyboard.down('Shift');await pause(90);
       const dash=await snapshot();await capture('dash');await page.keyboard.up('Shift');
-      const report={tag,idle,run,aim,shoot,postShoot,dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
+      const report={tag,idle,run,aim,shoot,postShoot,turnEarly,turnMid,turnLate,
+        dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
       checks.push(report);
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
       if(Math.abs((idle.visualScale||0)-1.10)>.001 ||
@@ -61,10 +70,22 @@ try{
         failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
-      if(aim.faceLocked)failures.push(tag+': aim preview latched before any shot');
-      if(!postShoot.faceLocked||!shoot.faceLocked)failures.push(tag+': last shot did not latch facing');
-      if(Math.abs(Math.atan2(Math.sin(postShoot.rotation-shoot.rotation),Math.cos(postShoot.rotation-shoot.rotation)))>.08)
-        failures.push(tag+': facing snapped back after shot');
+      if(aim.faceLocked)failures.push(tag+': aim preview marked as fired');
+      if(!postShoot.faceLocked||!shoot.faceLocked)failures.push(tag+': real shot was not recorded');
+      const angle=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+      if(angle(postShoot.rotation,shoot.rotation)>.12)
+        failures.push(tag+': shot facing snapped immediately');
+      const initialGap=angle(turnEarly.rotation,turnEarly.movementYaw);
+      const middleGap=angle(turnMid.rotation,turnMid.movementYaw);
+      const lateGap=angle(turnLate.rotation,turnLate.movementYaw);
+      if(initialGap>.25){
+        if(!(middleGap<initialGap-.07))
+          failures.push(tag+': no smooth turn toward movement ('+initialGap.toFixed(2)+' -> '+middleGap.toFixed(2)+')');
+        if(!(lateGap<.14))
+          failures.push(tag+': last-shot facing remains after running ('+lateGap.toFixed(2)+')');
+      }
+      if(angle(turnEarly.rotation,postShoot.rotation)>1.2)
+        failures.push(tag+': facing snapped when movement direction reversed');
       for(const [state,snap] of [['idle',idle],['run',run],['postShoot',postShoot]]){
         if(!(snap.healthAnchorErrorPx<5))
           failures.push(tag+': health bar detached from head in '+state+' ('+snap.healthAnchorErrorPx+')');
