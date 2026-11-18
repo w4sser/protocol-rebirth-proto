@@ -83,27 +83,72 @@ function tuneMaterials(mesh,low=false){
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const delta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 
-/** Pure visual direction latch. The most recent explicit aim/shot remains
- *  the facing direction after fire is released, including while walking.
- *  Never changes movement, projectile physics, collision or a legacy skin. */
+/** OP01 visual facing policy. Aiming overrides movement immediately.
+ * After releasing aim, rotate back toward movement gradually. When still,
+ * retain the last meaningful direction. A shot holds briefly before easing.
+ * No influence on physics, player collisions, or projectile calculations.
+ */
 export function createOP01FacingLatch(){
   const facing={x:0,z:-1};
-  let locked=false;
-  function record(x,z){
+  let yaw=Math.PI,initialized=false,locked=false,steering=false,shotHold=0;
+  const TURN_RATE=3.25;  // maximum radians per second
+  const TURN_EASE=.20;  // smooth final approach
+  const SNAP_EPS=.025;
+  const SHOT_HOLD=.14;  // avoid the first-frame post-fire snap
+  function face(x,z){
     if(!Number.isFinite(x)||!Number.isFinite(z))return false;
     const len=Math.hypot(x,z);
     if(len<.001)return false;
-    facing.x=x/len;facing.z=z/len;locked=true;
+    yaw=Math.atan2(x,z);
+    facing.x=x/len;facing.z=z/len;initialized=true;
     return true;
   }
+  function record(x,z){
+    if(!face(x,z))return false;
+    locked=true;steering=true;shotHold=SHOT_HOLD;
+    return true;
+  }
+  function resolve(aiming,walking,aim,dt=1/60,moving=true){
+    const step=clamp(Number(dt)||0,0,.1);
+    if(aiming&&aim&&face(aim.x,aim.z)){
+      steering=true;
+      return facing; // live aim is always absolute priority
+    }
+    if(!initialized)face(walking?.x??0,walking?.z??-1);
+    if(!moving){
+      steering=false; // preserve last facing while stationary
+      return facing;
+    }
+    if(shotHold>0){
+      shotHold=Math.max(0,shotHold-step);
+      steering=true;return facing;
+    }
+    if(!walking||!Number.isFinite(walking.x)||!Number.isFinite(walking.z)
+      ||Math.hypot(walking.x,walking.z)<.001){
+      steering=false;return facing;
+    }
+    const target=Math.atan2(walking.x,walking.z);
+    const diff=delta(target,yaw); // shortest direction across +/- PI
+    if(Math.abs(diff)<=SNAP_EPS){
+      face(walking.x,walking.z);
+      steering=false;
+    }else{
+      const eased=Math.abs(diff)*(1-Math.exp(-step/TURN_EASE));
+      const amount=Math.min(Math.abs(diff),TURN_RATE*step,eased);
+      yaw+=Math.sign(diff)*amount;
+      facing.x=Math.sin(yaw);facing.z=Math.cos(yaw);
+      steering=true;
+    }
+    return facing;
+  }
   return {
-    record,reset(){locked=false;facing.x=0;facing.z=-1;},
-    resolve(aiming,walking,aim){
-      // Live aim always wins, but only a successful fired shot is retained.
-      // A cancelled aim gesture must not silently change persistent facing.
-      return aiming&&aim?aim:locked?facing:walking;
+    record,resolve,
+    reset(){
+      locked=false;steering=false;shotHold=0;initialized=false;
+      yaw=Math.PI;facing.x=0;facing.z=-1;
     },
-    get locked(){return locked;},
+    get locked(){return locked;}, // QA: has fired since last reset
+    get steering(){return steering;},
     get direction(){return facing;}
   };
 }

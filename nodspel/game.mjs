@@ -288,6 +288,8 @@ if(activeSkin==='op01'&&new URLSearchParams(location.search).get('op01QA')==='1'
       return {
         ...human.poseDiagnostics(),skin:activeSkin,position:player.position.toArray(),
         rotation:player.rotation.y,faceLocked:op01Facing.locked,
+        faceSteering:op01Facing.steering,
+        movementYaw:Math.atan2(walkDirection.x,walkDirection.z),
         healthAnchorPx:[anchorX,anchorY],healthBarPx:[barX,barY],
         healthAnchorErrorPx:Math.hypot(anchorX-barX,anchorY-barY)
       };
@@ -1901,12 +1903,13 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
   }
   const smoothAim=stepAim(sticks[1].state.gesture,dt);
   const selectedFacing=manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim;
-  const facing=op01Facing?op01Facing.resolve(holding,walkDirection,selectedFacing):
+  const facing=op01Facing?op01Facing.resolve(
+    holding,walkDirection,selectedFacing,dt,playerMoving&&!round.over):
     facingDirection(holding,walkDirection,selectedFacing);
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
-  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.keepFacing=!!op01Facing?.locked;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
+  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.keepFacing=!!op01Facing?.steering;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
     if(++op01LodFrame%12===0)human.updateLOD?.(camera,renderer.domElement.clientHeight||window.innerHeight);
   }else robotPresence.update(dt,o);}
   if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);
