@@ -1,0 +1,31 @@
+name: op01-gameplay-qa
+on:
+  pull_request:
+    paths:
+      - 'nodspel/op01-gameplay.js'
+      - 'nodspel/game.mjs'
+      - 'nodspel/tests/op01-gameplay.test.mjs'
+      - 'scripts/op01-gameplay-qa.mjs'
+      - '.github/workflows/op01-gameplay-qa.yml'
+jobs:
+  gameplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i --no-save puppeteer
+      - name: Run authored GLB rig, animation, muzzle and LOD tests
+        run: node --test nodspel/tests/op01-gameplay.test.mjs
+      - name: Exercise actual OP01 raid in phone landscape
+        run: node scripts/op01-gameplay-qa.mjs
+        env:
+          OP01_QA_OUT: op01-qa-captures
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: op01-gameplay-qa-captures
+          path: op01-qa-captures/
+          retention-days: 5
