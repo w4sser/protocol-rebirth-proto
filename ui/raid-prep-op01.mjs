@@ -40,9 +40,18 @@ export async function loadOP01Operator({quality='menu',maxAnisotropy=4}={}){
   if(rigged){
     const clips=new Set(gltf.animations.map(a=>a.name));
     for(const clip of REQUIRED_CLIPS)if(!clips.has(clip))throw new Error('OP01 is missing '+clip);
-    if(!gltf.scene.getObjectByName('mixamorig:Hips') ||
-       !gltf.scene.getObjectByName('OP01_Carbine') ||
-       !gltf.scene.getObjectByName('OP01_Rig'))
+    // GLTFLoader sanitizes punctuation in bone names (mixamorig:Hips).
+    // Preserve Blender's original names in userData.name when matching.
+    const named=name=>{
+      let found=null;
+      gltf.scene.traverse(node=>{
+        if(!found&&(node.name===name||node.userData?.name===name))found=node;
+      });
+      return found;
+    };
+    if(!named('mixamorig:Hips') ||
+       !named('OP01_Carbine') ||
+       !named('OP01_Rig'))
       throw new Error('OP01 Menu is missing its skeleton or attached rifle');
   }
   const root=new THREE.Group();
