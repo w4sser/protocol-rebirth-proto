@@ -168,3 +168,78 @@ test('Deploy uses anchored lower body with a fixed upper-body rifle grip',async(
   assert(Math.min(...reach)<.14,'off-hand must rest on the rifle foregrip, not float in front of the chest');
   assert(rightWorld.distanceTo(origin)<.15,'trigger hand must remain at the rifle socket');
 });
+
+test('OP01 real rifle follows world aim at all strafing angles with a two-hand grip',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const op=createOP01GameplayOperator(gltf);
+  const holder=new THREE.Group();holder.add(op.root);
+  const hand=(()=>{let h=null;op.root.traverse(n=>{if(!h&&(n.name==='mixamorig:LeftHand'||n.userData?.name==='mixamorig:LeftHand'))h=n;});return h;})();
+  assert(hand,'animated left hand exists');
+  const muzzle=new THREE.Vector3(),gunOrigin=new THREE.Vector3(),left=new THREE.Vector3();
+  for(const yaw of [0,Math.PI/4,Math.PI/2,Math.PI,Math.PI*1.5]){
+    op.reset();holder.rotation.y=yaw;
+    for(let i=0;i<20;i++)op.update(1/60,{moving:true,aiming:true,walkYaw:0,aimYaw:yaw});
+    op.root.updateMatrixWorld(true);
+    op.muzzle.getWorldPosition(muzzle);op.weapon.getWorldPosition(gunOrigin);hand.getWorldPosition(left);
+    const shotVector=muzzle.clone().sub(gunOrigin).setY(0).normalize();
+    const desired=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+    assert(shotVector.dot(desired)>.96,`OP01 barrel must face aim yaw ${yaw.toFixed(2)} while strafing`);
+    const localLeft=op.weapon.worldToLocal(left.clone());
+    assert(localLeft.z<-.05&&localLeft.z>-.62,'off-hand should be forward on the gun');
+    assert(Math.abs(localLeft.x)<.16&&Math.abs(localLeft.y)<.25,'off-hand cannot float away from the rifle');
+  }
+});
+
+test('OP01 backward locomotion reverses the leg animation without rewinding the upper body',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const op=createOP01GameplayOperator(gltf,{dashDuration:.55});
+  const holder=new THREE.Group();holder.add(op.root);holder.rotation.y=Math.PI;
+  for(let i=0;i<12;i++)op.update(1/60,{moving:true,aiming:true,walkYaw:0,aimYaw:Math.PI});
+  assert(op.actions.lower.back.isRunning(),'backpedaling uses the authored run clip in reverse');
+  assert(op.actions.lower.back.getEffectiveTimeScale()<0,'leg animation reverses while retreating');
+  assert(op.actions.upper.aim.isRunning(),'upper-body aim continues during retreat');
+  op.shoot();op.update(.04,{moving:true,aiming:true,walkYaw:0,aimYaw:Math.PI});
+  assert(op.actions.upper.shoot.isRunning(),'shooting while retreating keeps weapon animation');
+  assert(op.actions.lower.back.isRunning(),'shooting does not steal the backward-running legs');
+  op.update(.04,{dashing:true});
+  assert(op.actions.lower.dash.isRunning()&&op.actions.upper.dash.isRunning());
+  const authoredDashSeconds=gltf.animations.find(c=>c.name==='dash').duration;
+  assert(Math.abs(op.actions.lower.dash.getEffectiveTimeScale()-authoredDashSeconds/.55)<.01,
+    'dash animation speed must follow actual gameplay dash duration');
+  op.update(.04,{dead:true});
+  assert(op.actions.lower.death.isRunning()&&op.actions.upper.death.isRunning());
+});
+
+test('OP01 repeated hits restart both affected animation layers',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  op.hit();op.update(.06,{});
+  assert(op.actions.lower.hit.isRunning()&&op.actions.upper.hit.isRunning());
+  const before=op.actions.upper.hit.time;assert(before>0);
+  op.hit();
+  assert(op.actions.upper.hit.time===0&&op.actions.lower.hit.time===0,
+    'second impact must replay the upper and lower hit animation from the start');
+});
+
+test('OP01 occlusion silhouette includes every skinned body primitive through all LODs',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  const body=[],outline=[];
+  op.model.traverse(n=>{
+    if(n.name==='OP01-occlusion-outline')outline.push(n);
+    else if(n.isSkinnedMesh)body.push(n);
+  });
+  assert.equal(body.length,4);assert.equal(outline.length,4,'coat, backpack, equipment and body are all outlined');
+  op.setOccluded(true);
+  for(let i=0;i<4;i++){
+    assert(outline[i].visible,'all four outlines must render behind foreground blockers');
+    assert.equal(outline[i].geometry,body[i].geometry,'the outline uses the visible LOD geometry');
+  }
+  const loader={loadAsync:async url=>parse(new URL(url).pathname.split('/').at(-1))};
+  await op.preloadLODs(loader);
+  for(const lod of [1,2,0]){
+    assert(op.setLOD(lod));
+    for(let i=0;i<4;i++)assert.equal(outline[i].geometry,body[i].geometry,
+      'LOD switch cannot leave an outdated silhouette mesh');
+  }
+  op.setOccluded(false);
+  assert(outline.every(x=>!x.visible));
+});
