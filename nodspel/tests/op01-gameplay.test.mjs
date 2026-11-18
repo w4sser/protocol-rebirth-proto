@@ -6,8 +6,27 @@ import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import {createOP01GameplayOperator,OP01_CHARACTER} from '../op01-gameplay.js';
 
 async function parse(name){
+  // Node has no image decoder. Preserve the actual GLB geometry, skin and
+  // animation bytes while removing only texture bindings in this test fixture.
+  // Browser/production GLBs are never modified.
   const bytes=await readFile(new URL('../../assets/operators/'+name,import.meta.url));
-  return new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+  const jsonLength=bytes.readUInt32LE(12);
+  const json=JSON.parse(bytes.toString('utf8',20,20+jsonLength));
+  for(const material of json.materials||[]){
+    delete material.normalTexture;
+    delete material.occlusionTexture;
+    delete material.emissiveTexture;
+    if(material.pbrMetallicRoughness){
+      delete material.pbrMetallicRoughness.baseColorTexture;
+      delete material.pbrMetallicRoughness.metallicRoughnessTexture;
+    }
+  }
+  const encoded=Buffer.from(JSON.stringify(json));
+  assert(encoded.length<=jsonLength,'stripping texture bindings must fit the original GLB JSON chunk');
+  const prepared=Buffer.from(bytes);
+  prepared.fill(0x20,20,20+jsonLength);
+  encoded.copy(prepared,20);
+  return new GLTFLoader().parseAsync(prepared.buffer.slice(prepared.byteOffset,prepared.byteOffset+prepared.byteLength),'');
 }
 test('authored OP01 has weapon, 41-bone rig and all gameplay actions',async()=>{
   const gltf=await parse('OP01_Game_LOD0.glb');
@@ -72,4 +91,36 @@ test('OP01 presentation does not modify core movement, collision or weapon rules
     'character art should not introduce a game mechanic '+key);
   assert.equal(OP01_CHARACTER.height,1.78);
   assert.equal(OP01_CHARACTER.weapon.muzzle,'muzzle');
+});
+
+test('diagnostic: locate the authored hero-posed wrists and weapon forward axis',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const scene=gltf.scene,mixer=new THREE.AnimationMixer(scene);
+  const named=name=>{
+    let value=null;
+    scene.traverse(n=>{if(!value&&(n.name===name||n.userData?.name===name))value=n;});
+    return value;
+  };
+  const getPosition=name=>named(name)?.getWorldPosition(new THREE.Vector3()).toArray().map(n=>+n.toFixed(3));
+  const weapon=named('OP01_Carbine');
+  for(const state of ['hero_pose','aim','idle']){
+    mixer.stopAllAction();
+    const clip=gltf.animations.find(c=>c.name===state);
+    const action=mixer.clipAction(clip);
+    action.setLoop(THREE.LoopOnce,1);
+    action.clampWhenFinished=true;
+    action.play();mixer.update(clip.duration+(state==='hero_pose'?.0001:0));
+    scene.updateMatrixWorld(true);
+    const forward=new THREE.Vector3(0,0,-1).transformDirection(weapon.matrixWorld);
+    console.log('OP01_RIG_DIAG '+JSON.stringify({
+      state,clipDuration:+clip.duration.toFixed(3),
+      rightHand:getPosition('mixamorig:RightHand'),
+      leftHand:getPosition('mixamorig:LeftHand'),
+      leftArm:getPosition('mixamorig:LeftArm'),
+      leftForeArm:getPosition('mixamorig:LeftForeArm'),
+      weapon:weapon.getWorldPosition(new THREE.Vector3()).toArray().map(n=>+n.toFixed(3)),
+      forward:forward.toArray().map(n=>+n.toFixed(3))
+    }));
+  }
+  assert(weapon,'weapon exists');
 });
