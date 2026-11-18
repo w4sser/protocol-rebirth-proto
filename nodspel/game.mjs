@@ -275,6 +275,16 @@ if(requestedSkin!=='robot'){try{human=requestedSkin==='op01'
   player.add(human.root);robot.visible=false;
 }catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
+// Explicit test-only inspection: never change gameplay, collision, input or
+// saved state, and never expose the rig during ordinary player sessions.
+if(activeSkin==='op01'&&new URLSearchParams(location.search).get('op01QA')==='1'){
+  Object.defineProperty(window,'__OP01_QA',{configurable:true,
+    value:Object.freeze({snapshot:()=>({
+      ...human.poseDiagnostics(),
+      skin:activeSkin,position:player.position.toArray(),
+      rotation:player.rotation.y
+    })})});
+}
 const playerOverheadY=overheadAnchorY(human?.character??CHARACTERS.robot);
 const gun=human?human.weapon:robotGun;
 const robotMuzzle=createRobotSocket(robotGun,CHARACTERS.robot);
