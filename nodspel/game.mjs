@@ -6,7 +6,7 @@ import {animateEnemyModel} from './enemy-animation.js?v=2.28.46';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.46';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.46';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.46';
-import {loadOP01GameplayOperator} from './op01-gameplay.js?v=2.28.46';
+import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.46';
 import {createRobotPresence} from './robot-operator.js?v=2.28.46';
 import {createOperatorFX} from './operator-fx.js?v=2.28.46';
 import {createAudioSettings} from './audio-settings.js?v=2.28.46';
@@ -275,15 +275,23 @@ if(requestedSkin!=='robot'){try{human=requestedSkin==='op01'
   player.add(human.root);robot.visible=false;
 }catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
+const op01Facing=activeSkin==='op01'?createOP01FacingLatch():null;
 // Explicit test-only inspection: never change gameplay, collision, input or
 // saved state, and never expose the rig during ordinary player sessions.
 if(activeSkin==='op01'&&new URLSearchParams(location.search).get('op01QA')==='1'){
   Object.defineProperty(window,'__OP01_QA',{configurable:true,
-    value:Object.freeze({snapshot:()=>({
-      ...human.poseDiagnostics(),
-      skin:activeSkin,position:player.position.toArray(),
-      rotation:player.rotation.y
-    })})});
+    value:Object.freeze({snapshot:()=>{
+      const anchor=human.healthAnchor(new THREE.Vector3()).project(camera);
+      const vp=viewport.getBoundingClientRect(),bar=$('#player-health').getBoundingClientRect();
+      const anchorX=(anchor.x*.5+.5)*viewWidth,anchorY=(-anchor.y*.5+.5)*viewHeight;
+      const barX=bar.left+bar.width*.5-vp.left,barY=bar.bottom-vp.top;
+      return {
+        ...human.poseDiagnostics(),skin:activeSkin,position:player.position.toArray(),
+        rotation:player.rotation.y,faceLocked:op01Facing.locked,
+        healthAnchorPx:[anchorX,anchorY],healthBarPx:[barX,barY],
+        healthAnchorErrorPx:Math.hypot(anchorX-barX,anchorY-barY)
+      };
+    }})});
 }
 const playerOverheadY=overheadAnchorY(human?.character??CHARACTERS.robot);
 const gun=human?human.weapon:robotGun;
@@ -1065,7 +1073,7 @@ let ddaState=loadDdaState(localStorage);
 const ddaEligible=()=>!launch.ftue&&!launch.intro;
 function reset(requestedSeed){
   if(!gameReady)return;
-  human?.reset();if(!human)robotPresence.reset();operatorFX.reset();
+  human?.reset();op01Facing?.reset();if(!human)robotPresence.reset();operatorFX.reset();
   const seed=typeof requestedSeed==='string'&&requestedSeed?requestedSeed.slice(0,64):`${crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0')}-${++resetCount}`;
   const url=new URL(location.href);url.searchParams.set('seed',seed);history.replaceState(null,'',url);
   resultPending=false;resultReturning=false;$('#inventory').hidden=true;
@@ -1153,6 +1161,9 @@ function fire(tap=false){
   tickRound(round,gameClock());if(round.over){finishRound();return;}
   const clock=gameClock();round.shooter=position;const direction=tap?{x:Math.sin(player.rotation.y),z:Math.cos(player.rotation.y)}:aim;const shot=fireAimedWeapon(weapon,round,position,direction,clock,playerSolids,playerMoving,tap);round.shooter=null;
   if(!shot){$('#ammo-hud').classList.add('empty');return;}
+  // Lock the actual projectile heading, not the last walking heading.
+  // This is visual-only and never changes the shot that was already fired.
+  op01Facing?.record(shot.dx,shot.dz);
   if(launch.ftue&&!ftueShotMarked){ftueShotMarked=true;ftueMark('firstShot');fadeStickLabel(ftueAimLabel);}
   if(shot.resolved){updateHUD();renderEnemyFeedback(clock);renderLabels();}
   addBulletVisual(shot);human?.shoot();if(!human)robotPresence.shoot();operatorFX.shot(position.x,position.z,shot.dx,shot.dz,QUALITY==='low');
@@ -1198,7 +1209,9 @@ rt.dataset.k=k;if(inf)rt.replaceChildren(`${weapon.ammo}/${W.capacity} · `,svgI
   $('#player-health').setAttribute('aria-valuenow',round.health);
   renderHealthSegments(playerHealthSegments,round.health,round.maxHealth,10);$('#player-health').hidden=round.health<=0;
   $('#player-health').classList.toggle('urgent',round.health<=25);
-  labelPoint.set(position.x,playerOverheadY,position.z).project(camera);
+  if(activeSkin==='op01'&&human?.healthAnchor)human.healthAnchor(labelPoint);
+  else labelPoint.set(position.x,playerOverheadY,position.z);
+  labelPoint.project(camera);
   setPx($('#player-health'),'left',(labelPoint.x*.5+.5)*viewWidth);
   setPx($('#player-health'),'top',(-labelPoint.y*.5+.5)*viewHeight);
   {const sh=$('#player-shield'),max=round.maxShield||0;if(sh){sh.hidden=!max||round.health<=0;if(max){setPx(sh,'left',(labelPoint.x*.5+.5)*viewWidth);setPx(sh,'top',(-labelPoint.y*.5+.5)*viewHeight-12);{const sf=$('#player-shield-fill'),w=Math.round(100*round.shield/max);if(sf._w!==w){sf._w=w;sf.style.width=w+'%';}}sh.classList.toggle('broken',round.shield<=0);sh.setAttribute('aria-valuenow',round.shield);}}}
@@ -1677,7 +1690,7 @@ window.addEventListener('unhandledrejection',e=>onFatal(e.reason??new Error('unh
 // v2.22.4 hot-path scratch objects (reused every frame; never stored by callees).
 const hotPosBefore={x:0,z:0},hotPosDash={x:0,z:0},hotPosCombat={x:0,z:0},hotCountdown={remainingMs:0};
 const hotRenderedShots=new Set(),hotActiveShots=new Set(),hotVisibleProjectiles=[],hotAliveProjectiles=new Set(),hotAimTargets=[],hotNoAssist={target:null,direction:null};
-const hotHumanOpts={moving:false,dashing:false,dead:false,aiming:false,interacting:false,walkYaw:0,aimYaw:0},hotFxOpts={dashing:false,x:0,z:0,low:false};
+const hotHumanOpts={moving:false,dashing:false,dead:false,aiming:false,interacting:false,keepFacing:false,walkYaw:0,aimYaw:0},hotFxOpts={dashing:false,x:0,z:0,low:false};
 const hotCamGoal=new THREE.Vector3(),hotRayDir=new THREE.Vector3(),SUN_OFFSET=new THREE.Vector3(-8,18,10);
 const hotOne=[null];function one(x){hotOne[0]=x;return hotOne;} // single-target list for traceTargets (not kept)
 function copyXZ(out,p){out.x=p.x;out.z=p.z;return out;}
@@ -1887,11 +1900,13 @@ scene.add(m);enemyMeshes.set(b.id,m);}m.position.set(b.x,.65,b.z);m.rotation.y=M
     } // hot-ok-end
   }
   const smoothAim=stepAim(sticks[1].state.gesture,dt);
-  const facing=facingDirection(holding,walkDirection,manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim);
+  const selectedFacing=manual&&smoothAim?screenToWorld(smoothAim.x,smoothAim.y):displayAim;
+  const facing=op01Facing?op01Facing.resolve(holding,walkDirection,selectedFacing):
+    facingDirection(holding,walkDirection,selectedFacing);
   if(round.over){playerOutline.visible=false;human?.setOccluded(false);}
   player.position.set(position.x,0,position.z);player.rotation.y=Math.atan2(facing.x,facing.z);playerRing.position.set(position.x,.025,position.z);
   const aimYaw=Math.atan2(facing.x,facing.z);
-  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
+  {const o=hotHumanOpts;o.moving=playerMoving&&!round.over;o.dashing=dash.remaining>0&&!round.over;o.dead=round.health<=0;o.aiming=holding;o.interacting=!!round.nodeInteraction;o.keepFacing=!!op01Facing?.locked;o.walkYaw=Math.atan2(walkDirection.x,walkDirection.z);o.aimYaw=aimYaw;if(human){human.update(dt,o);
     if(++op01LodFrame%12===0)human.updateLOD?.(camera,renderer.domElement.clientHeight||window.innerHeight);
   }else robotPresence.update(dt,o);}
   if(muzzleFlash.visible)muzzle.getWorldPosition(muzzleFlash.position);

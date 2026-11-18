@@ -46,10 +46,14 @@ try{
       const aim=await snapshot();await capture('aim');
       await page.keyboard.up('Space');await pause(70);
       const shoot=await snapshot();await capture('shoot');
+      // The operator must keep its aim after both movement and fire buttons
+      // are released; restarting movement must not snap the body backwards.
+      await pause(750);
+      const postShoot=await snapshot();await capture('post-shoot');
       await page.keyboard.up('w');
       await page.keyboard.down('Shift');await pause(90);
       const dash=await snapshot();await capture('dash');await page.keyboard.up('Shift');
-      const report={tag,idle,run,aim,shoot,dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
+      const report={tag,idle,run,aim,shoot,postShoot,dash,aimCos:accuracy(aim),shootCos:accuracy(shoot),errors};
       checks.push(report);
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
       if(Math.abs((idle.visualScale||0)-1.10)>.001 ||
@@ -57,6 +61,13 @@ try{
         failures.push(tag+': OP01 gameplay silhouette is not 10% larger');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
+      if(!postShoot.faceLocked||!shoot.faceLocked)failures.push(tag+': last shot did not latch facing');
+      if(Math.abs(Math.atan2(Math.sin(postShoot.rotation-shoot.rotation),Math.cos(postShoot.rotation-shoot.rotation)))>.08)
+        failures.push(tag+': facing snapped back after shot');
+      for(const [state,snap] of [['idle',idle],['run',run],['postShoot',postShoot]]){
+        if(!(snap.healthAnchorErrorPx<5))
+          failures.push(tag+': health bar detached from head in '+state+' ('+snap.healthAnchorErrorPx+')');
+      }
       if(shoot.upper!=='shoot')failures.push(tag+': shot animation missing ('+shoot.upper+')');
       if(accuracy(aim)<.82)failures.push(tag+': barrel alignment wrong ('+accuracy(aim).toFixed(2)+')');
       if(idle.outlines!==4||run.outlines!==4)failures.push(tag+': four-part occlusion silhouette absent');

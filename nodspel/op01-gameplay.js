@@ -83,6 +83,30 @@ function tuneMaterials(mesh,low=false){
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const delta=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 
+/** Pure visual direction latch. The most recent explicit aim/shot remains
+ *  the facing direction after fire is released, including while walking.
+ *  Never changes movement, projectile physics, collision or a legacy skin. */
+export function createOP01FacingLatch(){
+  const facing={x:0,z:-1};
+  let locked=false;
+  function record(x,z){
+    if(!Number.isFinite(x)||!Number.isFinite(z))return false;
+    const len=Math.hypot(x,z);
+    if(len<.001)return false;
+    facing.x=x/len;facing.z=z/len;locked=true;
+    return true;
+  }
+  return {
+    record,reset(){locked=false;facing.x=0;facing.z=-1;},
+    resolve(aiming,walking,aim){
+      if(aiming&&aim)record(aim.x,aim.z);
+      return locked?facing:(aiming?aim:walking);
+    },
+    get locked(){return locked;},
+    get direction(){return facing;}
+  };
+}
+
 export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='standard',loadLODs=null}={}){
   if(!gltf?.scene)throw new Error('OP01 gameplay GLB has no scene');
   const clips=new Map(gltf.animations.map(c=>[c.name,c]));
@@ -98,7 +122,8 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const spine=named(model,'mixamorig:Spine');
   const hand=named(model,'mixamorig:RightHand');
   const supportHand=named(model,'mixamorig:LeftHand');
-  if(skinnedParts.length!==4||!weapon||!spine||!hand||!supportHand)throw new Error('OP01 is missing body pieces, carbine or Mixamo bones');
+  const head=named(model,'mixamorig:Head');
+  if(skinnedParts.length!==4||!weapon||!spine||!hand||!supportHand||!head)throw new Error('OP01 is missing body pieces, carbine or Mixamo bones');
   if(mesh.skeleton.bones.length!==41)throw new Error('OP01 expected a 41-bone Mixamo rig');
 
   // Source mesh and animation are 1.78m tall. No procedural hood/jacket is
@@ -248,28 +273,28 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
       current[layer].reset().play();
   }
   function update(dt,{moving=false,dashing=false,dead=false,aiming=false,interacting=false,
-    walkYaw=0,aimYaw=walkYaw}={}){
+    keepFacing=false,walkYaw=0,aimYaw=walkYaw}={}){
     dt=clamp(Number(dt)||0,0,.1);
     shotLeft=Math.max(0,shotLeft-dt);
     hitLeft=Math.max(0,hitLeft-dt);
     const state=dead?'death':hitLeft>0?'hit':dashing?'dash':shotLeft>0?'shoot':
       interacting?'interact':moving?'run':'idle';
-    const bodyYaw=moving?walkYaw:aimYaw;
-    // A newly fired tap still needs a sensible torso rotation even after the
-    // aiming stick is released; otherwise the spine may twist 180 degrees.
-    const weaponReady=aiming||shotLeft>0;
-    const back=moving&&weaponReady&&Math.abs(delta(aimYaw,bodyYaw))>Math.PI/2;
+    // A latched aim/shot owns the upper-body facing even when the move stick
+    // remains pressed. Run/back legs keep their independent movement heading.
+    const weaponReady=aiming||shotLeft>0||keepFacing;
+    const bodyYaw=keepFacing?aimYaw:moving?walkYaw:aimYaw;
+    const back=moving&&weaponReady&&Math.abs(delta(aimYaw,walkYaw))>Math.PI/2;
     root.rotation.y=(bodyYaw+(back?Math.PI:0))-(root.parent?.rotation.y??0);
     const special=dead||dashing||hitLeft>0;
     change('lower',dead?'death':dashing?'dash':hitLeft>0&&!moving?'hit':moving?(back?'back':'run'):'idle');
     change('upper',dead?'death':dashing?'dash':hitLeft>0?'hit':shotLeft>0?'shoot':
-      aiming||interacting?'aim':moving?'run':'idle');
+      aiming||interacting||keepFacing?'aim':moving?'run':'idle');
     mixer.update(dt);
 
     // Mixamo's aim clip is authored for its own forward direction; rotate
     // the upper torso only to align the actual hand-mounted rifle with the
     // game's aim ray. Running legs remain animated independently.
-    if(!special&&(aiming||shotLeft>0)){
+    if(!special&&weaponReady){
       root.updateMatrixWorld(true);
       forward.copy(gunForward).transformDirection(weapon.matrixWorld);
       const weaponYaw=Math.atan2(forward.x,forward.z);
@@ -295,6 +320,14 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     root.updateMatrixWorld(true);
     return hand.getWorldPosition(target);
   }
+  function healthAnchor(target){
+    // Follow the actual animated hood/head, not just the logical player XZ
+    // center. This continues to work with the 10%-larger OP01 visual root.
+    root.updateMatrixWorld(true);
+    head.getWorldPosition(target);
+    target.y+=.32*root.scale.y;
+    return target;
+  }
   // Read-only QA surface used only by the explicit ?op01QA=1 test session.
   // No reference to this debug method is retained by normal gameplay code.
   function poseDiagnostics(){
@@ -311,7 +344,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   reset();
   return {
     root,model,mixer,actions,character:OP01_CHARACTER,weapon,socket:weapon.parent,muzzle,
-    update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,poseDiagnostics,
+    update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,healthAnchor,poseDiagnostics,
     setLOD,updateLOD,preloadLODs,readyLODs,
     currentLOD:()=>lod
   };

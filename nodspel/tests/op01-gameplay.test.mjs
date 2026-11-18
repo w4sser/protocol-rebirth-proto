@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {createOP01GameplayOperator,OP01_CHARACTER} from '../op01-gameplay.js';
+import {createOP01GameplayOperator,createOP01FacingLatch,OP01_CHARACTER} from '../op01-gameplay.js';
 import {createOP01DeployGrip} from '../../ui/raid-prep-op01.mjs';
 
 async function parse(name){
@@ -275,4 +275,48 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   const diag=op.poseDiagnostics();
   assert.equal(diag.visualScale,1.10);
   assert(Math.abs(diag.visualHeight-1.958)<.001);
+});
+
+test('OP01 keeps the last fired heading after aiming is released, even when moving',async()=>{
+  const facing=createOP01FacingLatch();
+  const walk={x:0,z:-1},east={x:1,z:0},north={x:0,z:1};
+  assert.equal(facing.resolve(false,walk,north),walk,'initial heading follows walking');
+  assert.equal(facing.resolve(true,walk,east),facing.direction);
+  assert(facing.locked);
+  facing.record(0,1);
+  const held=facing.resolve(false,walk,east);
+  assert.equal(held.x,0);assert.equal(held.z,1);
+  assert.equal(facing.resolve(false,east,walk),held,'movement may not snap the visual facing back');
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const op=createOP01GameplayOperator(gltf);
+  const holder=new THREE.Group();holder.add(op.root);
+  holder.rotation.y=Math.atan2(held.x,held.z);
+  for(let i=0;i<40;i++)op.update(1/60,{
+    moving:true,aiming:false,keepFacing:true,
+    walkYaw:-Math.PI/2,aimYaw:Math.atan2(held.x,held.z)
+  });
+  assert(op.actions.upper.aim.isRunning(),'both arms stay ready after the shot');
+  assert(op.actions.lower.back.isRunning(),'backwards movement keeps the correct legs');
+  assert(Math.abs(op.root.rotation.y)<.01,'model heading stays aligned to held player direction');
+  facing.reset();
+  assert(!facing.locked);
+  assert.equal(facing.resolve(false,walk,north),walk,'new raid clears retained facing');
+});
+
+test('OP01 health anchor follows the skinned head through aim and movement',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
+  const parent=new THREE.Group();parent.add(op.root);
+  const anchor=new THREE.Vector3(),before=new THREE.Vector3();
+  op.update(.10,{aiming:true,aimYaw:.6});
+  op.healthAnchor(before);
+  parent.position.set(3,0,4);
+  parent.updateMatrixWorld(true);
+  op.healthAnchor(anchor);
+  assert(Math.abs(anchor.x-before.x-3)<.001);
+  assert(Math.abs(anchor.z-before.z-4)<.001);
+  let head=null;op.model.traverse(n=>{if(!head&&(n.name==='mixamorig:Head'||n.userData?.name==='mixamorig:Head'))head=n;});
+  const actual=head.getWorldPosition(new THREE.Vector3());
+  assert(Math.abs(anchor.x-actual.x)<.0001,'bar anchored to animated head horizontally');
+  assert(Math.abs(anchor.z-actual.z)<.0001);
+  assert(anchor.y>actual.y+.2,'bar clears the hood');
 });
