@@ -5,12 +5,13 @@
 import * as THREE from '../nodspel/vendor/three.module.js';
 import {createMenuBit} from './raid-prep-models.mjs?v=2.28.46';
 import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.46';
+import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.46';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export async function mountRaidPrepScene(host){
   if(!host?.isConnected)return null;
   let renderer=null,scene=null,camera=null,observer=null,raf=0,disposed=false;
-  let orbit=null,operator=null,bit=null,drag=null;
+  let orbit=null,operator=null,bit=null,drag=null,requestedModel='mobile';
   let yaw=-.23,clock=0,previous=0;
   const showYaw=()=>{host.dataset.rotation=String(Math.round(yaw*1000)/1000);};
   function down(e){
@@ -88,7 +89,21 @@ export async function mountRaidPrepScene(host){
 
     orbit=new THREE.Group();orbit.name='touch-rotatable-operator';
     orbit.rotation.y=yaw;scene.add(orbit);
-    operator=createOperatorHeroV4({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
+    // Use the real Blender/TRELLIS 2 OP-01 model when present.
+    // Release remains safe while asset bytes are being staged: the existing
+    // V4 is a real 3D fallback for missing/corrupt GLBs, not a static image.
+    requestedModel=new URLSearchParams(location.search).get('opQuality')==='hero'?'hero':'mobile';
+    try{
+      operator=await loadOP01Operator({
+        quality:requestedModel,
+        maxAnisotropy:renderer.capabilities.getMaxAnisotropy()
+      });
+    }catch(err){
+      console.warn('Authored OP-01 GLB unavailable; using procedural 3D fallback:',err?.message||err);
+      if(!host.isConnected||disposed){dispose();return null;}
+      operator=createOperatorHeroV4({weaponId:host.dataset.weapon||'',armorId:host.dataset.armor||''});
+    }
+    if(!host.isConnected||disposed){dispose();return null;}
     orbit.add(operator.root);
     // Genuine three-dimensional companion; its original approved smile is
     // rendered on the physical CRT face, never as a full-body billboard.
@@ -101,13 +116,19 @@ export async function mountRaidPrepScene(host){
     for(const [event,fn]of [['pointerdown',down],['pointermove',move],
       ['pointerup',up],['pointercancel',up],['keydown',key]])host.addEventListener(event,fn);
     host.style.touchAction='none';
-    host.dataset.menuModel='hero-v4';host.dataset.bit='3d';showYaw();
+    host.dataset.menuModel=operator.source==='glb'?'op01-'+operator.quality:'hero-v4';host.dataset.bit='3d';showYaw();
     const fit=()=>{
       if(disposed||!host.isConnected)return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
       camera.aspect=w/h;
-      const distance=clamp(4.25+Math.max(0,.95-camera.aspect)*.68,4.24,4.85);
-      camera.position.set(.06,1.40,distance);camera.lookAt(0,1.215,0);
+      // Authored OP-01 is 1.78m tall; V4 fallback is taller. Both fit
+      // completely into an 844x390 landscape panel without cropping.
+      const isAuthored=operator?.source==='glb';
+      const distance=isAuthored
+        ?clamp(3.35+Math.max(0,.95-camera.aspect)*.55,3.35,4.0)
+        :clamp(4.25+Math.max(0,.95-camera.aspect)*.68,4.24,4.85);
+      camera.position.set(.06,isAuthored?1.16:1.40,distance);
+      camera.lookAt(0,isAuthored?.93:1.215,0);
       camera.updateProjectionMatrix();
       renderer.setPixelRatio(clamp(window.devicePixelRatio||1,1,w>850?2:2.4));
       renderer.setSize(w,h,false);
