@@ -100,10 +100,10 @@ export async function mountRaidPrepScene(host){
 
     orbit=new THREE.Group();orbit.name='touch-rotatable-operator';
     orbit.rotation.y=yaw;scene.add(orbit);
-    // Use the real Blender/TRELLIS 2 OP-01 model when present.
+    // Use the new rigged OP01_Menu.glb with low-ready rifle pose when present.
     // Release remains safe while asset bytes are being staged: the existing
     // V4 is a real 3D fallback for missing/corrupt GLBs, not a static image.
-    requestedModel=new URLSearchParams(location.search).get('opQuality')==='hero'?'hero':'mobile';
+    requestedModel=new URLSearchParams(location.search).get('opQuality')==='source-hero'?'source-hero':'menu';
     try{
       operator=await loadOP01Operator({
         quality:requestedModel,
