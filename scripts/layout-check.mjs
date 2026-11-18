@@ -343,6 +343,11 @@ async function cinematicPrep3DRun([w,h]){
     });
     if(before.nCanvas!==1 || before.width<80 || before.height<100)
       fail(tag,"3D canvas not placed in hero area: "+JSON.stringify(before));
+    // Keep an unrotated visual capture as the primary owner-facing pose QA.
+    // Previously only the post-drag angle was captured, hiding the
+    // end-on/vertical-looking gun seen at the default Deploy angle.
+    await settle(300);
+    await shot(page,"base-"+w+"x"+h+"-cinematic-deploy-3d-default");
     await page.evaluate(()=>{
       const host=document.getElementById('pr-operator-stage');
       if(!host)return;
