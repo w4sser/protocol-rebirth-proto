@@ -6,14 +6,29 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..');
 const folder=path.join(root,'assets/operators');
 const clips=['idle','run','aim','shoot','hit','dash','death','hero_pose'];
 
 function readGLB(filename){
   const filepath=path.join(folder,filename);
-  assert(fs.existsSync(filepath),filename+' missing; upload the rigged GLB to assets/operators/');
-  const binary=fs.readFileSync(filepath);
+  let binary;
+  if(fs.existsSync(filepath)){
+    binary=fs.readFileSync(filepath);
+  }else if(filename==='OP01_Menu.glb'){
+    // The full, unchanged 5.8MB menu GLB was committed losslessly in three
+    // Git blobs to avoid the connector's single-request upload limit.
+    const partNames=[0,1,2].map(i=>filepath+'.part'+i);
+    for(const part of partNames)assert(fs.existsSync(part),'Missing OP01 Menu GLB part: '+part);
+    binary=Buffer.concat(partNames.map(name=>fs.readFileSync(name)));
+    assert.equal(binary.length,5821928,'Menu chunks must reconstruct original GLB size');
+    assert.equal(crypto.createHash('sha256').update(binary).digest('hex'),
+      'dc95dcf26cafda33bc19884bee74eaa4664e2ab1e55b689a29f3fcf382e299a3',
+      'Menu parts must be byte-for-byte identical to the original handoff');
+  }else{
+    assert.fail(filename+' missing; upload the rigged GLB to assets/operators/');
+  }
   assert.equal(binary.toString('ascii',0,4),'glTF',filename+' magic');
   assert.equal(binary.readUInt32LE(4),2,filename+' version');
   assert.equal(binary.readUInt32LE(8),binary.length,filename+' declared size');
@@ -91,7 +106,8 @@ const menu=fs.readFileSync(path.join(root,'ui/raid-prep-op01.mjs'),'utf8');
 const gameplay=fs.readFileSync(path.join(root,'nodspel/op01-gameplay.js'),'utf8');
 const game=fs.readFileSync(path.join(root,'nodspel/game.mjs'),'utf8');
 assert(viewer.includes('await loadOP01Operator('),'Deploy must load OP01');
-assert(menu.includes("new GLTFLoader().loadAsync("),'menu must parse GLB');
+assert(menu.includes('loadRiggedMenu(') && menu.includes('loader.parseAsync('),
+  'menu must reconstruct and parse the full original rigged GLB');
 assert(menu.includes('OP01_Menu.glb')&&menu.includes("'hero_pose'"),
   'menu must use rigged OP01 with low-ready pose');
 assert(viewer.includes('createMenuBit()'),'BIT remains a separate 3D companion');
