@@ -17,6 +17,30 @@ export const OP01_PATHS=Object.freeze({
 const EXPECTED_HEIGHT=1.78;
 const REQUIRED_CLIPS=['hero_pose','idle','run','aim','shoot','hit','dash','death'];
 
+// GitHub's binary upload bridge has a ~4MB request ceiling. The untouched
+// 5.8MB menu GLB is committed as three byte-exact chunks (~1.94MB each).
+// Recombine in memory before GLTFLoader parses it; the browser still renders
+// the ORIGINAL full-quality 68K-triangle model and all its animations.
+const MENU_PARTS=Object.freeze([0,1,2]);
+async function loadRiggedMenu(loader,url){
+  const pieces=await Promise.all(MENU_PARTS.map(async index=>{
+    const response=await fetch(url+'.part'+index);
+    if(!response.ok)throw new Error('OP01 Menu part '+index+' failed: HTTP '+response.status);
+    return new Uint8Array(await response.arrayBuffer());
+  }));
+  const total=pieces.reduce((n,p)=>n+p.byteLength,0);
+  if(total!==5821928)throw new Error('OP01 Menu GLB size mismatch: '+total);
+  const bytes=new Uint8Array(total);
+  let offset=0;
+  for(const part of pieces){bytes.set(part,offset);offset+=part.byteLength;}
+  const header=new DataView(bytes.buffer,0,12);
+  if(header.getUint32(0,true)!==0x46546c67 || header.getUint32(4,true)!==2 ||
+      header.getUint32(8,true)!==total)
+    throw new Error('OP01 Menu parts do not reconstruct a valid glTF 2.0 GLB');
+  return loader.parseAsync(bytes.buffer,new URL('.',url).href);
+}
+
+
 function prepMaterials(mesh,maxAnisotropy){
   mesh.frustumCulled=false;
   mesh.castShadow=false;
@@ -34,7 +58,8 @@ export async function loadOP01Operator({quality='menu',maxAnisotropy=4}={}){
   // rigged, be-weaponed OP01_Menu.glb even on iPhones.
   const chosen=quality==='source-hero'?'sourceHero':quality==='source-mobile'?'sourceMobile':'menu';
   const url=new URL(OP01_PATHS[chosen],import.meta.url).href;
-  const gltf=await new GLTFLoader().loadAsync(url);
+  const loader=new GLTFLoader();
+  const gltf=chosen==='menu'?await loadRiggedMenu(loader,url):await loader.loadAsync(url);
   if(!gltf.scene)throw new Error('OP01 GLB has no scene');
   const rigged=chosen==='menu';
   if(rigged){
