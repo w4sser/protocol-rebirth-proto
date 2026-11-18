@@ -81,6 +81,31 @@ test('raid entry invokes fade and waits before navigating',async()=>{
   vm.runInNewContext(body,sandbox);assert.deepEqual(calls,['fade']);
   release();await new Promise(setImmediate);assert.deepEqual(calls,['fade','navigate']);
 });
+test('Deploy launches OP01 without skin flags; legacy skins are opt-in',()=>{
+  const app=fs.readFileSync(require.resolve('../app.js'),'utf8');
+  const segment=app.slice(app.indexOf('    const raidUrl = coreLaunchUrl'),app.indexOf('\n  deploy(){'));
+  const body=segment.slice(0,segment.lastIndexOf('\n  },'));
+  function destination(search){
+    const urls=[],sandbox={
+      session:{},URLSearchParams,encodeURIComponent,
+      window:{PR_NAVIGATE:u=>urls.push(u)},
+      coreLaunchUrl:()=>'/nodspel/?area=archipelago&ftue=1',l:{},
+      metaReturnPath:()=>'',location:{pathname:'/',search},stats:{},gear:[],weapon:null,
+      kit:null,launchTool:null,raidBagCapacity:()=>0,scoutedAreas:()=>[],
+      raidArea:()=>'',hard:false,intro:true,ftue:true,questLaunchParam:()=>null,
+      progressionGoal:()=>null,pay:null,vestGuaranteeNeed:()=>null
+    };
+    vm.runInNewContext(body,sandbox);
+    assert.equal(urls.length,1);
+    return urls[0];
+  }
+  for(const search of ['', '?preview=deploy', '?skin=op01'])
+    assert.equal(destination(search),'/nodspel/?area=archipelago&ftue=1',
+      'normal Deploy must not depend on an OP01 debug flag');
+  for(const old of ['operator','human','punk','robot'])
+    assert.equal(destination('?skin='+old),'/nodspel/?area=archipelago&ftue=1&skin='+old);
+  assert.equal(destination('?skin=unknown'),'/nodspel/?area=archipelago&ftue=1');
+});
 test('music requests wait for first paint even if pageshow or unlock happens early',()=>{
   const calls=[],frames=[],listeners={};
   const window={PR_AUDIO:{config,music:(...args)=>calls.push(args)},requestAnimationFrame:fn=>frames.push(fn),addEventListener:(type,fn)=>listeners[type]=fn};

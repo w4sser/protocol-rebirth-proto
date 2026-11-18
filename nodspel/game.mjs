@@ -5,7 +5,7 @@ import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.46';
 import {animateEnemyModel} from './enemy-animation.js?v=2.28.46';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.46';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.46';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.46';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.46-op01-default';
 import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.46';
 import {createRobotPresence} from './robot-operator.js?v=2.28.46';
 import {createOperatorFX} from './operator-fx.js?v=2.28.46';
@@ -269,11 +269,22 @@ const robotAntenna=box(0,.67,.88,.18,.18,.12,'#75cfcc',robot),robotLegL=box(-.23
 const robotPresence=createRobotPresence({root:robot,body:robotBody,head:robotHead,visor:robotVisor,gun:robotGun,antenna:robotAntenna,legL:robotLegL,legR:robotLegR});
 let op01LodFrame=0;
 let human=null;const requestedSkin=selectSkin(location.search);
-if(requestedSkin!=='robot'){try{human=requestedSkin==='op01'
-  ?await loadOP01GameplayOperator({quality:QUALITY,dashDuration:RULES.dash.durationSeconds})
-  :await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});
-  player.add(human.root);robot.visible=false;
-}catch(e){console.warn('[operator] Human failed to load; using robot',e);}}
+if(requestedSkin!=='robot'){
+  try{
+    human=requestedSkin==='op01'
+      ?await loadOP01GameplayOperator({quality:QUALITY,dashDuration:RULES.dash.durationSeconds})
+      :await loadHumanOperator({characterId:requestedSkin,dashDuration:RULES.dash.durationSeconds});
+  }catch(error){
+    console.warn('[operator] '+requestedSkin+' failed to load:',error);
+    // A missing OP01 asset must not prevent a raid. Try the previous
+    // hooded operator before falling back to the procedural robot.
+    if(requestedSkin==='op01'){
+      try{human=await loadHumanOperator({characterId:'operator',dashDuration:RULES.dash.durationSeconds});}
+      catch(fallbackError){console.warn('[operator] Legacy fallback unavailable:',fallbackError);}
+    }
+  }
+  if(human){player.add(human.root);robot.visible=false;}
+}
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
 const op01Facing=activeSkin==='op01'?createOP01FacingLatch():null;
 // Explicit test-only inspection: never change gameplay, collision, input or

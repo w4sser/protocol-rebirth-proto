@@ -31,7 +31,8 @@ try{
     await page.setViewport({width,height,isMobile:true,hasTouch:true,deviceScaleFactor:1});
     page.on('pageerror',error=>errors.push(String(error)));
     try{
-      const url=base+'/nodspel/index.html?seed=op01-qa&area=archipelago&q='+quality+'&ftue=1&skin=op01&op01QA=1';
+      // No skin override: the QA run must validate OP01 as production default.
+      const url=base+'/nodspel/index.html?seed=op01-qa&area=archipelago&q='+quality+'&ftue=1&op01QA=1';
       await page.goto(url,{waitUntil:'load',timeout:45000});
       await page.waitForFunction(()=>document.documentElement.dataset.skin==='op01'&&!!window.__OP01_QA&&
         !document.getElementById('boot-loader'),{timeout:55000});
