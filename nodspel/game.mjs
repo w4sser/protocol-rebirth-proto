@@ -1777,7 +1777,8 @@ function frameInner(now){
       const shake=RULES.feedback.cameraShake.kill;
       addShake(shake.distance*2,shake.ms*2,now);
       hapticPulse(RULES.feedback.hapticKillMs);
-      audioEvent('barrel-explosion');
+      // Layer already-preloaded low impact sounds; no new iOS decode path.
+      void audio.play('impact-wall');void audio.play('death-tank');
       setCollisions(); // Remove the physical drum once its blast has finished.
     }
     // Ricochets are born during simulation, after the primary fire handler.
