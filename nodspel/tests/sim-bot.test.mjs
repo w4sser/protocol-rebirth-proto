@@ -19,7 +19,7 @@ test('FTUE raid 3 (the shipped lethal-clamp guarantee) always survives and extra
     for(const seed of SEEDS){
       const r=runRaid({tier,seed,ftueAttempt:2});
       assert.equal(r.survived,true,`${tier}/${seed} must survive the guaranteed FTUE raid 3`);
-      assert.equal(r.extracted,true,`${tier}/${seed} must extract the guaranteed FTUE raid 3`);
+      assert.equal(r.extracted,true,`${tier}/${seed} must extract the guaranteed FTUE raid 3: ${JSON.stringify(r)}`);
       assert.equal(r.timedOut,false);
     }
   }

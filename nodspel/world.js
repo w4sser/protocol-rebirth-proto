@@ -134,6 +134,24 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     v.band.material=glow(c);if(v.kitCrates)v.band.position.y=BUNKER_DIMS['loot_crate_'+v.tier][1]*.755*1.15;if(v.kitCrates)for(const t in v.kitCrates)v.kitCrates[t].visible=t===(v.kitCrates[v.tier]?v.tier:'common');v.pulse.material.color.set(KEY_AMBER);
     if(v.beam){v.beam.material.color.set(KEY_AMBER);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
     if(fx)burst(v.loot.x,v.loot.z,c);}
+  // Grounded fuel drum: its exposed bands suggest a shot without text.
+  const barrels=(level.barrels??[]).map(barrel=>{
+    const g=new THREE.Group();g.position.set(barrel.x,0,barrel.z);group.add(g);
+    const metal=new THREE.MeshStandardMaterial({color:'#5b4e44',metalness:.58,roughness:.48});
+    const danger=new THREE.MeshStandardMaterial({color:'#bf624e',metalness:.18,roughness:.64,emissive:'#53251e',emissiveIntensity:.5});
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.95,14),metal);
+    body.position.y=.54;g.add(body);
+    for(const y of [.21,.67,1.01]){
+      const band=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.10,14),danger);
+      band.position.y=y;g.add(band);
+    }
+    const lid=new THREE.Mesh(new THREE.CylinderGeometry(.33,.33,.07,14),danger);
+    lid.position.y=1.065;g.add(lid);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.64,.70,32),
+      new THREE.MeshBasicMaterial({color:'#cf745b',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));
+    ring.rotation.x=-Math.PI/2;ring.position.y=.02;g.add(ring);
+    return {barrel,group:g,ring};
+  });
   const lootBoxes=level.lootBoxes.map(lootVisual);
   function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
   const routes=[];
@@ -236,14 +254,14 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   // pickup burst: expanding ring + short flash (pooled per call; cheap)
   const bursts=[];
   const lootBurstFx=createLootBurstPool({quality});lootBurstFx.group.name='world-loot-vfx';group.add(lootBurstFx.group);
-  function burst(x,z,color='#ffd04a',withParticles=false){
+  function burst(x,z,color='#ffd04a',withParticles=false,scale=1){
     const material=new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
     const m=new THREE.Mesh(ringGeo,material);m.rotation.x=-Math.PI/2;m.position.set(x,.06,z);group.add(m);
     const particles=[];
     if(withParticles){const B=RULES.feedback.burst;for(let i=0;i<B.particles;i++){
       const p=new THREE.Mesh(cube,material),angle=i/B.particles*Math.PI*2;p.scale.setScalar(B.size);p.position.set(x,.5,z);group.add(p);particles.push({mesh:p,dx:Math.cos(angle),dz:Math.sin(angle)});
     }}
-    bursts.push({m,t:0,x,z,particles});
+    bursts.push({m,t:0,x,z,particles,scale});
   }
   let lastTime=null;
   const LOOT_BURST_HOME_Y=1.05; // approx bag/chest height sparkles home toward
@@ -279,15 +297,16 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       }
     }
     for(const p of gateProgress)p.mesh.material.opacity=p.node.active?1:.16;
+    for(const v of barrels){v.group.visible=!v.barrel.active;if(v.group.visible)v.ring.material.opacity=.4+.14*Math.sin(time*3);}
     for(const v of lootBoxes){if(!v.group.visible)continue;const p=time*2.6+v.phase;
       v.crate.position.y=.03;v.crate.rotation.y=0;
       const k=(time*.8+v.phase)%1;v.pulse.scale.setScalar(.8+k*.7);v.pulse.material.opacity=.6*(1-k);
       if(v.beam)v.beam.material.opacity=(v.loot.revealed?.16+RARITY_ORDER.indexOf(v.tier)*.04:.1)+Math.sin(p)*.05;}
     updateVfx(time,dt,playerPos,round);
     for(let i=bursts.length-1;i>=0;i--){
-      const b=bursts[i];b.t+=dt;b.m.scale.setScalar(1+b.t*5);b.m.material.opacity=Math.max(0,.9-b.t*1.8);
+      const b=bursts[i];b.t+=dt;b.m.scale.setScalar(b.scale*(1+b.t*5));b.m.material.opacity=Math.max(0,.9-b.t*1.8);
       const B=RULES.feedback.burst;
-      for(const p of b.particles)p.mesh.position.set(b.x+p.dx*b.t*B.speed,Math.max(.03,.5+B.lift*b.t-B.gravity*b.t*b.t),b.z+p.dz*b.t*B.speed);
+      for(const p of b.particles)p.mesh.position.set(b.x+p.dx*b.t*B.speed*b.scale,Math.max(.03,.5+B.lift*b.t-B.gravity*b.t*b.t),b.z+p.dz*b.t*B.speed*b.scale);
       if(b.t>B.lifeSeconds){group.remove(b.m,...b.particles.map(p=>p.mesh));b.m.material.dispose();bursts.splice(i,1);}
     }
 for(const d of doors){const open=!d.door.locked;d.panel.visible=!open;d.strip.visible=!open;d.mark.material.opacity=open?.35+Math.sin(time*3)*.08:0;}
@@ -385,6 +404,6 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
   const lightRig=new THREE.Group();lightRig.name='world-light-rig';
   {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,barrels,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
     extractionEffects,extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn,setVfxQuality,disposeVfx};
 }

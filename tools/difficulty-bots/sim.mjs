@@ -206,6 +206,18 @@ export function runRaid({tier,seed,ftueAttempt=null,dt=DT,knobs=null,targetDepth
       }else{target=best;bot.targetMisses=0;}
       bot.targetReevalAt=now+300;
     }
+    // FTUE teaches environmental tactics: after the first lone grunt, a smart
+    // simulator should see that shooting the real fuel drum clears two enemies.
+    // This uses ordinary projectile collision, not a scripted or free sim kill.
+    if(round.ftue&&round.level.number===1&&!liveEnemies.some(e=>e.id==='ftue-solo')){
+      const drum=round.level.barrels?.find(b=>!b.active
+        &&liveEnemies.filter(e=>dist(e,b)<=b.blastRadius).length>=2
+        &&!wallBlocked(position,b,playerSolids));
+      if(drum){
+        if(!bot.firstSeen.has(drum.id))bot.firstSeen.set(drum.id,now);
+        target={...drum,health:1,type:'barrel'};
+      }
+    }
     bot.targetId=target?.id??null;
 
     const hpRatio=round.health/round.maxHealth;

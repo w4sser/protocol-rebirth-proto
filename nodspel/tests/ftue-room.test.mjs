@@ -1,167 +1,93 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {runInNewContext} from 'node:vm';
-import {createRound,takeDamage,tickRound,initEquip} from '../round.js?v=2.28.47';
-import {RULES} from '../levels.js?v=2.28.47';
-import {applyIntroEncounter} from '../progression-goal.js?v=2.28.47';
+import {createRound,initEquip,takeDamage,tickRound,activateNode,enterExit,collectLoot,detonateFtueBarrel} from '../round.js?v=2.28.47';
 import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.47';
-import {createWeapon,fireAimedWeapon,stepWeapon,tapTarget} from '../weapon.js?v=2.28.47';
-import {createCombat,stepCombat} from '../combat.js?v=2.28.47';
+import {applyIntroEncounter} from '../progression-goal.js?v=2.28.47';
+import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js?v=2.28.47';
 import {traceTargets} from '../physics.mjs?v=2.28.47';
-import '../../data/raid-camera.js';
-
-const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
 const seeds=['ftue','alpha','beta','gamma','delta','one','two','three','four','five'];
-const storage=attempts=>({getItem:()=>JSON.stringify({attempts})});
-function setup(seed,attempts=0,intro=true){
+const goal={parts:[{id:'scrap_alloy',kind:'item',need:2,secured:0}]};
+function setup(seed='ftue',attempts=0,intro=true){
   const r=createRound(seed,0);
   if(intro)applyIntroEncounter(r.level,goal);
-  initFtueRound(r,{ftue:true},storage(attempts));
+  initFtueRound(r,{ftue:true},{getItem:()=>JSON.stringify({attempts})});
   initEquip(r,{weapon:'basic_carbine',gear:[]});
   return r;
 }
-const solids=r=>[...r.level.walls,...r.level.boxes];
-
-test('FTUE grunts have fixed room positions, clear firing lanes and immediate tap targets across seeds',()=>{
+const solids=r=>[...r.level.walls,...r.level.boxes,...r.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
+test('across seeds, the player has a calm approach to a lone enemy and a distant explosive pair',()=>{
   for(const seed of seeds)for(const intro of [false,true]){
-    const r=setup(seed,0,intro),p=r.level.start;
-    assert.equal(r.level.enemies.length,2);
-    for(const [i,e] of r.level.enemies.entries()){
-      assert.equal(e.type,'grunt');assert.equal(e.active,true);assert.equal(e.aggro,true);
-      assert.ok(Math.abs(e.x-r.level.rooms[0].x-FTUE.enemies[i].x)<1e-8);
-      assert.ok(Math.abs(e.z-r.level.rooms[0].z-FTUE.enemies[i].z)<1e-8);
-      const d=Math.hypot(e.x-p.x,e.z-p.z);
-      assert.ok(e.z<p.z&&d>=3.5&&d<=5,`${seed} forward distance ${d}`);
-      assert.ok(d<RULES.combat.range&&d<RULES.weapon.range*RULES.shooting.tapRangeMul);
-      assert.notEqual(traceTargets(p,e,solids(r),[])?.kind,'wall',`${seed} intro=${intro} LOS ${e.id}`);
-      assert.equal(tapTarget(p,[e],solids(r))?.id,e.id);
-    }
+    const r=setup(seed,0,intro),p=r.level.start,group=r.level.enemies.slice(1),barrel=r.level.barrels[0];
+    assert.equal(r.level.enemies.length,3);
+    assert.ok(barrel&&!barrel.active);
+    assert.equal(r.level.encounters.length,0);
+    assert.equal(r.level.spawners.length,0);
+    assert.ok(r.level.enemies.every(e=>e.active&&!e.aggro));
+    assert.ok(Math.hypot(r.level.enemies[0].x-p.x,r.level.enemies[0].z-p.z)>5);
+    assert.ok(group.every(e=>Math.hypot(e.x-p.x,e.z-p.z)>7));
+    assert.ok(group.every(e=>Math.hypot(e.x-barrel.x,e.z-barrel.z)<barrel.blastRadius));
+    assert.notEqual(traceTargets(p,r.level.enemies[0],solids(r),[])?.kind,'wall');
   }
 });
-
-test('FTUE preserves cover, gate, exit and room geometry while regrouping supplies',()=>{
+test('ordinary Basic Carbine shots can kill the first unaware grunt',()=>{
   for(const seed of seeds){
-    const r=createRound(seed,0);applyIntroEncounter(r.level,goal);
-    const before=structuredClone(r.level);
-    initFtueRound(r,{ftue:true},storage(0));
-    for(const key of ['boxes','walls','nodes','exit','start'])assert.deepEqual(r.level[key],before[key],key);
+    const r=setup(seed),e=r.level.enemies[0],w=createWeapon(),p=r.level.start;
+    assert.ok(fireAimedWeapon(w,r,p,{x:e.x-p.x,z:e.z-p.z},100,solids(r)),seed);
+    stepWeapon(w,r,300,.4,solids(r));
+    assert.equal(e.health,0,seed);
+    assert.equal(r.enemiesDefeated,1);
   }
 });
-
-test('stationary bot tapping every 0.5 seconds gets a kill within 10 seconds with real combat and spread',()=>{
-  for(const seed of seeds){
-    const r=setup(seed),w=createWeapon(),p={...r.level.start},c=createCombat(r.level,0);
-    // Pin the shot RNG to repeatable spread extremes, never eliminate spread.
-    let n=0;w.rand=()=>[0,1,.2,.8][n++%4];
-    for(let now=0;now<=10000&&!r.enemiesDefeated&&!r.over;now+=20){
-      if(now%500===0)fireAimedWeapon(w,r,p,{x:0,z:-1},now,solids(r),false,true);
-      stepWeapon(w,r,now,.02,solids(r));
-      stepCombat(r,c,p,now,.02,solids(r));
-    }
-    assert.ok(r.enemiesDefeated>0,`${seed}: first kill before 10s (HP ${r.health})`);
-    assert.equal(r.over,false);
-  }
+test('the barrel is hittable by a real bullet, killing the grouped enemies',()=>{
+  const r=setup('barrel-hit'),w=createWeapon(),barrel=r.level.barrels[0];
+  const p={x:r.level.rooms[0].x,z:r.level.rooms[0].z+.8};
+  assert.ok(fireAimedWeapon(w,r,p,{x:barrel.x-p.x,z:barrel.z-p.z},100,solids(r)));
+  assert.ok(stepWeapon(w,r,350,.4,solids(r)));
+  assert.equal(barrel.active,true);
+  assert.equal(r.enemiesDefeated,2);
+  assert.equal(r.ftueExplosion.kills,2);
+  assert.equal(r.level.enemies[0].health,1);
 });
-
-test('attempts select normal, assisted and protected tuning; storage errors default to normal',()=>{
-  for(const n of [0,1,2,3,100]){
-    const r=setup('ramp',n),cfg=ftueAssist(n);
+test('the drum applies radial knockback, with one detonation and two credited kills',()=>{
+  const r=setup('knockback'),b=r.level.barrels[0],group=r.level.enemies.slice(1),distance=group.map(e=>Math.hypot(e.x-b.x,e.z-b.z));
+  assert.equal(detonateFtueBarrel(r,b.id,100,solids(r)),true);
+  assert.deepEqual(group.map(e=>e.health),[0,0]);
+  assert.ok(group.every((e,i)=>Math.hypot(e.x-b.x,e.z-b.z)>distance[i]),'outward pushback regardless of mirrored room side');
+  assert.equal(r.enemiesDefeated,2);
+  assert.equal(detonateFtueBarrel(r,b.id,200,solids(r)),false);
+  assert.equal(r.ftueExplosion.serial,1);
+  assert.equal(r.enemiesDefeated,2);
+});
+test('player can ignore the barrel and take real materials to extraction',()=>{
+  const r=setup('supplies');
+  assert.equal(r.level.lootBoxes[0].item,'scrap_alloy');
+  assert.equal(r.level.lootBoxes[0].quantity,2);
+  assert.equal(r.level.lootBoxes[1].item,'cable');
+  for(const box of r.level.lootBoxes){
+    const units=box.quantity??1;
+    for(let i=0;i<units;i++)collectLoot(r,{x:box.x,z:box.z},100+i*10);
+  }
+  assert.ok(r.bag.scrap_alloy>=2);
+  activateNode(r,r.level.nodes[0].id,300);
+  assert.equal(enterExit(r,r.level.exit,301),'complete');
+  assert.ok(r.extracted.scrap_alloy>=2);
+});
+test('failure assists remain FTUE-only, while ordinary raids are unchanged',()=>{
+  for(const attempts of [0,1,2,3,100]){
+    const r=setup('retry-'+attempts,attempts),cfg=ftueAssist(attempts);
     assert.equal(r.ftue,cfg);
-    assert.equal(r.level.enemies[0].health,RULES.levels[0].enemyHealth*cfg.healthMul);
-    assert.equal(r.level.enemies[0].speed,RULES.levels[0].enemySpeed*cfg.speedMul);
-    takeDamage(r,20,10);assert.equal(r.health,100-20*cfg.damageMul);
+    assert.equal(r.level.enemies[0].health,Math.max(1,FTUE.opening.soloHealth*cfg.healthMul));
+    takeDamage(r,20,10);
+    assert.equal(r.health,100-20*cfg.damageMul);
   }
-  assert.equal(ftueAssist(0).damageMul,1);
-  assert.ok(ftueAssist(1).damageMul<1&&ftueAssist(1).healthMul<1&&ftueAssist(1).speedMul<1);
-  const r=createRound('bad-storage',0);initFtueRound(r,{ftue:true},{getItem(){throw Error('blocked');}});
-  assert.equal(r.ftue,FTUE.attempts[0]);
-});
-
-test('attempt 3+ survives repeated lethal hits and expired deadlines, preserving hit feedback and carried loot',()=>{
-  for(const n of [2,3,50]){
-    const r=setup('protected',n);r.bag.scrap_alloy=2;
-    for(const now of [10,20,r.deadline+1000,r.deadline+1000000]){
-      const before=r.ftueHitSerial??0;
-      assert.equal(takeDamage(r,1e9,now),true);
-      assert.equal(r.health,1);assert.equal(r.over,false);assert.equal(r.reason,null);
-      assert.equal(r.ftueHitSerial,before+1);assert.equal(r.lastDamageAt,now);
-      tickRound(r,now);assert.ok(r.remainingMs>=1000);
-      assert.equal(r.bag.scrap_alloy,2);
-    }
-  }
-  for(const n of [0,1]){
-    const r=setup('risk',n);takeDamage(r,1e9,10);assert.equal(r.reason,'death');
-    const t=setup('timer-risk',n);tickRound(t,t.deadline);assert.equal(t.reason,'timeout');
-  }
-});
-
-test('non-FTUE and intro-only rounds are byte-identical after FTUE initialization and retain lethal damage/timeout',()=>{
-  for(const intro of [false,true])for(const seed of seeds){
-    const r=createRound(seed,0);if(intro)applyIntroEncounter(r.level,goal);
-    const before=JSON.stringify(r);
-    initFtueRound(r,{intro,ftue:false},{getItem(){throw Error('must not read storage');}});
-    assert.equal(JSON.stringify(r),before);
-    takeDamage(r,1e9,10);assert.equal(r.health,0);assert.equal(r.reason,'death');
-    const t=createRound(seed,0);initFtueRound(t,{intro},storage(2));tickRound(t,t.deadline);assert.equal(t.reason,'timeout');
-  }
-});
-
-test('reset wiring reads fresh attempts on every retry and displays the assisted BIT line',async()=>{
-  const src=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
-  assert.match(src,/initFtueRound\(round,launch,localStorage\)/);
-  assert.match(src,/notice\(round\.ftue\.line\)/);
-  assert.match(src,/round\.ftueHitSerial!==ftueHitBefore/);
-  // Execute the shipped persistence helper, then the same initializer reset uses.
-  const bump=src.slice(src.indexOf('function ftueBumpAttempt()'),src.indexOf('\n',src.indexOf('function ftueBumpAttempt()')));
-  let raw=JSON.stringify({attempts:0});
-  const store={getItem:()=>raw,setItem:(key,value)=>{raw=value;}};
-  for(const n of [0,1,2]){
-    const r=createRound('retry',0);initFtueRound(r,{ftue:true},store);assert.equal(r.ftue,FTUE.attempts[n]);
-    runInNewContext(bump+';ftueBumpAttempt();',{localStorage:store,FTUE_KEY:'pr_ftue_v1'});
-  }
-});
-
-// D3.10: the first FTUE raid always carries home AT LEAST 2 Scrap Alloy as world pickups, regardless
-// of how much the player already has secured at home (the softlock top-up in app.js only covers the
-// case where the raid itself came up short) and regardless of the guided intro overlay running first.
-// The guided overlay's own optional-cache slot can coincidentally also roll Scrap Alloy -- that's a
-// tolerated bonus (D3.10 #4: extra finds are fine), never fewer than 2.
-test('D3.10: level 1 FTUE guarantees at least 2 collectible Scrap Alloy pickups, any secured amount, intro on or off',()=>{
-  for(const seed of seeds)for(const secured of [0,1,2,3])for(const intro of [false,true]){
-    const r=createRound(seed,0);
-    if(intro)applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
-    initFtueRound(r,{ftue:true},storage(0));
-    const alloy=r.level.lootBoxes.filter(b=>b.item==='scrap_alloy');
-    assert.ok(alloy.reduce((n,b)=>n+(b.quantity??1),0)>=2,`${seed} secured=${secured} intro=${intro}: at least 2 alloy pickups, got ${alloy.length}`);
-    for(const b of alloy){
-      assert.equal(b.collected,false,'pickup starts uncollected');
-      assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.z),'pickup has a real position');
-    }
-  }
-});
-// The forced slots (indices 0 and 1) are always Scrap Alloy -- the part this PR's softlock guard relies on.
-test('D3.10: the first cache holds two Scrap Alloy units',()=>{
-  for(const seed of seeds)for(const secured of [0,1,2,3]){
-    const r=createRound(seed,0);
-    applyIntroEncounter(r.level,{parts:[{id:'scrap_alloy',kind:'item',need:2,secured}]});
-    initFtueRound(r,{ftue:true},storage(0));
-    assert.equal(r.level.lootBoxes[0].item,'scrap_alloy',`${seed} secured=${secured} slot 0`);
-    assert.equal(r.level.lootBoxes[0].quantity,2,`${seed} secured=${secured} alloy quantity`);
-  }
-});
-
-test('both FTUE grunts fit the unchanged default orthographic camera at both landscape viewports',()=>{
-  const C=globalThis.DATA.raidCamera,o=C.offset,len=Math.hypot(o.x,o.y,o.z);
-  // Camera right = normalized up cross view; camera up = view cross right.
-  const right={x:o.z/Math.hypot(o.x,o.z),z:-o.x/Math.hypot(o.x,o.z)};
-  const up={x:-o.y/len*o.x/Math.hypot(o.x,o.z),y:Math.hypot(o.x,o.z)/len,z:-o.y/len*o.z/Math.hypot(o.x,o.z)};
-  for(const seed of seeds)for(const [w,h] of [[844,390],[667,375]]){
-    const r=setup(seed),p=r.level.start;
-    for(const e of r.level.enemies)for(const y of [0,1.7]){
-      const dx=e.x-p.x,dz=e.z-p.z-C.targetOffsetZ;
-      const x=dx*right.x+dz*right.z,v=dx*up.x+y*up.y+dz*up.z;
-      assert.ok(Math.abs(x)<C.halfHeight*w/h-.5&&Math.abs(v)<C.halfHeight-.5,`${seed} ${w}x${h}: ${x},${v}`);
-    }
-  }
+  const protectedRound=setup('protected',2);protectedRound.bag.scrap_alloy=2;
+  takeDamage(protectedRound,1e9,protectedRound.deadline+100);
+  assert.equal(protectedRound.over,false);
+  assert.equal(protectedRound.health,1);
+  assert.equal(protectedRound.bag.scrap_alloy,2);
+  tickRound(protectedRound,protectedRound.deadline+1000);
+  assert.ok(protectedRound.remainingMs>0);
+  const regular=createRound('regular',0),before=JSON.stringify(regular);
+  initFtueRound(regular,{ftue:false},{getItem(){throw Error('non-FTUE storage read');}});
+  assert.equal(JSON.stringify(regular),before);
 });

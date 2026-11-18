@@ -1,5 +1,5 @@
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
-import {initFtueRound,ftueClutchSeconds} from './ftue.js?v=2.28.47';
+import {initFtueRound} from './ftue.js?v=2.28.47-ftue-opening-v1';
 import {artilleryFlight} from './artillery-flight.mjs?v=2.28.47-bridge1';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.47';
 import {animateEnemyModel} from './enemy-animation.js?v=2.28.47';
@@ -32,18 +32,18 @@ import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.47';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.47-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.47';
 import {safeSpawn} from './spawn.js?v=2.28.47';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.47';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.47-ftue-opening-v1';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.47';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.47';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.47-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.47';
 import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.47';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.47-glacial-merge1';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.47-ftue-opening-v1-glacial-merge1';
 import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.47';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.47';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.47-ftue-opening-v1';
 import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.47';
 // import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.47';
 import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.47';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.47';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.47-ftue-opening-v1';
 // import {stepScavenging} from './scavenging.js?v=2.28.47';
 import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.47';
 import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.47';
@@ -661,7 +661,7 @@ function renderKillMarker(clock){
 function setCollisions(){
   solids=[...round.level.walls,...round.level.boxes,...houseSolids(round.level),...doorSolids(round.level)];
   if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});
-  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))];
+  playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...(round.level.barrels??[]).filter(b=>!b.active).map(b=>({x:b.x,z:b.z,w:b.r*1.25,d:b.r*1.25,explosiveBarrel:true}))];
 }
 // A node with a live generator cannot be charged: the label says what breaks the shield.
 const nodeCaption=(node,clock)=>node.active?'ACTIVE':node.shielded?(clock<(node.shieldDownUntil??0)?'SHIELD DOWN · STAND CLOSE':node.generatorId?'SHIELDED · BREAK THE GENERATOR':'SHIELDED · STAND CLOSE'):'STAND CLOSE';
@@ -730,7 +730,7 @@ function updateHUD(){
   viewport.classList.toggle('low-hp',round.health>0&&round.health<=25);
   renderRoomBox(level);
   for(const v of world.nodes){v.label.el.classList.toggle('done',v.node.active);v.label.caption.textContent=nodeCaption(v.node,gameClock());}
-  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.ftueClutch?'EXTRACT - WALK IN':level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
+  world.exitLabel.el.classList.toggle('done',open);world.exitLabel.caption.textContent=round.cleared?'ALL LEVELS CLEARED':open?(round.ftue?'EXTRACT - WALK IN':level.number===3?'EXTRACT · WALK IN':'EXIT · OPEN'):'EXIT · LOCKED';
   const justOpened=world.setExit(open);
   if(open&&level.number===3&&!level.extractToastShown){level.extractToastShown=true;showExtractToast();}
   else if(justOpened)audioEvent('extract-revealed');
@@ -1095,7 +1095,7 @@ function reset(requestedSeed){
   // round=createRound(seed,gameClock(),raidOrder);weapon=createWeapon(round.order.loadout.ammo);
   audioEvent('start',{area:AREA_SEL});
   round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag});if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
-  if(launch.intro)notice(RULES.intro.tip,6000);
+  if(launch.intro&&!launch.ftue)notice(RULES.intro.tip,6000);
   if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
@@ -1769,6 +1769,18 @@ function frameInner(now){
     else if(mouseKnown)updateMouseAim();
     // the guard's front shield needs to know where the shot comes from; grenades (stepTools) have no origin and ignore it
     round.shooter=position;const weaponChanged=stepWeapon(weapon,round,clock,dt,playerSolids);round.shooter=null;if(weaponChanged)updateHUD();
+    if(round.ftueExplosion&&!round.ftueExplosion.presented){
+      const blast=round.ftueExplosion;blast.presented=true;
+      world.burst(blast.x,blast.z,PALETTE.warm,true,2.4);
+      operatorFX.sparks(blast.x,blast.z,QUALITY==='low');
+      pixelFeedback.impact(blast.x,blast.z,true);
+      const shake=RULES.feedback.cameraShake.kill;
+      addShake(shake.distance*2,shake.ms*2,now);
+      hapticPulse(RULES.feedback.hapticKillMs);
+      // Layer already-preloaded low impact sounds; no new iOS decode path.
+      void audio.play('impact-wall');void audio.play('death-tank');
+      setCollisions(); // Remove the physical drum once its blast has finished.
+    }
     // Ricochets are born during simulation, after the primary fire handler.
     const renderedShots=hotRenderedShots;renderedShots.clear();for(let i=0;i<bullets.length;i++)renderedShots.add(bullets[i].shot.id);
     for(const shot of weapon.projectiles)if(shot.ricochet&&!renderedShots.has(shot.id))addBulletVisual(shot);
@@ -1828,14 +1840,6 @@ function frameInner(now){
     if(round.over)finishRound();
     if(debugRoomClearsEnabled)for(const _ of updateClears(round,position))areaNotice('ROOM CLEAR',RULES.feedback.roomClearMs);
     {const {spawned}=stepStakes(round,clock,position,round.currentRoom,target);if(spawned.length)spawnEnemyVisuals(spawned);}
-    if(round.ftueClutch&&!round.over){
-      const clutch=round.ftueClutch,seconds=ftueClutchSeconds(round,clock);
-      if(!clutch.visualsAdded){spawnEnemyVisuals(clutch.spawned);clutch.visualsAdded=true;updateHUD();}
-      if(clutch.shownSeconds!==seconds){
-        clutch.shownSeconds=seconds; // hot-ok: once per second during the clutch countdown
-        notice(seconds>0?`EXTRACT IN ${seconds} - Hunters inbound. Reach the beam!`:'EXTRACT OPEN - Reach the beam to secure your loot.');
-      }
-    }
     const result=enterExit(round,position,clock);
     if(result==='next'&&ddaEligible())applyDifficulty(round.level,ddaState.knobs);
     if(result)finishRound('extraction');
