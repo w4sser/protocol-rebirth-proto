@@ -3,12 +3,13 @@ import {GLTFLoader} from './vendor/GLTFLoader.js';
 import {CHARACTERS,DEFAULT_CHARACTER,characterFor} from './characters.js?v=2.28.46';
 import {createCarbine,addOperatorGear,supportHand,riflePose} from './operator-gear.js?v=2.28.46';
 
+// Legacy registry stays available for explicit comparison.
 export const OPERATOR_CLIPS=CHARACTERS[DEFAULT_CHARACTER].clips;
+export const DEFAULT_GAMEPLAY_SKIN='op01';
 export function selectSkin(search=''){
-  // Explicit preview switch for the new authored/rigged OP-01. Keep the
-  // existing operator as default until OP-01 gameplay is visually approved.
-  if(new URLSearchParams(search).get('skin')==='op01')return 'op01';
-  return characterFor(search).id;
+  const requested=new URLSearchParams(search).get('skin');
+  if(['robot','operator','punk','human'].includes(requested))return characterFor(search).id;
+  return DEFAULT_GAMEPLAY_SKIN;
 }
 export function animationState({dead=false,hit=false,dashing=false,moving=false,shooting=false,interacting=false}={}){
   return dead?'death':hit?'hit':dashing?'dash':shooting?'shoot':interacting?'interact':moving?'run':'idle';

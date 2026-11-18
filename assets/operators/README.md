@@ -34,8 +34,11 @@ separately.
   as operator.js. One AnimationMixer drives the Mixamo skeleton. All four
   skinned body material primitives swap together. The carbine remains attached
   to the RightHand bone and has a named muzzle for VFX.
-- Gameplay skin is opt-in via ?skin=op01. Production defaults remain unchanged
-  until real-device visual and performance testing has been approved.
+- OP01 is the default gameplay skin in every raid, even on low quality and
+  during FTUE, without a `skin` URL parameter. For legacy debug comparisons
+  use `?skin=operator`, `?skin=punk`, or `?skin=robot`. If the OP01
+  asset fails, the prior hooded operator (then robot) is an emergency fallback.
+  Gameplay stats, collisions, equipment and saves are unchanged.
 - LOD transitions use projected pixel height with hysteresis: roughly
   180 px for LOD0, 70-180 px for LOD1, below 70 px for LOD2.
 - test/op01-assets.test.js checks exact triangles, embedded textures,
@@ -51,8 +54,9 @@ separately.
    to GLTFLoader.parseAsync. Do not treat these as independent GLB files.
 2. Run the full CI. A missing rigged asset is a test failure, not approval
    of the procedural fallback.
-3. Inspect Deploy with ?preview=deploy and the playable raid via ?skin=op01
-   (also supported from ?preview=deploy&skin=op01).
+3. Inspect Deploy normally (or `?preview=deploy` for an isolated preview).
+   Enter any raid from Deploy or directly without a skin flag. Explicit
+   legacy skins remain available for debugging.
 4. Check skinning, coat penetration, low-ready pose, right-hand weapon
    attachment, muzzle FX, damage/hit/dash/death and mobile frame-rate.
 5. Compare LOD silhouettes at real top-down gameplay camera scale.

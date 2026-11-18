@@ -3,14 +3,20 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
 import * as THREE from '../vendor/three.module.js';
-import {selectSkin,animationState,clipForState,createHumanOperator} from '../operator.js';
+import {selectSkin,DEFAULT_GAMEPLAY_SKIN,animationState,clipForState,createHumanOperator} from '../operator.js';
 import {CHARACTERS} from '../characters.js';
 import {createOperatorFX} from '../operator-fx.js';
 
-test('operator is default; legacy skins remain explicit',()=>{
-  for(const search of ['', '?skin=unknown','?q=low'])assert.equal(selectSkin(search),'operator');
+test('OP01 is default in every raid mode; legacy skins remain explicit',()=>{
+  assert.equal(DEFAULT_GAMEPLAY_SKIN,'op01');
+  for(const search of ['', '?skin=op01','?skin=unknown','?skin=toString',
+    '?q=low','?q=medium','?q=high','?area=archipelago',
+    '?area=bunker&ftue=1','?area=town','?seed=returning-raid'])
+    assert.equal(selectSkin(search),'op01',search);
   assert.equal(selectSkin('?q=low&skin=robot'),'robot');
-  assert.equal(selectSkin('?skin=human'),'punk');assert.equal(selectSkin('?skin=punk'),'punk');
+  assert.equal(selectSkin('?skin=operator'),'operator');
+  assert.equal(selectSkin('?skin=human'),'punk');
+  assert.equal(selectSkin('?skin=punk'),'punk');
 });
 test('animation priority and exact source clip names',()=>{
   assert.equal(animationState(), 'idle');assert.equal(animationState({moving:true}),'run');
