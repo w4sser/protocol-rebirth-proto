@@ -2,14 +2,13 @@
 
 Start from the root base page, not a bookmarked `nodspel/` seed. Use a private/incognito browser window for a fresh save; do not use Reset in your regular window. Private storage is separate from your progressed save. The local review build uses a separate origin (`http://127.0.0.1:4174/`) for the same reason.
 
-## Route
-1. Enter the facility. Activate the Core with the supplied Scrap Alloy.
-2. Read the highlighted Fabricator goal: two Cable and two Scrap Alloy total, including one Alloy already secured at home. Its payoff is an existing Scavenger Vest (+25 shield, +1 raid bag slot).
-3. RAID → DEPLOY. The introductory mission keeps the standard loadout. Electrical Storage contains the missing recipe materials and one explicitly optional extra cache. Their availability is guaranteed; pickup, survival and extraction are not.
-4. Charge the node by standing near it for two seconds, or shoot it. Read the guard's warning, fixed-direction burst and recovery. Try moving around cover during recovery, or approaching the supplies from the opposite angle. No kill is required to open the exit.
-5. Watch HOME and BAG separately. Once enough is carried, extract; a death instead empties the bag and leaves the banked counts intact.
-6. Return to base and activate Fabricator. Secured materials and Scrap currency are spent once. Its commissioning gift is granted once and auto-equipped on the next default loadout.
-7. Verify Vault becomes the next goal. Enter Raid Prep and inspect the shield and fifth bag slot. Reload: the upgrade and next goal must remain.
+## Route (current fresh-save FTUE)
+1. From a genuinely fresh profile, tap the start screen. The playable FTUE raid launches directly, with the Basic Carbine and starting medkit. There is no BIT scene, Core popup or Raid Prep before this raid.
+2. In the introductory encounter, charge the node by standing nearby or shooting it, respond to the guard's burst, then reach the extraction. Electrical Storage has the guaranteed Fabricator materials. A failed attempt retries the FTUE raid instead of revealing BIT early.
+3. After the successful first extraction, return to the bunker. The cold-open discovery of BIT plays **now**, not before the raid. Dismiss its greeting to enter the facility.
+4. Restore emergency power at the Core. The bunker then points to Fabricator L1 as the next restoration project, using the materials carried back from the first raid.
+5. Build Fabricator L1 when the required materials are secured; do not auto-build it on extraction. Check the commissioning reward and subsequent Vault/BIT Bay choice. Subsequent raids use normal Raid Prep.
+6. Repeat with Settings > Save Slots > NEW GAME in an empty slot. Verify it gets the same raid-first entry; loading an old profile must never inherit the new slot's onboarding. Do not reset your progressed main profile to test this.
 
 ## Scope and decisions
 - Same engines, controls, art, room order, save version and later items. No new weapon, enemy class, external service or framework.
@@ -24,6 +23,6 @@ Automated checks cover bank/carried/excess/drop/loss counts, repeated raid-resul
 
 The tactical checks execute existing movement, projectiles, node holds and loot functions: (1) an alternate-angle supply run activates the node and extracts with the guard alive; (2) bait a burst into a previous position, take cover, and land two carbine shots during recovery. A hit during wind-up commits the guard's prepared burst early; its scheduled bullets remain after its death. A regression test proves that standing and firing rapidly now incurs damage while attacking in recovery avoids that cost. The intro starts behind cover with the one-second warning, rather than a separate artificial grace timer; later-room grace is unchanged. These are mechanical checks, not evidence that players understand the encounter.
 
-Live browser review on an isolated local save verified base → raid, collecting materials, the extraction prompt, successful extraction and return, paid Fabricator activation, automatic Vest in next prep, next Vault goal, reload persistence, and death losing carried supplies. Phone-sized landscape and desktop layouts were inspected. Multi-touch was checked with pointer-event tests; physical-device feel and uncoached player comprehension still need a human playtest.
+Earlier browser review on an isolated local save verified base → raid, collecting materials, the extraction prompt, successful extraction and return, paid Fabricator activation, automatic Vest in next prep, next Vault goal, reload persistence, and death losing carried supplies. Phone-sized landscape and desktop layouts were inspected. Multi-touch was checked with pointer-event tests; physical-device feel and uncoached player comprehension still need a human playtest.
 
 Observe without coaching whether players can explain their next goal/benefit, recognize required materials, react to the guard, and choose another raid after using the upgrade. Passing code tests does not prove these outcomes.
