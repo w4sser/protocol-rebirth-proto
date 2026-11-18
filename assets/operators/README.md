@@ -2,13 +2,15 @@
 
 The original unrigged TRELLIS/Blender assets already committed in this
 directory are kept for comparison. The new rigged handoff of 2026-11-18
-contains four additional GLB files, still to be uploaded to this branch.
+contains four additional production GLBs. LOD0/1/2 have been committed as
+native GLB files. The unchanged Menu GLB is committed as three binary
+segments because the connector cannot send a 5.8MB blob in one request.
 
-## New rigged handoff assets: upload all four to assets/operators/
+## New rigged handoff assets (committed on the PR branch)
 
 | File | Triangles including weapon | Bytes | SHA-256 |
 |---|---:|---:|---|
-| OP01_Menu.glb | 68,417 | 5,821,928 | dc95dcf26cafda33bc19884bee74eaa4664e2ab1e55b689a29f3fcf382e299a3 |
+| OP01_Menu.glb (split into .part0/.part1/.part2) | 68,417 | 5,821,928 | dc95dcf26cafda33bc19884bee74eaa4664e2ab1e55b689a29f3fcf382e299a3 |
 | OP01_Game_LOD0.glb | 25,637 | 2,581,620 | dcac60945a04bf20b62da4f3e06aea48c50ef03121607f7255a46324863134ad |
 | OP01_Game_LOD1.glb | 12,106 | 1,326,892 | d7188fff4f31b61b868c68db9c04c000368a26e7f41cea23c10f7e7e521cc6d7 |
 | OP01_Game_LOD2.glb | 6,156 | 906,024 | 2563d018a65ad9c365979d8fbc500289c4ace3d028d367b01210041abd6682c4 |
@@ -42,9 +44,11 @@ separately.
 
 ## Gates before merge
 
-1. Upload all four new GLBs into assets/operators/ on the PR branch
-   feat/cinematic-raid-prep-3d, NOT main. Do not upload a ZIP itself:
-   GitHub web uploads do not extract archives automatically.
+1. Verify all six committed binary blobs exist on the PR branch:
+   OP01_Game_LOD0/1/2.glb and OP01_Menu.glb.part0/1/2.
+   Node tests reassemble the Menu GLB and compare its original SHA-256.
+   The browser concatenates the three parts before passing the exact bytes
+   to GLTFLoader.parseAsync. Do not treat these as independent GLB files.
 2. Run the full CI. A missing rigged asset is a test failure, not approval
    of the procedural fallback.
 3. Inspect Deploy with ?preview=deploy and the playable raid via ?skin=op01
