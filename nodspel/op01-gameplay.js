@@ -71,7 +71,8 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
   const hand=named(model,'mixamorig:RightHand');
-  if(skinnedParts.length!==4||!weapon||!spine||!hand)throw new Error('OP01 is missing body pieces, carbine or Mixamo bones');
+  const supportHand=named(model,'mixamorig:LeftHand');
+  if(skinnedParts.length!==4||!weapon||!spine||!hand||!supportHand)throw new Error('OP01 is missing body pieces, carbine or Mixamo bones');
   if(mesh.skeleton.bones.length!==41)throw new Error('OP01 expected a 41-bone Mixamo rig');
 
   // Source mesh and animation are 1.78m tall. No procedural hood/jacket is
@@ -93,22 +94,27 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   muzzle.position.set(0,.095,-.655);
   weapon.add(muzzle);
 
-  // Existing gameplay requires a silhouette through occluding foreground
-  // terrain. The lightweight wireframe shares the existing skinned rig.
+  // Keep the entire four-part skinned silhouette visible behind foreground
+  // terrain. One cloned primitive hid the coat/gear at many angles, making
+  // OP01 look dismembered when passing behind the Swedish granite blockers.
   const outlineMaterial=new THREE.MeshBasicMaterial({
     color:'#75cfcc',wireframe:true,transparent:true,opacity:.23,
     depthTest:false,depthWrite:false,toneMapped:false,fog:false
   });
-  const outline=mesh.clone(false);
-  outline.name='OP01-occlusion-outline';
-  outline.material=outlineMaterial;
-  outline.castShadow=false;outline.receiveShadow=false;outline.visible=false;
-  outline.renderOrder=7;
-  mesh.parent.add(outline);
+  const outlines=skinnedParts.map(part=>{
+    const outline=part.clone(false);
+    outline.name='OP01-occlusion-outline';
+    outline.material=outlineMaterial;
+    outline.castShadow=false;outline.receiveShadow=false;outline.visible=false;
+    outline.renderOrder=7;
+    part.parent.add(outline);
+    return outline;
+  });
 
   const upperNodes=new Set();
   spine.traverse(n=>upperNodes.add(n.name));
   const mixer=new THREE.AnimationMixer(model),actions={lower:{},upper:{}},current={lower:null,upper:null};
+  const currentName={lower:null,upper:null};
   for(const [state,source]of clips){
     for(const layer of ['lower','upper']){
       const tracks=source.tracks.filter(t=>upperNodes.has(t.name.split('.')[0])===(layer==='upper')).map(t=>t.clone());
@@ -120,12 +126,16 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     }
   }
   const duration=state=>clips.get(state)?.duration??0;
+  // Aiming while retreating must not play forward-running footsteps. Reuse
+  // the authored running lower-body clip with a separate reverse-time action;
+  // the upper body keeps its independently aimed/two-hand rifle pose.
+  const backTracks=clips.get('run').tracks.filter(t=>!upperNodes.has(t.name.split('.')[0])).map(t=>t.clone());
+  actions.lower.back=mixer.clipAction(new THREE.AnimationClip('op01-lower-back',duration('run'),backTracks));
   let shotLeft=0,hitLeft=0;
   const forward=new THREE.Vector3(),spineAxis=new THREE.Vector3();
   const worldUp=new THREE.Vector3(0,1,0),gunForward=new THREE.Vector3(0,0,-1);
   const worldQ=new THREE.Quaternion(),turnQ=new THREE.Quaternion();
-  const poseQuat=new THREE.Quaternion();
-  const handPoint=new THREE.Vector3(),scratch=new THREE.Vector3();
+  const scratch=new THREE.Vector3();
 
   const lodResources=[
     {parts:skinnedParts.map(part=>({geometry:part.geometry,material:part.material}))},
@@ -140,7 +150,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
       part.geometry=lodResources[index].parts[i].geometry;
       part.material=lodResources[index].parts[i].material;
     });
-    outline.geometry=mesh.geometry;
+    skinnedParts.forEach((part,i)=>{outlines[i].geometry=part.geometry;});
     lod=index;
     root.userData.lod=lod;
     return true;
@@ -187,13 +197,15 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     const old=current[layer],next=actions[layer][state]||actions[layer].idle;
     if(old===next)return;
     next.reset().setEffectiveWeight(1).setEffectiveTimeScale(
-      state==='dash'&&dashDuration?duration('dash')/dashDuration:1).play();
+      state==='back'?-1:state==='dash'&&dashDuration?duration('dash')/dashDuration:1);
+    if(state==='back')next.time=duration('run');
+    next.play();
     if(old)next.crossFadeFrom(old,.11,false);
-    current[layer]=next;
+    current[layer]=next;currentName[layer]=state;
   }
   function reset(){
     mixer.stopAllAction();
-    current.lower=current.upper=null;
+    current.lower=current.upper=null;currentName.lower=currentName.upper=null;
     shotLeft=hitLeft=0;
     change('lower','idle');change('upper','idle');
     mixer.update(0);
@@ -204,7 +216,8 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   }
   function hit(){
     hitLeft=duration('hit');
-    if(current.upper===actions.upper.hit)current.upper.reset().play();
+    for(const layer of ['upper','lower'])if(current[layer]===actions[layer].hit)
+      current[layer].reset().play();
   }
   function update(dt,{moving=false,dashing=false,dead=false,aiming=false,interacting=false,
     walkYaw=0,aimYaw=walkYaw}={}){
@@ -214,10 +227,13 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     const state=dead?'death':hitLeft>0?'hit':dashing?'dash':shotLeft>0?'shoot':
       interacting?'interact':moving?'run':'idle';
     const bodyYaw=moving?walkYaw:aimYaw;
-    const back=moving&&aiming&&Math.abs(delta(aimYaw,bodyYaw))>Math.PI/2;
+    // A newly fired tap still needs a sensible torso rotation even after the
+    // aiming stick is released; otherwise the spine may twist 180 degrees.
+    const weaponReady=aiming||shotLeft>0;
+    const back=moving&&weaponReady&&Math.abs(delta(aimYaw,bodyYaw))>Math.PI/2;
     root.rotation.y=(bodyYaw+(back?Math.PI:0))-(root.parent?.rotation.y??0);
     const special=dead||dashing||hitLeft>0;
-    change('lower',dead?'death':dashing?'dash':hitLeft>0&&!moving?'hit':moving?'run':'idle');
+    change('lower',dead?'death':dashing?'dash':hitLeft>0&&!moving?'hit':moving?(back?'back':'run'):'idle');
     change('upper',dead?'death':dashing?'dash':hitLeft>0?'hit':shotLeft>0?'shoot':
       aiming||interacting?'aim':moving?'run':'idle');
     mixer.update(dt);
@@ -239,7 +255,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   }
   function setOccluded(visible,color){
     if(color)outlineMaterial.color.set(color);
-    outline.visible=!!visible;
+    for(const outline of outlines)outline.visible=!!visible;
   }
   function weaponPose(position,quaternion){
     root.updateMatrixWorld(true);
@@ -251,10 +267,22 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     root.updateMatrixWorld(true);
     return hand.getWorldPosition(target);
   }
+  // Read-only QA surface used only by the explicit ?op01QA=1 test session.
+  // No reference to this debug method is retained by normal gameplay code.
+  function poseDiagnostics(){
+    root.updateMatrixWorld(true);
+    const tip=muzzle.getWorldPosition(new THREE.Vector3());
+    const origin=weapon.getWorldPosition(new THREE.Vector3());
+    const support=weapon.worldToLocal(supportHand.getWorldPosition(new THREE.Vector3()));
+    return {lod,lower:currentName.lower,upper:currentName.upper,
+      muzzle:tip.toArray(),direction:tip.sub(origin).normalize().toArray(),
+      supportHandLocal:support.toArray(),outlines:outlines.length,
+      outlineVisible:outlines.some(o=>o.visible),mixerTime:mixer.time};
+  }
   reset();
   return {
     root,model,mixer,actions,character:OP01_CHARACTER,weapon,socket:weapon.parent,muzzle,
-    update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,
+    update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,poseDiagnostics,
     setLOD,updateLOD,preloadLODs,readyLODs,
     currentLOD:()=>lod
   };
