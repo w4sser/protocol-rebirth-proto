@@ -6064,7 +6064,7 @@ window.A = {
     if(i !== meta.active && meta.slots[i] && !window.confirm('Overwrite "' + meta.slots[i].name + '" with your current progress? This cannot be undone.')) return;
     SaveSlots.touchSlot(meta, i, Date.now(), JSON.stringify(S), localStorage);
     saveFtueForSlot(i);
-    toast("Saved to  + (meta.slots[i] ? meta.slots[i].name : "Slot " + (i+1)));
+    toast("Saved to " + (meta.slots[i] ? meta.slots[i].name : "Slot " + (i+1)));
     reopenProfiles();
   },
   profileLoad(i){
