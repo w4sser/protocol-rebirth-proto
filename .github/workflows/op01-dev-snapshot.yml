@@ -1,0 +1,26 @@
+name: op01-dev-snapshot
+on:
+  push:
+    branches: [feat/op01-gameplay-validation]
+    paths: ['.github/workflows/op01-dev-snapshot.yml']
+  workflow_dispatch:
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create temporary source snapshot for animation QA
+        run: |
+          tar czf /tmp/op01-dev-source.tar.gz \
+            --exclude=.git --exclude=node_modules \
+            --exclude='*.mp4' --exclude='*.webm' \
+            --exclude='*.mp3' --exclude='*.ogg' \
+            --exclude='*.wav' --exclude='*.zip' \
+            --exclude='*.fbx' --exclude='*.blend' .
+          cp /tmp/op01-dev-source.tar.gz op01-dev-source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: op01-dev-source
+          path: op01-dev-source.tar.gz
+          retention-days: 1
