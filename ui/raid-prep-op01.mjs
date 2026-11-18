@@ -41,6 +41,51 @@ async function loadRiggedMenu(loader,url){
 }
 
 
+/**
+ * Keep OP01's authored standing hips/legs, but use the rifle-ready upper-body
+ * animation for both shoulders, forearms and fingers. The old hero_pose
+ * puts the off-hand palm-up and the barrel vertically in front of the face.
+ * DO NOT rotate the rifle independently of its right-hand attachment: that
+ * would leave the support hand floating and break subsequent animation reuse.
+ */
+export function createOP01DeployGrip(gltf){
+  const {scene,animations}=gltf;
+  const hero=animations.find(a=>a.name==='hero_pose');
+  const aim=animations.find(a=>a.name==='aim');
+  if(!hero||!aim)throw new Error('OP01 deploy needs hero_pose and aim');
+  const spine=(()=>{
+    let node=null;
+    scene.traverse(n=>{
+      if(!node&&(n.name==='mixamorig:Spine'||n.userData?.name==='mixamorig:Spine'))node=n;
+    });
+    return node;
+  })();
+  if(!spine)throw new Error('OP01 deploy missing upper-body rig');
+
+  const upperNames=new Set();
+  spine.traverse(n=>{upperNames.add(n.name);if(n.userData?.name)upperNames.add(n.userData.name);});
+  const upperTrack=t=>upperNames.has(t.name.split('.')[0]);
+  const lowerTracks=hero.tracks.filter(t=>!upperTrack(t));
+  const upperTracks=aim.tracks.filter(upperTrack);
+  if(lowerTracks.length<2||upperTracks.length<10)
+    throw new Error('OP01 deploy lacks independent standing/aiming rig tracks');
+
+  // Sample one still stance, then keep it frozen so the page animation tick
+  // never returns to the awkward palms-up one-frame hero pose.
+  const mixer=new THREE.AnimationMixer(scene);
+  const stand=mixer.clipAction(new THREE.AnimationClip('deploy-standing-legs',hero.duration,lowerTracks));
+  const grip=mixer.clipAction(new THREE.AnimationClip('deploy-two-hand-rifle-grip',aim.duration,upperTracks));
+  for(const action of [stand,grip]){
+    action.setLoop(THREE.LoopOnce,1);
+    action.clampWhenFinished=true;
+    action.play();
+  }
+  mixer.update(Math.max(.001,Math.min(aim.duration*.5,aim.duration-.0001)));
+  stand.paused=true;
+  grip.paused=true;
+  return {mixer,stand,grip,upperTracks:upperTracks.length,lowerTracks:lowerTracks.length};
+}
+
 function prepMaterials(mesh,maxAnisotropy){
   mesh.frustumCulled=false;
   mesh.castShadow=false;
@@ -98,23 +143,21 @@ export async function loadOP01Operator({quality='menu',maxAnisotropy=4}={}){
 
   let mixer=null,pose=null;
   if(rigged){
-    mixer=new THREE.AnimationMixer(gltf.scene);
-    pose=mixer.clipAction(gltf.animations.find(clip=>clip.name==='hero_pose'));
-    pose.setLoop(THREE.LoopOnce,1);
-    pose.clampWhenFinished=true;
-    pose.play();
-    // One-frame animation: sample the authored low-ready pose immediately.
-    mixer.update(pose.getClip().duration+.00001);
+    // Keep the authored menu lower-body pose, with both weapon hands from
+    // the matched rifle-ready aim clip rather than the disconnected hero pose.
+    const deployGrip=createOP01DeployGrip(gltf);
+    mixer=deployGrip.mixer;
+    pose=deployGrip.grip;
   }
   root.userData.source='OP01';
   root.userData.quality=chosen;
-  root.userData.clip=rigged?'hero_pose':'none';
+  root.userData.clip=rigged?'hero_pose+aim_two_hand_grip':'none';
   root.userData.triangles=chosen==='menu'?68417:chosen==='sourceHero'?247895:68072;
   let elapsed=0;
   return {
     root,model:gltf.scene,mixer,quality:chosen,source:'glb',url,animation:root.userData.clip,
     update(dt,reduced=false){
-      // hero_pose is clamped, not silently reset to the bind / A-pose.
+      // Both frozen rig actions retain the two-hand ready stance.
       if(mixer)mixer.update(Math.min(.06,Math.max(0,dt)));
       if(reduced)return;
       elapsed+=Math.min(.05,dt);
