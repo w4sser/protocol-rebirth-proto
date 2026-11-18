@@ -47,8 +47,11 @@ const viewer=fs.readFileSync(path+'/ui/raid-prep-scene.mjs','utf8');
 // Character + BIT are genuine Three.js meshes, with an independent
 // high-detail MENU model; gameplay's low-cost rig must not overwrite yaw.
 const models=fs.readFileSync(path+'/ui/raid-prep-models.mjs','utf8');
-assert(viewer.includes('createOperatorHeroV4(') && viewer.includes('createMenuBit('),
-  'Deploy mounts distinct 3D operator and BIT objects');
+const op01=fs.readFileSync(path+'/ui/raid-prep-op01.mjs','utf8');
+assert(op01.includes("new GLTFLoader().loadAsync("),'menu loads real authored Blender GLB');
+assert(op01.includes('OP01_Mobile.glb') && op01.includes('OP01_Hero.glb'),'Mobile and Hero model paths are configured');
+assert(viewer.includes('await loadOP01Operator(') && viewer.includes('createMenuBit('),
+  'Deploy mounts authored OP01 GLB and 3D BIT');
 assert(viewer.includes("new THREE.WebGLRenderer(") && viewer.includes('renderer.render(scene,camera)'),
   'Deploy renders a real live 3D canvas');
 assert(!viewer.includes('loadHumanOperator()') && !viewer.includes('operator.update(dt,{'),
