@@ -1,0 +1,115 @@
+{
+  "kit": "Protocol Rebirth \u2014 Generated Props v0.1 (opt-in, not wired into any level)",
+  "generator": "tools/blender/make_props.py",
+  "units": "metres",
+  "up_axis": "Y",
+  "front": "-Z",
+  "origin": "bottom centre",
+  "vertex_colors": "COLOR_0.rgb baked AO + analytic sky tint, static alpha=1 (see README.md)",
+  "assets": [
+    {
+      "file": "rock_gen_a.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        0.95,
+        0.8581,
+        0.5188
+      ],
+      "bbox_m": {
+        "min": [
+          -0.475,
+          -0.42906,
+          0.0
+        ],
+        "max": [
+          0.475,
+          0.42906,
+          0.518823
+        ]
+      },
+      "collision": "cylinder r=0.47",
+      "triangle_count": 320,
+      "material_count": 1,
+      "file_size_bytes": 33880,
+      "notes": "Generated faceted low-poly rock, vertex-color body + olive moss wedges, baked AO."
+    },
+    {
+      "file": "rock_gen_b.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        1.15,
+        0.9047,
+        0.4096
+      ],
+      "bbox_m": {
+        "min": [
+          -0.575,
+          -0.452351,
+          0.0
+        ],
+        "max": [
+          0.575,
+          0.452351,
+          0.409595
+        ]
+      },
+      "collision": "cylinder r=0.57",
+      "triangle_count": 320,
+      "material_count": 1,
+      "file_size_bytes": 33308,
+      "notes": "Generated faceted low-poly rock, vertex-color body + olive moss wedges, baked AO."
+    },
+    {
+      "file": "rock_gen_c.glb",
+      "kind": "rock",
+      "approx_dimensions_m": [
+        1.0,
+        0.9563,
+        0.6792
+      ],
+      "bbox_m": {
+        "min": [
+          -0.5,
+          -0.478145,
+          0.0
+        ],
+        "max": [
+          0.5,
+          0.478145,
+          0.679213
+        ]
+      },
+      "collision": "cylinder r=0.50",
+      "triangle_count": 320,
+      "material_count": 1,
+      "file_size_bytes": 33436,
+      "notes": "Generated faceted low-poly rock, vertex-color body + olive moss wedges, baked AO."
+    },
+    {
+      "file": "barrel_gen_a.glb",
+      "kind": "barrel",
+      "approx_dimensions_m": [
+        0.592,
+        0.592,
+        0.9
+      ],
+      "bbox_m": {
+        "min": [
+          -0.296,
+          -0.296,
+          0.0
+        ],
+        "max": [
+          0.296,
+          0.296,
+          0.9
+        ]
+      },
+      "collision": "cylinder r=0.3",
+      "triangle_count": 370,
+      "material_count": 1,
+      "file_size_bytes": 26112,
+      "notes": "Generated 200L steel drum, vertex-color only (no texture), baked AO."
+    }
+  ]
+}
