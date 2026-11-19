@@ -160,6 +160,16 @@ export const RULES=Object.freeze({
       tool_emp:{kind:'emp',label:'EMP',charges:1,radius:3,stunMs:4000,stunTypes:['sentry','turret']},
       tool_decoy:{kind:'decoy',label:'Decoy',charges:2,radius:6,lureMs:5000}}},
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
+  // v2.28.48 fuel drums (docs/bit-narrator.md, docs/bug-lint.md `fuel-drums-chain-and-cap`): shared cap for
+  // this and future room interactives (live pads, shelves...), so no later toy needs its own room-density rule.
+  interactives:{maxPerRoom:2},
+  // One shape for every fuel drum: the hand-authored FTUE barrel (nodspel/ftue.js, player-safe) and the
+  // seeded ones placed in ordinary Bunker raids (placeFuelDrums below) both come from makeDrum(). A shot
+  // (or hitsToDetonate shots) or a nearby blast -- another drum's or an enemy grenadier's -- detonates it: a
+  // big readable ring that damages/knocks back enemies, and (outside the FTUE) the player too, tuned as a
+  // scare, not a one-hit kill at full HP. Any other idle drum within chainRadius starts a short telegraphed
+  // cook-off (flashing band) and detonates chainDelayMs later, which can chain again.
+  drum:{r:.62,hitsToDetonate:1,blastRadius:2.5,damage:5,knockback:1.5,playerDamage:18,playerKnockback:1.4,chainRadius:3,chainDelayMs:320,introRange:6},
   // v2.6.0 combat feel (docs/design-combat-feel-oct28.md §2.1/2.2/2.4.1): kill confirmation, hitstop and dodge i-frames.
   feedback:{hitFlashMs:240,damageNumberMs:700,meshFlashMs:80,deathAnimMs:350,killMarkerMs:300,muzzleFlashMs:50,muzzleOffset:.88,recoilMs:60,recoilDistance:.08,firePulseMs:120,hapticShotMs:12,hapticKillMs:25,roomClearMs:1000,
     burst:{particles:12,size:.08,speed:2.5,lifeSeconds:.5,lift:1.8,gravity:6},cameraShake:{hit:{distance:.05,ms:80},kill:{distance:.12,ms:150},playerDamage:{distance:.15,ms:200}}},
@@ -206,6 +216,15 @@ export const RULES=Object.freeze({
   weapon:{coneHalfAngleDegrees:8,range:7,damage:1,capacity:3,reloadMs:700,shotIntervalMs:180,bulletSpeed:19,shotRadius:.32,enemyHitboxMargin:globalThis.DATA.raidCombat.enemyHitboxMargin,nearMissRadius:globalThis.DATA.raidCombat.nearMissRadius,assistAngleDegrees:12,assistWidth:1.1,assistStrength:.65,knockback:0,pellets:1,homingDegreesPerSecond:90,homingAngleDegrees:20},
 });
 // Pure function of (seed, level): which hand-authored layout of the level's pool a raid uses.
+// One shape for every fuel drum (FTUE's hand-authored instance and every seeded one below).
+export function makeDrum(id,x,z,overrides={}){
+  const D=RULES.drum;
+  return {id,kind:'barrel',x,z,r:D.r,hitsToDetonate:D.hitsToDetonate,hits:0,
+    blastRadius:D.blastRadius,damage:D.damage,knockback:D.knockback,
+    playerDamage:D.playerDamage,playerKnockback:D.playerKnockback,
+    chainRadius:D.chainRadius,chainDelayMs:D.chainDelayMs,
+    playerSafe:false,active:false,cookingAt:null,...overrides};
+}
 export function layoutFor(seed,number){const pool=RULES.layouts[number-1];return pool[Math.floor(randomFromSeed(`${seed}:layout:${number}`)()*pool.length)];}
 export const layoutIdFor=(seed,number)=>layoutFor(seed,number).id;
 const round2=v=>Math.round(v*100)/100;
@@ -442,7 +461,41 @@ export function generateLevel(number,roundSeed,area=AREA,hard=HARD,big=BIG_LEVEL
   applyAreaRules(level,AR);
   // Area rules add extra bodies after encounters: re-prove every shielded guard still has a walkable flank (bug-lint #1).
   ensureRearClearance(level,randomFromSeed(`${seed}:rear`));
+  // Fuel drums (toy 1/3, docs/design-decisions.md): ordinary Bunker raids only -- the FTUE keeps its own
+  // single hand-authored instance (applyFtueLevel overwrites level.barrels for its scripted level 1).
+  if(area==='bunker')placeFuelDrums(level,randomFromSeed(`${seed}:drums`));
   return level;
+}
+// Seeded placement, after every enemy (base + extra + area mix) is known: 1-2 drums per room
+// (RULES.interactives.maxPerRoom), anchored near that room's own enemies (grunts preferred), clear of
+// walls/crates, corridors/doors/the exit, nodes/loot and each other. Deterministic per seed.
+function placeFuelDrums(level,rng){
+  const D=RULES.drum,cap=RULES.interactives.maxPerRoom;
+  const solids=[...level.walls,...level.boxes];
+  const corridors=[...level.corridors??[],...(level.deadEnds??[]),...(level.closet?[level.closet]:[]),...(level.doors??[])];
+  const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes];
+  level.barrels=[];
+  for(const room of level.rooms){
+    const roomEnemies=level.enemies.filter(e=>Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2);
+    const grunts=roomEnemies.filter(e=>e.type==='grunt');
+    const anchors=grunts.length?grunts:roomEnemies;
+    if(!anchors.length)continue;
+    const n=Math.min(1+(rng()<.5?1:0),cap);
+    for(let k=0;k<n;k++){
+      const anchor=anchors[Math.floor(rng()*anchors.length)];
+      for(let attempt=0;attempt<200;attempt++){
+        const angle=rng()*Math.PI*2,reach=1.4+rng()*1.8;
+        const p={x:round2(anchor.x+Math.cos(angle)*reach),z:round2(anchor.z+Math.sin(angle)*reach)};
+        if(Math.abs(p.x-room.x)>room.w/2-.8||Math.abs(p.z-room.z)>room.d/2-.8)continue;
+        if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+D.r+.3&&Math.abs(p.z-o.z)<o.d/2+D.r+.3))continue;
+        if(corridors.some(o=>Math.abs(p.x-o.x)<o.w/2+D.r+.6&&Math.abs(p.z-o.z)<o.d/2+D.r+.6))continue;
+        if(keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<2.2))continue;
+        if(level.barrels.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<D.r*3))continue;
+        level.barrels.push(makeDrum(`drum-${level.barrels.length+1}`,p.x,p.z));
+        break;
+      }
+    }
+  }
 }
 
 // Area difficulty + scouting item on top of the seeded layout (bunker = identity apart from the scout item).

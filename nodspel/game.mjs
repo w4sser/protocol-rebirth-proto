@@ -57,6 +57,7 @@ import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDi
 import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.47';
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.47';
 import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.47';
+import {fuelDrumBitLine} from './drum-intro.js?v=2.28.47';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.47';
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.47';
 import {applyEnvironmentLight} from './environment-look.js?v=2.28.47';
@@ -906,6 +907,20 @@ function checkEncounterHints(clock){
   for(const enc of encountersOf(round.level)){
     if(seen[enc.type]||Math.hypot(position.x-enc.x,position.z-enc.z)>RULES.encounters.hintRange)continue;
     markHintSeen(enc.type);notice(hintFor(enc.type));return;}
+}
+// ---- Fuel drum BIT intro (docs/bit-narrator.md): first sight of a drum, once per profile ----
+// Session-scoped (not reset on a FTUE in-place retry): a death mid-FTUE never hands off a RaidResult,
+// so re-showing on every retry inside the same tab would be noisy even though it is harmless.
+let drumIntroShownThisSession=false;
+function drumIntroSeen(){
+  try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.fuel_drum_intro;}catch{return false;}
+}
+function checkDrumIntro(){
+  if(drumIntroShownThisSession)return;
+  const line=fuelDrumBitLine(round,position,drumIntroSeen());
+  if(!line)return;
+  drumIntroShownThisSession=true;(round.bitSeen??=[]).push('fuel_drum_intro');
+  globalThis.PRBitCard?.show({id:'fuel_drum_intro',text:line,mood:'skeptical'});
 }
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
@@ -1769,8 +1784,8 @@ function frameInner(now){
     else if(mouseKnown)updateMouseAim();
     // the guard's front shield needs to know where the shot comes from; grenades (stepTools) have no origin and ignore it
     round.shooter=position;const weaponChanged=stepWeapon(weapon,round,clock,dt,playerSolids);round.shooter=null;if(weaponChanged)updateHUD();
-    if(round.ftueExplosion&&!round.ftueExplosion.presented){
-      const blast=round.ftueExplosion;blast.presented=true;
+    if(round.drumExplosion&&!round.drumExplosion.presented){
+      const blast=round.drumExplosion;blast.presented=true;
       world.burst(blast.x,blast.z,PALETTE.warm,true,2.4);
       operatorFX.sparks(blast.x,blast.z,QUALITY==='low');
       pixelFeedback.impact(blast.x,blast.z,true);
@@ -1792,6 +1807,7 @@ function frameInner(now){
     if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
+    checkDrumIntro();
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();

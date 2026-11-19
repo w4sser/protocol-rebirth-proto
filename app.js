@@ -123,7 +123,7 @@ function prepareDebugState(st){
   st.beat = PROG.beats.findIndex(b => b.id === "choice_upgrade");
   st.tracked = null; st.trackedQuest = null; st.coreLaunch = null;
   st.payoff = null; st.payoffDone = true;
-  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true, raid_briefing:true, quest_intro:true, vault_intro:true, vault_unlocked:true, new_find:true};
+  st.bitCardsSeen = {core_restored:true, first_death:true, fabricator_built:true, raid_briefing:true, quest_intro:true, vault_intro:true, vault_unlocked:true, new_find:true, fuel_drum_intro:true};
   st.areaScouted = st.areaScouted || {}; st.areaSeen = st.areaSeen || {};
   st.modules.rebirth_core = Math.max(st.modules.rebirth_core || 0, ...D.worldMap.areas.map(a => a.requires ? a.requires.core : 1));
   st.modules[PROG.raidPrepUnlockModule] = Math.max(st.modules[PROG.raidPrepUnlockModule] || 0, 1);
@@ -260,6 +260,10 @@ function migrateBitCardsSeen(st){
   }
   if(st.bitCardsSeen.new_find === undefined && Object.keys(st.seenItems || {}).some(id =>
     st.seenItems[id] && !(st.itemInfoQueue || []).includes(id))) st.bitCardsSeen.new_find = true;
+  // v2.28.48 fuel drums: a save that already completed a raid before this card existed has already
+  // seen a fuel drum (every Bunker raid, including the FTUE, places at least one) -- never replay
+  // the intro just because this feature shipped after the player did.
+  if(st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -4096,6 +4100,9 @@ function ingestRaidResult(r){
   const wid = typeof r.weapon === "string" && ITEMS[r.weapon] && ITEMS[r.weapon].weapon ? r.weapon : null, kills = Math.max(0, Math.min(200, Math.floor(Number(r.enemiesDefeated) || 0)));
   let starUp = null;
   if(wid && kills){ S.mastery = S.mastery || {}; const b = masteryStars(wid); S.mastery[wid] = masteryKills(wid) + kills; if(masteryStars(wid) > b) starUp = ITEMS[wid].name + " " + masteryStars(wid) + "/3 stars"; }
+  // Fuel drum BIT intro and any future raid narrator moment (nodspel/drum-intro.js): shown live in the
+  // raid, persisted here once per profile -- same S.bitCardsSeen dict the base-page moments already use.
+  if(Array.isArray(r.bitSeen)) for(const id of r.bitSeen) if(typeof id === "string" && !S.bitCardsSeen[id]) S.bitCardsSeen[id] = true;
   const xp = bitOnline() ? coreRaidXp(r) : 0;
   S.bondXp += xp;
   gainOpXp(Math.max(PROG.operator.coreMinXp, coreRaidXp(r)));
@@ -6362,7 +6369,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     const demoKit = PROG.kitItem;
     S.stash = {...S.stash, [demoWeapon]:1, [demoArmor]:1, [demoKit]:2};
     S.loadout = {weapon:demoWeapon,armor:demoArmor,c1:demoKit,c2:null,tool:null};
-    S.bitCardsSeen = {core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};
+    S.bitCardsSeen = {core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true,fuel_drum_intro:true};
   }
   warmStoryArt();
   const coreIngest = DEPLOY_PREVIEW ? null : ingestPendingCoreResult(window.localStorage);

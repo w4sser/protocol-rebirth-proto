@@ -150,7 +150,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const ring=new THREE.Mesh(new THREE.RingGeometry(.64,.70,32),
       new THREE.MeshBasicMaterial({color:'#cf745b',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));
     ring.rotation.x=-Math.PI/2;ring.position.y=.02;g.add(ring);
-    return {barrel,group:g,ring};
+    return {barrel,group:g,ring,danger};
   });
   const lootBoxes=level.lootBoxes.map(lootVisual);
   function addLoot(loot){const visual=lootVisual(loot);lootBoxes.push(visual);return visual;}
@@ -297,7 +297,11 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       }
     }
     for(const p of gateProgress)p.mesh.material.opacity=p.node.active?1:.16;
-    for(const v of barrels){v.group.visible=!v.barrel.active;if(v.group.visible)v.ring.material.opacity=.4+.14*Math.sin(time*3);}
+    for(const v of barrels){v.group.visible=!v.barrel.active;if(!v.group.visible)continue;
+      // Chain telegraph (RULES.drum.chainDelayMs): the same bands flash fast red/bright instead of a new mesh.
+      const cooking=v.barrel.cookingAt!=null;
+      v.ring.material.opacity=cooking?.55+.4*Math.sin(time*22):.4+.14*Math.sin(time*3);
+      v.danger.emissiveIntensity=cooking?.9+.6*Math.max(0,Math.sin(time*22)):.5;}
     for(const v of lootBoxes){if(!v.group.visible)continue;const p=time*2.6+v.phase;
       v.crate.position.y=.03;v.crate.rotation.y=0;
       const k=(time*.8+v.phase)%1;v.pulse.scale.setScalar(.8+k*.7);v.pulse.material.opacity=.6*(1-k);

@@ -337,29 +337,57 @@ function registerHitFeel(round,enemy,now,kind){
   round.hitFeel={serial:(round.hitFeel?.serial??0)+1,enemyId:enemy.id,type:enemy.type,x:enemy.x,z:enemy.z,kind,at:now};
   (round.hitFeels??=[]).push(round.hitFeel);
 }
-// A genuine projectile impact detonates the barrel once, and normal
-// hitEnemy handles blast kills, score, loot-independent effects, and hit feels.
-export function detonateFtueBarrel(round,id,now,obstacles=[]){
+// A genuine projectile impact (or a nearby blast's cook-off, see igniteDrums/combat.js stepDrums)
+// detonates a fuel drum once; normal hitEnemy handles blast kills, score and hit feels. `player`
+// defaults to round.shooter (set by the game around the weapon step, see hitEnemy's own `from` default)
+// so a direct shot and a chain cook-off both reach the live player position without threading it
+// through every caller. The FTUE drum (playerSafe) never runs the player-damage branch.
+export function detonateDrum(round,id,now,obstacles=[],player=round.shooter){
   tickRound(round,now);
-  if(!round.ftue||round.over||round.pauseAt!=null||round.level.number!==1)return false;
-  const barrel=round.level.barrels?.find(b=>b.id===id);
-  if(!barrel||barrel.active)return false;
-  barrel.active=true;barrel.explodedAt=now;
+  if(round.over||round.pauseAt!=null)return false;
+  const drum=round.level.barrels?.find(b=>b.id===id);
+  if(!drum||drum.active)return false;
+  drum.hits=(drum.hits??0)+1;
+  if(drum.hits<(drum.hitsToDetonate??1))return false;
+  drum.active=true;drum.cookingAt=null;drum.explodedAt=now;
   const before=round.enemiesDefeated;
   for(const enemy of round.level.enemies){
     if(enemy.health<=0||enemy.active===false||enemy.type==='generator')continue;
-    const dx=enemy.x-barrel.x,dz=enemy.z-barrel.z,d=Math.hypot(dx,dz);
-    if(d>barrel.blastRadius)continue;
+    const dx=enemy.x-drum.x,dz=enemy.z-drum.z,d=Math.hypot(dx,dz);
+    if(d>drum.blastRadius)continue;
     const dir=d>1e-8?{x:dx/d,z:dz/d}:{x:1,z:0};
-    const moved=movePlayer(enemy,{x:dir.x*barrel.knockback,z:dir.z*barrel.knockback},
+    const moved=movePlayer(enemy,{x:dir.x*drum.knockback,z:dir.z*drum.knockback},
       obstacles,round.level.floors,enemy.r??.48);
     enemy.x=moved.x;enemy.z=moved.z;enemy.knockedAt=now;
     enemy.knockSerial=(enemy.knockSerial??0)+1;
-    hitEnemy(round,enemy.id,now,barrel.damage,null);
+    hitEnemy(round,enemy.id,now,drum.damage,null);
   }
-  round.ftueExplosion={serial:(round.ftueExplosion?.serial??0)+1,
-    x:barrel.x,z:barrel.z,kills:round.enemiesDefeated-before,at:now};
+  // Outside the FTUE, the same ring is a warning to the player too (tuned well short of a full-HP
+  // instakill) -- the FTUE drum is pinned playerSafe and never reaches this branch.
+  if(!drum.playerSafe&&player){
+    const dx=player.x-drum.x,dz=player.z-drum.z,d=Math.hypot(dx,dz);
+    if(d<=drum.blastRadius){
+      const dir=d>1e-8?{x:dx/d,z:dz/d}:{x:1,z:0};
+      const moved=movePlayer(player,{x:dir.x*drum.playerKnockback,z:dir.z*drum.playerKnockback},
+        obstacles,round.level.floors,RULES.playerRadius);
+      player.x=moved.x;player.z=moved.z;
+      round.lastHit={source:'Fuel drum',sourceId:drum.id,attack:'explosion',at:now};
+      takeDamage(round,drum.playerDamage,now);
+    }
+  }
+  igniteDrums(round,drum.x,drum.z,drum.chainRadius,now);
+  round.drumExplosion={serial:(round.drumExplosion?.serial??0)+1,
+    x:drum.x,z:drum.z,kills:round.enemiesDefeated-before,at:now};
   return true;
+}
+// Any other idle (not yet active, not already cooking) drum within `radius` of (x,z) starts a short
+// telegraphed cook-off (combat.js stepDrums detonates it chainDelayMs later). Shared by a grenadier
+// blast (stepBlasts) and a drum's own detonation above, so a chain can propagate drum to drum.
+export function igniteDrums(round,x,z,radius,now){
+  for(const drum of round.level.barrels??[]){
+    if(drum.active||drum.cookingAt!=null)continue;
+    if(Math.hypot(drum.x-x,drum.z-z)<=radius)drum.cookingAt=now;
+  }
 }
 export function roundSummary(round){
   return {reason:round.reason,levelsCleared:round.levelsCleared,enemiesDefeated:round.enemiesDefeated,nodesLit:round.nodesLit,remainingMs:round.remainingMs,extracted:{...round.extracted},lost:{...round.lost}};

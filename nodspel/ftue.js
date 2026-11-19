@@ -1,4 +1,4 @@
-import {RULES} from './levels.js?v=2.28.47';
+import {RULES,makeDrum} from './levels.js?v=2.28.47';
 // Load the authored config after levels imports its original config snapshot.
 import '../data/raid-ftue.js?v=2.28.47-ftue-opening-v1';
 
@@ -28,8 +28,10 @@ export function applyFtueLevel(round){
     // All three actors exist before gameplay; nothing spawns on top of the player.
     level.enemies=[grunt('ftue-solo',o.solo,o.soloHealth,o.soloSpeed),
       ...o.group.map((p,i)=>grunt('ftue-group-'+(i+1),p,o.groupHealth,o.groupSpeed))];
-    level.barrels=[{id:'ftue-barrel-1',kind:'barrel',...at(o.barrel),r:o.barrel.r,
-      blastRadius:o.barrel.blastRadius,damage:o.barrel.damage,knockback:o.barrel.knockback,active:false}];
+    // The FTUE drum is one makeDrum() instance like any ordinary one, pinned player-safe (M43/PRB-162):
+    // its scripted double takedown (solo grunt by gunfire, the group by this barrel) never hurts the player.
+    level.barrels=[makeDrum('ftue-barrel-1',at(o.barrel).x,at(o.barrel).z,
+      {r:o.barrel.r,blastRadius:o.barrel.blastRadius,damage:o.barrel.damage,knockback:o.barrel.knockback,playerSafe:true})];
     Object.assign(level.nodes[0],at(o.node),{shielded:false});
     Object.assign(level.exit,at(o.exit));
     level.boxes=o.cover.map(b=>({...b,...at(b)}));

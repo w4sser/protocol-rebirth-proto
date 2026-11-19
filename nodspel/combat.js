@@ -4,7 +4,7 @@ import {audioEvent} from './audio.js?v=2.28.47';
 import {ownRooms} from './perks.js?v=2.28.47';
 import {RULES,hazardState} from './levels.js?v=2.28.47';
 import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.47';
-import {takeDamage,tickRound,hitEnemy} from './round.js?v=2.28.47-ftue-opening-v1';
+import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums} from './round.js?v=2.28.47-ftue-opening-v1';
 import {houseWaypoint} from './house.js?v=2.28.47';
 import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.47';
 import {detectionMultiplier} from './stakes.js?v=2.28.47';
@@ -39,6 +39,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   stepPatrolWalk(round,player,now,dt,obstacles);
   stepSpawners(round,combat,player,now);
   stepBlasts(round,combat,player,now,dash,obstacles);
+  stepDrums(round,now,obstacles,player);
   if(now<combat.graceUntil&&!anyNearMissAggro(round.level.enemies))return;
   const rule=RULES.combat,target=hotPlayerTarget;target.x=player.x;target.z=player.z;
   for(const enemy of round.level.enemies){
@@ -200,9 +201,18 @@ function stepBlasts(round,combat,player,now,dash=null,obstacles=[]){
       round.lastHit={source:b.source,enemyId:b.enemyId,attack:'grenade',at:now};
       takeDamage(round,encounterDamage(round,'grenadier'),now);
     }
+    igniteDrums(round,b.x,b.z,b.radius,now); // a grenadier blast cooks off any fuel drum caught in its ring
     (combat.booms??=[]).push({x:b.x,z:b.z,radius:b.radius,at:now});
   }
   if(combat.booms)combat.booms=combat.booms.filter(b=>now-b.at<600);
+}
+// A cooking (chain-ignited) drum detonates once its short telegraph (RULES.drum.chainDelayMs) elapses --
+// this is the only place a drum goes off without a direct shot. `player` defaults to round.shooter.
+function stepDrums(round,now,obstacles,player){
+  for(const drum of round.level.barrels??[]){
+    if(drum.active||drum.cookingAt==null)continue;
+    if(now>=drum.cookingAt+(drum.chainDelayMs??RULES.drum.chainDelayMs))detonateDrum(round,drum.id,now,obstacles,player);
+  }
 }
 
 // Encounter shots carry their source (for the result-screen tip) and a damage capped at maxHitFraction of max HP.

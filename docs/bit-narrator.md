@@ -104,6 +104,7 @@ policy. Each caller picks whatever persistence fits:
 | `quest_intro` (cutscene, PRB-162) | `app.js` `maybeShowQuestIntro`, before the tracked-quest chip (`trackedGoalHtml`) can ever render | "Quests: little jobs, real rewards. Finish one, I pay up. The quest chip tracks progress — tap it any time for the fine print." | smile |
 | `vault_intro` (teaser) | `app.js` `maybeShowVaultIntro`, when Vault becomes the next goal | "Vault's next. Bring these parts; I'll bring my excellent supervision." | smile |
 | `vault_unlocked` (build payoff) | `app.js` `A.build`, first Vault build | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
+| `fuel_drum_intro` (v2.28.48) | `nodspel/game.mjs` `checkDrumIntro` (trigger: `nodspel/drum-intro.js` `fuelDrumBitLine`), first sight of any fuel drum -- including the FTUE drum -- in a calm beat (no aggro enemy); persisted via the raid result's `bitSeen` (`nodspel/raid-result.js`), ingested into `S.bitCardsSeen` by `app.js` `ingestRaidResult` | "Red bands mean a plan. I'd kick it myself, but I don't have legs." | skeptical |
 
 ## Mini cutscenes
 
@@ -300,6 +301,12 @@ explain, following "Adding a new BIT card moment" above.
 | Fabricator / crafting | `fabricator_built` cutscene |
 | Death consequence (what you lose/keep) | `first_death` cutscene |
 | Raid materials (first-ever pickup of each) | `mat:<item>` card (`nodspel/loot-value.js`) |
+
+**Added in v2.28.48 (fuel drums, toy 1/3):**
+
+| System | Moment |
+| --- | --- |
+| Fuel drums (shoot or chain-blast to detonate; outside the FTUE, they hurt the player too) | `fuel_drum_intro` card, first sight of any drum including the FTUE's |
 
 **Added in this PR (PRB-162):**
 
