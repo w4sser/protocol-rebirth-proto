@@ -265,6 +265,8 @@ function boot(seedSave, calls, artMode = "success", requests = []){
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") +
     ";window.T={state:()=>S,ingestRaidResult,migrateBitCardsSeen,maybeShowFirstDeathCard,freshState,fabricatorCutsceneBeat,showHomecomingSummary,closeAllPopups,fabCraftHtml,craftConfirmHtml,vestGuaranteeNeed,BIT_CUTSCENES,MODS,D,ITEMS,trackedGoalHtml,maybeShowItemInfo,newFindUses,newFindUsesHtml,pendingSystemIntros};");
+  // Historical flow remains supported for profiles already introduced to quests.
+  w.T.state().ftuePath = false;
   return w;
 }
 async function bootToCoreOneTapAway(calls){
@@ -737,7 +739,7 @@ for(const mode of ["success", "error", "stall"]){
 // signal: the window for all three already closed for a save this far along).
 {
   const w = boot(null, []);
-  const st = w.T.freshState();
+  const st = w.T.freshState(); st.ftuePath = false;
   st.modules.fabricator = 1; st.bitCardsSeen = { core_restored:true, first_death:false };
   w.T.migrateBitCardsSeen(st); w.T.migrateBitCardsSeen(st);
   assert.deepEqual(JSON.parse(JSON.stringify(st.bitCardsSeen)), {core_restored:true,first_death:false,fabricator_built:true,raid_briefing:true,quest_intro:true});

@@ -92,3 +92,10 @@ Regler under FTUE:
 3. Befintliga B.I.T.-rader återanvänds. De flesta spelar utan ljud, så allt viktigt måste också stå som text på skärmen.
 
 Status: v2.22.0 = PR1 + PR2 (flagga/mätning + direktväg in, cold open efter första extraktionen, retry utan bas-omväg). Kvar: fast scriptat rum + assist-ramp, clutch-extrakt, stegvis meta, layout-check för FTUE.
+
+
+## v2.28.52: one path through the Vault
+
+New players extract, wake BIT, and restore the Core directly. On the lit base BIT introduces the Fabricator and sends them for its materials. The next successful extraction offers one BUILD FABRICATOR action. Building plays the existing dark/powered pair, then the ROOM ONLINE reward. BIT introduces the Vault over the base; its powered cutscene plays only on build. Affordable goals expose a labelled BUILD button placed clear of room targets.
+
+Quest introduction and Power Trace begin on the next base return after the Vault cutscene completes, never on its dismissal. This gives the player one base-building target at a time. No quest chip, daily quests, chain tracking or raid quest parameter is exposed before the Vault is online and narrated. Players who already received quests retain access; migration never removes buildings, materials or progress. The additive `ftuePath` flag selects this sequence and does not change SAVE_VERSION. BIT first-sight narration is deferred during the pre-wake FTUE raid without consuming its seen flags; the explosive-barrel encounter is unchanged.

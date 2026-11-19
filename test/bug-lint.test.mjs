@@ -374,3 +374,8 @@ assert.equal(by('raid-waits-for-combat-sfx').check().length,0);
  const cases=[['shelfDataSrc','data/raid-shelf.js','unlockRaids:3'],['levelsSrc','nodspel/levels.js','!shelfPathsConnected(level,f)'],['levelsSrc','nodspel/levels.js','if(!routeClear)continue'],['levelsSrc','nodspel/levels.js','occupied>=cap'],['weaponSrc','nodspel/weapon.js','shootShelf(round,hit.target.id,now)'],['roundSrc','nodspel/round.js','RULES.shelf.telegraphMs+RULES.shelf.fallMs'],['physicsSrc','nodspel/physics.mjs','if(box.movementOnly)return Infinity'],['physicsSrc','nodspel/physics.mjs','previous>0&&Math.hypot(x-b.x,z-b.z)>Math.hypot(p.x-b.x,p.z-b.z)'],['gameSrc','nodspel/game.mjs',"push('shelf_intro')"]];
  for(const [key,path,guard] of cases){const src=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');assert.equal(rule.check({[key]:src.replace(guard,'REMOVED')}).length,1,guard+' regression fires');}
 }
+
+// Each one-path fix has a negative fixture and a real-source positive contract.
+for(const id of ['wake-core-direct','sleeping-bit-raid','fabricator-base-briefing','fabricator-single-choice','build-skips-activation','reward-after-scene','quests-after-vault','vault-base-briefing','labelled-build-goal']){
+ const rule=by('ftue-'+id);assert.equal(rule.check({appSrc:'',gameSrc:''}).length,1,id+' rejects regression');assert.equal(rule.check().length,0,id+' holds');
+}
