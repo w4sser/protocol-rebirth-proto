@@ -7,6 +7,7 @@ function boot(save){
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, SV:SAVE_VERSION, talentPoints, talentPointsAvailable, talentCanLearn, talentRank, talentLearned, branchSpent, talentVal, talentRespecCost, bitSkillOn, isMaterialItem, rollScavenge, genCap, resolveRaid, scoutLead, applyRaidResult, ingestRaidResult, bitNextTalentUnlock };");
+  w.__T.S().ftuePath = false; // Existing profile, with quest introduction completed.
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document, D:w.DATA };
 }
 const g = boot(null); g.A.dismissIntro();

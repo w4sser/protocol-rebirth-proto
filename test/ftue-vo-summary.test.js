@@ -66,7 +66,7 @@ function freshFtueSeed(){
     require(path + "/data/" + f + ".js");
   global.window.DATA = window.DATA;
   const app = require(path + "/app.js");
-  const save = app.freshState(); save.introSeen = false;
+  const save = app.freshState(); save.introSeen = false; save.ftuePath = false; // Retain legacy summary coverage.
   const result = { schema:"protocol-rebirth/raid-result", version:1, raidId:"nodspel:vo-fix-seed", seed:"vo-fix-seed",
     ftue:true, outcome:"extract", area:"bunker", levelsCleared:1, enemiesDefeated:1, nodesLit:1, remainingMs:400000,
     extracted:["scrap_alloy","scrap_alloy"], lost:[], endedAt:1700000000000, kitLeft:{ medkit:1 } };
@@ -121,3 +121,13 @@ function freshFtueSeed(){
 }
 
 console.log("FTUE VO/summary full-bleed test PASSED");
+
+// v2.28.52: the new path restores Core directly and cancels the same greeting queue.
+{
+ const {save,result}=freshFtueSeed();save.ftuePath=true;
+ const {w,audio}=boot(save,result);w.A.dismissIntro();
+ assert.equal(w.T.state().modules.rebirth_core,1);
+ assert.equal(w.document.querySelector('#overlay.raid-summary-ov'),null);
+ assert(!audio.pending.has('youre-back'));
+ audio.unlock();assert.deepEqual(audio.calls,[],'no deferred greeting after the wake');w.close();
+}

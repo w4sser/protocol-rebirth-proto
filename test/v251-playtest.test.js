@@ -3,7 +3,7 @@ const root=__dirname+'/..';
 const dom=new JSDOM(fs.readFileSync(root+'/index.html','utf8'),{runScripts:'outside-only',url:'http://localhost/index.html',pretendToBeVisual:true}),w=dom.window;
 for(const file of ['items','modules','bit','bit-talents','raid_zones','recipes','vendors','retention','quests','progression','combat'])w.eval(fs.readFileSync(root+'/data/'+file+'.js','utf8'));
 w.eval(fs.readFileSync(root+'/app.js','utf8')+'\nwindow.T={S:()=>S,wpnSlotsHtml,questLaunchParam,raidFindable,chainReady,handinHave};');
-w.A.dismissIntro();const S=w.T.S();S.beat=w.DATA.progression.beats.length-1;S.baseState='core_habitable';S.introSeen=true;
+w.A.dismissIntro();const S=w.T.S();S.ftuePath=false;S.beat=w.DATA.progression.beats.length-1;S.baseState='core_habitable';S.introSeen=true;
 S.armory.rifle_marksman=2;S.gearUp.rifle_marksman=3;S.gearTier.rifle_marksman=1;
 let html=w.T.wpnSlotsHtml('rifle_marksman');assert.match(html,/Locked: merge to Mk II first/);assert.match(html,/Locked: merge to Mk III first/);
 S.gearTier.rifle_marksman=2;html=w.T.wpnSlotsHtml('rifle_marksman');assert.ok(!html.includes('Locked: merge to Mk II first'));assert.match(html,/Craft a .* at the Fabricator/);

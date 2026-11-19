@@ -40,7 +40,7 @@ const migrated = [];
 // every overlay() call site either gets the X or is a documented opt-out
 // PRB-155 removed bootSequence() (the Core-restore boot payoff popup), its own noClose opt-out;
 // the timed ad is the only one left.
-{ const app = fs.readFileSync(path + "/app.js", "utf8"); const optouts = (app.match(/noClose:true/g) || []).length; assert.equal(optouts, 1, "only the timed ad opts out"); }
+{ const app = fs.readFileSync(path + "/app.js", "utf8"); const optouts = (app.match(/noClose:true/g) || []).length; assert.equal(optouts, 2, "timed ad and single-action FTUE extraction opt out"); assert.match(app, /BUILD FABRICATOR<\/button><\/div>', null, "sheet raid-summary-ov", \{noClose:true\}/, "FTUE opt-out has a named build action"); }
 // Node Raid popups
 { const html = fs.readFileSync(path + "/nodspel/index.html", "utf8"), g = fs.readFileSync(path + "/nodspel/game.mjs", "utf8");
   assert(/ui\/popup\.css/.test(html), "core loads the shared popup css");

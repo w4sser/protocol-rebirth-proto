@@ -23,11 +23,11 @@ const browser=await puppeteer.launch({headless:true,executablePath:process.env.C
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 try{
  for(const [width,height]of [[844,390],[667,375],[932,430]]){
-  const context=await browser.createBrowserContext(),page=await context.newPage();await page.setViewport({width,height,deviceScaleFactor:1});
+  const context=await browser.createBrowserContext(),page=await context.newPage();page.setDefaultNavigationTimeout(60000);await page.setViewport({width,height,deviceScaleFactor:1});
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
   await page.evaluateOnNewDocument(()=>{sessionStorage.setItem('pr_splash_seen',String(Date.now()));window.PR_NAVIGATE=url=>window.__launchUrl=url;window.addEventListener('load',()=>{const show=window.PRBitCard?.show;if(show)window.PRBitCard.show=opts=>{window.__ftueCardId=opts.id;return show(opts);};});});
   const shot=async name=>{await page.screenshot({path:resolve(out,`${name}-${width}x${height}.png`)});};
-  const noQuest=async()=>assert.equal(await page.evaluate(()=>!!document.querySelector('.qgoal,#quest-chip:not([hidden]),.quest-intro')),false,'no early quest UI');
+  const noQuest=async()=>assert.equal(await page.evaluate(()=>!!document.querySelector('.qgoal,#quest-chip:not([hidden]),.bit-cutscene[data-id="quest_intro"]')),false,'no early quest UI');
   const scene=async id=>{await page.waitForFunction(id=>document.querySelector('.bit-cutscene')?.dataset.id===id,{},id);await page.waitForFunction(()=>document.querySelector('.bit-cutscene')?.classList.contains('hint-visible'));};
   const dismissScene=async()=>{await page.click('.bit-cutscene');await page.waitForFunction(()=>!document.querySelector('.bit-cutscene'));};
   const card=async id=>{await page.waitForFunction(id=>window.__ftueCardId===id && !!document.querySelector('.bit-card:not([hidden])'),{},id);await delay(3100);};
@@ -35,6 +35,9 @@ try{
   const launchRaid=async url=>{const target=new URL(url,base);target.searchParams.set('debug','1');target.searchParams.set('q','low');await page.goto(target.href,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.__NR?.round?.(),{timeout:60000});};
   const extract=async items=>{const nav=page.waitForNavigation({waitUntil:'networkidle0',timeout:60000});await page.evaluate(items=>__NR.extractDemo(items),items);await nav;await page.waitForFunction(()=>window.A);};
   await page.goto(base,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.A);await page.evaluate(()=>{document.getElementById('splash')?.remove();window.dispatchEvent(new Event('pr:splash-finished'));});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));
+  // Voice-producing events also stay silent while BIT sleeps; SFX continue normally.
+  await page.evaluate(async()=>{window.__voiceRequests=[];const voice=PR_AUDIO.voice.bind(PR_AUDIO);PR_AUDIO.voice=(name,...args)=>{__voiceRequests.push(name);return voice(name,...args);};const {audioEvent}=await import('./audio.js?v=2.28.52');audioEvent('bag-full');audioEvent('extract-revealed');});
+  assert.equal(await page.evaluate(()=>__voiceRequests.length),0,'no BIT event voice before wake');
   // Observe the fuel drum at first sight. Encounter and explosion remain present in the FTUE.
   await page.evaluate(()=>{const r=__NR.round();const b=r.level.barrels?.[0];if(!b)throw Error('FTUE explosive barrel missing');__NR.teleport(b.x-2,b.z);for(const e of r.level.enemies)e.aggro=false;});
   await delay(1000);assert.equal(await page.evaluate(()=>PRBitCard.isOpen()),false);
@@ -55,7 +58,7 @@ try{
   const overlaps=await page.evaluate(()=>{const c=document.querySelector('.progress-goal').getBoundingClientRect();return [...document.querySelectorAll('.mapspot,.mapspot .tag')].filter(el=>{const r=el.getBoundingClientRect();return c.left<r.right&&c.right>r.left&&c.top<r.bottom&&c.bottom>r.top;}).map(el=>el.getAttribute('aria-label')||el.textContent);});assert.deepEqual(overlaps,[],'BUILD avoids room hitboxes and labels');await shot('step10-build-vault');await page.click('.progress-goal button');
   await scene('vault_unlocked');await noQuest();await shot('step11-vault-cutscene');await dismissScene();
   assert.equal(await page.evaluate(()=>document.querySelector('.bit-cutscene')?.dataset.id),undefined,'quests wait until next return');await noQuest();
-  await page.evaluate(()=>{A.go('prep');A.go('base');});await scene('quest_intro');await shot('step12-quest-intro');await dismissScene();
+  await page.evaluate(()=>{A.go('prep');A.deployNodeRaid();});await page.waitForFunction(()=>window.__launchUrl);const nextLaunch=await page.evaluate(()=>__launchUrl);assert.equal(new URL(nextLaunch,base).searchParams.get('quest'),null,'no raid quest before its introduction');await launchRaid(nextLaunch);await noQuest();await extract(['cable']);await page.waitForSelector('#overlay button.primary[data-close]');await noQuest();await page.click('#overlay button.primary[data-close]');await scene('quest_intro');await shot('step12-quest-intro');await dismissScene();
   await page.waitForSelector('.qgoal');assert.match(await page.$eval('.qgoal',el=>el.textContent),/Power Trace/);await shot('step13-power-trace');
   assert.deepEqual(errors,[],'no browser exceptions');console.log(`FTUE browser walk ${width}x${height}: passed`);await context.close();
  }

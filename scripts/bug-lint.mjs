@@ -12,8 +12,12 @@ import * as walk from 'acorn-walk';
 
 import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
+  {id:'enemy-label-clearance-hold',pr:'v2.28.52 layout label stability',why:'Town enemy labels bypassed the clearance hold when colliding with loot/room labels',
+   check(c={}){const src=c.gameSrc??read('nodspel/game.mjs');return /const blocked=[^;]*overlapsAt\(y,size,labelRects\)/.test(src)&&!src.includes('if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}')?[]:['all label collisions must use the existing clearance hold'];}},
+  {id:'worldmap-new-label-gap',pr:'v2.28.52 map label fit',why:'the selected Bunker label overlapped the newly unlocked Archipelago label at 844x390',
+   check(c={}){const html=c.htmlSrc??read('index.html');return /\.worldmap \.wm-label\.on\[data-label="bunker"\]\{top:calc\(50% \+ 48px\)/.test(html)?[]:['compact Bunker label must leave room above the Archipelago label'];}},
   ...FTUE_CONTRACTS.map(([id,why,key,pattern]) => ({id:'ftue-'+id, pr:'v2.28.52 one clear path', why,
-    check(c={}){return pattern.test(c[key] ?? read(key === 'gameSrc' ? 'nodspel/game.mjs' : 'app.js')) ? [] : [why];}})),
+    check(c={}){return pattern.test(c[key] ?? read(key === 'gameSrc' ? 'nodspel/game.mjs' : key === 'audioSrc' ? 'nodspel/audio.js' : 'app.js')) ? [] : [why];}})),
   {id:'raid-waits-for-combat-sfx',pr:'v2.28.4x raid audio readiness',why:'the first fight raced unawaited combat buffer decoding',
    check(c={}){const game=c.gameSrc??read('nodspel/game.mjs'),audio=c.raidAudioSrc??read('nodspel/audio.js'),ready=c.readySrc??read('nodspel/audio-ready.js');const out=[];
      const wait=game.indexOf('await waitForRaidAudio();'),start=game.indexOf("reset(new URLSearchParams(location.search).get('seed'));camera");

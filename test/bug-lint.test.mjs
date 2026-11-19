@@ -376,6 +376,12 @@ assert.equal(by('raid-waits-for-combat-sfx').check().length,0);
 }
 
 // Each one-path fix has a negative fixture and a real-source positive contract.
-for(const id of ['wake-core-direct','sleeping-bit-raid','fabricator-base-briefing','fabricator-single-choice','build-skips-activation','reward-after-scene','quests-after-vault','vault-base-briefing','labelled-build-goal']){
- const rule=by('ftue-'+id);assert.equal(rule.check({appSrc:'',gameSrc:''}).length,1,id+' rejects regression');assert.equal(rule.check().length,0,id+' holds');
+for(const id of ['sleeping-bit-voice','quest-return-intro','legacy-quest-access','resume-held-room','wake-core-direct','sleeping-bit-raid','fabricator-base-briefing','fabricator-single-choice','build-skips-activation','reward-after-scene','quests-after-vault','vault-base-briefing','labelled-build-goal']){
+ const rule=by('ftue-'+id);assert.equal(rule.check({appSrc:'',gameSrc:'',audioSrc:''}).length,1,id+' rejects regression');assert.equal(rule.check().length,0,id+' holds');
 }
+
+assert.equal(by('worldmap-new-label-gap').check({htmlSrc:'.worldmap .wm-label.on[data-label="bunker"]{top:calc(50% + 56px)'}).length,1,'old Bunker offset overlaps the new area');
+assert.equal(by('worldmap-new-label-gap').check().length,0);
+
+assert.equal(by('enemy-label-clearance-hold').check({gameSrc:'const blocked=overlapsAt(y,size,hudRects);if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}'}).length,1);
+assert.equal(by('enemy-label-clearance-hold').check().length,0);

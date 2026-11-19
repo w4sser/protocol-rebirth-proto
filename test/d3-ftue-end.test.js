@@ -15,6 +15,7 @@ function boot(seedSave){
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,ftueOver,ingestRaidResult,applyRaidResult,nextUpgradeHtml,have,fabricatorPending,chainActive,chainState,trackedQuest,trackedGoalHtml,progressionGoalHtml,raidSummaryHtml,pickRaidReaction};");
+  w.T.state().ftuePath = false; // Retain the legacy post-first-raid quest path.
   w.A.startFtueDirect = () => {};
   return w;
 }
@@ -48,6 +49,7 @@ function afterCoreOnRaid1(w){
 // 2) The intro/FTUE extract (beat type intro) does not end forced FTUE.
 {
   const w = boot(null);
+  w.T.state().ftuePath = false; // Retain the legacy post-first-raid quest path.
   w.A.startFtueDirect = () => {};
   w.dispatchEvent(new w.Event("pr:splash-finished"));
   // boot stubbed startFtueDirect; fire a crafted intro extract while still on tutorial
@@ -213,7 +215,7 @@ function afterCoreOnRaid1(w){
   // The base goal chip is equally loud while collapsed: a READY TO BUILD button with a class
   // that survives #app.s-base .progress-goal:not(.open) (v2.28.18).
   const goalHtml = w.T.progressionGoalHtml();
-  assert(/READY TO BUILD/.test(goalHtml), "ready goal chip shows READY TO BUILD: " + goalHtml);
+  assert(/BUILD FABRICATOR/.test(goalHtml), "ready goal chip shows labelled BUILD FABRICATOR: " + goalHtml);
   assert(/<button[^>]*\brtb\b[^>]*>/.test(goalHtml), "ready CTA carries the .rtb class that stays visible collapsed: " + goalHtml);
 
   // Building Fabricator L1 now opens Power Trace -- but does not retroactively count the earlier cable.

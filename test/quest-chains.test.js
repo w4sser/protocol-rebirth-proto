@@ -8,6 +8,7 @@ function boot(save){
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainActive, trackedQuest, chainProgress, ingestRaidResult, ftueOver, chainReady };");
+  w.__T.S().ftuePath = false; // Ordinary quest behavior for already introduced profiles.
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T };
 }
 const g = boot(null), C = g.w.DATA.questChains, ITEMS = g.w.DATA.items;

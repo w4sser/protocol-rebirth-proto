@@ -1,3 +1,4 @@
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.52';
 import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.52';
 import '../data/audio.js?v=2.28.52';
 import '../ui/audio.js?v=2.28.52';
@@ -12,6 +13,8 @@ export const combatAudioReady=prepareCombatAudio(audio);
 export const waitForRaidAudio=()=>waitForCombatAudio(combatAudioReady,{capMs:audio.config.raidReadyWaitMs});
 void audio.preload();
 const config=globalThis.DATA.audio;
+const bitVoiceAllowed=bitAccompaniesRaid({ftue:new URLSearchParams(globalThis.location?.search||'').get('ftue')==='1'});
+function bitVoice(name){if(bitVoiceAllowed)void audio.voice(name);}
 audio.sfxWaitMs=config.raidSfxWaitMs;
 let rarePicked=false,kills=0,lastCountdown=null;
 export function audioEvent(name,detail={}){
@@ -23,14 +26,14 @@ export function audioEvent(name,detail={}){
     case 'reload':case 'empty':void audio.play(name+'-'+weapon);break;
     case 'impact':void audio.play('impact-'+(detail.enemy?'enemy':'wall'));break;
     case 'hit':void audio.play('hit-'+type);break;
-    case 'kill':void audio.play('death-'+type);void audio.play('kill');if(++kills%config.killStreak===0)void audio.voice('nice-shot');break;
-    case 'pickup':{const tier=detail.rarity||'common';void audio.play('pickup-'+tier);if(!rarePicked&&config.rareTiers.includes(tier)){rarePicked=true;void audio.voice('scrap-detected');}break;}
-    case 'bag-full':void audio.play(name);void audio.voice('bag-heavy');break;
-    case 'heal-low':void audio.voice('heal-budget-low');break;
-    case 'hunter-wave':void audio.play(name);void audio.voice('hunters-inbound');break;
-    case 'extract-revealed':void audio.voice('extraction-marked');break;
+    case 'kill':void audio.play('death-'+type);void audio.play('kill');if(++kills%config.killStreak===0)bitVoice('nice-shot');break;
+    case 'pickup':{const tier=detail.rarity||'common';void audio.play('pickup-'+tier);if(!rarePicked&&config.rareTiers.includes(tier)){rarePicked=true;bitVoice('scrap-detected');}break;}
+    case 'bag-full':void audio.play(name);bitVoice('bag-heavy');break;
+    case 'heal-low':bitVoice('heal-budget-low');break;
+    case 'hunter-wave':void audio.play(name);bitVoice('hunters-inbound');break;
+    case 'extract-revealed':bitVoice('extraction-marked');break;
     case 'countdown':{const second=Math.ceil(detail.remainingMs/1000);if(second>0&&second<=config.extractCountdownSeconds&&second!==lastCountdown){lastCountdown=second;void audio.play('extract-countdown');}break;}
-    case 'result':audio.stop();void audio.play(detail.success?'extract-success':'death');if(!detail.success)void audio.voice('signal-lost');break;
+    case 'result':audio.stop();void audio.play(detail.success?'extract-success':'death');if(!detail.success)bitVoice('signal-lost');break;
     default:void audio.play(name);
   }
 }

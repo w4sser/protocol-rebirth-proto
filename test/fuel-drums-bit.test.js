@@ -58,10 +58,13 @@ function result(extra){
   // Migration: a save that already completed a raid before this feature existed has already
   // seen a fuel drum (every Bunker raid places one) -- never replay the intro for it.
   const w = boot();
-  const veteran = Object.assign(w.T.freshState(), { raids: 3 });
+  const veteran = Object.assign(w.T.freshState(), { raids: 3, ftuePath:false });
   delete veteran.bitCardsSeen.fuel_drum_intro;
   w.T.migrateBitCardsSeen(veteran);
   assert.equal(veteran.bitCardsSeen.fuel_drum_intro, true, "a save with prior raids is backfilled as already seen");
+  const sleeping = Object.assign(w.T.freshState(), { raids: 1 });
+  w.T.migrateBitCardsSeen(sleeping);
+  assert.equal(sleeping.bitCardsSeen.fuel_drum_intro, undefined, "pre-wake first sight remains deferred after raid 1");
   const fresh = Object.assign(w.T.freshState(), { raids: 0 });
   w.T.migrateBitCardsSeen(fresh);
   assert.equal(fresh.bitCardsSeen.fuel_drum_intro, undefined, "a save with no raids yet still gets the real intro live");

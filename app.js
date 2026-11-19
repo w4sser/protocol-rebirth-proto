@@ -245,7 +245,10 @@ function migrateBitCardsSeen(st){
   // isFabricatorOnline branch only fires on the level===1 transition, impossible to repeat), but
   // this still records the fact, matching the established migration pattern.
   if(st.bitCardsSeen.fabricator_built === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.fabricator_built = true;
-  if(st.ftuePath === undefined) st.ftuePath = !st.bitCardsSeen.quest_intro && !((st.modules || {}).storage >= 1);
+  if(st.ftuePath === undefined){
+    const pastIntro = st.beat > PROG.beats.findIndex(b => b.id === "raid_1");
+    st.ftuePath = !pastIntro && !st.bitCardsSeen.quest_intro && !((st.modules || {}).fabricator >= 1) && !((st.modules || {}).storage >= 1) && !Object.values(st.chains || {}).some(c => c.step > 0 || c.prog > 0);
+  }
   // PRB-162: raid_briefing/quest_intro/vault_intro are each additive and independently idempotent,
   // following the same pattern -- a save already past the live trigger (Fabricator already built,
   // for the first two; Storage already built, for the third) is marked seen retroactively so it
@@ -257,7 +260,7 @@ function migrateBitCardsSeen(st){
   // Additive stages: old vault_intro means teaser only until the room is actually built.
   if(((st.modules && st.modules.storage) || 0) >= 1){
     st.bitCardsSeen.vault_intro = true;
-    st.bitCardsSeen.vault_unlocked = true;
+    if(st.bitCardsSeen.vault_unlocked === undefined) st.bitCardsSeen.vault_unlocked = true;
   }
   if(st.bitCardsSeen.new_find === undefined && Object.keys(st.seenItems || {}).some(id =>
     st.seenItems[id] && !(st.itemInfoQueue || []).includes(id))) st.bitCardsSeen.new_find = true;
@@ -464,7 +467,7 @@ function nextAccessRoom(){
 // One recipe-backed target. Existing post-onboarding manual tracking is retained.
 function progressionGoal(){
   let id = coreLevel() < 1 ? "rebirth_core" : (D.baseMap.rooms.find(r => r.destination && !(S.modules[r.destination] > 0)) || {}).destination;
-  if(ftueOver() && !fabricatorPending() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
+  if(ftueOver() && !guidedBuildPath() && !fabricatorPending() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
   const m=MODS[id], next=m && nextLevelDef(id); if(!next) return null;
   const parts=costParts(next.cost).filter(p=>p.kind==='item'||p.have<p.need).map(p=>({id:p.id,kind:p.kind==='cur'?'currency':'item',name:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).name,icon:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).icon,need:p.need,secured:p.have}));
   const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
@@ -490,7 +493,7 @@ function progressionGoalHtml(compact){
   const heading = restore ? "RESTORE EMERGENCY POWER" : (g.name + " L" + g.level);
   // v2.28.19: Core L1 restore is one tap (A.build), and the chip must not show a check icon before the
   // restore is committed. Other ready goals still use the v2.28.18 READY TO BUILD chip.
-  const ctaFn = ((restore || S.ftuePath) && g.ready) ? 'A.build' : 'A.openBuilding';
+  const ctaFn = ((restore || guidedBuildPath()) && g.ready) ? 'A.build' : 'A.openBuilding';
   if(compact) return '<button type="button" class="progress-goal compact" onclick="'+ctaFn+'(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+(restore?IC("power")+' RESTORE':IC("check")+' READY')+'</span>')+'</div></button>';
   const loud = g.ready && !restore;
   const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'BUILD ' + (g.module === 'storage' ? 'VAULT' : g.name.toUpperCase()):'VIEW UPGRADE');
@@ -1307,7 +1310,8 @@ function questState(){
   }
   return S.quests;
 }
-function questsAfterVault(){ return !S.ftuePath || !!S.bitCardsSeen.vault_unlocked; }
+function guidedBuildPath(){ return !!S.ftuePath && !S.bitCardsSeen.vault_unlocked; }
+function questsAfterVault(){ return !S.ftuePath || (!!S.bitCardsSeen.vault_unlocked && !!S.bitCardsSeen.quest_intro); }
 function questsOpen(){ return questsAfterVault() && !!QD && bitOnline() && ftueOver(); }
 // Daily quests ready to claim: shown as a count on the BIT tab, the QUESTS entry and the Daily tab (claim inside the quest log).
 function dailyReadyCount(){ return questsOpen() ? questState().list.filter(q => q.done && !q.claimed).length : 0; }
@@ -4714,7 +4718,7 @@ function showHomecomingSummary(ingest, opts){
   }
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); if(!S.ftuePath || S.bitCardsSeen.quest_intro){ maybeShowItemInfo(); maybeShowHandIn(); } maybeShowFirstDeathCard(ingest); if(S.ftuePath) maybeShowQuestIntro(); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
 }
 // PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
 // the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
@@ -5011,9 +5015,12 @@ function maybeShowQuestIntro(){
   if(S.bitCardsSeen.quest_intro) return;
   // Never jump ahead of fabricator_built in the queue: A.build's finish() (shared by every module)
   // calls A.go("base") -- which calls this -- before narrate() has queued fabricator_built itself.
-  if(!S.bitCardsSeen.fabricator_built || !questsAfterVault()) return;
-  if(!ftueOver() || fabricatorPending() || !trackedQuest()) return;
-  const t = trackedQuest();
+  if(!S.bitCardsSeen.fabricator_built || (S.ftuePath && !S.bitCardsSeen.vault_unlocked)) return;
+  if(!ftueOver() || fabricatorPending()) return;
+  // The intro can name the first job while public quest tracking remains gated.
+  const first = S.ftuePath && QC.bunker?.steps[chainState("bunker").step];
+  const t = first ? {step:first} : trackedQuest();
+  if(!t) return;
   queueSystemIntro(BIT_CUTSCENES.quest_intro && {
     ...BIT_CUTSCENES.quest_intro,
     info:BIT_CUTSCENES.quest_intro.info.map(row => row.label === "FIRST"
@@ -5223,6 +5230,9 @@ window.A = {
       session.pendingHomecomingSummary = null;
       // BIT already greeted during the cold open he's not shown on this summary -- no second voice line.
       showHomecomingSummary(ing, { skipVoice:true });
+    } else if(S.ftuePath && S.raids > 0 && coreLevel() < 1){
+      // The result was already ingested if the page reloaded before the wake gesture.
+      A.build("rebirth_core");
     }
     if(typeof requestAnimationFrame === "function")
       requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
@@ -5237,7 +5247,7 @@ window.A = {
   baseAct(what){ const spot = document.querySelector(".baseviewer .mapspot.selected"); if(what === "open" && spot) return baseSpotOpen(spot); selectBaseSpot(null); },
   build(modId){
     closeBuildingPopup();
-    if(S.ftuePath) closeAllPopups();
+    if(guidedBuildPath()) closeAllPopups();
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
@@ -5623,7 +5633,7 @@ window.A = {
   goReadyToBuild(modId){
     session.pendingRaid = null;
     A.go("base");
-    if(S.ftuePath && canAfford(nextLevelDef(modId)?.cost || {})) A.build(modId);
+    if(guidedBuildPath() && canAfford(nextLevelDef(modId)?.cost || {})) A.build(modId);
     else A.openBuilding(modId);
   },
   exchange(xid){
@@ -5941,7 +5951,7 @@ window.A = {
       roomExplainHtml(id) + '<p class="lore" hidden>' + esc(lore) + '</p>' +
       (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
         (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>'
-          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">ACTIVATE ROOM</button>') :
+          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">' + (guidedBuildPath() ? 'BUILD ' + esc(room.label).toUpperCase() : 'ACTIVATE ROOM') + '</button>') :
         '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
       '</div>', clearMapFocus, "sheet fsdetail");
   },
@@ -6547,7 +6557,10 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
-  if(!DEPLOY_PREVIEW && S.introSeen && !coreIngest) resumeFtueStory();
+  if(!DEPLOY_PREVIEW && S.introSeen && !coreIngest){
+    resumeFtueStory();
+    if(S.ftuePath){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+  }
   if(!DEPLOY_PREVIEW && (!coreIngest || !coreIngest.ok)) maybeShowItemInfo();
   if(S.introSeen && !DEPLOY_PREVIEW){
     tickRetention();

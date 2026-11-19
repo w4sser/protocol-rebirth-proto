@@ -1135,7 +1135,7 @@ function reset(requestedSeed){
   audioEvent('start',{area:AREA_SEL});
   round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro&&!launch.ftue)notice(RULES.intro.tip,6000);
-  if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);void audio.voice('hunters-inbound');}}
+  if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);if(bitAlong)void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
@@ -1477,8 +1477,7 @@ function renderLabels(){
     l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
     // Hide collisions immediately; require sustained clearance before showing again.
     // HUD overlap never moves the bar; an objective overlap the lift couldn't clear hides it too.
-    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects))||overlapsAt(y,size,labelRects);
     if(gate(l,'hudHidden',blocked,nowPlacement,0,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);
   }
