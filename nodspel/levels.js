@@ -491,7 +491,9 @@ function placeFuelDrums(level,rng){
     const anchors=grunts.length?grunts:roomEnemies;
     if(!anchors.length)continue;
     const n=Math.min(1+(rng()<.5?1:0),cap);
-    for(let k=0;k<n;k++){
+    const occupied=(level.hazards??[]).filter(inRoom).length+(level.junctions??[]).filter(inRoom).length;
+    const slots=Math.max(0,Math.min(n,cap-occupied));
+    for(let k=0;k<slots;k++){
       const anchor=anchors[Math.floor(rng()*anchors.length)];
       for(let attempt=0;attempt<200;attempt++){
         const angle=rng()*Math.PI*2,reach=1.4+rng()*1.8;

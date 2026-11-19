@@ -24,8 +24,8 @@ test('live pads damage and stun enemies; off, warning and dead pads do not',()=>
   stepHazards(r,player,2600,1);assert.equal(r.level.enemies[0].health,20);
 });
 test('a dash-invulnerable player never suppresses enemy pad damage',()=>{
-  const r=setup();stepHazards(r,{x:0,z:0},2600,.5,{invulnerableUntil:3000});
-  assert.equal(r.level.enemies[0].health,19);
+  const r=setup();stepHazards(r,{x:0,z:0},2600,.5,{remaining:1,startedAt:2550});
+  assert.equal(r.level.enemies[0].health,19);assert.equal(r.health,r.maxHealth);
 });
 test('shoot off to live, then overload radial damage once, cooldown, normal cycle',()=>{
   const r=setup(),p=r.level.hazards[0],e=r.level.enemies[0];
@@ -82,4 +82,12 @@ test('no pair before day 2, in FTUE, other areas or later floors',()=>{
   const r=createRound('pads-gate',0,undefined,{completedRaids:2,ftue:true});assert.equal(r.level.junctions.length,0);
   r.ftue={healthMul:1,speedMul:1};applyFtueLevel(r);assert.equal(r.level.junctions.length,0);assert.equal(r.level.hazards.length,0);
   assert.equal(createRound('pads-gate',0,undefined,{completedRaids:2}).level.junctions.length,1);
+});
+
+test('legacy pads also consume shared interactive slots on every Bunker floor',()=>{
+ for(let i=0;i<200;i++)for(const n of [1,2,3]){
+  const l=generateLevel(n,'shared-pad-'+i);
+  for(const room of l.rooms){const inside=o=>Math.abs(o.x-room.x)<=room.w/2&&Math.abs(o.z-room.z)<=room.d/2;
+   assert.ok([...l.barrels,...l.hazards,...l.junctions??[]].filter(inside).length<=RULES.interactives.maxPerRoom,`seed ${i}, floor ${n}`);}
+ }
 });
