@@ -1316,7 +1316,7 @@ function resize(){renderLabels.hudAt=0;viewWidth=stage.clientWidth;viewHeight=st
 window.addEventListener('resize',resize);new ResizeObserver(resize).observe(stage);resize();
 const invRoot2=1/Math.sqrt(2),labelPoint=new THREE.Vector3();
 function screenToWorld(x,y){return {x:(x+y)*invRoot2,z:(y-x)*invRoot2};}
-const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast';
+const HUD_SELECTORS='#raid-settings-open,.round-hud,#quest-chip,#level-corner,.bag-panel,#dash,#bit-distract,#tool-btn,#abandon,#reset,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,.area-notice,#encounter-hint,.stick,.pickup-toast,.bit-card';
 let hudRects=[];
 function refreshHudRects(){
   const box=$('#game').getBoundingClientRect();
@@ -1868,7 +1868,7 @@ function frameInner(now){
     for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock,hazardLabelClock);label.el.dataset.state=t.state;
       const paired=!!hazard.junctionId;
       const text=t.state==='dead'?'PAD COOLING':t.state==='overload'?'PAD OVERLOAD':t.state==='on'?(paired?'SHOOT BOX: OVERLOAD':'Shock pad active'):(paired?'SHOOT BOX: POWER ON':t.state==='warn'?'Shock pad charging':'Shock pad');
-      label.el.setAttribute('aria-label',text);if(paired)label.caption.textContent=text;}
+      setAttr(label.el,'aria-label',text);if(paired)setText(label.caption,text);}
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<combatBefore.health}))updateHUD();
     setCollisions();
     if(combatSnapshotChanged(combatBefore,round)||round.ftueHitSerial!==ftueHitBefore){
