@@ -146,9 +146,16 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       for(const x of [-.5,.3])box(x,.95,0,.5,.4,.4,PALETTE.wall,pivot);
     }
     const strap=box(0,1,.28,1.7,.09,.035,PALETTE.warm,pivot);strap.material=glow(PALETTE.warm,.8);
-    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(shelf.footprint.w,shelf.footprint.d),new THREE.MeshBasicMaterial({color:ENEMY_COLORS.damage,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,fog:false}));
-    shadow.rotation.x=-Math.PI/2;shadow.position.set(shelf.footprint.x,.035,shelf.footprint.z);shadow.visible=false;group.add(shadow);
-    return {shelf,base,pivot,strap,shadow};
+    // Fall telegraph: a near-black footprint reads against any floor tone, and a bright pulsing coral
+    // outline (drawn with no depth test, above the patrol sight-cone fill) keeps it unmistakable even
+    // when a guard's cone overlaps the same tile.
+    const fw=shelf.footprint.w,fd=shelf.footprint.d;
+    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(fw,fd),new THREE.MeshBasicMaterial({color:'#1a0806',transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false,depthTest:false,fog:false,toneMapped:false}));
+    shadow.rotation.x=-Math.PI/2;shadow.position.set(shelf.footprint.x,.04,shelf.footprint.z);shadow.renderOrder=5;shadow.visible=false;group.add(shadow);
+    const hx=fw/2,hz=fd/2,corners=[[-hx,-hz],[hx,-hz],[hx,hz],[-hx,hz],[-hx,-hz]].map(([x,z])=>new THREE.Vector3(x,0,z));
+    const edge=new THREE.Line(new THREE.BufferGeometry().setFromPoints(corners),new THREE.LineBasicMaterial({color:ENEMY_COLORS.damage,transparent:true,opacity:1,depthTest:false,toneMapped:false}));
+    edge.position.set(shelf.footprint.x,.05,shelf.footprint.z);edge.renderOrder=6;edge.visible=false;group.add(edge);
+    return {shelf,base,pivot,strap,shadow,edge};
   });
   const barrels=(level.barrels??[]).map(barrel=>{
     const g=new THREE.Group();g.position.set(barrel.x,0,barrel.z);group.add(g);
@@ -317,7 +324,10 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       const fall=s.active?1:warning?Math.max(0,Math.min(1,(ms-s.tipAt-RULES.shelf.telegraphMs)/RULES.shelf.fallMs)):0;
       v.pivot.rotation.x=fall*Math.PI/2+(s.shotAt!=null&&ms-s.shotAt<160&&!warning?Math.sin((ms-s.shotAt)*.06)*.025:0);
       v.pivot.position.y=fall*RULES.shelf.depth/2;
-      v.shadow.visible=warning;v.shadow.material.opacity=.32+.18*Math.sin(time*20);
+      v.shadow.visible=v.edge.visible=warning;
+      v.shadow.material.opacity=.55+.15*Math.sin(time*20);
+      v.edge.material.opacity=.75+.25*Math.sin(time*20+Math.PI/2);
+      v.edge.scale.setScalar(1+.05*Math.max(0,Math.sin(time*20)));
       v.strap.material.emissiveIntensity=warning?1.4:.8;
     }
     for(const v of barrels){v.group.visible=!v.barrel.active;if(!v.group.visible)continue;
