@@ -119,7 +119,7 @@ BIT_DATA_ROOT.DATA.roomUnlockStages = {
     powered:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
     teaser:{
       id:"raid_briefing",
-      line:"Lights on. Raid for parts; I charge by the comment.",
+      line:"Lights on. Raid for parts; I'll heckle.",
       info:[{label:"NEXT",kind:"cost"}]
     },
     unlock:{
@@ -132,7 +132,7 @@ BIT_DATA_ROOT.DATA.roomUnlockStages = {
     dark:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
     powered:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
     teaser:{
-      id:"vault_intro", line:"Vault next. Raid for parts; hoarding needs a room.",
+      id:"vault_intro", line:"Vault next. Raid for parts, hoarder.",
       info:[{label:"NEXT",kind:"cost"}]
     },
     unlock:{
