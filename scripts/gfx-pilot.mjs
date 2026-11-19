@@ -69,6 +69,8 @@ async function boot(page,base,quality,scene='pad'){
 }
 async function shot(branch,w,h,quality,scene){return withServer(ROOTS[branch],base=>withPage(w,h,async page=>{
   await boot(page,base,quality,scene);await settle(500);
+  // Dismiss through the existing component API so the cue under review stays visible.
+  await page.evaluate(()=>{for(let i=0;i<4;i++)globalThis.PRBitCard?.dismiss();});await settle(100);
   const info=await page.evaluate(()=>({quality:__NR.quality(),level:__NR.round().level.number,over:__NR.round().over}));
   if(info.quality!==quality||info.over)throw Error('capture changed quality or ended raid');
   const path=`${outDir}/${scene}-${branch}-${quality}-${w}x${h}.png`;await page.screenshot({path});console.log(path);return {path,info};
@@ -104,8 +106,12 @@ async function rocks(){return withServer(ROOTS.after,base=>withPage(844,390,asyn
 await mkdir(outDir,{recursive:true});
 const {writeFile}=await import('node:fs/promises');
 if(mode==='shots'||mode==='all'){
-  const results=[];for(const branch of ['before','after'])for(const [w,h] of [[844,390],[667,375],[932,430]])for(const quality of ['high','low'])for(const scene of ['pad','drum'])results.push(await shot(branch,w,h,quality,scene));
-  await writeFile(`${outDir}/shot-results.json`,JSON.stringify(results,null,2));
+  let prior=[];try{prior=JSON.parse(await readFile(`${outDir}/shot-results.json`,'utf8'));}catch{}
+  const merged=new Map(prior.map(r=>[r.path,r]));
+  for(const branch of ['before','after'])for(const [w,h] of [[844,390],[667,375],[932,430]])for(const quality of ['high','low'])for(const scene of (process.env.GFX_SCENE?[process.env.GFX_SCENE]:['pad','drum'])){
+    const result=await shot(branch,w,h,quality,scene);merged.set(result.path,result);
+    await writeFile(`${outDir}/shot-results.json`,JSON.stringify([...merged.values()],null,2));
+  }
 }
 if(mode==='perf'||mode==='all'){
   const results=[];for(const branch of ['before','after'])for(const quality of ['low','high']){const r=await perf(branch,quality);results.push(r);console.log(branch,quality,r.fps,r.averageFrameMs);}
