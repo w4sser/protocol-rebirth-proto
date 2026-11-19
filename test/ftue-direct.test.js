@@ -113,7 +113,8 @@ const text = w => w.document.getElementById("app").textContent;
   w.A.dismissIntro();
   w.A.go("base");
   assert(!text(w).includes("PROTOCOL REBIRTH"), "cold open shows only once");
-  assert.equal(w.T.progressionGoal().module, "rebirth_core", "Core is the single next step the base shows on return");
+  assert.equal(w.T.state().modules.rebirth_core, 1, "wake restores Core directly after the ingested extraction");
+  assert.equal(w.T.progressionGoal().module, "fabricator", "Fabricator is the next target after the direct Core restore");
 }
 
 console.log("FTUE DIRECT PATH TEST PASSED");

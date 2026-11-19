@@ -16,6 +16,7 @@ function boot(seedSave){
   w.PR_NAVIGATE = u => { w.launchURL = u; };
   for(const s of FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + ";window.T={state:()=>S,ingestRaidResult,progressionGoal,navAllowed};");
+  w.T.state().ftuePath = false; // Keep the original one-tap restore path for established saves.
   return w;
 }
 const text = w => w.document.getElementById("app").textContent;

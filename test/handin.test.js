@@ -8,6 +8,7 @@ function boot(save){
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.nav = []; w.PR_NAVIGATE = u => w.nav.push(u);
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, chainState, chainReady, ingestRaidResult, maybeShowHandIn, trackedQuest, firHave, migrateFir, raidFindable, handinFir, chainActive, HANDIN_MS, session };");
+  w.__T.S().ftuePath = false; // Ordinary quest behavior for already introduced profiles.
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, d:w.document };
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));

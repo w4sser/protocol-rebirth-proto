@@ -16,7 +16,7 @@ function boot(window){
 }
 boot(shell.window);
 const seed=JSON.parse(JSON.stringify(shell.window.freshState()));
-seed.introSeen=true;seed.retentionMode='core';seed.bondXp=0;seed.secureItem=null;
+seed.ftuePath=false;seed.introSeen=true;seed.retentionMode='core';seed.bondXp=0;seed.secureItem=null;
 shell.window.close();
 
 const launch=readLaunch('?seed=summary-ledger&raidId=summary-ledger&return=..%2Findex.html&gear=scout_rig&w=id:smg_vector');

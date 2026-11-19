@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.51"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.52"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -89,7 +89,7 @@ function inRaid(){ return session.screen === "prep" || session.screen === "raids
 
 function freshState(){
   const st = {
-    v:SAVE_VERSION, beat:0,
+    v:SAVE_VERSION, beat:0, ftuePath:true,
     cur: Object.assign({}, PROG.start.currencies),
     stash: Object.assign({}, PROG.start.stash), armory: {}, gearTier: {}, attach: {},
     reserved: {}, secureItem: null, guardianMaterial: null,
@@ -245,25 +245,29 @@ function migrateBitCardsSeen(st){
   // isFabricatorOnline branch only fires on the level===1 transition, impossible to repeat), but
   // this still records the fact, matching the established migration pattern.
   if(st.bitCardsSeen.fabricator_built === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.fabricator_built = true;
+  if(st.ftuePath === undefined){
+    const pastIntro = st.beat > PROG.beats.findIndex(b => b.id === "raid_1");
+    st.ftuePath = !pastIntro && !st.bitCardsSeen.quest_intro && !((st.modules || {}).fabricator >= 1) && !((st.modules || {}).storage >= 1) && !Object.values(st.chains || {}).some(c => c.step > 0 || c.prog > 0);
+  }
   // PRB-162: raid_briefing/quest_intro/vault_intro are each additive and independently idempotent,
   // following the same pattern -- a save already past the live trigger (Fabricator already built,
   // for the first two; Storage already built, for the third) is marked seen retroactively so it
   // never replays just because this feature shipped after the player did. A save still short of
   // that point gets the real cutscene live, the next time it actually reaches base/trigger.
   if(st.bitCardsSeen.raid_briefing === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.raid_briefing = true;
-  if(st.bitCardsSeen.quest_intro === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.quest_intro = true;
+  if(!st.ftuePath && st.bitCardsSeen.quest_intro === undefined && ((st.modules && st.modules.fabricator) || 0) >= 1) st.bitCardsSeen.quest_intro = true;
   if(st.bitCardsSeen.vault_intro === undefined && ((st.modules && st.modules.storage) || 0) >= 1) st.bitCardsSeen.vault_intro = true;
   // Additive stages: old vault_intro means teaser only until the room is actually built.
   if(((st.modules && st.modules.storage) || 0) >= 1){
     st.bitCardsSeen.vault_intro = true;
-    st.bitCardsSeen.vault_unlocked = true;
+    if(st.bitCardsSeen.vault_unlocked === undefined) st.bitCardsSeen.vault_unlocked = true;
   }
   if(st.bitCardsSeen.new_find === undefined && Object.keys(st.seenItems || {}).some(id =>
     st.seenItems[id] && !(st.itemInfoQueue || []).includes(id))) st.bitCardsSeen.new_find = true;
   // v2.28.48 fuel drums: a save that already completed a raid before this card existed has already
   // seen a fuel drum (every Bunker raid, including the FTUE, places at least one) -- never replay
   // the intro just because this feature shipped after the player did.
-  if(st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
+  if(!st.ftuePath && st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
   // Power pads did not exist in older raids: raid count cannot prove first sight.
   // Preserve explicit power_pad_intro and shelf_intro flags; otherwise leave unseen for the live cards.
   return st;
@@ -463,7 +467,7 @@ function nextAccessRoom(){
 // One recipe-backed target. Existing post-onboarding manual tracking is retained.
 function progressionGoal(){
   let id = coreLevel() < 1 ? "rebirth_core" : (D.baseMap.rooms.find(r => r.destination && !(S.modules[r.destination] > 0)) || {}).destination;
-  if(ftueOver() && !fabricatorPending() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
+  if(ftueOver() && !guidedBuildPath() && !fabricatorPending() && S.tracked && MODS[S.tracked.module] && (S.modules[S.tracked.module]||0)<S.tracked.level) id=S.tracked.module;
   const m=MODS[id], next=m && nextLevelDef(id); if(!next) return null;
   const parts=costParts(next.cost).filter(p=>p.kind==='item'||p.have<p.need).map(p=>({id:p.id,kind:p.kind==='cur'?'currency':'item',name:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).name,icon:(p.kind==='cur'?D.currencies[p.id]:ITEMS[p.id]).icon,need:p.need,secured:p.have}));
   const i=D.baseMap.rooms.findIndex(r=>r.destination===id), following=D.baseMap.rooms.slice(i+1).find(r=>r.destination?!(S.modules[r.destination]>0):!roomUnlocked(r.id));
@@ -489,10 +493,10 @@ function progressionGoalHtml(compact){
   const heading = restore ? "RESTORE EMERGENCY POWER" : (g.name + " L" + g.level);
   // v2.28.19: Core L1 restore is one tap (A.build), and the chip must not show a check icon before the
   // restore is committed. Other ready goals still use the v2.28.18 READY TO BUILD chip.
-  const ctaFn = (restore && g.ready) ? 'A.build' : 'A.openBuilding';
+  const ctaFn = ((restore || guidedBuildPath()) && g.ready) ? 'A.build' : 'A.openBuilding';
   if(compact) return '<button type="button" class="progress-goal compact" onclick="'+ctaFn+'(\''+g.module+'\')" aria-label="'+esc(heading)+'"><b>'+(restore ? esc(heading) : 'GOAL · '+esc(g.name).toUpperCase()+' L'+g.level)+'</b><div>'+(missing.length?missing.map(p=>'<span title="'+esc(p.name)+'">'+IC(p.icon)+' '+(p.need-p.secured)+'</span>').join(''):'<span>'+(restore?IC("power")+' RESTORE':IC("check")+' READY')+'</span>')+'</div></button>';
   const loud = g.ready && !restore;
-  const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'READY TO BUILD':'VIEW UPGRADE');
+  const ctaLabel = restore ? 'RESTORE EMERGENCY POWER' : (g.ready?'BUILD ' + (g.module === 'storage' ? 'VAULT' : g.name.toUpperCase()):'VIEW UPGRADE');
   const icon = restore ? 'power' : (g.ready?'check':'target');
   return '<section class="progress-goal'+(loud?' rtb-goal':'')+(restore?' core-restore':'')+'" aria-label="'+esc(heading)+'"><b>'+IC(icon)+' '+esc(heading)+'</b>'+goalTilesHtml(g)+'<div>'+missing.map(p=>'<span>'+IC(p.icon)+' '+esc(p.name)+' · need '+(p.need-p.secured)+'</span>').join('')+'</div><small>'+(g.ready?'SECURED · Ready to activate':'Only extracted loot is secured')+(g.following?' · Next: '+esc(g.following):'')+'</small><button class="'+(g.ready?'primary':'ghost')+((loud||(restore&&g.ready))?' rtb':'')+'" onclick="'+ctaFn+'(\''+g.module+'\')">'+ctaLabel+'</button></section>';
 }
@@ -1306,12 +1310,14 @@ function questState(){
   }
   return S.quests;
 }
-function questsOpen(){ return !!QD && bitOnline() && ftueOver(); }
+function guidedBuildPath(){ return !!S.ftuePath && !S.bitCardsSeen.vault_unlocked; }
+function questsAfterVault(){ return !S.ftuePath || (!!S.bitCardsSeen.vault_unlocked && !!S.bitCardsSeen.quest_intro); }
+function questsOpen(){ return questsAfterVault() && !!QD && bitOnline() && ftueOver(); }
 // Daily quests ready to claim: shown as a count on the BIT tab, the QUESTS entry and the Daily tab (claim inside the quest log).
 function dailyReadyCount(){ return questsOpen() ? questState().list.filter(q => q.done && !q.claimed).length : 0; }
 // ---- quest chains (v1.70): data in DATA.questChains, state S.chains[id] = { step, prog } ----
 const QC = D.questChains || {};
-function chainAvailable(id){ return !!QC[id] && (id === "bunker" ? ftueOver() && !fabricatorPending() : areaUnlocked(id)); }
+function chainAvailable(id){ return questsAfterVault() && !!QC[id] && (id === "bunker" ? ftueOver() && !fabricatorPending() : areaUnlocked(id)); }
 function chainState(id){ S.chains = S.chains || {}; return S.chains[id] || (S.chains[id] = { step:0, prog:0 }); }
 function chainActive(id){ if(!chainAvailable(id)) return null; return QC[id].steps[chainState(id).step] || null; }
 function chainStepN(def){ return def.objective.n; }
@@ -1329,6 +1335,7 @@ function chainReady(id){
   return o.type === "handin" ? Object.keys(o.items).every(k => handinHave(k) >= o.items[k]) : chainState(id).prog >= o.n;
 }
 function trackedQuest(){
+  if(!questsAfterVault()) return null;
   if(S.trackedQuest === "none") return null; // the player switched tracking off
   // T1-D: low bunker power puts the maintenance quest in the single tracked slot.
   if(powerOnline() && powerState().value < BP.warnAt){
@@ -1570,6 +1577,7 @@ function trackedGoalHtml(){
   if(!ftueOver() || fabricatorPending()) return "";
   // PRB-162 moment 3: the chip must not show before BIT's quest intro has been seen (bug-lint
   // `bit-introduces-systems-first`) -- maybeShowQuestIntro() queues it the instant the chain opens.
+  if(!questsAfterVault()) return "";
   if(!S.bitCardsSeen.quest_intro) return "";
   const t = trackedQuest(); if(!t) return "";
   const o = t.step.objective, phase = loopPhase(), ready = t.maintain ? maintainReady() : chainReady(t.chain);
@@ -2889,7 +2897,7 @@ SCREENS.base = function(){
     const lvl = room.destination ? (S.modules[room.destination] || 0) : null;
     const badge = shownOpen ? (room.destination && unlocked ? moduleBadge(room.destination) : null) : ready ? ["up",IC("check")] : null;
     const sub = shownOpen ? (selectedStyle ? '<span class="style-status">' + IC("sparkle") + ' ' + esc(selectedStyle.name) + '</span>' : '') : ready ? IC("check") + ' ' + esc(room.requirement.text) : '';
-    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?' goal-target':'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : '') + (room.destination && shownOpen && !roomPowered(room.destination) ? ' powered-off' : ''),
+    html += plateHtml('room-spot ' + (shownOpen ? 'unlocked' : ready ? 'ready' : 'locked') + (goal&&goal.module===room.destination?(goal.ready?' goal-ready':' goal-target'):'') + (previewUnlocked && !unlocked ? ' preview' : '') + (room.destination && buildInProgress(room.destination) ? ' constructing' : '') + (room.destination && shownOpen && !roomPowered(room.destination) ? ' powered-off' : ''),
       'left:' + room.x + '%;top:' + room.y + '%', 'data-room="' + room.id + '" aria-label="' + esc(room.label) + (shownOpen ? '' : ready ? ' (access ready)' : ' (locked)') + '"',
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
@@ -3597,7 +3605,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.51-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.52-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3611,7 +3619,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.51-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.52-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -4700,9 +4708,17 @@ function finishRaid(){
 
 function showHomecomingSummary(ingest, opts){
   if(!ingest || !ingest.ok) return;
+  if(S.ftuePath && coreLevel() < 1 && S.introSeen && ingest.raid.outcome === "extract"){
+    A.build("rebirth_core"); return;
+  }
+  if(S.ftuePath && coreLevel() >= 1 && fabricatorPending() && fabricatorReady() && ingest.raid.outcome === "extract"){
+    overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid", {omitCta:true}) +
+      '<button class="primary" onclick="A.build(\'fabricator\')">BUILD FABRICATOR</button></div>', null, "sheet raid-summary-ov", {noClose:true});
+    return;
+  }
   window.PR_AUDIO_BASE_RETURN?.(ingest.raid.outcome, opts);
   overlay('<div class="bpop raid-summary-pop">' + raidSummaryHtml(ingest.raid, ingest, ingest.reaction, "Node Raid") +
-    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); maybeShowItemInfo(); maybeShowHandIn(); maybeShowFirstDeathCard(ingest); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
+    '<button class="primary" data-close>RETURN TO BASE</button></div>', () => { act("RAID_SUMMARY_CLOSED", {}); if(!S.ftuePath || S.bitCardsSeen.quest_intro){ maybeShowItemInfo(); maybeShowHandIn(); } maybeShowFirstDeathCard(ingest); if(S.ftuePath) maybeShowQuestIntro(); }, "sheet raid-summary-ov", { afterDiscard:() => maybeShowFirstDeathCard(ingest) });
 }
 // PRB-153: first-ever ordinary-raid death plays a silent mini cutscene, once ever, after
 // the v2.28.24 loss screen and any homecoming summary have been dismissed. The FTUE/guided intro
@@ -4962,10 +4978,35 @@ function queueSystemIntro(beat, after){
 // and Core-restore beats (never stacked on top of them -- gated on core_restored already being
 // seen, and the cutscene queue itself never shows two scenes at once). Also catches a returning
 // player who already saw core_restored in an earlier session but still hasn't built the Fabricator.
+function queueBaseIntro(beat, after){
+  if(!S.ftuePath) return queueSystemIntro(beat, after);
+  if(pendingSystemIntros.has(beat.id)) return;
+  pendingSystemIntros.add(beat.id);
+  S.bitCardsSeen[beat.id] = false; save();
+  window.PRBitCard?.show({id:beat.id, text:beat.line + " " + beat.info.map(r => r.text).join(". "), mood:"smile", onDone:() => {
+    pendingSystemIntros.delete(beat.id);
+    S.bitCardsSeen[beat.id] = true; save();
+    if(after) after();
+    refresh();
+  }});
+}
+// Reloading during a held story resumes the built room, without charging twice.
+function resumeFtueStory(){
+  if(!S.ftuePath || !S.introSeen) return;
+  if(coreLevel() >= 1 && !S.bitCardsSeen.core_restored){
+    queueSystemIntro(BIT_CUTSCENES.core_restored, maybeShowRaidBriefing);
+  } else if((S.modules.fabricator || 0) >= 1 && !S.bitCardsSeen.fabricator_built){
+    fabricatorCutsceneBeat(beat => queueSystemIntro(beat, () => {
+      overlay(upgradeRewardHtml("fabricator", 1, false), maybeShowVaultIntro, "reward");
+    }));
+  } else if((S.modules.storage || 0) >= 1 && !S.bitCardsSeen.vault_unlocked){
+    queueSystemIntro(roomUnlockStages("storage").unlock);
+  }
+}
 function maybeShowRaidBriefing(){
   if(S.bitCardsSeen.raid_briefing || !S.bitCardsSeen.core_restored) return;
   if((S.modules.fabricator || 0) >= 1) return;
-  queueSystemIntro(roomUnlockStages("fabricator").teaser, () => { session.pulseRaidButton = true; });
+  queueBaseIntro(roomUnlockStages("fabricator").teaser, () => { session.pulseRaidButton = true; });
 }
 // PRB-162 moment 3: before the tracked-quest chip (trackedGoalHtml) can ever render, BIT explains
 // what quests are. The chain becomes trackable the instant the Fabricator is built (chainAvailable
@@ -4974,9 +5015,12 @@ function maybeShowQuestIntro(){
   if(S.bitCardsSeen.quest_intro) return;
   // Never jump ahead of fabricator_built in the queue: A.build's finish() (shared by every module)
   // calls A.go("base") -- which calls this -- before narrate() has queued fabricator_built itself.
-  if(!S.bitCardsSeen.fabricator_built) return;
-  if(!ftueOver() || fabricatorPending() || !trackedQuest()) return;
-  const t = trackedQuest();
+  if(!S.bitCardsSeen.fabricator_built || (S.ftuePath && !S.bitCardsSeen.vault_unlocked)) return;
+  if(!ftueOver() || fabricatorPending()) return;
+  // The intro can name the first job while public quest tracking remains gated.
+  const first = S.ftuePath && QC.bunker?.steps[chainState("bunker").step];
+  const t = first ? {step:first} : trackedQuest();
+  if(!t) return;
   queueSystemIntro(BIT_CUTSCENES.quest_intro && {
     ...BIT_CUTSCENES.quest_intro,
     info:BIT_CUTSCENES.quest_intro.info.map(row => row.label === "FIRST"
@@ -4995,7 +5039,7 @@ function maybeShowVaultIntro(){
   if(!S.bitCardsSeen.fabricator_built) return;
   const g = progressionGoal();
   if((S.modules.storage || 0) >= 1 || !(g && g.module === "storage")) return;
-  queueSystemIntro(roomUnlockStages("storage").teaser);
+  queueBaseIntro(roomUnlockStages("storage").teaser);
 }
 
 /* ---------- actions ---------- */
@@ -5126,7 +5170,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "base"){ warmStoryArt(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+    if(screen === "base"){ warmStoryArt(); resumeFtueStory(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
     // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
@@ -5186,6 +5230,9 @@ window.A = {
       session.pendingHomecomingSummary = null;
       // BIT already greeted during the cold open he's not shown on this summary -- no second voice line.
       showHomecomingSummary(ing, { skipVoice:true });
+    } else if(S.ftuePath && S.raids > 0 && coreLevel() < 1){
+      // The result was already ingested if the page reloaded before the wake gesture.
+      A.build("rebirth_core");
     }
     if(typeof requestAnimationFrame === "function")
       requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("intro-leaving")));
@@ -5200,6 +5247,7 @@ window.A = {
   baseAct(what){ const spot = document.querySelector(".baseviewer .mapspot.selected"); if(what === "open" && spot) return baseSpotOpen(spot); selectBaseSpot(null); },
   build(modId){
     closeBuildingPopup();
+    if(guidedBuildPath()) closeAllPopups();
     const next = nextLevelDef(modId);
     if(!next || !canAfford(next.cost) || next.level > moduleCap(modId)) return;
     if(buildInProgress(modId)) return;
@@ -5222,7 +5270,9 @@ window.A = {
     const isBitOnline = modId === "bit_bay" && next.level === 1;
     const isFabricatorOnline = modId === "fabricator" && next.level === 1;
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
-    if(isLightsOn){
+    if(isLightsOn && S.ftuePath){
+      session.wake = true; A.go("base");
+    } else if(isLightsOn){
       save();
       // v2.28.19: show the habitable bunker and play the wake lighting. PRB-155 (playtest
       // 2026-11-15, item 4) removed the old boot-payoff popup that used to gate ENTER THE
@@ -5232,10 +5282,15 @@ window.A = {
       if(!S.bitCardsSeen.core_restored) window.PRBitCutscene?.preload(BIT_CUTSCENES.core_restored);
       A.go("base");
       if(!S.bitCardsSeen.core_restored){
-        S.bitCardsSeen.core_restored = true; save();
-        window.PRBitCutscene?.play(BIT_CUTSCENES.core_restored);
-        maybeShowRaidBriefing();
+        S.bitCardsSeen.core_restored = !S.ftuePath; save();
+        window.PRBitCutscene?.play({...BIT_CUTSCENES.core_restored, onDone:() => { S.bitCardsSeen.core_restored = true; save(); maybeShowRaidBriefing(); }});
+        if(!S.ftuePath) maybeShowRaidBriefing();
       } else bitDock("module_built");
+    } else if(isFabricatorOnline && S.ftuePath && !S.bitCardsSeen.fabricator_built){
+      finish();
+      fabricatorCutsceneBeat(beat => queueSystemIntro(beat, () => {
+        overlay(upgradeRewardHtml(modId, next.level, isBitOnline), maybeShowVaultIntro, "reward");
+      }));
     } else if(isFabricatorOnline && !S.bitCardsSeen.fabricator_built){
       // PRB-155 moment 6: wait for the reward popup + bunkerwake build animation, then play the
       // Fabricator cutscene -- window.PRBitCutscene already queues behind any other popup/card.
@@ -5256,7 +5311,7 @@ window.A = {
       // The scene itself carries the reward. Missing teasers never block a valid build.
       S.bitCardsSeen.vault_intro = true;
       finish();
-      queueSystemIntro(roomUnlockStages("storage").unlock);
+      queueSystemIntro(roomUnlockStages("storage").unlock); // Quests start on the next base return, never this cutscene dismissal.
     } else {
       overlay(upgradeRewardHtml(modId, next.level, isBitOnline), finish, "reward");
     }
@@ -5578,7 +5633,8 @@ window.A = {
   goReadyToBuild(modId){
     session.pendingRaid = null;
     A.go("base");
-    A.openBuilding(modId);
+    if(guidedBuildPath() && canAfford(nextLevelDef(modId)?.cost || {})) A.build(modId);
+    else A.openBuilding(modId);
   },
   exchange(xid){
     const x = (D.vendors[0].exchange || []).find(e => e.id === xid); if(!x) return;
@@ -5895,7 +5951,7 @@ window.A = {
       roomExplainHtml(id) + '<p class="lore" hidden>' + esc(lore) + '</p>' +
       (ready ? (next ? '<div class="costs">' + roomPartsHtml(room) + '</div><p class="reward">REWARD · ' + esc(next.benefitText) + '</p>' : '') +
         (needsParts ? '<button class="primary big raidcta" onclick="A.raidForRoom(\'' + room.id + '\')">RAID FOR REPAIR MATERIALS</button>'
-          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">ACTIVATE ROOM</button>') :
+          : '<button class="primary big" onclick="A.unlockRoom(\'' + room.id + '\')">' + (guidedBuildPath() ? 'BUILD ' + esc(room.label).toUpperCase() : 'ACTIVATE ROOM') + '</button>') :
         '<p class="reward">' + esc(room.requirement.text) + '</p><div class="card warn">' + (prior && !roomUnlocked(prior.id) ? 'Open ' + esc(prior.label) + ' first. ' : '') + 'Requirement incomplete</div>') +
       '</div>', clearMapFocus, "sheet fsdetail");
   },
@@ -6474,7 +6530,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     } else splashCtl.flightFailed();
   }
   if(S.introSeen && splashCtl) window.addEventListener("pr:splash-finished", () => {
-    if(session.screen === "base"){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+    if(session.screen === "base"){ resumeFtueStory(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
   }, { once:true });
   if(ftueDirect){
     if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
@@ -6500,6 +6556,10 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     // summary (and any BIT comment — already stripped when raid.ftue) until the greeting is dismissed.
     if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
+  }
+  if(!DEPLOY_PREVIEW && S.introSeen && !coreIngest){
+    resumeFtueStory();
+    if(S.ftuePath){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
   }
   if(!DEPLOY_PREVIEW && (!coreIngest || !coreIngest.ok)) maybeShowItemInfo();
   if(S.introSeen && !DEPLOY_PREVIEW){

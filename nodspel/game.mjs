@@ -1,84 +1,84 @@
-import {shootShelf,stepShelves} from './round.js?v=2.28.51-ftue-opening-v1';
-import {shelfBitLine} from './shelf-intro.js?v=2.28.51';
+import {shootShelf,stepShelves} from './round.js?v=2.28.52-ftue-opening-v1';
+import {shelfBitLine} from './shelf-intro.js?v=2.28.52';
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
-import {initFtueRound} from './ftue.js?v=2.28.51-ftue-opening-v1';
-import {artilleryFlight} from './artillery-flight.mjs?v=2.28.51-bridge1';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.51';
-import {animateEnemyModel} from './enemy-animation.js?v=2.28.51';
-import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.51';
-import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.51';
-import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.51-op01-default';
-import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.51';
-import {createRobotPresence} from './robot-operator.js?v=2.28.51';
-import {createOperatorFX} from './operator-fx.js?v=2.28.51';
-import {createAudioSettings} from './audio-settings.js?v=2.28.51';
-import {createPixelFX} from './fx-pixel.js?v=2.28.51';
-import {createPixelFeedback} from './fx-feedback.js?v=2.28.51';
-import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.51';
-import {audio,audioEvent,waitForRaidAudio} from './audio.js?v=2.28.51';
-import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.51';
-import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,roomAt,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.51';
+import {initFtueRound} from './ftue.js?v=2.28.52-ftue-opening-v1';
+import {artilleryFlight} from './artillery-flight.mjs?v=2.28.52-bridge1';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.52';
+import {animateEnemyModel} from './enemy-animation.js?v=2.28.52';
+import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.52';
+import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.52';
+import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.52-op01-default';
+import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.52';
+import {createRobotPresence} from './robot-operator.js?v=2.28.52';
+import {createOperatorFX} from './operator-fx.js?v=2.28.52';
+import {createAudioSettings} from './audio-settings.js?v=2.28.52';
+import {createPixelFX} from './fx-pixel.js?v=2.28.52';
+import {createPixelFeedback} from './fx-feedback.js?v=2.28.52';
+import {createHaptics,createVibrationUI} from './haptics.js?v=2.28.52';
+import {audio,audioEvent,waitForRaidAudio} from './audio.js?v=2.28.52';
+import {createFireInputGate,bindHUDTap} from './controls.js?v=2.28.52';
+import {updateClears,pausePick,resumePick,gameTime,hitstop,advanceHitstop,inputPaused,roomAt,hasPerk,dashInterval,reloadInterval,PERKS,logCombat,resetPerks,lastCombatFeedback,reconLootVisible} from './perks.js?v=2.28.52';
 import * as THREE from './vendor/three.module.js';
-import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.51';
-import {loadBunkerAssets} from './bunker.js?v=2.28.51';
-import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted,setGuaranteeLoot} from './levels.js?v=2.28.51';
-import {applyDifficulty} from './difficulty.js?v=2.28.51';
-import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.51';
-import {nextPickupHint,hintText} from './item-hints.js?v=2.28.51';
-import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.51';
-import {createRobotSocket} from './operator-gear.js?v=2.28.51';
+import {loadTownAssets,townLoad,loadKit} from './town.js?v=2.28.52';
+import {loadBunkerAssets} from './bunker.js?v=2.28.52';
+import {setArea,setHard,isHard,setQuestLoot,setLevelMode,setScouted,setGuaranteeLoot} from './levels.js?v=2.28.52';
+import {applyDifficulty} from './difficulty.js?v=2.28.52';
+import {loadState as loadDdaState,saveState as saveDdaState,recordRaid as recordDdaRaid,lootMultiplier as ddaLootMultiplier,checkLapse as checkDdaLapse} from './dda.js?v=2.28.52';
+import {nextPickupHint,hintText} from './item-hints.js?v=2.28.52';
+import {CHARACTERS,overheadAnchorY} from './characters.js?v=2.28.52';
+import {createRobotSocket} from './operator-gear.js?v=2.28.52';
 // Item purpose lines (DATA.itemInfo) are derived from the real module costs + recipes.
-import '../data/modules.js?v=2.28.51';import '../data/recipes.js?v=2.28.51';import '../data/vendors.js?v=2.28.51';
-import {svgIcon,setIconText} from './svg-icons.js?v=2.28.51';
-import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.51';
-import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.51-organic-v2';
-import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.51';
-import {safeSpawn} from './spawn.js?v=2.28.51';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.51-ftue-opening-v1';
-import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.51';
-import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.51-ftue-opening-v1';
-import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.51';
-import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.51';
-import {buildWorld,setNodeHold} from './world.js?v=2.28.51-ftue-opening-v1-glacial-merge1';
-import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.51';
-import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.51-ftue-opening-v1';
-import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.51';
-// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.51';
-import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.51';
-import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.51-ftue-opening-v1';
-// import {stepScavenging} from './scavenging.js?v=2.28.51';
-import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.51';
-import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.51';
-import {routeComplete} from './objectives.js?v=2.28.51';
-import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.51';
-import {createDashAbility,createBitDistractAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.51';
-import {createBIT,stepBIT} from './bit.js?v=2.28.51';
-import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.51';
-import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.51';
-import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDistract} from './bit-distract.js?v=2.28.51';
-import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.51';
-import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.51';
-import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.51';
-import {powerPadBitLine} from './pad-intro.js?v=2.28.51';
-import {fuelDrumBitLine} from './drum-intro.js?v=2.28.51';
-import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.51';
-import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.51';
-import {applyEnvironmentLight} from './environment-look.js?v=2.28.51';
-import {createRaidProfiler} from './raid-profiler.js?v=2.28.51';
-import {createPostFX} from './postfx.js?v=2.28.51';
-import {createDustField} from './dust.js?v=2.28.51';
-import {createQualityUI} from './quality-ui.js?v=2.28.51';
-import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.51-granite8';
-import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.51';
-import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.51';
-import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.51';
-import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.51';
-import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.51';
+import '../data/modules.js?v=2.28.52';import '../data/recipes.js?v=2.28.52';import '../data/vendors.js?v=2.28.52';
+import {svgIcon,setIconText} from './svg-icons.js?v=2.28.52';
+import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.52';
+import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.52-organic-v2';
+import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.52';
+import {safeSpawn} from './spawn.js?v=2.28.52';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.52-ftue-opening-v1';
+import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.52';
+import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.52-ftue-opening-v1';
+import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.52';
+import {initTool,toolCharges,canUseTool,autoThrowPoint,previewThrow,throwTool,stepTools,toolDef} from './tools.js?v=2.28.52';
+import {buildWorld,setNodeHold} from './world.js?v=2.28.52-ftue-opening-v1-glacial-merge1';
+import {RULES,totalNodes,hazardState,hazardTiming,extractScrapBonus} from './levels.js?v=2.28.52';
+import {createWeapon,fireAimedWeapon,stepWeapon,assistAim,assistPreview,playerDisplaced,playerShotObstacles} from './weapon.js?v=2.28.52-ftue-opening-v1';
+import {beginAim,dragAim,stepAim,releaseAim,facingDirection,stickOffset,finishGesture} from './controls.js?v=2.28.52';
+// import {readOrder,raidResult,resultJSON} from './raid.js?v=2.28.52';
+import {bagText,bagItems,ITEM_NAMES} from './raid.js?v=2.28.52';
+import {STAKES,RAID_CAMERA,speedMultiplier,carriedWeight,healBudget,healRemaining,stepStakes,waveCountdownMs,carryValuePulsed,carriedValue,hunterArrowScreenPoint} from './stakes.js?v=2.28.52-ftue-opening-v1';
+// import {stepScavenging} from './scavenging.js?v=2.28.52';
+import {buildRaidResult,writeRaidResult,readLaunch,readWeapon,handoffRaidResult} from './raid-result.js?v=2.28.52';
+import {tutorialNeeded,completeTutorial} from './tutorial.js?v=2.28.52';
+import {routeComplete} from './objectives.js?v=2.28.52';
+import {createDash,startDash,stepDash,dashCharge} from './dash.js?v=2.28.52';
+import {createDashAbility,createBitDistractAbility,mountAbility,renderAbilitySlot} from './abilities.js?v=2.28.52';
+import {createBIT,stepBIT} from './bit.js?v=2.28.52';
+import {bitAccompaniesRaid} from './bit-presence.js?v=2.28.52';
+import {createBitExpression,triggerBitThreat,triggerBitDamage,triggerBitLoot,triggerBitExtract,triggerBitFailure,currentBitExpression,bitExpressionPresentation,bitExpressionFace,mouthDepth,combatIsHot,forceBitExpression} from './bit-expression.js?v=2.28.52';
+import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDistract} from './bit-distract.js?v=2.28.52';
+import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.52';
+import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.52';
+import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.52';
+import {powerPadBitLine} from './pad-intro.js?v=2.28.52';
+import {fuelDrumBitLine} from './drum-intro.js?v=2.28.52';
+import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.52';
+import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.52';
+import {applyEnvironmentLight} from './environment-look.js?v=2.28.52';
+import {createRaidProfiler} from './raid-profiler.js?v=2.28.52';
+import {createPostFX} from './postfx.js?v=2.28.52';
+import {createDustField} from './dust.js?v=2.28.52';
+import {createQualityUI} from './quality-ui.js?v=2.28.52';
+import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.52-granite8';
+import {MATERIALS,goalProgress,applyIntroEncounter,applyFirstPayoff} from './progression-goal.js?v=2.28.52';
+import {planLabels,labelOpacity,overHUD,resolveLabels,labelPriority,placeEnemyLabel,FIXED_LABEL_KINDS,settleLabelY} from './labels.js?v=2.28.52';
+import {resultView,renderResult,toggleResultDetails} from './result-screen.js?v=2.28.52';
+import {swapItemStatus,suggestSwap} from './swap-guidance.js?v=2.28.52';
+import {levelIntroTitle,LEVEL_INTRO_MS} from './level-intro.mjs?v=2.28.52';
 const keys=new Set(),sticks=[],fireInputGate=createFireInputGate();let mouseDown=false;
 
 // File integration is paused; no order fetch or result export runs.
 /*
-const orderResponse=await fetch('./order.json?v=2.28.51');
+const orderResponse=await fetch('./order.json?v=2.28.52');
 if(!orderResponse.ok)throw new Error('The raid order could not be loaded.');
 const raidOrder=readOrder(await orderResponse.json());
 let latestResult=null,resultURL=null;
@@ -224,7 +224,7 @@ if(AREA_SEL==='town'){try{TOWN=await loadTownAssets(new URL('../assets/env/town/
     areaNotice(DEBUG?`Town failed: ${String(e?.message??e).slice(0,160)}`:'Town failed to load – playing Bunker',DEBUG?15000:6000);}}
 let BUNKER=null;
 if(AREA_SEL==='bunker'){try{BUNKER=await loadBunkerAssets(new URL('../assets/env/bunker/',import.meta.url));}catch(e){console.warn('[bunker] kit failed, procedural fallback',e);BUNKER=null;}}
-if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.51',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
+if(AREA_SEL==='archipelago'){try{PINE=(await loadKit(new URL('../assets/env/town/',import.meta.url),[{key:'pine_tree',url:'pine_tree.glb?v=2.28.52',dims:[1.4,3,1.4]}],{report:{failed:[],retried:0,ms:0}})).pine_tree;if(PINE?.[0]?.standIn)PINE=null;}catch(e){PINE=null;}}
 setLevelMode(new URLSearchParams(location.search).get('levels'));
 setArea(AREA_SEL);document.documentElement.dataset.area=AREA_SEL;setHard(new URLSearchParams(location.search).get('hard')==='1');if(isHard())document.documentElement.dataset.hard='1';
 if(AREA_SEL==='town'){scene.background.set('#4b6176');scene.fog.color.set('#4b6176');scene.fog.near=32;scene.fog.far=64;
@@ -716,7 +716,7 @@ function pickupToast(item){
   pickupToasts=pushPickup(pickupToasts,item,gameClock(),extra);renderPickupToasts();
   // PRB-151: first-ever pickup of a material speaks through the shared BIT card (ui/bit-card.js),
   // not a plain notice -- drop the leading "BIT: " from hintText since the card already shows BIT.
-  const bitLine=materialPickupBitLine(item,launch);
+  const bitLine=bitAlong ? materialPickupBitLine(item,launch) : null;
   if(bitLine){skipNextCarryPulse=true;globalThis.PRBitCard?.show({id:'mat:'+item,text:bitLine.replace(/^BIT:\s*/,''),mood:'happy'});}
 }
 // v2.4: a shield-only hit (e.g. Scout Rig soaking 10 damage) can consume the spent armor and shrink
@@ -920,6 +920,7 @@ function drumIntroSeen(){
   try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.fuel_drum_intro;}catch{return false;}
 }
 function checkDrumIntro(){
+  if(!bitAlong)return;
   if(drumIntroShownThisSession)return;
   const line=fuelDrumBitLine(round,position,drumIntroSeen());
   if(!line)return;
@@ -929,6 +930,7 @@ function checkDrumIntro(){
 let padIntroShownThisSession=false;
 const padIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.power_pad_intro;}catch{return false;}})();
 function checkPadIntro(clock){
+  if(!bitAlong)return;
   if(padIntroShownThisSession||globalThis.PRBitCard?.isOpen())return;
   if(!round.level.hazards?.length)return;
   const line=powerPadBitLine(round,position,padIntroSeenAtLaunch,solids,clock);if(!line)return;
@@ -938,6 +940,7 @@ function checkPadIntro(clock){
 let shelfIntroShownThisSession=false;
 const shelfIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.shelf_intro;}catch{return false;}})();
 function checkShelfIntro(){
+  if(!bitAlong)return;
   if(shelfIntroShownThisSession||globalThis.PRBitCard?.isOpen()||!globalThis.PRBitCard)return;
   const line=shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids);if(!line)return;
   shelfIntroShownThisSession=true;(round.bitSeen??=[]).push('shelf_intro');
@@ -997,7 +1000,7 @@ function groundStatus(message){
 let groundPreviewV2=null;
 // Preview of asset PRs #184-#186: ?props=1 (archipelago only, visual-only, no colliders).
 const PROPS_PREVIEW=GROUND_V2_PARAMS.get('props')==='1';
-const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.51'):null;
+const propsModulePromise=PROPS_PREVIEW?import('./props-preview.js?v=2.28.52'):null;
 let propsPreview=null;
 // Default visual-only island identities and rare Coastal Life shoreline scenes.
 // ?polyfork=0 disables the external-asset layer; other areas never load the module.
@@ -1132,7 +1135,7 @@ function reset(requestedSeed){
   audioEvent('start',{area:AREA_SEL});
   round=createRound(seed,Date.now(),{...launch.stats,bagCapacity:launch.bag},launch);if(ddaEligible()){ddaState=checkDdaLapse(ddaState,Date.now(),localStorage);applyDifficulty(round.level,ddaState.knobs);round.lootMul=ddaLootMultiplier(ddaState);}if(!round.level.big&&launch.intro&&AREA_SEL==='bunker')applyIntroEncounter(round.level,launch.goal);if(!round.level.big&&!launch.intro&&AREA_SEL==='bunker')applyFirstPayoff(round.level,launch.payoff,launch.bag);initFtueRound(round,launch,localStorage);initEquip(round,{weapon:launch.weapon?.id,gear:launch.gear,armorShield:launch.armorShield});weapon=createWeapon(RULES.loadout.ammo,launch.weapon);round.weaponState=weapon;round.kit={...launch.kit};initTool(round,launch.tool);cancelToolDrag();clearToolFx();setupWeaponHUD();viewport.classList.remove('round-ended','damaged','low-hp');hitUntil=0;shakes.length=0;pendingShot=null;previousGameClock=null;$('#round-over').hidden=true;$('#time-left').textContent=`${Math.floor(round.durationMs/60000)}:${String(Math.round(round.durationMs/1000)%60).padStart(2,'0')}`;$('.timer').classList.remove('urgent','warn');loadLevel();
   if(launch.intro&&!launch.ftue)notice(RULES.intro.tip,6000);
-  if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);void audio.voice('hunters-inbound');}}
+  if(launch.ftue){ftueMark('raidStart');if(round.ftue.line){notice(round.ftue.line);if(bitAlong)void audio.voice('hunters-inbound');}}
   if(launch.payoff&&!launch.intro&&(launch.payoff!=='free_tool'||round.tool))notice(RULES.payoff[launch.payoff].notice,5000);
   if(typeof requestedSeed==='string')resetCount=round.level.choiceSide<0?1:0;
 }
@@ -1474,8 +1477,7 @@ function renderLabels(){
     l.forceBar=gate(l,'forceBar',mode!=='bar'&&overlapsAt(y,size,fixedRects),nowPlacement,250,400);
     // Hide collisions immediately; require sustained clearance before showing again.
     // HUD overlap never moves the bar; an objective overlap the lift couldn't clear hides it too.
-    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects));
-    if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;} // never over loot, BIT, room or objective labels // never over an objective label, not even one frame
+    const blocked=overlapsAt(y,size,hudRects)||(mode==='bar'&&overlapsAt(y,sizes.bar,objectiveRects))||overlapsAt(y,size,labelRects);
     if(gate(l,'hudHidden',blocked,nowPlacement,0,1300)){l.el.hidden=true;continue;}
     obstacles.push(box);
   }
@@ -1547,7 +1549,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   // mid-raid result (Continue raid / Extract) opens deterministically without fighting. Debug-only hook.
   pendingResultDemo(){if(round.level.big)return null;for(const n of round.level.nodes)activateNode(round,n.id,gameClock());const r=enterExit(round,{x:round.level.exit.x,z:round.level.exit.z},gameClock());if(r)finishRound('extraction');return r;},
   extractDemo(ids=['cable','power_cell','servo','ai_fragment','fuse','optical_sensor','data_core','scrap_alloy','gear_box']){const known=new Set(globalThis.DATA.items.map(i=>i.id));round.levelsCleared=Math.max(1,round.levelsCleared);for(const id of ids)if(known.has(id))round.bag[id]=(round.bag[id]||0)+1;if(extractRound(round,gameClock()))finishRound('extract');},
-  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.51');round.level=generateLevel(n,round.seed);loadLevel();},
+  async goLevel(n){const {generateLevel}=await import('./levels.js?v=2.28.52');round.level=generateLevel(n,round.seed);loadLevel();},
   // M40 QA: force a BIT expression state (or 'idle') for 844x390 screenshots without playing a full raid.
   bitExpress(id){return forceBitExpression(bitExpr,id,gameClock());},
   bitExpression(){const clock=gameClock();return {state:currentBitExpression(bitExpr,clock),...bitExpressionPresentation(bitExpr,clock),...bitExpressionFace(currentBitExpression(bitExpr,clock))};},

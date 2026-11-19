@@ -320,3 +320,12 @@ test('renderLabels: width is measured at its final pinned (ceiled) size and plac
   assert.equal(bar.height,5);
   assert(Math.abs((bar.left+bar.right)/2-e.sx)<=0.5,'bar re-centres exactly on the anchor');
 });
+
+// v2.28.52: loot/room label collisions need the same clearance hold as HUD collisions.
+test('an enemy label hidden by loot cannot flicker back on a one-frame clearance',()=>{
+ const e=enemyLabel('loot-clearance',0,0),loot=lootLabel('obstacle',0,0);
+ for(const l of [e,loot]){l.el.measured=true;l.el.dy=-12;}
+ run([loot,e],[],{now:0});assert.equal(e.el.hidden,true,'overlapping loot hides the enemy label immediately');
+ for(let now=16;now<1316;now+=16){run([e],[],{now});assert.equal(e.el.hidden,true,'brief clearance never flashes the label');}
+ run([e],[],{now:1316});assert.equal(e.el.hidden,false,'sustained clearance restores the pinned bar');
+});

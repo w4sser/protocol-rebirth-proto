@@ -186,7 +186,7 @@ async function newPage(w,h){
 }
 
 // ---- base (meta) ----
-const PROGRESSED="document.getElementById('splash')?.click();S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
+const PROGRESSED="document.getElementById('splash')?.click();S.ftuePath=false;S.introSeen=true;S.beat=PROG.beats.length-1;S.modules.rebirth_core=1;S.modules.fabricator=1;S.roomUnlocks.fabricator=true;S.bitCardsSeen={core_restored:true,first_death:true,fabricator_built:true,raid_briefing:true,quest_intro:true,vault_intro:true};S.baseState=D.baseStates[D.baseStates.length-1].id;session.screen='base';refresh();document.querySelectorAll('#overlay').forEach(o=>o.remove());";
 // v1.77 stash: stuffed stash (OVERFLOW + usage icons), sell/recycle popup, quest-warning confirm, quick-clean popup.
 const STUFF='S.modules.storage=0;S.stash={cable:7,fuse:10,scrap_alloy:20,servo:10,med_gel:10,bio_sample:10,power_cell:5,polymer_plate:10,circuit_board:10,optical_sensor:5,memory_module:5,purification_filter:5,hydraulic_component:5,transmitter:3,power_relay:5,tidal_coil:5,frost_glass:5,core_ash:3,prewar_relic:5};S.fir={polymer_plate:10,scrap_alloy:4};S.chains={bunker:{step:2,prog:0}};';
 // Chip regressions also run at taller/narrower landscape sizes. Portrait uses the rotate guard.
@@ -213,6 +213,18 @@ async function baseChipRun([w,h]){
       await page.evaluate(()=>{const card=document.querySelector('section.progress-goal');if(card){card.classList.add('open');placeBaseGoal(document.querySelector('.baseviewer'));}});
       for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' expanded',error);
       await page.evaluate(()=>{document.querySelector('section.progress-goal')?.classList.remove('open');placeBaseGoal(document.querySelector('.baseviewer'));});
+    }
+    if(!built){
+      // Affordable FTUE unlocks retain a labelled action, clear of room hitboxes.
+      await page.evaluate(()=>{
+        S.ftuePath=true;const cost=MODS.fabricator.levels[0].cost;
+        Object.assign(S.stash,cost.items);S.cur.scrap=cost.scrap;refresh();
+      });
+      await settle(100);
+      const label=await page.$eval('.progress-goal button',el=>el.textContent);
+      if(!label.includes('BUILD FABRICATOR'))fail(ctx,'affordable unlock is missing its labelled BUILD button');
+      for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' affordable BUILD',error);
+      await shot(page,`base-${w}x${h}-affordable-build`);
     }
     // Real room taps select a room; the chip cannot intercept them.
     const target=await page.$eval('[data-room="fabricator"]',e=>{const b=e.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};});
@@ -257,6 +269,14 @@ async function baseRun([w,h]){
       for(const [name,js] of steps){
         try{await page.evaluate(`closeAllPopups();A.planToggle(false);${js}`);}catch(e){fail(`${tag} ${name}`,`action threw: ${String(e).slice(0,100)}`);continue;}
         await settle(name==='worldmap-new'?1300:350);await report(page,`${tag} ${name}`);await shot(page,`base-${w}x${h}-${name}`);
+        if(name==='worldmap-new'){
+          const gap=await page.evaluate(()=>{
+            const a=document.querySelector('.wm-label[data-label="bunker"]').getBoundingClientRect();
+            const b=document.querySelector('.wm-label[data-label="archipelago"]').getBoundingClientRect();
+            return a.left<b.right&&a.right>b.left ? b.top-a.bottom : Infinity;
+          });
+          if(gap<4)fail(`${tag} worldmap-new`,'Bunker and new Archipelago labels need a visible gap');
+        }
         if(name==='settings'){
           const checkSettings=()=>{
             const errors=[],menu=document.getElementById('settings-menu'),phone=document.getElementById('phone');
@@ -796,7 +816,7 @@ async function metaResultExtractRun([w,h]){
   await page.evaluate(()=>{A.startFtueDirect=()=>{};document.getElementById('splash')?.click();});
   await page.waitForFunction(()=>!document.getElementById('splash'));
   await page.evaluate(()=>{
-    S.introSeen=true;S.raids=1;S.modules.rebirth_core=1;S.baseState='core_habitable';
+    S.ftuePath=false;S.introSeen=true;S.raids=1;S.modules.rebirth_core=1;S.baseState='core_habitable';
     S.beat=PROG.beats.findIndex(b=>b.id==='raid_1');S.tracked={module:'fabricator',level:1};
     S.stash.scrap_alloy=Math.max(S.stash.scrap_alloy||0,1);
     A.go('prep');A.deploy();A.raidStep();
@@ -848,8 +868,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.51');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.51');
+    const {createRound}=await import('./round.js?v=2.28.52');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.52');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -973,6 +993,12 @@ try{
 if(group('base')&&process.env.DEBUG_UNLOCKS_SMOKE!=='0'){
   const smoke=spawnSync(process.execPath,[join(root,'scripts/debug-unlocks-smoke.mjs')],{cwd:root,stdio:'inherit'});
   if(smoke.status!==0)failures.push(`debug-unlocks smoke failed (exit ${smoke.status}) -- run node scripts/debug-unlocks-smoke.mjs`);
+}
+// FTUE one-path browser walk (raid1 -> wake BIT -> Core -> lit base -> raid2 -> Fabricator -> Vault) also rides on
+// the required layout/base job for the same reason (no workflow-scope token).
+if(group('base')&&process.env.FTUE_ONE_PATH_SMOKE!=='0'){
+  const walk=spawnSync(process.execPath,[join(root,'scripts/ftue-one-path-smoke.mjs')],{cwd:root,stdio:'inherit'});
+  if(walk.status!==0)failures.push(`ftue one-path browser walk failed (exit ${walk.status}) -- run npm run test:ftue-one-path-browser`);
 }
 // one line per problem, listing the viewports it happens at
 const grouped=new Map();

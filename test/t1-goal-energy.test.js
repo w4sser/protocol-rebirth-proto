@@ -9,6 +9,7 @@ function boot(save, t0){
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, session:()=>session, trackedQuest, trackedGoalHtml, loopPhase, powerValue, powerTier, roomPowered, tickPower, drainPowerRaid, gainPower, doReinforce, canReinforce, maintainDef, maintainReady, completeMaintain, BP, powerState };");
+  w.__T.S().ftuePath = false; // Existing profile, with quest introduction completed.
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, doc:w.document, set:t => { now = t; }, get now(){ return now; } };
 }
 const BP = (() => { const d = new JSDOM("", { runScripts:"outside-only" }).window; d.eval(fs.readFileSync(path + "/data/retention.js", "utf8")); return d.DATA.bunkerPower; })();

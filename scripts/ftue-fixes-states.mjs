@@ -1,6 +1,6 @@
 // Shared deterministic save seeds for the screenshot harness and browser layout regression.
 export function chipSave(st,beats,built){
-  st.introSeen=true;
+  st.introSeen=true;st.ftuePath=false; // Existing quest-introduced profile.
   st.beat=beats.findIndex(b=>b.id==='raid_1')+1;
   st.raids=1;st.modules.rebirth_core=1;st.modules.fabricator=built?1:0;
   st.baseState='core_habitable';st.roomUnlocks={fabricator:built};

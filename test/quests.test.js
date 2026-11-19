@@ -9,6 +9,7 @@ function boot(save, t0, pending){
   for(const s of DATA_FILES) w.eval(fs.readFileSync(path + "/" + s, "utf8"));
   w.PR_NAVIGATE = () => {};
   w.eval(fs.readFileSync(path + "/app.js", "utf8") + "\n;window.__T={ S:()=>S, questState, questReach, questSolvable, questCandidates, questProgress, rollMystery, questsOpen, ftueOver };");
+  w.__T.S().ftuePath = false; // Ordinary quest behavior for already introduced profiles.
   return { w, A:w.A, S:() => w.__T.S(), T:w.__T, doc:w.document, set:t => { now = t; } };
 }
 const DAY = 86400000, T0 = Date.UTC(2026, 9, 15, 8);
