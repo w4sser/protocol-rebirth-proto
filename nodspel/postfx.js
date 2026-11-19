@@ -25,7 +25,10 @@ export function createBloomMask(scene){
       transparent:source.transparent,alphaTest:source.alphaTest,depthTest:source.depthTest,depthWrite:source.depthWrite,
       forceSinglePass:true});pair[key]=m;}
     m.opacity=source.opacity;m.visible=source.visible;
-    m.map=emission&&!unlit?source.emissiveMap:source.map;m.alphaMap=source.alphaMap;
+    // Opaque black occluders do not need their colour atlas sampled. Keep cutout silhouettes.
+    if(emission)m.map=unlit?source.map:source.emissiveMap;
+    else m.map=source.alphaTest>0||source.transparent?source.map:null;
+    m.alphaMap=source.alphaMap;
     if(emission)m.color.copy(unlit?source.color:source.emissive).multiplyScalar(unlit?1:source.emissiveIntensity);
     return m;
   }

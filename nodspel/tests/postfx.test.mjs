@@ -130,3 +130,12 @@ test('bloom masks retire materials when a level leaves the scene',()=>{
   scene.remove(wall);mask.render(()=>{});assert.equal(retired,1,'old level mask freed without a quality switch');
   mask.dispose();assert.equal(retired,1,'retired material is not freed twice');
 });
+
+test('black opaque occluders skip colour textures while cutouts keep their silhouettes',()=>{
+  const scene=new THREE.Scene(),atlas=new THREE.Texture(),geometry=new THREE.BoxGeometry();
+  const solid=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({map:atlas}));
+  const cutout=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({map:atlas,alphaTest:.4,side:THREE.DoubleSide}));
+  scene.add(solid,cutout);const mask=createBloomMask(scene);
+  mask.render(()=>{assert.equal(solid.material.map,null);assert.equal(cutout.material.map,atlas);assert.equal(cutout.material.alphaTest,.4);assert.equal(cutout.material.side,THREE.DoubleSide);});
+  mask.dispose();assert.equal(solid.material.map,atlas,'base material remains textured');
+});
