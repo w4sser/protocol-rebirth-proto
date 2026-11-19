@@ -22,21 +22,47 @@ const REQUIRED_CLIPS=['hero_pose','idle','run','aim','shoot','hit','dash','death
 // Recombine in memory before GLTFLoader parses it; the browser still renders
 // the ORIGINAL full-quality 68K-triangle model and all its animations.
 const MENU_PARTS=Object.freeze([0,1,2]);
-async function loadRiggedMenu(loader,url){
-  const pieces=await Promise.all(MENU_PARTS.map(async index=>{
+let menuBytesPromise=null, warmMenuPromise=null;
+// Cache validated raw bytes: changing loadout reuses them without new requests.
+// Preparse just one menu scene in the bunker so the first Deploy can render at
+// once. The ready scene is consumed once, since sharing live skinned meshes
+// between two simultaneous canvases would corrupt the bone hierarchy.
+function menuBytes(url){
+  if(!menuBytesPromise)menuBytesPromise=Promise.all(MENU_PARTS.map(async index=>{
     const response=await fetch(url+'.part'+index);
     if(!response.ok)throw new Error('OP01 Menu part '+index+' failed: HTTP '+response.status);
     return new Uint8Array(await response.arrayBuffer());
-  }));
-  const total=pieces.reduce((n,p)=>n+p.byteLength,0);
-  if(total!==5821928)throw new Error('OP01 Menu GLB size mismatch: '+total);
-  const bytes=new Uint8Array(total);
-  let offset=0;
-  for(const part of pieces){bytes.set(part,offset);offset+=part.byteLength;}
-  const header=new DataView(bytes.buffer,0,12);
-  if(header.getUint32(0,true)!==0x46546c67 || header.getUint32(4,true)!==2 ||
-      header.getUint32(8,true)!==total)
-    throw new Error('OP01 Menu parts do not reconstruct a valid glTF 2.0 GLB');
+  })).then(pieces=>{
+    const total=pieces.reduce((n,p)=>n+p.byteLength,0);
+    if(total!==5821928)throw new Error('OP01 Menu GLB size mismatch: '+total);
+    const bytes=new Uint8Array(total);
+    let offset=0;
+    for(const part of pieces){bytes.set(part,offset);offset+=part.byteLength;}
+    const header=new DataView(bytes.buffer,0,12);
+    if(header.getUint32(0,true)!==0x46546c67 || header.getUint32(4,true)!==2 ||
+        header.getUint32(8,true)!==total)
+      throw new Error('OP01 Menu parts do not reconstruct a valid glTF 2.0 GLB');
+    return bytes;
+  }).catch(err=>{menuBytesPromise=null;throw err;});
+  return menuBytesPromise;
+}
+export function preloadOP01Menu(){
+  if(!warmMenuPromise){
+    const url=new URL(OP01_PATHS.menu,import.meta.url).href;
+    const loader=new GLTFLoader();
+    warmMenuPromise=menuBytes(url)
+      .then(bytes=>loader.parseAsync(bytes.buffer,new URL('.',url).href))
+      .catch(err=>{warmMenuPromise=null;throw err;});
+  }
+  return warmMenuPromise;
+}
+async function loadRiggedMenu(loader,url){
+  // Take ownership of the warmed glTF synchronously. In-flight navigations
+  // cannot accidentally attach the same SkinnedMesh to different scenes.
+  const warmed=warmMenuPromise;
+  warmMenuPromise=null;
+  if(warmed)return warmed;
+  const bytes=await menuBytes(url);
   return loader.parseAsync(bytes.buffer,new URL('.',url).href);
 }
 
