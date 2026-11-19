@@ -1,3 +1,5 @@
+import {shootShelf,stepShelves} from './round.js?v=2.28.49-ftue-opening-v1';
+import {shelfBitLine} from './shelf-intro.js?v=2.28.49';
 // @hot frameInner renderFrame renderLabels renderEncounterLabels renderWeaponHUD renderStakesHUD renderEnemyFeedback renderKillMarker renderToolHUD renderToolFx shakeOffset computeBitThreat bitNearExtract
 import {initFtueRound} from './ftue.js?v=2.28.49-ftue-opening-v1';
 import {artilleryFlight} from './artillery-flight.mjs?v=2.28.49-bridge1';
@@ -662,7 +664,7 @@ function renderKillMarker(clock){
   setOpacity(killMarker.el,Math.max(0,1-age/RULES.feedback.killMarkerMs));
 }
 function setCollisions(){
-  solids=[...round.level.walls,...round.level.boxes,...houseSolids(round.level),...doorSolids(round.level)];
+  solids=[...round.level.walls,...round.level.boxes,...houseSolids(round.level),...doorSolids(round.level),...(round.level.shelves??[]).map(s=>s.collider)];
   if(!exitIsOpen(round))solids.push({x:round.level.exit.x,z:round.level.exit.z,w:2,d:.22});
   playerSolids=[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4})),...(round.level.barrels??[]).filter(b=>!b.active).map(b=>({x:b.x,z:b.z,w:b.r*1.25,d:b.r*1.25,explosiveBarrel:true}))];
 }
@@ -932,6 +934,15 @@ function checkPadIntro(clock){
   const line=powerPadBitLine(round,position,padIntroSeenAtLaunch,solids,clock);if(!line)return;
   padIntroShownThisSession=true;(round.bitSeen??=[]).push('power_pad_intro');
   globalThis.PRBitCard?.show({id:'power_pad_intro',text:line,mood:'skeptical'});
+}
+const EMPTY_SHELF_VISUALS=Object.freeze([]);
+let shelfIntroShownThisSession=false;
+const shelfIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.shelf_intro;}catch{return false;}})();
+function checkShelfIntro(){
+  if(shelfIntroShownThisSession||globalThis.PRBitCard?.isOpen()||!globalThis.PRBitCard)return;
+  const line=shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids);if(!line)return;
+  shelfIntroShownThisSession=true;(round.bitSeen??=[]).push('shelf_intro');
+  globalThis.PRBitCard.show({id:'shelf_intro',text:line,mood:'skeptical'});
 }
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
@@ -1572,6 +1583,24 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     }
     return {pad:p.id,junction:j.id,mode,enemyHealth:enemy?.health,state:hazardState(p,now+2)};
   },
+  shelfDemo(mode='room'){
+    if(round.level.number===1){for(const n of round.level.nodes)n.active=true;enterExit(round,round.level.exit,gameClock());loadLevel();}
+    const shelf=round.level.shelves?.[0];if(!shelf)return null;
+    teleportPlayer(shelf.vantage.x,shelf.vantage.z);
+    for(const e of round.level.enemies){e.aggro=false;e.sleeping=true;}
+    const now=gameClock();let enemy=null;
+    if(mode==='telegraph'||mode==='fallen'||mode==='cover'){
+      if(mode==='fallen'){
+        enemy=round.level.enemies.find(e=>e.id===shelf.guardId);enemy.x=shelf.footprint.x;enemy.z=shelf.footprint.z;enemy.health=20;enemy.active=true;enemy.sleeping=false;enemy.speed=0;
+      }
+      for(let i=0;i<RULES.shelf.hitsToTip;i++)shootShelf(round,shelf.id,now);
+      if(mode!=='telegraph'){
+        shelf.tipAt=now-RULES.shelf.telegraphMs-RULES.shelf.fallMs;
+        stepShelves(round,position,now);
+      }
+    }
+    return {id:shelf.id,mode,enemyHealth:enemy?.health,stunnedUntil:enemy?.stunnedUntil,footprint:shelf.footprint};
+  },
   playerKnockDemo(){
     const drum=(round.level.barrels??[]).find(b=>!b.active);if(!drum)return null;
     teleportPlayer(drum.x+1.1,drum.z);
@@ -1851,7 +1880,7 @@ function frameInner(now){
     if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
-    checkDrumIntro();checkPadIntro(clock);
+    checkDrumIntro();checkPadIntro(clock);checkShelfIntro();
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();
@@ -1862,6 +1891,9 @@ function frameInner(now){
     round.playerMoving=playerMoving;
     const beforeCombat=copyXZ(hotPosCombat,position);
     stepCombat(round,combat,position,clock,dt,playerSolids,dash);
+    for(const shelf of round.level.shelves??EMPTY_SHELF_VISUALS){
+      if(shelf.active&&!shelf.presented){shelf.presented=true;world.burst(shelf.footprint.x,shelf.footprint.z,PALETTE.box,false,.7);void audio.play('impact-wall');}
+    }
     playerMoving=playerMoving||playerDisplaced(beforeCombat,position);
     if(stepTools(round,clock).length)updateHUD();
     stepHazards(round,position,clock,dt,dash);world.animateHazards?.(clock);

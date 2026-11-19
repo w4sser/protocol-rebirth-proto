@@ -146,7 +146,7 @@ function hugWall(kind,w,x,z){const along=w.w>=w.d,[,,d]=BUNKER_DIMS[kind];
   if(along){const s=Math.sign(z-w.z)||1;return {x,z:w.z+s*(w.d/2+d/2+.04),ry:s>0?Math.PI:0};}
   const s=Math.sign(x-w.x)||1;return {x:w.x+s*(w.w/2+d/2+.04),z,ry:s>0?-Math.PI/2:Math.PI/2};}
 export function planKitProps(level,spots,rng){
-  const solids=[...level.walls,...level.boxes],placed=[];
+  const solids=[...level.walls,...level.boxes,...(level.shelves??[]).map(s=>s.footprint)],placed=[];
   const keep=[...level.nodes.map(n=>[n.x,n.z,1.9]),...level.lootBoxes.map(l=>[l.x,l.z,1.1]),[level.exit.x,level.exit.z,2],[level.start.x,level.start.z,1.6],...(level.hazards??[]).map(h=>[h.x,h.z,Math.max(h.w,h.d)/2+.3])];
   const near=(f,[x,z,r])=>Math.hypot(Math.max(0,Math.abs(x-f.x)-f.w/2),Math.max(0,Math.abs(z-f.z)-f.d/2))<r;
   const corridors=level.floors.filter(f=>Math.min(f.w,f.d)<4.5);

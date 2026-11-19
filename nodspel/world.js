@@ -135,6 +135,21 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     if(v.beam){v.beam.material.color.set(KEY_AMBER);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
     if(fx)burst(v.loot.x,v.loot.z,c);}
   // Grounded fuel drum: its exposed bands suggest a shot without text.
+  // Stateful existing kit shelf. Amber ties distinguish it from inert dressing.
+  // All geometry/materials are allocated once at level load; animation reuses them.
+  const shelves=(level.shelves??[]).map(shelf=>{
+    const base=new THREE.Group(),pivot=new THREE.Group();base.position.set(shelf.x,0,shelf.z);base.rotation.y=shelf.ry;base.add(pivot);group.add(base);
+    if(K)pivot.add(kitGroup(K.shelf_supply_full));
+    else{
+      for(const x of [-.85,.85])box(x,1,0,.1,2,.5,PALETTE.box,pivot);
+      for(const y of [.12,.7,1.3,1.9])box(0,y,0,1.8,.1,.5,PALETTE.box,pivot);
+      for(const x of [-.5,.3])box(x,.95,0,.5,.4,.4,PALETTE.wall,pivot);
+    }
+    const strap=box(0,1,.28,1.7,.09,.035,PALETTE.warm,pivot);strap.material=glow(PALETTE.warm,.8);
+    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(shelf.footprint.w,shelf.footprint.d),new THREE.MeshBasicMaterial({color:ENEMY_COLORS.damage,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+    shadow.rotation.x=-Math.PI/2;shadow.position.set(shelf.footprint.x,.035,shelf.footprint.z);shadow.visible=false;group.add(shadow);
+    return {shelf,base,pivot,strap,shadow};
+  });
   const barrels=(level.barrels??[]).map(barrel=>{
     const g=new THREE.Group();g.position.set(barrel.x,0,barrel.z);group.add(g);
     const metal=new THREE.MeshStandardMaterial({color:'#5b4e44',metalness:.58,roughness:.48});
@@ -297,6 +312,14 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       }
     }
     for(const p of gateProgress)p.mesh.material.opacity=p.node.active?1:.16;
+    for(const v of shelves){
+      const s=v.shelf,ms=round.gameNow??0,warning=s.tipAt!=null&&!s.active;
+      const fall=s.active?1:warning?Math.max(0,Math.min(1,(ms-s.tipAt-RULES.shelf.telegraphMs)/RULES.shelf.fallMs)):0;
+      v.pivot.rotation.x=fall*Math.PI/2+(s.shotAt!=null&&ms-s.shotAt<160&&!warning?Math.sin((ms-s.shotAt)*.06)*.025:0);
+      v.pivot.position.y=fall*RULES.shelf.depth/2;
+      v.shadow.visible=warning;v.shadow.material.opacity=.32+.18*Math.sin(time*20);
+      v.strap.material.emissiveIntensity=warning?1.4:.8;
+    }
     for(const v of barrels){v.group.visible=!v.barrel.active;if(!v.group.visible)continue;
       // Chain telegraph (RULES.drum.chainDelayMs): the same bands flash fast red/bright instead of a new mesh.
       const cooking=v.barrel.cookingAt!=null;
@@ -430,6 +453,6 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
   const lightRig=new THREE.Group();lightRig.name='world-light-rig';
   {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,barrels,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,shelves,barrels,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
     extractionEffects,extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn,setVfxQuality,disposeVfx};
 }

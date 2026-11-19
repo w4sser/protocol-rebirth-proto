@@ -265,7 +265,7 @@ function migrateBitCardsSeen(st){
   // the intro just because this feature shipped after the player did.
   if(st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
   // Power pads did not exist in older raids: raid count cannot prove first sight.
-  // Preserve an explicit power_pad_intro flag; otherwise leave unseen for the live card.
+  // Preserve explicit power_pad_intro and shelf_intro flags; otherwise leave unseen for the live cards.
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).

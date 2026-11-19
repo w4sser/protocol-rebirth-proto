@@ -1,3 +1,4 @@
+// @hot stepShelves
 import {applyFtueLevel} from './ftue.js?v=2.28.49-ftue-opening-v1';
 import {rusherBackBonus,patrolGruntBackBonus} from './enemies.js?v=2.28.49';
 import {extractAvailable} from './big-level.js?v=2.28.49';
