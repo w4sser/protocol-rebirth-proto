@@ -12,6 +12,12 @@ import * as walk from 'acorn-walk';
 
 import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
+  {id:'fabricator-marker-once',pr:'v2.28.55 (fix/fabricator-single-marker)',why:'after the Core restore the base showed the Fabricator twice at left (NEXT plate + "Fabricator L1" goal label); the FTUE goal label must be skipped while the NEXT plate marks that room',
+   check(ctx){const src=ctx?.appSrc??read('app.js'),html=ctx?.html??read('index.html');const out=[];
+     if(!/function ftueGoalMarkedOnMap\(/.test(src))out.push('app.js: ftueGoalMarkedOnMap() missing');
+     if(!/markGoalOnMap\(trackedGoalHtml\(\)\s*\|\|\s*progressionGoalHtml\(\)/.test(src))out.push('app.js: SCREENS.base must pass the goal card through markGoalOnMap()');
+     if(!/\.baseviewer\.ftue>\.progress-goal\.on-map-marked\{display:none/.test(html))out.push('index.html: .on-map-marked goal label must be hidden in the FTUE base');
+     return out;}},
   {id:'base-bit-card-clears-rooms',pr:'v2.28.4x briefing placement',why:'BIT base cards obscured the Fabricator label and swallowed room hitboxes',
    check(c={}){const app=c.appSrc??read('app.js'),layout=c.layoutSrc??read('scripts/layout-check.mjs'),css=c.cardCssSrc??read('ui/bit-card.css');const out=[];
      if(!app.includes('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"'))out.push('base card events must tolerate DOM-free logic/geometry test environments');

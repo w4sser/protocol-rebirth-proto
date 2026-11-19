@@ -1,4 +1,4 @@
-import {ENEMIES,ENEMY_TUNING} from './enemies.js?v=2.28.54';
+import {ENEMIES,ENEMY_TUNING} from './enemies.js?v=2.28.55';
 
 // Dependency injection keeps failure/timeout/cloning tests independent of WebGL and fetch.
 export function createEnemyModelLoader({load,timeoutMs=ENEMY_TUNING.models.timeoutMs}={}){
