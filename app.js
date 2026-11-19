@@ -109,6 +109,8 @@ function freshState(){
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
+  // Power pads did not exist in older raids: raid count cannot prove first sight.
+  // Preserve an explicit power_pad_intro flag; otherwise leave unseen for the live card.
   return st;
 }
 function save(){ if(DEPLOY_PREVIEW || (typeof resetting !== "undefined" && resetting)) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }

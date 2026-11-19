@@ -105,6 +105,7 @@ policy. Each caller picks whatever persistence fits:
 | `vault_intro` (teaser) | `app.js` `maybeShowVaultIntro`, when Vault becomes the next goal | "Vault's next. Bring these parts; I'll bring my excellent supervision." | smile |
 | `vault_unlocked` (build payoff) | `app.js` `A.build`, first Vault build | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
 | `fuel_drum_intro` (v2.28.48) | `nodspel/game.mjs` `checkDrumIntro` (trigger: `nodspel/drum-intro.js` `fuelDrumBitLine`), first sight of any fuel drum -- including the FTUE drum -- in a calm beat (no aggro enemy); persisted via the raid result's `bitSeen` (`nodspel/raid-result.js`), ingested into `S.bitCardsSeen` by `app.js` `ingestRaidResult` | "Red bands mean a plan. I'd kick it myself, but I don't have legs." | skeptical |
+| `power_pad_intro` (v2.28.49) | `nodspel/game.mjs` `checkPadIntro` / `nodspel/pad-intro.js`, near a visible junction in a calm beat; once per profile via `round.bitSeen` -> RaidResult -> `S.bitCardsSeen`. Older raid counts cannot prove pad sight, so migration leaves this unseen. | "Water plus power. Nature's little I-told-you-so." | skeptical |
 
 ## Mini cutscenes
 
@@ -307,6 +308,12 @@ explain, following "Adding a new BIT card moment" above.
 | System | Moment |
 | --- | --- |
 | Fuel drums (shoot or chain-blast to detonate; outside the FTUE, they hurt the player too) | `fuel_drum_intro` card, first sight of any drum including the FTUE's |
+
+**Added in v2.28.49 (power pads, toy 2/3):**
+
+| System | Moment |
+| --- | --- |
+| Live pads hurt and briefly stun enemies. Shoot the amber junction: off to live; live to overload, then cooldown. | `power_pad_intro`, first visible junction in a calm beat, third Bunker raid onward. The pad and box share two room slots. |
 
 **Added in this PR (PRB-162):**
 

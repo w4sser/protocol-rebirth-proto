@@ -57,6 +57,7 @@ import {createBitDistract,bitDistractCooldownMs,tryActivateBitDistract,stepBitDi
 import {createHealthSegments,renderHealthSegments,displayLevel,renderRoundClock,questChip,roomProgress,bagTiles} from './hud.js?v=2.28.48';
 import {pushPickup,liveToasts,TOAST_MS} from './pickup-toast.js?v=2.28.48';
 import {sellValueText,neededForText,materialPickupBitLine} from './loot-value.js?v=2.28.48';
+import {powerPadBitLine} from './pad-intro.js?v=2.28.48';
 import {fuelDrumBitLine} from './drum-intro.js?v=2.28.48';
 import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.48';
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.48';
@@ -922,6 +923,14 @@ function checkDrumIntro(){
   drumIntroShownThisSession=true;(round.bitSeen??=[]).push('fuel_drum_intro');
   globalThis.PRBitCard?.show({id:'fuel_drum_intro',text:line,mood:'skeptical'});
 }
+let padIntroShownThisSession=false;
+function checkPadIntro(){
+  if(padIntroShownThisSession||globalThis.PRBitCard?.isOpen())return;
+  let seen=false;try{seen=!!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.power_pad_intro;}catch{}
+  const line=powerPadBitLine(round,position,seen,solids);if(!line)return;
+  padIntroShownThisSession=true;(round.bitSeen??=[]).push('power_pad_intro');
+  globalThis.PRBitCard?.show({id:'power_pad_intro',text:line,mood:'skeptical'});
+}
 let houseLabels=[];
 const CONTAINER_NAMES={wardrobe:'WARDROBE',loot_crate:'CRATE',medicine_cabinet:'MEDICINE'};
 function renderHouseLabels(){for(const {ref,door,label} of houseLabels){const p=ref.progress??0,done=door?ref.open:ref.searched,busy=!done&&p>0;
@@ -1052,7 +1061,7 @@ function loadLevelInner(){
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
-  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3(h.x,.35,h.z),'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,.9,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label','exit','EXIT');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label','room',room.name.toUpperCase());
   for(const v of world.enemies)labelEnemyVisual(v);
@@ -1824,7 +1833,7 @@ function frameInner(now){
     if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
-    checkDrumIntro();
+    checkDrumIntro();checkPadIntro();
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();
@@ -1839,7 +1848,9 @@ function frameInner(now){
     if(stepTools(round,clock).length)updateHUD();
     stepHazards(round,position,clock,dt,dash);world.animateHazards?.(clock);
     for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
-      label.el.setAttribute('aria-label',t.state==='on'?'Shock pad active':t.state==='warn'?'Shock pad charging':'Shock pad');}
+      const paired=!!hazard.junctionId;
+      const text=t.state==='dead'?'PAD COOLING':t.state==='overload'?'PAD OVERLOAD':t.state==='on'?(paired?'SHOOT BOX: OVERLOAD':'Shock pad active'):(paired?'SHOOT BOX: POWER ON':t.state==='warn'?'Shock pad charging':'Shock pad');
+      label.el.setAttribute('aria-label',text);if(paired)label.caption.textContent=text;}
     // if(stepScavenging(weapon,round,position,clock,[...solids,...round.level.nodes.map(n=>({x:n.x,z:n.z,w:1.4,d:1.4}))],{moving:magnitude>.12,hit:round.health<combatBefore.health}))updateHUD();
     setCollisions();
     if(combatSnapshotChanged(combatBefore,round)||round.ftueHitSerial!==ftueHitBefore){

@@ -633,7 +633,7 @@ export function placePowerPads(level,completedRaids=0,ftue=false){
         for(let k=0;k<=12;k++){const f=k/12,p={x:vantage.x+(box.x-vantage.x)*f,z:vantage.z+(box.z-vantage.z)*f};
           if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.15&&Math.abs(p.z-o.z)<o.d/2+.15)){blocked=true;break;}}
         if(blocked)continue;
-        box.vantage=vantage;box.patrolId=enemy.id;
+        box.vantage=vantage;box.patrolId=enemy.id;pad.junctionId=box.id;
         level.barrels=(level.barrels??[]).filter(d=>!inside(d,0));
         level.hazards.push(pad);level.junctions.push(box);return true;
       }
