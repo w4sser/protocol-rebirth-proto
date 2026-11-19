@@ -389,3 +389,5 @@ assert.equal(by('enemy-label-clearance-hold').check().length,0);
 for(const [id,ctx] of [['base-bit-card-clears-rooms',{appSrc:'',layoutSrc:''}],['base-briefing-single-cost',{appSrc:'',bitSrc:''}],['core-restore-lights-base',{appSrc:'function ruinLevel(id,fabricator){if(!fabricator)return 2;return 1;}'}]]){
  const rule=by(id);assert.equal(rule.check().length,0,id+' passes');assert.ok(rule.check(ctx).length,id+' rejects regression');
 }
+
+assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide base cards regress narrow Vault placement');

@@ -252,12 +252,16 @@ async function baseBriefingRun([w,h]){
     await page.evaluate(id=>{
       PRBitCard.dismiss();document.getElementById('splash')?.remove();closeAllPopups();A.startFtueDirect=()=>{};
       S.introSeen=true;S.ftuePath=true;S.raids=1;S.modules.rebirth_core=1;S.modules.fabricator=id==='storage'?1:0;S.modules.storage=0;
-      S.baseState='core_habitable';S.bitCardsSeen={core_restored:true,raid_briefing:id==='storage',fabricator_built:true,vault_intro:false};
-      S.stash={};S.cur.scrap=0;session.screen='base';refresh();
+      S.baseState='core_habitable';S.beat=PROG.beats.findIndex(b=>b.id==='raid_1')+1;S.bitCardsSeen={core_restored:true,raid_briefing:id==='storage',fabricator_built:true,vault_intro:false};
+      S.stash={};S.cur.scrap=0;A.go('base');
     },id);
     await page.evaluate(()=>document.fonts.ready);await settle(350);
     for(const error of await page.evaluate(baseBitCardRoomOverlaps))fail(ctx,error);
-    await shot(page,`base-briefing-${id}-${w}x${h}`);await page.close();
+    await shot(page,`base-briefing-${id}-${w}x${h}`);
+    await page.evaluate(id=>{const cost=MODS[id].levels[0].cost;Object.assign(S.stash,cost.items);S.cur.scrap=cost.scrap;refresh();},id);
+    await settle(100);
+    for(const error of await page.evaluate(baseBitCardRoomOverlaps))fail(ctx+' affordable',error);
+    await shot(page,`base-briefing-${id}-affordable-${w}x${h}`);await page.close();
   }
 }
 

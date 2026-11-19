@@ -31,7 +31,15 @@
 .bit-card.mood-calm .bit-card-img{--tilt:0deg;animation-duration:3.4s;}
 .bit-card.mood-worried .bit-card-img,.bit-card.mood-tired .bit-card-img{--tilt:-3deg;animation-duration:4.2s;}
 @keyframes bitCardHover{0%,100%{transform:rotate(var(--tilt)) translateY(0)}50%{transform:rotate(var(--tilt)) translateY(-4px)}}
-@media(max-width:700px){.bit-card-img{width:52px;height:52px}}
+@media(max-width:700px){
+  .bit-card-img{width:52px;height:52px}
+  /* Leave room for the powered hub's hitboxes and affordable BUILD chip on short phones. */
+  .bit-card:not(.ctx-raid){max-width:240px;gap:6px;}
+  .bit-card:not(.ctx-raid) .bit-card-img{width:32px;height:32px;}
+  .bit-card:not(.ctx-raid) .bit-card-info-icon{display:none;}
+  .bit-card:not(.ctx-raid) .bit-card-bubble{padding:5px 8px;}
+  .bit-card:not(.ctx-raid) .bit-card-info-row{padding:3px 6px;}
+}
 @media(max-height:500px){.bit-card-bubble{font-size:13px}}
 @media(prefers-reduced-motion:reduce){
   .bit-card-img{animation:none!important;transform:rotate(var(--tilt)) translateY(0)!important;}

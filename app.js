@@ -2769,30 +2769,46 @@ function placeBaseBitCard(){
   const v = viewer.getBoundingClientRect(), c = card.getBoundingClientRect();
   const css = getComputedStyle(document.documentElement);
   const inset = name => Math.max(0, ...(css.getPropertyValue(name).match(/[\d.]+(?=px)/g) || []).map(Number));
-  const gap = 6, left = Math.max(v.left, inset("--sl")) + gap;
+  const gap = 4, left = Math.max(v.left, inset("--sl")) + gap;
   const right = Math.min(v.right, innerWidth - inset("--sr")) - gap;
   const topbar = document.getElementById("topbar");
   const top = Math.max(v.top, topbar?.getBoundingClientRect().bottom || 0) + gap;
   const bottom = Math.min(v.bottom, innerHeight - inset("--sb")) - gap;
-  const obstacles = [...viewer.querySelectorAll(".mapspot,.mapspot .tag,.gen-chip,.basemenu-btn,.progress-goal,.goalpill"), document.getElementById("tabs")]
+  const goal = viewer.querySelector(".progress-goal,.goalpill");
+  const obstacles = [...viewer.querySelectorAll(".mapspot,.mapspot .tag,.gen-chip,.basemenu-btn"), document.getElementById("tabs")]
     .filter(e => e && e.offsetHeight).map(e => e.getBoundingClientRect());
-  const xs = [left, right - c.width], ys = [top, bottom - c.height];
-  for(const r of obstacles){xs.push(r.right + gap, r.left - gap - c.width);ys.push(r.bottom + gap, r.top - gap - c.height);}
-  const candidates = [];
-  for(const x of xs) for(const y of ys){
-    if(x < left || x + c.width > right || y < top || y + c.height > bottom) continue;
-    if(obstacles.some(r => x < r.right + gap && x + c.width > r.left - gap && y < r.bottom + gap && y + c.height > r.top - gap)) continue;
-    candidates.push({x,y,score:Math.hypot(x-c.left,y-c.top)});
+  function freeSpots(width, height, blocked, preferred){
+    const xs = [left, right - width], ys = [top, bottom - height];
+    for(const r of blocked){xs.push(r.right + gap, r.left - gap - width);ys.push(r.bottom + gap, r.top - gap - height);}
+    const candidates = [];
+    for(const x of xs) for(const y of ys){
+      if(x < left || x + width > right || y < top || y + height > bottom) continue;
+      if(blocked.some(r => x < r.right + gap && x + width > r.left - gap && y < r.bottom + gap && y + height > r.top - gap)) continue;
+      candidates.push({x,y,score:Math.hypot(x-preferred.left,y-preferred.top)});
+    }
+    return candidates.sort((a,b) => a.score-b.score);
   }
-  candidates.sort((a,b) => a.score-b.score);
-  const spot = candidates[0];
+  const g = goal?.offsetHeight ? goal.getBoundingClientRect() : null;
+  let spot = freeSpots(c.width,c.height,g ? [...obstacles,g] : obstacles,c)[0];
+  // A ready BUILD chip can occupy the only card-sized space on a short phone. Search
+  // both rectangles together before falling back, preserving every room's hit area.
+  if(!spot && g){
+    for(const candidate of freeSpots(c.width,c.height,obstacles,c)){
+      const occupied = {left:candidate.x,top:candidate.y,right:candidate.x+c.width,bottom:candidate.y+c.height};
+      const goalSpot = freeSpots(g.width,g.height,[...obstacles,occupied],g)[0];
+      if(!goalSpot) continue;
+      goal.style.setProperty("left", (goalSpot.x-v.left) + "px", "important");
+      goal.style.top = (goalSpot.y-v.top) + "px"; goal.style.bottom = "auto";
+      spot = candidate; break;
+    }
+  }
   if(spot){
     card.style.setProperty("left", spot.x + "px", "important");
     card.style.top = spot.y + "px";
     card.style.bottom = "auto";
   }
 }
-window.addEventListener?.("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
+if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
 
 // v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
 // right of it when that is out of view or would cover another plate. Uses the independent `translate` property,
