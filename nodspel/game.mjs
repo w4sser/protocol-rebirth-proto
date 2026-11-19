@@ -1582,6 +1582,7 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     }
     return {pad:p.id,junction:j.id,mode,enemyHealth:enemy?.health,state:hazardState(p,now+2)};
   },
+  shelfCaptureState(){return {hudRects,enemyLabels:labels.filter(l=>l.range==='enemy').map(l=>({point:l.point,defeated:l.defeated,sx:l.sx,sy:l.sy,enemy:l.enemy.id,placement:l.placement,forceBar:l.forceBar,size:l.size})),hud:[...document.querySelectorAll(HUD_SELECTORS)].filter(e=>!e.hidden&&e.getClientRects().length).map(e=>({id:e.id,cls:e.className,rect:e.getBoundingClientRect().toJSON()}))};},
   shelfDemo(mode='room'){
     if(round.level.number===1){for(const n of round.level.nodes)n.active=true;enterExit(round,round.level.exit,gameClock());loadLevel();}
     const shelf=round.level.shelves?.[0];if(!shelf)return null;

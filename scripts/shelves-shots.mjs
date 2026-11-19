@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {resolve,extname,sep} from 'node:path';
 const require=createRequire('/workspace/pptr/package.json');
 const puppeteer=require('puppeteer');
-const out='/workspace/prp-shelves-v22850-shots';
+const out=process.env.SHELVES_SHOTS_OUT||'/workspace/prp-shelves-v22850-shots';
 await mkdir(out,{recursive:true});
 const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.m4a':'audio/mp4','.ogg':'audio/ogg','.woff2':'font/woff2'};
 const insets={left:47,right:47,top:0,bottom:21};
@@ -15,7 +15,7 @@ const SEED='shelf-1'; // Same seeded L2 room edge lane in before/after captures.
 const {generateLevel,placeSupplyShelves}=await import('../nodspel/levels.js');
 const comparison=generateLevel(2,SEED);placeSupplyShelves(comparison,3);
 const VANTAGE=comparison.shelves[0].vantage;
-const SIZES=[[844,390],[667,375],[932,430]];
+const SIZES=process.env.SHELVES_SHOT_SIZES?JSON.parse(process.env.SHELVES_SHOT_SIZES):[[844,390],[667,375],[932,430]];
 
 function serve(root){
   return http.createServer(async(req,res)=>{
@@ -36,6 +36,7 @@ async function withServer(root,fn){
   finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 }
 async function openRaid(page,base,seed=SEED,{bitCardSeen=false}={}){
+  await page.evaluateOnNewDocument(()=>localStorage.setItem('nodspel.encounter-hints.v1',JSON.stringify({guard:1,patrol:1,turret:1,shield_turret:1,swarm:1,shield:1,door:1,grenadier:1})));
   if(bitCardSeen){
     // Pre-mark the BIT first-sight card seen so these demo shots show the shelf itself,
     // uncluttered -- the dedicated bit-first-sight-card shot below covers the card itself.
@@ -51,6 +52,7 @@ async function openRaid(page,base,seed=SEED,{bitCardSeen=false}={}){
   await new Promise(r=>setTimeout(r,250));
 }
 async function shot(name,width,height,root,fn){
+  if(process.env.SHELVES_SHOT_FILTER&&!name.includes(process.env.SHELVES_SHOT_FILTER))return {name,width,height,skipped:true};
   const browser=await puppeteer.launch(launchOpts);
   try{
     const page=await browser.newPage();const errors=[];
@@ -88,15 +90,17 @@ for(const [w,h] of SIZES){
     await openRaid(page,base,SEED,{bitCardSeen:true});
     await page.evaluate(()=>window.__NR.shelfDemo());
     await new Promise(r=>setTimeout(r,180));
-    const info=await page.evaluate(mode=>{
+    const info=await page.evaluate(async mode=>{
       const result=window.__NR.shelfDemo(mode),r=window.__NR.round();
+      if(mode==='fallen'){const v=r.level.shelves[0].vantage;window.__NR.teleport(v.x+2,v.z-1);}
       // Freeze the wall clock after a real simulation state for a software-rendered screenshot: no
       // changed timings, geometry, health or camera in the captured state.
+      if(mode==='fallen')await new Promise(r=>setTimeout(r,200));
       const wall=Date.now();Date.now=()=>wall;
       return result;
     },mode);
     await new Promise(r=>setTimeout(r,100));
-    return info;
+    return {...info,...await page.evaluate(()=>({capture:window.__NR.shelfCaptureState?.(),labels:[...document.querySelectorAll('.enemy-label')].map(e=>({text:e.textContent,hidden:e.hidden,mode:e.dataset.mode,display:getComputedStyle(e).display,rect:e.getBoundingClientRect().toJSON()})),pauseAt:window.__NR.round().pauseAt,hitstopUntil:window.__NR.round().hitstopUntil,gameNow:window.__NR.round().gameNow}))};
   }));
 }
 await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));

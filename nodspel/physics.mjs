@@ -13,9 +13,8 @@ export function movePlayer(position, delta, boxes, floors, radius) {
       return distance<radius+b.r-1e-8&&distance<=previous+1e-9;
     }
     if(b.movementOnly){
-      const penetration=Math.min(b.w/2+radius-Math.abs(x-b.x),b.d/2+radius-Math.abs(z-b.z));
       const previous=Math.min(b.w/2+radius-Math.abs(p.x-b.x),b.d/2+radius-Math.abs(p.z-b.z));
-      if(previous>0&&penetration<previous)return false;
+      if(previous>0&&Math.hypot(x-b.x,z-b.z)>Math.hypot(p.x-b.x,p.z-b.z))return false;
     }
     const cx = Math.max(b.x - b.w / 2, Math.min(x, b.x + b.w / 2));
     const cz = Math.max(b.z - b.d / 2, Math.min(z, b.z + b.d / 2));

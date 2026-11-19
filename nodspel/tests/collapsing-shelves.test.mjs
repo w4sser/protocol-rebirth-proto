@@ -47,6 +47,7 @@ test('fallen low cover blocks movement of both sides, allows shots/LOS over it a
  assert.equal(traceTargets(a,b,obstacles,[]),null);
  assert.deepEqual(aimEndpoint(a,{x:1,z:0},6,obstacles),b);
  assert.ok(movePlayer({x:0,z:1},{x:3,z:0},obstacles,20,.36).x>2.9);
+ assert.ok(movePlayer({x:.5,z:1},{x:0,z:3},obstacles,20,.36).z>3.9,'trapped player can escape toward the longer face too');
 });
 test('L2 shelves deterministic, near guards, gated, clear, capped, and all objectives remain connected',()=>{
  let placed=0;

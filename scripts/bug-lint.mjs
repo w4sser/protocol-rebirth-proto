@@ -478,7 +478,7 @@ export const RULES=[
      if(!levels.includes('occupied>=cap')||!levels.includes('!shelfPathsConnected(level,f)')||!levels.includes('level.shelves.push(shelf)')||!levels.includes('if(!routeClear)continue')||!levels.includes('active:true,aggro:false,windupMs:P.windupMs'))out.push('shelf placement must respect shared slots and prove final-footprint connectivity');
      if(!weapon.includes("hit?.kind==='shelf'")||!weapon.includes('shootShelf(round,hit.target.id,now)')||!weapon.includes('for(const t of level.shelves??[])'))out.push('conventional projectiles must target and tip shelves');
      if(!round.includes('RULES.shelf.telegraphMs+RULES.shelf.fallMs')||!round.includes('RULES.shelf.damage')||!round.includes('RULES.shelf.stunMs')||!round.includes('RULES.shelf.playerDamage'))out.push('collapse must delay impact and use tuned enemy stun/damage and player damage');
-     if(!physics.includes('if(box.movementOnly)return Infinity')||!game.includes('(round.level.shelves??[]).map(s=>s.collider)'))out.push('fallen shelves must block movement but allow shots and LOS');
+     if(!physics.includes('if(box.movementOnly)return Infinity')||!physics.includes('previous>0&&Math.hypot(x-b.x,z-b.z)>Math.hypot(p.x-b.x,p.z-b.z)')||!game.includes('(round.level.shelves??[]).map(s=>s.collider)'))out.push('fallen shelves must block movement but allow shots and LOS');
      if(!game.includes("push('shelf_intro')")||!game.includes('shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids)')||!intro.includes('Gravity: still free, still rude.')||!intro.includes('e.health>0&&e.aggro'))out.push('shelf BIT first sight must stay calm, exact and profile-persisted');
      return out;}},
 
