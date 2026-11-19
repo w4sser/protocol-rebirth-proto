@@ -27,6 +27,12 @@ assert.equal(w.document.querySelector('#overlay'),null,'no extraction choice');
 assert.equal(cards.length,0,'Fabricator card waits for Core scene');
 scenes.at(-1).onDone();
 assert.equal(w.document.querySelector('.baseviewer').dataset.ruin,'1','Core restore immediately lights the base before Fabricator');
+{const v=w.document.querySelector('.baseviewer');
+ assert.equal([...v.querySelectorAll('.mapspot')].filter(e=>/Fabricator/.test(e.textContent)).length,1,'Fabricator marker appears once on the map');
+ const g=v.querySelector(':scope>.progress-goal');assert.ok(!g||g.classList.contains('on-map-marked'),'goal label is flagged as a duplicate of the NEXT plate');
+ assert.match(fs.readFileSync(root+'/index.html','utf8'),/\.baseviewer\.ftue>\.progress-goal\.on-map-marked\{display:none!important/,'flagged duplicate goal label is hidden (browser walk checks it is not visible)');
+ assert.ok(v.querySelector('.mapspot.goal-target [data-room], .mapspot.goal-target')||v.querySelector('.goal-target'),'the NEXT plate stays as the one marker');
+ }
 const lines=[...Object.values(w.T.BIT_CUTSCENES).map(b=>b.line).filter(Boolean),w.DATA.newFindIntro,...['drum','pad','shelf'].map(id=>fs.readFileSync(root+'/nodspel/'+id+'-intro.js','utf8').match(/BIT_LINE=["'](.+)["'];/)[1])];
 assert.equal(new Set(lines).size,lines.length,'BIT briefing and first-sight lines are unique');
 for(const id of ['fabricator','storage']){

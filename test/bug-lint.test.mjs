@@ -396,3 +396,8 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
  assert.ok(by('base-bit-card-clears-rooms').check({appSrc:app.replace('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"','window.addEventListener("pr:ui-show"')}).length,'unguarded card listener breaks DOM-free logic and geometry tests');
 }
+{const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8'),html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app,html}).length,0,'v2.28.55 passes on app.js');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app.replace('markGoalOnMap(trackedGoalHtml()','(trackedGoalHtml()'),html}).length,1,'v2.28.55 fires when the base renders both labels');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app,html:html.replace('.on-map-marked{display:none','.on-map-marked{opacity:1')}).length,1,'v2.28.55 fires without the CSS hide');
+ assert.equal(by('fabricator-marker-once').check({appSrc:'',html:''}).length,3,'v2.28.55 fires on missing pieces');}

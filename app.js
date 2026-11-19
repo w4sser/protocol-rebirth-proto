@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.54"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.55"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -2922,6 +2922,16 @@ function moduleBadge(modId){
   }
   return null;
 }
+// v2.28.55: during the FTUE the next room to build already wears the "NEXT" plate on the map (goal-target), so the
+// separate "<Room> L1" goal label would show the same room twice. Not-ready, non-Core goals only; READY/RESTORE keep their CTA card.
+// The card stays in the DOM (benefit tiles/materials) but index.html hides it via .on-map-marked.
+function ftueGoalMarkedOnMap(goal){
+  if(ftueOver() || !goal || goal.ready || goal.module === "rebirth_core") return false;
+  return D.baseMap.rooms.some(r => r.destination === goal.module && !roomUnlocked(r.id));
+}
+function markGoalOnMap(html, goal){
+  return ftueGoalMarkedOnMap(goal) ? html.replace('class="progress-goal', 'class="progress-goal on-map-marked') : html;
+}
 SCREENS.base = function(){
   if(!S.introSeen){ session.screen = "intro"; return SCREENS.intro(); }
   warmRaidPrep3D();
@@ -2961,7 +2971,7 @@ SCREENS.base = function(){
       shownOpen ? (ROOM_ICONS[room.id] || IC("item-crate")) : (ready ? IC("unlock") : IC("lock")), room.label, shownOpen ? lvl : null, badge, sub);
   }
   html += '<button type="button" class="mapspot plate gate" style="left:' + BM.raidGate.x + '%;top:' + BM.raidGate.y + '%" data-gate="1" aria-label="' + esc(BM.raidGate.label) + '"><span class="tag"><i aria-hidden="true">' + IC("target") + '</i><b>' + esc(BM.raidGate.label) + '</b></span></button>' +
-    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + (trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom)) + welcomeHtml() +
+    '</div><div class="hubstate">' + esc(hub.label) + ' · PLATE 0' + stage + ' · ' + restorePct + '%' + (session.devPlateStage !== null ? ' · PREVIEW' : '') + '</div>' + markGoalOnMap(trackedGoalHtml() || progressionGoalHtml() || goalPillHtml(nextRoom), goal) + welcomeHtml() +
     '<button type="button" class="basemenu-btn' + (session.baseMenu ? ' open' : '') + '" onclick="A.baseMenu()" aria-expanded="' + !!session.baseMenu + '" aria-label="Menu: stash, shop, BIT, weapons">' + IC("nav-stash") + (["stash","vendor","bit","arms"].some(id => navAllowed(id) && navBadge(id)) ? '<span class="dot" aria-hidden="true"></span>' : '') + '</button></div>';
   document.body.classList.toggle("basemenu-open", !!session.baseMenu);
   session.plateStage = stage;
@@ -3664,7 +3674,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.54-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.55-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3678,7 +3688,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.54-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.55-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);

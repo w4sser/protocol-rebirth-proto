@@ -6,8 +6,8 @@
 // never reads or writes round/level state beyond the {open,progress} the caller computes from existing
 // gameplay data -- the extraction radius/logic stay in round.js/levels.js, untouched.
 import * as THREE from './vendor/three.module.js';
-import {EXTRACT_COLOR,PALETTE} from './art.js?v=2.28.54';
-import {softDotTexture} from './vfx-textures.js?v=2.28.54';
+import {EXTRACT_COLOR,PALETTE} from './art.js?v=2.28.55';
+import {softDotTexture} from './vfx-textures.js?v=2.28.55';
 
 const beamVert=`
 varying vec2 vUv;varying vec3 vNormalV;varying vec3 vViewDir;
