@@ -2855,6 +2855,7 @@ function moduleBadge(modId){
 }
 SCREENS.base = function(){
   if(!S.introSeen){ session.screen = "intro"; return SCREENS.intro(); }
+  warmRaidPrep3D();
   const restorePct = Math.min(100, Math.round(
     Object.values(S.modules).reduce((a,b)=>a+b,0) /
     D.modules.reduce((a,m)=>a+m.levels.length,0) * 100));
@@ -3302,7 +3303,9 @@ function slotTileHtml(def, locked, mini){
   return '<button type="button" class="lslot' + (mini ? ' mini' : '') + (it ? ' filled' : '') + (locked ? ' locked' : '') + '" data-slot="' + key + '" ' +
     (locked ? 'disabled aria-disabled="true"' : 'onclick="A.pickSlot(\'' + key + '\')"') + ' aria-label="' + label + ': ' + (it ? esc(it.name) : 'empty') + '">' +
     (risk ? '<span class="rdot" aria-hidden="true"></span>' : '') +
-    '<i aria-hidden="true">' + (it ? itemImg(id) : (mini ? IC("plus") : icon)) + '</i>' +
+    '<i aria-hidden="true">' + (it && key === "weapon" && it.art
+      ? '<span class="pr-itemimg pr-weapon-item">' + weaponArtImg(id, 512, "pr-icon ic-art pr-weapon-render") + '</span>'
+      : (it ? itemImg(id) : ((mini || key === "c2") ? IC("plus") : icon))) + '</i>' +
     (mini ? '' : '<b>' + (it ? esc(it.name) : (!locked && ownedForSlot(slot) ? empty : (slot === "tool" ? 'Add tool' : empty))) + '</b><small>' + label + '</small>') +
     (qty > 0 ? '<span class="qty">x' + qty + '</span>' : '') +
     (key === "weapon" && it && !mini && gearKind(id) === "weapon" ? '<span class="lslot-up" role="button" tabindex="0" aria-label="Open ' + esc(it.name) + ' bench" onclick="event.stopPropagation();A.openWeapon(\'' + id + '\')">' + IC("chevron-up") + '</span>' : '') + '</button>';
@@ -3585,19 +3588,41 @@ function wmFogSvg(){
 // raid and save-state code never waits for graphics. If WebGL is unavailable,
 // the existing operator art stays visible as an accessible fallback.
 let cinematicScene = null;
+let deployPreloadPromise = null;
+// Prepare OP01 while the player is in the bunker. Deploy consumes the same
+// parsed module instance, so this does not trigger duplicate downloads/parses.
+function warmRaidPrep3D(){
+  if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
+     /jsdom/i.test(navigator.userAgent || "") ||
+     new URLSearchParams(location.search).get("q")==="low")return;
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.48-hero-stage")
+    .then(mod=>mod.preloadOP01Menu())
+    .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
+}
 function mountRaidPrep3D(){
   if(cinematicScene){cinematicScene.dispose();cinematicScene=null;}
   const host=document.getElementById("pr-operator-stage");
   if(!host || typeof window === "undefined" || !window.WebGLRenderingContext ||
       /jsdom/i.test(navigator.userAgent || "") || new URLSearchParams(location.search).get("q")==="low") return;
-  import("./ui/raid-prep-scene.mjs?v=2.28.48")
+  const hero=host.closest(".lobby-hero");
+  // Never show the PNG as a loading state for WebGL: it creates a visible
+  // morph into the authored operator. Keep art only for genuine fallbacks.
+  hero?.classList.add("awaiting-3d");
+  host.dataset.presentation="loading";
+  import("./ui/raid-prep-scene.mjs?v=2.28.48-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
       if(view && session.screen==="prep" && host.isConnected)cinematicScene=view;
-      else view?.dispose?.();
+      else {
+        view?.dispose?.();
+        if(host.isConnected && session.screen==="prep")hero?.classList.remove("awaiting-3d");
+      }
     })
-    .catch(e=>console.warn("Raid Prep 3D disabled:",e?.message||e));
+    .catch(e=>{
+      if(host.isConnected && session.screen==="prep")hero?.classList.remove("awaiting-3d");
+      console.warn("Raid Prep 3D disabled:",e?.message||e);
+    });
 }
 
 function lobbyHtml(gear, miss, locked){
@@ -3607,13 +3632,15 @@ function lobbyHtml(gear, miss, locked){
   const area = AREA_DEFS[raidArea()];
   const medSlot = slotTileHtml(SLOT_DEFS[2], locked);
   const toolOk = !(locked && !ownedForSlot("tool"));
-  const loadout = slotTileHtml(SLOT_DEFS[0], locked) + slotTileHtml(SLOT_DEFS[1], locked) +
-    '<div class="slotwrap">' + medSlot + slotTileHtml(SLOT_DEFS[3], locked, true) + '</div>' +
-    (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '<div class="pr-tool-unavailable" aria-disabled="true"><i aria-hidden="true">' + IC("tool-grenade") + '</i><b>Tool locked</b></div>');
+  const loadout = slotTileHtml(SLOT_DEFS[0], locked) +
+    '<div class="pr-gear-strip">' + medSlot + slotTileHtml(SLOT_DEFS[1], locked) +
+      (toolOk ? slotTileHtml(SLOT_DEFS[4], locked) : '<div class="pr-tool-unavailable" aria-disabled="true" aria-label="Tool locked"><i aria-hidden="true">' + IC("tool-grenade") + '</i></div>') +
+    '</div>' +
+    '<div class="pr-spare-slot">' + slotTileHtml(SLOT_DEFS[3], locked) + '</div>';
   const sceneAttrs = ' data-weapon="' + esc(nodeRaidWeaponId()) + '" data-armor="' + esc((session.prep && session.prep.loadout.armor) || '') + '"';
   return '<div class="lobby pr-cinematic">' +
     '<div class="lobby-top"><span class="pr-brand">PROTOCOL REBIRTH</span><span class="pr-slash" aria-hidden="true">//</span><h1 class="pr-title">RAID PREPARATION</h1></div>' +
-    '<div class="lobby-side left"><h2 class="pr-panel-title">LOADOUT</h2><div class="slotgrid">' + loadout + '</div></div>' +
+    '<div class="lobby-side left"><h2 class="pr-panel-title">LOADOUT</h2><div class="slotgrid pr-loadout-grid">' + loadout + '</div></div>' +
     '<div class="lobby-hero"><div class="hero-art" role="img" aria-label="Your hooded operator"></div>' +
       '<div class="hero-weapon" title="' + esc(weaponStatsLine(nodeRaidWeaponId())) + '"><i aria-hidden="true">' + itemIcon(nodeRaidWeaponId()) + '</i>' + esc(ITEMS[nodeRaidWeaponId()].name) + (ITEMS[nodeRaidWeaponId()].free ? ' <small>FREE</small>' : '') + '</div>' +
       '<div id="pr-operator-stage" class="pr-operator-stage" tabindex="0" role="group" aria-label="3D operator: drag or use arrow keys to rotate"' + sceneAttrs + '></div>' +
@@ -5110,7 +5137,7 @@ window.A = {
     session.screenEnterTs = Date.now();
     if(screen === "worldmap" && session.screen !== "worldmap") session.wmCam = null; // opened fresh: centre on the selected area
     session.screen = screen; session.screenParam = param;
-    if(screen === "prep"){ session.prep = null; session.routeLogged = false; session.pulseRaidButton = false; }
+    if(screen === "prep"){ session.prep = null; session.routeLogged = false; session.pulseRaidButton = false; deployPreloadPromise=null; }
     act("SCREEN_VIEW", { screen, param });
     refresh(screen === "prep" ? "raid_prep" : null);
   },
