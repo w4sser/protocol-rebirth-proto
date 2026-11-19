@@ -14,7 +14,11 @@ const d=w.document;
 const screen=d.querySelector('#app.s-prep .lobby.pr-cinematic');
 assert(screen,'new cinematic lobby is active in Raid Prep');
 assert(d.querySelector('.lobby-top .pr-title')?.textContent==='RAID PREPARATION');
-assert.equal(d.querySelectorAll('.lobby-side.left .slotgrid>.lslot, .lobby-side.left .slotgrid>.slotwrap').length,3,'two gear slots and consumable row are present');
+assert(d.querySelector('.lobby-side.left .pr-loadout-grid>.lslot[data-slot="weapon"]'),'featured weapon is the only full-size gear card');
+assert(d.querySelector('.lobby-side.left .pr-gear-strip>[data-slot="c1"]'),'medkit is in the compact gear strip');
+assert(d.querySelector('.lobby-side.left .pr-gear-strip>[data-slot="armor"]'),'armor uses a compact icon tile');
+assert(d.querySelector('.lobby-side.left .pr-spare-slot>[data-slot="c2"]'),'spare consumable is retained below the strip');
+assert(d.querySelector('.lobby-side.left .pr-weapon-render')?.getAttribute('src')?.includes('assets/weapons/'),'featured weapon uses the real in-game weapon artwork');
 assert(d.querySelector('.lobby-side.left [data-slot="weapon"]'),'weapon slot remains selectable');
 assert(d.querySelector('.lobby-side.left [data-slot="armor"]'),'vest slot remains selectable');
 assert(d.querySelector('.lobby-side.left [data-slot="c1"]'),'medkit slot remains selectable');
@@ -39,6 +43,9 @@ assert(styles.includes('body[data-screen="prep"] #tabs{display:none!important}')
 assert(styles.includes('raid-prep-bunker.avif'),'authored bunker threshold background is used');
 assert(!styles.includes('env_base.webp'),'base overview map no longer appears on Deploy');
 assert(styles.includes('raid-prep-operator.avif'),'fallback is the hooded faceless scavenger, not the gameplay placeholder');
+assert(styles.includes('grid-template-columns:minmax(0,24fr) minmax(0,52fr) minmax(0,24fr)'),'hero stage owns more than half the three-column viewport');
+assert(styles.includes('.lobby-hero.awaiting-3d .hero-art'),'PNG is hidden while the 3D scene is loading');
+assert(styles.includes('.pr-gear-strip'),'loadout contains a compact secondary gear row');
 assert(styles.includes('raid-prep-archipelago.avif'),'Archipelago card is an in-world location preview');
 assert(!styles.includes('splash_archipelago_radar_lighthouse.webp'),'destination card must not use a branded promo banner');
 for(const asset of ['raid-prep-bunker.avif','raid-prep-archipelago.avif','raid-prep-operator.avif'])
@@ -50,6 +57,11 @@ const models=fs.readFileSync(path+'/ui/raid-prep-models.mjs','utf8');
 const op01=fs.readFileSync(path+'/ui/raid-prep-op01.mjs','utf8');
 assert(op01.includes("loadRiggedMenu(") && op01.includes("loader.parseAsync("),
   'menu recombines the untouched authored GLB before Three.js parses it');
+assert(op01.includes('export function preloadOP01Menu()') && op01.includes('menuBytesPromise'),
+  'preload parses the rig on the bunker screen and reuses verified GLB bytes');
+const appCode=fs.readFileSync(path+'/app.js','utf8');
+assert(appCode.includes('warmRaidPrep3D();') && appCode.includes('awaiting-3d'),
+  'base warms the 3D model and Deploy never shows the PNG as a loading placeholder');
 assert(op01.includes('OP01_Menu.glb') && op01.includes("'hero_pose'"),
   'Deploy uses rigged operator with authored armed low-ready animation');
 assert(op01.includes('OP01_Mobile.glb') && op01.includes('OP01_Hero.glb'),
@@ -58,6 +70,8 @@ assert(viewer.includes('await loadOP01Operator(') && viewer.includes('createMenu
   'Deploy mounts authored OP01 GLB and 3D BIT');
 assert(viewer.includes("new THREE.WebGLRenderer(") && viewer.includes('renderer.render(scene,camera)'),
   'Deploy renders a real live 3D canvas');
+assert(viewer.includes("host.dataset.presentation='ready'") && viewer.includes("renderer.render(scene,camera);"),
+  'the character becomes visible only after its first completed 3D render');
 assert(!viewer.includes('loadHumanOperator()') && !viewer.includes('operator.update(dt,{'),
   'Deploy portrait does not use the top-down raid rig that undid user rotation');
 assert(viewer.includes("host.setPointerCapture(e.pointerId)") &&

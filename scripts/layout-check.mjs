@@ -343,6 +343,32 @@ async function cinematicPrep3DRun([w,h]){
     });
     if(before.nCanvas!==1 || before.width<80 || before.height<100)
       fail(tag,"3D canvas not placed in hero area: "+JSON.stringify(before));
+    const composition=await page.evaluate(()=>{
+      const hero=document.querySelector('.lobby-hero');
+      const left=document.querySelector('.lobby-side.left');
+      const right=document.querySelector('.lobby-side.right');
+      const img=left?.querySelector('.pr-weapon-render');
+      const art=hero?.querySelector('.hero-art');
+      const canvas=hero?.querySelector('canvas');
+      const stage=document.getElementById('pr-operator-stage');
+      return {heroWidth:hero?.getBoundingClientRect().width||0,
+        leftWidth:left?.getBoundingClientRect().width||0,
+        rightWidth:right?.getBoundingClientRect().width||0,
+        pngHidden:art&&getComputedStyle(art).opacity==='0',
+        canvasVisible:canvas&&getComputedStyle(canvas).opacity==='1',
+        poseReady:stage?.dataset.presentation==='ready',
+        model:stage?.dataset.menuModel,
+        weaponSrc:img?.getAttribute('src')||'',
+        weaponLoaded:!!img?.naturalWidth,
+        allSlots:['weapon','armor','c1','c2'].every(k=>!!left?.querySelector('[data-slot="'+k+'"]'))};
+    });
+    if(composition.heroWidth<=composition.leftWidth*1.8 ||
+       composition.heroWidth<=composition.rightWidth*1.8)
+      fail(tag,"approved character stage was squeezed by side panels: "+JSON.stringify(composition));
+    if(!composition.pngHidden||!composition.canvasVisible||!composition.poseReady)
+      fail(tag,"3D first-frame handoff is not clean: "+JSON.stringify(composition));
+    if(!composition.weaponSrc.includes('assets/weapons/')||!composition.weaponLoaded||!composition.allSlots)
+      fail(tag,"real featured weapon or selectable equipment missing: "+JSON.stringify(composition));
     // Keep an unrotated visual capture as the primary owner-facing pose QA.
     // Previously only the post-drag angle was captured, hiding the
     // end-on/vertical-looking gun seen at the default Deploy angle.
