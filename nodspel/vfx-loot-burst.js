@@ -5,7 +5,7 @@
 // Fixed-capacity typed-array pool sized at construction -- spawn()/update() never grow an array or allocate a
 // per-particle object, so a string of rapid pickups costs nothing beyond overwriting the oldest slot.
 import * as THREE from './vendor/three.module.js';
-import {softDotTexture} from './vfx-textures.js?v=2.28.48';
+import {softDotTexture} from './vfx-textures.js?v=2.28.49';
 
 const GRAVITY=-9,GRAVITY_T=.28,TOTAL_T=.7,FADE_FROM=.86;
 const RING_LIFE=.55;

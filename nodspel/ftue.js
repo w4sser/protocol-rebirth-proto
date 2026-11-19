@@ -1,6 +1,6 @@
-import {RULES,makeDrum} from './levels.js?v=2.28.48';
+import {RULES,makeDrum} from './levels.js?v=2.28.49';
 // Load the authored config after levels imports its original config snapshot.
-import '../data/raid-ftue.js?v=2.28.48-ftue-opening-v1';
+import '../data/raid-ftue.js?v=2.28.49-ftue-opening-v1';
 
 export const FTUE=globalThis.DATA.raidFtue;
 export function ftueAssist(attempts){
@@ -35,7 +35,7 @@ export function applyFtueLevel(round){
     Object.assign(level.nodes[0],at(o.node),{shielded:false});
     Object.assign(level.exit,at(o.exit));
     level.boxes=o.cover.map(b=>({...b,...at(b)}));
-    level.encounters=[];level.spawners=[];level.hazards=[];
+    level.junctions=[];level.encounters=[];level.spawners=[];level.hazards=[];
     level.firstGraceMs=o.graceMs;
     ftueGuaranteeAlloy(level);
   }

@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.48"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.49"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -264,6 +264,8 @@ function migrateBitCardsSeen(st){
   // seen a fuel drum (every Bunker raid, including the FTUE, places at least one) -- never replay
   // the intro just because this feature shipped after the player did.
   if(st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
+  // Power pads did not exist in older raids: raid count cannot prove first sight.
+  // Preserve an explicit power_pad_intro flag; otherwise leave unseen for the live card.
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).
@@ -3590,7 +3592,7 @@ function mountRaidPrep3D(){
   const host=document.getElementById("pr-operator-stage");
   if(!host || typeof window === "undefined" || !window.WebGLRenderingContext ||
       /jsdom/i.test(navigator.userAgent || "") || new URLSearchParams(location.search).get("q")==="low") return;
-  import("./ui/raid-prep-scene.mjs?v=2.28.48")
+  import("./ui/raid-prep-scene.mjs?v=2.28.49")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -4122,7 +4124,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
   if(debugMode()) returnPath = window.PR_DEBUG.withMode(returnPath);
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
-    "&return=" + encodeURIComponent(returnPath) +
+    "&return=" + encodeURIComponent(returnPath) + "&raids=" + encodeURIComponent(S.raids || 0) +
     (debugMode() ? "&debugMode=" + encodeURIComponent(debugMode()) : "") +
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +

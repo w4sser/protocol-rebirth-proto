@@ -180,7 +180,7 @@ console.log("ALL LOGIC TESTS PASSED");
 // Deploy/return loop helpers.
 {
   const url = app.coreLaunchUrl("meta-a-1", "s 1", "../index.html");
-  assert.equal(url, "./nodspel/?seed=s%201&raidId=meta-a-1&return=..%2Findex.html");
+  assert.equal(url, "./nodspel/?seed=s%201&raidId=meta-a-1&return=..%2Findex.html&raids=1");
   assert.equal(app.metaReturnPath("/proto/index.html"), "../index.html");
   assert.equal(app.metaReturnPath("/proto/"), "../");
   const l = app.newCoreLaunch(() => 0.5);
