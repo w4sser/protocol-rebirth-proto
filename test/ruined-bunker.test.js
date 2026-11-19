@@ -22,11 +22,11 @@ function boot(seedSave){
 const htmlOf = w => w.document.getElementById("app").innerHTML;
 const indexSrc = fs.readFileSync(path + "/index.html", "utf8");
 
-// 1) Pure ruinLevel(): matches the four spec'd tiers.
+// 1) Pure ruinLevel(): powers on immediately after Core restore.
 {
   const w = boot(null);
   assert.equal(w.T.ruinLevel("core_found", 0), 3, "pre-Core-L1 is the darkest tier");
-  assert.equal(w.T.ruinLevel("core_habitable", 0), 2, "Core L1 restored, Fabricator not built");
+  assert.equal(w.T.ruinLevel("core_habitable", 0), 1, "Core L1 restored, Fabricator not built");
   assert.equal(w.T.ruinLevel("core_habitable", 1), 1, "Fabricator built, not yet fully refined");
   assert.equal(w.T.ruinLevel("core_refined", 1), 0, "fully refined reads unchanged from today");
 }
@@ -41,7 +41,7 @@ const indexSrc = fs.readFileSync(path + "/index.html", "utf8");
 
   S.modules.rebirth_core = 1; S.baseState = "core_habitable"; S.modules.fabricator = 0;
   w.A.go("base");
-  assert.equal(w.document.querySelector(".baseviewer").dataset.ruin, "2", "Core L1 restored renders ruin 2");
+  assert.equal(w.document.querySelector(".baseviewer").dataset.ruin, "1", "Core L1 restored renders powered ruin 1");
 
   S.modules.fabricator = 1;
   w.A.go("base");

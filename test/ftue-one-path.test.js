@@ -10,7 +10,7 @@ function boot(seed){
   w.PRBitCutscene={preload:b=>Promise.resolve([b.from,b.to]),play:b=>scenes.push(b),release(){},isOpen:()=>false};
   w.PRBitCard={show:b=>cards.push(b),dismiss(){},isOpen:()=>false};
   for(const f of files)w.eval(fs.readFileSync(root+'/data/'+f+'.js','utf8'));
-  w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,session,questsOpen,chainAvailable,trackedQuest,trackedGoalHtml,showHomecomingSummary,migrateBitCardsSeen,MODS,PROG,save,guidedBuildPath};');
+  w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,session,questsOpen,chainAvailable,trackedQuest,trackedGoalHtml,showHomecomingSummary,migrateBitCardsSeen,MODS,PROG,save,guidedBuildPath,roomUnlockStages,BIT_CUTSCENES};');
   w.A.startFtueDirect=()=>{};
   return {w,s:w.T.state(),scenes,cards};
 }
@@ -26,6 +26,16 @@ assert.equal(scenes.at(-1).id,'core_restored');
 assert.equal(w.document.querySelector('#overlay'),null,'no extraction choice');
 assert.equal(cards.length,0,'Fabricator card waits for Core scene');
 scenes.at(-1).onDone();
+assert.equal(w.document.querySelector('.baseviewer').dataset.ruin,'1','Core restore immediately lights the base before Fabricator');
+const lines=[...Object.values(w.T.BIT_CUTSCENES).map(b=>b.line).filter(Boolean),w.DATA.newFindIntro,...['drum','pad','shelf'].map(id=>fs.readFileSync(root+'/nodspel/'+id+'-intro.js','utf8').match(/BIT_LINE=["'](.+)["'];/)[1])];
+assert.equal(new Set(lines).size,lines.length,'BIT briefing and first-sight lines are unique');
+for(const id of ['fabricator','storage']){
+ const b=w.T.roomUnlockStages(id).teaser;
+ assert.equal(b.info.length,1,'one material cost strip');assert.match(b.info[0].text,/Scrap/);
+ assert.doesNotMatch(b.line,/cable|scrap|alloy|barely breathing|don.t have legs|\d/i,'prose never repeats costs or an old joke');
+ assert.ok(b.line.length<=55,'briefing stays short');
+}
+assert.equal(cards.at(-1).info.length,1);assert.equal(cards.at(-1).text,w.T.roomUnlockStages('fabricator').teaser.line);
 assert.equal(cards.at(-1).id,'raid_briefing');assert.match(cards.at(-1).text,/raid/i);
 cards.at(-1).onDone();
 assert.equal(w.T.trackedQuest(),null);assert.equal(w.T.questsOpen(),false);

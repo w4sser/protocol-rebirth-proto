@@ -385,3 +385,7 @@ assert.equal(by('worldmap-new-label-gap').check().length,0);
 
 assert.equal(by('enemy-label-clearance-hold').check({gameSrc:'const blocked=overlapsAt(y,size,hudRects);if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}'}).length,1);
 assert.equal(by('enemy-label-clearance-hold').check().length,0);
+
+for(const [id,ctx] of [['base-bit-card-clears-rooms',{appSrc:'',layoutSrc:''}],['base-briefing-single-cost',{appSrc:'',bitSrc:''}],['core-restore-lights-base',{appSrc:'function ruinLevel(id,fabricator){if(!fabricator)return 2;return 1;}'}]]){
+ const rule=by(id);assert.equal(rule.check().length,0,id+' passes');assert.ok(rule.check(ctx).length,id+' rejects regression');
+}

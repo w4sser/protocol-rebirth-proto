@@ -2792,7 +2792,7 @@ function placeBaseBitCard(){
     card.style.bottom = "auto";
   }
 }
-window.addEventListener("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
+window.addEventListener?.("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
 
 // v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
 // right of it when that is out of view or would cover another plate. Uses the independent `translate` property,

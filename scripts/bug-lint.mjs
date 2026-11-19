@@ -12,6 +12,19 @@ import * as walk from 'acorn-walk';
 
 import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
+  {id:'base-bit-card-clears-rooms',pr:'v2.28.4x briefing placement',why:'BIT base cards obscured the Fabricator label and swallowed room hitboxes',
+   check(c={}){const app=c.appSrc??read('app.js'),layout=c.layoutSrc??read('scripts/layout-check.mjs');const out=[];
+     if(!app.includes('function placeBaseBitCard()')||!app.includes('placeBaseBitCard();')||!app.includes('.mapspot,.mapspot .tag,.gen-chip,.basemenu-btn,.progress-goal,.goalpill'))out.push('BIT card placement must avoid room hitboxes, labels and the goal chip');
+     if(!layout.includes('page.evaluate(baseBitCardRoomOverlaps)')||!layout.includes('await baseBriefingRun(vp)'))out.push('layout must measure both base briefings against rooms at all phone sizes');return out;}},
+  {id:'base-briefing-single-cost',pr:'v2.28.4x briefing copy',why:'Briefing prose repeated material costs and the fuel-drum joke',
+   check(c={}){const app=c.appSrc??read('app.js'),bit=c.bitSrc??read('data/bit.js'),out=[];
+     if(!app.includes('text:beat.line, info:beat.info')||app.includes('text:beat.line +'))out.push('base briefings must render prose and info separately');
+     const teasers=[...bit.matchAll(/teaser:\{([\s\S]*?)\n    \}/g)];
+     if(teasers.length!==2||teasers.some(m=>!/info:\[\{label:"NEXT",kind:"cost"\}\]/.test(m[1])||/line:"[^"\n]*(?:barely breathing|don.t have legs|Cable|Scrap)/i.test(m[1])))out.push('each briefing needs one cost row and fresh powered-base prose');return out;}},
+  {id:'core-restore-lights-base',pr:'v2.28.4x powered base',why:'Core restore still left the bunker at the dim pre-Fabricator lighting tier',
+   check(c={}){const app=c.appSrc??read('app.js'),fn=(app.match(/function ruinLevel\([^)]*\)\{([\s\S]*?)\n\}/)||[])[1]||'';
+     return fn.includes('return 1')&&fn.includes('core_found')&&!fn.includes('return 2')?[]:['Core restore must immediately use powered lighting, independent of Fabricator'];}},
+
   {id:'enemy-label-clearance-hold',pr:'v2.28.52 layout label stability',why:'Town enemy labels bypassed the clearance hold when colliding with loot/room labels',
    check(c={}){const src=c.gameSrc??read('nodspel/game.mjs');return /const blocked=[^;]*overlapsAt\(y,size,labelRects\)/.test(src)&&!src.includes('if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}')?[]:['all label collisions must use the existing clearance hold'];}},
   {id:'worldmap-new-label-gap',pr:'v2.28.52 map label fit',why:'the selected Bunker label overlapped the newly unlocked Archipelago label at 844x390',
