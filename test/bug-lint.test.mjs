@@ -366,3 +366,11 @@ assert.equal(by('raid-waits-for-combat-sfx').check().length,0);
  const cases=[['levelsSrc','nodspel/levels.js','completedRaids<J.unlockRaids'],['levelsSrc','nodspel/levels.js','RULES.interactives.maxPerRoom<2'],['levelsSrc','nodspel/levels.js','cap-occupied'],['combatSrc','nodspel/combat.js','RULES.junction.enemyDps*dt'],['roundSrc','nodspel/round.js','pad.deadUntil=pad.overloadUntil+J.cooldownMs'],['weaponSrc','nodspel/weapon.js','shootJunction(round,hit.target.id,now)'],['gameSrc','nodspel/game.mjs',"push('power_pad_intro')"]];
  for(const [key,path,guard] of cases){const src=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');assert.equal(rule.check({[key]:src.replace(guard,'REMOVED')}).length,1,guard+' regression fires');}
 }
+
+{
+ const rule=by('collapsing-shelf-lane');
+ assert.equal(rule.check().length,0,'collapsing shelves pass as shipped');
+ assert.equal(rule.check({levelsSrc:'',roundSrc:'',weaponSrc:'',physicsSrc:'',gameSrc:'',shelfIntroSrc:'',shelfDataSrc:''}).length,6);
+ const cases=[['shelfDataSrc','data/raid-shelf.js','unlockRaids:3'],['levelsSrc','nodspel/levels.js','!shelfPathsConnected(level,f)'],['levelsSrc','nodspel/levels.js','occupied>=cap'],['weaponSrc','nodspel/weapon.js','shootShelf(round,hit.target.id,now)'],['roundSrc','nodspel/round.js','RULES.shelf.telegraphMs+RULES.shelf.fallMs'],['physicsSrc','nodspel/physics.mjs','if(box.movementOnly)return Infinity'],['gameSrc','nodspel/game.mjs',"push('shelf_intro')"]];
+ for(const [key,path,guard] of cases){const src=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');assert.equal(rule.check({[key]:src.replace(guard,'REMOVED')}).length,1,guard+' regression fires');}
+}

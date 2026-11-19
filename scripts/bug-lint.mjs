@@ -472,6 +472,16 @@ export const RULES=[
      if(!weapon.includes("hit?.kind==='junction'")||!weapon.includes('shootJunction(round,hit.target.id,now)')||!weapon.includes('for(const t of level.junctions??[])'))out.push('normal projectiles must target and activate junctions');
      if(!game.includes("push('power_pad_intro')")||!game.includes('powerPadBitLine(round,position,padIntroSeenAtLaunch,solids,clock)')||!intro.includes("Water plus power. Nature's little I-told-you-so."))out.push('first-sight power-pad BIT card must keep its line and persist through bitSeen');
      return out;}},
+  {id:'collapsing-shelf-lane',pr:'v2.28.50 collapsing shelves',why:'shootable shelves retain their fourth-raid gate, safe L2 lanes, delayed impact, movement-only cover and persistent calm BIT intro',
+   check(ctx={}){const levels=ctx.levelsSrc??read('nodspel/levels.js'),round=ctx.roundSrc??read('nodspel/round.js'),weapon=ctx.weaponSrc??read('nodspel/weapon.js'),physics=ctx.physicsSrc??read('nodspel/physics.mjs'),game=ctx.gameSrc??read('nodspel/game.mjs'),intro=ctx.shelfIntroSrc??read('nodspel/shelf-intro.js'),data=ctx.shelfDataSrc??read('data/raid-shelf.js');const out=[];
+     if(!data.includes('unlockRaids:3')||!levels.includes('completedRaids<S.unlockRaids')||!levels.includes('level.number!==2')||!levels.includes('if(ftue||completedRaids<S.unlockRaids'))out.push('shelves must be fourth-raid L2 Bunker toys, excluded from FTUE');
+     if(!levels.includes('occupied>=cap')||!levels.includes('!shelfPathsConnected(level,f)')||!levels.includes('level.shelves.push(shelf)'))out.push('shelf placement must respect shared slots and prove final-footprint connectivity');
+     if(!weapon.includes("hit?.kind==='shelf'")||!weapon.includes('shootShelf(round,hit.target.id,now)')||!weapon.includes('for(const t of level.shelves??[])'))out.push('conventional projectiles must target and tip shelves');
+     if(!round.includes('RULES.shelf.telegraphMs+RULES.shelf.fallMs')||!round.includes('RULES.shelf.damage')||!round.includes('RULES.shelf.stunMs')||!round.includes('RULES.shelf.playerDamage'))out.push('collapse must delay impact and use tuned enemy stun/damage and player damage');
+     if(!physics.includes('if(box.movementOnly)return Infinity')||!game.includes('(round.level.shelves??[]).map(s=>s.collider)'))out.push('fallen shelves must block movement but allow shots and LOS');
+     if(!game.includes("push('shelf_intro')")||!game.includes('shelfBitLine(round,position,shelfIntroSeenAtLaunch,solids)')||!intro.includes('Gravity: still free, still rude.')||!intro.includes('e.health>0&&e.aggro'))out.push('shelf BIT first sight must stay calm, exact and profile-persisted');
+     return out;}},
+
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

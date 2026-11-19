@@ -499,7 +499,10 @@ export function stepShelves(round,player,now){
       enemy.stunnedUntil=Math.max(enemy.stunnedUntil??0,now+RULES.shelf.stunMs);
       hitEnemy(round,enemy.id,now,RULES.shelf.damage,null);
     }
-    if(player&&Math.abs(player.x-f.x)<=f.w/2&&Math.abs(player.z-f.z)<=f.d/2)takeDamage(round,RULES.shelf.playerDamage,now);
+    if(player&&Math.abs(player.x-f.x)<=f.w/2&&Math.abs(player.z-f.z)<=f.d/2){
+      round.lastHit={source:'Collapsing shelf',sourceId:shelf.id,attack:'collapse',at:now}; // hot-ok: rare shelf impact record for damage clarity
+      takeDamage(round,RULES.shelf.playerDamage,now);
+    }
   }
 }
 const EMPTY_SHELVES=Object.freeze([]);

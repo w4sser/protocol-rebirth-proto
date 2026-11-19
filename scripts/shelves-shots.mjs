@@ -11,7 +11,7 @@ await mkdir(out,{recursive:true});
 const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.m4a':'audio/mp4','.ogg':'audio/ogg','.woff2':'font/woff2'};
 const insets={left:47,right:47,top:0,bottom:21};
 const launchOpts={headless:true,executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']};
-const SEED='shelf-1'; // Bunker L1, deterministic: 2 fuel drums near the start room (verified offline).
+const SEED='shelf-1'; // Same seeded L2 room edge lane in before/after captures.
 const {generateLevel,placeSupplyShelves}=await import('../nodspel/levels.js');
 const comparison=generateLevel(2,SEED);placeSupplyShelves(comparison,3);
 const VANTAGE=comparison.shelves[0].vantage;
@@ -37,7 +37,7 @@ async function withServer(root,fn){
 }
 async function openRaid(page,base,seed=SEED,{bitCardSeen=false}={}){
   if(bitCardSeen){
-    // Pre-mark the BIT first-sight card seen so these demo shots show the drums themselves,
+    // Pre-mark the BIT first-sight card seen so these demo shots show the shelf itself,
     // uncluttered -- the dedicated bit-first-sight-card shot below covers the card itself.
     await page.evaluateOnNewDocument(()=>{
       localStorage.setItem('pr_meta_save',JSON.stringify({v:7,bitCardsSeen:{fuel_drum_intro:true,power_pad_intro:true,shelf_intro:true}}));

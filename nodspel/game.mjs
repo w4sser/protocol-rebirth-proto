@@ -935,7 +935,6 @@ function checkPadIntro(clock){
   padIntroShownThisSession=true;(round.bitSeen??=[]).push('power_pad_intro');
   globalThis.PRBitCard?.show({id:'power_pad_intro',text:line,mood:'skeptical'});
 }
-const EMPTY_SHELF_VISUALS=Object.freeze([]);
 let shelfIntroShownThisSession=false;
 const shelfIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.shelf_intro;}catch{return false;}})();
 function checkShelfIntro(){
@@ -1891,7 +1890,7 @@ function frameInner(now){
     round.playerMoving=playerMoving;
     const beforeCombat=copyXZ(hotPosCombat,position);
     stepCombat(round,combat,position,clock,dt,playerSolids,dash);
-    for(const shelf of round.level.shelves??EMPTY_SHELF_VISUALS){
+    if(round.level.shelves)for(const shelf of round.level.shelves){
       if(shelf.active&&!shelf.presented){shelf.presented=true;world.burst(shelf.footprint.x,shelf.footprint.z,PALETTE.box,false,.7);void audio.play('impact-wall');}
     }
     playerMoving=playerMoving||playerDisplaced(beforeCombat,position);

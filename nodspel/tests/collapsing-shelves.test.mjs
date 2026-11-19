@@ -29,6 +29,7 @@ test('collapse damages and stuns only enemies inside footprint, lightly hurts pl
  assert.equal(r.level.enemies[0].stunnedUntil,100+end+RULES.shelf.stunMs);
  assert.equal(r.level.enemies[1].health,20);assert.equal(r.level.enemies[1].stunnedUntil,undefined);
  assert.equal(r.health,r.maxHealth-RULES.shelf.playerDamage);
+ assert.equal(r.lastHit.source,'Collapsing shelf');
  stepShelves(r,{x:0,z:1},200+end);assert.equal(r.health,r.maxHealth-RULES.shelf.playerDamage);
 });
 test('pause and terminal rounds freeze shelves and reject shots; outside player is safe',()=>{
@@ -74,4 +75,13 @@ test('actual L1 exit carries launch progression into L2 placement, FTUE stays ex
 test('connectivity proof rejects a footprint sealing the only passage',()=>{
  const l={floors:[{x:0,z:0,w:12,d:2}],walls:[],boxes:[],nodes:[],enemies:[],start:{x:-4,z:0},exit:{x:4,z:0}};
  assert.equal(shelfPathsConnected(l,{x:0,z:0,w:1,d:2}),false);
+});
+
+test('ordinary gunfire crosses fallen low cover and damages the enemy beyond it',()=>{
+ const r=setup(),s=r.level.shelves[0];r.level.nodes=[];r.level.barrels=[];r.level.junctions=[];
+ for(let i=0;i<RULES.shelf.hitsToTip;i++)shootShelf(r,'s',100);stepShelves(r,null,100+end);
+ r.level.enemies=[{id:'beyond',kind:'enemy',x:2,z:1,r:.48,health:10,active:true}];
+ const w=createWeapon();assert.ok(fireAimedWeapon(w,r,{x:-2,z:1},{x:1,z:0},1000,[s.collider],false,false));
+ for(let t=1016;t<=1500&&r.level.enemies[0].health===10;t+=16)stepWeapon(w,r,t,.016,[s.collider]);
+ assert.ok(r.level.enemies[0].health<10);
 });
