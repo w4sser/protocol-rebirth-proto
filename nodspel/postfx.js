@@ -16,14 +16,14 @@ export function tagBloom(object,{unlit=false}={}){object.traverse(n=>{n.layers.e
 // Reuse mask materials, preserve alpha-tested occluders and restore all scene state even on failure.
 // Standard materials contribute emission only; already-unlit cue shaders retain their own alpha/animation.
 export function createBloomMask(scene){
-  const cache=new WeakMap(),owned=new Set(),saved=new Map(),hidden=new Set();
+  const cache=new Map(),seen=new Set(),saved=new Map(),hidden=new Set();
   function masked(source,emission,unlit=false){
-    let pair=cache.get(source);if(!pair){pair={};cache.set(source,pair);}
+    seen.add(source);let pair=cache.get(source);if(!pair){pair={};cache.set(source,pair);}
     const key=emission?(unlit?'lamp':'emission'):'dark';
     let m=pair[key];
     if(!m){m=new THREE.MeshBasicMaterial({color:0,fog:false,toneMapped:false,side:source.side,
       transparent:source.transparent,alphaTest:source.alphaTest,depthTest:source.depthTest,depthWrite:source.depthWrite,
-      forceSinglePass:true});pair[key]=m;owned.add(m);}
+      forceSinglePass:true});pair[key]=m;}
     m.opacity=source.opacity;m.visible=source.visible;
     m.map=emission&&!unlit?source.emissiveMap:source.map;m.alphaMap=source.alphaMap;
     if(emission)m.color.copy(unlit?source.color:source.emissive).multiplyScalar(unlit?1:source.emissiveIntensity);
@@ -47,9 +47,12 @@ export function createBloomMask(scene){
         for(const [n,m] of saved)n.material=m;saved.clear();
         for(const n of hidden)n.visible=true;hidden.clear();
         scene.background=background;scene.fog=fog;
+        // Retire masks from a previous level instead of keeping them until the next quality change.
+        for(const [source,pair] of cache)if(!seen.has(source)){for(const m of Object.values(pair))m.dispose();cache.delete(source);}
+        seen.clear();
       }
     },
-    dispose(){for(const m of owned)m.dispose();owned.clear();},
+    dispose(){for(const pair of cache.values())for(const m of Object.values(pair))m.dispose();cache.clear();},
   };
 }
 

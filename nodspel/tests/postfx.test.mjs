@@ -122,3 +122,11 @@ test('Medium bloom sizes match DPR-aware resize, and quality replacement frees e
   let disposed=0;for(const pass of passes){const dispose=pass.dispose.bind(pass);pass.dispose=()=>{disposed++;dispose();};}
   fx.dispose();assert.equal(disposed,passes.length,'composer targets alone do not free pass resources');
 });
+
+test('bloom masks retire materials when a level leaves the scene',()=>{
+  const scene=new THREE.Scene(),wall=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial());scene.add(wall);
+  const mask=createBloomMask(scene);let retired=0;
+  mask.render(()=>wall.material.addEventListener('dispose',()=>retired++));
+  scene.remove(wall);mask.render(()=>{});assert.equal(retired,1,'old level mask freed without a quality switch');
+  mask.dispose();assert.equal(retired,1,'retired material is not freed twice');
+});
