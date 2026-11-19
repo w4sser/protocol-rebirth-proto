@@ -3655,7 +3655,7 @@ function lobbyHtml(gear, miss, locked){
         '<i aria-hidden="true">' + IC("mission") + '</i><span><small>MISSION · TAP TO PLAN</small><b>NODE RAID</b></span></button>' +
       progressionGoalHtml(true) +
       '<div class="pr-risk-card">' + gearRiskHtml(gear) + '</div>' +
-      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy — Node Raid"><b>DEPLOY</b><small>NODE RAID</small></button>' +
+      '<button type="button" class="playbtn node-raid-launch" onclick="A.deployNodeRaid()" aria-label="Deploy"><b>DEPLOY</b></button>' +
     '</div></div></div>';
 }
 function loadoutSlotsHtml(locked){
