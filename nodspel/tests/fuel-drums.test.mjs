@@ -56,17 +56,29 @@ test('fuel drums clear walls/crates, corridors/doors, nodes/loot/the exit, and e
   }
 });
 
-test('fuel drums never share a room with a scripted encounter (patrol/guard/turret/swarm/shield)',()=>{
+test('fuel drums never share a room with a precision scripted encounter (guard/turret/swarm/shield)',()=>{
   setArea('bunker');
   for(const s of seeds)for(const n of [2,3]){
     const l=generateLevel(n,s);
     for(const room of l.rooms){
-      const hasEncounter=l.enemies.some(e=>(e.encounter||e.patrol)&&Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2);
-      if(!hasEncounter)continue;
+      const hasPrecisionEncounter=l.enemies.some(e=>e.encounter&&e.encounter!=='patrol'&&Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2);
+      if(!hasPrecisionEncounter)continue;
       const drumsHere=l.barrels.filter(b=>Math.abs(b.x-room.x)<=room.w/2&&Math.abs(b.z-room.z)<=room.d/2);
       assert.equal(drumsHere.length,0,`${s} L${n} ${room.name}: a drum shares a room with a scripted encounter`);
     }
   }
+});
+
+test('a patrol room (L1\'s gentle first teacher) still gets fuel drums, same as any other room',()=>{
+  setArea('bunker');
+  let sawPatrolRoomWithDrum=false;
+  for(const s of seeds){
+    const l=generateLevel(1,s);
+    const hasPatrol=l.enemies.some(e=>e.encounter==='patrol');
+    assert.ok(hasPatrol,`${s} L1: expected the patrol teacher`);
+    if(l.barrels.length)sawPatrolRoomWithDrum=true;
+  }
+  assert.ok(sawPatrolRoomWithDrum,'at least one seed places a drum in L1 despite its patrol');
 });
 
 test('a drum detonates when shot, damaging and knocking back enemies in its blast ring',()=>{

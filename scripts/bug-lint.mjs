@@ -457,7 +457,7 @@ export const RULES=[
    check(ctx={}){const levels=ctx.levelsSrc??read('nodspel/levels.js'),ftue=ctx.ftueSrc??read('nodspel/ftue.js'),round=ctx.roundSrc??read('nodspel/round.js');const out=[];
      if(!levels.includes('interactives:{maxPerRoom:'))out.push('RULES.interactives.maxPerRoom must stay the shared per-room interactive cap');
      if(!levels.includes('Math.min(1+(rng()<.5?1:0),cap)'))out.push('placeFuelDrums must clamp the drums it places per room to the shared cap');
-     if(!levels.includes('e.encounter||e.patrol'))out.push('placeFuelDrums must skip any room already running a scripted encounter (patrol/guard/turret/swarm/shield)');
+     if(!levels.includes("e.encounter&&e.encounter!=='patrol'"))out.push('placeFuelDrums must skip any room already running a precision scripted encounter (guard/turret/swarm/shield/door/grenadier)');
      if(!levels.includes("if(area==='bunker')placeFuelDrums("))out.push('fuel drums must stay Bunker-only');
      if(!ftue.includes('playerSafe:true'))out.push('the FTUE drum must be pinned playerSafe so its scripted takedown never hurts the player');
      if(!round.includes('if(!drum.playerSafe&&player)'))out.push('detonateDrum must skip the player-damage branch for a playerSafe (FTUE) drum');

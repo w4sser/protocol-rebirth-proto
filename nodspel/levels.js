@@ -477,11 +477,15 @@ function placeFuelDrums(level,rng){
   level.barrels=[];
   for(const room of level.rooms){
     const inRoom=e=>Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2;
-    // A room already running a scripted encounter (patrol/guard/turret/swarm/shield) keeps its own
-    // single tuned problem, never a drum stacked on top of it (max 1-2 interactives/room).
-    if(level.enemies.some(e=>(e.encounter||e.patrol)&&inRoom(e)))continue;
-    const roomEnemies=level.enemies.filter(inRoom);
-    const grunts=roomEnemies.filter(e=>e.type==='grunt');
+    // A room already running a precision scripted encounter (guard/turret/swarm/shield/door/
+    // grenadier -- burst timing or line-of-sight gated) keeps its own single tuned problem, never a
+    // drum stacked on top of it (max 1-2 interactives/room). A patrol is L1's gentle first teacher
+    // (just a roaming sight cone) and still gets drums, same as any other room.
+    if(level.enemies.some(e=>e.encounter&&e.encounter!=='patrol'&&inRoom(e)))continue;
+    // Anchor on grunts/patrols only -- never a rusher/sentry/thrower, whose approach/telegraph is
+    // tighter and easier for a stray drum obstacle/target to throw off.
+    const roomEnemies=level.enemies.filter(e=>(e.type==='grunt'||e.patrol)&&inRoom(e));
+    const grunts=roomEnemies.filter(e=>e.type==='grunt'&&!e.patrol);
     const anchors=grunts.length?grunts:roomEnemies;
     if(!anchors.length)continue;
     const n=Math.min(1+(rng()<.5?1:0),cap);

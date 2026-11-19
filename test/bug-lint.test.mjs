@@ -353,6 +353,8 @@ assert.equal(by('raid-waits-for-combat-sfx').check().length,0);
    .includes('the FTUE drum must be pinned playerSafe so its scripted takedown never hurts the player'),'FTUE player-safe regression fires');
  assert.ok(rule.check({levelsSrc:levels.replace('Math.min(1+(rng()<.5?1:0),cap)','2'),ftueSrc:ftue,roundSrc:round})
    .includes('placeFuelDrums must clamp the drums it places per room to the shared cap'),'per-room cap regression fires');
+ assert.ok(rule.check({levelsSrc:levels.replace("e.encounter&&e.encounter!=='patrol'",'false'),ftueSrc:ftue,roundSrc:round})
+   .includes('placeFuelDrums must skip any room already running a precision scripted encounter (guard/turret/swarm/shield/door/grenadier)'),'encounter-exclusion regression fires');
  assert.ok(rule.check({levelsSrc:levels,ftueSrc:ftue,roundSrc:round.replace('igniteDrums(round,drum.x,drum.z,drum.chainRadius,now);','')})
    .includes('a drum detonating must call igniteDrums so a chain can propagate to the next one'),'chain regression fires');
 }

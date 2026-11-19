@@ -32,7 +32,7 @@ import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.47';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.47-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.47';
 import {safeSpawn} from './spawn.js?v=2.28.47';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode} from './round.js?v=2.28.47-ftue-opening-v1';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum} from './round.js?v=2.28.47-ftue-opening-v1';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.47';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.47-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.47';
@@ -1533,7 +1533,24 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
   // M42 QA: force an activation attempt and inspect the distract's live state without playing a full raid.
   bitPos(){return {x:bit.x,z:bit.z};},
   bitDistract(){return tryActivateBitDistract(bitDistract,round,bit,position,round.level.enemies,gameClock());},
-  bitDistractState(){const clock=gameClock();return {ready:bitDistractCooldownMs(bitDistract,clock)<=0,remainingMs:bitDistractCooldownMs(bitDistract,clock),active:bitDistract.active,targetId:bitDistract.enemyId,lastResult:bitDistract.lastResult};}});
+  bitDistractState(){const clock=gameClock();return {ready:bitDistractCooldownMs(bitDistract,clock)<=0,remainingMs:bitDistractCooldownMs(bitDistract,clock),active:bitDistract.active,targetId:bitDistract.enemyId,lastResult:bitDistract.lastResult};},
+  // Fuel drum screenshot hooks: force a mid-chain frame (one drum detonated, its nearest neighbor
+  // cooking) and a player-damage frame (an ordinary drum's blast reaching the player), without
+  // waiting on real combat to line them up.
+  drumDemo(){
+    const drums=(round.level.barrels??[]).filter(b=>!b.active);if(!drums.length)return null;
+    let a=drums[0],b=drums[0],best=Infinity;
+    for(const x of drums)for(const y of drums)if(x!==y){const d=Math.hypot(x.x-y.x,x.z-y.z);if(d<best){best=d;a=x;b=y;}}
+    teleportPlayer((a.x+b.x)/2,(a.z+b.z)/2+2.5);
+    a.active=true;a.explodedAt=gameClock();if(b!==a)b.cookingAt=gameClock();
+    setCollisions();return {a:a.id,b:b.id,count:drums.length,distance:best};
+  },
+  playerKnockDemo(){
+    const drum=(round.level.barrels??[]).find(b=>!b.active);if(!drum)return null;
+    teleportPlayer(drum.x+1.1,drum.z);
+    round.shooter=position;const applied=detonateDrum(round,drum.id,gameClock(),solids);round.shooter=null;
+    setCollisions();return {applied,health:round.health,id:drum.id};
+  }});
 
 // ---- Full bag: flash + toast + compact swap row (only at the moment it happens) ----
 let bitHintUntil=0;const HINT_KEY='nr_bagfull_hint';
