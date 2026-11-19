@@ -101,3 +101,12 @@ test('FTUE intro raids persist launch.ftue on the stored result so the base can 
   const without=buildRaidResult(r,{launch:{seed:'rr-ftue',raidId:'meta-ftue'}});
   assert.equal(without.ftue,undefined,'ordinary launches do not grow a ftue field');
 });
+
+test('BIT narrator moments shown live (e.g. the fuel drum intro) ride home on the raid result',()=>{
+  const r=createRound('rr-bitseen',0);
+  assert.equal(buildRaidResult(r,{launch:{raidId:'x'}}),null);
+  r.over=true;r.reason='death';
+  assert.equal('bitSeen' in buildRaidResult(r),false,'no bitSeen key when nothing was shown');
+  r.bitSeen=['fuel_drum_intro','fuel_drum_intro'];
+  assert.deepEqual(buildRaidResult(r).bitSeen,['fuel_drum_intro'],'deduped');
+});

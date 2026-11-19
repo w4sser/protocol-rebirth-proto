@@ -453,7 +453,16 @@ export const RULES=[
    check(ctx={}){const fx=ctx.fxSrc??read('nodspel/fx-feedback.js'),game=ctx.gameSrc??read('nodspel/game.mjs');const out=[];
      if(/pixel\.spawn\(['"]chest['"]/.test(fx)||/demoNames\s*=.*['"]chest['"]/.test(fx))out.push('loot feedback must never spawn a pixel chest');
      if(!game.includes('world.spawnLootBurst?.(')||!game.includes('pickupToast(round.lastBagPickup.item)'))out.push('keep the 3D burst and textual pickup feedback');return out;}},
-
+  {id:'fuel-drums-chain-and-cap',pr:'v2.28.48 fuel drums',why:'ordinary Bunker raids place seeded fuel drums (nodspel/levels.js placeFuelDrums) alongside the FTUE\'s single hand-authored one (nodspel/ftue.js); losing the shared per-room cap, the scripted-encounter exclusion, the FTUE player-safe pin, or the shared chain-ignite path would silently overload a room, hurt the player in the FTUE, or stop a blast from chaining into the next drum',
+   check(ctx={}){const levels=ctx.levelsSrc??read('nodspel/levels.js'),ftue=ctx.ftueSrc??read('nodspel/ftue.js'),round=ctx.roundSrc??read('nodspel/round.js');const out=[];
+     if(!levels.includes('interactives:{maxPerRoom:'))out.push('RULES.interactives.maxPerRoom must stay the shared per-room interactive cap');
+     if(!levels.includes('Math.min(1+(rng()<.5?1:0),cap)'))out.push('placeFuelDrums must clamp the drums it places per room to the shared cap');
+     if(!levels.includes("e.encounter&&e.encounter!=='patrol'"))out.push('placeFuelDrums must skip any room already running a precision scripted encounter (guard/turret/swarm/shield/door/grenadier)');
+     if(!levels.includes("if(area==='bunker')placeFuelDrums("))out.push('fuel drums must stay Bunker-only');
+     if(!ftue.includes('playerSafe:true'))out.push('the FTUE drum must be pinned playerSafe so its scripted takedown never hurts the player');
+     if(!round.includes('if(!drum.playerSafe&&player)'))out.push('detonateDrum must skip the player-damage branch for a playerSafe (FTUE) drum');
+     if(!round.includes('export function igniteDrums(')||!round.includes('igniteDrums(round,drum.x,drum.z,drum.chainRadius,now)'))out.push('a drum detonating must call igniteDrums so a chain can propagate to the next one');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

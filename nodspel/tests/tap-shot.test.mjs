@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound} from '../round.js?v=2.28.47';
-import {RULES} from '../levels.js?v=2.28.47';
-import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.47';
+import {createRound} from '../round.js?v=2.28.48';
+import {RULES} from '../levels.js?v=2.28.48';
+import {createWeapon,fireAimedWeapon,stepWeapon,steerShot} from '../weapon.js?v=2.28.48';
 const origin={x:0,z:0},facing={x:1,z:0};
 const foe=(id,x,z)=>({id,kind:'enemy',type:'grunt',aggro:true,active:true,x,z,r:.48,health:10,facing:0});
 function arena(enemies=[],spreadDegrees=0,rand=()=>.5){
-  const round=createRound('tap-shot',0);round.level.nodes=[];round.level.enemies=enemies;
+  const round=createRound('tap-shot',0);round.level.nodes=[];round.level.barrels=[];round.level.enemies=enemies;
   const weapon=createWeapon(Infinity,{spreadDegrees});weapon.rand=rand;
   return {round,weapon,fire:(tap=true,now=0)=>fireAimedWeapon(weapon,round,origin,facing,now,[],false,tap)};
 }

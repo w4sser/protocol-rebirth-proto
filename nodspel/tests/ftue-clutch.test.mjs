@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,activateNode,enterExit,exitIsOpen,tickRound,detonateFtueBarrel} from '../round.js?v=2.28.47';
-import {initFtueRound} from '../ftue.js?v=2.28.47';
-import {stepStakes} from '../stakes.js?v=2.28.47';
+import {createRound,activateNode,enterExit,exitIsOpen,tickRound,detonateDrum} from '../round.js?v=2.28.48';
+import {initFtueRound} from '../ftue.js?v=2.28.48';
+import {stepStakes} from '../stakes.js?v=2.28.48';
 import * as THREE from '../vendor/three.module.js';
-import {buildWorld} from '../world.js?v=2.28.47';
+import {buildWorld} from '../world.js?v=2.28.48';
 
 function setup(){
   const r=createRound('ftue-opening',0);
@@ -46,7 +46,7 @@ test('world barrel disappears after detonation; the real exit beam still opens',
     assert.equal(w.barrels.length,1);
     assert.equal(w.barrels[0].group.visible,true);
     w.setExit(exitIsOpen(r));assert.equal(w.extractBeamFx.isOpen(),false);
-    assert.ok(detonateFtueBarrel(r,'ftue-barrel-1',100,[...r.level.walls,...r.level.boxes]));
+    assert.ok(detonateDrum(r,'ftue-barrel-1',100,[...r.level.walls,...r.level.boxes]));
     w.animate(.1,r.level.start,r);
     assert.equal(w.barrels[0].group.visible,false);
     activateNode(r,r.level.nodes[0].id,200);

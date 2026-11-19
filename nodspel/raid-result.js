@@ -1,9 +1,9 @@
 // RaidResult v1: the contract core (Node Raid) hands back to meta (base).
 // Pure and DOM-free so it can be tested headless. See docs/meta-core-integration.md.
-import {bagItems} from './raid.js?v=2.28.47';
-import {RULES} from './levels.js?v=2.28.47';
-import {bagCap,equippedGear} from './round.js?v=2.28.47';
-import {readGoal,readVestGuarantee} from './progression-goal.js?v=2.28.47';
+import {bagItems} from './raid.js?v=2.28.48';
+import {RULES} from './levels.js?v=2.28.48';
+import {bagCap,equippedGear} from './round.js?v=2.28.48';
+import {readGoal,readVestGuarantee} from './progression-goal.js?v=2.28.48';
 export const RAID_RESULT_KEY='pr_raid_result_v1';
 export const RAID_RESULT_SCHEMA='protocol-rebirth/raid-result';
 export const RAID_RESULT_VERSION=1;
@@ -24,6 +24,9 @@ export function buildRaidResult(round,{endedAt=Date.now(),launch=null,acknowledg
     // Equipped gear and backpack items (carried but not equipped) are both at risk: only a win (extract/complete)
     // brings them home, same rule as bag loot (the base app already gates on `extracted`; this is belt and braces).
     ...((round.raidPerksTaken?.length||round.perks?.taken?.length)?{perksTaken:[...new Set([...(round.raidPerksTaken??[]),...(round.perks?.taken??[])])]}:{}),
+    // BIT narrator moments shown live this raid (e.g. 'fuel_drum_intro', nodspel/drum-intro.js): the base
+    // ingests these into S.bitCardsSeen (app.js ingestRaidResult) so a first-sight card is once per profile.
+    ...(round.bitSeen?.length?{bitSeen:[...new Set(round.bitSeen)]}:{}),
     ...(round.gearConsumed?.length?{gearConsumed:[...round.gearConsumed]}:{}),
     ...(OUTCOMES[round.reason]!=='extract'&&(equippedGear(round).length||round.backpack?.length)?{equipmentLost:[...equippedGear(round),...(round.backpack??[])]}:{}),
     stats:round.stats,gear:launch?.gear??[],...(launch?.ftue?{ftue:true}:{}),gearOut:OUTCOMES[round.reason]==='extract'?[...equippedGear(round),...(round.backpack??[])]:[],weapon:launch?.weapon?.id??'basic_carbine',kitLeft:{medkit:Math.max(0,round.kit?.medkit??0)},...toolLeft(round,launch)};

@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.28.47';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.47';
-import {RULES} from './levels.js?v=2.28.47';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.47';
-import {activateNode,hitEnemy,tickRound,alertEnemy,detonateFtueBarrel} from './round.js?v=2.28.47-ftue-opening-v1';
+import {audioEvent} from './audio.js?v=2.28.48';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.48';
+import {RULES} from './levels.js?v=2.28.48';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.48';
+import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum} from './round.js?v=2.28.48-ftue-opening-v1';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
@@ -66,7 +66,7 @@ function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   // Shielded nodes (level 3) absorb shots and must be charged by standing close.
   if(hit?.kind==='node'){const changed=hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.node.id);return changed;} // EMP drops the shield for a few seconds
   if(hit?.kind==='barrel'){
-    const changed=detonateFtueBarrel(round,hit.target.id,now,obstacles);
+    const changed=detonateDrum(round,hit.target.id,now,obstacles);
     if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.target.id);
     return changed;
   }
