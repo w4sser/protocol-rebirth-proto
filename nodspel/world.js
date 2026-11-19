@@ -328,7 +328,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   const junctions=(level.junctions??[]).map(j=>{
     const pad=level.hazards.find(h=>h.id===j.padId),g=new THREE.Group();g.position.set(j.x,0,j.z);group.add(g);
     box(0,.6,0,1.15,1.2,.65,PALETTE.base,g);
-    const face=new THREE.MeshStandardMaterial({color:KEY_AMBER,emissive:KEY_AMBER,emissiveIntensity:.7,metalness:.5,roughness:.45,fog:false});
+    const face=new THREE.MeshStandardMaterial({color:PALETTE.warm,emissive:PALETTE.warm,emissiveIntensity:.7,metalness:.5,roughness:.45,fog:false});
     const panel=new THREE.Mesh(cube,face);panel.scale.set(1.05,.85,.72);panel.position.y=.7;g.add(panel);
     for(const x of [-.34,0,.34])box(x,.7,.38,.08,.5,.04,PALETTE.base,g);
     const cable=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(j.x,.08,j.z),new THREE.Vector3(pad.x,.08,pad.z)]),new THREE.LineBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.65,toneMapped:false,fog:false}));group.add(cable);

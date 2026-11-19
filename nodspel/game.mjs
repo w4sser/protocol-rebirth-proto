@@ -1063,7 +1063,7 @@ function loadLevelInner(){
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
-  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,.9,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),h.junctionId?'hazard-label junction-label':'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,h.junctionId?1.8:.35,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),h.junctionId?'hazard-label junction-label':'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label','exit','EXIT');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label','room',room.name.toUpperCase());
   for(const v of world.enemies)labelEnemyVisual(v);
