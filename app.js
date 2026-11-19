@@ -2662,6 +2662,7 @@ function setupBaseViewer(){
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
     clearPlatesFromCard(viewer, null, scale);
     placeBaseGoal(viewer);
+    placeBaseBitCard();
   }
   function zoomAt(zoom,x,y){
     const vw=viewer.clientWidth||800,vh=viewer.clientHeight||420,old=session.cameraLayout;
@@ -2750,6 +2751,44 @@ function placeBaseGoal(viewer){
     card.style.bottom = "auto";
   }
 }
+
+// v2.28.54 (Robert's playtest, step04 lit-base-fabricator): the BIT base-briefing card
+// (ui/bit-card.js, shared with the raid page) is `position:fixed` -- unlike the goal chip above,
+// its candidates stay viewport-relative, not viewer-relative. Same free-rectangle search, but the
+// goal chip itself joins the obstacle list so the card can never sit on top of it (that chip is
+// where the Fabricator/Vault room name actually lives while BIT is talking about that room).
+function placeBaseBitCard(){
+  if(document.body.dataset.screen !== "base") return;
+  const card = document.querySelector(".bit-card:not(.ctx-raid)");
+  const viewer = document.querySelector(".baseviewer");
+  if(!card || card.hidden || !viewer || !card.offsetHeight) return;
+  const v = viewer.getBoundingClientRect(), c = card.getBoundingClientRect();
+  const css = getComputedStyle(document.documentElement);
+  const inset = name => Math.max(0, ...(css.getPropertyValue(name).match(/[\d.]+(?=px)/g) || []).map(Number));
+  const gap = 6, left = Math.max(v.left, inset("--sl")) + gap;
+  const right = Math.min(v.right, innerWidth - inset("--sr")) - gap;
+  const topbar = document.getElementById("topbar");
+  const top = Math.max(v.top, topbar?.getBoundingClientRect().bottom || 0) + gap;
+  const bottom = Math.min(v.bottom, innerHeight - inset("--sb")) - gap;
+  const obstacles = [...viewer.querySelectorAll(".mapspot,.mapspot .tag,.gen-chip,.basemenu-btn,.progress-goal,.goalpill"), document.getElementById("tabs")]
+    .filter(e => e && e.offsetHeight).map(e => e.getBoundingClientRect());
+  const xs = [left, right - c.width], ys = [top, bottom - c.height];
+  for(const r of obstacles){xs.push(r.right + gap, r.left - gap - c.width);ys.push(r.bottom + gap, r.top - gap - c.height);}
+  const candidates = [];
+  for(const x of xs) for(const y of ys){
+    if(x < left || x + c.width > right || y < top || y + c.height > bottom) continue;
+    if(obstacles.some(r => x < r.right + gap && x + c.width > r.left - gap && y < r.bottom + gap && y + c.height > r.top - gap)) continue;
+    candidates.push({x,y,score:Math.hypot(x-c.left,y-c.top)});
+  }
+  candidates.sort((a,b) => a.score-b.score);
+  const spot = candidates[0];
+  if(spot){
+    card.style.setProperty("left", spot.x + "px", "important");
+    card.style.top = spot.y + "px";
+    card.style.bottom = "auto";
+  }
+}
+window.addEventListener("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
 
 // v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
 // right of it when that is out of view or would cover another plate. Uses the independent `translate` property,
@@ -4983,7 +5022,7 @@ function queueBaseIntro(beat, after){
   if(pendingSystemIntros.has(beat.id)) return;
   pendingSystemIntros.add(beat.id);
   S.bitCardsSeen[beat.id] = false; save();
-  window.PRBitCard?.show({id:beat.id, text:beat.line + " " + beat.info.map(r => r.text).join(". "), mood:"smile", onDone:() => {
+  window.PRBitCard?.show({id:beat.id, text:beat.line, info:beat.info, mood:"smile", onDone:() => {
     pendingSystemIntros.delete(beat.id);
     S.bitCardsSeen[beat.id] = true; save();
     if(after) after();

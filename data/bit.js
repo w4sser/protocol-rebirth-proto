@@ -119,8 +119,8 @@ BIT_DATA_ROOT.DATA.roomUnlockStages = {
     powered:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
     teaser:{
       id:"raid_briefing",
-      line:"Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs.",
-      info:[{label:"NEXT",kind:"cost"},{label:"FIND IT",text:"Raid for the parts",icon:"nav-raid"}]
+      line:"Bunker's barely breathing. Parts list is below — raid for it. I'll supervise from right here.",
+      info:[{label:"NEXT",kind:"cost"}]
     },
     unlock:{
       id:"fabricator_built",
