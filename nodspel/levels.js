@@ -615,15 +615,19 @@ export function placePowerPads(level,completedRaids=0,ftue=false){
     const room=level.rooms.find(r=>Math.abs(a.x-r.x)<r.w/2&&Math.abs(a.z-r.z)<r.d/2);
     if(!room)continue;
     const inside=(p,r=.5)=>Math.abs(p.x-room.x)<room.w/2-r&&Math.abs(p.z-room.z)<room.d/2-r;
-    const clear=(p,r)=>inside(p,r)&&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r)&&!keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<r+J.clearance);
-    for(const t of [.5,.35,.65]){
-      const pad={id:'power-pad-1',x:round2(a.x+(b.x-a.x)*t),z:round2(a.z+(b.z-a.z)*t),w:RULES.hazard.size,d:RULES.hazard.size,phaseMs:0,dps:RULES.hazard.damagePerSecond};
+    const clear=(p,r)=>inside(p,r)&&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r)&&!keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<(o===level.start||o===level.exit?J.exitClearance:r+J.clearance));
+    for(const t of [.5,.45,.55,.4,.6,.35,.65,.3,.7,.25,.75,.2,.8,.15,.85,.1,.9,.05,.95,0,1,-.05,1.05,-.1,1.1])for(const shift of [0,.4,-.4,.7,-.7]){
+      const pad={id:'power-pad-1',x:round2(a.x+(b.x-a.x)*t-uz*shift),z:round2(a.z+(b.z-a.z)*t+ux*shift),w:RULES.hazard.size,d:RULES.hazard.size,phaseMs:0,dps:RULES.hazard.damagePerSecond};
+      // The patrol body fits closer to walls than a whole pad: inset the pad while
+      // keeping the walked segment inside its footprint (at most .6 m translation).
+      pad.x=round2(Math.max(room.x-room.w/2+1.2,Math.min(room.x+room.w/2-1.2,pad.x)));
+      pad.z=round2(Math.max(room.z-room.d/2+1.2,Math.min(room.z+room.d/2-1.2,pad.z)));
       if(!clear(pad,RULES.hazard.size/2))continue;
-      for(const side of [1,-1]){
-        const box={id:'junction-1',kind:'junction',x:round2(pad.x-uz*J.cableLength*side),z:round2(pad.z+ux*J.cableLength*side),r:J.r,padId:pad.id};
+      for(const side of [1,-1])for(const along of [0,1,-1])for(const viewSide of [1,-1]){
+        const box={id:'junction-1',kind:'junction',x:round2(pad.x-uz*J.cableLength*side+ux*along),z:round2(pad.z+ux*J.cableLength*side+uz*along),r:J.r,padId:pad.id};
         if(!clear(box,J.r))continue;
         // Both points are on the room's unobstructed patrol lane; prove the shooting lane too.
-        const vantage={x:pad.x+ux*J.shootingDistance,z:pad.z+uz*J.shootingDistance};
+        const vantage={x:box.x+ux*J.shootingDistance*viewSide,z:box.z+uz*J.shootingDistance*viewSide};
         if(!clear(vantage,.4))continue;
         let blocked=false;
         for(let k=0;k<=12;k++){const f=k/12,p={x:vantage.x+(box.x-vantage.x)*f,z:vantage.z+(box.z-vantage.z)*f};
