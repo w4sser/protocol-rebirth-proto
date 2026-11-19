@@ -23,3 +23,10 @@ test('game.mjs hides the drone, distract, heal and BIT-attributed lines when BIT
   assert.match(src,/if\(bitAlong&&round\.healBudgetLow/);
   assert.match(src,/bitAlong\?`BIT: \$\{tip\.text\}`:tip\.text/);
 });
+
+// v2.28.52: every first-sight caller gates before consuming its seen flag.
+test('sleeping BIT defers all first-sight cards and material commentary',async()=>{
+ const src=await readFile(new URL('../game.mjs',import.meta.url),'utf8');
+ for(const fn of ['checkDrumIntro\\(\\)','checkPadIntro\\(clock\\)','checkShelfIntro\\(\\)'])assert.match(src,new RegExp('function '+fn+'\\{\\s*if\\(!bitAlong\\)return;'));
+ assert.match(src,/const bitLine=bitAlong \? materialPickupBitLine\(item,launch\) : null/);
+});

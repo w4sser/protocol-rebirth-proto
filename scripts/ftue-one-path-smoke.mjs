@@ -7,7 +7,7 @@ import {resolve,extname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const require=createRequire(import.meta.url);
 let puppeteer;try{puppeteer=require('puppeteer');}catch{puppeteer=require('puppeteer-core');}
-const root=fileURLToPath(new URL('..',import.meta.url));
+const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const out=process.env.FTUE_SHOTS||resolve(root,'verify-out/ftue-one-path');await mkdir(out,{recursive:true});
 const insets={left:47,right:47,top:0,bottom:21};
 const server=createServer(async(req,res)=>{
@@ -25,26 +25,26 @@ try{
  for(const [width,height]of [[844,390],[667,375],[932,430]]){
   const context=await browser.createBrowserContext(),page=await context.newPage();await page.setViewport({width,height,deviceScaleFactor:1});
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-  await page.evaluateOnNewDocument(()=>{sessionStorage.setItem('pr_splash_seen',String(Date.now()));window.PR_NAVIGATE=url=>window.__launchUrl=url;});
+  await page.evaluateOnNewDocument(()=>{sessionStorage.setItem('pr_splash_seen',String(Date.now()));window.PR_NAVIGATE=url=>window.__launchUrl=url;window.addEventListener('load',()=>{const show=window.PRBitCard?.show;if(show)window.PRBitCard.show=opts=>{window.__ftueCardId=opts.id;return show(opts);};});});
   const shot=async name=>{await page.screenshot({path:resolve(out,`${name}-${width}x${height}.png`)});};
   const noQuest=async()=>assert.equal(await page.evaluate(()=>!!document.querySelector('.qgoal,#quest-chip:not([hidden]),.quest-intro')),false,'no early quest UI');
   const scene=async id=>{await page.waitForFunction(id=>document.querySelector('.bit-cutscene')?.dataset.id===id,{},id);await page.waitForFunction(()=>document.querySelector('.bit-cutscene')?.classList.contains('hint-visible'));};
   const dismissScene=async()=>{await page.click('.bit-cutscene');await page.waitForFunction(()=>!document.querySelector('.bit-cutscene'));};
-  const card=async id=>{await page.waitForFunction(id=>document.querySelector('.bit-card:not([hidden])')?.dataset.id===id,{},id);await delay(3100);};
+  const card=async id=>{await page.waitForFunction(id=>window.__ftueCardId===id && !!document.querySelector('.bit-card:not([hidden])'),{},id);await delay(3100);};
   const dismissCard=async()=>{await page.click('.bit-card');await page.waitForFunction(()=>!window.PRBitCard.isOpen());};
   const launchRaid=async url=>{const target=new URL(url,base);target.searchParams.set('debug','1');target.searchParams.set('q','low');await page.goto(target.href,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.__NR?.round?.(),{timeout:60000});};
   const extract=async items=>{const nav=page.waitForNavigation({waitUntil:'networkidle0',timeout:60000});await page.evaluate(items=>__NR.extractDemo(items),items);await nav;await page.waitForFunction(()=>window.A);};
-  await page.goto(base,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));
+  await page.goto(base,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.A);await page.evaluate(()=>{document.getElementById('splash')?.remove();window.dispatchEvent(new Event('pr:splash-finished'));});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));
   // Observe the fuel drum at first sight. Encounter and explosion remain present in the FTUE.
-  await page.evaluate(()=>{const r=__NR.round();window.__drum=r.level.fuelDrums?.[0]||null;});
+  await page.evaluate(()=>{const r=__NR.round();const b=r.level.barrels?.[0];if(!b)throw Error('FTUE explosive barrel missing');__NR.teleport(b.x-2,b.z);for(const e of r.level.enemies)e.aggro=false;});
   await delay(1000);assert.equal(await page.evaluate(()=>PRBitCard.isOpen()),false);
-  assert.equal(await page.evaluate(()=>document.querySelectorAll('.bit-card-img,.bit-cutscene-bust').length),0,'no BIT card/bust before wake');await noQuest();await shot('step01-raid1-asleep');
+  assert.equal(await page.evaluate(()=>document.querySelectorAll('.bit-card-img,.bit-cutscene-bust').length),0,'no BIT card/bust before wake');assert.equal(await page.evaluate(()=>(__NR.round().bitSeen||[]).includes('fuel_drum_intro')),false,'sleeping first sight stays unseen');await noQuest();await shot('step01-raid1-asleep');
   await extract(['scrap_alloy','scrap_alloy']);
   await page.waitForSelector('.intro');await shot('step02-wake-bit');
   await page.click('.intro');await delay(1500);await page.evaluate(()=>A.introSkip());await page.click('.intro-go');
   await scene('core_restored');assert.equal(await page.$('#overlay'),null,'no first extraction choice');await noQuest();await shot('step03-core-cutscene');await dismissScene();
   await card('raid_briefing');await noQuest();await shot('step04-lit-base-fabricator');await dismissCard();
-  const materials=await page.evaluate(()=>['fabricator','storage'].flatMap(id=>Object.entries(DATA.modules.find(m=>m.id===id).levels[0].cost.items||{}).flatMap(([k,n])=>Array(n).fill(k))));
+  const materials=await page.evaluate(()=>['fabricator','storage'].flatMap(id=>{const cost=DATA.modules.find(m=>m.id===id).levels[0].cost;const salvage=DATA.items.find(i=>i.grantsCurrency?.scrap);return [...Object.entries(cost.items||{}).flatMap(([k,n])=>Array(n).fill(k)),...Array(Math.ceil((cost.scrap||0)/salvage.grantsCurrency.scrap)).fill(salvage.id)];}));
   await page.evaluate(()=>{A.go('prep');A.deployNodeRaid();});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));await shot('step05-raid2');await extract(materials);
   await page.waitForSelector('#overlay');assert.equal(await page.$$eval('#overlay button',els=>els.length),1,'one Fabricator choice');await noQuest();await shot('step06-build-fabricator');await page.click('#overlay button');
   await scene('fabricator_built');assert.equal(await page.$('#overlay'),null);await noQuest();await shot('step07-fabricator-cutscene');await dismissScene();

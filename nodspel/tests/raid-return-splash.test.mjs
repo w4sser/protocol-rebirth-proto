@@ -22,7 +22,7 @@ function boot(window){
 }
 boot(shell.window);
 const seed=JSON.parse(JSON.stringify(shell.window.freshState()));
-seed.introSeen=true;seed.retentionMode='core';seed.bondXp=0;seed.secureItem=null;
+seed.ftuePath=false;seed.introSeen=true;seed.retentionMode='core';seed.bondXp=0;seed.secureItem=null;
 shell.window.close();
 
 const launch=readLaunch('?seed=long-run-splash&raidId=long-run-splash&return=..%2Findex.html&gear=scout_rig&w=id:smg_vector');

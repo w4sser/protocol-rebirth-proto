@@ -10,7 +10,7 @@ function boot(seed){
   w.PRBitCutscene={preload:b=>Promise.resolve([b.from,b.to]),play:b=>scenes.push(b),release(){},isOpen:()=>false};
   w.PRBitCard={show:b=>cards.push(b),dismiss(){},isOpen:()=>false};
   for(const f of files)w.eval(fs.readFileSync(root+'/data/'+f+'.js','utf8'));
-  w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,session,questsOpen,chainAvailable,trackedQuest,trackedGoalHtml,showHomecomingSummary,migrateBitCardsSeen,MODS,PROG};');
+  w.eval(fs.readFileSync(root+'/app.js','utf8')+';window.T={state:()=>S,session,questsOpen,chainAvailable,trackedQuest,trackedGoalHtml,showHomecomingSummary,migrateBitCardsSeen,MODS,PROG,save};');
   w.A.startFtueDirect=()=>{};
   return {w,s:w.T.state(),scenes,cards};
 }
@@ -51,4 +51,11 @@ assert.equal(w.T.chainAvailable('bunker'),true);
 const legacy={modules:{fabricator:1,storage:0},bitCardsSeen:{quest_intro:true}};w.T.migrateBitCardsSeen(legacy);assert.equal(legacy.ftuePath,false);
 const partial={modules:{fabricator:0,storage:0},bitCardsSeen:{}};w.T.migrateBitCardsSeen(partial);assert.equal(partial.ftuePath,true);
 const saved=JSON.parse(JSON.stringify(s));const reloaded=boot(saved);assert.equal(reloaded.s.modules.storage,1);assert.equal(reloaded.w.T.chainAvailable('bunker'),true);
+// Held scene completion survives a reload; already paid buildings are never charged again.
+for(const [module,id] of [['rebirth_core','core_restored'],['fabricator','fabricator_built'],['storage','vault_unlocked']]){
+ const pending=JSON.parse(JSON.stringify(s));pending.bitCardsSeen[id]=false;
+ const resumed=boot(pending);resumed.w.A.go('base');
+ assert.equal(resumed.scenes.at(-1).id,id,'resume '+id);
+ assert.deepEqual(JSON.parse(JSON.stringify(resumed.s.stash)),pending.stash,'no second payment');resumed.w.close();
+}
 reloaded.w.close();w.close();console.log('FTUE one-path state transitions passed');

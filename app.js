@@ -4986,6 +4986,19 @@ function queueBaseIntro(beat, after){
     refresh();
   }});
 }
+// Reloading during a held story resumes the built room, without charging twice.
+function resumeFtueStory(){
+  if(!S.ftuePath || !S.introSeen) return;
+  if(coreLevel() >= 1 && !S.bitCardsSeen.core_restored){
+    queueSystemIntro(BIT_CUTSCENES.core_restored, maybeShowRaidBriefing);
+  } else if((S.modules.fabricator || 0) >= 1 && !S.bitCardsSeen.fabricator_built){
+    fabricatorCutsceneBeat(beat => queueSystemIntro(beat, () => {
+      overlay(upgradeRewardHtml("fabricator", 1, false), maybeShowVaultIntro, "reward");
+    }));
+  } else if((S.modules.storage || 0) >= 1 && !S.bitCardsSeen.vault_unlocked){
+    queueSystemIntro(roomUnlockStages("storage").unlock);
+  }
+}
 function maybeShowRaidBriefing(){
   if(S.bitCardsSeen.raid_briefing || !S.bitCardsSeen.core_restored) return;
   if((S.modules.fabricator || 0) >= 1) return;
@@ -5150,7 +5163,7 @@ window.A = {
     }else{this.endCombatDemo();this.playCombatDemo();}
   },
   go(screen, param){
-    if(screen === "base"){ warmStoryArt(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+    if(screen === "base"){ warmStoryArt(); resumeFtueStory(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
     if(screen === "arms"){ if(!navAllowed("arms")) return; closeAllPopups(); A.openWeapon(param || armsWeapon()); return; }
     // v2.28.21: "prep" is gated through navAllowed (not just baseAllows) so RAID FOR ... buttons
     // (A.raidForModule / A.raidForRoom) actually open Raid Prep when the goal needs raid loot,
@@ -5247,7 +5260,9 @@ window.A = {
     const isBitOnline = modId === "bit_bay" && next.level === 1;
     const isFabricatorOnline = modId === "fabricator" && next.level === 1;
     const finish = () => { session.wake = true; A.go("base"); if(isBitOnline) bitDock("bond_up"); else bitDock("module_built"); };
-    if(isLightsOn){
+    if(isLightsOn && S.ftuePath){
+      session.wake = true; A.go("base");
+    } else if(isLightsOn){
       save();
       // v2.28.19: show the habitable bunker and play the wake lighting. PRB-155 (playtest
       // 2026-11-15, item 4) removed the old boot-payoff popup that used to gate ENTER THE
@@ -6505,7 +6520,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     } else splashCtl.flightFailed();
   }
   if(S.introSeen && splashCtl) window.addEventListener("pr:splash-finished", () => {
-    if(session.screen === "base"){ maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
+    if(session.screen === "base"){ resumeFtueStory(); maybeShowRaidBriefing(); maybeShowQuestIntro(); maybeShowVaultIntro(); }
   }, { once:true });
   if(ftueDirect){
     if(splashCtl) window.addEventListener("pr:splash-finished", () => A.startFtueDirect(), { once:true });
@@ -6532,6 +6547,7 @@ if(typeof document !== "undefined" && document.getElementById("app") && !handleR
     if(S.introSeen || !coreIngest.raid.ftue){ if(silent){ toast(coreIngest.summary); maybeShowFirstDeathCard(coreIngest); } else showHomecomingSummary(coreIngest); }
     else session.pendingHomecomingSummary = coreIngest;
   }
+  if(!DEPLOY_PREVIEW && S.introSeen && !coreIngest) resumeFtueStory();
   if(!DEPLOY_PREVIEW && (!coreIngest || !coreIngest.ok)) maybeShowItemInfo();
   if(S.introSeen && !DEPLOY_PREVIEW){
     tickRetention();
