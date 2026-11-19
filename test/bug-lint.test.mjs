@@ -385,3 +385,14 @@ assert.equal(by('worldmap-new-label-gap').check().length,0);
 
 assert.equal(by('enemy-label-clearance-hold').check({gameSrc:'const blocked=overlapsAt(y,size,hudRects);if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}'}).length,1);
 assert.equal(by('enemy-label-clearance-hold').check().length,0);
+
+for(const [id,ctx] of [['base-bit-card-clears-rooms',{appSrc:'',layoutSrc:''}],['base-briefing-single-cost',{appSrc:'',bitSrc:''}],['core-restore-lights-base',{appSrc:'function ruinLevel(id,fabricator){if(!fabricator)return 2;return 1;}'}]]){
+ const rule=by(id);assert.equal(rule.check().length,0,id+' passes');assert.ok(rule.check(ctx).length,id+' rejects regression');
+}
+
+assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide base cards regress narrow Vault placement');
+
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.ok(by('base-bit-card-clears-rooms').check({appSrc:app.replace('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"','window.addEventListener("pr:ui-show"')}).length,'unguarded card listener breaks DOM-free logic and geometry tests');
+}

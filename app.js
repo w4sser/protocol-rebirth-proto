@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.52"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.54"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -445,9 +445,13 @@ function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
 // v2.28.27 (PRB-149): how destroyed the bunker reads, driven by progress alone (see index.html's
 // data-ruin CSS). 3 pre-Core-L1 (emergency), 2 Core L1 restored but Fabricator not built, 1 Fabricator
 // built but not yet core_refined, 0 core_refined (unchanged from today). Pure and exported for tests.
+// v2.28.54 (Robert's playtest, step04 lit-base-fabricator): the old tier 2 (Core L1 restored,
+// Fabricator not built) kept the brightness(.72) dim filter -- the base read as still-dark right
+// after the Core-restore cutscene, which contradicts the beat BIT just played ("circuits again").
+// The Core coming back on is the moment the bunker reads powered; Fabricator/Vault no longer gate
+// that first jump to the lit look, only the final core_refined polish still brightens further.
 function ruinLevel(baseStateId, fabricatorLevel){
   if(baseStateId === "core_found") return 3;
-  if(!fabricatorLevel) return 2;
   if(baseStateId !== "core_refined") return 1;
   return 0;
 }
@@ -2662,6 +2666,7 @@ function setupBaseViewer(){
     world.style.setProperty('--inv', String(1 / scale)); // plates keep real-size text and 44px targets
     clearPlatesFromCard(viewer, null, scale);
     placeBaseGoal(viewer);
+    placeBaseBitCard();
   }
   function zoomAt(zoom,x,y){
     const vw=viewer.clientWidth||800,vh=viewer.clientHeight||420,old=session.cameraLayout;
@@ -2750,6 +2755,60 @@ function placeBaseGoal(viewer){
     card.style.bottom = "auto";
   }
 }
+
+// v2.28.54 (Robert's playtest, step04 lit-base-fabricator): the BIT base-briefing card
+// (ui/bit-card.js, shared with the raid page) is `position:fixed` -- unlike the goal chip above,
+// its candidates stay viewport-relative, not viewer-relative. Same free-rectangle search, but the
+// goal chip itself joins the obstacle list so the card can never sit on top of it (that chip is
+// where the Fabricator/Vault room name actually lives while BIT is talking about that room).
+function placeBaseBitCard(){
+  if(document.body.dataset.screen !== "base") return;
+  const card = document.querySelector(".bit-card:not(.ctx-raid)");
+  const viewer = document.querySelector(".baseviewer");
+  if(!card || card.hidden || !viewer || !card.offsetHeight) return;
+  const v = viewer.getBoundingClientRect(), c = card.getBoundingClientRect();
+  const css = getComputedStyle(document.documentElement);
+  const inset = name => Math.max(0, ...(css.getPropertyValue(name).match(/[\d.]+(?=px)/g) || []).map(Number));
+  const gap = 4, left = Math.max(v.left, inset("--sl")) + gap;
+  const right = Math.min(v.right, innerWidth - inset("--sr")) - gap;
+  const topbar = document.getElementById("topbar");
+  const top = Math.max(v.top, topbar?.getBoundingClientRect().bottom || 0) + gap;
+  const bottom = Math.min(v.bottom, innerHeight - inset("--sb")) - gap;
+  const goal = viewer.querySelector(".progress-goal,.goalpill");
+  const obstacles = [...viewer.querySelectorAll(".mapspot,.mapspot .tag,.gen-chip,.basemenu-btn"), document.getElementById("tabs")]
+    .filter(e => e && e.offsetHeight).map(e => e.getBoundingClientRect());
+  function freeSpots(width, height, blocked, preferred){
+    const xs = [left, right - width], ys = [top, bottom - height];
+    for(const r of blocked){xs.push(r.right + gap, r.left - gap - width);ys.push(r.bottom + gap, r.top - gap - height);}
+    const candidates = [];
+    for(const x of xs) for(const y of ys){
+      if(x < left || x + width > right || y < top || y + height > bottom) continue;
+      if(blocked.some(r => x < r.right + gap && x + width > r.left - gap && y < r.bottom + gap && y + height > r.top - gap)) continue;
+      candidates.push({x,y,score:Math.hypot(x-preferred.left,y-preferred.top)});
+    }
+    return candidates.sort((a,b) => a.score-b.score);
+  }
+  const g = goal?.offsetHeight ? goal.getBoundingClientRect() : null;
+  let spot = freeSpots(c.width,c.height,g ? [...obstacles,g] : obstacles,c)[0];
+  // A ready BUILD chip can occupy the only card-sized space on a short phone. Search
+  // both rectangles together before falling back, preserving every room's hit area.
+  if(!spot && g){
+    for(const candidate of freeSpots(c.width,c.height,obstacles,c)){
+      const occupied = {left:candidate.x,top:candidate.y,right:candidate.x+c.width,bottom:candidate.y+c.height};
+      const goalSpot = freeSpots(g.width,g.height,[...obstacles,occupied],g)[0];
+      if(!goalSpot) continue;
+      goal.style.setProperty("left", (goalSpot.x-v.left) + "px", "important");
+      goal.style.top = (goalSpot.y-v.top) + "px"; goal.style.bottom = "auto";
+      spot = candidate; break;
+    }
+  }
+  if(spot){
+    card.style.setProperty("left", spot.x + "px", "important");
+    card.style.top = spot.y + "px";
+    card.style.bottom = "auto";
+  }
+}
+if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show", () => { if(document.querySelector(".baseviewer")) placeBaseBitCard(); });
 
 // v1.67: room plates never sit under the goal card. A plate that overlaps it is lifted just above the card, or moved
 // right of it when that is out of view or would cover another plate. Uses the independent `translate` property,
@@ -3605,7 +3664,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.52-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.54-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3619,7 +3678,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.52-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.54-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);
@@ -4983,7 +5042,7 @@ function queueBaseIntro(beat, after){
   if(pendingSystemIntros.has(beat.id)) return;
   pendingSystemIntros.add(beat.id);
   S.bitCardsSeen[beat.id] = false; save();
-  window.PRBitCard?.show({id:beat.id, text:beat.line + " " + beat.info.map(r => r.text).join(". "), mood:"smile", onDone:() => {
+  window.PRBitCard?.show({id:beat.id, text:beat.line, info:beat.info, mood:"smile", onDone:() => {
     pendingSystemIntros.delete(beat.id);
     S.bitCardsSeen[beat.id] = true; save();
     if(after) after();
