@@ -56,33 +56,33 @@
       "collision": "cylinder r=0.57",
       "triangle_count": 320,
       "material_count": 1,
-      "file_size_bytes": 33436,
+      "file_size_bytes": 33372,
       "notes": "Generated faceted low-poly rock, vertex-color body + olive moss wedges, baked AO."
     },
     {
       "file": "rock_gen_c.glb",
       "kind": "rock",
       "approx_dimensions_m": [
-        0.85,
-        0.8053,
-        0.5291
+        1.0,
+        0.9563,
+        0.6792
       ],
       "bbox_m": {
         "min": [
-          -0.425,
-          -0.402648,
+          -0.5,
+          -0.478145,
           0.0
         ],
         "max": [
-          0.425,
-          0.402648,
-          0.529097
+          0.5,
+          0.478145,
+          0.679213
         ]
       },
-      "collision": "cylinder r=0.42",
+      "collision": "cylinder r=0.50",
       "triangle_count": 320,
       "material_count": 1,
-      "file_size_bytes": 33440,
+      "file_size_bytes": 33436,
       "notes": "Generated faceted low-poly rock, vertex-color body + olive moss wedges, baked AO."
     },
     {

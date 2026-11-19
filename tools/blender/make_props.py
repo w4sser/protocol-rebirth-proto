@@ -363,13 +363,20 @@ def build_rock(name, seed, target_size, squash):
     hue_t = rnd.uniform(0.0, 1.0)
     base_body = lerp3(ROCK_BODY_LIGHT, ROCK_BODY_VIOLET, hue_t * 0.4)
 
-    n_sectors = rnd.choice([6, 7, 8])
+    n_sectors = rnd.choice([7, 8, 9])
     sector_offset = rnd.uniform(0, 2 * math.pi)
-    # verdict: "clearer" wedges -> fewer, crisper patches than before, not a
-    # near-half-coverage blob. ~1 in 3 sectors, confined close to the apex.
-    moss_sectors = set(i for i in range(n_sectors) if rnd.random() < 0.32)
-    if not moss_sectors:
-        moss_sectors = {rnd.randrange(n_sectors)}
+    # verdict: "clearer" wedges -> a few small, separated pie-slice patches,
+    # never two touching sectors (that reads as one big blob again).
+    order = list(range(n_sectors))
+    rnd.shuffle(order)
+    moss_sectors = set()
+    target_n = rnd.choice([2, 2, 3])
+    for i in order:
+        if len(moss_sectors) >= target_n:
+            break
+        if (i - 1) % n_sectors in moss_sectors or (i + 1) % n_sectors in moss_sectors:
+            continue
+        moss_sectors.add(i)
     moss_two_tone = {i: (MOSS_CLEAR if rnd.random() < 0.6 else MOSS_SAGE) for i in moss_sectors}
 
     maxz = max(v.co.z for v in bm.verts)
@@ -389,7 +396,7 @@ def build_rock(name, seed, target_size, squash):
 
         up = fn.z
         height_t = (center.z - minz2) / height
-        if up > 0.4 and height_t > 0.62:
+        if up > 0.45 and height_t > 0.68:
             az = math.atan2(center.y, center.x) + sector_offset
             sector = int(((az % (2 * math.pi)) / (2 * math.pi)) * n_sectors) % n_sectors
             if sector in moss_sectors:
@@ -818,7 +825,7 @@ ROCK_VARIANTS = [
     ("rock_gen_b", 22002, 1.15, (1.28, 1.05, 0.58)),
     # verdict: rock_03/c was too flat -> much less z-squash, reads as a
     # taller boulder instead of a flattened pancake.
-    ("rock_gen_c", 33003, 0.85, (1.02, 0.96, 0.86)),
+    ("rock_gen_c", 33003, 1.0, (1.0, 0.95, 0.92)),
 ]
 BARREL_VARIANT = ("barrel_gen_a", 44004)
 
