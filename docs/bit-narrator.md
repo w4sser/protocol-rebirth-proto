@@ -382,3 +382,7 @@ junction/pad, then fourth-raid shelves. `checkShelfIntro` waits for any existing
 requires unobstructed nearby sight and no living aggro enemy, and records `shelf_intro` only when
 showing the existing card. Death and timeout preserve that sight. Migration keeps explicit flags
 and leaves older unseen profiles eligible; no save version or new progression counter is needed.
+
+The shelf lane reuses an ordinary L2 grunt as an active patrol on the existing sight-cone rules;
+its walked segment crosses the fall footprint. No additional enemy or health is added. If neither
+room can fit a clear patrol segment and preserve all routes, the seed omits the shelf.

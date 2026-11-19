@@ -290,7 +290,7 @@ and leaves every otherwise-unseen profile eligible.
 ### collapsing-shelf-lane
 
 `v2.28.50 collapsing shelves`: safeguards the fourth-raid Bunker L2 gate and FTUE exclusion,
-shared interactive cap, final-footprint flood-fill proof to every node and exit, ordinary projectile
+shared interactive cap, clear active-patrol crossing, final-footprint flood-fill proof to every node and exit, ordinary projectile
 hit path, tuned warning/fall timing and impact damage/stun, and movement-only low cover that
 allows both sides to shoot over it. The exact calm first-sight BIT line must ride `round.bitSeen`
 back to the existing profile ledger. Mutation fixtures remove each contract individually;

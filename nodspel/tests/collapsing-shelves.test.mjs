@@ -49,16 +49,23 @@ test('fallen low cover blocks movement of both sides, allows shots/LOS over it a
  assert.ok(movePlayer({x:0,z:1},{x:3,z:0},obstacles,20,.36).x>2.9);
 });
 test('L2 shelves deterministic, near guards, gated, clear, capped, and all objectives remain connected',()=>{
+ let placed=0;
  for(let i=0;i<150;i++){
   const seed='shelf-'+i,a=generateLevel(2,seed),b=generateLevel(2,seed);
-  assert.ok(placeSupplyShelves(a,3),seed);assert.ok(placeSupplyShelves(b,3),seed);
-  assert.deepEqual(a.shelves,b.shelves);const s=a.shelves[0],f=s.footprint;
+  const count=a.enemies.length,ok=placeSupplyShelves(a,3);assert.equal(placeSupplyShelves(b,3),ok,seed);
+  assert.deepEqual(a.shelves,b.shelves);assert.equal(a.enemies.length,count);assert.deepEqual(a.enemies,b.enemies);
+  if(!ok)continue;placed++;const s=a.shelves[0],f=s.footprint;
+  const guard=a.enemies.find(e=>e.id===s.guardId);assert.equal(guard.active,true);assert.equal(guard.encounter,'patrol');assert.ok(a.encounters.some(e=>e.type==='patrol'&&e.enemyId===guard.id));
+  const [u,v]=guard.patrol.points;let crosses=false;
+  for(let k=0;k<=100;k++){const x=u.x+(v.x-u.x)*k/100,z=u.z+(v.z-u.z)*k/100;if(Math.abs(x-f.x)<=f.w/2&&Math.abs(z-f.z)<=f.d/2)crosses=true;}
+  assert.ok(crosses,seed);
   assert.ok(shelfPathsConnected(a,f),seed);
   assert.ok(Math.hypot(a.enemies.find(e=>e.id===s.guardId).x-f.x,a.enemies.find(e=>e.id===s.guardId).z-f.z)<=RULES.shelf.guardRange);
   for(const o of [...a.walls,...a.boxes,...a.doors??[]])assert.ok(Math.abs(f.x-o.x)>=(f.w+o.w)/2+RULES.shelf.clearance-.001||Math.abs(f.z-o.z)>=(f.d+o.d)/2+RULES.shelf.clearance-.001,seed);
   for(const o of [a.start,a.exit,...a.nodes,...a.lootBoxes])assert.ok(Math.abs(f.x-o.x)>=f.w/2+RULES.shelf.objectiveClearance||Math.abs(f.z-o.z)>=f.d/2+RULES.shelf.objectiveClearance,seed);
   for(const room of a.rooms)assert.ok([...a.barrels,...a.hazards,...a.junctions??[],...a.shelves].filter(o=>Math.abs(o.x-room.x)<=room.w/2&&Math.abs(o.z-room.z)<=room.d/2).length<=RULES.interactives.maxPerRoom);
  }
+ assert.ok(placed>=60,'safe shelf lanes remain common across seeds');
  for(const n of [1,3])assert.equal(placeSupplyShelves(generateLevel(n,'gate'),3),false);
  for(const raids of [0,1,2])assert.equal(placeSupplyShelves(generateLevel(2,'gate'),raids),false);
  assert.equal(placeSupplyShelves(generateLevel(2,'gate'),3,true),false);

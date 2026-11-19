@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.49"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.50"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -3592,7 +3592,7 @@ function mountRaidPrep3D(){
   const host=document.getElementById("pr-operator-stage");
   if(!host || typeof window === "undefined" || !window.WebGLRenderingContext ||
       /jsdom/i.test(navigator.userAgent || "") || new URLSearchParams(location.search).get("q")==="low") return;
-  import("./ui/raid-prep-scene.mjs?v=2.28.49")
+  import("./ui/raid-prep-scene.mjs?v=2.28.50")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);

@@ -1,6 +1,6 @@
-import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.49';
-import '../data/audio.js?v=2.28.49';
-import '../ui/audio.js?v=2.28.49';
+import {prepareCombatAudio,waitForCombatAudio} from './audio-ready.js?v=2.28.50';
+import '../data/audio.js?v=2.28.50';
+import '../ui/audio.js?v=2.28.50';
 export const audio=globalThis.PR_AUDIO;
 // ESM side-effect imports have no currentScript. Resolve assets relative to this module.
 audio.baseUrl=new URL('../assets/audio/',import.meta.url).href;
