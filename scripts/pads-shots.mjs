@@ -12,6 +12,9 @@ const types={'.html':'text/html','.js':'application/javascript','.mjs':'applicat
 const insets={left:47,right:47,top:0,bottom:21};
 const launchOpts={headless:true,executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']};
 const SEED='pad-1'; // Bunker L1, deterministic: 2 fuel drums near the start room (verified offline).
+const {generateLevel,placePowerPads}=await import('../nodspel/levels.js');
+const comparison=generateLevel(1,SEED);placePowerPads(comparison,2);
+const VANTAGE=comparison.junctions[0].vantage;
 const SIZES=[[844,390],[667,375],[932,430]];
 
 function serve(root){
@@ -30,7 +33,7 @@ async function withServer(root,fn){
   const server=serve(root);
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   try{return await fn('http://127.0.0.1:'+server.address().port);}
-  finally{await new Promise(r=>server.close(r));}
+  finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 }
 async function openRaid(page,base,seed=SEED,{bitCardSeen=false}={}){
   if(bitCardSeen){
@@ -51,11 +54,10 @@ async function shot(name,width,height,root,fn){
   const browser=await puppeteer.launch(launchOpts);
   try{
     const page=await browser.newPage();const errors=[];
-    page.on('pageerror',e=>errors.push(String(e)));
+    page.on('pageerror',e=>{errors.push(String(e));console.error('PAGE ERROR',name,String(e));});
     await page.setViewport({width,height,isMobile:true,hasTouch:true,deviceScaleFactor:1});
-    const info=await withServer(root,base=>fn(page,base));
     const path=`${out}/${name}-${width}x${height}.png`;
-    await page.screenshot({path});
+    const info=await withServer(root,async base=>{const info=await fn(page,base);await page.screenshot({path});return info;});
     if(errors.length)console.log('ERRORS',name,width,height,errors);
     console.log(name,width,height,JSON.stringify(info??{}));
     return {name,width,height,path,errors,...info};
@@ -69,10 +71,10 @@ for(const [w,h] of SIZES){
   for(const [phase,root] of [['before',BEFORE],['after',AFTER]]){
     results.push(await shot(`room-with-pad-${phase}`,w,h,root,async(page,base)=>{
       await openRaid(page,base,SEED,{bitCardSeen:true});
-      await page.evaluate(()=>window.__NR.teleport(-.89,-1.43));
+      await page.evaluate(p=>window.__NR.teleport(p.x,p.z),VANTAGE);
       if(phase==='after')await page.evaluate(()=>window.__NR.padDemo());
       await new Promise(r=>setTimeout(r,150));
-      return page.evaluate(()=>({junctions:window.__NR.round().level.junctions?.length??0}));
+      return page.evaluate(()=>({junctions:window.__NR.round().level.junctions?.length??0,junctionLabel:(()=>{const e=document.querySelector('.junction-label');if(!e)return null;const r=e.getBoundingClientRect();return {text:e.textContent,hidden:e.hidden,mode:e.dataset.mode,rect:{x:r.x,y:r.y,w:r.width,h:r.height}};})()}));
     }));
   }
   results.push(await shot('bit-first-sight-card',w,h,AFTER,async(page,base)=>{

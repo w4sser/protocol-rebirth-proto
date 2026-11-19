@@ -925,10 +925,11 @@ function checkDrumIntro(){
   globalThis.PRBitCard?.show({id:'fuel_drum_intro',text:line,mood:'skeptical'});
 }
 let padIntroShownThisSession=false;
+const padIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.power_pad_intro;}catch{return false;}})();
 function checkPadIntro(){
   if(padIntroShownThisSession||globalThis.PRBitCard?.isOpen())return;
-  let seen=false;try{seen=!!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.power_pad_intro;}catch{}
-  const line=powerPadBitLine(round,position,seen,solids);if(!line)return;
+  if(!round.level.junctions?.length)return;
+  const line=powerPadBitLine(round,position,padIntroSeenAtLaunch,solids);if(!line)return;
   padIntroShownThisSession=true;(round.bitSeen??=[]).push('power_pad_intro');
   globalThis.PRBitCard?.show({id:'power_pad_intro',text:line,mood:'skeptical'});
 }

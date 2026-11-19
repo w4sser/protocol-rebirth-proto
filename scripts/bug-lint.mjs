@@ -463,6 +463,15 @@ export const RULES=[
      if(!round.includes('if(!drum.playerSafe&&player)'))out.push('detonateDrum must skip the player-damage branch for a playerSafe (FTUE) drum');
      if(!round.includes('export function igniteDrums(')||!round.includes('igniteDrums(round,drum.x,drum.z,drum.chainRadius,now)'))out.push('a drum detonating must call igniteDrums so a chain can propagate to the next one');
      return out;}},
+  {id:'live-pads-junction',pr:'v2.28.49 live power pads',why:'live pads damage enemies, junction shots use the normal weapon path, day-2 pairs reserve both shared room slots and BIT first sight returns through the profile ledger',
+   check(ctx={}){const levels=ctx.levelsSrc??read('nodspel/levels.js'),combat=ctx.combatSrc??read('nodspel/combat.js'),round=ctx.roundSrc??read('nodspel/round.js'),weapon=ctx.weaponSrc??read('nodspel/weapon.js'),game=ctx.gameSrc??read('nodspel/game.mjs'),intro=ctx.padIntroSrc??read('nodspel/pad-intro.js');const out=[];
+     if(!levels.includes("completedRaids<J.unlockRaids")||!levels.includes("(level.area??'bunker')!=='bunker'")||!levels.includes('if(ftue||'))out.push('power pairs must be day-2 Bunker-only and excluded from FTUE');
+     if(!levels.includes('RULES.interactives.maxPerRoom<2')||!levels.includes('level.barrels=(level.barrels??[]).filter'))out.push('power pairs must reserve both shared per-room interactive slots');
+     if(!combat.includes('RULES.junction.enemyDps*dt')||!combat.includes('hitEnemy(round,enemy.id,now,dmg,null)'))out.push('live pads must damage enemies through normal hit bookkeeping');
+     if(!round.includes('pad.deadUntil=pad.overloadUntil+J.cooldownMs')||!round.includes('J.overloadRadius')||!round.includes('J.overloadDamage'))out.push('junction overload must deal radial damage and then cool down');
+     if(!weapon.includes("hit?.kind==='junction'")||!weapon.includes('shootJunction(round,hit.target.id,now)')||!weapon.includes('for(const t of level.junctions??[])'))out.push('normal projectiles must target and activate junctions');
+     if(!game.includes("push('power_pad_intro')")||!game.includes('powerPadBitLine(round,position,padIntroSeenAtLaunch,solids)')||!intro.includes("Water plus power. Nature's little I-told-you-so."))out.push('first-sight power-pad BIT card must keep its line and persist through bitSeen');
+     return out;}},
 ];
 
 export function runAll(ctx){const res=[];for(const r of RULES){for(const msg of r.check(ctx))res.push({rule:r.id,pr:r.pr,msg});}return res;}

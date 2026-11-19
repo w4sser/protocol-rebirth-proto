@@ -358,3 +358,11 @@ assert.equal(by('raid-waits-for-combat-sfx').check().length,0);
  assert.ok(rule.check({levelsSrc:levels,ftueSrc:ftue,roundSrc:round.replace('igniteDrums(round,drum.x,drum.z,drum.chainRadius,now);','')})
    .includes('a drum detonating must call igniteDrums so a chain can propagate to the next one'),'chain regression fires');
 }
+
+{
+ const rule=by('live-pads-junction');
+ assert.equal(rule.check().length,0,'live power pads pass as shipped');
+ assert.equal(rule.check({levelsSrc:'',combatSrc:'',roundSrc:'',weaponSrc:'',gameSrc:'',padIntroSrc:''}).length,6,'all power-pad guards fire');
+ const cases=[['levelsSrc','nodspel/levels.js','completedRaids<J.unlockRaids'],['levelsSrc','nodspel/levels.js','RULES.interactives.maxPerRoom<2'],['combatSrc','nodspel/combat.js','RULES.junction.enemyDps*dt'],['roundSrc','nodspel/round.js','pad.deadUntil=pad.overloadUntil+J.cooldownMs'],['weaponSrc','nodspel/weapon.js','shootJunction(round,hit.target.id,now)'],['gameSrc','nodspel/game.mjs',"push('power_pad_intro')"]];
+ for(const [key,path,guard] of cases){const src=fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');assert.equal(rule.check({[key]:src.replace(guard,'REMOVED')}).length,1,guard+' regression fires');}
+}

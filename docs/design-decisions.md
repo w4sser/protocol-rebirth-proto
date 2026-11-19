@@ -44,6 +44,7 @@ The Secure Slot is the one approved item-protection mechanism. **D1-A locks exac
 
 | Possession or progress | Successful extraction | Death, timeout, or deliberate abandonment |
 | --- | --- | --- |
+| 2026-11-19 | Toy 2/3: live shock pads damage and briefly stun enemies as well as the player. Shoot the amber junction to power an off pad; shooting while live triggers a larger, stronger overload, then a dead cooldown and normal cycling. Day 2 is the third raid onward (two completed raids in existing S.raids; no wall-clock gate), Bunker L1 only, never FTUE/intro. A deterministic patrol segment crosses the pad, the firing lane is clear, and the pair reserves both shared room slots by replacing that room's drums. BIT introduces first sight in a calm beat with "Water plus power. Nature's little I-told-you-so."; bitSeen persists per profile and migration leaves unknown prior sight unseen. No art/model/camera changes or new buttons. | Owner requested; implemented with tests and live-pads-junction bug lint |
 | 2026-11-16 | Room unlocks use a dark teaser with real costs/sources, then a dark-to-powered build payoff with real benefits; Fabricator and Vault share the pattern and builds never wait for an intro. First NEW FIND gets one BIT explanation; every find prioritizes the current goal and collapses other uses. | Implemented |
 | Ordinary materials, valuables, weapons, and armor found in the raid | Retained and reconciled at home | Exposed items are lost |
 | Valuable equipped weapon or armor taken from home | Returned | Lost |

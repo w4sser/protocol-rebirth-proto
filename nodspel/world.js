@@ -352,9 +352,10 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
       v.face.emissiveIntensity=dead?.05:over?2+Math.sin(now*.08):live?1.5:.6+.2*Math.sin(now*.004);
       v.cable.material.opacity=dead?.12:over?1:live?.9:.4;
       v.burst.visible=over;
-      if(over){const t=1-(v.pad.overloadUntil-now)/RULES.junction.overloadMs;v.burst.scale.setScalar(1+t*(RULES.junction.overloadRadius-1));v.burst.material.opacity=1-t*.7;}
+      if(over){const t=1-(v.pad.overloadUntil-now)/RULES.junction.overloadMs;v.burst.scale.setScalar(RULES.junction.overloadRadius*(.95+.05*t));v.burst.material.opacity=1-t*.7;}
     }
     for(const v of hazards){const t=hazardTiming(v.hazard,now,hazardClock),live=t.state==='on'||t.state==='overload',dead=t.state==='dead';
+      // recharge ring fills clockwise while the pad charges back up; hidden while live
       const prog=live||dead?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=!live&&!dead;v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
       if(v.kit)for(const st in v.kit)v.kit[st].visible=st===(live?'on':dead?'off':t.state);
       v.fill.material.color.set(KEY_AMBER);
