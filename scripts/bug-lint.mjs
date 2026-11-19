@@ -470,7 +470,7 @@ export const RULES=[
      if(!combat.includes('RULES.junction.enemyDps*dt')||!combat.includes('hitEnemy(round,enemy.id,now,dmg,null)'))out.push('live pads must damage enemies through normal hit bookkeeping');
      if(!round.includes('pad.deadUntil=pad.overloadUntil+J.cooldownMs')||!round.includes('J.overloadRadius')||!round.includes('J.overloadDamage'))out.push('junction overload must deal radial damage and then cool down');
      if(!weapon.includes("hit?.kind==='junction'")||!weapon.includes('shootJunction(round,hit.target.id,now)')||!weapon.includes('for(const t of level.junctions??[])'))out.push('normal projectiles must target and activate junctions');
-     if(!game.includes("push('power_pad_intro')")||!game.includes('powerPadBitLine(round,position,padIntroSeenAtLaunch,solids)')||!intro.includes("Water plus power. Nature's little I-told-you-so."))out.push('first-sight power-pad BIT card must keep its line and persist through bitSeen');
+     if(!game.includes("push('power_pad_intro')")||!game.includes('powerPadBitLine(round,position,padIntroSeenAtLaunch,solids,clock)')||!intro.includes("Water plus power. Nature's little I-told-you-so."))out.push('first-sight power-pad BIT card must keep its line and persist through bitSeen');
      return out;}},
 ];
 

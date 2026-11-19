@@ -27,3 +27,11 @@ test('power-pad seen id returns in terminal raid results, launch validates compl
   assert.equal(readLaunch('?raids=-5').completedRaids,0);
   assert.equal(readLaunch('?raids=no').completedRaids,0);
 });
+
+test('first sight of an existing unpaired live pad also introduces power, never off or through cover',()=>{
+ const r=setup(),pad=r.level.hazards[0];r.level.junctions=[];pad.phaseMs=0;
+ assert.equal(powerPadBitLine(r,pad,false,[],100),null);
+ assert.equal(powerPadBitLine(r,pad,false,[],2600),POWER_PAD_BIT_LINE);
+ assert.equal(powerPadBitLine(r,pad,true,[],2600),null);
+ const pos={x:pad.x,z:pad.z-4};assert.equal(powerPadBitLine(r,pos,false,[{x:pad.x,z:pad.z-2,w:2,d:1}],2600),null);
+});

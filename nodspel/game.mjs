@@ -926,10 +926,10 @@ function checkDrumIntro(){
 }
 let padIntroShownThisSession=false;
 const padIntroSeenAtLaunch=(()=>{try{return !!JSON.parse(localStorage.getItem('pr_meta_save'))?.bitCardsSeen?.power_pad_intro;}catch{return false;}})();
-function checkPadIntro(){
+function checkPadIntro(clock){
   if(padIntroShownThisSession||globalThis.PRBitCard?.isOpen())return;
-  if(!round.level.junctions?.length)return;
-  const line=powerPadBitLine(round,position,padIntroSeenAtLaunch,solids);if(!line)return;
+  if(!round.level.hazards?.length)return;
+  const line=powerPadBitLine(round,position,padIntroSeenAtLaunch,solids,clock);if(!line)return;
   padIntroShownThisSession=true;(round.bitSeen??=[]).push('power_pad_intro');
   globalThis.PRBitCard?.show({id:'power_pad_intro',text:line,mood:'skeptical'});
 }
@@ -1851,7 +1851,7 @@ function frameInner(now){
     if(round.lastPickup&&round.lastPickup.at===clock&&isValuableLoot(round.lastPickup.item))triggerBitLoot(bitExpr,clock,bitQuiet);
     if(stepDoors(round,position,clock)){setCollisions();updateHUD();notice('DOOR UNLOCKED · KEYCARD USED');}
     checkEncounterHints(clock);
-    checkDrumIntro();checkPadIntro();
+    checkDrumIntro();checkPadIntro(clock);
     if(round.gearOffer&&!nearOffer())clearGearOffer();
     if(round.weaponOffer&&!nearWeaponOffer())clearWeaponOffer();
     if(round.bagFull&&!nearBlocked())clearBagFull();
