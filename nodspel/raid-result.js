@@ -68,7 +68,7 @@ export function readLaunch(search){
     // ftue is distinct from intro: intro is the long-standing guided-raid script (any player still on
     // their pre-Fabricator first raid, old or new); ftue marks the v2.22.2 fresh-profile direct path
     // specifically, so only that cohort gets the new no-tutorial / retry-in-place / hidden-goal behaviour.
-    ftue:p.get('ftue')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest')),
+    completedRaids:Math.max(0,Math.min(100000,Math.floor(Number(p.get('raids')))||0)),ftue:p.get('ftue')==='1',hard:p.get('hard')==='1',payoff:readPayoff(p.get('payoff')),quest:readQuest(p.get('quest')),
     // v2.28.6: areas the account already scouted (their chart/survey was extracted) -- the scout crate becomes a normal crate.
     scouted:(p.get('scouted')||'').split(',').filter(a=>/^[a-z_]{1,24}$/.test(a)).slice(0,8)};
 }

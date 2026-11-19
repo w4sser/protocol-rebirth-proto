@@ -4122,7 +4122,7 @@ function coreLaunchUrl(raidId, seed, returnPath, opts){
   opts = opts || {};
   if(debugMode()) returnPath = window.PR_DEBUG.withMode(returnPath);
   return "./nodspel/?seed=" + encodeURIComponent(seed) + "&raidId=" + encodeURIComponent(raidId) +
-    "&return=" + encodeURIComponent(returnPath) +
+    "&return=" + encodeURIComponent(returnPath) + "&raids=" + encodeURIComponent(S.raids || 0) +
     (debugMode() ? "&debugMode=" + encodeURIComponent(debugMode()) : "") +
     (opts.stats ? "&stats=" + encodeURIComponent(statsParam(opts.stats)) : "") +
     (opts.gear && opts.gear.length ? "&gear=" + encodeURIComponent(opts.gear.join(",")) : "") +

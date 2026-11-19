@@ -4,7 +4,7 @@ import {extractAvailable} from './big-level.js?v=2.28.48';
 import {rarityOf} from './rarity.js?v=2.28.48';
 import {audioEvent} from './audio.js?v=2.28.48';
 import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.48';
-import {generateLevel,RULES,isHard} from './levels.js?v=2.28.48';
+import {generateLevel,RULES,isHard,placePowerPads,hazardState} from './levels.js?v=2.28.48';
 // import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.48';
 import {emptyBag,bagItems} from './raid.js?v=2.28.48';
 import {traceTargets,movePlayer} from './physics.mjs?v=2.28.48';
@@ -16,12 +16,13 @@ export const ROUND_DURATION_MS=8*60*1000;
 // export function createRound(seed,now,requestedOrder=DEFAULT_ORDER) {
 //   const order=readOrder(requestedOrder);
 // stats: validated player stats (see raid-result.js readStats); defaults to the new-player base.
-export function createRound(seed,now,stats=RULES.playerStats.base) {
+export function createRound(seed,now,stats=RULES.playerStats.base,context={}) {
   // Hard raids run on a shorter clock (RULES.hard.timerMul); round.durationMs is the raid's full length.
   const durationMs=Math.round(ROUND_DURATION_MS*(isHard()?RULES.hard.timerMul:1));
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0,medkitsUsed:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level:generateLevel(1,seed),nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
+  const level=generateLevel(1,seed);placePowerPads(level,context.completedRaids,context.ftue||context.intro);
+  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0,medkitsUsed:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level,nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -337,6 +338,27 @@ function registerHitFeel(round,enemy,now,kind){
   round.hitFeel={serial:(round.hitFeel?.serial??0)+1,enemyId:enemy.id,type:enemy.type,x:enemy.x,z:enemy.z,kind,at:now};
   (round.hitFeels??=[]).push(round.hitFeel);
 }
+// Shooting is the only control: off/warn -> live; live -> overload -> dead -> normal cycle.
+export function shootJunction(round,id,now){
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
+  const box=round.level.junctions?.find(j=>j.id===id),pad=round.level.hazards?.find(h=>h.id===box?.padId);
+  if(!pad)return false;
+  const state=hazardState(pad,now),J=RULES.junction;
+  if(state==='dead'||state==='overload')return false;
+  box.shotAt=now;
+  if(state!=='on'){
+    pad.forcedUntil=now+RULES.hazard.onMs;pad.phaseMs=-pad.forcedUntil;return true;
+  }
+  pad.forcedUntil=0;pad.overloadUntil=now+J.overloadMs;pad.deadUntil=pad.overloadUntil+J.cooldownMs;
+  pad.phaseMs=-pad.deadUntil;
+  for(const enemy of round.level.enemies){
+    if(enemy.health<=0||enemy.active===false||enemy.sleeping||Math.hypot(enemy.x-pad.x,enemy.z-pad.z)>J.overloadRadius)continue;
+    enemy.stunnedUntil=Math.max(enemy.stunnedUntil??0,now+J.stunMs);
+    hitEnemy(round,enemy.id,now,J.overloadDamage,null);
+  }
+  return true;
+}
+
 // A genuine projectile impact (or a nearby blast's cook-off, see igniteDrums/combat.js stepDrums)
 // detonates a fuel drum once; normal hitEnemy handles blast kills, score and hit feels. `player`
 // defaults to round.shooter (set by the game around the weapon step, see hitEnemy's own `from` default)

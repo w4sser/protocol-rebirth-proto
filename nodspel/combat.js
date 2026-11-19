@@ -338,17 +338,30 @@ function stepSpawners(round,combat,player,now){
   }
 }
 
-// Shock pads damage the player while 'on'. Returns true when damage was dealt.
+// All live pads affect both sides. Enemy carry is scalar scratch, reset outside live pads.
 export function stepHazards(round,player,now,dt,dash=null){
   tickRound(round,now);if(round.pauseAt!=null||round.over||!round.level.hazards?.length)return false;
-  for(const h of round.level.hazards){
-    if(hazardState(h,now)!=='on')continue;
-    if(Math.abs(player.x-h.x)<=h.w/2&&Math.abs(player.z-h.z)<=h.d/2){
-      if(dashInvulnerable(dash,now))return false;
-      h.carry=(h.carry??0)+(h.dps??RULES.hazard.damagePerSecond)*dt;
-      // hot-ok: lastHit record only on a damage tick
-      if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;round.lastHit={source:'Shock pad',sourceId:h.id,attack:'electric hazard',at:now};if(dashInvulnerable(dash,now))return false;return takeDamage(round,dmg,now);}
+  for(const enemy of round.level.enemies){
+    if(enemy.health<=0||enemy.active===false||enemy.sleeping)continue;
+    let live=false;
+    for(const h of round.level.hazards){
+      const state=hazardState(h,now);
+      if(state!=='on'&&state!=='overload')continue;
+      if(Math.abs(enemy.x-h.x)>h.w/2||Math.abs(enemy.z-h.z)>h.d/2)continue;
+      live=true;enemy.shockCarry=(enemy.shockCarry??0)+RULES.junction.enemyDps*dt;
+      enemy.stunnedUntil=Math.max(enemy.stunnedUntil??0,now+RULES.junction.stunMs);
+      if(enemy.shockCarry>=1){const dmg=Math.floor(enemy.shockCarry);enemy.shockCarry-=dmg;hitEnemy(round,enemy.id,now,dmg,null);}
+      break;
     }
+    if(!live)enemy.shockCarry=0;
   }
-  return false;
+  let damaged=false;
+  for(const h of round.level.hazards){
+    const state=hazardState(h,now);
+    if((state!=='on'&&state!=='overload')||Math.abs(player.x-h.x)>h.w/2||Math.abs(player.z-h.z)>h.d/2||dashInvulnerable(dash,now)){h.carry=0;continue;}
+    h.carry=(h.carry??0)+(h.dps??RULES.hazard.damagePerSecond)*dt;
+    // hot-ok: lastHit record only on a damage tick
+    if(h.carry>=1){const dmg=Math.floor(h.carry);h.carry-=dmg;round.lastHit={source:'Shock pad',sourceId:h.id,attack:'electric hazard',at:now};damaged=takeDamage(round,dmg,now)||damaged;}
+  }
+  return damaged;
 }

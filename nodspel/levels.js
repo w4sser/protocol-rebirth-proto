@@ -7,6 +7,7 @@ import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridg
 import {townizeLevel} from './town-layout.js?v=2.28.48';
 import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.48';
 import '../data/raid-combat.js?v=2.28.48';
+import '../data/raid-junction.js?v=2.28.48';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
@@ -159,6 +160,7 @@ export const RULES=Object.freeze({
       tool_grenade:{kind:'grenade',label:'Grenade',charges:2,fuseMs:1000,radius:2,damage:3},
       tool_emp:{kind:'emp',label:'EMP',charges:1,radius:3,stunMs:4000,stunTypes:['sentry','turret']},
       tool_decoy:{kind:'decoy',label:'Decoy',charges:2,radius:6,lureMs:5000}}},
+  junction:globalThis.DATA.raidJunction,
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
   // v2.28.48 fuel drums (docs/bit-narrator.md, docs/bug-lint.md `fuel-drums-chain-and-cap`): shared cap for
   // this and future room interactives (live pads, shelves...), so no later toy needs its own room-density rule.
@@ -579,9 +581,59 @@ function decorateLevel(level){
   return level;
 }
 // Pulsing shock pad: 'off' -> 'warn' (telegraph) -> 'on' (damages).
-export function hazardTiming(hazard,now){
-  const H=RULES.hazard,cycle=H.onMs+H.offMs,t=((now+hazard.phaseMs)%cycle+cycle)%cycle;
-  if(t>=H.offMs)return {state:'on',msLeft:cycle-t};
-  return {state:t>=H.offMs-H.warnMs?'warn':'off',msToOn:H.offMs-t};
+// Scalar state query for the simulation: no timing record allocated each frame.
+export function hazardState(hazard,now){
+  if(now<(hazard.overloadUntil??0))return 'overload';
+  if(now<(hazard.deadUntil??0))return 'dead';
+  if(now<(hazard.forcedUntil??0))return 'on';
+  const H=RULES.hazard,cycle=H.onMs+H.offMs,t=((now+(hazard.phaseMs??0))%cycle+cycle)%cycle;
+  return t>=H.offMs?'on':t>=H.offMs-H.warnMs?'warn':'off';
 }
-export function hazardState(hazard,now){return hazardTiming(hazard,now).state;}
+export function hazardTiming(hazard,now,out={}){
+  const H=RULES.hazard,cycle=H.onMs+H.offMs,t=((now+(hazard.phaseMs??0))%cycle+cycle)%cycle;
+  out.state=hazardState(hazard,now);out.msLeft=0;out.msToOn=0;
+  if(out.state==='dead')out.msToOn=hazard.deadUntil-now;
+  else if(out.state==='overload')out.msLeft=hazard.overloadUntil-now;
+  else if(out.state==='on')out.msLeft=now<(hazard.forcedUntil??0)?hazard.forcedUntil-now:cycle-t;
+  else out.msToOn=H.offMs-t;
+  return out;
+}
+
+// Day 2 = third raid (two completed raids: FTUE, then chain drums). Retained thereafter.
+// A pair consumes TWO shared interactive slots. Reserve its room by removing drums there.
+// L1 has a tested, clear patrol segment; placing its midpoint on the pad guarantees a crossing.
+export function placePowerPads(level,completedRaids=0,ftue=false){
+  level.junctions=[];
+  const J=RULES.junction;
+  if(ftue||completedRaids<J.unlockRaids||level.number!==1||level.big||(level.area??'bunker')!=='bunker'||RULES.interactives.maxPerRoom<2)return false;
+  const solids=[...level.walls,...level.boxes,...(level.doors??[])];
+  const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes];
+  for(const enemy of level.enemies){
+    const points=enemy.patrol?.points;if(!points||points.length<2)continue;
+    const a=points[0],b=points[1],len=Math.hypot(b.x-a.x,b.z-a.z);if(len<3)continue;
+    const ux=(b.x-a.x)/len,uz=(b.z-a.z)/len;
+    const room=level.rooms.find(r=>Math.abs(a.x-r.x)<r.w/2&&Math.abs(a.z-r.z)<r.d/2);
+    if(!room)continue;
+    const inside=(p,r=.5)=>Math.abs(p.x-room.x)<room.w/2-r&&Math.abs(p.z-room.z)<room.d/2-r;
+    const clear=(p,r)=>inside(p,r)&&!solids.some(o=>Math.abs(p.x-o.x)<o.w/2+r&&Math.abs(p.z-o.z)<o.d/2+r)&&!keep.some(o=>Math.hypot(p.x-o.x,p.z-o.z)<r+J.clearance);
+    for(const t of [.5,.35,.65]){
+      const pad={id:'power-pad-1',x:round2(a.x+(b.x-a.x)*t),z:round2(a.z+(b.z-a.z)*t),w:RULES.hazard.size,d:RULES.hazard.size,phaseMs:0,dps:RULES.hazard.damagePerSecond};
+      if(!clear(pad,RULES.hazard.size/2))continue;
+      for(const side of [1,-1]){
+        const box={id:'junction-1',kind:'junction',x:round2(pad.x-uz*J.cableLength*side),z:round2(pad.z+ux*J.cableLength*side),r:J.r,padId:pad.id};
+        if(!clear(box,J.r))continue;
+        // Both points are on the room's unobstructed patrol lane; prove the shooting lane too.
+        const vantage={x:pad.x+ux*J.shootingDistance,z:pad.z+uz*J.shootingDistance};
+        if(!clear(vantage,.4))continue;
+        let blocked=false;
+        for(let k=0;k<=12;k++){const f=k/12,p={x:vantage.x+(box.x-vantage.x)*f,z:vantage.z+(box.z-vantage.z)*f};
+          if(solids.some(o=>Math.abs(p.x-o.x)<o.w/2+.15&&Math.abs(p.z-o.z)<o.d/2+.15)){blocked=true;break;}}
+        if(blocked)continue;
+        box.vantage=vantage;box.patrolId=enemy.id;
+        level.barrels=(level.barrels??[]).filter(d=>!inside(d,0));
+        level.hazards.push(pad);level.junctions.push(box);return true;
+      }
+    }
+  }
+  return false;
+}
