@@ -65,7 +65,7 @@ import {isGameKey,isTypingTarget,releaseButtonFocus} from './input.js?v=2.28.52'
 import {PALETTE,pickQuality,qualitySettings,fogTuning,fpsMonitorStep,initialFpsMonitorState} from './art.js?v=2.28.52';
 import {applyEnvironmentLight} from './environment-look.js?v=2.28.52';
 import {createRaidProfiler} from './raid-profiler.js?v=2.28.52';
-import {createPostFX} from './postfx.js?v=2.28.52';
+import {createPostFX,tagBloom} from './postfx.js?v=2.28.52';
 import {createDustField} from './dust.js?v=2.28.52';
 import {createQualityUI} from './quality-ui.js?v=2.28.52';
 import {archipelagoDressingConfig,useTexturedGround} from './archipelago-dressing-policy.mjs?v=2.28.52-granite8';
@@ -139,12 +139,12 @@ renderer.debug.checkShaderErrors=new URLSearchParams(location.search).has('debug
 $('#game').appendChild(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,RAID_CAMERA.halfHeight,-RAID_CAMERA.halfHeight,RAID_CAMERA.near,RAID_CAMERA.far);
 const target=new THREE.Vector3(),cameraOffset=new THREE.Vector3(RAID_CAMERA.offset.x,RAID_CAMERA.offset.y,RAID_CAMERA.offset.z);
-// v2.9.0 mood pass: bloom/vignette/dust run only on High (q=low / weak-device defaults skip them entirely).
-// Boot-time QS (shadows, pixelRatio, prop density) stays fixed for the session; moodOn is the one live-togglable
-// piece, flipped from the Paused/Settings panel or by the auto-downgrade watchdog below.
-let moodOn=QUALITY==='high';
-let postFX=moodOn?createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight}):null;
-let dust=moodOn?createDustField():null;if(dust)scene.add(dust.points);
+// v2.9.0 mood pass, v2.28.53 selective bloom: dust/grade/vignette stay High-only (weak-device Low/Medium
+// defaults skip them entirely); bloom now also runs - cheaper, layer-isolated - on Medium (postfx.js
+// BLOOM_TIERS). Boot-time QS (shadows, pixelRatio, prop density) stays fixed for the session; moodOn/bloomTier
+// are the live-togglable pieces, flipped from the Paused/Settings panel or by the auto-downgrade watchdog below.
+function bloomTierFor(q){return q==='low'?'off':q==='medium'?'cheap':'full';}
+let moodOn=QUALITY==='high',postFX=null,dust=null;
 let autoDowngraded=false,fpsState=initialFpsMonitorState(),lastFrameAt=null;
 function setGraphicsQuality(next){
   if(next===QUALITY)return;
@@ -157,8 +157,10 @@ function setGraphicsQuality(next){
   {const s=qualitySettings(next);renderer.setPixelRatio(Math.min(devicePixelRatio,s.pixelRatio));renderer.setSize(viewWidth,viewHeight);
     renderer.shadowMap.enabled=s.shadows;sun.castShadow=s.shadows;if(sun.shadow.mapSize.x!==s.shadowMap){sun.shadow.mapSize.set(s.shadowMap,s.shadowMap);sun.shadow.map?.dispose();sun.shadow.map=null;}}
   moodOn=next==='high';
-  if(moodOn){postFX=createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight});dust=createDustField();scene.add(dust.points);}
-  else{postFX?.dispose();postFX=null;if(dust){scene.remove(dust.points);dust.dispose();dust=null;}}
+  postFX?.dispose();
+  postFX=next==='low'?null:createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight,area:AREA_SEL,bloomTier:bloomTierFor(next),gradeOn:moodOn});
+  if(moodOn){dust=createDustField();scene.add(dust.points);}
+  else if(dust){scene.remove(dust.points);dust.dispose();dust=null;}
   prewarmShaders();
   // A runtime Low downgrade must also replace the expensive vegetation instances.
   if(POLYFORK_ACTIVE&&round?.level?.archipelago)refreshArchipelagoDressing(round.level);
@@ -259,6 +261,11 @@ if(AREA_SEL==='archipelago'){
 
 if(AREA_SEL==='bunker')applyEnvironmentLight(AREA_SEL,{hemi,sun,renderer});
 
+// Needs AREA_SEL (per-world grade preset) and the per-area scene/fog/light setup above to already be
+// applied, so it's created here rather than at QUALITY's first read.
+postFX=QUALITY==='low'?null:createPostFX({renderer,scene,camera,width:viewWidth,height:viewHeight,area:AREA_SEL,bloomTier:bloomTierFor(QUALITY),gradeOn:moodOn});
+dust=moodOn?createDustField():null;if(dust)scene.add(dust.points);
+
 const cube=new THREE.BoxGeometry(1,1,1),materials={};
 function box(x,y,z,w,h,d,color,parent){
   const m=new THREE.Mesh(cube,materials[color] ||= new THREE.MeshStandardMaterial({color,roughness:.82,metalness:.12}));
@@ -346,7 +353,9 @@ for(let i=0;i<=16;i++){const t=i/16;bitMouthPositions[i*3]=-.14+.28*t;bitMouthPo
 const bitMouthGeometry=new THREE.BufferGeometry();bitMouthGeometry.setAttribute('position',new THREE.BufferAttribute(bitMouthPositions,3));
 const bitMouthLine=new THREE.Line(bitMouthGeometry,new THREE.LineBasicMaterial({color:'#0d1a20'}));bitModel.add(bitMouthLine);
 const bitAntenna=new THREE.Group();bitAntenna.position.set(0,1.02,0);bitModel.add(bitAntenna);
-box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna);
+box(0,.08,0,.035,.18,.035,'#596771',bitAntenna);
+// BIT lamp: the one gameplay-cue bloom target on BIT itself (postfx.js BLOOM_LAYER).
+tagBloom(box(0,.18,0,.09,.09,.09,'#75cfcc',bitAntenna));
 const healBeamGeometry=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
 const healBeam=new THREE.Line(healBeamGeometry,new THREE.LineBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.65,depthTest:false}));healBeam.visible=false;healBeam.frustumCulled=false;healBeam.renderOrder=4;scene.add(healBeam);
 const healHalo=new THREE.Mesh(new THREE.RingGeometry(.55,.64,48),new THREE.MeshBasicMaterial({color:'#3FE0D0',transparent:true,opacity:.6,side:THREE.DoubleSide,depthWrite:false}));healHalo.rotation.x=-Math.PI/2;healHalo.visible=false;scene.add(healHalo);
