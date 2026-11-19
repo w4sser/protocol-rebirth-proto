@@ -200,7 +200,7 @@ def bbox(obj):
 # baked lighting (addendum): real AO bake (Cycles CPU) + cheap sky/ground tint
 # ---------------------------------------------------------------------------
 
-def compute_sky_tint(mesh, ground_tint, sky_tint, strength=0.35):
+def compute_sky_tint(mesh, ground_tint, sky_tint, strength=0.55):
     """Analytic 'simple key/sky lighting' approximation: brighter toward
     +Z-facing (sky), slightly cooler/darker toward -Z-facing (ground bounce).
     Cheap (no raytracing) — a real directional-light bake was evaluated and
@@ -284,7 +284,7 @@ def apply_baked_variant(obj, base_attr="Color", baked_attr="ColorBaked",
             ao_v = ao[li] if li < len(ao) else (1.0, 1.0, 1.0)
             ao_scalar = (ao_v[0] + ao_v[1] + ao_v[2]) / 3.0
             # keep AO from crushing the read at thumbnail scale: floor it
-            ao_scalar = lerp(0.55, 1.0, ao_scalar)
+            ao_scalar = lerp(0.3, 1.0, ao_scalar)
             r = clamp01(bc[0] * ao_scalar * tint[0])
             g = clamp01(bc[1] * ao_scalar * tint[1])
             b = clamp01(bc[2] * ao_scalar * tint[2])
@@ -711,7 +711,13 @@ def frame_camera(obj, margin=1.35):
     center = Vector((0, 0, obj.dimensions.z * 0.5))
     dist = maxdim * margin * 2.6
     az = math.radians(-35)
-    el = math.radians(27)
+    # docs/art-direction.md camera reference: pitch ~52 deg. The kit's own
+    # contact_sheet.png/dusk_preview.png were shot close to that steep
+    # top-down pitch; a low (27 deg) elevation made the existing M rocks
+    # read as tall pointed cones instead of the rounded mounds they actually
+    # are in-kit, which would have made render_compare.py an unfair, broken
+    # comparison.
+    el = math.radians(50)
     pos = Vector((
         math.cos(el) * math.sin(az),
         -math.cos(el) * math.cos(az),
@@ -726,11 +732,22 @@ def frame_camera(obj, margin=1.35):
     return cam
 
 
-def render_preview(obj, filepath, other_objs, active_color_attr=None):
+def render_preview(obj, filepath, other_objs, active_color_attr=None, cavity=True):
     scene = bpy.context.scene
     mesh = obj.data
     if active_color_attr and active_color_attr in mesh.color_attributes:
         mesh.color_attributes.active_color_name = active_color_attr
+        # Workbench's VERTEX solid-shading mode (and export) reads the
+        # render-active attribute, not the edit-mode "active" one; setting
+        # only active_color_name left every preview silently showing
+        # whichever attribute was render-active since mesh creation.
+        mesh.color_attributes.render_color_index = mesh.color_attributes.find(active_color_attr)
+    # Workbench's screen-space cavity fakes its own AO-like darkening in
+    # creases regardless of vertex colors, which would mask the real baked
+    # AO this script writes into the mesh. Callers comparing baked vs
+    # unbaked colors turn this off so the difference shown is only the
+    # vertex-color data, not a viewport trick layered on top of both.
+    scene.display.shading.show_cavity = cavity
     hidden = []
     for o in other_objs:
         if o is not obj and o.type == 'MESH':
@@ -830,11 +847,14 @@ ROCK_VARIANTS = [
 BARREL_VARIANT = ("barrel_gen_a", 44004)
 
 
-def build_all(apply_bake=True):
+def build_all(apply_bake=True, reset=True):
     """Builds every prop object and (if apply_bake) its baked color variant.
     Returns (rock_objs, barrel_obj) with both 'Color' (unbaked) and, when
-    apply_bake, 'ColorBaked' color attributes present on each mesh."""
-    reset_scene()
+    apply_bake, 'ColorBaked' color attributes present on each mesh.
+    reset=False lets a caller (render_compare.py) load other objects (e.g.
+    the existing kit GLBs) into the same scene first."""
+    if reset:
+        reset_scene()
     rock_objs = []
     for name, seed, size, squash in ROCK_VARIANTS:
         obj = build_rock(name, seed, size, squash)
