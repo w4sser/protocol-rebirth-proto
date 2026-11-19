@@ -385,3 +385,11 @@ assert.equal(by('worldmap-new-label-gap').check().length,0);
 
 assert.equal(by('enemy-label-clearance-hold').check({gameSrc:'const blocked=overlapsAt(y,size,hudRects);if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}'}).length,1);
 assert.equal(by('enemy-label-clearance-hold').check().length,0);
+
+for(const id of ['selective-bloom-occlusion-and-combine','postfx-pass-disposal-and-size']){
+  assert.equal(by(id).check({postfxSrc:''}).length,1,id+' rejects missing protection');
+  assert.equal(by(id).check().length,0,id+' accepts current implementation');
+}
+const postfx=fs.readFileSync(new URL('../nodspel/postfx.js',import.meta.url),'utf8');
+for(const token of ['scene.fog=null','masked(m,false)','tBloom.value=bloom.renderTargetsHorizontal[0].texture','scene.background=background;scene.fog=fog;'])assert.equal(by('selective-bloom-occlusion-and-combine').check({postfxSrc:postfx.replace(token,'regression')}).length,1);
+for(const token of ['bloomComposer.setSize(bw,bh)','for(const pass of composer.passes)pass.dispose()','for(const pass of bloomComposer.passes)pass.dispose()','bloomMask?.dispose()'])assert.equal(by('postfx-pass-disposal-and-size').check({postfxSrc:postfx.replace(token,'regression')}).length,1);

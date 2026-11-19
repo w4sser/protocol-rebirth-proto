@@ -1,10 +1,5 @@
-// v2.9.0 mood pass, v2.28.53 selective-bloom pass: subtle post pipeline, Medium/High only (Low renders
-// straight to the canvas, no composer). Bloom used to be emissive-threshold (UnrealBloomPass reading the
-// whole composited frame): the scene's dark Cold-War palette meant only already-bright accents crossed the
-// threshold, so it read as "selective" by accident. v2.28.53 makes that explicit: gameplay cue meshes (BIT's
-// lamp, fuel-drum red bands, live power pads/junctions, the extraction zone, the shelf telegraph strap) are
-// tagged onto BLOOM_LAYER; the bloom source is a second camera pass that only sees that layer (scene.background
-// swapped to black for that pass), so walls/floors/props never bloom regardless of how brightly they're lit.
+// Selective gameplay-cue bloom and gentle per-world grading (Medium/High; Low renders directly).
+// Non-cue meshes render black to retain depth occlusion; fog is disabled only for the bloom source.
 import * as THREE from './vendor/three.module.js';
 import {EffectComposer} from './vendor/postprocessing/EffectComposer.js';
 import {RenderPass} from './vendor/postprocessing/RenderPass.js';
@@ -13,10 +8,51 @@ import {ShaderPass} from './vendor/postprocessing/ShaderPass.js';
 import {OutputPass} from './vendor/postprocessing/OutputPass.js';
 
 // Any Object3D (mesh or group) enabled on this layer is included in the bloom-only render; everything
-// else stays on the default layer 0 and is invisible to that pass, so it never blooms. Tagged objects
+// else stays on the default layer 0 and becomes a black occluder for that pass. Tagged objects
 // keep layer 0 enabled too (THREE.Object3D defaults to it), so their normal appearance is unaffected.
 export const BLOOM_LAYER=1;
-export function tagBloom(object){object.traverse(n=>n.layers.enable(BLOOM_LAYER));return object;}
+export function tagBloom(object,{unlit=false}={}){object.traverse(n=>{n.layers.enable(BLOOM_LAYER);if(unlit)n.userData.bloomUnlit=true;});return object;}
+
+// Reuse mask materials, preserve alpha-tested occluders and restore all scene state even on failure.
+// Standard materials contribute emission only; already-unlit cue shaders retain their own alpha/animation.
+export function createBloomMask(scene){
+  const cache=new WeakMap(),owned=new Set(),saved=new Map(),hidden=new Set();
+  function masked(source,emission,unlit=false){
+    let pair=cache.get(source);if(!pair){pair={};cache.set(source,pair);}
+    const key=emission?(unlit?'lamp':'emission'):'dark';
+    let m=pair[key];
+    if(!m){m=new THREE.MeshBasicMaterial({color:0,fog:false,toneMapped:false,side:source.side,
+      transparent:source.transparent,alphaTest:source.alphaTest,depthTest:source.depthTest,depthWrite:source.depthWrite,
+      forceSinglePass:true});pair[key]=m;owned.add(m);}
+    m.opacity=source.opacity;m.visible=source.visible;
+    m.map=emission&&!unlit?source.emissiveMap:source.map;m.alphaMap=source.alphaMap;
+    if(emission)m.color.copy(unlit?source.color:source.emissive).multiplyScalar(unlit?1:source.emissiveIntensity);
+    return m;
+  }
+  return {
+    render(draw){
+      const background=scene.background,fog=scene.fog;
+      try{
+        scene.background=BLOOM_BG;scene.fog=null;
+        scene.traverse(n=>{
+          if(!n.visible||!n.material)return;
+          const cue=n.layers.isEnabled(BLOOM_LAYER);
+          if(!cue&&(!n.isMesh||n.material.transparent&&!n.material.depthWrite)){hidden.add(n);n.visible=false;return;}
+          const original=n.material;
+          const mask=m=>cue?(m.emissive?masked(m,true,n.userData.bloomUnlit):m):masked(m,false);
+          saved.set(n,original);n.material=Array.isArray(original)?original.map(mask):mask(original);
+        });
+        draw();
+      }finally{
+        for(const [n,m] of saved)n.material=m;saved.clear();
+        for(const n of hidden)n.visible=true;hidden.clear();
+        scene.background=background;scene.fog=fog;
+      }
+    },
+    dispose(){for(const m of owned)m.dispose();owned.clear();},
+  };
+}
+
 
 // Cold Nordic colour grade + vignette in one pass: desaturate a little, multiply by a cool blue-grey tint
 // (brightness-preserving - this is what actually reads as "cold" at a glance, not just the fog), then darken
@@ -65,13 +101,16 @@ export function createPostFX({renderer,scene,camera,width,height,area='bunker',b
   const composer=new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene,camera));
   const tier=BLOOM_TIERS[bloomTier];
-  let bloomComposer=null,combinePass=null;
+  let bloomComposer=null,combinePass=null,bloom=null;
+  const bloomMask=tier?createBloomMask(scene):null;
   if(tier){
     const bw=Math.max(1,Math.round(width*tier.scale)),bh=Math.max(1,Math.round(height*tier.scale));
     bloomComposer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(bw,bh,{type:THREE.HalfFloatType}));
     bloomComposer.renderToScreen=false;
     bloomComposer.addPass(new RenderPass(scene,camera));
-    bloomComposer.addPass(new UnrealBloomPass(new THREE.Vector2(bw,bh),tier.strength,tier.radius,0));
+    bloom=new UnrealBloomPass(new THREE.Vector2(bw,bh),tier.strength,tier.radius,0);
+    bloomComposer.addPass(bloom);
+    bloomComposer.setSize(bw,bh);
     combinePass=new ShaderPass(BLOOM_COMBINE_SHADER);
     composer.addPass(combinePass);
   }
@@ -81,11 +120,11 @@ export function createPostFX({renderer,scene,camera,width,height,area='bunker',b
   return {
     render(){
       if(bloomComposer){
-        const mask=camera.layers.mask,background=scene.background;
-        camera.layers.set(BLOOM_LAYER);scene.background=BLOOM_BG;
-        bloomComposer.render();
-        camera.layers.mask=mask;scene.background=background;
-        combinePass.uniforms.tBloom.value=bloomComposer.readBuffer.texture;
+        const shadowAutoUpdate=renderer.shadowMap.autoUpdate;
+        try{renderer.shadowMap.autoUpdate=false;bloomMask.render(()=>bloomComposer.render());}
+        finally{renderer.shadowMap.autoUpdate=shadowAutoUpdate;}
+        // UnrealBloomPass readBuffer includes the sharp source too. Add only its blurred composite.
+        combinePass.uniforms.tBloom.value=bloom.renderTargetsHorizontal[0].texture;
       }
       composer.render();
     },
@@ -93,6 +132,11 @@ export function createPostFX({renderer,scene,camera,width,height,area='bunker',b
       composer.setSize(w,h);
       if(bloomComposer){bloomComposer.setSize(Math.max(1,Math.round(w*tier.scale)),Math.max(1,Math.round(h*tier.scale)));}
     },
-    dispose(){composer.dispose();bloomComposer?.dispose();},
+    dispose(){
+      // EffectComposer.dispose frees its targets/copy pass, but does not dispose added passes.
+      for(const pass of composer.passes)pass.dispose();composer.dispose();
+      if(bloomComposer){for(const pass of bloomComposer.passes)pass.dispose();bloomComposer.dispose();}
+      bloomMask?.dispose();
+    },
   };
 }

@@ -12,6 +12,10 @@ import * as walk from 'acorn-walk';
 
 import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
+  {id:'selective-bloom-occlusion-and-combine',pr:'v2.28.4x graphics pilot (2.28.53)',why:'the WIP layer-only source lost wall occlusion, included fog and doubled sharp cue pixels',
+   check(c={}){const s=c.postfxSrc??read('nodspel/postfx.js');return s.includes('bloomMask.render(')&&s.includes('scene.fog=null')&&s.includes('masked(m,false)')&&s.includes('finally{')&&s.includes('scene.background=background;scene.fog=fog;')&&s.includes('tBloom.value=bloom.renderTargetsHorizontal[0].texture')?[]:['bloom needs black occluders, fog-free source, state restoration and a blur-only combine'];}},
+  {id:'postfx-pass-disposal-and-size',pr:'v2.28.4x graphics pilot (2.28.53)',why:'composer disposal alone leaked custom passes and initial bloom sizing disagreed with DPR-aware resize',
+   check(c={}){const s=c.postfxSrc??read('nodspel/postfx.js');return s.includes('bloomComposer.setSize(bw,bh)')&&s.includes('for(const pass of composer.passes)pass.dispose()')&&s.includes('for(const pass of bloomComposer.passes)pass.dispose()')&&s.includes('bloomMask?.dispose()')?[]:['size bloom on creation and dispose both composers added passes and mask materials'];}},
   {id:'enemy-label-clearance-hold',pr:'v2.28.52 layout label stability',why:'Town enemy labels bypassed the clearance hold when colliding with loot/room labels',
    check(c={}){const src=c.gameSrc??read('nodspel/game.mjs');return /const blocked=[^;]*overlapsAt\(y,size,labelRects\)/.test(src)&&!src.includes('if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}')?[]:['all label collisions must use the existing clearance hold'];}},
   {id:'worldmap-new-label-gap',pr:'v2.28.52 map label fit',why:'the selected Bunker label overlapped the newly unlocked Archipelago label at 844x390',

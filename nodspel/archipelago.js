@@ -2,18 +2,18 @@
 // corridors as wooden piers, walls as clusters of chunky faceted boulders, crates stay
 // crates, props become pines (town kit pine_tree.glb when loaded, else a cone stand-in), boats float offshore.
 import * as THREE from './vendor/three.module.js';
-import {rngFrom} from './art.js?v=2.28.52';
+import {rngFrom} from './art.js?v=2.28.53';
 // v2.10.0 mood pass: grass was desaturated enough to read grey-green under fog; lifted back toward a real green.
 export const ARCH_PALETTE={water:'#17526b',waterDeep:'#06161f',sand:'#7a6d52',grass:'#7b8b42',pier:'#6b4c32',post:'#3d2a1c',rock:'#7c7e97',rockDark:'#62627f',crate:'#7a5a3a',hull:'#8a3b2e',hullTop:'#d8d2c0',foam:'#9fd6e0'};
-import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.52';
-export {archipelagoPassages} from './archipelago-passages.js?v=2.28.52';
-import {createWaterMesh} from './water-shader.js?v=2.28.52-baltic-calm3';
-import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.52-glacial-s42';
-import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.52-organic-v2';
-import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.52-glacial-merge1';
-import {bridgeClearances} from './bridge-flow.mjs?v=2.28.52-bridge1';
+import {archipelagoPassages,inPassageClearance,clearPassageProps} from './archipelago-passages.js?v=2.28.53';
+export {archipelagoPassages} from './archipelago-passages.js?v=2.28.53';
+import {createWaterMesh} from './water-shader.js?v=2.28.53-baltic-calm3';
+import {coastlineProfile,coastRingData,separateArchipelagoCoastProfiles,authorHeroIslandCoast} from './coastline.mjs?v=2.28.53-glacial-s42';
+import {registerWalkableCoast} from './archipelago-playable.mjs?v=2.28.53-organic-v2';
+import {planArchipelagoBedrock,addArchipelagoGraniteV2,addArchipelagoGroundV2,addArchipelagoTargetPortal,addArchipelagoTargetShed,addArchipelagoHorizonIslets} from './archipelago-visual-v2.mjs?v=2.28.53-glacial-merge1';
+import {bridgeClearances} from './bridge-flow.mjs?v=2.28.53-bridge1';
 import {planBridgeDeck} from './bridge-deck.mjs?v=timber-v1';
-import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.52-dinghy2';
+import {planArchipelagoBoatsV2,createArchipelagoDinghyV2} from './archipelago-boats-v2.mjs?v=2.28.53-dinghy2';
 // Check the transformed geometry, including rotated boats and supplied pine models.
 export function propInPassage(object,passages){
   const b=new THREE.Box3().setFromObject(object);

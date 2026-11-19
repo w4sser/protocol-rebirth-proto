@@ -1,19 +1,19 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.52';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.52';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.53';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.53';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.52';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.52';
-import {buildTown} from './town.js?v=2.28.52';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.52';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.52-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.52-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.52';
-import {controlCablePath} from './control-cables.js?v=2.28.52';
-import {extractAvailable} from './big-level.js?v=2.28.52';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.52';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.52';
-import {tagBloom} from './postfx.js?v=2.28.52';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.53';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.53';
+import {buildTown} from './town.js?v=2.28.53';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.53';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.53-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.53-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.53';
+import {controlCablePath} from './control-cables.js?v=2.28.53';
+import {extractAvailable} from './big-level.js?v=2.28.53';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.53';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.53';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.53';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -248,7 +248,9 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   // ring+cylinder pair -- same exit position, same EXTRACT_COLOR, gameplay radius/logic untouched.
   const extractionEffects=(level.extracts??[exit]).map(point=>{
     const fx=createExtractBeam({color:EXTRACT_COLOR,quality});
-    fx.group.position.set(point.x,0,point.z);group.add(fx.group);tagBloom(fx.group);return {point,fx};
+    fx.group.position.set(point.x,0,point.z);group.add(fx.group);
+    for(const cue of [fx.pad,fx.rim,fx.fence,fx.beam,fx.core,fx.points,...fx.pulseRings])tagBloom(cue);
+    return {point,fx};
   });
   const extractBeamFx=extractionEffects[0].fx;
   const gateProgress=nodes.map((v,i)=>{
@@ -376,7 +378,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     const track=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#3a2f12',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
     const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;tagBloom(fill);
     let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,LAYER.padTop-.06,h.z);kit[st].visible=st==='off';group.add(kit[st]);if(st==='on')tagBloom(kit[st]);}mat.opacity=.1;}
-    return {hazard:h,mat,fill,track,kit};
+    return {hazard:h,pad,mat,fill,track,kit};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
   const hazardClock={};
@@ -389,6 +391,8 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
       if(over){const t=1-(v.pad.overloadUntil-now)/RULES.junction.overloadMs;v.burst.scale.setScalar(RULES.junction.overloadRadius*(.95+.05*t));v.burst.material.opacity=1-t*.7;}
     }
     for(const v of hazards){const t=hazardTiming(v.hazard,now,hazardClock),live=t.state==='on'||t.state==='overload',dead=t.state==='dead';
+      // Only the energized surface emits bloom; charge/dead states keep their existing appearance.
+      if(live)v.pad.layers.enable(BLOOM_LAYER);else v.pad.layers.disable(BLOOM_LAYER);
       // recharge ring fills clockwise while the pad charges back up; hidden while live
       const prog=live||dead?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=!live&&!dead;v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
       if(v.kit)for(const st in v.kit)v.kit[st].visible=st===(live?'on':dead?'off':t.state);
