@@ -164,12 +164,15 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const danger=new THREE.MeshStandardMaterial({color:'#bf624e',metalness:.18,roughness:.64,emissive:'#53251e',emissiveIntensity:.5});
     const body=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.95,14),metal);
     body.position.y=.54;g.add(body);
+    // danger's emissive is a dark warning-maroon (a subtle under-light for the direct-view material, not a
+    // bloom source on its own); boost just the bloom contribution so the bands read next to the brighter
+    // pad/extraction cues, without changing how the drum looks on Low or outside the bloom pass.
     for(const y of [.21,.67,1.01]){
       const band=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.10,14),danger);
-      band.position.y=y;g.add(band);tagBloom(band);
+      band.position.y=y;g.add(band);tagBloom(band,{boost:3});
     }
     const lid=new THREE.Mesh(new THREE.CylinderGeometry(.33,.33,.07,14),danger);
-    lid.position.y=1.065;g.add(lid);tagBloom(lid);
+    lid.position.y=1.065;g.add(lid);tagBloom(lid,{boost:3});
     const ring=new THREE.Mesh(new THREE.RingGeometry(.64,.70,32),
       new THREE.MeshBasicMaterial({color:'#cf745b',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));
     ring.rotation.x=-Math.PI/2;ring.position.y=.02;g.add(ring);

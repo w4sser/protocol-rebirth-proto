@@ -11,15 +11,18 @@ import {OutputPass} from './vendor/postprocessing/OutputPass.js';
 // else stays on the default layer 0 and becomes a black occluder for that pass. Tagged objects
 // keep layer 0 enabled too (THREE.Object3D defaults to it), so their normal appearance is unaffected.
 export const BLOOM_LAYER=1;
-export function tagBloom(object,{unlit=false}={}){object.traverse(n=>{n.layers.enable(BLOOM_LAYER);if(unlit)n.userData.bloomUnlit=true;});return object;}
+// boost scales the emission colour fed to the bloom mask only - the real material (and therefore Low/Medium's
+// non-bloom appearance) is untouched. Some cues (e.g. the fuel drum's dark warning-maroon emissive) are tuned
+// to add a subtle self-illumination under direct view, not to drive a bloom pass on their own.
+export function tagBloom(object,{unlit=false,boost=1}={}){object.traverse(n=>{n.layers.enable(BLOOM_LAYER);if(unlit)n.userData.bloomUnlit=true;if(boost!==1)n.userData.bloomBoost=boost;});return object;}
 
 // Reuse mask materials, preserve alpha-tested occluders and restore all scene state even on failure.
 // Standard materials contribute emission only; already-unlit cue shaders retain their own alpha/animation.
 export function createBloomMask(scene){
   const cache=new Map(),seen=new Set(),saved=new Map(),hidden=new Set();
-  function masked(source,emission,unlit=false){
+  function masked(source,emission,unlit=false,boost=1){
     seen.add(source);let pair=cache.get(source);if(!pair){pair={};cache.set(source,pair);}
-    const key=emission?(unlit?'lamp':'emission'):'dark';
+    const key=emission?(unlit?'lamp':'emission:'+boost):'dark';
     let m=pair[key];
     if(!m){m=new THREE.MeshBasicMaterial({color:0,fog:false,toneMapped:false,side:source.side,
       transparent:source.transparent,alphaTest:source.alphaTest,depthTest:source.depthTest,depthWrite:source.depthWrite,
@@ -29,9 +32,12 @@ export function createBloomMask(scene){
     if(emission)m.map=unlit?source.map:source.emissiveMap;
     else m.map=source.alphaTest>0||source.transparent?source.map:null;
     m.alphaMap=source.alphaMap;
-    if(emission)m.color.copy(unlit?source.color:source.emissive).multiplyScalar(unlit?1:source.emissiveIntensity);
+    if(emission)m.color.copy(unlit?source.color:source.emissive).multiplyScalar(unlit?1:source.emissiveIntensity*boost);
     return m;
   }
+  // Masking a single material, kept out of the per-node traversal below so the bloom-active render loop
+  // (every frame on Medium/High) never allocates a closure per scene node.
+  function maskOne(n,cue,m){return cue?(m.emissive?masked(m,true,n.userData.bloomUnlit,n.userData.bloomBoost??1):m):masked(m,false);}
   return {
     render(draw){
       const background=scene.background,fog=scene.fog;
@@ -42,8 +48,11 @@ export function createBloomMask(scene){
           const cue=n.layers.isEnabled(BLOOM_LAYER);
           if(!cue&&(!n.isMesh||n.material.transparent&&!n.material.depthWrite)){hidden.add(n);n.visible=false;return;}
           const original=n.material;
-          const mask=m=>cue?(m.emissive?masked(m,true,n.userData.bloomUnlit):m):masked(m,false);
-          saved.set(n,original);n.material=Array.isArray(original)?original.map(mask):mask(original);
+          saved.set(n,original);
+          if(Array.isArray(original)){
+            const next=[];for(let i=0;i<original.length;i++)next.push(maskOne(n,cue,original[i]));
+            n.material=next;
+          }else n.material=maskOne(n,cue,original);
         });
         draw();
       }finally{
@@ -99,8 +108,11 @@ const BLOOM_COMBINE_SHADER={vertexShader:GRADE_VERTEX,uniforms:{tDiffuse:{value:
     void main(){vec4 base=texture2D(tDiffuse,vUv);vec3 bloom=texture2D(tBloom,vUv).rgb;gl_FragColor=vec4(base.rgb+bloom,base.a);}`};
 
 // Medium gets a quarter-resolution bloom source and a gentler strength (cheaper to blur, less GPU-visible
-// on the weaker devices that pick Medium); High gets the full-resolution, full-strength pass.
-const BLOOM_TIERS={cheap:{scale:.5,strength:.55,radius:.35},full:{scale:1,strength:.85,radius:.4}};
+// on the weaker devices that pick Medium). High shares that same quarter-resolution source - bloom is
+// blurred by design, so the extra sharpness of a full-res source was never visible - and only the
+// strength/radius go up, which keeps the full look while cutting the highpass/blur/composite fill cost
+// (the fixed-size draw calls of the mip chain) to a quarter of what a full-res source would cost.
+const BLOOM_TIERS={cheap:{scale:.5,strength:.55,radius:.35},full:{scale:.5,strength:.85,radius:.4}};
 const BLOOM_BG=new THREE.Color(0,0,0);
 
 export function createPostFX({renderer,scene,camera,width,height,area='bunker',bloomTier='full',gradeOn=true}){
