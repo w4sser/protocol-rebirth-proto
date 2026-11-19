@@ -1,3 +1,7 @@
 node_modules
 verify-out/
 /candidates/
+# scratch Workbench renders used to build contact_sheet_compare.png — raw
+# frames are copied to /home/box/prp-art/, not tracked here (tools/blender/
+# render_compare.py).
+assets/env/nature/rocks-gen/_compare_renders/

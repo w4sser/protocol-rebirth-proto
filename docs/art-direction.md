@@ -55,6 +55,7 @@ The [BIT character specification](bit-character-spec.md), [original proportion s
 - **Walkable ground:** relatively flat, lighter, continuous, and low in texture noise. Hard boundaries use vertical granite, dense vegetation, and compressed values. Valid routes are framed by negative space, clear sightlines, and warm destination light.
 - **Bunker interior:** CRT glow, wiring, and sparse practical lamps, never daylight. Amber utility lighting provides the only warmth.
 - **Camera reference:** pitch ≈52°, vertical FOV ≈38°. Operator occupies 12–13% of screen height in the nominal view (10–11% for wider threats; 14–15% for near threats); focus is 2–3 m ahead; transitions take 0.4–0.7 seconds with hysteresis. Fade foreground objects locally only when they obscure OP-01 or a relevant threat.
+- **Generated prop pipeline (opt-in, 2026-11-19):** `tools/blender/make_props.py` is a seeded, self-contained headless-Blender script (Workbench previews, CPU-only Cycles for a short AO bake — no GPU on the build machine) that produces granite rocks and a steel drum matching this kit's faceted/vertex-color language, written up with a side-by-side comparison against the hand-authored kit in [`assets/env/nature/rocks-gen/README.md`](../assets/env/nature/rocks-gen/README.md). It is a production-restraint proof, not a new visual style, and its output is not wired into any level.
 
 ## Characters and Original Identity
 
