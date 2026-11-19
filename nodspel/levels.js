@@ -476,9 +476,11 @@ function placeFuelDrums(level,rng){
   const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes];
   level.barrels=[];
   for(const room of level.rooms){
-    // Ordinary mobs only: a room already running a scripted encounter (patrol/guard/turret/swarm/shield)
-    // keeps its own single tuned problem, never a drum stacked on top of it (max 1-2 interactives/room).
-    const roomEnemies=level.enemies.filter(e=>!e.encounter&&!e.patrol&&Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2);
+    const inRoom=e=>Math.abs(e.x-room.x)<=room.w/2&&Math.abs(e.z-room.z)<=room.d/2;
+    // A room already running a scripted encounter (patrol/guard/turret/swarm/shield) keeps its own
+    // single tuned problem, never a drum stacked on top of it (max 1-2 interactives/room).
+    if(level.enemies.some(e=>(e.encounter||e.patrol)&&inRoom(e)))continue;
+    const roomEnemies=level.enemies.filter(inRoom);
     const grunts=roomEnemies.filter(e=>e.type==='grunt');
     const anchors=grunts.length?grunts:roomEnemies;
     if(!anchors.length)continue;
