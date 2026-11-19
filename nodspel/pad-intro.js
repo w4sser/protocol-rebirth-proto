@@ -1,6 +1,6 @@
 // A calm, first-sight moment. The profile owns persistence through RaidResult.bitSeen.
-import {RULES} from './levels.js?v=2.28.48';
-import {traceTargets} from './physics.mjs?v=2.28.48';
+import {RULES} from './levels.js?v=2.28.49';
+import {traceTargets} from './physics.mjs?v=2.28.49';
 export const POWER_PAD_BIT_LINE="Water plus power. Nature's little I-told-you-so.";
 const NO_TARGETS=[];
 export function powerPadBitLine(round,position,alreadySeen,solids=round.level.walls){
