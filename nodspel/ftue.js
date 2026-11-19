@@ -35,7 +35,7 @@ export function applyFtueLevel(round){
     Object.assign(level.nodes[0],at(o.node),{shielded:false});
     Object.assign(level.exit,at(o.exit));
     level.boxes=o.cover.map(b=>({...b,...at(b)}));
-    level.junctions=[];level.encounters=[];level.spawners=[];level.hazards=[];
+    level.shelves=[];level.junctions=[];level.encounters=[];level.spawners=[];level.hazards=[];
     level.firstGraceMs=o.graceMs;
     ftueGuaranteeAlloy(level);
   }

@@ -4,7 +4,7 @@ import {audioEvent} from './audio.js?v=2.28.49';
 import {ownRooms} from './perks.js?v=2.28.49';
 import {RULES,hazardState} from './levels.js?v=2.28.49';
 import {traceTargets,movePlayer,moveWithActors,aimEndpoint,shotContact} from './physics.mjs?v=2.28.49';
-import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums} from './round.js?v=2.28.49-ftue-opening-v1';
+import {takeDamage,tickRound,hitEnemy,detonateDrum,igniteDrums,stepShelves} from './round.js?v=2.28.49-ftue-opening-v1';
 import {houseWaypoint} from './house.js?v=2.28.49';
 import {angleDiff,angleTo,turnToward,encounterDamage,inSightCone,sightRange} from './encounters.js?v=2.28.49';
 import {detectionMultiplier} from './stakes.js?v=2.28.49';
@@ -40,6 +40,7 @@ export function stepCombat(round,combat,player,now,dt,obstacles,dash=null){
   stepSpawners(round,combat,player,now);
   stepBlasts(round,combat,player,now,dash,obstacles);
   stepDrums(round,now,obstacles,player);
+  stepShelves(round,player,now);
   if(now<combat.graceUntil&&!anyNearMissAggro(round.level.enemies))return;
   const rule=RULES.combat,target=hotPlayerTarget;target.x=player.x;target.z=player.z;
   for(const enemy of round.level.enemies){

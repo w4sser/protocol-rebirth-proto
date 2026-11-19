@@ -4,7 +4,7 @@ import {extractAvailable} from './big-level.js?v=2.28.49';
 import {rarityOf} from './rarity.js?v=2.28.49';
 import {audioEvent} from './audio.js?v=2.28.49';
 import {PERKS,perkState,hasPerk,logCombat,roomKey,ownRooms,updateClears,autoPickPerks,resetPerks} from './perks.js?v=2.28.49';
-import {generateLevel,RULES,isHard,placePowerPads,hazardState} from './levels.js?v=2.28.49';
+import {generateLevel,RULES,isHard,placePowerPads,placeSupplyShelves,hazardState} from './levels.js?v=2.28.49';
 // import {DEFAULT_ORDER,readOrder} from './raid.js?v=2.28.49';
 import {emptyBag,bagItems} from './raid.js?v=2.28.49';
 import {traceTargets,movePlayer} from './physics.mjs?v=2.28.49';
@@ -22,7 +22,7 @@ export function createRound(seed,now,stats=RULES.playerStats.base,context={}) {
   stats={...RULES.playerStats.base,...stats};
   const bagCapacity=bagCap(stats.bagCapacity);
   const level=generateLevel(1,seed);placePowerPads(level,context.completedRaids,context.ftue||context.intro);
-  return {seed,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0,medkitsUsed:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level,nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
+  return {seed,completedRaids:context.completedRaids??0,guidedIntro:!!context.intro,stats,bagCapacity,shield:Math.max(0,Math.round(stats.shield||0)),maxShield:Math.max(0,Math.round(stats.shield||0)),maxHealth:stats.maxHealth,telemetry:{distanceM:0,dashes:0,holdNodes:0,damageTaken:0,medkitsUsed:0},durationMs,hard:isHard(),deadline:now+durationMs,remainingMs:durationMs,over:false,reason:null,health:stats.maxHealth,equip:{weapon:null,armor:null},backpack:[],backpackWeaponStates:[],weaponState:null,bag:emptyBag(),extracted:emptyBag(),lost:emptyBag(),cleared:false,level,nodesLit:0,enemiesDefeated:0,levelsCleared:0,stakes:createStakesState()};
 }
 // Raid bag size: meta sends it (?bag=) from upgrades + gear; clamped to [capacity, maxCapacity].
 export function bagCap(n){const L=RULES.loot,v=Math.floor(Number(n));return Number.isFinite(v)?Math.min(L.maxCapacity,Math.max(L.capacity,v)):L.capacity;}
@@ -469,9 +469,36 @@ export function enterExit(round,position,now) {
   if(round.level.number===3){secureBag(round);round.cleared=true;round.over=true;round.reason='complete';resetPerks(round);return 'complete';}
   round.exitLevel=round.level;round.keys=[];
   round.level=generateLevel(round.level.number+1,round.seed);
+  placeSupplyShelves(round.level,round.completedRaids,!!round.ftue||round.guidedIntro);
   applyFtueLevel(round);
   // A hunter wave's pending spawn point (nodspel/stakes.js) belonged to the level just left; drop it so the
   // next stepStakes() picks a zone in the new level instead of spawning hunters at stale coordinates.
   if(round.stakes)round.stakes.pendingSpawn=null;
   return 'next';
 }
+
+export function shootShelf(round,id,now){
+  tickRound(round,now);if(round.over||round.pauseAt!=null)return false;
+  const shelf=round.level.shelves?.find(s=>s.id===id);
+  if(!shelf||shelf.active||shelf.tipAt!=null)return false;
+  shelf.shotAt=now;shelf.hits++;
+  if(shelf.hits>=RULES.shelf.hitsToTip)shelf.tipAt=now;
+  return true;
+}
+// No allocations in the timer path. A fallen shelf is movement-only low cover for
+// both sides; a body caught underneath can move outward through its new collider.
+export function stepShelves(round,player,now){
+  if(round.over||round.pauseAt!=null)return;
+  for(const shelf of round.level.shelves??EMPTY_SHELVES){
+    if(shelf.active||shelf.tipAt==null||now<shelf.tipAt+RULES.shelf.telegraphMs+RULES.shelf.fallMs)continue;
+    shelf.active=true;shelf.fallenAt=now;Object.assign(shelf.collider,shelf.footprint);
+    const f=shelf.footprint;
+    for(const enemy of round.level.enemies){
+      if(enemy.health<=0||enemy.active===false||enemy.sleeping||Math.abs(enemy.x-f.x)>f.w/2||Math.abs(enemy.z-f.z)>f.d/2)continue;
+      enemy.stunnedUntil=Math.max(enemy.stunnedUntil??0,now+RULES.shelf.stunMs);
+      hitEnemy(round,enemy.id,now,RULES.shelf.damage,null);
+    }
+    if(player&&Math.abs(player.x-f.x)<=f.w/2&&Math.abs(player.z-f.z)<=f.d/2)takeDamage(round,RULES.shelf.playerDamage,now);
+  }
+}
+const EMPTY_SHELVES=Object.freeze([]);

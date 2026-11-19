@@ -12,6 +12,11 @@ export function movePlayer(position, delta, boxes, floors, radius) {
       // both axes forever. New overlaps remain blocked.
       return distance<radius+b.r-1e-8&&distance<=previous+1e-9;
     }
+    if(b.movementOnly){
+      const penetration=Math.min(b.w/2+radius-Math.abs(x-b.x),b.d/2+radius-Math.abs(z-b.z));
+      const previous=Math.min(b.w/2+radius-Math.abs(p.x-b.x),b.d/2+radius-Math.abs(p.z-b.z));
+      if(previous>0&&penetration<previous)return false;
+    }
     const cx = Math.max(b.x - b.w / 2, Math.min(x, b.x + b.w / 2));
     const cz = Math.max(b.z - b.d / 2, Math.min(z, b.z + b.d / 2));
     return Math.hypot(x - cx, z - cz) < radius;
@@ -73,6 +78,7 @@ export function moveWithActors(position,delta,enemies,solids,floors,radius){
 // v2.24.0 hot path: the x/z slab test is unrolled (the old `for (const [axis,size] of [['x','w'],['z','d']])`
 // allocated three arrays + an iterator per call, and this runs thousands of times per frame).
 function boxHit(a, b, box) {
+  if(box.movementOnly)return Infinity;
   let near = 0, far = 1;
   const dx = b.x - a.x, xlo = box.x - box.w / 2, xhi = box.x + box.w / 2;
   if (Math.abs(dx) < 1e-9) {
