@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createRound,initEquip,takeDamage,tickRound,activateNode,enterExit,collectLoot,detonateFtueBarrel} from '../round.js?v=2.28.47';
+import {createRound,initEquip,takeDamage,tickRound,activateNode,enterExit,collectLoot,detonateDrum} from '../round.js?v=2.28.47';
 import {FTUE,ftueAssist,initFtueRound} from '../ftue.js?v=2.28.47';
 import {applyIntroEncounter} from '../progression-goal.js?v=2.28.47';
 import {createWeapon,fireAimedWeapon,stepWeapon} from '../weapon.js?v=2.28.47';
@@ -45,17 +45,17 @@ test('the barrel is hittable by a real bullet, killing the grouped enemies',()=>
   assert.ok(stepWeapon(w,r,350,.4,solids(r)));
   assert.equal(barrel.active,true);
   assert.equal(r.enemiesDefeated,2);
-  assert.equal(r.ftueExplosion.kills,2);
+  assert.equal(r.drumExplosion.kills,2);
   assert.equal(r.level.enemies[0].health,1);
 });
 test('the drum applies radial knockback, with one detonation and two credited kills',()=>{
   const r=setup('knockback'),b=r.level.barrels[0],group=r.level.enemies.slice(1),distance=group.map(e=>Math.hypot(e.x-b.x,e.z-b.z));
-  assert.equal(detonateFtueBarrel(r,b.id,100,solids(r)),true);
+  assert.equal(detonateDrum(r,b.id,100,solids(r)),true);
   assert.deepEqual(group.map(e=>e.health),[0,0]);
   assert.ok(group.every((e,i)=>Math.hypot(e.x-b.x,e.z-b.z)>distance[i]),'outward pushback regardless of mirrored room side');
   assert.equal(r.enemiesDefeated,2);
-  assert.equal(detonateFtueBarrel(r,b.id,200,solids(r)),false);
-  assert.equal(r.ftueExplosion.serial,1);
+  assert.equal(detonateDrum(r,b.id,200,solids(r)),false);
+  assert.equal(r.drumExplosion.serial,1);
   assert.equal(r.enemiesDefeated,2);
 });
 test('player can ignore the barrel and take real materials to extraction',()=>{
