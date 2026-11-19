@@ -32,6 +32,7 @@ assert(d.querySelector('.pr-mission-btn'),'mission planning remains accessible')
 assert(d.querySelector('.pr-risk-card .riskbar'),'loss warning stays visible');
 assert.equal(d.querySelectorAll('.node-raid-launch').length,1,'only one deploy action');
 assert.equal(d.querySelector('.node-raid-launch').getAttribute('onclick'),'A.deployNodeRaid()','deploy retains real raid launch');
+assert.equal(d.querySelector('.node-raid-launch').textContent.trim(),'DEPLOY','launch button displays only DEPLOY');
 assert(!d.querySelector('.lobby-top .hard-btn, .lobby-top .bigmap-btn'),'debug-like options are not top-level');
 assert(d.querySelector('#mission-panel .bigmap-btn'),'advanced big map option is in Mission');
 w.A.planToggle(true);
@@ -40,6 +41,7 @@ w.A.planToggle(false);
 assert(d.querySelector('#mission-panel').hidden,'mission panel closes');
 const styles=fs.readFileSync(path+'/ui/raid-prep.css','utf8');
 assert(styles.includes('body[data-screen="prep"] #tabs{display:none!important}'),'bottom tabs hidden on prep only');
+assert(!/\.playbtn b::before\s*\{/.test(styles),'Deploy does not prepend a decorative arrow');
 assert(styles.includes('raid-prep-bunker.avif'),'authored bunker threshold background is used');
 assert(!styles.includes('env_base.webp'),'base overview map no longer appears on Deploy');
 assert(styles.includes('raid-prep-operator.avif'),'fallback is the hooded faceless scavenger, not the gameplay placeholder');
