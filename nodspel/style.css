@@ -427,3 +427,9 @@ body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract
   #raid-goal>b{font-size:7px}
   #raid-goal small{display:none}
 }
+
+/* Paired junction instructions stay compact beside the box at phone sizes. */
+.hazard-label.junction-label{font-size:10px;line-height:1.2;color:var(--ad-loot);background:var(--ad-night);padding:3px 5px;border:1px solid var(--ad-loot);text-shadow:none;white-space:nowrap}
+.hazard-label.junction-label[data-state=on],.hazard-label.junction-label[data-state=overload]{font-size:10px;color:var(--ad-danger);border-color:var(--ad-danger)}
+.hazard-label.junction-label[data-state=warn]{font-size:10px;animation:none}
+.hazard-label.junction-label[data-state=dead]{color:var(--ad-bone);border-color:var(--ad-bone)}

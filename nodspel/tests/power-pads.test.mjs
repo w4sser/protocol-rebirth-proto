@@ -80,6 +80,6 @@ test('no pair before day 2, in FTUE, other areas or later floors',()=>{
   for(const area of ['archipelago','town'])assert.equal(placePowerPads(generateLevel(1,'gate',area),2),false);
   for(const n of [2,3])assert.equal(placePowerPads(generateLevel(n,'gate'),2),false);
   const r=createRound('pads-gate',0,undefined,{completedRaids:2,ftue:true});assert.equal(r.level.junctions.length,0);
-  applyFtueLevel(r.level);assert.equal(r.level.junctions.length,0);assert.equal(r.level.hazards.length,0);
+  r.ftue={healthMul:1,speedMul:1};applyFtueLevel(r);assert.equal(r.level.junctions.length,0);assert.equal(r.level.hazards.length,0);
   assert.equal(createRound('pads-gate',0,undefined,{completedRaids:2}).level.junctions.length,1);
 });

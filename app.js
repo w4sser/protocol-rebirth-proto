@@ -109,8 +109,6 @@ function freshState(){
     log: []
   };
   D.modules.forEach(m => st.modules[m.id] = 0);
-  // Power pads did not exist in older raids: raid count cannot prove first sight.
-  // Preserve an explicit power_pad_intro flag; otherwise leave unseen for the live card.
   return st;
 }
 function save(){ if(DEPLOY_PREVIEW || (typeof resetting !== "undefined" && resetting)) return; try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
@@ -266,6 +264,8 @@ function migrateBitCardsSeen(st){
   // seen a fuel drum (every Bunker raid, including the FTUE, places at least one) -- never replay
   // the intro just because this feature shipped after the player did.
   if(st.bitCardsSeen.fuel_drum_intro === undefined && (st.raids || 0) > 0) st.bitCardsSeen.fuel_drum_intro = true;
+  // Power pads did not exist in older raids: raid count cannot prove first sight.
+  // Preserve an explicit power_pad_intro flag; otherwise leave unseen for the live card.
   return st;
 }
 // v1.41: Athletics became Mobility (same xp); Vitality retired (health now comes from gear).

@@ -32,7 +32,7 @@ import {houseSolids,stepHouse,doorAssist,HOUSE} from './house.js?v=2.28.48';
 import {moveWithActors,traceTargets,aimEndpoint} from './physics.mjs?v=2.28.48-organic-v2';
 import {rarityOf,updateReveal,RARITY_COLORS} from './rarity.js?v=2.28.48';
 import {safeSpawn} from './spawn.js?v=2.28.48';
-import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum} from './round.js?v=2.28.48-ftue-opening-v1';
+import {extractRound,abandonRound,takeDamage,createRound,tickRound,enterExit,exitIsOpen,roundSummary,collectLoot,dropItem,swapLoot,useHealthKit,healthKitBlock,stepNodeInteraction,bagCapacityOf,lootAction,initEquip,swapGear,gearItem,gearSlotOf,doorSolids,stepDoors,stashWeapon,equipFromBackpack,compareWeapons,backpackCapacityOf,carriedCount,activateNode,detonateDrum,shootJunction} from './round.js?v=2.28.48-ftue-opening-v1';
 import {encountersOf,hintFor,deathTip} from './encounters.js?v=2.28.48';
 import {createCombat,stepCombat,stepHazards,guardShotDirections} from './combat.js?v=2.28.48-ftue-opening-v1';
 import {createTurretWarning,updateTurretWarning} from './turret-warning.mjs?v=2.28.48';
@@ -370,6 +370,7 @@ setScouted(launch.scouted);
 if(launch.quest?.type==='extract'&&launch.quest.prog<launch.quest.n)setQuestLoot({item:launch.quest.target,level:launch.quest.level||1});
 setGuaranteeLoot(launch.vestGuarantee);
 let hazardLabels=[];
+const hazardLabelClock={};
 let playerMoving=false;
 let round,world,combat,weapon,position,solids=[],playerSolids=[],aim={x:0,z:-1},elapsed=0,resetCount=0,hitUntil=0;
 let dash=createDash(),walkDirection={x:0,z:-1};
@@ -1061,7 +1062,7 @@ function loadLevelInner(){
     const meter=document.createElement('div');meter.className='node-meter';meter.hidden=true;meter.setAttribute('role','progressbar');meter.setAttribute('aria-label','Node activation');meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');
     const fill=document.createElement('i');meter.append(fill);v.label.el.append(meter);v.label.meter=meter;v.label.fill=fill;
   }
-  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,.9,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
+  hazardLabels=(round.level.hazards??[]).map(h=>({hazard:h,label:(()=>{const l=makeLabel('',new THREE.Vector3((round.level.junctions??[]).find(j=>j.padId===h.id)?.x??h.x,.9,(round.level.junctions??[]).find(j=>j.padId===h.id)?.z??h.z),h.junctionId?'hazard-label junction-label':'hazard-label hazard-icon');setIconText(l.caption,'hazard','');return l;})()}));
   world.exitLabel=makeLabel('',new THREE.Vector3(round.level.exit.x,1.8,round.level.exit.z),'exit-label','exit','EXIT');
   for(const room of round.level.rooms)makeLabel(room.name.toUpperCase(),new THREE.Vector3(room.x,.1,room.z-room.d/2+1),'room-label','room',room.name.toUpperCase());
   for(const v of world.enemies)labelEnemyVisual(v);
@@ -1554,6 +1555,22 @@ if(new URLSearchParams(location.search).has('debug'))Object.assign(window.__NR,{
     a.active=true;a.explodedAt=gameClock();if(b!==a)b.cookingAt=gameClock();
     setCollisions();return {a:a.id,b:b.id,count:drums.length,distance:best};
   },
+  // Deterministic captures use actual activation/damage, with no camera or art changes.
+  padDemo(mode='room'){
+    const j=round.level.junctions?.[0];if(!j)return null;
+    const p=round.level.hazards.find(h=>h.id===j.padId),now=gameClock();
+    teleportPlayer(j.vantage.x,j.vantage.z);
+    for(const e of round.level.enemies){e.aggro=false;e.sleeping=true;}
+    p.phaseMs=-now;p.forcedUntil=0;p.deadUntil=0;p.overloadUntil=0;
+    let enemy=null;
+    if(mode==='live'||mode==='overload'){
+      enemy=round.level.enemies.find(e=>e.id===j.patrolId);enemy.x=p.x;enemy.z=p.z;enemy.health=20;enemy.sleeping=false;enemy.aggro=false;
+      shootJunction(round,j.id,now);
+      if(mode==='overload')shootJunction(round,j.id,now+1);
+      else stepHazards(round,position,now,.5,dash);
+    }
+    return {pad:p.id,junction:j.id,mode,enemyHealth:enemy?.health,state:hazardState(p,now+2)};
+  },
   playerKnockDemo(){
     const drum=(round.level.barrels??[]).find(b=>!b.active);if(!drum)return null;
     teleportPlayer(drum.x+1.1,drum.z);
@@ -1847,7 +1864,7 @@ function frameInner(now){
     playerMoving=playerMoving||playerDisplaced(beforeCombat,position);
     if(stepTools(round,clock).length)updateHUD();
     stepHazards(round,position,clock,dt,dash);world.animateHazards?.(clock);
-    for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock);label.el.dataset.state=t.state;
+    for(const {hazard,label} of hazardLabels){const t=hazardTiming(hazard,clock,hazardLabelClock);label.el.dataset.state=t.state;
       const paired=!!hazard.junctionId;
       const text=t.state==='dead'?'PAD COOLING':t.state==='overload'?'PAD OVERLOAD':t.state==='on'?(paired?'SHOOT BOX: OVERLOAD':'Shock pad active'):(paired?'SHOOT BOX: POWER ON':t.state==='warn'?'Shock pad charging':'Shock pad');
       label.el.setAttribute('aria-label',text);if(paired)label.caption.textContent=text;}
