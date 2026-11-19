@@ -106,6 +106,7 @@ policy. Each caller picks whatever persistence fits:
 | `vault_unlocked` (build payoff) | `app.js` `A.build`, first Vault build | "The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap." | smile |
 | `fuel_drum_intro` (v2.28.48) | `nodspel/game.mjs` `checkDrumIntro` (trigger: `nodspel/drum-intro.js` `fuelDrumBitLine`), first sight of any fuel drum -- including the FTUE drum -- in a calm beat (no aggro enemy); persisted via the raid result's `bitSeen` (`nodspel/raid-result.js`), ingested into `S.bitCardsSeen` by `app.js` `ingestRaidResult` | "Red bands mean a plan. I'd kick it myself, but I don't have legs." | skeptical |
 | `power_pad_intro` (v2.28.49) | `nodspel/game.mjs` `checkPadIntro` / `nodspel/pad-intro.js`, near a visible junction or an existing live unpaired pad in a calm beat; once per profile via `round.bitSeen` -> RaidResult -> `S.bitCardsSeen`. Older raid counts cannot prove pad sight, so migration leaves this unseen. | "Water plus power. Nature's little I-told-you-so." | skeptical |
+| `shelf_intro` (v2.28.50) | `nodspel/game.mjs` `checkShelfIntro` / `nodspel/shelf-intro.js`: first nearby unobstructed upright shelf, calm beat, outside FTUE. Once per profile through `round.bitSeen` -> RaidResult -> `S.bitCardsSeen`; older saves remain unseen. | "Gravity: still free, still rude." | skeptical |
 
 ## Mini cutscenes
 
@@ -314,6 +315,7 @@ explain, following "Adding a new BIT card moment" above.
 | System | Moment |
 | --- | --- |
 | Live pads hurt and briefly stun enemies. Shoot the amber junction: off to live; live to overload, then cooldown. | `power_pad_intro`, first visible junction or live pad in a calm beat. Junction pairs appear from the third Bunker raid onward; legacy standalone pads retain their existing floor placement. The pad and box share two room slots. |
+| Supply shelf: shoot twice, read the fall shadow, then collapse damages/stuns enemies and lightly hurts the player. Fallen shelves block movement; shots pass over them. | `shelf_intro`, first visible upright shelf in a calm beat. Fourth Bunker raid onward (`completedRaids >= 3`), L2 room edge lane; narrow corridors stay passable. |
 
 **Added in this PR (PRB-162):**
 
@@ -374,3 +376,13 @@ explaining Used for once. Later finds use the compact item card alone. The next 
 goal leads, then a tracked quest or affordable recipe, then general uses; additional uses
 start collapsed. Sell/Recycle values remain visible. Old saves with an already seen find
 skip the explanation; items still queued for their first popup do not count as seen.
+
+Supply shelves complete the three-toy systems-first sequence: FTUE drum, chain drums, third-raid
+junction/pad, then fourth-raid shelves. `checkShelfIntro` waits for any existing narrator card,
+requires unobstructed nearby sight and no living aggro enemy, and records `shelf_intro` only when
+showing the existing card. Death and timeout preserve that sight. Migration keeps explicit flags
+and leaves older unseen profiles eligible; no save version or new progression counter is needed.
+
+The shelf lane reuses an ordinary L2 grunt as an active patrol on the existing sight-cone rules;
+its walked segment crosses the fall footprint. No additional enemy or health is added. If neither
+room can fit a clear patrol segment and preserve all routes, the seed omits the shelf.

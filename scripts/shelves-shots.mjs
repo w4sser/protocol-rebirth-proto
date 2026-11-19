@@ -1,0 +1,109 @@
+// v2.28.50 collapsing shelves screenshot harness (pattern: /workspace/prp-hibernate-v22845/scripts/hibernate-shots.mjs
+// raid branch; raid page nodspel/?debug=1&area=bunker&seed=...). Local review only; no art is modified.
+import http from 'node:http';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {resolve,extname,sep} from 'node:path';
+const require=createRequire('/workspace/pptr/package.json');
+const puppeteer=require('puppeteer');
+const out=process.env.SHELVES_SHOTS_OUT||'/workspace/prp-shelves-v22850-shots';
+await mkdir(out,{recursive:true});
+const types={'.html':'text/html','.js':'application/javascript','.mjs':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.m4a':'audio/mp4','.ogg':'audio/ogg','.woff2':'font/woff2'};
+const insets={left:47,right:47,top:0,bottom:21};
+const launchOpts={headless:true,executablePath:process.env.CHROME_PATH||'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']};
+const SEED='shelf-1'; // Same seeded L2 room edge lane in before/after captures.
+const {generateLevel,placeSupplyShelves}=await import('../nodspel/levels.js');
+const comparison=generateLevel(2,SEED);placeSupplyShelves(comparison,3);
+const VANTAGE=comparison.shelves[0].vantage;
+const SIZES=process.env.SHELVES_SHOT_SIZES?JSON.parse(process.env.SHELVES_SHOT_SIZES):[[844,390],[667,375],[932,430]];
+
+function serve(root){
+  return http.createServer(async(req,res)=>{
+    const pathname=decodeURIComponent(new URL(req.url,'http://x').pathname);
+    const file=resolve(root,'.'+(pathname.endsWith('/')?pathname+'index.html':pathname));
+    if(!file.startsWith(root+sep)){res.writeHead(403);res.end();return;}
+    try{
+      let data=await readFile(file);const ext=extname(file);
+      if(ext==='.html'||ext==='.css')data=String(data).replace(/env\(\s*safe-area-inset-(left|right|top|bottom)\s*(?:,[^()]*(?:\([^()]*\))?[^()]*)?\)/g,(_,side)=>insets[side]+'px');
+      res.writeHead(200,{'Content-Type':types[ext]||'application/octet-stream'});res.end(data);
+    }catch{res.writeHead(404);res.end();}
+  });
+}
+async function withServer(root,fn){
+  const server=serve(root);
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  try{return await fn('http://127.0.0.1:'+server.address().port);}
+  finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
+}
+async function openRaid(page,base,seed=SEED,{bitCardSeen=false}={}){
+  await page.evaluateOnNewDocument(()=>localStorage.setItem('nodspel.encounter-hints.v1',JSON.stringify({guard:1,patrol:1,turret:1,shield_turret:1,swarm:1,shield:1,door:1,grenadier:1})));
+  if(bitCardSeen){
+    // Pre-mark the BIT first-sight card seen so these demo shots show the shelf itself,
+    // uncluttered -- the dedicated bit-first-sight-card shot below covers the card itself.
+    await page.evaluateOnNewDocument(()=>{
+      localStorage.setItem('pr_meta_save',JSON.stringify({v:7,bitCardsSeen:{fuel_drum_intro:true,power_pad_intro:true,shelf_intro:true}}));
+    });
+  }
+  await page.goto(`${base}/nodspel/?seed=${seed}&area=bunker&raids=3&debug=1`,{waitUntil:'load'});
+  await page.waitForSelector('#tutorial-start',{visible:true,timeout:30000});
+  await page.waitForFunction(()=>!document.getElementById('boot-loader'),{timeout:20000});
+  await page.click('#tutorial-start');
+  await page.waitForFunction(()=>window.__NR&&window.__NR.round(),{timeout:30000});
+  await new Promise(r=>setTimeout(r,250));
+}
+async function shot(name,width,height,root,fn){
+  if(process.env.SHELVES_SHOT_FILTER&&!name.includes(process.env.SHELVES_SHOT_FILTER))return {name,width,height,skipped:true};
+  const browser=await puppeteer.launch(launchOpts);
+  try{
+    const page=await browser.newPage();const errors=[];
+    page.on('pageerror',e=>{errors.push(String(e));console.error('PAGE ERROR',name,String(e));});
+    await page.setViewport({width,height,isMobile:true,hasTouch:true,deviceScaleFactor:1});
+    const path=`${out}/${name}-${width}x${height}.png`;
+    const info=await withServer(root,async base=>{const info=await fn(page,base);await page.screenshot({path});return info;});
+    if(errors.length)console.log('ERRORS',name,width,height,errors);
+    console.log(name,width,height,JSON.stringify(info??{}));
+    return {name,width,height,path,errors,...info};
+  }finally{await browser.close();}
+}
+
+const AFTER=resolve('.');
+const BEFORE='/workspace/prp-before-v22849';
+const results=[];
+for(const [w,h] of SIZES){
+  for(const [phase,root] of [['before',BEFORE],['after',AFTER]]){
+    results.push(await shot(`corridor-${phase}`,w,h,root,async(page,base)=>{
+      await openRaid(page,base,SEED,{bitCardSeen:true});
+      if(phase==='after')await page.evaluate(()=>window.__NR.shelfDemo());
+      else {await page.evaluate(()=>window.__NR.goLevel(2));await page.evaluate(p=>{for(const e of window.__NR.round().level.enemies){e.sleeping=true;e.aggro=false;}window.__NR.teleport(p.x,p.z);},VANTAGE);}
+      await new Promise(r=>setTimeout(r,180));
+      return page.evaluate(()=>({shelves:window.__NR.round().level.shelves?.length??0}));
+    }));
+  }
+  results.push(await shot('bit-first-sight-card',w,h,AFTER,async(page,base)=>{
+    await page.evaluateOnNewDocument(()=>localStorage.setItem('pr_meta_save',JSON.stringify({v:7,bitCardsSeen:{fuel_drum_intro:true,power_pad_intro:true}})));
+    await openRaid(page,base);
+    await page.evaluate(()=>window.__NR.shelfDemo());
+    await page.waitForFunction(()=>document.querySelector('.bit-card-bubble')?.textContent.includes('Gravity: still free, still rude.'),{timeout:8000});
+    return page.evaluate(()=>({cardText:document.querySelector('.bit-card-bubble').textContent,seen:window.__NR.round().bitSeen}));
+  }));
+  for(const mode of ['telegraph','fallen','cover'])results.push(await shot(`shelf-${mode}`,w,h,AFTER,async(page,base)=>{
+    await openRaid(page,base,SEED,{bitCardSeen:true});
+    await page.evaluate(()=>window.__NR.shelfDemo());
+    await new Promise(r=>setTimeout(r,180));
+    const info=await page.evaluate(async mode=>{
+      const result=window.__NR.shelfDemo(mode),r=window.__NR.round();
+      if(mode==='fallen'){const v=r.level.shelves[0].vantage;window.__NR.teleport(v.x+2,v.z-1);}
+      // Freeze the wall clock after a real simulation state for a software-rendered screenshot: no
+      // changed timings, geometry, health or camera in the captured state.
+      if(mode==='fallen')await new Promise(r=>setTimeout(r,200));
+      const wall=Date.now();Date.now=()=>wall;
+      return result;
+    },mode);
+    await new Promise(r=>setTimeout(r,100));
+    return {...info,...await page.evaluate(()=>({capture:window.__NR.shelfCaptureState?.(),labels:[...document.querySelectorAll('.enemy-label')].map(e=>({text:e.textContent,hidden:e.hidden,mode:e.dataset.mode,display:getComputedStyle(e).display,rect:e.getBoundingClientRect().toJSON()})),pauseAt:window.__NR.round().pauseAt,hitstopUntil:window.__NR.round().hitstopUntil,gameNow:window.__NR.round().gameNow}))};
+  }));
+}
+await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));
+const bad=results.filter(r=>r.errors?.length);
+if(bad.length){console.error('ISSUES:\n'+bad.map(b=>b.name+': '+b.errors.join('; ')).join('\n'));process.exitCode=1;}
+else console.log('shots: ok ->',out);

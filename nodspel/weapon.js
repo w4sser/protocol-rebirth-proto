@@ -1,9 +1,9 @@
 // @hot stepWeapon assistAim playerShotObstacles steerShot
-import {audioEvent} from './audio.js?v=2.28.49';
-import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.49';
-import {RULES} from './levels.js?v=2.28.49';
-import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.49';
-import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction} from './round.js?v=2.28.49-ftue-opening-v1';
+import {audioEvent} from './audio.js?v=2.28.50';
+import {PERKS,perkState,hasPerk,logCombat,reloadInterval} from './perks.js?v=2.28.50';
+import {RULES} from './levels.js?v=2.28.50';
+import {traceTargets,movePlayer,aimConePoints,shotContact} from './physics.mjs?v=2.28.50';
+import {activateNode,hitEnemy,tickRound,alertEnemy,detonateDrum,shootJunction,shootShelf} from './round.js?v=2.28.50-ftue-opening-v1';
 
 // Lean over only the low cover beside the original shooter, never cover near a flying bullet.
 export function playerShotObstacles(origin,obstacles){
@@ -65,6 +65,7 @@ function applyWeaponHit(weapon,round,hit,now,dir=null,obstacles=[],shot=null){
   if(hit&&!shot?.pellet)audioEvent('impact',{enemy:hit.kind==='enemy'});
   // Shielded nodes (level 3) absorb shots and must be charged by standing close.
   if(hit?.kind==='node'){const changed=hit.node.shielded&&!(now<(hit.node.shieldDownUntil??0))?false:activateNode(round,hit.node.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.node.id);return changed;} // EMP drops the shield for a few seconds
+  if(hit?.kind==='shelf'){const changed=shootShelf(round,hit.target.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.target.id);return changed;}
   if(hit?.kind==='junction'){const changed=shootJunction(round,hit.target.id,now);if(shot)recordShot(round,shot,now,changed?'hit':'block',hit.target.id);return changed;}
   if(hit?.kind==='barrel'){
     const changed=detonateDrum(round,hit.target.id,now,obstacles);
@@ -123,8 +124,8 @@ export function steerShot(b,enemies,obstacles,rule,dt){
 }
 export function fireAimedWeapon(weapon,round,position,direction,now,obstacles,moving=false,tap=false){
   tickRound(round,now);if(round.over||round.pauseAt!=null)return null;
-  const rule=weaponRule(weapon),targets=[...(round.level.junctions??[]),...round.level.enemies,...round.level.nodes,...(round.level.barrels??[]).filter(b=>!b.active)],assisted=tap
-    ?{direction:tapDirection(position,direction,[...(round.level.junctions??[]),...round.level.enemies,...(round.level.barrels??[]).filter(b=>!b.active)],obstacles,rule),target:null,rejections:[]}
+  const rule=weaponRule(weapon),targets=[...(round.level.shelves??[]).filter(s=>!s.active&&s.tipAt==null),...(round.level.junctions??[]),...round.level.enemies,...round.level.nodes,...(round.level.barrels??[]).filter(b=>!b.active)],assisted=tap
+    ?{direction:tapDirection(position,direction,[...(round.level.shelves??[]).filter(s=>!s.active&&s.tipAt==null),...(round.level.junctions??[]),...round.level.enemies,...(round.level.barrels??[]).filter(b=>!b.active)],obstacles,rule),target:null,rejections:[]}
     :assistAim(position,direction,targets,obstacles,rule,moving);
   // Tap chooses only a launch direction; spread always applies, even with a target.
   let dir=assisted.direction;
@@ -187,7 +188,7 @@ function segmentPointDistance(a,b,p){
 // v2.22.4 hot-path scratch for stepWeapon (weaponHit/traceTargets only read these).
 const NO_TARGETS=Object.freeze([]),hotShotEnd={x:0,z:0},hotShotTargets=[],hotOneTarget=[null];
 function oneTarget(t){hotOneTarget[0]=t;return hotOneTarget;}
-function shotTargets(level,sourceId){const out=hotShotTargets;out.length=0;for(const t of level.junctions??[])if(t.id!==sourceId)out.push(t);for(const t of level.nodes)if(t.id!==sourceId)out.push(t);for(const t of level.enemies)if(t.id!==sourceId)out.push(t);for(const t of level.barrels??[])if(t.id!==sourceId&&!t.active)out.push(t);return out;}
+function shotTargets(level,sourceId){const out=hotShotTargets;out.length=0;for(const t of level.shelves??[])if(t.id!==sourceId&&!t.active&&t.tipAt==null)out.push(t);for(const t of level.junctions??[])if(t.id!==sourceId)out.push(t);for(const t of level.nodes)if(t.id!==sourceId)out.push(t);for(const t of level.enemies)if(t.id!==sourceId)out.push(t);for(const t of level.barrels??[])if(t.id!==sourceId&&!t.active)out.push(t);return out;}
 export function stepWeapon(weapon,round,now,dt,obstacles){
   tickRound(round,now);
   if(round.over){weapon.projectiles.length=0;return false;}

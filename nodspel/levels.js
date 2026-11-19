@@ -1,13 +1,14 @@
-import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.49';
-import {generateBigLevel} from './big-level.js?v=2.28.49';
-import '../data/items.js?v=2.28.49';
-import '../data/raid-ftue.js?v=2.28.49';
-import {clearPassageProps} from './archipelago-passages.js?v=2.28.49';
-import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.49-bridge1-timber-v2';
-import {townizeLevel} from './town-layout.js?v=2.28.49';
-import {applyEncounters,ensureRearClearance} from './encounters.js?v=2.28.49';
-import '../data/raid-combat.js?v=2.28.49';
-import '../data/raid-junction.js?v=2.28.49';
+import {ENEMY_TUNING,ENEMIES} from './enemies.js?v=2.28.50';
+import {generateBigLevel} from './big-level.js?v=2.28.50';
+import '../data/items.js?v=2.28.50';
+import '../data/raid-ftue.js?v=2.28.50';
+import {clearPassageProps} from './archipelago-passages.js?v=2.28.50';
+import {BRIDGE_MIN_WIDTH,BRIDGE_LAND_RAIL_RECESS,bridgeMouthWidth} from './bridge-flow.mjs?v=2.28.50-bridge1-timber-v2';
+import {townizeLevel} from './town-layout.js?v=2.28.50';
+import {applyEncounters,ensureRearClearance,walkMap} from './encounters.js?v=2.28.50';
+import '../data/raid-combat.js?v=2.28.50';
+import '../data/raid-junction.js?v=2.28.50';
+import '../data/raid-shelf.js?v=2.28.50';
 // Seeded level design: dimensions, connections, cover and placement live here.
 export const RULES=Object.freeze({
   earlyLoot:globalThis.DATA.raidFtue.earlyLoot,
@@ -161,6 +162,7 @@ export const RULES=Object.freeze({
       tool_emp:{kind:'emp',label:'EMP',charges:1,radius:3,stunMs:4000,stunTypes:['sentry','turret']},
       tool_decoy:{kind:'decoy',label:'Decoy',charges:2,radius:6,lureMs:5000}}},
   junction:globalThis.DATA.raidJunction,
+  shelf:globalThis.DATA.raidShelf,
   hazard:{size:1.8,onMs:1500,offMs:2500,warnMs:1200,damagePerSecond:12,clearance:2.2},
   // v2.28.48 fuel drums (docs/bit-narrator.md, docs/bug-lint.md `fuel-drums-chain-and-cap`): shared cap for
   // this and future room interactives (live pads, shelves...), so no later toy needs its own room-density rule.
@@ -639,6 +641,70 @@ export function placePowerPads(level,completedRaids=0,ftue=false){
         level.barrels=(level.barrels??[]).filter(d=>!inside(d,0));
         level.hazards.push(pad);level.junctions.push(box);return true;
       }
+    }
+  }
+  return false;
+}
+
+// Conservative .2 m flood fill with the actual player radius. Required objectives stay
+// approachable from spawn with the final footprint present, including static guards.
+export function shelfPathsConnected(level,footprint){
+  const walk=walkMap({...level,boxes:[...level.boxes,footprint]});
+  return [level.exit,...level.nodes].every(p=>{
+    for(let i=0;i<16;i++){
+      const a=i*Math.PI/8,q={x:p.x+Math.cos(a)*1.2,z:p.z+Math.sin(a)*1.2};
+      if(walk(q))return true;
+    }
+    return false;
+  });
+}
+export function makeShelf(id,x,z,ry=0){
+  const S=RULES.shelf,side=Math.abs(Math.sin(ry))>.5,dx=Math.round(Math.sin(ry)),dz=Math.round(Math.cos(ry));
+  const footprint={x:x+dx*S.height/2,z:z+dz*S.height/2,w:side?S.height+S.depth:S.width,d:side?S.width:S.height+S.depth};
+  return {id,kind:'shelf',x,z,ry,r:S.width/2,hits:0,shotAt:null,tipAt:null,fallenAt:null,active:false,footprint,
+    collider:{x,z,w:side?S.depth:S.width,d:side?S.width:S.depth,movementOnly:true}};
+}
+// L2's 1.8 m corridor is narrower than a fallen 2 m shelf. Use a room edge lane
+// instead: against a wall, close to a guard, with a proven route past the footprint.
+export function placeSupplyShelves(level,completedRaids=0,ftue=false){
+  level.shelves=[];
+  const S=RULES.shelf,cap=RULES.interactives.maxPerRoom;
+  if(ftue||completedRaids<S.unlockRaids||level.number!==2||level.big||(level.area??'bunker')!=='bunker')return false;
+  const solids=[...level.walls,...level.boxes,...level.doors??[]];
+  const keep=[level.start,level.exit,...level.nodes,...level.lootBoxes];
+  const rng=randomFromSeed(`${level.seed}:shelves`),offset=rng()*2;
+  for(const room of level.rooms){
+    const inside=p=>Math.abs(p.x-room.x)<=room.w/2&&Math.abs(p.z-room.z)<=room.d/2;
+    const occupied=[...level.hazards??[],...level.junctions??[]].filter(inside).length;
+    if(occupied>=cap)continue;
+    for(const ry of [0,Math.PI/2,Math.PI,-Math.PI/2])for(let i=0;i<14;i++){
+      const along=(i%2?1:-1)*(Math.floor(i/2)*.5+offset),dx=Math.round(Math.sin(ry)),dz=Math.round(Math.cos(ry));
+      const x=round2(room.x-dx*(room.w/2-S.wallInset)+dz*along),z=round2(room.z-dz*(room.d/2-S.wallInset)-dx*along);
+      const shelf=makeShelf('shelf-1',x,z,ry),f=shelf.footprint;
+      if(Math.abs(f.x-room.x)+f.w/2>room.w/2-.15||Math.abs(f.z-room.z)+f.d/2>room.d/2-.15)continue;
+      if(solids.some(o=>Math.abs(f.x-o.x)<(f.w+o.w)/2+S.clearance&&Math.abs(f.z-o.z)<(f.d+o.d)/2+S.clearance))continue;
+      if(keep.some(o=>Math.abs(f.x-o.x)<f.w/2+S.objectiveClearance&&Math.abs(f.z-o.z)<f.d/2+S.objectiveClearance))continue;
+      if([...level.hazards??[],...level.junctions??[]].some(o=>Math.abs(f.x-o.x)<f.w/2+(o.r??o.w/2)+S.clearance&&Math.abs(f.z-o.z)<f.d/2+(o.r??o.d/2)+S.clearance))continue;
+      const guard=level.enemies.find(e=>e.health>0&&(!e.encounter||e.patrol)&&e.type==='grunt'&&inside(e)&&Math.hypot(e.x-f.x,e.z-f.z)<=S.guardRange);
+      if(!guard||!shelfPathsConnected(level,f))continue;
+      shelf.guardId=guard.id;shelf.vantage={x:x+dx*3,z:z+dz*3};
+      if(solids.some(o=>Math.abs(shelf.vantage.x-o.x)<o.w/2+.4&&Math.abs(shelf.vantage.z-o.z)<o.d/2+.4))continue;
+      // Reuse a nearby ordinary grunt (often L2's reserve) as the shelf patrol.
+      // No added enemy: the same body/health now walks across the fall lane, using
+      // the established sight-cone/alert teacher. Prove the entire swept route.
+      const a={x:f.x+dz*S.patrolHalfSpan,z:f.z-dx*S.patrolHalfSpan},b={x:f.x-dz*S.patrolHalfSpan,z:f.z+dx*S.patrolHalfSpan};
+      let routeClear=true;
+      for(let k=0;k<=16;k++){
+        const q={x:a.x+(b.x-a.x)*k/16,z:a.z+(b.z-a.z)*k/16};
+        if(Math.abs(q.x-room.x)>room.w/2-.6||Math.abs(q.z-room.z)>room.d/2-.6||solids.some(o=>Math.abs(q.x-o.x)<o.w/2+.55&&Math.abs(q.z-o.z)<o.d/2+.55)||keep.some(o=>Math.hypot(q.x-o.x,q.z-o.z)<1.3)){routeClear=false;break;}
+      }
+      if(!routeClear)continue;
+      const P=RULES.encounters.patrol;
+      Object.assign(guard,{x:a.x,z:a.z,active:true,aggro:false,windupMs:P.windupMs,encounter:'patrol',facing:Math.atan2(b.x-a.x,b.z-a.z),patrol:{points:[a,b],i:1,speed:P.walkSpeed,turn:P.turnRadPerSec}});
+      (level.encounters??=[]).push({type:'patrol',enemyId:guard.id,x:f.x,z:f.z,points:[a,b]});
+      // A shelf takes one slot; reserve its room rather than stacking new lessons.
+      level.barrels=(level.barrels??[]).filter(p=>!inside(p));
+      level.shelves.push(shelf);return true;
     }
   }
   return false;

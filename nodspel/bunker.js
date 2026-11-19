@@ -2,10 +2,10 @@
 // Collision always stays in level data; the kit only replaces visuals. Loader = town's loadKit
 // (parallel limit, timeouts, retries, per-asset box stand-in); null if most of the kit fails.
 import * as THREE from './vendor/three.module.js';
-import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.49';
-import {loadKit,instance} from './town.js?v=2.28.49';
-import {rngFrom} from './art.js?v=2.28.49';
-import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.49';
+import {shellMesh,wallSolids} from './structure-shell.js?v=2.28.50';
+import {loadKit,instance} from './town.js?v=2.28.50';
+import {rngFrom} from './art.js?v=2.28.50';
+import {fitStructure,groundPatchParts} from './environment-look.js?v=2.28.50';
 // Mirrors assets/env/bunker/manifest.json approx_dimensions_m (tests keep them in sync).
 export const BUNKER_DIMS={
   floor_concrete_2m_a:[2, 0.05, 2],
@@ -99,7 +99,7 @@ export const bunkerLoad={failed:[],retried:0,ms:0};
 let cache=null;
 export function loadBunkerAssets(base,opts={}){
   if(cache)return cache;
-  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.49`,dims:BUNKER_DIMS[k]}));
+  const items=BUNKER_KINDS.map(k=>({key:k,url:`${k}.glb?v=2.28.50`,dims:BUNKER_DIMS[k]}));
   if(typeof window!=='undefined')window.__bunkerLoad=bunkerLoad;
   cache=loadKit(base,items,{report:bunkerLoad,...opts}).then(a=>{if(bunkerLoad.failed.length>items.length/2)return null;
     // the kit's emissive atlas is authored at full strength: tame it so cable/CRT accents don't wash out at night;
@@ -146,7 +146,7 @@ function hugWall(kind,w,x,z){const along=w.w>=w.d,[,,d]=BUNKER_DIMS[kind];
   if(along){const s=Math.sign(z-w.z)||1;return {x,z:w.z+s*(w.d/2+d/2+.04),ry:s>0?Math.PI:0};}
   const s=Math.sign(x-w.x)||1;return {x:w.x+s*(w.w/2+d/2+.04),z,ry:s>0?-Math.PI/2:Math.PI/2};}
 export function planKitProps(level,spots,rng){
-  const solids=[...level.walls,...level.boxes],placed=[];
+  const solids=[...level.walls,...level.boxes,...(level.shelves??[]).map(s=>s.footprint)],placed=[];
   const keep=[...level.nodes.map(n=>[n.x,n.z,1.9]),...level.lootBoxes.map(l=>[l.x,l.z,1.1]),[level.exit.x,level.exit.z,2],[level.start.x,level.start.z,1.6],...(level.hazards??[]).map(h=>[h.x,h.z,Math.max(h.w,h.d)/2+.3])];
   const near=(f,[x,z,r])=>Math.hypot(Math.max(0,Math.abs(x-f.x)-f.w/2),Math.max(0,Math.abs(z-f.z)-f.d/2))<r;
   const corridors=level.floors.filter(f=>Math.min(f.w,f.d)<4.5);

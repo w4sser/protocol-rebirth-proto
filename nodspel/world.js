@@ -1,18 +1,18 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.49';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.49';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.50';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.50';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.49';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.49';
-import {buildTown} from './town.js?v=2.28.49';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.49';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.49-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.49-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.49';
-import {controlCablePath} from './control-cables.js?v=2.28.49';
-import {extractAvailable} from './big-level.js?v=2.28.49';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.49';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.49';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.50';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.50';
+import {buildTown} from './town.js?v=2.28.50';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.50';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.50-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.50-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.50';
+import {controlCablePath} from './control-cables.js?v=2.28.50';
+import {extractAvailable} from './big-level.js?v=2.28.50';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.50';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.50';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -135,6 +135,28 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     if(v.beam){v.beam.material.color.set(KEY_AMBER);v.beam.scale.y=3+hi*.6;v.beam.position.y=v.beam.scale.y/2;}
     if(fx)burst(v.loot.x,v.loot.z,c);}
   // Grounded fuel drum: its exposed bands suggest a shot without text.
+  // Stateful existing kit shelf. Amber ties distinguish it from inert dressing.
+  // All geometry/materials are allocated once at level load; animation reuses them.
+  const shelves=(level.shelves??[]).map(shelf=>{
+    const base=new THREE.Group(),pivot=new THREE.Group();base.position.set(shelf.x,0,shelf.z);base.rotation.y=shelf.ry;base.add(pivot);group.add(base);
+    if(K)pivot.add(kitGroup(K.shelf_supply_full));
+    else{
+      for(const x of [-.85,.85])box(x,1,0,.1,2,.5,PALETTE.box,pivot);
+      for(const y of [.12,.7,1.3,1.9])box(0,y,0,1.8,.1,.5,PALETTE.box,pivot);
+      for(const x of [-.5,.3])box(x,.95,0,.5,.4,.4,PALETTE.wall,pivot);
+    }
+    const strap=box(0,1,.28,1.7,.09,.035,PALETTE.warm,pivot);strap.material=glow(PALETTE.warm,.8);
+    // Fall telegraph: a near-black footprint reads against any floor tone, and a bright pulsing coral
+    // outline (drawn with no depth test, above the patrol sight-cone fill) keeps it unmistakable even
+    // when a guard's cone overlaps the same tile.
+    const fw=shelf.footprint.w,fd=shelf.footprint.d;
+    const shadow=new THREE.Mesh(new THREE.PlaneGeometry(fw,fd),new THREE.MeshBasicMaterial({color:'#1a0806',transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false,depthTest:false,fog:false,toneMapped:false}));
+    shadow.rotation.x=-Math.PI/2;shadow.position.set(shelf.footprint.x,.04,shelf.footprint.z);shadow.renderOrder=5;shadow.visible=false;group.add(shadow);
+    const hx=fw/2,hz=fd/2,corners=[[-hx,-hz],[hx,-hz],[hx,hz],[-hx,hz],[-hx,-hz]].map(([x,z])=>new THREE.Vector3(x,0,z));
+    const edge=new THREE.Line(new THREE.BufferGeometry().setFromPoints(corners),new THREE.LineBasicMaterial({color:ENEMY_COLORS.damage,transparent:true,opacity:1,depthTest:false,toneMapped:false}));
+    edge.position.set(shelf.footprint.x,.05,shelf.footprint.z);edge.renderOrder=6;edge.visible=false;group.add(edge);
+    return {shelf,base,pivot,strap,shadow,edge};
+  });
   const barrels=(level.barrels??[]).map(barrel=>{
     const g=new THREE.Group();g.position.set(barrel.x,0,barrel.z);group.add(g);
     const metal=new THREE.MeshStandardMaterial({color:'#5b4e44',metalness:.58,roughness:.48});
@@ -297,6 +319,17 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       }
     }
     for(const p of gateProgress)p.mesh.material.opacity=p.node.active?1:.16;
+    for(const v of shelves){
+      const s=v.shelf,ms=round.gameNow??0,warning=s.tipAt!=null&&!s.active;
+      const fall=s.active?1:warning?Math.max(0,Math.min(1,(ms-s.tipAt-RULES.shelf.telegraphMs)/RULES.shelf.fallMs)):0;
+      v.pivot.rotation.x=fall*Math.PI/2+(s.shotAt!=null&&ms-s.shotAt<160&&!warning?Math.sin((ms-s.shotAt)*.06)*.025:0);
+      v.pivot.position.y=fall*RULES.shelf.depth/2;
+      v.shadow.visible=v.edge.visible=warning;
+      v.shadow.material.opacity=.55+.15*Math.sin(time*20);
+      v.edge.material.opacity=.75+.25*Math.sin(time*20+Math.PI/2);
+      v.edge.scale.setScalar(1+.05*Math.max(0,Math.sin(time*20)));
+      v.strap.material.emissiveIntensity=warning?1.4:.8;
+    }
     for(const v of barrels){v.group.visible=!v.barrel.active;if(!v.group.visible)continue;
       // Chain telegraph (RULES.drum.chainDelayMs): the same bands flash fast red/bright instead of a new mesh.
       const cooking=v.barrel.cookingAt!=null;
@@ -430,6 +463,6 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
   // The rig stays a direct child of `group` (one scene child per world); big-level-culling.js leaves it unwrapped.
   const lightRig=new THREE.Group();lightRig.name='world-light-rig';
   {group.updateMatrixWorld(true);const ls=[];group.traverse(o=>{if(o.isLight&&o.parent)ls.push(o);});group.add(lightRig);for(const l of ls)lightRig.attach(l);}
-  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,barrels,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
+  return {bunker:bunkerInfo,arch:archInfo,house:townInfo?.house??null,group,nodes,controlCables,gateProgress,enemies,shelves,barrels,doors,spawners,lootBoxes,addLoot,addEnemy,applyReveal,routes,setExit,animate,animateHazards,dispose,props,propSpots:spots,updatePineOcclusion,burst,
     extractionEffects,extractBeamFx,lootBurstFx,spawnLootBurst:lootBurstFx.spawn,setVfxQuality,disposeVfx};
 }
