@@ -14,6 +14,7 @@ import {FTUE_CONTRACTS} from './ftue-one-path-contracts.mjs';
 export const RULES=[
   {id:'base-bit-card-clears-rooms',pr:'v2.28.4x briefing placement',why:'BIT base cards obscured the Fabricator label and swallowed room hitboxes',
    check(c={}){const app=c.appSrc??read('app.js'),layout=c.layoutSrc??read('scripts/layout-check.mjs'),css=c.cardCssSrc??read('ui/bit-card.css');const out=[];
+     if(!app.includes('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"'))out.push('base card events must tolerate DOM-free logic/geometry test environments');
      if(!css.includes('.bit-card:not(.ctx-raid){max-width:240px;gap:6px;}'))out.push('narrow base cards must keep a compact footprint so the Vault briefing fits');
      if(!app.includes('function placeBaseBitCard()')||!app.includes('placeBaseBitCard();')||!app.includes('const goalSpot = freeSpots(')||!app.includes('.mapspot,.mapspot .tag,.gen-chip,.basemenu-btn'))out.push('BIT card placement must avoid room hitboxes, labels and the goal chip');
      if(!layout.includes('page.evaluate(baseBitCardRoomOverlaps)')||!layout.includes('await baseBriefingRun(vp)'))out.push('layout must measure both base briefings against rooms at all phone sizes');return out;}},
