@@ -443,11 +443,15 @@ function baseState(){
 }
 function baseAllows(kind, id){ return (baseState()[kind] || []).includes(id); }
 // v2.28.27 (PRB-149): how destroyed the bunker reads, driven by progress alone (see index.html's
-// data-ruin CSS). 3 pre-Core-L1 (emergency), 2 Core L1 restored but Fabricator not built, 1 Fabricator
-// built but not yet core_refined, 0 core_refined (unchanged from today). Pure and exported for tests.
+// data-ruin CSS). 3 pre-Core-L1 (emergency), 1 Core L1 restored but not yet core_refined, 0
+// core_refined (unchanged from today). Pure and exported for tests.
+// v2.28.54 (Robert's playtest, step04 lit-base-fabricator): the old tier 2 (Core L1 restored,
+// Fabricator not built) kept the brightness(.72) dim filter -- the base read as still-dark right
+// after the Core-restore cutscene, which contradicts the beat BIT just played ("circuits again").
+// The Core coming back on is the moment the bunker reads powered; Fabricator/Vault no longer gate
+// that first jump to the lit look, only the final core_refined polish still brightens further.
 function ruinLevel(baseStateId, fabricatorLevel){
   if(baseStateId === "core_found") return 3;
-  if(!fabricatorLevel) return 2;
   if(baseStateId !== "core_refined") return 1;
   return 0;
 }
