@@ -5,7 +5,7 @@
 import * as THREE from '../nodspel/vendor/three.module.js';
 import {createMenuBit} from './raid-prep-models.mjs?v=2.28.49';
 import {createOperatorHeroV4} from './raid-prep-operator-v4.mjs?v=2.28.49';
-import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.49';
+import {loadOP01Operator} from './raid-prep-op01.mjs?v=2.28.49-hero-stage';
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 // BIT belongs behind OP-01, not in the foreground. Camera is on +Z;
@@ -23,11 +23,9 @@ export async function mountRaidPrepScene(host){
   if(!host?.isConnected)return null;
   let renderer=null,scene=null,camera=null,observer=null,raf=0,disposed=false;
   let orbit=null,operator=null,bit=null,drag=null,requestedModel='mobile';
-  // Show the two-hand rifle diagonally across the frame at first paint. At
-  // -0.23 the barrel points almost straight into the camera in the aim grip
-  // and looks like an upright stick, despite the actual geometry being right.
-  // 0.82 matches the visually approved post-drag three-quarter capture.
-  let yaw=.82,clock=0,previous=0;
+  // Approved hero-stage target: face mostly toward the viewer while keeping
+  // both hands and the rifle readable. Rotation still starts from this angle.
+  let yaw=.10,clock=0,previous=0;
   const showYaw=()=>{host.dataset.rotation=String(Math.round(yaw*1000)/1000);};
   function down(e){
     if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -66,7 +64,7 @@ export async function mountRaidPrepScene(host){
       ['pointerup',up],['pointercancel',up],['keydown',key]])host.removeEventListener(event,fn);
     host.classList.remove('is-rotating');
     host.closest('.lobby-hero')?.classList.remove('has-3d');
-    delete host.dataset.menuModel;delete host.dataset.bit;delete host.dataset.rotation;
+    delete host.dataset.menuModel;delete host.dataset.bit;delete host.dataset.rotation;delete host.dataset.presentation;
     if(scene){
       const geometries=new Set(),materials=new Set(),textures=new Set();
       scene.traverse(n=>{
@@ -143,8 +141,8 @@ export async function mountRaidPrepScene(host){
       // completely into an 844x390 landscape panel without cropping.
       const isAuthored=operator?.source==='glb';
       const distance=isAuthored
-        ?clamp(3.35+Math.max(0,.95-camera.aspect)*.55,3.35,4.0)
-        :clamp(4.25+Math.max(0,.95-camera.aspect)*.68,4.24,4.85);
+        ?clamp(3.13+Math.max(0,.95-camera.aspect)*.65,3.13,4.0)
+        :clamp(3.95+Math.max(0,.95-camera.aspect)*.75,3.95,4.85);
       camera.position.set(.06,isAuthored?1.16:1.40,distance);
       camera.lookAt(0,isAuthored?.93:1.215,0);
       camera.updateProjectionMatrix();
@@ -168,6 +166,11 @@ export async function mountRaidPrepScene(host){
       }
       renderer.render(scene,camera);
     };
+    // Never reveal an empty canvas or an unrendered operator. Paint the
+    // complete first 3D frame before exposing the stage; PNG remains hidden.
+    operator.update(0,reduced);
+    renderer.render(scene,camera);
+    host.dataset.presentation='ready';
     host.closest('.lobby-hero')?.classList.add('has-3d');
     raf=requestAnimationFrame(frame);
     return {dispose,getRotation:()=>yaw};
