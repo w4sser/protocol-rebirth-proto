@@ -8,7 +8,7 @@ import {animateEnemyModel} from './enemy-animation.js?v=2.28.56';
 import {applyEnemyDemo,applyEnemyDemoMixed} from './enemy-demo.js?v=2.28.56';
 import {createBigLevelRuntime} from './big-level-runtime.js?v=2.28.56';
 import {selectSkin,loadHumanOperator} from './operator.js?v=2.28.56-op01-default';
-import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.56';
+import {loadOP01GameplayOperator,createOP01FacingLatch} from './op01-gameplay.js?v=2.28.56-scale-rim-experiment';
 import {createRobotPresence} from './robot-operator.js?v=2.28.56';
 import {createOperatorFX} from './operator-fx.js?v=2.28.56';
 import {createAudioSettings} from './audio-settings.js?v=2.28.56';
@@ -298,48 +298,61 @@ if(requestedSkin!=='robot'){
 }
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
 const op01Facing=activeSkin==='op01'?createOP01FacingLatch():null;
-// Visual-only, opt-in character size experiment. Default appearance stays unchanged.
-// ?operatorScale=120|135|150 selects a preset; ?operatorScaleTest=1 adds a
-// live selector for side-by-side comparison without reloading or touching saves.
+// Visual-only OP01 presentation experiment. Default art is unchanged.
+// ?operatorScale=135 and ?operatorRim=0.24 select independent presets;
+// ?operatorScaleTest=1 (or ?operatorRimTest=1) shows both live controls.
+// No save writes, physics, hitboxes, camera or gameplay changes.
 if(activeSkin==='op01'){
-  const scaleParams=new URLSearchParams(location.search);
-  const requestedPercent=Number(scaleParams.get('operatorScale')||100);
-  human.setVisualScalePercent(requestedPercent);
-  if(scaleParams.get('operatorScaleTest')==='1'){
+  const params=new URLSearchParams(location.search);
+  human.setVisualScalePercent(Number(params.get('operatorScale')??100));
+  human.setRimStrength(Number(params.get('operatorRim')??.16));
+  if(params.get('operatorScaleTest')==='1'||params.get('operatorRimTest')==='1'){
     const panel=document.createElement('div');
     panel.id='operator-scale-test';
+    panel.setAttribute('role','group');
+    panel.setAttribute('aria-label','Operator visual test settings');
     Object.assign(panel.style,{
       position:'fixed',top:'max(10px, env(safe-area-inset-top))',
       left:'50%',transform:'translateX(-50%)',zIndex:'99997',
-      display:'flex',alignItems:'center',gap:'5px',padding:'5px 8px',
-      background:'rgba(10,20,27,.90)',border:'1px solid #6a8a94',
-      borderRadius:'9px',color:'#e7f2f3',font:'12px system-ui',
+      display:'flex',flexDirection:'column',alignItems:'stretch',gap:'5px',
+      padding:'6px 8px',background:'rgba(10,20,27,.92)',
+      border:'1px solid #6a8a94',borderRadius:'9px',
+      color:'#e7f2f3',font:'11px system-ui',
       pointerEvents:'auto',boxShadow:'0 3px 12px #0008'
     });
-    const label=document.createElement('span');
-    label.textContent='OP01 SIZE';
-    label.style.marginRight='4px';
-    panel.append(label);
-    for(const percent of [100,120,135,150]){
-      const button=document.createElement('button');
-      button.type='button';
-      button.textContent=percent+'%';
-      button.style.cssText='font:inherit;padding:5px 7px;border-radius:5px;border:1px solid #719198;cursor:pointer;touch-action:manipulation';
-      function refresh(){
-        const selected=human.root.userData.operatorScalePercent===percent;
-        button.style.background=selected?'#75cfcc':'#253b43';
-        button.style.color=selected?'#07151c':'#e7f2f3';
-        button.setAttribute('aria-pressed',String(selected));
+    const addRow=(label,values,current,apply,format)=>{
+      const row=document.createElement('div');
+      Object.assign(row.style,{display:'flex',alignItems:'center',gap:'5px'});
+      const caption=document.createElement('span');
+      caption.textContent=label;
+      Object.assign(caption.style,{minWidth:'36px',fontWeight:'600',letterSpacing:'.04em'});
+      row.append(caption);
+      const refreshers=[];
+      for(const value of values){
+        const button=document.createElement('button');
+        button.type='button';
+        button.textContent=format(value);
+        button.style.cssText='font:inherit;min-height:27px;padding:5px 7px;border-radius:5px;border:1px solid #719198;cursor:pointer;touch-action:manipulation';
+        const refresh=()=>{
+          const selected=current()===value;
+          button.style.background=selected?'#75cfcc':'#253b43';
+          button.style.color=selected?'#07151c':'#e7f2f3';
+          button.setAttribute('aria-pressed',String(selected));
+        };
+        button.onclick=()=>{if(apply(value))refreshers.forEach(fn=>fn());};
+        refreshers.push(refresh);
+        row.append(button);
       }
-      button.onclick=()=>{
-        human.setVisualScalePercent(percent);
-        for(const child of panel.querySelectorAll('button'))child._refreshScale?.();
-      };
-      button._refreshScale=refresh;
-      panel.append(button);
-    }
+      panel.append(row);
+      refreshers.forEach(fn=>fn());
+    };
+    addRow('SIZE',[100,120,135,150],
+      ()=>human.root.userData.operatorScalePercent,
+      value=>human.setVisualScalePercent(value),value=>value+'%');
+    addRow('RIM',[.16,.24,.32],
+      ()=>human.root.userData.op01RimStrength,
+      value=>human.setRimStrength(value),value=>value.toFixed(2));
     document.body.append(panel);
-    for(const child of panel.querySelectorAll('button'))child._refreshScale();
   }
 }
 
