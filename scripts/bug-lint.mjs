@@ -21,6 +21,27 @@ export const RULES=[
      return out;}},
   {id:'postfx-pass-disposal-and-size',pr:'v2.28.4x graphics pilot (2.28.53)',why:'composer disposal alone leaked custom passes and initial bloom sizing disagreed with DPR-aware resize',
    check(c={}){const s=c.postfxSrc??read('nodspel/postfx.js');return s.includes('bloomComposer.setSize(bw,bh)')&&s.includes('for(const pass of composer.passes)pass.dispose()')&&s.includes('for(const pass of bloomComposer.passes)pass.dispose()')&&s.includes('bloomMask?.dispose()')&&s.includes('cache.delete(source)')?[]:['size bloom on creation and dispose both composers added passes and mask materials'];}},
+  {id:'fabricator-marker-once',pr:'v2.28.55 (fix/fabricator-single-marker)',why:'after the Core restore the base showed the Fabricator twice at left (NEXT plate + "Fabricator L1" goal label); the FTUE goal label must be skipped while the NEXT plate marks that room',
+   check(ctx){const src=ctx?.appSrc??read('app.js'),html=ctx?.html??read('index.html');const out=[];
+     if(!/function ftueGoalMarkedOnMap\(/.test(src))out.push('app.js: ftueGoalMarkedOnMap() missing');
+     if(!/markGoalOnMap\(trackedGoalHtml\(\)\s*\|\|\s*progressionGoalHtml\(\)/.test(src))out.push('app.js: SCREENS.base must pass the goal card through markGoalOnMap()');
+     if(!/\.baseviewer\.ftue>\.progress-goal\.on-map-marked\{display:none/.test(html))out.push('index.html: .on-map-marked goal label must be hidden in the FTUE base');
+     return out;}},
+  {id:'base-bit-card-clears-rooms',pr:'v2.28.4x briefing placement',why:'BIT base cards obscured the Fabricator label and swallowed room hitboxes',
+   check(c={}){const app=c.appSrc??read('app.js'),layout=c.layoutSrc??read('scripts/layout-check.mjs'),css=c.cardCssSrc??read('ui/bit-card.css');const out=[];
+     if(!app.includes('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"'))out.push('base card events must tolerate DOM-free logic/geometry test environments');
+     if(!css.includes('.bit-card:not(.ctx-raid){max-width:240px;gap:6px;}'))out.push('narrow base cards must keep a compact footprint so the Vault briefing fits');
+     if(!app.includes('function placeBaseBitCard()')||!app.includes('placeBaseBitCard();')||!app.includes('const goalSpot = freeSpots(')||!app.includes('.mapspot,.mapspot .tag,.gen-chip,.basemenu-btn'))out.push('BIT card placement must avoid room hitboxes, labels and the goal chip');
+     if(!layout.includes('page.evaluate(baseBitCardRoomOverlaps)')||!layout.includes('await baseBriefingRun(vp)'))out.push('layout must measure both base briefings against rooms at all phone sizes');return out;}},
+  {id:'base-briefing-single-cost',pr:'v2.28.4x briefing copy',why:'Briefing prose repeated material costs and the fuel-drum joke',
+   check(c={}){const app=c.appSrc??read('app.js'),bit=c.bitSrc??read('data/bit.js'),out=[];
+     if(!app.includes('text:beat.line, info:beat.info')||app.includes('text:beat.line +'))out.push('base briefings must render prose and info separately');
+     const teasers=[...bit.matchAll(/teaser:\{([\s\S]*?)\n    \}/g)];
+     if(teasers.length!==2||teasers.some(m=>!/info:\[\{label:"NEXT",kind:"cost"\}\]/.test(m[1])||/line:"[^"\n]*(?:barely breathing|don.t have legs|Cable|Scrap)/i.test(m[1])))out.push('each briefing needs one cost row and fresh powered-base prose');return out;}},
+  {id:'core-restore-lights-base',pr:'v2.28.4x powered base',why:'Core restore still left the bunker at the dim pre-Fabricator lighting tier',
+   check(c={}){const app=c.appSrc??read('app.js'),fn=(app.match(/function ruinLevel\([^)]*\)\{([\s\S]*?)\n\}/)||[])[1]||'';
+     return fn.includes('return 1')&&fn.includes('core_found')&&!fn.includes('return 2')?[]:['Core restore must immediately use powered lighting, independent of Fabricator'];}},
+
   {id:'enemy-label-clearance-hold',pr:'v2.28.52 layout label stability',why:'Town enemy labels bypassed the clearance hold when colliding with loot/room labels',
    check(c={}){const src=c.gameSrc??read('nodspel/game.mjs');return /const blocked=[^;]*overlapsAt\(y,size,labelRects\)/.test(src)&&!src.includes('if(overlapsAt(y,size,labelRects)){l.el.hidden=true;continue;}')?[]:['all label collisions must use the existing clearance hold'];}},
   {id:'worldmap-new-label-gap',pr:'v2.28.52 map label fit',why:'the selected Bunker label overlapped the newly unlocked Archipelago label at 844x390',

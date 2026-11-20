@@ -1,5 +1,6 @@
 // Real browser FTUE walk. Debug hooks skip combat/collecting, never story transitions.
 import assert from 'node:assert/strict';
+import {baseBitCardRoomOverlaps} from './ftue-fixes-states.mjs';
 import {createServer} from 'node:http';
 import {readFile,mkdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
@@ -36,7 +37,7 @@ try{
   const extract=async items=>{const nav=page.waitForNavigation({waitUntil:'networkidle0',timeout:60000});await page.evaluate(items=>__NR.extractDemo(items),items);await nav;await page.waitForFunction(()=>window.A);};
   await page.goto(base,{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.A);await page.evaluate(()=>{document.getElementById('splash')?.remove();window.dispatchEvent(new Event('pr:splash-finished'));});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));
   // Voice-producing events also stay silent while BIT sleeps; SFX continue normally.
-  await page.evaluate(async()=>{window.__voiceRequests=[];const voice=PR_AUDIO.voice.bind(PR_AUDIO);PR_AUDIO.voice=(name,...args)=>{__voiceRequests.push(name);return voice(name,...args);};const {audioEvent}=await import('./audio.js?v=2.28.53');audioEvent('bag-full');audioEvent('extract-revealed');});
+  await page.evaluate(async()=>{window.__voiceRequests=[];const voice=PR_AUDIO.voice.bind(PR_AUDIO);PR_AUDIO.voice=(name,...args)=>{__voiceRequests.push(name);return voice(name,...args);};const {audioEvent}=await import('./audio.js?v=2.28.56');audioEvent('bag-full');audioEvent('extract-revealed');});
   assert.equal(await page.evaluate(()=>__voiceRequests.length),0,'no BIT event voice before wake');
   // Observe the fuel drum at first sight. Encounter and explosion remain present in the FTUE.
   await page.evaluate(()=>{const r=__NR.round();const b=r.level.barrels?.[0];if(!b)throw Error('FTUE explosive barrel missing');__NR.teleport(b.x-2,b.z);for(const e of r.level.enemies)e.aggro=false;});
@@ -46,13 +47,13 @@ try{
   await page.waitForSelector('.intro');await shot('step02-wake-bit');
   await page.click('.intro');await delay(1500);await page.evaluate(()=>A.introSkip());await page.click('.intro-go');
   await scene('core_restored');assert.equal(await page.$('#overlay'),null,'no first extraction choice');await noQuest();await shot('step03-core-cutscene');await dismissScene();
-  await card('raid_briefing');await noQuest();await shot('step04-lit-base-fabricator');await dismissCard();
+  await card('raid_briefing');await noQuest();assert.equal(await page.$eval('.baseviewer',e=>e.dataset.ruin),'1');assert.deepEqual(await page.evaluate(baseBitCardRoomOverlaps),[]);assert.equal(await page.evaluate(()=>[...document.querySelectorAll('.baseviewer .mapspot,.baseviewer>.progress-goal,.baseviewer>.goalpill')].filter(e=>e.offsetWidth>0&&getComputedStyle(e).display!=='none'&&/Fabricator/.test(e.textContent)).length),1,'Fabricator shown once in the lit base');await shot('step04-lit-base-fabricator');await dismissCard();
   const materials=await page.evaluate(()=>['fabricator','storage'].flatMap(id=>{const cost=DATA.modules.find(m=>m.id===id).levels[0].cost;const salvage=DATA.items.find(i=>i.grantsCurrency?.scrap);return [...Object.entries(cost.items||{}).flatMap(([k,n])=>Array(n).fill(k)),...Array(Math.ceil((cost.scrap||0)/salvage.grantsCurrency.scrap)).fill(salvage.id)];}));
   await page.evaluate(()=>{A.go('prep');A.deployNodeRaid();});await page.waitForFunction(()=>window.__launchUrl);await launchRaid(await page.evaluate(()=>__launchUrl));await shot('step05-raid2');await extract(materials);
   await page.waitForSelector('#overlay');assert.equal(await page.$$eval('#overlay button',els=>els.length),1,'one Fabricator choice');await noQuest();await shot('step06-build-fabricator');await page.click('#overlay button');
   await scene('fabricator_built');assert.equal(await page.$('#overlay'),null);await noQuest();await shot('step07-fabricator-cutscene');await dismissScene();
   await page.waitForSelector('#overlay.reward');await noQuest();await shot('step08-room-online');await page.click('#overlay button.primary');
-  await card('vault_intro');await noQuest();await shot('step09-vault-base-intro');await dismissCard();
+  await card('vault_intro');await noQuest();assert.deepEqual(await page.evaluate(baseBitCardRoomOverlaps),[]);await shot('step09-vault-base-intro');await dismissCard();
   // Storage materials came home in raid 2; no inventory or progression state is seeded.
   await page.waitForFunction(()=>document.querySelector('.progress-goal button')?.textContent.includes('BUILD VAULT'));
   const overlaps=await page.evaluate(()=>{const c=document.querySelector('.progress-goal').getBoundingClientRect();return [...document.querySelectorAll('.mapspot,.mapspot .tag')].filter(el=>{const r=el.getBoundingClientRect();return c.left<r.right&&c.right>r.left&&c.top<r.bottom&&c.bottom>r.top;}).map(el=>el.getAttribute('aria-label')||el.textContent);});assert.deepEqual(overlaps,[],'BUILD avoids room hitboxes and labels');await shot('step10-build-vault');await page.click('.progress-goal button');

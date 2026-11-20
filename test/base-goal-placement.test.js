@@ -32,3 +32,26 @@ const clearance=src.slice(src.indexOf('function clearPlatesFromCard(viewer, card
  const r=room.getBoundingClientRect();assert.ok(r.left>=47&&r.right<=343&&r.top>=0&&r.bottom<=823,'room hitbox stays inside safe bounds');
 }
 console.log('base-goal-placement: ok');
+// v2.28.54: a ready Vault BUILD chip competes with BIT for the only free space.
+// Measured 667x375 geometry from the real post-Fabricator return; all hitboxes count.
+{
+ const v=rect(0,8,667,375),cardStyle={left:'59px',top:'165px',setProperty(k,v){this[k]=v;}},goalStyle={left:'53px',top:'154.34375px',setProperty(k,v){this[k]=v;}};
+ const card={style:cardStyle,offsetHeight:105,hidden:false,getBoundingClientRect:()=>rect(parseFloat(cardStyle.left),parseFloat(cardStyle.top),240,104.6875)};
+ const goal={style:goalStyle,offsetHeight:81,getBoundingClientRect:()=>rect(parseFloat(goalStyle.left),parseFloat(goalStyle.top)+8,156.171875,80.5)};
+ const boxes=[rect(301.5,145.713,64,64),rect(101.3946,92.3484,64,64),rect(508.2684,83.46,64,64),rect(101.3946,274.6634,64,64),rect(501.5986,210,64,64),rect(314.8394,56,64,64),rect(400,302,52,52)];
+ const obstacles=boxes.map(r=>({offsetHeight:r.height,getBoundingClientRect:()=>r}));
+ const tabs={offsetHeight:97,getBoundingClientRect:()=>rect(403,278,264,97)};
+ const viewer={getBoundingClientRect:()=>v,querySelector:()=>goal,querySelectorAll:()=>obstacles};
+ const ctx={document:{body:{dataset:{screen:'base'}},documentElement:{},querySelector:sel=>sel.startsWith('.bit-card')?card:viewer,getElementById:id=>id==='tabs'?tabs:{getBoundingClientRect:()=>rect(0,0,667,52)}},innerWidth:667,innerHeight:375,getComputedStyle:()=>({getPropertyValue:n=>n==='--sb'?'21px':'47px'})};
+ vm.createContext(ctx);
+ const start=src.indexOf('function placeBaseBitCard(){'),end=src.indexOf('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"',start);
+ vm.runInContext(src.slice(start,end)+';this.place=placeBaseBitCard;',ctx);
+ assert.ok(hit(card.getBoundingClientRect(),goal.getBoundingClientRect()),'fixture reproduces briefing over BUILD chip');
+ ctx.place();
+ for(const floating of [card,goal]){
+   const r=floating.getBoundingClientRect();
+   for(const box of [...boxes,tabs.getBoundingClientRect()])assert.ok(!hit(r,box),'both floating elements clear every room and HUD control');
+   assert.ok(r.left>=47&&r.right<=620&&r.top>=52&&r.bottom<=354,'both elements remain safe');
+ }
+ assert.ok(!hit(card.getBoundingClientRect(),goal.getBoundingClientRect()),'joint placement separates BIT and the ready BUILD chip');
+}

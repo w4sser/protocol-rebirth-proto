@@ -119,8 +119,8 @@ BIT_DATA_ROOT.DATA.roomUnlockStages = {
     powered:"assets/production/bit-narrator/cutscene-fabricator-powered-v1.webp",
     teaser:{
       id:"raid_briefing",
-      line:"Bunker's barely breathing. I need Cable, Scrap Alloy and Scrap to wake the Fabricator — raid for them. I'd go myself, but I don't have legs.",
-      info:[{label:"NEXT",kind:"cost"},{label:"FIND IT",text:"Raid for the parts",icon:"nav-raid"}]
+      line:"Lights on. Raid for parts; I'll heckle.",
+      info:[{label:"NEXT",kind:"cost"}]
     },
     unlock:{
       id:"fabricator_built",
@@ -132,8 +132,8 @@ BIT_DATA_ROOT.DATA.roomUnlockStages = {
     dark:"assets/production/bit-narrator/cutscene-vault-dark-v1.webp",
     powered:"assets/production/bit-narrator/cutscene-vault-powered-v1.webp",
     teaser:{
-      id:"vault_intro", line:"Vault's next. Bring these parts; I'll bring my excellent supervision.",
-      info:[{label:"NEXT",kind:"cost"},{label:"HAVE/NEED",kind:"missing"}]
+      id:"vault_intro", line:"Vault next. Raid for parts, hoarder.",
+      info:[{label:"NEXT",kind:"cost"}]
     },
     unlock:{
       id:"vault_unlocked", line:"The Vault adds stash space and secures one chosen raid item against death. I used to store feelings here. Now it's scrap.",

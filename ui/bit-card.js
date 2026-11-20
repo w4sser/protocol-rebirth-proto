@@ -12,6 +12,9 @@
   if(typeof window === "undefined" || typeof document === "undefined") return;
 
   var ART = "assets/production/bit-narrator/";
+  function escText(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  }); }
   var MOODS = { happy:"happy", sad:"sad", worried:"sad", smile:"smile", calm:"smile",
     skeptical:"skeptical", tired:"skeptical" };
   var preloaded = null;
@@ -80,7 +83,7 @@
     // served from the root. Same convention as nodspel's other ../assets/ references.
     cardEl.innerHTML =
       '<img class="bit-card-img" alt="" aria-hidden="true" src="' + bust("smile") + '">' +
-      '<span class="bit-card-copy"><span class="bit-card-bubble"></span><span class="bit-card-hint">TAP TO CONTINUE</span></span>';
+      '<span class="bit-card-copy"><span class="bit-card-bubble"></span><span class="bit-card-info"></span><span class="bit-card-hint">TAP TO CONTINUE</span></span>';
     cardEl.addEventListener("click", function(){ tapDismiss(); });
     document.body.appendChild(cardEl);
     return cardEl;
@@ -99,7 +102,19 @@
     el.querySelector(".bit-card-img").src = bust(job.mood);
     el.className = "bit-card mood-" + job.mood + (raid ? " ctx-raid" : "");
     el.querySelector(".bit-card-bubble").textContent = job.text;
+    // PRB-162 playtest (Robert, 2026-11-16): the cost/next-step info used to be flattened into
+    // the bubble's prose, duplicating whatever the beat's own line already said. It now renders
+    // as its own compact chip strip (one line of BIT talk, the numbers live in exactly one place).
+    var infoEl = el.querySelector(".bit-card-info");
+    infoEl.innerHTML = (job.info || []).map(function(row){
+      return '<span class="bit-card-info-row"><span class="bit-card-info-icon">' + (row.iconHtml || "") + '</span>' +
+        '<span class="bit-card-info-text">' + escText(row.text) + '</span></span>';
+    }).join("");
+    infoEl.hidden = !(job.info && job.info.length);
     el.hidden = false;
+    // PRB-162 playtest (v2.28.54): the base page repositions this card around rooms/the goal
+    // chip (app.js placeBaseBitCard) -- it cannot know a new card appeared without this event.
+    window.dispatchEvent(new Event("pr:ui-show"));
     if(raid){
       // Non-blocking, self-clearing: the player is mid-combat (docs/bit-narrator.md).
       var ms = computeDuration(job.text, job.duration);
@@ -140,7 +155,12 @@
     if(!current) return;
     clearTimeout(current.timer); clearTimeout(current.hintTimer);
     var job = current.job;
-    if(cardEl){ cardEl.hidden = true; cardEl.classList.remove("hint-visible"); }
+    if(cardEl){
+      cardEl.hidden = true; cardEl.classList.remove("hint-visible");
+      // Drop the base page's placeBaseBitCard() override so the next card (or the default
+      // bottom-left CSS position on a non-base screen) is not left stuck at a stale spot.
+      cardEl.style.removeProperty("left"); cardEl.style.top = ""; cardEl.style.bottom = "";
+    }
     current = null;
     if(job.onDone) try{ job.onDone(); }catch(e){}
     window.dispatchEvent(new Event("pr:ui-clear"));
@@ -153,7 +173,7 @@
     if(!id || !text) return;
     if(isQueuedOrCurrent(id)) return;
     var mood = Object.prototype.hasOwnProperty.call(MOODS, opts.mood) ? opts.mood : "smile";
-    var job = { id: id, text: String(text), mood: mood,
+    var job = { id: id, text: String(text), mood: mood, info: Array.isArray(opts.info) ? opts.info : null,
       duration: typeof opts.duration === "number" ? opts.duration : BASE_MS,
       onDone: typeof opts.onDone === "function" ? opts.onDone : null };
     if(current){ if(queue.length < MAX_QUEUE) queue.push(job); return; }

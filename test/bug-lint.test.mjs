@@ -399,3 +399,18 @@ assert.equal(by('drum-bloom-reads-with-boost').check({worldSrc:world,postfxSrc:p
 assert.equal(by('drum-bloom-reads-with-boost').check({worldSrc:world.replace('tagBloom(band,{boost:3})','tagBloom(band)'),postfxSrc:postfx}).length,1,'unboosted band regresses');
 assert.equal(by('drum-bloom-reads-with-boost').check({worldSrc:world.replace('tagBloom(lid,{boost:3})','tagBloom(lid)'),postfxSrc:postfx}).length,1,'unboosted lid regresses');
 assert.equal(by('drum-bloom-reads-with-boost').check({worldSrc:world,postfxSrc:postfx.replace('emissiveIntensity*boost','emissiveIntensity')}).length,1,'mask dropping the boost multiplier regresses');
+for(const [id,ctx] of [['base-bit-card-clears-rooms',{appSrc:'',layoutSrc:''}],['base-briefing-single-cost',{appSrc:'',bitSrc:''}],['core-restore-lights-base',{appSrc:'function ruinLevel(id,fabricator){if(!fabricator)return 2;return 1;}'}]]){
+ const rule=by(id);assert.equal(rule.check().length,0,id+' passes');assert.ok(rule.check(ctx).length,id+' rejects regression');
+}
+
+assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide base cards regress narrow Vault placement');
+
+{
+ const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8');
+ assert.ok(by('base-bit-card-clears-rooms').check({appSrc:app.replace('if(typeof window !== "undefined") window.addEventListener?.("pr:ui-show"','window.addEventListener("pr:ui-show"')}).length,'unguarded card listener breaks DOM-free logic and geometry tests');
+}
+{const app=fs.readFileSync(new URL('../app.js',import.meta.url),'utf8'),html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app,html}).length,0,'v2.28.55 passes on app.js');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app.replace('markGoalOnMap(trackedGoalHtml()','(trackedGoalHtml()'),html}).length,1,'v2.28.55 fires when the base renders both labels');
+ assert.equal(by('fabricator-marker-once').check({appSrc:app,html:html.replace('.on-map-marked{display:none','.on-map-marked{opacity:1')}).length,1,'v2.28.55 fires without the CSS hide');
+ assert.equal(by('fabricator-marker-once').check({appSrc:'',html:''}).length,3,'v2.28.55 fires on missing pieces');}

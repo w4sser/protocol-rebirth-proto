@@ -7,7 +7,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {resolve,sep,extname,join} from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {chipSave,questChipRoomOverlaps} from './ftue-fixes-states.mjs';
+import {chipSave,questChipRoomOverlaps,baseBitCardRoomOverlaps} from './ftue-fixes-states.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url)));
 const viewportCheck=spawnSync(process.execPath,[join(root,'scripts/viewport-check.mjs')],{cwd:root,stdio:'inherit'});
@@ -241,6 +241,27 @@ async function baseChipRun([w,h]){
     if(!guarded)fail(ctx+' rotated','portrait rotate guard is missing');
     for(const error of await page.evaluate(questChipRoomOverlaps))fail(ctx+' rotated',error);
     await page.close();
+  }
+}
+
+async function baseBriefingRun([w,h]){
+  for(const id of ['fabricator','storage']){
+    const ctx=`base BIT briefing ${id} ${w}x${h}`,page=await newPage(w,h);console.log(ctx);
+    await page.evaluateOnNewDocument(()=>{sessionStorage.setItem('pr_splash_seen',String(Date.now()));window.PR_NAVIGATE=()=>{};});
+    await page.goto(BASE+'/index.html',{waitUntil:'load'});await page.waitForFunction(()=>window.A);
+    await page.evaluate(id=>{
+      PRBitCard.dismiss();document.getElementById('splash')?.remove();closeAllPopups();A.startFtueDirect=()=>{};
+      S.introSeen=true;S.ftuePath=true;S.raids=1;S.modules.rebirth_core=1;S.modules.fabricator=id==='storage'?1:0;S.modules.storage=0;
+      S.baseState='core_habitable';S.beat=PROG.beats.findIndex(b=>b.id==='raid_1')+1;S.bitCardsSeen={core_restored:true,raid_briefing:id==='storage',fabricator_built:true,vault_intro:false};
+      S.stash={};S.cur.scrap=0;A.go('base');
+    },id);
+    await page.evaluate(()=>document.fonts.ready);await settle(350);
+    for(const error of await page.evaluate(baseBitCardRoomOverlaps))fail(ctx,error);
+    await shot(page,`base-briefing-${id}-${w}x${h}`);
+    await page.evaluate(id=>{const cost=MODS[id].levels[0].cost;Object.assign(S.stash,cost.items);S.cur.scrap=cost.scrap;refresh();},id);
+    await settle(100);
+    for(const error of await page.evaluate(baseBitCardRoomOverlaps))fail(ctx+' affordable',error);
+    await shot(page,`base-briefing-${id}-affordable-${w}x${h}`);await page.close();
   }
 }
 
@@ -868,8 +889,8 @@ async function extractPopupRun([w,h]){
   await page.evaluate(async()=>{
     window.__NR.backpackDemo(['shotgun_breach','smg_vector']);window.__NR.extractDemo();
     // Stress every known item type, beyond today's nine material drops, using the real presenter.
-    const {createRound}=await import('./round.js?v=2.28.53');
-    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.53');
+    const {createRound}=await import('./round.js?v=2.28.56');
+    const {resultView,renderResult}=await import('./result-screen.js?v=2.28.56');
     const round=createRound('result-layout-stress',0);round.over=true;round.reason='extract';round.levelsCleared=3;
     round.extracted=Object.fromEntries(globalThis.DATA.items.map(i=>[i.id,1]));
     round.equip={weapon:'shotgun_breach',armor:'scout_rig'};round.backpack=['smg_vector','scavenger_vest'];
@@ -981,6 +1002,7 @@ try{
   }
   if(group('base')){
     await cinematicPrep3DRun([844,390]);
+    for(const vp of VIEWPORTS)await baseBriefingRun(vp);
     for(const vp of [...VIEWPORTS,[720,600],[800,600],[1024,768]])await baseChipRun(vp);
     for(const vp of VIEWPORTS)await baseAfterRaidRun(vp);
     for(const vp of VIEWPORTS)await baseRun(vp);

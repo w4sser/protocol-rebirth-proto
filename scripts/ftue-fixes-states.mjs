@@ -31,3 +31,19 @@ export function questChipRoomOverlaps(){
   }
   return errors;
 }
+// BIT base briefings must leave every room label, room hitbox and goal chip visible.
+export function baseBitCardRoomOverlaps(){
+  const card=document.querySelector('.bit-card:not(.ctx-raid):not([hidden])');
+  if(!card)return ['expected visible base BIT card'];
+  const a=card.getBoundingClientRect(),errors=[];
+  if(a.left<47||a.right>innerWidth-47||a.top<0||a.bottom>innerHeight-21)errors.push('BIT card outside safe area');
+  for(const room of document.querySelectorAll('.baseviewer .mapspot,.baseviewer .mapspot .tag,.baseviewer>.progress-goal,.baseviewer>.goalpill')){
+    if(!room.getClientRects().length||getComputedStyle(room).visibility==='hidden')continue;
+    const b=room.getBoundingClientRect();
+    if(Math.min(a.right,b.right)>Math.max(a.left,b.left)&&Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top))errors.push(`BIT card covers ${room.getAttribute('aria-label')||room.textContent}`);
+  }
+  const bubble=card.querySelector('.bit-card-bubble'),cs=getComputedStyle(bubble);
+  const height=bubble.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  if(height>2*parseFloat(cs.lineHeight)+1)errors.push('BIT briefing exceeds two lines');
+  return errors;
+}
