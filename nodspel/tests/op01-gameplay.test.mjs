@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as THREE from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/GLTFLoader.js';
-import {createOP01GameplayOperator,createOP01FacingLatch,OP01_CHARACTER} from '../op01-gameplay.js';
+import {createOP01GameplayOperator,createOP01FacingLatch,OP01_CHARACTER,OP01_RIM_STRENGTHS} from '../op01-gameplay.js';
 import {createOP01DeployGrip} from '../../ui/raid-prep-op01.mjs';
 
 async function parse(name){
@@ -99,6 +99,55 @@ test('OP01 size experiment scales presentation only and is reversible',async()=>
     assert.equal(op.root.userData.operatorScalePercent,100);
   }
   assert.equal(op.root.scale.x,base,'baseline is restored without loading another skin');
+});
+
+test('OP01 live rim strength is a shared shader uniform across LODs, not added geometry',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const op=createOP01GameplayOperator(gltf);
+  const parts=[];op.model.traverse(n=>{
+    if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);
+  });
+  assert.deepEqual([...OP01_RIM_STRENGTHS],[.16,.24,.32]);
+  assert.equal(op.root.userData.op01RimStrength,.16);
+  const initialChildren=op.model.children.length;
+  function compileRim(material){
+    assert.equal(typeof material.onBeforeCompile,'function');
+    const shader={
+      uniforms:{},
+      vertexShader:'#include <common>\n#include <project_vertex>',
+      fragmentShader:'#include <common>\n#include <dithering_fragment>'
+    };
+    material.onBeforeCompile(shader);
+    assert.match(shader.fragmentShader,/uniform float op01RimStrength;/);
+    assert.match(shader.fragmentShader,/op01RimColor\*op01Edge\*op01RimStrength/);
+    assert.equal(shader.uniforms.op01RimColor.value.getHexString(),'b6c4ca');
+    return shader.uniforms.op01RimStrength;
+  }
+  const uniforms=parts.map(part=>compileRim(part.material));
+  assert(uniforms.every(u=>u===uniforms[0]),'all four body materials share one live uniform');
+  for(const strength of [.24,.32,.16]){
+    assert.equal(op.setRimStrength(strength),true);
+    assert.equal(op.poseDiagnostics().rimStrength,strength);
+    assert(uniforms.every(u=>u.value===strength),'compiled shader uniforms update without recompilation');
+  }
+  for(const invalid of [-1,0,.20,1,NaN,Infinity,'invalid']){
+    assert.equal(op.setRimStrength(invalid),false);
+    assert.equal(op.root.userData.op01RimStrength,.16);
+  }
+  assert.equal(op.model.children.length,initialChildren,'rim does not add geometry or render passes');
+  const loader={loadAsync:async url=>parse(new URL(url).pathname.split('/').at(-1))};
+  await op.preloadLODs(loader);
+  op.setRimStrength(.32);
+  assert(op.setLOD(1));
+  const lod1=parts.map(part=>compileRim(part.material));
+  assert(lod1.every(u=>u===uniforms[0]&&u.value===.32),
+    'streamed LOD1 materials inherit the active rim uniform');
+  assert(op.setLOD(2));
+  assert(parts.every(part=>compileRim(part.material)===uniforms[0]),
+    'streamed LOD2 materials use the same uniform');
+  assert(op.setLOD(0));
+  op.setRimStrength(.16);
+  assert.equal(uniforms[0].value,.16,'baseline rim restores after LOD switches');
 });
 
 test('OP01 presentation does not modify core movement, collision or weapon rules',()=>{
