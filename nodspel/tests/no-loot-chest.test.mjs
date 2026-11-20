@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createPixelFeedback} from '../fx-feedback.js?v=2.28.55';
+import {createPixelFeedback} from '../fx-feedback.js?v=2.28.56';
 
 test('revealing and collecting loot never spawns a pixel chest, including initial revealed supplies',()=>{
  const events=[],pixel={enabled:true,clear(){},stop(){},update(){},spawn(name){events.push(name);}};

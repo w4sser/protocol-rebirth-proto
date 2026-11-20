@@ -1,7 +1,7 @@
 // Opt-in glacial landforms, adapted from archipelago-visual-target.html.
 // Raised scenery stays outside the walkable coast; shared resources survive rebuilds.
 import * as THREE from './vendor/three.module.js';
-import {archipelagoGroundColor} from './coastline.mjs?v=2.28.55-glacial-s42';
+import {archipelagoGroundColor} from './coastline.mjs?v=2.28.56-glacial-s42';
 const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function hash(n){let x=(n|0)^0x9e3779b9;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return ((x^(x>>>16))>>>0)/4294967296;}
 const overlaps=(a,b,pad=.3)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+pad&&Math.abs(a.z-b.z)<(a.d+b.d)/2+pad;

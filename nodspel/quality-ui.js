@@ -13,7 +13,7 @@ export function createQualityUI({document,container,quality,onChange}){
     buttons[q]=b;row.append(b);
   }
   group.append(row);
-  const note=document.createElement('small');note.className='quality-note';note.textContent='Pixel effects: Medium / High. Bloom, dust and vignette: High.';group.append(note);
+  const note=document.createElement('small');note.className='quality-note';note.textContent='Pixel effects: Medium / High. Bloom: Medium (reduced) / High (full). Grade and dust: High.';group.append(note);
   container.append(group);
   return {setQuality(q){quality=q;for(const k in buttons)buttons[k].setAttribute('aria-pressed',String(k===quality));}};
 }

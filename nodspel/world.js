@@ -1,18 +1,19 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.55';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.55';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.56';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.56';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.55';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.55';
-import {buildTown} from './town.js?v=2.28.55';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.55';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.55-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.55-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.55';
-import {controlCablePath} from './control-cables.js?v=2.28.55';
-import {extractAvailable} from './big-level.js?v=2.28.55';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.55';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.55';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.56';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.56';
+import {buildTown} from './town.js?v=2.28.56';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.56';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.56-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.56-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.56';
+import {controlCablePath} from './control-cables.js?v=2.28.56';
+import {extractAvailable} from './big-level.js?v=2.28.56';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.56';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.56';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.56';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -145,7 +146,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
       for(const y of [.12,.7,1.3,1.9])box(0,y,0,1.8,.1,.5,PALETTE.box,pivot);
       for(const x of [-.5,.3])box(x,.95,0,.5,.4,.4,PALETTE.wall,pivot);
     }
-    const strap=box(0,1,.28,1.7,.09,.035,PALETTE.warm,pivot);strap.material=glow(PALETTE.warm,.8);
+    const strap=box(0,1,.28,1.7,.09,.035,PALETTE.warm,pivot);strap.material=glow(PALETTE.warm,.8);tagBloom(strap);
     // Fall telegraph: a near-black footprint reads against any floor tone, and a bright pulsing coral
     // outline (drawn with no depth test, above the patrol sight-cone fill) keeps it unmistakable even
     // when a guard's cone overlaps the same tile.
@@ -163,12 +164,15 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     const danger=new THREE.MeshStandardMaterial({color:'#bf624e',metalness:.18,roughness:.64,emissive:'#53251e',emissiveIntensity:.5});
     const body=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.95,14),metal);
     body.position.y=.54;g.add(body);
+    // danger's emissive is a dark warning-maroon (a subtle under-light for the direct-view material, not a
+    // bloom source on its own); boost just the bloom contribution so the bands read next to the brighter
+    // pad/extraction cues, without changing how the drum looks on Low or outside the bloom pass.
     for(const y of [.21,.67,1.01]){
       const band=new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.10,14),danger);
-      band.position.y=y;g.add(band);
+      band.position.y=y;g.add(band);tagBloom(band,{boost:3});
     }
     const lid=new THREE.Mesh(new THREE.CylinderGeometry(.33,.33,.07,14),danger);
-    lid.position.y=1.065;g.add(lid);
+    lid.position.y=1.065;g.add(lid);tagBloom(lid,{boost:3});
     const ring=new THREE.Mesh(new THREE.RingGeometry(.64,.70,32),
       new THREE.MeshBasicMaterial({color:'#cf745b',transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false}));
     ring.rotation.x=-Math.PI/2;ring.position.y=.02;g.add(ring);
@@ -247,7 +251,9 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   // ring+cylinder pair -- same exit position, same EXTRACT_COLOR, gameplay radius/logic untouched.
   const extractionEffects=(level.extracts??[exit]).map(point=>{
     const fx=createExtractBeam({color:EXTRACT_COLOR,quality});
-    fx.group.position.set(point.x,0,point.z);group.add(fx.group);return {point,fx};
+    fx.group.position.set(point.x,0,point.z);group.add(fx.group);
+    for(const cue of [fx.pad,fx.rim,fx.fence,fx.beam,fx.core,fx.points,...fx.pulseRings])tagBloom(cue);
+    return {point,fx};
   });
   const extractBeamFx=extractionEffects[0].fx;
   const gateProgress=nodes.map((v,i)=>{
@@ -362,7 +368,7 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     const pad=level.hazards.find(h=>h.id===j.padId),g=new THREE.Group();g.position.set(j.x,0,j.z);group.add(g);
     box(0,.6,0,1.15,1.2,.65,PALETTE.base,g);
     const face=new THREE.MeshStandardMaterial({color:PALETTE.warm,emissive:PALETTE.warm,emissiveIntensity:.7,metalness:.5,roughness:.45,fog:false});
-    const panel=new THREE.Mesh(cube,face);panel.scale.set(1.05,.85,.72);panel.position.y=.7;g.add(panel);
+    const panel=new THREE.Mesh(cube,face);panel.scale.set(1.05,.85,.72);panel.position.y=.7;g.add(panel);tagBloom(panel);
     for(const x of [-.34,0,.34])box(x,.7,.38,.08,.5,.04,PALETTE.base,g);
     const cable=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(j.x,.08,j.z),new THREE.Vector3(pad.x,.08,pad.z)]),new THREE.LineBasicMaterial({color:KEY_AMBER,transparent:true,opacity:.65,toneMapped:false,fog:false}));group.add(cable);
     const burst=new THREE.Mesh(new THREE.RingGeometry(.9,1,48),new THREE.MeshBasicMaterial({color:PALETTE.neon,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,toneMapped:false,fog:false}));burst.rotation.x=-Math.PI/2;burst.position.set(pad.x,.08,pad.z);group.add(burst);
@@ -373,9 +379,9 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
     const pad=new THREE.Mesh(new THREE.PlaneGeometry(h.w,h.d),mat);pad.rotation.x=-Math.PI/2;pad.position.set(h.x,.03,h.z);group.add(pad);
     const rr=Math.min(h.w,h.d)*.46,ring=(inner,mat)=>{const m=new THREE.Mesh(new THREE.RingGeometry(inner,rr,64,1,-Math.PI/2),mat);m.rotation.x=-Math.PI/2;m.position.set(h.x,.045,h.z);m.renderOrder=3;group.add(m);return m;};
     const track=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#3a2f12',transparent:true,opacity:.75,side:THREE.DoubleSide,depthWrite:false,toneMapped:false}));
-    const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;
-    let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,LAYER.padTop-.06,h.z);kit[st].visible=st==='off';group.add(kit[st]);}mat.opacity=.1;}
-    return {hazard:h,mat,fill,track,kit};
+    const fill=ring(rr-.24,new THREE.MeshBasicMaterial({color:'#ffd23a',transparent:true,opacity:1,side:THREE.DoubleSide,depthWrite:false,depthTest:false,toneMapped:false}));fill.position.y=.05;fill.renderOrder=4;tagBloom(fill);
+    let kit=null;if(K){kit={};for(const st of ['off','warn','on']){kit[st]=kitGroup(K['shock_pad_'+st],{sx:h.w/2,sy:1,sz:h.d/2});kit[st].position.set(h.x,LAYER.padTop-.06,h.z);kit[st].visible=st==='off';group.add(kit[st]);if(st==='on')tagBloom(kit[st]);}mat.opacity=.1;}
+    return {hazard:h,pad,mat,fill,track,kit};
   });
   // Telegraph: warn = strong yellow/white pulse that speeds up as it nears 'on'; on = solid red.
   const hazardClock={};
@@ -388,6 +394,8 @@ for(const v of nodes){nodeKit(v);if(v.node.active){v.coreMaterial.color.set('#75
       if(over){const t=1-(v.pad.overloadUntil-now)/RULES.junction.overloadMs;v.burst.scale.setScalar(RULES.junction.overloadRadius*(.95+.05*t));v.burst.material.opacity=1-t*.7;}
     }
     for(const v of hazards){const t=hazardTiming(v.hazard,now,hazardClock),live=t.state==='on'||t.state==='overload',dead=t.state==='dead';
+      // Only the energized surface emits bloom; charge/dead states keep their existing appearance.
+      if(live)v.pad.layers.enable(BLOOM_LAYER);else v.pad.layers.disable(BLOOM_LAYER);
       // recharge ring fills clockwise while the pad charges back up; hidden while live
       const prog=live||dead?0:1-t.msToOn/RULES.hazard.offMs;v.fill.visible=v.track.visible=!live&&!dead;v.fill.geometry.setDrawRange(0,Math.floor(Math.max(0,Math.min(1,prog))*64)*6);
       if(v.kit)for(const st in v.kit)v.kit[st].visible=st===(live?'on':dead?'off':t.state);
