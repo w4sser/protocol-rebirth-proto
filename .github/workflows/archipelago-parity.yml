@@ -6,12 +6,10 @@ on:
       - 'nodspel/**'
       - 'scripts/shot-archipelago-v2.mjs'
       - '.github/workflows/archipelago-parity.yml'
-  push:
-    branches: [feat/archipelago-visual-target-v2]
   workflow_dispatch:
 
 concurrency:
-  group: archipelago-v2-parity
+  group: archipelago-v2-parity-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -19,7 +17,6 @@ permissions:
 
 jobs:
   capture:
-    if: github.event_name != 'pull_request' || github.event.pull_request.number == 247
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -39,6 +36,7 @@ jobs:
         env:
           OUT: verify-out/archipelago-v2-parity
           ONLY_AFTER: '1'
+          ARCH_MULTI_SEED_DRESSING: '1'
         run: node scripts/shot-archipelago-v2.mjs
       - uses: actions/upload-artifact@v4
         if: always()

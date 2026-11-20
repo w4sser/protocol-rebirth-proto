@@ -19,9 +19,82 @@ const SAMPLE_IDS=[
 ];
 const byId=new Map(POLYFORK_CANDIDATES.map(c=>[c.id,c]));
 const LEGACY_TREE_ASSETS=new Set(['young-pine-0d7695','tall-pine-tree-ab4108','birch-tree-181b33']);
-// V2 owns all camera-height trees so every canopy obeys the same occlusion rule.
-export function filterDressingTrees(items,{nativePines=false}={}){
-  return nativePines?items.filter(item=>!LEGACY_TREE_ASSETS.has(item.id)):items;
+const BRIGHT_GROUND_DETAIL=new Set(['small-rock-db33a7','wildflower-68d3a1']);
+const PALE_COAST_PLANTS=new Set([
+  'marram-grass-tuft-8c7a99',
+  'sea-holly-clump-ce3bc6' // screen raycast confirmed the last bright white spawn-area tuft
+]);
+const BLEACHED_WOOD_DETAIL=new Set(['fallen-log-1685fb','driftwood-log-89a68f','seaweed-drift-line-6566c3']);
+// V2 removes all bleached driftwood/white seaweed and retains only sparse,
+// near-shore light vegetation. Existing seeded choices are filtered in place,
+// never re-rolled: LOW remains a stable subset of HIGH.
+function keepSparseGroundDetail(item){
+  const x=Math.round(item.x*100),z=Math.round(item.z*100);
+  const seed=Math.imul(x,73856093)^Math.imul(z,19349663);
+  return (seed>>>0)%10<3;
+}
+function inFloor(p,f,pad=0){
+  return Math.abs(p.x-f.x)<=f.w/2+pad&&Math.abs(p.z-f.z)<=f.d/2+pad;
+}
+function distanceToSegment(p,a,b){
+  const dx=b.x-a.x,dz=b.z-a.z,den=dx*dx+dz*dz;
+  const t=den?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/den)):0;
+  return Math.hypot(p.x-a.x-dx*t,p.z-a.z-dz*t);
+}
+// Only used for the small pale/high-contrast detail. Dark grass, larger rocks
+// and military/collision-matched cover preserve their authored placements.
+function keepLightDetailAtShore(item,level,blocked){
+  if(!level?.archipelago)return true; // old filtering API/legacy tests
+  const p={x:item.x,z:item.z};
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.z))return false;
+  if(blocked?.(p.x,p.z,1.4))return false; // broad visual clear zone around bridge and POIs
+  const islands=(level.floors??[]).filter(f=>!f.dir);
+  const floor=islands.find(f=>inFloor(p,f));
+  if(floor){
+    const edge=Math.min(floor.w/2-Math.abs(p.x-floor.x),
+      floor.d/2-Math.abs(p.z-floor.z));
+    if(edge>1.9)return false; // no white scatter across central combat meadow
+  }else if(!islands.some(f=>inFloor(p,f,3.5))){
+    return false; // only attached shoreline pockets, not unrelated white props
+  }
+  // Wider-than-collider visual clearance around active play/interactions.
+  const sites=[
+    ...[level.start,level.exit].filter(Boolean).map(p=>({p,r:4.0})),
+    ...(level.nodes??[]).map(p=>({p,r:3.4})),
+    ...(level.lootBoxes??[]).map(p=>({p,r:3.3})),
+    ...(level.enemies??[]).map(p=>({p,r:2.4}))
+  ];
+  if(sites.some(({p:target,r})=>Math.hypot(p.x-target.x,p.z-target.z)<r))
+    return false;
+  // Clear the main readable approach on each island, never an imaginary path
+  // through water between unrelated floors. No pathfinding or physics changes.
+  const anchors=[level.start,...(level.nodes??[]),...(level.lootBoxes??[]),level.exit]
+    .filter(Boolean);
+  if(islands.some(f=>{
+    if(!inFloor(p,f,1))return false;
+    const relevant=anchors.filter(a=>inFloor(a,f));
+    if(relevant.length<2)return false;
+    const origin=inFloor(level.start??{x:Infinity,z:Infinity},f)
+      ?level.start:relevant[0];
+    return relevant.some(target=>target!==origin
+      &&Math.hypot(target.x-origin.x,target.z-origin.z)<28
+      &&distanceToSegment(p,origin,target)<2.5);
+  }))return false;
+  return true;
+}
+export function filterDressingTrees(items,{nativePines=false,quietGround=nativePines,level=null}={}){
+  if(!nativePines&&!quietGround)return items;
+  const blocked=quietGround&&level?.archipelago?propReservations(level).blocked:null;
+  return items.filter(item=>{
+    if(nativePines&&LEGACY_TREE_ASSETS.has(item.id))return false;
+    // 844x390 screen-ray QA identified white twig/seaweed piles as Polyfork
+    // scene props, not the approved dark windfall cover mesh.
+    if(quietGround&&(BLEACHED_WOOD_DETAIL.has(item.id)||PALE_COAST_PLANTS.has(item.id)))
+      return false; // visually bright tufts, individually confirmed in real camera
+    if(quietGround&&BRIGHT_GROUND_DETAIL.has(item.id))
+      return keepSparseGroundDetail(item)&&keepLightDetailAtShore(item,level,blocked);
+    return true;
+  });
 }
 const loader=new GLTFLoader(),assetPromises=new Map();
 function load(id){
@@ -102,7 +175,7 @@ export function addPolyforkDressing(level,scene,{quality='high',density=1,mode='
     mode==='coastal'?planCoastalLifeDressing(level,{quality,density}):
     mode==='military'?planMilitaryRemnantsDressing(level,{quality,density}):null;
   const planned=composition?composition.items:planPolyforkDressing(level,{quality,density});
-  const items=filterDressingTrees(planned,{nativePines}),groups=new Map();
+  const items=filterDressingTrees(planned,{nativePines,level}),groups=new Map();
   const fortifications=composition?.architecture?.length?
     renderMilitaryArchitecture(composition.architecture,group,{quality,seed:level.seed}):null;
   for(const item of items){if(!groups.has(item.id))groups.set(item.id,[]);groups.get(item.id).push(item);}
