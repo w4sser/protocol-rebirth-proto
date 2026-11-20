@@ -298,6 +298,51 @@ if(requestedSkin!=='robot'){
 }
 const activeSkin=human?human.character.id:'robot';document.documentElement.dataset.skin=activeSkin;
 const op01Facing=activeSkin==='op01'?createOP01FacingLatch():null;
+// Visual-only, opt-in character size experiment. Default appearance stays unchanged.
+// ?operatorScale=120|135|150 selects a preset; ?operatorScaleTest=1 adds a
+// live selector for side-by-side comparison without reloading or touching saves.
+if(activeSkin==='op01'){
+  const scaleParams=new URLSearchParams(location.search);
+  const requestedPercent=Number(scaleParams.get('operatorScale')||100);
+  human.setVisualScalePercent(requestedPercent);
+  if(scaleParams.get('operatorScaleTest')==='1'){
+    const panel=document.createElement('div');
+    panel.id='operator-scale-test';
+    Object.assign(panel.style,{
+      position:'fixed',top:'max(10px, env(safe-area-inset-top))',
+      left:'50%',transform:'translateX(-50%)',zIndex:'99997',
+      display:'flex',alignItems:'center',gap:'5px',padding:'5px 8px',
+      background:'rgba(10,20,27,.90)',border:'1px solid #6a8a94',
+      borderRadius:'9px',color:'#e7f2f3',font:'12px system-ui',
+      pointerEvents:'auto',boxShadow:'0 3px 12px #0008'
+    });
+    const label=document.createElement('span');
+    label.textContent='OP01 SIZE';
+    label.style.marginRight='4px';
+    panel.append(label);
+    for(const percent of [100,120,135,150]){
+      const button=document.createElement('button');
+      button.type='button';
+      button.textContent=percent+'%';
+      button.style.cssText='font:inherit;padding:5px 7px;border-radius:5px;border:1px solid #719198;cursor:pointer;touch-action:manipulation';
+      function refresh(){
+        const selected=human.root.userData.operatorScalePercent===percent;
+        button.style.background=selected?'#75cfcc':'#253b43';
+        button.style.color=selected?'#07151c':'#e7f2f3';
+        button.setAttribute('aria-pressed',String(selected));
+      }
+      button.onclick=()=>{
+        human.setVisualScalePercent(percent);
+        for(const child of panel.querySelectorAll('button'))child._refreshScale?.();
+      };
+      button._refreshScale=refresh;
+      panel.append(button);
+    }
+    document.body.append(panel);
+    for(const child of panel.querySelectorAll('button'))child._refreshScale();
+  }
+}
+
 // Explicit test-only inspection: never change gameplay, collision, input or
 // saved state, and never expose the rig during ordinary player sessions.
 if(activeSkin==='op01'&&new URLSearchParams(location.search).get('op01QA')==='1'){
