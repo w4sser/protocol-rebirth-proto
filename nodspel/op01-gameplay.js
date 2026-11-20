@@ -18,6 +18,9 @@ export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD2.glb'
 ]);
 const REQUIRED_CLIPS=Object.freeze(['idle','run','aim','shoot','hit','dash','death','hero_pose']);
+// Opt-in visual-only A/B variants. 100% is today's shipped 1.10x OP01 silhouette.
+// Never use this value for physics, aiming, movement or player collision.
+export const OP01_SCALE_PERCENTAGES=Object.freeze([100,120,135,150]);
 export const OP01_CHARACTER=Object.freeze({
   // Slightly larger silhouette in top-down gameplay; does not change physics.
   id:'op01',height:1.78,scale:1.10,
@@ -162,7 +165,14 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   // Scale the complete presentation hierarchy, including hands, rifle and
   // muzzle. The enclosing gameplay player group, collision and speed stay
   // unchanged; menu/Deploy uses a separate GLB and is unaffected.
-  root.scale.setScalar(OP01_CHARACTER.scale);
+  function setVisualScalePercent(value){
+    const percent=Number(value);
+    if(!OP01_SCALE_PERCENTAGES.includes(percent))return false;
+    root.scale.setScalar(OP01_CHARACTER.scale*percent/100);
+    root.userData.operatorScalePercent=percent;
+    return true;
+  }
+  setVisualScalePercent(100);
   root.add(model);
   const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
@@ -385,6 +395,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     const support=weapon.worldToLocal(supportHand.getWorldPosition(new THREE.Vector3()));
     return {lod,lower:currentName.lower,upper:currentName.upper,
       visualScale:root.scale.x,visualHeight:OP01_CHARACTER.height*root.scale.y,
+      scaleVariantPercent:root.userData.operatorScalePercent,
       muzzle:tip.toArray(),direction:tip.sub(origin).normalize().toArray(),
       supportHandLocal:support.toArray(),outlines:outlines.length,
       outlineVisible:outlines.some(o=>o.visible),mixerTime:mixer.time};
@@ -393,6 +404,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   return {
     root,model,mixer,actions,character:OP01_CHARACTER,weapon,socket:weapon.parent,muzzle,
     update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,healthAnchor,poseDiagnostics,
+    setVisualScalePercent,
     setLOD,updateLOD,preloadLODs,readyLODs,
     currentLOD:()=>lod
   };
