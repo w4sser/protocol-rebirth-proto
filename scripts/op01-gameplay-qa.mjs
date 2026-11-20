@@ -109,6 +109,44 @@ try{
       if(accuracy(aim)<.58)failures.push(tag+': aim preview direction wrong ('+accuracy(aim).toFixed(2)+')');
       if(accuracy(shoot)<.90)failures.push(tag+': barrel direction at firing is wrong ('+accuracy(shoot).toFixed(2)+')');
       if(idle.outlines!==4||run.outlines!==4)failures.push(tag+': four-part occlusion silhouette absent');
+      // The opt-in presentation controls must be testable on a mobile viewport,
+      // independently of the normal raid. Capture three side-by-side reference states.
+      if(width===844){
+        await page.goto(base+'/nodspel/index.html?seed=op01-rim-qa&area=archipelago&q=medium&ftue=1&op01QA=1&operatorScaleTest=1&operatorScale=135&operatorRim=0.24',
+          {waitUntil:'load',timeout:45000});
+        await page.waitForFunction(()=>document.documentElement.dataset.skin==='op01'&&
+          !!window.__OP01_QA&&!document.getElementById('boot-loader')&&
+          !!document.getElementById('operator-scale-test'),{timeout:55000});
+        await pause(400);
+        const scaled=await snapshot();
+        await capture('experiment-135-rim024');
+        const press=async label=>page.evaluate(text=>{
+          const button=[...document.querySelectorAll('#operator-scale-test button')]
+            .find(element=>element.textContent===text);
+          if(!button)throw new Error('Missing experiment control '+text);
+          button.click();
+          return button.getAttribute('aria-pressed');
+        },label);
+        if(Math.abs(scaled.visualScale-1.485)>.001||scaled.rimStrength!==.24)
+          failures.push(tag+': experiment start presets not applied');
+        if(await press('150%')!=='true'||await press('0.32')!=='true')
+          failures.push(tag+': experiment buttons do not select active variants');
+        await pause(120);
+        const enlarged=await snapshot();
+        await capture('experiment-150-rim032');
+        if(Math.abs(enlarged.visualScale-1.65)>.001||enlarged.rimStrength!==.32)
+          failures.push(tag+': scale and rim controls did not update together');
+        if(await press('100%')!=='true'||await press('0.16')!=='true')
+          failures.push(tag+': unable to restore experiment baseline');
+        await pause(120);
+        const restored=await snapshot();
+        await capture('experiment-100-rim016');
+        if(Math.abs(restored.visualScale-1.10)>.001||restored.rimStrength!==.16)
+          failures.push(tag+': experiment did not restore original OP01 presentation');
+        report.experiment={scaled:{visualScale:scaled.visualScale,rim:scaled.rimStrength},
+          enlarged:{visualScale:enlarged.visualScale,rim:enlarged.rimStrength},
+          restored:{visualScale:restored.visualScale,rim:restored.rimStrength}};
+      }
       for(const error of errors)failures.push(tag+': page error '+error.slice(0,190));
     }catch(error){failures.push(tag+': '+String(error));checks.push({tag,error:String(error),errors});}
     finally{await page.close();}

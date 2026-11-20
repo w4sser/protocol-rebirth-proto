@@ -18,6 +18,11 @@ export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD2.glb'
 ]);
 const REQUIRED_CLIPS=Object.freeze(['idle','run','aim','shoot','hit','dash','death','hero_pose']);
+// Opt-in visual-only A/B variants. 100% is today's shipped 1.10x OP01 silhouette.
+// Never use this value for physics, aiming, movement or player collision.
+export const OP01_SCALE_PERCENTAGES=Object.freeze([100,120,135,150]);
+// Rim is shader lighting, not an always-visible geometric outline or gameplay effect.
+export const OP01_RIM_STRENGTHS=Object.freeze([.16,.24,.32]);
 export const OP01_CHARACTER=Object.freeze({
   // Slightly larger silhouette in top-down gameplay; does not change physics.
   id:'op01',height:1.78,scale:1.10,
@@ -55,29 +60,32 @@ function compatibleRig(main,other){
 // gameplay scale. This is material lighting, not a cyan neon contour or an
 // extra draw call, and is shared by all three skinned LOD atlases.
 const rimmed=new WeakSet();
-function addRim(material){
+function addRim(material,strengthUniform){
   if(rimmed.has(material)||!material?.isMeshStandardMaterial)return;
   rimmed.add(material);
   const rim=OP01_CHARACTER.rim;
   material.onBeforeCompile=shader=>{
     shader.uniforms.op01RimColor={value:new THREE.Color(rim.color)};
+    // Share the live uniform across all four skinned parts and streamed LODs.
+    // Changing preset updates the rendered shader without material recompilation.
+    shader.uniforms.op01RimStrength=strengthUniform;
     shader.vertexShader=shader.vertexShader
       .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;')
       .replace('#include <project_vertex>','vOP01RimNormal=normalize(normalMatrix*objectNormal);vOP01RimView=-(modelViewMatrix*vec4(transformed,1.0)).xyz;\n#include <project_vertex>');
     shader.fragmentShader=shader.fragmentShader
-      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;\nuniform vec3 op01RimColor;')
-      .replace('#include <dithering_fragment>','float op01Edge=pow(1.0-clamp(dot(normalize(vOP01RimNormal),normalize(vOP01RimView)),0.0,1.0),'+rim.power+');\n gl_FragColor.rgb+=op01RimColor*op01Edge*'+rim.strength+';\n#include <dithering_fragment>');
+      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;\nuniform vec3 op01RimColor;\nuniform float op01RimStrength;')
+      .replace('#include <dithering_fragment>','float op01Edge=pow(1.0-clamp(dot(normalize(vOP01RimNormal),normalize(vOP01RimView)),0.0,1.0),'+rim.power+');\n gl_FragColor.rgb+=op01RimColor*op01Edge*op01RimStrength;\n#include <dithering_fragment>');
   };
-  material.customProgramCacheKey=()=>"op01-neutral-rim-v1";
+  material.customProgramCacheKey=()=>"op01-neutral-rim-adjustable-v2";
   material.needsUpdate=true;
 }
-function tuneMaterials(mesh,low=false){
+function tuneMaterials(mesh,low=false,strengthUniform){
   mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
     if(!mat)return;
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
-    if(mesh.isSkinnedMesh)addRim(mat);
+    if(mesh.isSkinnedMesh)addRim(mat,strengthUniform);
   }
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -159,10 +167,26 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   for(const clip of REQUIRED_CLIPS)if(!clips.has(clip))throw new Error('OP01 gameplay GLB missing '+clip);
   const model=gltf.scene,root=new THREE.Group();
   root.name='OP01-rigged-player';
+  const rimStrengthUniform={value:OP01_CHARACTER.rim.strength};
+  function setRimStrength(value){
+    const strength=Number(value);
+    if(!OP01_RIM_STRENGTHS.includes(strength))return false;
+    rimStrengthUniform.value=strength;
+    root.userData.op01RimStrength=strength;
+    return true;
+  }
+  setRimStrength(OP01_CHARACTER.rim.strength);
   // Scale the complete presentation hierarchy, including hands, rifle and
   // muzzle. The enclosing gameplay player group, collision and speed stay
   // unchanged; menu/Deploy uses a separate GLB and is unaffected.
-  root.scale.setScalar(OP01_CHARACTER.scale);
+  function setVisualScalePercent(value){
+    const percent=Number(value);
+    if(!OP01_SCALE_PERCENTAGES.includes(percent))return false;
+    root.scale.setScalar(OP01_CHARACTER.scale*percent/100);
+    root.userData.operatorScalePercent=percent;
+    return true;
+  }
+  setVisualScalePercent(100);
   root.add(model);
   const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
@@ -174,7 +198,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
 
   // Source mesh and animation are 1.78m tall. No procedural hood/jacket is
   // attached: those already exist in the authored skin and would double up.
-  for(const part of skinnedParts)tuneMaterials(part,quality==='low');
+  for(const part of skinnedParts)tuneMaterials(part,quality==='low',rimStrengthUniform);
   weapon.traverse(n=>{if(n.isMesh)tuneMaterials(n,quality==='low');});
   model.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(model);
@@ -280,7 +304,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
       const other=characterMeshes(extra.scene);
       if(other.length!==skinnedParts.length||!other.every((part,j)=>compatibleRig(skinnedParts[j],part)))
         throw new Error('OP01 LOD '+i+' incompatible skeleton or mesh layout');
-      other.forEach(part=>tuneMaterials(part,quality==='low'));
+      other.forEach(part=>tuneMaterials(part,quality==='low',rimStrengthUniform));
       lodResources[i]={parts:other.map(part=>({geometry:part.geometry,material:part.material}))};
       return i;
     })).then(r=>{
@@ -385,6 +409,8 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     const support=weapon.worldToLocal(supportHand.getWorldPosition(new THREE.Vector3()));
     return {lod,lower:currentName.lower,upper:currentName.upper,
       visualScale:root.scale.x,visualHeight:OP01_CHARACTER.height*root.scale.y,
+      scaleVariantPercent:root.userData.operatorScalePercent,
+      rimStrength:root.userData.op01RimStrength,
       muzzle:tip.toArray(),direction:tip.sub(origin).normalize().toArray(),
       supportHandLocal:support.toArray(),outlines:outlines.length,
       outlineVisible:outlines.some(o=>o.visible),mixerTime:mixer.time};
@@ -393,6 +419,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   return {
     root,model,mixer,actions,character:OP01_CHARACTER,weapon,socket:weapon.parent,muzzle,
     update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,healthAnchor,poseDiagnostics,
+    setVisualScalePercent,setRimStrength,
     setLOD,updateLOD,preloadLODs,readyLODs,
     currentLOD:()=>lod
   };
