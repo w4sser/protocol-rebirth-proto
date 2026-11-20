@@ -81,6 +81,26 @@ test('all four OP01 skinned material parts switch together using one skeleton',a
   op.updateLOD(farCamera,390);
   assert(op.currentLOD()===1||op.currentLOD()===2,'projected small character must choose a cheaper loaded LOD');
 });
+test('OP01 size experiment scales presentation only and is reversible',async()=>{
+  const gltf=await parse('OP01_Game_LOD0.glb');
+  const op=createOP01GameplayOperator(gltf);
+  const base=op.root.scale.x;
+  assert.equal(base,1.10);
+  assert.equal(op.root.userData.operatorScalePercent,100);
+  for(const percent of [120,135,150,100]){
+    assert.equal(op.setVisualScalePercent(percent),true);
+    assert(Math.abs(op.root.scale.x-base*percent/100)<1e-10);
+    assert.equal(op.poseDiagnostics().scaleVariantPercent,percent);
+    op.update(.05,{moving:true,aiming:true,walkYaw:.2,aimYaw:1});
+    assert(op.muzzle.getWorldPosition(new THREE.Vector3()).toArray().every(Number.isFinite));
+  }
+  for(const invalid of [0,90,115,200,NaN,Infinity,'invalid']){
+    assert.equal(op.setVisualScalePercent(invalid),false);
+    assert.equal(op.root.userData.operatorScalePercent,100);
+  }
+  assert.equal(op.root.scale.x,base,'baseline is restored without loading another skin');
+});
+
 test('OP01 presentation does not modify core movement, collision or weapon rules',()=>{
   const keys=['radius','speed','damage','hitbox','dashCooldownMs','fireRate'];
   for(const key of keys)assert(!Object.hasOwn(OP01_CHARACTER,key),
