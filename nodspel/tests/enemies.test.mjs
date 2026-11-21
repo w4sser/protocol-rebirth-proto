@@ -10,6 +10,7 @@ import {shieldBlocks} from '../encounters.js?v=2.28.56';
 import {applyEnemyDemo,applyEnemyDemoMixed} from '../enemy-demo.js?v=2.28.56';
 import {initTool,throwTool} from '../tools.js?v=2.28.56';
 import {RULES,generateLevel,setArea} from '../levels.js?v=2.28.56';
+import {createUnitContactShadow,UNIT_READABILITY} from '../unit-readability.js';
 
 function glbNodeNames(id){
   const bytes=readFileSync(new URL(`../../assets/enemies/${id}.glb`,import.meta.url));
@@ -198,6 +199,9 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   assert.ok(a.enemyModel);assert.equal(a.body.visible,false);
   const pa=a.enemyModel.parts,pb=b.enemyModel.parts;
   assert.equal(pa.cannon.geometry,pb.cannon.geometry);assert.equal(pa.cannon.material,pb.cannon.material);
+  assert.equal(pa.cannon.material.emissive.getHexString(),UNIT_READABILITY.enemyFillColor.slice(1));
+  assert.equal(pa.cannon.material.emissiveIntensity,UNIT_READABILITY.enemyFillStrength);
+  assert.match(pa.cannon.material.customProgramCacheKey(),/pr-enemy-readability-v1/);
   assert.notEqual(pa.shield_arc.material,pb.shield_arc.material);
   animateEnemyModel(a,100);assert.equal(pa.turret_head_pivot.rotation.z,0); // body group carries facing
   a.enemy.shieldDownUntil=400;animateEnemyModel(a,200);assert.equal(pa.shield_arc.visible,false);
@@ -222,6 +226,14 @@ test('real GLBs animate named pivots with shared geometry, individual pulses and
   animateEnemyModel(g,300);assert.equal(pg.short_machine_gun.position.x,restX); // recoil fully recovers
   assert.ok(pg.weakpoint_battery.material.emissiveIntensity>0);
   let lights=0;for(const v of [a,b,r,g,g2])v.group.traverse(n=>{if(n.isLight)lights++;});assert.equal(lights,0);
+  const shadowHost=visual({type:'rusher',x:0,z:0,health:3});
+  shadowHost.contactShadow=createUnitContactShadow({radius:.8,opacity:.34});
+  shadowHost.group.add(shadowHost.contactShadow);
+  await attachEnemyModel(shadowHost,()=>false,loader);
+  assert(shadowHost.enemyModel,'enemy model should still load with a contact shadow');
+  assert.equal(shadowHost.contactShadow.visible,true,'load must not hide its ground contact');
+  assert.equal(shadowHost.contactShadow.parent,shadowHost.group);
+  assert(shadowHost.group.children.includes(shadowHost.contactShadow));
   const failed=visual({type:'rusher'}),failure=createEnemyModelLoader({load:()=>{throw Error('offline');}});
   await attachEnemyModel(failed,()=>false,failure);assert.equal(failed.body.visible,true);assert.equal(failed.enemyModel,undefined);
   const disposed=visual({type:'rusher'});await attachEnemyModel(disposed,()=>true,loader);assert.equal(disposed.enemyModel,undefined);
