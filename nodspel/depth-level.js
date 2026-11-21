@@ -1,7 +1,7 @@
 // Depth Raid v2.28.58: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
 // with locked doors. Cheapest credible "same level, next area" — existing layouts translated
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.59';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.60';
 
 const WALL_T=RULES.wallThickness;
 const LINK_GAP=10;
@@ -64,6 +64,11 @@ function retagPart(level,area){
       if(o&&o.id!=null)o.id=`${prefix}-${o.id}`;
       if(o&&o.key!=null)o.key=`${prefix}-${o.key}`;
       if(o&&o.nodeId!=null)o.nodeId=`${prefix}-${o.nodeId}`;
+      if(o&&o.padId!=null)o.padId=`${prefix}-${o.padId}`;
+      if(o&&o.junctionId!=null)o.junctionId=`${prefix}-${o.junctionId}`;
+      if(o&&o.patrolId!=null)o.patrolId=`${prefix}-${o.patrolId}`;
+      if(o&&o.guardId!=null)o.guardId=`${prefix}-${o.guardId}`;
+      if(o&&o.enemyId!=null)o.enemyId=`${prefix}-${o.enemyId}`;
       if(typeof extra==='function')extra(o);
     }
   };

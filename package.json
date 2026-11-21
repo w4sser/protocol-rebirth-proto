@@ -1,6 +1,6 @@
 {
   "name": "protocol-rebirth-proto",
-  "version": "2.28.59",
+  "version": "2.28.60",
   "private": true,
   "scripts": {
     "test:ftue-one-path": "node test/ftue-one-path.test.js",
@@ -83,6 +83,7 @@
     "test:debug-unlocks": "node test/debug-unlocks.test.js",
     "test:cinematic-prep": "node test/cinematic-prep.test.js",
     "test:depth-raid-mode": "node test/depth-raid-mode.test.js",
+    "test:raid-start-entry-browser": "node --test test/raid-start-entry.test.mjs",
     "test:op01-assets": "node test/op01-assets.test.js",
     "test:power-pads-bit": "node test/power-pads-bit.test.js",
     "test:fuel-drums-bit": "node test/fuel-drums-bit.test.js",

@@ -446,3 +446,13 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({cssSrc:css.replace('.depth-choice .pop-backdrop{z-index:0;pointer-events:none}','')}).length,1,'a covering backdrop fires');
  assert.equal(rule.check({htmlSrc:html+'<button id="go-deeper" type="button">GO DEEPER</button>'}).length,1,'a leftover HUD chip fires');
 }
+
+{
+ const rule=by('depth-raid-retag-refs');
+ assert.equal(rule.check().length,0,'depth raid retag refs hold on real source');
+ assert.equal(rule.check({depthLevelSrc:'',worldSrc:''}).length,2,'all depth-raid retag guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const world=fs.readFileSync(new URL('../nodspel/world.js',import.meta.url),'utf8');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('if(o&&o.padId!=null)o.padId=`${prefix}-${o.padId}`','')}).length,1,'a retag that leaves padId unprefixed fires');
+ assert.equal(rule.check({worldSrc:world.replace('const pad=level.hazards.find(h=>h.id===j.padId);if(!pad)return null;','const pad=level.hazards.find(h=>h.id===j.padId),g=new THREE.Group();')}).length,1,'a buildWorld that assumes every junction has a pad fires');
+}
