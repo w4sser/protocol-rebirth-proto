@@ -1,16 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRound,tickRound,exitIsOpen,enterExit,activateNode,takeDamage} from '../round.js';
-import {extractScrapBonus} from '../levels.js';
+import {extractScrapBonus,generateLevel} from '../levels.js';
 import {walkMap} from '../encounters.js';
 import {depthModeEnabled,initDepthRound,stepDepthRaid,goDeeper,chooseExtract,areaIsCleared,areaEnemies,generateDepthLevel,depthDoor,DEPTH} from '../depth-raid.js';
 import {POWER_PAD_BIT_LINE} from '../pad-intro.js';
 import {SHELF_BIT_LINE} from '../shelf-intro.js';
 import {buildRaidResult} from '../raid-result.js';
-import '../../data/bit-lines.js?v=2.28.60';
+import '../../data/bit-lines.js?v=2.28.61';
 
-function startDepth(seed,now=0){
-  const r=createRound(seed,now);
+function startDepth(seed,now=0,ctx={}){
+  const r=createRound(seed,now,undefined,{completedRaids:ctx.completedRaids??0});
   initDepthRound(r,true,now);
   return r;
 }
@@ -207,7 +207,7 @@ test('FTUE raid 1 is unaffected: depth mode never attaches, and its short L1 ext
 });
 
 test('the depth BIT lines are unique, never reuse an existing BIT line, and the intro has a stable seen-flag id', () => {
-  const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.goDeeper];
+  const lines=[DEPTH.bitLines.intro,DEPTH.bitLines.goDeeper,DEPTH.bitLines.extract,DEPTH.bitLines.extractFinal,DEPTH.bitLines.finalArea];
   const known=new Set([POWER_PAD_BIT_LINE,SHELF_BIT_LINE]);
   for(const pool of Object.values(globalThis.DATA.bitSummary.pools))for(const line of pool.lines)known.add(line);
   for(const line of lines){assert.ok(line.length>0);assert.ok(!known.has(line),`reused an existing BIT line: ${line}`);}
@@ -270,4 +270,68 @@ test('retag prefixes pad, junction, patrol, guard and enemy refs so a progressed
   }
   assert.ok(pads>0,'expected at least one power pad once completedRaids unlocks them');
   assert.ok(shelves>0,'expected at least one shelf once completedRaids unlocks them');
+});
+
+test('progressed Depth Raid (5 completed raids) walks A1 through A3 and extracts at the area-3 hatch', () => {
+  const r=startDepth('progressed-final',0,{completedRaids:5});
+  assert.ok((r.level.junctions??[]).length>=1,'pads present on a progressed save');
+  assert.equal((r.level.extracts??[]).length,3);
+  for(let i=0;i<3;i++){
+    assert.equal(r.level.extracts[i].x,r.level.depthExits[i].x);
+    assert.equal(r.level.extracts[i].z,r.level.depthExits[i].z);
+    assert.equal(r.level.extracts[i].depthArea,i+1);
+  }
+  killArea(r,1);stepDepthRaid(r,1000,r.level.start);goDeeper(r,1100);walkTo(r,1200,2);
+  killArea(r,2);stepDepthRaid(r,1300,r.level.depthStarts[1]);goDeeper(r,1400);walkTo(r,1500,3);
+  assert.equal(r.depth.zone,3);
+  killArea(r,3);
+  assert.equal(stepDepthRaid(r,1600,r.level.depthStarts[2]),'choice-opened');
+  assert.equal(r.depth.choice.canGoDeeper,false);
+  chooseExtract(r,1800);
+  const beam=r.level.exit,a3=r.level.depthExits[2],a1=r.level.depthExits[0];
+  assert.ok(Math.hypot(beam.x-a3.x,beam.z-a3.z)<1e-6,'EXTRACT in area 3 uses the area-3 hatch, not the area-1 pad');
+  assert.ok(Math.hypot(beam.x-a1.x,beam.z-a1.z)>2,'the area-3 hatch is not the area-1 pad');
+  const room=r.level.rooms.find(rm=>Math.abs(beam.x-rm.x)<=rm.w/2&&Math.abs(beam.z-rm.z)<=rm.d/2);
+  assert.equal(room?.depthArea,3);
+  assert.equal(exitIsOpen(r),true);
+  assert.equal(stepDepthRaid(r,1900,beam),'extract-started');
+  assert.equal(stepDepthRaid(r,1900+DEPTH.extractCountdownMs,beam),'zone3-complete');
+  assert.equal(r.over,true);assert.equal(r.reason,'complete');assert.equal(r.cleared,true);assert.equal(r.levelsCleared,3);
+});
+
+test('Depth Raid keeps area 1 at stock difficulty and ramps HP, damage and enemy count in areas 2 and 3', () => {
+  const scale=DEPTH.areaScale;
+  assert.deepEqual(scale[0],{enemyCountAdd:0,healthMul:1,damageMul:1});
+  assert.equal(scale[1].enemyCountAdd,2);assert.equal(scale[1].healthMul,1.25);assert.equal(scale[1].damageMul,1.15);
+  assert.equal(scale[2].enemyCountAdd,3);assert.equal(scale[2].healthMul,1.5);assert.equal(scale[2].damageMul,1.3);
+  const seeds=['probe-seed','alpha','bravo','charlie','delta','echo','foxtrot','golf'];
+  let extras2=0,extras3=0;
+  for(const seed of seeds){
+    const raw=[1,2,3].map(n=>generateLevel(n,seed,'bunker',false,false));
+    const L=generateDepthLevel(seed);
+    const byArea=z=>L.enemies.filter(e=>e.depthArea===z);
+    assert.equal(byArea(1).length,raw[0].enemies.length,seed);
+    assert.equal(L.depthAreaRules[0].enemyDamage,raw[0].enemyDamage,seed);
+    assert.equal(L.depthAreaRules[0].dmgMul,raw[0].dmgMul??1,seed);
+    assert.equal(L.depthAreaRules[1].enemyDamage,Math.round((raw[1].enemyDamage)*scale[1].damageMul),seed);
+    assert.equal(L.depthAreaRules[2].enemyDamage,Math.round((raw[2].enemyDamage)*scale[2].damageMul),seed);
+    const a2=byArea(2),a3=byArea(3);
+    assert.ok(a2.length>=raw[1].enemies.length,seed);
+    assert.ok(a2.length<=raw[1].enemies.length+scale[1].enemyCountAdd,seed);
+    assert.ok(a3.length>=raw[2].enemies.length,seed);
+    assert.ok(a3.length<=raw[2].enemies.length+scale[2].enemyCountAdd,seed);
+    extras2+=a2.length-raw[1].enemies.length;
+    extras3+=a3.length-raw[2].enemies.length;
+    const rawGen=raw[2].enemies.find(e=>e.type==='generator');
+    const dGen=a3.find(e=>e.type==='generator');
+    if(rawGen&&dGen)assert.equal(dGen.health,Math.max(1,Math.round(rawGen.health*scale[2].healthMul)),seed);
+    const rawA2=raw[1].enemies.find(e=>e.type!=='generator'&&!e.swarm);
+    const dA2=a2.find(e=>e.id?.endsWith(rawA2?.id??'__none__')||(rawA2&&e.type===rawA2.type&&Math.abs((e.health/scale[1].healthMul)-rawA2.health)<1));
+    if(rawA2){
+      const match=a2.find(e=>Math.max(1,Math.round(rawA2.health*scale[1].healthMul))===e.health);
+      assert.ok(match,`${seed} expected an area-2 enemy with scaled HP`);
+    }
+  }
+  assert.ok(extras2>=seeds.length,`expected extras in area 2 across seeds, got ${extras2}`);
+  assert.ok(extras3>=seeds.length,`expected extras in area 3 across seeds, got ${extras3}`);
 });

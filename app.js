@@ -12,7 +12,7 @@ const MODS  = {}; D.modules.forEach(m => MODS[m.id] = m);
 const ZONES = {}; D.raidZones.forEach(z => ZONES[z.id] = z);
 const PROG  = D.progression;
 const TAL   = D.bitTalents;
-const APP_VERSION = "2.28.60"; // keep in sync with ?v= in index.html and nodspel/
+const APP_VERSION = "2.28.61"; // keep in sync with ?v= in index.html and nodspel/
 const SAVE_KEY = "pr_meta_save";
 // Read-only, in-memory test state for sharing a live Deploy preview from a PR.
 // Normal save files and the first-time user experience are never touched.
@@ -3674,7 +3674,7 @@ function warmRaidPrep3D(){
   if(deployPreloadPromise || typeof window === "undefined" || !window.WebGLRenderingContext ||
      /jsdom/i.test(navigator.userAgent || "") ||
      new URLSearchParams(location.search).get("q")==="low")return;
-  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.60-hero-stage")
+  deployPreloadPromise=import("./ui/raid-prep-op01.mjs?v=2.28.61-hero-stage")
     .then(mod=>mod.preloadOP01Menu())
     .catch(error=>{deployPreloadPromise=null;console.warn("OP01 menu preload unavailable:",error?.message||error);});
 }
@@ -3688,7 +3688,7 @@ function mountRaidPrep3D(){
   // morph into the authored operator. Keep art only for genuine fallbacks.
   hero?.classList.add("awaiting-3d");
   host.dataset.presentation="loading";
-  import("./ui/raid-prep-scene.mjs?v=2.28.60-hero-stage")
+  import("./ui/raid-prep-scene.mjs?v=2.28.61-hero-stage")
     .then(async mod=>{
       if(session.screen!=="prep" || !host.isConnected)return;
       const view=await mod.mountRaidPrepScene(host);

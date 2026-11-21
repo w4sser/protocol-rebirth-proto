@@ -456,3 +456,21 @@ assert.ok(by('base-bit-card-clears-rooms').check({cardCssSrc:''}).length,'wide b
  assert.equal(rule.check({depthLevelSrc:depth.replace('if(o&&o.padId!=null)o.padId=`${prefix}-${o.padId}`','')}).length,1,'a retag that leaves padId unprefixed fires');
  assert.equal(rule.check({worldSrc:world.replace('const pad=level.hazards.find(h=>h.id===j.padId);if(!pad)return null;','const pad=level.hazards.find(h=>h.id===j.padId),g=new THREE.Group();')}).length,1,'a buildWorld that assumes every junction has a pad fires');
 }
+
+{
+ const rule=by('depth-final-extract-signpost');
+ assert.equal(rule.check().length,0,'depth final extract signpost holds on real source');
+ assert.equal(rule.check({depthLevelSrc:'',depthRaidSrc:'',worldSrc:'',gameSrc:'',raidDepthSrc:'',htmlSrc:''}).length,6,'all depth-final extract guards fire');
+ const depth=fs.readFileSync(new URL('../nodspel/depth-level.js',import.meta.url),'utf8');
+ const raid=fs.readFileSync(new URL('../nodspel/depth-raid.js',import.meta.url),'utf8');
+ const world=fs.readFileSync(new URL('../nodspel/world.js',import.meta.url),'utf8');
+ const game=fs.readFileSync(new URL('../nodspel/game.mjs',import.meta.url),'utf8');
+ const data=fs.readFileSync(new URL('../data/raid-depth.js',import.meta.url),'utf8');
+ const html=fs.readFileSync(new URL('../nodspel/index.html',import.meta.url),'utf8');
+ assert.equal(rule.check({depthLevelSrc:depth.replace('level.extracts=depthExits.map(','level.exitOnly=depthExits.map(')}).length,1,'a layout that does not publish per-area extracts fires');
+ assert.equal(rule.check({depthRaidSrc:raid.replace('const exit=round.level.depthExits?.[zone-1]','const exit=round.level.exit')}).length,1,'chooseExtract that leaves the beam at the default exit fires');
+ assert.equal(rule.check({worldSrc:world.replaceAll('depthExtractOpen','depthBeamIgnore')}).length,1,'world opening every depth beam at once fires');
+ assert.equal(rule.check({gameSrc:game.replaceAll('renderDepthExtractGuide','renderNothing')}).length,1,'a missing extract guide fires');
+ assert.equal(rule.check({htmlSrc:html.replace('id="depth-extract-guide"','id="no-guide"')}).length,1,'missing guide markup fires');
+ assert.equal(rule.check({raidDepthSrc:data.replaceAll('extractFinal','extractGone')}).length,1,'dropping the final-area BIT line fires');
+}
