@@ -58,7 +58,7 @@ try{
    await page.waitForFunction(()=>window.__NR?.round()&&!document.getElementById('boot-loader'),{timeout:40000});await delay(400);
    // Replay the live level's reveal state through the real adapter for a deterministic sprite-event record.
    await page.evaluate(async()=>{
-    const {createPixelFeedback}=await import('./fx-feedback.js?v=2.28.58');
+    const {createPixelFeedback}=await import('./fx-feedback.js?v=2.28.59');
     window.__ftueProof={pixel:[]};
     // The adapter's behavior is separately tested; record this live level's reveal states here.
     const events=window.__ftueProof.pixel;
