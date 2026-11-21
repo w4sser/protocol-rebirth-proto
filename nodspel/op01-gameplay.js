@@ -11,6 +11,7 @@
  */
 import * as THREE from './vendor/three.module.js';
 import {GLTFLoader} from './vendor/GLTFLoader.js';
+import {UNIT_READABILITY} from './unit-readability.js';
 
 export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD0.glb',
@@ -18,7 +19,7 @@ export const OP01_GAME_PATHS=Object.freeze([
   '../assets/operators/OP01_Game_LOD2.glb'
 ]);
 const REQUIRED_CLIPS=Object.freeze(['idle','run','aim','shoot','hit','dash','death','hero_pose']);
-// Opt-in visual-only A/B variants. 100% is today's shipped 1.10x OP01 silhouette.
+// Visual-only A/B variants: 100% restores the original 1.10x silhouette.
 // Never use this value for physics, aiming, movement or player collision.
 export const OP01_SCALE_PERCENTAGES=Object.freeze([100,120,135,150]);
 // Rim is shader lighting, not an always-visible geometric outline or gameplay effect.
@@ -30,7 +31,8 @@ export const OP01_CHARACTER=Object.freeze({
   rig:{spine:'mixamorig:Spine',head:'mixamorig:Head',forearm:'mixamorig:RightForeArm',
     leftHand:'mixamorig:LeftHand',rightHand:'mixamorig:RightHand'},
   weapon:{bone:'mixamorig:RightHand',muzzle:'muzzle'},
-  rim:{color:'#b6c4ca',strength:.16,power:2.6},
+  rim:{color:'#b6c4ca',strength:UNIT_READABILITY.operatorRimStrength,power:2.6},
+  fill:{color:UNIT_READABILITY.operatorFillColor,strength:UNIT_READABILITY.operatorFillStrength},
   accessories:false
 });
 
@@ -69,14 +71,16 @@ function addRim(material,strengthUniform){
     // Share the live uniform across all four skinned parts and streamed LODs.
     // Changing preset updates the rendered shader without material recompilation.
     shader.uniforms.op01RimStrength=strengthUniform;
+    shader.uniforms.op01FillColor={value:new THREE.Color(OP01_CHARACTER.fill.color)};
+    shader.uniforms.op01FillStrength={value:OP01_CHARACTER.fill.strength};
     shader.vertexShader=shader.vertexShader
       .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;')
       .replace('#include <project_vertex>','vOP01RimNormal=normalize(normalMatrix*objectNormal);vOP01RimView=-(modelViewMatrix*vec4(transformed,1.0)).xyz;\n#include <project_vertex>');
     shader.fragmentShader=shader.fragmentShader
-      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;\nuniform vec3 op01RimColor;\nuniform float op01RimStrength;')
-      .replace('#include <dithering_fragment>','float op01Edge=pow(1.0-clamp(dot(normalize(vOP01RimNormal),normalize(vOP01RimView)),0.0,1.0),'+rim.power+');\n gl_FragColor.rgb+=op01RimColor*op01Edge*op01RimStrength;\n#include <dithering_fragment>');
+      .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;\nuniform vec3 op01RimColor;\nuniform float op01RimStrength;\nuniform vec3 op01FillColor;\nuniform float op01FillStrength;')
+      .replace('#include <dithering_fragment>','float op01Edge=pow(1.0-clamp(dot(normalize(vOP01RimNormal),normalize(vOP01RimView)),0.0,1.0),'+rim.power+');\n gl_FragColor.rgb+=op01RimColor*op01Edge*op01RimStrength;\n gl_FragColor.rgb+=op01FillColor*op01FillStrength*(0.65+0.35*clamp(normalize(vOP01RimNormal).y,0.0,1.0));\n#include <dithering_fragment>');
   };
-  material.customProgramCacheKey=()=>"op01-neutral-rim-adjustable-v2";
+  material.customProgramCacheKey=()=>"op01-neutral-rim-fill-v3";
   material.needsUpdate=true;
 }
 function tuneMaterials(mesh,low=false,strengthUniform){
@@ -86,6 +90,10 @@ function tuneMaterials(mesh,low=false,strengthUniform){
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
     if(mesh.isSkinnedMesh)addRim(mat,strengthUniform);
+    else if(mesh.isMesh&&mat.isMeshStandardMaterial&&mat.emissive?.getHex()===0){
+      // The carbine needs to stay readable too; this does not illuminate the scene.
+      mat.emissive.set('#9eaeb3');mat.emissiveIntensity=.12;
+    }
   }
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -186,7 +194,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
     root.userData.operatorScalePercent=percent;
     return true;
   }
-  setVisualScalePercent(100);
+  setVisualScalePercent(UNIT_READABILITY.operatorScalePercent);
   root.add(model);
   const skinnedParts=characterMeshes(model),mesh=skinnedParts[0],weapon=weaponMesh(model);
   const spine=named(model,'mixamorig:Spine');
