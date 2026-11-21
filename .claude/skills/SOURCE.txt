@@ -1,0 +1,1 @@
+Source: github.com/gamedev-skills/awesome-gamedev-agent-skills @ c6ca6c41 (2026-11-12). Security-reviewed by Grok Bot 2026-11-21.

@@ -1,6 +1,6 @@
 // Same context priority and persistent no-repeat protocol as the base summary.
-import '../data/bit-lines.js?v=2.28.61';
-import {ROUND_DURATION_MS} from './round.js?v=2.28.61';
+import '../data/bit-lines.js?v=2.28.62';
+import {ROUND_DURATION_MS} from './round.js?v=2.28.62';
 
 const reactions=new WeakMap();
 export function resultReaction(round,{rows,gear,home}){
