@@ -62,7 +62,7 @@ function compatibleRig(main,other){
 // gameplay scale. This is material lighting, not a cyan neon contour or an
 // extra draw call, and is shared by all three skinned LOD atlases.
 const rimmed=new WeakSet();
-function addRim(material,strengthUniform){
+function addRim(material,strengthUniform,fillStrengthUniform){
   if(rimmed.has(material)||!material?.isMeshStandardMaterial)return;
   rimmed.add(material);
   const rim=OP01_CHARACTER.rim;
@@ -72,7 +72,7 @@ function addRim(material,strengthUniform){
     // Changing preset updates the rendered shader without material recompilation.
     shader.uniforms.op01RimStrength=strengthUniform;
     shader.uniforms.op01FillColor={value:new THREE.Color(OP01_CHARACTER.fill.color)};
-    shader.uniforms.op01FillStrength={value:OP01_CHARACTER.fill.strength};
+    shader.uniforms.op01FillStrength=fillStrengthUniform;
     shader.vertexShader=shader.vertexShader
       .replace('#include <common>','#include <common>\nvarying vec3 vOP01RimNormal;\nvarying vec3 vOP01RimView;')
       .replace('#include <project_vertex>','vOP01RimNormal=normalize(normalMatrix*objectNormal);vOP01RimView=-(modelViewMatrix*vec4(transformed,1.0)).xyz;\n#include <project_vertex>');
@@ -83,13 +83,13 @@ function addRim(material,strengthUniform){
   material.customProgramCacheKey=()=>"op01-neutral-rim-fill-v3";
   material.needsUpdate=true;
 }
-function tuneMaterials(mesh,low=false,strengthUniform){
+function tuneMaterials(mesh,low=false,strengthUniform,fillStrengthUniform){
   mesh.frustumCulled=false;mesh.castShadow=true;mesh.receiveShadow=true;
   for(const mat of Array.isArray(mesh.material)?mesh.material:[mesh.material]){
     if(!mat)return;
     mat.fog=false;
     if(mat.map){mat.map.colorSpace=THREE.SRGBColorSpace;mat.map.anisotropy=low?1:4;}
-    if(mesh.isSkinnedMesh)addRim(mat,strengthUniform);
+    if(mesh.isSkinnedMesh)addRim(mat,strengthUniform,fillStrengthUniform);
     else if(mesh.isMesh&&mat.isMeshStandardMaterial&&mat.emissive?.getHex()===0){
       // The carbine needs to stay readable too; this does not illuminate the scene.
       mat.emissive.set('#9eaeb3');mat.emissiveIntensity=.12;
@@ -176,6 +176,11 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   const model=gltf.scene,root=new THREE.Group();
   root.name='OP01-rigged-player';
   const rimStrengthUniform={value:OP01_CHARACTER.rim.strength};
+  const fillStrengthUniform={value:OP01_CHARACTER.fill.strength};
+  function setReadabilityQuality(next){
+    fillStrengthUniform.value=next==='low'?UNIT_READABILITY.operatorLowFillStrength:UNIT_READABILITY.operatorFillStrength;
+  }
+  setReadabilityQuality(quality);
   function setRimStrength(value){
     const strength=Number(value);
     if(!OP01_RIM_STRENGTHS.includes(strength))return false;
@@ -206,7 +211,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
 
   // Source mesh and animation are 1.78m tall. No procedural hood/jacket is
   // attached: those already exist in the authored skin and would double up.
-  for(const part of skinnedParts)tuneMaterials(part,quality==='low',rimStrengthUniform);
+  for(const part of skinnedParts)tuneMaterials(part,quality==='low',rimStrengthUniform,fillStrengthUniform);
   weapon.traverse(n=>{if(n.isMesh)tuneMaterials(n,quality==='low');});
   model.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(model);
@@ -312,7 +317,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
       const other=characterMeshes(extra.scene);
       if(other.length!==skinnedParts.length||!other.every((part,j)=>compatibleRig(skinnedParts[j],part)))
         throw new Error('OP01 LOD '+i+' incompatible skeleton or mesh layout');
-      other.forEach(part=>tuneMaterials(part,quality==='low',rimStrengthUniform));
+      other.forEach(part=>tuneMaterials(part,quality==='low',rimStrengthUniform,fillStrengthUniform));
       lodResources[i]={parts:other.map(part=>({geometry:part.geometry,material:part.material}))};
       return i;
     })).then(r=>{
@@ -419,6 +424,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
       visualScale:root.scale.x,visualHeight:OP01_CHARACTER.height*root.scale.y,
       scaleVariantPercent:root.userData.operatorScalePercent,
       rimStrength:root.userData.op01RimStrength,
+      fillStrength:fillStrengthUniform.value,
       muzzle:tip.toArray(),direction:tip.sub(origin).normalize().toArray(),
       supportHandLocal:support.toArray(),outlines:outlines.length,
       outlineVisible:outlines.some(o=>o.visible),mixerTime:mixer.time};
@@ -427,7 +433,7 @@ export function createOP01GameplayOperator(gltf,{dashDuration=null,quality='stan
   return {
     root,model,mixer,actions,character:OP01_CHARACTER,weapon,socket:weapon.parent,muzzle,
     update,shoot,hit,reset,setOccluded,weaponPose,gripWorld,healthAnchor,poseDiagnostics,
-    setVisualScalePercent,setRimStrength,
+    setVisualScalePercent,setRimStrength,setReadabilityQuality,
     setLOD,updateLOD,preloadLODs,readyLODs,
     currentLOD:()=>lod
   };
