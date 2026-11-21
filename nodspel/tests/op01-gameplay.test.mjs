@@ -86,7 +86,7 @@ test('OP01 size experiment scales presentation only and is reversible',async()=>
   const gltf=await parse('OP01_Game_LOD0.glb');
   const op=createOP01GameplayOperator(gltf);
   const base=op.root.scale.x;
-  assert.equal(base,1.10*1.35);
+  assert(Math.abs(base-1.10*1.35)<1e-10);
   assert.equal(op.root.userData.operatorScalePercent,135);
   for(const percent of [100,120,150,135]){
     assert.equal(op.setVisualScalePercent(percent),true);
@@ -322,9 +322,7 @@ test('OP01 occlusion silhouette includes every skinned body primitive through al
 test('OP01 gameplay grows uniformly while world physics and weapon alignment remain unchanged',async()=>{
   const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'));
   const displayScale=OP01_CHARACTER.scale*UNIT_READABILITY.operatorScalePercent/100;
-  assert.equal(op.root.scale.x,displayScale);
-  assert.equal(op.root.scale.y,displayScale);
-  assert.equal(op.root.scale.z,displayScale);
+  for(const axis of ['x','y','z'])assert(Math.abs(op.root.scale[axis]-displayScale)<1e-10);
   // Compute bounds twice on the same posed GLB: the visual expansion must
   // be uniform. Neither the character's model, skeleton nor parent moves.
   const parent=new THREE.Group();
@@ -347,7 +345,7 @@ test('OP01 gameplay grows uniformly while world physics and weapon alignment rem
   assert.equal(parent.scale.x,1,'gameplay player remains unscaled');
   assert.equal(op.character.height,1.78,'authoring and physics contract is unchanged');
   const diag=op.poseDiagnostics();
-  assert.equal(diag.visualScale,displayScale);
+  assert(Math.abs(diag.visualScale-displayScale)<1e-10);
   assert(Math.abs(diag.visualHeight-OP01_CHARACTER.height*displayScale)<.001);
 });
 
