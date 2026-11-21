@@ -1,6 +1,6 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.56';
-import {createUnitContactShadow,tuneEnemyReadabilityMaterial} from './unit-readability.js';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.56-readability1';
+import {createUnitContactShadow,tuneEnemyReadabilityMaterial} from './unit-readability.js?v=2.28.56-readability1';
 import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.56';
 import * as THREE from './vendor/three.module.js';
 import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.56';
