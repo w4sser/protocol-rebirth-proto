@@ -11,6 +11,7 @@ All economy/tuning values live in `data/*.js` (a test enforces it); every player
 - Tuning data: `data/*.js` — items, modules, zones, recipes, vendors, BIT, progression, and raid
   balance (e.g. `data/raid-stakes.js`, `data/raid-perks.js`, `data/raid_zones.js`).
 - Tests: Puppeteer/jsdom for the base layer, `node --test` for `nodspel/`.
+- Agent skills in `.claude/skills/` are reference only; this file and the art-direction docs win if they conflict.
 
 ## Hard rules
 - Work only in this repo. Never force-push. Do not commit/push unless asked.

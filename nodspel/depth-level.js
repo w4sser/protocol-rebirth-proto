@@ -1,8 +1,8 @@
 // Depth Raid v2.28.58: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
 // with locked doors. Cheapest credible "same level, next area" — existing layouts translated
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.61';
-import '../data/raid-depth.js?v=2.28.61';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.62';
+import '../data/raid-depth.js?v=2.28.62';
 const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
