@@ -154,6 +154,25 @@ test('OP01 live rim strength is a shared shader uniform across LODs, not added g
   assert.equal(uniforms[0].value,.16,'explicit A/B baseline is still selectable after LOD switches');
 });
 
+test('OP01 low quality preserves a readable body without an extra light or shader recompile',async()=>{
+  const op=createOP01GameplayOperator(await parse('OP01_Game_LOD0.glb'),{quality:'low'});
+  const parts=[];op.model.traverse(n=>{if(n.isSkinnedMesh&&n.name!=='OP01-occlusion-outline')parts.push(n);});
+  const mat=parts[0].material;
+  const shader={
+    uniforms:{},vertexShader:'#include <common>\\n#include <project_vertex>',
+    fragmentShader:'#include <common>\\n#include <dithering_fragment>'
+  };
+  mat.onBeforeCompile(shader);
+  assert.equal(op.poseDiagnostics().fillStrength,UNIT_READABILITY.operatorLowFillStrength);
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorLowFillStrength);
+  const key=mat.customProgramCacheKey();
+  op.setReadabilityQuality('medium');
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorFillStrength);
+  op.setReadabilityQuality('low');
+  assert.equal(shader.uniforms.op01FillStrength.value,UNIT_READABILITY.operatorLowFillStrength);
+  assert.equal(mat.customProgramCacheKey(),key,'quality switches update the uniform only');
+});
+
 test('OP01 presentation does not modify core movement, collision or weapon rules',()=>{
   const keys=['radius','speed','damage','hitbox','dashCooldownMs','fireRate'];
   for(const key of keys)assert(!Object.hasOwn(OP01_CHARACTER,key),
