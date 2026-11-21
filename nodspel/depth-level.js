@@ -1,7 +1,9 @@
 // Depth Raid v2.28.58: stitch Bunker L1+L2+L3 into one walkable layout, joined by corridors
 // with locked doors. Cheapest credible "same level, next area" — existing layouts translated
 // into one world, not a hand-authored facility. Player walks through; no loadLevel() swap.
-import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.60';
+import {generateLevel,placePowerPads,placeSupplyShelves,RULES} from './levels.js?v=2.28.61';
+import '../data/raid-depth.js?v=2.28.61';
+const DEPTH=globalThis.DATA.raidDepth;
 
 const WALL_T=RULES.wallThickness;
 const LINK_GAP=10;
@@ -188,11 +190,64 @@ function linkParts(from,to,fromArea,toArea,gap=LINK_GAP){
   return {from:fromArea,to:toArea,doorId,x:doorX,z:doorZ,w:doorW,d:8,axis:'z',sign:-1,door};
 }
 
+
+function mulberry(seed){
+  let h=2166136261;
+  for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);
+  return ()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h>>>0)/4294967296;};
+}
+function depthSpotFree(level,p,r=0.7){
+  const solids=[...(level.walls??[]),...(level.boxes??[])];
+  if(solids.some(o=>Math.abs(p.x-o.x)<(o.w||0)/2+r&&Math.abs(p.z-o.z)<(o.d||0)/2+r))return false;
+  const keep=[level.start,level.exit,...(level.lootBoxes??[]),...(level.enemies??[]),...(level.hazards??[]),...(level.nodes??[]),...(level.doors??[])];
+  if(keep.some(o=>o&&typeof o.x==='number'&&Math.hypot(p.x-o.x,p.z-o.z)<1.6))return false;
+  return (level.rooms??[]).some(rm=>Math.abs(p.x-rm.x)<=rm.w/2-1.2&&Math.abs(p.z-rm.z)<=rm.d/2-1.2);
+}
+// v2.28.61: area 1 stays at stock L1 numbers; areas 2 and 3 get extra fillers plus HP/damage
+// scaling on top of the stitched L2/L3 layouts. Runs on each part before retag/offset.
+export function applyDepthAreaScale(part,area,scale){
+  const knobs=scale??DEPTH.areaScale?.[area-1]??{enemyCountAdd:0,healthMul:1,damageMul:1};
+  const add=knobs.enemyCountAdd??0,hp=knobs.healthMul??1,dmg=knobs.damageMul??1;
+  if(dmg!==1){
+    part.enemyDamage=Math.round((part.enemyDamage??RULES.combat.damage)*dmg);
+    part.dmgMul=(part.dmgMul??1)*dmg;
+  }
+  const templates=(part.enemies??[]).filter(e=>e.type!=='generator'&&!e.swarm&&e.encounter!=='guard'&&e.encounter!=='turret'&&e.encounter!=='shield_turret'&&e.encounter!=='patrol');
+  const base=templates[0]??{kind:'enemy',r:.48,health:RULES.levels[(area-1)]?.enemyHealth??RULES.enemyHealth,speed:RULES.levels[(area-1)]?.enemySpeed??1};
+  const rng=mulberry(`${part.seed||''}:depth-extra:${area}`);
+  let placed=0;
+  for(let n=0;n<add;n++){
+    let spot=null;
+    for(let tries=0;tries<400&&!spot;tries++){
+      const room=(part.rooms??[])[Math.floor(rng()*Math.max(1,(part.rooms??[]).length))];
+      if(!room)break;
+      const p={x:room.x+(rng()-.5)*(room.w-2.8),z:room.z+(rng()-.5)*(room.d-2.8)};
+      if(depthSpotFree(part,p))spot=p;
+    }
+    if(!spot)continue;
+    const e={...base,id:`extra-${n+1}`,x:Math.round(spot.x*100)/100,z:Math.round(spot.z*100)/100,
+      health:base.health,r:base.r??.48,speed:base.speed,kind:base.kind??'enemy'};
+    delete e.patrol;delete e.patrolId;delete e.guardId;delete e.generatorId;delete e.node;delete e.swarm;delete e.encounter;delete e.sleeping;
+    e.active=true;
+    (part.enemies??=[]).push(e);
+    placed++;
+  }
+  if(hp!==1){
+    for(const e of part.enemies??[]){
+      if(!(e.health>0))continue;
+      e.health=Math.max(1,Math.round(e.health*hp));
+      if(e.maxHealth!=null)e.maxHealth=Math.max(1,Math.round(e.maxHealth*hp));
+    }
+  }
+  return {placed,healthMul:hp,damageMul:dmg,enemyCountAdd:add};
+}
+
 export function generateDepthLevel(seed,opts={}){
   const area=opts.area??'bunker',hard=!!opts.hard,completedRaids=opts.completedRaids??0,ftue=!!opts.ftue;
   const parts=[1,2,3].map(n=>generateLevel(n,seed,area,hard,false));
   placePowerPads(parts[0],completedRaids,ftue);
   placeSupplyShelves(parts[1],completedRaids,ftue);
+  for(let i=0;i<parts.length;i++)applyDepthAreaScale(parts[i],i+1);
   const rules=parts.map(snapshotRules);
   const exits=parts.map(p=>({x:p.exit.x,z:p.exit.z,r:p.exit.r??1,depthArea:p.number}));
   const starts=parts.map(p=>({x:p.start.x,z:p.start.z,depthArea:p.number}));
@@ -219,8 +274,11 @@ export function generateDepthLevel(seed,opts={}){
   };
   for(const p of parts)mergeInto(level,p);
   level.start={x:parts[0].start.x,z:parts[0].start.z};
-  level.exit={x:depthExits[0].x,z:depthExits[0].z,r:depthExits[0].r};
   level.depthExits=depthExits;
+  // One hatch per area so EXTRACT in area 3 is visible in area 3, not back at the area-1 pad
+  // that buildWorld used to treat as the only exit (Robert, 21 Nov 2026: "jag hittade inte ut").
+  level.extracts=depthExits.map(e=>({x:e.x,z:e.z,r:e.r??1,depthArea:e.depthArea}));
+  level.exit={x:depthExits[0].x,z:depthExits[0].z,r:depthExits[0].r,depthArea:1};
   level.depthStarts=depthStarts;
   level.depthLinks=links.map(({from,to,doorId,x,z,w,d,axis,sign})=>({from,to,doorId,x,z,w,d,axis,sign}));
   level.depthAreaRules=rules;

@@ -1,19 +1,19 @@
 // @hot updateVfx
-import {attachEnemyModel} from './enemy-animation.js?v=2.28.60';
-import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.60';
+import {attachEnemyModel} from './enemy-animation.js?v=2.28.61';
+import {isShieldTurret,ENEMY_COLORS} from './enemies.js?v=2.28.61';
 import * as THREE from './vendor/three.module.js';
-import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.60';
-import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.60';
-import {buildTown} from './town.js?v=2.28.60';
-import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.60';
-import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.60-glacial-merge1';
-import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.60-glacial-merge1';
-import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.60';
-import {controlCablePath} from './control-cables.js?v=2.28.60';
-import {extractAvailable} from './big-level.js?v=2.28.60';
-import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.60';
-import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.60';
-import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.60';
+import {RULES,hazardState,hazardTiming} from './levels.js?v=2.28.61';
+import {rarityOf,lootColor,RARITY_COLORS,RARITY_ORDER} from './rarity.js?v=2.28.61';
+import {buildTown} from './town.js?v=2.28.61';
+import {buildBunker,kitGroup,planKitProps,BUNKER_DIMS,LAYER} from './bunker.js?v=2.28.61';
+import {buildArchipelago,pineTree,propInPassage} from './archipelago.js?v=2.28.61-glacial-merge1';
+import {planArchipelagoPines,archipelagoCoastalPine,setArchipelagoPineOpacity} from './archipelago-visual-v2.mjs?v=2.28.61-glacial-merge1';
+import {PALETTE,glow,propSpots,buildProp,PROP_KINDS,rngFrom,qualitySettings,lootTier,LOOT_COLORS,EXTRACT_COLOR} from './art.js?v=2.28.61';
+import {controlCablePath} from './control-cables.js?v=2.28.61';
+import {extractAvailable} from './big-level.js?v=2.28.61';
+import {createExtractBeam} from './vfx-extract-beam.js?v=2.28.61';
+import {createLootBurstPool} from './vfx-loot-burst.js?v=2.28.61';
+import {tagBloom,BLOOM_LAYER} from './postfx.js?v=2.28.61';
 const KEY_AMBER='#FF9D4D'; // AD palette: amber = loot (the keycard crate), coral = danger, cyan = system
 export function setNodeHold(visual,progress){
   const fill=visual.node.active?0:Math.max(0,Math.min(1,progress));
@@ -249,6 +249,8 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   const exitMaterial=new THREE.MeshStandardMaterial({color:PALETTE.base,emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
   // PRB-156: the in-world 3D extraction beam/decal/particles (vfx-extract-beam.js) replace the old flat
   // ring+cylinder pair -- same exit position, same EXTRACT_COLOR, gameplay radius/logic untouched.
+  const sameExtract=(a,b)=>!!(a&&b&&Math.hypot(a.x-b.x,a.z-b.z)<.35);
+  const depthExtractOpen=(point,round)=>!!(level.depth&&round?.depth?.extractOpen&&sameExtract(point,round.level?.exit));
   const extractionEffects=(level.extracts??[exit]).map(point=>{
     const fx=createExtractBeam({color:EXTRACT_COLOR,quality});
     fx.group.position.set(point.x,0,point.z);group.add(fx.group);
@@ -262,20 +264,31 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
     m.position.set(exit.x-1.1+span*(i+.5),.13,exit.z+1.08);m.scale.set(span*.85,.05,.1);group.add(m);return {node:v.node,mesh:m};
   });
   let exitOpen=false;
-  const gate=new THREE.Mesh(cube,exitMaterial);gate.scale.set(2,.85,.22);gate.position.set(exit.x,.55,exit.z);group.add(gate);
-  let exitKit=null;
-  if(K){gate.scale.set(1.6,.04,.04);gate.position.y=.02;exitKit={};
-    for(const k of ['extract_hatch_locked','extract_hatch_open']){exitKit[k]=kitGroup(K[k],{sx:.9,sy:.7,sz:.9});exitKit[k].position.set(exit.x,0,exit.z);exitKit[k].visible=k.endsWith('locked');group.add(exitKit[k]);}}
-  else for(const sign of [-1,1])box(exit.x+sign*1.1,.7,exit.z,.15,1.4,.3,'#88969b');
-  // High quality only: one static light for the active exit, never recreated per frame.
-  const exitLight=Q.lights>0?new THREE.PointLight(EXTRACT_COLOR,0,7,2):null;
-  if(exitLight){exitLight.position.set(exit.x,1.6,exit.z);group.add(exitLight);}
+  // Depth Raid: one hatch + light per area extract so area 3 has a real pad in the last wing
+  // (v2.28.61). Node Raid still builds a single hatch at `exit`.
+  const hatchPoints=level.depth&&(level.extracts??[]).length?level.extracts:[exit];
+  const extractHatches=hatchPoints.map((point,i)=>{
+    const material=i===0?exitMaterial:new THREE.MeshStandardMaterial({color:PALETTE.base,emissive:EXTRACT_COLOR,emissiveIntensity:0,roughness:.5});
+    const gate=new THREE.Mesh(cube,material);gate.scale.set(2,.85,.22);gate.position.set(point.x,.55,point.z);group.add(gate);
+    let kit=null;
+    if(K){gate.scale.set(1.6,.04,.04);gate.position.y=.02;kit={};
+      for(const k of ['extract_hatch_locked','extract_hatch_open']){kit[k]=kitGroup(K[k],{sx:.9,sy:.7,sz:.9});kit[k].position.set(point.x,0,point.z);kit[k].visible=k.endsWith('locked');group.add(kit[k]);}}
+    else for(const sign of [-1,1])box(point.x+sign*1.1,.7,point.z,.15,1.4,.3,'#88969b');
+    const light=Q.lights>0?new THREE.PointLight(EXTRACT_COLOR,0,level.depth?10:7,2):null;
+    if(light){light.position.set(point.x,1.6,point.z);group.add(light);}
+    return {point,gate,kit,light,material};
+  });
+  const gate=extractHatches[0].gate,exitKit=extractHatches[0].kit,exitLight=extractHatches[0].light;
   let vfxDisposed=false;
   function setExit(open){
     const justOpened=open&&!exitOpen;exitOpen=open;
-    gate.visible=!open;if(exitKit){exitKit.extract_hatch_locked.visible=!open;exitKit.extract_hatch_open.visible=open;}
-    exitMaterial.color.set(open?EXTRACT_COLOR:PALETTE.base);exitMaterial.emissiveIntensity=open?1:0;
-    if(exitLight)exitLight.intensity=open?14:0;
+    const current=level.depth?level.exit:exit;
+    for(const h of extractHatches){
+      const thisOpen=open&&sameExtract(h.point,current);
+      h.gate.visible=!thisOpen;if(h.kit){h.kit.extract_hatch_locked.visible=!thisOpen;h.kit.extract_hatch_open.visible=thisOpen;}
+      h.material.color.set(thisOpen?EXTRACT_COLOR:PALETTE.base);h.material.emissiveIntensity=thisOpen?1:0;
+      if(h.light)h.light.intensity=thisOpen?(level.depth?22:14):0;
+    }
     // Activation stays on the existing audio edge; the beam supplies the world cue.
     return justOpened;
   }
@@ -306,7 +319,7 @@ export function buildWorld(level,scene,{quality='high',town=null,pine=null,bunke
   function updateVfx(time,dt,playerPos,round){
     if(vfxDisposed)return;
     for(const record of extractionEffects){
-      const point=record.point,open=level.big&&round?extractAvailable(point,round):exitOpen;
+      const point=record.point,open=level.big&&round?extractAvailable(point,round):level.depth&&round?depthExtractOpen(point,round):exitOpen;
       const distance=playerPos?Math.hypot(playerPos.x-point.x,playerPos.z-point.z):Infinity;
       const progress=open?Math.max(0,Math.min(1,1-distance/(point.r+3))):0;
       record.fx.update(time,open,progress);

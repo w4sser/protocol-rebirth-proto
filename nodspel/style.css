@@ -368,6 +368,10 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .alarm-banner span{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ad-danger)}
 .hunter-arrow{position:fixed;width:26px;height:26px;z-index:8;pointer-events:none;color:var(--ad-danger);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--ad-danger) 60%,transparent))}
 .hunter-arrow .pr-ic{width:100%;height:100%}
+/* Depth Raid v2.28.61: screen-edge arrow to the CURRENT area's open extract hatch. */
+.depth-extract-guide{position:fixed;width:32px;height:32px;z-index:18;pointer-events:none;color:var(--ad-cyan);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--ad-cyan) 70%,transparent))}
+.depth-extract-guide .pr-ic{width:100%;height:100%}
+.depth-extract-guide[hidden]{display:none}
 @media(max-height:500px){.alarm-banner{top:max(104px,0px);padding:6px 14px}.alarm-banner b{font-size:14px}.alarm-banner span{font-size:10px}}
 
 /* Own the touch gesture so Safari does not turn a HUD tap into pan/zoom. */
@@ -408,7 +412,7 @@ body:has(#round-over:not([hidden])) :is(.area-notice,#kit-toast,#bag-toast,#gear
 .pause-settings{display:flex;flex-direction:column;flex:1;min-width:0;height:100%}
 .pause-settings .audio-menu-body{flex:1;min-height:0;overscroll-behavior:contain}
 .pause-settings .raid-settings-actions{flex-shrink:0;flex-wrap:nowrap;margin-top:8px;padding-top:8px}
-body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
+body.raid-paused :is(.hud,.bag-panel,.controls,.level-corner,#dash,#bit-distract,#tool-btn,#use-kit,#ammo-hud,#weapon-name,#player-health,#player-shield,#world-labels,#alarm-banner,#hunter-arrow,#depth-extract-guide,.area-notice,#encounter-hint,.pickup-toast){visibility:hidden}
 #big-level-minimap{color:var(--ad-cyan);width:100%}
 /* The lower centre lane is clear of the timer and both sticks. */
 #extract-toast{top:auto;bottom:calc(18px + var(--sb,0px));width:min(240px,calc(100vw - var(--sl,0px) - var(--sr,0px) - 280px));white-space:normal;text-align:center;font-size:10px;padding:4px 8px}
