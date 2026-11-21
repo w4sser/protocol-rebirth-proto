@@ -76,7 +76,8 @@ try{
       if(!idle.canvas||!run.canvas)failures.push(tag+': game canvas missing');
       if(Math.abs((idle.visualScale||0)-1.485)>.001 ||
          Math.abs((idle.visualHeight||0)-2.6433)>.01 ||
-         idle.scaleVariantPercent!==135||idle.rimStrength!==.32)
+         idle.scaleVariantPercent!==135||idle.rimStrength!==.32||
+         idle.fillStrength!==(quality==='low'?.30:.18))
         failures.push(tag+': OP01 default 135% silhouette and neutral rim are not applied');
       if(!['run','back'].includes(run.lower))failures.push(tag+': running animation missing ('+run.lower+')');
       if(aim.upper!=='aim')failures.push(tag+': aiming animation missing ('+aim.upper+')');
